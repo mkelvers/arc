@@ -464,6 +464,10 @@ const initPlayer = (): void => {
     const bounds = timelineBounds()
     if (bounds.duration <= 0) return
 
+    // Don't save if we are at the very beginning (unless explicit reset)
+    // This prevents accidental progress saves when a video just started loading
+    if (video.currentTime < 1) return
+
     const episodeNumber = Number.parseInt(currentEpisode, 10)
     if (!Number.isInteger(episodeNumber) || episodeNumber <= 0) return
 
@@ -522,6 +526,12 @@ const initPlayer = (): void => {
   const markEpisodeTransition = (episodeNumber: number): void => {
     if (!Number.isInteger(malID) || malID <= 0) return
     if (!Number.isInteger(episodeNumber) || episodeNumber <= 0) return
+
+    // Explicitly clear progress save timer when transitioning
+    if (progressSaveTimer !== undefined) {
+      window.clearTimeout(progressSaveTimer)
+      progressSaveTimer = undefined
+    }
 
     transitionEpisode = episodeNumber
     const payload = buildWatchProgressPayload(episodeNumber, 0)
