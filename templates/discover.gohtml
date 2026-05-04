@@ -56,9 +56,9 @@
       <h2 class="text-xl font-semibold text-white">Trending This Season</h2>
       <a href="/browse?order_by=popularity&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
-    <div class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
       {{range $i, $anime := .Trending}}
-        <div class="w-40 shrink-0 snap-start sm:w-48 md:w-56">
+        <div>
           {{template "anime_card" dict "Anime" $anime "WithActions" true "IsWatchlist" (index $.WatchlistMap $anime.MalID)}}
         </div>
       {{end}}
@@ -70,9 +70,9 @@
       <h2 class="text-xl font-semibold text-white">Highly Anticipated</h2>
       <a href="/browse?status=upcoming&order_by=members&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
-    <div class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
       {{range $i, $anime := .Upcoming}}
-        <div class="w-40 shrink-0 snap-start sm:w-48 md:w-56">
+        <div>
           {{template "anime_card" dict "Anime" $anime "WithActions" true "IsWatchlist" (index $.WatchlistMap $anime.MalID)}}
         </div>
       {{end}}
@@ -84,9 +84,9 @@
       <h2 class="text-xl font-semibold text-white">All-Time Greats</h2>
       <a href="/browse?order_by=score&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
-    <div class="scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
       {{range $i, $anime := .Top}}
-        <div class="w-40 shrink-0 snap-start sm:w-48 md:w-56">
+        <div>
           {{template "anime_card" dict "Anime" $anime "WithActions" true "IsWatchlist" (index $.WatchlistMap $anime.MalID)}}
         </div>
       {{end}}
@@ -94,13 +94,5 @@
   </section>
 </div>
 
-<style>
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-</style>
+
 {{end}}
