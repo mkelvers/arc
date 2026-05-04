@@ -1,18 +1,23 @@
 package anime
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"html"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"mal/integrations/jikan"
 	ctxpkg "mal/internal/context"
 	"mal/internal/db"
 	"mal/internal/middleware"
 	"mal/templates"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type Handler struct {
@@ -60,17 +65,49 @@ func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	animes, err := h.jikanClient.GetTopAnime(r.Context(), 1)
-	if err != nil {
-		log.Printf("top anime error: %v", err)
-		http.Error(w, "Failed to fetch anime", http.StatusInternalServerError)
-		return
+	var (
+		animes          jikan.TopAnimeResult
+		currentlyAiring jikan.TopAnimeResult
+		cw              []database.GetContinueWatchingEntriesRow
+		watchlist       []database.GetUserWatchListRow
+	)
+
+	g, gCtx := errgroup.WithContext(r.Context())
+
+	g.Go(func() error {
+		var err error
+		animes, err = h.jikanClient.GetTopAnime(gCtx, 1)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		currentlyAiring, err = h.jikanClient.GetSeasonsNow(gCtx, 1)
+		if err != nil {
+			log.Printf("seasons now error: %v", err)
+			return nil // non-fatal
+		}
+		return nil
+	})
+
+	user := middleware.GetUser(r.Context())
+	if user != nil {
+		g.Go(func() error {
+			var err error
+			cw, err = h.db.GetContinueWatchingEntries(gCtx, user.ID)
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			watchlist, err = h.db.GetUserWatchList(gCtx, user.ID)
+			return err
+		})
 	}
 
-	currentlyAiring, err := h.jikanClient.GetSeasonsNow(r.Context(), 1)
-	if err != nil {
-		log.Printf("seasons now error: %v", err)
-		// non-fatal
+	if err := g.Wait(); err != nil {
+		log.Printf("catalog fetch error: %v", err)
+		http.Error(w, "Failed to fetch catalog data", http.StatusInternalServerError)
+		return
 	}
 
 	if len(animes.Animes) > 6 {
@@ -80,22 +117,11 @@ func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		currentlyAiring.Animes = currentlyAiring.Animes[:6]
 	}
 
-	// Fetch continue watching if logged in (user ID in context, handle this safely)
-	// We'll skip DB fetch for continue watching for now if it requires complex session parsing
-	// Actually we should try to fetch it if we can.
-	var cw []database.GetContinueWatchingEntriesRow
 	watchlistMap := make(map[int64]bool)
-	var watchlistIDs []int64
-	user := middleware.GetUser(r.Context())
-	userOk := user != nil
-	if userOk {
-		cw, _ = h.db.GetContinueWatchingEntries(r.Context(), user.ID)
-		watchlist, _ := h.db.GetUserWatchList(r.Context(), user.ID)
-		watchlistIDs = make([]int64, len(watchlist))
-		for i, entry := range watchlist {
-			watchlistMap[entry.AnimeID] = true
-			watchlistIDs[i] = entry.AnimeID
-		}
+	watchlistIDs := make([]int64, len(watchlist))
+	for i, entry := range watchlist {
+		watchlistMap[entry.AnimeID] = true
+		watchlistIDs[i] = entry.AnimeID
 	}
 
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "index.gohtml", map[string]any{
@@ -135,22 +161,28 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		page = 1
 	}
 
-	res, err := h.jikanClient.SearchAdvanced(r.Context(), q, animeType, status, orderBy, sort, genres, page, 24)
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+
+	res, err := h.jikanClient.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, page, 24)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
 		log.Printf("browse error: %v", err)
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
 		watchlistMap := make(map[int]bool)
 		if user != nil {
-			watchlist, _ := h.db.GetUserWatchList(r.Context(), user.ID)
+			watchlist, _ := h.db.GetUserWatchList(ctx, user.ID)
 			for _, entry := range watchlist {
 				watchlistMap[int(entry.AnimeID)] = true
 			}
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		err := templates.GetRenderer().ExecuteFragment(r.Context(), w, "browse.gohtml", "anime_card_scroll", map[string]any{
+		err := templates.GetRenderer().ExecuteFragment(ctx, w, "browse.gohtml", "anime_card_scroll", map[string]any{
 			"Animes":       res.Animes,
 			"NextPage":     page + 1,
 			"HasNextPage":  res.HasNextPage,
@@ -163,20 +195,24 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 			"WatchlistMap": watchlistMap,
 		})
 		if err != nil {
-			log.Printf("fragment render error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("fragment render error: %v", err)
+			}
 		}
 		return
 	}
 
-	genresList, err := h.jikanClient.GetAnimeGenres(r.Context())
+	genresList, err := h.jikanClient.GetAnimeGenres(ctx)
 	if err != nil {
-		log.Printf("genres error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("genres error: %v", err)
+		}
 	}
 
 	watchlistMap := make(map[int]bool)
 	var watchlistIDs []int64
 	if user != nil {
-		watchlist, _ := h.db.GetUserWatchList(r.Context(), user.ID)
+		watchlist, _ := h.db.GetUserWatchList(ctx, user.ID)
 		watchlistIDs = make([]int64, len(watchlist))
 		for i, entry := range watchlist {
 			watchlistMap[int(entry.AnimeID)] = true
@@ -184,7 +220,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "browse.gohtml", map[string]any{
+	if err := templates.GetRenderer().ExecuteTemplate(ctx, w, "browse.gohtml", map[string]any{
 		"User":         user,
 		"CurrentPath":  r.URL.Path,
 		"Query":        q,
@@ -200,8 +236,10 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		"WatchlistMap": watchlistMap,
 		"WatchlistIDs": watchlistIDs,
 	}); err != nil {
-		log.Printf("render error: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -329,20 +367,52 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleDiscover(w http.ResponseWriter, r *http.Request) {
-	trending, err := h.jikanClient.GetSeasonsNow(r.Context(), 1)
-	if err != nil {
-		log.Printf("seasons now error: %v", err)
+	var (
+		trending  jikan.TopAnimeResult
+		upcoming  jikan.TopAnimeResult
+		top       jikan.TopAnimeResult
+		watchlist []database.GetUserWatchListRow
+	)
+
+	g, gCtx := errgroup.WithContext(r.Context())
+
+	g.Go(func() error {
+		var err error
+		trending, err = h.jikanClient.GetSeasonsNow(gCtx, 1)
+		if err != nil {
+			log.Printf("seasons now error: %v", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		upcoming, err = h.jikanClient.GetSeasonsUpcoming(gCtx, 1)
+		if err != nil {
+			log.Printf("seasons upcoming error: %v", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		top, err = h.jikanClient.GetTopAnime(gCtx, 1)
+		if err != nil {
+			log.Printf("top anime error: %v", err)
+		}
+		return nil
+	})
+
+	user, _ := r.Context().Value(ctxpkg.UserKey).(*database.User)
+	if user != nil {
+		g.Go(func() error {
+			var err error
+			watchlist, err = h.db.GetUserWatchList(gCtx, user.ID)
+			return err
+		})
 	}
 
-	upcoming, err := h.jikanClient.GetSeasonsUpcoming(r.Context(), 1)
-	if err != nil {
-		log.Printf("seasons upcoming error: %v", err)
-	}
-
-	top, err := h.jikanClient.GetTopAnime(r.Context(), 1)
-	if err != nil {
-		log.Printf("top anime error: %v", err)
-	}
+	g.Wait()
 
 	seen := make(map[int]bool)
 	uniqueTrending := make([]jikan.Anime, 0)
@@ -378,16 +448,11 @@ func (h *Handler) HandleDiscover(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	user, _ := r.Context().Value(ctxpkg.UserKey).(*database.User)
 	watchlistMap := make(map[int64]bool)
-	var watchlistIDs []int64
-	if user != nil {
-		watchlist, _ := h.db.GetUserWatchList(r.Context(), user.ID)
-		watchlistIDs = make([]int64, len(watchlist))
-		for i, entry := range watchlist {
-			watchlistMap[entry.AnimeID] = true
-			watchlistIDs[i] = entry.AnimeID
-		}
+	watchlistIDs := make([]int64, len(watchlist))
+	for i, entry := range watchlist {
+		watchlistMap[entry.AnimeID] = true
+		watchlistIDs[i] = entry.AnimeID
 	}
 
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "discover.gohtml", map[string]any{

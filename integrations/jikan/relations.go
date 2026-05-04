@@ -5,10 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
 	"mal/integrations/watchorder"
+
+	"golang.org/x/sync/errgroup"
 )
 
 const chiakiWatchOrderURL = "https://chiaki.site/?/tools/watch_order/id/%d"
@@ -96,40 +99,74 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 		return c.currentOnlyRelation(ctx, id)
 	}
 
-	seen := make(map[int]bool)
-	relations := make([]RelationEntry, 0, len(result.WatchOrder)+1)
+	type fetchResult struct {
+		index int
+		anime Anime
+		entry watchorder.WatchOrderEntry
+	}
 
-	for _, watchOrderEntry := range result.WatchOrder {
-		if len(relations) >= maxWatchOrderEntries {
+	var allowedEntries []watchorder.WatchOrderEntry
+	seen := make(map[int]bool)
+	for _, entry := range result.WatchOrder {
+		if len(allowedEntries) >= maxWatchOrderEntries {
 			break
 		}
-
-		if !isAllowedWatchOrderType(watchOrderEntry.Type) {
+		if !isAllowedWatchOrderType(entry.Type) || seen[entry.ID] {
 			continue
 		}
+		seen[entry.ID] = true
+		allowedEntries = append(allowedEntries, entry)
+	}
 
-		if seen[watchOrderEntry.ID] {
-			continue
-		}
+	g, gCtx := errgroup.WithContext(ctx)
+	g.SetLimit(3)
 
-		anime, err := c.GetAnimeByID(ctx, watchOrderEntry.ID)
-		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				continue
+	results := make(chan fetchResult, len(allowedEntries))
+
+	for i, entry := range allowedEntries {
+		i, entry := i, entry
+		g.Go(func() error {
+			anime, err := c.GetAnimeByID(gCtx, entry.ID)
+			if err != nil {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return nil
+				}
+				c.EnqueueAnimeFetchRetry(gCtx, entry.ID, err)
+				log.Printf("relations: skipping related anime %d for root %d: %v", entry.ID, id, err)
+				return nil
 			}
-			c.EnqueueAnimeFetchRetry(ctx, watchOrderEntry.ID, err)
-			log.Printf("relations: skipping related anime %d for root %d: %v", watchOrderEntry.ID, id, err)
-			continue
-		}
+			select {
+			case results <- fetchResult{index: i, anime: anime, entry: entry}:
+			case <-gCtx.Done():
+			}
+			return nil
+		})
+	}
 
-		seen[watchOrderEntry.ID] = true
+	go func() {
+		g.Wait()
+		close(results)
+	}()
+
+	fetched := make([]fetchResult, 0, len(allowedEntries))
+	for res := range results {
+		fetched = append(fetched, res)
+	}
+
+	// Re-sort because they might have finished out of order
+	sort.Slice(fetched, func(i, j int) bool {
+		return fetched[i].index < fetched[j].index
+	})
+
+	relations := make([]RelationEntry, 0, len(fetched)+1)
+	for _, res := range fetched {
 		relations = append(relations, RelationEntry{
-			Anime:     anime,
-			Relation:  watchOrderTypeLabel(watchOrderEntry.Type),
-			IsCurrent: watchOrderEntry.ID == id,
+			Anime:     res.anime,
+			Relation:  watchOrderTypeLabel(res.entry.Type),
+			IsCurrent: res.entry.ID == id,
 			IsExtra:   false,
 		})
-		if watchOrderEntry.ID == id {
+		if res.entry.ID == id {
 			relations[len(relations)-1].Relation = "Current"
 		}
 	}
