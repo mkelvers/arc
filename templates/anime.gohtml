@@ -29,8 +29,8 @@
 
       <div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-400">
         {{if $anime.Score}}
-          <div class="flex items-center gap-1.5 font-medium text-yellow-500/90">
-            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <div class="flex items-center gap-1.5 font-medium text-white">
+            <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             {{$anime.Score}}
           </div>
         {{end}}
@@ -38,15 +38,15 @@
         {{if $anime.Episodes}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Episodes}} episodes</span>{{end}}
         {{if $anime.Status}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Status}}</span>{{end}}
         {{if $anime.Season}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Premiered}}</span>{{end}}
-        {{if $anime.ShortRating}}<span class="ml-auto rounded border border-neutral-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-neutral-500">{{$anime.ShortRating}}</span>{{end}}
+        {{if $anime.ShortRating}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.ShortRating}}</span>{{end}}
       </div>
 
       {{template "watchlist_actions" dict "Anime" $anime "User" .User "Status" .Status}}
 
-      <div class="mt-8 flex flex-col gap-10 lg:flex-row">
+      <div class="mt-8 flex flex-col gap-12 lg:flex-row">
         <div class="grow lg:max-w-3xl">
           <section>
-            <h2 class="mb-3 text-sm font-normal text-neutral-400 uppercase tracking-widest">Synopsis</h2>
+            <h2 class="mb-4 text-xs font-normal text-neutral-500 uppercase tracking-widest">Synopsis</h2>
             <p id="synopsis-container" class="text-neutral-300 text-base leading-relaxed whitespace-pre-line line-clamp-6 md:line-clamp-none">
               {{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}
             </p>
@@ -70,16 +70,16 @@
           {{if $anime.Genres}}
             <div class="mt-8 flex flex-wrap gap-2">
               {{range $anime.Genres}}
-                <span class="rounded-full bg-neutral-900 px-3 py-1 text-xs font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:text-neutral-300 hover:ring-white/10">{{.Name}}</span>
+                <span class="bg-neutral-900 px-3 py-1 text-xs font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:text-neutral-300 hover:ring-white/10">{{.Name}}</span>
               {{end}}
             </div>
           {{end}}
         </div>
 
-        <aside class="flex shrink-0 flex-col gap-8 lg:w-72">
+        <aside class="flex shrink-0 flex-col gap-10 lg:w-64">
           <section>
-            <h3 class="mb-4 text-xs font-normal uppercase tracking-widest text-neutral-500">Information</h3>
-            <div class="flex flex-col gap-4 text-sm">
+            <h3 class="mb-6 text-xs font-normal uppercase tracking-widest text-neutral-500">Information</h3>
+            <div class="flex flex-col gap-6 text-sm">
               {{if $anime.Studios}}
                 <div>
                   <dt class="mb-1 text-[11px] font-normal uppercase tracking-wider text-neutral-500">Studios</dt>
@@ -92,24 +92,22 @@
                   <dd class="text-neutral-400 text-xs leading-relaxed">{{range $i, $p := $anime.Producers}}{{if $i}}, {{end}}{{$p.Name}}{{end}}</dd>
                 </div>
               {{end}}
-              <div class="grid grid-cols-2 gap-4">
-                {{if $anime.Duration}}
-                  <div>
-                    <dt class="mb-1 text-[11px] font-normal uppercase tracking-wider text-neutral-500">Duration</dt>
-                    <dd class="text-neutral-300">{{$anime.Duration}}</dd>
-                  </div>
-                {{end}}
-                {{if $anime.Rank}}
-                  <div>
-                    <dt class="mb-1 text-[11px] font-normal uppercase tracking-wider text-neutral-500">Rank</dt>
-                    <dd class="text-neutral-300">#{{$anime.Rank}}</dd>
-                  </div>
-                {{end}}
-              </div>
-              {{if $anime.ScoredBy}}
+              {{if $anime.Duration}}
+                <div>
+                  <dt class="mb-1 text-[11px] font-normal uppercase tracking-wider text-neutral-500">Duration</dt>
+                  <dd class="text-neutral-300">{{$anime.Duration}}</dd>
+                </div>
+              {{end}}
+              {{if $anime.Rank}}
+                <div>
+                  <dt class="mb-1 text-[11px] font-normal uppercase tracking-wider text-neutral-500">Rank</dt>
+                  <dd class="text-neutral-300">#{{$anime.Rank}}</dd>
+                </div>
+              {{end}}
+              {{if $anime.ScoredByFormatted}}
                 <div>
                   <dt class="mb-1 text-[11px] font-normal uppercase tracking-wider text-neutral-500">Scored By</dt>
-                  <dd class="text-neutral-300">{{$anime.ScoredBy}} users</dd>
+                  <dd class="text-neutral-300">{{$anime.ScoredByFormatted}} users</dd>
                 </div>
               {{end}}
             </div>

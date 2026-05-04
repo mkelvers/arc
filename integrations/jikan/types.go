@@ -84,6 +84,22 @@ type Anime struct {
 	} `json:"external"`
 }
 
+func (a Anime) ScoredByFormatted() string {
+	if a.ScoredBy == 0 {
+		return ""
+	}
+	s := fmt.Sprintf("%d", a.ScoredBy)
+	var res []string
+	for i := len(s); i > 0; i -= 3 {
+		start := i - 3
+		if start < 0 {
+			start = 0
+		}
+		res = append([]string{s[start:i]}, res...)
+	}
+	return strings.Join(res, " ")
+}
+
 func (a Anime) ImageURL() string {
 	return a.Images.Webp.LargeImageURL
 }
