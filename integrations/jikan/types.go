@@ -128,8 +128,8 @@ type CharacterEntry struct {
 		} `json:"images"`
 		Name string `json:"name"`
 	} `json:"character"`
-	Role         string                `json:"role"`
-	VoiceActors  []CharacterVoiceActor `json:"voice_actors"`
+	Role        string                `json:"role"`
+	VoiceActors []CharacterVoiceActor `json:"voice_actors"`
 }
 
 type CharactersResponse struct {
