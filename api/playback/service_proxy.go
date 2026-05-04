@@ -4,29 +4,54 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (s *Service) ProxyStream(ctx context.Context, targetURL string, referer string, rangeHeader string) (int, http.Header, []byte, io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
-	if err != nil {
-		return 0, nil, nil, nil, fmt.Errorf("invalid upstream url: %w", err)
+	const maxRetries = 2
+	const retryDelay = 500 * time.Millisecond
+
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return 0, nil, nil, nil, ctx.Err()
+			case <-time.After(retryDelay):
+			}
+			log.Printf("retrying proxy request for %s (attempt %d/%d)", targetURL, attempt, maxRetries)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+		if err != nil {
+			return 0, nil, nil, nil, fmt.Errorf("invalid upstream url: %w", err)
+		}
+
+		if referer != "" {
+			req.Header.Set("Referer", referer)
+		}
+		req.Header.Set("User-Agent", defaultUserAgent)
+		if rangeHeader != "" {
+			req.Header.Set("Range", rangeHeader)
+		}
+
+		resp, err := s.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+
+		return s.handleProxyResponse(ctx, resp, targetURL, referer, rangeHeader)
 	}
 
-	if referer != "" {
-		req.Header.Set("Referer", referer)
-	}
-	req.Header.Set("User-Agent", defaultUserAgent)
-	if rangeHeader != "" {
-		req.Header.Set("Range", rangeHeader)
-	}
+	return 0, nil, nil, nil, fmt.Errorf("upstream request failed after %d retries: %w", maxRetries+1, lastErr)
+}
 
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return 0, nil, nil, nil, fmt.Errorf("upstream request failed: %w", err)
-	}
+func (s *Service) handleProxyResponse(ctx context.Context, resp *http.Response, targetURL string, referer string, rangeHeader string) (int, http.Header, []byte, io.ReadCloser, error) {
 
 	if isM3U8(targetURL, resp.Header.Get("Content-Type")) {
 		defer resp.Body.Close()
