@@ -65,6 +65,9 @@ type Anime struct {
 	Producers    []NamedEntity `json:"producers"`
 	Themes       []NamedEntity `json:"themes"`
 	Source       string        `json:"source"`
+	Background   string        `json:"background"`
+	Favorites    int           `json:"favorites"`
+	Members      int           `json:"members"`
 	Demographics []NamedEntity `json:"demographics"`
 	Licensors    []NamedEntity `json:"licensors"`
 	Broadcast    struct {
@@ -85,10 +88,22 @@ type Anime struct {
 }
 
 func (a Anime) ScoredByFormatted() string {
-	if a.ScoredBy == 0 {
+	return formatNumber(a.ScoredBy)
+}
+
+func (a Anime) MembersFormatted() string {
+	return formatNumber(a.Members)
+}
+
+func (a Anime) FavoritesFormatted() string {
+	return formatNumber(a.Favorites)
+}
+
+func formatNumber(n int) string {
+	if n == 0 {
 		return ""
 	}
-	s := fmt.Sprintf("%d", a.ScoredBy)
+	s := fmt.Sprintf("%d", n)
 	var res []string
 	for i := len(s); i > 0; i -= 3 {
 		start := i - 3
