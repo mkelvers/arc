@@ -76,6 +76,18 @@ type Anime struct {
 		Timezone string `json:"timezone"`
 		String   string `json:"string"`
 	} `json:"broadcast"`
+	Trailer struct {
+		YoutubeID string `json:"youtube_id"`
+		URL       string `json:"url"`
+		EmbedURL  string `json:"embed_url"`
+		Images    struct {
+			ImageURL        string `json:"image_url"`
+			SmallImageURL   string `json:"small_image_url"`
+			MediumImageURL  string `json:"medium_image_url"`
+			LargeImageURL   string `json:"large_image_url"`
+			MaximumImageURL string `json:"maximum_image_url"`
+		} `json:"images"`
+	} `json:"trailer"`
 	Streaming []struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
@@ -85,6 +97,62 @@ type Anime struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"external"`
+}
+
+type CharacterVoiceActor struct {
+	Person struct {
+		MalID  int    `json:"mal_id"`
+		URL    string `json:"url"`
+		Images struct {
+			Jpg struct {
+				ImageURL string `json:"image_url"`
+			} `json:"jpg"`
+		} `json:"images"`
+		Name string `json:"name"`
+	} `json:"person"`
+	Language string `json:"language"`
+}
+
+type CharacterEntry struct {
+	Character struct {
+		MalID  int    `json:"mal_id"`
+		URL    string `json:"url"`
+		Images struct {
+			Jpg struct {
+				ImageURL string `json:"image_url"`
+			} `json:"jpg"`
+			Webp struct {
+				ImageURL      string `json:"image_url"`
+				SmallImageURL string `json:"small_image_url"`
+			} `json:"webp"`
+		} `json:"images"`
+		Name string `json:"name"`
+	} `json:"character"`
+	Role         string                `json:"role"`
+	VoiceActors  []CharacterVoiceActor `json:"voice_actors"`
+}
+
+type CharactersResponse struct {
+	Data []CharacterEntry `json:"data"`
+}
+
+type RecommendationEntry struct {
+	Entry struct {
+		MalID  int    `json:"mal_id"`
+		URL    string `json:"url"`
+		Images struct {
+			Webp struct {
+				LargeImageURL string `json:"large_image_url"`
+			} `json:"webp"`
+		} `json:"images"`
+		Title string `json:"title"`
+	} `json:"entry"`
+	URL   string `json:"url"`
+	Votes int    `json:"votes"`
+}
+
+type RecommendationsResponse struct {
+	Data []RecommendationEntry `json:"data"`
 }
 
 func (a Anime) ScoredByFormatted() string {

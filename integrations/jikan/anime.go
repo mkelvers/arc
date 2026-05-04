@@ -6,6 +6,30 @@ import (
 	"time"
 )
 
+func (c *Client) GetAnimeCharacters(ctx context.Context, id int) ([]CharacterEntry, error) {
+	url := fmt.Sprintf("%s/anime/%d/characters", c.baseURL, id)
+	cacheKey := fmt.Sprintf("anime:characters:%d", id)
+
+	var resp CharactersResponse
+	if err := c.getWithCache(ctx, cacheKey, 24*time.Hour, url, &resp); err != nil {
+		return nil, err
+	}
+
+	return resp.Data, nil
+}
+
+func (c *Client) GetAnimeRecommendations(ctx context.Context, id int) ([]RecommendationEntry, error) {
+	url := fmt.Sprintf("%s/anime/%d/recommendations", c.baseURL, id)
+	cacheKey := fmt.Sprintf("anime:recommendations:%d", id)
+
+	var resp RecommendationsResponse
+	if err := c.getWithCache(ctx, cacheKey, 24*time.Hour, url, &resp); err != nil {
+		return nil, err
+	}
+
+	return resp.Data, nil
+}
+
 func (c *Client) GetAnimeByID(ctx context.Context, id int) (Anime, error) {
 	cacheKey := fmt.Sprintf("anime:%d", id)
 

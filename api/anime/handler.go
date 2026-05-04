@@ -264,37 +264,78 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	anime, err := h.jikanClient.GetAnimeByID(r.Context(), id)
-	if err != nil {
+	var (
+		anime           jikan.Anime
+		characters      []jikan.CharacterEntry
+		recommendations []jikan.RecommendationEntry
+		watchlist       []database.GetUserWatchListRow
+		status          string
+	)
+
+	g, gCtx := errgroup.WithContext(r.Context())
+
+	g.Go(func() error {
+		var err error
+		anime, err = h.jikanClient.GetAnimeByID(gCtx, id)
+		return err
+	})
+
+	g.Go(func() error {
+		var err error
+		characters, err = h.jikanClient.GetAnimeCharacters(gCtx, id)
+		if err != nil {
+			log.Printf("characters fetch error: %v", err)
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		recommendations, err = h.jikanClient.GetAnimeRecommendations(gCtx, id)
+		if err != nil {
+			log.Printf("recommendations fetch error: %v", err)
+		}
+		return nil
+	})
+
+	user := middleware.GetUser(r.Context())
+	if user != nil {
+		g.Go(func() error {
+			entry, err := h.db.GetWatchListEntry(gCtx, database.GetWatchListEntryParams{
+				UserID:  user.ID,
+				AnimeID: int64(id),
+			})
+			if err == nil {
+				status = entry.Status
+			}
+			return nil
+		})
+		g.Go(func() error {
+			var err error
+			watchlist, err = h.db.GetUserWatchList(gCtx, user.ID)
+			return err
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		log.Printf("anime details fetch error: %v", err)
 		renderNotFoundPage(r, w)
 		return
 	}
 
-	user := middleware.GetUser(r.Context())
-
-	var status string
-	var watchlistIDs []int64
-	if user != nil {
-		entry, err := h.db.GetWatchListEntry(r.Context(), database.GetWatchListEntryParams{
-			UserID:  user.ID,
-			AnimeID: int64(id),
-		})
-		if err == nil {
-			status = entry.Status
-		}
-		watchlist, _ := h.db.GetUserWatchList(r.Context(), user.ID)
-		watchlistIDs = make([]int64, len(watchlist))
-		for i, e := range watchlist {
-			watchlistIDs[i] = e.AnimeID
-		}
+	watchlistIDs := make([]int64, len(watchlist))
+	for i, e := range watchlist {
+		watchlistIDs[i] = e.AnimeID
 	}
 
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "anime.gohtml", map[string]any{
-		"Anime":        anime,
-		"User":         user,
-		"Status":       status,
-		"CurrentPath":  r.URL.Path,
-		"WatchlistIDs": watchlistIDs,
+		"Anime":           anime,
+		"Characters":      characters,
+		"Recommendations": recommendations,
+		"User":            user,
+		"Status":          status,
+		"CurrentPath":     r.URL.Path,
+		"WatchlistIDs":    watchlistIDs,
 	}); err != nil {
 		log.Printf("render error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
