@@ -18,37 +18,119 @@
     </div>
 
     <div class="flex grow flex-col">
-      <h1 class="mb-4 text-2xl font-bold text-white md:text-4xl">
-        {{$anime.DisplayTitle}}
-      </h1>
+      <div class="mb-4 flex flex-wrap items-center gap-2">
+        <h1 class="text-2xl font-bold text-white md:text-4xl">
+          {{$anime.DisplayTitle}}
+        </h1>
+        {{if $anime.Score}}
+          <div class="flex items-center gap-1.5 rounded-md bg-white/5 px-2.5 py-1 text-sm font-semibold text-yellow-500 ring-1 ring-white/10">
+            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            {{$anime.Score}}
+          </div>
+        {{end}}
+      </div>
 
       {{if and $anime.TitleEnglish (ne $anime.Title $anime.TitleEnglish)}}
         <h2 class="text-foreground-muted mb-4 text-base">{{$anime.Title}}</h2>
       {{end}}
 
+      <div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-400">
+        {{if $anime.Type}}<span class="font-medium text-neutral-300">{{$anime.Type}}</span>{{end}}
+        {{if $anime.Episodes}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Episodes}} eps</span>{{end}}
+        {{if $anime.Status}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Status}}</span>{{end}}
+        {{if $anime.Season}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Premiered}}</span>{{end}}
+        {{if $anime.ShortRating}}<span class="ml-auto rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">{{$anime.ShortRating}}</span>{{end}}
+      </div>
+
       {{template "watchlist_actions" dict "Anime" $anime "User" .User "Status" .Status}}
 
-      <div class="mt-4 space-y-4">
-        <div>
-          <h2 class="mb-2 text-lg font-medium text-neutral-300">Synopsis</h2>
-          <p id="synopsis-container" class="text-foreground-muted max-w-4xl text-base leading-relaxed whitespace-pre-line line-clamp-5 md:line-clamp-none">
+      <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div class="lg:col-span-2">
+          <h2 class="mb-3 text-lg font-semibold text-white">Synopsis</h2>
+          <p id="synopsis-container" class="text-foreground-muted text-base leading-relaxed whitespace-pre-line line-clamp-6 md:line-clamp-none">
             {{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}
           </p>
-          {{if and $anime.Synopsis (gt (len $anime.Synopsis) 200)}}
+          {{if and $anime.Synopsis (gt (len $anime.Synopsis) 400)}}
             <button id="synopsis-toggle" class="mt-2 text-sm font-medium text-neutral-300 transition-colors hover:text-white md:hidden" onclick="
               const container = document.getElementById('synopsis-container');
               const btn = document.getElementById('synopsis-toggle');
-              if (container.classList.contains('line-clamp-5')) {
-                container.classList.remove('line-clamp-5');
+              if (container.classList.contains('line-clamp-6')) {
+                container.classList.remove('line-clamp-6');
                 btn.textContent = 'Show less';
               } else {
-                container.classList.add('line-clamp-5');
+                container.classList.add('line-clamp-6');
                 btn.textContent = 'Read more';
               }
             ">
               Read more
             </button>
           {{end}}
+
+          {{if $anime.Genres}}
+            <div class="mt-6 flex flex-wrap gap-2">
+              {{range $anime.Genres}}
+                <span class="rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-neutral-300 ring-1 ring-white/10">{{.Name}}</span>
+              {{end}}
+            </div>
+          {{end}}
+        </div>
+
+        <div class="space-y-6 rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+          <div>
+            <h3 class="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-500">Information</h3>
+            <dl class="space-y-3 text-sm">
+              {{if $anime.Studios}}
+                <div class="flex flex-col gap-1">
+                  <dt class="text-neutral-500">Studios</dt>
+                  <dd class="text-neutral-200">{{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</dd>
+                </div>
+              {{end}}
+              {{if $anime.Producers}}
+                <div class="flex flex-col gap-1">
+                  <dt class="text-neutral-500">Producers</dt>
+                  <dd class="text-neutral-200 text-xs leading-relaxed">{{range $i, $p := $anime.Producers}}{{if $i}}, {{end}}{{$p.Name}}{{end}}</dd>
+                </div>
+              {{end}}
+              {{if $anime.Licensors}}
+                <div class="flex flex-col gap-1">
+                  <dt class="text-neutral-500">Licensors</dt>
+                  <dd class="text-neutral-200">{{range $i, $l := $anime.Licensors}}{{if $i}}, {{end}}{{$l.Name}}{{end}}</dd>
+                </div>
+              {{end}}
+              <div class="grid grid-cols-2 gap-4">
+                {{if $anime.Duration}}
+                  <div class="flex flex-col gap-1">
+                    <dt class="text-neutral-500">Duration</dt>
+                    <dd class="text-neutral-200">{{$anime.Duration}}</dd>
+                  </div>
+                {{end}}
+                {{if $anime.Rank}}
+                  <div class="flex flex-col gap-1">
+                    <dt class="text-neutral-500">Rank</dt>
+                    <dd class="text-neutral-200">#{{$anime.Rank}}</dd>
+                  </div>
+                {{end}}
+              </div>
+              {{if $anime.Popularity}}
+                <div class="flex flex-col gap-1">
+                  <dt class="text-neutral-500">Popularity</dt>
+                  <dd class="text-neutral-200">#{{$anime.Popularity}}</dd>
+                </div>
+              {{end}}
+              {{if $anime.ScoredBy}}
+                <div class="flex flex-col gap-1">
+                  <dt class="text-neutral-500">Scored By</dt>
+                  <dd class="text-neutral-200">{{$anime.ScoredBy}} users</dd>
+                </div>
+              {{end}}
+              {{if $anime.Demographics}}
+                <div class="flex flex-col gap-1">
+                  <dt class="text-neutral-500">Demographics</dt>
+                  <dd class="text-neutral-200">{{range $i, $d := $anime.Demographics}}{{if $i}}, {{end}}{{$d.Name}}{{end}}</dd>
+                </div>
+              {{end}}
+            </dl>
+          </div>
         </div>
       </div>
     </div>

@@ -58,6 +58,7 @@ type Anime struct {
 	Type         string        `json:"type"`
 	Rating       string        `json:"rating"`
 	Duration     string        `json:"duration"`
+	ScoredBy     int           `json:"scored_by"`
 	Aired        Aired         `json:"aired"`
 	Genres       []NamedEntity `json:"genres"`
 	Studios      []NamedEntity `json:"studios"`
@@ -65,6 +66,7 @@ type Anime struct {
 	Themes       []NamedEntity `json:"themes"`
 	Source       string        `json:"source"`
 	Demographics []NamedEntity `json:"demographics"`
+	Licensors    []NamedEntity `json:"licensors"`
 	Broadcast    struct {
 		Day      string `json:"day"`
 		Time     string `json:"time"`
