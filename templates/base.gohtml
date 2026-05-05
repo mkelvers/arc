@@ -34,7 +34,18 @@
   <script type="module" src="/dist/static/search.js" defer></script>
   <script type="module" src="/dist/static/sort_filter.js" defer></script>
   <script type="module" src="/dist/static/dedupe.js" defer></script>
+  <script type="module" src="/dist/static/toast.js" defer></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script>
+    document.addEventListener('htmx:afterSwap', function(evt) {
+      if (evt.detail.target.classList.contains('error')) {
+        if (window.showToast) showToast({ message: 'Failed to load content' });
+      }
+    });
+    document.addEventListener('htmx:responseError', function(evt) {
+      if (window.showToast) showToast({ message: 'Something went wrong' });
+    });
+  </script>
   <script>
     // Initialize sidebar state immediately to prevent layout shift/transitions
     (function() {
@@ -97,6 +108,7 @@
             watchlistIds.delete(id)
             btn.classList.remove('in-watchlist')
             btn.setAttribute('aria-label', 'Add to Watchlist')
+            if (window.showToast) showToast({ message: 'Removed from watchlist' })
             
             // Update dropdown status if on anime page
             syncWatchlistDropdown(id, false)
@@ -104,6 +116,7 @@
             watchlistIds.add(id)
             btn.classList.add('in-watchlist')
             btn.setAttribute('aria-label', 'Remove from Watchlist')
+            if (window.showToast) showToast({ message: 'Added to watchlist' })
             
             // Update dropdown status if on anime page
             syncWatchlistDropdown(id, true)
@@ -123,7 +136,11 @@
               }
             }
           })
+        } else {
+          if (window.showToast) showToast({ message: 'Failed to update watchlist' })
         }
+      }).catch(() => {
+if (window.showToast) showToast({ message: 'Something went wrong' })
       })
     }
 
