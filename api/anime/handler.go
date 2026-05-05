@@ -41,7 +41,7 @@ func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := middleware.GetUser(r.Context())
-	
+
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "index.gohtml", map[string]any{
 		"User":        user,
 		"CurrentPath": r.URL.Path,
@@ -89,7 +89,7 @@ func (h *Handler) renderCatalogSection(w http.ResponseWriter, r *http.Request, s
 
 func (h *Handler) HandleDiscover(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
-	
+
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "discover.gohtml", map[string]any{
 		"User":        user,
 		"CurrentPath": r.URL.Path,
