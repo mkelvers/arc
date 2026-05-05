@@ -23,7 +23,7 @@
     {{if $withActions}}
       <div class="absolute inset-0 z-10 flex flex-col p-3 {{if $hasTopBadge}}pt-10{{end}} opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         {{if not $isWatchlist}}
-          <h3 class="mb-1.5 line-clamp-2 text-sm font-medium text-white shadow-black drop-shadow-md">
+          <h3 class="mb-1.5 line-clamp-2 text-base font-semibold text-white shadow-black drop-shadow-md">
             {{$displayTitle}}
           </h3>
         {{end}}
@@ -67,7 +67,7 @@
       {{end}}
     </a>
   {{if and $withActions (not $hideTitle)}}
-    <h3 class="line-clamp-2 text-sm font-medium text-white">
+    <h3 class="line-clamp-2 text-sm font-medium text-neutral-200">
       {{$displayTitle}}
     </h3>
   {{end}}
