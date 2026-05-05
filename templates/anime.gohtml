@@ -160,7 +160,7 @@
                     <dt class="mb-1 text-xs font-normal text-neutral-500">Genres</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Genres}}
-                        <span class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5">{{.Name}}</span>
+                        <a href="/browse?genres={{.MalID}}" class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:bg-white/10 hover:text-white">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
@@ -170,7 +170,7 @@
                     <dt class="mb-1 text-xs font-normal text-neutral-500">Themes</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Themes}}
-                        <span class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5">{{.Name}}</span>
+                        <a href="/browse?genres={{.MalID}}" class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:bg-white/10 hover:text-white">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
@@ -180,7 +180,7 @@
                     <dt class="mb-1 text-xs font-normal text-neutral-500">Demographics</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Demographics}}
-                        <span class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5">{{.Name}}</span>
+                        <a href="/browse?genres={{.MalID}}" class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:bg-white/10 hover:text-white">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
