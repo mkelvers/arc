@@ -155,14 +155,12 @@ func (w *Worker) syncRelations(ctx context.Context) {
 	jobs := make(chan database.GetAnimeNeedingRelationSyncRow, len(animes))
 	var wg sync.WaitGroup
 
-	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range workerCount {
+		wg.Go(func() {
 			for a := range jobs {
 				w.syncSingleAnime(ctx, a.ID)
 			}
-		}()
+		})
 	}
 
 	for _, a := range animes {

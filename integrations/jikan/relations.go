@@ -124,7 +124,6 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 	results := make(chan fetchResult, len(allowedEntries))
 
 	for i, entry := range allowedEntries {
-		i, entry := i, entry
 		g.Go(func() error {
 			anime, err := c.GetAnimeByID(gCtx, entry.ID)
 			if err != nil {

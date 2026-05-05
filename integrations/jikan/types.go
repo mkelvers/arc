@@ -174,10 +174,7 @@ func formatNumber(n int) string {
 	s := fmt.Sprintf("%d", n)
 	var res []string
 	for i := len(s); i > 0; i -= 3 {
-		start := i - 3
-		if start < 0 {
-			start = 0
-		}
+		start := max(i-3, 0)
 		res = append([]string{s[start:i]}, res...)
 	}
 	return strings.Join(res, " ")
