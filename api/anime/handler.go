@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"mal/integrations/jikan"
-	ctxpkg "mal/internal/context"
 	"mal/internal/db"
 	"mal/internal/middleware"
 	"mal/templates"
@@ -21,8 +20,11 @@ import (
 )
 
 type Handler struct {
-	jikanClient *jikan.Client
-	db          database.Querier
+	service *Service
+}
+
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
 type quickSearchResult struct {
@@ -32,9 +34,16 @@ type quickSearchResult struct {
 	Image string `json:"image"`
 }
 
-func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
+func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		renderNotFoundPage(r, w)
+		return
+	}
+
+	user := middleware.GetUser(r.Context())
+	
+	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "index.gohtml", map[string]any{
+		"User":        user,
 		"CurrentPath": r.URL.Path,
 	}); err != nil {
 		log.Printf("render error: %v", err)
@@ -42,99 +51,85 @@ func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 	}
 }
 
-func writeInlineLoadError(w http.ResponseWriter, message string) {
-	w.Header().Set("Content-Type", "text/html")
-	_, _ = w.Write([]byte(`<p style="color: var(--text-muted); font-size: var(--text-sm);">` + html.EscapeString(message) + `</p>`))
+func (h *Handler) HandleCatalogAiring(w http.ResponseWriter, r *http.Request) {
+	h.renderCatalogSection(w, r, "Airing")
 }
 
-func parsePageParam(r *http.Request) int {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page < 1 {
-		return 1
-	}
-	return page
+func (h *Handler) HandleCatalogPopular(w http.ResponseWriter, r *http.Request) {
+	h.renderCatalogSection(w, r, "Popular")
 }
 
-func NewHandler(jikanClient *jikan.Client, db database.Querier) *Handler {
-	return &Handler{jikanClient: jikanClient, db: db}
+func (h *Handler) HandleCatalogContinue(w http.ResponseWriter, r *http.Request) {
+	h.renderCatalogSection(w, r, "Continue")
 }
 
-func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		renderNotFoundPage(r, w)
-		return
-	}
-
-	var (
-		animes          jikan.TopAnimeResult
-		currentlyAiring jikan.TopAnimeResult
-		cw              []database.GetContinueWatchingEntriesRow
-		watchlist       []database.GetUserWatchListRow
-	)
-
-	g, gCtx := errgroup.WithContext(r.Context())
-
-	g.Go(func() error {
-		var err error
-		animes, err = h.jikanClient.GetTopAnime(gCtx, 1)
-		return err
-	})
-
-	g.Go(func() error {
-		var err error
-		currentlyAiring, err = h.jikanClient.GetSeasonsNow(gCtx, 1)
-		if err != nil {
-			log.Printf("seasons now error: %v", err)
-			return nil // non-fatal
-		}
-		return nil
-	})
-
+func (h *Handler) renderCatalogSection(w http.ResponseWriter, r *http.Request, section string) {
 	user := middleware.GetUser(r.Context())
+	userID := ""
 	if user != nil {
-		g.Go(func() error {
-			var err error
-			cw, err = h.db.GetContinueWatchingEntries(gCtx, user.ID)
-			return err
-		})
-		g.Go(func() error {
-			var err error
-			watchlist, err = h.db.GetUserWatchList(gCtx, user.ID)
-			return err
-		})
+		userID = user.ID
 	}
 
-	if err := g.Wait(); err != nil {
-		log.Printf("catalog fetch error: %v", err)
-		http.Error(w, "Failed to fetch catalog data", http.StatusInternalServerError)
+	data, err := h.service.GetCatalogSection(r.Context(), userID, section)
+	if err != nil {
+		log.Printf("catalog %s error: %v", section, err)
+		if section != "Continue" {
+			writeInlineLoadError(w, "Failed to load "+section)
+		}
 		return
 	}
 
-	if len(animes.Animes) > 6 {
-		animes.Animes = animes.Animes[:6]
-	}
-	if len(currentlyAiring.Animes) > 6 {
-		currentlyAiring.Animes = currentlyAiring.Animes[:6]
-	}
+	data["User"] = user
+	data["Section"] = section
 
-	watchlistMap := make(map[int64]bool)
-	watchlistIDs := make([]int64, len(watchlist))
-	for i, entry := range watchlist {
-		watchlistMap[entry.AnimeID] = true
-		watchlistIDs[i] = entry.AnimeID
+	if err := templates.GetRenderer().ExecuteFragment(r.Context(), w, "index.gohtml", "catalog_section", data); err != nil {
+		log.Printf("fragment render error: %v", err)
 	}
+}
 
-	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "index.gohtml", map[string]any{
-		"MostPopular":      animes.Animes,
-		"CurrentlyAiring":  currentlyAiring.Animes,
-		"ContinueWatching": cw,
-		"User":             user,
-		"CurrentPath":      r.URL.Path,
-		"WatchlistMap":     watchlistMap,
-		"WatchlistIDs":     watchlistIDs,
+func (h *Handler) HandleDiscover(w http.ResponseWriter, r *http.Request) {
+	user := middleware.GetUser(r.Context())
+	
+	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "discover.gohtml", map[string]any{
+		"User":        user,
+		"CurrentPath": r.URL.Path,
 	}); err != nil {
 		log.Printf("render error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) HandleDiscoverTrending(w http.ResponseWriter, r *http.Request) {
+	h.renderDiscoverSection(w, r, "Trending")
+}
+
+func (h *Handler) HandleDiscoverUpcoming(w http.ResponseWriter, r *http.Request) {
+	h.renderDiscoverSection(w, r, "Upcoming")
+}
+
+func (h *Handler) HandleDiscoverTop(w http.ResponseWriter, r *http.Request) {
+	h.renderDiscoverSection(w, r, "Top")
+}
+
+func (h *Handler) renderDiscoverSection(w http.ResponseWriter, r *http.Request, section string) {
+	user := middleware.GetUser(r.Context())
+	userID := ""
+	if user != nil {
+		userID = user.ID
+	}
+
+	data, err := h.service.GetDiscoverSection(r.Context(), userID, section)
+	if err != nil {
+		log.Printf("discover %s error: %v", section, err)
+		writeInlineLoadError(w, "Failed to load "+section)
+		return
+	}
+
+	data["User"] = user
+	data["Section"] = section
+
+	if err := templates.GetRenderer().ExecuteFragment(r.Context(), w, "discover.gohtml", "discover_section", data); err != nil {
+		log.Printf("fragment render error: %v", err)
 	}
 }
 
@@ -155,16 +150,12 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pageStr := r.URL.Query().Get("page")
-	page, _ := strconv.Atoi(pageStr)
-	if page < 1 {
-		page = 1
-	}
+	page := parsePageParam(r)
 
 	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 	defer cancel()
 
-	res, err := h.jikanClient.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, page, 24)
+	res, err := h.service.jikanClient.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, page, 24)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
@@ -175,7 +166,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		watchlistMap := make(map[int]bool)
 		if user != nil {
-			watchlist, _ := h.db.GetUserWatchList(ctx, user.ID)
+			watchlist, _ := h.service.db.GetUserWatchList(ctx, user.ID)
 			for _, entry := range watchlist {
 				watchlistMap[int(entry.AnimeID)] = true
 			}
@@ -202,7 +193,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	genresList, err := h.jikanClient.GetAnimeGenres(ctx)
+	genresList, err := h.service.jikanClient.GetAnimeGenres(ctx)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			log.Printf("genres error: %v", err)
@@ -212,7 +203,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	watchlistMap := make(map[int]bool)
 	var watchlistIDs []int64
 	if user != nil {
-		watchlist, _ := h.db.GetUserWatchList(ctx, user.ID)
+		watchlist, _ := h.service.db.GetUserWatchList(ctx, user.ID)
 		watchlistIDs = make([]int64, len(watchlist))
 		for i, entry := range watchlist {
 			watchlistMap[int(entry.AnimeID)] = true
@@ -243,18 +234,6 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) HandleSearch(w http.ResponseWriter, r *http.Request) {
-	renderNotFoundPage(r, w)
-}
-
-func (h *Handler) HandleAPISearch(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
-func (h *Handler) HandleAPICatalog(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
 func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/anime/")
 	idStr = strings.TrimSuffix(idStr, "/")
@@ -264,28 +243,32 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := middleware.GetUser(r.Context())
+
+	// If it's an HTMX request for a specific section, handle it
+	section := r.URL.Query().Get("section")
+	if section != "" && r.Header.Get("HX-Request") == "true" {
+		h.renderAnimeDetailsSection(w, r, id, section)
+		return
+	}
+
 	var (
-		anime           jikan.Anime
-		characters      []jikan.CharacterEntry
-		recommendations []jikan.RecommendationEntry
-		watchlist       []database.GetUserWatchListRow
-		status          string
-		episodesCount   int
+		anime         jikan.Anime
+		status        string
+		episodesCount int
+		watchlistIDs  []int64
 	)
 
 	g, gCtx := errgroup.WithContext(r.Context())
 
 	g.Go(func() error {
 		var err error
-		anime, err = h.jikanClient.GetAnimeByID(gCtx, id)
+		anime, err = h.service.jikanClient.GetAnimeByID(gCtx, id)
 		if err == nil && anime.Airing {
-			// If airing, we want to know how many episodes are released so far.
-			// The episodes endpoint with page 1 gives us the last visible page in pagination.
-			eps, err := h.jikanClient.GetEpisodes(gCtx, id, 1)
+			eps, err := h.service.jikanClient.GetEpisodes(gCtx, id, 1)
 			if err == nil {
 				if eps.Pagination.LastVisiblePage > 1 {
-					// Fetch last page to get the true count
-					lastEps, err := h.jikanClient.GetEpisodes(gCtx, id, eps.Pagination.LastVisiblePage)
+					lastEps, err := h.service.jikanClient.GetEpisodes(gCtx, id, eps.Pagination.LastVisiblePage)
 					if err == nil && len(lastEps.Data) > 0 {
 						lastEp := lastEps.Data[len(lastEps.Data)-1]
 						count, _ := strconv.Atoi(lastEp.Episode)
@@ -301,28 +284,9 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		return err
 	})
 
-	g.Go(func() error {
-		var err error
-		characters, err = h.jikanClient.GetAnimeCharacters(gCtx, id)
-		if err != nil {
-			log.Printf("characters fetch error: %v", err)
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		var err error
-		recommendations, err = h.jikanClient.GetAnimeRecommendations(gCtx, id)
-		if err != nil {
-			log.Printf("recommendations fetch error: %v", err)
-		}
-		return nil
-	})
-
-	user := middleware.GetUser(r.Context())
 	if user != nil {
 		g.Go(func() error {
-			entry, err := h.db.GetWatchListEntry(gCtx, database.GetWatchListEntryParams{
+			entry, err := h.service.db.GetWatchListEntry(gCtx, database.GetWatchListEntryParams{
 				UserID:  user.ID,
 				AnimeID: int64(id),
 			})
@@ -332,9 +296,14 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 			return nil
 		})
 		g.Go(func() error {
-			var err error
-			watchlist, err = h.db.GetUserWatchList(gCtx, user.ID)
-			return err
+			watchlist, err := h.service.db.GetUserWatchList(gCtx, user.ID)
+			if err == nil {
+				watchlistIDs = make([]int64, len(watchlist))
+				for i, e := range watchlist {
+					watchlistIDs[i] = e.AnimeID
+				}
+			}
+			return nil
 		})
 	}
 
@@ -344,23 +313,47 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	watchlistIDs := make([]int64, len(watchlist))
-	for i, e := range watchlist {
-		watchlistIDs[i] = e.AnimeID
-	}
-
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "anime.gohtml", map[string]any{
-		"Anime":           anime,
-		"Characters":      characters,
-		"Recommendations": recommendations,
-		"User":            user,
-		"Status":          status,
-		"CurrentPath":     r.URL.Path,
-		"WatchlistIDs":    watchlistIDs,
-		"EpisodesCount":   episodesCount,
+		"Anime":         anime,
+		"User":          user,
+		"Status":        status,
+		"CurrentPath":   r.URL.Path,
+		"WatchlistIDs":  watchlistIDs,
+		"EpisodesCount": episodesCount,
 	}); err != nil {
 		log.Printf("render error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) renderAnimeDetailsSection(w http.ResponseWriter, r *http.Request, id int, section string) {
+	ctx := r.Context()
+	var data any
+	var err error
+
+	switch section {
+	case "characters":
+		data, err = h.service.jikanClient.GetAnimeCharacters(ctx, id)
+	case "recommendations":
+		data, err = h.service.jikanClient.GetAnimeRecommendations(ctx, id)
+	default:
+		http.Error(w, "Invalid section", http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		log.Printf("anime details %s error: %v", section, err)
+		writeInlineLoadError(w, "Failed to load "+section)
+		return
+	}
+
+	tplName := "anime_characters"
+	if section == "recommendations" {
+		tplName = "anime_recommendations"
+	}
+
+	if err := templates.GetRenderer().ExecuteFragment(ctx, w, "anime.gohtml", tplName, data); err != nil {
+		log.Printf("fragment render error: %v", err)
 	}
 }
 
@@ -372,7 +365,7 @@ func (h *Handler) HandleHTMLWatchOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	relations, err := h.jikanClient.GetFullRelations(r.Context(), id)
+	relations, err := h.service.jikanClient.GetFullRelations(r.Context(), id)
 	if err != nil {
 		log.Printf("watch order error: %v", err)
 		http.Error(w, `<div class="mt-8 text-sm text-red-400">Failed to load watch order.</div>`, http.StatusInternalServerError)
@@ -382,7 +375,7 @@ func (h *Handler) HandleHTMLWatchOrder(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
 	watchlistMap := make(map[int64]bool)
 	if user != nil {
-		watchlist, _ := h.db.GetUserWatchList(r.Context(), user.ID)
+		watchlist, _ := h.service.db.GetUserWatchList(r.Context(), user.ID)
 		for _, entry := range watchlist {
 			watchlistMap[entry.AnimeID] = true
 		}
@@ -397,10 +390,6 @@ func (h *Handler) HandleHTMLWatchOrder(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) HandleAPIEpisodes(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
 func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	query := r.URL.Query().Get("q")
@@ -409,7 +398,7 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode([]quickSearchResult{})
 		return
 	}
-	res, err := h.jikanClient.SearchAdvanced(r.Context(), query, "", "", "", "", nil, 1, 5)
+	res, err := h.service.jikanClient.SearchAdvanced(r.Context(), query, "", "", "", "", nil, 1, 5)
 	if err != nil {
 		log.Printf("quick search error: %v", err)
 		w.WriteHeader(http.StatusOK)
@@ -429,113 +418,10 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(output)
 }
 
-func (h *Handler) HandleDiscover(w http.ResponseWriter, r *http.Request) {
-	var (
-		trending  jikan.TopAnimeResult
-		upcoming  jikan.TopAnimeResult
-		top       jikan.TopAnimeResult
-		watchlist []database.GetUserWatchListRow
-	)
-
-	g, gCtx := errgroup.WithContext(r.Context())
-
-	g.Go(func() error {
-		var err error
-		trending, err = h.jikanClient.GetSeasonsNow(gCtx, 1)
-		if err != nil {
-			log.Printf("seasons now error: %v", err)
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		var err error
-		upcoming, err = h.jikanClient.GetSeasonsUpcoming(gCtx, 1)
-		if err != nil {
-			log.Printf("seasons upcoming error: %v", err)
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		var err error
-		top, err = h.jikanClient.GetTopAnime(gCtx, 1)
-		if err != nil {
-			log.Printf("top anime error: %v", err)
-		}
-		return nil
-	})
-
-	user, _ := r.Context().Value(ctxpkg.UserKey).(*database.User)
-	if user != nil {
-		g.Go(func() error {
-			var err error
-			watchlist, err = h.db.GetUserWatchList(gCtx, user.ID)
-			return err
-		})
-	}
-
-	g.Wait()
-
-	seen := make(map[int]bool)
-	uniqueTrending := make([]jikan.Anime, 0)
-	for _, a := range trending.Animes {
-		if !seen[a.MalID] {
-			seen[a.MalID] = true
-			uniqueTrending = append(uniqueTrending, a)
-		}
-		if len(uniqueTrending) >= 8 {
-			break
-		}
-	}
-
-	uniqueUpcoming := make([]jikan.Anime, 0)
-	for _, a := range upcoming.Animes {
-		if !seen[a.MalID] {
-			seen[a.MalID] = true
-			uniqueUpcoming = append(uniqueUpcoming, a)
-		}
-		if len(uniqueUpcoming) >= 8 {
-			break
-		}
-	}
-
-	uniqueTop := make([]jikan.Anime, 0)
-	for _, a := range top.Animes {
-		if !seen[a.MalID] {
-			seen[a.MalID] = true
-			uniqueTop = append(uniqueTop, a)
-		}
-		if len(uniqueTop) >= 8 {
-			break
-		}
-	}
-
-	watchlistMap := make(map[int64]bool)
-	watchlistIDs := make([]int64, len(watchlist))
-	for i, entry := range watchlist {
-		watchlistMap[entry.AnimeID] = true
-		watchlistIDs[i] = entry.AnimeID
-	}
-
-	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "discover.gohtml", map[string]any{
-		"User":         user,
-		"CurrentPath":  r.URL.Path,
-		"Trending":     uniqueTrending,
-		"Upcoming":     uniqueUpcoming,
-		"Top":          uniqueTop,
-		"WatchlistMap": watchlistMap,
-		"WatchlistIDs": watchlistIDs,
-	}); err != nil {
-		log.Printf("render error: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
-}
-
 func (h *Handler) HandleRandomAnime(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	anime, err := h.jikanClient.GetRandomAnime(r.Context())
+	anime, err := h.service.jikanClient.GetRandomAnime(r.Context())
 	if err != nil {
 		log.Printf("random anime error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -553,6 +439,22 @@ func (h *Handler) HandleRandomAnime(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{"data": anime})
 }
 
+func (h *Handler) HandleSearch(w http.ResponseWriter, r *http.Request) {
+	renderNotFoundPage(r, w)
+}
+
+func (h *Handler) HandleAPISearch(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
+}
+
+func (h *Handler) HandleAPICatalog(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
+}
+
+func (h *Handler) HandleAPIEpisodes(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
+}
+
 func (h *Handler) HandleAPIDiscoverAiring(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
 }
@@ -567,4 +469,27 @@ func (h *Handler) HandleStudioDetails(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) HandleAPIStudioAnime(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
+}
+
+func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotFound)
+	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
+		"CurrentPath": r.URL.Path,
+	}); err != nil {
+		log.Printf("render error: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func writeInlineLoadError(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "text/html")
+	_, _ = w.Write([]byte(`<p style="color: var(--text-muted); font-size: var(--text-sm);">` + html.EscapeString(message) + `</p>`))
+}
+
+func parsePageParam(r *http.Request) int {
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	if page < 1 {
+		return 1
+	}
+	return page
 }

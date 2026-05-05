@@ -85,10 +85,19 @@ func GetRenderer() *Renderer {
 			"toFloat": func(a int) float64 {
 				return float64(a)
 			},
-			"seq": func(start, end int) []int {
-				res := make([]int, 0, end-start)
-				for i := start; i < end; i++ {
-					res = append(res, i)
+			"seq": func(v any) []int {
+				var count int
+				switch n := v.(type) {
+				case int:
+					count = n
+				case int64:
+					count = int(n)
+				default:
+					count = 0
+				}
+				res := make([]int, count)
+				for i := 0; i < count; i++ {
+					res[i] = i
 				}
 				return res
 			},
