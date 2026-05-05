@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-05T00:00:00Z",
+  "title": "Design System: MAL",
+  "extensions": {
+    "colorMeta": {
+      "background": { "role": "neutral", "displayName": "Void Black", "canonical": "#080808" },
+      "background-sidebar": { "role": "neutral", "displayName": "Deep Charcoal", "canonical": "#0f0f0f" },
+      "background-header": { "role": "neutral", "displayName": "Elevated Black", "canonical": "#141414" },
+      "background-surface": { "role": "neutral", "displayName": "Surface Gray", "canonical": "#202020" },
+      "background-button": { "role": "neutral", "displayName": "Button Dark", "canonical": "#1a1a1a" },
+      "background-button-hover": { "role": "neutral", "displayName": "Button Hover", "canonical": "#252525" },
+      "foreground-muted": { "role": "neutral", "displayName": "Muted Gray", "canonical": "#6a6b70" },
+      "foreground": { "role": "neutral", "displayName": "Off White", "canonical": "#f8f9fa" },
+      "accent": { "role": "primary", "displayName": "Soft Violet", "canonical": "#9f7aea" },
+      "danger": { "role": "accent", "displayName": "Red Alert", "canonical": "#dc2626" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "Standard text, descriptions" },
+      "title": { "displayName": "Title", "purpose": "Page headings" },
+      "label": { "displayName": "Label", "purpose": "Navigation, buttons, form labels" }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-default", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default transition easing" }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action button with purple background",
+      "html": "<button class=\"ds-btn-primary\">Action</button>",
+      "css": ".ds-btn-primary { background: #9f7aea; color: #080808; padding: 8px 16px; border: none; font-weight: 500; transition: background 0.2s; } .ds-btn-primary:hover { background: #b79ef5; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action with dark background",
+      "html": "<button class=\"ds-btn-secondary\">Action</button>",
+      "css": ".ds-btn-secondary { background: rgba(255,255,255,0.05); color: #f8f9fa; padding: 8px 16px; border: none; transition: background 0.2s; } .ds-btn-secondary:hover { background: rgba(255,255,255,0.1); }"
+    },
+    {
+      "name": "Anime Card",
+      "kind": "card",
+      "refersTo": "card-anime",
+      "description": "Anime poster card with hover reveal",
+      "html": "<div class=\"ds-card\"><img src=\"\" alt=\"Anime\"><div class=\"ds-card-overlay\"><span>Title</span></div></div>",
+      "css": ".ds-card { position: relative; aspect-ratio: 2/3; background: rgba(255,255,255,0.05); overflow: hidden; } .ds-card img { width: 100%; height: 100%; object-fit: cover; } .ds-card-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); opacity: 0; padding: 12px; transition: opacity 0.3s; display: flex; flex-direction: column; } .ds-card:hover .ds-card-overlay { opacity: 1; }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Sidebar navigation link with active indicator",
+      "html": "<a class=\"ds-nav-item\" href=\"/\">Home</a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; padding: 12px 28px; color: #6a6b70; text-decoration: none; transition: color 0.2s, background 0.2s; position: relative; } .ds-nav-item:hover { background: rgba(255,255,255,0.05); } .ds-nav-item.active { color: #9f7aea; } .ds-nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 32px; width: 2px; background: #9f7aea; }"
+    },
+    {
+      "name": "Dropdown Menu",
+      "kind": "custom",
+      "refersTo": "dropdown",
+      "description": "Custom dropdown with dark background",
+      "html": "<div class=\"ds-dropdown\"><button>Menu</button><div class=\"ds-dropdown-content\"><button>Option</button></div></div>",
+      "css": ".ds-dropdown { position: relative; } .ds-dropdown-content { position: absolute; top: 100%; right: 0; background: #1a1a1a; box-shadow: 0 8px 24px rgba(0,0,0,0.4); padding: 4px 0; display: none; min-width: 160px; } .ds-dropdown-content button { display: block; width: 100%; padding: 10px 20px; text-align: left; background: none; border: none; color: #f8f9fa; } .ds-dropdown-content button:hover { background: rgba(255,255,255,0.1); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Personal Theater",
+    "overview": "A dark, intimate interface for watching anime. Built for long viewing sessions in low-light environments. The aesthetic rejects the loud, gamified look of mainstream anime trackers. No flashy animations, no glassmorphism, no gradient text.",
+    "keyCharacteristics": [
+      "Dark by default; light mode secondary",
+      "Minimal chrome; content first",
+      "Purple accent ≤10% of any screen",
+      "No rounded corners",
+      "DM Sans system fonts"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Purple appears on ≤10% of any given screen. Its rarity is the point.", "section": "colors" },
+      { "name": "The Weight Contrast Rule", "body": "Headings use font-semibold (600), body uses font-normal (400). Avoid flat weight hierarchies.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. No shadows. Depth conveyed through tonal layering.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use accent purple for primary actions and active states only",
+      "Do keep interfaces dark by default",
+      "Do use weight contrast for hierarchy",
+      "Do reveal detail on hover",
+      "Do include back buttons on detail pages"
+    ],
+    "donts": [
+      "Don't use rounded corners anywhere",
+      "Don't use color to differentiate toast types",
+      "Don't use gradient text",
+      "Don't use glassmorphism",
+      "Don't use hero metric layouts",
+      "Don't use identical card grids with no variation",
+      "Don't use modals as first thought",
+      "Don't use side-stripe borders",
+      "Don't use green accent—violet is the one and only"
+    ]
+  }
+}
