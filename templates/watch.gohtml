@@ -9,11 +9,64 @@
 
 <div class="flex flex-col gap-6 pb-12 lg:flex-row lg:gap-6">
   <div class="flex-1 min-w-0">
+    <div class="flex items-center justify-between mb-4">
+      <a href="/anime/{{$anime.MalID}}" class="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+        Back
+      </a>
+      <ui-dropdown class="relative block" data-align="right" data-width="min-w-[160px]">
+        <div data-trigger class="cursor-pointer">
+          <button type="button" class="bg-accent/20 hover:bg-accent/30 flex items-center justify-between gap-2 px-4 py-2 text-sm text-accent font-medium transition-colors">
+            <span id="watchlist-status-display-{{$anime.MalID}}">
+              {{if .WatchlistStatus}}{{if eq .WatchlistStatus "watching"}}Watching{{else if eq .WatchlistStatus "completed"}}Completed{{else if eq .WatchlistStatus "plan_to_watch"}}Plan to Watch{{else if eq .WatchlistStatus "dropped"}}Dropped{{end}}{{else}}Add to Watchlist{{end}}
+            </span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6" /></svg>
+          </button>
+        </div>
+        <div data-content class="hidden absolute z-50 min-w-[160px] bg-background-button shadow-2xl right-0 top-full mt-2">
+          {{if .WatchlistStatus}}
+          <div class="flex flex-col py-1">
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
+              <span class="text-sm text-white">Watching</span>
+            </button>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
+              <span class="text-sm text-white">Completed</span>
+            </button>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
+              <span class="text-sm text-white">Plan to Watch</span>
+            </button>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
+              <span class="text-sm text-white">Dropped</span>
+            </button>
+            <div class="border-t border-white/10 my-1"></div>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
+              <span class="text-sm text-red-400">Remove from Watchlist</span>
+            </button>
+          </div>
+          {{else}}
+          <div class="flex flex-col py-1">
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
+              <span class="text-sm text-white">Watching</span>
+            </button>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
+              <span class="text-sm text-white">Completed</span>
+            </button>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
+              <span class="text-sm text-white">Plan to Watch</span>
+            </button>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
+              <span class="text-sm text-white">Dropped</span>
+            </button>
+          </div>
+          {{end}}
+        </div>
+      </ui-dropdown>
+    </div>
     <div id="video-player-container">
       {{template "video_player" dict "WatchData" .WatchData "TotalEpisodes" $anime.Episodes}}
     </div>
 
-    <div class="flex items-center justify-between mt-4">
+    <div class="flex items-center mt-4">
       <div class="flex gap-2">
         {{$prevEp := sub (int $currentEpID) 1}}
         {{if ge $prevEp 1}}
@@ -30,33 +83,6 @@
           </a>
         {{end}}
       </div>
-
-      <ui-dropdown class="relative block" data-align="right" data-width="min-w-[160px]">
-        <div data-trigger class="cursor-pointer">
-          <button type="button" class="bg-white/5 hover:bg-white/10 flex items-center justify-between gap-2 px-4 py-2 text-sm text-neutral-300 transition-colors">
-            <span id="watchlist-status-display-{{$anime.MalID}}">
-              {{if .WatchlistStatus}}{{if eq .WatchlistStatus "watching"}}Watching{{else if eq .WatchlistStatus "completed"}}Completed{{else if eq .WatchlistStatus "plan_to_watch"}}Plan to Watch{{else if eq .WatchlistStatus "dropped"}}Dropped{{end}}{{else}}Add to Watchlist{{end}}
-            </span>
-            <svg class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6" /></svg>
-          </button>
-        </div>
-        <div data-content class="hidden absolute z-50 min-w-[160px] bg-background-button shadow-2xl right-0 top-full mt-2">
-          <div class="flex flex-col py-1">
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
-              <span class="text-sm text-white">Watching</span>
-            </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
-              <span class="text-sm text-white">Completed</span>
-            </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
-              <span class="text-sm text-white">Plan to Watch</span>
-            </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
-              <span class="text-sm text-white">Dropped</span>
-            </button>
-          </div>
-        </div>
-      </ui-dropdown>
     </div>
   </div>
 
@@ -156,11 +182,12 @@
     });
   }
 
-  function removeWatchlist(id) {
+  function removeWatchlist(id, btn) {
     fetch('/api/watchlist/' + id, { method: 'DELETE' }).then(res => {
       if (res.ok) {
         watchlistIds.delete(id);
         document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
+        if (window.showToast) showToast({ message: 'Removed from watchlist' });
         
         // Update all watchlist icons on the page
         document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
@@ -174,7 +201,6 @@
         });
         
         // Close dropdown
-        const btn = document.getElementById('watchlist-status-display-' + id);
         if (btn) {
           const dropdown = btn.closest('ui-dropdown');
           if (dropdown) dropdown.close();
