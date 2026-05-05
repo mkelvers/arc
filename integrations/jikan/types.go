@@ -303,7 +303,8 @@ type SearchResponse struct {
 }
 
 type Pagination struct {
-	HasNextPage bool `json:"has_next_page"`
+	LastVisiblePage int  `json:"last_visible_page"`
+	HasNextPage     bool `json:"has_next_page"`
 }
 
 type TopAnimeResponse struct {

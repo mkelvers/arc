@@ -270,6 +270,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		recommendations []jikan.RecommendationEntry
 		watchlist       []database.GetUserWatchListRow
 		status          string
+		episodesCount   int
 	)
 
 	g, gCtx := errgroup.WithContext(r.Context())
@@ -277,6 +278,26 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 	g.Go(func() error {
 		var err error
 		anime, err = h.jikanClient.GetAnimeByID(gCtx, id)
+		if err == nil && anime.Airing {
+			// If airing, we want to know how many episodes are released so far.
+			// The episodes endpoint with page 1 gives us the last visible page in pagination.
+			eps, err := h.jikanClient.GetEpisodes(gCtx, id, 1)
+			if err == nil {
+				if eps.Pagination.LastVisiblePage > 1 {
+					// Fetch last page to get the true count
+					lastEps, err := h.jikanClient.GetEpisodes(gCtx, id, eps.Pagination.LastVisiblePage)
+					if err == nil && len(lastEps.Data) > 0 {
+						lastEp := lastEps.Data[len(lastEps.Data)-1]
+						count, _ := strconv.Atoi(lastEp.Episode)
+						episodesCount = count
+					}
+				} else if len(eps.Data) > 0 {
+					lastEp := eps.Data[len(eps.Data)-1]
+					count, _ := strconv.Atoi(lastEp.Episode)
+					episodesCount = count
+				}
+			}
+		}
 		return err
 	})
 
@@ -336,6 +357,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		"Status":          status,
 		"CurrentPath":     r.URL.Path,
 		"WatchlistIDs":    watchlistIDs,
+		"EpisodesCount":   episodesCount,
 	}); err != nil {
 		log.Printf("render error: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

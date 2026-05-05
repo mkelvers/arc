@@ -35,7 +35,11 @@
           </div>
         {{end}}
         {{if $anime.Type}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Type}}</span>{{end}}
-        {{if $anime.Episodes}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Episodes}} episodes</span>{{end}}
+        {{if and $anime.Airing .EpisodesCount}}
+          <span class="flex items-center gap-1.5"><span>•</span>{{.EpisodesCount}}{{if $anime.Episodes}}/{{$anime.Episodes}}{{end}} episodes</span>
+        {{else if $anime.Episodes}}
+          <span class="flex items-center gap-1.5"><span>•</span>{{$anime.Episodes}} episodes</span>
+        {{end}}
         {{if $anime.Status}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Status}}</span>{{end}}
         {{if $anime.Season}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Premiered}}</span>{{end}}
         {{if $anime.ShortRating}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.ShortRating}}</span>{{end}}
