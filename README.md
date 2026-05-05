@@ -18,7 +18,6 @@
 <p align="center">
   <img alt="Go" src="https://img.shields.io/badge/go-1.25-00ADD8?style=flat-square&logo=go" />
   <img alt="SQLite" src="https://img.shields.io/badge/database-sqlite-003B57?style=flat-square&logo=sqlite" />
-  <img alt="templ" src="https://img.shields.io/badge/templ-server--rendered-111111?style=flat-square" />
   <img alt="Tailwind" src="https://img.shields.io/badge/tailwind-4-06B6D4?style=flat-square&logo=tailwindcss" />
   <img alt="HTMX" src="https://img.shields.io/badge/htmx-partial--updates-3366CC?style=flat-square" />
 </p>
@@ -43,7 +42,7 @@ The interface is minimal and functional, featuring a dark theme and quick access
 
 ## Technical approach
 
-The application is written in Go and rendered on the server with `templ`, with SQLite as the primary datastore and `sqlc` for typed query generation. Styling uses Tailwind CSS v4. HTMX and small TypeScript modules handle incremental interactions, which keeps the interface responsive without moving the entire product into a heavy client-side architecture.
+The application is written in Go and rendered on the server with `html/template`, with SQLite as the primary datastore and `sqlc` for typed query generation. Styling uses Tailwind CSS v4. HTMX and small TypeScript modules handle incremental interactions, which keeps the interface responsive without moving the entire product into a heavy client-side architecture.
 
 The external anime data source is Jikan (`https://api.jikan.moe/v4`). Because reliability is a first-class concern, the client layer includes request pacing, bounded retries, backoff behavior, stale-cache fallback, and a persisted retry queue for failed fetches that should be retried later. Playback proxying uses uTLS to bypass Cloudflare protections.
 
@@ -87,8 +86,8 @@ The codebase follows standard Go project layout conventions with clear separatio
 
 | Path | Purpose |
 | --- | --- |
-| `web/templates` | Server-rendered page and partial templates |
-| `web/components` | Reusable UI components and icons |
+| `templates` | Server-rendered page and partial templates |
+| `templates/components` | Reusable UI components and icons |
 
 ### Assets & Operations
 
@@ -122,12 +121,10 @@ There are still honest limits. Metadata quality depends on external providers, a
 
 ## Getting started
 
-For local development, install Go `1.25+`, Bun, and the `templ` CLI, then generate templates, build frontend assets, and run the server.
+For local development, install Go `1.25+` and Bun, then build frontend assets and run the server.
 
 ```bash
 bun install                                    # Install Bun dependencies
-go install github.com/a-h/templ/cmd/templ@latest # Install templ CLI
-templ generate                                 # Generate Go templates from .templ files
 bun run build:css && bun run build:ts          # Build frontend assets (CSS and TypeScript)
 PLAYBACK_PROXY_SECRET="your-32+char-secret" go run ./cmd/server  # Run the Go server
 ```
@@ -157,8 +154,7 @@ Common tasks are automated via the `justfile`. Run `just <task>` after installin
 | `just fmt` | Format Go code |
 | `just lint` | Run go fmt and go vet |
 | `just test` | Run Go tests |
-| `just templ` | Regenerate templ files |
-| `just build` | Full build (templ, Go binary, CSS, TS) |
+| `just build` | Full build (Go binary, CSS, TS) |
 | `just check` | Run all checks (lint, test, typecheck, build) |
 | `just dev` | Build and start the server |
 | `just install-hooks` | Install lefthook pre-push hooks |
