@@ -1,6 +1,5 @@
 {{define "title"}}Discover{{end}}
 {{define "content"}}
-{{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 <script>
   let isFetchingRandom = false;
 
@@ -51,45 +50,36 @@
     </div>
   </section>
 
+  {{/* Trending Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-white">Trending This Season</h2>
       <a href="/browse?order_by=popularity&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
-    <div class="discover-grid">
-      {{range $i, $anime := .Trending}}
-        <div>
-          {{template "anime_card" dict "Anime" $anime "WithActions" true "IsWatchlist" (index $.WatchlistMap $anime.MalID)}}
-        </div>
-      {{end}}
+    <div hx-get="/api/discover/trending" hx-trigger="load" hx-swap="outerHTML">
+      {{template "discover_skeleton"}}
     </div>
   </section>
 
+  {{/* Upcoming Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-white">Highly Anticipated</h2>
       <a href="/browse?status=upcoming&order_by=members&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
-    <div class="discover-grid">
-      {{range $i, $anime := .Upcoming}}
-        <div>
-          {{template "anime_card" dict "Anime" $anime "WithActions" true "IsWatchlist" (index $.WatchlistMap $anime.MalID)}}
-        </div>
-      {{end}}
+    <div hx-get="/api/discover/upcoming" hx-trigger="load" hx-swap="outerHTML">
+      {{template "discover_skeleton"}}
     </div>
   </section>
 
+  {{/* Top Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <h2 class="text-xl font-semibold text-white">All-Time Greats</h2>
       <a href="/browse?order_by=score&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
-    <div class="discover-grid">
-      {{range $i, $anime := .Top}}
-        <div>
-          {{template "anime_card" dict "Anime" $anime "WithActions" true "IsWatchlist" (index $.WatchlistMap $anime.MalID)}}
-        </div>
-      {{end}}
+    <div hx-get="/api/discover/top" hx-trigger="load" hx-swap="outerHTML">
+      {{template "discover_skeleton"}}
     </div>
   </section>
 </div>
@@ -100,6 +90,34 @@
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 1rem;
   }
+  .skeleton {
+    background: linear-gradient(90deg, #1f1f1f 25%, #2a2a2a 50%, #1f1f1f 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+  @keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
 </style>
+{{end}}
 
+{{define "discover_section"}}
+<div class="discover-grid">
+  {{range .Animes}}
+    {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
+  {{end}}
+</div>
+{{end}}
+
+{{define "discover_skeleton"}}
+<div class="discover-grid">
+  {{range (seq 8)}}
+  <div class="flex flex-col gap-2">
+    <div class="skeleton aspect-[2/3] w-full rounded-xl"></div>
+    <div class="skeleton h-4 w-3/4 rounded"></div>
+    <div class="skeleton h-3 w-1/2 rounded opacity-50"></div>
+  </div>
+  {{end}}
+</div>
 {{end}}
