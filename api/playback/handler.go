@@ -158,6 +158,48 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 		return allEpisodes[i].MalID < allEpisodes[j].MalID
 	})
 
+	// Fetch seasons/relations
+	relations, err := h.jikanClient.GetFullRelations(r.Context(), id)
+	if err != nil {
+		log.Printf("failed to fetch relations: %v", err)
+	}
+
+	type SeasonEntry struct {
+		MalID     int
+		Title     string
+		Prefix    string
+		IsCurrent bool
+	}
+
+	var tvSeasons []SeasonEntry
+	var movies []SeasonEntry
+	counter := 1
+
+	for _, rel := range relations {
+		if strings.ToLower(rel.Anime.Type) == "tv" {
+			tvSeasons = append(tvSeasons, SeasonEntry{
+				MalID:     rel.Anime.MalID,
+				Title:     rel.Anime.DisplayTitle(),
+				Prefix:    fmt.Sprintf("%02d", counter),
+				IsCurrent: rel.IsCurrent,
+			})
+			counter++
+		}
+	}
+
+	for _, rel := range relations {
+		if strings.ToLower(rel.Anime.Type) == "movie" {
+			movies = append(movies, SeasonEntry{
+				MalID:     rel.Anime.MalID,
+				Title:     rel.Anime.DisplayTitle(),
+				Prefix:    "Mov",
+				IsCurrent: rel.IsCurrent,
+			})
+		}
+	}
+
+	allSeasons := append(tvSeasons, movies...)
+
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "watch.gohtml", map[string]any{
 		"Anime":           anime,
 		"Episodes":        allEpisodes,
@@ -167,6 +209,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 		"CurrentEpID":     currentEpID,
 		"WatchlistIDs":    watchlistIDs,
 		"WatchlistStatus": watchlistStatus,
+		"Seasons":         allSeasons,
 	}); err != nil {
 		log.Printf("render error: %v", err)
 	}
