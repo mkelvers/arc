@@ -24,10 +24,10 @@ var (
 const bcryptCost = 12
 
 type Service struct {
-	db database.Querier
+	db db.Querier
 }
 
-func NewService(db database.Querier) *Service {
+func NewService(db db.Querier) *Service {
 	return &Service{db: db}
 }
 
@@ -43,7 +43,7 @@ func generateSessionToken() (string, error) {
 	return generateToken(32)
 }
 
-func (s *Service) Login(ctx context.Context, username, password string) (*database.Session, error) {
+func (s *Service) Login(ctx context.Context, username, password string) (*db.Session, error) {
 	user, err := s.db.GetUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -62,7 +62,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (*databa
 	}
 
 	expiresAt := time.Now().Add(30 * 24 * time.Hour) // 30 days
-	session, err := s.db.CreateSession(ctx, database.CreateSessionParams{
+	session, err := s.db.CreateSession(ctx, db.CreateSessionParams{
 		ID:        token,
 		UserID:    user.ID,
 		ExpiresAt: expiresAt,
@@ -74,7 +74,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (*databa
 	return &session, nil
 }
 
-func (s *Service) ValidateSession(ctx context.Context, sessionID string) (*database.User, error) {
+func (s *Service) ValidateSession(ctx context.Context, sessionID string) (*db.User, error) {
 	session, err := s.db.GetSession(ctx, sessionID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

@@ -10,18 +10,18 @@ import (
 
 type Service struct {
 	jikanClient *jikan.Client
-	db          database.Querier
+	db          db.Querier
 }
 
-func NewService(jikanClient *jikan.Client, db database.Querier) *Service {
+func NewService(jikanClient *jikan.Client, db db.Querier) *Service {
 	return &Service{jikanClient: jikanClient, db: db}
 }
 
 func (s *Service) GetCatalogSection(ctx context.Context, userID string, section string) (map[string]any, error) {
 	var (
 		res       jikan.TopAnimeResult
-		cw        []database.GetContinueWatchingEntriesRow
-		watchlist []database.GetUserWatchListRow
+		cw        []db.GetContinueWatchingEntriesRow
+		watchlist []db.GetUserWatchListRow
 		err       error
 	)
 
@@ -77,7 +77,7 @@ func (s *Service) GetCatalogSection(ctx context.Context, userID string, section 
 func (s *Service) GetDiscoverSection(ctx context.Context, userID string, section string) (map[string]any, error) {
 	var (
 		res       jikan.TopAnimeResult
-		watchlist []database.GetUserWatchListRow
+		watchlist []db.GetUserWatchListRow
 		err       error
 	)
 

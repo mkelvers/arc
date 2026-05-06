@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	database "mal/internal/db"
+	"mal/internal/db"
 	"mal/internal/middleware"
 	"mal/templates"
 )
@@ -123,8 +123,8 @@ func (h *Handler) HandleGetWatchlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	watchlistByStatus := make(map[string][]database.GetUserWatchListRow)
-	allEntries := make([]database.GetUserWatchListRow, 0)
+	watchlistByStatus := make(map[string][]db.GetUserWatchListRow)
+	allEntries := make([]db.GetUserWatchListRow, 0)
 	watchlistIDs := make([]int64, len(entries))
 
 	for i, entry := range entries {

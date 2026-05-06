@@ -19,13 +19,13 @@ import (
 type Client struct {
 	httpClient  *http.Client
 	baseURL     string
-	db          database.Querier
+	db          db.Querier
 	retrySignal chan struct{}
 	mu          sync.Mutex
 	lastReqTime time.Time
 }
 
-func NewClient(db database.Querier) *Client {
+func NewClient(db db.Querier) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -157,7 +157,7 @@ func (c *Client) EnqueueAnimeFetchRetry(parentCtx context.Context, animeID int, 
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
 
-	err := c.db.EnqueueAnimeFetchRetry(ctx, database.EnqueueAnimeFetchRetryParams{
+	err := c.db.EnqueueAnimeFetchRetry(ctx, db.EnqueueAnimeFetchRetryParams{
 		AnimeID:   int64(animeID),
 		LastError: truncateErrorMessage(cause.Error()),
 	})
@@ -228,7 +228,7 @@ func (c *Client) setCache(parentCtx context.Context, key string, data any, ttl t
 		return
 	}
 
-	_ = c.db.SetJikanCache(ctx, database.SetJikanCacheParams{
+	_ = c.db.SetJikanCache(ctx, db.SetJikanCacheParams{
 		Key:       key,
 		Data:      string(bytes),
 		ExpiresAt: time.Now().Add(ttl),

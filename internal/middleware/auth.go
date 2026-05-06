@@ -73,8 +73,8 @@ func RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
-func GetUser(ctx context.Context) *database.User {
-	user, ok := ctx.Value(ctxpkg.UserKey).(*database.User)
+func GetUser(ctx context.Context) *db.User {
+	user, ok := ctx.Value(ctxpkg.UserKey).(*db.User)
 	if !ok {
 		return nil
 	}

@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"mal/internal/db/sqlite"
+	"mal/internal/db"
 )
 
 func main() {
@@ -21,14 +21,14 @@ func main() {
 	username := os.Args[1]
 	password := os.Args[2]
 
-	db, err := sqlite.Open(sqlite.GetDBFile())
+	dbConn, err := db.Open(db.GetDBFile())
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
 	var existingID string
-	err = db.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&existingID)
+	err = dbConn.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&existingID)
 	if err != nil && err != sql.ErrNoRows {
 		log.Fatalf("database error: %v", err)
 	}
@@ -49,7 +49,7 @@ func main() {
 			log.Fatalf("failed to hash password: %v", err)
 		}
 
-		_, err = db.Exec("UPDATE user SET password_hash = ? WHERE id = ?", string(hash), existingID)
+		_, err = dbConn.Exec("UPDATE user SET password_hash = ? WHERE id = ?", string(hash), existingID)
 		if err != nil {
 			log.Fatalf("failed to update user: %v", err)
 		}
@@ -64,7 +64,7 @@ func main() {
 	}
 
 	id := uuid.New().String()
-	_, err = db.Exec("INSERT INTO user (id, username, password_hash) VALUES (?, ?, ?)", id, username, string(hash))
+	_, err = dbConn.Exec("INSERT INTO user (id, username, password_hash) VALUES (?, ?, ?)", id, username, string(hash))
 	if err != nil {
 		log.Fatalf("failed to create user: %v", err)
 	}

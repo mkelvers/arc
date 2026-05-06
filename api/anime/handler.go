@@ -289,7 +289,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 
 	if user != nil {
 		g.Go(func() error {
-			entry, err := h.service.db.GetWatchListEntry(gCtx, database.GetWatchListEntryParams{
+			entry, err := h.service.db.GetWatchListEntry(gCtx, db.GetWatchListEntryParams{
 				UserID:  user.ID,
 				AnimeID: int64(id),
 			})

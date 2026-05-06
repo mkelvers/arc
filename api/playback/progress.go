@@ -12,12 +12,12 @@ import (
 	"mal/internal/db"
 )
 
-func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64, animeSeed *database.UpsertAnimeParams) error {
+func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64, animeSeed *db.UpsertAnimeParams) error {
 	if strings.TrimSpace(userID) == "" || animeID <= 0 || episode <= 0 {
 		return errors.New("invalid save progress input")
 	}
 
-	txQueries, tx, err := database.BeginTx(ctx, s.sqlDB)
+	txQueries, tx, err := db.BeginTx(ctx, s.sqlDB)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 		}
 	}
 
-	watchListEntry, watchListErr := txQueries.GetWatchListEntry(ctx, database.GetWatchListEntryParams{
+	watchListEntry, watchListErr := txQueries.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
 	})
@@ -40,7 +40,7 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 
 	isCompleted := watchListErr == nil && watchListEntry.Status == "completed"
 	if !isCompleted {
-		if err := txQueries.SaveWatchProgress(ctx, database.SaveWatchProgressParams{
+		if err := txQueries.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
 			CurrentEpisode:     sql.NullInt64{Int64: int64(episode), Valid: true},
 			CurrentTimeSeconds: timeSeconds,
 			UserID:             userID,
@@ -55,7 +55,7 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 		durationSeconds = animeSeed.DurationSeconds
 	}
 
-	if _, err := txQueries.UpsertContinueWatchingEntry(ctx, database.UpsertContinueWatchingEntryParams{
+	if _, err := txQueries.UpsertContinueWatchingEntry(ctx, db.UpsertContinueWatchingEntryParams{
 		ID:                 uuid.New().String(),
 		UserID:             userID,
 		AnimeID:            animeID,
@@ -73,19 +73,19 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 	return nil
 }
 
-func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int64, episode int, animeSeed *database.UpsertAnimeParams) error {
+func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int64, episode int, animeSeed *db.UpsertAnimeParams) error {
 	if strings.TrimSpace(userID) == "" || animeID <= 0 || episode <= 0 {
 		return errors.New("invalid complete anime input")
 	}
 
-	txQueries, tx, err := database.BeginTx(ctx, s.sqlDB)
+	txQueries, tx, err := db.BeginTx(ctx, s.sqlDB)
 	if err != nil {
 		return err
 	}
 
 	defer tx.Rollback()
 
-	watchListEntry, watchListErr := txQueries.GetWatchListEntry(ctx, database.GetWatchListEntryParams{
+	watchListEntry, watchListErr := txQueries.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
 	})
@@ -102,7 +102,7 @@ func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int6
 			}
 		}
 
-		if _, err := txQueries.UpsertWatchListEntry(ctx, database.UpsertWatchListEntryParams{
+		if _, err := txQueries.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
 			ID:                 uuid.New().String(),
 			UserID:             userID,
 			AnimeID:            animeID,
@@ -113,7 +113,7 @@ func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int6
 			return fmt.Errorf("failed to mark watchlist as completed: %w", err)
 		}
 
-		if err := txQueries.SaveWatchProgress(ctx, database.SaveWatchProgressParams{
+		if err := txQueries.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
 			CurrentEpisode:     sql.NullInt64{Int64: 0, Valid: false},
 			CurrentTimeSeconds: 0,
 			UserID:             userID,
@@ -123,7 +123,7 @@ func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int6
 		}
 	}
 
-	if err := txQueries.DeleteContinueWatchingEntry(ctx, database.DeleteContinueWatchingEntryParams{
+	if err := txQueries.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
 	}); err != nil {

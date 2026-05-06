@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"mal/integrations/jikan"
-	database "mal/internal/db"
+	"mal/internal/db"
 	"mal/internal/middleware"
 	"mal/templates"
 )
@@ -79,7 +79,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 	currentEpID := r.URL.Query().Get("ep")
 	if currentEpID == "" {
 		if user != nil {
-			entry, err := h.svc.db.GetWatchListEntry(r.Context(), database.GetWatchListEntryParams{
+			entry, err := h.svc.db.GetWatchListEntry(r.Context(), db.GetWatchListEntryParams{
 				UserID:  user.ID,
 				AnimeID: int64(id),
 			})
@@ -269,9 +269,9 @@ func (h *Handler) HandleSaveProgress(w http.ResponseWriter, r *http.Request) {
 
 	// We fetch the anime info to seed the DB if it's the first time saving progress for this show
 	anime, err := h.jikanClient.GetAnimeByID(r.Context(), int(req.MalID))
-	var seed *database.UpsertAnimeParams
+	var seed *db.UpsertAnimeParams
 	if err == nil {
-		seed = &database.UpsertAnimeParams{
+		seed = &db.UpsertAnimeParams{
 			ID:              int64(anime.MalID),
 			TitleOriginal:   anime.Title,
 			TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
@@ -315,9 +315,9 @@ func (h *Handler) HandleCompleteAnime(w http.ResponseWriter, r *http.Request) {
 
 	// Seed anime info if needed
 	anime, err := h.jikanClient.GetAnimeByID(r.Context(), int(req.MalID))
-	var seed *database.UpsertAnimeParams
+	var seed *db.UpsertAnimeParams
 	if err == nil {
-		seed = &database.UpsertAnimeParams{
+		seed = &db.UpsertAnimeParams{
 			ID:              int64(anime.MalID),
 			TitleOriginal:   anime.Title,
 			TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},

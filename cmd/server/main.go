@@ -14,7 +14,7 @@ import (
 
 	"mal/api/auth"
 	"mal/integrations/jikan"
-	"mal/internal/db/sqlite"
+	"mal/internal/db"
 	"mal/internal/server"
 	"mal/internal/worker"
 	"mal/pkg/middleware"
@@ -23,13 +23,13 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	db, err := sqlite.Open(sqlite.GetDBFile())
+	dbConn, err := db.Open(db.GetDBFile())
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
-	queries, err := sqlite.Init(db)
+	queries, err := db.Init(dbConn)
 	if err != nil {
 		log.Fatalf("failed to initialize database: %v", err)
 	}
@@ -43,7 +43,7 @@ func main() {
 
 	app := server.Config{
 		DB:                  queries,
-		SQLDB:               db,
+		SQLDB:               dbConn,
 		JikanClient:         jikanClient,
 		AuthService:         auth.NewService(queries),
 		PlaybackProxySecret: playbackSecret(),

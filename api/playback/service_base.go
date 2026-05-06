@@ -24,7 +24,7 @@ type Service struct {
 	allAnimeClient *allAnimeClient
 	httpClient     *http.Client
 	sqlDB          *sql.DB
-	db             database.Querier
+	db             db.Querier
 	proxyTokens    *proxyTokenSigner
 	proxyHostMu    sync.RWMutex
 	proxyHostCache map[string]proxyHostCacheItem
@@ -93,7 +93,7 @@ type userPlaybackState struct {
 	StartTimeSeconds float64
 }
 
-func NewService(db database.Querier, sqlDB *sql.DB, cfg Config) *Service {
+func NewService(db db.Querier, sqlDB *sql.DB, cfg Config) *Service {
 	proxyTokens, err := newProxyTokenSigner(cfg.ProxyTokenSecret)
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize proxy token signer: %v", err))
@@ -215,7 +215,7 @@ func (s *Service) fetchUserPlaybackStateAsync(ctx context.Context, userID string
 	go func() {
 		state := userPlaybackState{}
 
-		entry, err := s.db.GetWatchListEntry(ctx, database.GetWatchListEntryParams{
+		entry, err := s.db.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
 			UserID:  userID,
 			AnimeID: int64(malID),
 		})
@@ -227,7 +227,7 @@ func (s *Service) fetchUserPlaybackStateAsync(ctx context.Context, userID string
 		}
 
 		if state.StartTimeSeconds <= 0 {
-			continueEntry, continueErr := s.db.GetContinueWatchingEntry(ctx, database.GetContinueWatchingEntryParams{
+			continueEntry, continueErr := s.db.GetContinueWatchingEntry(ctx, db.GetContinueWatchingEntryParams{
 				UserID:  userID,
 				AnimeID: int64(malID),
 			})

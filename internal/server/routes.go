@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	DB                  *database.Queries
+	DB                  *db.Queries
 	SQLDB               *sql.DB
 	JikanClient         *jikan.Client
 	AuthService         *auth.Service

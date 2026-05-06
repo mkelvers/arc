@@ -13,11 +13,11 @@ import (
 )
 
 type Worker struct {
-	db     *database.Queries
+	db     *db.Queries
 	client *jikan.Client
 }
 
-func New(db *database.Queries, client *jikan.Client) *Worker {
+func New(db *db.Queries, client *jikan.Client) *Worker {
 	return &Worker{
 		db:     db,
 		client: client,
@@ -111,7 +111,7 @@ func (w *Worker) processAnimeFetchRetries(ctx context.Context) {
 	var wg sync.WaitGroup
 	for _, retry := range retries {
 		wg.Add(1)
-		go func(r database.AnimeFetchRetry) {
+		go func(r db.AnimeFetchRetry) {
 			defer wg.Done()
 			_, err := w.client.GetAnimeByID(ctx, int(r.AnimeID))
 			if err != nil {
@@ -120,7 +120,7 @@ func (w *Worker) processAnimeFetchRetries(ctx context.Context) {
 					return
 				}
 
-				_ = w.db.MarkAnimeFetchRetryFailed(ctx, database.MarkAnimeFetchRetryFailedParams{
+				_ = w.db.MarkAnimeFetchRetryFailed(ctx, db.MarkAnimeFetchRetryFailedParams{
 					Datetime:  retryBackoff(r.Attempts + 1),
 					LastError: err.Error(),
 					AnimeID:   r.AnimeID,
@@ -152,15 +152,17 @@ func (w *Worker) syncRelations(ctx context.Context) {
 
 	// Use a small worker pool for Jikan API calls to respect rate limits while maintaining concurrency
 	const workerCount = 2
-	jobs := make(chan database.GetAnimeNeedingRelationSyncRow, len(animes))
+	jobs := make(chan db.GetAnimeNeedingRelationSyncRow, len(animes))
 	var wg sync.WaitGroup
 
 	for range workerCount {
-		wg.Go(func() {
+		go func() {
+			wg.Add(1)
+			defer wg.Done()
 			for a := range jobs {
 				w.syncSingleAnime(ctx, a.ID)
 			}
-		})
+		}()
 	}
 
 	for _, a := range animes {
@@ -180,7 +182,7 @@ func (w *Worker) syncSingleAnime(ctx context.Context, id int64) {
 	for _, rel := range animeData.Relations {
 		for _, entry := range rel.Entry {
 			if entry.Type == "anime" {
-				err := w.db.UpsertAnimeRelation(ctx, database.UpsertAnimeRelationParams{
+				err := w.db.UpsertAnimeRelation(ctx, db.UpsertAnimeRelationParams{
 					AnimeID:        id,
 					RelatedAnimeID: int64(entry.MalID),
 					RelationType:   rel.Relation,
@@ -196,7 +198,7 @@ func (w *Worker) syncSingleAnime(ctx context.Context, id int64) {
 		}
 	}
 
-	_ = w.db.UpdateAnimeStatus(ctx, database.UpdateAnimeStatusParams{
+	_ = w.db.UpdateAnimeStatus(ctx, db.UpdateAnimeStatusParams{
 		Status: sql.NullString{String: animeData.Status, Valid: true},
 		ID:     id,
 	})
@@ -210,7 +212,7 @@ func (w *Worker) ensureAnimeExistsAndStatusUpdated(ctx context.Context, malID in
 		return
 	}
 
-	_, err = w.db.UpsertAnime(ctx, database.UpsertAnimeParams{
+	_, err = w.db.UpsertAnime(ctx, db.UpsertAnimeParams{
 		ID:            int64(animeDetails.MalID),
 		TitleOriginal: animeDetails.Title,
 		TitleEnglish:  sql.NullString{String: animeDetails.TitleEnglish, Valid: animeDetails.TitleEnglish != ""},
@@ -222,7 +224,7 @@ func (w *Worker) ensureAnimeExistsAndStatusUpdated(ctx context.Context, malID in
 		log.Printf("worker: failed to insert related anime %d: %v", malID, err)
 	}
 
-	_ = w.db.UpdateAnimeStatus(ctx, database.UpdateAnimeStatusParams{
+	_ = w.db.UpdateAnimeStatus(ctx, db.UpdateAnimeStatusParams{
 		Status: sql.NullString{String: animeDetails.Status, Valid: true},
 		ID:     int64(animeDetails.MalID),
 	})

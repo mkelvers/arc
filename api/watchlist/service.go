@@ -14,7 +14,7 @@ import (
 )
 
 type Service struct {
-	db          database.Querier
+	db          db.Querier
 	sqlDB       *sql.DB
 	jikanClient *jikan.Client
 }
@@ -32,7 +32,7 @@ var validStatuses = map[string]struct{}{
 	"on_hold":       {},
 }
 
-func NewService(db database.Querier, sqlDB *sql.DB, jikanClient *jikan.Client) *Service {
+func NewService(db db.Querier, sqlDB *sql.DB, jikanClient *jikan.Client) *Service {
 	return &Service{db: db, sqlDB: sqlDB, jikanClient: jikanClient}
 }
 
@@ -47,7 +47,7 @@ func (s *Service) ensureAnimeExists(ctx context.Context, animeID int64) error {
 		return fmt.Errorf("failed to fetch anime from jikan: %w", err)
 	}
 
-	_, err = s.db.UpsertAnime(ctx, database.UpsertAnimeParams{
+	_, err = s.db.UpsertAnime(ctx, db.UpsertAnimeParams{
 		ID:            int64(anime.MalID),
 		TitleOriginal: anime.Title,
 		TitleEnglish:  sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
@@ -86,7 +86,7 @@ func (s *Service) AddToWatchlist(ctx context.Context, userID string, animeID int
 	}
 
 	entryID := uuid.New().String()
-	_, err := s.db.UpsertWatchListEntry(ctx, database.UpsertWatchListEntryParams{
+	_, err := s.db.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
 		ID:                 entryID,
 		UserID:             userID,
 		AnimeID:            animeID,
@@ -101,28 +101,28 @@ func (s *Service) AddToWatchlist(ctx context.Context, userID string, animeID int
 	return nil
 }
 
-func (s *Service) RemoveEntry(ctx context.Context, userID string, animeID int64) (database.Anime, error) {
+func (s *Service) RemoveEntry(ctx context.Context, userID string, animeID int64) (db.Anime, error) {
 	if animeID <= 0 {
-		return database.Anime{}, ErrInvalidAnimeID
+		return db.Anime{}, ErrInvalidAnimeID
 	}
 
 	anime, err := s.db.GetAnime(ctx, animeID)
 	if err != nil {
-		return database.Anime{}, fmt.Errorf("anime not found: %w", err)
+		return db.Anime{}, fmt.Errorf("anime not found: %w", err)
 	}
 
-	err = s.db.DeleteWatchListEntry(ctx, database.DeleteWatchListEntryParams{
+	err = s.db.DeleteWatchListEntry(ctx, db.DeleteWatchListEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
 	})
 	if err != nil {
-		return database.Anime{}, fmt.Errorf("failed to delete from watchlist: %w", err)
+		return db.Anime{}, fmt.Errorf("failed to delete from watchlist: %w", err)
 	}
 
 	return anime, nil
 }
 
-func (s *Service) GetUserWatchlist(ctx context.Context, userID string) ([]database.GetUserWatchListRow, error) {
+func (s *Service) GetUserWatchlist(ctx context.Context, userID string) ([]db.GetUserWatchListRow, error) {
 	entries, err := s.db.GetUserWatchList(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch watchlist: %w", err)
@@ -130,7 +130,7 @@ func (s *Service) GetUserWatchlist(ctx context.Context, userID string) ([]databa
 	return entries, nil
 }
 
-func (s *Service) GetContinueWatching(ctx context.Context, userID string) ([]database.GetContinueWatchingEntriesRow, error) {
+func (s *Service) GetContinueWatching(ctx context.Context, userID string) ([]db.GetContinueWatchingEntriesRow, error) {
 	if strings.TrimSpace(userID) == "" {
 		return nil, errors.New("invalid user id")
 	}
@@ -152,12 +152,12 @@ func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, ani
 		return ErrInvalidAnimeID
 	}
 
-	params := database.DeleteContinueWatchingEntryParams{
+	params := db.DeleteContinueWatchingEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
 	}
 
-	clearProgress := database.SaveWatchProgressParams{
+	clearProgress := db.SaveWatchProgressParams{
 		CurrentEpisode:     sql.NullInt64{Valid: false},
 		CurrentTimeSeconds: 0,
 		UserID:             userID,
@@ -171,7 +171,7 @@ func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, ani
 		return s.db.SaveWatchProgress(ctx, clearProgress)
 	}
 
-	txQueries, tx, err := database.BeginTx(ctx, s.sqlDB)
+	txQueries, tx, err := db.BeginTx(ctx, s.sqlDB)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
