@@ -23,7 +23,7 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6" /></svg>
           </button>
         </div>
-        <div data-content class="hidden absolute z-50 min-w-[160px] bg-background-button shadow-2xl right-0 top-full mt-2">
+        <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-2xl right-0 top-full mt-2">
           {{if .WatchlistStatus}}
           <div class="flex flex-col py-1">
             <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
@@ -137,7 +137,7 @@
                 <svg class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
             </div>
-            <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-[200px] bg-background-button rounded shadow-2xl">
+            <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button rounded shadow-2xl">
               <div class="flex flex-col py-1">
                 {{$ranges := ceilDiv $totalEpisodes 100}}
                 {{range $i := seq $ranges}}
