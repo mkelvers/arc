@@ -8,23 +8,23 @@ import (
 )
 
 type fakeQuerier struct {
-	database.Querier
+	db.Querier
 	upsertAnimeCalled bool
 	upsertEntryCalled bool
-	addRows           []database.GetUserWatchListRow
+	addRows           []db.GetUserWatchListRow
 }
 
-func (f *fakeQuerier) UpsertAnime(ctx context.Context, arg database.UpsertAnimeParams) (database.Anime, error) {
+func (f *fakeQuerier) UpsertAnime(ctx context.Context, arg db.UpsertAnimeParams) (db.Anime, error) {
 	f.upsertAnimeCalled = true
-	return database.Anime{}, nil
+	return db.Anime{}, nil
 }
 
-func (f *fakeQuerier) UpsertWatchListEntry(ctx context.Context, arg database.UpsertWatchListEntryParams) (database.WatchListEntry, error) {
+func (f *fakeQuerier) UpsertWatchListEntry(ctx context.Context, arg db.UpsertWatchListEntryParams) (db.WatchListEntry, error) {
 	f.upsertEntryCalled = true
-	return database.WatchListEntry{}, nil
+	return db.WatchListEntry{}, nil
 }
 
-func (f *fakeQuerier) GetUserWatchList(ctx context.Context, userID string) ([]database.GetUserWatchListRow, error) {
+func (f *fakeQuerier) GetUserWatchList(ctx context.Context, userID string) ([]db.GetUserWatchListRow, error) {
 	return f.addRows, nil
 }
 

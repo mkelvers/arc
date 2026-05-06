@@ -11,7 +11,7 @@ import (
 )
 
 type staleCacheQuerier struct {
-	database.Querier
+	db.Querier
 	staleJSON string
 }
 

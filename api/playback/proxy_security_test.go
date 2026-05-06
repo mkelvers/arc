@@ -41,5 +41,5 @@ func TestProxyTokenScopeValidation(t *testing.T) {
 }
 
 type fakeProxyQuerier struct {
-	database.Querier
+	db.Querier
 }
