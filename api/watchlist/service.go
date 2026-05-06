@@ -3,12 +3,8 @@ package watchlist
 import (
 	"context"
 	"database/sql"
-	"encoding/csv"
 	"errors"
 	"fmt"
-	"io"
-	"log"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -186,76 +182,6 @@ func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, ani
 	}
 	if err := txQueries.SaveWatchProgress(ctx, clearProgress); err != nil {
 		return fmt.Errorf("failed to clear watchlist progress: %w", err)
-	}
-
-	return tx.Commit()
-}
-
-func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reader) error {
-	txQueries, tx, err := db.BeginTx(ctx, s.sqlDB)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	reader := csv.NewReader(r)
-	// Read header
-	if _, err := reader.Read(); err != nil {
-		return fmt.Errorf("failed to read csv header: %w", err)
-	}
-
-	records, err := reader.ReadAll()
-	if err != nil {
-		return fmt.Errorf("failed to read csv records: %w", err)
-	}
-
-	for i, record := range records {
-		// New format: anime_id,title,status,current_episode,current_time_seconds
-		// Old format: anime_id,status,current_episode,current_time_seconds
-		var animeIDStr, status, episodeStr, timeStr string
-
-		if len(record) >= 5 {
-			animeIDStr = record[0]
-			status = record[2]
-			episodeStr = record[3]
-			timeStr = record[4]
-		} else if len(record) >= 4 {
-			animeIDStr = record[0]
-			status = record[1]
-			episodeStr = record[2]
-			timeStr = record[3]
-		} else {
-			log.Printf("skipping row %d: insufficient columns", i+2)
-			continue
-		}
-
-		animeID, err := strconv.ParseInt(animeIDStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("row %d: invalid anime id: %w", i+2, err)
-		}
-
-		if _, ok := validStatuses[status]; !ok {
-			status = "plan_to_watch"
-		}
-
-		currentEpisode, _ := strconv.ParseInt(episodeStr, 10, 64)
-		currentTimeSeconds, _ := strconv.ParseFloat(timeStr, 64)
-
-		if err := s.ensureAnimeExists(ctx, animeID); err != nil {
-			return fmt.Errorf("row %d: failed to ensure anime: %w", i+2, err)
-		}
-
-		_, err = txQueries.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
-			ID:                 uuid.New().String(),
-			UserID:             userID,
-			AnimeID:            animeID,
-			Status:             status,
-			CurrentEpisode:     sql.NullInt64{Int64: currentEpisode, Valid: currentEpisode > 0},
-			CurrentTimeSeconds: currentTimeSeconds,
-		})
-		if err != nil {
-			return fmt.Errorf("row %d: failed to upsert entry: %w", i+2, err)
-		}
 	}
 
 	return tx.Commit()

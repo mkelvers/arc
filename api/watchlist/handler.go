@@ -57,35 +57,6 @@ func (h *Handler) HandleUpdateWatchlist(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) HandleImportWatchlist(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	user := middleware.GetUser(r.Context())
-	if user == nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	file, _, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "failed to get file from request", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	if err := h.service.ImportWatchlist(r.Context(), user.ID, file); err != nil {
-		log.Printf("import failed: %v", err)
-		http.Error(w, "import failed: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("HX-Redirect", "/watchlist")
-	w.WriteHeader(http.StatusOK)
-}
-
 func (h *Handler) HandleDeleteWatchlist(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
 	if user == nil {

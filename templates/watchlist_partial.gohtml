@@ -31,27 +31,6 @@
       <button type="button" id="sort-order-btn" class="text-neutral-400 transition-colors hover:text-white" onclick="toggleSortOrder(this)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 rotate-0"><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
       </button>
-
-      <ui-dropdown class="relative block" data-align="right" data-width="min-w-[150px]">
-        <div data-trigger>
-          <button type="button" class="flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-          </button>
-        </div>
-        <div data-content class="hidden absolute z-50 min-w-[150px] bg-background-button rounded-none shadow-2xl right-0 top-full mt-2">
-          <div class="flex flex-col py-1">
-            <button class="flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-400 transition-colors hover:bg-white/10 hover:text-white" onclick="exportWatchlistCSV()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export CSV
-            </button>
-            <button class="flex w-full items-center gap-2 px-4 py-2 text-sm text-neutral-400 transition-colors hover:bg-white/10 hover:text-white" onclick="document.getElementById('import-input').click()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Import CSV
-            </button>
-            <input type="file" id="import-input" class="hidden" accept=".csv" onchange="importWatchlistCSV(this)">
-          </div>
-        </div>
-      </ui-dropdown>
     </div>
   </div>
 
@@ -146,62 +125,6 @@
     sortOrderDesc = !sortOrderDesc
     btn.querySelector('svg').classList.toggle('rotate-180', !sortOrderDesc)
     sortItems()
-  }
-
-  function exportWatchlistCSV() {
-    const items = document.querySelectorAll('.watchlist-item');
-    if (items.length === 0) {
-      alert('Watchlist is empty');
-      return;
-    }
-
-    let csv = 'anime_id,title,status,current_episode,current_time_seconds\n';
-    items.forEach(function(item) {
-      const animeId = item.querySelector('a').href.split('/').pop();
-      const title = (item.dataset.title || '').replace(/"/g, '""');
-      const status = item.dataset.status || 'plan_to_watch';
-      const episode = item.dataset.episode || '0';
-      const time = item.dataset.time || '0';
-      csv += `${animeId},"${title}",${status},${episode},${time}\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', 'watchlist.csv');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  async function importWatchlistCSV(input) {
-    if (!input.files || input.files.length === 0) return;
-    
-    const formData = new FormData();
-    formData.append('file', input.files[0]);
-
-    try {
-      const resp = await fetch('/api/watchlist/import', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'HX-Request': 'true'
-        }
-      });
-
-      if (resp.ok) {
-        const redirect = resp.headers.get('HX-Redirect');
-        if (redirect) window.location.href = redirect;
-        else window.location.reload();
-      } else {
-        const text = await resp.text();
-        alert('Import failed: ' + text);
-      }
-    } catch (err) {
-      alert('Import error: ' + err);
-    }
   }
 
   function sortItems() {
