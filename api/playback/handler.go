@@ -56,20 +56,9 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch episodes sequentially (pages are in correct order: 1-100, 101-200, etc.)
-	pageSize := 100
-	var allEpisodes []jikan.Episode
-	for page := 1; ; page++ {
-		resp, err := h.jikanClient.GetEpisodes(r.Context(), id, page)
-		if err != nil || len(resp.Data) == 0 {
-			break
-		}
-		allEpisodes = append(allEpisodes, resp.Data...)
-
-		// If we got fewer than pageSize, we've reached the end
-		if len(resp.Data) < pageSize {
-			break
-		}
+	allEpisodes, err := h.jikanClient.GetAllEpisodes(r.Context(), id)
+	if err != nil {
+		log.Printf("failed to fetch episodes: %v", err)
 	}
 
 	user := middleware.GetUser(r.Context())
@@ -419,18 +408,9 @@ func (h *Handler) HandleEpisodeThumbnails(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Fetch episodes sequentially
-	pageSize := 100
-	var allEpisodes []jikan.Episode
-	for page := 1; ; page++ {
-		resp, err := h.jikanClient.GetEpisodes(r.Context(), id, page)
-		if err != nil || len(resp.Data) == 0 {
-			break
-		}
-		allEpisodes = append(allEpisodes, resp.Data...)
-		if len(resp.Data) < pageSize {
-			break
-		}
+	allEpisodes, err := h.jikanClient.GetAllEpisodes(r.Context(), id)
+	if err != nil {
+		log.Printf("failed to fetch thumbnails/episodes: %v", err)
 	}
 
 	// Fill gaps if anime has known total
