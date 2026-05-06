@@ -65,65 +65,56 @@ The codebase follows standard Go project layout conventions.
 
 ## Getting started
 
-For local development, install Go `1.25+` and Bun, then build frontend assets and run the server.
+The app requires Go `1.25+`, Bun, and a Playback proxy secret. Choose an installation method:
+
+### Automatic (mise)
 
 ```bash
-bun install                                    # Install Bun dependencies
-bun run build:css && bun run build:ts          # Build frontend assets (CSS and TypeScript)
-PLAYBACK_PROXY_SECRET="your-32+char-secret" go run ./cmd/server  # Run the Go server
+curl https://deb.nodesource.com/setup_20.x | sudo bash
+mise install
 ```
 
-The frontend pipeline uses Tailwind CSS v4 (`static/style.css`) and TypeScript sources in `static/*.ts`, then emits build artifacts into `dist/` for serving.
+### Manual
 
-When the server starts, the app is available at `http://localhost:3000`.
-
-### Creating a user
-
-The app has no public registration. Use the built-in CLI command to create a user:
+Install [Go](https://go.dev/dl), [Bun](https://bun.sh), and [just](https://github.com/casey/just).
 
 ```bash
+git clone https://github.com/mkelvers/mal.git && cd mal
+openssl rand -base32 32
+PLAYBACK_PROXY_SECRET="your-32-char-secret" go run ./cmd/server
 go run ./cmd/server create-user <username> <password>
-# or with a built binary:
-./server create-user <username> <password>
 ```
 
-If the username already exists, you will be prompted to confirm overwriting the password.
+The app runs at `http://localhost:3000`.
 
-### Justfile
+### Tasks
 
-Common tasks are automated via the `justfile`. Run `just <task>` after installing [`just`](https://github.com/casey/just):
-
-| Task | Description |
-| --- | --- |
-| `just fmt` | Format Go code |
-| `just lint` | Run go fmt and go vet |
-| `just test` | Run Go tests |
-| `just build` | Full build (Go binary, CSS, TS) |
-| `just check` | Run all checks (lint, test, typecheck, build) |
-| `just dev` | Build and start the server |
-| `just install-hooks` | Install lefthook pre-push hooks |
-
-For containerized usage:
+The justfile automates common tasks:
 
 ```bash
-docker build -t myanimelist .
-docker run --rm -p 3000:3000 -e PLAYBACK_PROXY_SECRET="your-32+char-secret" myanimelist
+just fmt          # format go code
+just lint         # go fmt && go vet
+just test         # run go tests
+just build        # build go binary + frontend
+just check        # lint, test, typecheck, build
+just dev          # build and run
+just install-hooks   # install pre-push hooks
 ```
 
-For persistent data in containers, set `DATABASE_FILE` to `/app/data/mal.db` and mount a volume:
+### Docker
 
 ```bash
-docker run --rm \
-  -p 3000:3000 \
+docker build -t mal .
+docker run --rm -p 3000:3000 -e PLAYBACK_PROXY_SECRET="$(openssl rand -base32 32)" mal
+
+# persistent data
+docker run --rm -p 3000:3000 \
   -e DATABASE_FILE=/app/data/mal.db \
+  -e PLAYBACK_PROXY_SECRET="your-secret" \
   -v "$(pwd)/data:/app/data" \
-  myanimelist
-```
+  mal
 
-After the container is running, exec into it to create a user:
-
-```bash
-docker exec <container> /server create-user <username> <password>
+docker exec mal /server create-user <username> <password>
 ```
 
 ## Configuration
@@ -136,20 +127,15 @@ docker exec <container> /server create-user <username> <password>
 | `MIGRATIONS_DIR` | _(auto-discovered)_ | Optional explicit path to migration files |
 | `PLAYBACK_PROXY_SECRET` | _(required)_ | HMAC secret for signed playback proxy tokens (min 32 chars) |
 
-## Database and testing
+## Testing
 
-Migrations run at startup automatically. Schema history includes auth, watchlist, anime metadata, relation tracking, Jikan cache persistence, and retry-queue support.
-
-There is no CI workflow, so validation is local. Use `just check` to run all checks (lint, test, typecheck, build) or `just install-hooks` to set up the pre-push hook that runs them automatically before each push.
-
-> [!NOTE]
-> [`just`](https://github.com/casey/just) must be installed first (e.g. `brew install just`).
-
-Alternatively, run tests manually with:
+Run locally with `just check` or manually:
 
 ```bash
 go test ./...
 ```
+
+Migrations run automatically on startup.
 
 ## Security
 
