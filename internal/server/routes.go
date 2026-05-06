@@ -22,6 +22,7 @@ type Config struct {
 	SQLDB               *sql.DB
 	JikanClient         *jikan.Client
 	AuthService         *auth.Service
+	AuthLimiter         *pkgmiddleware.Limiter
 	PlaybackProxySecret string
 }
 
@@ -39,6 +40,13 @@ func withMimeTypes(next http.Handler) http.Handler {
 			w.Header().Set("Content-Type", "application/json")
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+func NewAuthLimiter() *pkgmiddleware.Limiter {
+	return pkgmiddleware.NewLimiter(pkgmiddleware.Config{
+		MaxAttempts: 5,
+		Window:      time.Minute,
 	})
 }
 
@@ -115,22 +123,12 @@ func NewRouter(cfg Config) http.Handler {
 	mux.HandleFunc("/api/watch/episode/", playbackHandler.HandleEpisodeData)
 	mux.HandleFunc("/api/watch/thumbnails/", playbackHandler.HandleEpisodeThumbnails)
 
-	authLimiter := pkgmiddleware.NewLimiter(pkgmiddleware.Config{
-		MaxAttempts: 5,
-		Window:      time.Minute,
-	})
-	go func() {
-		for range time.Tick(time.Minute) {
-			authLimiter.Cleanup(time.Now())
-		}
-	}()
-
 	// Auth Endpoints
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			authHandler.HandleLoginPage(w, r)
 		} else {
-			authLimiter.AuthMiddleware(pkgmiddleware.VerifyOrigin(http.HandlerFunc(authHandler.HandleLogin))).ServeHTTP(w, r)
+			cfg.AuthLimiter.AuthMiddleware(pkgmiddleware.VerifyOrigin(http.HandlerFunc(authHandler.HandleLogin))).ServeHTTP(w, r)
 		}
 	})
 	mux.HandleFunc("/logout", authHandler.HandleLogout)

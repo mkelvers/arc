@@ -35,6 +35,14 @@ func main() {
 
 	jikanClient := jikan.NewClient(queries)
 
+	authLimiter := server.NewAuthLimiter()
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+			authLimiter.Cleanup(time.Now())
+		}
+	}()
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -45,6 +53,7 @@ func main() {
 		SQLDB:               dbConn,
 		JikanClient:         jikanClient,
 		AuthService:         auth.NewService(queries),
+		AuthLimiter:         authLimiter,
 		PlaybackProxySecret: playbackSecret(),
 	}
 
