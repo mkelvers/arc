@@ -37,7 +37,7 @@
 
   <div id="watchlist-items" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
     {{range $.AllEntries}}
-      <div class="watchlist-item flex w-full flex-col gap-2" data-status="{{.Status}}" data-created-at="{{.CreatedAt}}">
+      <div class="watchlist-item flex w-full flex-col gap-2" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}">
         <div class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-white/5 after:absolute after:inset-0 after:bg-black/80 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
           <a href="/anime/{{.AnimeID}}" class="absolute inset-0 z-10"></a>
           <img src="{{.ImageUrl}}" alt="{{.DisplayTitle}}" class="h-full w-full object-cover" loading="lazy" />
@@ -136,8 +136,8 @@
         const titleB = b.querySelector('h3').textContent.toLowerCase().trim()
         comparison = titleA.localeCompare(titleB)
       } else {
-        const dateA = new Date(a.dataset.createdAt || 0).getTime()
-        const dateB = new Date(b.dataset.createdAt || 0).getTime()
+        const dateA = parseInt(a.dataset.updatedAt || 0)
+        const dateB = parseInt(b.dataset.updatedAt || 0)
         comparison = dateA - dateB
       }
       return sortOrderDesc ? -comparison : comparison
@@ -147,5 +147,10 @@
       grid.appendChild(item)
     })
   }
+
+  // Ensure items are sorted correctly on initial load
+  window.addEventListener('DOMContentLoaded', () => {
+    sortItems()
+  })
 </script>
 {{end}}
