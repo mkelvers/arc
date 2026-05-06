@@ -109,7 +109,10 @@ const initPlayer = (): void => {
 
   let modeSources = safeJsonParse(container.getAttribute('data-mode-sources'), {} as Record<string, ModeSource>)
   let availableModes = safeJsonParse(container.getAttribute('data-available-modes'), [] as string[])
-  const initialMode = container.getAttribute('data-initial-mode') || 'dub'
+  const backendInitialMode = container.getAttribute('data-initial-mode') || 'dub'
+  const storedMode = localStorage.getItem('player-audio-mode')
+  const initialMode = (storedMode && availableModes.includes(storedMode)) ? storedMode : backendInitialMode
+
   const segments = safeJsonParse(container.getAttribute('data-segments'), [] as SkipSegment[])
   const maxIntroStartSeconds = 180
   const minOutroStartRatio = 0.5
@@ -728,6 +731,7 @@ const initPlayer = (): void => {
     const wasPlaying = video.ended || !video.paused
     const previousTime = displayTimeFromAbsolute(video.currentTime)
     currentMode = mode
+    localStorage.setItem('player-audio-mode', mode)
     hidePreviewPopover()
     video.src = nextURL
     video.load()
