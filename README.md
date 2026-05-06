@@ -44,80 +44,24 @@ The interface is minimal and functional, featuring a dark theme and quick access
 
 The application is written in Go and rendered on the server with `html/template`, with SQLite as the primary datastore and `sqlc` for typed query generation. Styling uses Tailwind CSS v4. HTMX and small TypeScript modules handle incremental interactions, which keeps the interface responsive without moving the entire product into a heavy client-side architecture.
 
-The external anime data source is Jikan (`https://api.jikan.moe/v4`). Because reliability is a first-class concern, the client layer includes request pacing, bounded retries, backoff behavior, stale-cache fallback, and a persisted retry queue for failed fetches that should be retried later. Playback proxying uses uTLS to bypass Cloudflare protections.
+The external anime data source is Jikan (`https://api.jikan.moe/v4`). Because reliability is a first-class concern, the client layer includes request pacing, bounded retries, backoff behavior, stale-cache fallback, and a persisted retry queue for failed fetches. Playback proxying uses uTLS to bypass Cloudflare protections.
+
+Upstream APIs can fail transiently with `429` and `5xx` responses, so the app favors graceful degradation over hard failure. Cached values are used when fresh requests fail, retryable failures are persisted and replayed in a background worker, and relation synchronization is incremental so one bad fetch does not block the rest of the graph.
 
 ## Repository structure
 
-The codebase follows standard Go project layout conventions with clear separation between public APIs, external integrations, private internals, and web presentation.
-
-### Public API Layer
+The codebase follows standard Go project layout conventions.
 
 | Path | Purpose |
 | --- | --- |
-| `api/anime` | Catalog, discovery, search, details, recommendations, and relations |
-| `api/auth` | Login and session handling logic |
-| `api/playback` | Watch page, stream/subtitle proxying, and watch progress APIs |
-| `api/watchlist` | Watchlist updates, retrieval, and continue-watching |
-
-### External Integrations
-
-| Path | Purpose |
-| --- | --- |
-| `integrations/jikan` | Upstream API client, caching, and retry-aware fetch behavior |
-| `integrations/watchorder` | Watch-order scraping and parsing helpers |
-
-### Private Internal Code
-
-| Path | Purpose |
-| --- | --- |
-| `cmd/server` | Application entrypoint and process lifecycle setup |
-| `internal/db` | Migration runner, generated query layer, and DB models |
-| `internal/middleware` | App-specific auth and access policy middleware |
-| `internal/server` | Route registration and middleware composition |
-| `internal/worker` | Background relation sync, retry processing, and cache cleanup |
-
-### Reusable Libraries
-
-| Path | Purpose |
-| --- | --- |
-| `pkg/middleware` | Generic HTTP middleware (CSRF, rate limiting, logging) |
-
-### Web Layer
-
-| Path | Purpose |
-| --- | --- |
-| `templates` | Server-rendered page and partial templates |
-| `templates/components` | Reusable UI components and icons |
-
-### Assets & Operations
-
-| Path | Purpose |
-| --- | --- |
-| `migrations` | Schema evolution and operational DB changes |
-| `static` | Source CSS, TypeScript, and static assets |
-| `dist` | Built frontend assets served at `/dist/*` |
-
-`cmd/` structure notes are documented in `cmd/README.md`.
-
-## Runtime behavior
-
-On startup, the server opens SQLite using `DATABASE_FILE` (defaulting to `mal.db`), runs migrations automatically, initializes core services, starts the background worker, and then serves HTTP traffic on `PORT` (defaulting to `3000`). A request enters the router, passes through global middleware for origin and auth boundaries, reaches a feature handler, and then resolves through service logic that combines database access with upstream data where needed before rendering HTML.
-
-Public access is restricted. Only `/login` and static asset routes (`/static/*`, `/dist/*`) are available without authentication; all other routes require a valid session. There is no public registration; users are created via the CLI:
-
-```bash
-go run ./cmd/server create-user <username> <password>
-```
-
-The background worker continuously maintains relation data for sequel awareness, processes queued retryable anime fetches, and periodically removes expired cache records. This keeps user-facing pages stable even when data collection has to happen in multiple phases.
-
-## Reliability and tradeoffs
-
-The hardest part has been balancing freshness and resilience. Upstream APIs can fail transiently with `429` and `5xx` responses, so the app favors graceful degradation over hard failure. Cached values are used when fresh requests fail, retryable failures are persisted and replayed in the worker, and relation synchronization is incremental so one bad fetch does not block the rest of the graph.
-
-Playback proxying originally struggled with Cloudflare challenges; this was solved by switching to uTLS for TLS fingerprinting bypass. HTML sanitization was added to prevent XSS from upstream anime data.
-
-There are still honest limits. Metadata quality depends on external providers, and there is no formal CI pipeline yet, so local validation is the primary quality gate.
+| `api/*` | Feature routes: anime, auth, playback, watchlist |
+| `cmd/server` | Application entrypoint and CLI commands |
+| `integrations/*` | External API clients and scraping |
+| `internal/*` | Core services: db, middleware, server, worker |
+| `pkg/middleware` | Generic HTTP middleware |
+| `templates/*` | Server-rendered HTML templates |
+| `migrations` | Schema evolution |
+| `static` / `dist` | Frontend assets |
 
 ## Getting started
 
