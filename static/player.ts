@@ -9,6 +9,7 @@ import DOMPurify from 'dompurify'
 interface ModeSource {
   token: string
   subtitles: SubtitleItem[]
+  qualities?: string[]
 }
 
 interface SubtitleItem {
@@ -79,9 +80,11 @@ const initPlayer = (): void => {
   const scrubber = container.querySelector('[data-scrubber]') as HTMLElement
   const segmentsTrack = container.querySelector('[data-segments]') as HTMLElement
   const subtitleSelect = container.querySelector('[data-subtitle-select]') as HTMLSelectElement
+  const qualitySelect = container.querySelector('[data-quality-select]') as HTMLSelectElement
   const backwardBtn = container.querySelector('[data-backward]') as HTMLButtonElement
   const forwardBtn = container.querySelector('[data-forward]') as HTMLButtonElement
   const fullscreenBtn = container.querySelector('[data-fullscreen]') as HTMLButtonElement
+  const theaterBtn = container.querySelector('[data-theater]') as HTMLButtonElement
   const skipSegmentBtn = container.querySelector('[data-skip]') as HTMLButtonElement
   const autoplayBtn = document.querySelector('[data-autoplay]') as HTMLButtonElement
   const subtitleText = container.querySelector('[data-subtitle-text]') as HTMLElement
@@ -149,13 +152,17 @@ const initPlayer = (): void => {
   const previewPopover = container.querySelector('[data-preview-popover]') as HTMLElement
   const previewTime = container.querySelector('[data-preview-time]') as HTMLElement
   const videoOverlay = container.querySelector('[data-video-overlay]') as HTMLElement
-  const streamUrlForMode = (mode: string): string => {
+  const streamUrlForMode = (mode: string, quality?: string): string => {
     const modeParam = encodeURIComponent(mode)
     const modeSource = modeSources[mode]
     const token = modeSource?.token
     if (!token) return ''
     const tokenParam = encodeURIComponent(token)
-    return `${streamURL}?mode=${modeParam}&token=${tokenParam}`
+    let url = `${streamURL}?mode=${modeParam}&token=${tokenParam}`
+    if (quality && quality !== 'best') {
+      url += `&quality=${encodeURIComponent(quality)}`
+    }
+    return url
   }
 
   const subtitleProxyURL = (track: SubtitleItem): string => {
@@ -178,12 +185,21 @@ const initPlayer = (): void => {
   const skipLabel = (segmentType: string): string => segmentType === 'ed' ? 'Skip outro' : 'Skip intro'
 
   const isAutoplayEnabled = (): boolean => localStorage.getItem('mal:autoplay-enabled') !== 'false'
+  const isAutoSkipEnabled = (): boolean => localStorage.getItem('mal:autoskip-enabled') === 'true'
+  const isTheaterMode = (): boolean => localStorage.getItem('mal:theater-mode') === 'true'
+  const getPreferredQuality = (): string => localStorage.getItem('mal:preferred-quality') || 'best'
 
   const updateAutoplayButton = (): void => {
     if (!autoplayBtn) return
     const enabled = isAutoplayEnabled()
     const checkbox = autoplayBtn as unknown as HTMLInputElement
     checkbox.checked = enabled
+  }
+
+  const updateAutoSkipButton = (): void => {
+    const autoSkipBtn = document.querySelector('[data-autoskip]') as HTMLInputElement | null
+    if (!autoSkipBtn) return
+    autoSkipBtn.checked = isAutoSkipEnabled()
   }
 
   const timelineBounds = (): { start: number, end: number, duration: number } => {
@@ -291,12 +307,21 @@ const initPlayer = (): void => {
       const activationTime = skipActivationTime(item)
       return currentDisplayTime >= activationTime && currentDisplayTime < item.end
     })
+
     if (!segment) {
       activeSkipSegment = null
       skipSegmentBtn?.classList.add('hidden')
       skipSegmentBtn?.classList.remove('block')
       return
     }
+
+    // Auto-skip logic
+    if (isAutoSkipEnabled() && currentDisplayTime >= segment.start && currentDisplayTime < segment.end) {
+      const target = absoluteTimeFromDisplay(segment.end + 0.01)
+      video.currentTime = target
+      return
+    }
+
     activeSkipSegment = segment
     if (skipSegmentBtn) {
       skipSegmentBtn.textContent = skipLabel(segment.type)
@@ -644,6 +669,34 @@ const initPlayer = (): void => {
     hideSubtitleText()
   }
 
+  const updateQualityOptions = (): void => {
+    if (!qualitySelect) return
+    const modeSource = modeSources[currentMode]
+    const qualities = modeSource?.qualities || []
+    
+    qualitySelect.innerHTML = ''
+    const best = document.createElement('option')
+    best.value = 'best'
+    best.textContent = 'Auto / Best'
+    qualitySelect.appendChild(best)
+    
+    qualities.forEach(q => {
+      const option = document.createElement('option')
+      option.value = q
+      option.textContent = q
+      qualitySelect.appendChild(option)
+    })
+    
+    const preferred = getPreferredQuality()
+    if (qualities.includes(preferred)) {
+      qualitySelect.value = preferred
+    } else {
+      qualitySelect.value = 'best'
+    }
+    
+    qualitySelect.style.display = qualities.length > 0 ? 'block' : 'none'
+  }
+
   const modeDub = container.querySelector('[data-mode-dub]') as HTMLButtonElement
   const modeSub = container.querySelector('[data-mode-sub]') as HTMLButtonElement
 
@@ -666,7 +719,7 @@ const initPlayer = (): void => {
 
   const switchMode = (mode: string): void => {
     if (!availableModes.includes(mode) || mode === currentMode) return
-    const nextURL = streamUrlForMode(mode)
+    const nextURL = streamUrlForMode(mode, qualitySelect?.value)
     if (!nextURL) return
     const wasPlaying = video.ended || !video.paused
     const previousTime = displayTimeFromAbsolute(video.currentTime)
@@ -677,6 +730,7 @@ const initPlayer = (): void => {
     pendingSeekTime = previousTime
     if (wasPlaying) video.play().catch(() => {})
     updateSubtitleOptions()
+    updateQualityOptions()
     updateModeButtons(currentMode)
   }
 
@@ -763,11 +817,43 @@ const initPlayer = (): void => {
     }
   }
 
+  const toggleTheaterMode = (): void => {
+    const layout = document.getElementById('watch-layout')
+    if (!layout) return
+    
+    const enabled = !isTheaterMode()
+    localStorage.setItem('mal:theater-mode', enabled ? 'true' : 'false')
+    
+    if (enabled) {
+      layout.classList.remove('lg:flex-row')
+      layout.classList.add('lg:flex-col')
+    } else {
+      layout.classList.add('lg:flex-row')
+      layout.classList.remove('lg:flex-col')
+    }
+    
+    // Smooth scroll back to player
+    container.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const switchQuality = (quality: string): void => {
+    const nextURL = streamUrlForMode(currentMode, quality)
+    if (!nextURL) return
+    const wasPlaying = video.ended || !video.paused
+    const previousTime = displayTimeFromAbsolute(video.currentTime)
+    hidePreviewPopover()
+    video.src = nextURL
+    video.load()
+    pendingSeekTime = previousTime
+    if (wasPlaying) video.play().catch(() => {})
+  }
+
   // Initialize
   updateSubtitleOptions()
+  updateQualityOptions()
   updateModeButtons(currentMode)
 
-  const startingURL = streamUrlForMode(currentMode)
+  const startingURL = streamUrlForMode(currentMode, getPreferredQuality())
   if (startingURL) {
     video.src = startingURL
   } else if (initialStreamToken) {
@@ -901,8 +987,8 @@ const initPlayer = (): void => {
       completionAttempts = 0
       activeSubtitles = []
       hideSubtitleText()
-
       updateSubtitleOptions()
+      updateQualityOptions()
       updateModeButtons(currentMode)
       updateVideoOverlay(currentEpisode, data.episode_title || '')
 
@@ -1087,6 +1173,11 @@ const initPlayer = (): void => {
     showControls()
   })
 
+  theaterBtn?.addEventListener('click', () => {
+    toggleTheaterMode()
+    showControls()
+  })
+
   skipSegmentBtn?.addEventListener('click', () => {
     if (!activeSkipSegment) return
 
@@ -1107,6 +1198,15 @@ const initPlayer = (): void => {
     showControls()
   })
 
+  document.addEventListener('change', (e) => {
+    const target = e.target as HTMLElement
+    if (target.hasAttribute('data-autoskip')) {
+      const isChecked = (target as HTMLInputElement).checked
+      localStorage.setItem('mal:autoskip-enabled', isChecked ? 'true' : 'false')
+      showControls()
+    }
+  })
+
   subtitleSelect?.addEventListener('change', async () => {
     const selected = subtitleSelect.value
     if (selected === 'none') {
@@ -1121,6 +1221,13 @@ const initPlayer = (): void => {
       return
     }
     activeSubtitles = await loadSubtitle(track.url)
+  })
+
+  qualitySelect?.addEventListener('change', () => {
+    const selected = qualitySelect.value
+    localStorage.setItem('mal:preferred-quality', selected)
+    switchQuality(selected)
+    showControls()
   })
 
   progressWrap?.addEventListener('mousedown', (event) => {
@@ -1181,17 +1288,86 @@ const initPlayer = (): void => {
   document.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
-    if (event.code === 'Space') {
+    
+    // Key codes
+    const code = event.code
+    const key = event.key
+    
+    // Space or K: Toggle Play/Pause
+    if (code === 'Space' || code === 'KeyK') {
       event.preventDefault()
       togglePlayPause()
+      showControls()
     }
-    if (event.code === 'ArrowLeft') seekBy(-10)
-    if (event.code === 'ArrowRight') seekBy(10)
-    if (event.code === 'KeyM') video.muted = !video.muted
-    if (event.code === 'KeyF') {
+    
+    // ArrowLeft or J: Seek Backward 10s
+    if (code === 'ArrowLeft' || code === 'KeyJ') {
+      event.preventDefault()
+      seekBy(-10)
+    }
+    
+    // ArrowRight or L: Seek Forward 10s
+    if (code === 'ArrowRight' || code === 'KeyL') {
+      event.preventDefault()
+      seekBy(10)
+    }
+
+    // ArrowUp: Volume Up
+    if (code === 'ArrowUp') {
+      event.preventDefault()
+      const nextVolume = Math.min(1, video.volume + 0.05)
+      video.volume = nextVolume
+      video.muted = false
+      showControls()
+    }
+
+    // ArrowDown: Volume Down
+    if (code === 'ArrowDown') {
+      event.preventDefault()
+      const nextVolume = Math.max(0, video.volume - 0.05)
+      video.volume = nextVolume
+      video.muted = nextVolume === 0
+      showControls()
+    }
+    
+    // KeyM: Toggle Mute
+    if (code === 'KeyM') {
+      event.preventDefault()
+      if (video.muted || video.volume === 0) {
+        const restoredVolume = lastKnownVolume > 0 ? lastKnownVolume : 1
+        video.muted = false
+        video.volume = restoredVolume
+      } else {
+        lastKnownVolume = video.volume > 0 ? video.volume : lastKnownVolume
+        video.muted = true
+      }
+      showControls()
+    }
+    
+    // KeyF: Toggle Fullscreen
+    if (code === 'KeyF') {
+      event.preventDefault()
       toggleFullscreen()
+      showControls()
     }
-    showControls()
+
+    // KeyT: Toggle Theater Mode
+    if (code === 'KeyT') {
+      event.preventDefault()
+      toggleTheaterMode()
+      showControls()
+    }
+
+    // Numbers 0-9: Jump to percentage (0% to 90%)
+    if (/^\d$/.test(key)) {
+      const bounds = timelineBounds()
+      if (bounds.duration > 0) {
+        event.preventDefault()
+        const percent = parseInt(key, 10) * 10
+        video.currentTime = absoluteTimeFromRatio(percent / 100)
+        showControls()
+      }
+    }
   })
 
   window.addEventListener('beforeunload', () => {
@@ -1214,6 +1390,7 @@ const initPlayer = (): void => {
   syncVolumeUI()
   updateSkipButton(0)
   updateAutoplayButton()
+  updateAutoSkipButton()
   showControls()
 
   // Episode search and range dropdown logic

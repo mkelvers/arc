@@ -61,6 +61,13 @@
                     <div class="peer-checked:bg-accent peer h-5 w-9 rounded-full bg-white/20 transition-colors after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
                   </label>
                 </div>
+                <div class="flex items-center justify-between px-5 py-2.5">
+                  <span class="text-[15px] font-medium text-white">Auto-skip</span>
+                  <label class="relative inline-flex cursor-pointer items-center">
+                    <input type="checkbox" data-autoskip class="peer sr-only" />
+                    <div class="peer-checked:bg-accent peer h-5 w-9 rounded-full bg-white/20 transition-colors after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
+                  </label>
+                </div>
                 <div class="my-1 h-px w-full bg-white/10"></div>
                 <div class="py-1">
                   <span class="mb-1 block px-5 text-xs font-medium tracking-wider text-neutral-400 uppercase">Audio / Subtitles</span>
@@ -71,7 +78,14 @@
                     <button data-mode-sub class="flex items-center justify-between px-5 py-2.5 text-left transition-colors hover:bg-white/10 text-white focus:outline-none">
                       <span class="text-sm font-medium">Japanese (Sub)</span>
                     </button>
-                    <select data-subtitle-select class="mt-2 mx-4 bg-black/40 text-white text-xs border border-white/10 px-2 py-1 outline-none hidden"></select>
+                    <div class="px-5 py-2 flex flex-col gap-1">
+                      <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Subtitles</span>
+                      <select data-subtitle-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent hidden"></select>
+                    </div>
+                    <div class="px-5 py-2 flex flex-col gap-1">
+                      <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Quality</span>
+                      <select data-quality-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent hidden"></select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -80,6 +94,10 @@
           
           <button data-fullscreen class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
             <svg class="size-6 transition-colors duration-200" viewBox="0 0 240 240" aria-hidden="true"><path d="M143.7,53.9c-1.9-1.9-1.3-4,1.4-4.4l50.6-8.4c1.8-0.5,3.7,0.6,4.2,2.4c0.2,0.6,0.2,1.2,0,1.7l-8.4,50.6c-0.4,2.7-2.4,3.4-4.4,1.4l-14.5-14.5l-28.2,28.2l-14.3-14.3l28.2-28.2L143.7,53.9z M44.2,200.9l50.6-8.4c2.7-0.4,3.4-2.4,1.4-4.4l-14.5-14.5l28.2-28.2l-14.3-14.3l-28.2,28.2l-14.5-14.5c-1.9-1.9-4-1.3-4.4,1.4l-8.4,50.6c-0.5,1.8,0.6,3.6,2.4,4.2C43,201,43.6,201,44.2,200.9L44.2,200.9z" fill="currentColor"></path></svg>
+          </button>
+          
+          <button data-theater class="hidden lg:flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none" title="Theater Mode">
+            <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><line x1="2" y1="15" x2="22" y2="15" /></svg>
           </button>
         </div>
       </div>
