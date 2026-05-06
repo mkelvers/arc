@@ -134,6 +134,7 @@ func (s *Service) buildClientModeSources(modeSources map[string]ModeSource) (map
 		clientModeSources[mode] = ModeSource{
 			Token:     streamToken,
 			Subtitles: subtitles,
+			Qualities: source.Qualities,
 		}
 	}
 

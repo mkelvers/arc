@@ -326,6 +326,7 @@ func (s *Service) fetchPlaybackSourcesAndSegments(ctx context.Context, showID st
 					URL:       resolved.URL,
 					Referer:   resolved.Referer,
 					Subtitles: toSubtitleItems(resolved),
+					Qualities: toQualities(resolved.AvailableQualities),
 				},
 				OK: true,
 			}
@@ -368,6 +369,22 @@ func (s *Service) GetEpisodeMetadata(ctx context.Context, malID int, episode str
 	return s.allAnimeClient.GetEpisodeMetadata(ctx, showID, episode)
 }
 
+func toQualities(sources []StreamSource) []string {
+	seen := make(map[string]struct{})
+	var qualities []string
+	for _, s := range sources {
+		q := strings.TrimSpace(s.Quality)
+		if q == "" || q == "auto" {
+			continue
+		}
+		if _, ok := seen[q]; !ok {
+			seen[q] = struct{}{}
+			qualities = append(qualities, q)
+		}
+	}
+	return qualities
+}
+
 func cloneSlice[T any](items []T) []T {
 	if items == nil {
 		return []T{}
@@ -390,6 +407,7 @@ func cloneModeSources(modeSources map[string]ModeSource) map[string]ModeSource {
 			URL:       source.URL,
 			Referer:   source.Referer,
 			Subtitles: cloneSlice(source.Subtitles),
+			Qualities: cloneSlice(source.Qualities),
 		}
 	}
 	return cloned

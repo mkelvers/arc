@@ -52,6 +52,7 @@ func (s *Service) resolveModeSourceWithCache(
 		return StreamSource{}, err
 	}
 
+	selected.AvailableQualities = sources
 	return selected, nil
 }
 

@@ -1,12 +1,13 @@
 package playback
 
 type StreamSource struct {
-	URL       string
-	Quality   string
-	Provider  string
-	Type      string
-	Referer   string
-	Subtitles []Subtitle
+	URL                string
+	Quality            string
+	Provider           string
+	Type               string
+	Referer            string
+	Subtitles          []Subtitle
+	AvailableQualities []StreamSource
 }
 
 type Subtitle struct {
@@ -19,6 +20,7 @@ type ModeSource struct {
 	Referer   string         `json:"referer,omitempty"`
 	Token     string         `json:"token"`
 	Subtitles []SubtitleItem `json:"subtitles"`
+	Qualities []string       `json:"qualities,omitempty"`
 }
 
 type SubtitleItem struct {
