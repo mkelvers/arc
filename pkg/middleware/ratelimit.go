@@ -13,33 +13,30 @@ type visitor struct {
 	lastSeen time.Time
 }
 
-var (
-	visitors = make(map[string]*visitor)
+type Config struct {
+	MaxAttempts int
+	Window      time.Duration
+}
+
+type Limiter struct {
 	mu       sync.Mutex
-	quit     = make(chan struct{})
-)
-
-func init() {
-	go cleanupVisitors()
+	visitors map[string]*visitor
+	config   Config
 }
 
-func StopCleanup() {
-	close(quit)
+func NewLimiter(cfg Config) *Limiter {
+	return &Limiter{
+		visitors: make(map[string]*visitor),
+		config:   cfg,
+	}
 }
 
-func cleanupVisitors() {
-	for {
-		select {
-		case <-quit:
-			return
-		case <-time.After(time.Minute):
-			mu.Lock()
-			for ip, v := range visitors {
-				if time.Since(v.lastSeen) > 3*time.Minute {
-					delete(visitors, ip)
-				}
-			}
-			mu.Unlock()
+func (l *Limiter) Cleanup(now time.Time) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for ip, v := range l.visitors {
+		if now.Sub(v.lastSeen) > l.config.Window*3 {
+			delete(l.visitors, ip)
 		}
 	}
 }
@@ -59,26 +56,19 @@ func getIP(r *http.Request) string {
 	return ip
 }
 
-func RateLimitAuth(next http.Handler) http.Handler {
+func (l *Limiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := getIP(r)
-
-		mu.Lock()
-		v, exists := visitors[ip]
-		if !exists {
-			visitors[ip] = &visitor{1, time.Now()}
-		} else {
-			// Reset attempts if it's been more than a minute
-			if time.Since(v.lastSeen) > time.Minute {
-				v.attempts = 0
-			}
-			v.attempts++
-			v.lastSeen = time.Now()
+		if !l.allow(getIP(r)) {
+			http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
+			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
 
-		// If 5 or more attempts within a minute, block
-		if exists && v.attempts >= 5 {
-			mu.Unlock()
+func (l *Limiter) AuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !l.allow(getIP(r)) {
 			if strings.HasPrefix(r.URL.Path, "/") {
 				http.Redirect(w, r, fmt.Sprintf("%s?error=rate_limited", r.URL.Path), http.StatusFound)
 				return
@@ -86,8 +76,27 @@ func RateLimitAuth(next http.Handler) http.Handler {
 			http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
 			return
 		}
-		mu.Unlock()
-
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (l *Limiter) allow(ip string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	v, exists := l.visitors[ip]
+	if !exists {
+		l.visitors[ip] = &visitor{1, time.Now()}
+		return true
+	}
+
+	if time.Since(v.lastSeen) > l.config.Window {
+		v.attempts = 1
+		v.lastSeen = time.Now()
+		return true
+	}
+
+	v.attempts++
+	v.lastSeen = time.Now()
+	return v.attempts <= l.config.MaxAttempts
 }
