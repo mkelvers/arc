@@ -3,7 +3,7 @@
   <h2 class="mb-6 text-lg font-normal text-neutral-300">Characters & Cast</h2>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
     {{range (slice . 0 (min (len .) 10))}}
-      <div class="flex gap-3 bg-white/[0.02] p-3 ring-1 ring-white/5">
+      <div class="flex gap-3 bg-white/2 p-3 ring-1 ring-white/5">
         <div class="h-16 w-12 shrink-0 overflow-hidden bg-white/5">
           <img src="{{.Character.Images.Jpg.ImageURL}}" alt="{{.Character.Name}}" class="h-full w-full object-cover" loading="lazy" />
         </div>
@@ -246,7 +246,7 @@
       <h2 class="mb-6 text-lg font-normal text-neutral-300">Characters & Cast</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 animate-pulse">
         {{range (seq 5)}}
-          <div class="flex gap-3 bg-white/[0.02] p-3 ring-1 ring-white/5 h-20">
+          <div class="flex gap-3 bg-white/2 p-3 ring-1 ring-white/5 h-20">
             <div class="h-16 w-12 shrink-0 bg-white/5"></div>
             <div class="flex flex-col justify-center gap-2 grow">
               <div class="h-3 w-2/3 bg-white/5 rounded"></div>
