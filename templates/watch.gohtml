@@ -1,4 +1,4 @@
-{{define "title"}}Watch {{.Anime.Title}} - MyAnimeList{{end}}
+{{define "title"}}Watch {{.Anime.Title}}{{end}}
 {{define "content"}}
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 {{$anime := .Anime}}
