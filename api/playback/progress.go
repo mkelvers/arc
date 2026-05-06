@@ -50,6 +50,10 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 		}
 	}
 
+	if isCompleted {
+		return tx.Commit()
+	}
+
 	var durationSeconds sql.NullFloat64
 	if animeSeed != nil {
 		durationSeconds = animeSeed.DurationSeconds
