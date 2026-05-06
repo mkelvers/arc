@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: queries.sql
 
-package database
+package db
 
 import (
 	"context"
@@ -129,7 +129,7 @@ func (q *Queries) EnqueueAnimeFetchRetry(ctx context.Context, arg EnqueueAnimeFe
 }
 
 const getAnime = `-- name: GetAnime :one
-SELECT id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at FROM anime WHERE id = ? LIMIT 1
+SELECT id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds FROM anime WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
@@ -145,6 +145,7 @@ func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
 		&i.Airing,
 		&i.Status,
 		&i.RelationsSyncedAt,
+		&i.DurationSeconds,
 	)
 	return i, err
 }
@@ -275,7 +276,7 @@ func (q *Queries) GetContinueWatchingEntries(ctx context.Context, userID string)
 }
 
 const getContinueWatchingEntry = `-- name: GetContinueWatchingEntry :one
-SELECT id, user_id, anime_id, current_episode, current_time_seconds, created_at, updated_at FROM continue_watching_entry
+SELECT id, user_id, anime_id, current_episode, current_time_seconds, created_at, updated_at, duration_seconds FROM continue_watching_entry
 WHERE user_id = ? AND anime_id = ? LIMIT 1
 `
 
@@ -295,6 +296,7 @@ func (q *Queries) GetContinueWatchingEntry(ctx context.Context, arg GetContinueW
 		&i.CurrentTimeSeconds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DurationSeconds,
 	)
 	return i, err
 }
@@ -405,7 +407,7 @@ WITH RECURSIVE sequel_chain AS (
     WHERE r.relation_type = 'Sequel' AND sc.depth < 10
 )
 SELECT DISTINCT
-    related.id, related.title_original, related.image_url, related.created_at, related.title_english, related.title_japanese, related.airing, related.status, related.relations_synced_at,
+    related.id, related.title_original, related.image_url, related.created_at, related.title_english, related.title_japanese, related.airing, related.status, related.relations_synced_at, related.duration_seconds,
     sc.root_title AS prequel_title
 FROM sequel_chain sc
 JOIN anime related ON sc.current_id = related.id
@@ -418,16 +420,17 @@ ORDER BY related.id DESC
 `
 
 type GetUpcomingSeasonsRow struct {
-	ID                int64          `json:"id"`
-	TitleOriginal     string         `json:"title_original"`
-	ImageUrl          string         `json:"image_url"`
-	CreatedAt         time.Time      `json:"created_at"`
-	TitleEnglish      sql.NullString `json:"title_english"`
-	TitleJapanese     sql.NullString `json:"title_japanese"`
-	Airing            sql.NullBool   `json:"airing"`
-	Status            sql.NullString `json:"status"`
-	RelationsSyncedAt sql.NullTime   `json:"relations_synced_at"`
-	PrequelTitle      string         `json:"prequel_title"`
+	ID                int64           `json:"id"`
+	TitleOriginal     string          `json:"title_original"`
+	ImageUrl          string          `json:"image_url"`
+	CreatedAt         time.Time       `json:"created_at"`
+	TitleEnglish      sql.NullString  `json:"title_english"`
+	TitleJapanese     sql.NullString  `json:"title_japanese"`
+	Airing            sql.NullBool    `json:"airing"`
+	Status            sql.NullString  `json:"status"`
+	RelationsSyncedAt sql.NullTime    `json:"relations_synced_at"`
+	DurationSeconds   sql.NullFloat64 `json:"duration_seconds"`
+	PrequelTitle      string          `json:"prequel_title"`
 }
 
 func (q *Queries) GetUpcomingSeasons(ctx context.Context, userID string) ([]GetUpcomingSeasonsRow, error) {
@@ -449,6 +452,7 @@ func (q *Queries) GetUpcomingSeasons(ctx context.Context, userID string) ([]GetU
 			&i.Airing,
 			&i.Status,
 			&i.RelationsSyncedAt,
+			&i.DurationSeconds,
 			&i.PrequelTitle,
 		); err != nil {
 			return nil, err
@@ -824,7 +828,7 @@ ON CONFLICT (user_id, anime_id) DO UPDATE SET
     current_time_seconds = excluded.current_time_seconds,
     duration_seconds = excluded.duration_seconds,
     updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, anime_id, current_episode, current_time_seconds, duration_seconds, created_at, updated_at
+RETURNING id, user_id, anime_id, current_episode, current_time_seconds, created_at, updated_at, duration_seconds
 `
 
 type UpsertContinueWatchingEntryParams struct {
@@ -852,9 +856,9 @@ func (q *Queries) UpsertContinueWatchingEntry(ctx context.Context, arg UpsertCon
 		&i.AnimeID,
 		&i.CurrentEpisode,
 		&i.CurrentTimeSeconds,
-		&i.DurationSeconds,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DurationSeconds,
 	)
 	return i, err
 }

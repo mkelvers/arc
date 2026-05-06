@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.31.1
 
-package database
+package db
 
 import (
 	"database/sql"
@@ -43,9 +43,9 @@ type ContinueWatchingEntry struct {
 	AnimeID            int64           `json:"anime_id"`
 	CurrentEpisode     sql.NullInt64   `json:"current_episode"`
 	CurrentTimeSeconds float64         `json:"current_time_seconds"`
-	DurationSeconds    sql.NullFloat64 `json:"duration_seconds"`
 	CreatedAt          time.Time       `json:"created_at"`
 	UpdatedAt          time.Time       `json:"updated_at"`
+	DurationSeconds    sql.NullFloat64 `json:"duration_seconds"`
 }
 
 type JikanCache struct {

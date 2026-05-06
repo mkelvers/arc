@@ -1,4 +1,4 @@
-package sqlite
+package db
 
 import (
 	"database/sql"
@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
-	"mal/internal/db"
 )
 
 func Open(dbFile string) (*sql.DB, error) {
@@ -36,13 +35,13 @@ func GetMigrationsDir() (string, error) {
 	return filepath.Join(wd, "migrations"), nil
 }
 
-func Init(db *sql.DB) (*database.Queries, error) {
+func Init(db *sql.DB) (*Queries, error) {
 	migrationsDir, err := GetMigrationsDir()
 	if err != nil {
 		return nil, err
 	}
-	if err := database.RunMigrations(db, migrationsDir); err != nil {
+	if err := RunMigrations(db, migrationsDir); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
-	return database.New(db), nil
+	return New(db), nil
 }
