@@ -10,40 +10,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mal/pkg/net/utls"
 	"net/http"
 	"net/url"
-	"os"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	allAnimeBaseURL    = "https://api.allanime.day"
-	allAnimeReferer    = "https://allmanga.to/"
-	allAnimeOrigin     = "https://youtu-chan.com"
-	defaultUserAgent   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
-	allAnimeAESKey     = "ALLANIME_AES_KEY"
-	aniCliRawSourceURL = "https://raw.githubusercontent.com/pystardust/ani-cli/master/ani-cli"
-	aniCliKeyRegex     = `allanime_key="\$\(printf '%s' '([^']+)'`
-	consensusThreshold = 2
+	allAnimeBaseURL  = "https://api.allanime.day"
+	allAnimeReferer  = "https://allmanga.to/"
+	allAnimeOrigin   = "https://youtu-chan.com"
+	defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
 )
 
 var (
-	aesKeys          = []string{"Xot36i3lK3:v1", "SimtVuagFbGR2K7P"}
-	cachedKey        string
-	cachedKeyFetched time.Time
-	keyCacheDuration = 1 * time.Hour
-	forkSources      = []string{
-		"https://raw.githubusercontent.com/pystardust/ani-cli/master/ani-cli",
-		"https://raw.githubusercontent.com/justfoolingaround/ani-cli/master/ani-cli",
-		"https://raw.githubusercontent.com/justfoolingaround/ani-cli-mpv/master/ani-cli",
-		"https://raw.githubusercontent.com/An1sora/ani-cli/master/ani-cli",
-		"https://raw.githubusercontent.com/sdaqo/ani-cli/master/ani-cli",
-	}
+	aesKeys = []string{"Xot36i3lK3:v1", "SimtVuagFbGR2K7P"}
 )
 
 var allAnimeUTLSClient = &http.Client{
@@ -78,7 +61,6 @@ func newAllAnimeClient() *allAnimeClient {
 }
 
 func (c *allAnimeClient) graphqlRequest(ctx context.Context, query string, variables map[string]any) (map[string]any, error) {
-	// Ensure mode is lowercase if present in variables
 	if mode, ok := variables["translationType"].(string); ok {
 		variables["translationType"] = strings.ToLower(mode)
 	}
@@ -129,20 +111,14 @@ func (c *allAnimeClient) graphqlRequest(ctx context.Context, query string, varia
 	return parsed, nil
 }
 
-// query hash for episode embedding (pre-registered query)
 const episodeQueryHash = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
 
 func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, episode, mode string) (map[string]any, error) {
-	// Ensure mode is lowercase
 	mode = strings.ToLower(mode)
 
-	// Build JSON strings manually to match ani-cli's exact order and formatting
-	// ani-cli order: showId, translationType, episodeString
 	varsJSON := fmt.Sprintf(`{"showId":"%s","translationType":"%s","episodeString":"%s"}`, showID, mode, episode)
 	extJSON := fmt.Sprintf(`{"persistedQuery":{"version":1,"sha256Hash":"%s"}}`, episodeQueryHash)
 
-	// URL-encode the JSON strings (match ani-cli's sed patterns exactly)
-	// Build GET URL with query parameters using url.QueryEscape
 	apiURL := fmt.Sprintf("%s/api?variables=%s&extensions=%s",
 		allAnimeBaseURL,
 		url.QueryEscape(varsJSON),
@@ -153,7 +129,6 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 		return nil, fmt.Errorf("create GET request: %w", err)
 	}
 
-	// Match Firefox headers exactly
 	req.Header.Set("User-Agent", defaultUserAgent)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
@@ -164,7 +139,6 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 	req.Header.Set("Sec-Fetch-Mode", "cors")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 
-	// Use uTLS + HTTP/2 client to bypass Cloudflare fingerprinting
 	resp, err := allAnimeUTLSClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("execute GET request: %w", err)
@@ -185,18 +159,15 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	// Check for errors
 	if errs, ok := parsed["errors"].([]any); ok && len(errs) > 0 {
 		return nil, fmt.Errorf("graphql error: %v", errs[0])
 	}
 
-	// Check if we got tobeparsed (indicates success)
 	data, ok := parsed["data"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("no data in response")
 	}
 
-	// tobeparsed can be either at data.tobeparsed or data.episode.tobeparsed
 	var toBeParsed string
 	if s, ok := data["tobeparsed"].(string); ok && s != "" {
 		toBeParsed = s
@@ -217,7 +188,6 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 			return nil, fmt.Errorf("unmarshal decrypted: %w", jerr)
 		}
 
-		// Decrypted JSON might have sourceUrls directly or under episode
 		var sourceURLs []any
 		if srcs, ok := ep["sourceUrls"].([]any); ok {
 			sourceURLs = srcs
@@ -236,7 +206,6 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 		}
 	}
 
-	// Maybe sourceUrls came back unencrypted
 	if episodeData, ok := data["episode"].(map[string]any); ok {
 		if srcs, ok := episodeData["sourceUrls"].([]any); ok && len(srcs) > 0 {
 			return parsed, nil
@@ -246,12 +215,99 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 	return nil, fmt.Errorf("no usable data in response")
 }
 
-func getMapKeys(m map[string]any) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
+func (c *allAnimeClient) GetEpisodeSources(ctx context.Context, showID string, episode string, mode string) ([]StreamSource, error) {
+	episodeQuery := `query($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
+		episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
+			sourceUrls
+		}
+	}`
+
+	result, err := c.graphqlRequestWithHash(ctx, showID, episode, mode)
+	if err == nil {
+		sources := c.extractSourceURLsFromData(ctx, result)
+		if len(sources) > 0 {
+			return sources, nil
+		}
 	}
-	return keys
+
+	result, err = c.graphqlRequest(ctx, episodeQuery, map[string]any{
+		"showId":          showID,
+		"translationType": mode,
+		"episodeString":   episode,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	data, ok := result["data"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid source response")
+	}
+
+	rawSourceURLs, ok := data["episode"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid episode response")
+	}
+
+	sourceURLs, ok := rawSourceURLs["sourceUrls"].([]any)
+	if !ok || len(sourceURLs) == 0 {
+		return nil, fmt.Errorf("no source urls")
+	}
+
+	references := buildSourceReferences(sourceURLs)
+	if len(references) == 0 {
+		return nil, fmt.Errorf("no source references")
+	}
+
+	out := make([]StreamSource, 0, len(references))
+	for _, ref := range references {
+		target := strings.TrimSpace(ref.URL)
+		if target == "" {
+			continue
+		}
+
+		if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+			sourceType := detectStreamType(target)
+			if sourceType == "unknown" {
+				sourceType = detectEmbedType(target)
+			}
+
+			out = append(out, buildStreamSource(target, sourceType, ref.Name))
+			continue
+		}
+
+		decoded := decodeSourceURL(target)
+		if decoded == "" {
+			continue
+		}
+
+		if strings.HasPrefix(decoded, "http://") || strings.HasPrefix(decoded, "https://") {
+			sourceType := detectStreamType(decoded)
+			if sourceType == "unknown" {
+				sourceType = detectEmbedType(decoded)
+			}
+
+			out = append(out, buildStreamSource(decoded, sourceType, ref.Name))
+			continue
+		}
+
+		if !strings.HasPrefix(decoded, "/") {
+			decoded = "/" + decoded
+		}
+
+		extracted, err := c.extractor.ExtractVideoLinks(ctx, decoded)
+		if err != nil {
+			continue
+		}
+
+		out = append(out, extracted...)
+	}
+
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no playable sources extracted")
+	}
+
+	return out, nil
 }
 
 func (c *allAnimeClient) extractSourceURLsFromData(ctx context.Context, data map[string]any) []StreamSource {
@@ -308,7 +364,6 @@ func (c *allAnimeClient) extractSourceURLsFromData(ctx context.Context, data map
 
 		extracted, err := c.extractor.ExtractVideoLinks(ctx, decoded)
 		if err != nil {
-			log.Printf("source extraction failed for %s: %v", decoded, err)
 			continue
 		}
 
@@ -316,6 +371,122 @@ func (c *allAnimeClient) extractSourceURLsFromData(ctx context.Context, data map
 	}
 
 	return out
+}
+
+func buildStreamSource(url, sourceType, provider string) StreamSource {
+	return StreamSource{
+		URL:      url,
+		Provider: provider,
+		Type:     sourceType,
+		Referer:  allAnimeReferer,
+	}
+}
+
+type sourceReference struct {
+	URL  string
+	Name string
+}
+
+func buildSourceReferences(rawSourceURLs []any) []sourceReference {
+	priorityOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
+	prioritySet := map[string]struct{}{"default": {}, "yt-mp4": {}, "s-mp4": {}, "luf-mp4": {}}
+
+	prioritized := make(map[string]sourceReference)
+	fallback := make([]sourceReference, 0, len(rawSourceURLs))
+	seen := make(map[string]struct{})
+
+	for _, source := range rawSourceURLs {
+		item, ok := source.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		sourceURL, _ := item["sourceUrl"].(string)
+		sourceName, _ := item["sourceName"].(string)
+		sourceURL = strings.TrimSpace(sourceURL)
+		sourceName = strings.TrimSpace(sourceName)
+		if sourceURL == "" {
+			continue
+		}
+
+		if _, exists := seen[sourceURL]; exists {
+			continue
+		}
+		seen[sourceURL] = struct{}{}
+
+		ref := sourceReference{URL: sourceURL, Name: sourceName}
+		normalized := strings.ToLower(sourceName)
+		if _, prioritizedProvider := prioritySet[normalized]; prioritizedProvider {
+			if _, exists := prioritized[normalized]; !exists {
+				prioritized[normalized] = ref
+			}
+			continue
+		}
+
+		fallback = append(fallback, ref)
+	}
+
+	ordered := make([]sourceReference, 0, len(prioritized)+len(fallback))
+	for _, provider := range priorityOrder {
+		if ref, ok := prioritized[provider]; ok {
+			ordered = append(ordered, ref)
+		}
+	}
+
+	ordered = append(ordered, fallback...)
+	return ordered
+}
+
+func decryptTobeparsed(encoded string) ([]byte, error) {
+	raw, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode failed: %w", err)
+	}
+
+	if len(raw) < 29 {
+		return nil, fmt.Errorf("encrypted payload too short")
+	}
+
+	version := raw[0]
+	iv := raw[1:13]
+	cipherText := raw[13 : len(raw)-16]
+
+	for _, keyStr := range aesKeys {
+		key := sha256.Sum256([]byte(keyStr))
+
+		block, err := aes.NewCipher(key[:])
+		if err != nil {
+			continue
+		}
+
+		if version == 1 {
+			plainText, err := tryDecryptCTR(block, iv, cipherText)
+			if err == nil && json.Valid(plainText) {
+				return plainText, nil
+			}
+		}
+
+		gcm, err := cipher.NewGCM(block)
+		if err == nil {
+			tag := raw[len(raw)-16:]
+			combined := append(append([]byte{}, cipherText...), tag...)
+			plainText, openErr := gcm.Open(nil, iv, combined, nil)
+			if openErr == nil && json.Valid(plainText) {
+				return plainText, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("decryption failed")
+}
+
+func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) ([]byte, error) {
+	ctrIV := append([]byte{}, iv...)
+	ctrIV = append(ctrIV, 0x00, 0x00, 0x00, 0x02)
+	ctr := cipher.NewCTR(block, ctrIV)
+	plainText := make([]byte, len(cipherText))
+	ctr.XORKeyStream(plainText, cipherText)
+	return plainText, nil
 }
 
 func (c *allAnimeClient) Search(ctx context.Context, query string, mode string) ([]searchResult, error) {
@@ -491,8 +662,6 @@ func (c *allAnimeClient) GetAvailableEpisodes(ctx context.Context, showID string
 }
 
 func (c *allAnimeClient) GetEpisodeMetadata(ctx context.Context, showID string, episode string) (map[string]any, error) {
-	// First try to get it from the standard episode query which often contains metadata
-	// but we'll use a specific query that includes images and titles if available
 	graphqlQuery := `query($showId: String!, $episodeString: String!, $translationType: VaildTranslationTypeEnumType!) {
 		episode(showId: $showId, episodeString: $episodeString, translationType: $translationType) {
 			notes
@@ -506,7 +675,6 @@ func (c *allAnimeClient) GetEpisodeMetadata(ctx context.Context, showID string, 
 		}
 	}`
 
-	// We'll try SUB by default for metadata
 	result, err := c.graphqlRequest(ctx, graphqlQuery, map[string]any{
 		"showId":          showID,
 		"episodeString":   episode,
@@ -527,553 +695,6 @@ func (c *allAnimeClient) GetEpisodeMetadata(ctx context.Context, showID string, 
 	}
 
 	return ep, nil
-}
-
-func buildStreamSource(url, sourceType, provider string) StreamSource {
-	return StreamSource{
-		URL:      url,
-		Provider: provider,
-		Type:     sourceType,
-		Referer:  allAnimeReferer,
-	}
-}
-
-func (c *allAnimeClient) GetEpisodeSources(ctx context.Context, showID string, episode string, mode string) ([]StreamSource, error) {
-	episodeQuery := `query($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
-		episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
-			sourceUrls
-		}
-	}`
-
-	// First try persistent query approach (GET with query hash)
-	result, err := c.graphqlRequestWithHash(ctx, showID, episode, mode)
-	if err == nil {
-		// Result is already in shape {"episode": {"sourceUrls": [...]}}
-		sources := c.extractSourceURLsFromData(ctx, result)
-		if len(sources) > 0 {
-			return sources, nil
-		}
-	}
-
-	// Fall back to standard POST
-	result, err = c.graphqlRequest(ctx, episodeQuery, map[string]any{
-		"showId":          showID,
-		"translationType": mode,
-		"episodeString":   episode,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	data, ok := result["data"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid source response")
-	}
-
-	rawSourceURLs, ok := data["episode"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid episode response")
-	}
-
-	sourceURLs, ok := rawSourceURLs["sourceUrls"].([]any)
-	if !ok || len(sourceURLs) == 0 {
-		return nil, fmt.Errorf("no source urls")
-	}
-
-	references := buildSourceReferences(sourceURLs)
-	if len(references) == 0 {
-		return nil, fmt.Errorf("no source references")
-	}
-
-	out := make([]StreamSource, 0, len(references))
-	for _, ref := range references {
-		target := strings.TrimSpace(ref.URL)
-		if target == "" {
-			continue
-		}
-
-		if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-			sourceType := detectStreamType(target)
-			if sourceType == "unknown" {
-				sourceType = detectEmbedType(target)
-			}
-
-			out = append(out, buildStreamSource(target, sourceType, ref.Name))
-			continue
-		}
-
-		decoded := decodeSourceURL(target)
-		if decoded == "" {
-			continue
-		}
-
-		if strings.HasPrefix(decoded, "http://") || strings.HasPrefix(decoded, "https://") {
-			sourceType := detectStreamType(decoded)
-			if sourceType == "unknown" {
-				sourceType = detectEmbedType(decoded)
-			}
-
-			out = append(out, buildStreamSource(decoded, sourceType, ref.Name))
-			continue
-		}
-
-		if !strings.HasPrefix(decoded, "/") {
-			decoded = "/" + decoded
-		}
-
-		extracted, err := c.extractor.ExtractVideoLinks(ctx, decoded)
-		if err != nil {
-			continue
-		}
-
-		out = append(out, extracted...)
-	}
-
-	if len(out) == 0 {
-		return nil, fmt.Errorf("no playable sources extracted")
-	}
-
-	return out, nil
-}
-
-type sourceReference struct {
-	URL  string
-	Name string
-}
-
-func buildSourceReferences(rawSourceURLs []any) []sourceReference {
-	priorityOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
-	prioritySet := map[string]struct{}{"default": {}, "yt-mp4": {}, "s-mp4": {}, "luf-mp4": {}}
-
-	prioritized := make(map[string]sourceReference)
-	fallback := make([]sourceReference, 0, len(rawSourceURLs))
-	seen := make(map[string]struct{})
-
-	for _, source := range rawSourceURLs {
-		item, ok := source.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		sourceURL, _ := item["sourceUrl"].(string)
-		sourceName, _ := item["sourceName"].(string)
-		sourceURL = strings.TrimSpace(sourceURL)
-		sourceName = strings.TrimSpace(sourceName)
-		if sourceURL == "" {
-			continue
-		}
-
-		if _, exists := seen[sourceURL]; exists {
-			continue
-		}
-		seen[sourceURL] = struct{}{}
-
-		ref := sourceReference{URL: sourceURL, Name: sourceName}
-		normalized := strings.ToLower(sourceName)
-		if _, prioritizedProvider := prioritySet[normalized]; prioritizedProvider {
-			if _, exists := prioritized[normalized]; !exists {
-				prioritized[normalized] = ref
-			}
-			continue
-		}
-
-		fallback = append(fallback, ref)
-	}
-
-	ordered := make([]sourceReference, 0, len(prioritized)+len(fallback))
-	for _, provider := range priorityOrder {
-		if ref, ok := prioritized[provider]; ok {
-			ordered = append(ordered, ref)
-		}
-	}
-
-	ordered = append(ordered, fallback...)
-	return ordered
-}
-
-func extractEpisodeData(data map[string]any) (map[string]any, error) {
-	episodeData, ok := data["episode"].(map[string]any)
-	if ok && episodeData != nil {
-		return episodeData, nil
-	}
-
-	toBeParsed, ok := data["tobeparsed"].(string)
-	if !ok || strings.TrimSpace(toBeParsed) == "" {
-		return nil, fmt.Errorf("episode not found")
-	}
-
-	decoded, err := decryptTobeparsed(toBeParsed)
-	if err != nil {
-		return nil, fmt.Errorf("decode episode payload: %w", err)
-	}
-
-	var parsed map[string]any
-	if err := json.Unmarshal(decoded, &parsed); err != nil {
-		return nil, fmt.Errorf("parse decoded payload: %w", err)
-	}
-
-	episodeData, ok = parsed["episode"].(map[string]any)
-	if !ok || episodeData == nil {
-		return nil, fmt.Errorf("decoded payload missing episode")
-	}
-
-	return episodeData, nil
-}
-
-func decryptTobeparsed(encoded string) ([]byte, error) {
-	raw, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return nil, fmt.Errorf("base64 decode failed: %w", err)
-	}
-
-	if len(raw) < 29 {
-		return nil, fmt.Errorf("encrypted payload too short")
-	}
-
-	version := raw[0]
-	iv := raw[1:13]
-	cipherText := raw[13 : len(raw)-16]
-
-	for _, keyStr := range getAllKeys() {
-		key := sha256.Sum256([]byte(keyStr))
-
-		block, err := aes.NewCipher(key[:])
-		if err != nil {
-			continue
-		}
-
-		if version == 1 {
-			plainText, err := tryDecryptCTR(block, iv, cipherText)
-			if err == nil && json.Valid(plainText) {
-				return plainText, nil
-			}
-		}
-
-		gcm, err := cipher.NewGCM(block)
-		if err == nil {
-			tag := raw[len(raw)-16:]
-			combined := append(append([]byte{}, cipherText...), tag...)
-			plainText, openErr := gcm.Open(nil, iv, combined, nil)
-			if openErr == nil && json.Valid(plainText) {
-				return plainText, nil
-			}
-		}
-	}
-
-	return nil, fmt.Errorf("decryption failed")
-}
-
-func getAllKeys() []string {
-	keys := make([]string, 0, len(aesKeys)+1)
-
-	if cachedKey != "" && time.Since(cachedKeyFetched) < keyCacheDuration {
-		keys = append(keys, cachedKey)
-	}
-
-	keys = append(keys, aesKeys...)
-	return keys
-}
-
-func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) ([]byte, error) {
-	ctrIV := append([]byte{}, iv...)
-	ctrIV = append(ctrIV, 0x00, 0x00, 0x00, 0x02)
-	ctr := cipher.NewCTR(block, ctrIV)
-	plainText := make([]byte, len(cipherText))
-	ctr.XORKeyStream(plainText, cipherText)
-	return plainText, nil
-}
-
-func getAESKey() string {
-	if envKey := os.Getenv(allAnimeAESKey); envKey != "" {
-		return envKey
-	}
-
-	if cachedKey != "" && time.Since(cachedKeyFetched) < keyCacheDuration {
-		return cachedKey
-	}
-
-	validatedKey := validateKeys()
-	if validatedKey != "" {
-		cachedKey = validatedKey
-		cachedKeyFetched = time.Now()
-		return cachedKey
-	}
-
-	if len(aesKeys) > 0 {
-		return aesKeys[0]
-	}
-
-	return ""
-}
-
-func validateKeys() string {
-	fetchedKeys := fetchKeyFromForks()
-	allKeys := append([]string{fetchedKeys}, aesKeys...)
-
-	for _, keyStr := range allKeys {
-		if keyStr == "" {
-			continue
-		}
-
-		raw, err := base64.StdEncoding.DecodeString(getTestPayload())
-		if err != nil {
-			continue
-		}
-
-		if len(raw) < 29 {
-			continue
-		}
-
-		version := raw[0]
-		iv := raw[1:13]
-		cipherText := raw[13 : len(raw)-16]
-
-		key := sha256.Sum256([]byte(keyStr))
-		block, err := aes.NewCipher(key[:])
-		if err != nil {
-			continue
-		}
-
-		var plainText []byte
-
-		if version == 1 {
-			plainText, _ = tryDecryptCTR(block, iv, cipherText)
-		}
-
-		if len(plainText) == 0 || !json.Valid(plainText) {
-			gcm, err := cipher.NewGCM(block)
-			if err != nil {
-				continue
-			}
-			tag := raw[len(raw)-16:]
-			combined := append(append([]byte{}, cipherText...), tag...)
-			plainText, err = gcm.Open(nil, iv, combined, nil)
-			if err != nil || !json.Valid(plainText) {
-				continue
-			}
-		}
-
-		var parsed map[string]any
-		if err := json.Unmarshal(plainText, &parsed); err != nil {
-			continue
-		}
-
-		episodeData, ok := parsed["episode"].(map[string]any)
-		if !ok || episodeData == nil {
-			continue
-		}
-
-		sourceUrls, ok := episodeData["sourceUrls"].([]any)
-		if !ok || len(sourceUrls) == 0 {
-			continue
-		}
-
-		return keyStr
-	}
-
-	return ""
-}
-
-var testPayloadCache string
-
-func getTestPayload() string {
-	if testPayloadCache != "" {
-		return testPayloadCache
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	searchQuery := `query($search: SearchInput, $limit: Int, $page: Int, $translationType: VaildTranslationTypeEnumType, $countryOrigin: VaildCountryOriginEnumType) {
-		searchResults(search: $search, limit: $limit, page: $page, translationType: $translationType, countryOrigin: $countryOrigin) {
-			results {
-				_id
-			}
-		}
-	}`
-
-	searchVariables := map[string]any{
-		"search":          map[string]any{"query": "pokemon"},
-		"limit":           1,
-		"page":            1,
-		"translationType": "SUB",
-		"countryOrigin":   "JP",
-	}
-
-	searchBody, _ := json.Marshal(map[string]any{
-		"query":     searchQuery,
-		"variables": searchVariables,
-	})
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, allAnimeBaseURL+"/api", bytes.NewReader(searchBody))
-	if err != nil {
-		return ""
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Referer", allAnimeReferer)
-	req.Header.Set("User-Agent", defaultUserAgent)
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return ""
-	}
-
-	var searchResult struct {
-		Data struct {
-			SearchResults struct {
-				Results []struct {
-					ID string `json:"_id"`
-				} `json:"results"`
-			} `json:"searchResults"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(body, &searchResult); err != nil {
-		return ""
-	}
-
-	if len(searchResult.Data.SearchResults.Results) == 0 {
-		return ""
-	}
-
-	showID := searchResult.Data.SearchResults.Results[0].ID
-
-	episodeQuery := `query($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
-		episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
-			tobeparsed
-		}
-	}`
-
-	episodeVariables := map[string]any{
-		"showId":          showID,
-		"translationType": "SUB",
-		"episodeString":   "1",
-	}
-
-	episodeBody, _ := json.Marshal(map[string]any{
-		"query":     episodeQuery,
-		"variables": episodeVariables,
-	})
-
-	episodeReq, err := http.NewRequestWithContext(ctx, http.MethodPost, allAnimeBaseURL+"/api", bytes.NewReader(episodeBody))
-	if err != nil {
-		return ""
-	}
-	episodeReq.Header.Set("Content-Type", "application/json")
-	episodeReq.Header.Set("Referer", allAnimeReferer)
-	episodeReq.Header.Set("User-Agent", defaultUserAgent)
-
-	episodeResp, err := http.DefaultClient.Do(episodeReq)
-	if err != nil {
-		return ""
-	}
-	defer episodeResp.Body.Close()
-
-	episodeBodyBytes, err := io.ReadAll(episodeResp.Body)
-	if err != nil || episodeResp.StatusCode != http.StatusOK {
-		return ""
-	}
-
-	var episodeResult struct {
-		Data struct {
-			Episode struct {
-				ToBeParsed string `json:"tobeparsed"`
-			} `json:"episode"`
-		} `json:"data"`
-	}
-
-	if err := json.Unmarshal(episodeBodyBytes, &episodeResult); err != nil {
-		return ""
-	}
-
-	testPayloadCache = episodeResult.Data.Episode.ToBeParsed
-	return testPayloadCache
-}
-
-func fetchKeyFromForks() string {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	type fetchResult struct {
-		key  string
-		err  error
-		body string
-	}
-
-	results := make(chan fetchResult, len(forkSources))
-
-	for _, source := range forkSources {
-		go func(source string) {
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, source, nil)
-			if err != nil {
-				results <- fetchResult{err: err}
-				return
-			}
-			req.Header.Set("User-Agent", defaultUserAgent)
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				results <- fetchResult{err: err}
-				return
-			}
-			defer resp.Body.Close()
-
-			body, err := io.ReadAll(resp.Body)
-			if err != nil || resp.StatusCode != 200 {
-				results <- fetchResult{err: fmt.Errorf("bad response")}
-				return
-			}
-
-			results <- fetchResult{body: string(body)}
-		}(source)
-	}
-
-	keyCounts := make(map[string]int)
-	deadline := time.After(12 * time.Second)
-	for range forkSources {
-		select {
-		case r := <-results:
-			if r.err != nil || r.body == "" {
-				continue
-			}
-			if key := extractKey(r.body); key != "" {
-				keyCounts[key]++
-				if keyCounts[key] >= consensusThreshold {
-					return key
-				}
-			}
-		case <-deadline:
-			goto checkConsensus
-		}
-	}
-
-checkConsensus:
-	for key, count := range keyCounts {
-		if count >= consensusThreshold {
-			return key
-		}
-	}
-
-	for key := range keyCounts {
-		return key
-	}
-
-	return ""
-}
-
-func extractKey(scriptContent string) string {
-	re := regexp.MustCompile(aniCliKeyRegex)
-	matches := re.FindStringSubmatch(scriptContent)
-	if len(matches) < 2 {
-		return ""
-	}
-	return matches[1]
 }
 
 func decodeSourceURL(encoded string) string {
