@@ -84,7 +84,6 @@ const initPlayer = (): void => {
   const backwardBtn = container.querySelector('[data-backward]') as HTMLButtonElement
   const forwardBtn = container.querySelector('[data-forward]') as HTMLButtonElement
   const fullscreenBtn = container.querySelector('[data-fullscreen]') as HTMLButtonElement
-  const theaterBtn = container.querySelector('[data-theater]') as HTMLButtonElement
   const skipSegmentBtn = container.querySelector('[data-skip]') as HTMLButtonElement
   const autoplayBtn = document.querySelector('[data-autoplay]') as HTMLButtonElement
   const subtitleText = container.querySelector('[data-subtitle-text]') as HTMLElement
@@ -186,7 +185,6 @@ const initPlayer = (): void => {
 
   const isAutoplayEnabled = (): boolean => localStorage.getItem('mal:autoplay-enabled') !== 'false'
   const isAutoSkipEnabled = (): boolean => localStorage.getItem('mal:autoskip-enabled') === 'true'
-  const isTheaterMode = (): boolean => localStorage.getItem('mal:theater-mode') === 'true'
   const getPreferredQuality = (): string => localStorage.getItem('mal:preferred-quality') || 'best'
 
   const updateAutoplayButton = (): void => {
@@ -664,7 +662,10 @@ const initPlayer = (): void => {
       option.textContent = track.label
       subtitleSelect.appendChild(option)
     })
-    subtitleSelect.style.display = currentSubtitleTracks.length > 0 ? 'block' : 'none'
+    const wrapper = subtitleSelect.parentElement
+    if (wrapper) {
+      wrapper.classList.toggle('hidden', currentSubtitleTracks.length === 0)
+    }
     activeSubtitles = []
     hideSubtitleText()
   }
@@ -694,7 +695,10 @@ const initPlayer = (): void => {
       qualitySelect.value = 'best'
     }
     
-    qualitySelect.style.display = qualities.length > 0 ? 'block' : 'none'
+    const wrapper = qualitySelect.parentElement
+    if (wrapper) {
+      wrapper.classList.toggle('hidden', qualities.length === 0)
+    }
   }
 
   const modeDub = container.querySelector('[data-mode-dub]') as HTMLButtonElement
@@ -815,25 +819,6 @@ const initPlayer = (): void => {
     if ('requestFullscreen' in container && typeof container.requestFullscreen === 'function') {
       container.requestFullscreen()
     }
-  }
-
-  const toggleTheaterMode = (): void => {
-    const layout = document.getElementById('watch-layout')
-    if (!layout) return
-    
-    const enabled = !isTheaterMode()
-    localStorage.setItem('mal:theater-mode', enabled ? 'true' : 'false')
-    
-    if (enabled) {
-      layout.classList.remove('lg:flex-row')
-      layout.classList.add('lg:flex-col')
-    } else {
-      layout.classList.add('lg:flex-row')
-      layout.classList.remove('lg:flex-col')
-    }
-    
-    // Smooth scroll back to player
-    container.scrollIntoView({ behavior: 'smooth' })
   }
 
   const switchQuality = (quality: string): void => {
@@ -1173,11 +1158,6 @@ const initPlayer = (): void => {
     showControls()
   })
 
-  theaterBtn?.addEventListener('click', () => {
-    toggleTheaterMode()
-    showControls()
-  })
-
   skipSegmentBtn?.addEventListener('click', () => {
     if (!activeSkipSegment) return
 
@@ -1348,13 +1328,6 @@ const initPlayer = (): void => {
     if (code === 'KeyF') {
       event.preventDefault()
       toggleFullscreen()
-      showControls()
-    }
-
-    // KeyT: Toggle Theater Mode
-    if (code === 'KeyT') {
-      event.preventDefault()
-      toggleTheaterMode()
       showControls()
     }
 
