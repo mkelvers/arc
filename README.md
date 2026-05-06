@@ -65,7 +65,7 @@ The codebase follows standard Go project layout conventions.
 
 ## Getting started
 
-Requires Go `1.25+`, Bun, and a Playback proxy secret.
+Requires Go `1.25+`, Bun, and [just](https://github.com/casey/just) (`brew install just`).
 
 ```bash
 git clone https://github.com/mkelvers/mal.git && cd mal
