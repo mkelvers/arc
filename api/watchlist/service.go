@@ -3,8 +3,11 @@ package watchlist
 import (
 	"context"
 	"database/sql"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -185,4 +188,54 @@ func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, ani
 	}
 
 	return tx.Commit()
+}
+
+func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reader) error {
+	reader := csv.NewReader(r)
+	// Read header
+	if _, err := reader.Read(); err != nil {
+		return fmt.Errorf("failed to read csv header: %w", err)
+	}
+
+	records, err := reader.ReadAll()
+	if err != nil {
+		return fmt.Errorf("failed to read csv records: %w", err)
+	}
+
+	for i, record := range records {
+		if len(record) < 4 {
+			continue // Skip malformed rows
+		}
+
+		animeID, err := strconv.ParseInt(record[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("row %d: invalid anime id: %w", i+1, err)
+		}
+
+		status := record[1]
+		if _, ok := validStatuses[status]; !ok {
+			status = "plan_to_watch"
+		}
+
+		currentEpisode, _ := strconv.ParseInt(record[2], 10, 64)
+		currentTimeSeconds, _ := strconv.ParseFloat(record[3], 64)
+
+		if err := s.ensureAnimeExists(ctx, animeID); err != nil {
+			return fmt.Errorf("row %d: failed to ensure anime: %w", i+1, err)
+		}
+
+		_, err = s.db.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
+			ID:                 uuid.New().String(),
+			UserID:             userID,
+			AnimeID:            animeID,
+			Status:             status,
+			CurrentEpisode:     sql.NullInt64{Int64: currentEpisode, Valid: currentEpisode > 0},
+			CurrentTimeSeconds: currentTimeSeconds,
+		})
+		if err != nil {
+			return fmt.Errorf("row %d: failed to upsert entry: %w", i+1, err)
+		}
+	}
+
+	return nil
 }
