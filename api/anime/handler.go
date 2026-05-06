@@ -141,6 +141,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	orderBy := r.URL.Query().Get("order_by")
 	sort := r.URL.Query().Get("sort")
+	sfw := r.URL.Query().Get("sfw") != "false"
 
 	var genres []int
 	for _, g := range r.URL.Query()["genres"] {
@@ -155,7 +156,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 	defer cancel()
 
-	res, err := h.service.jikanClient.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, page, 24)
+	res, err := h.service.jikanClient.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, sfw, page, 24)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
@@ -183,6 +184,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 			"OrderBy":      orderBy,
 			"Sort":         sort,
 			"Genres":       genres,
+			"SFW":          sfw,
 			"WatchlistMap": watchlistMap,
 		})
 		if err != nil {
@@ -220,6 +222,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		"OrderBy":      orderBy,
 		"Sort":         sort,
 		"Genres":       genres,
+		"SFW":          sfw,
 		"GenresList":   genresList,
 		"Animes":       res.Animes,
 		"HasNextPage":  res.HasNextPage,
@@ -398,7 +401,7 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode([]quickSearchResult{})
 		return
 	}
-	res, err := h.service.jikanClient.SearchAdvanced(r.Context(), query, "", "", "", "", nil, 1, 5)
+	res, err := h.service.jikanClient.SearchAdvanced(r.Context(), query, "", "", "", "", nil, true, 1, 5)
 	if err != nil {
 		log.Printf("quick search error: %v", err)
 		w.WriteHeader(http.StatusOK)

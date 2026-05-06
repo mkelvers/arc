@@ -23,7 +23,7 @@
         {{range $i, $anime := .Animes}}
           {{$isThreshold := eq (add $i 1) (sub (len $.Animes) 8)}}
           {{if and $isThreshold $.HasNextPage}}
-            <div hx-get="/browse?q={{$.Query}}&type={{$.Type}}&status={{$.Status}}&order_by={{$.OrderBy}}&sort={{$.Sort}}&{{genresParams $.Genres}}&page={{$.NextPage}}"
+            <div hx-get="/browse?q={{$.Query}}&type={{$.Type}}&status={{$.Status}}&order_by={{$.OrderBy}}&sort={{$.Sort}}&sfw={{$.SFW}}&{{genresParams $.Genres}}&page={{$.NextPage}}"
                  hx-trigger="revealed"
                  hx-swap="afterend"
                  hx-target="this"
@@ -45,7 +45,7 @@
   {{range $i, $anime := .Animes}}
     {{$isThreshold := eq (add $i 1) (sub $count 8)}}
     {{if and $isThreshold $.HasNextPage}}
-      <div hx-get="/browse?q={{$.Query}}&type={{$.Type}}&status={{$.Status}}&order_by={{$.OrderBy}}&sort={{$.Sort}}&{{genresParams $.Genres}}&page={{$.NextPage}}"
+      <div hx-get="/browse?q={{$.Query}}&type={{$.Type}}&status={{$.Status}}&order_by={{$.OrderBy}}&sort={{$.Sort}}&sfw={{$.SFW}}&{{genresParams $.Genres}}&page={{$.NextPage}}"
            hx-trigger="revealed"
            hx-swap="afterend"
            hx-target="this"

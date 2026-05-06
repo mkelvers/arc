@@ -17,8 +17,22 @@
       {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
       {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
       {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
+      {{if not .SFW}}<input type="hidden" name="sfw" value="false">{{end}}
       {{range $g := .Genres}}<input type="hidden" name="genres" value="{{$g}}">{{end}}
     </form>
+  </div>
+
+  <div class="flex items-center gap-2 px-3 py-2 text-sm text-white bg-black/20">
+    <label class="flex cursor-pointer items-center gap-2">
+      <div class="flex h-4 w-4 items-center justify-center border-2 transition-colors {{if .SFW}}border-accent bg-accent{{else}}border-zinc-500 bg-transparent{{end}}">
+        {{if .SFW}}
+          <svg class="h-3 w-3 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
+        {{end}}
+      </div>
+      <input type="checkbox" class="sr-only" name="sfw" value="true" {{if .SFW}}checked{{end}} 
+             onchange="const params = new URLSearchParams(window.location.search); params.set('sfw', this.checked); window.location.search = params.toString();">
+      SFW
+    </label>
   </div>
 
   <ui-dropdown class="relative block" data-align="left" data-width="w-48">
@@ -35,6 +49,7 @@
         {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
         {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
         {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
+        {{if not .SFW}}<input type="hidden" name="sfw" value="false">{{end}}
         {{range .GenresList}}
           {{$genreID := .MalID}}
           {{$isSelected := hasGenre $genreID $selectedGenreIDs}}
@@ -61,10 +76,10 @@
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2">
       <div class="flex flex-col py-1">
-        <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Any Status</a>
-        <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Airing</a>
-        <a href="?status=complete&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Complete</a>
-        <a href="?status=upcoming&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Upcoming</a>
+        <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Any Status</a>
+        <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Airing</a>
+        <a href="?status=complete&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Complete</a>
+        <a href="?status=upcoming&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Upcoming</a>
       </div>
     </div>
   </ui-dropdown>
@@ -78,12 +93,12 @@
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2">
       <div class="flex flex-col py-1">
-        <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Any Type</a>
-        <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">TV</a>
-        <a href="?type=movie&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Movie</a>
-        <a href="?type=ova&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">OVA</a>
-        <a href="?type=special&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Special</a>
-        <a href="?type=ona&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">ONA</a>
+        <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Any Type</a>
+        <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">TV</a>
+        <a href="?type=movie&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Movie</a>
+        <a href="?type=ova&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">OVA</a>
+        <a href="?type=special&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Special</a>
+        <a href="?type=ona&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">ONA</a>
       </div>
     </div>
   </ui-dropdown>
@@ -98,17 +113,17 @@
       </div>
       <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2">
         <div class="flex flex-col py-1">
-          <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Default</a>
-          <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Popularity</a>
-          <a href="?order_by=score&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Score</a>
-          <a href="?order_by=title&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Title</a>
-          <a href="?order_by=start_date&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Start Date</a>
-          <a href="?order_by=episodes&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Episodes</a>
+          <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Default</a>
+          <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Popularity</a>
+          <a href="?order_by=score&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Score</a>
+          <a href="?order_by=title&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Title</a>
+          <a href="?order_by=start_date&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Start Date</a>
+          <a href="?order_by=episodes&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 text-sm text-white">Episodes</a>
         </div>
       </div>
     </ui-dropdown>
 
-    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-black/20 text-neutral-300 hover:text-white">
+    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-black/20 text-neutral-300 hover:text-white">
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}

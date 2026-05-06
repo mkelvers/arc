@@ -12,7 +12,7 @@ func (c *Client) Search(ctx context.Context, query string, page int) (SearchResu
 	return c.search(ctx, query, page, 0)
 }
 
-func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, page, limit int) (SearchResult, error) {
+func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, sfw bool, page, limit int) (SearchResult, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -29,10 +29,13 @@ func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, o
 		genresParam = strings.Join(ids, ",")
 	}
 
-	cacheKey := fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%d:%d", query, animeType, status, orderBy, sort, genresParam, page, limit)
+	cacheKey := fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%v:%d:%d", query, animeType, status, orderBy, sort, genresParam, sfw, page, limit)
 
 	var result SearchResponse
 	reqURL := fmt.Sprintf("%s/anime?page=%d", c.baseURL, page)
+	if sfw {
+		reqURL += "&sfw=true"
+	}
 	if query != "" {
 		reqURL += "&q=" + url.QueryEscape(query)
 	}
