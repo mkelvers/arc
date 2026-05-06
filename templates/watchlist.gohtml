@@ -59,7 +59,7 @@
 
   <div id="watchlist-items" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
     {{range $.AllEntries}}
-      <div class="watchlist-item flex w-full flex-col gap-2" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}" data-episode="{{.CurrentEpisode.Int64}}" data-time="{{.CurrentTimeSeconds}}">
+      <div class="watchlist-item flex w-full flex-col gap-2" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}" data-episode="{{.CurrentEpisode.Int64}}" data-time="{{.CurrentTimeSeconds}}" data-title="{{.DisplayTitle}}">
         <div class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-white/5 after:absolute after:inset-0 after:bg-black/80 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
           <a href="/anime/{{.AnimeID}}" class="absolute inset-0 z-10"></a>
           <img src="{{.ImageUrl}}" alt="{{.DisplayTitle}}" class="h-full w-full object-cover" loading="lazy" />
@@ -154,13 +154,14 @@
       return;
     }
 
-    let csv = 'anime_id,status,current_episode,current_time_seconds\n';
+    let csv = 'anime_id,title,status,current_episode,current_time_seconds\n';
     items.forEach(function(item) {
       const animeId = item.querySelector('a').href.split('/').pop();
+      const title = (item.dataset.title || '').replace(/"/g, '""');
       const status = item.dataset.status || 'plan_to_watch';
       const episode = item.dataset.episode || '0';
       const time = item.dataset.time || '0';
-      csv += `${animeId},${status},${episode},${time}\n`;
+      csv += `${animeId},"${title}",${status},${episode},${time}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });

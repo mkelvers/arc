@@ -210,23 +210,36 @@ func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reade
 	}
 
 	for i, record := range records {
-		if len(record) < 4 {
-			log.Printf("skipping row %d: insufficient columns", i+2) // i+2 because i is 0-indexed record after header
+		// New format: anime_id,title,status,current_episode,current_time_seconds
+		// Old format: anime_id,status,current_episode,current_time_seconds
+		var animeIDStr, status, episodeStr, timeStr string
+		
+		if len(record) >= 5 {
+			animeIDStr = record[0]
+			status = record[2]
+			episodeStr = record[3]
+			timeStr = record[4]
+		} else if len(record) >= 4 {
+			animeIDStr = record[0]
+			status = record[1]
+			episodeStr = record[2]
+			timeStr = record[3]
+		} else {
+			log.Printf("skipping row %d: insufficient columns", i+2)
 			continue
 		}
 
-		animeID, err := strconv.ParseInt(record[0], 10, 64)
+		animeID, err := strconv.ParseInt(animeIDStr, 10, 64)
 		if err != nil {
 			return fmt.Errorf("row %d: invalid anime id: %w", i+2, err)
 		}
 
-		status := record[1]
 		if _, ok := validStatuses[status]; !ok {
 			status = "plan_to_watch"
 		}
 
-		currentEpisode, _ := strconv.ParseInt(record[2], 10, 64)
-		currentTimeSeconds, _ := strconv.ParseFloat(record[3], 64)
+		currentEpisode, _ := strconv.ParseInt(episodeStr, 10, 64)
+		currentTimeSeconds, _ := strconv.ParseFloat(timeStr, 64)
 
 		if err := s.ensureAnimeExists(ctx, animeID); err != nil {
 			return fmt.Errorf("row %d: failed to ensure anime: %w", i+2, err)
