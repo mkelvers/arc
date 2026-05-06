@@ -213,7 +213,7 @@ func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reade
 		// New format: anime_id,title,status,current_episode,current_time_seconds
 		// Old format: anime_id,status,current_episode,current_time_seconds
 		var animeIDStr, status, episodeStr, timeStr string
-		
+
 		if len(record) >= 5 {
 			animeIDStr = record[0]
 			status = record[2]
