@@ -82,7 +82,7 @@ Install [Go](https://go.dev/dl), [Bun](https://bun.sh), and [just](https://githu
 git clone https://github.com/mkelvers/mal.git && cd mal
 openssl rand -base32 32
 PLAYBACK_PROXY_SECRET="your-32-char-secret" go run ./cmd/server
-go run ./cmd/server create-user <username> <password>
+go run ./cmd/user <username> <password>
 ```
 
 The app runs at `http://localhost:3000`.
@@ -114,7 +114,7 @@ docker run --rm -p 3000:3000 \
   -v "$(pwd)/data:/app/data" \
   mal
 
-docker exec mal /server create-user <username> <password>
+docker exec mal ./cmd/user <username> <password>
 ```
 
 ## Configuration
