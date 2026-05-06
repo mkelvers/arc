@@ -31,6 +31,19 @@
       <button type="button" id="sort-order-btn" class="text-neutral-400 transition-colors hover:text-white" onclick="toggleSortOrder(this)">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 rotate-0"><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
       </button>
+
+      <div class="flex bg-white/5 p-1 rounded-md border border-white/10">
+        <button type="button" class="px-3 py-1 text-xs hover:bg-white/10 transition-colors flex items-center gap-2 text-neutral-400 hover:text-white" onclick="exportWatchlistCSV()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+        <div class="w-px h-4 bg-white/10 self-center"></div>
+        <button type="button" class="px-3 py-1 text-xs hover:bg-white/10 transition-colors flex items-center gap-2 text-neutral-400 hover:text-white" onclick="document.getElementById('import-input').click()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
+        </button>
+        <input type="file" id="import-input" class="hidden" accept=".csv" onchange="importWatchlistCSV(this)">
+      </div>
     </div>
   </div>
 
@@ -125,6 +138,57 @@
     sortOrderDesc = !sortOrderDesc
     btn.querySelector('svg').classList.toggle('rotate-180', !sortOrderDesc)
     sortItems()
+  }
+
+  function exportWatchlistCSV() {
+    const entries = {{json .AllEntries}};
+    if (!entries || entries.length === 0) {
+      alert('Watchlist is empty');
+      return;
+    }
+
+    let csv = 'anime_id,status,current_episode,current_time_seconds\n';
+    entries.forEach(e => {
+      csv += `${e.AnimeID},${e.Status},${e.CurrentEpisode.Int64},${e.CurrentTimeSeconds}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'watchlist.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  async function importWatchlistCSV(input) {
+    if (!input.files || input.files.length === 0) return;
+    
+    const formData = new FormData();
+    formData.append('file', input.files[0]);
+
+    try {
+      const resp = await fetch('/api/watchlist/import', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'HX-Request': 'true'
+        }
+      });
+
+      if (resp.ok) {
+        const redirect = resp.headers.get('HX-Redirect');
+        if (redirect) window.location.href = redirect;
+        else window.location.reload();
+      } else {
+        const text = await resp.text();
+        alert('Import failed: ' + text);
+      }
+    } catch (err) {
+      alert('Import error: ' + err);
+    }
   }
 
   function sortItems() {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 
@@ -191,6 +192,12 @@ func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, ani
 }
 
 func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reader) error {
+	txQueries, tx, err := db.BeginTx(ctx, s.sqlDB)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
 	reader := csv.NewReader(r)
 	// Read header
 	if _, err := reader.Read(); err != nil {
@@ -204,12 +211,13 @@ func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reade
 
 	for i, record := range records {
 		if len(record) < 4 {
-			continue // Skip malformed rows
+			log.Printf("skipping row %d: insufficient columns", i+2) // i+2 because i is 0-indexed record after header
+			continue
 		}
 
 		animeID, err := strconv.ParseInt(record[0], 10, 64)
 		if err != nil {
-			return fmt.Errorf("row %d: invalid anime id: %w", i+1, err)
+			return fmt.Errorf("row %d: invalid anime id: %w", i+2, err)
 		}
 
 		status := record[1]
@@ -221,10 +229,10 @@ func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reade
 		currentTimeSeconds, _ := strconv.ParseFloat(record[3], 64)
 
 		if err := s.ensureAnimeExists(ctx, animeID); err != nil {
-			return fmt.Errorf("row %d: failed to ensure anime: %w", i+1, err)
+			return fmt.Errorf("row %d: failed to ensure anime: %w", i+2, err)
 		}
 
-		_, err = s.db.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
+		_, err = txQueries.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
 			ID:                 uuid.New().String(),
 			UserID:             userID,
 			AnimeID:            animeID,
@@ -233,9 +241,9 @@ func (s *Service) ImportWatchlist(ctx context.Context, userID string, r io.Reade
 			CurrentTimeSeconds: currentTimeSeconds,
 		})
 		if err != nil {
-			return fmt.Errorf("row %d: failed to upsert entry: %w", i+1, err)
+			return fmt.Errorf("row %d: failed to upsert entry: %w", i+2, err)
 		}
 	}
 
-	return nil
+	return tx.Commit()
 }
