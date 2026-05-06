@@ -65,18 +65,7 @@ The codebase follows standard Go project layout conventions.
 
 ## Getting started
 
-The app requires Go `1.25+`, Bun, and a Playback proxy secret. Choose an installation method:
-
-### Automatic (mise)
-
-```bash
-curl https://deb.nodesource.com/setup_20.x | sudo bash
-mise install
-```
-
-### Manual
-
-Install [Go](https://go.dev/dl), [Bun](https://bun.sh), and [just](https://github.com/casey/just).
+Requires Go `1.25+`, Bun, and a Playback proxy secret.
 
 ```bash
 git clone https://github.com/mkelvers/mal.git && cd mal
