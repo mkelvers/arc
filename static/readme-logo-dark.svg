@@ -1,40 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 52" width="200" height="52">
   <defs>
-    <linearGradient id="bg-grad-dark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d0d0d" />
-      <stop offset="100%" stop-color="#1a1a1a" />
+    <linearGradient id="mal-grad-dark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff9966" />
+      <stop offset="100%" stop-color="#ff6b4a" />
     </linearGradient>
   </defs>
   
-  <!-- Background circle with gradient -->
-  <circle cx="70" cy="70" r="60" fill="url(#bg-grad-dark)" />
-  
-  <!-- Stylized play button with Japanese geometric influence -->
-  <path 
-    d="M55 45 L55 95 L95 70 Z" 
-    fill="none" 
-    stroke="#ff6b6b" 
-    stroke-width="4" 
-    stroke-linejoin="miter"
-  />
-  
-  <!-- Outer frame - Japanese inspired rectangle -->
-  <rect 
-    x="30" y="30" 
-    width="80" height="80" 
-    rx="4"
-    fill="none" 
-    stroke="#2d2d2d" 
-    stroke-width="2"
-    stroke-dasharray="8 4"
-  />
-  
-  <!-- Corner accents -->
-  <path d="M35 40 L35 35 L40 35" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" />
-  <path d="M100 35 L105 35 L105 40" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" />
-  <path d="M105 100 L105 105 L100 105" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" />
-  <path d="M40 105 L35 105 L35 100" fill="none" stroke="#ff6b6b" stroke-width="2" stroke-linecap="round" />
-  
-  <!-- Subtle inner glow -->
-  <circle cx="70" cy="70" r="20" fill="none" stroke="#ff6b6b" stroke-width="0.5" opacity="0.3" />
+  <g fill="url(#mal-grad-dark)">
+    <!-- M -->
+    <path d="M8 42V10h9l12 22 12-22h9v32h-8V18l-11 20h-4l-11-20v24z"/>
+    
+    <!-- A -->
+    <path d="M58 10h10l9 24 9-24h10v32h-8V18l-9-8h-2l-9 8v24h-8V10z"/>
+    
+    <!-- L -->
+    <path d="M106 10h8v32h-8V10z"/>
+    
+    <!-- . (dot) -->
+    <circle cx="128" cy="36" r="4"/>
+    
+    <!-- L -->
+    <path d="M144 10h8v32h-8V10z"/>
+    
+    <!-- i -->
+    <path d="M164 10h8v24h-8v-24zm0 28h8v4h-8v-4z"/>
+    
+    <!-- s -->
+    <path d="M184 14c0-4 3-6 7-6s7 2 7 6c0 4-3 6-7 6s-7 2-7 6c0 4 3 6 7 6s7-2 7-6v-6h-8v4c0 2-1 3-3 3s-3-1-3-3c0-2 1-3 3-3s3-1 3-3v-4c0-3-2-5-5-5s-5 2-5 5v8c0 5 3 8 8 8s8-3 8-8v-8h-8z"/>
+    
+    <!-- t -->
+    <path d="M196 10h10v4h-6v6c0 2 1 3 3 3s3-1 3-3v-6c0-2-1-4-4-4h-2v-4h-4v4h2z"/>
+  </g>
 </svg>
