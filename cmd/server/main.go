@@ -17,7 +17,6 @@ import (
 	"mal/internal/db"
 	"mal/internal/server"
 	"mal/internal/worker"
-	"mal/pkg/middleware"
 )
 
 func main() {
@@ -86,5 +85,4 @@ func gracefulShutdown(srv *http.Server, ctx context.Context) {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("server shutdown failed: %v", err)
 	}
-	middleware.StopCleanup()
 }

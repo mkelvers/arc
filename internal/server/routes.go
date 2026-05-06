@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"mal/api/anime"
 	"mal/api/auth"
@@ -114,12 +115,22 @@ func NewRouter(cfg Config) http.Handler {
 	mux.HandleFunc("/api/watch/episode/", playbackHandler.HandleEpisodeData)
 	mux.HandleFunc("/api/watch/thumbnails/", playbackHandler.HandleEpisodeThumbnails)
 
+	authLimiter := pkgmiddleware.NewLimiter(pkgmiddleware.Config{
+		MaxAttempts: 5,
+		Window:      time.Minute,
+	})
+	go func() {
+		for range time.Tick(time.Minute) {
+			authLimiter.Cleanup(time.Now())
+		}
+	}()
+
 	// Auth Endpoints
 	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			authHandler.HandleLoginPage(w, r)
 		} else {
-			pkgmiddleware.RateLimitAuth(pkgmiddleware.VerifyOrigin(http.HandlerFunc(authHandler.HandleLogin))).ServeHTTP(w, r)
+			authLimiter.AuthMiddleware(pkgmiddleware.VerifyOrigin(http.HandlerFunc(authHandler.HandleLogin))).ServeHTTP(w, r)
 		}
 	})
 	mux.HandleFunc("/logout", authHandler.HandleLogout)
