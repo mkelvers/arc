@@ -39,7 +39,7 @@
       {{$entries := index $.WatchlistByStatus $status}}
       {{if $entries}}
         <div class="watchlist-section" data-status="{{$status}}">
-          <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 mt-6">
             {{range $entries}}
               <div class="watchlist-item flex w-full flex-col gap-2" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}" data-episode="{{.CurrentEpisode.Int64}}" data-time="{{.CurrentTimeSeconds}}" data-title="{{.DisplayTitle}}">
                 <div class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-white/5 after:absolute after:inset-0 after:bg-black/80 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
