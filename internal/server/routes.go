@@ -67,6 +67,24 @@ func NewRouter(cfg Config) http.Handler {
 	dist := http.FileServer(http.Dir("./dist"))
 	mux.Handle("/dist/", http.StripPrefix("/dist/", withMimeTypes(dist)))
 
+	// Serve Apple Touch Icons from static directory
+	mux.HandleFunc("/apple-touch-icon.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		http.ServeFile(w, r, "./static/apple-touch-icon.svg")
+	})
+	mux.HandleFunc("/apple-touch-icon-precomposed.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		http.ServeFile(w, r, "./static/apple-touch-icon-precomposed.svg")
+	})
+	mux.HandleFunc("/apple-touch-icon-120x120.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		http.ServeFile(w, r, "./static/apple-touch-icon-120x120.svg")
+	})
+	mux.HandleFunc("/apple-touch-icon-120x120-precomposed.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		http.ServeFile(w, r, "./static/apple-touch-icon-120x120-precomposed.svg")
+	})
+
 	mux.HandleFunc("/", animeHandler.HandleCatalog)
 	mux.HandleFunc("/api/catalog/airing", animeHandler.HandleCatalogAiring)
 	mux.HandleFunc("/api/catalog/popular", animeHandler.HandleCatalogPopular)
