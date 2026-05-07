@@ -20,16 +20,11 @@ RUN go mod download
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-# Copy key source files first to auto-bust cache when they change
-# This ensures the COPY . . layer is never stale
-COPY templates/base.gohtml ./
-RUN cat base.gohtml | md5sum > /tmp/source_hash.txt
-
+# Copy all source files
 COPY . .
 
-# Build frontend assets (tailwind + ts)
-# Touch input file to force Tailwind to rescan
-RUN touch ./static/style.css && bun run build:assets
+# Build frontend assets (tailwind + ts) from a clean state
+RUN rm -rf dist/ && bun run build:assets
 
 # Generate sqlc code
 RUN sqlc generate
