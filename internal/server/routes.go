@@ -43,6 +43,15 @@ func withMimeTypes(next http.Handler) http.Handler {
 	})
 }
 
+func noCache(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func NewAuthLimiter() *pkgmiddleware.Limiter {
 	return pkgmiddleware.NewLimiter(pkgmiddleware.Config{
 		MaxAttempts: 5,
@@ -68,12 +77,12 @@ func NewRouter(cfg Config) http.Handler {
 	})
 	playbackHandler := playback.NewHandler(playbackSvc, cfg.JikanClient)
 
-	// Serve static files
-	fs := http.FileServer(http.Dir("./static"))
+	// Serve static files with no-cache headers
+	fs := noCache(http.FileServer(http.Dir("./static")))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Serve built frontend assets
-	dist := http.FileServer(http.Dir("./dist"))
+	// Serve built frontend assets with no-cache headers
+	dist := noCache(http.FileServer(http.Dir("./dist")))
 	mux.Handle("/dist/", http.StripPrefix("/dist/", withMimeTypes(dist)))
 
 	// Serve Apple Touch Icons from static directory
