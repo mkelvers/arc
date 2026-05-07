@@ -1,17 +1,17 @@
 {{define "anime_characters"}}
 <div class="mt-12 w-full">
-  <h2 class="mb-6 text-lg font-normal text-neutral-300">Characters & Cast</h2>
+  <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
     {{range (slice . 0 (min (len .) 10))}}
-      <div class="flex gap-3 bg-white/2 p-3 ring-1 ring-white/5">
-        <div class="h-16 w-12 shrink-0 overflow-hidden bg-white/5">
+      <div class="flex gap-3 bg-background-surface p-3 ring-1 ring-border">
+        <div class="h-16 w-12 shrink-0 overflow-hidden bg-background-surface">
           <img src="{{.Character.Images.Jpg.ImageURL}}" alt="{{.Character.Name}}" class="h-full w-full object-cover" loading="lazy" />
         </div>
         <div class="flex flex-col justify-center overflow-hidden">
-          <span class="truncate text-sm font-medium text-neutral-200">{{.Character.Name}}</span>
-          <span class="truncate text-xs text-neutral-500">{{.Role}}</span>
+          <span class="truncate text-sm font-medium text-foreground">{{.Character.Name}}</span>
+          <span class="truncate text-xs text-foreground-muted">{{.Role}}</span>
           {{if .VoiceActors}}
-            <span class="mt-1 truncate text-[11px] text-neutral-400">{{(index .VoiceActors 0).Person.Name}}</span>
+            <span class="mt-1 truncate text-[11px] text-foreground-muted">{{(index .VoiceActors 0).Person.Name}}</span>
           {{end}}
         </div>
       </div>
@@ -23,14 +23,14 @@
 {{define "anime_recommendations"}}
 {{if .}}
 <div class="w-full">
-  <h2 class="mb-6 text-lg font-normal text-neutral-300">Recommendations</h2>
+  <h2 class="mb-6 text-lg font-normal text-foreground">Recommendations</h2>
   <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
     {{range (slice . 0 (min (len .) 8))}}
       <a href="/anime/{{.Entry.MalID}}" class="group flex flex-col gap-2">
-        <div class="aspect-2/3 overflow-hidden bg-white/5 shadow-md">
+        <div class="aspect-2/3 overflow-hidden bg-background-surface shadow-md">
           <img src="{{.Entry.Images.Webp.LargeImageURL}}" alt="{{.Entry.Title}}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
         </div>
-        <span class="truncate text-xs font-medium text-neutral-400 transition-colors group-hover:text-white">{{.Entry.Title}}</span>
+        <span class="truncate text-xs font-medium text-foreground-muted transition-colors group-hover:text-foreground">{{.Entry.Title}}</span>
       </a>
     {{end}}
   </div>
@@ -46,7 +46,7 @@
   <div class="flex flex-col gap-10 pr-0 lg:pr-80">
   <div class="flex flex-col gap-8 md:flex-row lg:gap-12">
     <div class="flex w-64 shrink-0 flex-col items-center gap-6 md:w-80 md:items-start lg:w-96">
-      <div class="aspect-2/3 w-full overflow-hidden bg-white/5 shadow-lg">
+      <div class="aspect-2/3 w-full overflow-hidden bg-background-surface shadow-lg">
         {{$imageUrl := "https://placehold.co/400x600?text=No+Image"}}
         {{if $anime.Images.Webp.LargeImageURL}}
           {{$imageUrl = $anime.Images.Webp.LargeImageURL}}
@@ -59,17 +59,17 @@
 
     <div class="flex grow flex-col">
       <div class="mb-4">
-        <h1 class="text-2xl font-normal text-white md:text-4xl">
+        <h1 class="text-2xl font-normal text-foreground md:text-4xl">
           {{$anime.DisplayTitle}}
         </h1>
         {{if and $anime.TitleEnglish (ne $anime.Title $anime.TitleEnglish)}}
-          <h2 class="mt-1 text-sm text-neutral-400">{{$anime.Title}}</h2>
+          <h2 class="mt-1 text-sm text-foreground-muted">{{$anime.Title}}</h2>
         {{end}}
       </div>
 
-      <div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-neutral-400">
+      <div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground-muted">
         {{if $anime.Score}}
-          <div class="flex items-center gap-1.5 font-medium text-white">
+          <div class="flex items-center gap-1.5 font-medium text-foreground">
             <svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             {{$anime.Score}}
           </div>
@@ -90,10 +90,10 @@
       <div class="flex flex-col gap-12 lg:flex-row">
         <div class="grow lg:max-w-4xl">
           <section>
-            <h2 class="mb-4 mt-2 text-lg font-normal text-neutral-300">Synopsis</h2>
-            <p id="synopsis-container" class="text-neutral-400 text-base leading-relaxed line-clamp-6 md:line-clamp-none">{{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}</p>
+            <h2 class="mb-4 mt-2 text-lg font-normal text-foreground">Synopsis</h2>
+            <p id="synopsis-container" class="text-foreground-muted text-base leading-relaxed line-clamp-6 md:line-clamp-none">{{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}</p>
             {{if and $anime.Synopsis (gt (len $anime.Synopsis) 400)}}
-              <button id="synopsis-toggle" class="mt-2 text-sm font-normal text-neutral-400 transition-colors hover:text-white md:hidden" onclick="
+              <button id="synopsis-toggle" class="mt-2 text-sm font-normal text-foreground-muted transition-colors hover:text-foreground md:hidden" onclick="
                 const container = document.getElementById('synopsis-container');
                 const btn = document.getElementById('synopsis-toggle');
                 if (container.classList.contains('line-clamp-6')) {
@@ -111,8 +111,8 @@
 
           {{if $anime.Trailer.YoutubeID}}
             <section class="mt-12">
-              <h2 class="mb-6 text-lg font-normal text-neutral-300">Trailer</h2>
-              <div class="aspect-video w-full bg-white/5 ring-1 ring-white/10">
+              <h2 class="mb-6 text-lg font-normal text-foreground">Trailer</h2>
+              <div class="aspect-video w-full bg-background-surface ring-1 ring-border">
                 <iframe 
                   src="https://www.youtube.com/embed/{{$anime.Trailer.YoutubeID}}" 
                   class="h-full w-full" 
@@ -125,62 +125,62 @@
 
           {{if $anime.Background}}
             <section class="mt-12">
-              <h2 class="mb-4 text-lg font-normal text-neutral-300">Background</h2>
-              <div class="border-l border-white/5 pl-6 text-sm italic leading-relaxed text-neutral-400 whitespace-pre-line">
+              <h2 class="mb-4 text-lg font-normal text-foreground">Background</h2>
+              <div class="border-l border-border pl-6 text-sm italic leading-relaxed text-foreground-muted whitespace-pre-line">
                 {{$anime.Background}}
               </div>
             </section>
           {{end}}
         </div>
-        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-white/5 bg-neutral-950 p-10 lg:flex">
+        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-border bg-background-sidebar p-10 lg:flex">
           <div class="flex flex-col gap-10">
             <section>
-              <h3 class="mb-8 text-lg font-normal text-neutral-300">Information</h3>
+              <h3 class="mb-8 text-lg font-normal text-foreground">Information</h3>
               <div class="flex flex-col gap-8 text-sm">
                 {{if $anime.Studios}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Studios</dt>
-                    <dd class="text-neutral-300">{{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</dd>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
+                    <dd class="text-foreground">{{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</dd>
                   </div>
                 {{end}}
                 {{if $anime.Producers}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Producers</dt>
-                    <dd class="text-neutral-300 text-xs leading-relaxed">{{range $i, $p := $anime.Producers}}{{if $i}}, {{end}}{{$p.Name}}{{end}}</dd>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Producers</dt>
+                    <dd class="text-foreground text-xs leading-relaxed">{{range $i, $p := $anime.Producers}}{{if $i}}, {{end}}{{$p.Name}}{{end}}</dd>
                   </div>
                 {{end}}
                 {{if $anime.Licensors}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Licensors</dt>
-                    <dd class="text-neutral-300 text-xs leading-relaxed">{{range $i, $l := $anime.Licensors}}{{if $i}}, {{end}}{{$l.Name}}{{end}}</dd>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Licensors</dt>
+                    <dd class="text-foreground text-xs leading-relaxed">{{range $i, $l := $anime.Licensors}}{{if $i}}, {{end}}{{$l.Name}}{{end}}</dd>
                   </div>
                 {{end}}
                 {{if $anime.Genres}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Genres</dt>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Genres</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Genres}}
-                        <a href="/browse?genres={{.MalID}}" class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:bg-white/10 hover:text-white">{{.Name}}</a>
+                        <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted ring-1 ring-border transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
                 {{end}}
                 {{if $anime.Themes}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Themes</dt>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Themes</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Themes}}
-                        <a href="/browse?genres={{.MalID}}" class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:bg-white/10 hover:text-white">{{.Name}}</a>
+                        <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted ring-1 ring-border transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
                 {{end}}
                 {{if $anime.Demographics}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Demographics</dt>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Demographics</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Demographics}}
-                        <a href="/browse?genres={{.MalID}}" class="bg-white/5 px-2.5 py-1 text-[11px] font-normal text-neutral-400 ring-1 ring-white/5 transition-colors hover:bg-white/10 hover:text-white">{{.Name}}</a>
+                        <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted ring-1 ring-border transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
@@ -188,49 +188,49 @@
                 <div class="grid grid-cols-2 gap-4">
                   {{if $anime.Source}}
                     <div>
-                      <dt class="mb-1 text-xs font-normal text-neutral-500">Source</dt>
-                      <dd class="text-neutral-300">{{$anime.Source}}</dd>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Source</dt>
+                      <dd class="text-foreground">{{$anime.Source}}</dd>
                     </div>
                   {{end}}
                   {{if $anime.Duration}}
                     <div>
-                      <dt class="mb-1 text-xs font-normal text-neutral-500">Duration</dt>
-                      <dd class="text-neutral-300">{{$anime.Duration}}</dd>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Duration</dt>
+                      <dd class="text-foreground">{{$anime.Duration}}</dd>
                     </div>
                   {{end}}
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                   {{if $anime.Rank}}
                     <div>
-                      <dt class="mb-1 text-xs font-normal text-neutral-500">Rank</dt>
-                      <dd class="text-neutral-300">#{{$anime.Rank}}</dd>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Rank</dt>
+                      <dd class="text-foreground">#{{$anime.Rank}}</dd>
                     </div>
                   {{end}}
                   {{if $anime.Popularity}}
                     <div>
-                      <dt class="mb-1 text-xs font-normal text-neutral-500">Popularity</dt>
-                      <dd class="text-neutral-300">#{{$anime.Popularity}}</dd>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Popularity</dt>
+                      <dd class="text-foreground">#{{$anime.Popularity}}</dd>
                     </div>
                   {{end}}
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                   {{if $anime.MembersFormatted}}
                     <div>
-                      <dt class="mb-1 text-xs font-normal text-neutral-500">Members</dt>
-                      <dd class="text-neutral-300">{{$anime.MembersFormatted}}</dd>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Members</dt>
+                      <dd class="text-foreground">{{$anime.MembersFormatted}}</dd>
                     </div>
                   {{end}}
                   {{if $anime.FavoritesFormatted}}
                     <div>
-                      <dt class="mb-1 text-xs font-normal text-neutral-500">Favorites</dt>
-                      <dd class="text-neutral-300">{{$anime.FavoritesFormatted}}</dd>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Favorites</dt>
+                      <dd class="text-foreground">{{$anime.FavoritesFormatted}}</dd>
                     </div>
                   {{end}}
                 </div>
                 {{if $anime.ScoredByFormatted}}
                   <div>
-                    <dt class="mb-1 text-xs font-normal text-neutral-500">Scored By</dt>
-                    <dd class="text-neutral-300">{{$anime.ScoredByFormatted}} users</dd>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
+                    <dd class="text-foreground">{{$anime.ScoredByFormatted}} users</dd>
                   </div>
                 {{end}}
               </div>
@@ -243,14 +243,14 @@
 
   <div hx-get="/anime/{{$anime.MalID}}?section=characters" hx-trigger="load" hx-swap="outerHTML">
     <div class="mt-12 w-full">
-      <h2 class="mb-6 text-lg font-normal text-neutral-300">Characters & Cast</h2>
+      <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 animate-pulse">
         {{range (seq 5)}}
-          <div class="flex gap-3 bg-white/2 p-3 ring-1 ring-white/5 h-20">
-            <div class="h-16 w-12 shrink-0 bg-white/5"></div>
+          <div class="flex gap-3 bg-background-surface p-3 ring-1 ring-border h-20">
+            <div class="h-16 w-12 shrink-0 bg-background-button"></div>
             <div class="flex flex-col justify-center gap-2 grow">
-              <div class="h-3 w-2/3 bg-white/5 rounded"></div>
-              <div class="h-2 w-1/2 bg-white/5 rounded"></div>
+              <div class="h-3 w-2/3 bg-background-button rounded"></div>
+              <div class="h-2 w-1/2 bg-background-button rounded"></div>
             </div>
           </div>
         {{end}}
@@ -260,8 +260,8 @@
 
   <div class="w-full">
     <div hx-get="/api/watch-order?animeId={{$anime.MalID}}" hx-trigger="load">
-      <div class="mt-8 flex items-center gap-3 text-neutral-400">
-        <div class="border-t-accent size-5 animate-spin rounded-full border-2 border-neutral-600"></div>
+      <div class="mt-8 flex items-center gap-3 text-foreground-muted">
+        <div class="border-t-accent size-5 animate-spin rounded-full border-2 border-border"></div>
         <span class="text-sm">Loading watch order sequence...</span>
       </div>
     </div>
@@ -269,12 +269,12 @@
 
   <div hx-get="/anime/{{$anime.MalID}}?section=recommendations" hx-trigger="load" hx-swap="outerHTML">
     <div class="w-full">
-      <h2 class="mb-6 text-lg font-normal text-neutral-300">Recommendations</h2>
+      <h2 class="mb-6 text-lg font-normal text-foreground">Recommendations</h2>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 animate-pulse">
         {{range (seq 8)}}
           <div class="flex flex-col gap-2">
-            <div class="aspect-2/3 bg-white/5"></div>
-            <div class="h-3 w-full bg-white/5 rounded"></div>
+            <div class="aspect-2/3 bg-background-surface"></div>
+            <div class="h-3 w-full bg-background-surface rounded"></div>
           </div>
         {{end}}
       </div>

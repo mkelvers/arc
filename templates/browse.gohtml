@@ -3,18 +3,18 @@
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 <div class="flex flex-col gap-6">
   <div class="flex items-end justify-between">
-    <h1 class="text-xl font-semibold text-white">Browse</h1>
+    <h1 class="text-xl font-semibold text-foreground">Browse</h1>
   </div>
 
   {{template "filter_bar" .}}
 
   <main class="w-full">
     {{if eq (len .Animes) 0}}
-      <div class="flex h-64 flex-col items-center justify-center gap-4 text-neutral-400">
+      <div class="flex h-64 flex-col items-center justify-center gap-4 text-foreground-muted">
         <svg class="h-12 w-12 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-        <p class="text-neutral-300">No anime found</p>
+        <p class="text-foreground">No anime found</p>
         <div class="flex gap-2">
-          <a href="/browse" class="px-4 py-2 text-sm bg-white/10 hover:bg-white/20 text-neutral-200 transition-colors">Clear filters</a>
+          <a href="/browse" class="px-4 py-2 text-sm bg-background-surface hover:bg-background-button-hover text-foreground ring-1 ring-border transition-colors">Clear filters</a>
           <a href="/browse?order_by=popularity&sort=desc" class="px-4 py-2 text-sm bg-accent/20 hover:bg-accent/30 text-accent transition-colors">Browse popular</a>
         </div>
       </div>

@@ -184,26 +184,23 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
     }
   </script>
 </head>
-<body class="bg-background text-neutral-200">
+<body class="bg-background text-foreground">
   <div class="flex min-h-screen flex-col">
     {{if .User}}
-      <div class="sticky top-0 z-50">
-        {{block "header" .}}
-          {{template "header" .}}
-        {{end}}
-      </div>
-      
-      <div class="flex flex-1">
+      <div class="flex flex-1 overflow-hidden">
         <button id="mobile-overlay" class="hidden fixed inset-0 z-40 w-full cursor-default border-none bg-black/60 backdrop-blur-sm outline-none lg:hidden" onclick="toggleMobileMenu()" aria-label="Close mobile menu"></button>
   
         <!-- Sidebar -->
-        <div id="mobile-menu" class="fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden transform lg:sticky lg:top-16 lg:z-auto lg:h-[calc(100vh-4rem)] -translate-x-full lg:shadow-none lg:w-64 lg:translate-x-0 w-64 shadow-2xl">
+        <div id="mobile-menu" class="fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden transform lg:relative lg:z-auto lg:translate-x-0 w-64 shadow-2xl transition-transform duration-300 -translate-x-full lg:block">
           {{block "sidebar" .}}
             {{template "navigation" dict "CurrentPath" .CurrentPath}}
           {{end}}
         </div>
   
-        <main class="w-full flex-1 overflow-x-hidden flex flex-col">
+        <main class="w-full flex-1 overflow-x-hidden flex flex-col h-screen overflow-y-auto">
+          <div class="sticky top-0 z-40 w-full">
+            {{template "header" .}}
+          </div>
           <div class="flex-1 p-4 md:p-8 lg:p-12">
             {{template "content" .}}
           </div>
