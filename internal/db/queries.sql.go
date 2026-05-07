@@ -469,7 +469,7 @@ func (q *Queries) GetUpcomingSeasons(ctx context.Context, userID string) ([]GetU
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, username, password_hash, avatar_url, created_at FROM user WHERE id = ? LIMIT 1
+SELECT id, username, password_hash, created_at, avatar_url FROM user WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
@@ -479,14 +479,14 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 		&i.ID,
 		&i.Username,
 		&i.PasswordHash,
-		&i.AvatarURL,
 		&i.CreatedAt,
+		&i.AvatarUrl,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, avatar_url, created_at FROM user WHERE username = ? LIMIT 1
+SELECT id, username, password_hash, created_at, avatar_url FROM user WHERE username = ? LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -496,8 +496,8 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.ID,
 		&i.Username,
 		&i.PasswordHash,
-		&i.AvatarURL,
 		&i.CreatedAt,
+		&i.AvatarUrl,
 	)
 	return i, err
 }

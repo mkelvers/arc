@@ -66,8 +66,8 @@ type User struct {
 	ID           string    `json:"id"`
 	Username     string    `json:"username"`
 	PasswordHash string    `json:"password_hash"`
-	AvatarURL    string    `json:"avatar_url"`
 	CreatedAt    time.Time `json:"created_at"`
+	AvatarUrl    string    `json:"avatar_url"`
 }
 
 type WatchListEntry struct {
