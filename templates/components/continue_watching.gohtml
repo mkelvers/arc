@@ -1,6 +1,6 @@
 {{define "continue_watching"}}
 <section id="continue-watching-section" class="w-full empty:hidden">
-  <h2 class="mb-3 text-lg font-normal text-neutral-300">Continue Watching</h2>
+  <h2 class="mb-3 text-lg font-normal text-foreground">Continue Watching</h2>
 
   <div id="continue-watching-items" class="scrollbar-hide flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4" hx-on::after-request="if(this.querySelectorAll('.continue-watching-item').length === 0) document.getElementById('continue-watching-section')?.remove()">
     {{range .}}
