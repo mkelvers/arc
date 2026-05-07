@@ -64,9 +64,10 @@ type Session struct {
 
 type User struct {
 	ID           string    `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"password_hash"`
-	CreatedAt    time.Time `json:"created_at"`
+	Username    string    `json:"username"`
+	PasswordHash string  `json:"password_hash"`
+	AvatarURL   string    `json:"avatar_url"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type WatchListEntry struct {

@@ -42,9 +42,11 @@
         <div data-trigger class="cursor-pointer">
           <button class="flex items-center gap-1 rounded-full p-1 transition-colors hover:bg-surface-hover focus:outline-none">
             {{if .User}}
-              <div class="bg-accent flex h-8 w-8 items-center justify-center overflow-hidden rounded-full text-sm font-semibold text-white">
-                {{slice .User.Username 0 1}}
-              </div>
+              <img
+                src="{{.User.AvatarURL}}"
+                alt="{{.User.Username}}"
+                class="h-8 w-8 rounded-full object-cover"
+              />
             {{else}}
               <div class="bg-accent flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

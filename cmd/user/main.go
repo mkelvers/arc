@@ -14,18 +14,23 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		log.Fatalf("Usage: go run cmd/user/main.go <username> <password>")
-	}
-
-	username := os.Args[1]
-	password := os.Args[2]
-
 	dbConn, err := db.Open(db.GetDBFile())
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
 	defer dbConn.Close()
+
+	if len(os.Args) == 2 && os.Args[1] == "update-avatar" {
+		updateAvatars(dbConn)
+		return
+	}
+
+	if len(os.Args) != 3 {
+		log.Fatalf("Usage: go run cmd/user/main.go <username> <password>\n       go run cmd/user/main.go update-avatar")
+	}
+
+	username := os.Args[1]
+	password := os.Args[2]
 
 	var existingID string
 	err = dbConn.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&existingID)
@@ -64,10 +69,40 @@ func main() {
 	}
 
 	id := uuid.New().String()
-	_, err = dbConn.Exec("INSERT INTO user (id, username, password_hash) VALUES (?, ?, ?)", id, username, string(hash))
+	avatarURL := fmt.Sprintf("https://api.dicebear.com/9.x/dylan/svg?seed=%s", username)
+	_, err = dbConn.Exec("INSERT INTO user (id, username, password_hash, avatar_url) VALUES (?, ?, ?, ?)", id, username, string(hash), avatarURL)
 	if err != nil {
 		log.Fatalf("failed to create user: %v", err)
 	}
 
 	fmt.Printf("User '%s' was created successfully!\n", username)
+}
+
+func updateAvatars(dbConn *sql.DB) {
+	rows, err := dbConn.Query("SELECT id, username FROM user")
+	if err != nil {
+		log.Fatalf("failed to fetch users: %v", err)
+	}
+	defer rows.Close()
+
+	count := 0
+	for rows.Next() {
+		var id, username string
+		if err := rows.Scan(&id, &username); err != nil {
+			log.Fatalf("failed to scan user: %v", err)
+		}
+
+		avatarURL := fmt.Sprintf("https://api.dicebear.com/9.x/dylan/svg?seed=%s", username)
+		_, err := dbConn.Exec("UPDATE user SET avatar_url = ? WHERE id = ?", avatarURL, id)
+		if err != nil {
+			log.Fatalf("failed to update avatar for %s: %v", username, err)
+		}
+		count++
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Fatalf("iteration error: %v", err)
+	}
+
+	fmt.Printf("Updated avatars for %d user(s)\n", count)
 }
