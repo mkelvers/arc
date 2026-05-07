@@ -88,7 +88,7 @@ const renderQuickSearchResults = (query: string, results: QuickSearchResult[]): 
   title.textContent = 'Anime'
   searchResults.appendChild(title)
 
-  results.forEach((result: QuickSearchResult): void => {
+  results.forEach((result: QuickSearchResult) => {
     searchResults.appendChild(buildSearchResultItem(result))
   })
 
@@ -104,10 +104,10 @@ const renderQuickSearchResults = (query: string, results: QuickSearchResult[]): 
 const fetchAndRenderQuickSearch = (query: string): void => {
   fetch('/api/search-quick?q=' + encodeURIComponent(query))
     .then((res: Response) => res.json())
-    .then((results: QuickSearchResult[]): void => {
+    .then((results: QuickSearchResult[]) => {
       renderQuickSearchResults(query, results)
     })
-    .catch((err: unknown): void => {
+    .catch((err: unknown) => {
       console.error('Search error:', err)
     })
 }
@@ -128,13 +128,13 @@ const onSearchInput = (event: Event): void => {
     return
   }
 
-  searchTimeout = window.setTimeout((): void => {
+  searchTimeout = window.setTimeout(() => {
     fetchAndRenderQuickSearch(query)
   }, 300)
 }
 
 const onSearchBlur = (): void => {
-  window.setTimeout((): void => {
+  window.setTimeout(() => {
     clearSearchResults()
   }, 200)
 }

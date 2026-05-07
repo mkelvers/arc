@@ -239,7 +239,7 @@ const updateNode = (node: Element, localOffsetMinutes: number): void => {
 const updateAll = (): void => {
   const localOffsetMinutes = -new Date().getTimezoneOffset()
   const nodes = document.querySelectorAll('[data-jst-text]')
-  nodes.forEach((node: Element): void => updateNode(node, localOffsetMinutes))
+  nodes.forEach((node) => updateNode(node, localOffsetMinutes))
 }
 
 const initTimezoneConversion = (): void => {

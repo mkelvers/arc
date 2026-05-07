@@ -7,7 +7,7 @@ const setActiveDiscoverTab = (clickedTab: Element): void => {
   }
 
   const triggers = group.querySelectorAll('[data-tab-trigger]')
-  triggers.forEach((tab: Element): void => {
+  triggers.forEach((tab) => {
     const activeClasses = parseClassList(tab.getAttribute('data-tab-active-classes'))
     const inactiveClasses = parseClassList(tab.getAttribute('data-tab-inactive-classes'))
     tab.classList.remove(...activeClasses)

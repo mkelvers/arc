@@ -17,7 +17,7 @@
       opacity: 0 !important;
       margin-left: 0 !important;
     }
-    
+
     /* Re-enable transitions after initialization */
     .sidebar-ready #mobile-menu,
     .sidebar-ready .nav-label-container {
@@ -25,8 +25,24 @@
       transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
       transition-duration: 300ms;
     }
+
+    /* Theme toggle icon visibility */
+    html[data-theme="dark"] .theme-icon-dark { display: none; }
+    html[data-theme="dark"] .theme-icon-light { display: block; }
+    html[data-theme="light"] .theme-icon-light { display: none; }
+    html[data-theme="light"] .theme-icon-dark { display: block; }
   </style>
   <script type="module" src="/dist/static/theme.js" defer></script>
+  <template id="toast-template">
+    <div class="toast bg-white/10 border border-white/20 flex items-center gap-3 px-4 py-3 shadow-lg transform transition-all duration-300 translate-y-2 opacity-0">
+      <span class="toast-message text-sm text-neutral-200"></span>
+      <button class="toast-close ml-2 opacity-50 hover:opacity-100" aria-label="Close">
+        <svg class="size-4 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </template>
   <script type="module" src="/dist/static/dropdown.js" defer></script>
   <script type="module" src="/dist/static/discover.js" defer></script>
   <script type="module" src="/dist/static/anime.js" defer></script>

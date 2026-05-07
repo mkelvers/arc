@@ -1,11 +1,15 @@
 const dedupe = (): void => {
   const seen = new Set<string>()
   const elements = document.querySelectorAll('[data-id]')
+
   elements.forEach((item) => {
     const id = item.getAttribute('data-id')
-    if (id && seen.has(id)) {
+    if (!id) {
+      return
+    }
+    if (seen.has(id)) {
       item.remove()
-    } else if (id) {
+    } else {
       seen.add(id)
     }
   })
@@ -13,8 +17,9 @@ const dedupe = (): void => {
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', dedupe)
-} else {
-  dedupe()
-}
-// Also run on window load to be sure
+  } else {
+    dedupe()
+  }
+
+  window.addEventListener('load', dedupe)
 window.addEventListener('load', dedupe)

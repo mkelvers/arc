@@ -2,7 +2,7 @@ declare const htmx: {
   ajax(verb: string, path: string, target: HTMLElement): Promise<void>
 }
 
-export {}
+export { }
 
 import DOMPurify from 'dompurify'
 
@@ -23,32 +23,6 @@ interface SkipSegment {
   end: number
 }
 
-interface EpisodeData {
-  mal_id: number
-  title: string
-  current_episode: string
-  total_episodes: number
-  initial_mode: string
-  token: string
-  available_modes: string[]
-  mode_sources: Record<string, ModeSource>
-  segments: SkipSegment[]
-  episode_title: string
-}
-
-interface EpisodeData {
-  mal_id: number
-  title: string
-  current_episode: string
-  total_episodes: number
-  initial_mode: string
-  token: string
-  available_modes: string[]
-  mode_sources: Record<string, ModeSource>
-  segments: SkipSegment[]
-  episode_title: string
-}
-
 let playerInitialized = false
 
 const initPlayer = (): void => {
@@ -66,7 +40,6 @@ const initPlayer = (): void => {
   const iconPlay = container.querySelector('[data-icon-play]') as SVGElement
   const iconPause = container.querySelector('[data-icon-pause]') as SVGElement
   const muteBtn = container.querySelector('[data-mute]') as HTMLButtonElement
-  const volumeWrap = container.querySelector('[data-volume-wrap]') as HTMLElement
   const volumePanel = container.querySelector('[data-volume-panel]') as HTMLElement
   const volumeRange = container.querySelector('[data-volume-range]') as HTMLInputElement
   const iconVolume = container.querySelector('[data-icon-volume]') as SVGElement
@@ -99,11 +72,19 @@ const initPlayer = (): void => {
   const animeImage = container.getAttribute('data-anime-image') || ''
   const animeAiring = (container.getAttribute('data-anime-airing') || '').toLowerCase() === 'true'
   const safeJsonParse = <T>(raw: string | null, fallback: T): T => {
-    if (!raw) return fallback
+    if (!raw) {
+      return fallback
+    }
     try {
       return JSON.parse(raw) as T
     } catch {
       return fallback
+    }
+  }
+
+  const clearElement = (el: HTMLElement): void => {
+    while (el.firstChild) {
+      el.removeChild(el.firstChild)
     }
   }
 
@@ -140,7 +121,7 @@ const initPlayer = (): void => {
   let isScrubbing = false
   let lastKnownVolume = 1
   let pendingSeekTime: number | null = null
-      let activeSkipSegment: { type: string, start: number, end: number } | null = null
+  let activeSkipSegment: { type: string, start: number, end: number } | null = null
   let activeSubtitles: Array<{ start: number, end: number, text: string }> = []
   let currentSubtitleTracks: Array<{ lang: string, label: string, url: string }> = []
 
@@ -277,20 +258,32 @@ const initPlayer = (): void => {
       return
     }
 
-    activeSegments = parsedSegments.filter((segment: { start: number, end: number, type: string }) => {
+    activeSegments = parsedSegments.filter((segment) => {
       const start = segment.start
       const end = segment.end
       const segmentDuration = end - start
-      if (segmentDuration < minSegmentDurationSeconds || segmentDuration > maxSegmentDurationSeconds) return false
-      if (start < 0 || end <= start || end > bounds.duration + 1) return false
+
+      if (segmentDuration < minSegmentDurationSeconds || segmentDuration > maxSegmentDurationSeconds) {
+        return false
+      }
+      if (start < 0 || end <= start || end > bounds.duration + 1) {
+        return false
+      }
+
       if (segment.type === 'op') {
-        if (start > maxIntroStartSeconds) return false
-        if (start > bounds.duration * 0.5) return false
+        if (start > maxIntroStartSeconds) {
+          return false
+        }
+        if (start > bounds.duration * 0.5) {
+          return false
+        }
         return true
       }
+
       if (segment.type === 'ed') {
         return start >= bounds.duration * minOutroStartRatio
       }
+
       return false
     })
   }
@@ -302,12 +295,16 @@ const initPlayer = (): void => {
     return segment.start + boundedDelay
   }
 
+  const findActiveSegment = (time: number): typeof activeSegments[number] | undefined => {
+    return activeSegments.find((segment) => {
+      const activationTime = skipActivationTime(segment)
+      return time >= activationTime && time < segment.end
+    })
+  }
+
   const updateSkipButton = (currentTime: number): void => {
     const currentDisplayTime = displayTimeFromAbsolute(currentTime)
-    const segment = activeSegments.find((item: { start: number, end: number }) => {
-      const activationTime = skipActivationTime(item)
-      return currentDisplayTime >= activationTime && currentDisplayTime < item.end
-    })
+    const segment = findActiveSegment(currentDisplayTime)
 
     if (!segment) {
       activeSkipSegment = null
@@ -333,8 +330,10 @@ const initPlayer = (): void => {
   }
 
   const renderSegments = (): void => {
-    if (!segmentsTrack) return
-    segmentsTrack.innerHTML = ''
+    if (!segmentsTrack) {
+      return
+    }
+    clearElement(segmentsTrack)
 
     const bounds = timelineBounds()
     if (bounds.duration <= 0) return
@@ -396,7 +395,6 @@ const initPlayer = (): void => {
           break
         }
       }
-      
       // If we couldn't find a range containing current time (can happen immediately after seeking), 
       // fallback to the highest buffered end that is greater than current time
       if (bufferedEnd === 0) {
@@ -573,12 +571,14 @@ const initPlayer = (): void => {
       },
       keepalive: true,
       body: payload,
-    }).catch(() => {})
+    }).catch(() => { })
   }
 
   const parseVttTime = (raw: string): number => {
     const parts = raw.trim().split(':')
-    if (parts.length < 2) return 0
+    if (parts.length < 2) {
+      return 0
+    }
     const secPart = parts.pop() || '0'
     const minPart = parts.pop() || '0'
     const hourPart = parts.pop() || '0'
@@ -588,31 +588,58 @@ const initPlayer = (): void => {
     return (hours * 3600) + (minutes * 60) + seconds
   }
 
-  const parseVtt = (text: string): Array<{ start: number, end: number, text: string }> => {
+  const parseVttCue = (timeLine: string, lines: string[], startIndex: number): { start: number; end: number; text: string } | null => {
+    if (!timeLine.includes('-->')) {
+      return null
+    }
+
+    const [startRaw, endRaw] = timeLine.split('-->')
+    const start = parseVttTime(startRaw)
+    const end = parseVttTime(endRaw)
+
+    const payload: string[] = []
+    let i = startIndex + 1
+    while (i < lines.length && lines[i].trim() !== '') {
+      payload.push(lines[i])
+      i += 1
+    }
+
+    const textContent = payload.join('\n').replace(/<[^>]+>/g, '').trim()
+    if (!textContent) {
+      return null
+    }
+
+    return { start, end, text: textContent }
+  }
+
+  const parseVtt = (text: string): Array<{ start: number; end: number; text: string }> => {
     const lines = text.replace(/\r/g, '').split('\n')
-    const cues: Array<{ start: number, end: number, text: string }> = []
+    const cues: Array<{ start: number; end: number; text: string }> = []
     let i = 0
+
     while (i < lines.length) {
       const line = lines[i].trim()
-      if (!line) { i += 1; continue }
-      let timeLine = line
-      if (!line.includes('-->') && i + 1 < lines.length) {
-        timeLine = lines[i + 1].trim()
+      if (!line) {
         i += 1
+        continue
       }
-      if (!timeLine.includes('-->')) { i += 1; continue }
-      const [startRaw, endRaw] = timeLine.split('-->')
-      const start = parseVttTime(startRaw)
-      const end = parseVttTime(endRaw)
+
+      if (i + 1 < lines.length && !line.includes('-->') && lines[i + 1].includes('-->')) {
+        const cue = parseVttCue(lines[i + 1].trim(), lines, i + 1)
+        if (cue) {
+          cues.push(cue)
+        }
+        i += 2
+        continue
+      }
+
+      const cue = parseVttCue(line, lines, i)
+      if (cue) {
+        cues.push(cue)
+      }
       i += 1
-      const payload: string[] = []
-      while (i < lines.length && lines[i].trim() !== '') {
-        payload.push(lines[i])
-        i += 1
-      }
-      const textContent = payload.join('\n').replace(/<[^>]+>/g, '').trim()
-      if (textContent) cues.push({ start, end, text: textContent })
     }
+
     return cues
   }
 
@@ -634,26 +661,38 @@ const initPlayer = (): void => {
     subtitleText.classList.add('hidden')
   }
 
+  const findActiveCue = (time: number): { start: number; end: number; text: string } | undefined => {
+    return activeSubtitles.find((item) => {
+      return time >= item.start && time <= item.end
+    })
+  }
+
   const updateSubtitleRender = (currentTime: number): void => {
-    if (!subtitleText) return
+    if (!subtitleText) {
+      return
+    }
     if (!activeSubtitles.length) {
       hideSubtitleText()
       return
     }
-    const cue = activeSubtitles.find(item => currentTime >= item.start && currentTime <= item.end)
+
+    const cue = findActiveCue(currentTime)
     if (!cue) {
       hideSubtitleText()
       return
     }
+
     subtitleText.textContent = cue.text
     subtitleText.classList.remove('hidden')
     subtitleText.classList.add('block')
   }
 
   const updateSubtitleOptions = (): void => {
-    if (!subtitleSelect) return
+    if (!subtitleSelect) {
+      return
+    }
     currentSubtitleTracks = subtitlesForMode(currentMode)
-    subtitleSelect.innerHTML = ''
+    clearElement(subtitleSelect)
     const none = document.createElement('option')
     none.value = 'none'
     none.textContent = 'Off'
@@ -674,30 +713,32 @@ const initPlayer = (): void => {
   }
 
   const updateQualityOptions = (): void => {
-    if (!qualitySelect) return
+    if (!qualitySelect) {
+      return
+    }
     const modeSource = modeSources[currentMode]
     const qualities = modeSource?.qualities || []
-    
-    qualitySelect.innerHTML = ''
+
+    clearElement(qualitySelect)
     const best = document.createElement('option')
     best.value = 'best'
     best.textContent = 'Auto / Best'
     qualitySelect.appendChild(best)
-    
+
     qualities.forEach(q => {
       const option = document.createElement('option')
       option.value = q
       option.textContent = q
       qualitySelect.appendChild(option)
     })
-    
+
     const preferred = getPreferredQuality()
     if (qualities.includes(preferred)) {
       qualitySelect.value = preferred
     } else {
       qualitySelect.value = 'best'
     }
-    
+
     const wrapper = qualitySelect.parentElement
     if (wrapper) {
       wrapper.classList.toggle('hidden', qualities.length === 0)
@@ -736,7 +777,7 @@ const initPlayer = (): void => {
     video.src = nextURL
     video.load()
     pendingSeekTime = previousTime
-    if (wasPlaying) video.play().catch(() => {})
+    if (wasPlaying) video.play().catch(() => { })
     updateSubtitleOptions()
     updateQualityOptions()
     updateModeButtons(currentMode)
@@ -834,7 +875,7 @@ const initPlayer = (): void => {
     video.src = nextURL
     video.load()
     pendingSeekTime = previousTime
-    if (wasPlaying) video.play().catch(() => {})
+    if (wasPlaying) video.play().catch(() => { })
   }
 
   // Initialize
@@ -862,17 +903,17 @@ const initPlayer = (): void => {
         if (nextStart > 0) {
           try {
             video.currentTime = nextStart
-          } catch {}
+          } catch { }
         }
       }
       if (pendingSeekTime !== null && Number.isFinite(pendingSeekTime)) {
         try {
           video.currentTime = absoluteTimeFromDisplay(pendingSeekTime)
-        } catch {}
+        } catch { }
         pendingSeekTime = null
       }
       if (shouldAutoPlay) {
-        video.play().catch(() => {})
+        video.play().catch(() => { })
       }
       updateTimeline(video.currentTime)
       updateSkipButton(video.currentTime)
@@ -918,8 +959,6 @@ const initPlayer = (): void => {
       goToNextEpisode()
     })
   }
-
-  
 
   const goToNextEpisode = async (): Promise<void> => {
     const currentEpNum = Number.parseInt(currentEpisode, 10)
@@ -968,7 +1007,7 @@ const initPlayer = (): void => {
       const wasPlaying = video.ended || !video.paused
       video.src = streamUrl
       video.load()
-      if (wasPlaying) video.play().catch(() => {})
+      if (wasPlaying) video.play().catch(() => { })
 
       currentEpisode = String(nextEpisode)
       pendingSeekTime = null
@@ -1032,7 +1071,7 @@ const initPlayer = (): void => {
     }
   }
 
-  
+
 
   const completeAnime = async (episodeNumber: number): Promise<void> => {
     if (completionSent) return
@@ -1067,7 +1106,11 @@ const initPlayer = (): void => {
 
       const dropdownTrigger = document.querySelector('[data-dropdown-trigger]') as HTMLButtonElement | null
       if (dropdownTrigger) {
-        dropdownTrigger.innerHTML = 'Completed <span class="text-xs">▾</span>'
+        dropdownTrigger.textContent = 'Completed '
+        const caret = document.createElement('span')
+        caret.className = 'text-xs'
+        caret.textContent = '▾'
+        dropdownTrigger.appendChild(caret)
       }
 
       const watchStatusDropdown = document.getElementById('watch-status-dropdown')
@@ -1098,7 +1141,7 @@ const initPlayer = (): void => {
           wrapper.id = 'watch-status-dropdown'
           wrapper.innerHTML = DOMPurify.sanitize(html)
           watchStatusDropdown.replaceWith(wrapper)
-        }).catch(() => {})
+        }).catch(() => { })
       }
     } catch {
       completionSent = false
@@ -1272,24 +1315,24 @@ const initPlayer = (): void => {
   document.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
-    
+
     // Key codes
     const code = event.code
     const key = event.key
-    
+
     // Space or K: Toggle Play/Pause
     if (code === 'Space' || code === 'KeyK') {
       event.preventDefault()
       togglePlayPause()
       showControls()
     }
-    
+
     // ArrowLeft or J: Seek Backward 10s
     if (code === 'ArrowLeft' || code === 'KeyJ') {
       event.preventDefault()
       seekBy(-10)
     }
-    
+
     // ArrowRight or L: Seek Forward 10s
     if (code === 'ArrowRight' || code === 'KeyL') {
       event.preventDefault()
@@ -1313,7 +1356,7 @@ const initPlayer = (): void => {
       video.muted = nextVolume === 0
       showControls()
     }
-    
+
     // KeyM: Toggle Mute
     if (code === 'KeyM') {
       event.preventDefault()
@@ -1327,7 +1370,7 @@ const initPlayer = (): void => {
       }
       showControls()
     }
-    
+
     // KeyF: Toggle Fullscreen
     if (code === 'KeyF') {
       event.preventDefault()
@@ -1381,7 +1424,6 @@ const initPlayer = (): void => {
     if (episodeGrid) {
       episodeGrid.querySelectorAll('[data-episode-id]').forEach((el) => {
         el.classList.remove('ring-2', 'ring-accent', 'text-accent')
-        const epNum = parseInt(el.getAttribute('data-episode-id') || '0', 10)
         const isCurrent = el.classList.contains('bg-accent/20')
         if (!isCurrent) {
           el.classList.remove('bg-accent/20')

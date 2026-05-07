@@ -1,43 +1,55 @@
+export {}
+
 interface ToastOptions {
-  message: string;
-  duration?: number;
+  message: string
+  duration?: number
 }
 
-const toastContainer = () => {
-  let container = document.getElementById('toast-container');
+const toastContainer = (): HTMLElement => {
+  let container = document.getElementById('toast-container')
   if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'fixed bottom-4 right-4 z-100 flex flex-col gap-2';
-    document.body.appendChild(container);
+    container = document.createElement('div')
+    container.id = 'toast-container'
+    container.className = 'fixed bottom-4 right-4 z-100 flex flex-col gap-2'
+    document.body.appendChild(container)
   }
-  return container;
-};
+  return container
+}
 
-const showToast = ({ message, duration = 3000 }: ToastOptions) => {
-  const container = toastContainer();
-  const toast = document.createElement('div');
-  
-  toast.className = 'bg-white/10 border border-white/20 flex items-center gap-3 px-4 py-3 shadow-lg transform transition-all duration-300 translate-y-2 opacity-0';
-  toast.innerHTML = `
-    <span class="text-sm text-neutral-200">${message}</span>
-    <button class="ml-2 opacity-50 hover:opacity-100" onclick="this.parentElement.remove()">
-      <svg class="size-4 text-neutral-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-  `;
+const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
+  const container = toastContainer()
+  const template = document.getElementById('toast-template') as HTMLTemplateElement | null
 
-  container.appendChild(toast);
+  if (!template) {
+    return
+  }
+
+  const toast = template.content.cloneNode(true) as HTMLElement
+  const messageEl = toast.querySelector('.toast-message')
+  const closeBtn = toast.querySelector('.toast-close')
+
+  if (messageEl) {
+    messageEl.textContent = message
+  }
+
+  closeBtn?.addEventListener('click', () => toast.remove())
+
+  container.appendChild(toast)
 
   requestAnimationFrame(() => {
-    toast.classList.remove('translate-y-2', 'opacity-0');
-  });
+    toast.classList.remove('translate-y-2', 'opacity-0')
+  })
 
   setTimeout(() => {
-    toast.classList.add('translate-y-2', 'opacity-0');
-    setTimeout(() => toast.remove(), 300);
-  }, duration);
-};
+    toast.classList.add('translate-y-2', 'opacity-0')
+    setTimeout(() => toast.remove(), 300)
+  }, duration)
+}
 
-(window as unknown as Record<string, unknown>).showToast = showToast;
+declare global {
+  interface Window {
+    showToast: typeof showToast
+  }
+}
 
-export { showToast };
+window.showToast = showToast

@@ -9,7 +9,7 @@ class UIDropdown extends HTMLElement {
     this.handleClickOutside = this.handleClickOutside.bind(this)
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     const trigger = this.querySelector('[data-trigger]')
     this.contentEl = this.querySelector('[data-content]')
 
@@ -20,7 +20,7 @@ class UIDropdown extends HTMLElement {
     document.addEventListener('click', this.handleClickOutside)
   }
 
-  disconnectedCallback() {
+  disconnectedCallback(): void {
     const trigger = this.querySelector('[data-trigger]')
     if (trigger) {
       trigger.removeEventListener('click', this.toggle)
@@ -28,8 +28,10 @@ class UIDropdown extends HTMLElement {
     document.removeEventListener('click', this.handleClickOutside)
   }
 
-  toggle() {
-    if (this.isClosing) return
+  toggle(): void {
+    if (this.isClosing) {
+      return
+    }
     this.isOpen = !this.isOpen
     if (this.contentEl) {
       if (this.isOpen) {
@@ -40,8 +42,10 @@ class UIDropdown extends HTMLElement {
     }
   }
 
-  close() {
-    if (this.isClosing) return
+  close(): void {
+    if (this.isClosing) {
+      return
+    }
     this.isClosing = true
     this.isOpen = false
     if (this.contentEl) {
@@ -52,7 +56,7 @@ class UIDropdown extends HTMLElement {
     }, 100)
   }
 
-  handleClickOutside(event: MouseEvent) {
+  handleClickOutside(event: MouseEvent): void {
     if (!this.contains(event.target as Node)) {
       this.close()
     }
