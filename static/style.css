@@ -16,7 +16,7 @@
   --color-foreground-muted: #6a6b70;
   --color-foreground: #f8f9fa;
 
-  --color-accent: #FB923C;
+  --color-accent: #0466c8;
 }
 
 :root {
@@ -66,7 +66,8 @@
   color-scheme: dark;
 }
 
-html, body {
+html,
+body {
   background-color: var(--color-background);
   color: var(--text);
 }
@@ -74,6 +75,7 @@ html, body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -84,22 +86,26 @@ html, body {
     display: block;
     height: 8px;
   }
+
   .scrollbar-hide::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
   }
+
   .scrollbar-hide::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
   }
+
   .scrollbar-hide::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
   }
-button.in-watchlist .watchlist-icon {
-  fill: currentColor !important;
-}
 
-.scrollbar-hide {
+  button.in-watchlist .watchlist-icon {
+    fill: currentColor !important;
+  }
+
+  .scrollbar-hide {
     -ms-overflow-style: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
