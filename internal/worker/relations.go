@@ -156,13 +156,11 @@ func (w *Worker) syncRelations(ctx context.Context) {
 	var wg sync.WaitGroup
 
 	for range workerCount {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for a := range jobs {
 				w.syncSingleAnime(ctx, a.ID)
 			}
-		}()
+		})
 	}
 
 	for _, a := range animes {
