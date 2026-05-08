@@ -118,6 +118,7 @@ const initPlayer = (): void => {
   let completionSent = false
   let completionAttempts = 0
   let playerControlsTimeout: number | undefined
+  let isFullscreen = false
   let isScrubbing = false
   let lastKnownVolume = 1
   let pendingSeekTime: number | null = null
@@ -1308,6 +1309,12 @@ const initPlayer = (): void => {
 
     updateTimeline(video.currentTime)
     updateSkipButton(video.currentTime)
+  })
+
+  document.addEventListener('fullscreenchange', () => {
+    isFullscreen = !!document.fullscreenElement
+    container.classList.toggle('fullscreen', isFullscreen)
+    if (isFullscreen) showControls()
   })
 
   container.addEventListener('mousemove', showControls)

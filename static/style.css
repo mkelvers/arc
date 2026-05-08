@@ -113,3 +113,20 @@ body {
     scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
   }
 }
+
+.show-controls [data-video-overlay] {
+  opacity: 1;
+}
+
+[data-video-player].fullscreen:not(.show-controls) [data-video-overlay] {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+[data-video-player].fullscreen:not(.show-controls) {
+  cursor: none;
+}
+
+[data-video-player].fullscreen:not(.show-controls) video {
+  cursor: none;
+}
