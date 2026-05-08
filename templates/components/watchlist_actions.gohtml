@@ -6,7 +6,7 @@
 <div class="flex gap-2">
   <ui-dropdown class="relative block" data-align="left" data-width="min-w-[160px]">
     <div data-trigger class="cursor-pointer">
-      <button type="button" class="bg-background-button hover:bg-background-button-hover flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-medium text-white transition-colors disabled:opacity-50">
+      <button type="button" class="bg-background-button hover:bg-background-button-hover flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors disabled:opacity-50">
         <span id="watchlist-status-display-{{$anime.MalID}}">
           {{if $status}}
             {{if eq $status "watching"}}Watching{{end}}
@@ -23,17 +23,17 @@
 
     <div data-content class="hidden absolute z-50 min-w-[160px] bg-background-button rounded-none shadow-2xl left-0 top-full mt-2">
       <div class="flex flex-col py-1">
-        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 focus:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
-          <span class="font-medium text-sm text-white">Watching</span>
+        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
+          <span class="font-medium text-sm text-foreground">Watching</span>
         </button>
-        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 focus:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
-          <span class="font-medium text-sm text-white">Completed</span>
+        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
+          <span class="font-medium text-sm text-foreground">Completed</span>
         </button>
-        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 focus:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
-          <span class="font-medium text-sm text-white">Plan to Watch</span>
+        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
+          <span class="font-medium text-sm text-foreground">Plan to Watch</span>
         </button>
-        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10 focus:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
-          <span class="font-medium text-sm text-white">Dropped</span>
+        <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
+          <span class="font-medium text-sm text-foreground">Dropped</span>
         </button>
         
         <div id="remove-watchlist-container-{{$anime.MalID}}" class="{{if not $status}}hidden{{end}}">
@@ -46,7 +46,7 @@
     </div>
   </ui-dropdown>
 
-  <a href="/anime/{{$anime.MalID}}/watch" class="bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-white transition-colors">
+  <a href="/anime/{{$anime.MalID}}/watch" class="bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-foreground transition-colors">
     Watch
   </a>
 </div>
