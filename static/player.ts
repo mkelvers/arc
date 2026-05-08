@@ -1,9 +1,3 @@
-declare const htmx: {
-  ajax(verb: string, path: string, target: HTMLElement): Promise<void>
-}
-
-export { }
-
 import DOMPurify from 'dompurify'
 
 interface ModeSource {
