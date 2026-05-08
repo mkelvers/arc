@@ -20,6 +20,7 @@ var malLinkPattern = regexp.MustCompile(`myanimelist\.net/anime/(\d+)`)
 
 var ErrInvalidWatchOrderURL = errors.New("invalid watch order url")
 var ErrWatchOrderMarkupNotFound = errors.New("watch order markup not found")
+var ErrWatchOrderNotFound = errors.New("watch order not found")
 
 type HTTPStatusError struct {
 	StatusCode  int

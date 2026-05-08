@@ -54,6 +54,9 @@ func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrd
 	result, err := watchorder.FetchWatchOrder(requestCtx, c.httpClient, watchOrderURL)
 	if err != nil {
 		var statusError *watchorder.HTTPStatusError
+		if errors.As(err, &statusError) && statusError.StatusCode == 404 {
+			return watchorder.WatchOrderResult{}, watchorder.ErrWatchOrderNotFound
+		}
 		if errors.Is(err, watchorder.ErrWatchOrderMarkupNotFound) {
 			log.Printf("relations: watch-order markup missing for %d (%s): %v", id, watchOrderURL, err)
 		} else if errors.As(err, &statusError) {
@@ -95,6 +98,9 @@ func (c *Client) currentOnlyRelation(ctx context.Context, id int) ([]RelationEnt
 func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry, error) {
 	result, err := c.getWatchOrder(ctx, id)
 	if err != nil {
+		if errors.Is(err, watchorder.ErrWatchOrderNotFound) {
+			return c.currentOnlyRelation(ctx, id)
+		}
 		log.Printf("relations: using current-only fallback for %d: %v", id, err)
 		return c.currentOnlyRelation(ctx, id)
 	}
