@@ -17,7 +17,7 @@
             Add to Watchlist
           {{end}}
         </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400"><path d="m6 9 6 6 6-6"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-foreground-muted"><path d="m6 9 6 6 6-6"/></svg>
       </button>
     </div>
 
@@ -37,7 +37,7 @@
         </button>
         
         <div id="remove-watchlist-container-{{$anime.MalID}}" class="{{if not $status}}hidden{{end}}">
-          <div class="my-1 h-px bg-white/10"></div>
+          <div class="my-1 h-px bg-border"></div>
           <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10 focus:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}})">
             <span class="font-medium text-sm text-red-500 text-left whitespace-nowrap">Remove from Watchlist</span>
           </button>

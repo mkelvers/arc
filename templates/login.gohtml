@@ -2,38 +2,38 @@
 {{define "content"}}
 <div class="flex min-h-screen items-center justify-center p-4">
   <div class="w-full max-w-md">
-    <h1 class="mb-2 text-3xl font-medium text-white">Sign in</h1>
-    <p class="text-neutral-400 mb-8">Enter your credentials to continue.</p>
+    <h1 class="mb-2 text-3xl font-normal text-foreground">Sign in</h1>
+    <p class="text-foreground-muted mb-8">Enter your credentials to continue.</p>
 
     <form method="POST" action="/login" class="flex flex-col gap-6">
       <label class="flex flex-col gap-2">
-        <span class="text-white text-sm">Username</span>
+        <span class="text-foreground text-sm">Username</span>
         <input
           type="text"
           name="username"
           value="{{.Username}}"
           required
           placeholder="username"
-          class="bg-background-surface text-white placeholder-neutral-500 border-none px-4 py-3 focus:outline-none focus-within:ring-2 focus-within:ring-accent rounded-sm"
+          class="bg-background-surface text-foreground placeholder-foreground-muted border-none px-4 py-3 focus:outline-none focus-within:ring-2 focus-within:ring-accent rounded-sm"
         />
       </label>
 
       <label class="flex flex-col gap-2">
-        <span class="text-white text-sm">Password</span>
+        <span class="text-foreground text-sm">Password</span>
         <div class="relative group focus-within:ring-2 focus-within:ring-accent rounded-sm">
           <input
             type="password"
             name="password"
             required
             placeholder="Password"
-            class="bg-background-surface text-white placeholder-neutral-500 w-full border-none px-4 py-3 focus:outline-none rounded-sm"
+            class="bg-background-surface text-foreground placeholder-foreground-muted w-full border-none px-4 py-3 focus:outline-none rounded-sm"
           />
         </div>
       </label>
 
       <button
         type="submit"
-        class="hover:bg-gray-200 mt-2 bg-white px-4 py-3 font-medium text-black transition-colors rounded-sm"
+        class="mt-2 bg-accent px-4 py-3 font-normal text-on-accent transition-colors rounded-sm hover:opacity-90"
       >
         Sign in
       </button>

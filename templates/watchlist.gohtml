@@ -2,7 +2,7 @@
 {{define "content"}}
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 <div id="watchlist-content" class="flex w-full flex-col gap-6 mt-6">
-  <h1 class="text-xl font-semibold text-foreground">Watchlist</h1>
+  <h1 class="text-xl font-normal text-foreground">Watchlist</h1>
 
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-6">
@@ -52,7 +52,7 @@
           </div>
         </div>
         <a href="/anime/{{.AnimeID}}" class="group/title">
-          <h3 class="line-clamp-2 text-sm font-medium text-foreground group-hover/title:text-foreground-muted transition-colors">
+          <h3 class="line-clamp-2 text-sm font-normal text-foreground group-hover/title:text-foreground-muted transition-colors">
             {{.DisplayTitle}}
           </h3>
         </a>

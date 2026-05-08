@@ -10,13 +10,13 @@
 <div id="watch-layout" class="flex flex-col gap-6 pb-12 lg:flex-row lg:gap-6">
   <div class="flex-1 min-w-0">
     <div class="flex items-center justify-between mb-4">
-      <a href="/anime/{{$anime.MalID}}" class="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors">
+      <a href="/anime/{{$anime.MalID}}" class="inline-flex items-center gap-2 text-sm text-foreground-muted hover:text-foreground transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Back
       </a>
       <ui-dropdown class="relative block" data-align="right" data-width="min-w-[160px]">
         <div data-trigger class="cursor-pointer">
-          <button type="button" class="bg-accent/20 hover:bg-accent/30 flex items-center justify-between gap-2 px-4 py-2 text-sm text-accent font-medium transition-colors">
+          <button type="button" class="bg-accent/20 hover:bg-accent/30 flex items-center justify-between gap-2 px-4 py-2 text-sm text-accent font-normal transition-colors">
             <span id="watchlist-status-display-{{$anime.MalID}}">
               {{if .WatchlistStatus}}{{if eq .WatchlistStatus "watching"}}Watching{{else if eq .WatchlistStatus "completed"}}Completed{{else if eq .WatchlistStatus "plan_to_watch"}}Plan to Watch{{else if eq .WatchlistStatus "dropped"}}Dropped{{end}}{{else}}Add to Watchlist{{end}}
             </span>
@@ -26,36 +26,36 @@
         <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-2xl right-0 top-full mt-2">
           {{if .WatchlistStatus}}
           <div class="flex flex-col py-1">
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
-              <span class="text-sm text-white">Watching</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
+              <span class="text-sm text-foreground">Watching</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
-              <span class="text-sm text-white">Completed</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
+              <span class="text-sm text-foreground">Completed</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
-              <span class="text-sm text-white">Plan to Watch</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
+              <span class="text-sm text-foreground">Plan to Watch</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
-              <span class="text-sm text-white">Dropped</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
+              <span class="text-sm text-foreground">Dropped</span>
             </button>
-            <div class="border-t border-white/10 my-1"></div>
+            <div class="border-t border-border my-1"></div>
             <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
               <span class="text-sm text-red-400">Remove from Watchlist</span>
             </button>
           </div>
           {{else}}
           <div class="flex flex-col py-1">
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
-              <span class="text-sm text-white">Watching</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
+              <span class="text-sm text-foreground">Watching</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
-              <span class="text-sm text-white">Completed</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
+              <span class="text-sm text-foreground">Completed</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
-              <span class="text-sm text-white">Plan to Watch</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
+              <span class="text-sm text-foreground">Plan to Watch</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-white/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
-              <span class="text-sm text-white">Dropped</span>
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
+              <span class="text-sm text-foreground">Dropped</span>
             </button>
           </div>
           {{end}}
@@ -70,14 +70,14 @@
       <div class="flex gap-2">
         {{$prevEp := sub (int $currentEpID) 1}}
         {{if ge $prevEp 1}}
-          <a href="/anime/{{$anime.MalID}}/watch?ep={{$prevEp}}" class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-sm text-neutral-300 transition-colors">
+          <a href="/anime/{{$anime.MalID}}/watch?ep={{$prevEp}}" class="flex items-center gap-2 px-4 py-2 bg-background-surface hover:bg-surface-hover text-sm text-foreground-muted transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             Prev
           </a>
         {{end}}
         {{$nextEp := add (int $currentEpID) 1}}
         {{if le $nextEp $anime.Episodes}}
-          <a href="/anime/{{$anime.MalID}}/watch?ep={{$nextEp}}" class="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-sm text-neutral-300 transition-colors">
+          <a href="/anime/{{$anime.MalID}}/watch?ep={{$nextEp}}" class="flex items-center gap-2 px-4 py-2 bg-background-surface hover:bg-surface-hover text-sm text-foreground-muted transition-colors">
             Next
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
           </a>
@@ -94,19 +94,19 @@
         {{end}}
         <ui-dropdown class="relative block mb-4" data-align="left" data-width="w-full">
           <div data-trigger>
-            <button class="w-full flex items-center justify-between px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-neutral-300 hover:bg-white/10 transition-colors">
+            <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface border border-border rounded text-sm text-foreground-muted hover:bg-surface-hover transition-colors">
               <span class="truncate">
-                {{if $currentSeason.Prefix}}<span class="font-bold text-white mr-1">{{$currentSeason.Prefix}}:</span>{{end}}
+                {{if $currentSeason.Prefix}}<span class="font-bold text-foreground mr-1">{{$currentSeason.Prefix}}:</span>{{end}}
                 {{$currentSeason.Title}}
               </span>
-              <svg class="w-4 h-4 text-neutral-500 shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+              <svg class="w-4 h-4 text-foreground-muted shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             </button>
           </div>
-          <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button rounded shadow-2xl border border-white/10 max-h-64 overflow-y-auto scrollbar-hide">
+          <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button rounded shadow-2xl border border-border max-h-64 overflow-y-auto scrollbar-hide">
             <div class="flex flex-col py-1">
               {{range .Seasons}}
-                <a href="/anime/{{.MalID}}/watch" class="px-4 py-2 text-left text-sm {{if .IsCurrent}}text-accent bg-accent/10{{else}}text-neutral-300 hover:bg-white/10{{end}} transition-colors">
-                  <span class="font-bold text-white mr-1">{{.Prefix}}:</span>
+                <a href="/anime/{{.MalID}}/watch" class="px-4 py-2 text-left text-sm {{if .IsCurrent}}text-accent bg-accent/10{{else}}text-foreground-muted hover:bg-surface-hover{{end}} transition-colors">
+                  <span class="font-bold text-foreground mr-1">{{.Prefix}}:</span>
                   {{.Title}}
                 </a>
               {{end}}
@@ -116,25 +116,25 @@
       {{end}}
 
       {{if eq $totalEpisodes 0}}
-      <div class="flex flex-col items-center justify-center gap-2 py-12 text-neutral-400">
+      <div class="flex flex-col items-center justify-center gap-2 py-12 text-foreground-muted">
         <svg class="h-10 w-10 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
         <p class="text-sm">No episodes found</p>
       </div>
     {{else}}
       <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between">
-          <span class="text-sm font-medium text-neutral-400">Episodes</span>
+          <span class="text-sm font-normal text-foreground-muted">Episodes</span>
           {{if gt $totalEpisodes 100}}
-            <input type="text" placeholder="Find" data-episode-search class="w-24 bg-white/5 text-sm px-3 py-1.5 rounded border border-white/10 text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-accent" />
+            <input type="text" placeholder="Find" data-episode-search class="w-24 bg-background-surface text-sm px-3 py-1.5 rounded border border-border text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent" />
           {{end}}
         </div>
 
         {{if gt $totalEpisodes 100}}
           <ui-dropdown class="relative block" data-align="left" data-width="min-w-[200px]" data-episode-dropdown>
             <div data-trigger>
-              <button class="w-full flex items-center justify-between px-3 py-2 bg-white/5 border border-white/10 rounded text-sm text-neutral-300 hover:bg-white/10">
+              <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface border border-border rounded text-sm text-foreground-muted hover:bg-surface-hover">
                 <span data-dropdown-label>01-100</span>
-                <svg class="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                <svg class="w-4 h-4 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
             </div>
             <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button rounded shadow-2xl">
@@ -143,7 +143,7 @@
                 {{range $i := seq $ranges}}
                   {{$start := imul $i 100}}
                   {{$end := min (add $start 100) $totalEpisodes}}
-                  <button class="episode-range-btn px-4 py-2 text-left text-sm text-neutral-300 hover:bg-white/10" data-range-index="{{$i}}" data-range-start="{{add $start 1}}" data-range-end="{{$end}}">
+                  <button class="episode-range-btn px-4 py-2 text-left text-sm text-foreground-muted hover:bg-surface-hover" data-range-index="{{$i}}" data-range-start="{{add $start 1}}" data-range-end="{{$end}}">
                     {{printf "%02d" (add $start 1)}}-{{printf "%02d" $end}}
                   </button>
                 {{end}}
@@ -159,7 +159,7 @@
             {{$isCurrent := eq (printf "%v" .MalID) $currentEpID}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$anime.MalID}}/watch?ep={{.MalID}}" class="flex items-center justify-center py-2 text-xs transition-colors {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-neutral-400 hover:bg-white/5{{end}} {{if $isCurrent}}bg-accent/20 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.MalID}}" data-episode-index="{{.MalID}}" data-episode-title="{{.Title}}">
+            <a href="/anime/{{$anime.MalID}}/watch?ep={{.MalID}}" class="flex items-center justify-center py-2 text-xs transition-colors {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/20 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.MalID}}" data-episode-index="{{.MalID}}" data-episode-title="{{.Title}}">
               {{.MalID}}
             </a>
           {{end}}
@@ -170,9 +170,9 @@
             {{$isCurrent := eq (printf "%v" .MalID) $currentEpID}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$anime.MalID}}/watch?ep={{.MalID}}" class="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-white/5 text-left {{if $isFiller}}border-l-2 border-l-yellow-500{{else if $isRecap}}border-l-2 border-l-blue-500{{end}} {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.MalID}}" data-episode-title="{{.Title}}">
-              <span class="w-10 shrink-0 text-xs font-medium text-neutral-500 tabular-nums">EP{{.MalID}}</span>
-              <span class="truncate text-sm {{if $isFiller}}text-yellow-400{{else if $isRecap}}text-blue-400{{else}}text-neutral-300{{end}}" data-episode-title>{{.Title}}</span>
+            <a href="/anime/{{$anime.MalID}}/watch?ep={{.MalID}}" class="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isFiller}}border-l-2 border-l-yellow-500{{else if $isRecap}}border-l-2 border-l-blue-500{{end}} {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.MalID}}" data-episode-title="{{.Title}}">
+              <span class="w-10 shrink-0 text-xs font-normal text-foreground-muted tabular-nums">EP{{.MalID}}</span>
+              <span class="truncate text-sm {{if $isFiller}}text-yellow-400{{else if $isRecap}}text-blue-400{{else}}text-foreground-muted{{end}}" data-episode-title>{{.Title}}</span>
             </a>
           {{end}}
         </div>

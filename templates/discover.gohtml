@@ -30,7 +30,7 @@
   <section class="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-background-surface px-6 py-24 text-center ring-1 ring-border">
     <div class="from-accent/10 absolute inset-0 bg-linear-to-b to-transparent opacity-50"></div>
     <div class="relative z-10 flex max-w-2xl flex-col items-center gap-6">
-      <h1 class="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+      <h1 class="text-4xl font-normal tracking-tight text-foreground sm:text-5xl">
         Don't know what to watch?
       </h1>
       <p class="text-lg text-foreground-muted">
@@ -53,7 +53,7 @@
   {{/* Trending Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-foreground">Trending This Season</h2>
+      <h2 class="text-xl font-normal text-foreground">Trending This Season</h2>
       <a href="/browse?order_by=popularity&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
     <div hx-get="/api/discover/trending" hx-trigger="load" hx-swap="outerHTML">
@@ -64,7 +64,7 @@
   {{/* Upcoming Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-foreground">Highly Anticipated</h2>
+      <h2 class="text-xl font-normal text-foreground">Highly Anticipated</h2>
       <a href="/browse?status=upcoming&order_by=members&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
     <div hx-get="/api/discover/upcoming" hx-trigger="load" hx-swap="outerHTML">
@@ -75,7 +75,7 @@
   {{/* Top Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-semibold text-foreground">All-Time Greats</h2>
+      <h2 class="text-xl font-normal text-foreground">All-Time Greats</h2>
       <a href="/browse?order_by=score&sort=desc" class="text-accent text-sm hover:underline">View all</a>
     </div>
     <div hx-get="/api/discover/top" hx-trigger="load" hx-swap="outerHTML">
