@@ -446,32 +446,8 @@ func (h *Handler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	renderNotFoundPage(r, w)
 }
 
-func (h *Handler) HandleAPISearch(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
-func (h *Handler) HandleAPICatalog(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
-func (h *Handler) HandleAPIEpisodes(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
-func (h *Handler) HandleAPIDiscoverAiring(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
-func (h *Handler) HandleAPIDiscoverUpcoming(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
-}
-
 func (h *Handler) HandleStudioDetails(w http.ResponseWriter, r *http.Request) {
 	renderNotFoundPage(r, w)
-}
-
-func (h *Handler) HandleAPIStudioAnime(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "Not implemented yet", http.StatusNotImplemented)
 }
 
 func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {

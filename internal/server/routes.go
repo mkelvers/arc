@@ -143,7 +143,6 @@ func NewRouter(cfg Config) http.Handler {
 	mux.HandleFunc("/logout", authHandler.HandleLogout)
 
 	// Watchlist Endpoints
-	mux.HandleFunc("/api/watchlist/card", watchlistHandler.HandleCardWatchlist)
 	mux.HandleFunc("/api/watchlist", watchlistHandler.HandleUpdateWatchlist)
 	mux.HandleFunc("/api/watchlist/", watchlistHandler.HandleDeleteWatchlist)
 	mux.HandleFunc("/api/continue-watching/", watchlistHandler.HandleDeleteContinueWatching)
