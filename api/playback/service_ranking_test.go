@@ -149,7 +149,7 @@ func TestParseQualityValue(t *testing.T) {
 	tests := []struct {
 		name    string
 		quality string
-		want   int
+		want    int
 	}{
 		{
 			name:    "auto returns 240",
@@ -198,10 +198,10 @@ func TestQualityMatches(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		source  string
-		target  string
-		want    bool
+		name   string
+		source string
+		target string
+		want   bool
 	}{
 		{
 			name:   "exact match",
@@ -261,7 +261,7 @@ func TestQualityMatches(t *testing.T) {
 func TestSourceQualityPriority(t *testing.T) {
 	t.Parallel()
 
-tests := []struct {
+	tests := []struct {
 		name    string
 		source  string
 		target  string
@@ -309,34 +309,34 @@ func TestSourceTypePriorityLookup(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
+		name       string
 		sourceType string
-		want   int
+		want       int
 	}{
 		{
 			name:       "mp4 priority",
 			sourceType: "mp4",
-			want:      500,
+			want:       500,
 		},
 		{
 			name:       "m3u8 priority",
 			sourceType: "m3u8",
-			want:      450,
+			want:       450,
 		},
 		{
 			name:       "unknown uses fallback",
 			sourceType: "unknown",
-			want:      300,
+			want:       300,
 		},
 		{
 			name:       "embed fallback",
 			sourceType: "embed",
-			want:      100,
+			want:       100,
 		},
 		{
 			name:       "unrecognized uses fallback",
 			sourceType: "video",
-			want:      200,
+			want:       200,
 		},
 	}
 
@@ -355,27 +355,27 @@ func TestProviderPriorityLookup(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		provider   string
-		want       int
+		name     string
+		provider string
+		want     int
 	}{
 		{
-			name:      "s-mp4",
+			name:     "s-mp4",
 			provider: "s-mp4",
 			want:     120,
 		},
 		{
-			name:      "default",
+			name:     "default",
 			provider: "default",
 			want:     115,
 		},
 		{
-			name:      "yt-mp4",
+			name:     "yt-mp4",
 			provider: "yt-mp4",
 			want:     100,
 		},
 		{
-			name:      "unknown uses fallback",
+			name:     "unknown uses fallback",
 			provider: "unknown",
 			want:     60,
 		},

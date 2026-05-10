@@ -11,43 +11,43 @@ func TestDecodeSourceURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
+		name    string
 		encoded string
 		want    string
 	}{
 		{
-			name:     "empty returns empty",
-			encoded:  "",
+			name:    "empty returns empty",
+			encoded: "",
 			want:    "",
 		},
 		{
-			name:     "with double prefix stripped",
-			encoded:  "--example.com/video.mp4",
+			name:    "with double prefix stripped",
+			encoded: "--example.com/video.mp4",
 			want:    "example.com/video.mp4",
 		},
 		{
-			name:     "hex substitution",
-			encoded:  "7aexample",
+			name:    "hex substitution",
+			encoded: "7aexample",
 			want:    "Bexample",
 		},
 		{
-			name:     "mixed substitution",
-			encoded:  "79url7a01",
+			name:    "mixed substitution",
+			encoded: "79url7a01",
 			want:    "AurlB9",
 		},
 		{
-			name:     "clock replacement",
-			encoded:  "/clock",
+			name:    "clock replacement",
+			encoded: "/clock",
 			want:    "/clock.json",
 		},
 		{
-			name:     "no clock replacement if already json",
-			encoded:  "/clock.json",
+			name:    "no clock replacement if already json",
+			encoded: "/clock.json",
 			want:    "/clock.json",
 		},
 		{
-			name:     "complex url",
-			encoded:  "--79stream7acom",
+			name:    "complex url",
+			encoded: "--79stream7acom",
 			want:    "AstreamBcom",
 		},
 	}
@@ -67,37 +67,37 @@ func TestDetectStreamType(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
+		name     string
 		url      string
 		wantType string
 	}{
 		{
-			name:      "m3u8 extension",
+			name:     "m3u8 extension",
 			url:      "https://example.com/video.m3u8",
 			wantType: "m3u8",
 		},
 		{
-			name:      "master m3u8",
+			name:     "master m3u8",
 			url:      "https://example.com/master.m3u8",
 			wantType: "m3u8",
 		},
 		{
-			name:      "mp4 extension",
+			name:     "mp4 extension",
 			url:      "https://example.com/video.mp4",
 			wantType: "mp4",
 		},
 		{
-			name:      "unknown",
+			name:     "unknown",
 			url:      "https://example.com/video.avi",
 			wantType: "unknown",
 		},
 		{
-			name:      "empty returns unknown",
+			name:     "empty returns unknown",
 			url:      "",
 			wantType: "unknown",
 		},
 		{
-			name:      "case insensitive - M3U8",
+			name:     "case insensitive - M3U8",
 			url:      "https://example.com/MASTER.M3U8",
 			wantType: "m3u8",
 		},
@@ -118,42 +118,42 @@ func TestDetectEmbedType(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
+		name     string
 		url      string
 		wantType string
 	}{
 		{
-			name:      "streamwish",
+			name:     "streamwish",
 			url:      "https://streamwish.com/e/abc123",
 			wantType: "embed",
 		},
 		{
-			name:      "streamsb",
+			name:     "streamsb",
 			url:      "https://streamsb.com/e/abc123",
 			wantType: "embed",
 		},
 		{
-			name:      "mp4upload",
+			name:     "mp4upload",
 			url:      "https://mp4upload.com/e/abc123",
 			wantType: "embed",
 		},
 		{
-			name:      "ok.ru",
+			name:     "ok.ru",
 			url:      "https://ok.ru/video/123",
 			wantType: "embed",
 		},
 		{
-			name:      "gogoplay",
+			name:     "gogoplay",
 			url:      "https://gogoplay.io/embed/123",
 			wantType: "embed",
 		},
 		{
-			name:      "streamlare",
+			name:     "streamlare",
 			url:      "https://streamlare.com/e/abc",
 			wantType: "embed",
 		},
 		{
-			name:      "unknown host",
+			name:     "unknown host",
 			url:      "https://unknown.com/video",
 			wantType: "unknown",
 		},
@@ -195,7 +195,7 @@ func TestBuildSourceReferences(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
+		name     string
 		rawURLs  []any
 		wantRefs []sourceReference
 	}{
@@ -300,9 +300,9 @@ func TestIsLikelyM3U8(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		input  []byte
-		want   bool
+		name  string
+		input []byte
+		want  bool
 	}{
 		{
 			name:  "valid m3u8",
@@ -316,7 +316,7 @@ func TestIsLikelyM3U8(t *testing.T) {
 		},
 		{
 			name:  "empty",
-			input:  []byte{},
+			input: []byte{},
 			want:  false,
 		},
 		{
@@ -341,9 +341,9 @@ func TestIsLikelyMP4(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		input  []byte
-		want   bool
+		name  string
+		input []byte
+		want  bool
 	}{
 		{
 			name:  "ftyp at offset 4",
@@ -362,8 +362,8 @@ func TestIsLikelyMP4(t *testing.T) {
 		},
 		{
 			name:  "empty",
-			input:  []byte{},
-			want:   false,
+			input: []byte{},
+			want:  false,
 		},
 	}
 
@@ -443,10 +443,18 @@ func TestAllAnimeClientImplementsInterfaces(t *testing.T) {
 	t.Parallel()
 
 	var (
-		_ interface{ Search(context.Context, string, string) ([]searchResult, error) } = &allAnimeClient{}
-		_ interface{ GetEpisodeSources(context.Context, string, string, string) ([]StreamSource, error) }    = &allAnimeClient{}
-		_ interface{ GetEpisodes(context.Context, string, string) ([]string, error) }               = &allAnimeClient{}
-		_ interface{ GetAvailableEpisodes(context.Context, string) (AvailableEpisodes, error) }         = &allAnimeClient{}
+		_ interface {
+			Search(context.Context, string, string) ([]searchResult, error)
+		} = &allAnimeClient{}
+		_ interface {
+			GetEpisodeSources(context.Context, string, string, string) ([]StreamSource, error)
+		} = &allAnimeClient{}
+		_ interface {
+			GetEpisodes(context.Context, string, string) ([]string, error)
+		} = &allAnimeClient{}
+		_ interface {
+			GetAvailableEpisodes(context.Context, string) (AvailableEpisodes, error)
+		} = &allAnimeClient{}
 	)
 
 	t.Log("allAnimeClient implements required interfaces")
