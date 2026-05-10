@@ -4,8 +4,8 @@
   <tr>
     <td>
       <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="static/readme-logo-dark.svg" />
-        <img src="static/readme-logo-light.svg" alt="MyAnimeList logo" width="140" />
+        <source media="(prefers-color-scheme: dark)" srcset="/static/assets/readme-logo-dark.svg" />
+        <img src="/static/assets/readme-logo-light.svg" alt="MyAnimeList logo" width="140" />
       </picture>
     </td>
     <td>
