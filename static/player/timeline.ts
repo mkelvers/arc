@@ -73,7 +73,7 @@ export const getBufferedEnd = (): number => {
 }
 
 export const updateTimeline = (currentTime: number): void => {
-  const { progress, scrubber, timeDisplay, durationDisplay, buffered } = getTimelineEls()
+  const { progress, scrubber, timeDisplay, durationDisplay, buffered } = state
   const b = getBounds()
 
   if (b.duration <= 0) {

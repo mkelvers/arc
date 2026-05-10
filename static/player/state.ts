@@ -4,6 +4,11 @@ import { q, qs, dataset } from '../q'
 export interface PlayerState {
   container: HTMLElement
   video: HTMLVideoElement
+  progress: HTMLElement
+  scrubber: HTMLElement
+  buffered: HTMLElement
+  timeDisplay: HTMLElement
+  durationDisplay: HTMLElement
   modeSources: Record<string, ModeSource>
   availableModes: string[]
   currentMode: string
@@ -38,6 +43,11 @@ export interface PlayerState {
 export const state: PlayerState = {
   container: null as unknown as HTMLElement,
   video: null as unknown as HTMLVideoElement,
+  progress: null as unknown as HTMLElement,
+  scrubber: null as unknown as HTMLElement,
+  buffered: null as unknown as HTMLElement,
+  timeDisplay: null as unknown as HTMLElement,
+  durationDisplay: null as unknown as HTMLElement,
   modeSources: {},
   availableModes: [],
   currentMode: 'dub',
@@ -72,6 +82,11 @@ export const state: PlayerState = {
 export const initState = (c: HTMLElement): void => {
   state.container = c
   state.video = q<HTMLVideoElement>(c, 'video')!
+  state.progress = q<HTMLElement>(c, '[data-progress]')
+  state.scrubber = q<HTMLElement>(c, '[data-scrubber]')
+  state.buffered = q<HTMLElement>(c, '[data-buffered]')
+  state.timeDisplay = q<HTMLElement>(c, '[data-time]')
+  state.durationDisplay = q<HTMLElement>(c, '[data-duration]')
   state.previewPopover = q<HTMLElement>(c, '[data-preview-popover]')
   state.previewTime = q<HTMLElement>(c, '[data-preview-time]')
   state.videoOverlay = q<HTMLElement>(c, '[data-video-overlay]')
