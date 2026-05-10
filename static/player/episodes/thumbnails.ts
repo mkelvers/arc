@@ -1,5 +1,9 @@
 import { state } from '../state';
 
+/**
+ * Fetches episode thumbnails and titles from API.
+ * Injects images into episode cards, replaces placeholder.
+ */
 export const setupThumbnails = (): void => {
   fetch(`/api/watch/thumbnails/${state.malID}`)
     .then(res => res.json())
@@ -9,11 +13,13 @@ export const setupThumbnails = (): void => {
         const card = state.episodeList.querySelector(`[data-episode-id="${item.mal_id}"]`);
         if (!card) return;
 
+        // inject thumbnail image
         if (item.url) {
           const imgContainer = card.querySelector('.relative.aspect-video');
           if (imgContainer) {
             let img = imgContainer.querySelector('img');
             if (!img) {
+              // replace placeholder with actual image
               img = document.createElement('img');
               img.className =
                 'h-full w-full object-cover transition-transform group-hover:scale-105';
@@ -28,6 +34,7 @@ export const setupThumbnails = (): void => {
           }
         }
 
+        // inject title text
         if (item.title) {
           const titleEl = card.querySelector('[data-episode-title]');
           if (titleEl) titleEl.textContent = item.title;
