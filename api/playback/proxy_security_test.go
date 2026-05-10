@@ -28,7 +28,10 @@ func TestNormalizeProxyURLRejectsPrivateIP(t *testing.T) {
 func TestProxyTokenScopeValidation(t *testing.T) {
 	t.Parallel()
 
-	service := NewService(&fakeProxyQuerier{}, nil, Config{ProxyTokenSecret: "0123456789abcdef0123456789abcdef"})
+	service, err := NewService(&fakeProxyQuerier{}, nil, Config{ProxyTokenSecret: "0123456789abcdef0123456789abcdef"})
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
 	token, err := service.issueProxyToken("https://example.com/playlist.m3u8", "", proxyScopeStream)
 	if err != nil {
 		t.Fatalf("failed to issue token: %v", err)

@@ -12,12 +12,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/golang-lru/v2"
 )
 
 const (
-	showResolutionCacheTTL = 12 * time.Hour
-	playbackDataCacheTTL   = 2 * time.Minute
-	providerProbeTimeout   = 3 * time.Second
+	providerProbeTimeout = 3 * time.Second
 )
 
 type Service struct {
@@ -26,12 +26,11 @@ type Service struct {
 	sqlDB          *sql.DB
 	db             db.Querier
 	proxyTokens    *proxyTokenSigner
-	proxyHostMu    sync.RWMutex
-	proxyHostCache map[string]proxyHostCacheItem
+	proxyHostCache *lru.Cache[string, proxyHostCacheItem]
 
 	cacheMu           sync.RWMutex
-	showResolution    map[int]showResolutionCacheItem
-	playbackDataCache map[string]playbackDataCacheItem
+	showResolution    *lru.Cache[int, showResolutionCacheItem]
+	playbackDataCache *lru.Cache[string, playbackDataCacheItem]
 }
 
 type Config struct {
@@ -48,14 +47,12 @@ type sourceScore struct {
 }
 
 type showResolutionCacheItem struct {
-	ShowID    string
-	Title     string
-	ExpiresAt time.Time
+	ShowID string
+	Title  string
 }
 
 type playbackDataCacheItem struct {
-	Data      playbackBaseData
-	ExpiresAt time.Time
+	Data playbackBaseData
 }
 
 type playbackBaseData struct {
@@ -84,8 +81,7 @@ type directProbeResult struct {
 }
 
 type proxyHostCacheItem struct {
-	Allowed   bool
-	ExpiresAt time.Time
+	Allowed bool
 }
 
 type userPlaybackState struct {
@@ -93,10 +89,23 @@ type userPlaybackState struct {
 	StartTimeSeconds float64
 }
 
-func NewService(db db.Querier, sqlDB *sql.DB, cfg Config) *Service {
+func NewService(db db.Querier, sqlDB *sql.DB, cfg Config) (*Service, error) {
 	proxyTokens, err := newProxyTokenSigner(cfg.ProxyTokenSecret)
 	if err != nil {
-		panic(fmt.Sprintf("failed to initialize proxy token signer: %v", err))
+		return nil, fmt.Errorf("failed to initialize proxy token signer: %w", err)
+	}
+
+	showResolution, err := lru.New[int, showResolutionCacheItem](5000)
+	if err != nil {
+		return nil, err
+	}
+	playbackDataCache, err := lru.New[string, playbackDataCacheItem](500)
+	if err != nil {
+		return nil, err
+	}
+	proxyHostCache, err := lru.New[string, proxyHostCacheItem](1000)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Service{
@@ -105,10 +114,10 @@ func NewService(db db.Querier, sqlDB *sql.DB, cfg Config) *Service {
 		sqlDB:             sqlDB,
 		db:                db,
 		proxyTokens:       proxyTokens,
-		proxyHostCache:    make(map[string]proxyHostCacheItem),
-		showResolution:    make(map[int]showResolutionCacheItem),
-		playbackDataCache: make(map[string]playbackDataCacheItem),
-	}
+		proxyHostCache:    proxyHostCache,
+		showResolution:    showResolution,
+		playbackDataCache: playbackDataCache,
+	}, nil
 }
 
 func (s *Service) BuildWatchPageData(ctx context.Context, malID int, titleCandidates []string, episode string, mode string, userID string) (WatchPageData, error) {
@@ -243,44 +252,21 @@ func (s *Service) fetchUserPlaybackStateAsync(ctx context.Context, userID string
 }
 
 func (s *Service) getPlaybackBaseDataCache(key string) (playbackBaseData, bool) {
-	now := time.Now()
-
-	s.cacheMu.RLock()
-	item, ok := s.playbackDataCache[key]
-	s.cacheMu.RUnlock()
+	item, ok := s.playbackDataCache.Get(key)
 	if !ok {
 		return playbackBaseData{}, false
 	}
-
-	if now.After(item.ExpiresAt) {
-		s.cacheMu.Lock()
-		current, exists := s.playbackDataCache[key]
-		if exists && time.Now().After(current.ExpiresAt) {
-			delete(s.playbackDataCache, key)
-		}
-		s.cacheMu.Unlock()
-		return playbackBaseData{}, false
-	}
-
 	return clonePlaybackBaseData(item.Data), true
 }
 
 func (s *Service) setPlaybackBaseDataCache(key string, data playbackBaseData) {
-	s.cacheMu.Lock()
-	s.playbackDataCache[key] = playbackDataCacheItem{
-		Data:      clonePlaybackBaseData(data),
-		ExpiresAt: time.Now().Add(playbackDataCacheTTL),
-	}
-	s.cacheMu.Unlock()
+	s.playbackDataCache.Add(key, playbackDataCacheItem{
+		Data: clonePlaybackBaseData(data),
+	})
 }
 
 func (s *Service) resolveShowCached(ctx context.Context, malID int, titleCandidates []string) (string, string, error) {
-	s.cacheMu.RLock()
-	item, ok := s.showResolution[malID]
-	s.cacheMu.RUnlock()
-
-	now := time.Now()
-	if ok && now.Before(item.ExpiresAt) && strings.TrimSpace(item.ShowID) != "" {
+	if item, ok := s.showResolution.Get(malID); ok && strings.TrimSpace(item.ShowID) != "" {
 		return item.ShowID, item.Title, nil
 	}
 
@@ -289,13 +275,10 @@ func (s *Service) resolveShowCached(ctx context.Context, malID int, titleCandida
 		return "", "", err
 	}
 
-	s.cacheMu.Lock()
-	s.showResolution[malID] = showResolutionCacheItem{
-		ShowID:    showID,
-		Title:     resolvedTitle,
-		ExpiresAt: now.Add(showResolutionCacheTTL),
-	}
-	s.cacheMu.Unlock()
+	s.showResolution.Add(malID, showResolutionCacheItem{
+		ShowID: showID,
+		Title:  resolvedTitle,
+	})
 
 	return showID, resolvedTitle, nil
 }

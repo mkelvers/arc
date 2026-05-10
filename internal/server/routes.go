@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -72,9 +73,12 @@ func NewRouter(cfg Config) http.Handler {
 	animeSvc := anime.NewService(cfg.JikanClient, cfg.DB)
 	animeHandler := anime.NewHandler(animeSvc)
 
-	playbackSvc := playback.NewService(cfg.DB, cfg.SQLDB, playback.Config{
+	playbackSvc, err := playback.NewService(cfg.DB, cfg.SQLDB, playback.Config{
 		ProxyTokenSecret: cfg.PlaybackProxySecret,
 	})
+	if err != nil {
+		panic(fmt.Sprintf("failed to initialize playback service: %v", err))
+	}
 	playbackHandler := playback.NewHandler(playbackSvc, cfg.JikanClient)
 
 	// Serve static files with no-cache headers

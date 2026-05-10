@@ -12,6 +12,8 @@ require (
 	golang.org/x/net v0.53.0
 )
 
+require github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect

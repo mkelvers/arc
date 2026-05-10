@@ -20,7 +20,6 @@ const (
 	proxySegmentTokenTTL  = 6 * time.Hour
 	proxySubtitleTokenTTL = 6 * time.Hour
 )
-const proxyHostCheckTTL = 2 * time.Minute
 
 type proxyScope string
 
@@ -262,11 +261,8 @@ func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) er
 		return nil
 	}
 
-	now := time.Now()
-	s.proxyHostMu.RLock()
-	cached, ok := s.proxyHostCache[host]
-	s.proxyHostMu.RUnlock()
-	if ok && now.Before(cached.ExpiresAt) {
+	cached, ok := s.proxyHostCache.Get(host)
+	if ok {
 		if cached.Allowed {
 			return nil
 		}
@@ -286,12 +282,9 @@ func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) er
 		}
 	}
 
-	s.proxyHostMu.Lock()
-	s.proxyHostCache[host] = proxyHostCacheItem{
-		Allowed:   allowed,
-		ExpiresAt: now.Add(proxyHostCheckTTL),
-	}
-	s.proxyHostMu.Unlock()
+	s.proxyHostCache.Add(host, proxyHostCacheItem{
+		Allowed: allowed,
+	})
 
 	if !allowed {
 		return errors.New("private proxy targets are not allowed")
