@@ -1,6 +1,8 @@
 import { state } from './state'
 import { displayTimeFromAbsolute, absoluteTimeFromDisplay } from './timeline'
 import { showControls } from './controls'
+import { updateSubtitleOptions } from './subtitles'
+import { updateQualityOptions } from './quality'
 import { ModeSource } from './types'
 
 const streamUrlForMode = (mode: string, quality?: string): string => {
@@ -26,9 +28,9 @@ export const switchMode = (mode: string): void => {
   state.currentMode = mode
   localStorage.setItem('player-audio-mode', mode)
   loadVideo(streamUrlForMode(mode, state.container.querySelector('[data-quality-select]')?.value))
-  import('./subtitles').then(m => m.updateSubtitleOptions())
-  import('./quality').then(m => m.updateQualityOptions())
-  import('./mode').then(m => m.updateModeButtons())
+  updateSubtitleOptions()
+  updateQualityOptions()
+  updateModeButtons()
 }
 
 export const updateModeButtons = (): void => {
