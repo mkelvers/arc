@@ -52,16 +52,16 @@ Upstream APIs can fail transiently with `429` and `5xx` responses, so the app fa
 
 The codebase follows standard Go project layout conventions.
 
-| Path | Purpose |
-| --- | --- |
-| `api/*` | Feature routes: anime, auth, playback, watchlist |
-| `cmd/server` | Application entrypoint and CLI commands |
-| `integrations/*` | External API clients and scraping |
-| `internal/*` | Core services: db, middleware, server, worker |
-| `pkg/middleware` | Generic HTTP middleware |
-| `templates/*` | Server-rendered HTML templates |
-| `migrations` | Schema evolution |
-| `static` / `dist` | Frontend assets |
+| Path              | Purpose                                          |
+| ----------------- | ------------------------------------------------ |
+| `api/*`           | Feature routes: anime, auth, playback, watchlist |
+| `cmd/server`      | Application entrypoint and CLI commands          |
+| `integrations/*`  | External API clients and scraping                |
+| `internal/*`      | Core services: db, middleware, server, worker    |
+| `pkg/middleware`  | Generic HTTP middleware                          |
+| `templates/*`     | Server-rendered HTML templates                   |
+| `migrations`      | Schema evolution                                 |
+| `static` / `dist` | Frontend assets                                  |
 
 ## Getting started
 
@@ -108,13 +108,13 @@ docker exec mal ./cmd/user <username> <password>
 
 ## Configuration
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `3000` | HTTP listen port |
-| `DATABASE_FILE` | `mal.db` | SQLite database file path |
-| `ENV` | _(empty)_ | Set to `production` to enable secure session cookies |
-| `MIGRATIONS_DIR` | _(auto-discovered)_ | Optional explicit path to migration files |
-| `PLAYBACK_PROXY_SECRET` | _(required)_ | HMAC secret for signed playback proxy tokens (min 32 chars) |
+| Variable                | Default             | Description                                                 |
+| ----------------------- | ------------------- | ----------------------------------------------------------- |
+| `PORT`                  | `3000`              | HTTP listen port                                            |
+| `DATABASE_FILE`         | `mal.db`            | SQLite database file path                                   |
+| `ENV`                   | _(empty)_           | Set to `production` to enable secure session cookies        |
+| `MIGRATIONS_DIR`        | _(auto-discovered)_ | Optional explicit path to migration files                   |
+| `PLAYBACK_PROXY_SECRET` | _(required)_        | HMAC secret for signed playback proxy tokens (min 32 chars) |
 
 ## Testing
 

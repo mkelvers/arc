@@ -11,7 +11,5 @@
     "removeComments": false,
     "skipLibCheck": true
   },
-  "include": [
-    "static/*.ts"
-  ]
+  "include": ["static/*.ts"]
 }
