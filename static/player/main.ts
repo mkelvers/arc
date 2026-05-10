@@ -10,7 +10,7 @@ import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from 
 import { goToNextEpisode } from './episodes/nav'
 import { resolveActiveSegments, renderSegments } from './skip/segments'
 import { setupThumbnails } from './episodes/thumbnails'
-import { markEpisodeTransition } from './progress'
+import { markEpisodeTransition, setupProgress } from './progress'
 import { absoluteTimeFromRatio, getBounds, displayTimeFromAbsolute } from './timeline'
 import { formatTime } from './controls'
 
