@@ -68,8 +68,6 @@ func NewRouter(cfg Config) http.Handler {
 	watchlistSvc := watchlist.NewService(cfg.DB, cfg.SQLDB, cfg.JikanClient)
 	watchlistHandler := watchlist.NewHandler(watchlistSvc)
 
-	middleware.InitAuth(cfg.AuthService)
-
 	animeSvc := anime.NewService(cfg.JikanClient, cfg.DB)
 	animeHandler := anime.NewHandler(animeSvc)
 
