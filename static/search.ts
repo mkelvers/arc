@@ -1,168 +1,173 @@
-export {}
+export {};
 
 type QuickSearchResult = {
-  id?: number
-  image?: string
-  title?: string
-  type?: string
-}
+  id?: number;
+  image?: string;
+  title?: string;
+  type?: string;
+};
 
-const searchInitializedKey = Symbol('searchInitialized')
-const globalWindow = window as Window & { [searchInitializedKey]?: boolean }
+const searchInitializedKey = Symbol('searchInitialized');
+const globalWindow = window as Window & { [searchInitializedKey]?: boolean };
 
-let searchTimeout: number | undefined
-const searchInput = document.getElementById('search-input') as HTMLInputElement | null
-const searchDropdown = document.querySelector('[data-search-results-container]') as HTMLElement | null
+let searchTimeout: number | undefined;
+const searchInput = document.getElementById('search-input') as HTMLInputElement | null;
+const searchDropdown = document.querySelector(
+  '[data-search-results-container]'
+) as HTMLElement | null;
 
 const isSafeImageUrl = (rawUrl?: string): boolean => {
   if (!rawUrl || typeof rawUrl !== 'string') {
-    return false
+    return false;
   }
 
   try {
-    const parsed = new URL(rawUrl, window.location.origin)
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+    const parsed = new URL(rawUrl, window.location.origin);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
   } catch {
-    return false
+    return false;
   }
-}
+};
 
 const clearSearchResults = (): void => {
   if (!searchDropdown) {
-    return
+    return;
   }
 
-  searchDropdown.replaceChildren()
-}
+  searchDropdown.replaceChildren();
+};
 
 const buildSearchResultItem = (result: QuickSearchResult): HTMLAnchorElement => {
-  const item = document.createElement('a')
-  item.className = 'flex items-start gap-3 px-3 py-2 text-inherit no-underline hover:bg-(--panel-soft) hover:no-underline'
-  item.setAttribute('href', '/anime/' + encodeURIComponent(String(result.id || '')))
+  const item = document.createElement('a');
+  item.className =
+    'flex items-start gap-3 px-3 py-2 text-inherit no-underline hover:bg-(--panel-soft) hover:no-underline';
+  item.setAttribute('href', '/anime/' + encodeURIComponent(String(result.id || '')));
 
   if (isSafeImageUrl(result.image)) {
-    const img = document.createElement('img')
-    img.className = 'aspect-2/3 w-[42px] shrink-0 object-cover bg-(--surface-thumb)'
-    img.setAttribute('src', result.image || '')
-    img.setAttribute('alt', String(result.title || ''))
-    item.appendChild(img)
+    const img = document.createElement('img');
+    img.className = 'aspect-2/3 w-[42px] shrink-0 object-cover bg-(--surface-thumb)';
+    img.setAttribute('src', result.image || '');
+    img.setAttribute('alt', String(result.title || ''));
+    item.appendChild(img);
   } else {
-    const noImage = document.createElement('div')
-    noImage.className = 'aspect-2/3 w-[42px] shrink-0 bg-(--surface-thumb) text-[0] text-transparent'
-    noImage.textContent = 'no image'
-    item.appendChild(noImage)
+    const noImage = document.createElement('div');
+    noImage.className =
+      'aspect-2/3 w-[42px] shrink-0 bg-(--surface-thumb) text-[0] text-transparent';
+    noImage.textContent = 'no image';
+    item.appendChild(noImage);
   }
 
-  const info = document.createElement('div')
-  info.className = 'grid min-w-0 gap-px'
+  const info = document.createElement('div');
+  info.className = 'grid min-w-0 gap-px';
 
-  const itemTitle = document.createElement('div')
-  itemTitle.className = 'line-clamp-1 text-[0.86rem] leading-[1.3] text-(--text)'
-  itemTitle.textContent = String(result.title || '')
-  info.appendChild(itemTitle)
+  const itemTitle = document.createElement('div');
+  itemTitle.className = 'line-clamp-1 text-[0.86rem] leading-[1.3] text-(--text)';
+  itemTitle.textContent = String(result.title || '');
+  info.appendChild(itemTitle);
 
-  const itemType = document.createElement('div')
-  itemType.className = 'text-[0.67rem] text-(--text-faint)'
-  itemType.textContent = String(result.type || '')
-  info.appendChild(itemType)
+  const itemType = document.createElement('div');
+  itemType.className = 'text-[0.67rem] text-(--text-faint)';
+  itemType.textContent = String(result.type || '');
+  info.appendChild(itemType);
 
-  item.appendChild(info)
-  return item
-}
+  item.appendChild(info);
+  return item;
+};
 
 const renderQuickSearchResults = (query: string, results: QuickSearchResult[]): void => {
   if (!searchDropdown) {
-    return
+    return;
   }
 
   if (!results || results.length === 0) {
-    clearSearchResults()
-    return
+    clearSearchResults();
+    return;
   }
 
-  const searchResults = document.createElement('div')
-  searchResults.className = 'grid'
+  const searchResults = document.createElement('div');
+  searchResults.className = 'grid';
 
-  const title = document.createElement('div')
-  title.className = 'px-3 py-2 text-[0.68rem] text-(--text-faint)'
-  title.textContent = 'Anime'
-  searchResults.appendChild(title)
+  const title = document.createElement('div');
+  title.className = 'px-3 py-2 text-[0.68rem] text-(--text-faint)';
+  title.textContent = 'Anime';
+  searchResults.appendChild(title);
 
   results.forEach((result: QuickSearchResult) => {
-    searchResults.appendChild(buildSearchResultItem(result))
-  })
+    searchResults.appendChild(buildSearchResultItem(result));
+  });
 
-  const viewAll = document.createElement('a')
-  viewAll.className = 'bg-(--surface-search-view-all) px-3 py-2 text-center text-[0.8rem] text-(--text-muted) no-underline hover:bg-(--panel-soft) hover:text-(--text) hover:no-underline'
-  viewAll.setAttribute('href', '/search?q=' + encodeURIComponent(query))
-  viewAll.textContent = 'View all results for ' + query
-  searchResults.appendChild(viewAll)
+  const viewAll = document.createElement('a');
+  viewAll.className =
+    'bg-(--surface-search-view-all) px-3 py-2 text-center text-[0.8rem] text-(--text-muted) no-underline hover:bg-(--panel-soft) hover:text-(--text) hover:no-underline';
+  viewAll.setAttribute('href', '/search?q=' + encodeURIComponent(query));
+  viewAll.textContent = 'View all results for ' + query;
+  searchResults.appendChild(viewAll);
 
-  searchDropdown.replaceChildren(searchResults)
-}
+  searchDropdown.replaceChildren(searchResults);
+};
 
 const fetchAndRenderQuickSearch = (query: string): void => {
   fetch('/api/search-quick?q=' + encodeURIComponent(query))
     .then((res: Response) => res.json())
     .then((results: QuickSearchResult[]) => {
-      renderQuickSearchResults(query, results)
+      renderQuickSearchResults(query, results);
     })
     .catch((err: unknown) => {
-      console.error('Search error:', err)
-    })
-}
+      console.error('Search error:', err);
+    });
+};
 
 const onSearchInput = (event: Event): void => {
   if (searchTimeout) {
-    window.clearTimeout(searchTimeout)
+    window.clearTimeout(searchTimeout);
   }
 
-  const target = event.target
+  const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
-    return
+    return;
   }
 
-  const query = target.value.trim()
+  const query = target.value.trim();
   if (query.length < 2) {
-    clearSearchResults()
-    return
+    clearSearchResults();
+    return;
   }
 
   searchTimeout = window.setTimeout(() => {
-    fetchAndRenderQuickSearch(query)
-  }, 300)
-}
+    fetchAndRenderQuickSearch(query);
+  }, 300);
+};
 
 const onSearchBlur = (): void => {
   window.setTimeout(() => {
-    clearSearchResults()
-  }, 200)
-}
+    clearSearchResults();
+  }, 200);
+};
 
 const onDocumentClick = (event: MouseEvent): void => {
-  const target = event.target
+  const target = event.target;
   if (!(target instanceof Element)) {
-    return
+    return;
   }
 
   if (!target.closest('[data-search-root]')) {
-    clearSearchResults()
+    clearSearchResults();
   }
-}
+};
 
 const initQuickSearch = (): void => {
   if (globalWindow[searchInitializedKey]) {
-    return
+    return;
   }
-  globalWindow[searchInitializedKey] = true
+  globalWindow[searchInitializedKey] = true;
 
   if (!searchInput || !searchDropdown) {
-    return
+    return;
   }
 
-  searchInput.addEventListener('input', onSearchInput)
-  searchInput.addEventListener('blur', onSearchBlur)
-  document.addEventListener('click', onDocumentClick)
-}
+  searchInput.addEventListener('input', onSearchInput);
+  searchInput.addEventListener('blur', onSearchBlur);
+  document.addEventListener('click', onDocumentClick);
+};
 
-initQuickSearch()
+initQuickSearch();

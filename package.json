@@ -1,17 +1,26 @@
 {
   "name": "myanimelist-ui",
   "private": true,
+  "type": "module",
   "scripts": {
     "build:css": "bunx @tailwindcss/cli -i ./static/style.css -o ./dist/tailwind.css",
     "watch:css": "bunx @tailwindcss/cli -i ./static/style.css -o ./dist/tailwind.css --watch",
     "build:ts": "bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting && bun build ./static/*.ts --outdir ./dist/static --target browser",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
-    "build:assets": "bun run build:css && bun run build:ts"
+    "build:assets": "bun run build:css && bun run build:ts",
+    "format": "bunx prettier . --write",
+    "lint": "bunx eslint . --fix"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.4",
     "@toolwind/anchors": "^1.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.59.2",
+    "@typescript-eslint/parser": "^8.59.2",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "lefthook": "^2.1.6",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3"
   },

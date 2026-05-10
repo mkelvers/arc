@@ -1,60 +1,60 @@
-import { parseClassList } from './utils'
+import { parseClassList } from './utils';
 
 const setDropdownMenuState = (menu: HTMLElement, isOpen: boolean): void => {
-  const openClasses = parseClassList(menu.getAttribute('data-dropdown-open-classes'))
-  const closedClasses = parseClassList(menu.getAttribute('data-dropdown-closed-classes'))
+  const openClasses = parseClassList(menu.getAttribute('data-dropdown-open-classes'));
+  const closedClasses = parseClassList(menu.getAttribute('data-dropdown-closed-classes'));
 
   if (isOpen) {
-    menu.classList.remove(...closedClasses)
-    menu.classList.add(...openClasses)
-    return
+    menu.classList.remove(...closedClasses);
+    menu.classList.add(...openClasses);
+    return;
   }
 
-  menu.classList.remove(...openClasses)
-  menu.classList.add(...closedClasses)
-}
+  menu.classList.remove(...openClasses);
+  menu.classList.add(...closedClasses);
+};
 
 const setWatchlistDropdownState = (isOpen: boolean): void => {
-  const dropdown = document.getElementById('watchlist-dropdown')
+  const dropdown = document.getElementById('watchlist-dropdown');
   if (!dropdown) {
-    return
+    return;
   }
 
-  dropdown.classList.toggle('open', isOpen)
-  const menu = dropdown.querySelector('[data-dropdown-menu]')
+  dropdown.classList.toggle('open', isOpen);
+  const menu = dropdown.querySelector('[data-dropdown-menu]');
   if (menu instanceof HTMLElement) {
-    setDropdownMenuState(menu, isOpen)
+    setDropdownMenuState(menu, isOpen);
   }
-}
+};
 
 const toggleWatchlistDropdown = (): void => {
-  const dropdown = document.getElementById('watchlist-dropdown')
+  const dropdown = document.getElementById('watchlist-dropdown');
   if (!dropdown) {
-    return
+    return;
   }
 
-  setWatchlistDropdownState(!dropdown.classList.contains('open'))
-}
+  setWatchlistDropdownState(!dropdown.classList.contains('open'));
+};
 
 const closeDropdownOnOutsideClick = (event: MouseEvent): void => {
-  const dropdown = document.getElementById('watchlist-dropdown')
+  const dropdown = document.getElementById('watchlist-dropdown');
   if (!dropdown) {
-    return
+    return;
   }
 
-  const target = event.target
+  const target = event.target;
   if (!(target instanceof Node)) {
-    return
+    return;
   }
 
   if (!dropdown.contains(target)) {
-    setWatchlistDropdownState(false)
+    setWatchlistDropdownState(false);
   }
-}
+};
 
 const initWatchlistDropdown = (): void => {
-  ;(window as Window & { toggleDropdown?: () => void }).toggleDropdown = toggleWatchlistDropdown
-  document.addEventListener('click', closeDropdownOnOutsideClick)
-}
+  (window as Window & { toggleDropdown?: () => void }).toggleDropdown = toggleWatchlistDropdown;
+  document.addEventListener('click', closeDropdownOnOutsideClick);
+};
 
-initWatchlistDropdown()
+initWatchlistDropdown();

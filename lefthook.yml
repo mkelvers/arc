@@ -1,13 +1,23 @@
 {
-  "$schema": "https://json.schemastore.org/lefthook.json",
-  "pre-push": {
-    "commands": {
-      "go-fmt": { "run": "go fmt ./..." },
-      "go-vet": { "run": "go vet ./..." },
-      "go-test": { "run": "go test ./..." },
-      "ts-typecheck": { "run": "bunx tsc -p tsconfig.json --noEmit" },
-      "build-assets": { "run": "bun run build:assets" },
-      "go-build": { "run": "go build -o server ./cmd/server" }
-    }
-  }
+  '$schema': 'https://json.schemastore.org/lefthook.json',
+  'pre-commit':
+    {
+      'commands':
+        {
+          'prettier': { 'run': 'bunx prettier . --write' },
+          'eslint': { 'run': 'bunx eslint . --fix' },
+        },
+    },
+  'pre-push':
+    {
+      'commands':
+        {
+          'go-fmt': { 'run': 'go fmt ./...' },
+          'go-vet': { 'run': 'go vet ./...' },
+          'go-test': { 'run': 'go test ./...' },
+          'ts-typecheck': { 'run': 'bunx tsc -p tsconfig.json --noEmit' },
+          'build-assets': { 'run': 'bun run build:assets' },
+          'go-build': { 'run': 'go build -o server ./cmd/server' },
+        },
+    },
 }

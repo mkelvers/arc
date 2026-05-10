@@ -1,66 +1,66 @@
 class UIDropdown extends HTMLElement {
-  isOpen: boolean = false
-  contentEl: HTMLElement | null = null
-  isClosing: boolean = false
+  isOpen: boolean = false;
+  contentEl: HTMLElement | null = null;
+  isClosing: boolean = false;
 
   constructor() {
-    super()
-    this.toggle = this.toggle.bind(this)
-    this.handleClickOutside = this.handleClickOutside.bind(this)
+    super();
+    this.toggle = this.toggle.bind(this);
+    this.handleClickOutside = this.handleClickOutside.bind(this);
   }
 
   connectedCallback(): void {
-    const trigger = this.querySelector('[data-trigger]')
-    this.contentEl = this.querySelector('[data-content]')
+    const trigger = this.querySelector('[data-trigger]');
+    this.contentEl = this.querySelector('[data-content]');
 
     if (trigger) {
-      trigger.addEventListener('click', this.toggle)
+      trigger.addEventListener('click', this.toggle);
     }
 
-    document.addEventListener('click', this.handleClickOutside)
+    document.addEventListener('click', this.handleClickOutside);
   }
 
   disconnectedCallback(): void {
-    const trigger = this.querySelector('[data-trigger]')
+    const trigger = this.querySelector('[data-trigger]');
     if (trigger) {
-      trigger.removeEventListener('click', this.toggle)
+      trigger.removeEventListener('click', this.toggle);
     }
-    document.removeEventListener('click', this.handleClickOutside)
+    document.removeEventListener('click', this.handleClickOutside);
   }
 
   toggle(): void {
     if (this.isClosing) {
-      return
+      return;
     }
-    this.isOpen = !this.isOpen
+    this.isOpen = !this.isOpen;
     if (this.contentEl) {
       if (this.isOpen) {
-        this.contentEl.classList.remove('hidden')
+        this.contentEl.classList.remove('hidden');
       } else {
-        this.contentEl.classList.add('hidden')
+        this.contentEl.classList.add('hidden');
       }
     }
   }
 
   close(): void {
     if (this.isClosing) {
-      return
+      return;
     }
-    this.isClosing = true
-    this.isOpen = false
+    this.isClosing = true;
+    this.isOpen = false;
     if (this.contentEl) {
-      this.contentEl.classList.add('hidden')
+      this.contentEl.classList.add('hidden');
     }
     setTimeout(() => {
-      this.isClosing = false
-    }, 100)
+      this.isClosing = false;
+    }, 100);
   }
 
   handleClickOutside(event: MouseEvent): void {
     if (!this.contains(event.target as Node)) {
-      this.close()
+      this.close();
     }
   }
 }
 
-customElements.define('ui-dropdown', UIDropdown)
+customElements.define('ui-dropdown', UIDropdown);

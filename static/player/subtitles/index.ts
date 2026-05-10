@@ -1,76 +1,99 @@
-import { SubtitleCue, SubtitleTrack } from '../types'
-import { state } from '../state'
-import { parseVtt } from './vtt'
+import { SubtitleCue, SubtitleTrack } from '../types';
+import { state } from '../state';
+import { parseVtt } from './vtt';
 
-const proxyUrl = (token: string) => `/watch/proxy/subtitle?token=${encodeURIComponent(token)}`
+const proxyUrl = (token: string) => `/watch/proxy/subtitle?token=${encodeURIComponent(token)}`;
 
 const subtitlesForMode = (): SubtitleTrack[] => {
-  const src = state.modeSources[state.currentMode]
-  if (!src?.subtitles) return []
+  const src = state.modeSources[state.currentMode];
+  if (!src?.subtitles) return [];
   return src.subtitles
-    .map(t => ({ lang: (t.lang || 'unknown').toLowerCase(), label: t.lang || 'Unknown', url: proxyUrl(t.token) }))
-    .filter(t => t.url !== '')
-}
+    .map(t => ({
+      lang: (t.lang || 'unknown').toLowerCase(),
+      label: t.lang || 'Unknown',
+      url: proxyUrl(t.token),
+    }))
+    .filter(t => t.url !== '');
+};
 
 const hideSubtitleText = (): void => {
-  const el = state.container.querySelector('[data-subtitle-text]') as HTMLElement | null
-  if (!el) return
-  el.textContent = ''
-  el.classList.remove('block')
-  el.classList.add('hidden')
-}
+  const el = state.container.querySelector('[data-subtitle-text]') as HTMLElement | null;
+  if (!el) return;
+  el.textContent = '';
+  el.classList.remove('block');
+  el.classList.add('hidden');
+};
 
 const loadSubtitle = async (url: string): Promise<SubtitleCue[]> => {
   try {
-    const res = await fetch(url)
-    if (!res.ok) return []
-    return parseVtt(await res.text())
-  } catch { return [] }
-}
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    return parseVtt(await res.text());
+  } catch {
+    return [];
+  }
+};
 
 export const updateSubtitleOptions = (): void => {
-  const select = state.container.querySelector('[data-subtitle-select]') as HTMLSelectElement | null
-  if (!select) return
-  state.currentSubtitleTracks = subtitlesForMode()
-  select.innerHTML = ''
+  const select = state.container.querySelector(
+    '[data-subtitle-select]'
+  ) as HTMLSelectElement | null;
+  if (!select) return;
+  state.currentSubtitleTracks = subtitlesForMode();
+  select.innerHTML = '';
 
-  const none = document.createElement('option')
-  none.value = 'none'
-  none.textContent = 'Off'
-  select.appendChild(none)
-  select.value = 'none'
+  const none = document.createElement('option');
+  none.value = 'none';
+  none.textContent = 'Off';
+  select.appendChild(none);
+  select.value = 'none';
 
   state.currentSubtitleTracks.forEach((t, i) => {
-    const opt = document.createElement('option')
-    opt.value = String(i)
-    opt.textContent = t.label
-    select.appendChild(opt)
-  })
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = t.label;
+    select.appendChild(opt);
+  });
 
-  const wrapper = select.parentElement
-  wrapper?.classList.toggle('hidden', state.currentSubtitleTracks.length === 0)
-  state.activeSubtitles = []
-  hideSubtitleText()
-}
+  const wrapper = select.parentElement;
+  wrapper?.classList.toggle('hidden', state.currentSubtitleTracks.length === 0);
+  state.activeSubtitles = [];
+  hideSubtitleText();
+};
 
 export const updateSubtitleRender = (time: number): void => {
-  const el = state.container.querySelector('[data-subtitle-text]') as HTMLElement | null
-  if (!el) return
-  if (!state.activeSubtitles.length) { hideSubtitleText(); return }
+  const el = state.container.querySelector('[data-subtitle-text]') as HTMLElement | null;
+  if (!el) return;
+  if (!state.activeSubtitles.length) {
+    hideSubtitleText();
+    return;
+  }
 
-  const cue = state.activeSubtitles.find(c => time >= c.start && time <= c.end)
-  if (!cue) { hideSubtitleText(); return }
+  const cue = state.activeSubtitles.find(c => time >= c.start && time <= c.end);
+  if (!cue) {
+    hideSubtitleText();
+    return;
+  }
 
-  el.textContent = cue.text
-  el.classList.remove('hidden')
-}
+  el.textContent = cue.text;
+  el.classList.remove('hidden');
+};
 
 export const setupSubtitles = (): void => {
-  const select = state.container.querySelector('[data-subtitle-select]') as HTMLSelectElement | null
+  const select = state.container.querySelector(
+    '[data-subtitle-select]'
+  ) as HTMLSelectElement | null;
   select?.addEventListener('change', async () => {
-    if (select.value === 'none') { state.activeSubtitles = []; hideSubtitleText(); return }
-    const track = state.currentSubtitleTracks[Number(select.value)]
-    if (!track) { state.activeSubtitles = []; return }
-    state.activeSubtitles = await loadSubtitle(track.url)
-  })
-}
+    if (select.value === 'none') {
+      state.activeSubtitles = [];
+      hideSubtitleText();
+      return;
+    }
+    const track = state.currentSubtitleTracks[Number(select.value)];
+    if (!track) {
+      state.activeSubtitles = [];
+      return;
+    }
+    state.activeSubtitles = await loadSubtitle(track.url);
+  });
+};
