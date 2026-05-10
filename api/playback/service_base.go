@@ -325,9 +325,9 @@ func (s *Service) fetchPlaybackSourcesAndSegments(ctx context.Context, showID st
 		segmentsCh <- s.fetchSkipSegments(ctx, malID, episode)
 	}()
 
-modeSources := make(map[string]ModeSource)
-		// collect results from both mode goroutines
-		for range 2 {
+	modeSources := make(map[string]ModeSource)
+	// collect results from both mode goroutines
+	for range 2 {
 		result := <-modeCh
 		if !result.OK {
 			continue

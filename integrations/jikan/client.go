@@ -22,7 +22,7 @@ type Client struct {
 	db          db.Querier
 	retrySignal chan struct{} // signals retry worker to process queued retries
 	mu          sync.Mutex
-	lastReqTime time.Time     // rate limiting: last request timestamp
+	lastReqTime time.Time // rate limiting: last request timestamp
 }
 
 func NewClient(db db.Querier) *Client {

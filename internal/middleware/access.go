@@ -7,7 +7,7 @@ import (
 
 type AccessPolicy struct {
 	PublicPaths map[string]struct{} // exact match paths (e.g. /login)
-	PublicHeads []string             // prefix match paths (e.g. /static/)
+	PublicHeads []string            // prefix match paths (e.g. /static/)
 }
 
 func NewAccessPolicy() AccessPolicy {
@@ -17,7 +17,7 @@ func NewAccessPolicy() AccessPolicy {
 		},
 		PublicHeads: []string{
 			"/static/", // static assets
-			"/dist/",    // bundled assets
+			"/dist/",   // bundled assets
 		},
 	}
 }

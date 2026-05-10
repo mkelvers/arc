@@ -17,6 +17,7 @@ const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
 
 // idPattern extracts the watch order ID from chiaki.site URLs
 var idPattern = regexp.MustCompile(`/id/(\d+)`)
+
 // malLinkPattern extracts MAL IDs from watch order entries
 var malLinkPattern = regexp.MustCompile(`myanimelist\.net/anime/(\d+)`)
 
@@ -48,9 +49,9 @@ func (e *HTTPStatusError) Error() string {
 }
 
 type WatchOrderEntry struct {
-	ID       int    `json:"id"`       // MAL anime ID
-	Type     string `json:"type"`      // anime type label (e.g. "TV", "Movie")
-	Title    string `json:"title"`     // primary title
+	ID       int    `json:"id"`                  // MAL anime ID
+	Type     string `json:"type"`                // anime type label (e.g. "TV", "Movie")
+	Title    string `json:"title"`               // primary title
 	TitleAlt string `json:"title_alt,omitempty"` // alternative title
 }
 

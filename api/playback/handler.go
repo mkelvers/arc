@@ -80,7 +80,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// resolve current episode: query param > saved progress > first episode
-currentEpID := r.URL.Query().Get("ep")
+	currentEpID := r.URL.Query().Get("ep")
 	if currentEpID == "" {
 		if user != nil {
 			entry, err := h.svc.db.GetWatchListEntry(r.Context(), db.GetWatchListEntryParams{
