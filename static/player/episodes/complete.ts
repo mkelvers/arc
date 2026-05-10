@@ -1,6 +1,11 @@
 import DOMPurify from 'dompurify';
 import { state } from '../state';
 
+/**
+ * Marks anime as completed when final episode finishes.
+ * Calls completion API, updates dropdown UI, adds to watchlist.
+ * Retries up to 2 times on failure.
+ */
 export const completeAnime = async (episodeNumber: number): Promise<void> => {
   if (state.completionSent || !state.malID || !episodeNumber) return;
   state.completionSent = true;
@@ -15,6 +20,7 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
 
     if (!res.ok) {
       state.completionSent = false;
+      // retry
       if (state.completionAttempts < 2) {
         state.completionAttempts++;
         setTimeout(() => completeAnime(episodeNumber), 1000);
@@ -22,6 +28,7 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       return;
     }
 
+    // update dropdown trigger text
     const trigger = document.querySelector('[data-dropdown-trigger]') as HTMLButtonElement | null;
     if (trigger) {
       trigger.textContent = 'Completed ';
@@ -31,6 +38,7 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       trigger.appendChild(caret);
     }
 
+    // add to watchlist with 'completed' status
     const dropdown = document.getElementById('watch-status-dropdown');
     if (dropdown) {
       const payload = {
@@ -51,6 +59,7 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       })
         .then(async res => {
           if (!res.ok) return;
+          // replace dropdown with HTMX response
           const html = await res.text();
           const wrapper = document.createElement('span');
           wrapper.id = 'watch-status-dropdown';

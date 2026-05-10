@@ -1,22 +1,27 @@
 import { state } from '../state';
 import { SkipSegment } from '../types';
-import { displayTimeFromAbsolute } from '../timeline';
 import { resolveActiveSegments, renderSegments } from '../skip/segments';
 import { updateSubtitleOptions } from '../subtitles';
 import { updateQualityOptions } from '../quality';
 import { updateModeButtons } from '../mode';
-import { updateOverlay, isAutoplayEnabled, updateEpisodeHighlight, switchEpisodeRange } from './ui';
+import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from './ui';
 import { markEpisodeTransition } from '../progress';
 
+/**
+ * Handles video end: either marks complete or loads next episode.
+ * Fetches episode data from API, updates player state and URL.
+ */
 export const goToNextEpisode = async (): Promise<void> => {
   const currentEp = Number.parseInt(state.currentEpisode, 10);
   if (!currentEp) return;
 
+  // final episode: trigger completion flow
   if (state.totalEpisodes > 0 && currentEp >= state.totalEpisodes) {
     import('./complete').then(m => m.completeAnime(currentEp));
     return;
   }
 
+  // skip if autoplay disabled
   if (!isAutoplayEnabled()) return;
 
   const nextEp = currentEp + 1;
@@ -25,6 +30,7 @@ export const goToNextEpisode = async (): Promise<void> => {
   try {
     const res = await fetch(`/api/watch/episode/${state.malID}/${nextEp}`);
     if (!res.ok) {
+      // fallback: full page navigation
       sessionStorage.setItem('mal:autoplay-next', 'true');
       const url = new URL(window.location.href);
       url.searchParams.set('ep', String(nextEp));
@@ -34,6 +40,7 @@ export const goToNextEpisode = async (): Promise<void> => {
 
     const data = await res.json();
 
+    // update state with new episode data
     state.modeSources = data.mode_sources ?? {};
     state.availableModes = data.available_modes ?? [];
 
@@ -46,6 +53,7 @@ export const goToNextEpisode = async (): Promise<void> => {
       return;
     }
 
+    // load new video
     state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}`;
     state.video.load();
     if (!state.video.paused) state.video.play().catch(() => {});
@@ -56,11 +64,13 @@ export const goToNextEpisode = async (): Promise<void> => {
     state.completionAttempts = 0;
     state.activeSubtitles = [];
 
+    // update UI
     updateSubtitleOptions();
     updateQualityOptions();
     updateModeButtons();
     updateOverlay(state.currentEpisode, data.episode_title ?? '');
 
+    // update skip segments
     if (data.segments?.length) {
       state.parsedSegments = data.segments
         .map((s: SkipSegment) => ({ ...s, start: Number(s.start) || 0, end: Number(s.end) || 0 }))
@@ -69,6 +79,7 @@ export const goToNextEpisode = async (): Promise<void> => {
       renderSegments();
     }
 
+    // highlight new episode in list/grid
     state.episodeList
       ?.querySelectorAll('[data-episode-id]')
       .forEach(el => el.classList.remove('bg-accent/20'));
@@ -84,6 +95,7 @@ export const goToNextEpisode = async (): Promise<void> => {
       newGridEl?.classList.add('bg-accent/20', 'ring-2', 'ring-accent', 'text-accent');
     }
 
+    // update URL without reload
     const url = new URL(window.location.href);
     url.searchParams.set('ep', String(nextEp));
     history.pushState(null, '', url.toString());

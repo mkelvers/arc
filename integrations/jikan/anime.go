@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// GetAnimeCharacters returns character list for an anime with voice actor info.
 func (c *Client) GetAnimeCharacters(ctx context.Context, id int) ([]CharacterEntry, error) {
 	url := fmt.Sprintf("%s/anime/%d/characters", c.baseURL, id)
 	cacheKey := fmt.Sprintf("anime:characters:%d", id)
@@ -18,6 +19,7 @@ func (c *Client) GetAnimeCharacters(ctx context.Context, id int) ([]CharacterEnt
 	return resp.Data, nil
 }
 
+// GetAnimeRecommendations returns user-submitted recommendations for an anime.
 func (c *Client) GetAnimeRecommendations(ctx context.Context, id int) ([]RecommendationEntry, error) {
 	url := fmt.Sprintf("%s/anime/%d/recommendations", c.baseURL, id)
 	cacheKey := fmt.Sprintf("anime:recommendations:%d", id)
@@ -30,6 +32,7 @@ func (c *Client) GetAnimeRecommendations(ctx context.Context, id int) ([]Recomme
 	return resp.Data, nil
 }
 
+// GetAnimeByID returns full anime details; finished series cached 30 days, airing cached 1 day.
 func (c *Client) GetAnimeByID(ctx context.Context, id int) (Anime, error) {
 	cacheKey := fmt.Sprintf("anime:%d", id)
 

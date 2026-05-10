@@ -23,6 +23,8 @@ type Renderer struct {
 	templates map[string]*template.Template
 }
 
+// GetRenderer returns the singleton renderer, initializing it on first call.
+// Templates are loaded from ./templates/*.gohtml and ./templates/components/*.gohtml.
 func GetRenderer() *Renderer {
 	once.Do(func() {
 		renderer = &Renderer{
@@ -165,6 +167,7 @@ func GetRenderer() *Renderer {
 	return renderer
 }
 
+// ExecuteTemplate renders a named template into wr, returning early if context is cancelled
 func (r *Renderer) ExecuteTemplate(ctx context.Context, wr io.Writer, name string, data any) error {
 	select {
 	case <-ctx.Done():
@@ -179,6 +182,7 @@ func (r *Renderer) ExecuteTemplate(ctx context.Context, wr io.Writer, name strin
 	return tmpl.ExecuteTemplate(wr, "base.gohtml", data)
 }
 
+// ExecuteFragment renders a specific named block within a template (e.g. a component)
 func (r *Renderer) ExecuteFragment(ctx context.Context, wr io.Writer, name string, block string, data any) error {
 	select {
 	case <-ctx.Done():

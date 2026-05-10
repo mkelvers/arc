@@ -49,6 +49,7 @@ func rankSources(sources []StreamSource, quality string) ([]sourceScore, error) 
 		})
 	}
 
+	// stable sort to preserve insertion order for equal scores
 	sort.SliceStable(scored, func(i int, j int) bool {
 		return scored[i].total > scored[j].total
 	})
@@ -97,6 +98,7 @@ func lookupPriority(m map[string]int, key string, fallback int) int {
 	return fallback
 }
 
+// sourceQualityPriority scores quality match: exact match gets boost, mismatch gets penalty.
 func sourceQualityPriority(sourceQuality string, targetQuality string) int {
 	qualityValue := parseQualityValue(sourceQuality)
 
@@ -114,6 +116,7 @@ func sourceQualityPriority(sourceQuality string, targetQuality string) int {
 	}
 }
 
+// qualityMatches checks if source matches target by substring or extracted digits.
 func qualityMatches(sourceQuality string, targetQuality string) bool {
 	sourceLower := strings.ToLower(sourceQuality)
 	targetLower := strings.ToLower(targetQuality)
@@ -129,6 +132,7 @@ func qualityMatches(sourceQuality string, targetQuality string) bool {
 	return extractDigits(sourceLower) == extractDigits(targetLower)
 }
 
+// parseQualityValue extracts numeric value from quality string.
 func parseQualityValue(rawQuality string) int {
 	lower := strings.ToLower(rawQuality)
 	if lower == "auto" {
@@ -147,6 +151,7 @@ func parseQualityValue(rawQuality string) int {
 	return value
 }
 
+// extractDigits reads leading digits until a non-digit or break condition.
 func extractDigits(value string) string {
 	var digits []byte
 	for _, char := range value {
@@ -159,6 +164,7 @@ func extractDigits(value string) string {
 	return string(digits)
 }
 
+// normalizeSourceTypeFromProbe overrides source type based on Content-Type header.
 func normalizeSourceTypeFromProbe(source StreamSource, contentType string) StreamSource {
 	lower := strings.ToLower(contentType)
 	switch {
@@ -170,6 +176,7 @@ func normalizeSourceTypeFromProbe(source StreamSource, contentType string) Strea
 	return source
 }
 
+// isLikelyMP4 checks ftyp box header (bytes 4-8 of mp4 files).
 func isLikelyMP4(payload []byte) bool {
 	if len(payload) < 12 {
 		return false
@@ -178,6 +185,7 @@ func isLikelyMP4(payload []byte) bool {
 	return bytes.Equal(payload[4:8], []byte("ftyp"))
 }
 
+// isLikelyM3U8 checks for m3u8 file header.
 func isLikelyM3U8(payload []byte) bool {
 	trimmed := strings.TrimSpace(string(payload))
 	return strings.HasPrefix(trimmed, "#EXTM3U")

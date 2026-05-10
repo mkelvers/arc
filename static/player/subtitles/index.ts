@@ -2,8 +2,10 @@ import { SubtitleCue, SubtitleTrack } from '../types';
 import { state } from '../state';
 import { parseVtt } from './vtt';
 
+// proxy subtitle URL through backend (avoids CORS)
 const proxyUrl = (token: string) => `/watch/proxy/subtitle?token=${encodeURIComponent(token)}`;
 
+// builds subtitle track list from current mode's source
 const subtitlesForMode = (): SubtitleTrack[] => {
   const src = state.modeSources[state.currentMode];
   if (!src?.subtitles) return [];
@@ -24,6 +26,7 @@ const hideSubtitleText = (): void => {
   el.classList.add('hidden');
 };
 
+// fetches and parses VTT from proxy URL
 const loadSubtitle = async (url: string): Promise<SubtitleCue[]> => {
   try {
     const res = await fetch(url);
@@ -34,6 +37,10 @@ const loadSubtitle = async (url: string): Promise<SubtitleCue[]> => {
   }
 };
 
+/**
+ * Rebuilds subtitle dropdown from current mode's available tracks.
+ * Shows/hides dropdown based on availability.
+ */
 export const updateSubtitleOptions = (): void => {
   const select = state.container.querySelector(
     '[data-subtitle-select]'
@@ -61,6 +68,10 @@ export const updateSubtitleOptions = (): void => {
   hideSubtitleText();
 };
 
+/**
+ * Updates subtitle text display based on current video time.
+ * Finds active cue and shows/hides overlay.
+ */
 export const updateSubtitleRender = (time: number): void => {
   const el = state.container.querySelector('[data-subtitle-text]') as HTMLElement | null;
   if (!el) return;
@@ -69,6 +80,7 @@ export const updateSubtitleRender = (time: number): void => {
     return;
   }
 
+  // find cue containing current time
   const cue = state.activeSubtitles.find(c => time >= c.start && time <= c.end);
   if (!cue) {
     hideSubtitleText();
@@ -79,6 +91,10 @@ export const updateSubtitleRender = (time: number): void => {
   el.classList.remove('hidden');
 };
 
+/**
+ * Binds subtitle select change handler.
+ * Loads and parses selected VTT track.
+ */
 export const setupSubtitles = (): void => {
   const select = state.container.querySelector(
     '[data-subtitle-select]'

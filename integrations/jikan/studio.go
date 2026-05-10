@@ -28,6 +28,7 @@ type ProducerResponse struct {
 	} `json:"data"`
 }
 
+// GetAnimeByProducer returns anime list for a producer/studio, includes producer name.
 func (c *Client) GetAnimeByProducer(ctx context.Context, producerID int, page int) (StudioAnimeResult, error) {
 	if page < 1 {
 		page = 1
@@ -75,6 +76,7 @@ func (c *Client) GetAnimeByProducer(ctx context.Context, producerID int, page in
 	return res, nil
 }
 
+// GetProducerByID returns full producer/studio details.
 func (c *Client) GetProducerByID(ctx context.Context, producerID int) (ProducerResponse, error) {
 	cacheKey := fmt.Sprintf("producer:info:%d", producerID)
 

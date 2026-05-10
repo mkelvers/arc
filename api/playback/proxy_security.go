@@ -63,6 +63,7 @@ func (s *proxyTokenSigner) Sign(payload proxyTokenPayload) (string, error) {
 	mac.Write(body)
 	signature := mac.Sum(nil)
 
+	// format: payload.signature (both base64url encoded)
 	encodedBody := base64.RawURLEncoding.EncodeToString(body)
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signature)
 	return encodedBody + "." + encodedSignature, nil
@@ -87,7 +88,7 @@ func (s *proxyTokenSigner) Verify(token string) (proxyTokenPayload, error) {
 	mac := hmac.New(sha256.New, s.secret)
 	mac.Write(body)
 	expected := mac.Sum(nil)
-	if !hmac.Equal(signature, expected) {
+	if !hmac.Equal(signature, expected) { // constant-time comparison
 		return proxyTokenPayload{}, errors.New("invalid proxy token signature")
 	}
 
@@ -107,6 +108,7 @@ func (s *Service) buildClientModeSources(modeSources map[string]ModeSource) (map
 	clientModeSources := make(map[string]ModeSource, len(modeSources))
 
 	for mode, source := range modeSources {
+		// wrap stream url with proxy token
 		streamToken, err := s.issueProxyToken(source.URL, source.Referer, proxyScopeStream)
 		if err != nil {
 			return nil, err
@@ -162,6 +164,7 @@ func (s *Service) issueProxyToken(targetURL string, referer string, scope proxyS
 	})
 }
 
+// proxyTokenTTLs defines ttl per scope type.
 var proxyTokenTTLs = map[proxyScope]time.Duration{
 	proxyScopeStream:   proxyStreamTokenTTL,
 	proxyScopeSegment:  proxySegmentTokenTTL,
@@ -194,6 +197,7 @@ func (s *Service) resolveProxyToken(ctx context.Context, token string, scope pro
 		return "", "", err
 	}
 
+	// resolve referer only if it passes public target check
 	normalizedReferer := ""
 	if strings.TrimSpace(payload.Referer) != "" {
 		refererURL, refererErr := normalizeProxyURL(payload.Referer)
@@ -207,6 +211,7 @@ func (s *Service) resolveProxyToken(ctx context.Context, token string, scope pro
 	return normalizedTarget, normalizedReferer, nil
 }
 
+// normalizeProxyURL validates and canonicalizes a proxy target URL.
 func normalizeProxyURL(rawURL string) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(rawURL))
 	if err != nil {
@@ -222,6 +227,7 @@ func normalizeProxyURL(rawURL string) (string, error) {
 		return "", errors.New("invalid proxy target host")
 	}
 
+	// block localhost and .local TLD
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") {
 		return "", errors.New("localhost targets are not allowed")
 	}
@@ -234,6 +240,7 @@ func normalizeProxyURL(rawURL string) (string, error) {
 	return parsed.String(), nil
 }
 
+// isBlockedProxyIP checks for loopback, private, multicast, and unspecified addresses.
 func isBlockedProxyIP(ip net.IP) bool {
 	return ip.IsLoopback() ||
 		ip.IsPrivate() ||
@@ -243,6 +250,8 @@ func isBlockedProxyIP(ip net.IP) bool {
 		ip.IsUnspecified()
 }
 
+// ensurePublicProxyTarget validates that the target host resolves to a public IP.
+// results are cached to avoid repeated DNS lookups.
 func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {
@@ -254,6 +263,7 @@ func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) er
 		return errors.New("invalid proxy target host")
 	}
 
+	// direct IP already checked by normalizeProxyURL
 	if ip := net.ParseIP(host); ip != nil {
 		if isBlockedProxyIP(ip) {
 			return errors.New("private proxy targets are not allowed")
@@ -261,6 +271,7 @@ func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) er
 		return nil
 	}
 
+	// check cache first
 	cached, ok := s.proxyHostCache.Get(host)
 	if ok {
 		if cached.Allowed {
@@ -269,6 +280,7 @@ func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) er
 		return errors.New("private proxy targets are not allowed")
 	}
 
+	// DNS resolution for hostname
 	resolvedIPs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 	if err != nil || len(resolvedIPs) == 0 {
 		return errors.New("proxy target lookup failed")
@@ -293,6 +305,7 @@ func (s *Service) ensurePublicProxyTarget(ctx context.Context, rawURL string) er
 	return nil
 }
 
+// rewritePlaylistWithTokens replaces segment URLs with proxy tokens for HLS playlists.
 func (s *Service) rewritePlaylistWithTokens(ctx context.Context, content string, baseURL string, referer string) (string, error) {
 	base, err := url.Parse(baseURL)
 	if err != nil {
@@ -310,6 +323,7 @@ func (s *Service) rewritePlaylistWithTokens(ctx context.Context, content string,
 
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
+		// preserve comments and empty lines
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			out.WriteString(line)
 			out.WriteString("\n")

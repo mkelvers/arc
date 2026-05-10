@@ -19,6 +19,7 @@ func (s *Service) resolveShow(ctx context.Context, malID int, titleCandidates []
 
 		for _, mode := range modeCandidates {
 			for _, result := range resultsByMode[mode] {
+				// exact mal id match
 				if strings.TrimSpace(result.MalID) == malText && strings.TrimSpace(result.ID) != "" {
 					return result.ID, result.Name, nil
 				}
@@ -31,6 +32,7 @@ func (s *Service) resolveShow(ctx context.Context, malID int, titleCandidates []
 				continue
 			}
 
+			// fallback to first result if no exact match
 			best := results[0]
 			if strings.TrimSpace(best.ID) != "" {
 				return best.ID, best.Name, nil
@@ -47,7 +49,7 @@ func (s *Service) searchShowResultsByMode(ctx context.Context, query string, mod
 
 	var wg sync.WaitGroup
 	for _, mode := range modeCandidates {
-		modeValue := mode
+		modeValue := mode // capture loop variable
 		wg.Go(func() {
 			results, err := s.allAnimeClient.Search(ctx, query, modeValue)
 			searchCh <- searchModeResult{Mode: modeValue, Results: results, Err: err}
@@ -96,6 +98,7 @@ func buildTitleSearchQueries(titleCandidates []string) []string {
 		add(normalized)
 		add(strings.ReplaceAll(normalized, "+", " "))
 
+		// strip apostrophes to improve match rate
 		withoutApostrophes := strings.NewReplacer("'", "", "’", "", "`", "").Replace(normalized)
 		add(withoutApostrophes)
 		add(strings.ReplaceAll(withoutApostrophes, "+", " "))
@@ -144,6 +147,7 @@ func availableModes(modeSources map[string]ModeSource) []string {
 	return append(ordered, extra...)
 }
 
+// selectInitialMode picks a mode prioritizing: requested mode > dub > sub > first available.
 func selectInitialMode(requestedMode string, modeSources map[string]ModeSource) string {
 	normalizedRequested := normalizeMode(requestedMode)
 	if normalizedRequested != "" {

@@ -7,6 +7,7 @@ const initSortFilter = (): void => {
     if (form) form.submit();
   };
 
+  // sync select values to hidden inputs, then submit form
   sortSelect?.addEventListener('change', () => {
     const input = document.getElementById('sort-input') as HTMLInputElement | null;
     if (input) input.value = sortSelect.value;

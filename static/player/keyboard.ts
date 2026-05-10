@@ -1,10 +1,5 @@
 import { state } from './state';
-import {
-  displayTimeFromAbsolute,
-  absoluteTimeFromDisplay,
-  absoluteTimeFromRatio,
-  getBounds,
-} from './timeline';
+import { absoluteTimeFromRatio, getBounds } from './timeline';
 import {
   showControls,
   toggleMute,
@@ -12,12 +7,16 @@ import {
   toggleFullscreen,
   seekBy,
   setVolume,
-  formatTime,
 } from './controls';
 
+/**
+ * Sets up keyboard shortcuts for player control.
+ * Ignores input/textarea to allow typing.
+ */
 export const setupKeyboard = (): void => {
   document.addEventListener('keydown', e => {
     const target = e.target as HTMLElement;
+    // ignore when typing in form fields
     if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
       return;
 
@@ -59,6 +58,7 @@ export const setupKeyboard = (): void => {
         showControls();
         break;
       default:
+        // number keys 0-9: jump to 0%-90% of video
         if (/^\d$/.test(e.key)) {
           const b = getBounds();
           if (b.duration > 0) {

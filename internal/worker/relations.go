@@ -26,12 +26,13 @@ func New(db *db.Queries, client *jikan.Client) *Worker {
 
 func (w *Worker) Start(ctx context.Context) {
 	log.Println("Starting relations sync worker...")
+	// ticker: regular sync; retryTicker: check for failed API retries
 	ticker := time.NewTicker(1 * time.Minute)
 	retryTicker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	defer retryTicker.Stop()
 
-	// Run once immediately
+	// Run once immediately on startup
 	w.runAllTasks(ctx)
 
 	cleanupCounter := 0
@@ -78,6 +79,7 @@ func (w *Worker) runAllTasks(ctx context.Context) {
 	wg.Wait()
 }
 
+// retryBackoff calculates the next retry delay, doubling up to 30 minutes max
 func retryBackoff(attempts int64) string {
 	if attempts < 1 {
 		attempts = 1
@@ -97,6 +99,7 @@ func retryBackoff(attempts int64) string {
 	return fmt.Sprintf("+%d minutes", minutes)
 }
 
+// processAnimeFetchRetries retries failed Jikan API fetches for anime with pending entries
 func (w *Worker) processAnimeFetchRetries(ctx context.Context) {
 	retries, err := w.db.GetDueAnimeFetchRetries(ctx, 20)
 	if err != nil {
@@ -139,6 +142,7 @@ func (w *Worker) cleanupCache(ctx context.Context) {
 	}
 }
 
+// syncRelations fetches relation data for anime that need syncing via a worker pool
 func (w *Worker) syncRelations(ctx context.Context) {
 	animes, err := w.db.GetAnimeNeedingRelationSync(ctx)
 	if err != nil {
@@ -170,6 +174,8 @@ func (w *Worker) syncRelations(ctx context.Context) {
 	wg.Wait()
 }
 
+// syncSingleAnime fetches relations for one anime, inserts them, and marks it synced.
+// For sequels, also ensures the related anime exists in the DB to enable linking.
 func (w *Worker) syncSingleAnime(ctx context.Context, id int64) {
 	animeData, err := w.client.GetAnimeByID(ctx, int(id))
 	if err != nil {

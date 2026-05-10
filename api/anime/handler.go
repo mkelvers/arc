@@ -28,10 +28,10 @@ func NewHandler(service *Service) *Handler {
 }
 
 type quickSearchResult struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-	Type  string `json:"type"`
-	Image string `json:"image"`
+	ID    int    `json:"id"`    // anime mal id
+	Title string `json:"title"` // display title
+	Type  string `json:"type"`  // anime type (tv, movie, etc)
+	Image string `json:"image"` // cover image url
 }
 
 func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +63,7 @@ func (h *Handler) HandleCatalogContinue(w http.ResponseWriter, r *http.Request) 
 	h.renderCatalogSection(w, r, "Continue")
 }
 
+// renderCatalogSection fetches catalog data (airing/popular/continue) and renders as htmx fragment
 func (h *Handler) renderCatalogSection(w http.ResponseWriter, r *http.Request, section string) {
 	user := middleware.GetUser(r.Context())
 	userID := ""
@@ -82,6 +83,7 @@ func (h *Handler) renderCatalogSection(w http.ResponseWriter, r *http.Request, s
 	data["User"] = user
 	data["Section"] = section
 
+	// render section as htmx partial, not full page
 	if err := templates.GetRenderer().ExecuteFragment(r.Context(), w, "index.gohtml", "catalog_section", data); err != nil {
 		log.Printf("fragment render error: %v", err)
 	}
@@ -133,15 +135,17 @@ func (h *Handler) renderDiscoverSection(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
+// HandleBrowse handles anime search/browse with filters. supports htmx partial loading.
 func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
 
+	// parse query params for search/filter
 	q := r.URL.Query().Get("q")
 	animeType := r.URL.Query().Get("type")
 	status := r.URL.Query().Get("status")
 	orderBy := r.URL.Query().Get("order_by")
 	sort := r.URL.Query().Get("sort")
-	sfw := r.URL.Query().Get("sfw") != "false"
+	sfw := r.URL.Query().Get("sfw") != "false" // default to safe
 
 	var genres []int
 	for _, g := range r.URL.Query()["genres"] {
@@ -165,6 +169,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") == "true" {
+		// htmx: return just the card scroll fragment with watchlist state
 		watchlistMap := make(map[int]bool)
 		if user != nil {
 			watchlist, _ := h.service.db.GetUserWatchList(ctx, user.ID)
@@ -195,6 +200,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// full page load: fetch genres list and full watchlist
 	genresList, err := h.service.jikanClient.GetAnimeGenres(ctx)
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
@@ -237,6 +243,7 @@ func (h *Handler) HandleBrowse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleAnimeDetails renders anime detail page. handles htmx requests for characters/recommendations sections.
 func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/anime/")
 	idStr = strings.TrimSuffix(idStr, "/")
@@ -248,7 +255,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 
 	user := middleware.GetUser(r.Context())
 
-	// If it's an HTMX request for a specific section, handle it
+	// htmx: return just the section (characters or recommendations)
 	section := r.URL.Query().Get("section")
 	if section != "" && r.Header.Get("HX-Request") == "true" {
 		h.renderAnimeDetailsSection(w, r, id, section)
@@ -264,10 +271,12 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 
 	g, gCtx := errgroup.WithContext(r.Context())
 
+	// fetch anime details + episode count if airing
 	g.Go(func() error {
 		var err error
 		anime, err = h.service.jikanClient.GetAnimeByID(gCtx, id)
 		if err == nil && anime.Airing {
+			// get episode count for airing anime (may span multiple pages)
 			eps, err := h.service.jikanClient.GetEpisodes(gCtx, id, 1)
 			if err == nil {
 				if eps.Pagination.LastVisiblePage > 1 {
@@ -288,6 +297,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if user != nil {
+		// fetch user's watchlist status for this anime
 		g.Go(func() error {
 			entry, err := h.service.db.GetWatchListEntry(gCtx, db.GetWatchListEntryParams{
 				UserID:  user.ID,
@@ -298,6 +308,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 			}
 			return nil
 		})
+		// fetch all watchlist ids for nav state
 		g.Go(func() error {
 			watchlist, err := h.service.db.GetUserWatchList(gCtx, user.ID)
 			if err == nil {
@@ -329,6 +340,7 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// renderAnimeDetailsSection fetches and renders htmx partial for character/recommendation sections
 func (h *Handler) renderAnimeDetailsSection(w http.ResponseWriter, r *http.Request, id int, section string) {
 	ctx := r.Context()
 	var data any
@@ -355,6 +367,7 @@ func (h *Handler) renderAnimeDetailsSection(w http.ResponseWriter, r *http.Reque
 		tplName = "anime_recommendations"
 	}
 
+	// render htmx partial for the section
 	if err := templates.GetRenderer().ExecuteFragment(ctx, w, "anime.gohtml", tplName, data); err != nil {
 		log.Printf("fragment render error: %v", err)
 	}

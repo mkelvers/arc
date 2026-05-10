@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// doProxiedRequest performs an HTTP GET with standard playback headers.
 func doProxiedRequest(ctx context.Context, client *http.Client, url string, referer string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

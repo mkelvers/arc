@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// toSubtitleItems converts raw subtitle entries into client-safe items.
 func toSubtitleItems(source StreamSource) []SubtitleItem {
 	items := make([]SubtitleItem, 0, len(source.Subtitles))
 	for _, subtitle := range source.Subtitles {

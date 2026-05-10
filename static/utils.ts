@@ -1,3 +1,6 @@
+/**
+ * Parse a space-separated class list string into an array, filtering empty entries.
+ */
 export const parseClassList = (value: string | null): string[] => {
   if (!value) {
     return [];

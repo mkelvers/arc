@@ -79,7 +79,12 @@ export const state: PlayerState = {
   videoOverlay: null,
 };
 
+/**
+ * Initializes player state from DOM data attributes.
+ * Called once on page load or htmx swap.
+ */
 export const initState = (c: HTMLElement): void => {
+  // core elements
   state.container = c;
   state.video = q<HTMLVideoElement>(c, 'video')!;
   state.progress = q<HTMLElement>(c, '[data-progress]');
@@ -91,14 +96,17 @@ export const initState = (c: HTMLElement): void => {
   state.previewTime = q<HTMLElement>(c, '[data-preview-time]');
   state.videoOverlay = q<HTMLElement>(c, '[data-video-overlay]');
 
+  // data attributes from server
   state.malID = Number.parseInt(dataset(c, 'malId'), 10);
   state.currentEpisode = dataset(c, 'currentEpisode') || '1';
   state.totalEpisodes = Number.parseInt(dataset(c, 'totalEpisodes'), 10);
   state.streamURL = dataset(c, 'streamUrl') || '/watch/proxy/stream';
   state.initialStreamToken = dataset(c, 'streamToken') || '';
+  // from session: previous page set this when autoplay triggered
   state.shouldAutoPlay = sessionStorage.getItem('mal:autoplay-next') === 'true';
   sessionStorage.removeItem('mal:autoplay-next');
 
+  // global elements (not inside player container)
   state.episodeGrid = qs<HTMLElement>('[data-episode-grid]');
   state.episodeList = qs<HTMLElement>('[data-episode-list]');
 
@@ -110,9 +118,11 @@ export const initState = (c: HTMLElement): void => {
     }
   };
 
+  // mode sources = { sub: { token, subtitles, qualities }, dub: { ... } }
   state.modeSources = safeJson(dataset(c, 'modeSources'), {} as Record<string, ModeSource>);
   state.availableModes = safeJson(dataset(c, 'availableModes'), [] as string[]);
 
+  // resolve initial mode: localStorage > backend default > first available > 'dub'
   const backendInitialMode = dataset(c, 'initialMode') || 'dub';
   const storedMode = localStorage.getItem('player-audio-mode');
   const initialMode =
@@ -122,6 +132,7 @@ export const initState = (c: HTMLElement): void => {
     ? initialMode
     : (fallbackMode ?? state.availableModes[0] ?? 'dub');
 
+  // parse skip segments from data attribute
   const segments = safeJson(dataset(c, 'segments'), [] as SkipSegment[]);
   state.parsedSegments = segments
     .map(s => ({ ...s, start: Number(s.start) || 0, end: Number(s.end) || 0 }))

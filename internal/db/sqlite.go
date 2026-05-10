@@ -9,6 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// Open connects to a sqlite3 database with foreign keys enforced
 func Open(dbFile string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on", dbFile))
 	if err != nil {
@@ -17,6 +18,7 @@ func Open(dbFile string) (*sql.DB, error) {
 	return db, nil
 }
 
+// GetDBFile returns the database file path, checking DATABASE_FILE env var first
 func GetDBFile() string {
 	if f := os.Getenv("DATABASE_FILE"); f != "" {
 		return f
@@ -24,6 +26,7 @@ func GetDBFile() string {
 	return "mal.db"
 }
 
+// GetMigrationsDir returns the migrations directory, checking MIGRATIONS_DIR env var first
 func GetMigrationsDir() (string, error) {
 	if dir := os.Getenv("MIGRATIONS_DIR"); dir != "" {
 		return dir, nil
@@ -35,6 +38,7 @@ func GetMigrationsDir() (string, error) {
 	return filepath.Join(wd, "migrations"), nil
 }
 
+// Init opens the database, runs migrations, and returns a Queries instance
 func Init(db *sql.DB) (*Queries, error) {
 	migrationsDir, err := GetMigrationsDir()
 	if err != nil {

@@ -7,7 +7,7 @@ const getSavedTheme = (): Theme => {
   if (raw === 'light' || raw === 'dark') {
     return raw;
   }
-  return 'dark';
+  return 'dark'; // default to dark
 };
 
 const applyTheme = (theme: Theme): void => {
@@ -25,6 +25,7 @@ const initTheme = (): void => {
   const saved = getSavedTheme();
   applyTheme(saved);
 
+  // delegated click handler on theme buttons
   document.addEventListener('click', e => {
     const target = e.target as HTMLElement;
     const btn = target.closest('#theme-toggle, #footer-theme-toggle') as HTMLButtonElement | null;

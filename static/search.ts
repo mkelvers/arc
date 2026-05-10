@@ -1,5 +1,3 @@
-export {};
-
 type QuickSearchResult = {
   id?: number;
   image?: string;
@@ -7,6 +5,7 @@ type QuickSearchResult = {
   type?: string;
 };
 
+// singleton flag to prevent double init (e.g. htmx swaps)
 const searchInitializedKey = Symbol('searchInitialized');
 const globalWindow = window as Window & { [searchInitializedKey]?: boolean };
 
@@ -23,6 +22,7 @@ const isSafeImageUrl = (rawUrl?: string): boolean => {
 
   try {
     const parsed = new URL(rawUrl, window.location.origin);
+    // block data: URIs and other potentially dangerous protocols
     return parsed.protocol === 'https:' || parsed.protocol === 'http:';
   } catch {
     return false;
@@ -139,6 +139,7 @@ const onSearchInput = (event: Event): void => {
 };
 
 const onSearchBlur = (): void => {
+  // delay to allow clicking on results before clearing
   window.setTimeout(() => {
     clearSearchResults();
   }, 200);

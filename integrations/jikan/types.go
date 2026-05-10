@@ -155,18 +155,22 @@ type RecommendationsResponse struct {
 	Data []RecommendationEntry `json:"data"`
 }
 
+// ScoredByFormatted returns formatted count (e.g. "1 234 567").
 func (a Anime) ScoredByFormatted() string {
 	return formatNumber(a.ScoredBy)
 }
 
+// MembersFormatted returns formatted count (e.g. "1 234 567").
 func (a Anime) MembersFormatted() string {
 	return formatNumber(a.Members)
 }
 
+// FavoritesFormatted returns formatted count (e.g. "1 234 567").
 func (a Anime) FavoritesFormatted() string {
 	return formatNumber(a.Favorites)
 }
 
+// formatNumber adds space separators to a number (1234567 -> "1 234 567").
 func formatNumber(n int) string {
 	if n == 0 {
 		return ""
@@ -180,10 +184,12 @@ func formatNumber(n int) string {
 	return strings.Join(res, " ")
 }
 
+// ImageURL returns the webp large image URL for the anime.
 func (a Anime) ImageURL() string {
 	return a.Images.Webp.LargeImageURL
 }
 
+// ShortRating extracts just the rating code (e.g. "PG-13") from full rating string.
 func (a Anime) ShortRating() string {
 	if a.Rating == "" {
 		return ""
@@ -197,6 +203,7 @@ func (a Anime) ShortRating() string {
 	return a.Rating
 }
 
+// ShortDuration extracts numeric duration in minutes (e.g. "23m" from "23 min per ep").
 func (a Anime) ShortDuration() string {
 	if a.Duration == "" {
 		return ""
@@ -216,6 +223,7 @@ func (a Anime) ShortDuration() string {
 	return a.Duration
 }
 
+// DurationSeconds converts duration string to total seconds (e.g. "1 hr 30 min" -> 5400).
 func (a Anime) DurationSeconds() float64 {
 	if a.Duration == "" {
 		return 0
@@ -256,6 +264,7 @@ func (a Anime) DurationSeconds() float64 {
 	return float64(hours*60+minutes) * 60
 }
 
+// Premiered returns formatted premiere string (e.g. "Winter 2020").
 func (a Anime) Premiered() string {
 	if a.Season != "" && a.Year > 0 {
 		return fmt.Sprintf("%s %d", seasonLabel(a.Season), a.Year)
@@ -263,6 +272,7 @@ func (a Anime) Premiered() string {
 	return ""
 }
 
+// seasonLabel normalizes season string to title case (fall/autumn -> Fall).
 func seasonLabel(season string) string {
 	switch strings.ToLower(season) {
 	case "winter":
@@ -356,6 +366,7 @@ type RelationEntry struct {
 	IsExtra   bool
 }
 
+// DisplayTitle returns English title if available, otherwise Japanese, then default.
 func (a Anime) DisplayTitle() string {
 	if a.TitleEnglish != "" {
 		return a.TitleEnglish

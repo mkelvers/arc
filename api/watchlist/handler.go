@@ -19,6 +19,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// HandleUpdateWatchlist adds or updates anime in user's watchlist. accepts json {animeId, status}.
 func (h *Handler) HandleUpdateWatchlist(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -40,6 +41,7 @@ func (h *Handler) HandleUpdateWatchlist(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// default status if not provided
 	if body.Status == "" {
 		body.Status = "plan_to_watch"
 	}
@@ -53,6 +55,7 @@ func (h *Handler) HandleUpdateWatchlist(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleDeleteWatchlist removes anime from user's watchlist. expects /api/watchlist/{animeId}.
 func (h *Handler) HandleDeleteWatchlist(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
 	if user == nil {
@@ -73,10 +76,12 @@ func (h *Handler) HandleDeleteWatchlist(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// htmx: redirect to watchlist page after delete
 	w.Header().Set("HX-Redirect", "/watchlist")
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleDeleteContinueWatching removes entry from user's continue watching. expects /api/continue-watching/{animeId}.
 func (h *Handler) HandleDeleteContinueWatching(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
 	if user == nil {
@@ -101,6 +106,7 @@ func (h *Handler) HandleDeleteContinueWatching(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleGetWatchlist renders user's watchlist page, grouped by status.
 func (h *Handler) HandleGetWatchlist(w http.ResponseWriter, r *http.Request) {
 	user := middleware.GetUser(r.Context())
 	if user == nil {
@@ -119,6 +125,7 @@ func (h *Handler) HandleGetWatchlist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// group entries by status for display
 	watchlistByStatus := make(map[string][]db.GetUserWatchListRow)
 	allEntries := make([]db.GetUserWatchListRow, 0)
 	watchlistIDs := make([]int64, len(entries))
@@ -149,6 +156,7 @@ func (h *Handler) HandleGetWatchlist(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	// use partial template for htmx requests
 	templateName := "watchlist.gohtml"
 	if r.Header.Get("HX-Request") == "true" {
 		templateName = "watchlist_partial.gohtml"

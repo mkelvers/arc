@@ -5,6 +5,8 @@ import (
 	"net/url"
 )
 
+// VerifyOrigin validates that the request Origin/Referer matches the host
+// skips validation for safe methods (GET, HEAD, OPTIONS)
 func VerifyOrigin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodOptions {
@@ -36,7 +38,7 @@ func VerifyOrigin(next http.Handler) http.Handler {
 
 		host := r.Host
 		if forwardedHost := r.Header.Get("X-Forwarded-Host"); forwardedHost != "" {
-			host = forwardedHost
+			host = forwardedHost // support reverse proxies
 		}
 
 		expectedHTTP := "http://" + host

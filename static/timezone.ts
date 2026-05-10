@@ -1,5 +1,6 @@
 export {};
 
+// JST offset from UTC in minutes (UTC+9)
 const jstOffsetMinutes = 9 * 60;
 
 type ParsedBroadcast = {
@@ -20,6 +21,7 @@ const parseBroadcastTime = (value: string | null): { hour: number; minute: numbe
 
   const hour = Number.parseInt(match[1], 10);
   const minute = Number.parseInt(match[2], 10);
+  // validate ranges
   if (
     Number.isNaN(hour) ||
     Number.isNaN(minute) ||
@@ -36,7 +38,7 @@ const parseBroadcastTime = (value: string | null): { hour: number; minute: numbe
 
 const isJstTimezone = (timezone: string | null): boolean => {
   if (!timezone) {
-    return true;
+    return true; // treat missing timezone as JST (anime default)
   }
 
   const normalized = timezone.trim().toLowerCase();
@@ -65,6 +67,7 @@ const parseBroadcast = (text: string | null): ParsedBroadcast | null => {
     return null;
   }
 
+  // matches "Monday at 00:00 (JST)" format
   const match = text.match(/^(.*) at (\d{1,2}):(\d{2}) \(JST\)$/i);
   if (!match) {
     return null;
@@ -86,6 +89,7 @@ const parseBroadcast = (text: string | null): ParsedBroadcast | null => {
 };
 
 const normalizeDay = (day: string): number | null => {
+  // strip trailing 's' for plural forms, then lookup
   const key = day.trim().toLowerCase().replace(/s$/, '');
   const days: Record<string, number> = {
     mon: 1,
@@ -116,11 +120,11 @@ const normalizeDay = (day: string): number | null => {
 
 const convertToLocal = (parsed: ParsedBroadcast, localOffsetMinutes: number): string | null => {
   const sourceMinutes = parsed.hour * 60 + parsed.minute;
-  const diff = jstOffsetMinutes - localOffsetMinutes;
+  const diff = jstOffsetMinutes - localOffsetMinutes; // JST ahead of local
   const localTotal = sourceMinutes - diff;
 
   const dayShift = Math.floor(localTotal / 1440);
-  const normalizedMinutes = ((localTotal % 1440) + 1440) % 1440;
+  const normalizedMinutes = ((localTotal % 1440) + 1440) % 1440; // handle negatives
   const localHour = Math.floor(normalizedMinutes / 60);
   const localMinute = normalizedMinutes % 60;
 
@@ -129,7 +133,7 @@ const convertToLocal = (parsed: ParsedBroadcast, localOffsetMinutes: number): st
     return null;
   }
 
-  const localDayIndex = (((sourceDayIndex + dayShift) % 7) + 7) % 7;
+  const localDayIndex = (((sourceDayIndex + dayShift) % 7) + 7) % 7; // proper modulo
   const localDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
     localDayIndex
   ];
@@ -144,6 +148,7 @@ const nextAiringUTC = (parsed: ParsedBroadcast): Date | null => {
     return null;
   }
 
+  // convert local time to JST to compare against JST now
   const now = new Date();
   const jstNow = new Date(now.getTime() + jstOffsetMinutes * 60 * 1000);
 
@@ -152,6 +157,7 @@ const nextAiringUTC = (parsed: ParsedBroadcast): Date | null => {
   const targetMinuteOfDay = parsed.hour * 60 + parsed.minute;
 
   let dayDelta = (targetDay - currentDay + 7) % 7;
+  // if same day but time has passed, schedule for next week
   if (dayDelta === 0 && targetMinuteOfDay <= currentMinuteOfDay) {
     dayDelta = 7;
   }
@@ -161,11 +167,13 @@ const nextAiringUTC = (parsed: ParsedBroadcast): Date | null => {
 };
 
 const formatRelative = (value: number, unit: Intl.RelativeTimeFormatUnit): string => {
+  // Intl.RelativeTimeFormat not available in all environments
   if (typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function') {
     const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
     return formatter.format(value, unit);
   }
 
+  // fallback: "in X minutes/hours/days"
   const suffix = value === 1 ? unit : `${unit}s`;
   return `in ${value} ${suffix}`;
 };
@@ -223,6 +231,7 @@ const updateNode = (node: Element, localOffsetMinutes: number): void => {
   const card = node.closest('[data-notification-content]');
   const nextNode = card ? card.querySelector('[data-next-airing]') : null;
 
+  // try structured attrs first, fall back to text parsing
   const structured = parseFromStructuredAttrs(node);
   const source = node.getAttribute('data-jst-text');
   const parsed = structured || parseBroadcast(source);
@@ -252,6 +261,7 @@ const updateAll = (): void => {
 };
 
 const initTimezoneConversion = (): void => {
+  // run on initial load and after htmx swaps (content may change)
   document.addEventListener('DOMContentLoaded', updateAll);
   document.body.addEventListener('htmx:afterSwap', updateAll);
 };

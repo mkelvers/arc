@@ -14,7 +14,7 @@ import { markEpisodeTransition, setupProgress } from './progress';
 import { absoluteTimeFromRatio, getBounds, displayTimeFromAbsolute } from './timeline';
 import { formatTime } from './controls';
 
-let initialized = false;
+let initialized = false; // prevent double init on htmx swaps
 
 const hidePreviewPopover = (): void => {
   state.previewPopover?.classList.remove('block');
@@ -27,6 +27,7 @@ const showPreviewPopover = (): void => {
   state.previewPopover?.classList.add('block');
 };
 
+// updates time preview on progress bar hover
 const updatePreviewUI = (ratio: number): void => {
   const progressWrap = state.container.querySelector('[data-progress-wrap]') as HTMLElement | null;
   if (!progressWrap || !state.previewPopover || !state.previewTime) {
@@ -39,6 +40,7 @@ const updatePreviewUI = (ratio: number): void => {
     return;
   }
 
+  // show time for hovered position
   state.previewTime.textContent = formatTime(Math.max(0, Math.min(b.duration, ratio * b.duration)));
 
   const barWidth = progressWrap.clientWidth;
@@ -48,6 +50,7 @@ const updatePreviewUI = (ratio: number): void => {
   }
 
   showPreviewPopover();
+  // clamp to stay within bar bounds
   const popoverWidth = state.previewPopover.offsetWidth || 72;
   state.previewPopover.style.left = `${Math.max(popoverWidth / 2, Math.min(barWidth - popoverWidth / 2, ratio * barWidth))}px`;
 };
@@ -62,6 +65,7 @@ const initPlayer = (): void => {
   const loading = container.querySelector('[data-loading]') as HTMLElement | null;
   const progressWrap = container.querySelector('[data-progress-wrap]') as HTMLElement | null;
 
+  // build video src from mode, token, and saved quality preference
   const preferredQuality = localStorage.getItem('mal:preferred-quality') || 'best';
   const streamToken = state.modeSources[state.currentMode]?.token;
   if (streamToken) {
@@ -90,10 +94,12 @@ const initPlayer = (): void => {
     resolveActiveSegments();
     renderSegments();
 
+    // resume from saved position
     const startTime = Number(container.dataset.startTimeSeconds ?? '0');
     if (startTime > 0 && state.video.currentTime <= 0.5 && state.video.duration > startTime) {
       state.video.currentTime = startTime;
     }
+    // resume after mode switch
     if (state.pendingSeekTime !== null) {
       state.video.currentTime = state.pendingSeekTime;
       state.pendingSeekTime = null;
@@ -110,10 +116,12 @@ const initPlayer = (): void => {
   state.video.addEventListener('playing', () => {
     loading && (loading.style.display = 'none');
   });
+  // update progress bar during buffering
   state.video.addEventListener('progress', () => {
     updateTimeline(state.video.currentTime);
   });
 
+  // main loop: update progress, subtitles, skip buttons
   state.video.addEventListener('timeupdate', () => {
     updateTimeline(state.video.currentTime);
     updateSubtitleRender(displayTimeFromAbsolute(state.video.currentTime));
@@ -124,6 +132,7 @@ const initPlayer = (): void => {
     goToNextEpisode();
   });
 
+  // click to seek
   progressWrap?.addEventListener('mousedown', e => {
     state.isScrubbing = true;
     const rect = progressWrap.getBoundingClientRect();
@@ -135,6 +144,7 @@ const initPlayer = (): void => {
     showControls();
   });
 
+  // hover to preview time
   progressWrap?.addEventListener('mousemove', e => {
     const rect = progressWrap.getBoundingClientRect();
     updatePreviewUI(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
@@ -142,6 +152,7 @@ const initPlayer = (): void => {
 
   progressWrap?.addEventListener('mouseleave', hidePreviewPopover);
 
+  // dragging outside progress bar while scrubbing
   window.addEventListener('mousemove', e => {
     if (!state.isScrubbing || !progressWrap) return;
     const rect = progressWrap.getBoundingClientRect();
@@ -152,6 +163,7 @@ const initPlayer = (): void => {
     updateSkipButton(state.video.currentTime);
   });
 
+  // track episode transitions from external links
   container.addEventListener('click', e => {
     const anchor = (e.target as Node).parentElement?.closest('a[href]');
     if (!(anchor instanceof HTMLAnchorElement)) return;
@@ -170,9 +182,11 @@ const initPlayer = (): void => {
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       clearTimeout(searchDebounce);
+      // debounce to avoid excessive range switches while typing
       searchDebounce = window.setTimeout(() => {
         const val = searchInput.value.replace(/\D/g, '');
         if (!val) {
+          // clear: jump to current episode range
           const cur = Number.parseInt(state.currentEpisode, 10);
           switchEpisodeRange(Math.floor((cur - 1) / 100));
           updateEpisodeHighlight(cur);
@@ -191,6 +205,7 @@ const initPlayer = (): void => {
     });
   }
 
+  // range buttons (100s of episodes)
   if (dropdown) {
     dropdown.querySelectorAll('.episode-range-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -200,6 +215,7 @@ const initPlayer = (): void => {
     });
   }
 
+  // initial range for large episode lists
   if (state.episodeGrid && state.totalEpisodes > 100) {
     switchEpisodeRange(Math.floor((Number.parseInt(state.currentEpisode, 10) - 1) / 100));
   }

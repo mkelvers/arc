@@ -14,10 +14,12 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// chiaki.watchOrderURL is the external watch order tool used for relation ordering.
 const chiakiWatchOrderURL = "https://chiaki.site/?/tools/watch_order/id/%d"
 const watchOrderCacheTTL = time.Hour * 24
-const maxWatchOrderEntries = 120
+const maxWatchOrderEntries = 120 // cap to prevent huge relation chains
 
+// watchOrderTypeLabel normalizes watch order type to display-friendly labels.
 func watchOrderTypeLabel(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	switch normalized {
@@ -30,6 +32,7 @@ func watchOrderTypeLabel(value string) string {
 	}
 }
 
+// isAllowedWatchOrderType returns true only for TV and Movie types (filters out specials, etc).
 func isAllowedWatchOrderType(value string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	return normalized == "tv" || normalized == "movie"
@@ -39,6 +42,7 @@ func relationCacheKey(id int) string {
 	return fmt.Sprintf("relations:watch-order:%d", id)
 }
 
+// getWatchOrder fetches watch order from chiaki, caches result for 24h.
 func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrderResult, error) {
 	cacheKey := relationCacheKey(id)
 
@@ -81,6 +85,7 @@ func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrd
 	return result, nil
 }
 
+// currentOnlyRelation returns just the current anime when watch order lookup fails.
 func (c *Client) currentOnlyRelation(ctx context.Context, id int) ([]RelationEntry, error) {
 	currentAnime, err := c.GetAnimeByID(ctx, id)
 	if err != nil {
@@ -95,6 +100,7 @@ func (c *Client) currentOnlyRelation(ctx context.Context, id int) ([]RelationEnt
 	}}, nil
 }
 
+// GetFullRelations returns related anime based on watch order, with parallel fetching (3 concurrent).
 func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry, error) {
 	result, err := c.getWatchOrder(ctx, id)
 	if err != nil {

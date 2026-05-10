@@ -1,6 +1,7 @@
 import { parseClassList } from './utils';
 
 const setDropdownMenuState = (menu: HTMLElement, isOpen: boolean): void => {
+  // data attributes store the class lists to add/remove
   const openClasses = parseClassList(menu.getAttribute('data-dropdown-open-classes'));
   const closedClasses = parseClassList(menu.getAttribute('data-dropdown-closed-classes'));
 

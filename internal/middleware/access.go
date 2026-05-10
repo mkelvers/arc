@@ -6,18 +6,18 @@ import (
 )
 
 type AccessPolicy struct {
-	PublicPaths map[string]struct{}
-	PublicHeads []string
+	PublicPaths map[string]struct{} // exact match paths (e.g. /login)
+	PublicHeads []string             // prefix match paths (e.g. /static/)
 }
 
 func NewAccessPolicy() AccessPolicy {
 	return AccessPolicy{
 		PublicPaths: map[string]struct{}{
-			"/login": {},
+			"/login": {}, // login page is public
 		},
 		PublicHeads: []string{
-			"/static/",
-			"/dist/",
+			"/static/", // static assets
+			"/dist/",    // bundled assets
 		},
 	}
 }
@@ -36,6 +36,8 @@ func (p AccessPolicy) IsPublicPath(path string) bool {
 	return false
 }
 
+// RequireGlobalAuthWithPolicy redirects unauthenticated users to /login
+// uses HX-Redirect for HTMX requests, regular redirect otherwise
 func RequireGlobalAuthWithPolicy(policy AccessPolicy) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

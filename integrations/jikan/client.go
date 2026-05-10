@@ -20,9 +20,9 @@ type Client struct {
 	httpClient  *http.Client
 	baseURL     string
 	db          db.Querier
-	retrySignal chan struct{}
+	retrySignal chan struct{} // signals retry worker to process queued retries
 	mu          sync.Mutex
-	lastReqTime time.Time
+	lastReqTime time.Time     // rate limiting: last request timestamp
 }
 
 func NewClient(db db.Querier) *Client {
@@ -51,6 +51,7 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("jikan api returned status %d", e.StatusCode)
 }
 
+// IsNotFoundError returns true if the error is an APIError with 404 status.
 func IsNotFoundError(err error) bool {
 	var apiErr *APIError
 	if errors.As(err, &apiErr) {
@@ -60,6 +61,7 @@ func IsNotFoundError(err error) bool {
 	return false
 }
 
+// IsRetryableError returns true if the error should trigger a retry.
 func IsRetryableError(err error) bool {
 	if err == nil {
 		return false
@@ -90,6 +92,7 @@ func isRetryableStatus(statusCode int) bool {
 	return statusCode >= 500 && statusCode <= 504
 }
 
+// retryDelay returns exponential backoff delay: 500ms, 1s, 2s, 4s, 8s (capped).
 func retryDelay(attempt int) time.Duration {
 	base := 500 * time.Millisecond
 	delay := base * time.Duration(1<<attempt)
@@ -100,6 +103,7 @@ func retryDelay(attempt int) time.Duration {
 	return delay
 }
 
+// parseRetryAfter parses Retry-After header value (seconds) into duration.
 func parseRetryAfter(value string) (time.Duration, bool) {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
@@ -138,6 +142,7 @@ func truncateErrorMessage(message string) string {
 	return message[:400]
 }
 
+// notifyRetryWorker signals the retry worker, non-blocking.
 func (c *Client) notifyRetryWorker() {
 	select {
 	case c.retrySignal <- struct{}{}:
@@ -145,10 +150,12 @@ func (c *Client) notifyRetryWorker() {
 	}
 }
 
+// RetrySignal returns channel that signals when retries are enqueued.
 func (c *Client) RetrySignal() <-chan struct{} {
 	return c.retrySignal
 }
 
+// EnqueueAnimeFetchRetry queues a failed anime fetch for later retry if the error is retryable.
 func (c *Client) EnqueueAnimeFetchRetry(parentCtx context.Context, animeID int, cause error) {
 	if animeID <= 0 || !IsRetryableError(cause) {
 		return
@@ -168,6 +175,7 @@ func (c *Client) EnqueueAnimeFetchRetry(parentCtx context.Context, animeID int, 
 	c.notifyRetryWorker()
 }
 
+// waitRateLimit enforces Jikan's 3 req/sec rate limit with 400ms spacing.
 func (c *Client) waitRateLimit(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -193,6 +201,7 @@ func (c *Client) waitRateLimit(ctx context.Context) error {
 	return nil
 }
 
+// getCache retrieves cached data by key, returns true on cache hit.
 func (c *Client) getCache(parentCtx context.Context, key string, out any) bool {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
@@ -206,6 +215,7 @@ func (c *Client) getCache(parentCtx context.Context, key string, out any) bool {
 	return err == nil
 }
 
+// getStaleCache retrieves expired-but-available cache by key.
 func (c *Client) getStaleCache(parentCtx context.Context, key string, out any) bool {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
@@ -219,6 +229,7 @@ func (c *Client) getStaleCache(parentCtx context.Context, key string, out any) b
 	return err == nil
 }
 
+// setCache stores data in cache with specified TTL.
 func (c *Client) setCache(parentCtx context.Context, key string, data any, ttl time.Duration) {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
@@ -240,6 +251,7 @@ type cacheResult struct {
 	hasStale bool
 }
 
+// isEmptyResult detects if response contains no meaningful data.
 func isEmptyResult(out any) bool {
 	switch v := out.(type) {
 	case *TopAnimeResponse:
@@ -254,6 +266,7 @@ func isEmptyResult(out any) bool {
 	return false
 }
 
+// getWithCache fetches URL with cache-aside pattern: checks cache first, falls back to stale on error.
 func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Duration, url string, out any) error {
 	if c.getCache(ctx, cacheKey, out) {
 		if !isEmptyResult(out) {
@@ -289,6 +302,7 @@ func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Dur
 	return nil
 }
 
+// fetchWithRetry makes HTTP request with exponential backoff retry on transient failures.
 func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) error {
 	maxRetries := 5
 	for attempt := range maxRetries {

@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// GetEpisodes returns episode list for a specific page.
 func (c *Client) GetEpisodes(ctx context.Context, animeID int, page int) (EpisodesResponse, error) {
 	if page < 1 {
 		page = 1
@@ -20,6 +21,7 @@ func (c *Client) GetEpisodes(ctx context.Context, animeID int, page int) (Episod
 	return result, err
 }
 
+// GetAllEpisodes fetches all pages of episodes in parallel and flattens results.
 func (c *Client) GetAllEpisodes(ctx context.Context, animeID int) ([]Episode, error) {
 	// First page to get total pages
 	first, err := c.GetEpisodes(ctx, animeID, 1)
@@ -67,6 +69,7 @@ func (c *Client) GetAllEpisodes(ctx context.Context, animeID int) ([]Episode, er
 	return result, nil
 }
 
+// GetEpisodesRange fetches episodes from startPage to endPage sequentially.
 func (c *Client) GetEpisodesRange(ctx context.Context, animeID int, startPage, endPage int) ([]Episode, error) {
 	var all []Episode
 	for page := startPage; page <= endPage; page++ {

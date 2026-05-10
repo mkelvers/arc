@@ -20,13 +20,14 @@ import (
 
 type Handler struct {
 	svc         *Service
-	jikanClient *jikan.Client
+	jikanClient *jikan.Client // client for Jikan API (MyAnimeList)
 }
 
 func NewHandler(svc *Service, jikanClient *jikan.Client) *Handler {
 	return &Handler{svc: svc, jikanClient: jikanClient}
 }
 
+// renderNotFoundPage renders the 404 page.
 func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
@@ -36,8 +37,9 @@ func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 	}
 }
 
+// HandleWatchPage serves the anime watch page.
 func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
-	// Path is like /anime/123/watch
+	// path format: /anime/123/watch
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 4 {
 		renderNotFoundPage(r, w)
@@ -63,6 +65,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 
 	user := middleware.GetUser(r.Context())
 
+	// fetch user's watchlist to highlight episodes and show status
 	var watchlistIDs []int64
 	var watchlistStatus string
 	if user != nil {
@@ -76,7 +79,8 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	currentEpID := r.URL.Query().Get("ep")
+	// resolve current episode: query param > saved progress > first episode
+currentEpID := r.URL.Query().Get("ep")
 	if currentEpID == "" {
 		if user != nil {
 			entry, err := h.svc.db.GetWatchListEntry(r.Context(), db.GetWatchListEntryParams{
@@ -85,7 +89,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 			})
 			if err == nil && entry.CurrentEpisode.Valid {
 				currentEpID = strconv.FormatInt(entry.CurrentEpisode.Int64, 10)
-				// Redirect to the correct episode URL to keep state consistent
+				// redirect to include ep param for consistent URLs
 				http.Redirect(w, r, fmt.Sprintf("/anime/%d/watch?ep=%s", id, currentEpID), http.StatusFound)
 				return
 			}
@@ -147,7 +151,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 		return allEpisodes[i].MalID < allEpisodes[j].MalID
 	})
 
-	// Fetch seasons/relations
+	// fetch relations to build season/movie list
 	relations, err := h.jikanClient.GetFullRelations(r.Context(), id)
 	if err != nil {
 		log.Printf("failed to fetch relations: %v", err)
@@ -204,6 +208,7 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleProxy proxies media requests through the backend to avoid CORS and hide source URLs.
 func (h *Handler) HandleProxy(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
@@ -211,6 +216,7 @@ func (h *Handler) HandleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// determine proxy scope based on URL suffix
 	scope := proxyScopeStream
 	if strings.HasSuffix(r.URL.Path, "/segment") {
 		scope = proxyScopeSegment
@@ -244,6 +250,7 @@ func (h *Handler) HandleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleSaveProgress saves playback progress for a user.
 func (h *Handler) HandleSaveProgress(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -291,6 +298,7 @@ func (h *Handler) HandleSaveProgress(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleCompleteAnime marks an anime as completed for a user.
 func (h *Handler) HandleCompleteAnime(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -337,9 +345,10 @@ func (h *Handler) HandleCompleteAnime(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleEpisodeData returns episode streaming data for the player.
 func (h *Handler) HandleEpisodeData(w http.ResponseWriter, r *http.Request) {
+	// path: /api/watch/episode/{animeId}/{episodeId}
 	parts := strings.Split(r.URL.Path, "/")
-	// /api/watch/episode/{animeId}/{episodeId}
 	if len(parts) < 6 {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -394,9 +403,10 @@ func (h *Handler) HandleEpisodeData(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// HandleEpisodeThumbnails returns episode list for the thumbnail strip.
 func (h *Handler) HandleEpisodeThumbnails(w http.ResponseWriter, r *http.Request) {
+	// path: /api/watch/thumbnails/{animeId}
 	parts := strings.Split(r.URL.Path, "/")
-	// /api/watch/thumbnails/{animeId}
 	if len(parts) < 5 {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return

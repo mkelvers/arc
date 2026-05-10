@@ -7,6 +7,9 @@ export const formatTime = (seconds: number): string => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+/**
+ * Shows the controls overlay and schedules auto-hide after 2s if playing.
+ */
 export const showControls = (): void => {
   state.container.classList.add('show-controls');
   window.clearTimeout(state.playerControlsTimeout);
@@ -17,6 +20,7 @@ export const showControls = (): void => {
   }, 2000);
 };
 
+// seek relative to current position
 export const seekBy = (delta: number): void => {
   if (state.video.duration <= 0) return;
   state.video.currentTime = Math.max(
@@ -34,6 +38,7 @@ export const togglePlayPause = (): void => {
   }
 };
 
+// toggle mute, restoring previous volume
 export const toggleMute = (): void => {
   if (state.video.muted || state.video.volume === 0) {
     const restored = state.lastKnownVolume > 0 ? state.lastKnownVolume : 1;
@@ -45,6 +50,7 @@ export const toggleMute = (): void => {
   }
 };
 
+// set volume (0-1), auto-unmute
 export const setVolume = (value: number): void => {
   state.video.volume = Math.max(0, Math.min(1, value));
   state.video.muted = value === 0;
@@ -59,8 +65,9 @@ export const toggleFullscreen = (): void => {
   state.container.requestFullscreen?.();
 };
 
+// syncs volume slider, underline, and mute icon
 export const syncVolumeUI = (): void => {
-  const { volumeRange, volumeUnderline, iconVolume, iconMuted } = getControls();
+  const { volumeRange, volumeUnderline } = getControls();
   const value = state.video.muted ? 0 : Math.round(state.video.volume * 100);
   if (volumeRange) {
     volumeRange.value = String(value);
@@ -125,6 +132,10 @@ const updateMuteIcons = (isMuted: boolean): void => {
   iconMuted?.classList.toggle('hidden', !isMuted);
 };
 
+/**
+ * Binds click handlers to player control buttons.
+ * Sets up video event listeners for icon sync.
+ */
 export const setupControls = (): void => {
   const {
     playPause,
@@ -137,6 +148,7 @@ export const setupControls = (): void => {
     skipSegmentBtn,
   } = getControls();
 
+  // play/pause on button and video click
   playPause?.addEventListener('click', () => {
     togglePlayPause();
     showControls();
@@ -151,11 +163,13 @@ export const setupControls = (): void => {
     showControls();
   });
 
+  // volume slider
   volumeRange?.addEventListener('input', () => {
     const value = Number(volumeRange.value) / 100;
     setVolume(value);
     showControls();
   });
+  // dragging class for visual feedback
   volumeRange?.addEventListener('pointerdown', () => volumePanel?.classList.add('is-dragging'));
   window.addEventListener('pointerup', () => volumePanel?.classList.remove('is-dragging'));
 
@@ -167,18 +181,21 @@ export const setupControls = (): void => {
     showControls();
   });
 
+  // skip intro/outro button
   skipSegmentBtn?.addEventListener('click', () => {
     if (!state.activeSkipSegment) return;
     state.video.currentTime = state.activeSkipSegment.end + 0.01;
     showControls();
   });
 
+  // fullscreen change handler
   document.addEventListener('fullscreenchange', () => {
     state.isFullscreen = !!document.fullscreenElement;
     state.container.classList.toggle('fullscreen', state.isFullscreen);
     if (state.isFullscreen) showControls();
   });
 
+  // icon sync on state changes
   state.video.addEventListener('play', () => {
     updatePlayPauseIcons(true);
     showControls();
@@ -189,8 +206,10 @@ export const setupControls = (): void => {
   });
   state.video.addEventListener('volumechange', syncVolumeUI);
 
+  // mouse move in container shows controls
   state.container.addEventListener('mousemove', showControls);
 
+  // initial sync
   updatePlayPauseIcons(false);
   syncVolumeUI();
 };

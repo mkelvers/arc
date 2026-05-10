@@ -15,7 +15,9 @@ import (
 
 const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 
+// idPattern extracts the watch order ID from chiaki.site URLs
 var idPattern = regexp.MustCompile(`/id/(\d+)`)
+// malLinkPattern extracts MAL IDs from watch order entries
 var malLinkPattern = regexp.MustCompile(`myanimelist\.net/anime/(\d+)`)
 
 var ErrInvalidWatchOrderURL = errors.New("invalid watch order url")
@@ -46,10 +48,10 @@ func (e *HTTPStatusError) Error() string {
 }
 
 type WatchOrderEntry struct {
-	ID       int    `json:"id"`
-	Type     string `json:"type"`
-	Title    string `json:"title"`
-	TitleAlt string `json:"title_alt,omitempty"`
+	ID       int    `json:"id"`       // MAL anime ID
+	Type     string `json:"type"`      // anime type label (e.g. "TV", "Movie")
+	Title    string `json:"title"`     // primary title
+	TitleAlt string `json:"title_alt,omitempty"` // alternative title
 }
 
 type WatchOrderResult struct {
@@ -106,6 +108,7 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
+		// limit body read for error context; avoid reading large error pages
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 512))
 		return nil, &HTTPStatusError{
 			StatusCode:  response.StatusCode,
@@ -198,6 +201,8 @@ func hasWatchOrderTable(doc *goquery.Document) bool {
 	return doc.Find("#wo_list").Length() > 0
 }
 
+// shouldTryProxy returns true for transient errors where the Jina proxy may help
+// (e.g. Cloudflare blocking, rate limits)
 func shouldTryProxy(err error) bool {
 	var statusError *HTTPStatusError
 	if errors.As(err, &statusError) {
@@ -243,6 +248,8 @@ func fetchProxyText(ctx context.Context, httpClient *http.Client, url string) (s
 	return string(body), nil
 }
 
+// parseJinaEntries parses Jina proxy output, which contains one line per entry
+// in format: "title | type | https://myanimelist.net/anime/ID"
 func parseJinaEntries(text string) []WatchOrderEntry {
 	lines := strings.Split(text, "\n")
 	entries := make([]WatchOrderEntry, 0)
@@ -312,6 +319,8 @@ func isNoiseTitleLine(value string) bool {
 	return false
 }
 
+// titleFromContext looks backward from metaIndex to find the actual title lines.
+// It skips noise lines (URLs, metadata prefixes, etc.) and returns (primary, alt).
 func titleFromContext(lines []string, metaIndex int) (string, string) {
 	collected := make([]string, 0, 2)
 
@@ -340,6 +349,7 @@ func titleFromContext(lines []string, metaIndex int) (string, string) {
 		return collected[0], ""
 	}
 
+	// reversed order: older lines first -> title, newer -> alt
 	return collected[1], collected[0]
 }
 
@@ -357,6 +367,8 @@ func fetchViaProxy(ctx context.Context, httpClient *http.Client, url string, roo
 	return WatchOrderResult{ID: rootID, WatchOrder: entries}, nil
 }
 
+// FetchWatchOrder fetches the watch order from chiaki.site.
+// Falls back to the Jina proxy if the site is blocked or returns an empty table.
 func FetchWatchOrder(ctx context.Context, httpClient *http.Client, url string) (WatchOrderResult, error) {
 	rootID, err := parseRootID(url)
 	if err != nil {
@@ -371,6 +383,7 @@ func FetchWatchOrder(ctx context.Context, httpClient *http.Client, url string) (
 		return WatchOrderResult{}, err
 	}
 
+	// empty table indicates JS-rendered content; need proxy
 	if !hasWatchOrderTable(doc) {
 		return fetchViaProxy(ctx, httpClient, url, rootID)
 	}

@@ -8,9 +8,10 @@ import (
 
 type ScheduleResult struct {
 	Animes      []Anime
-	HasNextPage bool
+	HasNextPage bool // whether more pages available
 }
 
+// GetSchedule returns anime airing on a specific day of the week.
 func (c *Client) GetSchedule(ctx context.Context, day string) (ScheduleResult, error) {
 	day = strings.ToLower(day)
 	cacheKey := fmt.Sprintf("schedule_%s", day)
@@ -29,6 +30,7 @@ func (c *Client) GetSchedule(ctx context.Context, day string) (ScheduleResult, e
 	}, nil
 }
 
+// GetFullSchedule returns anime airing schedule for all seven days.
 func (c *Client) GetFullSchedule(ctx context.Context) (map[string][]Anime, error) {
 	days := []string{"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
 	schedule := make(map[string][]Anime)
@@ -44,6 +46,7 @@ func (c *Client) GetFullSchedule(ctx context.Context) (map[string][]Anime, error
 	return schedule, nil
 }
 
+// GetSeasonsNow returns currently airing anime for the current season.
 func (c *Client) GetSeasonsNow(ctx context.Context, page int) (TopAnimeResult, error) {
 	if page < 1 {
 		page = 1
@@ -64,6 +67,7 @@ func (c *Client) GetSeasonsNow(ctx context.Context, page int) (TopAnimeResult, e
 	}, nil
 }
 
+// GetSeasonsUpcoming returns anime scheduled to air in upcoming seasons.
 func (c *Client) GetSeasonsUpcoming(ctx context.Context, page int) (TopAnimeResult, error) {
 	if page < 1 {
 		page = 1
@@ -84,6 +88,7 @@ func (c *Client) GetSeasonsUpcoming(ctx context.Context, page int) (TopAnimeResu
 	}, nil
 }
 
+// GetRandomAnime returns a random anime from the database.
 func (c *Client) GetRandomAnime(ctx context.Context) (Anime, error) {
 	var result struct {
 		Data Anime `json:"data"`

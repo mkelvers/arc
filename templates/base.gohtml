@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {{/* page title injected from child template */}}
   <title>MyAnimeList: {{template "title" .}}</title>
   <link rel="manifest" href="/static/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -64,9 +65,10 @@
     });
   </script>
   <script>
-    // Initialize sidebar state immediately to prevent layout shift/transitions
+    // initialize sidebar state immediately to prevent layout shift/transitions
     (function() {
       const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+      // only apply collapsed state on desktop (lg+)
       if (isCollapsed && window.innerWidth >= 1024) {
         document.documentElement.classList.add('sidebar-collapsed');
       }
@@ -111,9 +113,11 @@
     }
 
     function toggleWatchlist(id, btn) {
+      // determine action based on current watchlist state
       const isInWatchlist = watchlistIds.has(id)
       const url = isInWatchlist ? `/api/watchlist/${id}` : '/api/watchlist'
       const method = isInWatchlist ? 'DELETE' : 'POST'
+      // add to watchlist with default status; remove doesn't need body
       const body = isInWatchlist ? null : JSON.stringify({ animeId: id, status: 'plan_to_watch' })
       fetch(url, {
         method,

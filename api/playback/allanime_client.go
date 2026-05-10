@@ -215,6 +215,7 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 	return nil, fmt.Errorf("no usable data in response")
 }
 
+// GetEpisodeSources fetches stream URLs for a given show, episode, and mode (dub/sub).
 func (c *allAnimeClient) GetEpisodeSources(ctx context.Context, showID string, episode string, mode string) ([]StreamSource, error) {
 	episodeQuery := `query($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
 		episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
@@ -387,6 +388,7 @@ type sourceReference struct {
 	Name string
 }
 
+// buildSourceReferences orders source URLs by provider priority, deduplicating entries.
 func buildSourceReferences(rawSourceURLs []any) []sourceReference {
 	priorityOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
 	prioritySet := map[string]struct{}{"default": {}, "yt-mp4": {}, "s-mp4": {}, "luf-mp4": {}}
@@ -416,6 +418,7 @@ func buildSourceReferences(rawSourceURLs []any) []sourceReference {
 
 		ref := sourceReference{URL: sourceURL, Name: sourceName}
 		normalized := strings.ToLower(sourceName)
+		// separate prioritized providers from fallback
 		if _, prioritizedProvider := prioritySet[normalized]; prioritizedProvider {
 			if _, exists := prioritized[normalized]; !exists {
 				prioritized[normalized] = ref
@@ -426,6 +429,7 @@ func buildSourceReferences(rawSourceURLs []any) []sourceReference {
 		fallback = append(fallback, ref)
 	}
 
+	// output: prioritized in order, then fallback
 	ordered := make([]sourceReference, 0, len(prioritized)+len(fallback))
 	for _, provider := range priorityOrder {
 		if ref, ok := prioritized[provider]; ok {
@@ -489,6 +493,7 @@ func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) ([]byte, er
 	return plainText, nil
 }
 
+// Search queries AllAnime for shows matching the given search term.
 func (c *allAnimeClient) Search(ctx context.Context, query string, mode string) ([]searchResult, error) {
 	graphqlQuery := `query($search: SearchInput, $limit: Int, $page: Int, $translationType: VaildTranslationTypeEnumType, $countryOrigin: VaildCountryOriginEnumType) {
 		shows(search: $search, limit: $limit, page: $page, translationType: $translationType, countryOrigin: $countryOrigin) {
@@ -557,6 +562,7 @@ func (c *allAnimeClient) Search(ctx context.Context, query string, mode string) 
 	return out, nil
 }
 
+// GetEpisodes returns the list of available episode strings for a show and mode.
 func (c *allAnimeClient) GetEpisodes(ctx context.Context, showID string, mode string) ([]string, error) {
 	graphqlQuery := `query($showId: String!) {
 		show(_id: $showId) {
@@ -607,6 +613,7 @@ func (c *allAnimeClient) GetEpisodes(ctx context.Context, showID string, mode st
 	return episodes, nil
 }
 
+// GetAvailableEpisodes returns the count of sub/dub/raw episodes available for a show.
 func (c *allAnimeClient) GetAvailableEpisodes(ctx context.Context, showID string) (AvailableEpisodes, error) {
 	graphqlQuery := `query($showId: String!) {
 		show(_id: $showId) {

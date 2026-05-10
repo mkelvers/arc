@@ -1,10 +1,10 @@
 import { state } from './state';
-import { displayTimeFromAbsolute, absoluteTimeFromDisplay } from './timeline';
+import { displayTimeFromAbsolute } from './timeline';
 import { showControls } from './controls';
 import { updateSubtitleOptions } from './subtitles';
 import { updateQualityOptions } from './quality';
-import { ModeSource } from './types';
 
+// builds stream URL with mode, token, and optional quality param
 const streamUrlForMode = (mode: string, quality?: string): string => {
   const src = state.modeSources[mode];
   if (!src?.token) return '';
@@ -13,16 +13,21 @@ const streamUrlForMode = (mode: string, quality?: string): string => {
   return url;
 };
 
+// switches video src while preserving playback position
 const loadVideo = (url: string): void => {
   if (!url) return;
   const wasPlaying = !state.video.paused;
   const prevTime = displayTimeFromAbsolute(state.video.currentTime);
   state.video.src = url;
   state.video.load();
-  state.pendingSeekTime = prevTime;
+  state.pendingSeekTime = prevTime; // restored in loadedmetadata handler
   if (wasPlaying) state.video.play().catch(() => {});
 };
 
+/**
+ * Switches between sub/dub mode.
+ * Saves preference to localStorage, reloads video src.
+ */
 export const switchMode = (mode: string): void => {
   if (!state.availableModes.includes(mode) || mode === state.currentMode) return;
   state.currentMode = mode;
@@ -33,6 +38,10 @@ export const switchMode = (mode: string): void => {
   updateModeButtons();
 };
 
+/**
+ * Updates dub/sub button styling based on current mode.
+ * Disables unavailable modes.
+ */
 export const updateModeButtons = (): void => {
   const dub = state.container.querySelector('[data-mode-dub]') as HTMLButtonElement | null;
   const sub = state.container.querySelector('[data-mode-sub]') as HTMLButtonElement | null;
@@ -51,6 +60,9 @@ export const updateModeButtons = (): void => {
   sub && (sub.disabled = !state.availableModes.includes('sub'));
 };
 
+/**
+ * Binds click handlers for mode buttons and autoplay toggle.
+ */
 export const setupMode = (): void => {
   const dub = state.container.querySelector('[data-mode-dub]') as HTMLButtonElement | null;
   const sub = state.container.querySelector('[data-mode-sub]') as HTMLButtonElement | null;

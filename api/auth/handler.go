@@ -17,6 +17,7 @@ func NewHandler(authService *Service) *Handler {
 	return &Handler{authService: authService}
 }
 
+// rateLimitErrorFromQuery checks for rate limit errors in the query string
 func rateLimitErrorFromQuery(r *http.Request) string {
 	if r.URL.Query().Get("error") == "rate_limited" {
 		return rateLimitFormError
@@ -24,6 +25,7 @@ func rateLimitErrorFromQuery(r *http.Request) string {
 	return ""
 }
 
+// HandleLoginPage renders the login form
 func (h *Handler) HandleLoginPage(w http.ResponseWriter, r *http.Request) {
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
 		"CurrentPath": r.URL.Path,
@@ -32,6 +34,7 @@ func (h *Handler) HandleLoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleLogin validates credentials and creates a session on success
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
@@ -69,6 +72,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+// HandleLogout destroys the session and clears the cookie
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_id")
 	if err == nil {

@@ -8,16 +8,19 @@ import (
 	"time"
 )
 
+// visitor tracks request attempts and last access time per IP
 type visitor struct {
 	attempts int
 	lastSeen time.Time
 }
 
+// Config holds rate limiter settings
 type Config struct {
-	MaxAttempts int
-	Window      time.Duration
+	MaxAttempts int           // max requests per window
+	Window      time.Duration // sliding window duration
 }
 
+// Limiter implements a simple in-memory IP-based rate limiter
 type Limiter struct {
 	mu       sync.Mutex
 	visitors map[string]*visitor
@@ -31,6 +34,7 @@ func NewLimiter(cfg Config) *Limiter {
 	}
 }
 
+// Cleanup removes stale visitor entries older than 3x the window
 func (l *Limiter) Cleanup(now time.Time) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -41,21 +45,23 @@ func (l *Limiter) Cleanup(now time.Time) {
 	}
 }
 
+// getIP extracts the client IP, checking X-Forwarded-For and X-Real-IP headers
 func getIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 		ips := strings.Split(xff, ",")
-		return strings.TrimSpace(ips[0])
+		return strings.TrimSpace(ips[0]) // first proxy IP
 	}
 	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
 		return realIP
 	}
 	ip := r.RemoteAddr
 	if colonIdx := strings.LastIndex(ip, ":"); colonIdx != -1 {
-		ip = ip[:colonIdx]
+		ip = ip[:colonIdx] // strip port for IPv4-mapped IPv6
 	}
 	return ip
 }
 
+// Middleware returns 429 for rate-limited API requests
 func (l *Limiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !l.allow(getIP(r)) {
@@ -66,6 +72,8 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// AuthMiddleware redirects rate-limited form submissions back to the page
+// returns 429 for non-path requests (e.g. API calls)
 func (l *Limiter) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !l.allow(getIP(r)) {
@@ -80,6 +88,8 @@ func (l *Limiter) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// allow checks and updates the visitor's attempt count; returns true if allowed
+// resets counter if window has expired, otherwise increments and checks limit
 func (l *Limiter) allow(ip string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -91,7 +101,7 @@ func (l *Limiter) allow(ip string) bool {
 	}
 
 	if time.Since(v.lastSeen) > l.config.Window {
-		v.attempts = 1
+		v.attempts = 1 // reset counter on window expiry
 		v.lastSeen = time.Now()
 		return true
 	}

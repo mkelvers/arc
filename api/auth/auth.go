@@ -31,6 +31,7 @@ func NewService(db db.Querier) *Service {
 	return &Service{db: db}
 }
 
+// generateToken creates a cryptographically random base64-encoded token
 func generateToken(size int) (string, error) {
 	b := make([]byte, size)
 	if _, err := rand.Read(b); err != nil {
@@ -39,6 +40,7 @@ func generateToken(size int) (string, error) {
 	return base64.URLEncoding.EncodeToString(b), nil
 }
 
+// generateSessionToken creates a 32-byte session token
 func generateSessionToken() (string, error) {
 	return generateToken(32)
 }
@@ -84,7 +86,7 @@ func (s *Service) ValidateSession(ctx context.Context, sessionID string) (*db.Us
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		_ = s.db.DeleteSession(ctx, sessionID)
+		_ = s.db.DeleteSession(ctx, sessionID) // clean up expired session
 		return nil, ErrNotAuthenticated
 	}
 
@@ -96,6 +98,7 @@ func (s *Service) ValidateSession(ctx context.Context, sessionID string) (*db.Us
 	return &user, nil
 }
 
+// SetSessionCookie sets an http-only, secure session cookie
 func SetSessionCookie(w http.ResponseWriter, sessionID string, expiresAt time.Time) {
 	secure := os.Getenv("ENV") == "production" || os.Getenv("FORCE_SECURE_COOKIES") == "true"
 	http.SetCookie(w, &http.Cookie{
@@ -113,11 +116,12 @@ func (s *Service) Logout(ctx context.Context, sessionID string) error {
 	return s.db.DeleteSession(ctx, sessionID)
 }
 
+// ClearSessionCookie invalidates the session cookie
 func ClearSessionCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
 		Value:    "",
-		Expires:  time.Unix(0, 0),
+		Expires:  time.Unix(0, 0), // epoch to expire immediately
 		MaxAge:   -1,
 		HttpOnly: true,
 		Path:     "/",

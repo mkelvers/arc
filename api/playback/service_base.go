@@ -89,6 +89,7 @@ type userPlaybackState struct {
 	StartTimeSeconds float64
 }
 
+// NewService initializes the playback service with db and sql connections.
 func NewService(db db.Querier, sqlDB *sql.DB, cfg Config) (*Service, error) {
 	proxyTokens, err := newProxyTokenSigner(cfg.ProxyTokenSecret)
 	if err != nil {
@@ -120,6 +121,7 @@ func NewService(db db.Querier, sqlDB *sql.DB, cfg Config) (*Service, error) {
 	}, nil
 }
 
+// BuildWatchPageData resolves show metadata and sources for a given MAL ID and episode.
 func (s *Service) BuildWatchPageData(ctx context.Context, malID int, titleCandidates []string, episode string, mode string, userID string) (WatchPageData, error) {
 	if malID <= 0 {
 		return WatchPageData{}, errors.New("invalid mal id")
@@ -283,11 +285,13 @@ func (s *Service) resolveShowCached(ctx context.Context, malID int, titleCandida
 	return showID, resolvedTitle, nil
 }
 
+// fetchPlaybackSourcesAndSegments resolves sources for both dub and sub modes concurrently.
 func (s *Service) fetchPlaybackSourcesAndSegments(ctx context.Context, showID string, malID int, episode string) (map[string]ModeSource, []SkipSegment) {
 	modeCh := make(chan modeSourceResult, 2)
 	probeCache := make(map[string]directProbeResult)
 	probeCacheMu := sync.Mutex{}
 
+	// parallel fetch for both modes
 	for _, mode := range []string{"dub", "sub"} {
 		modeValue := mode
 		go func() {
@@ -321,8 +325,9 @@ func (s *Service) fetchPlaybackSourcesAndSegments(ctx context.Context, showID st
 		segmentsCh <- s.fetchSkipSegments(ctx, malID, episode)
 	}()
 
-	modeSources := make(map[string]ModeSource)
-	for range 2 {
+modeSources := make(map[string]ModeSource)
+		// collect results from both mode goroutines
+		for range 2 {
 		result := <-modeCh
 		if !result.OK {
 			continue
@@ -344,6 +349,7 @@ func clonePlaybackBaseData(data playbackBaseData) playbackBaseData {
 	}
 }
 
+// GetEpisodeMetadata fetches episode notes and thumbnails from AllAnime.
 func (s *Service) GetEpisodeMetadata(ctx context.Context, malID int, episode string) (map[string]any, error) {
 	showID, _, err := s.resolveShowCached(ctx, malID, nil)
 	if err != nil {

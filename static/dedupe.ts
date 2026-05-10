@@ -8,18 +8,19 @@ const dedupe = (): void => {
       return;
     }
     if (seen.has(id)) {
-      item.remove();
+      item.remove(); // duplicate, remove it
     } else {
       seen.add(id);
     }
   });
 };
 
+// run on DOM ready or immediately if already loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', dedupe);
 } else {
   dedupe();
 }
 
-window.addEventListener('load', dedupe);
+// also run on load as a fallback (e.g. htmx swaps)
 window.addEventListener('load', dedupe);

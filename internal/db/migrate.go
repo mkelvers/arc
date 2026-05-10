@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// RunMigrations applies all *.sql files in migrationsDir in sorted order,
+// skipping any already recorded in migration_version.
 func RunMigrations(db *sql.DB, migrationsDir string) error {
 	if migrationsDir == "" {
 		return fmt.Errorf("migrations directory is required")
@@ -44,22 +46,19 @@ func RunMigrations(db *sql.DB, migrationsDir string) error {
 	for _, migrationFile := range migrations {
 		migrationName := filepath.Base(migrationFile)
 		if migrationApplied(appliedNames, migrationName) {
-			// already applied, skipping silently
-			continue
+			continue // already applied
 		}
 
-		// Read and execute migration
 		migrationSQL, err := os.ReadFile(migrationFile)
 		if err != nil {
 			return err
 		}
 
-		// Strict execution: if it fails, it halts.
 		if _, err := db.Exec(string(migrationSQL)); err != nil {
-			return err
+			return err // stop on first failure
 		}
 
-		// Mark as applied
+		// record applied migration
 		_, err = db.Exec("INSERT INTO migration_version (name) VALUES (?)", migrationName)
 		if err != nil {
 			return err
@@ -97,6 +96,8 @@ func loadAppliedMigrationNames(db *sql.DB) (map[string]struct{}, error) {
 	return applied, nil
 }
 
+// migrationApplied checks the applied names map for a match,
+// including legacy paths and case-insensitive basename matches.
 func migrationApplied(appliedNames map[string]struct{}, migrationName string) bool {
 	if _, exists := appliedNames[migrationName]; exists {
 		return true

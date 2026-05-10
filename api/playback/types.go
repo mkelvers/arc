@@ -1,10 +1,11 @@
 package playback
 
+// StreamSource represents a video stream from a provider.
 type StreamSource struct {
 	URL                string
 	Quality            string
 	Provider           string
-	Type               string
+	Type               string // m3u8, mp4, embed, unknown
 	Referer            string
 	Subtitles          []Subtitle
 	AvailableQualities []StreamSource
@@ -36,6 +37,7 @@ type SkipSegment struct {
 	End   float64 `json:"end"`
 }
 
+// WatchPageData is the response payload for the watch page frontend.
 type WatchPageData struct {
 	MalID            int
 	Title            string

@@ -12,6 +12,7 @@ import (
 	"mal/internal/db"
 )
 
+// SaveProgress updates watch progress and continue-watching state in a transaction.
 func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64, animeSeed *db.UpsertAnimeParams) error {
 	if strings.TrimSpace(userID) == "" || animeID <= 0 || episode <= 0 {
 		return errors.New("invalid save progress input")
@@ -77,6 +78,7 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 	return nil
 }
 
+// CompleteAnime marks an anime as completed in the watchlist and clears continue-watching.
 func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int64, episode int, animeSeed *db.UpsertAnimeParams) error {
 	if strings.TrimSpace(userID) == "" || animeID <= 0 || episode <= 0 {
 		return errors.New("invalid complete anime input")

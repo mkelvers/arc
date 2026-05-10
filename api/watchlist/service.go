@@ -36,12 +36,14 @@ func NewService(db db.Querier, sqlDB *sql.DB, jikanClient *jikan.Client) *Servic
 	return &Service{db: db, sqlDB: sqlDB, jikanClient: jikanClient}
 }
 
+// ensureAnimeExists checks if anime exists in db, fetches from jikan if not, then upserts.
 func (s *Service) ensureAnimeExists(ctx context.Context, animeID int64) error {
 	_, err := s.db.GetAnime(ctx, animeID)
 	if err == nil {
-		return nil
+		return nil // already exists
 	}
 
+	// fetch from jikan and store locally
 	anime, err := s.jikanClient.GetAnimeByID(ctx, int(animeID))
 	if err != nil {
 		return fmt.Errorf("failed to fetch anime from jikan: %w", err)
@@ -72,6 +74,7 @@ type AddRequest struct {
 	Airing        bool
 }
 
+// AddToWatchlist adds or updates an anime entry in user's watchlist.
 func (s *Service) AddToWatchlist(ctx context.Context, userID string, animeID int64, status string) error {
 	if animeID <= 0 {
 		return ErrInvalidAnimeID
@@ -81,6 +84,7 @@ func (s *Service) AddToWatchlist(ctx context.Context, userID string, animeID int
 		return ErrInvalidStatus
 	}
 
+	// ensure anime exists in local db before linking
 	if err := s.ensureAnimeExists(ctx, animeID); err != nil {
 		return err
 	}
@@ -101,6 +105,7 @@ func (s *Service) AddToWatchlist(ctx context.Context, userID string, animeID int
 	return nil
 }
 
+// RemoveEntry deletes a watchlist entry and returns the anime for potential use.
 func (s *Service) RemoveEntry(ctx context.Context, userID string, animeID int64) (db.Anime, error) {
 	if animeID <= 0 {
 		return db.Anime{}, ErrInvalidAnimeID
@@ -122,6 +127,7 @@ func (s *Service) RemoveEntry(ctx context.Context, userID string, animeID int64)
 	return anime, nil
 }
 
+// GetUserWatchlist retrieves all watchlist entries for a user.
 func (s *Service) GetUserWatchlist(ctx context.Context, userID string) ([]db.GetUserWatchListRow, error) {
 	entries, err := s.db.GetUserWatchList(ctx, userID)
 	if err != nil {
@@ -130,6 +136,7 @@ func (s *Service) GetUserWatchlist(ctx context.Context, userID string) ([]db.Get
 	return entries, nil
 }
 
+// GetContinueWatching retrieves entries for continue watching section.
 func (s *Service) GetContinueWatching(ctx context.Context, userID string) ([]db.GetContinueWatchingEntriesRow, error) {
 	if strings.TrimSpace(userID) == "" {
 		return nil, errors.New("invalid user id")
@@ -143,6 +150,8 @@ func (s *Service) GetContinueWatching(ctx context.Context, userID string) ([]db.
 	return entries, nil
 }
 
+// DeleteContinueWatching removes entry and clears associated watch progress.
+// uses transaction when sqlDB is available.
 func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, animeID int64) error {
 	if strings.TrimSpace(userID) == "" {
 		return errors.New("invalid user id")
@@ -164,6 +173,7 @@ func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, ani
 		AnimeID:            animeID,
 	}
 
+	// use transaction when sqlDB available for consistency
 	if s.sqlDB == nil {
 		if err := s.db.DeleteContinueWatchingEntry(ctx, params); err != nil {
 			return fmt.Errorf("failed to delete continue watching entry: %w", err)

@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// ProxyStream fetches a stream URL and returns the response.
+// retries on failure, rewrites m3u8 playlists to include auth tokens.
 func (s *Service) ProxyStream(ctx context.Context, targetURL string, referer string, rangeHeader string) (int, http.Header, []byte, io.ReadCloser, error) {
 	const maxRetries = 2
 	const retryDelay = 500 * time.Millisecond
@@ -51,8 +53,11 @@ func (s *Service) ProxyStream(ctx context.Context, targetURL string, referer str
 	return 0, nil, nil, nil, fmt.Errorf("upstream request failed after %d retries: %w", maxRetries+1, lastErr)
 }
 
+// handleProxyResponse processes the upstream response.
+// rewrites m3u8 playlists to proxy through our backend.
 func (s *Service) handleProxyResponse(ctx context.Context, resp *http.Response, targetURL string, referer string, rangeHeader string) (int, http.Header, []byte, io.ReadCloser, error) {
 
+	// check if response is an m3u8 playlist that needs rewriting
 	if isM3U8(targetURL, resp.Header.Get("Content-Type")) {
 		defer resp.Body.Close()
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
@@ -73,12 +78,13 @@ func (s *Service) handleProxyResponse(ctx context.Context, resp *http.Response, 
 		return resp.StatusCode, headers, []byte(rewritten), nil, nil
 	}
 
+	// for binary streams, remove chunked encoding and return body reader
 	headers := cloneHeaders(resp.Header)
-	// Some upstream servers send transfer-encoding chunked, we should let go's http server handle it
 	headers.Del("Transfer-Encoding")
 	return resp.StatusCode, headers, nil, resp.Body, nil
 }
 
+// isM3U8 checks if the response is an m3u8 playlist by URL or content-type.
 func isM3U8(targetURL string, contentType string) bool {
 	if strings.Contains(strings.ToLower(targetURL), ".m3u8") {
 		return true
@@ -97,6 +103,8 @@ var hopHeaders = map[string]struct{}{
 	"upgrade":             {},
 }
 
+// cloneHeaders copies headers, filtering out hop-by-hop headers.
+// hop-by-hop headers are specific to a single transport connection.
 func cloneHeaders(src http.Header) http.Header {
 	dst := make(http.Header)
 	for key, values := range src {

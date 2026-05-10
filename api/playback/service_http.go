@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+// fetchSkipSegments queries aniskip API for OP/ED skip times.
+// returns nil if the API is unavailable or has no data.
 func (s *Service) fetchSkipSegments(ctx context.Context, malID int, episode string) []SkipSegment {
 	if malID <= 0 || strings.TrimSpace(episode) == "" {
 		return nil
@@ -49,6 +51,7 @@ func (s *Service) fetchSkipSegments(ctx context.Context, malID int, episode stri
 		return nil
 	}
 
+	// filter to valid OP/ED segments
 	segments := make([]SkipSegment, 0, len(parsed.Result))
 	for _, item := range parsed.Result {
 		if item.Interval.EndTime <= item.Interval.StartTime {

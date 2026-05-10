@@ -5,6 +5,7 @@ interface ToastOptions {
   duration?: number;
 }
 
+/** Lazily create and return the toast container element. */
 const toastContainer = (): HTMLElement => {
   let container = document.getElementById('toast-container');
   if (!container) {
@@ -16,6 +17,10 @@ const toastContainer = (): HTMLElement => {
   return container;
 };
 
+/**
+ * Show a toast notification with optional auto-dismiss.
+ * Exposed globally via window.showToast.
+ */
 const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
   const container = toastContainer();
   const template = document.getElementById('toast-template') as HTMLTemplateElement | null;
@@ -36,10 +41,12 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
 
   container.appendChild(toast);
 
+  // trigger entrance animation
   requestAnimationFrame(() => {
     toast.classList.remove('translate-y-2', 'opacity-0');
   });
 
+  // auto-dismiss with exit animation
   setTimeout(() => {
     toast.classList.add('translate-y-2', 'opacity-0');
     setTimeout(() => toast.remove(), 300);

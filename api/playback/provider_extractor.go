@@ -25,6 +25,7 @@ func newProviderExtractor() *providerExtractor {
 	}
 }
 
+// ExtractVideoLinks fetches provider page and returns stream sources.
 func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath string) ([]StreamSource, error) {
 	endpoint := e.baseURL + providerPath
 
@@ -52,7 +53,7 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024)) // 2MB limit
 	if err != nil {
 		return nil, fmt.Errorf("read provider response: %w", err)
 	}
@@ -60,10 +61,12 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 	return e.parseProviderResponse(ctx, string(body))
 }
 
+// parseProviderResponse extracts stream sources from provider JSON response.
 func (e *providerExtractor) parseProviderResponse(ctx context.Context, response string) ([]StreamSource, error) {
 	sources := make([]StreamSource, 0)
 	providerReferer := e.referer
 
+	// extract per-source referer if present
 	refererPattern := regexp.MustCompile(`"Referer":"([^"]+)"`)
 	if match := refererPattern.FindStringSubmatch(response); len(match) >= 2 {
 		providerReferer = strings.ReplaceAll(match[1], `\/`, "/")
@@ -72,6 +75,7 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		providerReferer = e.referer
 	}
 
+	// extract direct link sources (mp4/embed)
 	linkPattern := regexp.MustCompile(`"link":"([^"]+)","resolutionStr":"([^"]+)"`)
 	for _, match := range linkPattern.FindAllStringSubmatch(response, -1) {
 		if len(match) < 3 {
@@ -94,6 +98,7 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		})
 	}
 
+	// extract HLS playlist sources
 	hlsPattern := regexp.MustCompile(`"url":"([^"]+)","hardsub_lang":"en-US"`)
 	for _, match := range hlsPattern.FindAllStringSubmatch(response, -1) {
 		if len(match) < 2 {
@@ -118,6 +123,7 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		})
 	}
 
+	// extract subtitles and attach to all sources
 	subtitlePattern := regexp.MustCompile(`"subtitles":\[(.*?)\]`)
 	if subtitleMatch := subtitlePattern.FindStringSubmatch(response); len(subtitleMatch) >= 2 {
 		subtitles := make([]Subtitle, 0)
@@ -143,6 +149,7 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 	return sources, nil
 }
 
+// parseM3U8 fetches a master playlist and extracts individual stream URLs with bandwidth-derived quality.
 func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, referer string) ([]StreamSource, error) {
 	resp, err := doProxiedRequest(ctx, e.httpClient, masterURL, referer)
 	if err != nil {
@@ -150,7 +157,7 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024)) // 512KB limit
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +185,7 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 			continue
 		}
 
+		// skip empty lines and non-stream lines
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}

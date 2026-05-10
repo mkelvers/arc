@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+// resolveModeSource fetches sources for a given mode and selects the best one.
 func (s *Service) resolveModeSource(ctx context.Context, showID string, episode string, mode string, quality string) (StreamSource, error) {
 	sources, err := s.allAnimeClient.GetEpisodeSources(ctx, showID, episode, mode)
 	if err != nil {
@@ -28,6 +29,7 @@ func (s *Service) resolveModeSource(ctx context.Context, showID string, episode 
 	return selected, nil
 }
 
+// resolveModeSourceWithCache is like resolveModeSource but caches probe results.
 func (s *Service) resolveModeSourceWithCache(
 	ctx context.Context,
 	showID string,
@@ -56,6 +58,8 @@ func (s *Service) resolveModeSourceWithCache(
 	return selected, nil
 }
 
+// choosePlaybackSource selects the best playable source from ranked candidates.
+// priority: direct media > probed media > embed sources > ranked fallback.
 func (s *Service) choosePlaybackSource(
 	ctx context.Context,
 	ranked []sourceScore,
@@ -70,22 +74,25 @@ func (s *Service) choosePlaybackSource(
 		source := candidate.source
 		switch strings.ToLower(source.Type) {
 		case "mp4", "m3u8":
-			return source, "direct-media", nil
+			return source, "direct-media", nil // known playable types
 		case "embed":
-			embedCandidates = append(embedCandidates, source)
+			embedCandidates = append(embedCandidates, source) // need probing
 		default:
+			// probe unknown types
 			if playable, contentType := probeFn(ctx, source); playable {
 				return normalizeSourceTypeFromProbe(source, contentType), "probed-media", nil
 			}
 		}
 	}
 
+	// check embed sources for playability
 	for _, embed := range embedCandidates {
 		if s.probeEmbedSource(ctx, embed) {
 			return embed, "embed-probed", nil
 		}
 	}
 
+	// fallback to first embed or first ranked
 	if len(embedCandidates) > 0 {
 		return embedCandidates[0], "embed-fallback", nil
 	}
@@ -93,6 +100,7 @@ func (s *Service) choosePlaybackSource(
 	return ranked[0].source, "ranked-fallback", nil
 }
 
+// choosePlaybackSourceWithCache wraps choosePlaybackSource with cached probing.
 func (s *Service) choosePlaybackSourceWithCache(
 	ctx context.Context,
 	ranked []sourceScore,
@@ -131,6 +139,8 @@ func (s *Service) probeDirectMediaCached(
 	return playable, contentType
 }
 
+// probeDirectMedia checks if a direct media URL is playable.
+// checks content-type header, reads prefix for magic bytes, falls back to URL extension.
 func (s *Service) probeDirectMedia(ctx context.Context, source StreamSource) (bool, string) {
 	probeCtx, cancel := context.WithTimeout(ctx, providerProbeTimeout)
 	defer cancel()
@@ -144,7 +154,7 @@ func (s *Service) probeDirectMedia(ctx context.Context, source StreamSource) (bo
 		req.Header.Set("Referer", source.Referer)
 	}
 	req.Header.Set("User-Agent", defaultUserAgent)
-	req.Header.Set("Range", "bytes=0-4095")
+	req.Header.Set("Range", "bytes=0-4095") // small range to detect playable content
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -152,11 +162,13 @@ func (s *Service) probeDirectMedia(ctx context.Context, source StreamSource) (bo
 	}
 	defer resp.Body.Close()
 
+	// check content-type header first
 	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
 	if strings.Contains(contentType, "video/") || strings.Contains(contentType, "mpegurl") {
 		return true, contentType
 	}
 
+	// check magic bytes in prefix
 	prefix, err := io.ReadAll(io.LimitReader(resp.Body, 4096))
 	if err == nil {
 		if isLikelyM3U8(prefix) {
@@ -167,6 +179,7 @@ func (s *Service) probeDirectMedia(ctx context.Context, source StreamSource) (bo
 		}
 	}
 
+	// fallback to URL extension
 	finalURL := ""
 	if resp.Request != nil && resp.Request.URL != nil {
 		finalURL = strings.ToLower(resp.Request.URL.String())
@@ -179,6 +192,8 @@ func (s *Service) probeDirectMedia(ctx context.Context, source StreamSource) (bo
 	return false, contentType
 }
 
+// probeEmbedSource checks if an embed page is still available.
+// returns false if the page contains deletion markers.
 func (s *Service) probeEmbedSource(ctx context.Context, source StreamSource) bool {
 	ctx, cancel := context.WithTimeout(ctx, providerProbeTimeout)
 	defer cancel()
@@ -203,6 +218,7 @@ func (s *Service) probeEmbedSource(ctx context.Context, source StreamSource) boo
 		return false
 	}
 
+	// check for common deletion messages
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	if err != nil {
 		return false

@@ -27,6 +27,7 @@ type Config struct {
 	PlaybackProxySecret string
 }
 
+// withMimeTypes sets Content-Type for common static asset extensions
 func withMimeTypes(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ext := strings.ToLower(filepath.Ext(r.URL.Path))
@@ -44,6 +45,7 @@ func withMimeTypes(next http.Handler) http.Handler {
 	})
 }
 
+// noCache sends headers to prevent caching of dynamic/static assets
 func noCache(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -53,6 +55,7 @@ func noCache(next http.Handler) http.Handler {
 	})
 }
 
+// NewAuthLimiter returns a rate limiter for auth endpoints: 5 attempts per minute
 func NewAuthLimiter() *pkgmiddleware.Limiter {
 	return pkgmiddleware.NewLimiter(pkgmiddleware.Config{
 		MaxAttempts: 5,
@@ -60,6 +63,8 @@ func NewAuthLimiter() *pkgmiddleware.Limiter {
 	})
 }
 
+// NewRouter wires up all HTTP handlers and middleware.
+// Auth is enforced globally; public routes must opt-out via middleware policy.
 func NewRouter(cfg Config) http.Handler {
 	mux := http.NewServeMux()
 

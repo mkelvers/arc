@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+// statusRecorder wraps ResponseWriter to capture the status code
+// defaults to 200 if WriteHeader is never called before Write
 type statusRecorder struct {
 	http.ResponseWriter
 	statusCode  int
@@ -23,6 +25,7 @@ func newStatusRecorder(w http.ResponseWriter) *statusRecorder {
 	}
 }
 
+// WriteHeader records the status code and proxies to underlying writer
 func (rw *statusRecorder) WriteHeader(code int) {
 	if rw.wroteHeader {
 		return
@@ -32,6 +35,7 @@ func (rw *statusRecorder) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+// Write ensures a status code is set before writing the body
 func (rw *statusRecorder) Write(b []byte) (int, error) {
 	if !rw.wroteHeader {
 		rw.WriteHeader(http.StatusOK)
@@ -39,12 +43,14 @@ func (rw *statusRecorder) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
+// Flush proxies the Flusher interface if supported
 func (rw *statusRecorder) Flush() {
 	if flusher, ok := rw.ResponseWriter.(http.Flusher); ok {
 		flusher.Flush()
 	}
 }
 
+// Hijack proxies the Hijacker interface if supported
 func (rw *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hijacker, ok := rw.ResponseWriter.(http.Hijacker)
 	if !ok {
@@ -53,6 +59,7 @@ func (rw *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hijacker.Hijack()
 }
 
+// Push proxies the Pusher interface if supported
 func (rw *statusRecorder) Push(target string, opts *http.PushOptions) error {
 	pusher, ok := rw.ResponseWriter.(http.Pusher)
 	if !ok {
@@ -61,10 +68,13 @@ func (rw *statusRecorder) Push(target string, opts *http.PushOptions) error {
 	return pusher.Push(target, opts)
 }
 
+// Unwrap returns the underlying ResponseWriter for middleware chaining
 func (rw *statusRecorder) Unwrap() http.ResponseWriter {
 	return rw.ResponseWriter
 }
 
+// RequestLogger logs requests that result in 4xx/5xx responses
+// skips static assets, streaming, and common bot paths
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

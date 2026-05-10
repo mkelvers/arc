@@ -1,7 +1,7 @@
 class UIDropdown extends HTMLElement {
   isOpen: boolean = false;
   contentEl: HTMLElement | null = null;
-  isClosing: boolean = false;
+  isClosing: boolean = false; // debounce flag
 
   constructor() {
     super();
@@ -53,7 +53,7 @@ class UIDropdown extends HTMLElement {
     }
     setTimeout(() => {
       this.isClosing = false;
-    }, 100);
+    }, 100); // delay prevents rapid open/close flicker
   }
 
   handleClickOutside(event: MouseEvent): void {

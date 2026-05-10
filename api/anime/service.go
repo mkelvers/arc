@@ -17,6 +17,7 @@ func NewService(jikanClient *jikan.Client, db db.Querier) *Service {
 	return &Service{jikanClient: jikanClient, db: db}
 }
 
+// GetCatalogSection fetches homepage catalog sections (Airing, Popular, Continue) from jikan and db.
 func (s *Service) GetCatalogSection(ctx context.Context, userID string, section string) (map[string]any, error) {
 	var (
 		res       jikan.TopAnimeResult
@@ -27,6 +28,7 @@ func (s *Service) GetCatalogSection(ctx context.Context, userID string, section 
 
 	g, gCtx := errgroup.WithContext(ctx)
 
+	// fetch jikan data (season now or top anime)
 	g.Go(func() error {
 		switch section {
 		case "Airing":
@@ -37,6 +39,7 @@ func (s *Service) GetCatalogSection(ctx context.Context, userID string, section 
 		return err
 	})
 
+	// fetch user-specific data if logged in
 	if userID != "" {
 		g.Go(func() error {
 			if section == "Continue" {
@@ -57,6 +60,7 @@ func (s *Service) GetCatalogSection(ctx context.Context, userID string, section 
 		return nil, err
 	}
 
+	// limit to 6 items for homepage grid
 	animes := res.Animes
 	if len(animes) > 6 {
 		animes = animes[:6]
@@ -74,6 +78,7 @@ func (s *Service) GetCatalogSection(ctx context.Context, userID string, section 
 	}, nil
 }
 
+// GetDiscoverSection fetches discover page sections (Trending, Upcoming, Top) from jikan.
 func (s *Service) GetDiscoverSection(ctx context.Context, userID string, section string) (map[string]any, error) {
 	var (
 		res       jikan.TopAnimeResult
@@ -107,6 +112,7 @@ func (s *Service) GetDiscoverSection(ctx context.Context, userID string, section
 		return nil, err
 	}
 
+	// limit to 8 items for discover grid
 	animes := res.Animes
 	if len(animes) > 8 {
 		animes = animes[:8]
@@ -123,6 +129,7 @@ func (s *Service) GetDiscoverSection(ctx context.Context, userID string, section
 	}, nil
 }
 
+// filterUnique deduplicates anime list by mal id, respecting limit.
 func (s *Service) filterUnique(animes []jikan.Anime, seen map[int]bool, limit int) []jikan.Anime {
 	unique := make([]jikan.Anime, 0)
 	for _, a := range animes {

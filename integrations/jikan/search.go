@@ -8,10 +8,12 @@ import (
 	"strings"
 )
 
+// Search performs a basic anime search by query string.
 func (c *Client) Search(ctx context.Context, query string, page int) (SearchResult, error) {
 	return c.search(ctx, query, page, 0)
 }
 
+// SearchAdvanced performs a filtered anime search with type, status, ordering, and genre filters.
 func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, sfw bool, page, limit int) (SearchResult, error) {
 	if page < 1 {
 		page = 1
@@ -122,6 +124,7 @@ func (c *Client) search(ctx context.Context, query string, page int, limit int) 
 	}, nil
 }
 
+// GetTopAnime returns the top-rated anime list for a given page.
 func (c *Client) GetTopAnime(ctx context.Context, page int) (TopAnimeResult, error) {
 	if page < 1 {
 		page = 1
@@ -145,6 +148,7 @@ func (c *Client) GetTopAnime(ctx context.Context, page int) (TopAnimeResult, err
 	}, nil
 }
 
+// GetAnimeGenres returns list of all anime genres, cached long-term.
 func (c *Client) GetAnimeGenres(ctx context.Context) ([]Genre, error) {
 	const cacheKey = "anime_genres"
 
