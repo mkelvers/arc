@@ -51,16 +51,6 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("jikan api returned status %d", e.StatusCode)
 }
 
-// IsNotFoundError returns true if the error is an APIError with 404 status.
-func IsNotFoundError(err error) bool {
-	var apiErr *APIError
-	if errors.As(err, &apiErr) {
-		return apiErr.StatusCode == http.StatusNotFound
-	}
-
-	return false
-}
-
 // IsRetryableError returns true if the error should trigger a retry.
 func IsRetryableError(err error) bool {
 	if err == nil {

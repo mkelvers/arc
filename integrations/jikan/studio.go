@@ -1,8 +1,6 @@
 package jikan
 
 import (
-	"context"
-	"fmt"
 )
 
 type ProducerResponse struct {
@@ -28,61 +26,3 @@ type ProducerResponse struct {
 	} `json:"data"`
 }
 
-// GetAnimeByProducer returns anime list for a producer/studio, includes producer name.
-func (c *Client) GetAnimeByProducer(ctx context.Context, producerID int, page int) (StudioAnimeResult, error) {
-	if page < 1 {
-		page = 1
-	}
-
-	cacheKey := fmt.Sprintf("producer:%d:%d", producerID, page)
-
-	var cached StudioAnimeResult
-	if c.getCache(ctx, cacheKey, &cached) {
-		return cached, nil
-	}
-
-	var stale StudioAnimeResult
-	hasStale := c.getStaleCache(ctx, cacheKey, &stale)
-
-	var result SearchResponse
-	reqURL := fmt.Sprintf("%s/anime?producers=%d&page=%d", c.baseURL, producerID, page)
-
-	if err := c.fetchWithRetry(ctx, reqURL, &result); err != nil {
-		if hasStale {
-			return stale, nil
-		}
-		return StudioAnimeResult{}, err
-	}
-
-	producerName := ""
-	var producerRes ProducerResponse
-	producerURL := fmt.Sprintf("%s/producers/%d", c.baseURL, producerID)
-	if err := c.fetchWithRetry(ctx, producerURL, &producerRes); err == nil {
-		for _, title := range producerRes.Data.Titles {
-			if title.Type == "Default" {
-				producerName = title.Title
-				break
-			}
-		}
-	}
-
-	res := StudioAnimeResult{
-		Animes:      result.Data,
-		HasNextPage: result.Pagination.HasNextPage,
-		StudioName:  producerName,
-	}
-
-	c.setCache(ctx, cacheKey, res, shortCacheTTL)
-	return res, nil
-}
-
-// GetProducerByID returns full producer/studio details.
-func (c *Client) GetProducerByID(ctx context.Context, producerID int) (ProducerResponse, error) {
-	cacheKey := fmt.Sprintf("producer:info:%d", producerID)
-
-	var result ProducerResponse
-	reqURL := fmt.Sprintf("%s/producers/%d/full", c.baseURL, producerID)
-
-	err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result)
-	return result, err
-}

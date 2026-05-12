@@ -69,15 +69,3 @@ func (c *Client) GetAllEpisodes(ctx context.Context, animeID int) ([]Episode, er
 	return result, nil
 }
 
-// GetEpisodesRange fetches episodes from startPage to endPage sequentially.
-func (c *Client) GetEpisodesRange(ctx context.Context, animeID int, startPage, endPage int) ([]Episode, error) {
-	var all []Episode
-	for page := startPage; page <= endPage; page++ {
-		resp, err := c.GetEpisodes(ctx, animeID, page)
-		if err != nil {
-			return all, err
-		}
-		all = append(all, resp.Data...)
-	}
-	return all, nil
-}
