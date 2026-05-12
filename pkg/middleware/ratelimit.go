@@ -61,17 +61,6 @@ func getIP(r *http.Request) string {
 	return ip
 }
 
-// Middleware returns 429 for rate-limited API requests
-func (l *Limiter) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !l.allow(getIP(r)) {
-			http.Error(w, "Too many requests. Please try again later.", http.StatusTooManyRequests)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
 // AuthMiddleware redirects rate-limited form submissions back to the page
 // returns 429 for non-path requests (e.g. API calls)
 func (l *Limiter) AuthMiddleware(next http.Handler) http.Handler {

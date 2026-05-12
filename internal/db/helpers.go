@@ -24,14 +24,6 @@ func (r GetUserWatchListRow) DisplayTitle() string {
 	return DisplayTitle(r.TitleEnglish, r.TitleJapanese, r.TitleOriginal)
 }
 
-// BoolPtr converts a nullable bool to a pointer; nil if not valid
-func BoolPtr(b sql.NullBool) *bool {
-	if !b.Valid {
-		return nil
-	}
-	return &b.Bool
-}
-
 // BeginTx starts a transaction and returns the Queries wrapper bound to it
 func BeginTx(ctx context.Context, db *sql.DB) (*Queries, *sql.Tx, error) {
 	if db == nil {
