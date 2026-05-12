@@ -47,3 +47,4 @@ tmp/
 *.log
 *.pid
 *_templ.go
+user.sh
