@@ -68,4 +68,3 @@ func (c *Client) GetAllEpisodes(ctx context.Context, animeID int) ([]Episode, er
 
 	return result, nil
 }
-

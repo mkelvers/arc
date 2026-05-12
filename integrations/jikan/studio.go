@@ -1,7 +1,6 @@
 package jikan
 
-import (
-)
+import ()
 
 type ProducerResponse struct {
 	Data struct {
@@ -25,4 +24,3 @@ type ProducerResponse struct {
 		} `json:"external"`
 	} `json:"data"`
 }
-

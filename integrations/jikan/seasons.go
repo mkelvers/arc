@@ -10,7 +10,6 @@ type ScheduleResult struct {
 	HasNextPage bool // whether more pages available
 }
 
-
 // GetSeasonsNow returns currently airing anime for the current season.
 func (c *Client) GetSeasonsNow(ctx context.Context, page int) (TopAnimeResult, error) {
 	if page < 1 {

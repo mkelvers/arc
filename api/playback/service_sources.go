@@ -9,7 +9,6 @@ import (
 	"sync"
 )
 
-
 // resolveModeSourceWithCache is like resolveModeSource but caches probe results.
 func (s *Service) resolveModeSourceWithCache(
 	ctx context.Context,
