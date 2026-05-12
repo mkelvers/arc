@@ -136,20 +136,6 @@ func (s *Service) GetUserWatchlist(ctx context.Context, userID string) ([]db.Get
 	return entries, nil
 }
 
-// GetContinueWatching retrieves entries for continue watching section.
-func (s *Service) GetContinueWatching(ctx context.Context, userID string) ([]db.GetContinueWatchingEntriesRow, error) {
-	if strings.TrimSpace(userID) == "" {
-		return nil, errors.New("invalid user id")
-	}
-
-	entries, err := s.db.GetContinueWatchingEntries(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch continue watching: %w", err)
-	}
-
-	return entries, nil
-}
-
 // DeleteContinueWatching removes entry and clears associated watch progress.
 // uses transaction when sqlDB is available.
 func (s *Service) DeleteContinueWatching(ctx context.Context, userID string, animeID int64) error {
