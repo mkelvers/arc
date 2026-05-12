@@ -2,6 +2,7 @@ package jikan
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -236,8 +237,7 @@ func (a Anime) DurationSeconds() float64 {
 		if c >= '0' && c <= '9' {
 			currentNum += string(c)
 		} else if c == ' ' && currentNum != "" {
-			val := 0
-			fmt.Sscanf(currentNum, "%d", &val)
+			val, _ := strconv.Atoi(currentNum)
 			if isHours {
 				hours = val
 			} else {
@@ -246,15 +246,13 @@ func (a Anime) DurationSeconds() float64 {
 			currentNum = ""
 		} else if len(currentNum) > 0 && (c == 'h' || c == 'H') {
 			isHours = true
-			val := 0
-			fmt.Sscanf(currentNum, "%d", &val)
+			val, _ := strconv.Atoi(currentNum)
 			hours = val
 			currentNum = ""
 		}
 	}
 	if currentNum != "" {
-		val := 0
-		fmt.Sscanf(currentNum, "%d", &val)
+		val, _ := strconv.Atoi(currentNum)
 		if isHours {
 			hours = val
 		} else {
