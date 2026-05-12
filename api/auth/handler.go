@@ -11,8 +11,6 @@ type Handler struct {
 	authService *Service
 }
 
-const rateLimitFormError = "Too many attempts in a short time. Please wait a minute and try again."
-
 func NewHandler(authService *Service) *Handler {
 	return &Handler{authService: authService}
 }
@@ -29,11 +27,13 @@ func (h *Handler) HandleLoginPage(w http.ResponseWriter, r *http.Request) {
 // HandleLogin validates credentials and creates a session on success
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
+		if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
 			"Error":       "Something went wrong. Please try again.",
 			"Username":    "",
 			"CurrentPath": r.URL.Path,
-		})
+		}); err != nil {
+			log.Printf("render error: %v", err)
+		}
 		return
 	}
 
@@ -41,21 +41,25 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	if username == "" || password == "" {
-		templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
+		if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
 			"Error":       "The email or password is wrong.",
 			"Username":    username,
 			"CurrentPath": r.URL.Path,
-		})
+		}); err != nil {
+			log.Printf("render error: %v", err)
+		}
 		return
 	}
 
 	session, err := h.authService.Login(r.Context(), username, password)
 	if err != nil {
-		templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
+		if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
 			"Error":       "The email or password is wrong.",
 			"Username":    username,
 			"CurrentPath": r.URL.Path,
-		})
+		}); err != nil {
+			log.Printf("render error: %v", err)
+		}
 		return
 	}
 
