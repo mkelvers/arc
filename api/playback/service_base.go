@@ -21,12 +21,12 @@ const (
 )
 
 type Service struct {
-	allAnimeClient *allAnimeClient
-	httpClient     *http.Client
-	sqlDB          *sql.DB
-	db             db.Querier
-	proxyTokens    *proxyTokenSigner
-	proxyHostCache *lru.Cache[string, proxyHostCacheItem]
+	allAnimeClient    *allAnimeClient
+	httpClient        *http.Client
+	sqlDB             *sql.DB
+	db                db.Querier
+	proxyTokens       *proxyTokenSigner
+	proxyHostCache    *lru.Cache[string, proxyHostCacheItem]
 	showResolution    *lru.Cache[int, showResolutionCacheItem]
 	playbackDataCache *lru.Cache[string, playbackDataCacheItem]
 }
