@@ -23,7 +23,7 @@ func (s *Service) SaveProgress(ctx context.Context, userID string, animeID int64
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if animeSeed != nil {
 		if _, err := txQueries.UpsertAnime(ctx, *animeSeed); err != nil {
@@ -89,7 +89,7 @@ func (s *Service) CompleteAnime(ctx context.Context, userID string, animeID int6
 		return err
 	}
 
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	watchListEntry, watchListErr := txQueries.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
 		UserID:  userID,

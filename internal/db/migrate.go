@@ -77,7 +77,7 @@ func loadAppliedMigrationNames(db *sql.DB) (map[string]struct{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	applied := make(map[string]struct{})
 	for rows.Next() {

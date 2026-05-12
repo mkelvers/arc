@@ -106,7 +106,7 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		// limit body read for error context; avoid reading large error pages
@@ -235,7 +235,7 @@ func fetchProxyText(ctx context.Context, httpClient *http.Client, url string) (s
 	if err != nil {
 		return "", fmt.Errorf("proxy request failed: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("proxy status %d", response.StatusCode)

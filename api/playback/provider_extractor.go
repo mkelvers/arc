@@ -51,7 +51,7 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 		}
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024)) // 2MB limit
 	if err != nil {
@@ -155,7 +155,7 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024)) // 512KB limit
 	if err != nil {

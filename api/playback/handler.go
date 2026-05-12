@@ -243,7 +243,7 @@ func (h *Handler) HandleProxy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 
 	if bodyReader != nil {
-		defer bodyReader.Close()
+		defer func() { _ = bodyReader.Close() }()
 		_, _ = io.Copy(w, bodyReader)
 	} else {
 		_, _ = w.Write(content)
@@ -389,7 +389,7 @@ func (h *Handler) HandleEpisodeData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	if err := writeJSON(w, map[string]any{
 		"mal_id":          watchData.MalID,
 		"title":           watchData.Title,
 		"current_episode": watchData.CurrentEpisode,
@@ -400,7 +400,9 @@ func (h *Handler) HandleEpisodeData(w http.ResponseWriter, r *http.Request) {
 		"mode_sources":    watchData.ModeSources,
 		"segments":        watchData.Segments,
 		"episode_title":   "", // Find episode title if possible
-	})
+	}); err != nil {
+		log.Printf("watch page encode error: %v", err)
+	}
 }
 
 // HandleEpisodeThumbnails returns episode list for the thumbnail strip.
@@ -459,5 +461,11 @@ func (h *Handler) HandleEpisodeThumbnails(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(results)
+	if err := writeJSON(w, results); err != nil {
+		log.Printf("thumbnails encode error: %v", err)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, v any) error {
+	return json.NewEncoder(w).Encode(v)
 }

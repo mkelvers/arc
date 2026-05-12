@@ -140,7 +140,7 @@ func (s *Service) probeDirectMedia(ctx context.Context, source StreamSource) (bo
 	if err != nil {
 		return false, ""
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// check content-type header first
 	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
@@ -192,7 +192,7 @@ func (s *Service) probeEmbedSource(ctx context.Context, source StreamSource) boo
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		return false

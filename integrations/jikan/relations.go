@@ -155,7 +155,7 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 	}
 
 	go func() {
-		g.Wait()
+		_ = g.Wait()
 		close(results)
 	}()
 

@@ -236,11 +236,6 @@ func (c *Client) setCache(parentCtx context.Context, key string, data any, ttl t
 	})
 }
 
-type cacheResult struct {
-	data     any
-	hasStale bool
-}
-
 // isEmptyResult detects if response contains no meaningful data.
 func isEmptyResult(out any) bool {
 	switch v := out.(type) {
@@ -336,7 +331,7 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 			}
 
 			if retryable && attempt < maxRetries-1 {
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				delay := max(retryAfter, retryDelay(attempt))
 
 				if retryErr := waitForRetry(ctx, delay); retryErr != nil {
@@ -347,7 +342,7 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 			}
 
 			err = json.NewDecoder(resp.Body).Decode(out)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if err == nil {
 				return nil
 			}
@@ -356,7 +351,7 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 		}
 
 		err = json.NewDecoder(resp.Body).Decode(out)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err == nil {
 			return nil
 		}

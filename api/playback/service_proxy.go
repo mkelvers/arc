@@ -59,7 +59,7 @@ func (s *Service) handleProxyResponse(ctx context.Context, resp *http.Response, 
 
 	// check if response is an m3u8 playlist that needs rewriting
 	if isM3U8(targetURL, resp.Header.Get("Content-Type")) {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 		if readErr != nil {
 			return 0, nil, nil, nil, fmt.Errorf("read playlist failed: %w", readErr)

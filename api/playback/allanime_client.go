@@ -88,7 +88,7 @@ func (c *allAnimeClient) graphqlRequest(ctx context.Context, query string, varia
 	if err != nil {
 		return nil, fmt.Errorf("execute graphql request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
@@ -143,7 +143,7 @@ func (c *allAnimeClient) graphqlRequestWithHash(ctx context.Context, showID, epi
 	if err != nil {
 		return nil, fmt.Errorf("execute GET request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1022))
 	if err != nil {

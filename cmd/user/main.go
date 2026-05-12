@@ -18,7 +18,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	if len(os.Args) == 2 && os.Args[1] == "update-avatar" {
 		updateAvatars(dbConn)
@@ -83,7 +83,7 @@ func updateAvatars(dbConn *sql.DB) {
 	if err != nil {
 		log.Fatalf("failed to fetch users: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	count := 0
 	for rows.Next() {
