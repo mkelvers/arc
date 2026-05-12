@@ -21,8 +21,6 @@ var (
 	ErrNotAuthenticated   = errors.New("not authenticated")
 )
 
-const bcryptCost = 12
-
 type Service struct {
 	db db.Querier
 }

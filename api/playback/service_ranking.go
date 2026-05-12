@@ -87,10 +87,6 @@ var providerPriority = map[string]int{
 	"ss-hls":  30,
 }
 
-var sourceQualityDefaults = map[string]int{
-	"auto": 240,
-}
-
 func lookupPriority(m map[string]int, key string, fallback int) int {
 	if p, ok := m[strings.ToLower(key)]; ok {
 		return p

@@ -27,8 +27,6 @@ type Service struct {
 	db             db.Querier
 	proxyTokens    *proxyTokenSigner
 	proxyHostCache *lru.Cache[string, proxyHostCacheItem]
-
-	cacheMu           sync.RWMutex
 	showResolution    *lru.Cache[int, showResolutionCacheItem]
 	playbackDataCache *lru.Cache[string, playbackDataCacheItem]
 }
