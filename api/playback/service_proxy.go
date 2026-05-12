@@ -47,7 +47,7 @@ func (s *Service) ProxyStream(ctx context.Context, targetURL string, referer str
 			continue
 		}
 
-		return s.handleProxyResponse(ctx, resp, targetURL, referer, rangeHeader)
+		return s.handleProxyResponse(ctx, resp, targetURL, referer)
 	}
 
 	return 0, nil, nil, nil, fmt.Errorf("upstream request failed after %d retries: %w", maxRetries+1, lastErr)
@@ -55,7 +55,7 @@ func (s *Service) ProxyStream(ctx context.Context, targetURL string, referer str
 
 // handleProxyResponse processes the upstream response.
 // rewrites m3u8 playlists to proxy through our backend.
-func (s *Service) handleProxyResponse(ctx context.Context, resp *http.Response, targetURL string, referer string, rangeHeader string) (int, http.Header, []byte, io.ReadCloser, error) {
+func (s *Service) handleProxyResponse(ctx context.Context, resp *http.Response, targetURL string, referer string) (int, http.Header, []byte, io.ReadCloser, error) {
 
 	// check if response is an m3u8 playlist that needs rewriting
 	if isM3U8(targetURL, resp.Header.Get("Content-Type")) {

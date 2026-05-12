@@ -58,11 +58,11 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 		return nil, fmt.Errorf("read provider response: %w", err)
 	}
 
-	return e.parseProviderResponse(ctx, string(body))
+	return e.parseProviderResponse(ctx, string(body)), nil
 }
 
 // parseProviderResponse extracts stream sources from provider JSON response.
-func (e *providerExtractor) parseProviderResponse(ctx context.Context, response string) ([]StreamSource, error) {
+func (e *providerExtractor) parseProviderResponse(ctx context.Context, response string) []StreamSource {
 	sources := make([]StreamSource, 0)
 	providerReferer := e.referer
 
@@ -146,7 +146,7 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		}
 	}
 
-	return sources, nil
+	return sources
 }
 
 // parseM3U8 fetches a master playlist and extracts individual stream URLs with bandwidth-derived quality.

@@ -464,8 +464,8 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 		}
 
 		if version == 1 {
-			plainText, err := tryDecryptCTR(block, iv, cipherText)
-			if err == nil && json.Valid(plainText) {
+			plainText := tryDecryptCTR(block, iv, cipherText)
+			if json.Valid(plainText) {
 				return plainText, nil
 			}
 		}
@@ -484,13 +484,13 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 	return nil, fmt.Errorf("decryption failed")
 }
 
-func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) ([]byte, error) {
+func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) []byte {
 	ctrIV := append([]byte{}, iv...)
 	ctrIV = append(ctrIV, 0x00, 0x00, 0x00, 0x02)
 	ctr := cipher.NewCTR(block, ctrIV)
 	plainText := make([]byte, len(cipherText))
 	ctr.XORKeyStream(plainText, cipherText)
-	return plainText, nil
+	return plainText
 }
 
 // Search queries AllAnime for shows matching the given search term.

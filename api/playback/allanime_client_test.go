@@ -430,11 +430,7 @@ func TestTryDecryptCTR(t *testing.T) {
 		iv := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b}
 		cipherText := []byte("test plaintext  ")
 
-		plainText, err := tryDecryptCTR(block, iv, cipherText)
-		if err != nil {
-			t.Errorf("tryDecryptCTR error: %v", err)
-		}
-
+		plainText := tryDecryptCTR(block, iv, cipherText)
 		_ = plainText
 	})
 }
