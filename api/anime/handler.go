@@ -46,7 +46,9 @@ func (h *Handler) HandleCatalog(w http.ResponseWriter, r *http.Request) {
 		"User":        user,
 		"CurrentPath": r.URL.Path,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -73,7 +75,9 @@ func (h *Handler) renderCatalogSection(w http.ResponseWriter, r *http.Request, s
 
 	data, err := h.service.GetCatalogSection(r.Context(), userID, section)
 	if err != nil {
-		log.Printf("catalog %s error: %v", section, err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("catalog %s error: %v", section, err)
+		}
 		if section != "Continue" {
 			writeInlineLoadError(w, "Failed to load "+section)
 		}
@@ -85,7 +89,9 @@ func (h *Handler) renderCatalogSection(w http.ResponseWriter, r *http.Request, s
 
 	// render section as htmx partial, not full page
 	if err := templates.GetRenderer().ExecuteFragment(r.Context(), w, "index.gohtml", "catalog_section", data); err != nil {
-		log.Printf("fragment render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("fragment render error: %v", err)
+		}
 	}
 }
 
@@ -96,7 +102,9 @@ func (h *Handler) HandleDiscover(w http.ResponseWriter, r *http.Request) {
 		"User":        user,
 		"CurrentPath": r.URL.Path,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -122,7 +130,9 @@ func (h *Handler) renderDiscoverSection(w http.ResponseWriter, r *http.Request, 
 
 	data, err := h.service.GetDiscoverSection(r.Context(), userID, section)
 	if err != nil {
-		log.Printf("discover %s error: %v", section, err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("discover %s error: %v", section, err)
+		}
 		writeInlineLoadError(w, "Failed to load "+section)
 		return
 	}
@@ -131,7 +141,9 @@ func (h *Handler) renderDiscoverSection(w http.ResponseWriter, r *http.Request, 
 	data["Section"] = section
 
 	if err := templates.GetRenderer().ExecuteFragment(r.Context(), w, "discover.gohtml", "discover_section", data); err != nil {
-		log.Printf("fragment render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("fragment render error: %v", err)
+		}
 	}
 }
 
@@ -322,7 +334,9 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := g.Wait(); err != nil {
-		log.Printf("anime details fetch error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("anime details fetch error: %v", err)
+		}
 		renderNotFoundPage(r, w)
 		return
 	}
@@ -335,7 +349,9 @@ func (h *Handler) HandleAnimeDetails(w http.ResponseWriter, r *http.Request) {
 		"WatchlistIDs":  watchlistIDs,
 		"EpisodesCount": episodesCount,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
@@ -357,7 +373,9 @@ func (h *Handler) renderAnimeDetailsSection(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err != nil {
-		log.Printf("anime details %s error: %v", section, err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("anime details %s error: %v", section, err)
+		}
 		writeInlineLoadError(w, "Failed to load "+section)
 		return
 	}
@@ -369,7 +387,9 @@ func (h *Handler) renderAnimeDetailsSection(w http.ResponseWriter, r *http.Reque
 
 	// render htmx partial for the section
 	if err := templates.GetRenderer().ExecuteFragment(ctx, w, "anime.gohtml", tplName, data); err != nil {
-		log.Printf("fragment render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("fragment render error: %v", err)
+		}
 	}
 }
 
@@ -383,7 +403,9 @@ func (h *Handler) HandleHTMLWatchOrder(w http.ResponseWriter, r *http.Request) {
 
 	relations, err := h.service.jikanClient.GetFullRelations(r.Context(), id)
 	if err != nil {
-		log.Printf("watch order error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("watch order error: %v", err)
+		}
 		http.Error(w, `<div class="mt-8 text-sm text-red-400">Failed to load watch order.</div>`, http.StatusInternalServerError)
 		return
 	}
@@ -402,7 +424,9 @@ func (h *Handler) HandleHTMLWatchOrder(w http.ResponseWriter, r *http.Request) {
 		"AnimeID":      id,
 		"WatchlistMap": watchlistMap,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 	}
 }
 
@@ -418,10 +442,14 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := h.service.jikanClient.SearchAdvanced(r.Context(), query, "", "", "", "", nil, true, 1, 5)
 	if err != nil {
-		log.Printf("quick search error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("quick search error: %v", err)
+		}
 		w.WriteHeader(http.StatusOK)
 		if err := writeJSON(w, []quickSearchResult{}); err != nil {
-			log.Printf("quick search encode error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("quick search encode error: %v", err)
+			}
 		}
 		return
 	}
@@ -436,7 +464,9 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	if err := writeJSON(w, output); err != nil {
-		log.Printf("quick search encode error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("quick search encode error: %v", err)
+		}
 	}
 }
 
@@ -445,10 +475,14 @@ func (h *Handler) HandleRandomAnime(w http.ResponseWriter, r *http.Request) {
 
 	anime, err := h.service.jikanClient.GetRandomAnime(r.Context())
 	if err != nil {
-		log.Printf("random anime error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("random anime error: %v", err)
+		}
 		w.WriteHeader(http.StatusInternalServerError)
 		if err := writeJSON(w, map[string]string{"error": "Failed to fetch random anime"}); err != nil {
-			log.Printf("random anime encode error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("random anime encode error: %v", err)
+			}
 		}
 		return
 	}
@@ -456,14 +490,18 @@ func (h *Handler) HandleRandomAnime(w http.ResponseWriter, r *http.Request) {
 	if anime.MalID == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		if err := writeJSON(w, map[string]string{"error": "No anime found"}); err != nil {
-			log.Printf("random anime encode error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("random anime encode error: %v", err)
+			}
 		}
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	if err := writeJSON(w, map[string]any{"data": anime}); err != nil {
-		log.Printf("random anime encode error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("random anime encode error: %v", err)
+		}
 	}
 }
 
@@ -476,7 +514,9 @@ func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
 		"CurrentPath": r.URL.Path,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

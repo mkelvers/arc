@@ -1,8 +1,10 @@
 package playback
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -33,7 +35,9 @@ func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
 		"CurrentPath": r.URL.Path,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 	}
 }
 
@@ -204,7 +208,9 @@ func (h *Handler) HandleWatchPage(w http.ResponseWriter, r *http.Request) {
 		"WatchlistStatus": watchlistStatus,
 		"Seasons":         allSeasons,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 	}
 }
 
@@ -401,7 +407,9 @@ func (h *Handler) HandleEpisodeData(w http.ResponseWriter, r *http.Request) {
 		"segments":        watchData.Segments,
 		"episode_title":   "", // Find episode title if possible
 	}); err != nil {
-		log.Printf("watch page encode error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("watch page encode error: %v", err)
+		}
 	}
 }
 
@@ -462,7 +470,9 @@ func (h *Handler) HandleEpisodeThumbnails(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := writeJSON(w, results); err != nil {
-		log.Printf("thumbnails encode error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("thumbnails encode error: %v", err)
+		}
 	}
 }
 

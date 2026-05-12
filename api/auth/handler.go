@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
 
@@ -20,7 +22,9 @@ func (h *Handler) HandleLoginPage(w http.ResponseWriter, r *http.Request) {
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{
 		"CurrentPath": r.URL.Path,
 	}); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 	}
 }
 
@@ -32,7 +36,9 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"Username":    "",
 			"CurrentPath": r.URL.Path,
 		}); err != nil {
-			log.Printf("render error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("render error: %v", err)
+			}
 		}
 		return
 	}
@@ -46,7 +52,9 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"Username":    username,
 			"CurrentPath": r.URL.Path,
 		}); err != nil {
-			log.Printf("render error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("render error: %v", err)
+			}
 		}
 		return
 	}
@@ -58,7 +66,9 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			"Username":    username,
 			"CurrentPath": r.URL.Path,
 		}); err != nil {
-			log.Printf("render error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("render error: %v", err)
+			}
 		}
 		return
 	}

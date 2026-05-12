@@ -272,7 +272,9 @@ func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Dur
 					return nil
 				}
 			}
-			log.Printf("jikan: stale cache unmarshal failed or empty, falling back to error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("jikan: stale cache unmarshal failed or empty, falling back to error: %v", err)
+			}
 		}
 		return err
 	}

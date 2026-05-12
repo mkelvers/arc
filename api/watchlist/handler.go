@@ -1,7 +1,9 @@
 package watchlist
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -120,7 +122,9 @@ func (h *Handler) HandleGetWatchlist(w http.ResponseWriter, r *http.Request) {
 		if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
 			"CurrentPath": r.URL.Path,
 		}); err != nil {
-			log.Printf("render error: %v", err)
+			if !errors.Is(err, context.Canceled) {
+				log.Printf("render error: %v", err)
+			}
 		}
 		return
 	}
@@ -163,6 +167,8 @@ func (h *Handler) HandleGetWatchlist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, templateName, data); err != nil {
-		log.Printf("render error: %v", err)
+		if !errors.Is(err, context.Canceled) {
+			log.Printf("render error: %v", err)
+		}
 	}
 }
