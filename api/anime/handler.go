@@ -411,14 +411,18 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode([]quickSearchResult{})
+		if err := writeJSON(w, []quickSearchResult{}); err != nil {
+			log.Printf("quick search encode error: %v", err)
+		}
 		return
 	}
 	res, err := h.service.jikanClient.SearchAdvanced(r.Context(), query, "", "", "", "", nil, true, 1, 5)
 	if err != nil {
 		log.Printf("quick search error: %v", err)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode([]quickSearchResult{})
+		if err := writeJSON(w, []quickSearchResult{}); err != nil {
+			log.Printf("quick search encode error: %v", err)
+		}
 		return
 	}
 	output := make([]quickSearchResult, len(res.Animes))
@@ -431,7 +435,9 @@ func (h *Handler) HandleQuickSearch(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(output)
+	if err := writeJSON(w, output); err != nil {
+		log.Printf("quick search encode error: %v", err)
+	}
 }
 
 func (h *Handler) HandleRandomAnime(w http.ResponseWriter, r *http.Request) {
@@ -441,18 +447,24 @@ func (h *Handler) HandleRandomAnime(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("random anime error: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to fetch random anime"})
+		if err := writeJSON(w, map[string]string{"error": "Failed to fetch random anime"}); err != nil {
+			log.Printf("random anime encode error: %v", err)
+		}
 		return
 	}
 
 	if anime.MalID == 0 {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "No anime found"})
+		if err := writeJSON(w, map[string]string{"error": "No anime found"}); err != nil {
+			log.Printf("random anime encode error: %v", err)
+		}
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{"data": anime})
+	if err := writeJSON(w, map[string]any{"data": anime}); err != nil {
+		log.Printf("random anime encode error: %v", err)
+	}
 }
 
 func (h *Handler) HandleSearch(w http.ResponseWriter, r *http.Request) {
@@ -472,6 +484,10 @@ func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 func writeInlineLoadError(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "text/html")
 	_, _ = w.Write([]byte(`<p style="color: var(--text-muted); font-size: var(--text-sm);">` + html.EscapeString(message) + `</p>`))
+}
+
+func writeJSON(w http.ResponseWriter, v any) error {
+	return json.NewEncoder(w).Encode(v)
 }
 
 func parsePageParam(r *http.Request) int {
