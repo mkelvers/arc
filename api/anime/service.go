@@ -128,18 +128,3 @@ func (s *Service) GetDiscoverSection(ctx context.Context, userID string, section
 		"WatchlistMap": watchlistMap,
 	}, nil
 }
-
-// filterUnique deduplicates anime list by mal id, respecting limit.
-func (s *Service) filterUnique(animes []jikan.Anime, seen map[int]bool, limit int) []jikan.Anime {
-	unique := make([]jikan.Anime, 0)
-	for _, a := range animes {
-		if !seen[a.MalID] {
-			seen[a.MalID] = true
-			unique = append(unique, a)
-		}
-		if len(unique) >= limit {
-			break
-		}
-	}
-	return unique
-}

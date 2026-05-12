@@ -17,14 +17,6 @@ func NewHandler(authService *Service) *Handler {
 	return &Handler{authService: authService}
 }
 
-// rateLimitErrorFromQuery checks for rate limit errors in the query string
-func rateLimitErrorFromQuery(r *http.Request) string {
-	if r.URL.Query().Get("error") == "rate_limited" {
-		return rateLimitFormError
-	}
-	return ""
-}
-
 // HandleLoginPage renders the login form
 func (h *Handler) HandleLoginPage(w http.ResponseWriter, r *http.Request) {
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "login.gohtml", map[string]any{

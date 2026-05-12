@@ -459,10 +459,6 @@ func (h *Handler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	renderNotFoundPage(r, w)
 }
 
-func (h *Handler) HandleStudioDetails(w http.ResponseWriter, r *http.Request) {
-	renderNotFoundPage(r, w)
-}
-
 func renderNotFoundPage(r *http.Request, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	if err := templates.GetRenderer().ExecuteTemplate(r.Context(), w, "not_found.gohtml", map[string]any{
