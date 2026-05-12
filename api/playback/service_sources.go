@@ -9,25 +9,6 @@ import (
 	"sync"
 )
 
-// resolveModeSource fetches sources for a given mode and selects the best one.
-func (s *Service) resolveModeSource(ctx context.Context, showID string, episode string, mode string, quality string) (StreamSource, error) {
-	sources, err := s.allAnimeClient.GetEpisodeSources(ctx, showID, episode, mode)
-	if err != nil {
-		return StreamSource{}, err
-	}
-
-	ranked, err := rankSources(sources, quality)
-	if err != nil {
-		return StreamSource{}, err
-	}
-
-	selected, _, err := s.choosePlaybackSource(ctx, ranked, s.probeDirectMedia)
-	if err != nil {
-		return StreamSource{}, err
-	}
-
-	return selected, nil
-}
 
 // resolveModeSourceWithCache is like resolveModeSource but caches probe results.
 func (s *Service) resolveModeSourceWithCache(

@@ -562,57 +562,6 @@ func (c *allAnimeClient) Search(ctx context.Context, query string, mode string) 
 	return out, nil
 }
 
-// GetEpisodes returns the list of available episode strings for a show and mode.
-func (c *allAnimeClient) GetEpisodes(ctx context.Context, showID string, mode string) ([]string, error) {
-	graphqlQuery := `query($showId: String!) {
-		show(_id: $showId) {
-			availableEpisodesDetail
-		}
-	}`
-
-	result, err := c.graphqlRequest(ctx, graphqlQuery, map[string]any{"showId": showID})
-	if err != nil {
-		return nil, err
-	}
-
-	data, ok := result["data"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid episode response")
-	}
-
-	show, ok := data["show"].(map[string]any)
-	if !ok || show == nil {
-		return nil, fmt.Errorf("show not found")
-	}
-
-	detail, ok := show["availableEpisodesDetail"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid episodes detail")
-	}
-
-	rawList, ok := detail[mode].([]any)
-	if !ok {
-		return nil, fmt.Errorf("no episodes for mode %s", mode)
-	}
-
-	episodes := make([]string, 0, len(rawList))
-	for _, item := range rawList {
-		episode, ok := item.(string)
-		if !ok {
-			continue
-		}
-
-		episode = strings.TrimSpace(episode)
-		if episode == "" {
-			continue
-		}
-
-		episodes = append(episodes, episode)
-	}
-
-	return episodes, nil
-}
-
 // GetAvailableEpisodes returns the count of sub/dub/raw episodes available for a show.
 func (c *allAnimeClient) GetAvailableEpisodes(ctx context.Context, showID string) (AvailableEpisodes, error) {
 	graphqlQuery := `query($showId: String!) {
@@ -666,42 +615,6 @@ func (c *allAnimeClient) GetAvailableEpisodes(ctx context.Context, showID string
 	}
 
 	return count, nil
-}
-
-func (c *allAnimeClient) GetEpisodeMetadata(ctx context.Context, showID string, episode string) (map[string]any, error) {
-	graphqlQuery := `query($showId: String!, $episodeString: String!, $translationType: VaildTranslationTypeEnumType!) {
-		episode(showId: $showId, episodeString: $episodeString, translationType: $translationType) {
-			notes
-			episodeInfo {
-				notes
-				thumbnails
-				vidinfors {
-					vidPath
-				}
-			}
-		}
-	}`
-
-	result, err := c.graphqlRequest(ctx, graphqlQuery, map[string]any{
-		"showId":          showID,
-		"episodeString":   episode,
-		"translationType": "sub",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	data, ok := result["data"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid response")
-	}
-
-	ep, ok := data["episode"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("episode not found")
-	}
-
-	return ep, nil
 }
 
 func decodeSourceURL(encoded string) string {

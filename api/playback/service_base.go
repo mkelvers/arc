@@ -349,15 +349,6 @@ func clonePlaybackBaseData(data playbackBaseData) playbackBaseData {
 	}
 }
 
-// GetEpisodeMetadata fetches episode notes and thumbnails from AllAnime.
-func (s *Service) GetEpisodeMetadata(ctx context.Context, malID int, episode string) (map[string]any, error) {
-	showID, _, err := s.resolveShowCached(ctx, malID, nil)
-	if err != nil {
-		return nil, err
-	}
-	return s.allAnimeClient.GetEpisodeMetadata(ctx, showID, episode)
-}
-
 func toQualities(sources []StreamSource) []string {
 	seen := make(map[string]struct{})
 	var qualities []string
