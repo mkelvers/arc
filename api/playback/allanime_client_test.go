@@ -446,9 +446,6 @@ func TestAllAnimeClientImplementsInterfaces(t *testing.T) {
 			GetEpisodeSources(context.Context, string, string, string) ([]StreamSource, error)
 		} = &allAnimeClient{}
 		_ interface {
-			GetEpisodes(context.Context, string, string) ([]string, error)
-		} = &allAnimeClient{}
-		_ interface {
 			GetAvailableEpisodes(context.Context, string) (AvailableEpisodes, error)
 		} = &allAnimeClient{}
 	)
