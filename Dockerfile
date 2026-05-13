@@ -23,7 +23,7 @@ RUN bun install --frozen-lockfile
 # Copy all source files
 COPY . .
 
-# Build frontend assets (tailwind + ts) from a clean state
+# Ensure dist is clean at build time (belt + suspenders)
 RUN rm -rf dist/ && bun run build:assets
 
 # Generate sqlc code
@@ -47,8 +47,8 @@ COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/internal/database/migrations ./migrations
+COPY docker/entrypoint.sh ./entrypoint.sh
 
-# Expose the application port
 EXPOSE 3000
 
-ENTRYPOINT ["./main_server"]
+ENTRYPOINT ["./entrypoint.sh"]
