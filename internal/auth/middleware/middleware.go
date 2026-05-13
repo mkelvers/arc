@@ -9,8 +9,10 @@ import (
 
 func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Allow access to login and logout endpoints without authentication
-		if c.Request.URL.Path == "/login" || c.Request.URL.Path == "/logout" {
+		// Allow access to login, logout and static assets without authentication
+		if c.Request.URL.Path == "/login" || c.Request.URL.Path == "/logout" || 
+		   len(c.Request.URL.Path) >= 7 && c.Request.URL.Path[:7] == "/static" ||
+		   len(c.Request.URL.Path) >= 5 && c.Request.URL.Path[:5] == "/dist" {
 			c.Next()
 			return
 		}
