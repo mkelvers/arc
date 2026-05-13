@@ -46,9 +46,8 @@
     </div>
   </ui-dropdown>
 
-  <a href="/anime/{{$anime.MalID}}/watch" class="bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-foreground transition-colors">
-    <i class="fa-solid fa-play mr-2"></i>
-    Watch Now
+  <a href="/anime/{{$anime.MalID}}/watch{{if and .ContinueWatchingEp (ne .ContinueWatchingEp 1)}}?ep={{.ContinueWatchingEp}}{{end}}" class="bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-foreground transition-colors">
+    {{if and .ContinueWatchingEp (ne .ContinueWatchingEp 1)}}Continue Episode {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
   </a>
 </div>
 

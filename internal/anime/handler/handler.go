@@ -253,10 +253,22 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 	}
 
 	user, _ := c.Get("User")
+	ep := 1
+	var cwSeconds float64
+	if u, ok := user.(*domain.User); ok {
+		cwEntry, err := h.watchlistSvc.GetContinueWatchingEntry(c.Request.Context(), u.ID, int64(id))
+		if err == nil && cwEntry.CurrentEpisode.Valid {
+			ep = int(cwEntry.CurrentEpisode.Int64)
+			cwSeconds = cwEntry.CurrentTimeSeconds
+		}
+	}
+
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-		"Anime":       anime,
-		"CurrentPath": fmt.Sprintf("/anime/%d", id),
-		"User":        user,
+		"Anime":                anime,
+		"CurrentPath":          fmt.Sprintf("/anime/%d", id),
+		"User":                 user,
+		"ContinueWatchingEp":   ep,
+		"ContinueWatchingTime": cwSeconds,
 	})
 }
 

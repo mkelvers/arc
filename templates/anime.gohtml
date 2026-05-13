@@ -85,7 +85,7 @@
         {{if $anime.ShortRating}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.ShortRating}}</span>{{end}}
       </div>
 
-      {{template "watchlist_actions" dict "Anime" $anime "User" .User "Status" .Status}}
+      {{template "watchlist_actions" dict "Anime" $anime "User" .User "Status" .Status "ContinueWatchingEp" .ContinueWatchingEp "ContinueWatchingTime" .ContinueWatchingTime}}
 
       <div class="flex flex-col gap-12 lg:flex-row">
         <div class="grow lg:max-w-4xl">
