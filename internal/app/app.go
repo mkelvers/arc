@@ -11,6 +11,7 @@ import (
 func NewApp() *fx.App {
 	return fx.New(
 		database.Module,
+		jikan.Module,
 		server.Module,
 		fx.Invoke(func(r *gin.Engine, registers []server.RouteRegister) {
 			server.RegisterRoutes(r, registers)
