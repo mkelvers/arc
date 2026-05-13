@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"mal/internal/db"
-	"os"
 
 	"github.com/pressly/goose/v3"
 	"go.uber.org/fx"
