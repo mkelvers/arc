@@ -23,5 +23,5 @@ type Subtitle struct {
 
 type Provider interface {
 	Name() string
-	GetStreams(ctx context.Context, animeID int, episode string, mode string) (*StreamResult, error)
+	GetStreams(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string) (*StreamResult, error)
 }
