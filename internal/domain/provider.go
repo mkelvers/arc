@@ -10,10 +10,10 @@ type StreamSource struct {
 }
 
 type StreamResult struct {
-	URL        string
-	Referer    string
-	Subtitles  []Subtitle
-	Qualities  []StreamSource
+	URL       string
+	Referer   string
+	Subtitles []Subtitle
+	Qualities []StreamSource
 }
 
 type Subtitle struct {

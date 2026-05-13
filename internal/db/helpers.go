@@ -18,4 +18,3 @@ func DisplayTitle(titleEnglish, titleJapanese sql.NullString, titleOriginal stri
 func (r GetUserWatchListRow) DisplayTitle() string {
 	return DisplayTitle(r.TitleEnglish, r.TitleJapanese, r.TitleOriginal)
 }
-

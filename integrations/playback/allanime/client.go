@@ -10,13 +10,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mal/internal/domain"
 	"mal/pkg/net/utls"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-	"mal/internal/domain"
 )
 
 const (
@@ -161,7 +161,7 @@ func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCan
 
 	// 3. Return the first usable source
 	primary := sources[0]
-	
+
 	result := &domain.StreamResult{
 		URL:     primary.URL,
 		Referer: primary.Referer,

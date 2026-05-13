@@ -22,11 +22,11 @@ import (
 )
 
 type playbackService struct {
-	repo           domain.PlaybackRepository
-	providers      []domain.Provider
-	jikan          *jikan.Client
-	httpClient     *http.Client
-	proxyTokenKey  string
+	repo          domain.PlaybackRepository
+	providers     []domain.Provider
+	jikan         *jikan.Client
+	httpClient    *http.Client
+	proxyTokenKey string
 }
 
 type SkipSegment struct {

@@ -3,13 +3,13 @@ package app
 import (
 	"mal/integrations/jikan"
 	"mal/integrations/playback/allanime"
-	"mal/internal/database"
-	"mal/internal/auth"
 	"mal/internal/anime"
-	"mal/internal/watchlist"
+	"mal/internal/auth"
+	"mal/internal/database"
 	"mal/internal/playback"
 	"mal/internal/server"
 	"mal/internal/templates"
+	"mal/internal/watchlist"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"

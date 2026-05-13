@@ -24,4 +24,3 @@ func GetDBFile() string {
 	}
 	return "mal.db"
 }
-
