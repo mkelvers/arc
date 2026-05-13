@@ -24,10 +24,7 @@ var Module = fx.Options(
 )
 
 func ProvideSQLDB() (*sql.DB, error) {
-	dbPath := os.Getenv("DB_PATH")
-	if dbPath == "" {
-		dbPath = "mal.db"
-	}
+	dbPath := db.GetDBFile()
 	dbConn, err := db.Open(dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
