@@ -36,6 +36,7 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	log.Println("Registering playback routes")
 	r.GET("/anime/:id/watch", h.HandleWatchPage)
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
+	r.POST("/api/watch-complete", h.HandleWatchComplete)
 	r.GET("/api/watch/thumbnails/:animeId", h.HandleEpisodeThumbnails)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
 	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
@@ -103,6 +104,32 @@ func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
 	}
 
 	err := h.svc.SaveProgress(c.Request.Context(), userID, req.MalID, req.Episode, req.TimeSeconds)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
+	var req struct {
+		MalID   int64 `json:"mal_id"`
+		Episode int   `json:"episode"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	err := h.svc.CompleteAnime(c.Request.Context(), userID, req.MalID)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return

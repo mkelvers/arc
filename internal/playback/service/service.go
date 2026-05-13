@@ -322,6 +322,19 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}, nil
 }
 
+func (s *playbackService) CompleteAnime(ctx context.Context, userID string, animeID int64) error {
+	_ = s.repo.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
+		UserID:  userID,
+		AnimeID: animeID,
+	})
+	return s.repo.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
+		UserID:             userID,
+		AnimeID:            animeID,
+		CurrentEpisode:     sql.NullInt64{Valid: false},
+		CurrentTimeSeconds: 0,
+	})
+}
+
 func (s *playbackService) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error {
 	_, err := s.repo.UpsertContinueWatchingEntry(ctx, db.UpsertContinueWatchingEntryParams{
 		ID:                 uuid.New().String(),

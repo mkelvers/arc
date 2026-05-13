@@ -8,6 +8,7 @@ import (
 type PlaybackService interface {
 	BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (map[string]any, error)
 	SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error
+	CompleteAnime(ctx context.Context, userID string, animeID int64) error
 	ResolveProxyToken(token string) (string, string, error)
 }
 
@@ -35,4 +36,5 @@ type PlaybackRepository interface {
 	GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	SaveWatchProgress(ctx context.Context, params db.SaveWatchProgressParams) error
 	UpsertContinueWatchingEntry(ctx context.Context, params db.UpsertContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
+	DeleteContinueWatchingEntry(ctx context.Context, params db.DeleteContinueWatchingEntryParams) error
 }
