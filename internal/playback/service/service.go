@@ -188,6 +188,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	// 3. Get start time from progress
 	startTime := 0.0
 	var watchlistStatus string
+	var watchlistIDs []int64
 	if userID != "" {
 		entry, err := s.repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
 			UserID:  userID,
@@ -195,6 +196,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		})
 		if err == nil {
 			watchlistStatus = entry.Status
+			watchlistIDs = []int64{entry.AnimeID}
 			if entry.CurrentEpisode.Valid && strconv.FormatInt(entry.CurrentEpisode.Int64, 10) == episode {
 				startTime = entry.CurrentTimeSeconds
 			}
@@ -318,6 +320,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		"Episodes":        domainEpisodes,
 		"CurrentEpID":     episode,
 		"WatchlistStatus": watchlistStatus,
+		"WatchlistIDs":    watchlistIDs,
 		"Seasons":         seasons,
 	}, nil
 }

@@ -38,7 +38,7 @@
         
         <div id="remove-watchlist-container-{{$anime.MalID}}" class="{{if not $status}}hidden{{end}}">
           <div class="my-1 h-px bg-border"></div>
-          <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10 focus:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}})">
+          <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10 focus:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
             <span class="font-medium text-sm text-red-500 text-left whitespace-nowrap">Remove from Watchlist</span>
           </button>
         </div>
@@ -50,65 +50,4 @@
     {{if and .ContinueWatchingEp (ne .ContinueWatchingEp 1)}}Continue Episode {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
   </a>
 </div>
-
-<script>
-  function updateWatchlist(id, status, display, btn) {
-    fetch('/api/watchlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ animeId: id, status: status })
-    }).then(res => {
-      if (res.ok) {
-        watchlistIds.add(id);
-        document.getElementById('watchlist-status-display-' + id).textContent = display;
-        document.getElementById('remove-watchlist-container-' + id).classList.remove('hidden');
-        
-        // Update all watchlist icons on the page
-        document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
-          const button = icon.closest('button')
-          if (button) {
-            const malId = button.dataset.malId
-            if (malId && parseInt(malId) === id) {
-              button.classList.add('in-watchlist')
-            }
-          }
-        });
-        
-        // Close dropdown after a small delay to let click event finish
-        requestAnimationFrame(() => {
-          const dropdown = btn.closest('ui-dropdown');
-          if (dropdown) dropdown.close();
-        });
-      }
-    });
-  }
-
-  function removeWatchlist(id) {
-    fetch('/api/watchlist/' + id, { method: 'DELETE' }).then(res => {
-      if (res.ok) {
-        watchlistIds.delete(id);
-        document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
-        document.getElementById('remove-watchlist-container-' + id).classList.add('hidden');
-        
-        // Update all watchlist icons on the page
-        document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
-          const button = icon.closest('button')
-          if (button) {
-            const malId = button.dataset.malId
-            if (malId && parseInt(malId) === id) {
-              button.classList.remove('in-watchlist')
-            }
-          }
-        });
-        
-        // Close dropdown
-        const btn = document.getElementById('watchlist-status-display-' + id);
-        if (btn) {
-          const dropdown = btn.closest('ui-dropdown');
-          if (dropdown) dropdown.close();
-        }
-      }
-    });
-  }
-</script>
 {{end}}

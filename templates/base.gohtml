@@ -109,7 +109,20 @@
     const watchlistIds = new Set()
 
     function initWatchlist(ids) {
-      ids.forEach(id => watchlistIds.add(id))
+      ids.forEach(id => watchlistIds.add(id));
+      const sync = () => ids.forEach(id => syncRemoveButtonVisibility(id));
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', sync);
+      } else {
+        sync();
+      }
+    }
+
+    function syncRemoveButtonVisibility(id) {
+      const container = document.getElementById('remove-watchlist-container-' + id);
+      if (container) {
+        container.classList.toggle('hidden', !watchlistIds.has(id));
+      }
     }
 
     function toggleWatchlist(id, btn) {
@@ -169,10 +182,7 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
       const statusDisplay = document.getElementById('watchlist-status-display-' + id)
       if (statusDisplay) {
         statusDisplay.textContent = inWatchlist ? 'Plan to Watch' : 'Add to Watchlist'
-        const removeContainer = document.getElementById('remove-watchlist-container-' + id)
-        if (removeContainer) {
-          removeContainer.classList.toggle('hidden', !inWatchlist)
-        }
+        syncRemoveButtonVisibility(id)
       }
     }
 
@@ -185,6 +195,57 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
           setTimeout(() => location.reload(), 100)
         }
       })
+    }
+
+    function updateWatchlist(id, status, display, btn) {
+      fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ animeId: id, status: status })
+      }).then(res => {
+        if (res.ok) {
+          watchlistIds.add(id);
+          document.getElementById('watchlist-status-display-' + id).textContent = display;
+          syncRemoveButtonVisibility(id);
+          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
+            const button = icon.closest('button');
+            if (button) {
+              const malId = button.dataset.malId;
+              if (malId && parseInt(malId) === id) {
+                button.classList.add('in-watchlist');
+              }
+            }
+          });
+          requestAnimationFrame(() => {
+            const dropdown = btn.closest('ui-dropdown');
+            if (dropdown) dropdown.close();
+          });
+        }
+      });
+    }
+
+    function removeWatchlist(id, btn) {
+      fetch('/api/watchlist/' + id, { method: 'DELETE' }).then(res => {
+        if (res.ok) {
+          watchlistIds.delete(id);
+          document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
+          syncRemoveButtonVisibility(id);
+          if (window.showToast) showToast({ message: 'Removed from watchlist' });
+          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
+            const button = icon.closest('button');
+            if (button) {
+              const malId = button.dataset.malId;
+              if (malId && parseInt(malId) === id) {
+                button.classList.remove('in-watchlist');
+              }
+            }
+          });
+          if (btn) {
+            const dropdown = btn.closest('ui-dropdown');
+            if (dropdown) dropdown.close();
+          }
+        }
+      });
     }
   </script>
 </head>
