@@ -1,8 +1,6 @@
 -- +goose Up
 PRAGMA foreign_keys = OFF;
 
-BEGIN TRANSACTION;
-
 CREATE TABLE user_new (
   id TEXT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,
@@ -17,8 +15,6 @@ FROM user;
 DROP TABLE user;
 
 ALTER TABLE user_new RENAME TO user;
-
-COMMIT;
 
 PRAGMA foreign_keys = ON;
 
