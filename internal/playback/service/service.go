@@ -19,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type playbackService struct {
@@ -197,6 +199,17 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 				startTime = entry.CurrentTimeSeconds
 			}
 		}
+
+		// Fall back to continue_watching_entry for progress if not in watchlist
+		if startTime == 0 {
+			cwEntry, err := s.repo.GetContinueWatchingEntry(ctx, db.GetContinueWatchingEntryParams{
+				UserID:  userID,
+				AnimeID: int64(animeID),
+			})
+			if err == nil && cwEntry.CurrentEpisode.Valid && strconv.FormatInt(cwEntry.CurrentEpisode.Int64, 10) == episode {
+				startTime = cwEntry.CurrentTimeSeconds
+			}
+		}
 	}
 
 	// 4. Get Episodes list
@@ -286,8 +299,8 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		"Providers": []domain.ProviderData{
 			{Streams: streams},
 		},
-		"ModeSources":    modeSources,
-		"InitialMode":    mode,
+		"ModeSources": modeSources,
+		"InitialMode": mode,
 		"AvailableModes": func() []string {
 			var modes []string
 			for m := range modeSources {
@@ -296,7 +309,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			sort.Strings(modes)
 			return modes
 		}(),
-		"Segments":       segments,
+		"Segments": segments,
 	}
 
 	return map[string]any{
@@ -310,13 +323,15 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 }
 
 func (s *playbackService) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error {
-	params := db.SaveWatchProgressParams{
+	_, err := s.repo.UpsertContinueWatchingEntry(ctx, db.UpsertContinueWatchingEntryParams{
+		ID:                 uuid.New().String(),
 		UserID:             userID,
 		AnimeID:            animeID,
 		CurrentEpisode:     sql.NullInt64{Int64: int64(episode), Valid: true},
 		CurrentTimeSeconds: timeSeconds,
-	}
-	return s.repo.SaveWatchProgress(ctx, params)
+		DurationSeconds:    sql.NullFloat64{Valid: false},
+	})
+	return err
 }
 
 func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, episode string) []SkipSegment {
