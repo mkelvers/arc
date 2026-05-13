@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/render"
 	"go.uber.org/fx"
 )
 
@@ -16,12 +17,13 @@ var Module = fx.Options(
 	fx.Invoke(RunServer),
 )
 
-func ProvideRouter() *gin.Engine {
+func ProvideRouter(htmlRender render.HTMLRender) *gin.Engine {
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+	r.HTMLRender = htmlRender
 	return r
 }
 
