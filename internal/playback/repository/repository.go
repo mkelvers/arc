@@ -18,7 +18,7 @@ func (r *playbackRepository) GetWatchListEntry(ctx context.Context, params db.Ge
 	return r.queries.GetWatchListEntry(ctx, params)
 }
 
-func (r *playbackRepository) GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.GetContinueWatchingEntryRow, error) {
+func (r *playbackRepository) GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error) {
 	return r.queries.GetContinueWatchingEntry(ctx, params)
 }
 
