@@ -191,6 +191,13 @@ func (h HTMLRender) Render(w http.ResponseWriter) error {
 	if !ok {
 		return fmt.Errorf("template %s not found", h.Name)
 	}
+
+	if block, ok := h.Data.(map[string]any)["_fragment"]; ok {
+		if blockStr, ok := block.(string); ok {
+			return tmpl.ExecuteTemplate(w, blockStr, h.Data)
+		}
+	}
+
 	return tmpl.ExecuteTemplate(w, "base.gohtml", h.Data)
 }
 
