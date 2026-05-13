@@ -441,7 +441,7 @@ func TestAllAnimeClientImplementsInterfaces(t *testing.T) {
 
 	var (
 		_ interface {
-			GetStreams(context.Context, int, string, string) (*domain.StreamResult, error)
+			GetStreams(context.Context, int, []string, string, string) (*domain.StreamResult, error)
 		} = &AllAnimeProvider{}
 	)
 
