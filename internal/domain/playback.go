@@ -8,6 +8,7 @@ import (
 type PlaybackService interface {
 	BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (map[string]any, error)
 	SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error
+	ResolveProxyToken(token string) (string, string, error)
 }
 
 type ProviderStream struct {
