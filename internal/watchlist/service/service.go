@@ -55,6 +55,13 @@ func (s *watchlistService) GetWatchlist(ctx context.Context, userID string) ([]d
 	return s.repo.GetUserWatchList(ctx, userID)
 }
 
+func (s *watchlistService) GetContinueWatchingEntry(ctx context.Context, userID string, animeID int64) (db.ContinueWatchingEntry, error) {
+	return s.repo.GetContinueWatchingEntry(ctx, db.GetContinueWatchingEntryParams{
+		UserID:  userID,
+		AnimeID: animeID,
+	})
+}
+
 func (s *watchlistService) DeleteContinueWatching(ctx context.Context, userID string, animeID int64) error {
 	_ = s.repo.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
 		UserID:  userID,
