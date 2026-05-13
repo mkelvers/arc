@@ -18,9 +18,9 @@ type PlaybackHandler struct {
 	svc      domain.PlaybackService
 	animeSvc domain.AnimeService
 
-	proxyClient      *http.Client
-	streamingClient  *http.Client
-	subtitleCache    sync.Map
+	proxyClient     *http.Client
+	streamingClient *http.Client
+	subtitleCache   sync.Map
 }
 
 func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimeService) *PlaybackHandler {
