@@ -222,9 +222,10 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 
 	var subtitleItems []SubtitleItem
 	for _, sub := range result.Subtitles {
+		subToken, _ := s.SignProxyToken(sub.URL, result.Referer, "subtitle")
 		subtitleItems = append(subtitleItems, SubtitleItem{
-			Lang: sub.Label,
-			URL:  sub.URL,
+			Lang:  sub.Label,
+			Token: subToken,
 		})
 	}
 
@@ -238,6 +239,8 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			Subtitles: subtitleItems,
 		},
 	}
+
+	go s.warmStreamURL(result.URL, result.Referer)
 
 	// 6. Resolve relations/seasons
 	relations, _ := s.jikan.GetFullRelations(ctx, animeID)
@@ -367,4 +370,25 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, epis
 	}
 
 	return segments
+}
+
+func (s *playbackService) warmStreamURL(targetURL, referer string) {
+	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+	if err != nil {
+		return
+	}
+	if referer != "" {
+		req.Header.Set("Referer", referer)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req = req.WithContext(ctx)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	_ = resp.Body.Close()
 }

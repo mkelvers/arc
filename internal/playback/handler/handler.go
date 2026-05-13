@@ -5,8 +5,11 @@ import (
 	"io"
 	"log"
 	"mal/internal/domain"
+	"mal/pkg/net/proxytransport"
 	"net/http"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,10 +17,19 @@ import (
 type PlaybackHandler struct {
 	svc      domain.PlaybackService
 	animeSvc domain.AnimeService
+
+	proxyClient      *http.Client
+	streamingClient  *http.Client
+	subtitleCache    sync.Map
 }
 
 func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimeService) *PlaybackHandler {
-	return &PlaybackHandler{svc: svc, animeSvc: animeSvc}
+	return &PlaybackHandler{
+		svc:             svc,
+		animeSvc:        animeSvc,
+		proxyClient:     proxytransport.NewClient(),
+		streamingClient: proxytransport.NewStreamingClient(),
+	}
 }
 
 func (h *PlaybackHandler) Register(r *gin.Engine) {
@@ -26,6 +38,7 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
 	r.GET("/api/watch/thumbnails/:animeId", h.HandleEpisodeThumbnails)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
+	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
 }
 
 func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
@@ -170,9 +183,9 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := h.streamingClient.Do(req)
 	if err != nil {
-		log.Printf("proxy fetch error: %v", err)
+		log.Printf("proxy stream fetch error: %v", err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -183,4 +196,78 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	}
 	c.Status(resp.StatusCode)
 	_, _ = io.Copy(c.Writer, resp.Body)
+}
+
+type cachedSubtitle struct {
+	data        []byte
+	contentType string
+}
+
+func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	targetURL, referer, err := h.svc.ResolveProxyToken(token)
+	if err != nil {
+		log.Printf("proxy subtitle token error: %v", err)
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	if cached, ok := h.subtitleCache.Load(targetURL); ok {
+		entry := cached.(cachedSubtitle)
+		c.Data(http.StatusOK, entry.contentType, entry.data)
+		return
+	}
+
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, targetURL, nil)
+	if err != nil {
+		c.Status(http.StatusBadGateway)
+		return
+	}
+	if referer != "" {
+		req.Header.Set("Referer", referer)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
+
+	resp, err := h.proxyClient.Do(req)
+	if err != nil {
+		log.Printf("proxy subtitle fetch error: %v", err)
+		c.Status(http.StatusBadGateway)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	if err != nil {
+		log.Printf("proxy subtitle read error: %v", err)
+		c.Status(http.StatusBadGateway)
+		return
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = detectSubtitleType(targetURL)
+	}
+
+	h.subtitleCache.Store(targetURL, cachedSubtitle{data: body, contentType: contentType})
+
+	c.Data(http.StatusOK, contentType, body)
+}
+
+func detectSubtitleType(url string) string {
+	lower := strings.ToLower(url)
+	switch {
+	case strings.Contains(lower, ".vtt"):
+		return "text/vtt"
+	case strings.Contains(lower, ".srt"):
+		return "text/plain; charset=utf-8"
+	case strings.Contains(lower, ".ass") || strings.Contains(lower, ".ssa"):
+		return "text/plain; charset=utf-8"
+	default:
+		return "text/plain; charset=utf-8"
+	}
 }
