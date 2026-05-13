@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE INDEX IF NOT EXISTS idx_watch_list_entry_user_status_updated_at
 ON watch_list_entry(user_id, status, updated_at);
 
@@ -9,3 +10,5 @@ ON anime(relations_synced_at, status);
 
 CREATE INDEX IF NOT EXISTS idx_jikan_cache_expires_at
 ON jikan_cache(expires_at);
+
+-- +goose Down

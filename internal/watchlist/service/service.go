@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"

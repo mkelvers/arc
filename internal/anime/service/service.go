@@ -128,7 +128,7 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 	return s.jikan.GetAnimeByID(ctx, id)
 }
 
-func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, sfw bool, page, limit int) (jikan.SearchResponse, error) {
+func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, sfw bool, page, limit int) (jikan.SearchResult, error) {
 	return s.jikan.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, sfw, page, limit)
 }
 
@@ -144,7 +144,7 @@ func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain
 	return s.jikan.GetAnimeRecommendations(ctx, id)
 }
 
-func (s *animeService) GetRelations(ctx context.Context, id int) ([]jikan.Relation, error) {
+func (s *animeService) GetRelations(ctx context.Context, id int) ([]jikan.RelationEntry, error) {
 	return s.jikan.GetFullRelations(ctx, id)
 }
 

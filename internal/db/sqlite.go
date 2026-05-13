@@ -38,14 +38,7 @@ func GetMigrationsDir() (string, error) {
 	return filepath.Join(wd, "migrations"), nil
 }
 
-// Init opens the database, runs migrations, and returns a Queries instance
+// Init opens the database and returns a Queries instance
 func Init(db *sql.DB) (*Queries, error) {
-	migrationsDir, err := GetMigrationsDir()
-	if err != nil {
-		return nil, err
-	}
-	if err := RunMigrations(db, migrationsDir); err != nil {
-		return nil, fmt.Errorf("failed to run migrations: %w", err)
-	}
 	return New(db), nil
 }

@@ -1,28 +1,29 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"mal/internal/domain"
-	"mal/internal/server"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AnimeHandler struct {
-	svc domain.AnimeService
+	svc          domain.AnimeService
+	watchlistSvc domain.WatchlistService
 }
 
-func NewAnimeHandler(svc domain.AnimeService) *AnimeHandler {
-	return &AnimeHandler{svc: svc}
+func NewAnimeHandler(svc domain.AnimeService, watchlistSvc domain.WatchlistService) *AnimeHandler {
+	return &AnimeHandler{
+		svc:          svc,
+		watchlistSvc: watchlistSvc,
+	}
 }
 
 func (h *AnimeHandler) Register(r *gin.Engine) {
+	log.Println("Registering anime routes")
 	r.GET("/", h.HandleCatalog)
 	r.GET("/api/catalog/airing", h.HandleCatalogAiring)
 	r.GET("/api/catalog/popular", h.HandleCatalogPopular)
@@ -39,8 +40,19 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 }
 
 func (h *AnimeHandler) HandleCatalog(c *gin.Context) {
+	user, _ := c.Get("User")
+	watchlistMap := make(map[int]bool)
+	if u, ok := user.(*domain.User); ok {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
+		for _, e := range entries {
+			watchlistMap[int(e.AnimeID)] = true
+		}
+	}
+
 	c.HTML(http.StatusOK, "index.gohtml", gin.H{
-		"CurrentPath": "/",
+		"CurrentPath":  "/",
+		"User":         user,
+		"WatchlistMap": watchlistMap,
 	})
 }
 
@@ -57,21 +69,36 @@ func (h *AnimeHandler) HandleCatalogContinue(c *gin.Context) {
 }
 
 func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
-	userID := "" // TODO: get from auth context
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
 	if err != nil {
 		log.Printf("catalog %s error: %v", section, err)
 		return
 	}
 
+	watchlistMap := make(map[int]bool)
+	if userID != "" {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
+		for _, e := range entries {
+			watchlistMap[int(e.AnimeID)] = true
+		}
+	}
+
 	data["Section"] = section
 	data["_fragment"] = "catalog_section"
+	data["WatchlistMap"] = watchlistMap
 	c.HTML(http.StatusOK, "index.gohtml", data)
 }
 
 func (h *AnimeHandler) HandleDiscover(c *gin.Context) {
+	user, _ := c.Get("User")
 	c.HTML(http.StatusOK, "discover.gohtml", gin.H{
 		"CurrentPath": "/discover",
+		"User":        user,
 	})
 }
 
@@ -88,15 +115,28 @@ func (h *AnimeHandler) HandleDiscoverTop(c *gin.Context) {
 }
 
 func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
-	userID := "" // TODO: get from auth context
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
 	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
 	if err != nil {
 		log.Printf("discover %s error: %v", section, err)
 		return
 	}
 
+	watchlistMap := make(map[int]bool)
+	if userID != "" {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
+		for _, e := range entries {
+			watchlistMap[int(e.AnimeID)] = true
+		}
+	}
+
 	data["Section"] = section
 	data["_fragment"] = "discover_section"
+	data["WatchlistMap"] = watchlistMap
 	c.HTML(http.StatusOK, "discover.gohtml", data)
 }
 
@@ -145,19 +185,30 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 
 	genresList, _ := h.svc.GetGenres(c.Request.Context())
 
+	user, _ := c.Get("User")
+	watchlistMap := make(map[int]bool)
+	if u, ok := user.(*domain.User); ok {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
+		for _, e := range entries {
+			watchlistMap[int(e.AnimeID)] = true
+		}
+	}
+
 	c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-		"CurrentPath": "/browse",
-		"Query":       q,
-		"Type":        animeType,
-		"Status":      status,
-		"OrderBy":     orderBy,
-		"Sort":        sort,
-		"Genres":      genres,
-		"SFW":         sfw,
-		"GenresList":  genresList,
-		"Animes":      res.Animes,
-		"HasNextPage": res.HasNextPage,
-		"NextPage":    page + 1,
+		"CurrentPath":  "/browse",
+		"Query":        q,
+		"Type":         animeType,
+		"Status":       status,
+		"OrderBy":      orderBy,
+		"Sort":         sort,
+		"Genres":       genres,
+		"SFW":          sfw,
+		"GenresList":   genresList,
+		"Animes":       res.Animes,
+		"HasNextPage":  res.HasNextPage,
+		"NextPage":     page + 1,
+		"User":         user,
+		"WatchlistMap": watchlistMap,
 	})
 }
 
@@ -189,7 +240,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 
 		c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 			"_fragment": tplName,
-			"Data":      data,
+			"Items":     data,
 		})
 		return
 	}
@@ -200,9 +251,11 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		return
 	}
 
+	user, _ := c.Get("User")
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":       anime,
 		"CurrentPath": fmt.Sprintf("/anime/%d", id),
+		"User":        user,
 	})
 }
 
@@ -213,16 +266,31 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 		return
 	}
 
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
 	relations, err := h.svc.GetRelations(c.Request.Context(), id)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
 	}
 
+	watchlistMap := make(map[int]bool)
+	if userID != "" {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
+		for _, e := range entries {
+			watchlistMap[int(e.AnimeID)] = true
+		}
+	}
+
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-		"_fragment": "watch_order",
-		"Relations": relations,
-		"AnimeID":   id,
+		"_fragment":    "watch_order",
+		"Relations":    relations,
+		"AnimeID":      id,
+		"WatchlistMap": watchlistMap,
 	})
 }
 
@@ -239,20 +307,31 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		return
 	}
 
+	user, _ := c.Get("User")
+	watchlistMap := make(map[int]bool)
+	if u, ok := user.(*domain.User); ok {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
+		for _, e := range entries {
+			watchlistMap[int(e.AnimeID)] = true
+		}
+	}
+
 	type quickSearchResult struct {
-		ID    int    `json:"id"`
-		Title string `json:"title"`
-		Type  string `json:"type"`
-		Image string `json:"image"`
+		ID          int    `json:"id"`
+		Title       string `json:"title"`
+		Type        string `json:"type"`
+		Image       string `json:"image"`
+		InWatchlist bool   `json:"in_watchlist"`
 	}
 
 	output := make([]quickSearchResult, len(res.Animes))
 	for i, anime := range res.Animes {
 		output[i] = quickSearchResult{
-			ID:    anime.MalID,
-			Title: anime.DisplayTitle(),
-			Type:  anime.Type,
-			Image: anime.ImageURL(),
+			ID:          anime.MalID,
+			Title:       anime.DisplayTitle(),
+			Type:        anime.Type,
+			Image:       anime.ImageURL(),
+			InWatchlist: watchlistMap[anime.MalID],
 		}
 	}
 	c.JSON(http.StatusOK, output)
@@ -264,5 +343,21 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch random anime"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": anime})
+
+	user, _ := c.Get("User")
+	inWatchlist := false
+	if u, ok := user.(*domain.User); ok {
+		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
+		for _, e := range entries {
+			if int(e.AnimeID) == anime.MalID {
+				inWatchlist = true
+				break
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":         anime,
+		"in_watchlist": inWatchlist,
+	})
 }

@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS user (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
@@ -40,3 +41,10 @@ CREATE TABLE IF NOT EXISTS watch_list_entry (
     current_time_seconds REAL NOT NULL DEFAULT 0,
     UNIQUE(user_id, anime_id)
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS watch_list_entry;
+DROP TABLE IF EXISTS anime;
+DROP TABLE IF EXISTS account;
+DROP TABLE IF EXISTS session;
+DROP TABLE IF EXISTS user;

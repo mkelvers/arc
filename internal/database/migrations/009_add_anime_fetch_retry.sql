@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS anime_fetch_retry (
     anime_id INTEGER PRIMARY KEY,
     attempts INTEGER NOT NULL DEFAULT 0,
@@ -9,3 +10,5 @@ CREATE TABLE IF NOT EXISTS anime_fetch_retry (
 
 CREATE INDEX IF NOT EXISTS idx_anime_fetch_retry_next_retry_at
 ON anime_fetch_retry(next_retry_at);
+
+-- +goose Down

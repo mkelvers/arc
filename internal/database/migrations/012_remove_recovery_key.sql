@@ -1,3 +1,4 @@
+-- +goose Up
 PRAGMA foreign_keys = OFF;
 
 BEGIN TRANSACTION;
@@ -20,3 +21,5 @@ ALTER TABLE user_new RENAME TO user;
 COMMIT;
 
 PRAGMA foreign_keys = ON;
+
+-- +goose Down

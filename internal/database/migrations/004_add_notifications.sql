@@ -1,3 +1,4 @@
+-- +goose Up
 -- Note: watch_list_entry columns now in 001_init.sql
 
 -- Add notification preferences
@@ -8,3 +9,5 @@ CREATE TABLE IF NOT EXISTS notification_preference (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id)
 );
+
+-- +goose Down

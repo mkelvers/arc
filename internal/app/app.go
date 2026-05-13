@@ -1,6 +1,8 @@
 package app
 
 import (
+	"mal/integrations/jikan"
+	"mal/integrations/playback/allanime"
 	"mal/internal/database"
 	"mal/internal/auth"
 	"mal/internal/anime"
@@ -18,17 +20,22 @@ func NewApp() *fx.App {
 	return fx.New(
 		database.Module,
 		jikan.Module,
+		allanime.Module,
 		auth.Module,
 		anime.Module,
 		watchlist.Module,
 		playback.Module,
 		templates.Module,
 		server.Module,
-		fx.Decorate(func(r *templates.Renderer) render.HTMLRender {
+		fx.Provide(func(r *templates.Renderer) render.HTMLRender {
 			return r
 		}),
-		fx.Invoke(func(r *gin.Engine, registers []server.RouteRegister) {
-			server.RegisterRoutes(r, registers)
-		}),
+		fx.Invoke(fx.Annotate(
+			func(r *gin.Engine, authMiddleware gin.HandlerFunc, registers []server.RouteRegister) {
+				r.Use(authMiddleware)
+				server.RegisterRoutes(r, registers)
+			},
+			fx.ParamTags(``, ``, `group:"routes"`),
+		)),
 	)
 }

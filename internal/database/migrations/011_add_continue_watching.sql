@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS continue_watching_entry (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
@@ -11,3 +12,5 @@ CREATE TABLE IF NOT EXISTS continue_watching_entry (
 
 CREATE INDEX IF NOT EXISTS idx_continue_watching_user_updated
 ON continue_watching_entry(user_id, updated_at DESC);
+
+-- +goose Down

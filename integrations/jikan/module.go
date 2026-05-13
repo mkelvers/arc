@@ -1,8 +1,6 @@
 package jikan
 
 import (
-	"mal/internal/db"
-
 	"go.uber.org/fx"
 )
 

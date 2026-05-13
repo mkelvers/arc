@@ -7,8 +7,6 @@ import (
 	"mal/internal/db"
 	"mal/internal/domain"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type authRepository struct {

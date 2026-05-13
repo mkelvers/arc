@@ -2,10 +2,8 @@ package handler
 
 import (
 	"mal/internal/domain"
-	"mal/internal/server"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +24,12 @@ func (h *WatchlistHandler) Register(r *gin.Engine) {
 }
 
 func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
-	userID := "" // TODO: get from auth context
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
 	animeID, _ := strconv.ParseInt(c.PostForm("anime_id"), 10, 64)
 	status := c.PostForm("status")
 
@@ -45,7 +48,12 @@ func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
-	userID := "" // TODO: get from auth context
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
 	animeID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
 	if animeID <= 0 {
@@ -63,7 +71,12 @@ func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
-	userID := "" // TODO: get from auth context
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
 	animeID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
 	if animeID <= 0 {
@@ -81,7 +94,12 @@ func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
-	userID := "" // TODO: get from auth context
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
 	entries, err := h.svc.GetWatchlist(c.Request.Context(), userID)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
@@ -91,5 +109,6 @@ func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
 	c.HTML(http.StatusOK, "watchlist.gohtml", gin.H{
 		"Entries":     entries,
 		"CurrentPath": "/watchlist",
+		"User":        user,
 	})
 }

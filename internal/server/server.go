@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -23,6 +22,8 @@ func ProvideRouter(htmlRender render.HTMLRender) *gin.Engine {
 	}
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
+	r.Static("/static", "./static")
+	r.Static("/dist", "./dist")
 	r.HTMLRender = htmlRender
 	return r
 }

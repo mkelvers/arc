@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"mal/internal/app"
 
 	"github.com/joho/godotenv"

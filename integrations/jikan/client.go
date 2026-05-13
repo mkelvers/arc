@@ -25,7 +25,7 @@ type Client struct {
 	lastReqTime time.Time // rate limiting: last request timestamp
 }
 
-func NewClient(db db.Querier) *Client {
+func NewClient(queries *db.Queries) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -37,7 +37,7 @@ func NewClient(db db.Querier) *Client {
 			},
 		},
 		baseURL:     "https://api.jikan.moe/v4",
-		db:          db,
+		db:          queries,
 		retrySignal: make(chan struct{}, 1),
 	}
 }

@@ -1,3 +1,4 @@
+-- +goose Up
 -- Add "watching" and "on_hold" to the valid statuses for watch_list_entry
 
 PRAGMA foreign_keys=OFF;
@@ -24,3 +25,5 @@ FROM watch_list_entry_old;
 DROP TABLE watch_list_entry_old;
 
 PRAGMA foreign_keys=ON;
+
+-- +goose Down

@@ -1,13 +1,12 @@
 package templates
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -21,7 +20,7 @@ import (
 // FS is the interface for template filesystem, to be provided by the main app or a mock.
 type FS interface {
 	ReadFile(name string) ([]byte, error)
-	ReadDir(name string) ([]osDirEntry, error)
+	ReadDir(name string) ([]os.DirEntry, error)
 }
 
 // We will use embed.FS but wrapped in an interface if needed, or just use it directly.
@@ -153,14 +152,16 @@ func ProvideRenderer() (*Renderer, error) {
 		return nil, err
 	}
 
+	basePath := filepath.Join(".", "templates", "base.gohtml")
+
 	for _, page := range pages {
 		name := filepath.Base(page)
 		if name == "base.gohtml" {
 			continue
 		}
 
-		tmpl := template.New(name).Funcs(funcs)
-		tmpl = template.Must(tmpl.ParseFiles(filepath.Join(".", "templates", "base.gohtml")))
+		tmpl := template.New("base.gohtml").Funcs(funcs)
+		tmpl = template.Must(tmpl.ParseFiles(basePath))
 		if len(components) > 0 {
 			tmpl = template.Must(tmpl.ParseFiles(components...))
 		}
@@ -192,10 +193,18 @@ func (h HTMLRender) Render(w http.ResponseWriter) error {
 		return fmt.Errorf("template %s not found", h.Name)
 	}
 
-	if block, ok := h.Data.(map[string]any)["_fragment"]; ok {
-		if blockStr, ok := block.(string); ok {
-			return tmpl.ExecuteTemplate(w, blockStr, h.Data)
-		}
+	var block any
+
+	// Handle both map[string]any and gin.H (which is map[string]any but might
+	// behave differently depending on the Go version/compiler in type assertions)
+	if dataMap, ok := h.Data.(map[string]any); ok {
+		block = dataMap["_fragment"]
+	} else if ginH, ok := h.Data.(gin.H); ok {
+		block = ginH["_fragment"]
+	}
+
+	if blockStr, ok := block.(string); ok && blockStr != "" {
+		return tmpl.ExecuteTemplate(w, blockStr, h.Data)
 	}
 
 	return tmpl.ExecuteTemplate(w, "base.gohtml", h.Data)
