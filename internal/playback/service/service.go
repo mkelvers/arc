@@ -323,6 +323,24 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 }
 
 func (s *playbackService) CompleteAnime(ctx context.Context, userID string, animeID int64) error {
+	entry, err := s.repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
+		UserID:  userID,
+		AnimeID: animeID,
+	})
+	if err != nil || entry.Status != "completed" {
+		_, err = s.repo.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
+			ID:                 uuid.New().String(),
+			UserID:             userID,
+			AnimeID:            animeID,
+			Status:             "completed",
+			CurrentEpisode:     sql.NullInt64{Valid: false},
+			CurrentTimeSeconds: 0,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
 	_ = s.repo.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,

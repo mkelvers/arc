@@ -35,6 +35,7 @@ type PlaybackRepository interface {
 	GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error)
 	GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	SaveWatchProgress(ctx context.Context, params db.SaveWatchProgressParams) error
+	UpsertWatchListEntry(ctx context.Context, params db.UpsertWatchListEntryParams) (db.WatchListEntry, error)
 	UpsertContinueWatchingEntry(ctx context.Context, params db.UpsertContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	DeleteContinueWatchingEntry(ctx context.Context, params db.DeleteContinueWatchingEntryParams) error
 }

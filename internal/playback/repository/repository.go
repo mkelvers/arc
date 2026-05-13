@@ -26,6 +26,10 @@ func (r *playbackRepository) SaveWatchProgress(ctx context.Context, params db.Sa
 	return r.queries.SaveWatchProgress(ctx, params)
 }
 
+func (r *playbackRepository) UpsertWatchListEntry(ctx context.Context, params db.UpsertWatchListEntryParams) (db.WatchListEntry, error) {
+	return r.queries.UpsertWatchListEntry(ctx, params)
+}
+
 func (r *playbackRepository) UpsertContinueWatchingEntry(ctx context.Context, params db.UpsertContinueWatchingEntryParams) (db.ContinueWatchingEntry, error) {
 	return r.queries.UpsertContinueWatchingEntry(ctx, params)
 }
