@@ -1,11 +1,6 @@
 package db
 
-import (
-	"context"
-	"database/sql"
-	"errors"
-	"fmt"
-)
+import "database/sql"
 
 // NullStringOr returns n.String if valid and non-empty, otherwise fallback
 func NullStringOr(n sql.NullString, fallback string) string {
@@ -24,16 +19,3 @@ func (r GetUserWatchListRow) DisplayTitle() string {
 	return DisplayTitle(r.TitleEnglish, r.TitleJapanese, r.TitleOriginal)
 }
 
-// BeginTx starts a transaction and returns the Queries wrapper bound to it
-func BeginTx(ctx context.Context, db *sql.DB) (*Queries, *sql.Tx, error) {
-	if db == nil {
-		return nil, nil, errors.New("database unavailable")
-	}
-
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-
-	return New(tx), tx, nil
-}
