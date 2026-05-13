@@ -120,6 +120,11 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	if anime.TitleJapanese != "" {
 		searchTitles = append(searchTitles, anime.TitleJapanese)
 	}
+	for _, syn := range anime.TitleSynonyms {
+		if syn != "" && syn != anime.Title && syn != anime.TitleEnglish && syn != anime.TitleJapanese {
+			searchTitles = append(searchTitles, syn)
+		}
+	}
 
 	var result *domain.StreamResult
 	for _, p := range s.providers {
@@ -299,29 +304,29 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 
 func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, episode string) []SkipSegment {
 	if malID <= 0 || strings.TrimSpace(episode) == "" {
-		return nil
+		return []SkipSegment{}
 	}
 
 	endpoint := fmt.Sprintf("https://api.aniskip.com/v1/skip-times/%s/%s?types=op&types=ed", url.PathEscape(strconv.Itoa(malID)), url.PathEscape(episode))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil
+		return []SkipSegment{}
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil
+		return []SkipSegment{}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil
+		return []SkipSegment{}
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	if err != nil {
-		return nil
+		return []SkipSegment{}
 	}
 
 	type resultItem struct {
@@ -338,11 +343,11 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, epis
 
 	var parsed apiResponse
 	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil
+		return []SkipSegment{}
 	}
 
 	if !parsed.Found || len(parsed.Result) == 0 {
-		return nil
+		return []SkipSegment{}
 	}
 
 	segments := make([]SkipSegment, 0, len(parsed.Result))
