@@ -2,6 +2,7 @@ package app
 
 import (
 	"mal/internal/database"
+	"mal/internal/auth"
 	"mal/internal/server"
 	"mal/internal/templates"
 
@@ -14,6 +15,7 @@ func NewApp() *fx.App {
 	return fx.New(
 		database.Module,
 		jikan.Module,
+		auth.Module,
 		templates.Module,
 		server.Module,
 		fx.Decorate(func(r *templates.Renderer) render.HTMLRender {
