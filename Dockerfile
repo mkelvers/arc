@@ -30,7 +30,7 @@ RUN rm -rf dist/ && bun run build:assets
 RUN sqlc generate
 
 # Build the server and CLI tools
-RUN go build -o main_server ./cmd/server
+RUN go build -ldflags="-s -w" -o main_server ./cmd/server
 
 FROM debian:bookworm-slim
 
