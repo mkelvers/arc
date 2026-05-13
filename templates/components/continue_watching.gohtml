@@ -9,7 +9,7 @@
 
       <div id="continue-watching-{{.AnimeID}}" class="continue-watching-item group relative w-70 shrink-0 snap-start space-y-2 2xl:w-lg">
         <div class="bg-background/80 relative aspect-video w-full overflow-hidden">
-          <a href="/watch/{{.AnimeID}}" class="block h-full w-full">
+          <a href="/anime/{{.AnimeID}}/watch" class="block h-full w-full">
             <img src="{{if .ImageUrl}}{{.ImageUrl}}{{else}}https://placehold.co/500x500{{end}}" alt="{{$title}}" class="h-full w-full object-cover" />
           </a>
 
@@ -29,7 +29,7 @@
         </div>
 
         <div>
-          <a href="/watch/{{.AnimeID}}" class="block">
+          <a href="/anime/{{.AnimeID}}/watch" class="block">
             <h3 class="text-foreground truncate text-lg font-normal">
               {{$title}}
             </h3>
