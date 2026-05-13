@@ -126,17 +126,61 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		}
 	}
 
+	type SubtitleItem struct {
+		Lang    string `json:"lang"`
+		URL     string `json:"url,omitempty"`
+		Referer string `json:"referer,omitempty"`
+		Token   string `json:"token"`
+	}
+
+	type ModeSource struct {
+		URL       string         `json:"url,omitempty"`
+		Referer   string         `json:"referer,omitempty"`
+		Token     string         `json:"token"`
+		Subtitles []SubtitleItem `json:"subtitles"`
+		Qualities []string       `json:"qualities,omitempty"`
+	}
+
+	modeSources := map[string]ModeSource{}
 	var result *domain.StreamResult
-	for _, p := range s.providers {
-		res, err := p.GetStreams(ctx, animeID, searchTitles, episode, mode)
-		if err == nil && res != nil {
-			result = res
+
+	for _, m := range []string{"sub", "dub"} {
+		for _, p := range s.providers {
+			res, err := p.GetStreams(ctx, animeID, searchTitles, episode, m)
+			if err != nil || res == nil {
+				continue
+			}
+
+			var subItems []SubtitleItem
+			for _, sub := range res.Subtitles {
+				subToken, _ := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
+				subItems = append(subItems, SubtitleItem{
+					Lang:  sub.Label,
+					Token: subToken,
+				})
+			}
+
+			streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
+			modeSources[m] = ModeSource{
+				URL:       res.URL,
+				Referer:   res.Referer,
+				Token:     streamToken,
+				Subtitles: subItems,
+			}
+
+			if m == mode {
+				result = res
+			}
 			break
 		}
 	}
 
-	if result == nil {
+	if len(modeSources) == 0 {
 		return nil, fmt.Errorf("no streams found")
+	}
+
+	if result == nil {
+		return nil, fmt.Errorf("no streams found for mode %s", mode)
 	}
 
 	// 3. Get start time from progress
@@ -193,8 +237,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	// 5. Build provider data
-	// AllAnime currently returns one stream in result.URL
-	// We wrap it for the template
 	streams := []domain.ProviderStream{
 		{
 			Name:      "Primary",
@@ -202,41 +244,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			Quality:   "Auto",
 			MalID:     animeID,
 			IsCurrent: true,
-		},
-	}
-
-	type SubtitleItem struct {
-		Lang    string `json:"lang"`
-		URL     string `json:"url,omitempty"`
-		Referer string `json:"referer,omitempty"`
-		Token   string `json:"token"`
-	}
-
-	type ModeSource struct {
-		URL       string         `json:"url,omitempty"`
-		Referer   string         `json:"referer,omitempty"`
-		Token     string         `json:"token"`
-		Subtitles []SubtitleItem `json:"subtitles"`
-		Qualities []string       `json:"qualities,omitempty"`
-	}
-
-	var subtitleItems []SubtitleItem
-	for _, sub := range result.Subtitles {
-		subToken, _ := s.SignProxyToken(sub.URL, result.Referer, "subtitle")
-		subtitleItems = append(subtitleItems, SubtitleItem{
-			Lang:  sub.Label,
-			Token: subToken,
-		})
-	}
-
-	token, _ := s.SignProxyToken(result.URL, result.Referer, "stream")
-
-	modeSources := map[string]ModeSource{
-		mode: {
-			URL:       result.URL,
-			Referer:   result.Referer,
-			Token:     token,
-			Subtitles: subtitleItems,
 		},
 	}
 
@@ -281,7 +288,14 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		},
 		"ModeSources":    modeSources,
 		"InitialMode":    mode,
-		"AvailableModes": []string{"sub", "dub"},
+		"AvailableModes": func() []string {
+			var modes []string
+			for m := range modeSources {
+				modes = append(modes, m)
+			}
+			sort.Strings(modes)
+			return modes
+		}(),
 		"Segments":       segments,
 	}
 
