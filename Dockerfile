@@ -42,6 +42,9 @@ RUN apt-get update && apt-get install -y ca-certificates sqlite3 && rm -rf /var/
 # Create data directory for sqlite
 RUN mkdir -p /app/data
 
+# Set DB_PATH to use the persistent volume
+ENV DB_PATH=/app/data/mal.db
+
 COPY --from=builder /app/main_server .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
