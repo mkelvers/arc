@@ -5,6 +5,7 @@ import (
 	"mal/internal/auth"
 	"mal/internal/anime"
 	"mal/internal/watchlist"
+	"mal/internal/playback"
 	"mal/internal/server"
 	"mal/internal/templates"
 
@@ -20,6 +21,7 @@ func NewApp() *fx.App {
 		auth.Module,
 		anime.Module,
 		watchlist.Module,
+		playback.Module,
 		templates.Module,
 		server.Module,
 		fx.Decorate(func(r *templates.Renderer) render.HTMLRender {
