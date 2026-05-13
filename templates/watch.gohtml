@@ -37,12 +37,13 @@
             <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
               <span class="text-sm text-foreground">Dropped</span>
             </button>
-            <div id="remove-watchlist-container-{{$anime.MalID}}" class="hidden">
-              <div class="border-t border-border my-1"></div>
-              <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
-                <span class="text-sm text-red-400 whitespace-nowrap">Remove from Watchlist</span>
-              </button>
-            </div>
+            {{template "watchlist_remove_button" dict
+              "ID" $anime.MalID
+              "ContainerClass" "hidden"
+              "DividerClass" "border-t border-border my-1"
+              "ButtonClass" "flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10"
+              "SpanClass" "text-sm text-red-400 whitespace-nowrap"
+            }}
           </div>
         </div>
       </ui-dropdown>

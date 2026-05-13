@@ -36,12 +36,13 @@
           <span class="font-medium text-sm text-foreground">Dropped</span>
         </button>
         
-        <div id="remove-watchlist-container-{{$anime.MalID}}" class="{{if not $status}}hidden{{end}}">
-          <div class="my-1 h-px bg-border"></div>
-          <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10 focus:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
-            <span class="font-medium text-sm text-red-500 text-left whitespace-nowrap">Remove from Watchlist</span>
-          </button>
-        </div>
+        {{template "watchlist_remove_button" dict
+          "ID" $anime.MalID
+          "ContainerClass" "hidden"
+          "DividerClass" "my-1 h-px bg-border"
+          "ButtonClass" "flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10 focus:bg-red-500/10"
+          "SpanClass" "font-medium text-sm text-red-500 text-left whitespace-nowrap"
+        }}
       </div>
     </div>
   </ui-dropdown>
@@ -50,4 +51,13 @@
     {{if and .ContinueWatchingEp (ne .ContinueWatchingEp 1)}}Continue Episode {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
   </a>
 </div>
+{{end}}
+
+{{define "watchlist_remove_button"}}
+  <div id="remove-watchlist-container-{{.ID}}" class="{{.ContainerClass}}">
+    <div class="{{.DividerClass}}"></div>
+    <button class="{{.ButtonClass}}" onclick="removeWatchlist({{.ID}}, this)">
+      <span class="{{.SpanClass}}">Remove from Watchlist</span>
+    </button>
+  </div>
 {{end}}
