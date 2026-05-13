@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/aes"
 	"encoding/json"
-	"testing"
 	"mal/internal/domain"
+	"testing"
 )
 
 func TestDecodeSourceURL(t *testing.T) {
