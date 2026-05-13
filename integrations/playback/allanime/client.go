@@ -134,14 +134,24 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 	return out, nil
 }
 
-func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, episode string, mode string) (*domain.StreamResult, error) {
+func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string) (*domain.StreamResult, error) {
 	// 1. Search for the show to get its AllAnime ID
-	searchResults, err := c.Search(ctx, fmt.Sprintf("malId:%d", animeID), mode)
-	if err != nil || len(searchResults) == 0 {
-		return nil, fmt.Errorf("allanime: show not found for malID %d", animeID)
+	// Try each title candidate until we find a match, matching main's approach
+	var showID string
+	for _, title := range titleCandidates {
+		searchResults, err := c.Search(ctx, title, mode)
+		if err != nil || len(searchResults) == 0 {
+			continue
+		}
+		showID = searchResults[0].ID
+		if showID != "" {
+			break
+		}
 	}
 
-	showID := searchResults[0].ID
+	if showID == "" {
+		return nil, fmt.Errorf("allanime: show not found for malID %d", animeID)
+	}
 
 	// 2. Get sources
 	sources, err := c.GetEpisodeSources(ctx, showID, episode, mode)
