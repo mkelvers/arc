@@ -46,7 +46,7 @@ COPY --from=builder /app/main_server .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/internal/database/migrations ./migrations
 
 # Expose the application port
 EXPOSE 3000
