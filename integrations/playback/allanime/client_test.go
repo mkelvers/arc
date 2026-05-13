@@ -1,12 +1,24 @@
 package allanime
 
 import (
+	"bytes"
 	"context"
 	"crypto/aes"
 	"encoding/json"
 	"mal/internal/domain"
 	"testing"
 )
+
+func isLikelyM3U8(data []byte) bool {
+	return bytes.HasPrefix(bytes.TrimSpace(data), []byte("#EXTM3U"))
+}
+
+func isLikelyMP4(data []byte) bool {
+	if len(data) < 8 {
+		return false
+	}
+	return string(data[4:8]) == "ftyp"
+}
 
 func TestDecodeSourceURL(t *testing.T) {
 	t.Parallel()
