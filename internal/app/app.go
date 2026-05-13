@@ -4,6 +4,7 @@ import (
 	"mal/internal/database"
 	"mal/internal/auth"
 	"mal/internal/anime"
+	"mal/internal/watchlist"
 	"mal/internal/server"
 	"mal/internal/templates"
 
@@ -18,6 +19,7 @@ func NewApp() *fx.App {
 		jikan.Module,
 		auth.Module,
 		anime.Module,
+		watchlist.Module,
 		templates.Module,
 		server.Module,
 		fx.Decorate(func(r *templates.Renderer) render.HTMLRender {
