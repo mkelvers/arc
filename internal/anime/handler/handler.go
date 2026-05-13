@@ -166,25 +166,6 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		log.Printf("browse error: %v", err)
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-			"_fragment":   "anime_card_scroll",
-			"Animes":      res.Animes,
-			"NextPage":    page + 1,
-			"HasNextPage": res.HasNextPage,
-			"Query":       q,
-			"Type":        animeType,
-			"Status":      status,
-			"OrderBy":     orderBy,
-			"Sort":        sort,
-			"Genres":      genres,
-			"SFW":         sfw,
-		})
-		return
-	}
-
-	genresList, _ := h.svc.GetGenres(c.Request.Context())
-
 	user, _ := c.Get("User")
 	watchlistMap := make(map[int]bool)
 	if u, ok := user.(*domain.User); ok {
@@ -193,6 +174,26 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 			watchlistMap[int(e.AnimeID)] = true
 		}
 	}
+
+	if c.GetHeader("HX-Request") == "true" {
+		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
+			"_fragment":    "anime_card_scroll",
+			"Animes":       res.Animes,
+			"NextPage":     page + 1,
+			"HasNextPage":  res.HasNextPage,
+			"Query":        q,
+			"Type":         animeType,
+			"Status":       status,
+			"OrderBy":      orderBy,
+			"Sort":         sort,
+			"Genres":       genres,
+			"SFW":          sfw,
+			"WatchlistMap": watchlistMap,
+		})
+		return
+	}
+
+	genresList, _ := h.svc.GetGenres(c.Request.Context())
 
 	c.HTML(http.StatusOK, "browse.gohtml", gin.H{
 		"CurrentPath":  "/browse",

@@ -107,7 +107,7 @@ func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "watchlist.gohtml", gin.H{
-		"Entries":     entries,
+		"AllEntries":  entries,
 		"CurrentPath": "/watchlist",
 		"User":        user,
 	})
