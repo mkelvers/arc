@@ -4,13 +4,12 @@ import (
 	"context"
 	"net/http"
 
-	"mal/api/auth"
+	"mal/internal/domain"
 	ctxpkg "mal/internal/context"
-	"mal/internal/db"
 )
 
 // Auth middleware validates the session cookie and injects the user into context
-func Auth(authService *auth.Service) func(http.Handler) http.Handler {
+func Auth(authService domain.AuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("session_id")
@@ -32,8 +31,8 @@ func Auth(authService *auth.Service) func(http.Handler) http.Handler {
 }
 
 // GetUser retrieves the authenticated user from context, or nil if not authenticated
-func GetUser(ctx context.Context) *db.User {
-	user, ok := ctx.Value(ctxpkg.UserKey).(*db.User)
+func GetUser(ctx context.Context) *domain.User {
+	user, ok := ctx.Value(ctxpkg.UserKey).(*domain.User)
 	if !ok {
 		return nil
 	}

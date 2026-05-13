@@ -1,6 +1,8 @@
 package playback
 
 import (
+	"mal/integrations/jikan"
+	"mal/integrations/playback/allanime"
 	"mal/internal/domain"
 	"mal/internal/playback/handler"
 	"mal/internal/playback/repository"
@@ -13,12 +15,19 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		repository.NewPlaybackRepository,
-		service.NewPlaybackService,
-		handler.NewPlaybackHandler,
+		func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client) domain.PlaybackService {
+			return service.NewPlaybackService(repo, providers, jikan)
+		},
+		func(svc domain.PlaybackService, animeSvc domain.AnimeService) *handler.PlaybackHandler {
+			return handler.NewPlaybackHandler(svc, animeSvc)
+		},
 	),
 	fx.Provide(
 		server.AsRouteRegister(func(h *handler.PlaybackHandler) server.RouteRegister {
 			return h
 		}),
 	),
+	fx.Provide(func(p *allanime.AllAnimeProvider) []domain.Provider {
+		return []domain.Provider{p}
+	}),
 )
