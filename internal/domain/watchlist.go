@@ -12,6 +12,7 @@ type WatchlistService interface {
 	UpdateEntry(ctx context.Context, userID string, animeID int64, status string) error
 	RemoveEntry(ctx context.Context, userID string, animeID int64) error
 	GetWatchlist(ctx context.Context, userID string) ([]UserWatchListRow, error)
+	GetWatchListEntry(ctx context.Context, userID string, animeID int64) (WatchlistEntry, error)
 	GetContinueWatchingEntry(ctx context.Context, userID string, animeID int64) (db.ContinueWatchingEntry, error)
 	DeleteContinueWatching(ctx context.Context, userID string, animeID int64) error
 }
@@ -22,6 +23,7 @@ type WatchlistRepository interface {
 	UpsertWatchListEntry(ctx context.Context, arg db.UpsertWatchListEntryParams) (db.WatchListEntry, error)
 	DeleteWatchListEntry(ctx context.Context, arg db.DeleteWatchListEntryParams) error
 	GetUserWatchList(ctx context.Context, userID string) ([]db.GetUserWatchListRow, error)
+	GetWatchListEntry(ctx context.Context, arg db.GetWatchListEntryParams) (db.WatchListEntry, error)
 	GetContinueWatchingEntry(ctx context.Context, arg db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	DeleteContinueWatchingEntry(ctx context.Context, arg db.DeleteContinueWatchingEntryParams) error
 	SaveWatchProgress(ctx context.Context, arg db.SaveWatchProgressParams) error

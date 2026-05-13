@@ -253,9 +253,17 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 	}
 
 	user, _ := c.Get("User")
+	status := ""
+	var watchlistIDs []int64
 	ep := 1
 	var cwSeconds float64
 	if u, ok := user.(*domain.User); ok {
+		entry, err := h.watchlistSvc.GetWatchListEntry(c.Request.Context(), u.ID, int64(id))
+		if err == nil {
+			status = entry.Status
+			watchlistIDs = []int64{entry.AnimeID}
+		}
+
 		cwEntry, err := h.watchlistSvc.GetContinueWatchingEntry(c.Request.Context(), u.ID, int64(id))
 		if err == nil && cwEntry.CurrentEpisode.Valid {
 			ep = int(cwEntry.CurrentEpisode.Int64)
@@ -267,6 +275,8 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		"Anime":                anime,
 		"CurrentPath":          fmt.Sprintf("/anime/%d", id),
 		"User":                 user,
+		"Status":               status,
+		"WatchlistIDs":         watchlistIDs,
 		"ContinueWatchingEp":   ep,
 		"ContinueWatchingTime": cwSeconds,
 	})

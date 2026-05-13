@@ -34,6 +34,10 @@ func (r *watchlistRepository) GetUserWatchList(ctx context.Context, userID strin
 	return r.queries.GetUserWatchList(ctx, userID)
 }
 
+func (r *watchlistRepository) GetWatchListEntry(ctx context.Context, arg db.GetWatchListEntryParams) (db.WatchListEntry, error) {
+	return r.queries.GetWatchListEntry(ctx, arg)
+}
+
 func (r *watchlistRepository) GetContinueWatchingEntry(ctx context.Context, arg db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error) {
 	return r.queries.GetContinueWatchingEntry(ctx, arg)
 }
