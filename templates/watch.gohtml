@@ -24,7 +24,6 @@
           </button>
         </div>
         <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-2xl right-0 top-full mt-2">
-          {{if .WatchlistStatus}}
           <div class="flex flex-col py-1">
             <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
               <span class="text-sm text-foreground">Watching</span>
@@ -38,27 +37,13 @@
             <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
               <span class="text-sm text-foreground">Dropped</span>
             </button>
-            <div class="border-t border-border my-1"></div>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
-              <span class="text-sm text-red-400 whitespace-nowrap">Remove from Watchlist</span>
-            </button>
+            <div id="remove-watchlist-container-{{$anime.MalID}}" class="hidden">
+              <div class="border-t border-border my-1"></div>
+              <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10" onclick="removeWatchlist({{$anime.MalID}}, this)">
+                <span class="text-sm text-red-400 whitespace-nowrap">Remove from Watchlist</span>
+              </button>
+            </div>
           </div>
-          {{else}}
-          <div class="flex flex-col py-1">
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
-              <span class="text-sm text-foreground">Watching</span>
-            </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
-              <span class="text-sm text-foreground">Completed</span>
-            </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
-              <span class="text-sm text-foreground">Plan to Watch</span>
-            </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
-              <span class="text-sm text-foreground">Dropped</span>
-            </button>
-          </div>
-          {{end}}
         </div>
       </ui-dropdown>
     </div>
@@ -180,6 +165,12 @@
 {{end}}
 
 <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (watchlistIds.has({{$anime.MalID}})) {
+      document.getElementById('remove-watchlist-container-{{$anime.MalID}}').classList.remove('hidden');
+    }
+  });
+
   function updateWatchlist(id, status, display, btn) {
     fetch('/api/watchlist', {
       method: 'POST',
@@ -189,6 +180,7 @@
       if (res.ok) {
         watchlistIds.add(id);
         document.getElementById('watchlist-status-display-' + id).textContent = display;
+        document.getElementById('remove-watchlist-container-' + id).classList.remove('hidden');
         
         // Update all watchlist icons on the page
         document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
@@ -215,6 +207,7 @@
       if (res.ok) {
         watchlistIds.delete(id);
         document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
+        document.getElementById('remove-watchlist-container-' + id).classList.add('hidden');
         if (window.showToast) showToast({ message: 'Removed from watchlist' });
         
         // Update all watchlist icons on the page
@@ -236,8 +229,6 @@
       }
     });
   }
-
-
 </script>
   </div>
 </div>
