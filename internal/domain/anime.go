@@ -22,6 +22,7 @@ type AnimeService interface {
 	GetRecommendations(ctx context.Context, id int) ([]Recommendation, error)
 	GetRelations(ctx context.Context, id int) ([]jikan.RelationEntry, error)
 	GetEpisodes(ctx context.Context, id int, page int) (jikan.EpisodesResponse, error)
+	GetAllEpisodes(ctx context.Context, id int) ([]EpisodeData, error)
 	GetRandomAnime(ctx context.Context) (Anime, error)
 }
 

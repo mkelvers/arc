@@ -155,3 +155,20 @@ func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (jikan
 func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error) {
 	return s.jikan.GetRandomAnime(ctx)
 }
+
+func (s *animeService) GetAllEpisodes(ctx context.Context, id int) ([]domain.EpisodeData, error) {
+	episodes, err := s.jikan.GetAllEpisodes(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]domain.EpisodeData, len(episodes))
+	for i, ep := range episodes {
+		result[i] = domain.EpisodeData{
+			MalID:    ep.MalID,
+			Title:    ep.Title,
+			IsFiller: ep.Filler,
+			IsRecap:  ep.Recap,
+		}
+	}
+	return result, nil
+}
