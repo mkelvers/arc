@@ -348,9 +348,10 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, epis
 	segments := make([]SkipSegment, 0, len(parsed.Result))
 	for _, r := range parsed.Result {
 		skipType := strings.ToLower(r.SkipType)
-		if skipType == "op" {
+		switch skipType {
+		case "op":
 			skipType = "opening"
-		} else if skipType == "ed" {
+		case "ed":
 			skipType = "ending"
 		}
 		segments = append(segments, SkipSegment{

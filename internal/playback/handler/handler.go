@@ -176,11 +176,11 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 		c.Status(http.StatusBadGateway)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	for k, v := range resp.Header {
 		c.Header(k, v[0])
 	}
 	c.Status(resp.StatusCode)
-	io.Copy(c.Writer, resp.Body)
+	_, _ = io.Copy(c.Writer, resp.Body)
 }
