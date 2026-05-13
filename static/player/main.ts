@@ -66,9 +66,10 @@ const initPlayer = (): void => {
   const progressWrap = container.querySelector('[data-progress-wrap]') as HTMLElement | null;
 
   // build video src from mode, token, and saved quality preference
+  // Only set if not already provided by the inline script during HTML parsing
   const preferredQuality = localStorage.getItem('mal:preferred-quality') || 'best';
   const streamToken = state.modeSources[state.currentMode]?.token;
-  if (streamToken) {
+  if (!state.video.src && streamToken) {
     state.video.src = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
   }
 
@@ -87,7 +88,7 @@ const initPlayer = (): void => {
   updateAutoSkipButton();
   showControls();
 
-  state.video.addEventListener('loadedmetadata', () => {
+  const onLoadedMetadata = (): void => {
     loading && (loading.style.display = 'none');
     invalidateBounds();
 
@@ -104,11 +105,19 @@ const initPlayer = (): void => {
       state.video.currentTime = state.pendingSeekTime;
       state.pendingSeekTime = null;
     }
-    if (state.shouldAutoPlay) state.video.play().catch(() => {});
+    // autoplay if not already playing (inline script may have already called play())
+    if (state.shouldAutoPlay || state.video.paused) state.video.play().catch(() => {});
 
     updateTimeline(state.video.currentTime);
     updateSkipButton(state.video.currentTime);
-  });
+  };
+
+  state.video.addEventListener('loadedmetadata', onLoadedMetadata);
+  // inline script runs during HTML parsing before initPlayer; if metadata
+  // already loaded, fire the handler immediately
+  if (state.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    onLoadedMetadata();
+  }
 
   state.video.addEventListener('waiting', () => {
     loading && (loading.style.display = 'flex');

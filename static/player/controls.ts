@@ -209,7 +209,7 @@ export const setupControls = (): void => {
   // mouse move in container shows controls
   state.container.addEventListener('mousemove', showControls);
 
-  // initial sync
-  updatePlayPauseIcons(false);
+  // initial sync — check actual video state since inline script may have started playback
+  updatePlayPauseIcons(!state.video.paused);
   syncVolumeUI();
 };
