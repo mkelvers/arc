@@ -6,6 +6,8 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type watchlistService struct {
@@ -34,6 +36,7 @@ func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, anime
 	}
 
 	_, err = s.repo.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
+		ID:      uuid.New().String(),
 		UserID:  userID,
 		AnimeID: animeID,
 		Status:  status,

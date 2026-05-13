@@ -29,7 +29,8 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
     return;
   }
 
-  const toast = template.content.cloneNode(true) as HTMLElement;
+  const toast = template.content.cloneNode(true).firstElementChild as HTMLElement;
+  if (!toast) return;
   const messageEl = toast.querySelector('.toast-message');
   const closeBtn = toast.querySelector('.toast-close');
 

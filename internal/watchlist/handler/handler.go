@@ -30,15 +30,16 @@ func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
 		userID = u.ID
 	}
 
-	animeID, _ := strconv.ParseInt(c.PostForm("anime_id"), 10, 64)
-	status := c.PostForm("status")
-
-	if animeID <= 0 || status == "" {
+	var body struct {
+		AnimeID int64  `json:"animeId"`
+		Status  string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.AnimeID <= 0 || body.Status == "" {
 		c.Status(http.StatusBadRequest)
 		return
 	}
 
-	err := h.svc.UpdateEntry(c.Request.Context(), userID, animeID, status)
+	err := h.svc.UpdateEntry(c.Request.Context(), userID, body.AnimeID, body.Status)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
 		return
