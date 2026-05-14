@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"log"
 	"mal/internal/domain"
 	"net/http"
 	"strconv"
@@ -23,7 +22,7 @@ func NewAnimeHandler(svc domain.AnimeService, watchlistSvc domain.WatchlistServi
 }
 
 func (h *AnimeHandler) Register(r *gin.Engine) {
-	log.Println("Registering anime routes")
+
 	r.GET("/", h.HandleCatalog)
 	r.GET("/api/catalog/airing", h.HandleCatalogAiring)
 	r.GET("/api/catalog/popular", h.HandleCatalogPopular)
@@ -76,7 +75,6 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	}
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
 	if err != nil {
-		log.Printf("catalog %s error: %v", section, err)
 		return
 	}
 
@@ -122,7 +120,6 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	}
 	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
 	if err != nil {
-		log.Printf("discover %s error: %v", section, err)
 		return
 	}
 
@@ -163,7 +160,6 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 
 	res, err := h.svc.SearchAdvanced(c.Request.Context(), q, animeType, status, orderBy, sort, genres, sfw, page, 24)
 	if err != nil {
-		log.Printf("browse error: %v", err)
 	}
 
 	user, _ := c.Get("User")

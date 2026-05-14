@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -257,7 +256,6 @@ func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Dur
 		if !isEmptyResult(out) {
 			return nil
 		}
-		log.Printf("jikan: cache hit for %s but data is empty, refetching", cacheKey)
 	}
 
 	var stale any
@@ -273,7 +271,6 @@ func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Dur
 				}
 			}
 			if !errors.Is(err, context.Canceled) {
-				log.Printf("jikan: stale cache unmarshal failed or empty, falling back to error: %v", err)
 			}
 		}
 		return err
@@ -281,7 +278,6 @@ func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Dur
 
 	// Don't cache empty results to avoid caching failures
 	if isEmptyResult(out) {
-		log.Printf("jikan: fetched data for %s is empty, not caching", cacheKey)
 		return fmt.Errorf("jikan: empty response for %s", cacheKey)
 	}
 

@@ -143,7 +143,6 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 					return nil
 				}
 				c.EnqueueAnimeFetchRetry(gCtx, entry.ID, err)
-				log.Printf("relations: skipping related anime %d for root %d: %v", entry.ID, id, err)
 				return nil
 			}
 			select {
