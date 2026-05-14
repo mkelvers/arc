@@ -57,7 +57,7 @@
   --space-8: 2rem;
   --poster-max-height: 360px;
   --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
-  --radius: 6px;
+  --radius: 0px;
 }
 
 [data-theme='light'] {
@@ -72,6 +72,15 @@ html,
 body {
   background-color: var(--color-background);
   color: var(--text);
+}
+
+/* Default to square corners; opt back in selectively (e.g. inputs). */
+:where(input, textarea, select) {
+  border-radius: 6px !important;
+}
+
+:where(.rounded-keep) {
+  border-radius: 6px !important;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -91,12 +100,12 @@ body {
 
   .scrollbar-hide::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+    border-radius: 0;
   }
 
   .scrollbar-hide::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
+    border-radius: 0;
   }
 
   .scrollbar-hide::-webkit-scrollbar-thumb:hover {
