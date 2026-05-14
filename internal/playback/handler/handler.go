@@ -37,6 +37,7 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	r.GET("/anime/:id/watch", h.HandleWatchPage)
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
+	r.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
 	r.GET("/api/watch/thumbnails/:animeId", h.HandleEpisodeThumbnails)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
 	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
@@ -76,6 +77,65 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 	maps.Copy(responseData, data)
 
 	c.HTML(http.StatusOK, "watch.gohtml", responseData)
+}
+
+// HandleEpisodeData returns the minimal payload needed to advance to the next
+// episode without a full page reload (preserves fullscreen).
+func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
+	animeID, err := strconv.Atoi(c.Param("animeId"))
+	if err != nil || animeID <= 0 {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	episode := c.Param("episode")
+	if episode == "" {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	mode := c.DefaultQuery("mode", "sub")
+
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
+	data, err := h.svc.BuildWatchData(c.Request.Context(), animeID, []string{}, episode, mode, userID)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	watchData, _ := data["WatchData"].(map[string]any)
+	if watchData == nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	modeSources := watchData["ModeSources"]
+	availableModes, _ := watchData["AvailableModes"].([]string)
+	segments := watchData["Segments"]
+
+	// Try to resolve a title for this episode from the episode list.
+	episodeTitle := ""
+	if eps, ok := watchData["Episodes"].([]domain.EpisodeData); ok {
+		epNum, _ := strconv.Atoi(episode)
+		for _, e := range eps {
+			if e.MalID == epNum {
+				episodeTitle = e.Title
+				break
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mode_sources":    modeSources,
+		"available_modes": availableModes,
+		"segments":        segments,
+		"episode_title":   episodeTitle,
+	})
 }
 
 func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {

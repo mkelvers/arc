@@ -28,7 +28,9 @@ export const goToNextEpisode = async (): Promise<void> => {
   markEpisodeTransition(nextEp);
 
   try {
-    const res = await fetch(`/api/watch/episode/${state.malID}/${nextEp}`);
+    const res = await fetch(
+      `/api/watch/episode/${state.malID}/${nextEp}?mode=${encodeURIComponent(state.currentMode)}`
+    );
     if (!res.ok) {
       // fallback: full page navigation
       sessionStorage.setItem('mal:autoplay-next', 'true');
@@ -53,12 +55,14 @@ export const goToNextEpisode = async (): Promise<void> => {
       return;
     }
 
-    // load new video
-    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}`;
+    // load new video (keep preferences)
+    const preferredQuality = localStorage.getItem('mal:preferred-quality') || 'best';
+    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
     state.video.load();
     if (!state.video.paused) state.video.play().catch(() => {});
 
     state.currentEpisode = String(nextEp);
+    state.currentMode = fallback;
     state.pendingSeekTime = null;
     state.completionSent = false;
     state.completionAttempts = 0;
