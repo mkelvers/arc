@@ -5,6 +5,7 @@ import (
 	"io"
 	"mal/internal/domain"
 	"mal/pkg/net/proxytransport"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -72,9 +73,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 		"User":        user,
 		"CurrentPath": c.Request.URL.Path,
 	}
-	for k, v := range data {
-		responseData[k] = v
-	}
+	maps.Copy(responseData, data)
 
 	c.HTML(http.StatusOK, "watch.gohtml", responseData)
 }
