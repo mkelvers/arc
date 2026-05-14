@@ -17,14 +17,16 @@ import { formatTime } from './controls';
 let initialized = false; // prevent double init on htmx swaps
 
 const hidePreviewPopover = (): void => {
-  state.previewPopover?.classList.remove('block');
-  state.previewPopover?.classList.add('hidden');
-  state.previewPopover!.style.left = '0px';
+  if (!state.previewPopover) return;
+  state.previewPopover.classList.add('opacity-0');
+  state.previewPopover.classList.remove('opacity-100');
+  state.previewPopover.style.left = '0px';
 };
 
 const showPreviewPopover = (): void => {
-  state.previewPopover?.classList.remove('hidden');
-  state.previewPopover?.classList.add('block');
+  if (!state.previewPopover) return;
+  state.previewPopover.classList.remove('opacity-0');
+  state.previewPopover.classList.add('opacity-100');
 };
 
 // updates time preview on progress bar hover
@@ -141,9 +143,14 @@ const initPlayer = (): void => {
     goToNextEpisode();
   });
 
-  // click to seek
-  progressWrap?.addEventListener('mousedown', e => {
+  // click/drag to seek (pointer events are more consistent across fullscreen/mobile)
+  progressWrap?.addEventListener('pointerdown', e => {
+    // ignore right/middle click
+    if ('button' in e && e.button !== 0) return;
     state.isScrubbing = true;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
+    } catch {}
     const rect = progressWrap.getBoundingClientRect();
     state.video.currentTime = absoluteTimeFromRatio(
       Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
@@ -154,15 +161,20 @@ const initPlayer = (): void => {
   });
 
   // hover to preview time
-  progressWrap?.addEventListener('mousemove', e => {
+  progressWrap?.addEventListener('pointermove', e => {
     const rect = progressWrap.getBoundingClientRect();
     updatePreviewUI(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
   });
 
-  progressWrap?.addEventListener('mouseleave', hidePreviewPopover);
+  progressWrap?.addEventListener('pointerleave', hidePreviewPopover);
+  progressWrap?.addEventListener('pointerup', () => {
+    // ensure we finish the seek even if no window mousemove fired
+    if (!progressWrap) return;
+    state.isScrubbing = false;
+  });
 
   // dragging outside progress bar while scrubbing
-  window.addEventListener('mousemove', e => {
+  window.addEventListener('pointermove', e => {
     if (!state.isScrubbing || !progressWrap) return;
     const rect = progressWrap.getBoundingClientRect();
     state.video.currentTime = absoluteTimeFromRatio(

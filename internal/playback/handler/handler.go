@@ -259,6 +259,12 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	if referer != "" {
 		req.Header.Set("Referer", referer)
 	}
+	if rangeHeader := c.GetHeader("Range"); rangeHeader != "" {
+		req.Header.Set("Range", rangeHeader)
+	}
+	if ifRangeHeader := c.GetHeader("If-Range"); ifRangeHeader != "" {
+		req.Header.Set("If-Range", ifRangeHeader)
+	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
 
 	resp, err := h.streamingClient.Do(req)

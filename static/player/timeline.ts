@@ -11,38 +11,71 @@ const formatTime = (seconds: number): string => {
 
 // cached to avoid recalc on every timeupdate
 let cachedBounds: TimelineBounds = { start: 0, end: 0, duration: 0 };
+let cachedDuration = 0;
+let cachedSeekableEnd = 0;
+
+const getDuration = (): number =>
+  Number.isFinite(state.video.duration) && state.video.duration > 0 ? state.video.duration : 0;
+
+const getSeekableEnd = (): number => {
+  const ranges = state.video.seekable;
+  if (!ranges || ranges.length <= 0) return 0;
+  const end = ranges.end(ranges.length - 1);
+  return Number.isFinite(end) && end > 0 ? end : 0;
+};
 
 /**
  * Computes timeline bounds from video.
- * Handles seekable ranges (live streams) and regular duration.
+ * Uses the full duration for VOD, and seekable ranges only when duration is unavailable.
  */
 export const timelineBounds = (): TimelineBounds => {
-  const duration =
-    Number.isFinite(state.video.duration) && state.video.duration > 0 ? state.video.duration : 0;
-  let start = 0;
-  // check seekable range for live streams
+  const duration = getDuration();
+  if (duration > 0) {
+    return { start: 0, end: duration, duration };
+  }
+
   if (state.video.seekable.length > 0) {
     const seekableStart = state.video.seekable.start(0);
-    if (Number.isFinite(seekableStart) && seekableStart > 0) start = seekableStart;
-  }
-  if (duration > start) {
-    return { start, end: duration, duration: duration - start };
-  }
-  // fallback to full seekable range
-  if (state.video.seekable.length > 0) {
     const seekableEnd = state.video.seekable.end(state.video.seekable.length - 1);
-    if (Number.isFinite(seekableEnd) && seekableEnd > start) {
-      return { start, end: seekableEnd, duration: seekableEnd - start };
+    if (
+      Number.isFinite(seekableStart) &&
+      Number.isFinite(seekableEnd) &&
+      seekableEnd > seekableStart
+    ) {
+      return {
+        start: seekableStart,
+        end: seekableEnd,
+        duration: seekableEnd - seekableStart,
+      };
     }
   }
+
   return { start: 0, end: duration, duration };
 };
 
 export const invalidateBounds = (): void => {
   cachedBounds = timelineBounds();
+  cachedDuration = getDuration();
+  cachedSeekableEnd = getSeekableEnd();
 };
 
-export const getBounds = (): TimelineBounds => cachedBounds;
+export const getBounds = (): TimelineBounds => {
+  // lazy init + refresh: some streams expand seekable range over time (often tracks buffered end).
+  // If we keep stale bounds, seeking past "watched/buffered" can map to only a fraction of the real timeline.
+  const duration = getDuration();
+  const seekableEnd = getSeekableEnd();
+  if (
+    !cachedBounds ||
+    cachedBounds.duration <= 0 ||
+    duration !== cachedDuration ||
+    seekableEnd !== cachedSeekableEnd
+  ) {
+    cachedBounds = timelineBounds();
+    cachedDuration = duration;
+    cachedSeekableEnd = seekableEnd;
+  }
+  return cachedBounds;
+};
 
 // converts video.currentTime to timeline-relative time (0-based for UI display)
 export const displayTimeFromAbsolute = (absoluteTime: number): number => {
