@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -217,7 +216,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	// 4. Get Episodes list
 	jikanEpisodes, err := s.jikan.GetAllEpisodes(ctx, animeID)
 	if err != nil {
-		log.Printf("failed to fetch episodes from jikan: %v", err)
 	}
 
 	// Fallback/Fill episodes if needed

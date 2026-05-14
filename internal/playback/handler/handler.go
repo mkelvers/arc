@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"io"
-	"log"
 	"mal/internal/domain"
 	"mal/pkg/net/proxytransport"
 	"net/http"
@@ -33,7 +32,7 @@ func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimeService
 }
 
 func (h *PlaybackHandler) Register(r *gin.Engine) {
-	log.Println("Registering playback routes")
+
 	r.GET("/anime/:id/watch", h.HandleWatchPage)
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
@@ -43,7 +42,6 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 }
 
 func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
-	log.Printf("Route /anime/:id/watch triggered for ID: %s", c.Param("id"))
 	id, _ := strconv.Atoi(c.Param("id"))
 	ep := c.DefaultQuery("ep", "1")
 	mode := c.DefaultQuery("mode", "sub")
@@ -56,8 +54,6 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 
 	data, err := h.svc.BuildWatchData(c.Request.Context(), id, []string{}, ep, mode, userID)
 	if err != nil {
-		log.Printf("BuildWatchData failed for ID %d: %v", id, err)
-		// Try to at least get anime info for the error page
 		anime, _ := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
 		c.HTML(http.StatusOK, "watch.gohtml", gin.H{
 			"Error":       err.Error(),
@@ -70,7 +66,6 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 		})
 		return
 	}
-	log.Printf("BuildWatchData succeeded for ID %d", id)
 
 	// Merge data from service with handler-specific context
 	responseData := gin.H{
@@ -82,7 +77,6 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "watch.gohtml", responseData)
-	log.Printf("c.HTML finished for ID %d", id)
 }
 
 func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
@@ -147,7 +141,6 @@ func (h *PlaybackHandler) HandleEpisodeThumbnails(c *gin.Context) {
 
 	allEpisodes, err := h.animeSvc.GetAllEpisodes(c.Request.Context(), id)
 	if err != nil {
-		log.Printf("failed to fetch thumbnails/episodes: %v", err)
 	}
 
 	anime, _ := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
@@ -195,7 +188,6 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 
 	targetURL, referer, err := h.svc.ResolveProxyToken(token)
 	if err != nil {
-		log.Printf("proxy token error: %v", err)
 		c.Status(http.StatusForbidden)
 		return
 	}
@@ -212,7 +204,6 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 
 	resp, err := h.streamingClient.Do(req)
 	if err != nil {
-		log.Printf("proxy stream fetch error: %v", err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -239,7 +230,6 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 
 	targetURL, referer, err := h.svc.ResolveProxyToken(token)
 	if err != nil {
-		log.Printf("proxy subtitle token error: %v", err)
 		c.Status(http.StatusForbidden)
 		return
 	}
@@ -262,7 +252,6 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 
 	resp, err := h.proxyClient.Do(req)
 	if err != nil {
-		log.Printf("proxy subtitle fetch error: %v", err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -270,7 +259,6 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		log.Printf("proxy subtitle read error: %v", err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
