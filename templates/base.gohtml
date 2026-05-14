@@ -67,25 +67,12 @@
   <script>
     // initialize sidebar state immediately to prevent layout shift/transitions
     (function() {
-      const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-      // only apply collapsed state on desktop (lg+)
-      if (isCollapsed && window.innerWidth >= 1024) {
-        document.documentElement.classList.add('sidebar-collapsed');
-      }
-    })();
-
-    function toggleSidebar() {
-      const sidebar = document.getElementById('mobile-menu');
-      const isCollapsed = document.documentElement.classList.contains('sidebar-collapsed');
-      
-      if (isCollapsed) {
-        document.documentElement.classList.remove('sidebar-collapsed');
-        localStorage.setItem('sidebar-collapsed', 'false');
-      } else {
+      // keep the sidebar collapsed on desktop (lg+)
+      if (window.innerWidth >= 1024) {
         document.documentElement.classList.add('sidebar-collapsed');
         localStorage.setItem('sidebar-collapsed', 'true');
       }
-    }
+    })();
 
     // Initialize sidebar state on load
     document.addEventListener('DOMContentLoaded', () => {
@@ -94,17 +81,6 @@
         document.documentElement.classList.add('sidebar-ready');
       });
     });
-
-    function toggleMobileMenu() {
-      const menu = document.getElementById('mobile-menu');
-      if (menu.classList.contains('-translate-x-full')) {
-        menu.classList.remove('-translate-x-full');
-        document.getElementById('mobile-overlay').classList.remove('hidden');
-      } else {
-        menu.classList.add('-translate-x-full');
-        document.getElementById('mobile-overlay').classList.add('hidden');
-      }
-    }
 
     const watchlistIds = new Set()
 
@@ -253,19 +229,14 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
   <div class="flex min-h-screen flex-col">
     {{if .User}}
       <div class="flex flex-1 overflow-hidden">
-        <button id="mobile-overlay" class="hidden fixed inset-0 z-40 w-full cursor-default border-none bg-black/60 backdrop-blur-sm outline-none lg:hidden" onclick="toggleMobileMenu()" aria-label="Close mobile menu"></button>
-  
         <!-- Sidebar -->
-        <div id="mobile-menu" class="fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden transform lg:relative lg:z-auto lg:translate-x-0 w-64 transition-transform duration-300 -translate-x-full lg:block">
+        <div id="mobile-menu" class="shrink-0 overflow-hidden w-64">
           {{block "sidebar" .}}
             {{template "navigation" dict "CurrentPath" .CurrentPath}}
           {{end}}
         </div>
   
         <main class="w-full flex-1 flex flex-col h-screen overflow-y-auto">
-          <div class="sticky top-0 z-40 w-full">
-            {{template "header" .}}
-          </div>
           <div class="flex-1 p-4 md:p-8 lg:p-10">
             {{template "content" .}}
           </div>

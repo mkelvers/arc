@@ -21,7 +21,7 @@ All components are exposed as Go templates. Import by name:
 ```gohtml
 {{template "anime_card" dict "Anime" .Data "WithActions" true}}
 {{template "navigation" dict "CurrentPath" .CurrentPath}}
-{{template "header" .}}
+{{/* header removed */}}
 ```
 
 ## Props Convention

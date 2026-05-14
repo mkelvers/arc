@@ -43,7 +43,7 @@
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 {{$anime := .Anime}}
 
-<div class="flex flex-col gap-10 lg:pr-80">
+<div class="flex w-full flex-col gap-10 lg:pr-80">
   <div class="flex flex-col gap-8 md:flex-row lg:gap-12">
     <div class="flex w-64 shrink-0 flex-col items-center gap-6 md:w-80 md:items-start lg:w-96">
       <div class="aspect-2/3 w-full overflow-hidden bg-background-surface shadow-lg">
@@ -123,20 +123,12 @@
             </section>
           {{end}}
 
-          {{if $anime.Background}}
-            <section class="mt-12">
-              <h2 class="mb-4 text-lg font-normal text-foreground">Background</h2>
-              <div class="border-l border-border pl-6 text-sm italic leading-relaxed text-foreground-muted whitespace-pre-line">
-                {{$anime.Background}}
-              </div>
-            </section>
-          {{end}}
         </div>
         <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-border bg-background-sidebar p-10 lg:flex">
           <div class="flex flex-col gap-10">
             <section>
               <h3 class="mb-8 text-lg font-normal text-foreground">Information</h3>
-              <div class="flex flex-col gap-8 text-sm">
+              <dl class="flex flex-col gap-8 text-sm">
                 {{if $anime.Studios}}
                   <div>
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
@@ -233,7 +225,7 @@
                     <dd class="text-foreground">{{$anime.ScoredByFormatted}} users</dd>
                   </div>
                 {{end}}
-              </div>
+              </dl>
             </section>
           </div>
         </aside>

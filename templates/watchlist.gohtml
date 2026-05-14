@@ -1,7 +1,7 @@
 {{define "title"}}Watchlist{{end}}
 {{define "content"}}
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
-<div id="watchlist-content" class="flex w-full flex-col gap-6 mt-6">
+<div id="watchlist-content" class="flex w-full flex-col gap-6">
   <h1 class="text-xl font-normal text-foreground">Watchlist</h1>
 
   <div class="flex flex-wrap items-center justify-between gap-4">
