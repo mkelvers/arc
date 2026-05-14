@@ -33,26 +33,26 @@
     html[data-theme="light"] .theme-icon-light { display: none; }
     html[data-theme="light"] .theme-icon-dark { display: block; }
   </style>
-  <script type="module" src="/dist/static/theme.js" defer></script>
-  <template id="toast-template">
-    <div class="toast bg-foreground/10 border border-border flex items-center gap-3 px-4 py-3 shadow-lg transform transition-all duration-300 translate-y-2 opacity-0">
-      <span class="toast-message text-sm text-foreground"></span>
-      <button class="toast-close ml-2 opacity-50 hover:opacity-100" aria-label="Close">
-        <svg class="size-4 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-  </template>
-  <script type="module" src="/dist/static/dropdown.js" defer></script>
-  <script type="module" src="/dist/static/discover.js" defer></script>
-  <script type="module" src="/dist/static/anime.js" defer></script>
-  <script type="module" src="/dist/static/timezone.js" defer></script>
-  <script type="module" src="/dist/static/player/main.js" defer></script>
-  <script type="module" src="/dist/static/search.js" defer></script>
-  <script type="module" src="/dist/static/sort_filter.js" defer></script>
-  <script type="module" src="/dist/static/dedupe.js" defer></script>
-  <script type="module" src="/dist/static/toast.js" defer></script>
+   <script type="module" src="/dist/static/theme.js" defer></script>
+   <template id="toast-template">
+     <div class="toast bg-foreground/10 border border-border flex items-center gap-3 px-4 py-3 shadow-lg transform transition-all duration-300 translate-y-2 opacity-0">
+       <span class="toast-message text-sm text-foreground"></span>
+       <button class="toast-close ml-2 opacity-50 hover:opacity-100" aria-label="Close">
+         <svg class="size-4 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+           <path d="M18 6L6 18M6 6l12 12"/>
+         </svg>
+       </button>
+     </div>
+   </template>
+   <script type="module" src="/dist/static/dropdown.js" defer></script>
+   <script type="module" src="/dist/static/discover.js" defer></script>
+   <script type="module" src="/dist/static/anime.js" defer></script>
+   <script type="module" src="/dist/static/timezone.js" defer></script>
+   <script type="module" src="/dist/static/player/main.js" defer></script>
+   <script type="module" src="/dist/static/search.js" defer></script>
+   <script type="module" src="/dist/static/sort_filter.js" defer></script>
+   <script type="module" src="/dist/static/dedupe.js" defer></script>
+   <script type="module" src="/dist/static/toast.js" defer></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script>
     document.addEventListener('htmx:afterSwap', function(evt) {
@@ -109,7 +109,20 @@
     const watchlistIds = new Set()
 
     function initWatchlist(ids) {
-      ids.forEach(id => watchlistIds.add(id))
+      ids.forEach(id => watchlistIds.add(id));
+      const sync = () => ids.forEach(id => syncRemoveButtonVisibility(id));
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', sync);
+      } else {
+        sync();
+      }
+    }
+
+    function syncRemoveButtonVisibility(id) {
+      const container = document.getElementById('remove-watchlist-container-' + id);
+      if (container) {
+        container.classList.toggle('hidden', !watchlistIds.has(id));
+      }
     }
 
     function toggleWatchlist(id, btn) {
@@ -169,10 +182,7 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
       const statusDisplay = document.getElementById('watchlist-status-display-' + id)
       if (statusDisplay) {
         statusDisplay.textContent = inWatchlist ? 'Plan to Watch' : 'Add to Watchlist'
-        const removeContainer = document.getElementById('remove-watchlist-container-' + id)
-        if (removeContainer) {
-          removeContainer.classList.toggle('hidden', !inWatchlist)
-        }
+        syncRemoveButtonVisibility(id)
       }
     }
 
@@ -186,6 +196,57 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
         }
       })
     }
+
+    function updateWatchlist(id, status, display, btn) {
+      fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ animeId: id, status: status })
+      }).then(res => {
+        if (res.ok) {
+          watchlistIds.add(id);
+          document.getElementById('watchlist-status-display-' + id).textContent = display;
+          syncRemoveButtonVisibility(id);
+          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
+            const button = icon.closest('button');
+            if (button) {
+              const malId = button.dataset.malId;
+              if (malId && parseInt(malId) === id) {
+                button.classList.add('in-watchlist');
+              }
+            }
+          });
+          requestAnimationFrame(() => {
+            const dropdown = btn.closest('ui-dropdown');
+            if (dropdown) dropdown.close();
+          });
+        }
+      });
+    }
+
+    function removeWatchlist(id, btn) {
+      fetch('/api/watchlist/' + id, { method: 'DELETE' }).then(res => {
+        if (res.ok) {
+          watchlistIds.delete(id);
+          document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
+          syncRemoveButtonVisibility(id);
+          if (window.showToast) showToast({ message: 'Removed from watchlist' });
+          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
+            const button = icon.closest('button');
+            if (button) {
+              const malId = button.dataset.malId;
+              if (malId && parseInt(malId) === id) {
+                button.classList.remove('in-watchlist');
+              }
+            }
+          });
+          if (btn) {
+            const dropdown = btn.closest('ui-dropdown');
+            if (dropdown) dropdown.close();
+          }
+        }
+      });
+    }
   </script>
 </head>
 <body class="bg-background text-foreground">
@@ -195,20 +256,19 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
         <button id="mobile-overlay" class="hidden fixed inset-0 z-40 w-full cursor-default border-none bg-black/60 backdrop-blur-sm outline-none lg:hidden" onclick="toggleMobileMenu()" aria-label="Close mobile menu"></button>
   
         <!-- Sidebar -->
-        <div id="mobile-menu" class="fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden transform lg:relative lg:z-auto lg:translate-x-0 w-64 shadow-2xl transition-transform duration-300 -translate-x-full lg:block">
+        <div id="mobile-menu" class="fixed inset-y-0 left-0 z-50 shrink-0 overflow-hidden transform lg:relative lg:z-auto lg:translate-x-0 w-64 transition-transform duration-300 -translate-x-full lg:block">
           {{block "sidebar" .}}
             {{template "navigation" dict "CurrentPath" .CurrentPath}}
           {{end}}
         </div>
   
-        <main class="w-full flex-1 overflow-x-hidden flex flex-col h-screen overflow-y-auto">
+        <main class="w-full flex-1 flex flex-col h-screen overflow-y-auto">
           <div class="sticky top-0 z-40 w-full">
             {{template "header" .}}
           </div>
           <div class="flex-1 p-4 md:p-8 lg:p-10">
             {{template "content" .}}
           </div>
-          {{template "footer" .}}
         </main>
       </div>
     {{else}}
@@ -216,7 +276,6 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
         <div class="flex-1">
           {{template "content" .}}
         </div>
-        {{template "footer" .}}
       </main>
     {{end}}
   </div>

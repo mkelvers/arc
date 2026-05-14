@@ -14,7 +14,27 @@
   class="group relative aspect-video w-full overflow-hidden bg-black">
 
   
-  <video class="h-full w-full cursor-pointer" preload="metadata" playsinline autoplay></video>
+  <video class="h-full w-full cursor-pointer" preload="metadata" playsinline></video>
+  <script>
+  (function() {
+    var p = document.currentScript.closest('[data-video-player]');
+    var v = p.querySelector('video');
+    var sources = JSON.parse(p.getAttribute('data-mode-sources') || '{}');
+    var mode = p.getAttribute('data-initial-mode') || 'dub';
+    var stored = localStorage.getItem('player-audio-mode');
+    if (stored && sources[stored] && sources[stored].token) mode = stored;
+    var src = sources[mode];
+    if (!src || !src.token) {
+      for (var k in sources) {
+        if (sources[k] && sources[k].token) { src = sources[k]; mode = k; break; }
+      }
+    }
+    if (src && src.token) {
+      v.src = '/watch/proxy/stream?mode=' + encodeURIComponent(mode) + '&token=' + encodeURIComponent(src.token);
+      v.play().catch(function() {});
+    }
+  })();
+  </script>
   
   <div data-loading class="absolute inset-0 flex items-center justify-center bg-black/60 hidden z-50">
     <div class="border-accent size-10 animate-spin rounded-full border-4 border-t-transparent"></div>

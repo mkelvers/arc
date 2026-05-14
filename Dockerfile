@@ -23,14 +23,14 @@ RUN bun install --frozen-lockfile
 # Copy all source files
 COPY . .
 
-# Build frontend assets (tailwind + ts) from a clean state
+# Ensure dist is clean at build time (belt + suspenders)
 RUN rm -rf dist/ && bun run build:assets
 
 # Generate sqlc code
 RUN sqlc generate
 
 # Build the server and CLI tools
-RUN go build -o main_server ./cmd/server
+RUN go build -ldflags="-s -w" -o main_server ./cmd/server
 
 FROM debian:bookworm-slim
 
@@ -42,13 +42,16 @@ RUN apt-get update && apt-get install -y ca-certificates sqlite3 && rm -rf /var/
 # Create data directory for sqlite
 RUN mkdir -p /app/data
 
+# Set DATABASE_FILE to use the persistent volume
+ENV DATABASE_FILE=/app/data/mal.db
+
 COPY --from=builder /app/main_server .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/internal/database/migrations ./migrations
+COPY docker/entrypoint.sh ./entrypoint.sh
 
-# Expose the application port
 EXPOSE 3000
 
-ENTRYPOINT ["./main_server"]
+ENTRYPOINT ["./entrypoint.sh"]

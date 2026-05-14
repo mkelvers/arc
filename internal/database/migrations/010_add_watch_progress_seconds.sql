@@ -1,0 +1,3 @@
+-- +goose Up
+-- Note: watch_list_entry columns now in 001_init.sql
+-- +goose Down
