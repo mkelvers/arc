@@ -11,6 +11,10 @@ type TopAnimeResult = jikan.TopAnimeResult
 type Genre = jikan.Genre
 type Character = jikan.CharacterEntry
 type Recommendation = jikan.RecommendationEntry
+type StaffEntry = jikan.StaffEntry
+type Statistics = jikan.Statistics
+type ThemesData = jikan.ThemesData
+type ReviewEntry = jikan.ReviewEntry
 
 type AnimeService interface {
 	GetCatalogSection(ctx context.Context, userID string, section string) (map[string]any, error)
@@ -24,6 +28,10 @@ type AnimeService interface {
 	GetEpisodes(ctx context.Context, id int, page int) (jikan.EpisodesResponse, error)
 	GetAllEpisodes(ctx context.Context, id int) ([]EpisodeData, error)
 	GetRandomAnime(ctx context.Context) (Anime, error)
+	GetStaff(ctx context.Context, id int) ([]StaffEntry, error)
+	GetStatistics(ctx context.Context, id int) (Statistics, error)
+	GetThemes(ctx context.Context, id int) (ThemesData, error)
+	GetReviews(ctx context.Context, id int, page int) ([]ReviewEntry, bool, error)
 }
 
 type AnimeRepository interface {
