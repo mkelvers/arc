@@ -16,7 +16,7 @@
   --color-foreground-muted: light-dark(#6b7280, #9ca3af);
   --color-foreground: light-dark(#111827, #f3f4f6);
 
-  --color-accent: #d97706;
+  --color-accent: #2667ff;
   --color-border: light-dark(rgba(17, 24, 39, 0.08), rgba(243, 244, 246, 0.08));
   --color-surface-hover: light-dark(rgba(17, 24, 39, 0.04), rgba(243, 244, 246, 0.04));
 }
