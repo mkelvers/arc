@@ -11,7 +11,12 @@ import { goToNextEpisode } from './episodes/nav';
 import { resolveActiveSegments, renderSegments } from './skip/segments';
 import { setupThumbnails } from './episodes/thumbnails';
 import { markEpisodeTransition, setupProgress } from './progress';
-import { absoluteTimeFromRatio, getBounds, displayTimeFromAbsolute } from './timeline';
+import {
+  absoluteTimeFromDisplay,
+  absoluteTimeFromRatio,
+  getBounds,
+  displayTimeFromAbsolute,
+} from './timeline';
 import { formatTime } from './controls';
 
 let initialized = false; // prevent double init on htmx swaps
@@ -98,14 +103,17 @@ const initPlayer = (): void => {
     renderSegments();
 
     // resume from saved position
-    const startTime = Number(container.dataset.startTimeSeconds ?? '0');
-    if (startTime > 0 && state.video.currentTime <= 0.5 && state.video.duration > startTime) {
-      state.video.currentTime = startTime;
+    const startTime = state.startTimeSeconds;
+    if (startTime > 0 && state.video.currentTime <= 0.5 && getBounds().duration > startTime) {
+      state.video.currentTime = absoluteTimeFromDisplay(startTime);
     }
     // resume after mode switch
     if (state.pendingSeekTime !== null) {
-      state.video.currentTime = state.pendingSeekTime;
+      state.video.currentTime = absoluteTimeFromDisplay(state.pendingSeekTime);
       state.pendingSeekTime = null;
+    }
+    if (state.transitionEpisode === Number.parseInt(state.currentEpisode, 10)) {
+      state.transitionEpisode = null;
     }
     // autoplay if not already playing (inline script may have already called play())
     if (state.shouldAutoPlay || state.video.paused) state.video.play().catch(() => {});
@@ -184,14 +192,20 @@ const initPlayer = (): void => {
     updateSkipButton(state.video.currentTime);
   });
 
-  // track episode transitions from external links
-  container.addEventListener('click', e => {
-    const anchor = (e.target as Node).parentElement?.closest('a[href]');
+  // track next-episode links outside the player so they start fresh after finishing an episode
+  document.addEventListener('click', e => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest('a[href]');
     if (!(anchor instanceof HTMLAnchorElement)) return;
-    const parts = new URL(anchor.href, location.origin).pathname.split('/').filter(Boolean);
-    if (parts[0] === 'watch' && Number.parseInt(parts[2], 10) > 0) {
-      markEpisodeTransition(Number.parseInt(parts[2], 10));
-    }
+    const url = new URL(anchor.href, location.origin);
+    if (url.origin !== location.origin) return;
+    const parts = url.pathname.split('/').filter(Boolean);
+    if (parts[0] !== 'anime' || parts[2] !== 'watch') return;
+    if (Number.parseInt(parts[1], 10) !== state.malID) return;
+    const nextEpisode = Number.parseInt(url.searchParams.get('ep') ?? '1', 10);
+    const currentEpisode = Number.parseInt(state.currentEpisode, 10);
+    if (nextEpisode === currentEpisode + 1) markEpisodeTransition(nextEpisode);
   });
 
   state.video.addEventListener('click', showControls);

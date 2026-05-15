@@ -55,14 +55,19 @@ export const goToNextEpisode = async (): Promise<void> => {
       return;
     }
 
+    state.currentEpisode = String(nextEp);
+    state.currentMode = fallback;
+    // The progress reset is sent asynchronously, so do not trust the fetch to observe it first.
+    state.startTimeSeconds = 0;
+    state.container.dataset.currentEpisode = state.currentEpisode;
+    state.container.dataset.startTimeSeconds = String(state.startTimeSeconds);
+
     // load new video (keep preferences)
     const preferredQuality = localStorage.getItem('mal:preferred-quality') || 'best';
     state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
     state.video.load();
     if (!state.video.paused) state.video.play().catch(() => {});
 
-    state.currentEpisode = String(nextEp);
-    state.currentMode = fallback;
     state.pendingSeekTime = null;
     state.completionSent = false;
     state.completionAttempts = 0;
@@ -103,7 +108,6 @@ export const goToNextEpisode = async (): Promise<void> => {
     const url = new URL(window.location.href);
     url.searchParams.set('ep', String(nextEp));
     history.pushState(null, '', url.toString());
-    state.transitionEpisode = null;
   } catch {
     sessionStorage.setItem('mal:autoplay-next', 'true');
     const url = new URL(window.location.href);

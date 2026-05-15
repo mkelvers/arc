@@ -21,7 +21,7 @@ const sendBeacon = (payload: string) => {
  * Debounced: skips if within 5s of last save for same episode.
  */
 export const saveProgress = async (): Promise<void> => {
-  if (!state.malID || state.video.currentTime < 1) return;
+  if (state.transitionEpisode !== null || !state.malID || state.video.currentTime < 1) return;
   const episode = Number.parseInt(state.currentEpisode, 10);
   if (!episode) return;
 

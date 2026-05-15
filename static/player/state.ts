@@ -17,6 +17,7 @@ export interface PlayerState {
   malID: number;
   streamURL: string;
   initialStreamToken: string;
+  startTimeSeconds: number;
   shouldAutoPlay: boolean;
   parsedSegments: SkipSegment[];
   activeSegments: ActiveSegment[];
@@ -56,6 +57,7 @@ export const state: PlayerState = {
   malID: 0,
   streamURL: '/watch/proxy/stream',
   initialStreamToken: '',
+  startTimeSeconds: 0,
   shouldAutoPlay: false,
   parsedSegments: [],
   activeSegments: [],
@@ -102,6 +104,7 @@ export const initState = (c: HTMLElement): void => {
   state.totalEpisodes = Number.parseInt(dataset(c, 'totalEpisodes'), 10);
   state.streamURL = dataset(c, 'streamUrl') || '/watch/proxy/stream';
   state.initialStreamToken = dataset(c, 'streamToken') || '';
+  state.startTimeSeconds = Number.parseFloat(dataset(c, 'startTimeSeconds') || '0') || 0;
   // from session: previous page set this when autoplay triggered
   state.shouldAutoPlay = sessionStorage.getItem('mal:autoplay-next') === 'true';
   sessionStorage.removeItem('mal:autoplay-next');

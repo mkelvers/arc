@@ -131,10 +131,11 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"mode_sources":    modeSources,
-		"available_modes": availableModes,
-		"segments":        segments,
-		"episode_title":   episodeTitle,
+		"mode_sources":       modeSources,
+		"available_modes":    availableModes,
+		"start_time_seconds": watchData["StartTimeSeconds"],
+		"segments":           segments,
+		"episode_title":      episodeTitle,
 	})
 }
 
