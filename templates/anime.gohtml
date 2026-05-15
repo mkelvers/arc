@@ -38,6 +38,58 @@
 {{end}}
 {{end}}
 
+{{define "anime_statistics"}}
+{{if .Items}}
+<div class="flex flex-col gap-1.5 pt-2">
+  <div class="flex items-center justify-between text-xs">
+    <span class="text-foreground-muted">Watching</span>
+    <span class="text-foreground">{{.Items.Watching}}</span>
+  </div>
+  <div class="flex items-center justify-between text-xs">
+    <span class="text-foreground-muted">Completed</span>
+    <span class="text-foreground">{{.Items.Completed}}</span>
+  </div>
+  <div class="flex items-center justify-between text-xs">
+    <span class="text-foreground-muted">On Hold</span>
+    <span class="text-foreground">{{.Items.OnHold}}</span>
+  </div>
+  <div class="flex items-center justify-between text-xs">
+    <span class="text-foreground-muted">Dropped</span>
+    <span class="text-foreground">{{.Items.Dropped}}</span>
+  </div>
+  <div class="flex items-center justify-between text-xs">
+    <span class="text-foreground-muted">Plan to Watch</span>
+    <span class="text-foreground">{{.Items.PlanToWatch}}</span>
+  </div>
+</div>
+{{end}}
+{{end}}
+
+{{define "anime_themes"}}
+{{if or .Items.Openings .Items.Endings}}
+<div class="grid grid-cols-2 gap-6 p-6">
+  <div>
+    <h3 class="mb-4 text-sm font-medium text-foreground">Openings</h3>
+    <div class="flex flex-col gap-3">
+      {{range .Items.Openings}}
+        <div class="text-sm leading-relaxed text-foreground-muted">{{.}}</div>
+      {{end}}
+    </div>
+  </div>
+  <div>
+    <h3 class="mb-4 text-sm font-medium text-foreground">Endings</h3>
+    <div class="flex flex-col gap-3">
+      {{range .Items.Endings}}
+        <div class="text-sm leading-relaxed text-foreground-muted">{{.}}</div>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{else}}
+<div class="p-6 text-sm text-foreground-muted">No theme songs available.</div>
+{{end}}
+{{end}}
+
 {{define "title"}}{{.Anime.DisplayTitle}}{{end}}
 {{define "content"}}
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
