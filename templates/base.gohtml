@@ -31,13 +31,15 @@
     html[data-theme="dark"] .theme-icon-dark { display: none; }
     html[data-theme="dark"] .theme-icon-light { display: block; }
     html[data-theme="light"] .theme-icon-light { display: none; }
-    html[data-theme="light"] .theme-icon-dark { display: block; }
+   html[data-theme="light"] .theme-icon-dark { display: block; }
   </style>
    <script type="module" src="/dist/static/theme.js" defer></script>
    <template id="toast-template">
-     <div class="toast bg-foreground/10 border border-border flex items-center gap-3 px-4 py-3 shadow-lg transform transition-all duration-300 translate-y-2 opacity-0">
-       <span class="toast-message text-sm text-foreground"></span>
-       <button class="toast-close ml-2 opacity-50 hover:opacity-100" aria-label="Close">
+      <div class="toast pointer-events-auto w-[22rem] max-w-[calc(100vw-2rem)] bg-background shadow-2xl ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0">
+        <div class="min-w-0 flex-1">
+         <div class="toast-message text-sm font-medium text-foreground leading-snug"></div>
+       </div>
+       <button class="toast-close -mr-1 -mt-1 rounded-md p-1.5 opacity-70 hover:opacity-100 hover:bg-foreground/10 focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Close">
          <svg class="size-4 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
            <path d="M18 6L6 18M6 6l12 12"/>
          </svg>
@@ -101,7 +103,7 @@
       }
     }
 
-    function toggleWatchlist(id, btn) {
+    function toggleWatchlist(id, title, btn) {
       // determine action based on current watchlist state
       const isInWatchlist = watchlistIds.has(id)
       const url = isInWatchlist ? `/api/watchlist/${id}` : '/api/watchlist'
@@ -118,7 +120,7 @@
             watchlistIds.delete(id)
             btn.classList.remove('in-watchlist')
             btn.setAttribute('aria-label', 'Add to Watchlist')
-            if (window.showToast) showToast({ message: 'Removed from watchlist' })
+            if (window.showToast) showToast({ message: `Removed ${title} from watchlist` })
             
             // Update dropdown status if on anime page
             syncWatchlistDropdown(id, false)
@@ -126,7 +128,7 @@
             watchlistIds.add(id)
             btn.classList.add('in-watchlist')
             btn.setAttribute('aria-label', 'Remove from Watchlist')
-            if (window.showToast) showToast({ message: 'Added to watchlist' })
+            if (window.showToast) showToast({ message: `Added ${title} to watchlist` })
             
             // Update dropdown status if on anime page
             syncWatchlistDropdown(id, true)
@@ -168,12 +170,15 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
           watchlistIds.delete(id)
           const card = btn.closest('.group').parentElement
           if (card) card.remove()
+          if (window.showToast) showToast({ message: 'Removed from watchlist' })
           setTimeout(() => location.reload(), 100)
+        } else {
+          if (window.showToast) showToast({ message: 'Failed to update watchlist' })
         }
       })
     }
 
-    function updateWatchlist(id, status, display, btn) {
+    function updateWatchlist(id, status, display, title, btn) {
       fetch('/api/watchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,17 +201,22 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
             const dropdown = btn.closest('ui-dropdown');
             if (dropdown) dropdown.close();
           });
+          if (window.showToast) showToast({ message: `Marked ${title} as ${display}` });
+        } else {
+          if (window.showToast) showToast({ message: 'Failed to update watchlist' });
         }
+      }).catch(() => {
+        if (window.showToast) showToast({ message: 'Something went wrong' });
       });
     }
 
-    function removeWatchlist(id, btn) {
+    function removeWatchlist(id, title, btn) {
       fetch('/api/watchlist/' + id, { method: 'DELETE' }).then(res => {
         if (res.ok) {
           watchlistIds.delete(id);
           document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
           syncRemoveButtonVisibility(id);
-          if (window.showToast) showToast({ message: 'Removed from watchlist' });
+          if (window.showToast) showToast({ message: `Removed ${title} from watchlist` });
           document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
             const button = icon.closest('button');
             if (button) {
@@ -220,7 +230,11 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
             const dropdown = btn.closest('ui-dropdown');
             if (dropdown) dropdown.close();
           }
+        } else {
+          if (window.showToast) showToast({ message: 'Failed to update watchlist' });
         }
+      }).catch(() => {
+        if (window.showToast) showToast({ message: 'Something went wrong' });
       });
     }
   </script>

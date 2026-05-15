@@ -25,20 +25,21 @@
         </div>
         <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-2xl right-0 top-full mt-2">
           <div class="flex flex-col py-1">
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', this)">
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', '{{$anime.Title}}', this)">
               <span class="text-sm text-foreground">Watching</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', this)">
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', '{{$anime.Title}}', this)">
               <span class="text-sm text-foreground">Completed</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', this)">
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', '{{$anime.Title}}', this)">
               <span class="text-sm text-foreground">Plan to Watch</span>
             </button>
-            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', this)">
+            <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', '{{$anime.Title}}', this)">
               <span class="text-sm text-foreground">Dropped</span>
             </button>
             {{template "watchlist_remove_button" dict
               "ID" $anime.MalID
+              "Title" $anime.Title
               "ContainerClass" "hidden"
               "DividerClass" "border-t border-border my-1"
               "ButtonClass" "flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10"
