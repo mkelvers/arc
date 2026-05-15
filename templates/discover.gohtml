@@ -3,31 +3,43 @@
 <script>
   let isFetchingRandom = false;
 
-  async function handleSurpriseMe() {
-    if (isFetchingRandom) return;
-    isFetchingRandom = true;
-    const btn = document.getElementById('surprise-btn');
-    const spinner = document.getElementById('surprise-spinner');
-    const text = document.getElementById('surprise-text');
-    try {
-      const res = await fetch(`/api/jikan/random/anime?t=${Date.now()}`, {
-        cache: 'no-store'
-      });
-      if (!res.ok) throw new Error('Failed to fetch random anime');
-      const json = await res.json();
-      if (json.data && json.data.mal_id) {
-        window.location.href = `/anime/${json.data.mal_id}`;
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      isFetchingRandom = false;
-    }
-  }
-</script>
+	  async function handleSurpriseMe() {
+	    if (isFetchingRandom) return;
+	    isFetchingRandom = true;
+	    const btn = document.getElementById('surprise-btn');
+	    const spinner = document.getElementById('surprise-spinner');
+	    const text = document.getElementById('surprise-text');
+	    const icon = document.getElementById('surprise-icon');
+	    btn?.setAttribute('disabled', 'true');
+	    spinner?.classList.remove('hidden');
+	    icon?.classList.add('hidden');
+	    if (text) text.textContent = 'Picking…';
+	    try {
+	      const res = await fetch(`/api/jikan/random/anime?t=${Date.now()}`, {
+	        cache: 'no-store'
+	      });
+	      if (!res.ok) throw new Error('Failed to fetch random anime');
+	      const json = await res.json();
+	      if (json.data && typeof json.data.mal_id === 'number' && json.data.mal_id > 0) {
+	        window.location.href = `/anime/${json.data.mal_id}`;
+	        return;
+	      }
+	      throw new Error('Random anime missing mal_id');
+	    } catch (error) {
+	      console.error(error);
+	      alert('Could not pick a random anime right now. Please try again.');
+	    } finally {
+	      isFetchingRandom = false;
+	      btn?.removeAttribute('disabled');
+	      spinner?.classList.add('hidden');
+	      icon?.classList.remove('hidden');
+	      if (text) text.textContent = 'Surprise Me';
+	    }
+	  }
+	</script>
 
 <div class="flex flex-col gap-12 pb-12">
-  <section class="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-background-surface px-6 py-24 text-center ring-1 ring-border">
+  <section class="relative flex flex-col items-center justify-center overflow-hidden bg-background-surface px-6 py-24 text-center ring-1 ring-border">
     <div class="from-accent/10 absolute inset-0 bg-linear-to-b to-transparent opacity-50"></div>
     <div class="relative z-10 flex max-w-2xl flex-col items-center gap-6">
       <h1 class="text-4xl font-normal tracking-tight text-foreground sm:text-5xl">

@@ -63,6 +63,9 @@ func (c *Client) GetRandomAnime(ctx context.Context) (Anime, error) {
 	if err != nil {
 		return Anime{}, err
 	}
+	if result.Data.MalID == 0 {
+		return Anime{}, fmt.Errorf("jikan: empty response for random/anime")
+	}
 
 	return result.Data, nil
 }

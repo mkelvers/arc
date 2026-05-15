@@ -339,12 +339,9 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 				continue
 			}
 
-			err = json.NewDecoder(resp.Body).Decode(out)
+			// Best-effort decode (often useful for debugging), but still treat non-200 as error.
+			_ = json.NewDecoder(resp.Body).Decode(out)
 			_ = resp.Body.Close()
-			if err == nil {
-				return nil
-			}
-
 			return apiErr
 		}
 

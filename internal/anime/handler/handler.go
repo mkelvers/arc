@@ -383,6 +383,10 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch random anime"})
 		return
 	}
+	if anime.MalID == 0 {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Random anime unavailable"})
+		return
+	}
 
 	user, _ := c.Get("User")
 	inWatchlist := false
