@@ -343,4 +343,41 @@
   </div>
 </div>
 
+<div class="fixed inset-0 z-50 hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-themes-dialog aria-hidden="true">
+  <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-2xl ring-1 ring-border">
+    <div class="flex items-center justify-between border-b border-border px-6 py-4">
+      <h2 class="text-base font-normal text-foreground">Theme Songs</h2>
+      <button type="button" data-themes-close class="px-2 py-1 text-xs text-foreground-muted ring-1 ring-border transition-colors hover:text-foreground">Close</button>
+    </div>
+    <div data-themes-content class="max-h-[60vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<div hx-get="/anime/{{$anime.MalID}}?section=themes" hx-trigger="load" hx-target="[data-themes-content]" hx-swap="innerHTML"></div>
+
+<script>
+(function(){
+  const dialog = document.querySelector('[data-themes-dialog]');
+  const openBtn = document.querySelector('[data-themes-open]');
+  const closeBtn = document.querySelector('[data-themes-close]');
+  if (!dialog || !openBtn) return;
+
+  const open = () => {
+    dialog.classList.remove('hidden');
+    dialog.classList.add('flex');
+    dialog.setAttribute('aria-hidden', 'false');
+  };
+  const close = () => {
+    dialog.classList.add('hidden');
+    dialog.classList.remove('flex');
+    dialog.setAttribute('aria-hidden', 'true');
+  };
+
+  openBtn.addEventListener('click', open);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  dialog.addEventListener('click', (e) => { if (e.target === dialog) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+})();
+</script>
+
 {{end}}
