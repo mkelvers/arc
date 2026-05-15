@@ -413,3 +413,44 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 		"in_watchlist": inWatchlist,
 	})
 }
+
+func (h *AnimeHandler) HandleAnimeReviews(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if id <= 0 {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+
+	reviews, hasNextPage, err := h.svc.GetReviews(c.Request.Context(), id, page)
+	if err != nil {
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	user, _ := c.Get("User")
+
+	if c.GetHeader("HX-Request") == "true" && page > 1 {
+		c.HTML(http.StatusOK, "reviews.gohtml", gin.H{
+			"_fragment":   "review_cards",
+			"Reviews":     reviews,
+			"NextPage":    page + 1,
+			"HasNextPage": hasNextPage,
+			"AnimeID":     id,
+		})
+		return
+	}
+
+	c.HTML(http.StatusOK, "reviews.gohtml", gin.H{
+		"CurrentPath": fmt.Sprintf("/anime/%d/reviews", id),
+		"Reviews":     reviews,
+		"NextPage":    page + 1,
+		"HasNextPage": hasNextPage,
+		"AnimeID":     id,
+		"User":        user,
+	})
+}
