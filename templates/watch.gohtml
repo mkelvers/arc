@@ -7,7 +7,7 @@
 {{if or (not $currentEpID) (eq (printf "%v" $currentEpID) "0") (eq (printf "%v" $currentEpID) "")}}{{$currentEpID = "1"}}{{end}}
 {{$totalEpisodes := len $episodes}}
 
-<div id="watch-layout" class="flex flex-col gap-6 pb-12 lg:flex-row lg:gap-6{{if le $totalEpisodes 100}} max-h-dvh{{end}}">
+<div id="watch-layout" class="flex flex-col gap-6 lg:flex-row lg:gap-6{{if le $totalEpisodes 100}} max-h-dvh{{end}}">
   <div class="{{if le $totalEpisodes 100}}shrink-0 lg:flex-1 lg:self-start{{else}}flex-1{{end}} min-w-0">
     <div class="flex items-center justify-between mb-4">
       <a href="/anime/{{$anime.MalID}}" class="inline-flex items-center gap-2 text-sm text-foreground-muted hover:text-foreground transition-colors">
