@@ -211,10 +211,10 @@ const initQuickSearch = (): void => {
     return;
   }
 
-  searchOpenButtons.forEach((button) => {
+  searchOpenButtons.forEach(button => {
     button.addEventListener('click', openSearchDialog);
   });
-  searchCloseButtons.forEach((button) => {
+  searchCloseButtons.forEach(button => {
     button.addEventListener('click', closeSearchDialog);
   });
   searchInput.addEventListener('input', onSearchInput);
