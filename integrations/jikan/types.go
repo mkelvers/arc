@@ -364,6 +364,97 @@ type RelationEntry struct {
 	IsExtra   bool
 }
 
+// Staff types
+
+type StaffEntry struct {
+	Person struct {
+		MalID  int    `json:"mal_id"`
+		URL    string `json:"url"`
+		Images struct {
+			Jpg struct {
+				ImageURL string `json:"image_url"`
+			} `json:"jpg"`
+		} `json:"images"`
+		Name string `json:"name"`
+	} `json:"person"`
+	Positions []string `json:"positions"`
+}
+
+type StaffResponse struct {
+	Data []StaffEntry `json:"data"`
+}
+
+type StatisticsScore struct {
+	Score      int     `json:"score"`
+	Votes      int     `json:"votes"`
+	Percentage float64 `json:"percentage"`
+}
+
+type Statistics struct {
+	Watching    int               `json:"watching"`
+	Completed   int               `json:"completed"`
+	OnHold      int               `json:"on_hold"`
+	Dropped     int               `json:"dropped"`
+	PlanToWatch int               `json:"plan_to_watch"`
+	Total       int               `json:"total"`
+	Scores      []StatisticsScore `json:"scores"`
+}
+
+type StatisticsResponse struct {
+	Data Statistics `json:"data"`
+}
+
+type ThemesData struct {
+	Openings []string `json:"openings"`
+	Endings  []string `json:"endings"`
+}
+
+type ThemesResponse struct {
+	Data ThemesData `json:"data"`
+}
+
+type ReviewReactions struct {
+	Overall     int `json:"overall"`
+	Nice        int `json:"nice"`
+	LoveIt      int `json:"love_it"`
+	Funny       int `json:"funny"`
+	Confusing   int `json:"confusing"`
+	Informative int `json:"informative"`
+	WellWritten int `json:"well_written"`
+	Creative    int `json:"creative"`
+}
+
+type ReviewEntry struct {
+	MalID         int             `json:"mal_id"`
+	URL           string          `json:"url"`
+	Type          string          `json:"type"`
+	Reactions     ReviewReactions `json:"reactions"`
+	Date          string          `json:"date"`
+	Review        string          `json:"review"`
+	Score         int             `json:"score"`
+	Tags          []string        `json:"tags"`
+	IsSpoiler     bool            `json:"is_spoiler"`
+	IsPreliminary bool            `json:"is_preliminary"`
+	EpisodesSeen  int             `json:"episodes_seen"`
+	User          struct {
+		URL      string `json:"url"`
+		Username string `json:"username"`
+		Images   struct {
+			Jpg struct {
+				ImageURL string `json:"image_url"`
+			} `json:"jpg"`
+			Webp struct {
+				ImageURL string `json:"image_url"`
+			} `json:"webp"`
+		} `json:"images"`
+	} `json:"user"`
+}
+
+type ReviewsResponse struct {
+	Data       []ReviewEntry `json:"data"`
+	Pagination Pagination    `json:"pagination"`
+}
+
 // DisplayTitle returns English title if available, otherwise Japanese, then default.
 func (a Anime) DisplayTitle() string {
 	if a.TitleEnglish != "" {
