@@ -1,17 +1,16 @@
 {{define "filter_bar"}}
 {{$selectedGenreIDs := .Genres}}
 {{$selectedCount := len $selectedGenreIDs}}
-<div class="flex flex-wrap items-center gap-3 bg-background-surface p-3 ring-1 ring-border">
+<div class="flex flex-wrap items-center gap-3" hx-boost="true" hx-target="#browse-content" hx-swap="outerHTML" hx-push-url="true">
   <div class="min-w-50 flex-1">
-    <form action="/browse" method="GET" id="browse-search-form">
+    <form action="/browse" method="GET" id="browse-search-form" hx-get="/browse" hx-trigger="submit, keyup changed delay:120ms from:#search">
       <input
         id="search"
         name="q"
         type="text"
         value="{{.Query}}"
         placeholder="Search anime..."
-        class="focus:ring-accent w-full bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1"
-        onkeydown="if(event.key === 'Enter'){this.form.submit()}"
+        class="focus:ring-accent w-full rounded-none bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1"
       />
       {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
       {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
@@ -22,28 +21,32 @@
     </form>
   </div>
 
-  <div class="flex items-center gap-2 px-3 py-2 text-sm text-foreground bg-background-button ring-1 ring-border">
+  <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
+    <input type="hidden" name="q" value="{{.Query}}">
+    {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
+    {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
+    {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
+    {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
+    <input type="hidden" name="sfw" value="{{.SFW}}" data-sfw-value>
+    {{range $g := .Genres}}<input type="hidden" name="genres" value="{{$g}}">{{end}}
     <label class="flex cursor-pointer items-center gap-2">
+      <input type="checkbox" class="sr-only" {{if .SFW}}checked{{end}} onchange="this.form.querySelector('[data-sfw-value]').value = this.checked; const box = this.nextElementSibling; box.classList.toggle('border-accent', this.checked); box.classList.toggle('bg-accent', this.checked); box.classList.toggle('border-border', !this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
       <div class="flex h-4 w-4 items-center justify-center border-2 transition-colors {{if .SFW}}border-accent bg-accent{{else}}border-border bg-transparent{{end}}">
-        {{if .SFW}}
-          <svg class="h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
-        {{end}}
+        <svg class="{{if not .SFW}}hidden {{end}}h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
       </div>
-      <input type="checkbox" class="sr-only" name="sfw" value="true" {{if .SFW}}checked{{end}} 
-             onchange="const params = new URLSearchParams(window.location.search); params.set('sfw', this.checked); window.location.search = params.toString();">
       SFW
     </label>
-  </div>
+  </form>
 
   <ui-dropdown class="relative block" data-align="left" data-width="w-48">
     <div data-trigger class="cursor-pointer">
-      <button class="flex items-center gap-2 bg-background-button ring-1 ring-border px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
+      <button class="flex items-center gap-2 bg-background-button  px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
         {{if $selectedCount}}Genres ({{$selectedCount}}){{else}}Genres{{end}}
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ring-1 ring-border">
-      <form action="/browse" method="GET" class="flex flex-col py-1">
+    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
+      <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col py-1">
         <input type="hidden" name="q" value="{{.Query}}">
         {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
         {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
@@ -53,13 +56,11 @@
         {{range .GenresList}}
           {{$genreID := .MalID}}
           {{$isSelected := hasGenre $genreID $selectedGenreIDs}}
-          <label class="flex cursor-pointer items-center gap-3 rounded-sm px-2 py-1.5 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground">
+          <label class="flex cursor-pointer items-center gap-3 px-2 py-1.5 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground">
+            <input type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" {{if $isSelected}}checked{{end}} onchange="const box = this.nextElementSibling; box.classList.toggle('border-accent', this.checked); box.classList.toggle('bg-accent', this.checked); box.classList.toggle('border-border', !this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
             <div class="flex h-4 w-4 items-center justify-center border-2 transition-colors {{if $isSelected}}border-accent bg-accent{{else}}border-border bg-transparent{{end}}">
-              {{if $isSelected}}
-                <svg class="h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
-              {{end}}
+              <svg class="{{if not $isSelected}}hidden {{end}}h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
             </div>
-            <input type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" {{if $isSelected}}checked{{end}} onchange="this.form.submit()">
             {{.Name}}
           </label>
         {{end}}
@@ -69,12 +70,12 @@
 
   <ui-dropdown class="relative block" data-align="left" data-width="w-40">
     <div data-trigger class="cursor-pointer">
-      <button class="flex items-center gap-2 bg-background-button ring-1 ring-border px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
-        {{if .Status}}{{.Status}}{{else}}Any Status{{end}}
+      <button class="flex items-center gap-2 bg-background-button  px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
+        {{if eq .Status "airing"}}Airing{{else if eq .Status "complete"}}Complete{{else if eq .Status "upcoming"}}Upcoming{{else}}Any Status{{end}}
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ring-1 ring-border">
+    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
         <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Status</a>
         <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Airing</a>
@@ -86,12 +87,12 @@
 
   <ui-dropdown class="relative block" data-align="left" data-width="w-40">
     <div data-trigger class="cursor-pointer">
-      <button class="flex items-center gap-2 bg-background-button ring-1 ring-border px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
-        {{if .Type}}{{.Type}}{{else}}Any Type{{end}}
+      <button class="flex items-center gap-2 bg-background-button  px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
+        {{if eq .Type "tv"}}TV{{else if eq .Type "movie"}}Movie{{else if eq .Type "ova"}}OVA{{else if eq .Type "special"}}Special{{else if eq .Type "ona"}}ONA{{else}}Any Type{{end}}
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ring-1 ring-border">
+    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
         <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Type</a>
         <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">TV</a>
@@ -106,12 +107,12 @@
   <div class="flex items-center gap-1">
     <ui-dropdown class="relative block" data-align="left" data-width="w-48">
       <div data-trigger class="cursor-pointer">
-        <button class="flex items-center gap-2 bg-background-button ring-1 ring-border px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
-          Sort: {{if .OrderBy}}{{.OrderBy}}{{else}}Default{{end}}
+        <button class="flex items-center gap-2 bg-background-button  px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
+          Sort: {{if eq .OrderBy "popularity"}}Popularity{{else if eq .OrderBy "score"}}Score{{else if eq .OrderBy "title"}}Title{{else if eq .OrderBy "start_date"}}Start Date{{else if eq .OrderBy "episodes"}}Episodes{{else}}Default{{end}}
           <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
         </button>
       </div>
-      <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ring-1 ring-border">
+      <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
         <div class="flex flex-col py-1">
           <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Default</a>
           <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Popularity</a>
@@ -123,7 +124,7 @@
       </div>
     </ui-dropdown>
 
-    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-background-button ring-1 ring-border text-foreground-muted hover:text-foreground transition-colors">
+    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-background-button  text-foreground-muted hover:text-foreground transition-colors">
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}

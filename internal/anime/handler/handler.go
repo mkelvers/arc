@@ -171,7 +171,7 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		}
 	}
 
-	if c.GetHeader("HX-Request") == "true" {
+	if c.GetHeader("HX-Request") == "true" && page > 1 {
 		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
 			"_fragment":    "anime_card_scroll",
 			"Animes":       res.Animes,
@@ -190,6 +190,27 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	}
 
 	genresList, _ := h.svc.GetGenres(c.Request.Context())
+
+	if c.GetHeader("HX-Request") == "true" {
+		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
+			"_fragment":    "browse_content",
+			"CurrentPath":  "/browse",
+			"Query":        q,
+			"Type":         animeType,
+			"Status":       status,
+			"OrderBy":      orderBy,
+			"Sort":         sort,
+			"Genres":       genres,
+			"SFW":          sfw,
+			"GenresList":   genresList,
+			"Animes":       res.Animes,
+			"HasNextPage":  res.HasNextPage,
+			"NextPage":     page + 1,
+			"User":         user,
+			"WatchlistMap": watchlistMap,
+		})
+		return
+	}
 
 	c.HTML(http.StatusOK, "browse.gohtml", gin.H{
 		"CurrentPath":  "/browse",
