@@ -10,6 +10,40 @@
 
 <nav class="bg-background-sidebar h-full border-r border-border">
   <div class="flex flex-col">
+    <button type="button" class="group relative flex items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" data-search-open {{if $isCollapsed}}title="Search"{{end}}>
+      <svg class="size-6 shrink-0 text-foreground-muted transition-colors duration-200 group-hover:text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.35-4.35" />
+      </svg>
+      <div class="nav-label-container grid grid-cols-[1fr] opacity-100 ml-4">
+        <div class="overflow-hidden min-w-0">
+          <span class="whitespace-nowrap text-sm font-medium text-foreground-muted transition-colors duration-200 group-hover:text-foreground">Search</span>
+        </div>
+      </div>
+    </button>
+
+    <div class="fixed inset-0 z-50 hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-search-dialog aria-hidden="true">
+      <form action="/browse" method="GET" class="w-full max-w-2xl overflow-hidden bg-background-button shadow-2xl ring-1 ring-border" data-search-root role="search">
+        <label for="search-input" class="sr-only">Search anime</label>
+        <div class="flex items-center border-b border-border">
+          <svg class="mx-4 size-5 shrink-0 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            id="search-input"
+            name="q"
+            type="search"
+            autocomplete="off"
+            placeholder="Search anime"
+            class="min-w-0 flex-1 bg-transparent py-4 pr-4 text-base text-foreground placeholder:text-foreground-muted outline-none"
+          />
+          <button type="button" class="mr-3 px-2 py-1 text-xs text-foreground-muted ring-1 ring-border transition-colors hover:text-foreground" data-search-close>Esc</button>
+        </div>
+        <div data-search-results-container class="max-h-[60vh] overflow-y-auto"></div>
+      </form>
+    </div>
+
     {{/* Home */}}
     {{$isActive := eq $currentPath "/"}}
     <a href="/" class="group relative flex items-center px-7 py-3 transition-colors hover:bg-surface-hover" {{if $isCollapsed}}title="Home"{{end}}>

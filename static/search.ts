@@ -14,6 +14,9 @@ const searchInput = document.getElementById('search-input') as HTMLInputElement 
 const searchDropdown = document.querySelector(
   '[data-search-results-container]'
 ) as HTMLElement | null;
+const searchDialog = document.querySelector('[data-search-dialog]') as HTMLElement | null;
+const searchOpenButtons = document.querySelectorAll('[data-search-open]');
+const searchCloseButtons = document.querySelectorAll('[data-search-close]');
 
 const isSafeImageUrl = (rawUrl?: string): boolean => {
   if (!rawUrl || typeof rawUrl !== 'string') {
@@ -37,22 +40,45 @@ const clearSearchResults = (): void => {
   searchDropdown.replaceChildren();
 };
 
+const openSearchDialog = (): void => {
+  if (!searchDialog || !searchInput) {
+    return;
+  }
+
+  searchDialog.classList.remove('hidden');
+  searchDialog.classList.add('flex');
+  searchDialog.setAttribute('aria-hidden', 'false');
+  searchInput.focus();
+};
+
+const closeSearchDialog = (): void => {
+  if (!searchDialog || !searchInput) {
+    return;
+  }
+
+  searchDialog.classList.add('hidden');
+  searchDialog.classList.remove('flex');
+  searchDialog.setAttribute('aria-hidden', 'true');
+  searchInput.value = '';
+  clearSearchResults();
+};
+
 const buildSearchResultItem = (result: QuickSearchResult): HTMLAnchorElement => {
   const item = document.createElement('a');
   item.className =
-    'flex items-start gap-3 px-3 py-2 text-inherit no-underline hover:bg-(--panel-soft) hover:no-underline';
+    'flex items-start gap-3 px-3 py-2 text-foreground no-underline hover:bg-surface-hover hover:no-underline';
   item.setAttribute('href', '/anime/' + encodeURIComponent(String(result.id || '')));
 
   if (isSafeImageUrl(result.image)) {
     const img = document.createElement('img');
-    img.className = 'aspect-2/3 w-[42px] shrink-0 object-cover bg-(--surface-thumb)';
+    img.className = 'aspect-2/3 w-[42px] shrink-0 object-cover bg-background-surface';
     img.setAttribute('src', result.image || '');
     img.setAttribute('alt', String(result.title || ''));
     item.appendChild(img);
   } else {
     const noImage = document.createElement('div');
     noImage.className =
-      'aspect-2/3 w-[42px] shrink-0 bg-(--surface-thumb) text-[0] text-transparent';
+      'aspect-2/3 w-[42px] shrink-0 bg-background-surface text-[0] text-transparent';
     noImage.textContent = 'no image';
     item.appendChild(noImage);
   }
@@ -61,12 +87,12 @@ const buildSearchResultItem = (result: QuickSearchResult): HTMLAnchorElement => 
   info.className = 'grid min-w-0 gap-px';
 
   const itemTitle = document.createElement('div');
-  itemTitle.className = 'line-clamp-1 text-[0.86rem] leading-[1.3] text-(--text)';
+  itemTitle.className = 'line-clamp-1 text-[0.86rem] leading-[1.3] text-foreground';
   itemTitle.textContent = String(result.title || '');
   info.appendChild(itemTitle);
 
   const itemType = document.createElement('div');
-  itemType.className = 'text-[0.67rem] text-(--text-faint)';
+  itemType.className = 'text-[0.67rem] text-foreground-muted';
   itemType.textContent = String(result.type || '');
   info.appendChild(itemType);
 
@@ -88,7 +114,7 @@ const renderQuickSearchResults = (query: string, results: QuickSearchResult[]): 
   searchResults.className = 'grid';
 
   const title = document.createElement('div');
-  title.className = 'px-3 py-2 text-[0.68rem] text-(--text-faint)';
+  title.className = 'px-3 py-2 text-[0.68rem] text-foreground-muted';
   title.textContent = 'Anime';
   searchResults.appendChild(title);
 
@@ -98,9 +124,9 @@ const renderQuickSearchResults = (query: string, results: QuickSearchResult[]): 
 
   const viewAll = document.createElement('a');
   viewAll.className =
-    'bg-(--surface-search-view-all) px-3 py-2 text-center text-[0.8rem] text-(--text-muted) no-underline hover:bg-(--panel-soft) hover:text-(--text) hover:no-underline';
-  viewAll.setAttribute('href', '/search?q=' + encodeURIComponent(query));
-  viewAll.textContent = 'View all results for ' + query;
+    'block bg-background-surface px-3 py-2 text-center text-[0.8rem] text-foreground-muted no-underline hover:bg-surface-hover hover:text-foreground hover:no-underline';
+  viewAll.setAttribute('href', '/browse?q=' + encodeURIComponent(query));
+  viewAll.textContent = 'Browse all results for ' + query;
   searchResults.appendChild(viewAll);
 
   searchDropdown.replaceChildren(searchResults);
@@ -151,8 +177,27 @@ const onDocumentClick = (event: MouseEvent): void => {
     return;
   }
 
-  if (!target.closest('[data-search-root]')) {
-    clearSearchResults();
+  if (target.matches('[data-search-dialog]')) {
+    closeSearchDialog();
+  }
+};
+
+const onDocumentKeydown = (event: KeyboardEvent): void => {
+  const target = event.target;
+  const isTyping =
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable);
+
+  if (event.key === 'Escape') {
+    closeSearchDialog();
+    return;
+  }
+
+  if (event.key === '/' && !isTyping) {
+    event.preventDefault();
+    openSearchDialog();
   }
 };
 
@@ -166,9 +211,16 @@ const initQuickSearch = (): void => {
     return;
   }
 
+  searchOpenButtons.forEach((button) => {
+    button.addEventListener('click', openSearchDialog);
+  });
+  searchCloseButtons.forEach((button) => {
+    button.addEventListener('click', closeSearchDialog);
+  });
   searchInput.addEventListener('input', onSearchInput);
   searchInput.addEventListener('blur', onSearchBlur);
   document.addEventListener('click', onDocumentClick);
+  document.addEventListener('keydown', onDocumentKeydown);
 };
 
 initQuickSearch();
