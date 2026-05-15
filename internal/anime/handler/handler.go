@@ -33,6 +33,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/discover/top", h.HandleDiscoverTop)
 	r.GET("/browse", h.HandleBrowse)
 	r.GET("/anime/:id", h.HandleAnimeDetails)
+	r.GET("/anime/:id/reviews", h.HandleAnimeReviews)
 	r.GET("/api/watch-order", h.HandleHTMLWatchOrder)
 	r.GET("/api/search-quick", h.HandleQuickSearch)
 	r.GET("/api/jikan/random/anime", h.HandleRandomAnime)
@@ -249,6 +250,13 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		case "recommendations":
 			data, err = h.svc.GetRecommendations(c.Request.Context(), id)
 			tplName = "anime_recommendations"
+
+		case "statistics":
+			data, err = h.svc.GetStatistics(c.Request.Context(), id)
+			tplName = "anime_statistics"
+		case "themes":
+			data, err = h.svc.GetThemes(c.Request.Context(), id)
+			tplName = "anime_themes"
 		}
 
 		if err != nil {
