@@ -246,6 +246,14 @@ func isEmptyResult(out any) bool {
 		return v.Data.MalID == 0
 	case *EpisodesResponse:
 		return len(v.Data) == 0
+	case *StaffResponse:
+		return len(v.Data) == 0
+	case *StatisticsResponse:
+		return v.Data.Total == 0
+	case *ThemesResponse:
+		return len(v.Data.Openings) == 0 && len(v.Data.Endings) == 0
+	case *ReviewsResponse:
+		return false // empty reviews is a valid state
 	}
 	return false
 }
