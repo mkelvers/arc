@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
@@ -140,12 +141,29 @@ func ProvideRenderer() (*Renderer, error) {
 			}
 			return (current / total) * 100
 		},
+		"formatDate": func(dateStr string) string {
+			t, err := time.Parse(time.RFC3339, dateStr)
+			if err != nil {
+				t, err = time.Parse("2006-01-02T15:04:05+00:00", dateStr)
+				if err != nil {
+					return dateStr
+				}
+			}
+			return t.Format("Jan 2, 2006")
+		},
 	}
 
 	pages, err := filepath.Glob(filepath.Join(".", "templates", "*.gohtml"))
 	if err != nil {
 		return nil, err
 	}
+
+	subpages, err := filepath.Glob(filepath.Join(".", "templates", "anime", "*.gohtml"))
+	if err != nil {
+		return nil, err
+	}
+
+	allPages := append(pages, subpages...)
 
 	components, err := filepath.Glob(filepath.Join(".", "templates", "components", "*.gohtml"))
 	if err != nil {
@@ -154,7 +172,7 @@ func ProvideRenderer() (*Renderer, error) {
 
 	basePath := filepath.Join(".", "templates", "base.gohtml")
 
-	for _, page := range pages {
+	for _, page := range allPages {
 		name := filepath.Base(page)
 		if name == "base.gohtml" {
 			continue
