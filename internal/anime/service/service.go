@@ -152,6 +152,26 @@ func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (jikan
 	return s.jikan.GetEpisodes(ctx, id, page)
 }
 
+func (s *animeService) GetStaff(ctx context.Context, id int) ([]domain.StaffEntry, error) {
+	return s.jikan.GetAnimeStaff(ctx, id)
+}
+
+func (s *animeService) GetStatistics(ctx context.Context, id int) (domain.Statistics, error) {
+	return s.jikan.GetAnimeStatistics(ctx, id)
+}
+
+func (s *animeService) GetThemes(ctx context.Context, id int) (domain.ThemesData, error) {
+	return s.jikan.GetAnimeThemes(ctx, id)
+}
+
+func (s *animeService) GetReviews(ctx context.Context, id int, page int) ([]domain.ReviewEntry, bool, error) {
+	data, pag, err := s.jikan.GetAnimeReviews(ctx, id, page)
+	if err != nil {
+		return nil, false, err
+	}
+	return data, pag.HasNextPage, nil
+}
+
 func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error) {
 	return s.jikan.GetRandomAnime(ctx)
 }
