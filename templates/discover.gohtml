@@ -40,9 +40,9 @@
 
 <div class="flex flex-col gap-12 pb-12">
   <section class="relative flex flex-col items-center justify-center overflow-hidden bg-background-surface px-6 py-24 text-center ring-1 ring-border">
-    <div class="from-accent/10 absolute inset-0 bg-linear-to-b to-transparent opacity-50"></div>
+    <div class="absolute inset-0 opacity-40" style="background: radial-gradient(60% 60% at 50% 0%, rgba(0,0,0,0.06), transparent 70%);"></div>
     <div class="relative z-10 flex max-w-2xl flex-col items-center gap-6">
-      <h1 class="text-4xl font-normal tracking-tight text-foreground sm:text-5xl">
+      <h1 class="heading-serif text-4xl font-normal tracking-tight text-foreground sm:text-5xl">
         Don't know what to watch?
       </h1>
       <p class="text-lg text-foreground-muted">
@@ -50,10 +50,10 @@
       </p>
       <button
         id="surprise-btn"
-        class="group bg-accent relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-8 py-4 font-medium text-on-accent transition-transform hover:scale-105 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
+        class="group relative inline-flex items-center justify-center gap-2 overflow-hidden bg-foreground px-7 py-3.5 font-medium text-background transition-colors hover:bg-foreground/90 active:scale-[0.98] disabled:opacity-70"
         onclick="handleSurpriseMe()"
       >
-        <span id="surprise-spinner" class="hidden h-5 w-5 animate-spin rounded-full border-2 border-on-accent border-t-transparent"></span>
+        <span id="surprise-spinner" class="hidden h-5 w-5 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
         <svg id="surprise-icon" class="h-5 w-5 transition-transform group-hover:rotate-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>

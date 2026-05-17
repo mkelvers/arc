@@ -23,7 +23,7 @@
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6" /></svg>
           </button>
         </div>
-        <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-2xl right-0 top-full mt-2">
+        <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-soft ring-1 ring-border right-0 top-full mt-2">
           <div class="flex flex-col py-1">
             <button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', '{{$anime.Title}}', this)">
               <span class="text-sm text-foreground">Watching</span>
@@ -89,7 +89,7 @@
               <svg class="w-4 h-4 text-foreground-muted shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             </button>
           </div>
-          <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button rounded shadow-2xl border border-border max-h-64 overflow-y-auto scrollbar-hide">
+          <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button rounded shadow-soft ring-1 ring-border border border-border max-h-64 overflow-y-auto scrollbar-hide">
             <div class="flex flex-col py-1">
               {{range .Seasons}}
                 <a href="/anime/{{.MalID}}/watch" class="px-4 py-2 text-left text-sm {{if .IsCurrent}}text-accent bg-accent/10{{else}}text-foreground-muted hover:bg-surface-hover{{end}} transition-colors">
@@ -124,7 +124,7 @@
                 <svg class="w-4 h-4 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
             </div>
-            <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button rounded shadow-2xl">
+            <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button rounded shadow-soft ring-1 ring-border">
               <div class="flex flex-col py-1">
                 {{$ranges := ceilDiv $totalEpisodes 100}}
                 {{range $i := seq $ranges}}

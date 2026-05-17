@@ -45,7 +45,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
+    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-soft ring-1 ring-border left-0 top-full mt-2 ">
       <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col py-1">
         <input type="hidden" name="q" value="{{.Query}}">
         {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
@@ -75,7 +75,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
+    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-soft ring-1 ring-border left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
         <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Status</a>
         <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Airing</a>
@@ -92,7 +92,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
+    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-soft ring-1 ring-border left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
         <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Type</a>
         <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">TV</a>
@@ -112,7 +112,7 @@
           <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
         </button>
       </div>
-      <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-2xl left-0 top-full mt-2 ">
+      <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-soft ring-1 ring-border left-0 top-full mt-2 ">
         <div class="flex flex-col py-1">
           <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Default</a>
           <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Popularity</a>

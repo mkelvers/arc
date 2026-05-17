@@ -2,7 +2,7 @@
 {{define "content"}}
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 <div id="watchlist-content" class="flex w-full flex-col gap-6">
-  <h1 class="text-xl font-normal text-foreground">Watchlist</h1>
+  <h1 class="heading-serif text-xl font-normal text-foreground">Watchlist</h1>
 
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-6">
@@ -21,7 +21,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           </div>
-          <div data-content class="hidden absolute z-50 min-w-[150px] bg-background-button rounded-none shadow-2xl right-0 top-full mt-2 ring-1 ring-border">
+          <div data-content class="hidden absolute z-50 min-w-[150px] bg-background-button rounded-none shadow-soft right-0 top-full mt-2 ring-1 ring-border">
             <div class="flex flex-col py-1">
               <button class="flex w-full items-center px-4 py-2 text-sm text-foreground transition-colors hover:bg-surface-hover" onclick="setSortBy('date', this)">Date Added</button>
               <button class="flex w-full items-center px-4 py-2 text-sm text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground" onclick="setSortBy('title', this)">Title</button>
@@ -46,7 +46,7 @@
           <div class="absolute inset-0 z-20 flex flex-col p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none">
             <div class="flex justify-end">
               <button type="button" hx-delete="/api/watchlist/{{.AnimeID}}" hx-target="closest .watchlist-item" hx-swap="delete" hx-on::after-request="if(event.detail.successful) { watchlistIds.delete({{.AnimeID}}) }" class="text-white/70 transition-colors hover:text-white focus:outline-none pointer-events-auto" aria-label="Remove from Watchlist">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5 shadow-black drop-shadow-md"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
           </div>
