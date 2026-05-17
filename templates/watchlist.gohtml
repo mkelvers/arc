@@ -14,6 +14,14 @@
     </div>
 
       <div class="flex items-center gap-4">
+        <button type="button" class="text-foreground-muted transition-colors hover:text-foreground" onclick="exportWatchlistCsv()" title="Export to CSV" aria-label="Export to CSV">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <path d="M7 10l5 5 5-5"/>
+            <path d="M12 15V3"/>
+          </svg>
+        </button>
+
         <ui-dropdown class="relative block" data-align="right" data-width="min-w-[150px]">
           <div data-trigger>
             <button type="button" class="flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground">
@@ -38,7 +46,7 @@
 
   <div id="watchlist-items" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 mt-6">
     {{range $.AllEntries}}
-      <div class="watchlist-item flex w-full flex-col gap-2" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}" data-episode="{{.CurrentEpisode.Int64}}" data-time="{{.CurrentTimeSeconds}}" data-title="{{.DisplayTitle}}">
+      <div class="watchlist-item flex w-full flex-col gap-2" data-mal-id="{{.AnimeID}}" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}" data-episode="{{.CurrentEpisode.Int64}}" data-time="{{.CurrentTimeSeconds}}" data-title="{{.DisplayTitle}}">
         <div class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-background-surface ring-1 ring-border after:absolute after:inset-0 after:bg-black/80 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
           <a href="/anime/{{.AnimeID}}" class="absolute inset-0 z-10"></a>
           <img src="{{.ImageUrl}}" alt="{{.DisplayTitle}}" class="h-full w-full object-cover" loading="lazy" />
@@ -147,6 +155,41 @@
     items.forEach(function(item) {
       grid.appendChild(item)
     })
+  }
+
+  function csvEscape(value) {
+    const str = String(value ?? '')
+    if (/[",\r\n]/.test(str)) {
+      return '"' + str.replace(/"/g, '""') + '"'
+    }
+    return str
+  }
+
+  function exportWatchlistCsv() {
+    const rows = Array.from(document.querySelectorAll('.watchlist-item')).map(function(item) {
+      return [
+        item.dataset.malId || '',
+        item.dataset.title || item.querySelector('h3')?.textContent.trim() || '',
+        item.dataset.status || '',
+      ]
+    })
+
+    const csv = [
+      ['mal_id', 'title', 'status'],
+      ...rows,
+    ].map(function(row) {
+      return row.map(csvEscape).join(',')
+    }).join('\r\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'watchlist.csv'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
   }
 
   // Ensure items are sorted correctly on initial load
