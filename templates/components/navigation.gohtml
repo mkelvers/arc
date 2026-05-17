@@ -10,38 +10,39 @@
 
 <nav class="bg-background-sidebar h-full border-r border-border">
   <div class="flex flex-col">
-    <button type="button" class="group relative flex items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" data-search-open {{if $isCollapsed}}title="Search"{{end}}>
+    <button type="button" class="group relative flex w-full items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" data-command-palette-open {{if $isCollapsed}}title="Search"{{end}}>
       <svg class="size-6 shrink-0 text-foreground-muted transition-colors duration-200 group-hover:text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
       </svg>
-      <div class="nav-label-container grid grid-cols-[1fr] opacity-100 ml-4">
-        <div class="overflow-hidden min-w-0">
+      <div class="nav-label-container ml-4 grid min-w-0 flex-1 grid-cols-[1fr] opacity-100">
+        <div class="flex min-w-0 items-center justify-between gap-3 overflow-hidden">
           <span class="whitespace-nowrap text-sm font-medium text-foreground-muted transition-colors duration-200 group-hover:text-foreground">Search</span>
+          <kbd class="hidden whitespace-nowrap border border-border bg-background-surface px-1.5 py-0.5 text-[0.65rem] font-medium text-foreground-muted lg:inline" data-command-palette-shortcut>⌘P</kbd>
         </div>
       </div>
     </button>
 
-    <div class="fixed inset-0 z-50 hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-search-dialog aria-hidden="true">
-      <form action="/browse" method="GET" class="w-full max-w-2xl overflow-hidden bg-background-button shadow-soft ring-1 ring-border" data-search-root role="search">
-        <label for="search-input" class="sr-only">Search anime</label>
+    <div class="fixed inset-0 z-50 hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-command-palette-dialog aria-hidden="true">
+      <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-soft ring-1 ring-border" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
+        <label for="command-palette-input" class="sr-only">Search commands and anime</label>
         <div class="flex items-center border-b border-border">
           <svg class="mx-4 size-5 shrink-0 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
           </svg>
           <input
-            id="search-input"
+            id="command-palette-input"
             name="q"
             type="search"
             autocomplete="off"
-            placeholder="Search anime"
+            placeholder="Search or jump to..."
             class="min-w-0 flex-1 bg-transparent py-4 pr-4 text-base text-foreground placeholder:text-foreground-muted outline-none"
           />
-          <button type="button" class="mr-3 px-2 py-1 text-xs text-foreground-muted ring-1 ring-border transition-colors hover:text-foreground" data-search-close>Esc</button>
+          <button type="button" class="mr-3 px-2 py-1 text-xs text-foreground-muted transition-colors hover:text-foreground" data-command-palette-close>Esc</button>
         </div>
-        <div data-search-results-container class="max-h-[60vh] overflow-y-auto"></div>
-      </form>
+        <div data-command-palette-results class="max-h-[min(70vh,34rem)] overflow-y-auto py-2"></div>
+      </div>
     </div>
 
     {{/* Home */}}
