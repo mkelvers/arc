@@ -12,7 +12,9 @@ const commandPaletteInitializedKey = Symbol('commandPaletteInitialized');
 const globalWindow = window as Window & { [commandPaletteInitializedKey]?: boolean };
 
 const paletteInput = document.getElementById('command-palette-input') as HTMLInputElement | null;
-const paletteResults = document.querySelector('[data-command-palette-results]') as HTMLElement | null;
+const paletteResults = document.querySelector(
+  '[data-command-palette-results]'
+) as HTMLElement | null;
 const paletteDialog = document.querySelector('[data-command-palette-dialog]') as HTMLElement | null;
 const paletteRoot = document.querySelector('[data-command-palette-root]') as HTMLElement | null;
 const paletteOpenButtons = document.querySelectorAll('[data-command-palette-open]');
@@ -27,7 +29,8 @@ const responseCache = new Map<string, CommandPaletteItem[]>();
 
 const iconPaths: Record<string, string> = {
   bookmark: 'M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z',
-  compass: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z',
+  compass:
+    'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z',
   play: 'M8 5v14l11-7z',
   search: 'M11 19a8 8 0 1 1 5.65-2.35L21 21 M16.65 16.65 21 21',
   trending: 'M3 17l6-6 4 4 8-8 M14 7h7v7',
