@@ -26,6 +26,7 @@ type playbackService struct {
 	repo          domain.PlaybackRepository
 	providers     []domain.Provider
 	jikan         *jikan.Client
+	episodes      domain.EpisodeService
 	httpClient    *http.Client
 	proxyTokenKey string
 }
@@ -43,8 +44,8 @@ type proxyTokenPayload struct {
 	ExpiresAt int64  `json:"exp"`
 }
 
-func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, proxyTokenKey string) domain.PlaybackService {
-	return &playbackService{repo: repo, providers: providers, jikan: jikan, httpClient: &http.Client{Timeout: 10 * time.Second}, proxyTokenKey: proxyTokenKey}
+func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, proxyTokenKey string) domain.PlaybackService {
+	return &playbackService{repo: repo, providers: providers, jikan: jikan, episodes: episodes, httpClient: &http.Client{Timeout: 10 * time.Second}, proxyTokenKey: proxyTokenKey}
 }
 
 func (s *playbackService) SignProxyToken(targetURL, referer, scope string) (string, error) {
@@ -124,6 +125,23 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	for _, syn := range anime.TitleSynonyms {
 		if syn != "" && syn != anime.Title && syn != anime.TitleEnglish && syn != anime.TitleJapanese {
 			searchTitles = append(searchTitles, syn)
+		}
+	}
+
+	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, anime, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch episodes: %w", err)
+	}
+
+	requestedMode := mode
+	modeSwitchedFrom := ""
+	if epNum, parseErr := strconv.Atoi(episode); parseErr == nil && requestedMode == "dub" {
+		for _, ep := range canonicalEpisodes.Episodes {
+			if ep.Number == epNum && !ep.HasDub && ep.HasSub {
+				mode = "sub"
+				modeSwitchedFrom = requestedMode
+				break
+			}
 		}
 	}
 
@@ -213,42 +231,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		}
 	}
 
-	// 4. Get Episodes list
-	jikanEpisodes, err := s.jikan.GetAllEpisodes(ctx, animeID)
-	if err != nil {
-	}
-
-	// Fallback/Fill episodes if needed
-	totalCount := anime.Episodes
-	if len(jikanEpisodes) < totalCount {
-		epMap := make(map[int]jikan.Episode)
-		for _, ep := range jikanEpisodes {
-			epMap[ep.MalID] = ep
-		}
-		for i := 1; i <= totalCount; i++ {
-			if _, ok := epMap[i]; !ok {
-				jikanEpisodes = append(jikanEpisodes, jikan.Episode{
-					MalID:   i,
-					Episode: fmt.Sprintf("Episode %d", i),
-					Title:   fmt.Sprintf("Episode %d", i),
-				})
-			}
-		}
-	}
-	sort.Slice(jikanEpisodes, func(i, j int) bool {
-		return jikanEpisodes[i].MalID < jikanEpisodes[j].MalID
-	})
-
-	domainEpisodes := make([]domain.EpisodeData, len(jikanEpisodes))
-	for i, ep := range jikanEpisodes {
-		domainEpisodes[i] = domain.EpisodeData{
-			MalID:    ep.MalID,
-			Title:    ep.Title,
-			IsFiller: ep.Filler,
-			IsRecap:  ep.Recap,
-		}
-	}
-
 	// 5. Build provider data
 	streams := []domain.ProviderStream{
 		{
@@ -295,12 +277,13 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		"Title":            anime.DisplayTitle(),
 		"CurrentEpisode":   episode,
 		"StartTimeSeconds": startTime,
-		"Episodes":         domainEpisodes,
+		"Episodes":         canonicalEpisodes.Episodes,
 		"Providers": []domain.ProviderData{
 			{Streams: streams},
 		},
-		"ModeSources": modeSources,
-		"InitialMode": mode,
+		"ModeSources":      modeSources,
+		"InitialMode":      mode,
+		"ModeSwitchedFrom": modeSwitchedFrom,
 		"AvailableModes": func() []string {
 			var modes []string
 			for m := range modeSources {
@@ -315,7 +298,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	return map[string]any{
 		"WatchData":       watchData,
 		"Anime":           anime,
-		"Episodes":        domainEpisodes,
+		"Episodes":        canonicalEpisodes.Episodes,
 		"CurrentEpID":     episode,
 		"WatchlistStatus": watchlistStatus,
 		"WatchlistIDs":    watchlistIDs,

@@ -22,10 +22,10 @@ var Module = fx.Options(
 	fx.Provide(
 		repository.NewPlaybackRepository,
 		fx.Annotate(
-			func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, proxyTokenKey string) domain.PlaybackService {
-				return service.NewPlaybackService(repo, providers, jikan, proxyTokenKey)
+			func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, proxyTokenKey string) domain.PlaybackService {
+				return service.NewPlaybackService(repo, providers, jikan, episodeSvc, proxyTokenKey)
 			},
-			fx.ParamTags(``, ``, ``, ``),
+			fx.ParamTags(``, ``, ``, ``, ``),
 		),
 		func(svc domain.PlaybackService, animeSvc domain.AnimeService) *handler.PlaybackHandler {
 			return handler.NewPlaybackHandler(svc, animeSvc)
