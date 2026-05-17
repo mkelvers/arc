@@ -21,10 +21,12 @@ const paletteOpenButtons = document.querySelectorAll('[data-command-palette-open
 const paletteCloseButtons = document.querySelectorAll('[data-command-palette-close]');
 const shortcutHints = document.querySelectorAll('[data-command-palette-shortcut]');
 
+let allPaletteItems: CommandPaletteItem[] = [];
 let paletteItems: CommandPaletteItem[] = [];
 let selectedIndex = 0;
 let fetchTimeout: number | undefined;
 let lastQuery = '';
+let continueExpanded = false;
 const responseCache = new Map<string, CommandPaletteItem[]>();
 
 const iconPaths: Record<string, string> = {
@@ -98,6 +100,24 @@ const buildIcon = (item: CommandPaletteItem): HTMLElement => {
   return icon;
 };
 
+const buildSvgIcon = (pathData: string, className: string): SVGSVGElement => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.classList.add(...className.split(' '));
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', pathData);
+  svg.appendChild(path);
+
+  return svg;
+};
+
 const selectItem = (index: number): void => {
   if (!paletteResults || paletteItems.length === 0) {
     selectedIndex = 0;
@@ -121,6 +141,42 @@ const runSelectedItem = (): void => {
     return;
   }
   window.location.href = item.href;
+};
+
+const removeContinueWatchingItem = (item: CommandPaletteItem): void => {
+  const animeID = item.id.replace('continue:', '');
+  if (!animeID || animeID === item.id) {
+    return;
+  }
+
+  fetch('/api/continue-watching/' + encodeURIComponent(animeID), { method: 'DELETE' })
+    .then((res: Response) => {
+      if (!res.ok) {
+        return;
+      }
+
+      allPaletteItems = allPaletteItems.filter(candidate => candidate.id !== item.id);
+      paletteItems = paletteItems.filter(candidate => candidate.id !== item.id);
+      responseCache.clear();
+      removeContinueWatchingCard(animeID);
+      renderItems(allPaletteItems);
+    })
+    .catch((err: unknown) => {
+      console.error('Continue watching remove error:', err);
+    });
+};
+
+const removeContinueWatchingCard = (animeID: string): void => {
+  document.getElementById('continue-watching-' + animeID)?.remove();
+
+  const section = document.getElementById('continue-watching-section');
+  if (!section) {
+    return;
+  }
+
+  if (section.querySelectorAll('.continue-watching-item').length === 0) {
+    section.remove();
+  }
 };
 
 const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement => {
@@ -153,12 +209,78 @@ const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement =>
 
   row.appendChild(copy);
 
-  const hint = document.createElement('div');
-  hint.className = 'hidden text-xs text-foreground-muted sm:block';
-  hint.textContent = index === selectedIndex ? 'Enter' : '';
-  row.appendChild(hint);
+  if (item.type === 'continue') {
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className =
+      'flex h-8 w-8 shrink-0 items-center justify-center text-red-500/70 transition-colors hover:text-red-500';
+    removeButton.setAttribute('aria-label', 'Remove from Continue Watching');
+    removeButton.appendChild(buildSvgIcon('M18 6 6 18 M6 6l12 12', 'size-4'));
+    removeButton.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      removeContinueWatchingItem(item);
+    });
+    row.appendChild(removeButton);
+  } else {
+    const hint = document.createElement('div');
+    hint.className = 'hidden text-xs text-foreground-muted sm:block';
+    hint.textContent = index === selectedIndex ? 'Enter' : '';
+    row.appendChild(hint);
+  }
 
   return row;
+};
+
+const buildContinueToggle = (hiddenCount: number): HTMLButtonElement => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className =
+    'flex w-full items-center gap-3 px-4 py-2 text-left text-xs font-medium text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground';
+
+  const spacer = document.createElement('span');
+  spacer.className = 'h-8 w-8 shrink-0';
+  button.appendChild(spacer);
+
+  const label = document.createElement('span');
+  label.className = 'flex-1';
+  label.textContent = continueExpanded
+    ? 'Hide extra continue watching'
+    : `Show ${hiddenCount} more continue watching`;
+  button.appendChild(label);
+
+  const chevron = buildSvgIcon(continueExpanded ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6', 'size-4');
+  button.appendChild(chevron);
+
+  button.addEventListener('click', () => {
+    continueExpanded = !continueExpanded;
+    renderItems(allPaletteItems);
+  });
+
+  return button;
+};
+
+const visiblePaletteItems = (items: CommandPaletteItem[]): CommandPaletteItem[] => {
+  if (lastQuery !== '') {
+    return items;
+  }
+
+  const continueItems = items.filter(item => item.type === 'continue');
+  if (continueItems.length <= 1 || continueExpanded) {
+    return items;
+  }
+
+  let firstContinueShown = false;
+  return items.filter(item => {
+    if (item.type !== 'continue') {
+      return true;
+    }
+    if (!firstContinueShown) {
+      firstContinueShown = true;
+      return true;
+    }
+    return false;
+  });
 };
 
 const renderItems = (items: CommandPaletteItem[]): void => {
@@ -166,10 +288,11 @@ const renderItems = (items: CommandPaletteItem[]): void => {
     return;
   }
 
-  paletteItems = items;
+  allPaletteItems = items;
+  paletteItems = visiblePaletteItems(items);
   selectedIndex = 0;
 
-  if (items.length === 0) {
+  if (paletteItems.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'px-4 py-8 text-center text-sm text-foreground-muted';
     empty.textContent = 'No commands found';
@@ -180,8 +303,13 @@ const renderItems = (items: CommandPaletteItem[]): void => {
   const list = document.createElement('div');
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', 'Command palette results');
-  items.forEach((item, index) => {
+  paletteItems.forEach((item, index) => {
     list.appendChild(buildRow(item, index));
+
+    const continueCount = items.filter(candidate => candidate.type === 'continue').length;
+    if (lastQuery === '' && continueCount > 1 && item.type === 'continue' && index === 0) {
+      list.appendChild(buildContinueToggle(continueCount - 1));
+    }
   });
   paletteResults.replaceChildren(list);
   selectItem(0);
@@ -235,6 +363,7 @@ const openPalette = (): void => {
   paletteDialog.setAttribute('aria-hidden', 'false');
   paletteInput.value = '';
   paletteInput.focus();
+  continueExpanded = false;
   fetchPaletteItems('');
 };
 
@@ -247,7 +376,9 @@ const closePalette = (): void => {
   paletteDialog.classList.remove('flex');
   paletteDialog.setAttribute('aria-hidden', 'true');
   paletteInput.value = '';
+  allPaletteItems = [];
   paletteItems = [];
+  continueExpanded = false;
   clearResults();
 };
 

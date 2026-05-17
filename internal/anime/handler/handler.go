@@ -516,12 +516,16 @@ func (h *AnimeHandler) commandPalettePersonalItems(c *gin.Context, userID string
 }
 
 func (h *AnimeHandler) commandPaletteContinueItems(c *gin.Context, userID string, query string) []commandPaletteItem {
-	items := make([]commandPaletteItem, 0, 1)
+	items := make([]commandPaletteItem, 0, 5)
 
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, "Continue")
 	if err == nil {
 		if rows, ok := data["ContinueWatching"].([]db.GetContinueWatchingEntriesRow); ok {
 			for _, row := range rows {
+				if len(items) >= 5 {
+					break
+				}
+
 				title := continueWatchingTitle(row)
 				if query != "" && !commandPaletteMatches(query, title, "Continue watching") {
 					continue
@@ -540,7 +544,6 @@ func (h *AnimeHandler) commandPaletteContinueItems(c *gin.Context, userID string
 					Href:     href,
 					Image:    row.ImageUrl,
 				})
-				break
 			}
 		}
 	}
