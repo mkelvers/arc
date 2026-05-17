@@ -143,7 +143,7 @@
         <div class="grow lg:max-w-4xl">
           <section>
             <h2 class="mb-4 mt-2 text-lg font-normal text-foreground">Synopsis</h2>
-            <p id="synopsis-container" class="text-foreground-muted text-base leading-relaxed line-clamp-6 md:line-clamp-none">{{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}</p>
+            <p id="synopsis-container" class="text-foreground-muted text-base leading-relaxed line-clamp-6 md:line-clamp-none whitespace-pre-line">{{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}</p>
             {{if and $anime.Synopsis (gt (len $anime.Synopsis) 400)}}
               <button id="synopsis-toggle" class="mt-2 text-sm font-normal text-foreground-muted transition-colors hover:text-foreground md:hidden" onclick="
                 const container = document.getElementById('synopsis-container');
