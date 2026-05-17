@@ -48,6 +48,27 @@ type ContinueWatchingEntry struct {
 	DurationSeconds    sql.NullFloat64 `json:"duration_seconds"`
 }
 
+type EpisodeAvailabilityCache struct {
+	AnimeID       int64        `json:"anime_id"`
+	Data          string       `json:"data"`
+	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
+	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
+	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
+	LastSuccessAt sql.NullTime `json:"last_success_at"`
+	FailureCount  int64        `json:"failure_count"`
+	LastError     string       `json:"last_error"`
+	UpdatedAt     time.Time    `json:"updated_at"`
+}
+
+type EpisodeProviderMapping struct {
+	AnimeID        int64        `json:"anime_id"`
+	Provider       string       `json:"provider"`
+	ProviderShowID string       `json:"provider_show_id"`
+	FailedUntil    sql.NullTime `json:"failed_until"`
+	LastError      string       `json:"last_error"`
+	UpdatedAt      time.Time    `json:"updated_at"`
+}
+
 type JikanCache struct {
 	Key       string    `json:"key"`
 	Data      string    `json:"data"`
