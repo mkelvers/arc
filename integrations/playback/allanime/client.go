@@ -195,6 +195,59 @@ func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCan
 	return result, nil
 }
 
+func (c *AllAnimeProvider) GetEpisodeAvailability(ctx context.Context, animeID int, titleCandidates []string) (domain.EpisodeAvailability, error) {
+	showID, err := c.ResolveEpisodeProviderID(ctx, animeID, titleCandidates)
+	if err != nil {
+		return domain.EpisodeAvailability{}, err
+	}
+	return c.GetEpisodeAvailabilityByProviderID(ctx, showID)
+}
+
+func (c *AllAnimeProvider) ResolveEpisodeProviderID(ctx context.Context, animeID int, titleCandidates []string) (string, error) {
+	return c.resolveShowIDStrict(ctx, animeID, titleCandidates, "sub")
+}
+
+func (c *AllAnimeProvider) GetEpisodeAvailabilityByProviderID(ctx context.Context, showID string) (domain.EpisodeAvailability, error) {
+	available, err := c.GetAvailableEpisodes(ctx, showID)
+	if err != nil {
+		return domain.EpisodeAvailability{}, err
+	}
+
+	sub := parseEpisodeNumbers(append(available.Sub, available.Raw...))
+	dub := parseEpisodeNumbers(available.Dub)
+	return domain.EpisodeAvailability{Sub: sub, Dub: dub}, nil
+}
+
+func (c *AllAnimeProvider) resolveShowIDStrict(ctx context.Context, animeID int, titleCandidates []string, mode string) (string, error) {
+	targetMalIDStr := strconv.Itoa(animeID)
+	for _, title := range titleCandidates {
+		searchResults, err := c.Search(ctx, title, mode)
+		if err != nil {
+			continue
+		}
+		for _, res := range searchResults {
+			if res.MalID == targetMalIDStr {
+				return res.ID, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("allanime: no strict mal id match for %d", animeID)
+}
+
+func parseEpisodeNumbers(raw []string) []int {
+	seen := make(map[int]bool, len(raw))
+	out := make([]int, 0, len(raw))
+	for _, value := range raw {
+		n, err := strconv.Atoi(strings.TrimSpace(value))
+		if err != nil || n <= 0 || seen[n] {
+			continue
+		}
+		seen[n] = true
+		out = append(out, n)
+	}
+	return out
+}
+
 func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, variables map[string]any) (map[string]any, error) {
 	if mode, ok := variables["translationType"].(string); ok {
 		variables["translationType"] = strings.ToLower(mode)
