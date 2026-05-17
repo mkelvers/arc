@@ -120,10 +120,10 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	// Try to resolve a title for this episode from the episode list.
 	episodeTitle := ""
-	if eps, ok := watchData["Episodes"].([]domain.EpisodeData); ok {
+	if eps, ok := watchData["Episodes"].([]domain.CanonicalEpisode); ok {
 		epNum, _ := strconv.Atoi(episode)
 		for _, e := range eps {
-			if e.MalID == epNum {
+			if e.Number == epNum {
 				episodeTitle = e.Title
 				break
 			}
@@ -133,9 +133,11 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"mode_sources":       modeSources,
 		"available_modes":    availableModes,
+		"initial_mode":       watchData["InitialMode"],
 		"start_time_seconds": watchData["StartTimeSeconds"],
 		"segments":           segments,
 		"episode_title":      episodeTitle,
+		"mode_switched_from": watchData["ModeSwitchedFrom"],
 	})
 }
 
