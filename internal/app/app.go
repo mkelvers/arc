@@ -6,6 +6,7 @@ import (
 	"mal/internal/anime"
 	"mal/internal/auth"
 	"mal/internal/database"
+	"mal/internal/episodes"
 	"mal/internal/playback"
 	"mal/internal/server"
 	"mal/internal/templates"
@@ -21,6 +22,7 @@ func NewApp() *fx.App {
 		database.Module,
 		jikan.Module,
 		allanime.Module,
+		episodes.Module,
 		auth.Module,
 		anime.Module,
 		watchlist.Module,
