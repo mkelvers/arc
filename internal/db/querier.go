@@ -22,9 +22,12 @@ type Querier interface {
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntry(ctx context.Context, arg GetContinueWatchingEntryParams) (ContinueWatchingEntry, error)
 	GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]AnimeFetchRetry, error)
+	GetEpisodeAvailabilityCache(ctx context.Context, animeID int64) (EpisodeAvailabilityCache, error)
+	GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeProviderMappingParams) (EpisodeProviderMapping, error)
 	GetJikanCache(ctx context.Context, key string) (string, error)
 	GetJikanCacheStale(ctx context.Context, key string) (string, error)
 	GetSession(ctx context.Context, id string) (Session, error)
+	GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Context, limit int64) ([]int64, error)
 	GetUpcomingSeasons(ctx context.Context, userID string) ([]GetUpcomingSeasonsRow, error)
 	GetUser(ctx context.Context, id string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
@@ -32,6 +35,7 @@ type Querier interface {
 	GetWatchListEntry(ctx context.Context, arg GetWatchListEntryParams) (WatchListEntry, error)
 	GetWatchingAnime(ctx context.Context, userID string) ([]GetWatchingAnimeRow, error)
 	MarkAnimeFetchRetryFailed(ctx context.Context, arg MarkAnimeFetchRetryFailedParams) error
+	MarkEpisodeAvailabilityRefreshFailed(ctx context.Context, arg MarkEpisodeAvailabilityRefreshFailedParams) error
 	MarkRelationsSynced(ctx context.Context, id int64) error
 	SaveWatchProgress(ctx context.Context, arg SaveWatchProgressParams) error
 	SetJikanCache(ctx context.Context, arg SetJikanCacheParams) error
@@ -39,6 +43,8 @@ type Querier interface {
 	UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime, error)
 	UpsertAnimeRelation(ctx context.Context, arg UpsertAnimeRelationParams) error
 	UpsertContinueWatchingEntry(ctx context.Context, arg UpsertContinueWatchingEntryParams) (ContinueWatchingEntry, error)
+	UpsertEpisodeAvailabilityCache(ctx context.Context, arg UpsertEpisodeAvailabilityCacheParams) error
+	UpsertEpisodeProviderMapping(ctx context.Context, arg UpsertEpisodeProviderMappingParams) error
 	UpsertWatchListEntry(ctx context.Context, arg UpsertWatchListEntryParams) (WatchListEntry, error)
 }
 
