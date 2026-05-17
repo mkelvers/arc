@@ -243,3 +243,77 @@ WHERE anime_id = ?;
 SELECT COUNT(*)
 FROM anime_fetch_retry
 WHERE next_retry_at <= CURRENT_TIMESTAMP;
+
+-- name: GetEpisodeAvailabilityCache :one
+SELECT anime_id, data, next_refresh_at, retry_until_at, last_attempt_at, last_success_at, failure_count, last_error, updated_at
+FROM episode_availability_cache
+WHERE anime_id = ? LIMIT 1;
+
+-- name: UpsertEpisodeAvailabilityCache :exec
+INSERT INTO episode_availability_cache (
+    anime_id,
+    data,
+    next_refresh_at,
+    retry_until_at,
+    last_attempt_at,
+    last_success_at,
+    failure_count,
+    last_error,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT (anime_id) DO UPDATE SET
+    data = excluded.data,
+    next_refresh_at = excluded.next_refresh_at,
+    retry_until_at = excluded.retry_until_at,
+    last_attempt_at = excluded.last_attempt_at,
+    last_success_at = excluded.last_success_at,
+    failure_count = excluded.failure_count,
+    last_error = excluded.last_error,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- name: MarkEpisodeAvailabilityRefreshFailed :exec
+UPDATE episode_availability_cache
+SET last_attempt_at = ?,
+    failure_count = failure_count + 1,
+    last_error = ?,
+    next_refresh_at = ?,
+    retry_until_at = ?,
+    updated_at = CURRENT_TIMESTAMP
+WHERE anime_id = ?;
+
+-- name: UpsertEpisodeProviderMapping :exec
+INSERT INTO episode_provider_mapping (anime_id, provider, provider_show_id, failed_until, last_error, updated_at)
+VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT (anime_id, provider) DO UPDATE SET
+    provider_show_id = excluded.provider_show_id,
+    failed_until = excluded.failed_until,
+    last_error = excluded.last_error,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- name: GetEpisodeProviderMapping :one
+SELECT anime_id, provider, provider_show_id, failed_until, last_error, updated_at
+FROM episode_provider_mapping
+WHERE anime_id = ? AND provider = ? LIMIT 1;
+
+-- name: GetTrackedAiringAnimeIDsDueForEpisodeRefresh :many
+WITH tracked AS (
+    SELECT DISTINCT w.anime_id
+    FROM watch_list_entry w
+    JOIN anime a ON a.id = w.anime_id
+    WHERE a.airing = 1
+      AND w.status IN ('watching', 'plan_to_watch')
+
+    UNION
+
+    SELECT DISTINCT c.anime_id
+    FROM continue_watching_entry c
+    JOIN anime a ON a.id = c.anime_id
+    WHERE a.airing = 1
+)
+SELECT tracked.anime_id
+FROM tracked
+LEFT JOIN episode_availability_cache e ON e.anime_id = tracked.anime_id
+WHERE e.anime_id IS NULL OR e.next_refresh_at IS NULL OR e.next_refresh_at <= CURRENT_TIMESTAMP
+ORDER BY tracked.anime_id
+LIMIT ?;

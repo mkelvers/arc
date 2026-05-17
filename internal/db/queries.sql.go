@@ -339,6 +339,54 @@ func (q *Queries) GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]A
 	return items, nil
 }
 
+const getEpisodeAvailabilityCache = `-- name: GetEpisodeAvailabilityCache :one
+SELECT anime_id, data, next_refresh_at, retry_until_at, last_attempt_at, last_success_at, failure_count, last_error, updated_at
+FROM episode_availability_cache
+WHERE anime_id = ? LIMIT 1
+`
+
+func (q *Queries) GetEpisodeAvailabilityCache(ctx context.Context, animeID int64) (EpisodeAvailabilityCache, error) {
+	row := q.db.QueryRowContext(ctx, getEpisodeAvailabilityCache, animeID)
+	var i EpisodeAvailabilityCache
+	err := row.Scan(
+		&i.AnimeID,
+		&i.Data,
+		&i.NextRefreshAt,
+		&i.RetryUntilAt,
+		&i.LastAttemptAt,
+		&i.LastSuccessAt,
+		&i.FailureCount,
+		&i.LastError,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getEpisodeProviderMapping = `-- name: GetEpisodeProviderMapping :one
+SELECT anime_id, provider, provider_show_id, failed_until, last_error, updated_at
+FROM episode_provider_mapping
+WHERE anime_id = ? AND provider = ? LIMIT 1
+`
+
+type GetEpisodeProviderMappingParams struct {
+	AnimeID  int64  `json:"anime_id"`
+	Provider string `json:"provider"`
+}
+
+func (q *Queries) GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeProviderMappingParams) (EpisodeProviderMapping, error) {
+	row := q.db.QueryRowContext(ctx, getEpisodeProviderMapping, arg.AnimeID, arg.Provider)
+	var i EpisodeProviderMapping
+	err := row.Scan(
+		&i.AnimeID,
+		&i.Provider,
+		&i.ProviderShowID,
+		&i.FailedUntil,
+		&i.LastError,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getJikanCache = `-- name: GetJikanCache :one
 SELECT data FROM jikan_cache
 WHERE key = ? AND expires_at > CURRENT_TIMESTAMP LIMIT 1
@@ -377,6 +425,52 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getTrackedAiringAnimeIDsDueForEpisodeRefresh = `-- name: GetTrackedAiringAnimeIDsDueForEpisodeRefresh :many
+WITH tracked AS (
+    SELECT DISTINCT w.anime_id
+    FROM watch_list_entry w
+    JOIN anime a ON a.id = w.anime_id
+    WHERE a.airing = 1
+      AND w.status IN ('watching', 'plan_to_watch')
+
+    UNION
+
+    SELECT DISTINCT c.anime_id
+    FROM continue_watching_entry c
+    JOIN anime a ON a.id = c.anime_id
+    WHERE a.airing = 1
+)
+SELECT tracked.anime_id
+FROM tracked
+LEFT JOIN episode_availability_cache e ON e.anime_id = tracked.anime_id
+WHERE e.anime_id IS NULL OR e.next_refresh_at IS NULL OR e.next_refresh_at <= CURRENT_TIMESTAMP
+ORDER BY tracked.anime_id
+LIMIT ?
+`
+
+func (q *Queries) GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Context, limit int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getTrackedAiringAnimeIDsDueForEpisodeRefresh, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var anime_id int64
+		if err := rows.Scan(&anime_id); err != nil {
+			return nil, err
+		}
+		items = append(items, anime_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUpcomingSeasons = `-- name: GetUpcomingSeasons :many
@@ -687,6 +781,36 @@ func (q *Queries) MarkAnimeFetchRetryFailed(ctx context.Context, arg MarkAnimeFe
 	return err
 }
 
+const markEpisodeAvailabilityRefreshFailed = `-- name: MarkEpisodeAvailabilityRefreshFailed :exec
+UPDATE episode_availability_cache
+SET last_attempt_at = ?,
+    failure_count = failure_count + 1,
+    last_error = ?,
+    next_refresh_at = ?,
+    retry_until_at = ?,
+    updated_at = CURRENT_TIMESTAMP
+WHERE anime_id = ?
+`
+
+type MarkEpisodeAvailabilityRefreshFailedParams struct {
+	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
+	LastError     string       `json:"last_error"`
+	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
+	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
+	AnimeID       int64        `json:"anime_id"`
+}
+
+func (q *Queries) MarkEpisodeAvailabilityRefreshFailed(ctx context.Context, arg MarkEpisodeAvailabilityRefreshFailedParams) error {
+	_, err := q.db.ExecContext(ctx, markEpisodeAvailabilityRefreshFailed,
+		arg.LastAttemptAt,
+		arg.LastError,
+		arg.NextRefreshAt,
+		arg.RetryUntilAt,
+		arg.AnimeID,
+	)
+	return err
+}
+
 const markRelationsSynced = `-- name: MarkRelationsSynced :exec
 UPDATE anime SET relations_synced_at = CURRENT_TIMESTAMP WHERE id = ?
 `
@@ -862,6 +986,84 @@ func (q *Queries) UpsertContinueWatchingEntry(ctx context.Context, arg UpsertCon
 		&i.DurationSeconds,
 	)
 	return i, err
+}
+
+const upsertEpisodeAvailabilityCache = `-- name: UpsertEpisodeAvailabilityCache :exec
+INSERT INTO episode_availability_cache (
+    anime_id,
+    data,
+    next_refresh_at,
+    retry_until_at,
+    last_attempt_at,
+    last_success_at,
+    failure_count,
+    last_error,
+    updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT (anime_id) DO UPDATE SET
+    data = excluded.data,
+    next_refresh_at = excluded.next_refresh_at,
+    retry_until_at = excluded.retry_until_at,
+    last_attempt_at = excluded.last_attempt_at,
+    last_success_at = excluded.last_success_at,
+    failure_count = excluded.failure_count,
+    last_error = excluded.last_error,
+    updated_at = CURRENT_TIMESTAMP
+`
+
+type UpsertEpisodeAvailabilityCacheParams struct {
+	AnimeID       int64        `json:"anime_id"`
+	Data          string       `json:"data"`
+	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
+	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
+	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
+	LastSuccessAt sql.NullTime `json:"last_success_at"`
+	FailureCount  int64        `json:"failure_count"`
+	LastError     string       `json:"last_error"`
+}
+
+func (q *Queries) UpsertEpisodeAvailabilityCache(ctx context.Context, arg UpsertEpisodeAvailabilityCacheParams) error {
+	_, err := q.db.ExecContext(ctx, upsertEpisodeAvailabilityCache,
+		arg.AnimeID,
+		arg.Data,
+		arg.NextRefreshAt,
+		arg.RetryUntilAt,
+		arg.LastAttemptAt,
+		arg.LastSuccessAt,
+		arg.FailureCount,
+		arg.LastError,
+	)
+	return err
+}
+
+const upsertEpisodeProviderMapping = `-- name: UpsertEpisodeProviderMapping :exec
+INSERT INTO episode_provider_mapping (anime_id, provider, provider_show_id, failed_until, last_error, updated_at)
+VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+ON CONFLICT (anime_id, provider) DO UPDATE SET
+    provider_show_id = excluded.provider_show_id,
+    failed_until = excluded.failed_until,
+    last_error = excluded.last_error,
+    updated_at = CURRENT_TIMESTAMP
+`
+
+type UpsertEpisodeProviderMappingParams struct {
+	AnimeID        int64        `json:"anime_id"`
+	Provider       string       `json:"provider"`
+	ProviderShowID string       `json:"provider_show_id"`
+	FailedUntil    sql.NullTime `json:"failed_until"`
+	LastError      string       `json:"last_error"`
+}
+
+func (q *Queries) UpsertEpisodeProviderMapping(ctx context.Context, arg UpsertEpisodeProviderMappingParams) error {
+	_, err := q.db.ExecContext(ctx, upsertEpisodeProviderMapping,
+		arg.AnimeID,
+		arg.Provider,
+		arg.ProviderShowID,
+		arg.FailedUntil,
+		arg.LastError,
+	)
+	return err
 }
 
 const upsertWatchListEntry = `-- name: UpsertWatchListEntry :one
