@@ -94,6 +94,11 @@ const initPlayer = (): void => {
   setupAutoplayButton();
   updateAutoSkipButton();
   showControls();
+  if (state.modeSwitchedFrom === 'dub' && state.currentMode === 'sub') {
+    window.showToast?.({
+      message: `Episode ${state.currentEpisode} is only available in sub, switched from dub.`,
+    });
+  }
 
   const onLoadedMetadata = (): void => {
     loading && (loading.style.display = 'none');
