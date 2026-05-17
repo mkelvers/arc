@@ -166,16 +166,24 @@
   }
 
   function exportWatchlistCsv() {
-    const rows = Array.from(document.querySelectorAll('.watchlist-item')).map(function(item) {
-      return [
-        item.dataset.malId || '',
-        item.dataset.title || item.querySelector('h3')?.textContent.trim() || '',
-        item.dataset.status || '',
-      ]
-    })
+    const rows = Array.from(document.querySelectorAll('.watchlist-item'))
+      .sort(function(a, b) {
+        return parseInt(b.dataset.updatedAt || 0) - parseInt(a.dataset.updatedAt || 0)
+      })
+      .map(function(item) {
+        const updatedAt = parseInt(item.dataset.updatedAt || 0)
+        const updatedAtISO = updatedAt > 0 ? new Date(updatedAt * 1000).toISOString() : ''
+
+        return [
+          item.dataset.malId || '',
+          item.dataset.title || item.querySelector('h3')?.textContent.trim() || '',
+          item.dataset.status || '',
+          updatedAtISO,
+        ]
+      })
 
     const csv = [
-      ['mal_id', 'title', 'status'],
+      ['mal_id', 'title', 'status', 'updated_at'],
       ...rows,
     ].map(function(row) {
       return row.map(csvEscape).join(',')
