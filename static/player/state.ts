@@ -12,6 +12,7 @@ export interface PlayerState {
   modeSources: Record<string, ModeSource>;
   availableModes: string[];
   currentMode: string;
+  modeSwitchedFrom: string;
   currentEpisode: string;
   totalEpisodes: number;
   malID: number;
@@ -52,6 +53,7 @@ export const state: PlayerState = {
   modeSources: {},
   availableModes: [],
   currentMode: 'dub',
+  modeSwitchedFrom: '',
   currentEpisode: '1',
   totalEpisodes: 0,
   malID: 0,
@@ -127,6 +129,7 @@ export const initState = (c: HTMLElement): void => {
 
   // resolve initial mode: localStorage > backend default > first available > 'dub'
   const backendInitialMode = dataset(c, 'initialMode') || 'dub';
+  state.modeSwitchedFrom = dataset(c, 'modeSwitchedFrom') || '';
   const storedMode = localStorage.getItem('player-audio-mode');
   const initialMode =
     storedMode && state.availableModes.includes(storedMode) ? storedMode : backendInitialMode;
