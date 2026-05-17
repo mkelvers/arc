@@ -27,6 +27,7 @@ let selectedIndex = 0;
 let fetchTimeout: number | undefined;
 let lastQuery = '';
 let continueExpanded = false;
+let activeRequestController: AbortController | undefined;
 const responseCache = new Map<string, CommandPaletteItem[]>();
 
 const iconPaths: Record<string, string> = {
@@ -70,6 +71,15 @@ const setShortcutHints = (): void => {
 const clearResults = (): void => {
   paletteResults?.replaceChildren();
 };
+
+const buildSearchActionItem = (query: string): CommandPaletteItem => ({
+  id: 'search:' + query.toLowerCase(),
+  type: 'search',
+  label: `Search anime for "${query}"`,
+  subtitle: 'Browse',
+  href: '/browse?q=' + encodeURIComponent(query),
+  icon: 'search',
+});
 
 const buildIcon = (item: CommandPaletteItem): HTMLElement => {
   if (isSafeImageUrl(item.image)) {
@@ -315,8 +325,21 @@ const renderItems = (items: CommandPaletteItem[]): void => {
   selectItem(0);
 };
 
+const renderPendingQuery = (query: string): void => {
+  if (!query) {
+    return;
+  }
+
+  renderItems([buildSearchActionItem(query)]);
+};
+
 const fetchPaletteItems = (query: string): void => {
   lastQuery = query;
+
+  if (activeRequestController) {
+    activeRequestController.abort();
+    activeRequestController = undefined;
+  }
 
   const cached = responseCache.get(query);
   if (cached) {
@@ -324,7 +347,12 @@ const fetchPaletteItems = (query: string): void => {
     return;
   }
 
-  fetch('/api/command-palette?q=' + encodeURIComponent(query))
+  renderPendingQuery(query);
+
+  const controller = new AbortController();
+  activeRequestController = controller;
+
+  fetch('/api/command-palette?q=' + encodeURIComponent(query), { signal: controller.signal })
     .then((res: Response) => {
       if (!res.ok) {
         return [];
@@ -332,13 +360,18 @@ const fetchPaletteItems = (query: string): void => {
       return res.json();
     })
     .then((items: CommandPaletteItem[]) => {
-      if (query !== lastQuery) {
+      if (controller.signal.aborted || query !== lastQuery) {
         return;
       }
+      activeRequestController = undefined;
       responseCache.set(query, items);
       renderItems(items);
     })
     .catch((err: unknown) => {
+      if (controller.signal.aborted) {
+        return;
+      }
+      activeRequestController = undefined;
       console.error('Command palette error:', err);
       renderItems([]);
     });
@@ -350,7 +383,7 @@ const scheduleFetch = (): void => {
   }
 
   const query = paletteInput?.value.trim() || '';
-  fetchTimeout = window.setTimeout(() => fetchPaletteItems(query), query.length >= 2 ? 180 : 0);
+  fetchTimeout = window.setTimeout(() => fetchPaletteItems(query), query.length >= 2 ? 300 : 120);
 };
 
 const openPalette = (): void => {
@@ -375,6 +408,10 @@ const closePalette = (): void => {
   paletteDialog.classList.add('hidden');
   paletteDialog.classList.remove('flex');
   paletteDialog.setAttribute('aria-hidden', 'true');
+  if (activeRequestController) {
+    activeRequestController.abort();
+    activeRequestController = undefined;
+  }
   paletteInput.value = '';
   allPaletteItems = [];
   paletteItems = [];

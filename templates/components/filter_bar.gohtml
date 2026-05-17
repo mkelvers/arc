@@ -3,7 +3,7 @@
 {{$selectedCount := len $selectedGenreIDs}}
 <div class="flex flex-wrap items-center gap-3" hx-boost="true" hx-target="#browse-content" hx-swap="outerHTML" hx-push-url="true">
   <div class="min-w-50 flex-1">
-    <form action="/browse" method="GET" id="browse-search-form" hx-get="/browse" hx-trigger="submit, keyup changed delay:120ms from:#search">
+    <form action="/browse" method="GET" id="browse-search-form" hx-get="/browse" hx-trigger="submit, input changed delay:350ms from:#search, search from:#search" hx-sync="this:replace">
       <input
         id="search"
         name="q"

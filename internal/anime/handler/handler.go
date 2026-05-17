@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -458,7 +460,10 @@ func (h *AnimeHandler) commandPaletteNavigationItems(query string) []commandPale
 }
 
 func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) []commandPaletteItem {
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), query, "", "", "", "", nil, true, 1, 5)
+	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 1500*time.Millisecond)
+	defer cancel()
+
+	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, true, 1, 5)
 	if err != nil {
 		return nil
 	}
