@@ -7,18 +7,18 @@
 @source "../**/*.ts";
 
 @theme {
-  --color-background: light-dark(#F7F6F3, #0b0c10);
-  --color-background-sidebar: light-dark(#FBFBFA, #0f1115);
-  --color-background-header: light-dark(#FBFBFA, #0f1115);
-  --color-background-surface: light-dark(#FFFFFF, #17181c);
-  --color-background-button: light-dark(#FFFFFF, #131417);
-  --color-background-button-hover: light-dark(#F7F6F3, #1c1d22);
+  --color-background: light-dark(#f7f6f3, #0b0c10);
+  --color-background-sidebar: light-dark(#fbfbfa, #0f1115);
+  --color-background-header: light-dark(#fbfbfa, #0f1115);
+  --color-background-surface: light-dark(#ffffff, #17181c);
+  --color-background-button: light-dark(#ffffff, #131417);
+  --color-background-button-hover: light-dark(#f7f6f3, #1c1d22);
 
   --color-foreground-muted: light-dark(#787774, #a1a1aa);
   --color-foreground: light-dark(#111111, #f3f4f6);
 
-  --color-accent: #1F6C9F;
-  --color-border: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.10));
+  --color-accent: #1f6c9f;
+  --color-border: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.1));
   --color-surface-hover: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.05));
 }
 
