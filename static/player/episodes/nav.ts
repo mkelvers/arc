@@ -46,7 +46,10 @@ export const goToNextEpisode = async (): Promise<void> => {
     state.modeSources = data.mode_sources ?? {};
     state.availableModes = data.available_modes ?? [];
 
-    const fallback = state.availableModes.find(m => state.modeSources[m]?.token);
+    const backendMode = typeof data.initial_mode === 'string' ? data.initial_mode : '';
+    const fallback = state.modeSources[backendMode]?.token
+      ? backendMode
+      : state.availableModes.find(m => state.modeSources[m]?.token);
     if (!fallback) {
       sessionStorage.setItem('mal:autoplay-next', 'true');
       const url = new URL(window.location.href);
@@ -57,6 +60,11 @@ export const goToNextEpisode = async (): Promise<void> => {
 
     state.currentEpisode = String(nextEp);
     state.currentMode = fallback;
+    if (data.mode_switched_from === 'dub' && fallback === 'sub') {
+      window.showToast?.({
+        message: `Episode ${nextEp} is only available in sub, switched from dub.`,
+      });
+    }
     // The progress reset is sent asynchronously, so do not trust the fetch to observe it first.
     state.startTimeSeconds = 0;
     state.container.dataset.currentEpisode = state.currentEpisode;
