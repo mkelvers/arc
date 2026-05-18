@@ -280,11 +280,24 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	for k, v := range resp.Header {
-		c.Header(k, v[0])
-	}
+	copyProxyHeaders(c.Writer.Header(), resp.Header)
 	c.Status(resp.StatusCode)
 	_, _ = io.Copy(c.Writer, resp.Body)
+}
+
+func copyProxyHeaders(dst http.Header, src http.Header) {
+	// Skip hop-by-hop headers; see RFC 7230 section 6.1.
+	// We intentionally preserve multi-value headers by copying the full slice.
+	for k, v := range src {
+		switch http.CanonicalHeaderKey(k) {
+		case "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "Te", "Trailer", "Transfer-Encoding", "Upgrade":
+			continue
+		}
+		// Copy the slice to avoid sharing memory with src.
+		copied := make([]string, len(v))
+		copy(copied, v)
+		dst[k] = copied
+	}
 }
 
 func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
