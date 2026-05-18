@@ -5,11 +5,12 @@ import (
 	"io"
 	"mal/internal/domain"
 	"mal/pkg/net/proxytransport"
+	"mal/pkg/net/useragent"
 	"maps"
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,7 +21,7 @@ type PlaybackHandler struct {
 
 	proxyClient     *http.Client
 	streamingClient *http.Client
-	subtitleCache   sync.Map
+	subtitleCache   *subtitleCache
 }
 
 func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimeService) *PlaybackHandler {
@@ -29,6 +30,7 @@ func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimeService
 		animeSvc:        animeSvc,
 		proxyClient:     proxytransport.NewClient(),
 		streamingClient: proxytransport.NewStreamingClient(),
+		subtitleCache:   newSubtitleCache(10*time.Minute, 256),
 	}
 }
 
@@ -268,7 +270,7 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	if ifRangeHeader := c.GetHeader("If-Range"); ifRangeHeader != "" {
 		req.Header.Set("If-Range", ifRangeHeader)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
+	req.Header.Set("User-Agent", useragent.Firefox121)
 
 	resp, err := h.streamingClient.Do(req)
 	if err != nil {
@@ -284,11 +286,6 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	_, _ = io.Copy(c.Writer, resp.Body)
 }
 
-type cachedSubtitle struct {
-	data        []byte
-	contentType string
-}
-
 func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	token := c.Query("token")
 	if token == "" {
@@ -302,9 +299,8 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 		return
 	}
 
-	if cached, ok := h.subtitleCache.Load(targetURL); ok {
-		entry := cached.(cachedSubtitle)
-		c.Data(http.StatusOK, entry.contentType, entry.data)
+	if data, contentType, ok := h.subtitleCache.Get(targetURL, time.Now()); ok {
+		c.Data(http.StatusOK, contentType, data)
 		return
 	}
 
@@ -316,7 +312,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	if referer != "" {
 		req.Header.Set("Referer", referer)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
+	req.Header.Set("User-Agent", useragent.Firefox121)
 
 	resp, err := h.proxyClient.Do(req)
 	if err != nil {
@@ -336,7 +332,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 		contentType = detectSubtitleType(targetURL)
 	}
 
-	h.subtitleCache.Store(targetURL, cachedSubtitle{data: body, contentType: contentType})
+	h.subtitleCache.Set(targetURL, body, contentType, time.Now())
 
 	c.Data(http.StatusOK, contentType, body)
 }
