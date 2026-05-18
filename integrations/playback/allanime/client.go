@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/pkg/net/useragent"
 	"mal/pkg/net/utls"
 	"net/http"
 	"net/url"
@@ -23,7 +24,7 @@ const (
 	allAnimeBaseURL  = "https://api.allanime.day"
 	allAnimeReferer  = "https://allmanga.to/"
 	allAnimeOrigin   = "https://youtu-chan.com"
-	defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+	defaultUserAgent = useragent.Firefox121
 )
 
 var (

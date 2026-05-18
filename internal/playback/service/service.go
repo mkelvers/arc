@@ -12,6 +12,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/pkg/net/useragent"
 	"net/http"
 	"net/url"
 	"sort"
@@ -359,7 +360,7 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, epis
 	if err != nil {
 		return []SkipSegment{}
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("User-Agent", useragent.Generic)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -424,7 +425,7 @@ func (s *playbackService) warmStreamURL(targetURL, referer string) {
 	if referer != "" {
 		req.Header.Set("Referer", referer)
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0")
+	req.Header.Set("User-Agent", useragent.Firefox121)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mal/pkg/net/useragent"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 )
-
-const defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
 
 // idPattern extracts the watch order ID from chiaki.site URLs
 var idPattern = regexp.MustCompile(`/id/(\d+)`)
@@ -82,7 +81,7 @@ func parseRootID(url string) (int, error) {
 }
 
 func addCommonHeaders(request *http.Request) {
-	request.Header.Set("User-Agent", defaultUserAgent)
+	request.Header.Set("User-Agent", useragent.Chrome135)
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	request.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	request.Header.Set("Referer", "https://chiaki.site/")
