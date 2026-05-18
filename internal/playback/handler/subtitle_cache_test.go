@@ -43,4 +43,3 @@ func TestSubtitleCache_LRUEviction(t *testing.T) {
 		t.Fatalf("expected c to exist")
 	}
 }
-
