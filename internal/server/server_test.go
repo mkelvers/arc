@@ -25,4 +25,3 @@ func TestNewHTTPServer_TimeoutsAndAddr(t *testing.T) {
 		t.Fatalf("IdleTimeout: got %s want %s", srv.IdleTimeout, 2*time.Minute)
 	}
 }
-
