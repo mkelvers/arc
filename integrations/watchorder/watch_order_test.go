@@ -3,20 +3,23 @@ package watchorder
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 )
 
-func testServer(body string) *httptest.Server {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_, _ = w.Write([]byte(body))
-	})
-
-	return httptest.NewServer(handler)
+func mockResponse(status int, headers map[string]string, body string) *http.Response {
+	h := make(http.Header, len(headers))
+	for k, v := range headers {
+		h.Set(k, v)
+	}
+	return &http.Response{
+		StatusCode: status,
+		Header:     h,
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
 }
 
 func testHTMLWithMetadata() string {
@@ -55,11 +58,18 @@ func testHTMLEmptyRows() string {
 }
 
 func TestFetchWatchOrder_OutputShape(t *testing.T) {
-	server := testServer(testHTMLWithMetadata())
-	defer server.Close()
+	client := &http.Client{
+		Timeout: time.Second,
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			if request.URL.RawQuery == "/tools/watch_order/id/442" {
+				return mockResponse(http.StatusOK, map[string]string{"Content-Type": "text/html; charset=utf-8"}, testHTMLWithMetadata()), nil
+			}
+			return mockResponse(http.StatusNotFound, nil, "not found"), nil
+		}),
+	}
 
-	url := server.URL + "/?/tools/watch_order/id/442"
-	result, err := FetchWatchOrder(context.Background(), &http.Client{Timeout: time.Second}, url)
+	url := "https://chiaki.site/?/tools/watch_order/id/442"
+	result, err := FetchWatchOrder(context.Background(), client, url)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -88,11 +98,18 @@ func TestFetchWatchOrder_OutputShape(t *testing.T) {
 }
 
 func TestFetchWatchOrder_NoRowsReturnsEmpty(t *testing.T) {
-	server := testServer(testHTMLEmptyRows())
-	defer server.Close()
+	client := &http.Client{
+		Timeout: time.Second,
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			if request.URL.RawQuery == "/tools/watch_order/id/1535" {
+				return mockResponse(http.StatusOK, map[string]string{"Content-Type": "text/html; charset=utf-8"}, testHTMLEmptyRows()), nil
+			}
+			return mockResponse(http.StatusNotFound, nil, "not found"), nil
+		}),
+	}
 
-	url := server.URL + "/?/tools/watch_order/id/1535"
-	result, err := FetchWatchOrder(context.Background(), &http.Client{Timeout: time.Second}, url)
+	url := "https://chiaki.site/?/tools/watch_order/id/1535"
+	result, err := FetchWatchOrder(context.Background(), client, url)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -121,37 +138,18 @@ Jujutsu Kaisen 0
  Dec 24, 2021 | Movie | 1ep × 1hr. 44min. | ★8.36 | [](https://myanimelist.net/anime/48561)
 `
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/http/") {
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(proxyPayload))
-			return
-		}
-
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte("blocked"))
-	}))
-	defer server.Close()
-
-	transport := http.DefaultTransport
 	testClient := &http.Client{
 		Timeout: time.Second,
 		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-			if strings.HasPrefix(request.URL.Host, "r.jina.ai") {
-				proxyURL := server.URL + "/http/" + strings.TrimPrefix(request.URL.Path, "/")
-				proxyRequest, err := http.NewRequestWithContext(request.Context(), request.Method, proxyURL, nil)
-				if err != nil {
-					return nil, err
-				}
-				return transport.RoundTrip(proxyRequest)
+			switch {
+			case request.URL.Host == "chiaki.site":
+				return mockResponse(http.StatusForbidden, map[string]string{"Content-Type": "text/html; charset=utf-8"}, "blocked"), nil
+			case request.URL.Host == "r.jina.ai":
+				// Proxy response is plain text/markdown.
+				return mockResponse(http.StatusOK, map[string]string{"Content-Type": "text/plain; charset=utf-8"}, proxyPayload), nil
+			default:
+				return mockResponse(http.StatusNotFound, nil, "not found"), nil
 			}
-
-			blockedURL := server.URL + request.URL.Path
-			blockedRequest, err := http.NewRequestWithContext(request.Context(), request.Method, blockedURL, nil)
-			if err != nil {
-				return nil, err
-			}
-			return transport.RoundTrip(blockedRequest)
 		}),
 	}
 
@@ -174,17 +172,19 @@ Jujutsu Kaisen 0
 }
 
 func TestFetchWatchOrder_HTTPStatusErrorIncludesContext(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "cloudflare")
-		w.Header().Set("CF-Ray", "abc123")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte("<html><body>access denied</body></html>"))
-	}))
-	defer server.Close()
+	client := &http.Client{
+		Timeout: time.Second,
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			return mockResponse(http.StatusForbidden, map[string]string{
+				"Server":       "cloudflare",
+				"CF-Ray":       "abc123",
+				"Content-Type": "text/html; charset=utf-8",
+			}, "<html><body>access denied</body></html>"), nil
+		}),
+	}
 
-	url := server.URL + "/?/tools/watch_order/id/1"
-	_, err := fetchDocument(context.Background(), &http.Client{Timeout: time.Second}, url)
+	url := "https://chiaki.site/?/tools/watch_order/id/1"
+	_, err := fetchDocument(context.Background(), client, url)
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
