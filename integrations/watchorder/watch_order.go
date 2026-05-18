@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mal/pkg/net/limits"
 	"mal/pkg/net/useragent"
 	"net/http"
 	"regexp"
@@ -109,7 +110,7 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 
 	if response.StatusCode != http.StatusOK {
 		// limit body read for error context; avoid reading large error pages
-		body, _ := io.ReadAll(io.LimitReader(response.Body, 512))
+		body, _ := io.ReadAll(io.LimitReader(response.Body, limits.Bytes512))
 		return nil, &HTTPStatusError{
 			StatusCode:  response.StatusCode,
 			URL:         url,
@@ -240,7 +241,7 @@ func fetchProxyText(ctx context.Context, httpClient *http.Client, url string) (s
 		return "", fmt.Errorf("proxy status %d", response.StatusCode)
 	}
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, 2*1024*1024))
+	body, err := io.ReadAll(io.LimitReader(response.Body, limits.MiB2))
 	if err != nil {
 		return "", fmt.Errorf("failed to read proxy response: %w", err)
 	}

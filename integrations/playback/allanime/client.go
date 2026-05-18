@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/pkg/net/limits"
 	"mal/pkg/net/useragent"
 	"mal/pkg/net/utls"
 	"net/http"
@@ -279,7 +280,7 @@ func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, var
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2))
 	if err != nil {
 		return nil, fmt.Errorf("read graphql response: %w", err)
 	}
@@ -334,7 +335,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1022))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2))
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/pkg/net/limits"
 	"mal/pkg/net/proxytransport"
 	"mal/pkg/net/useragent"
 	"maps"
@@ -321,7 +322,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2))
 	if err != nil {
 		c.Status(http.StatusBadGateway)
 		return

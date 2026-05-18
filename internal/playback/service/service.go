@@ -12,6 +12,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/pkg/net/limits"
 	"mal/pkg/net/useragent"
 	"net/http"
 	"net/url"
@@ -372,7 +373,7 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, epis
 		return []SkipSegment{}
 	}
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.KiB512))
 	if err != nil {
 		return []SkipSegment{}
 	}

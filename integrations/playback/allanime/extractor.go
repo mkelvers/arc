@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mal/pkg/net/limits"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -53,7 +54,7 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024)) // 2MB limit
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2)) // 2MB limit
 	if err != nil {
 		return nil, fmt.Errorf("read provider response: %w", err)
 	}
@@ -157,7 +158,7 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024)) // 512KB limit
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.KiB512)) // 512KB limit
 	if err != nil {
 		return nil, err
 	}
