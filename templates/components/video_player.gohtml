@@ -128,14 +128,14 @@
           <div class="relative flex h-1.5 w-full items-center rounded-full bg-white/20 transition-all group-hover/progress:h-2">
             <div data-buffered class="absolute left-0 top-0 h-full rounded-full bg-white/40 z-0 transition-all duration-200" style="width: 0%"></div>
             <div data-progress class="bg-accent absolute left-0 top-0 z-10 h-full rounded-full" style="width: 0%"></div>
-            <div data-segments class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-full"></div>
+            <div data-segments class="absolute inset-0 z-30 pointer-events-none overflow-hidden rounded-full"></div>
           </div>
-          <div data-scrubber class="bg-accent pointer-events-none absolute top-1/2 z-30 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm transition-[transform] group-hover/progress:scale-125" style="left: 0%"></div>
+          <div data-scrubber class="bg-accent pointer-events-none absolute top-1/2 z-40 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm transition-[transform] group-hover/progress:scale-125" style="left: 0%"></div>
         </div>
         <span class="w-12 text-center" data-duration>0:00</span>
       </div>
 
-      <button data-skip class="hidden absolute right-6 bottom-24 bg-white text-black font-bold px-4 py-2 text-sm rounded shadow-soft transition-transform hover:scale-105 active:scale-95">Skip</button>
+      <button data-skip class="hidden absolute right-6 bottom-24 bg-white/95 text-black font-bold px-4 py-2 text-sm rounded shadow-lg shadow-black/30 ring-1 ring-black/10 hover:bg-white transition-colors">Skip</button>
       <button data-backward class="hidden absolute left-1/4 top-1/2 -translate-y-1/2 -translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg></button>
       <button data-forward class="hidden absolute right-1/4 top-1/2 -translate-y-1/2 translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg></button>
       
