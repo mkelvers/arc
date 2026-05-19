@@ -9,6 +9,7 @@ import { setupMode, updateModeButtons } from './mode';
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from './episodes/ui';
 import { goToNextEpisode } from './episodes/nav';
 import { resolveActiveSegments, renderSegments } from './skip/segments';
+import { setupSegmentEditor } from './skip/editor';
 import { setupThumbnails } from './episodes/thumbnails';
 import { markEpisodeTransition, setupProgress } from './progress';
 import {
@@ -84,6 +85,7 @@ const initPlayer = (): void => {
   setupControls();
   setupKeyboard();
   setupSkip();
+  setupSegmentEditor();
   setupSubtitles();
   setupQuality();
   setupMode();
