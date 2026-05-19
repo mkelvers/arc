@@ -374,6 +374,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		ID          int    `json:"id"`
 		Title       string `json:"title"`
 		Type        string `json:"type"`
+		Year        int    `json:"year"`
 		Image       string `json:"image"`
 		InWatchlist bool   `json:"in_watchlist"`
 	}
@@ -384,6 +385,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 			ID:          anime.MalID,
 			Title:       anime.DisplayTitle(),
 			Type:        anime.Type,
+			Year:        anime.Year,
 			Image:       anime.ImageURL(),
 			InWatchlist: watchlistMap[anime.MalID],
 		}
