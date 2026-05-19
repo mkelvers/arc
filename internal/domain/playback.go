@@ -10,6 +10,7 @@ type PlaybackService interface {
 	SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error
 	CompleteAnime(ctx context.Context, userID string, animeID int64) error
 	ResolveProxyToken(token string) (string, string, error)
+	UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error
 }
 
 type ProviderStream struct {
@@ -38,4 +39,7 @@ type PlaybackRepository interface {
 	UpsertWatchListEntry(ctx context.Context, params db.UpsertWatchListEntryParams) (db.WatchListEntry, error)
 	UpsertContinueWatchingEntry(ctx context.Context, params db.UpsertContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	DeleteContinueWatchingEntry(ctx context.Context, params db.DeleteContinueWatchingEntryParams) error
+	ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]db.SkipSegmentOverride, error)
+	UpsertSkipSegmentOverride(ctx context.Context, r db.SkipSegmentOverride) error
+	HasSkipSegmentOverrideTable(ctx context.Context) (bool, error)
 }

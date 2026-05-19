@@ -41,6 +41,7 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
 	r.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
+	r.POST("/api/watch/segments", h.HandleUpsertSkipSegment)
 	r.GET("/api/watch/thumbnails/:animeId", h.HandleEpisodeThumbnails)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
 	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
@@ -191,6 +192,37 @@ func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
 	err := h.svc.CompleteAnime(c.Request.Context(), userID, req.MalID)
 	if err != nil {
 		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+	if userID == "" {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		MalID     int64   `json:"mal_id"`
+		Episode   int     `json:"episode"`
+		SkipType  string  `json:"skip_type"` // 'op' or 'ed' (also accepts 'opening'/'ending')
+		StartTime float64 `json:"start_time"`
+		EndTime   float64 `json:"end_time"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	if err := h.svc.UpsertSkipSegmentOverride(c.Request.Context(), userID, req.MalID, req.Episode, req.SkipType, req.StartTime, req.EndTime); err != nil {
+		c.Status(http.StatusBadRequest)
 		return
 	}
 

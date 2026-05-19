@@ -272,7 +272,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	// Final assembly
-	segments := s.fetchSkipSegments(ctx, animeID, episode)
+	segments := s.fetchSkipSegments(ctx, userID, animeID, episode)
 
 	watchData := map[string]any{
 		"MalID":            animeID,
@@ -351,7 +351,41 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 	return err
 }
 
-func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, episode string) []SkipSegment {
+func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error {
+	if userID == "" {
+		return fmt.Errorf("not authenticated")
+	}
+	if animeID <= 0 || episode <= 0 {
+		return fmt.Errorf("invalid anime/episode")
+	}
+	t := strings.ToLower(strings.TrimSpace(skipType))
+	switch t {
+	case "op", "opening", "intro":
+		t = "op"
+	case "ed", "ending", "outro":
+		t = "ed"
+	default:
+		return fmt.Errorf("invalid skip_type")
+	}
+	if !(startTime >= 0) || !(endTime > startTime) {
+		return fmt.Errorf("invalid interval")
+	}
+	// let the player-side filters ignore obviously wrong durations, but keep some sanity.
+	if endTime-startTime < 5 || endTime-startTime > 10*60 {
+		return fmt.Errorf("interval duration out of range")
+	}
+	return s.repo.UpsertSkipSegmentOverride(ctx, db.SkipSegmentOverride{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		AnimeID:   animeID,
+		Episode:   int64(episode),
+		SkipType:  t,
+		StartTime: startTime,
+		EndTime:   endTime,
+	})
+}
+
+func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, malID int, episode string) []SkipSegment {
 	if malID <= 0 || strings.TrimSpace(episode) == "" {
 		return []SkipSegment{}
 	}
@@ -413,6 +447,47 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, malID int, epis
 			Start: r.Interval.StartTime,
 			End:   r.Interval.EndTime,
 		})
+	}
+
+	epNum, _ := strconv.ParseInt(strings.TrimSpace(episode), 10, 64)
+	if userID != "" && epNum > 0 {
+		if ok, err := s.repo.HasSkipSegmentOverrideTable(ctx); err == nil && ok {
+			if overrides, err := s.repo.ListSkipSegmentOverrides(ctx, userID, int64(malID), epNum); err == nil {
+				// Build map keyed by normalized type ("opening"/"ending")
+				overrideByType := make(map[string]SkipSegment, len(overrides))
+				for _, o := range overrides {
+					t := strings.ToLower(strings.TrimSpace(o.SkipType))
+					switch t {
+					case "op", "opening", "intro":
+						t = "opening"
+					case "ed", "ending", "outro":
+						t = "ending"
+					default:
+						continue
+					}
+					overrideByType[t] = SkipSegment{Type: t, Start: o.StartTime, End: o.EndTime}
+				}
+				if len(overrideByType) > 0 {
+					merged := make([]SkipSegment, 0, len(segments)+len(overrideByType))
+					seen := map[string]bool{}
+					for _, seg := range segments {
+						if o, ok := overrideByType[seg.Type]; ok {
+							merged = append(merged, o)
+							seen[seg.Type] = true
+						} else {
+							merged = append(merged, seg)
+							seen[seg.Type] = true
+						}
+					}
+					for t, o := range overrideByType {
+						if !seen[t] {
+							merged = append(merged, o)
+						}
+					}
+					segments = merged
+				}
+			}
+		}
 	}
 
 	return segments
