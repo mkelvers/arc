@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CountPendingAnimeFetchRetries(ctx context.Context) (int64, error)
+	CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteAnimeFetchRetry(ctx context.Context, animeID int64) error
 	DeleteContinueWatchingEntry(ctx context.Context, arg DeleteContinueWatchingEntryParams) error
@@ -17,6 +18,7 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id string) error
 	DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListEntryParams) error
 	EnqueueAnimeFetchRetry(ctx context.Context, arg EnqueueAnimeFetchRetryParams) error
+	GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiToken, error)
 	GetAnime(ctx context.Context, id int64) (Anime, error)
 	GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNeedingRelationSyncRow, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
@@ -37,8 +39,10 @@ type Querier interface {
 	MarkAnimeFetchRetryFailed(ctx context.Context, arg MarkAnimeFetchRetryFailedParams) error
 	MarkEpisodeAvailabilityRefreshFailed(ctx context.Context, arg MarkEpisodeAvailabilityRefreshFailedParams) error
 	MarkRelationsSynced(ctx context.Context, id int64) error
+	RevokeAllAPITokensForUser(ctx context.Context, userID string) error
 	SaveWatchProgress(ctx context.Context, arg SaveWatchProgressParams) error
 	SetJikanCache(ctx context.Context, arg SetJikanCacheParams) error
+	TouchAPITokenLastUsedAt(ctx context.Context, id string) error
 	UpdateAnimeStatus(ctx context.Context, arg UpdateAnimeStatusParams) error
 	UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime, error)
 	UpsertAnimeRelation(ctx context.Context, arg UpsertAnimeRelationParams) error

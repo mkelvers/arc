@@ -24,6 +24,39 @@ func (q *Queries) CountPendingAnimeFetchRetries(ctx context.Context) (int64, err
 	return count, err
 }
 
+const createAPIToken = `-- name: CreateAPIToken :one
+INSERT INTO api_token (id, user_id, token_hash, name)
+VALUES (?, ?, ?, ?)
+RETURNING id, user_id, token_hash, name, created_at, last_used_at, revoked_at
+`
+
+type CreateAPITokenParams struct {
+	ID        string `json:"id"`
+	UserID    string `json:"user_id"`
+	TokenHash string `json:"token_hash"`
+	Name      string `json:"name"`
+}
+
+func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error) {
+	row := q.db.QueryRowContext(ctx, createAPIToken,
+		arg.ID,
+		arg.UserID,
+		arg.TokenHash,
+		arg.Name,
+	)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.Name,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
 const createSession = `-- name: CreateSession :one
 INSERT INTO session (id, user_id, expires_at)
 VALUES (?, ?, ?)
@@ -126,6 +159,27 @@ type EnqueueAnimeFetchRetryParams struct {
 func (q *Queries) EnqueueAnimeFetchRetry(ctx context.Context, arg EnqueueAnimeFetchRetryParams) error {
 	_, err := q.db.ExecContext(ctx, enqueueAnimeFetchRetry, arg.AnimeID, arg.LastError)
 	return err
+}
+
+const getAPITokenByHash = `-- name: GetAPITokenByHash :one
+SELECT id, user_id, token_hash, name, created_at, last_used_at, revoked_at FROM api_token
+WHERE token_hash = ? AND revoked_at IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiToken, error) {
+	row := q.db.QueryRowContext(ctx, getAPITokenByHash, tokenHash)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.Name,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.RevokedAt,
+	)
+	return i, err
 }
 
 const getAnime = `-- name: GetAnime :one
@@ -820,6 +874,17 @@ func (q *Queries) MarkRelationsSynced(ctx context.Context, id int64) error {
 	return err
 }
 
+const revokeAllAPITokensForUser = `-- name: RevokeAllAPITokensForUser :exec
+UPDATE api_token
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE user_id = ? AND revoked_at IS NULL
+`
+
+func (q *Queries) RevokeAllAPITokensForUser(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, revokeAllAPITokensForUser, userID)
+	return err
+}
+
 const saveWatchProgress = `-- name: SaveWatchProgress :exec
 UPDATE watch_list_entry
 SET current_episode = ?,
@@ -861,6 +926,17 @@ type SetJikanCacheParams struct {
 
 func (q *Queries) SetJikanCache(ctx context.Context, arg SetJikanCacheParams) error {
 	_, err := q.db.ExecContext(ctx, setJikanCache, arg.Key, arg.Data, arg.ExpiresAt)
+	return err
+}
+
+const touchAPITokenLastUsedAt = `-- name: TouchAPITokenLastUsedAt :exec
+UPDATE api_token
+SET last_used_at = CURRENT_TIMESTAMP
+WHERE id = ?
+`
+
+func (q *Queries) TouchAPITokenLastUsedAt(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, touchAPITokenLastUsedAt, id)
 	return err
 }
 

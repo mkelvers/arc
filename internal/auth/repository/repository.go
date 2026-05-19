@@ -7,6 +7,8 @@ import (
 	"mal/internal/db"
 	"mal/internal/domain"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type authRepository struct {
@@ -64,4 +66,36 @@ func (r *authRepository) GetSession(ctx context.Context, sessionID string) (*dom
 
 func (r *authRepository) DeleteSession(ctx context.Context, sessionID string) error {
 	return r.queries.DeleteSession(ctx, sessionID)
+}
+
+func (r *authRepository) CreateAPIToken(ctx context.Context, userID, tokenHash, name string) (*domain.APIToken, error) {
+	t, err := r.queries.CreateAPIToken(ctx, db.CreateAPITokenParams{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		TokenHash: tokenHash,
+		Name:      name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (r *authRepository) GetAPITokenByHash(ctx context.Context, tokenHash string) (*domain.APIToken, error) {
+	t, err := r.queries.GetAPITokenByHash(ctx, tokenHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (r *authRepository) TouchAPITokenLastUsedAt(ctx context.Context, tokenID string) error {
+	return r.queries.TouchAPITokenLastUsedAt(ctx, tokenID)
+}
+
+func (r *authRepository) RevokeAllAPITokensForUser(ctx context.Context, userID string) error {
+	return r.queries.RevokeAllAPITokensForUser(ctx, userID)
 }

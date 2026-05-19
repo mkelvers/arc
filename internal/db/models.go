@@ -37,6 +37,16 @@ type AnimeRelation struct {
 	RelationType   string `json:"relation_type"`
 }
 
+type ApiToken struct {
+	ID         string       `json:"id"`
+	UserID     string       `json:"user_id"`
+	TokenHash  string       `json:"token_hash"`
+	Name       string       `json:"name"`
+	CreatedAt  time.Time    `json:"created_at"`
+	LastUsedAt sql.NullTime `json:"last_used_at"`
+	RevokedAt  sql.NullTime `json:"revoked_at"`
+}
+
 type ContinueWatchingEntry struct {
 	ID                 string          `json:"id"`
 	UserID             string          `json:"user_id"`

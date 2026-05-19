@@ -15,6 +15,26 @@ SELECT * FROM session WHERE id = ? LIMIT 1;
 -- name: DeleteSession :exec
 DELETE FROM session WHERE id = ?;
 
+-- name: CreateAPIToken :one
+INSERT INTO api_token (id, user_id, token_hash, name)
+VALUES (?, ?, ?, ?)
+RETURNING *;
+
+-- name: GetAPITokenByHash :one
+SELECT * FROM api_token
+WHERE token_hash = ? AND revoked_at IS NULL
+LIMIT 1;
+
+-- name: TouchAPITokenLastUsedAt :exec
+UPDATE api_token
+SET last_used_at = CURRENT_TIMESTAMP
+WHERE id = ?;
+
+-- name: RevokeAllAPITokensForUser :exec
+UPDATE api_token
+SET revoked_at = CURRENT_TIMESTAMP
+WHERE user_id = ? AND revoked_at IS NULL;
+
 -- name: UpsertAnime :one
 INSERT INTO anime (id, title_original, title_english, title_japanese, image_url, airing, duration_seconds)
 VALUES (?, ?, ?, ?, ?, ?, ?)
