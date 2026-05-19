@@ -18,7 +18,6 @@ export const setupSegmentEditor = (): void => {
   const closeBtn = qs<HTMLButtonElement>(panel, '[data-segment-editor-close]');
   const typeValue = qs<HTMLInputElement>(panel, '[data-segment-type-value]');
   const typeLabel = qs<HTMLElement>(panel, '[data-segment-type-label]');
-  const typeTrigger = qs<HTMLButtonElement>(panel, '[data-segment-type-trigger]');
   const markStartBtn = qs<HTMLButtonElement>(panel, '[data-segment-mark-start]');
   const markEndBtn = qs<HTMLButtonElement>(panel, '[data-segment-mark-end]');
   const startLabel = qs<HTMLElement>(panel, '[data-segment-start]');
