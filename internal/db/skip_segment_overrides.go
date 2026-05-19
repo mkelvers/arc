@@ -6,16 +6,6 @@ import (
 	"fmt"
 )
 
-type SkipSegmentOverride struct {
-	ID        string
-	UserID    string
-	AnimeID   int64
-	Episode   int64
-	SkipType  string
-	StartTime float64
-	EndTime   float64
-}
-
 func (q *Queries) ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]SkipSegmentOverride, error) {
 	const query = `
 SELECT id, user_id, anime_id, episode, skip_type, start_time, end_time
