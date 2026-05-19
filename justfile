@@ -1,6 +1,8 @@
 set shell := ["bash", "-c"]
 set dotenv-load := true
 
+export GOCACHE := justfile_directory() + "/.cache/go-build"
+
 fmt:
     go fmt ./...
 

@@ -6,7 +6,20 @@ import (
 	"fmt"
 )
 
-func (q *Queries) ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]SkipSegmentOverride, error) {
+// Note: we intentionally avoid naming this struct SkipSegmentOverride because
+// some environments may have an sqlc-generated SkipSegmentOverride model,
+// which would cause a redeclare build error.
+type SkipSegmentOverrideRow struct {
+	ID        string
+	UserID    string
+	AnimeID   int64
+	Episode   int64
+	SkipType  string
+	StartTime float64
+	EndTime   float64
+}
+
+func (q *Queries) ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]SkipSegmentOverrideRow, error) {
 	const query = `
 SELECT id, user_id, anime_id, episode, skip_type, start_time, end_time
 FROM skip_segment_override
@@ -19,9 +32,9 @@ ORDER BY skip_type ASC;
 	}
 	defer func() { _ = rows.Close() }()
 
-	var out []SkipSegmentOverride
+	var out []SkipSegmentOverrideRow
 	for rows.Next() {
-		var r SkipSegmentOverride
+		var r SkipSegmentOverrideRow
 		if err := rows.Scan(&r.ID, &r.UserID, &r.AnimeID, &r.Episode, &r.SkipType, &r.StartTime, &r.EndTime); err != nil {
 			return nil, fmt.Errorf("scan skip segment override: %w", err)
 		}
@@ -33,7 +46,7 @@ ORDER BY skip_type ASC;
 	return out, nil
 }
 
-func (q *Queries) UpsertSkipSegmentOverride(ctx context.Context, r SkipSegmentOverride) error {
+func (q *Queries) UpsertSkipSegmentOverride(ctx context.Context, r SkipSegmentOverrideRow) error {
 	const query = `
 INSERT INTO skip_segment_override (id, user_id, anime_id, episode, skip_type, start_time, end_time)
 VALUES (?, ?, ?, ?, ?, ?, ?)

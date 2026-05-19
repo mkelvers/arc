@@ -38,11 +38,11 @@ func (r *playbackRepository) DeleteContinueWatchingEntry(ctx context.Context, pa
 	return r.queries.DeleteContinueWatchingEntry(ctx, params)
 }
 
-func (r *playbackRepository) ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]db.SkipSegmentOverride, error) {
+func (r *playbackRepository) ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]db.SkipSegmentOverrideRow, error) {
 	return r.queries.ListSkipSegmentOverrides(ctx, userID, animeID, episode)
 }
 
-func (r *playbackRepository) UpsertSkipSegmentOverride(ctx context.Context, s db.SkipSegmentOverride) error {
+func (r *playbackRepository) UpsertSkipSegmentOverride(ctx context.Context, s db.SkipSegmentOverrideRow) error {
 	return r.queries.UpsertSkipSegmentOverride(ctx, s)
 }
 

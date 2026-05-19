@@ -39,7 +39,7 @@ type PlaybackRepository interface {
 	UpsertWatchListEntry(ctx context.Context, params db.UpsertWatchListEntryParams) (db.WatchListEntry, error)
 	UpsertContinueWatchingEntry(ctx context.Context, params db.UpsertContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	DeleteContinueWatchingEntry(ctx context.Context, params db.DeleteContinueWatchingEntryParams) error
-	ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]db.SkipSegmentOverride, error)
-	UpsertSkipSegmentOverride(ctx context.Context, r db.SkipSegmentOverride) error
+	ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]db.SkipSegmentOverrideRow, error)
+	UpsertSkipSegmentOverride(ctx context.Context, r db.SkipSegmentOverrideRow) error
 	HasSkipSegmentOverrideTable(ctx context.Context) (bool, error)
 }

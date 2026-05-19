@@ -374,7 +374,7 @@ func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID 
 	if endTime-startTime < 5 || endTime-startTime > 10*60 {
 		return fmt.Errorf("interval duration out of range")
 	}
-	return s.repo.UpsertSkipSegmentOverride(ctx, db.SkipSegmentOverride{
+	return s.repo.UpsertSkipSegmentOverride(ctx, db.SkipSegmentOverrideRow{
 		ID:        uuid.New().String(),
 		UserID:    userID,
 		AnimeID:   animeID,
