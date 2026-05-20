@@ -46,7 +46,7 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 	}
 	defer rows.Close()
 
-	items := make([]GetContinueWatchingEntriesRow, 0, limit)
+	items := make([]GetContinueWatchingEntriesRow, 0, int(limit))
 	for rows.Next() {
 		var item GetContinueWatchingEntriesRow
 		if err := rows.Scan(
@@ -124,7 +124,7 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 	}
 	defer rows.Close()
 
-	items := make([]GetUserWatchListRow, 0, limit)
+	items := make([]GetUserWatchListRow, 0, int(limit))
 	for rows.Next() {
 		var item GetUserWatchListRow
 		if err := rows.Scan(
