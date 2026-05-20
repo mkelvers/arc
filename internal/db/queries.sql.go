@@ -107,7 +107,7 @@ func (q *Queries) DeleteContinueWatchingEntry(ctx context.Context, arg DeleteCon
 }
 
 const deleteExpiredJikanCache = `-- name: DeleteExpiredJikanCache :exec
-DELETE FROM jikan_cache WHERE expires_at <= CURRENT_TIMESTAMP
+DELETE FROM jikan_cache WHERE datetime(expires_at) <= CURRENT_TIMESTAMP
 `
 
 func (q *Queries) DeleteExpiredJikanCache(ctx context.Context) error {
@@ -443,7 +443,7 @@ func (q *Queries) GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeP
 
 const getJikanCache = `-- name: GetJikanCache :one
 SELECT data FROM jikan_cache
-WHERE key = ? AND expires_at > CURRENT_TIMESTAMP LIMIT 1
+WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1
 `
 
 func (q *Queries) GetJikanCache(ctx context.Context, key string) (string, error) {
