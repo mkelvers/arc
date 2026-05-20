@@ -160,7 +160,8 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		if fallbackErr != nil || len(res.Animes) == 0 {
 			continue
 		}
-		return res.Animes[rand.Intn(len(res.Animes))], nil
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		return res.Animes[r.Intn(len(res.Animes))], nil
 	}
 
 	return domain.Anime{}, err
