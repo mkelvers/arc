@@ -12,7 +12,7 @@ type WatchlistService interface {
 	UpdateEntry(ctx context.Context, userID string, animeID int64, status string) error
 	RemoveEntry(ctx context.Context, userID string, animeID int64) error
 	GetWatchlist(ctx context.Context, userID string) ([]UserWatchListRow, error)
-	GetWatchlistMap(ctx context.Context, userID string, animeIDs []int64) (map[int]bool, error)
+	GetWatchlistMap(ctx context.Context, userID string, animeIDs []int64) (map[int64]bool, error)
 	GetCommandPaletteWatchlist(ctx context.Context, userID string, query string, limit int64) ([]UserWatchListRow, error)
 	GetCommandPaletteContinueWatching(ctx context.Context, userID string, query string, limit int64) ([]db.GetContinueWatchingEntriesRow, error)
 	GetWatchListEntry(ctx context.Context, userID string, animeID int64) (WatchlistEntry, error)

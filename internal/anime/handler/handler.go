@@ -27,7 +27,7 @@ func NewAnimeHandler(svc domain.AnimeService, watchlistSvc domain.WatchlistServi
 	}
 }
 
-func (h *AnimeHandler) watchlistMapForAnimes(ctx context.Context, userID string, animes []domain.Anime) map[int]bool {
+func (h *AnimeHandler) watchlistMapForAnimes(ctx context.Context, userID string, animes []domain.Anime) map[int64]bool {
 	animeIDs := make([]int64, 0, len(animes))
 	for _, anime := range animes {
 		if anime.MalID > 0 {
@@ -37,14 +37,14 @@ func (h *AnimeHandler) watchlistMapForAnimes(ctx context.Context, userID string,
 	return h.watchlistMapForIDs(ctx, userID, animeIDs)
 }
 
-func (h *AnimeHandler) watchlistMapForIDs(ctx context.Context, userID string, animeIDs []int64) map[int]bool {
+func (h *AnimeHandler) watchlistMapForIDs(ctx context.Context, userID string, animeIDs []int64) map[int64]bool {
 	if userID == "" || len(animeIDs) == 0 {
-		return map[int]bool{}
+		return map[int64]bool{}
 	}
 
 	watchlistMap, err := h.watchlistSvc.GetWatchlistMap(ctx, userID, animeIDs)
 	if err != nil {
-		return map[int]bool{}
+		return map[int64]bool{}
 	}
 	return watchlistMap
 }
@@ -74,7 +74,7 @@ func (h *AnimeHandler) HandleCatalog(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.gohtml", gin.H{
 		"CurrentPath":  "/",
 		"User":         user,
-		"WatchlistMap": map[int]bool{},
+		"WatchlistMap": map[int64]bool{},
 	})
 }
 
@@ -101,7 +101,7 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 		return
 	}
 
-	watchlistMap := map[int]bool{}
+	watchlistMap := map[int64]bool{}
 	if animes, ok := data["Animes"].([]domain.Anime); ok {
 		watchlistMap = h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 	}
@@ -143,7 +143,7 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 		return
 	}
 
-	watchlistMap := map[int]bool{}
+	watchlistMap := map[int64]bool{}
 	if animes, ok := data["Animes"].([]domain.Anime); ok {
 		watchlistMap = h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 	}
@@ -401,7 +401,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 			Type:        anime.Type,
 			Year:        anime.Year,
 			Image:       anime.ImageURL(),
-			InWatchlist: watchlistMap[anime.MalID],
+			InWatchlist: watchlistMap[int64(anime.MalID)],
 		}
 	}
 	c.JSON(http.StatusOK, output)
@@ -609,7 +609,7 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 	inWatchlist := false
 	if u, ok := user.(*domain.User); ok {
 		watchlistMap := h.watchlistMapForIDs(c.Request.Context(), u.ID, []int64{int64(anime.MalID)})
-		inWatchlist = watchlistMap[anime.MalID]
+		inWatchlist = watchlistMap[int64(anime.MalID)]
 	}
 
 	c.JSON(http.StatusOK, gin.H{
