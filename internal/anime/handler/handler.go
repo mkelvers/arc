@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log"
 	"mal/internal/db"
 	"mal/internal/domain"
 	"net/http"
@@ -276,7 +277,8 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		}
 
 		if err != nil {
-			c.String(http.StatusOK, "")
+			log.Printf("failed to fetch section %s: %v", section, err)
+			c.Status(http.StatusNoContent)
 			return
 		}
 
@@ -341,7 +343,8 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 
 	relations, err := h.svc.GetRelations(relationsCtx, id)
 	if err != nil {
-		c.String(http.StatusOK, "")
+		log.Printf("failed to fetch relations for anime %d: %v", id, err)
+		c.Status(http.StatusNoContent)
 		return
 	}
 
