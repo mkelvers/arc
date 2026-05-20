@@ -26,6 +26,28 @@ func NewAnimeHandler(svc domain.AnimeService, watchlistSvc domain.WatchlistServi
 	}
 }
 
+func (h *AnimeHandler) watchlistMapForAnimes(ctx context.Context, userID string, animes []domain.Anime) map[int]bool {
+	animeIDs := make([]int64, 0, len(animes))
+	for _, anime := range animes {
+		if anime.MalID > 0 {
+			animeIDs = append(animeIDs, int64(anime.MalID))
+		}
+	}
+	return h.watchlistMapForIDs(ctx, userID, animeIDs)
+}
+
+func (h *AnimeHandler) watchlistMapForIDs(ctx context.Context, userID string, animeIDs []int64) map[int]bool {
+	if userID == "" || len(animeIDs) == 0 {
+		return map[int]bool{}
+	}
+
+	watchlistMap, err := h.watchlistSvc.GetWatchlistMap(ctx, userID, animeIDs)
+	if err != nil {
+		return map[int]bool{}
+	}
+	return watchlistMap
+}
+
 func (h *AnimeHandler) Register(r *gin.Engine) {
 
 	r.GET("/", h.HandleCatalog)
@@ -47,18 +69,11 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 
 func (h *AnimeHandler) HandleCatalog(c *gin.Context) {
 	user, _ := c.Get("User")
-	watchlistMap := make(map[int]bool)
-	if u, ok := user.(*domain.User); ok {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
-		for _, e := range entries {
-			watchlistMap[int(e.AnimeID)] = true
-		}
-	}
 
 	c.HTML(http.StatusOK, "index.gohtml", gin.H{
 		"CurrentPath":  "/",
 		"User":         user,
-		"WatchlistMap": watchlistMap,
+		"WatchlistMap": map[int]bool{},
 	})
 }
 
@@ -85,12 +100,9 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 		return
 	}
 
-	watchlistMap := make(map[int]bool)
-	if userID != "" {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
-		for _, e := range entries {
-			watchlistMap[int(e.AnimeID)] = true
-		}
+	watchlistMap := map[int]bool{}
+	if animes, ok := data["Animes"].([]domain.Anime); ok {
+		watchlistMap = h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 	}
 
 	data["Section"] = section
@@ -130,12 +142,9 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 		return
 	}
 
-	watchlistMap := make(map[int]bool)
-	if userID != "" {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
-		for _, e := range entries {
-			watchlistMap[int(e.AnimeID)] = true
-		}
+	watchlistMap := map[int]bool{}
+	if animes, ok := data["Animes"].([]domain.Anime); ok {
+		watchlistMap = h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 	}
 
 	data["Section"] = section
@@ -170,13 +179,11 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	}
 
 	user, _ := c.Get("User")
-	watchlistMap := make(map[int]bool)
+	userID := ""
 	if u, ok := user.(*domain.User); ok {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
-		for _, e := range entries {
-			watchlistMap[int(e.AnimeID)] = true
-		}
+		userID = u.ID
 	}
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, res.Animes)
 
 	if c.GetHeader("HX-Request") == "true" && page > 1 {
 		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
@@ -246,27 +253,30 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 
 	section := c.Query("section")
 	if section != "" && c.GetHeader("HX-Request") == "true" {
+		sectionCtx, cancel := context.WithTimeout(c.Request.Context(), 4*time.Second)
+		defer cancel()
+
 		var data any
 		var tplName string
 		var err error
 		switch section {
 		case "characters":
-			data, err = h.svc.GetCharacters(c.Request.Context(), id)
+			data, err = h.svc.GetCharacters(sectionCtx, id)
 			tplName = "anime_characters"
 		case "recommendations":
-			data, err = h.svc.GetRecommendations(c.Request.Context(), id)
+			data, err = h.svc.GetRecommendations(sectionCtx, id)
 			tplName = "anime_recommendations"
 
 		case "statistics":
-			data, err = h.svc.GetStatistics(c.Request.Context(), id)
+			data, err = h.svc.GetStatistics(sectionCtx, id)
 			tplName = "anime_statistics"
 		case "themes":
-			data, err = h.svc.GetThemes(c.Request.Context(), id)
+			data, err = h.svc.GetThemes(sectionCtx, id)
 			tplName = "anime_themes"
 		}
 
 		if err != nil {
-			c.Status(http.StatusInternalServerError)
+			c.String(http.StatusOK, "")
 			return
 		}
 
@@ -326,19 +336,22 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 		userID = u.ID
 	}
 
-	relations, err := h.svc.GetRelations(c.Request.Context(), id)
+	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	relations, err := h.svc.GetRelations(relationsCtx, id)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		c.String(http.StatusOK, "")
 		return
 	}
 
-	watchlistMap := make(map[int]bool)
-	if userID != "" {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
-		for _, e := range entries {
-			watchlistMap[int(e.AnimeID)] = true
+	relationAnimeIDs := make([]int64, 0, len(relations))
+	for _, relation := range relations {
+		if relation.Anime.MalID > 0 {
+			relationAnimeIDs = append(relationAnimeIDs, int64(relation.Anime.MalID))
 		}
 	}
+	watchlistMap := h.watchlistMapForIDs(c.Request.Context(), userID, relationAnimeIDs)
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"_fragment":    "watch_order",
@@ -362,13 +375,11 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 	}
 
 	user, _ := c.Get("User")
-	watchlistMap := make(map[int]bool)
+	userID := ""
 	if u, ok := user.(*domain.User); ok {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
-		for _, e := range entries {
-			watchlistMap[int(e.AnimeID)] = true
-		}
+		userID = u.ID
 	}
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, res.Animes)
 
 	type quickSearchResult struct {
 		ID          int    `json:"id"`
@@ -462,7 +473,7 @@ func (h *AnimeHandler) commandPaletteNavigationItems(query string) []commandPale
 }
 
 func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) []commandPaletteItem {
-	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 1500*time.Millisecond)
+	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 800*time.Millisecond)
 	defer cancel()
 
 	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, true, 1, 5)
@@ -487,35 +498,23 @@ func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) 
 func (h *AnimeHandler) commandPalettePersonalItems(c *gin.Context, userID string, query string) []commandPaletteItem {
 	items := make([]commandPaletteItem, 0, 5)
 
-	watchlist, err := h.watchlistSvc.GetWatchlist(c.Request.Context(), userID)
+	watchlist, err := h.watchlistSvc.GetCommandPaletteWatchlist(c.Request.Context(), userID, query, 5)
 	if err != nil {
 		return items
 	}
 
-	watchlistCount := 0
-	for _, status := range []string{"watching", "plan_to_watch"} {
-		for _, entry := range watchlist {
-			if watchlistCount >= 5 {
-				return items
-			}
-			if entry.Status != status {
-				continue
-			}
-
-			title := watchlistTitle(entry)
-			if query != "" && !commandPaletteMatches(query, title, entry.Status) {
-				continue
-			}
-
-			items = append(items, commandPaletteItem{
-				ID:       fmt.Sprintf("watchlist:%d", entry.AnimeID),
-				Type:     "watchlist",
-				Label:    title,
-				Subtitle: watchlistStatusLabel(entry.Status),
-				Href:     fmt.Sprintf("/anime/%d", entry.AnimeID),
-				Image:    entry.ImageUrl,
-			})
-			watchlistCount++
+	for _, entry := range watchlist {
+		title := watchlistTitle(entry)
+		items = append(items, commandPaletteItem{
+			ID:       fmt.Sprintf("watchlist:%d", entry.AnimeID),
+			Type:     "watchlist",
+			Label:    title,
+			Subtitle: watchlistStatusLabel(entry.Status),
+			Href:     fmt.Sprintf("/anime/%d", entry.AnimeID),
+			Image:    entry.ImageUrl,
+		})
+		if len(items) >= 5 {
+			return items
 		}
 	}
 
@@ -525,33 +524,29 @@ func (h *AnimeHandler) commandPalettePersonalItems(c *gin.Context, userID string
 func (h *AnimeHandler) commandPaletteContinueItems(c *gin.Context, userID string, query string) []commandPaletteItem {
 	items := make([]commandPaletteItem, 0, 5)
 
-	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, "Continue")
-	if err == nil {
-		if rows, ok := data["ContinueWatching"].([]db.GetContinueWatchingEntriesRow); ok {
-			for _, row := range rows {
-				if len(items) >= 5 {
-					break
-				}
+	rows, err := h.watchlistSvc.GetCommandPaletteContinueWatching(c.Request.Context(), userID, query, 5)
+	if err != nil {
+		return items
+	}
 
-				title := continueWatchingTitle(row)
-				if query != "" && !commandPaletteMatches(query, title, "Continue watching") {
-					continue
-				}
-				episode := ""
-				href := fmt.Sprintf("/anime/%d/watch", row.AnimeID)
-				if row.CurrentEpisode.Valid {
-					episode = fmt.Sprintf(" episode %d", row.CurrentEpisode.Int64)
-					href = fmt.Sprintf("%s?ep=%d", href, row.CurrentEpisode.Int64)
-				}
-				items = append(items, commandPaletteItem{
-					ID:       fmt.Sprintf("continue:%d", row.AnimeID),
-					Type:     "continue",
-					Label:    "Continue watching " + title,
-					Subtitle: "Resume" + episode,
-					Href:     href,
-					Image:    row.ImageUrl,
-				})
-			}
+	for _, row := range rows {
+		title := continueWatchingTitle(row)
+		episode := ""
+		href := fmt.Sprintf("/anime/%d/watch", row.AnimeID)
+		if row.CurrentEpisode.Valid {
+			episode = fmt.Sprintf(" episode %d", row.CurrentEpisode.Int64)
+			href = fmt.Sprintf("%s?ep=%d", href, row.CurrentEpisode.Int64)
+		}
+		items = append(items, commandPaletteItem{
+			ID:       fmt.Sprintf("continue:%d", row.AnimeID),
+			Type:     "continue",
+			Label:    "Continue watching " + title,
+			Subtitle: "Resume" + episode,
+			Href:     href,
+			Image:    row.ImageUrl,
+		})
+		if len(items) >= 5 {
+			return items
 		}
 	}
 
@@ -594,7 +589,10 @@ func watchlistStatusLabel(status string) string {
 }
 
 func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
-	anime, err := h.svc.GetRandomAnime(c.Request.Context())
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	anime, err := h.svc.GetRandomAnime(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch random anime"})
 		return
@@ -607,13 +605,8 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 	user, _ := c.Get("User")
 	inWatchlist := false
 	if u, ok := user.(*domain.User); ok {
-		entries, _ := h.watchlistSvc.GetWatchlist(c.Request.Context(), u.ID)
-		for _, e := range entries {
-			if int(e.AnimeID) == anime.MalID {
-				inWatchlist = true
-				break
-			}
-		}
+		watchlistMap := h.watchlistMapForIDs(c.Request.Context(), u.ID, []int64{int64(anime.MalID)})
+		inWatchlist = watchlistMap[anime.MalID]
 	}
 
 	c.JSON(http.StatusOK, gin.H{
