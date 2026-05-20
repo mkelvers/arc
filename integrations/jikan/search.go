@@ -56,14 +56,6 @@ func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, o
 	}
 
 	if err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result); err != nil {
-		if IsRetryableError(err) {
-			if fallbackErr := c.fetchWithRetry(ctx, reqURL, &result); fallbackErr == nil {
-				return SearchResult{
-					Animes:      result.Data,
-					HasNextPage: result.Pagination.HasNextPage,
-				}, nil
-			}
-		}
 		return SearchResult{}, err
 	}
 
@@ -84,10 +76,6 @@ func (c *Client) GetTopAnime(ctx context.Context, page int) (TopAnimeResult, err
 	reqURL := fmt.Sprintf("%s/top/anime?page=%d", c.baseURL, page)
 
 	if err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result); err != nil {
-		var stale TopAnimeResult
-		if c.getStaleCache(ctx, cacheKey, &stale) {
-			return stale, nil
-		}
 		return TopAnimeResult{}, err
 	}
 
