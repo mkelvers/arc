@@ -212,7 +212,7 @@ ORDER BY related.id DESC;
 
 -- name: GetJikanCache :one
 SELECT data FROM jikan_cache
-WHERE key = ? AND expires_at > CURRENT_TIMESTAMP LIMIT 1;
+WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1;
 
 -- name: GetJikanCacheStale :one
 SELECT data FROM jikan_cache
@@ -227,7 +227,7 @@ ON CONFLICT (key) DO UPDATE SET
     created_at = CURRENT_TIMESTAMP;
 
 -- name: DeleteExpiredJikanCache :exec
-DELETE FROM jikan_cache WHERE expires_at <= CURRENT_TIMESTAMP;
+DELETE FROM jikan_cache WHERE datetime(expires_at) <= CURRENT_TIMESTAMP;
 
 -- name: EnqueueAnimeFetchRetry :exec
 INSERT INTO anime_fetch_retry (anime_id, attempts, next_retry_at, last_error, updated_at)
