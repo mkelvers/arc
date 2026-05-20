@@ -14,7 +14,12 @@ ON continue_watching_entry(anime_id);
 CREATE INDEX IF NOT EXISTS idx_jikan_cache_expires_at_datetime
 ON jikan_cache(datetime(expires_at));
 
+DROP INDEX IF EXISTS idx_jikan_cache_expires_at;
+
 -- +goose Down
+CREATE INDEX IF NOT EXISTS idx_jikan_cache_expires_at
+ON jikan_cache(expires_at);
+
 DROP INDEX IF EXISTS idx_jikan_cache_expires_at_datetime;
 DROP INDEX IF EXISTS idx_continue_watching_anime_id;
 DROP INDEX IF EXISTS idx_watch_list_entry_status_updated_at_anime_id;
