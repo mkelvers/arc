@@ -1,9 +1,16 @@
 package server
 
 import (
+	"bytes"
+	"io"
+	"log"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestNewHTTPServer_TimeoutsAndAddr(t *testing.T) {
@@ -23,5 +30,37 @@ func TestNewHTTPServer_TimeoutsAndAddr(t *testing.T) {
 	}
 	if srv.IdleTimeout != 2*time.Minute {
 		t.Fatalf("IdleTimeout: got %s want %s", srv.IdleTimeout, 2*time.Minute)
+	}
+}
+
+func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var logs bytes.Buffer
+	previousOutput := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(previousOutput)
+
+	router := gin.New()
+	router.Use(RequestLogger())
+	router.GET("/anime/:id", func(c *gin.Context) {
+		c.String(http.StatusOK, "ok")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/anime/1?section=characters", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	output, err := io.ReadAll(&logs)
+	if err != nil {
+		t.Fatalf("read logs: %v", err)
+	}
+
+	logLine := string(output)
+	if !strings.Contains(logLine, `route="/anime/:id"`) {
+		t.Fatalf("log line missing route: %s", logLine)
+	}
+	if !strings.Contains(logLine, `status=200`) {
+		t.Fatalf("log line missing status: %s", logLine)
 	}
 }

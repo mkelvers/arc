@@ -22,7 +22,7 @@ func ProvideRouter(htmlRender render.HTMLRender) *gin.Engine {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddleware(), gin.Logger(), gin.Recovery())
+	r.Use(CORSMiddleware(), RequestLogger(), gin.Recovery())
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
 	r.HTMLRender = htmlRender
