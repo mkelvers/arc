@@ -55,8 +55,8 @@ func (s *watchlistService) GetWatchlist(ctx context.Context, userID string) ([]d
 	return s.repo.GetUserWatchList(ctx, userID)
 }
 
-func (s *watchlistService) GetWatchlistMap(ctx context.Context, userID string, animeIDs []int64) (map[int]bool, error) {
-	watchlistMap := make(map[int]bool)
+func (s *watchlistService) GetWatchlistMap(ctx context.Context, userID string, animeIDs []int64) (map[int64]bool, error) {
+	watchlistMap := make(map[int64]bool)
 	if userID == "" || len(animeIDs) == 0 {
 		return watchlistMap, nil
 	}
@@ -67,7 +67,7 @@ func (s *watchlistService) GetWatchlistMap(ctx context.Context, userID string, a
 	}
 
 	for _, animeID := range matches {
-		watchlistMap[int(animeID)] = true
+		watchlistMap[animeID] = true
 	}
 
 	return watchlistMap, nil
