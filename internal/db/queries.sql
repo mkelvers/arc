@@ -337,3 +337,7 @@ LEFT JOIN episode_availability_cache e ON e.anime_id = tracked.anime_id
 WHERE e.anime_id IS NULL OR e.next_refresh_at IS NULL OR e.next_refresh_at <= CURRENT_TIMESTAMP
 ORDER BY tracked.anime_id
 LIMIT ?;
+
+-- name: GetAllCachedAnime :many
+SELECT data FROM jikan_cache
+WHERE key LIKE 'anime:%' LIMIT 1000;

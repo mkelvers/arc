@@ -29,6 +29,11 @@ type Client struct {
 	lastReqTime time.Time // rate limiting: last request timestamp
 	sf          singleflight.Group
 	refreshSem  chan struct{}
+
+	// Random anime pool for DDoS-proof truly random "Surprise Me"
+	randomPool      []Anime
+	poolMu          sync.RWMutex
+	poolInitialized bool
 }
 
 const jikanSlowLogThreshold = 750 * time.Millisecond
@@ -48,6 +53,7 @@ func NewClient(queries *db.Queries) *Client {
 		db:          queries,
 		retrySignal: make(chan struct{}, 1),
 		refreshSem:  make(chan struct{}, 4),
+		randomPool:  make([]Anime, 0),
 	}
 }
 
