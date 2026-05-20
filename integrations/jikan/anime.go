@@ -41,10 +41,13 @@ func (c *Client) GetAnimeByID(ctx context.Context, id int) (Anime, error) {
 		return cached, nil
 	}
 
-	var result AnimeResponse
-	reqURL := fmt.Sprintf("%s/anime/%d/full", c.baseURL, id)
+	if c.getStaleCache(ctx, cacheKey, &cached) && cached.MalID != 0 {
+		c.refreshAnimeByIDAsync(id)
+		return cached, nil
+	}
 
-	if err := c.fetchWithRetry(ctx, reqURL, &result); err != nil {
+	anime, err := c.refreshAnimeByID(ctx, id)
+	if err != nil {
 		var stale Anime
 		if c.getStaleCache(ctx, cacheKey, &stale) {
 			return stale, nil
@@ -52,11 +55,57 @@ func (c *Client) GetAnimeByID(ctx context.Context, id int) (Anime, error) {
 		return Anime{}, err
 	}
 
-	ttl := time.Hour * 24
-	if result.Data.Status == "Finished Airing" {
-		ttl = time.Hour * 24 * 30
+	return anime, nil
+}
+
+func (c *Client) refreshAnimeByID(ctx context.Context, id int) (Anime, error) {
+	cacheKey := fmt.Sprintf("anime:%d", id)
+
+	value, err, _ := c.sf.Do("refresh:"+cacheKey, func() (any, error) {
+		var cached Anime
+		if c.getCache(ctx, cacheKey, &cached) && cached.MalID != 0 {
+			return cached, nil
+		}
+
+		var result AnimeResponse
+		reqURL := fmt.Sprintf("%s/anime/%d/full", c.baseURL, id)
+
+		if err := c.fetchWithRetry(ctx, reqURL, &result); err != nil {
+			return Anime{}, err
+		}
+
+		ttl := time.Hour * 24
+		if result.Data.Status == "Finished Airing" {
+			ttl = time.Hour * 24 * 30
+		}
+
+		c.setCache(ctx, cacheKey, result.Data, ttl)
+		return result.Data, nil
+	})
+	if err != nil {
+		return Anime{}, err
 	}
 
-	c.setCache(ctx, cacheKey, result.Data, ttl)
-	return result.Data, nil
+	if anime, ok := value.(Anime); ok && anime.MalID != 0 {
+		return anime, nil
+	}
+
+	return Anime{}, fmt.Errorf("jikan: empty response for %s", cacheKey)
+}
+
+func (c *Client) refreshAnimeByIDAsync(id int) {
+	select {
+	case c.refreshSem <- struct{}{}:
+	default:
+		return
+	}
+
+	go func() {
+		defer func() { <-c.refreshSem }()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+
+		_, _ = c.refreshAnimeByID(ctx, id)
+	}()
 }
