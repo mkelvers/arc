@@ -302,7 +302,7 @@
     </div>
   </div>
 
-  <div hx-get="/anime/{{$anime.MalID}}?section=characters" hx-trigger="load" hx-swap="outerHTML">
+  <div hx-get="/anime/{{$anime.MalID}}?section=characters" hx-trigger="revealed" hx-swap="outerHTML">
     <div class="mt-12 w-full">
       <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 animate-pulse">
@@ -320,7 +320,7 @@
   </div>
 
   <div class="w-full">
-    <div hx-get="/api/watch-order?animeId={{$anime.MalID}}" hx-trigger="load">
+    <div hx-get="/api/watch-order?animeId={{$anime.MalID}}" hx-trigger="revealed">
       <div class="mt-8 flex items-center gap-3 text-foreground-muted">
         <div class="border-t-accent size-5 animate-spin rounded-full border-2 border-border"></div>
         <span class="text-sm">Loading watch order sequence...</span>
@@ -328,7 +328,7 @@
     </div>
   </div>
 
-  <div hx-get="/anime/{{$anime.MalID}}?section=recommendations" hx-trigger="load" hx-swap="outerHTML">
+  <div hx-get="/anime/{{$anime.MalID}}?section=recommendations" hx-trigger="revealed" hx-swap="outerHTML">
     <div class="w-full">
       <h2 class="mb-6 text-lg font-normal text-foreground">Recommendations</h2>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 animate-pulse">
@@ -353,19 +353,30 @@
   </div>
 </div>
 
-<div hx-get="/anime/{{$anime.MalID}}?section=themes" hx-trigger="load" hx-target="[data-themes-content]" hx-swap="innerHTML"></div>
+<div data-themes-loader hx-get="/anime/{{$anime.MalID}}?section=themes" hx-trigger="theme-songs:load from:body" hx-target="[data-themes-content]" hx-swap="innerHTML"></div>
 
 <script>
 (function(){
   const dialog = document.querySelector('[data-themes-dialog]');
   const openBtn = document.querySelector('[data-themes-open]');
   const closeBtn = document.querySelector('[data-themes-close]');
+  const themesContent = document.querySelector('[data-themes-content]');
+  let themesRequested = false;
   if (!dialog || !openBtn) return;
 
   const open = () => {
     dialog.classList.remove('hidden');
     dialog.classList.add('flex');
     dialog.setAttribute('aria-hidden', 'false');
+    if (!themesRequested) {
+      themesRequested = true;
+      if (themesContent) {
+        themesContent.innerHTML = '<div class="p-6 text-sm text-foreground-muted">Loading theme songs...</div>';
+      }
+      if (window.htmx) {
+        window.htmx.trigger(document.body, 'theme-songs:load');
+      }
+    }
   };
   const close = () => {
     dialog.classList.add('hidden');
