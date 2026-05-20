@@ -5,6 +5,8 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"math/rand"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -20,9 +22,8 @@ func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) domain.An
 
 func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (map[string]any, error) {
 	var (
-		res       jikan.TopAnimeResult
-		cw        []db.GetContinueWatchingEntriesRow
-		watchlist []db.GetUserWatchListRow
+		res jikan.TopAnimeResult
+		cw  []db.GetContinueWatchingEntriesRow
 	)
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -38,18 +39,10 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 		return err
 	})
 
-	if userID != "" {
-		g.Go(func() error {
-			if section == "Continue" {
-				var err error
-				cw, err = s.repo.GetContinueWatchingEntries(gCtx, userID)
-				return err
-			}
-			return nil
-		})
+	if userID != "" && section == "Continue" {
 		g.Go(func() error {
 			var err error
-			watchlist, err = s.repo.GetUserWatchList(gCtx, userID)
+			cw, err = s.repo.GetContinueWatchingEntries(gCtx, userID)
 			return err
 		})
 	}
@@ -63,23 +56,14 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 		animes = animes[:6]
 	}
 
-	watchlistMap := make(map[int64]bool)
-	for _, entry := range watchlist {
-		watchlistMap[entry.AnimeID] = true
-	}
-
 	return map[string]any{
 		"Animes":           animes,
 		"ContinueWatching": cw,
-		"WatchlistMap":     watchlistMap,
 	}, nil
 }
 
 func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, section string) (map[string]any, error) {
-	var (
-		res       jikan.TopAnimeResult
-		watchlist []db.GetUserWatchListRow
-	)
+	var res jikan.TopAnimeResult
 
 	g, gCtx := errgroup.WithContext(ctx)
 
@@ -96,14 +80,6 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 		return err
 	})
 
-	if userID != "" {
-		g.Go(func() error {
-			var err error
-			watchlist, err = s.repo.GetUserWatchList(gCtx, userID)
-			return err
-		})
-	}
-
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
@@ -113,14 +89,8 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 		animes = animes[:8]
 	}
 
-	watchlistMap := make(map[int64]bool)
-	for _, entry := range watchlist {
-		watchlistMap[entry.AnimeID] = true
-	}
-
 	return map[string]any{
-		"Animes":       animes,
-		"WatchlistMap": watchlistMap,
+		"Animes": animes,
 	}, nil
 }
 
@@ -173,7 +143,27 @@ func (s *animeService) GetReviews(ctx context.Context, id int, page int) ([]doma
 }
 
 func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error) {
-	return s.jikan.GetRandomAnime(ctx)
+	randomCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	anime, err := s.jikan.GetRandomAnime(randomCtx)
+	if err == nil {
+		return anime, nil
+	}
+
+	for _, fallback := range []func(context.Context, int) (jikan.TopAnimeResult, error){
+		s.jikan.GetSeasonsNow,
+		s.jikan.GetTopAnime,
+		s.jikan.GetSeasonsUpcoming,
+	} {
+		res, fallbackErr := fallback(ctx, 1)
+		if fallbackErr != nil || len(res.Animes) == 0 {
+			continue
+		}
+		return res.Animes[rand.Intn(len(res.Animes))], nil
+	}
+
+	return domain.Anime{}, err
 }
 
 func (s *animeService) GetAllEpisodes(ctx context.Context, id int) ([]domain.EpisodeData, error) {
