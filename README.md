@@ -115,6 +115,7 @@ docker exec mal ./cmd/user <username> <password>
 | `ENV`                   | _(empty)_           | Set to `production` to enable secure session cookies        |
 | `MIGRATIONS_DIR`        | _(auto-discovered)_ | Optional explicit path to migration files                   |
 | `PLAYBACK_PROXY_SECRET` | _(required)_        | HMAC secret for signed playback proxy tokens (min 32 chars) |
+| `MAL_JIKAN_TRACE`       | `false`             | Log all Jikan cache/upstream timings when enabled           |
 
 ## Testing
 
