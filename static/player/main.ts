@@ -66,9 +66,12 @@ const updatePreviewUI = (ratio: number): void => {
 const initPlayer = (): void => {
   const container = document.querySelector('[data-video-player]') as HTMLElement | null;
   if (!container || initialized) return;
-  initialized = true;
 
-  initState(container);
+  if (!initState(container)) {
+    console.error('Video player markup is missing required controls.');
+    return;
+  }
+  initialized = true;
 
   const loading = container.querySelector('[data-loading]') as HTMLElement | null;
   const progressWrap = container.querySelector('[data-progress-wrap]') as HTMLElement | null;

@@ -42,14 +42,14 @@ export interface PlayerState {
   videoOverlay: HTMLElement | null;
 }
 
-export const state: PlayerState = {
-  container: null as unknown as HTMLElement,
-  video: null as unknown as HTMLVideoElement,
-  progress: null as unknown as HTMLElement,
-  scrubber: null as unknown as HTMLElement,
-  buffered: null as unknown as HTMLElement,
-  timeDisplay: null as unknown as HTMLElement,
-  durationDisplay: null as unknown as HTMLElement,
+const createInitialState = (): PlayerState => ({
+  container: document.createElement('div'),
+  video: document.createElement('video'),
+  progress: document.createElement('div'),
+  scrubber: document.createElement('div'),
+  buffered: document.createElement('div'),
+  timeDisplay: document.createElement('div'),
+  durationDisplay: document.createElement('div'),
   modeSources: {},
   availableModes: [],
   currentMode: 'dub',
@@ -81,21 +81,69 @@ export const state: PlayerState = {
   previewPopover: null,
   previewTime: null,
   videoOverlay: null,
+});
+
+export const state: PlayerState = createInitialState();
+
+interface RequiredPlayerElements {
+  video: HTMLVideoElement;
+  progress: HTMLElement;
+  scrubber: HTMLElement;
+  buffered: HTMLElement;
+  timeDisplay: HTMLElement;
+  durationDisplay: HTMLElement;
+}
+
+const findElement = <T extends Element>(
+  container: HTMLElement,
+  selector: string,
+  elementType: new () => T
+): T | null => {
+  const element = container.querySelector(selector);
+  if (element instanceof elementType) return element;
+  return null;
+};
+
+const requiredPlayerElements = (container: HTMLElement): RequiredPlayerElements | null => {
+  const elements = {
+    video: findElement(container, 'video', HTMLVideoElement),
+    progress: findElement(container, '[data-progress]', HTMLElement),
+    scrubber: findElement(container, '[data-scrubber]', HTMLElement),
+    buffered: findElement(container, '[data-buffered]', HTMLElement),
+    timeDisplay: findElement(container, '[data-time]', HTMLElement),
+    durationDisplay: findElement(container, '[data-duration]', HTMLElement),
+  };
+
+  if (
+    !elements.video ||
+    !elements.progress ||
+    !elements.scrubber ||
+    !elements.buffered ||
+    !elements.timeDisplay ||
+    !elements.durationDisplay
+  ) {
+    return null;
+  }
+
+  return elements;
 };
 
 /**
  * Initializes player state from DOM data attributes.
  * Called once on page load or htmx swap.
  */
-export const initState = (c: HTMLElement): void => {
+export const initState = (c: HTMLElement): boolean => {
+  const elements = requiredPlayerElements(c);
+  if (!elements) return false;
+
   // core elements
   state.container = c;
-  state.video = q<HTMLVideoElement>(c, 'video')!;
-  state.progress = q<HTMLElement>(c, '[data-progress]');
-  state.scrubber = q<HTMLElement>(c, '[data-scrubber]');
-  state.buffered = q<HTMLElement>(c, '[data-buffered]');
-  state.timeDisplay = q<HTMLElement>(c, '[data-time]');
-  state.durationDisplay = q<HTMLElement>(c, '[data-duration]');
+  state.video = elements.video;
+  state.progress = elements.progress;
+  state.scrubber = elements.scrubber;
+  state.buffered = elements.buffered;
+  state.timeDisplay = elements.timeDisplay;
+  state.durationDisplay = elements.durationDisplay;
   state.previewPopover = q<HTMLElement>(c, '[data-preview-popover]');
   state.previewTime = q<HTMLElement>(c, '[data-preview-time]');
   state.videoOverlay = q<HTMLElement>(c, '[data-video-overlay]');
@@ -143,4 +191,6 @@ export const initState = (c: HTMLElement): void => {
   state.parsedSegments = segments
     .map(s => ({ ...s, start: Number(s.start) || 0, end: Number(s.end) || 0 }))
     .filter(s => s.end > s.start);
+
+  return true;
 };
