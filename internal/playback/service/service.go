@@ -33,12 +33,6 @@ type playbackService struct {
 	proxyTokenKey string
 }
 
-type SkipSegment struct {
-	Type  string  `json:"type"`
-	Start float64 `json:"start"`
-	End   float64 `json:"end"`
-}
-
 type proxyTokenPayload struct {
 	TargetURL string `json:"u"`
 	Referer   string `json:"r,omitempty"`
@@ -109,11 +103,11 @@ func (s *playbackService) ResolveProxyToken(token string) (string, string, error
 	return payload.TargetURL, payload.Referer, nil
 }
 
-func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (map[string]any, error) {
+func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
 	// 1. Get Anime details for total episodes and titles
 	anime, err := s.jikan.GetAnimeByID(ctx, animeID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch anime: %w", err)
+		return domain.WatchPageData{}, fmt.Errorf("failed to fetch anime: %w", err)
 	}
 
 	// 2. Resolve streams from providers
@@ -132,7 +126,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 
 	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, anime, false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch episodes: %w", err)
+		return domain.WatchPageData{}, fmt.Errorf("failed to fetch episodes: %w", err)
 	}
 
 	requestedMode := mode
@@ -147,22 +141,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		}
 	}
 
-	type SubtitleItem struct {
-		Lang    string `json:"lang"`
-		URL     string `json:"url,omitempty"`
-		Referer string `json:"referer,omitempty"`
-		Token   string `json:"token"`
-	}
-
-	type ModeSource struct {
-		URL       string         `json:"url,omitempty"`
-		Referer   string         `json:"referer,omitempty"`
-		Token     string         `json:"token"`
-		Subtitles []SubtitleItem `json:"subtitles"`
-		Qualities []string       `json:"qualities,omitempty"`
-	}
-
-	modeSources := map[string]ModeSource{}
+	modeSources := map[string]domain.ModeSource{}
 	var result *domain.StreamResult
 
 	for _, m := range []string{"sub", "dub"} {
@@ -172,17 +151,17 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 				continue
 			}
 
-			var subItems []SubtitleItem
+			var subItems []domain.SubtitleItem
 			for _, sub := range res.Subtitles {
 				subToken, _ := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
-				subItems = append(subItems, SubtitleItem{
+				subItems = append(subItems, domain.SubtitleItem{
 					Lang:  sub.Label,
 					Token: subToken,
 				})
 			}
 
 			streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
-			modeSources[m] = ModeSource{
+			modeSources[m] = domain.ModeSource{
 				URL:       res.URL,
 				Referer:   res.Referer,
 				Token:     streamToken,
@@ -197,11 +176,11 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	if len(modeSources) == 0 {
-		return nil, fmt.Errorf("no streams found")
+		return domain.WatchPageData{}, fmt.Errorf("no streams found")
 	}
 
 	if result == nil {
-		return nil, fmt.Errorf("no streams found for mode %s", mode)
+		return domain.WatchPageData{}, fmt.Errorf("no streams found for mode %s", mode)
 	}
 
 	// 3. Get start time from progress
@@ -248,17 +227,11 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 
 	// 6. Resolve relations/seasons
 	relations, _ := s.jikan.GetFullRelations(ctx, animeID)
-	type SeasonEntry struct {
-		MalID     int    `json:"mal_id"`
-		Title     string `json:"title"`
-		Prefix    string `json:"prefix"`
-		IsCurrent bool   `json:"is_current"`
-	}
-	var seasons []SeasonEntry
+	var seasons []domain.SeasonEntry
 	tvCounter := 1
 	for _, rel := range relations {
 		if strings.ToLower(rel.Anime.Type) == "tv" || strings.ToLower(rel.Anime.Type) == "movie" {
-			seasons = append(seasons, SeasonEntry{
+			seasons = append(seasons, domain.SeasonEntry{
 				MalID:     rel.Anime.MalID,
 				Title:     rel.Anime.DisplayTitle(),
 				Prefix:    rel.Relation,
@@ -274,19 +247,19 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	// Final assembly
 	segments := s.fetchSkipSegments(ctx, userID, animeID, episode)
 
-	watchData := map[string]any{
-		"MalID":            animeID,
-		"Title":            anime.DisplayTitle(),
-		"CurrentEpisode":   episode,
-		"StartTimeSeconds": startTime,
-		"Episodes":         canonicalEpisodes.Episodes,
-		"Providers": []domain.ProviderData{
+	watchData := domain.WatchData{
+		MalID:            animeID,
+		Title:            anime.DisplayTitle(),
+		CurrentEpisode:   episode,
+		StartTimeSeconds: startTime,
+		Episodes:         canonicalEpisodes.Episodes,
+		Providers: []domain.ProviderData{
 			{Streams: streams},
 		},
-		"ModeSources":      modeSources,
-		"InitialMode":      mode,
-		"ModeSwitchedFrom": modeSwitchedFrom,
-		"AvailableModes": func() []string {
+		ModeSources:      modeSources,
+		InitialMode:      mode,
+		ModeSwitchedFrom: modeSwitchedFrom,
+		AvailableModes: func() []string {
 			var modes []string
 			for m := range modeSources {
 				modes = append(modes, m)
@@ -294,17 +267,17 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			sort.Strings(modes)
 			return modes
 		}(),
-		"Segments": segments,
+		Segments: segments,
 	}
 
-	return map[string]any{
-		"WatchData":       watchData,
-		"Anime":           anime,
-		"Episodes":        canonicalEpisodes.Episodes,
-		"CurrentEpID":     episode,
-		"WatchlistStatus": watchlistStatus,
-		"WatchlistIDs":    watchlistIDs,
-		"Seasons":         seasons,
+	return domain.WatchPageData{
+		WatchData:       watchData,
+		Anime:           anime,
+		Episodes:        canonicalEpisodes.Episodes,
+		CurrentEpID:     episode,
+		WatchlistStatus: watchlistStatus,
+		WatchlistIDs:    watchlistIDs,
+		Seasons:         seasons,
 	}, nil
 }
 
@@ -385,31 +358,31 @@ func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID 
 	})
 }
 
-func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, malID int, episode string) []SkipSegment {
+func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, malID int, episode string) []domain.SkipSegment {
 	if malID <= 0 || strings.TrimSpace(episode) == "" {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 
 	endpoint := fmt.Sprintf("https://api.aniskip.com/v1/skip-times/%s/%s?types=op&types=ed", url.PathEscape(strconv.Itoa(malID)), url.PathEscape(episode))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 	req.Header.Set("User-Agent", useragent.Generic)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.KiB512))
 	if err != nil {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 
 	type resultItem struct {
@@ -426,14 +399,14 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 
 	var parsed apiResponse
 	if err := json.Unmarshal(body, &parsed); err != nil {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 
 	if !parsed.Found || len(parsed.Result) == 0 {
-		return []SkipSegment{}
+		return []domain.SkipSegment{}
 	}
 
-	segments := make([]SkipSegment, 0, len(parsed.Result))
+	segments := make([]domain.SkipSegment, 0, len(parsed.Result))
 	for _, r := range parsed.Result {
 		skipType := strings.ToLower(r.SkipType)
 		switch skipType {
@@ -442,7 +415,7 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 		case "ed":
 			skipType = "ending"
 		}
-		segments = append(segments, SkipSegment{
+		segments = append(segments, domain.SkipSegment{
 			Type:  skipType,
 			Start: r.Interval.StartTime,
 			End:   r.Interval.EndTime,
@@ -454,7 +427,7 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 		if ok, err := s.repo.HasSkipSegmentOverrideTable(ctx); err == nil && ok {
 			if overrides, err := s.repo.ListSkipSegmentOverrides(ctx, userID, int64(malID), epNum); err == nil {
 				// Build map keyed by normalized type ("opening"/"ending")
-				overrideByType := make(map[string]SkipSegment, len(overrides))
+				overrideByType := make(map[string]domain.SkipSegment, len(overrides))
 				for _, o := range overrides {
 					t := strings.ToLower(strings.TrimSpace(o.SkipType))
 					switch t {
@@ -465,10 +438,10 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 					default:
 						continue
 					}
-					overrideByType[t] = SkipSegment{Type: t, Start: o.StartTime, End: o.EndTime}
+					overrideByType[t] = domain.SkipSegment{Type: t, Start: o.StartTime, End: o.EndTime}
 				}
 				if len(overrideByType) > 0 {
-					merged := make([]SkipSegment, 0, len(segments)+len(overrideByType))
+					merged := make([]domain.SkipSegment, 0, len(segments)+len(overrideByType))
 					seen := map[string]bool{}
 					for _, seg := range segments {
 						if o, ok := overrideByType[seg.Type]; ok {

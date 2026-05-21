@@ -101,14 +101,11 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 		return
 	}
 
-	watchlistMap := map[int64]bool{}
-	if animes, ok := data["Animes"].([]domain.Anime); ok {
-		watchlistMap = h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
-	}
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
 
-	data["Section"] = section
-	data["_fragment"] = "catalog_section"
-	data["WatchlistMap"] = watchlistMap
+	data.Section = section
+	data.Fragment = "catalog_section"
+	data.WatchlistMap = watchlistMap
 	c.HTML(http.StatusOK, "index.gohtml", data)
 }
 
@@ -143,14 +140,11 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 		return
 	}
 
-	watchlistMap := map[int64]bool{}
-	if animes, ok := data["Animes"].([]domain.Anime); ok {
-		watchlistMap = h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
-	}
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
 
-	data["Section"] = section
-	data["_fragment"] = "discover_section"
-	data["WatchlistMap"] = watchlistMap
+	data.Section = section
+	data.Fragment = "discover_section"
+	data.WatchlistMap = watchlistMap
 	c.HTML(http.StatusOK, "discover.gohtml", data)
 }
 

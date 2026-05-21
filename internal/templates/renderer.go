@@ -205,6 +205,10 @@ type HTMLRender struct {
 	Data     any
 }
 
+type templateFragmentData interface {
+	TemplateFragment() string
+}
+
 func (h HTMLRender) Render(w http.ResponseWriter) error {
 	tmpl, ok := h.Renderer.templates[h.Name]
 	if !ok {
@@ -219,6 +223,8 @@ func (h HTMLRender) Render(w http.ResponseWriter) error {
 		block = dataMap["_fragment"]
 	} else if ginH, ok := h.Data.(gin.H); ok {
 		block = ginH["_fragment"]
+	} else if fragmentData, ok := h.Data.(templateFragmentData); ok {
+		block = fragmentData.TemplateFragment()
 	}
 
 	if blockStr, ok := block.(string); ok && blockStr != "" {

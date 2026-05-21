@@ -7,7 +7,6 @@ import (
 	"mal/pkg/net/limits"
 	"mal/pkg/net/proxytransport"
 	"mal/pkg/net/useragent"
-	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -61,26 +60,25 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 	data, err := h.svc.BuildWatchData(c.Request.Context(), id, []string{}, ep, mode, userID)
 	if err != nil {
 		anime, _ := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
-		c.HTML(http.StatusOK, "watch.gohtml", gin.H{
-			"Error":       err.Error(),
-			"Anime":       anime,
-			"Episodes":    []domain.EpisodeData{},
-			"CurrentPath": c.Request.URL.Path,
-			"User":        user,
-			"CurrentEpID": ep,
-			"WatchData":   map[string]any{"Episodes": []domain.EpisodeData{}, "Providers": []any{}},
+		c.HTML(http.StatusOK, "watch.gohtml", domain.WatchPageData{
+			Error:       err.Error(),
+			Anime:       anime,
+			Episodes:    []domain.CanonicalEpisode{},
+			CurrentPath: c.Request.URL.Path,
+			User:        currentUser(user),
+			CurrentEpID: ep,
+			WatchData: domain.WatchData{
+				Episodes:  []domain.CanonicalEpisode{},
+				Providers: []domain.ProviderData{},
+			},
 		})
 		return
 	}
 
-	// Merge data from service with handler-specific context
-	responseData := gin.H{
-		"User":        user,
-		"CurrentPath": c.Request.URL.Path,
-	}
-	maps.Copy(responseData, data)
+	data.User = currentUser(user)
+	data.CurrentPath = c.Request.URL.Path
 
-	c.HTML(http.StatusOK, "watch.gohtml", responseData)
+	c.HTML(http.StatusOK, "watch.gohtml", data)
 }
 
 // HandleEpisodeData returns the minimal payload needed to advance to the next
@@ -112,37 +110,34 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 		return
 	}
 
-	watchData, _ := data["WatchData"].(map[string]any)
-	if watchData == nil {
-		c.Status(http.StatusInternalServerError)
-		return
-	}
-
-	modeSources := watchData["ModeSources"]
-	availableModes, _ := watchData["AvailableModes"].([]string)
-	segments := watchData["Segments"]
+	watchData := data.WatchData
 
 	// Try to resolve a title for this episode from the episode list.
 	episodeTitle := ""
-	if eps, ok := watchData["Episodes"].([]domain.CanonicalEpisode); ok {
-		epNum, _ := strconv.Atoi(episode)
-		for _, e := range eps {
-			if e.Number == epNum {
-				episodeTitle = e.Title
-				break
-			}
+	epNum, _ := strconv.Atoi(episode)
+	for _, e := range watchData.Episodes {
+		if e.Number == epNum {
+			episodeTitle = e.Title
+			break
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"mode_sources":       modeSources,
-		"available_modes":    availableModes,
-		"initial_mode":       watchData["InitialMode"],
-		"start_time_seconds": watchData["StartTimeSeconds"],
-		"segments":           segments,
+		"mode_sources":       watchData.ModeSources,
+		"available_modes":    watchData.AvailableModes,
+		"initial_mode":       watchData.InitialMode,
+		"start_time_seconds": watchData.StartTimeSeconds,
+		"segments":           watchData.Segments,
 		"episode_title":      episodeTitle,
-		"mode_switched_from": watchData["ModeSwitchedFrom"],
+		"mode_switched_from": watchData.ModeSwitchedFrom,
 	})
+}
+
+func currentUser(value any) *domain.User {
+	if user, ok := value.(*domain.User); ok {
+		return user
+	}
+	return nil
 }
 
 func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {

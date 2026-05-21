@@ -20,7 +20,7 @@ func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) domain.An
 	return &animeService{jikan: jikan, repo: repo}
 }
 
-func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (map[string]any, error) {
+func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (domain.CatalogSectionData, error) {
 	var (
 		res jikan.TopAnimeResult
 		cw  []db.GetContinueWatchingEntriesRow
@@ -48,7 +48,7 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 	}
 
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return domain.CatalogSectionData{}, err
 	}
 
 	animes := res.Animes
@@ -56,13 +56,13 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 		animes = animes[:6]
 	}
 
-	return map[string]any{
-		"Animes":           animes,
-		"ContinueWatching": cw,
+	return domain.CatalogSectionData{
+		Animes:           animes,
+		ContinueWatching: cw,
 	}, nil
 }
 
-func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, section string) (map[string]any, error) {
+func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, section string) (domain.DiscoverSectionData, error) {
 	var res jikan.TopAnimeResult
 
 	g, gCtx := errgroup.WithContext(ctx)
@@ -81,7 +81,7 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 	})
 
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return domain.DiscoverSectionData{}, err
 	}
 
 	animes := res.Animes
@@ -89,8 +89,8 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 		animes = animes[:8]
 	}
 
-	return map[string]any{
-		"Animes": animes,
+	return domain.DiscoverSectionData{
+		Animes: animes,
 	}, nil
 }
 
