@@ -45,7 +45,7 @@ func (r *authRepository) CreateSession(ctx context.Context, userID string, sessi
 	s, err := r.queries.CreateSession(ctx, db.CreateSessionParams{
 		ID:        sessionID,
 		UserID:    userID,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		ExpiresAt: time.Now().Add(domain.SessionLifetime),
 	})
 	if err != nil {
 		return nil, err
@@ -62,6 +62,13 @@ func (r *authRepository) GetSession(ctx context.Context, sessionID string) (*dom
 		return nil, err
 	}
 	return &s, nil
+}
+
+func (r *authRepository) RefreshSession(ctx context.Context, sessionID string, expiresAt time.Time) error {
+	return r.queries.RefreshSession(ctx, db.RefreshSessionParams{
+		ExpiresAt: expiresAt,
+		ID:        sessionID,
+	})
 }
 
 func (r *authRepository) DeleteSession(ctx context.Context, sessionID string) error {

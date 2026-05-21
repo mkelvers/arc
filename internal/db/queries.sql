@@ -15,6 +15,11 @@ SELECT * FROM session WHERE id = ? LIMIT 1;
 -- name: DeleteSession :exec
 DELETE FROM session WHERE id = ?;
 
+-- name: RefreshSession :exec
+UPDATE session
+SET expires_at = ?
+WHERE id = ?;
+
 -- name: CreateAPIToken :one
 INSERT INTO api_token (id, user_id, token_hash, name)
 VALUES (?, ?, ?, ?)

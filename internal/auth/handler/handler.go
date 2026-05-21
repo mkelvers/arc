@@ -3,7 +3,6 @@ package handler
 import (
 	"mal/internal/domain"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,7 +41,7 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("session_id", session.ID, int(24*time.Hour.Seconds()), "/", "", false, true)
+	c.SetCookie("session_id", session.ID, int(domain.SessionLifetime.Seconds()), "/", "", false, true)
 	if c.GetHeader("HX-Request") == "true" {
 		c.Header("HX-Redirect", "/")
 		c.Status(http.StatusOK)

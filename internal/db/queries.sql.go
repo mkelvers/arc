@@ -124,6 +124,22 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 	return err
 }
 
+const refreshSession = `-- name: RefreshSession :exec
+UPDATE session
+SET expires_at = ?
+WHERE id = ?
+`
+
+type RefreshSessionParams struct {
+	ExpiresAt time.Time `json:"expires_at"`
+	ID        string    `json:"id"`
+}
+
+func (q *Queries) RefreshSession(ctx context.Context, arg RefreshSessionParams) error {
+	_, err := q.db.ExecContext(ctx, refreshSession, arg.ExpiresAt, arg.ID)
+	return err
+}
+
 const deleteWatchListEntry = `-- name: DeleteWatchListEntry :exec
 DELETE FROM watch_list_entry
 WHERE user_id = ? AND anime_id = ?

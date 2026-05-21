@@ -23,6 +23,8 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 
 		var user *domain.User
 		var err error
+		var sessionID string
+		var usesCookieSession bool
 
 		// API routes can authenticate via Bearer token OR cookie session.
 		if strings.HasPrefix(path, "/api/") {
@@ -30,7 +32,9 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
 				token := strings.TrimSpace(authHeader[7:])
 				user, err = svc.ValidateAPIToken(c.Request.Context(), token)
-			} else if sessionID, cookieErr := c.Cookie("session_id"); cookieErr == nil {
+			} else if cookieSessionID, cookieErr := c.Cookie("session_id"); cookieErr == nil {
+				sessionID = cookieSessionID
+				usesCookieSession = true
 				user, err = svc.ValidateSession(c.Request.Context(), sessionID)
 			} else {
 				err = cookieErr
@@ -43,18 +47,26 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 			}
 		} else {
 			// Non-API routes only use cookie sessions and redirect to /login.
-			sessionID, cookieErr := c.Cookie("session_id")
+			cookieSessionID, cookieErr := c.Cookie("session_id")
 			if cookieErr != nil {
 				c.Redirect(http.StatusSeeOther, "/login")
 				c.Abort()
 				return
 			}
 
+			sessionID = cookieSessionID
+			usesCookieSession = true
 			user, err = svc.ValidateSession(c.Request.Context(), sessionID)
 			if err != nil || user == nil {
 				c.Redirect(http.StatusSeeOther, "/login")
 				c.Abort()
 				return
+			}
+		}
+
+		if usesCookieSession {
+			if refreshErr := svc.RefreshSession(c.Request.Context(), sessionID); refreshErr == nil {
+				c.SetCookie("session_id", sessionID, int(domain.SessionLifetime.Seconds()), "/", "", false, true)
 			}
 		}
 

@@ -83,6 +83,14 @@ func (s *authService) ValidateSession(ctx context.Context, sessionID string) (*d
 	return s.repo.GetUserByID(ctx, session.UserID)
 }
 
+func (s *authService) RefreshSession(ctx context.Context, sessionID string) error {
+	if strings.TrimSpace(sessionID) == "" {
+		return errors.New("session id missing")
+	}
+
+	return s.repo.RefreshSession(ctx, sessionID, time.Now().Add(domain.SessionLifetime))
+}
+
 func (s *authService) ValidateAPIToken(ctx context.Context, token string) (*domain.User, error) {
 	trimmed := strings.TrimSpace(token)
 	if trimmed == "" {
