@@ -205,7 +205,7 @@ func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
 		userID = u.ID
 	}
 	if userID == "" {
-		c.Status(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "login required"})
 		return
 	}
 
@@ -217,12 +217,12 @@ func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
 		EndTime   float64 `json:"end_time"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Status(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
 	if err := h.svc.UpsertSkipSegmentOverride(c.Request.Context(), userID, req.MalID, req.Episode, req.SkipType, req.StartTime, req.EndTime); err != nil {
-		c.Status(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

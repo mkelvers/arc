@@ -140,7 +140,12 @@ export const setupSegmentEditor = (): void => {
         }),
       });
       if (!res.ok) {
-        setError(res.status === 401 ? 'Login required.' : 'Failed to save segment.');
+        let message = res.status === 401 ? 'Login required.' : 'Failed to save segment.';
+        try {
+          const payload = (await res.json()) as { error?: string };
+          if (payload?.error) message = payload.error;
+        } catch {}
+        setError(message);
         return;
       }
 
