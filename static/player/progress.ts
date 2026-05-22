@@ -22,6 +22,8 @@ const sendBeacon = (payload: string) => {
  */
 export const saveProgress = async (): Promise<void> => {
   if (state.transitionEpisode !== null || !state.malID || state.video.currentTime < 1) return;
+  // progress is user-scoped; avoid spamming 401s for anonymous sessions
+  if (!document.cookie.includes('mal_session=')) return;
   const episode = Number.parseInt(state.currentEpisode, 10);
   if (!episode) return;
 
@@ -60,6 +62,8 @@ const scheduleProgressSave = (): void => {
  */
 export const markEpisodeTransition = (episodeNumber: number): void => {
   if (!state.malID || !episodeNumber) return;
+  // progress is user-scoped; avoid sending beacons for anonymous sessions
+  if (!document.cookie.includes('mal_session=')) return;
   if (state.progressSaveTimer !== undefined) {
     window.clearTimeout(state.progressSaveTimer);
     state.progressSaveTimer = undefined;
@@ -102,6 +106,7 @@ export const setupProgress = (): void => {
   // save on page close
   window.addEventListener('beforeunload', () => {
     if (state.transitionEpisode !== null || state.completionSent || !state.malID) return;
+    if (!document.cookie.includes('mal_session=')) return;
     const episode = Number.parseInt(state.currentEpisode, 10);
     if (!episode) return;
     sendBeacon(buildPayload(episode, displayTimeFromAbsolute(state.video.currentTime)));

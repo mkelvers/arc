@@ -27,12 +27,16 @@ export const resolveActiveSegments = (): void => {
   state.activeSegments = state.parsedSegments.filter(s => {
     const t = normalizeType(s.type);
     if (!t) return false;
+    const isOverride = (s.source || '').toLowerCase() === 'override';
 
     const len = s.end - s.start;
     // duration filter
     if (len < MIN_SEGMENT_DURATION || len > MAX_SEGMENT_DURATION) return false;
     // bounds check
     if (s.start < 0 || s.end <= s.start || s.end > bounds + 1) return false;
+
+    // User overrides should render even if they don't fit AniSkip's usual OP/ED heuristics.
+    if (isOverride) return true;
 
     // intro: starts early, before 50% of video
     if (t === 'op') {

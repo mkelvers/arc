@@ -16,6 +16,7 @@ export interface SkipSegment {
   type: string; // 'op' or 'ed'
   start: number;
   end: number;
+  source?: string;
 }
 
 // parsed subtitle cue from VTT
@@ -37,6 +38,7 @@ export interface ActiveSegment {
   type: string;
   start: number;
   end: number;
+  source?: string;
 }
 
 // timeline range (handles seekable ranges in live streams)

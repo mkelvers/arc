@@ -63,9 +63,10 @@ type SeasonEntry struct {
 }
 
 type SkipSegment struct {
-	Type  string  `json:"type"`
-	Start float64 `json:"start"`
-	End   float64 `json:"end"`
+	Type   string  `json:"type"`
+	Start  float64 `json:"start"`
+	End    float64 `json:"end"`
+	Source string  `json:"source,omitempty"`
 }
 
 type ProviderStream struct {

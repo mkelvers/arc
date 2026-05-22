@@ -151,10 +151,16 @@ export const setupSegmentEditor = (): void => {
         if (normalizedType === 'ending') return t !== 'ed' && t !== 'ending' && t !== 'outro';
         return t !== 'op' && t !== 'opening' && t !== 'intro';
       });
-      state.parsedSegments.push({ type: normalizedType, start: startTime, end: endTime });
+      state.parsedSegments.push({
+        type: normalizedType,
+        start: startTime,
+        end: endTime,
+        source: 'override',
+      });
       resolveActiveSegments();
       renderSegments();
 
+      window.showToast?.({ message: 'Segment saved.' });
       close();
     } catch {
       setError('Failed to save segment.');

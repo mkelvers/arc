@@ -146,6 +146,11 @@ func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
 	if u, ok := user.(*domain.User); ok {
 		userID = u.ID
 	}
+	if userID == "" {
+		// Avoid spamming 500s for anonymous playback; progress is user-scoped.
+		c.Status(http.StatusUnauthorized)
+		return
+	}
 
 	var req struct {
 		MalID       int64   `json:"mal_id"`
