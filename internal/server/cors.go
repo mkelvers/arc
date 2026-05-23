@@ -32,9 +32,6 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 func isAllowedOrigin(origin string) bool {
-	if strings.HasPrefix(origin, "moz-extension://") {
-		return true
-	}
 	if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "https://localhost:") {
 		return true
 	}
