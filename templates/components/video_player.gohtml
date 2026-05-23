@@ -78,14 +78,14 @@
                 <div class="flex items-center justify-between px-5 py-2.5">
                   <span class="text-[15px] font-medium text-foreground">Autoplay</span>
                   <label class="relative inline-flex cursor-pointer items-center">
-                    <input type="checkbox" data-autoplay class="peer sr-only" checked />
+                    <input id="player-autoplay" type="checkbox" data-autoplay class="peer sr-only" checked />
                     <div class="peer-checked:bg-accent peer h-5 w-9 rounded-full bg-foreground-muted/20 transition-colors after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
                   </label>
                 </div>
                 <div class="flex items-center justify-between px-5 py-2.5">
                   <span class="text-[15px] font-medium text-foreground">Auto-skip</span>
                   <label class="relative inline-flex cursor-pointer items-center">
-                    <input type="checkbox" data-autoskip class="peer sr-only" />
+                    <input id="player-autoskip" type="checkbox" data-autoskip class="peer sr-only" />
                     <div class="peer-checked:bg-accent peer h-5 w-9 rounded-full bg-foreground-muted/20 transition-colors after:absolute after:top-[2px] after:left-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
                   </label>
                 </div>
@@ -101,11 +101,11 @@
                     </button>
                     <div class="hidden px-5 py-2 flex flex-col gap-1">
                       <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Subtitles</span>
-                      <select data-subtitle-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent"></select>
+                      <select id="player-subtitle-select" data-subtitle-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent"></select>
                     </div>
                     <div class="hidden px-5 py-2 flex flex-col gap-1">
                       <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Quality</span>
-                      <select data-quality-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent"></select>
+                      <select id="player-quality-select" data-quality-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent"></select>
                     </div>
                   </div>
                 </div>

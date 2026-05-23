@@ -89,11 +89,11 @@
 
         <div class="px-4 py-4 flex flex-col gap-4">
           <div class="flex items-center gap-3">
-            <label class="text-xs text-foreground-muted w-12">Type</label>
+            <label for="segment-type-trigger" class="text-xs text-foreground-muted w-12">Type</label>
             <input type="hidden" data-segment-type-value value="ed" />
             <ui-dropdown class="relative block flex-1" data-align="left" data-width="w-full">
               <div data-trigger>
-                <button type="button" data-segment-type-trigger class="w-full flex items-center justify-between px-3 py-2 bg-background-button border border-border text-sm text-foreground hover:bg-surface-hover transition-colors">
+                <button id="segment-type-trigger" type="button" data-segment-type-trigger class="w-full flex items-center justify-between px-3 py-2 bg-background-button border border-border text-sm text-foreground hover:bg-surface-hover transition-colors">
                   <span data-segment-type-label>Ending (ED)</span>
                   <svg class="w-4 h-4 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6" /></svg>
                 </button>
@@ -179,7 +179,7 @@
         <div class="flex items-center justify-between">
           <span class="text-sm font-normal text-foreground-muted">Episodes</span>
           {{if gt $totalEpisodes 100}}
-            <input type="text" placeholder="Find" data-episode-search class="w-24 bg-background-surface text-sm px-3 py-1.5 rounded border border-border text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent" />
+            <input id="episode-search" type="text" name="episode-search" placeholder="Find" data-episode-search class="w-24 bg-background-surface text-sm px-3 py-1.5 rounded border border-border text-foreground placeholder-foreground-muted focus:outline-none focus:border-accent" />
           {{end}}
         </div>
 

@@ -30,7 +30,7 @@
     <input type="hidden" name="sfw" value="{{.SFW}}" data-sfw-value>
     {{range $g := .Genres}}<input type="hidden" name="genres" value="{{$g}}">{{end}}
     <label class="flex cursor-pointer items-center gap-2">
-      <input type="checkbox" class="sr-only" {{if .SFW}}checked{{end}} onchange="this.form.querySelector('[data-sfw-value]').value = this.checked; const box = this.nextElementSibling; box.classList.toggle('border-accent', this.checked); box.classList.toggle('bg-accent', this.checked); box.classList.toggle('border-border', !this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
+      <input id="filter-sfw" type="checkbox" class="sr-only" {{if .SFW}}checked{{end}} onchange="this.form.querySelector('[data-sfw-value]').value = this.checked; const box = this.nextElementSibling; box.classList.toggle('border-accent', this.checked); box.classList.toggle('bg-accent', this.checked); box.classList.toggle('border-border', !this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
       <div class="flex h-4 w-4 items-center justify-center border-2 transition-colors {{if .SFW}}border-accent bg-accent{{else}}border-border bg-transparent{{end}}">
         <svg class="{{if not .SFW}}hidden {{end}}h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
       </div>
@@ -57,7 +57,7 @@
           {{$genreID := .MalID}}
           {{$isSelected := hasGenre $genreID $selectedGenreIDs}}
           <label class="flex cursor-pointer items-center gap-3 px-2 py-1.5 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground">
-            <input type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" {{if $isSelected}}checked{{end}} onchange="const box = this.nextElementSibling; box.classList.toggle('border-accent', this.checked); box.classList.toggle('bg-accent', this.checked); box.classList.toggle('border-border', !this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
+            <input id="genre-{{.MalID}}" type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" {{if $isSelected}}checked{{end}} onchange="const box = this.nextElementSibling; box.classList.toggle('border-accent', this.checked); box.classList.toggle('bg-accent', this.checked); box.classList.toggle('border-border', !this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
             <div class="flex h-4 w-4 items-center justify-center border-2 transition-colors {{if $isSelected}}border-accent bg-accent{{else}}border-border bg-transparent{{end}}">
               <svg class="{{if not $isSelected}}hidden {{end}}h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
             </div>
