@@ -158,6 +158,9 @@ func logJikanCache(cacheKey string, source string, startedAt time.Time, err erro
 	level := observability.LogLevelInfo
 	if err != nil {
 		level = observability.LogLevelError
+	} else if source != "fresh" && source != "refresh" {
+		// Stale reads are expected sometimes, but worth tracking in logs.
+		level = observability.LogLevelWarn
 	}
 
 	observability.LogJSON(
@@ -181,8 +184,10 @@ func logJikanUpstream(urlStr string, statusCode int, attempts int, startedAt tim
 	}
 
 	level := observability.LogLevelInfo
-	if err != nil || statusCode >= http.StatusBadRequest {
+	if err != nil || statusCode >= http.StatusInternalServerError {
 		level = observability.LogLevelError
+	} else if statusCode == http.StatusTooManyRequests || statusCode >= http.StatusBadRequest {
+		level = observability.LogLevelWarn
 	}
 
 	observability.LogJSON(

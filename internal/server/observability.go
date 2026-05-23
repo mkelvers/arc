@@ -23,8 +23,16 @@ func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
 		duration := time.Since(start)
 		metrics.ObserveHTTPRequest(c.Request.Method, route, c.Writer.Status(), duration)
 
+		level := observability.LogLevelInfo
+		status := c.Writer.Status()
+		if status >= 500 {
+			level = observability.LogLevelError
+		} else if status >= 400 {
+			level = observability.LogLevelWarn
+		}
+
 		observability.LogJSON(
-			observability.LogLevelInfo,
+			level,
 			"http_request",
 			"http",
 			"",
@@ -33,7 +41,7 @@ func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
 				"route":       route,
 				"path":        path,
 				"query":       query,
-				"status":      c.Writer.Status(),
+				"status":      status,
 				"duration_ms": float64(duration.Microseconds()) / 1000,
 				"bytes":       c.Writer.Size(),
 				"client_ip":   c.ClientIP(),
