@@ -10,6 +10,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"sort"
 	"strings"
 	"time"
@@ -34,19 +35,21 @@ type EpisodeService struct {
 	providers []domain.EpisodeAvailabilityProvider
 	clock     Clock
 	enabled   bool
+	metrics   *observability.Metrics
 }
 
-func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool) domain.EpisodeService {
-	return NewEpisodeServiceWithClock(queries, jikanClient, providers, enabled, realClock{})
+func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, metrics *observability.Metrics) domain.EpisodeService {
+	return NewEpisodeServiceWithClock(queries, jikanClient, providers, enabled, realClock{}, metrics)
 }
 
-func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, clock Clock) *EpisodeService {
+func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, clock Clock, metrics *observability.Metrics) *EpisodeService {
 	return &EpisodeService{
 		queries:   queries,
 		jikan:     jikanClient,
 		providers: providers,
 		clock:     clock,
 		enabled:   enabled,
+		metrics:   metrics,
 	}
 }
 
@@ -143,14 +146,20 @@ func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, pro
 	})
 	if err == nil {
 		if row.FailedUntil.Valid && row.FailedUntil.Time.After(s.clock.Now()) {
+			s.metrics.ObserveCache("episode_provider_mapping", "hit")
 			return "", fmt.Errorf("cached provider mapping failure active until %s: %s", row.FailedUntil.Time.Format(time.RFC3339), row.LastError)
 		}
 		if strings.TrimSpace(row.ProviderShowID) != "" {
+			s.metrics.ObserveCache("episode_provider_mapping", "hit")
 			log.Printf("episodes: provider id cache hit anime_id=%d provider=%s provider_id=%s", anime.MalID, provider.Name(), row.ProviderShowID)
 			return row.ProviderShowID, nil
 		}
+		s.metrics.ObserveCache("episode_provider_mapping", "miss")
 	} else if !errors.Is(err, sql.ErrNoRows) {
+		s.metrics.ObserveCache("episode_provider_mapping", "miss")
 		log.Printf("episodes: provider id cache read failed anime_id=%d provider=%s error=%v", anime.MalID, provider.Name(), err)
+	} else {
+		s.metrics.ObserveCache("episode_provider_mapping", "miss")
 	}
 
 	providerID, err := provider.ResolveEpisodeProviderID(ctx, anime.MalID, titles)
@@ -256,31 +265,38 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 func (s *EpisodeService) getCached(ctx context.Context, animeID int) (domain.CanonicalEpisodeList, bool) {
 	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(animeID))
 	if err != nil {
+		s.metrics.ObserveCache("episode_availability", "miss")
 		return domain.CanonicalEpisodeList{}, false
 	}
 	var payload domain.CanonicalEpisodeList
 	if err := json.Unmarshal([]byte(row.Data), &payload); err != nil {
+		s.metrics.ObserveCache("episode_availability", "miss")
 		log.Printf("episodes: invalid cached payload anime_id=%d error=%v", animeID, err)
 		return domain.CanonicalEpisodeList{}, false
 	}
+	s.metrics.ObserveCache("episode_availability", "hit")
 	return payload, true
 }
 
 func (s *EpisodeService) getFreshCached(ctx context.Context, animeID int) (domain.CanonicalEpisodeList, bool) {
 	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(animeID))
 	if err != nil {
+		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		return domain.CanonicalEpisodeList{}, false
 	}
 	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(s.clock.Now()) {
+		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		log.Printf("episodes: cached availability due for refresh anime_id=%d next_refresh=%s", animeID, row.NextRefreshAt.Time.Format(time.RFC3339))
 		return domain.CanonicalEpisodeList{}, false
 	}
 
 	var payload domain.CanonicalEpisodeList
 	if err := json.Unmarshal([]byte(row.Data), &payload); err != nil {
+		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		log.Printf("episodes: invalid cached payload anime_id=%d error=%v", animeID, err)
 		return domain.CanonicalEpisodeList{}, false
 	}
+	s.metrics.ObserveCache("episode_availability_fresh", "hit")
 	log.Printf("episodes: served cached availability anime_id=%d episodes=%d next_refresh=%s", animeID, len(payload.Episodes), payload.NextRefreshAt)
 	return payload, true
 }

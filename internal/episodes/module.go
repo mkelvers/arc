@@ -9,6 +9,7 @@ import (
 	"mal/internal/db"
 	"mal/internal/domain"
 	episodeService "mal/internal/episodes/service"
+	"mal/internal/observability"
 
 	"go.uber.org/fx"
 )
@@ -22,10 +23,10 @@ var Module = fx.Options(
 	fx.Provide(
 		episodeAvailabilityEnabled,
 		fx.Annotate(
-			func(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool) domain.EpisodeService {
-				return episodeService.NewEpisodeService(queries, jikanClient, providers, enabled)
+			func(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, metrics *observability.Metrics) domain.EpisodeService {
+				return episodeService.NewEpisodeService(queries, jikanClient, providers, enabled, metrics)
 			},
-			fx.ParamTags(``, ``, ``, ``),
+			fx.ParamTags(``, ``, ``, ``, ``),
 		),
 	),
 	fx.Provide(func(p *allanime.AllAnimeProvider) []domain.EpisodeAvailabilityProvider {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"mal/internal/observability"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +43,7 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 	defer log.SetOutput(previousOutput)
 
 	router := gin.New()
-	router.Use(RequestLogger())
+	router.Use(RequestLogger(observability.NewMetrics()))
 	router.GET("/anime/:id", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"mal/internal/db"
+	"mal/internal/observability"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -29,6 +30,7 @@ type Client struct {
 	lastReqTime time.Time // rate limiting: last request timestamp
 	sf          singleflight.Group
 	refreshSem  chan struct{}
+	metrics     *observability.Metrics
 
 	// Random anime pool for DDoS-proof truly random "Surprise Me"
 	randomPool      []Anime
@@ -38,7 +40,7 @@ type Client struct {
 
 const jikanSlowLogThreshold = 750 * time.Millisecond
 
-func NewClient(queries *db.Queries) *Client {
+func NewClient(queries *db.Queries, metrics *observability.Metrics) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -51,6 +53,7 @@ func NewClient(queries *db.Queries) *Client {
 		},
 		baseURL:     "https://api.jikan.moe/v4",
 		db:          queries,
+		metrics:     metrics,
 		retrySignal: make(chan struct{}, 1),
 		refreshSem:  make(chan struct{}, 4),
 		randomPool:  make([]Anime, 0),
@@ -262,11 +265,18 @@ func (c *Client) getCache(parentCtx context.Context, key string, out any) bool {
 
 	data, err := c.db.GetJikanCache(ctx, key)
 	if err != nil {
+		c.metrics.ObserveCache("jikan", "miss")
 		return false
 	}
 
 	err = json.Unmarshal([]byte(data), out)
-	return err == nil
+	if err != nil {
+		c.metrics.ObserveCache("jikan", "miss")
+		return false
+	}
+
+	c.metrics.ObserveCache("jikan", "hit")
+	return true
 }
 
 // getStaleCache retrieves expired-but-available cache by key.
@@ -276,11 +286,18 @@ func (c *Client) getStaleCache(parentCtx context.Context, key string, out any) b
 
 	data, err := c.db.GetJikanCacheStale(ctx, key)
 	if err != nil {
+		c.metrics.ObserveCache("jikan_stale", "miss")
 		return false
 	}
 
 	err = json.Unmarshal([]byte(data), out)
-	return err == nil
+	if err != nil {
+		c.metrics.ObserveCache("jikan_stale", "miss")
+		return false
+	}
+
+	c.metrics.ObserveCache("jikan_stale", "hit")
+	return true
 }
 
 // setCache stores data in cache with specified TTL.
@@ -425,7 +442,9 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 	maxRetries := 5
 	startedAt := time.Now()
 	attempts := 0
+	endpoint := metricsEndpoint(urlStr)
 	logAndReturn := func(statusCode int, err error) error {
+		c.metrics.ObserveJikanRequest(endpoint, statusCode, time.Since(startedAt), err)
 		logJikanUpstream(urlStr, statusCode, attempts, startedAt, err)
 		return err
 	}
@@ -505,4 +524,39 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 	}
 
 	return logAndReturn(0, fmt.Errorf("max retries exceeded for %s", urlStr))
+}
+
+func metricsEndpoint(urlStr string) string {
+	trimmed := strings.TrimSpace(urlStr)
+	if trimmed == "" {
+		return "unknown"
+	}
+
+	prefix := "https://api.jikan.moe/v4"
+	if strings.HasPrefix(trimmed, prefix) {
+		trimmed = strings.TrimPrefix(trimmed, prefix)
+	}
+
+	if idx := strings.Index(trimmed, "?"); idx >= 0 {
+		trimmed = trimmed[:idx]
+	}
+
+	parts := strings.Split(trimmed, "/")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		if _, err := strconv.Atoi(part); err == nil {
+			out = append(out, "{id}")
+			continue
+		}
+		out = append(out, part)
+	}
+
+	if len(out) == 0 {
+		return "/"
+	}
+
+	return "/" + strings.Join(out, "/")
 }

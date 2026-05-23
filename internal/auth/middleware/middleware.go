@@ -16,6 +16,7 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 		if path == "/login" || path == "/logout" ||
 			strings.HasPrefix(path, "/static") ||
 			strings.HasPrefix(path, "/dist") ||
+			path == "/metrics" ||
 			path == "/api/auth/login" {
 			c.Next()
 			return

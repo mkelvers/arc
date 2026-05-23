@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"time"
 
 	"go.uber.org/fx"
@@ -11,7 +12,7 @@ import (
 
 const workerInterval = time.Minute
 
-func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService) {
+func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observability.Metrics) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lc.Append(fx.Hook{
@@ -23,7 +24,10 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService) {
 
 				for {
 					if err := svc.RefreshTrackedDue(ctx, 25); err != nil {
+						metrics.ObserveWorkerTick("episodes_availability", err)
 						log.Printf("episodes: availability worker tick failed error=%v", err)
+					} else {
+						metrics.ObserveWorkerTick("episodes_availability", nil)
 					}
 
 					select {

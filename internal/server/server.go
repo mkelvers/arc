@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log"
+	"mal/internal/observability"
 	"net/http"
 	"os"
 	"time"
@@ -13,18 +14,20 @@ import (
 )
 
 var Module = fx.Options(
+	fx.Provide(observability.NewMetrics),
 	fx.Provide(ProvideRouter),
 	fx.Invoke(RunServer),
 )
 
-func ProvideRouter(htmlRender render.HTMLRender) *gin.Engine {
+func ProvideRouter(htmlRender render.HTMLRender, metrics *observability.Metrics) *gin.Engine {
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddleware(), RequestLogger(), gin.Recovery())
+	r.Use(CORSMiddleware(), RequestLogger(metrics), gin.Recovery())
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
+	r.GET("/metrics", gin.WrapH(metrics.Handler()))
 	r.HTMLRender = htmlRender
 	return r
 }
