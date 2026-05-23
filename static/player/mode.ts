@@ -48,13 +48,13 @@ export const updateModeButtons = (): void => {
   const m = state.currentMode;
 
   dub?.classList.toggle('text-accent', m === 'dub');
-  dub?.classList.toggle('text-white', m !== 'dub');
+  dub?.classList.toggle('text-foreground', m !== 'dub');
   dub?.classList.toggle('opacity-50', !state.availableModes.includes('dub'));
   dub?.classList.toggle('cursor-not-allowed', !state.availableModes.includes('dub'));
   dub && (dub.disabled = !state.availableModes.includes('dub'));
 
   sub?.classList.toggle('text-accent', m === 'sub');
-  sub?.classList.toggle('text-white', m !== 'sub');
+  sub?.classList.toggle('text-foreground', m !== 'sub');
   sub?.classList.toggle('opacity-50', !state.availableModes.includes('sub'));
   sub?.classList.toggle('cursor-not-allowed', !state.availableModes.includes('sub'));
   sub && (sub.disabled = !state.availableModes.includes('sub'));
