@@ -1,9 +1,7 @@
 package server
 
 import (
-	"log"
 	"mal/internal/observability"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,17 +23,23 @@ func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
 		duration := time.Since(start)
 		metrics.ObserveHTTPRequest(c.Request.Method, route, c.Writer.Status(), duration)
 
-		log.Printf(
-			"http_request method=%s route=%s path=%s query=%s status=%d duration_ms=%.2f bytes=%d client_ip=%s errors=%s",
-			c.Request.Method,
-			strconv.Quote(route),
-			strconv.Quote(path),
-			strconv.Quote(query),
-			c.Writer.Status(),
-			float64(duration.Microseconds())/1000,
-			c.Writer.Size(),
-			strconv.Quote(c.ClientIP()),
-			strconv.Quote(c.Errors.ByType(gin.ErrorTypePrivate).String()),
+		observability.LogJSON(
+			observability.LogLevelInfo,
+			"http_request",
+			"http",
+			"",
+			map[string]any{
+				"method":      c.Request.Method,
+				"route":       route,
+				"path":        path,
+				"query":       query,
+				"status":      c.Writer.Status(),
+				"duration_ms": float64(duration.Microseconds()) / 1000,
+				"bytes":       c.Writer.Size(),
+				"client_ip":   c.ClientIP(),
+				"errors":      c.Errors.ByType(gin.ErrorTypePrivate).String(),
+			},
+			nil,
 		)
 	}
 }

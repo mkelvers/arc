@@ -58,10 +58,13 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 	}
 
 	logLine := string(output)
-	if !strings.Contains(logLine, `route="/anime/:id"`) {
+	if !strings.Contains(logLine, `"event":"http_request"`) {
+		t.Fatalf("log line missing event: %s", logLine)
+	}
+	if !strings.Contains(logLine, `"route":"/anime/:id"`) {
 		t.Fatalf("log line missing route: %s", logLine)
 	}
-	if !strings.Contains(logLine, `status=200`) {
+	if !strings.Contains(logLine, `"status":200`) {
 		t.Fatalf("log line missing status: %s", logLine)
 	}
 }

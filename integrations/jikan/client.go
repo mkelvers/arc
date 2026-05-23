@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -156,17 +155,22 @@ func logJikanCache(cacheKey string, source string, startedAt time.Time, err erro
 		return
 	}
 
-	errorValue := ""
+	level := observability.LogLevelInfo
 	if err != nil {
-		errorValue = err.Error()
+		level = observability.LogLevelError
 	}
 
-	log.Printf(
-		"jikan_cache key=%s source=%s duration_ms=%.2f error=%s",
-		strconv.Quote(cacheKey),
-		source,
-		float64(duration.Microseconds())/1000,
-		strconv.Quote(errorValue),
+	observability.LogJSON(
+		level,
+		"jikan_cache",
+		"jikan",
+		"",
+		map[string]any{
+			"cache_key":   cacheKey,
+			"source":      source,
+			"duration_ms": float64(duration.Microseconds()) / 1000,
+		},
+		err,
 	)
 }
 
@@ -176,18 +180,24 @@ func logJikanUpstream(urlStr string, statusCode int, attempts int, startedAt tim
 		return
 	}
 
-	errorValue := ""
-	if err != nil {
-		errorValue = err.Error()
+	level := observability.LogLevelInfo
+	if err != nil || statusCode >= http.StatusBadRequest {
+		level = observability.LogLevelError
 	}
 
-	log.Printf(
-		"jikan_upstream url=%s status=%d attempts=%d duration_ms=%.2f error=%s",
-		strconv.Quote(urlStr),
-		statusCode,
-		attempts,
-		float64(duration.Microseconds())/1000,
-		strconv.Quote(errorValue),
+	observability.LogJSON(
+		level,
+		"jikan_upstream",
+		"jikan",
+		"",
+		map[string]any{
+			"url":         urlStr,
+			"endpoint":    metricsEndpoint(urlStr),
+			"status":      statusCode,
+			"attempts":    attempts,
+			"duration_ms": float64(duration.Microseconds()) / 1000,
+		},
+		err,
 	)
 }
 
