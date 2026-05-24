@@ -57,7 +57,8 @@ export const setupSegmentEditor = (): void => {
   };
 
   const open = (): void => {
-    lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    lastActiveElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panel.classList.remove('hidden');
     panel.classList.add('flex');
     panel.setAttribute('aria-hidden', 'false');
@@ -89,8 +90,10 @@ export const setupSegmentEditor = (): void => {
     }
 
     if (e.key !== 'Tab') return;
-    const focusables = Array.from(panel.querySelectorAll(focusableSelector))
-      .filter(el => el instanceof HTMLElement && !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden')) as HTMLElement[];
+    const focusables = Array.from(panel.querySelectorAll(focusableSelector)).filter(
+      el =>
+        el instanceof HTMLElement && !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden')
+    ) as HTMLElement[];
     if (focusables.length === 0) return;
 
     const first = focusables[0];
@@ -115,7 +118,10 @@ export const setupSegmentEditor = (): void => {
     if (panel.classList.contains('hidden')) return;
     const target = e.target as Node | null;
     if (!target) return;
-    if ((e.target as HTMLElement | null)?.closest('[data-segment-editor] [data-segment-editor-close]')) return;
+    if (
+      (e.target as HTMLElement | null)?.closest('[data-segment-editor] [data-segment-editor-close]')
+    )
+      return;
     const content = panel.firstElementChild;
     if (content && content.contains(target)) return;
     close();
