@@ -1,5 +1,5 @@
 import { state } from '../state';
-import { SkipSegment } from '../types';
+import type { SkipSegment } from '../types';
 import { resolveActiveSegments, renderSegments } from '../skip/segments';
 import { updateSubtitleOptions } from '../subtitles';
 import { updateQualityOptions } from '../quality';
@@ -74,7 +74,9 @@ export const goToNextEpisode = async (): Promise<void> => {
     const preferredQuality = localStorage.getItem('mal:preferred-quality') || 'best';
     state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
     state.video.load();
-    if (!state.video.paused) state.video.play().catch(() => {});
+    if (!state.video.paused) {
+      state.video.play().catch(() => undefined);
+    }
 
     state.pendingSeekTime = null;
     state.completionSent = false;

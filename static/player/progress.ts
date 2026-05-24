@@ -89,7 +89,7 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
       headers: { 'Content-Type': 'application/json' },
       keepalive: true,
       body: payload,
-    }).catch(() => {});
+    }).catch(() => undefined);
   }
 };
 

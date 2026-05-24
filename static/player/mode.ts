@@ -21,7 +21,9 @@ const loadVideo = (url: string): void => {
   state.video.src = url;
   state.video.load();
   state.pendingSeekTime = prevTime; // restored in loadedmetadata handler
-  if (wasPlaying) state.video.play().catch(() => {});
+  if (wasPlaying) {
+    state.video.play().catch(() => undefined);
+  }
 };
 
 /**
@@ -51,13 +53,17 @@ export const updateModeButtons = (): void => {
   dub?.classList.toggle('text-foreground', m !== 'dub');
   dub?.classList.toggle('opacity-50', !state.availableModes.includes('dub'));
   dub?.classList.toggle('cursor-not-allowed', !state.availableModes.includes('dub'));
-  dub && (dub.disabled = !state.availableModes.includes('dub'));
+  if (dub) {
+    dub.disabled = !state.availableModes.includes('dub');
+  }
 
   sub?.classList.toggle('text-accent', m === 'sub');
   sub?.classList.toggle('text-foreground', m !== 'sub');
   sub?.classList.toggle('opacity-50', !state.availableModes.includes('sub'));
   sub?.classList.toggle('cursor-not-allowed', !state.availableModes.includes('sub'));
-  sub && (sub.disabled = !state.availableModes.includes('sub'));
+  if (sub) {
+    sub.disabled = !state.availableModes.includes('sub');
+  }
 };
 
 /**

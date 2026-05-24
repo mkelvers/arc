@@ -116,7 +116,9 @@ const initPlayer = (): void => {
   }
 
   const onLoadedMetadata = (): void => {
-    loading && (loading.style.display = 'none');
+    if (loading) {
+      loading.style.display = 'none';
+    }
     invalidateBounds();
 
     resolveActiveSegments();
@@ -136,7 +138,9 @@ const initPlayer = (): void => {
       state.transitionEpisode = null;
     }
     // autoplay if not already playing (inline script may have already called play())
-    if (state.shouldAutoPlay || state.video.paused) state.video.play().catch(() => {});
+    if (state.shouldAutoPlay || state.video.paused) {
+      state.video.play().catch(() => undefined);
+    }
 
     updateTimeline(state.video.currentTime);
     updateSkipButton(state.video.currentTime);
@@ -150,10 +154,14 @@ const initPlayer = (): void => {
   }
 
   state.video.addEventListener('waiting', () => {
-    loading && (loading.style.display = 'flex');
+    if (loading) {
+      loading.style.display = 'flex';
+    }
   });
   state.video.addEventListener('playing', () => {
-    loading && (loading.style.display = 'none');
+    if (loading) {
+      loading.style.display = 'none';
+    }
   });
   // update progress bar during buffering
   state.video.addEventListener('progress', () => {

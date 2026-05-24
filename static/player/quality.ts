@@ -17,7 +17,9 @@ const loadVideo = (url: string): void => {
   state.video.src = url;
   state.video.load();
   state.pendingSeekTime = prevTime;
-  if (wasPlaying) state.video.play().catch(() => {});
+  if (wasPlaying) {
+    state.video.play().catch(() => undefined);
+  }
 };
 
 /**

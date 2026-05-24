@@ -48,7 +48,8 @@ export const updateSkipButton = (currentTime: number): void => {
  */
 export const updateAutoSkipButton = (): void => {
   const btn = document.querySelector('[data-autoskip]') as HTMLInputElement | null;
-  btn && (btn.checked = localStorage.getItem('mal:autoskip-enabled') === 'true');
+  if (!btn) return;
+  btn.checked = localStorage.getItem('mal:autoskip-enabled') === 'true';
 };
 
 /**
