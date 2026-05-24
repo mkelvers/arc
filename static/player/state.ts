@@ -105,27 +105,18 @@ const findElement = <T extends Element>(
 };
 
 const requiredPlayerElements = (container: HTMLElement): RequiredPlayerElements | null => {
-  const elements = {
-    video: findElement(container, 'video', HTMLVideoElement),
-    progress: findElement(container, '[data-progress]', HTMLElement),
-    scrubber: findElement(container, '[data-scrubber]', HTMLElement),
-    buffered: findElement(container, '[data-buffered]', HTMLElement),
-    timeDisplay: findElement(container, '[data-time]', HTMLElement),
-    durationDisplay: findElement(container, '[data-duration]', HTMLElement),
-  };
+  const video = findElement(container, 'video', HTMLVideoElement);
+  const progress = findElement(container, '[data-progress]', HTMLElement);
+  const scrubber = findElement(container, '[data-scrubber]', HTMLElement);
+  const buffered = findElement(container, '[data-buffered]', HTMLElement);
+  const timeDisplay = findElement(container, '[data-time]', HTMLElement);
+  const durationDisplay = findElement(container, '[data-duration]', HTMLElement);
 
-  if (
-    !elements.video ||
-    !elements.progress ||
-    !elements.scrubber ||
-    !elements.buffered ||
-    !elements.timeDisplay ||
-    !elements.durationDisplay
-  ) {
+  if (!video || !progress || !scrubber || !buffered || !timeDisplay || !durationDisplay) {
     return null;
   }
 
-  return elements;
+  return { video, progress, scrubber, buffered, timeDisplay, durationDisplay };
 };
 
 /**

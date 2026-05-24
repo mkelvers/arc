@@ -5,12 +5,14 @@ import { state } from '../state';
  * Injects images into episode cards, replaces placeholder.
  */
 export const setupThumbnails = (): void => {
+  const episodeList = state.episodeList;
+  if (!episodeList) return;
+
   fetch(`/api/watch/thumbnails/${state.malID}`)
     .then(res => res.json())
     .then((data: { mal_id: number; url: string; title?: string }[]) => {
-      if (!state.episodeList) return;
       data.forEach(item => {
-        const card = state.episodeList.querySelector(`[data-episode-id="${item.mal_id}"]`);
+        const card = episodeList.querySelector(`[data-episode-id="${item.mal_id}"]`);
         if (!card) return;
 
         // inject thumbnail image

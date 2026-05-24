@@ -34,7 +34,10 @@ export const switchMode = (mode: string): void => {
   if (!state.availableModes.includes(mode) || mode === state.currentMode) return;
   state.currentMode = mode;
   localStorage.setItem('player-audio-mode', mode);
-  loadVideo(streamUrlForMode(mode, state.container.querySelector('[data-quality-select]')?.value));
+  const qualitySelect = state.container.querySelector(
+    '[data-quality-select]'
+  ) as HTMLSelectElement | null;
+  loadVideo(streamUrlForMode(mode, qualitySelect?.value));
   updateSubtitleOptions();
   updateQualityOptions();
   updateModeButtons();
