@@ -20,7 +20,8 @@ export const isAutoplayEnabled = (): boolean =>
 export const updateOverlay = (episode: string, title: string): void => {
   if (!state.videoOverlay) return;
   const p = state.videoOverlay.querySelector('p');
-  p && (p.textContent = title ? `Episode ${episode}, ${title}` : `Episode ${episode}`);
+  if (!p) return;
+  p.textContent = title ? `Episode ${episode}, ${title}` : `Episode ${episode}`;
 };
 
 // helper: get all episode elements from grid and list
