@@ -1,6 +1,6 @@
 {{define "title"}}Watchlist{{end}}
 {{define "content"}}
-{{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
+{{if .WatchlistIDs}}<script>window.__WATCHLIST_IDS__={{.WatchlistIDs}}</script>{{end}}
 <div id="watchlist-content" class="flex w-full flex-col gap-6">
   <h1 class="font-[family:var(--font-serif)] tracking-[-0.03em] leading-[1.15] text-xl font-normal text-foreground">Watchlist</h1>
 
@@ -53,7 +53,15 @@
 
           <div class="absolute inset-0 z-20 flex flex-col p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none">
             <div class="flex justify-end">
-              <button type="button" data-unstyled-button hx-delete="/api/watchlist/{{.AnimeID}}" hx-target="closest .watchlist-item" hx-swap="delete" hx-on::after-request="if(event.detail.successful) { watchlistIds.delete({{.AnimeID}}) }" class="text-white/70 transition-colors hover:text-white focus:outline-none pointer-events-auto" aria-label="Remove from Watchlist">
+              <button
+                type="button"
+                data-unstyled-button
+                data-watchlist-remove
+                data-mal-id="{{.AnimeID}}"
+                data-watchlist-title="{{.DisplayTitle}}"
+                class="text-white/70 transition-colors hover:text-white focus:outline-none pointer-events-auto disabled:opacity-50"
+                aria-label="Remove from Watchlist"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>

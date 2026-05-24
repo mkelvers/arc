@@ -53,6 +53,11 @@
     html[data-theme="dark"] .theme-icon-light { display: block; }
     html[data-theme="light"] .theme-icon-light { display: none; }
    html[data-theme="light"] .theme-icon-dark { display: block; }
+
+    [data-htmx-loading="true"] {
+      opacity: 0.65;
+      pointer-events: none;
+    }
   </style>
    <script type="module" src="/dist/static/theme.js" defer></script>
    <template id="toast-template">
@@ -76,6 +81,9 @@
    <script type="module" src="/dist/static/sort_filter.js" defer></script>
    <script type="module" src="/dist/static/dedupe.js" defer></script>
    <script type="module" src="/dist/static/toast.js" defer></script>
+   <script type="module" src="/dist/static/shell.js" defer></script>
+   <script type="module" src="/dist/static/watchlist.js" defer></script>
+   <script type="module" src="/dist/static/htmx.js" defer></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script>
     document.addEventListener('htmx:afterSwap', function(evt) {
@@ -86,208 +94,6 @@
     document.addEventListener('htmx:responseError', function(evt) {
       if (window.showToast) showToast({ message: 'Something went wrong' });
     });
-  </script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const menu = document.getElementById('mobile-menu');
-      const backdrop = document.getElementById('mobile-menu-backdrop');
-      const toggle = document.querySelector('[data-mobile-menu-toggle]');
-
-      if (!menu || !backdrop || !toggle) return;
-
-      const openMenu = function() {
-        menu.dataset.mobileOpen = 'true';
-        backdrop.dataset.mobileOpen = 'true';
-        backdrop.classList.remove('hidden');
-        toggle.setAttribute('aria-expanded', 'true');
-      };
-
-      const closeMenu = function() {
-        menu.dataset.mobileOpen = 'false';
-        backdrop.dataset.mobileOpen = 'false';
-        backdrop.classList.add('hidden');
-        toggle.setAttribute('aria-expanded', 'false');
-      };
-
-      toggle.addEventListener('click', function() {
-        if (menu.dataset.mobileOpen === 'true') {
-          closeMenu();
-          return;
-        }
-
-        openMenu();
-      });
-
-      backdrop.addEventListener('click', closeMenu);
-
-      menu.querySelectorAll('a, button').forEach(function(el) {
-        el.addEventListener('click', function() {
-          if (window.innerWidth < 1024) closeMenu();
-        });
-      });
-    });
-
-    // Initialize sidebar state on load
-    document.addEventListener('DOMContentLoaded', () => {
-      // Small delay to ensure styles are applied before enabling transitions
-      requestAnimationFrame(() => {
-        document.documentElement.classList.add('sidebar-ready');
-      });
-    });
-
-    const watchlistIds = new Set()
-
-    function initWatchlist(ids) {
-      ids.forEach(id => watchlistIds.add(id));
-      const sync = () => ids.forEach(id => syncRemoveButtonVisibility(id));
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', sync);
-      } else {
-        sync();
-      }
-    }
-
-    function syncRemoveButtonVisibility(id) {
-      const container = document.getElementById('remove-watchlist-container-' + id);
-      if (container) {
-        container.classList.toggle('hidden', !watchlistIds.has(id));
-      }
-    }
-
-    function toggleWatchlist(id, title, btn) {
-      // determine action based on current watchlist state
-      const isInWatchlist = watchlistIds.has(id)
-      const url = isInWatchlist ? `/api/watchlist/${id}` : '/api/watchlist'
-      const method = isInWatchlist ? 'DELETE' : 'POST'
-      // add to watchlist with default status; remove doesn't need body
-      const body = isInWatchlist ? null : JSON.stringify({ animeId: id, status: 'plan_to_watch' })
-      fetch(url, {
-        method,
-        headers: body ? { 'Content-Type': 'application/json' } : {},
-        body
-      }).then(res => {
-        if (res.ok) {
-          if (isInWatchlist) {
-            watchlistIds.delete(id)
-            btn.classList.remove('in-watchlist')
-            btn.setAttribute('aria-label', 'Add to Watchlist')
-            if (window.showToast) showToast({ message: `Removed ${title} from watchlist` })
-            
-            // Update dropdown status if on anime page
-            syncWatchlistDropdown(id, false)
-          } else {
-            watchlistIds.add(id)
-            btn.classList.add('in-watchlist')
-            btn.setAttribute('aria-label', 'Remove from Watchlist')
-            if (window.showToast) showToast({ message: `Added ${title} to watchlist` })
-            
-            // Update dropdown status if on anime page
-            syncWatchlistDropdown(id, true)
-          }
-          
-          // Update all other watchlist icons on the page for this anime
-          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
-            const button = icon.closest('button')
-            if (button && button !== btn) {
-              const malId = button.dataset.malId
-              if (malId && parseInt(malId) === id) {
-                if (watchlistIds.has(id)) {
-                  button.classList.add('in-watchlist')
-                } else {
-                  button.classList.remove('in-watchlist')
-                }
-              }
-            }
-          })
-        } else {
-          if (window.showToast) showToast({ message: 'Failed to update watchlist' })
-        }
-      }).catch(() => {
-if (window.showToast) showToast({ message: 'Something went wrong' })
-      })
-    }
-
-    function syncWatchlistDropdown(id, inWatchlist) {
-      const statusDisplay = document.getElementById('watchlist-status-display-' + id)
-      if (statusDisplay) {
-        statusDisplay.textContent = inWatchlist ? 'Plan to Watch' : 'Add to Watchlist'
-        syncRemoveButtonVisibility(id)
-      }
-    }
-
-    function removeFromWatchlist(id, btn) {
-      fetch(`/api/watchlist/${id}`, { method: 'DELETE' }).then(res => {
-        if (res.ok) {
-          watchlistIds.delete(id)
-          const card = btn.closest('.group').parentElement
-          if (card) card.remove()
-          if (window.showToast) showToast({ message: 'Removed from watchlist' })
-          setTimeout(() => location.reload(), 100)
-        } else {
-          if (window.showToast) showToast({ message: 'Failed to update watchlist' })
-        }
-      })
-    }
-
-    function updateWatchlist(id, status, display, title, btn) {
-      fetch('/api/watchlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ animeId: id, status: status })
-      }).then(res => {
-        if (res.ok) {
-          watchlistIds.add(id);
-          document.getElementById('watchlist-status-display-' + id).textContent = display;
-          syncRemoveButtonVisibility(id);
-          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
-            const button = icon.closest('button');
-            if (button) {
-              const malId = button.dataset.malId;
-              if (malId && parseInt(malId) === id) {
-                button.classList.add('in-watchlist');
-              }
-            }
-          });
-          requestAnimationFrame(() => {
-            const dropdown = btn.closest('ui-dropdown');
-            if (dropdown) dropdown.close();
-          });
-          if (window.showToast) showToast({ message: `Marked ${title} as ${display}` });
-        } else {
-          if (window.showToast) showToast({ message: 'Failed to update watchlist' });
-        }
-      }).catch(() => {
-        if (window.showToast) showToast({ message: 'Something went wrong' });
-      });
-    }
-
-    function removeWatchlist(id, title, btn) {
-      fetch('/api/watchlist/' + id, { method: 'DELETE' }).then(res => {
-        if (res.ok) {
-          watchlistIds.delete(id);
-          document.getElementById('watchlist-status-display-' + id).textContent = 'Add to Watchlist';
-          syncRemoveButtonVisibility(id);
-          if (window.showToast) showToast({ message: `Removed ${title} from watchlist` });
-          document.querySelectorAll('.watchlist-icon').forEach(function(icon) {
-            const button = icon.closest('button');
-            if (button) {
-              const malId = button.dataset.malId;
-              if (malId && parseInt(malId) === id) {
-                button.classList.remove('in-watchlist');
-              }
-            }
-          });
-          if (btn) {
-            const dropdown = btn.closest('ui-dropdown');
-            if (dropdown) dropdown.close();
-          }
-        } else {
-          if (window.showToast) showToast({ message: 'Failed to update watchlist' });
-        }
-      }).catch(() => {
-        if (window.showToast) showToast({ message: 'Something went wrong' });
-      });
-    }
   </script>
 </head>
   <body class="bg-background text-foreground">

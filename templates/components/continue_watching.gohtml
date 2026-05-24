@@ -2,7 +2,7 @@
 <section id="continue-watching-section" class="w-full empty:hidden">
   <h2 class="mb-3 text-lg font-normal text-foreground">Continue Watching</h2>
 
-  <div id="continue-watching-items" class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]" hx-on::after-request="if(this.querySelectorAll('.continue-watching-item').length === 0) document.getElementById('continue-watching-section')?.remove()">
+  <div id="continue-watching-items" class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]">
     {{range .}}
       {{$title := .TitleOriginal}}
       {{if .TitleEnglish.Valid}}{{$title = .TitleEnglish.String}}{{end}}
@@ -15,7 +15,7 @@
 
           <div class="absolute inset-0 z-10 flex flex-col p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-black/40 pointer-events-none">
             <div class="flex justify-end pointer-events-auto">
-              <button hx-delete="/api/continue-watching/{{.AnimeID}}" hx-target="#continue-watching-{{.AnimeID}}" hx-swap="delete" hx-on::after-request="if(document.querySelectorAll('.continue-watching-item').length === 0) document.getElementById('continue-watching-section')?.remove()" class="bg-black/60 hover:bg-black/80 rounded-full p-1.5 text-white transition-colors focus:outline-none disabled:opacity-50 backdrop-blur-sm" aria-label="Remove from Continue Watching">
+              <button hx-delete="/api/continue-watching/{{.AnimeID}}" hx-target="#continue-watching-{{.AnimeID}}" hx-swap="delete" class="bg-black/60 hover:bg-black/80 rounded-full p-1.5 text-white transition-colors focus:outline-none disabled:opacity-50 backdrop-blur-sm" aria-label="Remove from Continue Watching">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>

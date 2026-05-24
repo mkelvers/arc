@@ -23,16 +23,48 @@
 
     <div data-content class="hidden absolute z-50 min-w-[160px] bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2">
       <div class="flex flex-col py-1">
-        <button data-unstyled-button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'watching', 'Watching', '{{$anime.DisplayTitle}}', this)">
+        <button
+          data-unstyled-button
+          data-watchlist-update
+          data-mal-id="{{$anime.MalID}}"
+          data-watchlist-status="watching"
+          data-watchlist-display="Watching"
+          data-watchlist-title="{{$anime.DisplayTitle}}"
+          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+        >
           <span class="font-medium text-sm text-foreground">Watching</span>
         </button>
-        <button data-unstyled-button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'completed', 'Completed', '{{$anime.DisplayTitle}}', this)">
+        <button
+          data-unstyled-button
+          data-watchlist-update
+          data-mal-id="{{$anime.MalID}}"
+          data-watchlist-status="completed"
+          data-watchlist-display="Completed"
+          data-watchlist-title="{{$anime.DisplayTitle}}"
+          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+        >
           <span class="font-medium text-sm text-foreground">Completed</span>
         </button>
-        <button data-unstyled-button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'plan_to_watch', 'Plan to Watch', '{{$anime.DisplayTitle}}', this)">
+        <button
+          data-unstyled-button
+          data-watchlist-update
+          data-mal-id="{{$anime.MalID}}"
+          data-watchlist-status="plan_to_watch"
+          data-watchlist-display="Plan to Watch"
+          data-watchlist-title="{{$anime.DisplayTitle}}"
+          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+        >
           <span class="font-medium text-sm text-foreground">Plan to Watch</span>
         </button>
-        <button data-unstyled-button class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10" onclick="updateWatchlist({{$anime.MalID}}, 'dropped', 'Dropped', '{{$anime.DisplayTitle}}', this)">
+        <button
+          data-unstyled-button
+          data-watchlist-update
+          data-mal-id="{{$anime.MalID}}"
+          data-watchlist-status="dropped"
+          data-watchlist-display="Dropped"
+          data-watchlist-title="{{$anime.DisplayTitle}}"
+          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+        >
           <span class="font-medium text-sm text-foreground">Dropped</span>
         </button>
         
@@ -56,7 +88,12 @@
 
 {{define "watchlist_remove_button"}}
   <div id="remove-watchlist-container-{{.ID}}" class="{{.ContainerClass}}">
-    <button class="{{.ButtonClass}}" onclick="removeWatchlist({{.ID}}, '{{.Title}}', this)">
+    <button
+      data-watchlist-remove
+      data-mal-id="{{.ID}}"
+      data-watchlist-title="{{.Title}}"
+      class="{{.ButtonClass}} disabled:opacity-50"
+    >
       <span class="{{.SpanClass}}">Remove from Watchlist</span>
     </button>
   </div>

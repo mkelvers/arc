@@ -48,7 +48,14 @@
 
                   <div class="absolute inset-0 z-10 flex flex-col p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                     <div class="flex justify-end">
-                      <button type="button" hx-delete="/api/watchlist/{{.AnimeID}}" hx-target="closest .watchlist-item" hx-swap="delete" hx-on::after-request="if(event.detail.successful) { watchlistIds.delete({{.AnimeID}}) }" class="text-white/70 transition-colors hover:text-white focus:outline-none" aria-label="Remove from Watchlist">
+                      <button
+                        type="button"
+                        data-watchlist-remove
+                        data-mal-id="{{.AnimeID}}"
+                        data-watchlist-title="{{.DisplayTitle}}"
+                        class="text-white/70 transition-colors hover:text-white focus:outline-none disabled:opacity-50"
+                        aria-label="Remove from Watchlist"
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                       </button>
                     </div>
