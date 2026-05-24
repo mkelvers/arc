@@ -11,7 +11,10 @@ const toastContainer = (): HTMLElement => {
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
-    container.className = 'fixed bottom-4 right-4 z-100 flex flex-col gap-2';
+    container.className = 'fixed bottom-4 right-4 z-[100] flex flex-col gap-2';
+    container.setAttribute('role', 'status');
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-relevant', 'additions');
     document.body.appendChild(container);
   }
   return container;
@@ -32,6 +35,8 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
   const toast = (template.content.cloneNode(true) as DocumentFragment)
     .firstElementChild as HTMLElement;
   if (!toast) return;
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
   const messageEl = toast.querySelector('.toast-message');
   const closeBtn = toast.querySelector('.toast-close');
 
@@ -39,7 +44,19 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
     messageEl.textContent = message;
   }
 
-  closeBtn?.addEventListener('click', () => toast.remove());
+  let removed = false;
+  let dismissTimeout: number | undefined;
+  let removeTimeout: number | undefined;
+
+  const remove = (): void => {
+    if (removed) return;
+    removed = true;
+    if (typeof dismissTimeout === 'number') window.clearTimeout(dismissTimeout);
+    if (typeof removeTimeout === 'number') window.clearTimeout(removeTimeout);
+    toast.remove();
+  };
+
+  closeBtn?.addEventListener('click', remove);
 
   container.appendChild(toast);
 
@@ -49,9 +66,9 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
   });
 
   // auto-dismiss with exit animation
-  setTimeout(() => {
+  dismissTimeout = window.setTimeout(() => {
     toast.classList.add('translate-y-2', 'opacity-0');
-    setTimeout(() => toast.remove(), 300);
+    removeTimeout = window.setTimeout(remove, 300);
   }, duration);
 };
 
