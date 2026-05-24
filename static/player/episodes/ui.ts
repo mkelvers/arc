@@ -1,4 +1,5 @@
 import { state } from '../state';
+import { qs } from '../../q';
 
 /**
  * Syncs autoplay checkbox with localStorage on init.
@@ -57,7 +58,7 @@ export const updateEpisodeHighlight = (num: number): void => {
  * Updates dropdown label and hides/shows episode cards.
  */
 export const switchEpisodeRange = (idx: number): void => {
-  const dropdown = state.container.querySelector('[data-episode-dropdown]') as HTMLElement | null;
+  const dropdown = qs<HTMLElement>('[data-episode-dropdown]');
   if (!dropdown) return;
   const btns = Array.from(dropdown.querySelectorAll('.episode-range-btn')) as HTMLButtonElement[];
   const target = btns[idx];

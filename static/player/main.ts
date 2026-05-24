@@ -22,6 +22,14 @@ import { formatTime } from './controls';
 
 let initialized = false; // prevent double init on htmx swaps
 
+type ClosableDropdown = HTMLElement & { close: () => void };
+const isClosableDropdown = (el: Element | null): el is ClosableDropdown => {
+  if (!el) return false;
+  if (!(el instanceof HTMLElement)) return false;
+  const maybe = el as Partial<{ close: unknown }>;
+  return typeof maybe.close === 'function';
+};
+
 const hidePreviewPopover = (): void => {
   if (!state.previewPopover) return;
   state.previewPopover.classList.add('opacity-0');
@@ -221,7 +229,7 @@ const initPlayer = (): void => {
   state.video.addEventListener('click', showControls);
 
   const searchInput = document.querySelector('[data-episode-search]') as HTMLInputElement | null;
-  const dropdown = container.querySelector('[data-episode-dropdown]') as HTMLElement | null;
+  const dropdown = document.querySelector('[data-episode-dropdown]') as HTMLElement | null;
   let searchDebounce: number | undefined;
 
   if (searchInput) {
@@ -256,6 +264,8 @@ const initPlayer = (): void => {
       btn.addEventListener('click', () => {
         const idx = Number.parseInt((btn as HTMLElement).dataset.rangeIndex ?? '0', 10);
         switchEpisodeRange(idx);
+        const dd = btn.closest('ui-dropdown');
+        if (isClosableDropdown(dd)) dd.close();
       });
     });
   }
