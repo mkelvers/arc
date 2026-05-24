@@ -548,9 +548,7 @@ func metricsEndpoint(urlStr string) string {
 	}
 
 	prefix := "https://api.jikan.moe/v4"
-	if strings.HasPrefix(trimmed, prefix) {
-		trimmed = strings.TrimPrefix(trimmed, prefix)
-	}
+	trimmed = strings.TrimPrefix(trimmed, prefix)
 
 	if idx := strings.Index(trimmed, "?"); idx >= 0 {
 		trimmed = trimmed[:idx]

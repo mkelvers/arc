@@ -138,19 +138,19 @@ Jujutsu Kaisen 0
  Dec 24, 2021 | Movie | 1ep × 1hr. 44min. | ★8.36 | [](https://myanimelist.net/anime/48561)
 `
 
-	testClient := &http.Client{
-		Timeout: time.Second,
-		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-			switch {
-			case request.URL.Host == "chiaki.site":
-				return mockResponse(http.StatusForbidden, map[string]string{"Content-Type": "text/html; charset=utf-8"}, "blocked"), nil
-			case request.URL.Host == "r.jina.ai":
-				// Proxy response is plain text/markdown.
-				return mockResponse(http.StatusOK, map[string]string{"Content-Type": "text/plain; charset=utf-8"}, proxyPayload), nil
-			default:
-				return mockResponse(http.StatusNotFound, nil, "not found"), nil
-			}
-		}),
+		testClient := &http.Client{
+			Timeout: time.Second,
+			Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+				switch request.URL.Host {
+				case "chiaki.site":
+					return mockResponse(http.StatusForbidden, map[string]string{"Content-Type": "text/html; charset=utf-8"}, "blocked"), nil
+				case "r.jina.ai":
+					// Proxy response is plain text/markdown.
+					return mockResponse(http.StatusOK, map[string]string{"Content-Type": "text/plain; charset=utf-8"}, proxyPayload), nil
+				default:
+					return mockResponse(http.StatusNotFound, nil, "not found"), nil
+				}
+			}),
 	}
 
 	result, err := FetchWatchOrder(context.Background(), testClient, "https://chiaki.site/?/tools/watch_order/id/40748")
