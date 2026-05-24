@@ -22,7 +22,7 @@
 
 {{define "review_cards"}}
 {{range .Reviews}}
-  <div class="flex flex-col gap-4 bg-background-surface p-6 ring-1 ring-border">
+  <div class="flex flex-col gap-4 bg-background-surface p-6">
     <div class="flex items-start justify-between">
       <div class="flex items-center gap-3">
         <div class="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-background-surface">
@@ -56,7 +56,7 @@
     <div class="whitespace-pre-line text-sm leading-relaxed text-foreground-muted">
       {{.Review}}
     </div>
-    <div class="flex flex-wrap items-center gap-4 border-t border-border pt-4 text-xs text-foreground-muted">
+    <div class="flex flex-wrap items-center gap-4 pt-4 text-xs text-foreground-muted">
       {{if .EpisodesSeen}}<span>{{.EpisodesSeen}} episodes seen</span>{{end}}
       <div class="flex items-center gap-3">
         {{if .Reactions.Nice}}
