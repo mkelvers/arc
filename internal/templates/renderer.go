@@ -95,6 +95,23 @@ func ProvideRenderer() (*Renderer, error) {
 			}
 			return (a + b - 1) / b
 		},
+		"idiv": func(a, b int) int {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
+		"atoi": func(v any) int {
+			s, ok := v.(string)
+			if !ok {
+				return 0
+			}
+			n, err := strconv.Atoi(s)
+			if err != nil {
+				return 0
+			}
+			return n
+		},
 		"toFloat": func(a int) float64 {
 			return float64(a)
 		},
