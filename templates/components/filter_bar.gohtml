@@ -21,7 +21,7 @@
     </form>
   </div>
 
-  <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
+  <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="!rounded-none flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
     <input type="hidden" name="q" value="{{.Query}}">
     {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
     {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
@@ -31,7 +31,7 @@
     {{range $g := .Genres}}<input type="hidden" name="genres" value="{{$g}}">{{end}}
     <label class="flex cursor-pointer items-center gap-2">
       <input id="filter-sfw" type="checkbox" class="sr-only" {{if .SFW}}checked{{end}} onchange="this.form.querySelector('[data-sfw-value]').value = this.checked; const box = this.nextElementSibling; const icon = box.querySelector('svg'); icon.classList.toggle('hidden', !this.checked)">
-      <div class="flex h-4 w-4 items-center justify-center bg-white transition-colors">
+      <div class="flex h-4 w-4 items-center justify-center bg-white ring-1 ring-black/15 transition-colors">
         <svg class="{{if not .SFW}}hidden {{end}}h-3 w-3 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
       </div>
       SFW
@@ -40,7 +40,7 @@
 
   <ui-dropdown class="relative block" data-align="left" data-width="w-48">
     <div data-trigger class="cursor-pointer">
-      <button class="flex items-center gap-2 bg-background-button  px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
+      <button class="!rounded-none flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
         {{if $selectedCount}}Genres ({{$selectedCount}}){{else}}Genres{{end}}
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
@@ -107,7 +107,7 @@
   <div class="flex items-center gap-1">
     <ui-dropdown class="relative block" data-align="left" data-width="w-48">
       <div data-trigger class="cursor-pointer">
-        <button class="flex items-center gap-2 bg-background-button  px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors">
+        <button class="!rounded-none flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
           Sort: {{if eq .OrderBy "popularity"}}Popularity{{else if eq .OrderBy "score"}}Score{{else if eq .OrderBy "title"}}Title{{else if eq .OrderBy "start_date"}}Start Date{{else if eq .OrderBy "episodes"}}Episodes{{else}}Default{{end}}
           <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
         </button>
@@ -124,7 +124,7 @@
       </div>
     </ui-dropdown>
 
-    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors">
+    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="!rounded-none flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}

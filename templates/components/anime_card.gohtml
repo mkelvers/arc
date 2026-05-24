@@ -17,13 +17,16 @@
 {{$displayTitle := $anime.DisplayTitle}}
 
 <div class="flex w-full flex-col gap-2" data-id="{{$dataId}}">
-  <a href="/anime/{{$anime.MalID}}" class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-background-surface after:absolute after:inset-0 {{if $withActions}}after:bg-black/80 after:opacity-0 hover:after:opacity-100{{else}}after:bg-linear-to-t after:from-black/80 after:via-black/20 after:to-transparent after:opacity-80 hover:after:opacity-100{{end}} after:transition-opacity">
+  <a
+    href="/anime/{{$anime.MalID}}"
+    class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-background-surface outline-none ring-0 transition focus-visible:ring-1 focus-visible:ring-accent after:absolute after:inset-0 {{if $withActions}}after:bg-black/60 after:opacity-0 hover:after:opacity-100{{else}}after:bg-linear-to-t after:from-black/70 after:via-black/20 after:to-transparent after:opacity-75 hover:after:opacity-100{{end}} after:transition-opacity"
+  >
     <img src="{{$imageUrl}}" alt="{{$displayTitle}}" class="h-full w-full object-cover" loading="lazy" />
 
     {{if $withActions}}
       <div class="absolute inset-0 z-10 flex flex-col p-3 {{if $hasTopBadge}}pt-10{{end}} opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         {{if not $isWatchlist}}
-          <h3 class="mb-1.5 line-clamp-2 text-base font-semibold text-white">
+          <h3 class="mb-1.5 line-clamp-2 text-base font-medium text-white">
             {{$displayTitle}}
           </h3>
         {{end}}
@@ -40,7 +43,7 @@
             data-watchlist-toggle
             data-mal-id="{{$anime.MalID}}"
             data-watchlist-title="{{$anime.DisplayTitle}}"
-            class="text-accent hover:text-accent/80 transition-colors focus:outline-none disabled:opacity-50 {{if $isWatchlist}}in-watchlist{{end}}"
+            class="text-accent hover:text-accent/80 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50 {{if $isWatchlist}}in-watchlist{{end}}"
             aria-label="{{if $isWatchlist}}Remove from Watchlist{{else}}Add to Watchlist{{end}}"
           >
             <svg class="size-6 watchlist-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
@@ -49,7 +52,7 @@
       </div>
     {{else}}
       <div class="absolute bottom-0 left-0 z-10 w-full p-4">
-        <h3 class="line-clamp-2 text-sm font-medium text-white {{if $compact}}mb-0{{end}}">
+        <h3 class="line-clamp-2 text-sm font-normal text-white {{if $compact}}mb-0{{end}}">
           {{$displayTitle}}
         </h3>
         {{if not $compact}}

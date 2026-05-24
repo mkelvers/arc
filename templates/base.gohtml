@@ -144,7 +144,9 @@
   
         <main class="w-full flex-1 flex flex-col h-[calc(100dvh-3.5rem)] overflow-y-auto lg:h-screen">
           <div class="flex-1 p-4 md:p-8">
-            {{template "content" .}}
+            {{block "page_container" .}}
+              {{template "content" .}}
+            {{end}}
           </div>
         </main>
       </div>
