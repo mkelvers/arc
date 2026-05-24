@@ -1,4 +1,4 @@
-type CommandPaletteItem = {
+interface CommandPaletteItem {
   id: string;
   type: string;
   label: string;
@@ -6,7 +6,7 @@ type CommandPaletteItem = {
   href: string;
   image?: string;
   icon?: string;
-};
+}
 
 const commandPaletteInitializedKey = Symbol('commandPaletteInitialized');
 const globalWindow = window as Window & { [commandPaletteInitializedKey]?: boolean };

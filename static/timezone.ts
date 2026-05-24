@@ -3,11 +3,11 @@ export {};
 // JST offset from UTC in minutes (UTC+9)
 const jstOffsetMinutes = 9 * 60;
 
-type ParsedBroadcast = {
+interface ParsedBroadcast {
   day: string;
   hour: number;
   minute: number;
-};
+}
 
 const parseBroadcastTime = (value: string | null): { hour: number; minute: number } | null => {
   if (!value || typeof value !== 'string') {
