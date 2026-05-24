@@ -6,7 +6,7 @@
 <div class="flex gap-2">
   <ui-dropdown class="relative block" data-align="left" data-width="min-w-[160px]">
     <div data-trigger class="cursor-pointer">
-      <button type="button" class="bg-background-button hover:bg-background-button-hover flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-medium text-foreground transition-colors disabled:opacity-50">
+      <button type="button" class="!rounded-none bg-background-button hover:bg-background-button-hover flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-normal text-foreground transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
         <span id="watchlist-status-display-{{$anime.MalID}}">
           {{if $status}}
             {{if eq $status "watching"}}Watching{{end}}
@@ -30,9 +30,9 @@
           data-watchlist-status="watching"
           data-watchlist-display="Watching"
           data-watchlist-title="{{$anime.DisplayTitle}}"
-          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+          class="flex w-full items-center px-5 py-2.5 transition-colors outline-none hover:bg-surface-hover focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
         >
-          <span class="font-medium text-sm text-foreground">Watching</span>
+          <span class="font-normal text-sm text-foreground">Watching</span>
         </button>
         <button
           data-unstyled-button
@@ -41,9 +41,9 @@
           data-watchlist-status="completed"
           data-watchlist-display="Completed"
           data-watchlist-title="{{$anime.DisplayTitle}}"
-          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+          class="flex w-full items-center px-5 py-2.5 transition-colors outline-none hover:bg-surface-hover focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
         >
-          <span class="font-medium text-sm text-foreground">Completed</span>
+          <span class="font-normal text-sm text-foreground">Completed</span>
         </button>
         <button
           data-unstyled-button
@@ -52,9 +52,9 @@
           data-watchlist-status="plan_to_watch"
           data-watchlist-display="Plan to Watch"
           data-watchlist-title="{{$anime.DisplayTitle}}"
-          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+          class="flex w-full items-center px-5 py-2.5 transition-colors outline-none hover:bg-surface-hover focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
         >
-          <span class="font-medium text-sm text-foreground">Plan to Watch</span>
+          <span class="font-normal text-sm text-foreground">Plan to Watch</span>
         </button>
         <button
           data-unstyled-button
@@ -63,9 +63,9 @@
           data-watchlist-status="dropped"
           data-watchlist-display="Dropped"
           data-watchlist-title="{{$anime.DisplayTitle}}"
-          class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-foreground/10 focus:bg-foreground/10 disabled:opacity-50"
+          class="flex w-full items-center px-5 py-2.5 transition-colors outline-none hover:bg-surface-hover focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
         >
-          <span class="font-medium text-sm text-foreground">Dropped</span>
+          <span class="font-normal text-sm text-foreground">Dropped</span>
         </button>
         
         {{template "watchlist_remove_button" dict
@@ -73,14 +73,14 @@
           "Title" $anime.DisplayTitle
           "ContainerClass" "hidden"
           "DividerClass" "my-1"
-          "ButtonClass" "flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-red-500/10 focus:bg-red-500/10"
-          "SpanClass" "font-medium text-sm text-red-500 text-left whitespace-nowrap"
+          "ButtonClass" "flex w-full items-center px-5 py-2.5 transition-colors outline-none hover:bg-red-500/10 focus-visible:ring-1 focus-visible:ring-accent"
+          "SpanClass" "font-normal text-sm text-red-500 text-left whitespace-nowrap"
         }}
       </div>
     </div>
   </ui-dropdown>
 
-  <a href="/anime/{{$anime.MalID}}/watch{{if gt .ContinueWatchingEp 0}}?ep={{.ContinueWatchingEp}}{{end}}" class="inline-flex items-center justify-center bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-foreground transition-colors">
+  <a href="/anime/{{$anime.MalID}}/watch{{if gt .ContinueWatchingEp 0}}?ep={{.ContinueWatchingEp}}{{end}}" class="!rounded-none inline-flex items-center justify-center bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-normal text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
     {{if gt .ContinueWatchingEp 0}}Continue Watching Ep {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
   </a>
 </div>
