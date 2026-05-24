@@ -13,7 +13,6 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.4",
-    "@toolwind/anchors": "^1.0.10",
     "@typescript-eslint/eslint-plugin": "^8.59.2",
     "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^10.3.0",
