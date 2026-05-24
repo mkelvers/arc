@@ -12,7 +12,7 @@ func TestRunMigrationsCreatesHotPathIndexes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 	sqlDB.SetMaxOpenConns(1)
 
 	if err := RunMigrations(sqlDB); err != nil {

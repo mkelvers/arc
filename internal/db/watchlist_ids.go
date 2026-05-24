@@ -24,7 +24,7 @@ func (q *Queries) GetUserWatchlistAnimeIDs(ctx context.Context, userID string, a
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	matches := make([]int64, 0, len(animeIDs))
 	for rows.Next() {

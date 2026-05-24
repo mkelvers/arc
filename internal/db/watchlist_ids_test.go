@@ -14,7 +14,7 @@ func TestGetUserWatchlistAnimeIDsFiltersRequestedIDs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	_, err = sqlDB.Exec(`
 		CREATE TABLE watch_list_entry (
