@@ -1,7 +1,7 @@
 class UIDropdown extends HTMLElement {
-  isOpen: boolean = false;
+  isOpen = false;
   contentEl: HTMLElement | null = null;
-  isClosing: boolean = false; // debounce flag
+  isClosing = false; // debounce flag
 
   constructor() {
     super();
