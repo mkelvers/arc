@@ -28,9 +28,17 @@ export const setupSegmentEditor = (): void => {
   const typeOptions = Array.from(
     panel.querySelectorAll('[data-segment-type-option]')
   ) as HTMLButtonElement[];
+  const focusableSelector = [
+    'button:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
 
   let startTime: number | null = null;
   let endTime: number | null = null;
+  let lastActiveElement: HTMLElement | null = null;
 
   const setError = (msg: string | null): void => {
     if (!errorBox) return;
@@ -49,13 +57,21 @@ export const setupSegmentEditor = (): void => {
   };
 
   const open = (): void => {
+    lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panel.classList.remove('hidden');
+    panel.classList.add('flex');
+    panel.setAttribute('aria-hidden', 'false');
     setError(null);
     showControls();
+    const firstFocusable = panel.querySelector(focusableSelector) as HTMLElement | null;
+    firstFocusable?.focus();
   };
   const close = (): void => {
     panel.classList.add('hidden');
+    panel.classList.remove('flex');
+    panel.setAttribute('aria-hidden', 'true');
     setError(null);
+    lastActiveElement?.focus();
   };
 
   toggleBtn.addEventListener('click', () => {
@@ -64,12 +80,44 @@ export const setupSegmentEditor = (): void => {
   });
   closeBtn?.addEventListener('click', close);
 
-  // close when clicking outside the segment capture UI
+  document.addEventListener('keydown', e => {
+    if (panel.classList.contains('hidden')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+      return;
+    }
+
+    if (e.key !== 'Tab') return;
+    const focusables = Array.from(panel.querySelectorAll(focusableSelector))
+      .filter(el => el instanceof HTMLElement && !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden')) as HTMLElement[];
+    if (focusables.length === 0) return;
+
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return;
+
+    if (e.shiftKey && active === first) {
+      e.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+
+  // close when clicking the backdrop outside the modal content
   document.addEventListener('pointerdown', e => {
     if (panel.classList.contains('hidden')) return;
     const target = e.target as Node | null;
     if (!target) return;
-    if (root.contains(target)) return;
+    if ((e.target as HTMLElement | null)?.closest('[data-segment-editor] [data-segment-editor-close]')) return;
+    const content = panel.firstElementChild;
+    if (content && content.contains(target)) return;
     close();
   });
 
