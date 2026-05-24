@@ -171,6 +171,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 
 	res, err := h.svc.SearchAdvanced(c.Request.Context(), q, animeType, status, orderBy, sort, genres, sfw, page, 24)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	user, _ := c.Get("User")

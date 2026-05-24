@@ -238,6 +238,8 @@ func (h *PlaybackHandler) HandleEpisodeThumbnails(c *gin.Context) {
 
 	allEpisodes, err := h.animeSvc.GetAllEpisodes(c.Request.Context(), id)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	anime, _ := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
