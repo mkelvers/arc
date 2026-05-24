@@ -7,6 +7,7 @@
     "noEmitOnError": true,
     "allowJs": false,
     "noEmit": true,
+    "types": ["node"],
     "sourceMap": false,
     "removeComments": false,
     "skipLibCheck": true
