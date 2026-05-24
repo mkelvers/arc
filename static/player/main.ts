@@ -32,13 +32,15 @@ const isClosableDropdown = (el: Element | null): el is ClosableDropdown => {
 
 const hidePreviewPopover = (): void => {
   if (!state.previewPopover) return;
+  state.previewPopover.classList.add('hidden');
   state.previewPopover.classList.add('opacity-0');
   state.previewPopover.classList.remove('opacity-100');
-  state.previewPopover.style.left = '0px';
+  state.previewPopover.style.left = '';
 };
 
 const showPreviewPopover = (): void => {
   if (!state.previewPopover) return;
+  state.previewPopover.classList.remove('hidden');
   state.previewPopover.classList.remove('opacity-0');
   state.previewPopover.classList.add('opacity-100');
 };
