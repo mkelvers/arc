@@ -1,4 +1,4 @@
-import { TimelineBounds } from './types';
+import type { TimelineBounds } from './types';
 import { state } from './state';
 
 // mm:ss formatter

@@ -1,4 +1,4 @@
-import { SubtitleCue, SubtitleTrack } from '../types';
+import type { SubtitleCue, SubtitleTrack } from '../types';
 import { state } from '../state';
 import { parseVtt } from './vtt';
 

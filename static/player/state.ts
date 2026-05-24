@@ -1,4 +1,4 @@
-import { ModeSource, SkipSegment, SubtitleCue, SubtitleTrack, ActiveSegment } from './types';
+import type { ModeSource, SkipSegment, SubtitleCue, SubtitleTrack, ActiveSegment } from './types';
 import { q, qs, dataset } from '../q';
 
 export interface PlayerState {
