@@ -2,6 +2,7 @@ package observability
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"sort"
 	"strconv"
@@ -220,9 +221,7 @@ func buildLabelKey(labelNames []string, labelValues []string) (string, map[strin
 
 func copyLabels(labels map[string]string) map[string]string {
 	out := make(map[string]string, len(labels))
-	for key, value := range labels {
-		out[key] = value
-	}
+	maps.Copy(out, labels)
 	return out
 }
 
