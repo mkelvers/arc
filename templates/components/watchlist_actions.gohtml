@@ -48,8 +48,8 @@
     </div>
   </ui-dropdown>
 
-  <a href="/anime/{{$anime.MalID}}/watch{{if and .ContinueWatchingEp (ne .ContinueWatchingEp 1)}}?ep={{.ContinueWatchingEp}}{{end}}" class="inline-flex items-center justify-center bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-foreground transition-colors border border-border">
-    {{if and .ContinueWatchingEp (ne .ContinueWatchingEp 1)}}Continue Episode {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
+  <a href="/anime/{{$anime.MalID}}/watch{{if gt .ContinueWatchingEp 0}}?ep={{.ContinueWatchingEp}}{{end}}" class="inline-flex items-center justify-center bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-medium text-foreground transition-colors border border-border">
+    {{if gt .ContinueWatchingEp 0}}Continue Watching Ep {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
   </a>
 </div>
 {{end}}

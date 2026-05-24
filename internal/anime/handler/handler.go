@@ -292,7 +292,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 	user, _ := c.Get("User")
 	status := ""
 	var watchlistIDs []int64
-	ep := 1
+	ep := 0
 	var cwSeconds float64
 	if u, ok := user.(*domain.User); ok {
 		entry, err := h.watchlistSvc.GetWatchListEntry(c.Request.Context(), u.ID, int64(id))
