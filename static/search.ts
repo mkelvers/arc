@@ -193,7 +193,7 @@ const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement =>
   const row = document.createElement('a');
   row.href = item.href;
   row.className =
-    'flex min-h-12 items-center gap-3 px-4 py-2 text-foreground no-underline transition-colors hover:bg-surface-hover hover:no-underline';
+    'flex min-h-12 items-center gap-3 px-4 py-2 text-foreground no-underline transition-colors hover:bg-surface-hover hover:no-underline focus-visible:bg-surface-hover focus-visible:outline-none';
   row.dataset.commandPaletteItem = item.id;
   row.setAttribute('role', 'option');
   row.setAttribute('aria-selected', String(index === selectedIndex));
@@ -206,13 +206,13 @@ const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement =>
   copy.className = 'grid min-w-0 flex-1 gap-0.5';
 
   const label = document.createElement('div');
-  label.className = 'truncate text-sm font-medium text-foreground';
+  label.className = 'truncate text-sm font-normal text-foreground';
   label.textContent = item.label;
   copy.appendChild(label);
 
   if (item.subtitle && item.type !== 'navigation') {
     const subtitle = document.createElement('div');
-    subtitle.className = 'truncate text-xs text-foreground-muted';
+    subtitle.className = 'truncate text-xs font-normal text-foreground-muted';
     subtitle.textContent = item.subtitle;
     copy.appendChild(subtitle);
   }
@@ -223,7 +223,7 @@ const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement =>
     const removeButton = document.createElement('button');
     removeButton.type = 'button';
     removeButton.className =
-      'flex h-8 w-8 shrink-0 items-center justify-center text-red-500/70 transition-colors hover:text-red-500';
+      'flex h-8 w-8 shrink-0 items-center justify-center text-red-500/70 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent';
     removeButton.setAttribute('aria-label', 'Remove from Continue Watching');
     removeButton.appendChild(buildSvgIcon('M18 6 6 18 M6 6l12 12', 'size-4'));
     removeButton.addEventListener('click', event => {
@@ -246,7 +246,7 @@ const buildContinueToggle = (hiddenCount: number): HTMLButtonElement => {
   const button = document.createElement('button');
   button.type = 'button';
   button.className =
-    'flex w-full items-center gap-3 px-4 py-2 text-left text-xs font-medium text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground';
+    'flex w-full items-center gap-3 px-4 py-2 text-left text-xs font-normal text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent';
 
   const spacer = document.createElement('span');
   spacer.className = 'h-8 w-8 shrink-0';
@@ -304,7 +304,7 @@ const renderItems = (items: CommandPaletteItem[]): void => {
 
   if (paletteItems.length === 0) {
     const empty = document.createElement('div');
-    empty.className = 'px-4 py-8 text-center text-sm text-foreground-muted';
+    empty.className = 'px-4 py-8 text-center text-sm font-normal text-foreground-muted';
     empty.textContent = 'No commands found';
     paletteResults.replaceChildren(empty);
     return;

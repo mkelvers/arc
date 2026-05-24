@@ -121,9 +121,9 @@
         </div>
 
         <div class="fixed inset-0 z-[60] hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-command-palette-dialog aria-hidden="true">
-          <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)]" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
+          <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)] ring-1 ring-black/10" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
             <label for="command-palette-input" class="sr-only">Search commands and anime</label>
-            <div class="flex items-center">
+            <div class="flex items-center border-b border-black/5">
               <svg class="mx-4 size-5 shrink-0 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
@@ -136,7 +136,7 @@
                 placeholder="Search or jump to..."
                 class="min-w-0 flex-1 bg-transparent py-4 pr-4 text-base text-foreground placeholder:text-foreground-muted outline-none"
               />
-              <button type="button" data-unstyled-button class="mr-3 px-2 py-1 text-xs text-foreground-muted transition-colors hover:text-foreground" data-command-palette-close>Esc</button>
+              <button type="button" data-unstyled-button class="mr-3 px-2 py-1 text-xs font-normal text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" data-command-palette-close>Esc</button>
             </div>
             <div data-command-palette-results class="max-h-[min(70vh,34rem)] overflow-y-auto py-2"></div>
           </div>
