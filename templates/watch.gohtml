@@ -6,6 +6,9 @@
 {{$currentEpID := .CurrentEpID}}
 {{if or (not $currentEpID) (eq (printf "%v" $currentEpID) "0") (eq (printf "%v" $currentEpID) "")}}{{$currentEpID = "1"}}{{end}}
 {{$totalEpisodes := len $episodes}}
+{{$currentEpNum := atoi $currentEpID}}
+{{$rangeStart := add (imul (idiv (sub $currentEpNum 1) 100) 100) 1}}
+{{$rangeEnd := min (add $rangeStart 99) $totalEpisodes}}
 
 <div id="watch-layout" class="flex flex-col gap-6 lg:flex-row lg:gap-6{{if le $totalEpisodes 100}} max-h-dvh{{end}}">
   <div class="{{if le $totalEpisodes 100}}shrink-0 lg:flex-1 lg:self-start{{else}}flex-1{{end}} min-w-0">
@@ -188,7 +191,7 @@
             <ui-dropdown class="relative block grow min-w-0" data-align="left" data-width="min-w-[200px]" data-episode-dropdown>
               <div data-trigger>
                 <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface text-sm text-foreground-muted hover:bg-surface-hover">
-                  <span data-dropdown-label>01-100</span>
+                  <span data-dropdown-label>{{printf "%02d" $rangeStart}}-{{printf "%02d" $rangeEnd}}</span>
                   <svg class="w-4 h-4 text-foreground-muted shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
               </div>
@@ -217,7 +220,7 @@
             {{$isCurrent := eq (printf "%v" .Number) $currentEpID}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center justify-center py-2 text-xs transition-colors {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/20 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.Number}}" data-episode-index="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}">
+            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center justify-center py-2 text-xs transition-colors {{if or (lt .Number $rangeStart) (gt .Number $rangeEnd)}}hidden{{end}} {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/20 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.Number}}" data-episode-index="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}">
               {{.Number}}
               {{if .SubOnly}}<span class="absolute right-0.5 top-0.5 text-[8px] font-semibold uppercase text-accent">Sub</span>{{end}}
             </a>
