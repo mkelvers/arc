@@ -39,22 +39,21 @@
 	</script>
 
 <div class="flex flex-col gap-12 pb-12">
-  <section class="relative flex flex-col items-center justify-center overflow-hidden bg-background-surface px-6 py-24 text-center">
-    <div class="absolute inset-0 opacity-40" style="background: radial-gradient(60% 60% at 50% 0%, rgba(0,0,0,0.06), transparent 70%);"></div>
-    <div class="relative z-10 flex max-w-2xl flex-col items-center gap-6">
-      <h1 class="font-[family:var(--font-serif)] tracking-[-0.03em] leading-[1.15] text-4xl font-normal tracking-tight text-foreground sm:text-5xl">
+  <section class="flex flex-col items-center justify-center bg-background-surface px-6 py-16 text-center">
+    <div class="flex max-w-2xl flex-col items-center gap-5">
+      <h1 class="leading-[1.15] text-3xl font-normal tracking-[-0.02em] text-foreground sm:text-4xl">
         Don't know what to watch?
       </h1>
-      <p class="text-lg text-foreground-muted">
+      <p class="text-base text-foreground-muted">
         Let us pick something for you from our vast collection of anime.
       </p>
       <button
         id="surprise-btn"
-        class="group relative inline-flex items-center justify-center gap-2 overflow-hidden bg-foreground px-7 py-3.5 font-medium text-background transition-colors hover:bg-foreground/90 active:scale-[0.98] disabled:opacity-70"
+        class="group relative inline-flex h-11 items-center justify-center gap-2 bg-background-button px-5 text-base font-normal text-foreground transition-colors hover:bg-background-button-hover active:bg-background-button-hover disabled:opacity-70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent sm:h-12"
         onclick="handleSurpriseMe()"
       >
         <span id="surprise-spinner" class="hidden h-5 w-5 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
-        <svg id="surprise-icon" class="h-5 w-5 transition-transform group-hover:rotate-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg id="surprise-icon" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
         <span id="surprise-text">Surprise Me</span>
@@ -65,8 +64,8 @@
   {{/* Trending Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-normal text-foreground">Trending This Season</h2>
-      <a href="/browse?order_by=popularity&sort=desc" class="text-accent text-sm hover:underline">View all</a>
+      <h2 class="text-base font-normal text-foreground">Trending This Season</h2>
+      <a href="/browse?order_by=popularity&sort=desc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
     </div>
     <div hx-get="/api/discover/trending" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}
@@ -76,8 +75,8 @@
   {{/* Upcoming Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-normal text-foreground">Highly Anticipated</h2>
-      <a href="/browse?status=upcoming&order_by=members&sort=desc" class="text-accent text-sm hover:underline">View all</a>
+      <h2 class="text-base font-normal text-foreground">Highly Anticipated</h2>
+      <a href="/browse?status=upcoming&order_by=members&sort=desc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
     </div>
     <div hx-get="/api/discover/upcoming" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}
@@ -87,8 +86,8 @@
   {{/* Top Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-normal text-foreground">All-Time Greats</h2>
-      <a href="/browse?order_by=score&sort=desc" class="text-accent text-sm hover:underline">View all</a>
+      <h2 class="text-base font-normal text-foreground">All-Time Greats</h2>
+      <a href="/browse?order_by=score&sort=desc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
     </div>
     <div hx-get="/api/discover/top" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}
