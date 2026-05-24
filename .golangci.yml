@@ -1,0 +1,41 @@
+run:
+  timeout: 5m
+
+output:
+  sort-results: true
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - exportloopref
+    - govet
+    - ineffassign
+    - revive
+    - staticcheck
+    - typecheck
+    - unconvert
+    - unused
+
+linters-settings:
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: early-return
+      - name: error-naming
+      - name: error-return
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: unnecessary-stmt
+      - name: var-declaration
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

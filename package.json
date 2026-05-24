@@ -9,7 +9,10 @@
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css && bun run build:ts",
     "format": "bunx prettier . --write",
-    "lint": "bunx eslint . --fix"
+    "lint": "bun run lint:ts && bun run lint:go",
+    "lint:ts": "bunx eslint . --max-warnings 0",
+    "lint:ts:fix": "bunx eslint . --fix",
+    "lint:go": "golangci-lint run"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.4",

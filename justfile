@@ -7,7 +7,13 @@ fmt:
     go fmt ./...
 
 lint:
-    go fmt ./... && go vet ./...
+    golangci-lint run
+
+lint-ts:
+    bun run lint:ts
+
+lint-go:
+    bun run lint:go
 
 test:
     go test ./...
