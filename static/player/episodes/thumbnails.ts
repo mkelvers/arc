@@ -7,7 +7,7 @@ import { state } from '../state';
 export const setupThumbnails = (): void => {
   fetch(`/api/watch/thumbnails/${state.malID}`)
     .then(res => res.json())
-    .then((data: Array<{ mal_id: number; url: string; title?: string }>) => {
+    .then((data: { mal_id: number; url: string; title?: string }[]) => {
       if (!state.episodeList) return;
       data.forEach(item => {
         const card = state.episodeList.querySelector(`[data-episode-id="${item.mal_id}"]`);
