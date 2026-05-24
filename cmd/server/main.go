@@ -1,3 +1,4 @@
+// Package main runs the MAL web server.
 package main
 
 import (

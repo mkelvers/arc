@@ -1,3 +1,4 @@
+// Package main provides small CLI utilities for local admin tasks.
 package main
 
 import (
