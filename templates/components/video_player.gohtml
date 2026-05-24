@@ -122,15 +122,16 @@
       <div class="flex items-center gap-4 text-xs font-medium text-white px-2">
         <span data-time class="w-12 text-center">0:00</span>
         <div data-progress-wrap class="group/progress relative flex h-6 flex-1 cursor-pointer items-center">
-          <div data-preview-popover class="pointer-events-none absolute bottom-full mb-2 -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold text-black shadow-md opacity-0 transition-opacity duration-200">
+          <div data-preview-popover class="hidden pointer-events-none absolute bottom-full mb-4 -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold text-black shadow-md opacity-0 transition-opacity duration-200">
             <span data-preview-time>0:00</span>
+            <div class="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-[6px] border-x-transparent border-t-[6px] border-t-white"></div>
           </div>
-          <div class="relative flex h-1.5 w-full items-center rounded-full bg-white/20 transition-all group-hover/progress:h-2">
-            <div data-buffered class="absolute left-0 top-0 h-full rounded-full bg-white/40 z-0 transition-all duration-200" style="width: 0%"></div>
-            <div data-progress class="bg-accent absolute left-0 top-0 z-10 h-full rounded-full" style="width: 0%"></div>
-            <div data-segments class="absolute inset-0 z-30 pointer-events-none overflow-hidden rounded-full"></div>
+          <div class="relative flex h-1 w-full items-center bg-white/25 transition-all group-hover/progress:h-1.5">
+            <div data-buffered class="absolute left-0 top-0 z-0 h-full bg-white/60 transition-all duration-200" style="width: 0%"></div>
+            <div data-progress class="absolute left-0 top-0 z-10 h-full bg-accent" style="width: 0%"></div>
+            <div data-segments class="absolute inset-0 z-30 pointer-events-none overflow-hidden"></div>
           </div>
-          <div data-scrubber class="bg-accent pointer-events-none absolute top-1/2 z-40 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow-sm transition-[transform] group-hover/progress:scale-125" style="left: 0%"></div>
+          <div data-scrubber class="pointer-events-none absolute top-1/2 z-40 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm shadow-black/30 ring-1 ring-white/30 opacity-0 transition-[opacity,transform] duration-150 group-hover/progress:opacity-100 group-hover/progress:scale-110" style="left: 0%"></div>
         </div>
         <span class="w-12 text-center" data-duration>0:00</span>
       </div>
