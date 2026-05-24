@@ -41,10 +41,10 @@ WHERE c.user_id = ?
   )
 ORDER BY c.updated_at DESC
 LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = rows.Close() }()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
 
 	items := make([]GetContinueWatchingEntriesRow, 0, int(limit))
 	for rows.Next() {
@@ -119,10 +119,10 @@ ORDER BY
   END,
   e.updated_at DESC
 LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = rows.Close() }()
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
 
 	items := make([]GetUserWatchListRow, 0, int(limit))
 	for rows.Next() {
