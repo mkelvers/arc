@@ -13,7 +13,7 @@
       'commands':
         {
           'go-fmt': { 'run': 'go fmt ./...' },
-          'go-lint': { 'run': 'golangci-lint run' },
+          'go-lint': { 'run': 'bun run lint:go' },
           'go-test': { 'run': 'go test ./...' },
           'ts-typecheck': { 'run': 'bunx tsc -p tsconfig.json --noEmit' },
           'build-assets': { 'run': 'bun run build:assets' },
