@@ -67,7 +67,7 @@ export const renderSegments = (): void => {
     // use distinct colors so segments are readable over buffered/progress fills
     bar.className = 'absolute top-0 h-full opacity-95';
     // single color for OP/ED, rendered above buffered/progress fills
-    bar.classList.add('bg-amber-300/90');
+    bar.style.backgroundColor = '#f5c542';
     bar.style.left = `${(s.start / bounds) * 100}%`;
     bar.style.width = `${((s.end - s.start) / bounds) * 100}%`;
     track.appendChild(bar);
