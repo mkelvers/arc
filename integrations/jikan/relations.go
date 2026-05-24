@@ -176,9 +176,6 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 			IsCurrent: res.entry.ID == id,
 			IsExtra:   false,
 		})
-		if res.entry.ID == id {
-			relations[len(relations)-1].Relation = "Current"
-		}
 	}
 
 	if !seen[id] {
