@@ -10,7 +10,7 @@
         type="text"
         value="{{.Query}}"
         placeholder="Search anime..."
-        class="focus:ring-accent w-full rounded-none bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1"
+        class="!rounded-none focus:ring-accent w-full bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1"
       />
       {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
       {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
@@ -124,7 +124,7 @@
       </div>
     </ui-dropdown>
 
-    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-background-button  text-foreground-muted hover:text-foreground transition-colors">
+    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors ring-1 ring-border">
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}

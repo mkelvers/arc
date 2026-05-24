@@ -10,7 +10,7 @@
 
 <nav class="bg-background-sidebar h-full border-r border-border">
   <div class="flex flex-col">
-    <button type="button" class="group relative flex w-full items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" data-command-palette-open {{if $isCollapsed}}title="Search"{{end}}>
+    <button type="button" data-unstyled-button class="group relative flex w-full items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" data-command-palette-open {{if $isCollapsed}}title="Search"{{end}}>
       <svg class="size-6 shrink-0 text-foreground-muted transition-colors duration-200 group-hover:text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
@@ -39,7 +39,7 @@
             placeholder="Search or jump to..."
             class="min-w-0 flex-1 bg-transparent py-4 pr-4 text-base text-foreground placeholder:text-foreground-muted outline-none"
           />
-          <button type="button" class="mr-3 px-2 py-1 text-xs text-foreground-muted transition-colors hover:text-foreground" data-command-palette-close>Esc</button>
+          <button type="button" data-unstyled-button class="mr-3 px-2 py-1 text-xs text-foreground-muted transition-colors hover:text-foreground" data-command-palette-close>Esc</button>
         </div>
         <div data-command-palette-results class="max-h-[min(70vh,34rem)] overflow-y-auto py-2"></div>
       </div>

@@ -6,15 +6,15 @@
 
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-6">
-      <button class="text-sm transition-colors text-foreground" onclick="filterWatchlist('all', this)">All</button>
-      <button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('watching', this)">Watching</button>
-      <button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('plan_to_watch', this)">Plan to Watch</button>
-      <button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('completed', this)">Completed</button>
-      <button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('dropped', this)">Dropped</button>
+      <button data-unstyled-button class="text-sm transition-colors text-foreground" onclick="filterWatchlist('all', this)">All</button>
+      <button data-unstyled-button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('watching', this)">Watching</button>
+      <button data-unstyled-button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('plan_to_watch', this)">Plan to Watch</button>
+      <button data-unstyled-button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('completed', this)">Completed</button>
+      <button data-unstyled-button class="text-sm transition-colors text-foreground-muted hover:text-foreground" onclick="filterWatchlist('dropped', this)">Dropped</button>
     </div>
 
       <div class="flex items-center gap-4">
-        <button type="button" class="text-foreground-muted transition-colors hover:text-foreground" onclick="exportWatchlistCsv()" title="Export to CSV" aria-label="Export to CSV">
+        <button type="button" data-unstyled-button class="text-foreground-muted transition-colors hover:text-foreground" onclick="exportWatchlistCsv()" title="Export to CSV" aria-label="Export to CSV">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <path d="M7 10l5 5 5-5"/>
@@ -24,7 +24,7 @@
 
         <ui-dropdown class="relative block" data-align="right" data-width="min-w-[150px]">
           <div data-trigger>
-            <button type="button" class="flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground">
+            <button type="button" data-unstyled-button class="flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground">
               <span>Sort by: <span id="sort-by-display">Date Added</span></span>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
@@ -37,7 +37,7 @@
           </div>
         </ui-dropdown>
 
-        <button type="button" id="sort-order-btn" class="text-foreground-muted transition-colors hover:text-foreground" onclick="toggleSortOrder(this)">
+        <button type="button" id="sort-order-btn" data-unstyled-button class="text-foreground-muted transition-colors hover:text-foreground" onclick="toggleSortOrder(this)">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-200 rotate-0"><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
         </button>
       </div>
@@ -53,7 +53,7 @@
 
           <div class="absolute inset-0 z-20 flex flex-col p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none">
             <div class="flex justify-end">
-              <button type="button" hx-delete="/api/watchlist/{{.AnimeID}}" hx-target="closest .watchlist-item" hx-swap="delete" hx-on::after-request="if(event.detail.successful) { watchlistIds.delete({{.AnimeID}}) }" class="text-white/70 transition-colors hover:text-white focus:outline-none pointer-events-auto" aria-label="Remove from Watchlist">
+              <button type="button" data-unstyled-button hx-delete="/api/watchlist/{{.AnimeID}}" hx-target="closest .watchlist-item" hx-swap="delete" hx-on::after-request="if(event.detail.successful) { watchlistIds.delete({{.AnimeID}}) }" class="text-white/70 transition-colors hover:text-white focus:outline-none pointer-events-auto" aria-label="Remove from Watchlist">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>

@@ -45,7 +45,7 @@
     <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-4">
-          <button data-play-pause class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
+          <button data-play-pause data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
             <svg data-icon-play class="size-6 transition-colors duration-200" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
             <svg data-icon-pause class="size-6 transition-colors duration-200 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="9" y1="6" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="18" /></svg>
           </button>
@@ -59,7 +59,7 @@
                 </div>
               </div>
             </div>
-            <button data-mute class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
+            <button data-mute data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
               <svg data-icon-volume class="size-6 transition-colors duration-200" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 10 9 10 13 6 13 18 9 14 5 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></polygon><path d="M16 9c1.3 1.3 1.3 4.7 0 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M18.8 6.5c3 2.9 3 8.1 0 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
               <svg data-icon-muted class="size-6 transition-colors duration-200 hidden" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 10 9 10 13 6 13 18 9 14 5 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></polygon><line x1="16" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line><line x1="21" y1="9" x2="16" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line></svg>
             </button>
@@ -69,7 +69,7 @@
         <div class="flex items-center gap-4">
           <ui-dropdown class="relative block" data-align="right" data-position="top">
             <div data-trigger class="cursor-pointer">
-              <button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none" aria-label="Settings">
+                <button data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none" aria-label="Settings">
                 <svg class="size-6 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               </button>
             </div>
@@ -113,7 +113,7 @@
             </div>
           </ui-dropdown>
           
-          <button data-fullscreen class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
+          <button data-fullscreen data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus:outline-none">
             <svg class="size-6 transition-colors duration-200" viewBox="0 0 240 240" aria-hidden="true"><path d="M143.7,53.9c-1.9-1.9-1.3-4,1.4-4.4l50.6-8.4c1.8-0.5,3.7,0.6,4.2,2.4c0.2,0.6,0.2,1.2,0,1.7l-8.4,50.6c-0.4,2.7-2.4,3.4-4.4,1.4l-14.5-14.5l-28.2,28.2l-14.3-14.3l28.2-28.2L143.7,53.9z M44.2,200.9l50.6-8.4c2.7-0.4,3.4-2.4,1.4-4.4l-14.5-14.5l28.2-28.2l-14.3-14.3l-28.2,28.2l-14.5-14.5c-1.9-1.9-4-1.3-4.4,1.4l-8.4,50.6c-0.5,1.8,0.6,3.6,2.4,4.2C43,201,43.6,201,44.2,200.9L44.2,200.9z" fill="currentColor"></path></svg>
           </button>
         </div>
@@ -136,8 +136,8 @@
       </div>
 
       <button data-skip class="hidden absolute right-6 bottom-24 bg-white/95 text-black font-bold px-4 py-2 text-sm rounded shadow-lg shadow-black/30 ring-1 ring-black/10 hover:bg-white transition-colors">Skip</button>
-      <button data-backward class="hidden absolute left-1/4 top-1/2 -translate-y-1/2 -translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg></button>
-      <button data-forward class="hidden absolute right-1/4 top-1/2 -translate-y-1/2 translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg></button>
+      <button data-backward data-unstyled-button class="hidden absolute left-1/4 top-1/2 -translate-y-1/2 -translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg></button>
+      <button data-forward data-unstyled-button class="hidden absolute right-1/4 top-1/2 -translate-y-1/2 translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg></button>
       
     </div>
   </div>

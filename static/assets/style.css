@@ -5,36 +5,36 @@
 @source "../**/*.ts";
 
 @theme {
-  --color-background: light-dark(#f7f6f3, #0b0c10);
-  --color-background-sidebar: light-dark(#fbfbfa, #0f1115);
-  --color-background-header: light-dark(#fbfbfa, #0f1115);
+  --color-background: light-dark(#ffffff, #0b0c10);
+  --color-background-sidebar: light-dark(#f7f7f7, #0f1115);
+  --color-background-header: light-dark(#fbfbfb, #0f1115);
   --color-background-surface: light-dark(#ffffff, #17181c);
-  --color-background-button: light-dark(#ffffff, #131417);
-  --color-background-button-hover: light-dark(#f7f6f3, #1c1d22);
+  --color-background-button: light-dark(#f5f5f5, #131417);
+  --color-background-button-hover: light-dark(#ececec, #1c1d22);
 
-  --color-foreground-muted: light-dark(#787774, #a1a1aa);
+  --color-foreground-muted: light-dark(#6e6e6e, #a1a1aa);
   --color-foreground: light-dark(#111111, #f3f4f6);
 
-  --color-accent: #1f6c9f;
-  --color-border: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.1));
-  --color-surface-hover: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.05));
+  --color-accent: #216a97;
+  --color-border: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.1));
+  --color-surface-hover: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
 }
 
 :root {
   color-scheme: light dark;
 
   --bg: var(--color-background);
-  --panel: light-dark(#f5f5f4, #181818);
-  --panel-soft: light-dark(#e7e5e4, #202020);
+  --panel: light-dark(#f7f7f7, #181818);
+  --panel-soft: light-dark(#ececec, #202020);
   --header: light-dark(#ffffff, #101010);
-  --text: light-dark(#1c1917, #e7e5e4);
-  --text-muted: light-dark(#57534e, #a8a29e);
-  --text-faint: light-dark(#a8a29e, #78716c);
+  --text: light-dark(#111111, #e7e5e4);
+  --text-muted: light-dark(#666666, #a8a29e);
+  --text-faint: light-dark(#9a9a9a, #78716c);
   --accent: var(--color-accent);
   --danger: #dc2626;
-  --surface-thumb: light-dark(#e7e5e4, #44403c);
-  --surface-tab-hover: light-dark(#e7e5e4, #202020);
-  --surface-tab-active: light-dark(#1c1917, #fafaf9);
+  --surface-thumb: light-dark(#cccccc, #44403c);
+  --surface-tab-hover: light-dark(#e4e4e4, #202020);
+  --surface-tab-active: light-dark(#1e1b17, #fafaf9);
   --text-tab-active: light-dark(#fafaf9, #0c0a09);
   --surface-select: light-dark(#ffffff, #181818);
   --text-on-accent: light-dark(#fafaf9, #0c0a09);
@@ -42,6 +42,9 @@
   --shadow-subtle: light-dark(0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.18));
   --shadow-card: light-dark(0 2px 8px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.28));
   --shadow-card-hover: light-dark(0 6px 18px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.34));
+  --scrollbar-track: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
+  --scrollbar-thumb: light-dark(rgba(0, 0, 0, 0.16), rgba(255, 255, 255, 0.2));
+  --scrollbar-thumb-hover: light-dark(rgba(0, 0, 0, 0.26), rgba(255, 255, 255, 0.3));
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -68,6 +71,10 @@ html,
 body {
   background-color: var(--color-background);
   color: var(--text);
+}
+
+button:not([data-unstyled-button]) {
+  border: 1px solid var(--color-border);
 }
 
 @layer utilities {
@@ -119,17 +126,17 @@ body {
   }
 
   .scrollbar-hide::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--scrollbar-track);
     border-radius: 0;
   }
 
   .scrollbar-hide::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--scrollbar-thumb);
     border-radius: 0;
   }
 
   .scrollbar-hide::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--scrollbar-thumb-hover);
   }
 
   button.in-watchlist .watchlist-icon {
@@ -139,7 +146,7 @@ body {
   .scrollbar-hide {
     -ms-overflow-style: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 }
 
