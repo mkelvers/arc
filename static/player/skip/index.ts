@@ -1,6 +1,7 @@
 import { state } from '../state';
 import { displayTimeFromAbsolute, absoluteTimeFromDisplay } from '../timeline';
 import { showControls } from '../controls';
+import { saveProgress } from '../progress';
 
 // button label based on segment type
 const skipLabel = (type: string): string => (type === 'ed' ? 'Skip outro' : 'Skip intro');
@@ -29,6 +30,7 @@ export const updateSkipButton = (currentTime: number): void => {
   const autoSkip = localStorage.getItem('mal:autoskip-enabled') === 'true';
   if (autoSkip && displayTime >= segment.start && displayTime < segment.end) {
     state.video.currentTime = absoluteTimeFromDisplay(segment.end + 0.01);
+    void saveProgress();
     return;
   }
 

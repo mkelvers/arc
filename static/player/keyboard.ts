@@ -8,6 +8,7 @@ import {
   seekBy,
   setVolume,
 } from './controls';
+import { saveProgress } from './progress';
 
 /**
  * Sets up keyboard shortcuts for player control.
@@ -26,6 +27,7 @@ export const setupKeyboard = (): void => {
         e.preventDefault();
         togglePlayPause();
         showControls();
+        void saveProgress();
         break;
       case 'ArrowLeft':
       case 'KeyJ':

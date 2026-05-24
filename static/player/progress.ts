@@ -16,35 +16,51 @@ const sendBeacon = (payload: string) => {
   return true;
 };
 
+let saveProgressInFlight: Promise<void> | null = null;
+
 /**
  * Saves current progress to backend.
  * Debounced: skips if within 5s of last save for same episode.
  */
 export const saveProgress = async (): Promise<void> => {
-  if (state.transitionEpisode !== null || !state.malID || state.video.currentTime < 1) return;
-  // progress is user-scoped; avoid spamming 401s for anonymous sessions
-  if (!document.cookie.includes('mal_session=')) return;
-  const episode = Number.parseInt(state.currentEpisode, 10);
-  if (!episode) return;
+  if (saveProgressInFlight) return saveProgressInFlight;
 
-  const safeTime = displayTimeFromAbsolute(state.video.currentTime);
-  // skip if recently saved
-  if (
-    state.lastSavedProgress.episode === state.currentEpisode &&
-    Math.abs(state.lastSavedProgress.seconds - safeTime) < 5
-  )
-    return;
+  const request = (async (): Promise<void> => {
+    if (state.transitionEpisode !== null || !state.malID || state.video.currentTime < 1) return;
+    // progress is user-scoped; avoid spamming 401s for anonymous sessions
+    if (!document.cookie.includes('mal_session=')) return;
+    const episode = Number.parseInt(state.currentEpisode, 10);
+    if (!episode) return;
 
-  const payload = buildPayload(episode, safeTime);
+    const safeTime = displayTimeFromAbsolute(state.video.currentTime);
+    // skip if recently saved
+    if (
+      state.lastSavedProgress.episode === state.currentEpisode &&
+      Math.abs(state.lastSavedProgress.seconds - safeTime) < 5
+    ) {
+      return;
+    }
+
+    const payload = buildPayload(episode, safeTime);
+    try {
+      const res = await fetch('/api/watch-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+      if (!res.ok) return;
+      state.lastSavedProgress = { episode: state.currentEpisode, seconds: safeTime };
+    } catch {}
+  })();
+
+  saveProgressInFlight = request;
   try {
-    const res = await fetch('/api/watch-progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-    });
-    if (!res.ok) return;
-    state.lastSavedProgress = { episode: state.currentEpisode, seconds: safeTime };
-  } catch {}
+    await request;
+  } finally {
+    if (saveProgressInFlight === request) {
+      saveProgressInFlight = null;
+    }
+  }
 };
 
 // schedules periodic save every 30s during playback

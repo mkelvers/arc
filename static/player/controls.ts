@@ -1,4 +1,5 @@
 import { state } from './state';
+import { saveProgress } from './progress';
 
 export const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
@@ -203,6 +204,7 @@ export const setupControls = (): void => {
   state.video.addEventListener('pause', () => {
     updatePlayPauseIcons(false);
     showControls();
+    void saveProgress();
   });
   state.video.addEventListener('volumechange', syncVolumeUI);
 
