@@ -148,7 +148,7 @@
         {{end}}
         <ui-dropdown class="relative block mb-4" data-align="left" data-width="w-full">
           <div data-trigger>
-            <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface rounded text-sm text-foreground-muted hover:bg-surface-hover transition-colors">
+            <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface text-sm text-foreground-muted hover:bg-surface-hover transition-colors">
               <span class="truncate">
                 {{if $currentSeason.Prefix}}<span class="font-bold text-foreground mr-1">{{$currentSeason.Prefix}}:</span>{{end}}
                 {{$currentSeason.Title}}
@@ -156,7 +156,7 @@
               <svg class="w-4 h-4 text-foreground-muted shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
             </button>
           </div>
-          <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button rounded shadow-[var(--shadow-card)] max-h-64 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]">
+          <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button shadow-[var(--shadow-card)] max-h-64 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]">
             <div class="flex flex-col py-1">
               {{range .Seasons}}
                 <a href="/anime/{{.MalID}}/watch" class="px-4 py-2 text-left text-sm {{if .IsCurrent}}text-accent bg-accent/10{{else}}text-foreground-muted hover:bg-surface-hover{{end}} transition-colors">
@@ -179,19 +179,19 @@
         <div class="flex items-center justify-between">
           <span class="text-sm font-normal text-foreground-muted">Episodes</span>
           {{if gt $totalEpisodes 100}}
-            <input id="episode-search" type="text" name="episode-search" placeholder="Find" data-episode-search class="w-24 bg-background-surface text-sm px-3 py-1.5 rounded text-foreground placeholder-foreground-muted focus:outline-none focus:ring-1 focus:ring-accent" />
+            <input id="episode-search" type="text" name="episode-search" placeholder="Find" data-episode-search class="w-24 bg-background-surface text-sm px-3 py-1.5 text-foreground placeholder-foreground-muted focus:outline-none focus:ring-1 focus:ring-accent" />
           {{end}}
         </div>
 
         {{if gt $totalEpisodes 100}}
           <ui-dropdown class="relative block" data-align="left" data-width="min-w-[200px]" data-episode-dropdown>
             <div data-trigger>
-              <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface rounded text-sm text-foreground-muted hover:bg-surface-hover">
+              <button class="w-full flex items-center justify-between px-3 py-2 bg-background-surface text-sm text-foreground-muted hover:bg-surface-hover">
                 <span data-dropdown-label>01-100</span>
                 <svg class="w-4 h-4 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
             </div>
-            <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button rounded shadow-[var(--shadow-card)]">
+            <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button shadow-[var(--shadow-card)]">
               <div class="flex flex-col py-1">
                 {{$ranges := ceilDiv $totalEpisodes 100}}
                 {{range $i := seq $ranges}}
