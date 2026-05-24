@@ -78,7 +78,7 @@
 {{define "continue_watching_skeleton"}}
 <section id="continue-watching-section" class="w-full">
   <h2 class="mb-3 text-lg font-normal text-foreground">Continue Watching</h2>
-  <div class="scrollbar-hide flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4">
+  <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]">
     {{range (seq 3)}}
       <div class="flex w-70 shrink-0 snap-start flex-col gap-2 2xl:w-lg">
         <div class="skeleton aspect-video w-full overflow-hidden rounded-xl"></div>

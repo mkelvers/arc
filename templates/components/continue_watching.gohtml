@@ -2,7 +2,7 @@
 <section id="continue-watching-section" class="w-full empty:hidden">
   <h2 class="mb-3 text-lg font-normal text-foreground">Continue Watching</h2>
 
-  <div id="continue-watching-items" class="scrollbar-hide flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4" hx-on::after-request="if(this.querySelectorAll('.continue-watching-item').length === 0) document.getElementById('continue-watching-section')?.remove()">
+  <div id="continue-watching-items" class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]" hx-on::after-request="if(this.querySelectorAll('.continue-watching-item').length === 0) document.getElementById('continue-watching-section')?.remove()">
     {{range .}}
       {{$title := .TitleOriginal}}
       {{if .TitleEnglish.Valid}}{{$title = .TitleEnglish.String}}{{end}}
