@@ -56,7 +56,7 @@
   </style>
    <script type="module" src="/dist/static/theme.js" defer></script>
    <template id="toast-template">
-      <div class="toast pointer-events-auto w-[22rem] max-w-[calc(100vw-2rem)] bg-background shadow-soft ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0">
+      <div class="toast pointer-events-auto w-[22rem] max-w-[calc(100vw-2rem)] bg-background shadow-[var(--shadow-card)] ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0">
         <div class="min-w-0 flex-1">
          <div class="toast-message text-sm font-medium text-foreground leading-snug"></div>
        </div>
@@ -293,7 +293,7 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
   <body class="bg-background text-foreground">
   <div class="flex min-h-screen flex-col">
     {{if .User}}
-      <header class="fixed inset-x-0 top-0 z-50 flex h-14 items-center border-b border-border bg-background-sidebar px-4 lg:hidden">
+      <header class="fixed inset-x-0 top-0 z-50 flex h-14 items-center bg-background-sidebar px-4 lg:hidden">
         <button type="button" data-unstyled-button data-mobile-menu-toggle class="inline-flex items-center justify-center bg-background-button p-2 text-foreground" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
           <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 6h16"></path>
@@ -315,9 +315,9 @@ if (window.showToast) showToast({ message: 'Something went wrong' })
         </div>
 
         <div class="fixed inset-0 z-[60] hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-command-palette-dialog aria-hidden="true">
-          <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-soft ring-1 ring-border" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
+          <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)]" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
             <label for="command-palette-input" class="sr-only">Search commands and anime</label>
-            <div class="flex items-center border-b border-border">
+            <div class="flex items-center">
               <svg class="mx-4 size-5 shrink-0 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />

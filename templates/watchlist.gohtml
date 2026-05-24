@@ -2,7 +2,7 @@
 {{define "content"}}
 {{if .WatchlistIDs}}<script>initWatchlist({{.WatchlistIDs}})</script>{{end}}
 <div id="watchlist-content" class="flex w-full flex-col gap-6">
-  <h1 class="heading-serif text-xl font-normal text-foreground">Watchlist</h1>
+  <h1 class="font-[family:var(--font-serif)] tracking-[-0.03em] leading-[1.15] text-xl font-normal text-foreground">Watchlist</h1>
 
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-6">
@@ -29,7 +29,7 @@
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           </div>
-          <div data-content class="hidden absolute z-50 min-w-[150px] bg-background-button rounded-none shadow-soft right-0 top-full mt-2 ring-1 ring-border">
+          <div data-content class="hidden absolute z-50 min-w-[150px] bg-background-button rounded-none shadow-[var(--shadow-card)] right-0 top-full mt-2">
             <div class="flex flex-col py-1">
               <button class="flex w-full items-center px-4 py-2 text-sm text-foreground transition-colors hover:bg-surface-hover" onclick="setSortBy('date', this)">Date Added</button>
               <button class="flex w-full items-center px-4 py-2 text-sm text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground" onclick="setSortBy('title', this)">Title</button>
@@ -47,7 +47,7 @@
   <div id="watchlist-items" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 mt-6">
     {{range $.AllEntries}}
       <div class="watchlist-item flex w-full flex-col gap-2" data-mal-id="{{.AnimeID}}" data-status="{{.Status}}" data-updated-at="{{.UpdatedAt.Unix}}" data-episode="{{.CurrentEpisode.Int64}}" data-time="{{.CurrentTimeSeconds}}" data-title="{{.DisplayTitle}}">
-        <div class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-background-surface ring-1 ring-border after:absolute after:inset-0 after:bg-black/80 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
+  <div class="group relative flex aspect-2/3 w-full flex-col overflow-hidden bg-background-surface after:absolute after:inset-0 after:bg-black/80 after:opacity-0 hover:after:opacity-100 after:transition-opacity">
           <a href="/anime/{{.AnimeID}}" class="absolute inset-0 z-10"></a>
           <img src="{{.ImageUrl}}" alt="{{.DisplayTitle}}" class="h-full w-full object-cover" loading="lazy" />
 
@@ -74,7 +74,7 @@
         <p class="text-sm text-foreground-muted">Start adding anime to keep track of what you want to watch</p>
         <div class="flex gap-3 mt-2">
           <a href="/" class="px-5 py-2.5 text-sm font-medium bg-accent/20 hover:bg-accent/30 text-accent transition-colors">Browse anime</a>
-          <a href="/discover" class="px-5 py-2.5 text-sm font-medium bg-background-surface hover:bg-background-button-hover text-foreground ring-1 ring-border transition-colors">Discover new</a>
+          <a href="/discover" class="px-5 py-2.5 text-sm font-medium bg-background-surface hover:bg-background-button-hover text-foreground transition-colors">Discover new</a>
         </div>
       </div>
     {{end}}

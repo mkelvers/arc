@@ -12,7 +12,7 @@
   data-segments='{{json .WatchData.Segments}}'
   data-anime-title-english="{{.WatchData.Title}}"
   data-anime-image="{{.WatchData.MalID}}"
-  class="group relative aspect-video w-full overflow-hidden bg-black">
+  class="group relative aspect-video w-full overflow-hidden bg-black [&.show-controls_[data-video-overlay]]:opacity-100 [&.fullscreen:not(.show-controls)_[data-video-overlay]]:opacity-0 [&.fullscreen:not(.show-controls)_[data-video-overlay]]:pointer-events-none [&.fullscreen:not(.show-controls)]:cursor-none [&.fullscreen:not(.show-controls)_video]:cursor-none">
 
   
   <video class="h-full w-full cursor-pointer" preload="metadata" playsinline></video>
@@ -73,7 +73,7 @@
                 <svg class="size-6 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               </button>
             </div>
-            <div data-content class="hidden absolute z-50 w-64 bg-background-button rounded-none shadow-soft ring-1 ring-border right-0 bottom-full mb-2">
+            <div data-content class="hidden absolute z-50 w-64 bg-background-button rounded-none shadow-[var(--shadow-card)] right-0 bottom-full mb-2">
               <div class="flex flex-col py-1">
                 <div class="flex items-center justify-between px-5 py-2.5">
                   <span class="text-[15px] font-medium text-foreground">Autoplay</span>
@@ -101,11 +101,11 @@
                     </button>
                     <div class="hidden px-5 py-2 flex flex-col gap-1">
                       <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Subtitles</span>
-                      <select id="player-subtitle-select" data-subtitle-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent"></select>
+                      <select id="player-subtitle-select" data-subtitle-select class="w-full bg-white/5 text-white text-xs px-2 py-1.5 outline-none rounded"></select>
                     </div>
                     <div class="hidden px-5 py-2 flex flex-col gap-1">
                       <span class="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Quality</span>
-                      <select id="player-quality-select" data-quality-select class="w-full bg-white/5 text-white text-xs border border-white/10 px-2 py-1.5 outline-none rounded focus:border-accent"></select>
+                      <select id="player-quality-select" data-quality-select class="w-full bg-white/5 text-white text-xs px-2 py-1.5 outline-none rounded"></select>
                     </div>
                   </div>
                 </div>
