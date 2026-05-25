@@ -5,13 +5,21 @@ WORKDIR /app
 # Enable CGO for sqlite3
 ENV CGO_ENABLED=1
 
-# Install sqlc for code generation
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates \
+  curl \
+  unzip \
+  gcc \
+  libc6-dev \
+  libsqlite3-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-# Install build dependencies for bun + assets
-RUN apt-get update && apt-get install -y ca-certificates sqlite3 curl unzip && rm -rf /var/lib/apt/lists/*
+# Install bun (for building frontend assets)
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
+
+# Install sqlc for code generation
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
 
 ENV GOPROXY=direct
 COPY go.mod go.sum ./
@@ -50,7 +58,7 @@ COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/internal/database/migrations ./migrations
-COPY docker/entrypoint.sh ./entrypoint.sh
+COPY entrypoint.sh ./entrypoint.sh
 
 EXPOSE 3000
 

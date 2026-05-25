@@ -1,5 +1,5 @@
 {
-  "name": "myanimelist-ui",
+  "name": "mal",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "lint": "bun run lint:ts && bun run lint:go",
     "lint:ts": "bunx eslint . --max-warnings 0",
     "lint:ts:fix": "bunx eslint . --fix",
-    "lint:go": "mkdir -p .cache/golangci-lint .cache/go-build && GOCACHE=$(pwd)/.cache/go-build GOLANGCI_LINT_CACHE=$(pwd)/.cache/golangci-lint golangci-lint run ./cmd/... && GOCACHE=$(pwd)/.cache/go-build GOLANGCI_LINT_CACHE=$(pwd)/.cache/golangci-lint golangci-lint run ./internal/... && GOCACHE=$(pwd)/.cache/go-build GOLANGCI_LINT_CACHE=$(pwd)/.cache/golangci-lint golangci-lint run ./pkg/... && GOCACHE=$(pwd)/.cache/go-build GOLANGCI_LINT_CACHE=$(pwd)/.cache/golangci-lint golangci-lint run ./integrations/..."
+    "lint:go": "golangci-lint run ./..."
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.4",
@@ -28,7 +28,5 @@
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3"
   },
-  "dependencies": {
-    "dompurify": "^3.4.1"
-  }
+  "dependencies": {}
 }
