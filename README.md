@@ -5,8 +5,6 @@
     <source media="(prefers-color-scheme: dark)" srcset="/static/assets/readme-logo-dark.svg" />
     <img src="/static/assets/readme-logo-light.svg" alt="MyAnimeList logo" width="120" />
   </picture>
-  <br />
-  <em>My personal anime tracker, built because nothing else felt right.</em>
 </p>
 
 <p align="center">
@@ -16,22 +14,13 @@
   <img alt="HTMX" src="https://img.shields.io/badge/htmx-partial--updates-3366CC?style=flat-square" />
 </p>
 
-I was frustrated with every anime tracker I tried. Decent UI but awkward UX. Good features but missing the ones I actually use. So I built my own: search fast, get context fast, update your status fast, and move on.
+---
 
-This project is personal first — I put it on GitHub because I like shipping in the open. It also doubles as proof that a small, server-rendered Go app can stay reliable even when upstream anime APIs are inconsistent.
+I built this because nothing else felt right. Every tracker I tried had decent pieces but the whole never clicked — awkward UI, missing features, or it just got in the way of actually watching anime. So I built one that fits how I work.
 
-- **Catalog browsing & seasonal discovery** — explore what's airing, filter by season
-- **Quick search** — find anime, get mal links, open the detail page in seconds
-- **Detail pages** — synopsis, stats, recommendations, related entries
-- **Watchlist management** — track your progress across statuses
-- **Continue watching** — pick up where you left off
-- **In-app playback** — proxy-based video player
+It is a self-hosted Go server that streams anime through a proxy layer, catalogs metadata, and tracks your progress.
 
-## Technical approach
-
-Written in Go with server-rendered `html/template`, SQLite + `sqlc` for typed queries, Tailwind CSS v4 for styling, and HTMX backed by small TypeScript modules for incremental interactions.
-
-The external anime data source is [Jikan](https://api.jikan.moe/v4). The client layer handles request pacing, bounded retries, backoff, stale-cache fallback, and a persisted retry queue. Playback proxying uses uTLS to bypass Cloudflare. The system is built to degrade gracefully under `429` and `5xx` responses rather than fail hard.
+The frontend is Tailwind CSS v4 with HTMX handling pagination, infinite scroll, search, and watchlist interactions. TypeScript only steps in where HTMX cannot — the video player, command palette bound to Cmd+K, skip segment editor, theme toggling with system preference detection, and custom UI components. Everything lives in one process, one SQLite database, one deployment.
 
 ## Repository structure
 
@@ -39,11 +28,12 @@ The external anime data source is [Jikan](https://api.jikan.moe/v4). The client 
 | ----------------- | ------------------------------------------------ |
 | `api/*`           | Feature routes: anime, auth, playback, watchlist |
 | `cmd/server`      | Application entrypoint and CLI commands          |
+| `cmd/user`        | User management CLI (create, update, delete)     |
 | `integrations/*`  | External API clients and scraping                |
 | `internal/*`      | Core services: db, middleware, server, worker    |
 | `pkg/middleware`  | Generic HTTP middleware                          |
 | `templates/*`     | Server-rendered HTML templates                   |
-| `migrations`      | Schema evolution                                 |
+| `migrations`      | Schema evolution (20 migrations)                 |
 | `static` / `dist` | Frontend assets                                  |
 
 ## Running locally
