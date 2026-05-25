@@ -19,7 +19,7 @@ type ProducerListEntry struct {
 
 type ProducersResponse struct {
 	Data       []ProducerListEntry `json:"data"`
-	Pagination Pagination         `json:"pagination"`
+	Pagination Pagination          `json:"pagination"`
 }
 
 type ProducerListResult struct {
