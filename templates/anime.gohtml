@@ -171,7 +171,9 @@
                 {{if $anime.Studios}}
                   <div>
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
-                    <dd class="text-foreground">{{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}{{$s.Name}}{{end}}</dd>
+                    <dd class="text-foreground">
+                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}<a href="/browse?studio={{$s.MalID}}" class="underline underline-offset-2 decoration-foreground-muted/60 text-foreground-muted transition-colors hover:text-foreground hover:decoration-foreground/70">{{$s.Name}}</a>{{end}}
+                    </dd>
                   </div>
                 {{end}}
                 {{if $anime.Producers}}

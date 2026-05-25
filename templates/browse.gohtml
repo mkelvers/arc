@@ -45,8 +45,32 @@
   {{end}}
 {{end}}
 
+{{define "studio_dropdown_items"}}
+  {{if eq .Page 1}}
+    <button type="button" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground" onclick="(function(){const input=document.getElementById('studio-input'); if(input){input.value=''}; const form=document.getElementById('browse-search-form'); if(form){form.requestSubmit()}; const dd=document.getElementById('studio-dropdown'); dd?.close?.()})()">
+      Any Studio
+    </button>
+  {{end}}
+  {{range .StudioItems}}
+    <button type="button" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground" onclick="(function(){const input=document.getElementById('studio-input'); if(input){input.value='{{.ID}}'}; const form=document.getElementById('browse-search-form'); if(form){form.requestSubmit()}; const dd=document.getElementById('studio-dropdown'); dd?.close?.()})()">
+      {{.Name}}
+    </button>
+  {{end}}
+  {{if and (eq (len .StudioItems) 0) (not .HasNextPage)}}
+    <div class="px-5 py-3 text-sm text-foreground-muted">No studios found.</div>
+  {{end}}
+  {{if .HasNextPage}}
+    <div hx-get="/api/jikan/producers?q={{urlquery .Query}}&page={{.NextPage}}&limit={{.Limit}}"
+         hx-trigger="intersect once"
+         hx-swap="beforeend"
+         hx-target="this"
+         hx-push-url="false"
+         class="h-px"></div>
+  {{end}}
+{{end}}
+
 {{define "browse_sentinel"}}
-  <div hx-get="/browse?q={{.Query}}&type={{.Type}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}&{{genresParams .Genres}}&page={{.NextPage}}"
+  <div hx-get="/browse?q={{.Query}}&type={{.Type}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&studio={{.Studio}}&sfw={{.SFW}}&{{genresParams .Genres}}&page={{.NextPage}}"
        hx-trigger="intersect once"
        hx-swap="outerHTML"
        hx-target="this"

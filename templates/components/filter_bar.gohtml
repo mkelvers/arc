@@ -4,14 +4,17 @@
 <div class="flex flex-wrap items-center gap-3" hx-boost="true" hx-target="#browse-content" hx-swap="outerHTML" hx-push-url="true">
   <div class="min-w-50 flex-1">
     <form action="/browse" method="GET" id="browse-search-form" hx-get="/browse" hx-trigger="submit, input changed delay:350ms from:#search, search from:#search" hx-sync="this:replace">
-      <input
-        id="search"
-        name="q"
-        type="text"
-        value="{{.Query}}"
-        placeholder="Search anime..."
-        class="!rounded-none w-full bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition-colors hover:bg-background-button-hover focus:ring-1 focus:ring-accent"
-      />
+      <div class="flex gap-2">
+        <input
+          id="search"
+          name="q"
+          type="text"
+          value="{{.Query}}"
+          placeholder="Search anime..."
+          class="!rounded-none w-full bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition-colors hover:bg-background-button-hover focus:ring-1 focus:ring-accent"
+        />
+      </div>
+      <input id="studio-input" type="hidden" name="studio" value="{{if .Studio}}{{.Studio}}{{end}}">
       {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
       {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
       {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
@@ -21,8 +24,35 @@
     </form>
   </div>
 
+  <ui-dropdown id="studio-dropdown" class="relative block" data-align="left" data-width="w-72" hx-push-url="false">
+    <div data-trigger class="cursor-pointer">
+      <button class="!rounded-none flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+        {{if .Studio}}{{if .StudioName}}{{.StudioName}}{{else}}Studio #{{.Studio}}{{end}}{{else}}Any Studio{{end}}
+        <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+    </div>
+    <div data-content class="hidden absolute z-50 w-72 overflow-hidden bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2">
+      <div class="p-2">
+        <input id="studio-search" type="text" placeholder="Search studios..." class="!rounded-none w-full bg-background-sidebar px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1 focus:ring-accent"
+          hx-get="/api/jikan/producers"
+          hx-vals='{"page":1,"limit":12}'
+          hx-trigger="input changed delay:250ms, search"
+          hx-include="#studio-search"
+          hx-target="#studio-results"
+          hx-swap="innerHTML"
+          hx-push-url="false"
+          hx-headers='{"Accept":"text/html"}'
+          name="q"
+        />
+      </div>
+      <div class="flex max-h-72 flex-col overflow-y-auto py-1" id="studio-results" hx-get="/api/jikan/producers?page=1&limit=12" hx-trigger="load" hx-target="this" hx-swap="innerHTML" hx-push-url="false" hx-headers='{"Accept":"text/html"}'>
+      </div>
+    </div>
+  </ui-dropdown>
+
   <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="!rounded-none flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
     <input type="hidden" name="q" value="{{.Query}}">
+    {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
     {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
     {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
     {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
@@ -48,6 +78,7 @@
     <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
       <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col py-1">
         <input type="hidden" name="q" value="{{.Query}}">
+        {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
         {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
         {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
         {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
@@ -77,10 +108,10 @@
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
-        <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Status</a>
-        <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Airing</a>
-        <a href="?status=complete&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Complete</a>
-        <a href="?status=upcoming&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Upcoming</a>
+        <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Status</a>
+        <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Airing</a>
+        <a href="?status=complete&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Complete</a>
+        <a href="?status=upcoming&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Upcoming</a>
       </div>
     </div>
   </ui-dropdown>
@@ -94,12 +125,12 @@
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
-        <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Type</a>
-        <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">TV</a>
-        <a href="?type=movie&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Movie</a>
-        <a href="?type=ova&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">OVA</a>
-        <a href="?type=special&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Special</a>
-        <a href="?type=ona&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">ONA</a>
+        <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Type</a>
+        <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">TV</a>
+        <a href="?type=movie&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Movie</a>
+        <a href="?type=ova&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">OVA</a>
+        <a href="?type=special&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Special</a>
+        <a href="?type=ona&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">ONA</a>
       </div>
     </div>
   </ui-dropdown>
@@ -114,17 +145,17 @@
       </div>
       <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
         <div class="flex flex-col py-1">
-          <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Default</a>
-          <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Popularity</a>
-          <a href="?order_by=score&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Score</a>
-          <a href="?order_by=title&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Title</a>
-          <a href="?order_by=start_date&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Start Date</a>
-          <a href="?order_by=episodes&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Episodes</a>
+          <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Default</a>
+          <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Popularity</a>
+          <a href="?order_by=score&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Score</a>
+          <a href="?order_by=title&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Title</a>
+          <a href="?order_by=start_date&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Start Date</a>
+          <a href="?order_by=episodes&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Episodes</a>
         </div>
       </div>
     </ui-dropdown>
 
-    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="!rounded-none flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="!rounded-none flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}
