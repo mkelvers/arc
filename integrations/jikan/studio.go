@@ -1,6 +1,9 @@
 package jikan
 
-import ()
+import (
+	"context"
+	"fmt"
+)
 
 type ProducerResponse struct {
 	Data struct {
@@ -23,4 +26,19 @@ type ProducerResponse struct {
 			URL  string `json:"url"`
 		} `json:"external"`
 	} `json:"data"`
+}
+
+func (c *Client) GetProducerByID(ctx context.Context, id int) (ProducerResponse, error) {
+	if id <= 0 {
+		return ProducerResponse{}, fmt.Errorf("invalid producer id")
+	}
+
+	cacheKey := fmt.Sprintf("producer:%d", id)
+	reqURL := fmt.Sprintf("%s/producers/%d", c.baseURL, id)
+
+	var result ProducerResponse
+	if err := c.getWithCache(ctx, cacheKey, producerCacheTTL, reqURL, &result); err != nil {
+		return ProducerResponse{}, err
+	}
+	return result, nil
 }
