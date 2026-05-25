@@ -98,8 +98,25 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 	return s.jikan.GetAnimeByID(ctx, id)
 }
 
-func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, sfw bool, page, limit int) (jikan.SearchResult, error) {
-	return s.jikan.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, sfw, page, limit)
+func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error) {
+	return s.jikan.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, studioID, sfw, page, limit)
+}
+
+func (s *animeService) GetProducerNameByID(ctx context.Context, id int) (string, error) {
+	res, err := s.jikan.GetProducerByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	for _, t := range res.Data.Titles {
+		if t.Title != "" {
+			return t.Title, nil
+		}
+	}
+	return "", nil
+}
+
+func (s *animeService) GetProducers(ctx context.Context, query string, page int, limit int) (jikan.ProducerListResult, error) {
+	return s.jikan.GetProducers(ctx, query, page, limit)
 }
 
 func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {

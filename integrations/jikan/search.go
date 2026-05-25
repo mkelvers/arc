@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// SearchAdvanced performs a filtered anime search with type, status, ordering, and genre filters.
-func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, sfw bool, page, limit int) (SearchResult, error) {
+// SearchAdvanced performs a filtered anime search with type, status, ordering, genre filters, and studio (producer) filters.
+func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (SearchResult, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -26,7 +26,7 @@ func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, o
 		genresParam = strings.Join(ids, ",")
 	}
 
-	cacheKey := fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%v:%d:%d", query, animeType, status, orderBy, sort, genresParam, sfw, page, limit)
+	cacheKey := fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%d:%v:%d:%d", query, animeType, status, orderBy, sort, genresParam, studioID, sfw, page, limit)
 
 	var result SearchResponse
 	reqURL := fmt.Sprintf("%s/anime?page=%d", c.baseURL, page)
@@ -41,6 +41,9 @@ func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, o
 	}
 	if status != "" {
 		reqURL += "&status=" + url.QueryEscape(status)
+	}
+	if studioID > 0 {
+		reqURL += "&producers=" + strconv.Itoa(studioID)
 	}
 	if orderBy != "" {
 		reqURL += "&order_by=" + url.QueryEscape(orderBy)

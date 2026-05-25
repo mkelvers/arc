@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
 	"net/http"
@@ -66,6 +67,75 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/search-quick", h.HandleQuickSearch)
 	r.GET("/api/command-palette", h.HandleCommandPalette)
 	r.GET("/api/jikan/random/anime", h.HandleRandomAnime)
+	r.GET("/api/jikan/producers", h.HandleProducers)
+}
+
+func (h *AnimeHandler) HandleProducers(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if limit < 1 {
+		limit = 12
+	}
+	if limit > 12 {
+		limit = 12
+	}
+
+	res, err := h.svc.GetProducers(c.Request.Context(), q, page, limit)
+	if err != nil {
+		log.Printf("failed to fetch producers list (q=%q page=%d limit=%d): %v", q, page, limit, err)
+		if strings.Contains(c.GetHeader("Accept"), "text/html") {
+			c.HTML(http.StatusOK, "browse.gohtml", gin.H{
+				"_fragment":   "studio_dropdown_items",
+				"StudioItems": []any{},
+				"HasNextPage": false,
+				"Page":        page,
+				"NextPage":    page + 1,
+				"Query":       q,
+				"Limit":       limit,
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	type item struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
+
+	items := make([]item, 0, len(res.Items))
+	for _, p := range res.Items {
+		name := jikan.ProducerListEntryName(p)
+		if p.MalID <= 0 || name == "" {
+			continue
+		}
+		items = append(items, item{ID: p.MalID, Name: name})
+	}
+
+	if strings.Contains(c.GetHeader("Accept"), "text/html") {
+		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
+			"_fragment":   "studio_dropdown_items",
+			"StudioItems": items,
+			"HasNextPage": res.HasNextPage,
+			"Page":        page,
+			"NextPage":    page + 1,
+			"Query":       q,
+			"Limit":       limit,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"items":       items,
+		"hasNextPage": res.HasNextPage,
+		"nextPage":    page + 1,
+	})
 }
 
 func (h *AnimeHandler) HandleCatalog(c *gin.Context) {
@@ -155,6 +225,10 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	orderBy := c.Query("order_by")
 	sort := c.Query("sort")
 	sfw := c.Query("sfw") != "false"
+	studioID, _ := strconv.Atoi(c.Query("studio"))
+	if studioID < 0 {
+		studioID = 0
+	}
 
 	var genres []int
 	for _, g := range c.QueryArray("genres") {
@@ -169,7 +243,7 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		page = 1
 	}
 
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), q, animeType, status, orderBy, sort, genres, sfw, page, 24)
+	res, err := h.svc.SearchAdvanced(c.Request.Context(), q, animeType, status, orderBy, sort, genres, studioID, sfw, page, 24)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -181,6 +255,14 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		userID = u.ID
 	}
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, res.Animes)
+
+	studioName := ""
+	if studioID > 0 {
+		name, err := h.svc.GetProducerNameByID(c.Request.Context(), studioID)
+		if err == nil {
+			studioName = name
+		}
+	}
 
 	if c.GetHeader("HX-Request") == "true" && page > 1 {
 		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
@@ -194,6 +276,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 			"OrderBy":      orderBy,
 			"Sort":         sort,
 			"Genres":       genres,
+			"Studio":       studioID,
+			"StudioName":   studioName,
 			"SFW":          sfw,
 			"WatchlistMap": watchlistMap,
 		})
@@ -212,6 +296,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 			"OrderBy":      orderBy,
 			"Sort":         sort,
 			"Genres":       genres,
+			"Studio":       studioID,
+			"StudioName":   studioName,
 			"SFW":          sfw,
 			"GenresList":   genresList,
 			"Animes":       res.Animes,
@@ -231,6 +317,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		"OrderBy":      orderBy,
 		"Sort":         sort,
 		"Genres":       genres,
+		"Studio":       studioID,
+		"StudioName":   studioName,
 		"SFW":          sfw,
 		"GenresList":   genresList,
 		"Animes":       res.Animes,
@@ -367,7 +455,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), query, "", "", "", "", nil, true, 1, 5)
+	res, err := h.svc.SearchAdvanced(c.Request.Context(), query, "", "", "", "", nil, 0, true, 1, 5)
 	if err != nil {
 		c.JSON(http.StatusOK, []any{})
 		return
@@ -475,7 +563,7 @@ func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) 
 	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 800*time.Millisecond)
 	defer cancel()
 
-	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, true, 1, 5)
+	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, 0, true, 1, 5)
 	if err != nil {
 		return nil
 	}
