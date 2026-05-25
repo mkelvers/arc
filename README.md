@@ -16,8 +16,6 @@
   <img alt="HTMX" src="https://img.shields.io/badge/htmx-partial--updates-3366CC?style=flat-square" />
 </p>
 
-<img alt="MyAnimeList home page screenshot" src="/static/assets/screenshot-home.png" width="800" />
-
 I was frustrated with every anime tracker I tried. Decent UI but awkward UX. Good features but missing the ones I actually use. So I built my own: search fast, get context fast, update your status fast, and move on.
 
 This project is personal first — I put it on GitHub because I like shipping in the open. It also doubles as proof that a small, server-rendered Go app can stay reliable even when upstream anime APIs are inconsistent.
