@@ -15,14 +15,22 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observa
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lc.Append(fx.Hook{
-		OnStart: func(context.Context) error {
+		OnStart: func(startCtx context.Context) error {
+			// Tie worker lifetime to fx lifecycle start context cancellation.
+			go func() {
+				<-startCtx.Done()
+				cancel()
+			}()
 			go func() {
 				observability.Info("episodes_worker_start", "episodes", "", nil)
 				ticker := time.NewTicker(workerInterval)
 				defer ticker.Stop()
 
 				for {
-					if err := svc.RefreshTrackedDue(ctx, 25); err != nil {
+					tickCtx, tickCancel := context.WithTimeout(ctx, 45*time.Second)
+					err := svc.RefreshTrackedDue(tickCtx, 25)
+					tickCancel()
+					if err != nil {
 						metrics.ObserveWorkerTick("episodes_availability", err)
 						observability.Warn(
 							"episodes_worker_tick_failed",
