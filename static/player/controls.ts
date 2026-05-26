@@ -1,5 +1,6 @@
 import { state } from './state';
 import { saveProgress } from './progress';
+import { safeLocalStorage } from './storage';
 
 export const formatTime = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
@@ -78,6 +79,35 @@ export const syncVolumeUI = (): void => {
   updateMuteIcons(state.video.muted || state.video.volume === 0);
 };
 
+const VOLUME_STORAGE_KEY = 'player-volume';
+
+const parseStoredVolume = (raw: string | null): number | null => {
+  if (!raw) return null;
+  const v = Number.parseFloat(raw);
+  if (!Number.isFinite(v)) return null;
+  if (v < 0 || v > 1) return null;
+  return v;
+};
+
+const applyStoredVolume = (): void => {
+  const stored = parseStoredVolume(safeLocalStorage.getItem(VOLUME_STORAGE_KEY));
+  if (stored === null) return;
+
+  state.video.volume = stored;
+  state.video.muted = stored === 0;
+  if (stored > 0) state.lastKnownVolume = stored;
+};
+
+let volumeSaveTimer: number | undefined;
+const schedulePersistVolume = (): void => {
+  window.clearTimeout(volumeSaveTimer);
+  volumeSaveTimer = window.setTimeout(() => {
+    if (!Number.isFinite(state.video.volume)) return;
+    const clamped = Math.max(0, Math.min(1, state.video.volume));
+    safeLocalStorage.setItem(VOLUME_STORAGE_KEY, clamped.toFixed(3));
+  }, 250);
+};
+
 interface Controls {
   playPause: HTMLButtonElement | null;
   muteBtn: HTMLButtonElement | null;
@@ -138,6 +168,8 @@ const updateMuteIcons = (isMuted: boolean): void => {
  * Sets up video event listeners for icon sync.
  */
 export const setupControls = (): void => {
+  applyStoredVolume();
+
   const {
     playPause,
     muteBtn,
@@ -206,7 +238,10 @@ export const setupControls = (): void => {
     showControls();
     void saveProgress();
   });
-  state.video.addEventListener('volumechange', syncVolumeUI);
+  state.video.addEventListener('volumechange', () => {
+    syncVolumeUI();
+    schedulePersistVolume();
+  });
 
   // mouse move in container shows controls
   state.container.addEventListener('mousemove', showControls);
