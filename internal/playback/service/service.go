@@ -59,7 +59,9 @@ func (s *playbackService) SignProxyToken(targetURL, referer, scope string) (stri
 		return "", err
 	}
 	mac := hmac.New(sha256.New, []byte(s.proxyTokenKey))
-	mac.Write(body)
+	if _, err := mac.Write(body); err != nil {
+		return "", fmt.Errorf("sign proxy token: %w", err)
+	}
 	signature := mac.Sum(nil)
 	encodedBody := base64.RawURLEncoding.EncodeToString(body)
 	encodedSignature := base64.RawURLEncoding.EncodeToString(signature)
@@ -83,7 +85,9 @@ func (s *playbackService) VerifyProxyToken(token string) (proxyTokenPayload, err
 		return proxyTokenPayload{}, fmt.Errorf("invalid signature encoding: %w", err)
 	}
 	mac := hmac.New(sha256.New, []byte(s.proxyTokenKey))
-	mac.Write(body)
+	if _, err := mac.Write(body); err != nil {
+		return proxyTokenPayload{}, fmt.Errorf("verify proxy token: %w", err)
+	}
 	expectedSig := mac.Sum(nil)
 	if !hmac.Equal(expectedSig, decodedSig) {
 		return proxyTokenPayload{}, fmt.Errorf("invalid signature")
