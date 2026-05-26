@@ -2,7 +2,6 @@ package observability
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 )
@@ -51,7 +50,7 @@ func LogJSON(level LogLevel, event string, component string, message string, fie
 		eventBytes, _ := json.Marshal("log_marshal_failed")
 		componentBytes, _ := json.Marshal(component)
 		errBytes, _ := json.Marshal(marshalErr.Error())
-		log.Print(fmt.Sprintf(`{"ts":%s,"level":%s,"event":%s,"component":%s,"error":%s}`, tsBytes, levelBytes, eventBytes, componentBytes, errBytes))
+		log.Printf(`{"ts":%s,"level":%s,"event":%s,"component":%s,"error":%s}`, tsBytes, levelBytes, eventBytes, componentBytes, errBytes)
 		return
 	}
 
