@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"mal/internal/audit"
 	"mal/internal/config"
 	"mal/internal/observability"
 	"net/http"
@@ -25,7 +26,7 @@ func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender, metrics *obs
 		gin.SetMode(cfg.GinMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddlewareWithConfig(cfg), RequestLogger(metrics), gin.Recovery())
+	r.Use(CORSMiddlewareWithConfig(cfg), audit.ContextMiddleware(), RequestLogger(metrics), gin.Recovery())
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
 	r.GET("/metrics", gin.WrapH(metrics.Handler()))

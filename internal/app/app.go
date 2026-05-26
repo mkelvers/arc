@@ -3,6 +3,7 @@ package app
 import (
 	"mal/integrations/jikan"
 	"mal/integrations/playback/allanime"
+	"mal/internal/audit"
 	"mal/internal/anime"
 	"mal/internal/auth"
 	"mal/internal/config"
@@ -22,6 +23,7 @@ func NewApp() *fx.App {
 	return fx.New(
 		config.Module,
 		database.Module,
+		audit.Module,
 		jikan.Module,
 		allanime.Module,
 		episodes.Module,
