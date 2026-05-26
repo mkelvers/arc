@@ -64,3 +64,25 @@ class UIDropdown extends HTMLElement {
 }
 
 customElements.define('ui-dropdown', UIDropdown);
+
+const initStudioDropdown = (): void => {
+  document.addEventListener('click', e => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+
+    const btn = target.closest<HTMLButtonElement>('button[data-studio-select]');
+    if (!btn) return;
+
+    const input = document.getElementById('studio-input') as HTMLInputElement | null;
+    const form = document.getElementById('browse-search-form') as HTMLFormElement | null;
+    if (!input || !form) return;
+
+    input.value = btn.dataset.studioSelect ?? '';
+    form.requestSubmit();
+
+    const dropdown = btn.closest('ui-dropdown') as { close?: () => void } | null;
+    dropdown?.close?.();
+  });
+};
+
+initStudioDropdown();

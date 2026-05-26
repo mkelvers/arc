@@ -1,43 +1,5 @@
 {{define "title"}}Discover{{end}}
 {{define "content"}}
-<script>
-  let isFetchingRandom = false;
-
-	  async function handleSurpriseMe() {
-	    if (isFetchingRandom) return;
-	    isFetchingRandom = true;
-	    const btn = document.getElementById('surprise-btn');
-	    const spinner = document.getElementById('surprise-spinner');
-	    const text = document.getElementById('surprise-text');
-	    const icon = document.getElementById('surprise-icon');
-	    btn?.setAttribute('disabled', 'true');
-	    spinner?.classList.remove('hidden');
-	    icon?.classList.add('hidden');
-	    if (text) text.textContent = 'Picking…';
-	    try {
-	      const res = await fetch(`/api/jikan/random/anime?t=${Date.now()}`, {
-	        cache: 'no-store'
-	      });
-	      if (!res.ok) throw new Error('Failed to fetch random anime');
-	      const json = await res.json();
-	      if (json.data && typeof json.data.mal_id === 'number' && json.data.mal_id > 0) {
-	        window.location.href = `/anime/${json.data.mal_id}`;
-	        return;
-	      }
-	      throw new Error('Random anime missing mal_id');
-	    } catch (error) {
-	      console.error(error);
-	      alert('Could not pick a random anime right now. Please try again.');
-	    } finally {
-	      isFetchingRandom = false;
-	      btn?.removeAttribute('disabled');
-	      spinner?.classList.add('hidden');
-	      icon?.classList.remove('hidden');
-	      if (text) text.textContent = 'Surprise Me';
-	    }
-	  }
-	</script>
-
 <div class="flex flex-col gap-12 pb-12">
   <section class="flex flex-col items-center justify-center bg-background-surface px-6 py-16 text-center">
     <div class="flex max-w-2xl flex-col items-center gap-5">
@@ -49,8 +11,8 @@
       </p>
       <button
         id="surprise-btn"
+        data-surprise-me
         class="group relative inline-flex h-11 items-center justify-center gap-2 bg-background-button px-5 text-base font-normal text-foreground transition-colors hover:bg-background-button-hover active:bg-background-button-hover disabled:opacity-70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent sm:h-12"
-        onclick="handleSurpriseMe()"
       >
         <span id="surprise-spinner" class="hidden h-5 w-5 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
         <svg id="surprise-icon" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

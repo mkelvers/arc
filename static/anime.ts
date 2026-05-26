@@ -1,5 +1,28 @@
 import { parseClassList } from './utils';
 
+const initSynopsisToggle = (): void => {
+  document.addEventListener('click', e => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+
+    const btn = target.closest<HTMLButtonElement>('[data-synopsis-toggle]');
+    if (!btn) return;
+    const container = document.getElementById('synopsis-container');
+    if (!container) return;
+
+    const isClamped = container.classList.contains('line-clamp-6');
+    if (isClamped) {
+      container.classList.remove('line-clamp-6');
+      btn.textContent = 'Show less';
+      return;
+    }
+    container.classList.add('line-clamp-6');
+    btn.textContent = 'Read more';
+  });
+};
+
+initSynopsisToggle();
+
 const setDropdownMenuState = (menu: HTMLElement, isOpen: boolean): void => {
   // data attributes store the class lists to add/remove
   const openClasses = parseClassList(menu.getAttribute('data-dropdown-open-classes'));

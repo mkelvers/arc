@@ -47,12 +47,12 @@
 
 {{define "studio_dropdown_items"}}
   {{if eq .Page 1}}
-    <button type="button" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground" onclick="(function(){const input=document.getElementById('studio-input'); if(input){input.value=''}; const form=document.getElementById('browse-search-form'); if(form){form.requestSubmit()}; const dd=document.getElementById('studio-dropdown'); dd?.close?.()})()">
+    <button type="button" data-studio-select="" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground">
       Any Studio
     </button>
   {{end}}
   {{range .StudioItems}}
-    <button type="button" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground" onclick="(function(){const input=document.getElementById('studio-input'); if(input){input.value='{{.ID}}'}; const form=document.getElementById('browse-search-form'); if(form){form.requestSubmit()}; const dd=document.getElementById('studio-dropdown'); dd?.close?.()})()">
+    <button type="button" data-studio-select="{{.ID}}" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground">
       {{.Name}}
     </button>
   {{end}}
