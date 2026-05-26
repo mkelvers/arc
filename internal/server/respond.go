@@ -40,4 +40,3 @@ func acceptsHTML(c *gin.Context) bool {
 	}
 	return false
 }
-

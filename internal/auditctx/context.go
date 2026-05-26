@@ -33,4 +33,3 @@ func RequestInfoFromContext(ctx context.Context) (ip string, userAgent string) {
 	}
 	return ip, userAgent
 }
-

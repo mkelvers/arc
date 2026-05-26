@@ -9,4 +9,3 @@ import (
 var Module = fx.Options(
 	fx.Provide(service.NewAuditService),
 )
-
