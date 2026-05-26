@@ -2,6 +2,7 @@ package observability
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 )
@@ -43,7 +44,14 @@ func LogJSON(level LogLevel, event string, component string, message string, fie
 	// Best-effort. If encoding fails, fall back to a minimal line.
 	bytes, marshalErr := json.Marshal(entry)
 	if marshalErr != nil {
-		log.Printf("level=%s event=%s component=%s error=%q", level, event, component, marshalErr.Error())
+		// Keep output JSON-only even on failures by constructing a minimal entry.
+		// Marshal individual strings to ensure proper escaping.
+		tsBytes, _ := json.Marshal(time.Now().UTC().Format(time.RFC3339Nano))
+		levelBytes, _ := json.Marshal(level)
+		eventBytes, _ := json.Marshal("log_marshal_failed")
+		componentBytes, _ := json.Marshal(component)
+		errBytes, _ := json.Marshal(marshalErr.Error())
+		log.Print(fmt.Sprintf(`{"ts":%s,"level":%s,"event":%s,"component":%s,"error":%s}`, tsBytes, levelBytes, eventBytes, componentBytes, errBytes))
 		return
 	}
 
