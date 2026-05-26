@@ -30,4 +30,3 @@
 
 8. **Remaining handler consistency**
    - Some modules still have duplicated user extraction patterns and could be unified (e.g. `currentUser()` helper usage beyond playback).
-
