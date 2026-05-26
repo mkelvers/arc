@@ -66,8 +66,9 @@ export const renderSegments = (): void => {
     const bar = document.createElement('div');
     // use distinct colors so segments are readable over buffered/progress fills
     bar.className = 'absolute top-0 h-full opacity-95';
-    // single color for OP/ED, rendered above buffered/progress fills
-    bar.style.backgroundColor = '#f5c542';
+    // distinct colors for OP/ED, rendered above buffered/progress fills
+    const t = (s.type || '').toLowerCase();
+    bar.style.backgroundColor = t === 'ed' ? '#60a5fa' : '#f5c542';
     bar.style.left = `${(s.start / bounds) * 100}%`;
     bar.style.width = `${((s.end - s.start) / bounds) * 100}%`;
     track.appendChild(bar);
