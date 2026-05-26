@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"time"
+
+	"mal/internal/observability"
 
 	"mal/integrations/watchorder"
 
@@ -62,21 +63,44 @@ func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrd
 			return watchorder.WatchOrderResult{}, watchorder.ErrWatchOrderNotFound
 		}
 		if errors.Is(err, watchorder.ErrWatchOrderMarkupNotFound) {
-			log.Printf("relations: watch-order markup missing for %d (%s): %v", id, watchOrderURL, err)
+			observability.Warn(
+				"relations_watch_order_markup_missing",
+				"jikan",
+				"",
+				map[string]any{
+					"anime_id": id,
+					"url":      watchOrderURL,
+				},
+				err,
+			)
 		} else if errors.As(err, &statusError) {
-			log.Printf(
-				"relations: watch-order http error for %d (%s): status=%d server=%q cf_ray=%q location=%q content_type=%q body=%q",
-				id,
-				watchOrderURL,
-				statusError.StatusCode,
-				statusError.Server,
-				statusError.CFRay,
-				statusError.Location,
-				statusError.ContentType,
-				statusError.BodyPreview,
+			observability.Warn(
+				"relations_watch_order_http_error",
+				"jikan",
+				"",
+				map[string]any{
+					"anime_id":     id,
+					"url":          watchOrderURL,
+					"status":       statusError.StatusCode,
+					"server":       statusError.Server,
+					"cf_ray":       statusError.CFRay,
+					"location":     statusError.Location,
+					"content_type": statusError.ContentType,
+					"body_preview": statusError.BodyPreview,
+				},
+				err,
 			)
 		} else {
-			log.Printf("relations: watch-order fetch failed for %d (%s): %v", id, watchOrderURL, err)
+			observability.Warn(
+				"relations_watch_order_fetch_failed",
+				"jikan",
+				"",
+				map[string]any{
+					"anime_id": id,
+					"url":      watchOrderURL,
+				},
+				err,
+			)
 		}
 		return watchorder.WatchOrderResult{}, err
 	}
@@ -107,7 +131,15 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 		if errors.Is(err, watchorder.ErrWatchOrderNotFound) {
 			return c.currentOnlyRelation(ctx, id)
 		}
-		log.Printf("relations: using current-only fallback for %d: %v", id, err)
+		observability.Warn(
+			"relations_watch_order_fallback_current_only",
+			"jikan",
+			"",
+			map[string]any{
+				"anime_id": id,
+			},
+			err,
+		)
 		return c.currentOnlyRelation(ctx, id)
 	}
 
