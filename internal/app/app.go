@@ -3,8 +3,8 @@ package app
 import (
 	"mal/integrations/jikan"
 	"mal/integrations/playback/allanime"
-	"mal/internal/audit"
 	"mal/internal/anime"
+	"mal/internal/audit"
 	"mal/internal/auth"
 	"mal/internal/config"
 	"mal/internal/database"

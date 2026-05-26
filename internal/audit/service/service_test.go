@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"mal/internal/auditctx"
 	"mal/internal/audit/service"
+	"mal/internal/auditctx"
 	"mal/internal/database"
 	"mal/internal/db"
 	"mal/internal/domain"
