@@ -2,7 +2,6 @@ package episodes
 
 import (
 	"context"
-	"log"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"time"
@@ -18,14 +17,22 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observa
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			go func() {
-				log.Println("episodes: availability worker started")
+				observability.Info("episodes_worker_start", "episodes", "", nil)
 				ticker := time.NewTicker(workerInterval)
 				defer ticker.Stop()
 
 				for {
 					if err := svc.RefreshTrackedDue(ctx, 25); err != nil {
 						metrics.ObserveWorkerTick("episodes_availability", err)
-						log.Printf("episodes: availability worker tick failed error=%v", err)
+						observability.Warn(
+							"episodes_worker_tick_failed",
+							"episodes",
+							"",
+							map[string]any{
+								"worker": "episodes_availability",
+							},
+							err,
+						)
 					} else {
 						metrics.ObserveWorkerTick("episodes_availability", nil)
 					}
@@ -33,7 +40,7 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observa
 					select {
 					case <-ticker.C:
 					case <-ctx.Done():
-						log.Println("episodes: availability worker stopped")
+						observability.Info("episodes_worker_stop", "episodes", "", nil)
 						return
 					}
 				}
