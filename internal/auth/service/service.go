@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"mal/internal/domain"
@@ -17,11 +18,12 @@ import (
 )
 
 type authService struct {
-	repo domain.AuthRepository
+	repo      domain.AuthRepository
+	auditSvc  domain.AuditService
 }
 
-func NewAuthService(repo domain.AuthRepository) domain.AuthService {
-	return &authService{repo: repo}
+func NewAuthService(repo domain.AuthRepository, auditSvc domain.AuditService) domain.AuthService {
+	return &authService{repo: repo, auditSvc: auditSvc}
 }
 
 func (s *authService) Login(ctx context.Context, username, password string) (*domain.Session, error) {
@@ -65,6 +67,24 @@ func (s *authService) LoginForAPIToken(ctx context.Context, username, password, 
 	}
 	if _, err := s.repo.CreateAPIToken(ctx, user.ID, tokenHash, trimmedName); err != nil {
 		return "", nil, err
+	}
+
+	metadataBytes, err := json.Marshal(struct {
+		Name string `json:"name"`
+	}{Name: trimmedName})
+	if err == nil {
+		_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+			UserID:       user.ID,
+			Action:       "api_token_created",
+			ResourceType: "api_token",
+			MetadataJSON: metadataBytes,
+		})
+	} else {
+		_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+			UserID:       user.ID,
+			Action:       "api_token_created",
+			ResourceType: "api_token",
+		})
 	}
 
 	return rawToken, user, nil
@@ -124,7 +144,15 @@ func (s *authService) RevokeAllAPITokensForUser(ctx context.Context, userID stri
 	if strings.TrimSpace(userID) == "" {
 		return errors.New("user id missing")
 	}
-	return s.repo.RevokeAllAPITokensForUser(ctx, userID)
+	if err := s.repo.RevokeAllAPITokensForUser(ctx, userID); err != nil {
+		return err
+	}
+	_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+		UserID:       userID,
+		Action:       "api_token_revoked_all",
+		ResourceType: "api_token",
+	})
+	return nil
 }
 
 func newOpaqueToken() (token string, tokenHash string, err error) {
