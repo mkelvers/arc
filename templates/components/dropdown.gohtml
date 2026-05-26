@@ -11,3 +11,11 @@
   </div>
 </ui-dropdown>
 {{end}}
+
+{{define "dropdown_trigger"}}
+  {{with .Trigger}}{{.}}{{end}}
+{{end}}
+
+{{define "dropdown_children"}}
+  {{with .Children}}{{.}}{{end}}
+{{end}}

@@ -115,10 +115,10 @@
         <div id="mobile-menu-backdrop" data-mobile-menu-backdrop class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden"></div>
 
         <div id="mobile-menu" data-mobile-open="false" class="fixed inset-y-0 left-0 z-50 w-64 shrink-0 overflow-hidden bg-background-sidebar transition-transform duration-300 lg:static lg:translate-x-0 lg:transition-none">
-          {{block "sidebar" .}}
-            {{template "navigation" dict "CurrentPath" .CurrentPath}}
-          {{end}}
-        </div>
+	          {{block "sidebar" .}}
+	            {{template "navigation" dict "CurrentPath" .CurrentPath "IsCollapsed" false}}
+	          {{end}}
+	        </div>
 
         <div class="fixed inset-0 z-[60] hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-command-palette-dialog aria-hidden="true">
           <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)] ring-1 ring-black/10" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
