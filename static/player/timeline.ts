@@ -1,13 +1,6 @@
 import type { TimelineBounds } from './types';
 import { state } from './state';
-
-// mm:ss formatter
-const formatTime = (seconds: number): string => {
-  if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-};
+import { formatTime } from './controls';
 
 // cached to avoid recalc on every timeupdate
 let cachedBounds: TimelineBounds = { start: 0, end: 0, duration: 0 };
@@ -65,7 +58,6 @@ export const getBounds = (): TimelineBounds => {
   const duration = getDuration();
   const seekableEnd = getSeekableEnd();
   if (
-    !cachedBounds ||
     cachedBounds.duration <= 0 ||
     duration !== cachedDuration ||
     seekableEnd !== cachedSeekableEnd
