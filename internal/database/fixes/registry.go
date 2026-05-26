@@ -22,4 +22,3 @@ func All() []Fix {
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
 }
-
