@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"os"
 
 	// sqlite3 driver.
 	_ "github.com/mattn/go-sqlite3"
@@ -16,12 +15,4 @@ func Open(dbFile string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 	return db, nil
-}
-
-// GetDBFile returns the database file path, checking DATABASE_FILE env var first
-func GetDBFile() string {
-	if f := os.Getenv("DATABASE_FILE"); f != "" {
-		return f
-	}
-	return "mal.db"
 }

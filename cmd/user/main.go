@@ -11,12 +11,18 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/db"
 )
 
 func main() {
-	dbConn, err := db.Open(db.GetDBFile())
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("load config: %v", err)
+	}
+
+	dbConn, err := db.Open(cfg.DatabaseFile)
 	if err != nil {
 		log.Fatalf("failed to open db: %v", err)
 	}

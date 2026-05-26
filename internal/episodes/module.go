@@ -1,11 +1,9 @@
 package episodes
 
 import (
-	"os"
-	"strings"
-
 	"mal/integrations/jikan"
 	"mal/integrations/playback/allanime"
+	"mal/internal/config"
 	"mal/internal/db"
 	"mal/internal/domain"
 	episodeService "mal/internal/episodes/service"
@@ -14,9 +12,8 @@ import (
 	"go.uber.org/fx"
 )
 
-func episodeAvailabilityEnabled() bool {
-	value := strings.ToLower(strings.TrimSpace(os.Getenv("EPISODE_AVAILABILITY_MODE")))
-	return value != "legacy" && value != "jikan"
+func episodeAvailabilityEnabled(cfg config.Config) bool {
+	return cfg.EpisodeAvailabilityMode != config.EpisodeAvailabilityModeLegacy && cfg.EpisodeAvailabilityMode != config.EpisodeAvailabilityModeJikan
 }
 
 var Module = fx.Options(

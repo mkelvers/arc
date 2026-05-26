@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"log"
+	"mal/internal/config"
 	"mal/internal/observability"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,12 +19,14 @@ var Module = fx.Options(
 	fx.Invoke(RunServer),
 )
 
-func ProvideRouter(htmlRender render.HTMLRender, metrics *observability.Metrics) *gin.Engine {
-	if os.Getenv("GIN_MODE") == "" {
+func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender, metrics *observability.Metrics) *gin.Engine {
+	if cfg.GinMode == "" {
 		gin.SetMode(gin.ReleaseMode)
+	} else {
+		gin.SetMode(cfg.GinMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddleware(), RequestLogger(metrics), gin.Recovery())
+	r.Use(CORSMiddlewareWithConfig(cfg), RequestLogger(metrics), gin.Recovery())
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
 	r.GET("/metrics", gin.WrapH(metrics.Handler()))
@@ -32,11 +34,8 @@ func ProvideRouter(htmlRender render.HTMLRender, metrics *observability.Metrics)
 	return r
 }
 
-func RunServer(lifecycle fx.Lifecycle, r *gin.Engine) {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
-	}
+func RunServer(cfg config.Config, lifecycle fx.Lifecycle, r *gin.Engine) {
+	port := cfg.Port
 
 	srv := newHTTPServer(":"+port, r)
 

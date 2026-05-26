@@ -5,6 +5,7 @@ import (
 	"mal/integrations/playback/allanime"
 	"mal/internal/anime"
 	"mal/internal/auth"
+	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/episodes"
 	"mal/internal/playback"
@@ -19,6 +20,7 @@ import (
 
 func NewApp() *fx.App {
 	return fx.New(
+		config.Module,
 		database.Module,
 		jikan.Module,
 		allanime.Module,

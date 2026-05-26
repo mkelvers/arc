@@ -7,18 +7,20 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"mal/internal/config"
 	"mal/internal/db"
 	"mal/internal/observability"
 
 	"golang.org/x/sync/singleflight"
 )
+
+var traceEnabled bool
 
 type Client struct {
 	httpClient  *http.Client
@@ -39,7 +41,8 @@ type Client struct {
 
 const jikanSlowLogThreshold = 750 * time.Millisecond
 
-func NewClient(queries *db.Queries, metrics *observability.Metrics) *Client {
+func NewClient(cfg config.Config, queries *db.Queries, metrics *observability.Metrics) *Client {
+	traceEnabled = cfg.JikanTrace
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
@@ -142,8 +145,7 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 }
 
 func jikanTraceEnabled() bool {
-	value := strings.ToLower(strings.TrimSpace(os.Getenv("MAL_JIKAN_TRACE")))
-	return value == "1" || value == "true" || value == "yes"
+	return traceEnabled
 }
 
 func logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {

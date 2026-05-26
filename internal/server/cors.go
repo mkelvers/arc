@@ -1,16 +1,19 @@
 package server
 
 import (
+	"mal/internal/config"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 func CORSMiddleware() gin.HandlerFunc {
-	allowAll := os.Getenv("MAL_CORS_ALLOW_ALL") == "1"
+	return CORSMiddlewareWithConfig(config.Config{})
+}
 
+func CORSMiddlewareWithConfig(cfg config.Config) gin.HandlerFunc {
+	allowAll := cfg.CORSAllowAll
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 		if origin != "" && (allowAll || isAllowedOrigin(origin)) {

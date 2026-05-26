@@ -1,10 +1,9 @@
 package playback
 
 import (
-	"os"
-
 	"mal/integrations/jikan"
 	"mal/integrations/playback/allanime"
+	"mal/internal/config"
 	"mal/internal/domain"
 	"mal/internal/playback/handler"
 	"mal/internal/playback/repository"
@@ -14,8 +13,8 @@ import (
 	"go.uber.org/fx"
 )
 
-func provideProxyTokenKey() string {
-	return os.Getenv("PLAYBACK_PROXY_SECRET")
+func provideProxyTokenKey(cfg config.Config) string {
+	return cfg.PlaybackProxySecret
 }
 
 var Module = fx.Options(
