@@ -18,8 +18,8 @@ import (
 )
 
 type authService struct {
-	repo      domain.AuthRepository
-	auditSvc  domain.AuditService
+	repo     domain.AuthRepository
+	auditSvc domain.AuditService
 }
 
 func NewAuthService(repo domain.AuthRepository, auditSvc domain.AuditService) domain.AuthService {

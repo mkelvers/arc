@@ -37,12 +37,12 @@ type Config struct {
 
 func Load() (Config, error) {
 	cfg := Config{
-		Port:                   firstNonEmpty(strings.TrimSpace(os.Getenv("PORT")), "3000"),
-		GinMode:                strings.TrimSpace(os.Getenv("GIN_MODE")),
-		DatabaseFile:           firstNonEmpty(strings.TrimSpace(os.Getenv("DATABASE_FILE")), "mal.db"),
-		CORSAllowAll:           strings.TrimSpace(os.Getenv("MAL_CORS_ALLOW_ALL")) == "1",
-		PlaybackProxySecret:    strings.TrimSpace(os.Getenv("PLAYBACK_PROXY_SECRET")),
-		JikanTrace:             truthy(strings.TrimSpace(os.Getenv("MAL_JIKAN_TRACE"))),
+		Port:                    firstNonEmpty(strings.TrimSpace(os.Getenv("PORT")), "3000"),
+		GinMode:                 strings.TrimSpace(os.Getenv("GIN_MODE")),
+		DatabaseFile:            firstNonEmpty(strings.TrimSpace(os.Getenv("DATABASE_FILE")), "mal.db"),
+		CORSAllowAll:            strings.TrimSpace(os.Getenv("MAL_CORS_ALLOW_ALL")) == "1",
+		PlaybackProxySecret:     strings.TrimSpace(os.Getenv("PLAYBACK_PROXY_SECRET")),
+		JikanTrace:              truthy(strings.TrimSpace(os.Getenv("MAL_JIKAN_TRACE"))),
 		EpisodeAvailabilityMode: EpisodeAvailabilityModeAuto,
 	}
 
@@ -82,4 +82,3 @@ func truthy(v string) bool {
 		return false
 	}
 }
-
