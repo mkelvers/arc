@@ -16,6 +16,7 @@ import (
 	"mal/internal/config"
 	"mal/internal/db"
 	"mal/internal/observability"
+	"mal/pkg/net/useragent"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -482,6 +483,7 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 		if err != nil {
 			return logAndReturn(0, fmt.Errorf("failed to create jikan request: %w", err))
 		}
+		req.Header.Set("User-Agent", useragent.Generic)
 
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
