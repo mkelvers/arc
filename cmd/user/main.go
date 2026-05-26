@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -14,17 +13,20 @@ import (
 	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/db"
+	"mal/internal/observability"
 )
 
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		observability.Error("cli_config_load_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 
 	dbConn, err := db.Open(cfg.DatabaseFile)
 	if err != nil {
-		log.Fatalf("failed to open db: %v", err)
+		observability.Error("cli_db_open_failed", "cmd/user", "", map[string]any{"db_file": cfg.DatabaseFile}, err)
+		os.Exit(1)
 	}
 	defer func() { _ = dbConn.Close() }()
 
@@ -40,7 +42,9 @@ func main() {
 	}
 
 	if len(os.Args) != 3 {
-		log.Fatalf("Usage: go run cmd/user/main.go <username> <password>\n       go run cmd/user/main.go update-avatar\n       go run cmd/user/main.go run-fixes")
+		observability.Warn("cli_usage", "cmd/user", "invalid arguments", map[string]any{"argc": len(os.Args)}, nil)
+		_, _ = fmt.Fprintln(os.Stderr, "Usage: go run cmd/user/main.go <username> <password>\n       go run cmd/user/main.go update-avatar\n       go run cmd/user/main.go run-fixes")
+		os.Exit(2)
 	}
 
 	username := os.Args[1]
@@ -49,7 +53,8 @@ func main() {
 	var existingID string
 	err = dbConn.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&existingID)
 	if err != nil && err != sql.ErrNoRows {
-		log.Fatalf("database error: %v", err)
+		observability.Error("cli_user_lookup_failed", "cmd/user", "", map[string]any{"username": username}, err)
+		os.Exit(1)
 	}
 
 	if err == nil {
@@ -65,12 +70,14 @@ func main() {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 		if err != nil {
-			log.Fatalf("failed to hash password: %v", err)
+			observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
+			os.Exit(1)
 		}
 
 		_, err = dbConn.Exec("UPDATE user SET password_hash = ? WHERE id = ?", string(hash), existingID)
 		if err != nil {
-			log.Fatalf("failed to update user: %v", err)
+			observability.Error("cli_user_password_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
+			os.Exit(1)
 		}
 
 		fmt.Printf("Password for '%s' updated successfully!\n", username)
@@ -79,14 +86,16 @@ func main() {
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
-		log.Fatalf("failed to hash password: %v", err)
+		observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 
 	id := uuid.New().String()
 	avatarURL := fmt.Sprintf("https://api.dicebear.com/9.x/dylan/svg?seed=%s", username)
 	_, err = dbConn.Exec("INSERT INTO user (id, username, password_hash, avatar_url) VALUES (?, ?, ?, ?)", id, username, string(hash), avatarURL)
 	if err != nil {
-		log.Fatalf("failed to create user: %v", err)
+		observability.Error("cli_user_create_failed", "cmd/user", "", map[string]any{"username": username}, err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("User '%s' was created successfully!\n", username)
@@ -95,7 +104,8 @@ func main() {
 func updateAvatars(dbConn *sql.DB) {
 	rows, err := dbConn.Query("SELECT id, username FROM user")
 	if err != nil {
-		log.Fatalf("failed to fetch users: %v", err)
+		observability.Error("cli_users_list_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -103,19 +113,22 @@ func updateAvatars(dbConn *sql.DB) {
 	for rows.Next() {
 		var id, username string
 		if err := rows.Scan(&id, &username); err != nil {
-			log.Fatalf("failed to scan user: %v", err)
+			observability.Error("cli_user_scan_failed", "cmd/user", "", nil, err)
+			os.Exit(1)
 		}
 
 		avatarURL := fmt.Sprintf("https://api.dicebear.com/9.x/dylan/svg?seed=%s", username)
 		_, err := dbConn.Exec("UPDATE user SET avatar_url = ? WHERE id = ?", avatarURL, id)
 		if err != nil {
-			log.Fatalf("failed to update avatar for %s: %v", username, err)
+			observability.Error("cli_user_avatar_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
+			os.Exit(1)
 		}
 		count++
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Fatalf("iteration error: %v", err)
+		observability.Error("cli_users_iter_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("Updated avatars for %d user(s)\n", count)
@@ -123,12 +136,14 @@ func updateAvatars(dbConn *sql.DB) {
 
 func runFixes(dbConn *sql.DB) {
 	if err := database.RunMigrationsAndFixes(dbConn); err != nil {
-		log.Fatalf("run migrations and fixes: %v", err)
+		observability.Error("cli_run_migrations_and_fixes_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 
 	rows, err := dbConn.Query("SELECT id, applied_at FROM data_fixes ORDER BY id ASC")
 	if err != nil {
-		log.Fatalf("list applied fixes: %v", err)
+		observability.Error("cli_data_fixes_list_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 	defer func() { _ = rows.Close() }()
 
@@ -137,13 +152,15 @@ func runFixes(dbConn *sql.DB) {
 		var id string
 		var appliedAt string
 		if err := rows.Scan(&id, &appliedAt); err != nil {
-			log.Fatalf("scan applied fix: %v", err)
+			observability.Error("cli_data_fix_scan_failed", "cmd/user", "", nil, err)
+			os.Exit(1)
 		}
 		fmt.Printf("%s applied_at=%s\n", id, appliedAt)
 		count++
 	}
 	if err := rows.Err(); err != nil {
-		log.Fatalf("iterate applied fixes: %v", err)
+		observability.Error("cli_data_fixes_iter_failed", "cmd/user", "", nil, err)
+		os.Exit(1)
 	}
 
 	fmt.Printf("Applied fixes: %d\n", count)
