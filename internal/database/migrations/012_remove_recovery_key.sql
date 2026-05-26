@@ -1,4 +1,5 @@
 -- +goose Up
+-- +goose NO TRANSACTION
 PRAGMA foreign_keys = OFF;
 
 BEGIN;
