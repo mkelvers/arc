@@ -172,8 +172,7 @@ export const initState = (c: HTMLElement): boolean => {
   const isSubtitleItemArray = (v: unknown): v is { lang: string; token: string }[] =>
     Array.isArray(v) &&
     v.every(
-      item =>
-        isRecord(item) && typeof item.lang === 'string' && typeof item.token === 'string'
+      item => isRecord(item) && typeof item.lang === 'string' && typeof item.token === 'string'
     );
 
   const parseModeSources = (v: unknown): Record<string, ModeSource> => {

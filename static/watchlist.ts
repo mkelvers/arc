@@ -190,7 +190,9 @@ const sortVisibleWatchlistItems = (sortBy: WatchlistSort, desc: boolean): void =
     grids.push(singleGrid);
   }
 
-  document.querySelectorAll<HTMLElement>('.watchlist-section .grid').forEach(grid => grids.push(grid));
+  document
+    .querySelectorAll<HTMLElement>('.watchlist-section .grid')
+    .forEach(grid => grids.push(grid));
 
   const sortItemsInGrid = (grid: HTMLElement): void => {
     const items = Array.from(grid.querySelectorAll<HTMLElement>('.watchlist-item'));

@@ -166,88 +166,128 @@ const initPlayer = (): void => {
     onLoadedMetadata();
   }
 
-  state.video.addEventListener('waiting', () => {
-    if (loading) {
-      loading.style.display = 'flex';
-    }
-  }, { signal });
-  state.video.addEventListener('playing', () => {
-    if (loading) {
-      loading.style.display = 'none';
-    }
-  }, { signal });
+  state.video.addEventListener(
+    'waiting',
+    () => {
+      if (loading) {
+        loading.style.display = 'flex';
+      }
+    },
+    { signal }
+  );
+  state.video.addEventListener(
+    'playing',
+    () => {
+      if (loading) {
+        loading.style.display = 'none';
+      }
+    },
+    { signal }
+  );
   // update progress bar during buffering
-  state.video.addEventListener('progress', () => {
-    updateTimeline(state.video.currentTime);
-  }, { signal });
+  state.video.addEventListener(
+    'progress',
+    () => {
+      updateTimeline(state.video.currentTime);
+    },
+    { signal }
+  );
 
   // main loop: update progress, subtitles, skip buttons
-  state.video.addEventListener('timeupdate', () => {
-    updateTimeline(state.video.currentTime);
-    updateSubtitleRender(displayTimeFromAbsolute(state.video.currentTime));
-    updateSkipButton(state.video.currentTime);
-  }, { signal });
+  state.video.addEventListener(
+    'timeupdate',
+    () => {
+      updateTimeline(state.video.currentTime);
+      updateSubtitleRender(displayTimeFromAbsolute(state.video.currentTime));
+      updateSkipButton(state.video.currentTime);
+    },
+    { signal }
+  );
 
-  state.video.addEventListener('ended', () => {
-    goToNextEpisode();
-  }, { signal });
+  state.video.addEventListener(
+    'ended',
+    () => {
+      goToNextEpisode();
+    },
+    { signal }
+  );
 
   // click/drag to seek (pointer events are more consistent across fullscreen/mobile)
-  progressWrap?.addEventListener('pointerdown', e => {
-    // ignore right/middle click
-    if ('button' in e && e.button !== 0) return;
-    state.isScrubbing = true;
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
-    } catch {}
-    const rect = progressWrap.getBoundingClientRect();
-    state.video.currentTime = absoluteTimeFromRatio(
-      Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    );
-    updateTimeline(state.video.currentTime);
-    updateSkipButton(state.video.currentTime);
-    showControls();
-  }, { signal });
+  progressWrap?.addEventListener(
+    'pointerdown',
+    e => {
+      // ignore right/middle click
+      if ('button' in e && e.button !== 0) return;
+      state.isScrubbing = true;
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
+      } catch {}
+      const rect = progressWrap.getBoundingClientRect();
+      state.video.currentTime = absoluteTimeFromRatio(
+        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+      );
+      updateTimeline(state.video.currentTime);
+      updateSkipButton(state.video.currentTime);
+      showControls();
+    },
+    { signal }
+  );
 
   // hover to preview time
-  progressWrap?.addEventListener('pointermove', e => {
-    const rect = progressWrap.getBoundingClientRect();
-    updatePreviewUI(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
-  }, { signal });
+  progressWrap?.addEventListener(
+    'pointermove',
+    e => {
+      const rect = progressWrap.getBoundingClientRect();
+      updatePreviewUI(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+    },
+    { signal }
+  );
 
   progressWrap?.addEventListener('pointerleave', hidePreviewPopover, { signal });
-  progressWrap?.addEventListener('pointerup', () => {
-    // ensure we finish the seek even if no window mousemove fired
-    if (!progressWrap) return;
-    state.isScrubbing = false;
-  }, { signal });
+  progressWrap?.addEventListener(
+    'pointerup',
+    () => {
+      // ensure we finish the seek even if no window mousemove fired
+      if (!progressWrap) return;
+      state.isScrubbing = false;
+    },
+    { signal }
+  );
 
   // dragging outside progress bar while scrubbing
-  window.addEventListener('pointermove', e => {
-    if (!state.isScrubbing || !progressWrap) return;
-    const rect = progressWrap.getBoundingClientRect();
-    state.video.currentTime = absoluteTimeFromRatio(
-      Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    );
-    updateTimeline(state.video.currentTime);
-    updateSkipButton(state.video.currentTime);
-  }, { signal });
+  window.addEventListener(
+    'pointermove',
+    e => {
+      if (!state.isScrubbing || !progressWrap) return;
+      const rect = progressWrap.getBoundingClientRect();
+      state.video.currentTime = absoluteTimeFromRatio(
+        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+      );
+      updateTimeline(state.video.currentTime);
+      updateSkipButton(state.video.currentTime);
+    },
+    { signal }
+  );
 
   // track next-episode links outside the player so they start fresh after finishing an episode
-  document.addEventListener('click', e => {
-    const target = e.target;
-    if (!(target instanceof Element)) return;
-    const anchor = target.closest('a[href]');
-    if (!(anchor instanceof HTMLAnchorElement)) return;
-    const url = new URL(anchor.href, location.origin);
-    if (url.origin !== location.origin) return;
-    const parts = url.pathname.split('/').filter(Boolean);
-    if (parts[0] !== 'anime' || parts[2] !== 'watch') return;
-    if (Number.parseInt(parts[1], 10) !== state.malID) return;
-    const nextEpisode = Number.parseInt(url.searchParams.get('ep') ?? '1', 10);
-    const currentEpisode = Number.parseInt(state.currentEpisode, 10);
-    if (nextEpisode === currentEpisode + 1) markEpisodeTransition(nextEpisode);
-  }, { signal });
+  document.addEventListener(
+    'click',
+    e => {
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest('a[href]');
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      const url = new URL(anchor.href, location.origin);
+      if (url.origin !== location.origin) return;
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (parts[0] !== 'anime' || parts[2] !== 'watch') return;
+      if (Number.parseInt(parts[1], 10) !== state.malID) return;
+      const nextEpisode = Number.parseInt(url.searchParams.get('ep') ?? '1', 10);
+      const currentEpisode = Number.parseInt(state.currentEpisode, 10);
+      if (nextEpisode === currentEpisode + 1) markEpisodeTransition(nextEpisode);
+    },
+    { signal }
+  );
 
   state.video.addEventListener('click', showControls, { signal });
 
@@ -256,40 +296,48 @@ const initPlayer = (): void => {
   let searchDebounce: number | undefined;
 
   if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      clearTimeout(searchDebounce);
-      // debounce to avoid excessive range switches while typing
-      searchDebounce = window.setTimeout(() => {
-        const val = searchInput.value.replace(/\D/g, '');
-        if (!val) {
-          // clear: jump to current episode range
-          const cur = Number.parseInt(state.currentEpisode, 10);
-          switchEpisodeRange(Math.floor((cur - 1) / 100));
-          updateEpisodeHighlight(cur);
-          return;
-        }
-        const ep = Number.parseInt(val, 10);
-        if (!ep || ep <= 0) return;
-        const maxEp = state.totalEpisodes > 0 ? state.totalEpisodes : 500;
-        const clamped = Math.min(ep, maxEp);
-        searchInput.value = String(clamped);
-        if (state.episodeGrid) {
-          switchEpisodeRange(Math.floor((clamped - 1) / 100));
-          updateEpisodeHighlight(clamped);
-        }
-      }, 300);
-    }, { signal });
+    searchInput.addEventListener(
+      'input',
+      () => {
+        clearTimeout(searchDebounce);
+        // debounce to avoid excessive range switches while typing
+        searchDebounce = window.setTimeout(() => {
+          const val = searchInput.value.replace(/\D/g, '');
+          if (!val) {
+            // clear: jump to current episode range
+            const cur = Number.parseInt(state.currentEpisode, 10);
+            switchEpisodeRange(Math.floor((cur - 1) / 100));
+            updateEpisodeHighlight(cur);
+            return;
+          }
+          const ep = Number.parseInt(val, 10);
+          if (!ep || ep <= 0) return;
+          const maxEp = state.totalEpisodes > 0 ? state.totalEpisodes : 500;
+          const clamped = Math.min(ep, maxEp);
+          searchInput.value = String(clamped);
+          if (state.episodeGrid) {
+            switchEpisodeRange(Math.floor((clamped - 1) / 100));
+            updateEpisodeHighlight(clamped);
+          }
+        }, 300);
+      },
+      { signal }
+    );
   }
 
   // range buttons (100s of episodes)
   if (dropdown) {
     dropdown.querySelectorAll('.episode-range-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = Number.parseInt((btn as HTMLElement).dataset.rangeIndex ?? '0', 10);
-        switchEpisodeRange(idx);
-        const dd = btn.closest('ui-dropdown');
-        if (isClosableDropdown(dd)) dd.close();
-      }, { signal });
+      btn.addEventListener(
+        'click',
+        () => {
+          const idx = Number.parseInt((btn as HTMLElement).dataset.rangeIndex ?? '0', 10);
+          switchEpisodeRange(idx);
+          const dd = btn.closest('ui-dropdown');
+          if (isClosableDropdown(dd)) dd.close();
+        },
+        { signal }
+      );
     });
   }
 
