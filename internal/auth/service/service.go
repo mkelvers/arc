@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"mal/internal/domain"
 	"strings"
 	"time"
@@ -58,7 +59,10 @@ func (s *authService) LoginForAPIToken(ctx context.Context, username, password, 
 		trimmedName = "Firefox extension"
 	}
 
-	rawToken, tokenHash := newOpaqueToken()
+	rawToken, tokenHash, err := newOpaqueToken()
+	if err != nil {
+		return "", nil, err
+	}
 	if _, err := s.repo.CreateAPIToken(ctx, user.ID, tokenHash, trimmedName); err != nil {
 		return "", nil, err
 	}
@@ -123,12 +127,14 @@ func (s *authService) RevokeAllAPITokensForUser(ctx context.Context, userID stri
 	return s.repo.RevokeAllAPITokensForUser(ctx, userID)
 }
 
-func newOpaqueToken() (token string, tokenHash string) {
+func newOpaqueToken() (token string, tokenHash string, err error) {
 	buf := make([]byte, 32)
-	_, _ = rand.Read(buf)
+	if _, err := rand.Read(buf); err != nil {
+		return "", "", fmt.Errorf("generate token bytes: %w", err)
+	}
 	token = base64.RawURLEncoding.EncodeToString(buf)
 
 	sum := sha256.Sum256([]byte(token))
 	tokenHash = hex.EncodeToString(sum[:])
-	return token, tokenHash
+	return token, tokenHash, nil
 }
