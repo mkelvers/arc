@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	retryInterval = 15 * time.Minute
-	retryWindow   = 3 * time.Hour
+	retryInterval                 = 15 * time.Minute
+	retryWindow                   = 3 * time.Hour
 	airingFallbackRefreshInterval = 6 * time.Hour
 )
 
