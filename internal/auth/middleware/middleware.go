@@ -8,16 +8,51 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type publicRoute struct {
+	method string
+	path   string
+	prefix bool
+}
+
+var publicRoutes = []publicRoute{
+	// Pages.
+	{method: http.MethodGet, path: "/login"},
+	{method: http.MethodGet, path: "/logout"},
+
+	// Static assets.
+	{path: "/static", prefix: true},
+	{path: "/dist", prefix: true},
+
+	// Observability endpoints.
+	{method: http.MethodGet, path: "/metrics"},
+
+	// Auth API.
+	{method: http.MethodPost, path: "/api/auth/login"},
+}
+
+func isPublicRequest(method string, path string) bool {
+	for _, r := range publicRoutes {
+		if r.method != "" && r.method != method {
+			continue
+		}
+		if r.prefix {
+			if strings.HasPrefix(path, r.path) {
+				return true
+			}
+			continue
+		}
+		if path == r.path {
+			return true
+		}
+	}
+	return false
+}
+
 func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
-		// Allow access to login, logout and static assets without authentication
-		if path == "/login" || path == "/logout" ||
-			strings.HasPrefix(path, "/static") ||
-			strings.HasPrefix(path, "/dist") ||
-			path == "/metrics" ||
-			path == "/api/auth/login" {
+		if isPublicRequest(c.Request.Method, path) {
 			c.Next()
 			return
 		}
