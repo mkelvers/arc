@@ -80,8 +80,24 @@ export const updateSubtitleRender = (time: number): void => {
     return;
   }
 
-  // find cue containing current time
-  const cue = state.activeSubtitles.find(c => time >= c.start && time <= c.end);
+  // binary search: cues are sorted by start time
+  let lo = 0;
+  let hi = state.activeSubtitles.length - 1;
+  let cue: SubtitleCue | undefined;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const c = state.activeSubtitles[mid];
+    if (time < c.start) {
+      hi = mid - 1;
+      continue;
+    }
+    if (time > c.end) {
+      lo = mid + 1;
+      continue;
+    }
+    cue = c;
+    break;
+  }
   if (!cue) {
     hideSubtitleText();
     return;
@@ -110,6 +126,8 @@ export const setupSubtitles = (): void => {
       state.activeSubtitles = [];
       return;
     }
-    state.activeSubtitles = await loadSubtitle(track.url);
+    const cues = await loadSubtitle(track.url);
+    cues.sort((a, b) => a.start - b.start);
+    state.activeSubtitles = cues;
   });
 };
