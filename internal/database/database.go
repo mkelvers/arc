@@ -19,7 +19,7 @@ var Module = fx.Options(
 		ProvideSQLDB,
 		ProvideQueries,
 	),
-	fx.Invoke(RunMigrations),
+	fx.Invoke(RunMigrationsAndFixes),
 )
 
 func ProvideSQLDB() (*sql.DB, error) {
@@ -48,4 +48,10 @@ func RunMigrations(sqlDB *sql.DB) error {
 	}
 
 	return nil
+}
+func RunMigrationsAndFixes(sqlDB *sql.DB) error {
+	if err := RunMigrations(sqlDB); err != nil {
+		return err
+	}
+	return RunDataFixes(sqlDB)
 }
