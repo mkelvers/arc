@@ -1,6 +1,18 @@
 -- name: GetUser :one
 SELECT * FROM user WHERE id = ? LIMIT 1;
 
+-- name: CreateAuditLog :one
+INSERT INTO audit_log (id, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING *;
+
+-- name: GetAuditLogsForUser :many
+SELECT *
+FROM audit_log
+WHERE user_id = ?
+ORDER BY occurred_at DESC
+LIMIT ?;
+
 -- name: GetUserByUsername :one
 SELECT * FROM user WHERE username = ? LIMIT 1;
 
