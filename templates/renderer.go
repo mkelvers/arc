@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
