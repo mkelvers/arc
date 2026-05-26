@@ -10,7 +10,7 @@ import (
 )
 
 type dataFix struct {
-	id   string
+	id    string
 	apply func(ctx context.Context, sqlDB *sql.DB) error
 }
 

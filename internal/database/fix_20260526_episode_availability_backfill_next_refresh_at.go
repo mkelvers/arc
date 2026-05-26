@@ -25,4 +25,3 @@ WHERE next_refresh_at IS NULL;
 		},
 	})
 }
-
