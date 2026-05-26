@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	dbfixes "mal/internal/database/fixes"
+	"mal/internal/observability"
 )
 
 func RunDataFixes(sqlDB *sql.DB) error {
@@ -34,7 +34,14 @@ func RunDataFixes(sqlDB *sql.DB) error {
 			continue
 		}
 
-		log.Printf("Running data fix id=%s", fix.ID)
+		observability.Info(
+			"db_data_fix_start",
+			"database",
+			"",
+			map[string]any{
+				"id": fix.ID,
+			},
+		)
 		if err := fix.Apply(ctx, sqlDB); err != nil {
 			return fmt.Errorf("data fix %s failed: %w", fix.ID, err)
 		}

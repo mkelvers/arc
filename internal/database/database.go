@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"log"
 	"mal/internal/config"
 	"mal/internal/db"
+	"mal/internal/observability"
 
 	"github.com/pressly/goose/v3"
 	"go.uber.org/fx"
@@ -42,7 +42,7 @@ func RunMigrations(sqlDB *sql.DB) error {
 		return fmt.Errorf("failed to set goose dialect: %w", err)
 	}
 
-	log.Println("Running database migrations...")
+	observability.Info("db_migrations_start", "database", "", nil)
 	if err := goose.Up(sqlDB, "migrations"); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
