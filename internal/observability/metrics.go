@@ -129,6 +129,9 @@ func (c *counterVec) Inc(labelValues ...string) {
 	defer c.mu.Unlock()
 
 	key, labels := buildLabelKey(c.labelNames, labelValues)
+	if labels == nil {
+		return
+	}
 	sample, ok := c.samples[key]
 	if !ok {
 		sample = &counterSample{labels: labels}
@@ -166,6 +169,9 @@ func (h *histogramVec) Observe(value float64, labelValues ...string) {
 	defer h.mu.Unlock()
 
 	key, labels := buildLabelKey(h.labelNames, labelValues)
+	if labels == nil {
+		return
+	}
 	sample, ok := h.samples[key]
 	if !ok {
 		sample = &histogramSample{
@@ -206,7 +212,7 @@ func (h *histogramVec) snapshot() []histogramSample {
 
 func buildLabelKey(labelNames []string, labelValues []string) (string, map[string]string) {
 	if len(labelNames) != len(labelValues) {
-		panic("label cardinality mismatch")
+		return "", nil
 	}
 
 	labels := make(map[string]string, len(labelNames))
