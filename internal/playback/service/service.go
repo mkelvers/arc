@@ -12,6 +12,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"mal/pkg/net/limits"
 	"mal/pkg/net/useragent"
 	"net/http"
@@ -316,10 +317,12 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 		}
 	}
 
-	_ = s.repo.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
+	if err := s.repo.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
-	})
+	}); err != nil {
+		return err
+	}
 	if err := s.repo.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
 		UserID:             userID,
 		AnimeID:            animeID,
@@ -328,12 +331,20 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 	}); err != nil {
 		return err
 	}
-	_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+	if err := s.auditSvc.Record(ctx, domain.AuditEvent{
 		UserID:       userID,
 		Action:       "watch_completed",
 		ResourceType: "anime",
 		ResourceID:   strconv.FormatInt(animeID, 10),
-	})
+	}); err != nil {
+		observability.Warn(
+			"audit_record_failed",
+			"playback",
+			"",
+			map[string]any{"user_id": userID, "anime_id": animeID, "action": "watch_completed"},
+			err,
+		)
+	}
 	return nil
 }
 

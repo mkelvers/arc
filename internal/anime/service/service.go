@@ -6,6 +6,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"math/rand"
 	"sort"
 	"strings"
@@ -187,6 +188,13 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 	for i := range limit {
 		anime, fetchErr := s.jikan.GetAnimeByID(ctx, rankedIDs[i].id)
 		if fetchErr != nil {
+			observability.Warn(
+				"recommendation_anime_fetch_failed",
+				"anime",
+				"",
+				map[string]any{"anime_id": rankedIDs[i].id},
+				fetchErr,
+			)
 			continue
 		}
 		animes = append(animes, anime)
@@ -249,6 +257,13 @@ func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
 		}
+		observability.Warn(
+			"schedule_partial_fetch_failed",
+			"anime",
+			"",
+			map[string]any{"user_id": userID, "count": len(ids)},
+			err,
+		)
 		return animes, nil
 	}
 
