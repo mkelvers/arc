@@ -19,13 +19,12 @@ func episodeAvailabilityEnabled(cfg config.Config) bool {
 var Module = fx.Options(
 	fx.Provide(
 		episodeAvailabilityEnabled,
-		fx.Annotate(
-			func(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, metrics *observability.Metrics) domain.EpisodeService {
-				return episodeService.NewEpisodeService(queries, jikanClient, providers, enabled, metrics)
-			},
-			fx.ParamTags(``, ``, ``, ``, ``),
+			fx.Annotate(
+				func(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, metrics *observability.Metrics) domain.EpisodeService {
+					return episodeService.NewEpisodeService(queries, jikanClient, providers, enabled, metrics)
+				},
+			),
 		),
-	),
 	fx.Provide(func(p *allanime.AllAnimeProvider) []domain.EpisodeAvailabilityProvider {
 		return []domain.EpisodeAvailabilityProvider{p}
 	}),
