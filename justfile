@@ -43,3 +43,6 @@ dev: build
 clean:
     rm -rf dist/*
     rm -f server
+
+new-data-fix name:
+    bun scripts/new-data-fix.ts {{name}}

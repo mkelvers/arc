@@ -12,5 +12,5 @@
     "removeComments": false,
     "skipLibCheck": true
   },
-  "include": ["eslint.config.ts", "static/**/*.ts"]
+  "include": ["eslint.config.ts", "static/**/*.ts", "scripts/**/*.ts"]
 }
