@@ -168,6 +168,8 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	}
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
 	if err != nil {
+		log.Printf("failed to fetch catalog section (section=%q user_id=%q): %v", section, userID, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
@@ -207,6 +209,8 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	}
 	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
 	if err != nil {
+		log.Printf("failed to fetch discover section (section=%q user_id=%q): %v", section, userID, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
