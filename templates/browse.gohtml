@@ -70,7 +70,7 @@
 {{end}}
 
 {{define "browse_sentinel"}}
-  <div hx-get="/browse?q={{.Query}}&type={{.Type}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&studio={{.Studio}}&sfw={{.SFW}}&{{genresParams .Genres}}&page={{.NextPage}}"
+  <div hx-get="/browse?q={{.Query}}&type={{.Type}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&studio={{.Studio}}&sfw={{.SFW}}{{ if .Genres }}&{{genresParams .Genres}}{{ end }}&page={{.NextPage}}"
        hx-trigger="intersect once"
        hx-swap="outerHTML"
        hx-target="this"
