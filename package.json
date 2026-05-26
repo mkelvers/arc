@@ -5,7 +5,7 @@
   "scripts": {
     "build:css": "bunx @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css",
     "watch:css": "bunx @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch",
-    "build:ts": "bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting && bun build ./static/*.ts --outdir ./dist/static --target browser",
+    "build:ts": "bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting && bun build ./static/*.ts --outdir ./dist/static --target browser --root ./static --entry-naming \"[name].js\"",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css && bun run build:ts",
     "format": "bunx prettier . --write",
