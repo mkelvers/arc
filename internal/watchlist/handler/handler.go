@@ -2,6 +2,7 @@ package handler
 
 import (
 	"mal/internal/domain"
+	"mal/internal/server"
 	"net/http"
 	"strconv"
 
@@ -35,13 +36,21 @@ func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
 		Status  string `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.AnimeID <= 0 || body.Status == "" {
-		c.Status(http.StatusBadRequest)
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	err := h.svc.UpdateEntry(c.Request.Context(), userID, body.AnimeID, body.Status)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watchlist_update_failed",
+			"watchlist",
+			"failed to update watchlist entry",
+			map[string]any{"user_id": userID, "anime_id": body.AnimeID, "status": body.Status},
+			err,
+		)
 		return
 	}
 
@@ -55,16 +64,24 @@ func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
 		userID = u.ID
 	}
 
-	animeID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	if animeID <= 0 {
-		c.Status(http.StatusBadRequest)
+	if err != nil || animeID <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
 		return
 	}
 
-	err := h.svc.RemoveEntry(c.Request.Context(), userID, animeID)
+	err = h.svc.RemoveEntry(c.Request.Context(), userID, animeID)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watchlist_remove_failed",
+			"watchlist",
+			"failed to remove watchlist entry",
+			map[string]any{"user_id": userID, "anime_id": animeID},
+			err,
+		)
 		return
 	}
 
@@ -78,16 +95,24 @@ func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
 		userID = u.ID
 	}
 
-	animeID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	if animeID <= 0 {
-		c.Status(http.StatusBadRequest)
+	if err != nil || animeID <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
 		return
 	}
 
-	err := h.svc.DeleteContinueWatching(c.Request.Context(), userID, animeID)
+	err = h.svc.DeleteContinueWatching(c.Request.Context(), userID, animeID)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"continue_watching_delete_failed",
+			"watchlist",
+			"failed to delete continue watching entry",
+			map[string]any{"user_id": userID, "anime_id": animeID},
+			err,
+		)
 		return
 	}
 
@@ -103,7 +128,15 @@ func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
 
 	entries, err := h.svc.GetWatchlist(c.Request.Context(), userID)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watchlist_load_failed",
+			"watchlist",
+			"failed to load watchlist",
+			map[string]any{"user_id": userID},
+			err,
+		)
 		return
 	}
 

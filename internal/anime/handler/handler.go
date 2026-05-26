@@ -7,6 +7,7 @@ import (
 	"mal/internal/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
+	"mal/internal/server"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -75,11 +76,19 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 
 func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid page")
+		return
+	}
 	if page < 1 {
 		page = 1
 	}
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid limit")
+		return
+	}
 	if limit < 1 {
 		limit = 12
 	}
@@ -113,7 +122,15 @@ func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"producers_fetch_failed",
+			"anime",
+			"failed to load producers",
+			map[string]any{"q": q, "page": page, "limit": limit},
+			err,
+		)
 		return
 	}
 
@@ -329,27 +346,57 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	orderBy := c.Query("order_by")
 	sort := c.Query("sort")
 	sfw := c.Query("sfw") != "false"
-	studioID, _ := strconv.Atoi(c.Query("studio"))
-	if studioID < 0 {
-		studioID = 0
+	studioID := 0
+	if raw := strings.TrimSpace(c.Query("studio")); raw != "" {
+		id, err := strconv.Atoi(raw)
+		if err != nil || id < 0 {
+			server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid studio id")
+			return
+		}
+		studioID = id
 	}
 
 	var genres []int
 	for _, g := range c.QueryArray("genres") {
-		id, _ := strconv.Atoi(g)
+		id, err := strconv.Atoi(g)
+		if err != nil {
+			server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid genre id")
+			return
+		}
 		if id > 0 {
 			genres = append(genres, id)
 		}
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid page")
+		return
+	}
 	if page < 1 {
 		page = 1
 	}
 
 	res, err := h.svc.SearchAdvanced(c.Request.Context(), q, animeType, status, orderBy, sort, genres, studioID, sfw, page, 24)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"browse_search_failed",
+			"anime",
+			"failed to load browse results",
+			map[string]any{
+				"q":        q,
+				"type":     animeType,
+				"status":   status,
+				"order_by": orderBy,
+				"sort":     sort,
+				"studio":   studioID,
+				"sfw":      sfw,
+				"page":     page,
+			},
+			err,
+		)
 		return
 	}
 
@@ -434,9 +481,9 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	if id <= 0 {
-		c.Status(http.StatusNotFound)
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
 		return
 	}
 
@@ -523,9 +570,9 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Query("animeId"))
-	if id <= 0 {
-		c.Status(http.StatusBadRequest)
+	id, err := strconv.Atoi(c.Query("animeId"))
+	if err != nil || id <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
 		return
 	}
 
@@ -802,11 +849,19 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 
 	anime, err := h.svc.GetRandomAnime(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch random anime"})
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"random_anime_fetch_failed",
+			"anime",
+			"failed to fetch random anime",
+			nil,
+			err,
+		)
 		return
 	}
 	if anime.MalID == 0 {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "Random anime unavailable"})
+		server.RespondHTMLOrJSONError(c, http.StatusBadGateway, "random anime unavailable")
 		return
 	}
 
@@ -824,20 +879,32 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleAnimeReviews(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
-	if id <= 0 {
-		c.Status(http.StatusNotFound)
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
 		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid page")
+		return
+	}
 	if page < 1 {
 		page = 1
 	}
 
 	reviews, hasNextPage, err := h.svc.GetReviews(c.Request.Context(), id, page)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"anime_reviews_fetch_failed",
+			"anime",
+			"failed to load reviews",
+			map[string]any{"anime_id": id, "page": page},
+			err,
+		)
 		return
 	}
 
