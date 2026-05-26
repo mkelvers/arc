@@ -6,9 +6,17 @@ import (
 	"time"
 )
 
-type User = db.User
-type Session = db.Session
-type APIToken = db.ApiToken
+type User struct {
+	db.User
+}
+
+type Session struct {
+	db.Session
+}
+
+type APIToken struct {
+	db.ApiToken
+}
 
 const SessionLifetime = 90 * 24 * time.Hour
 

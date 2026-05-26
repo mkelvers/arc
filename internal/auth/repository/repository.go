@@ -27,7 +27,7 @@ func (r *authRepository) GetUserByUsername(ctx context.Context, username string)
 		}
 		return nil, err
 	}
-	return &u, nil
+	return &domain.User{User: u}, nil
 }
 
 func (r *authRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
@@ -38,7 +38,7 @@ func (r *authRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 		}
 		return nil, err
 	}
-	return &u, nil
+	return &domain.User{User: u}, nil
 }
 
 func (r *authRepository) CreateSession(ctx context.Context, userID string, sessionID string) (*domain.Session, error) {
@@ -50,7 +50,7 @@ func (r *authRepository) CreateSession(ctx context.Context, userID string, sessi
 	if err != nil {
 		return nil, err
 	}
-	return &s, nil
+	return &domain.Session{Session: s}, nil
 }
 
 func (r *authRepository) GetSession(ctx context.Context, sessionID string) (*domain.Session, error) {
@@ -61,7 +61,7 @@ func (r *authRepository) GetSession(ctx context.Context, sessionID string) (*dom
 		}
 		return nil, err
 	}
-	return &s, nil
+	return &domain.Session{Session: s}, nil
 }
 
 func (r *authRepository) RefreshSession(ctx context.Context, sessionID string, expiresAt time.Time) error {
@@ -85,7 +85,7 @@ func (r *authRepository) CreateAPIToken(ctx context.Context, userID, tokenHash, 
 	if err != nil {
 		return nil, err
 	}
-	return &t, nil
+	return &domain.APIToken{ApiToken: t}, nil
 }
 
 func (r *authRepository) GetAPITokenByHash(ctx context.Context, tokenHash string) (*domain.APIToken, error) {
@@ -96,7 +96,7 @@ func (r *authRepository) GetAPITokenByHash(ctx context.Context, tokenHash string
 		}
 		return nil, err
 	}
-	return &t, nil
+	return &domain.APIToken{ApiToken: t}, nil
 }
 
 func (r *authRepository) TouchAPITokenLastUsedAt(ctx context.Context, tokenID string) error {
