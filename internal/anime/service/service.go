@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
 	"math/rand"
+	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -92,6 +96,166 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 	return domain.DiscoverSectionData{
 		Animes: animes,
 	}, nil
+}
+
+func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (domain.DiscoverSectionData, error) {
+	if strings.TrimSpace(userID) == "" {
+		return domain.DiscoverSectionData{Animes: []domain.Anime{}}, nil
+	}
+
+	watchlist, err := s.repo.GetUserWatchList(ctx, userID)
+	if err != nil {
+		return domain.DiscoverSectionData{}, err
+	}
+
+	seedIDs := make([]int, 0, 5)
+	for _, entry := range watchlist {
+		status := strings.TrimSpace(entry.Status)
+		if status != "watching" && status != "completed" {
+			continue
+		}
+		if entry.AnimeID <= 0 {
+			continue
+		}
+		seedIDs = append(seedIDs, int(entry.AnimeID))
+		if len(seedIDs) >= 5 {
+			break
+		}
+	}
+
+	if len(seedIDs) == 0 {
+		return domain.DiscoverSectionData{Animes: []domain.Anime{}}, nil
+	}
+
+	type ranked struct {
+		id    int
+		votes int
+	}
+
+	recommended := map[int]ranked{}
+	var g errgroup.Group
+	g.SetLimit(4)
+
+	for _, seedID := range seedIDs {
+		g.Go(func() error {
+			recs, recErr := s.jikan.GetAnimeRecommendations(ctx, seedID)
+			if recErr != nil {
+				return recErr
+			}
+			for _, rec := range recs {
+				id := rec.Entry.MalID
+				if id <= 0 {
+					continue
+				}
+				if id == seedID {
+					continue
+				}
+				current, ok := recommended[id]
+				if !ok {
+					recommended[id] = ranked{id: id, votes: rec.Votes}
+					continue
+				}
+				current.votes += rec.Votes
+				recommended[id] = current
+			}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return domain.DiscoverSectionData{}, err
+	}
+
+	if len(recommended) == 0 {
+		return domain.DiscoverSectionData{Animes: []domain.Anime{}}, nil
+	}
+
+	rankedIDs := make([]ranked, 0, len(recommended))
+	for _, item := range recommended {
+		rankedIDs = append(rankedIDs, item)
+	}
+	sort.Slice(rankedIDs, func(i, j int) bool {
+		if rankedIDs[i].votes == rankedIDs[j].votes {
+			return rankedIDs[i].id < rankedIDs[j].id
+		}
+		return rankedIDs[i].votes > rankedIDs[j].votes
+	})
+
+	limit := 12
+	if len(rankedIDs) < limit {
+		limit = len(rankedIDs)
+	}
+
+	animes := make([]domain.Anime, 0, limit)
+	for i := 0; i < limit; i++ {
+		anime, fetchErr := s.jikan.GetAnimeByID(ctx, rankedIDs[i].id)
+		if fetchErr != nil {
+			continue
+		}
+		animes = append(animes, anime)
+	}
+
+	return domain.DiscoverSectionData{Animes: animes}, nil
+}
+
+func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]domain.Anime, error) {
+	if strings.TrimSpace(userID) == "" {
+		return []domain.Anime{}, nil
+	}
+
+	watchlist, err := s.repo.GetUserWatchList(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int, 0, 50)
+	for _, entry := range watchlist {
+		status := strings.TrimSpace(entry.Status)
+		if status != "watching" && status != "plan_to_watch" {
+			continue
+		}
+		if !entry.Airing.Valid || !entry.Airing.Bool {
+			continue
+		}
+		if entry.AnimeID <= 0 {
+			continue
+		}
+		ids = append(ids, int(entry.AnimeID))
+		if len(ids) >= 50 {
+			break
+		}
+	}
+
+	if len(ids) == 0 {
+		return []domain.Anime{}, nil
+	}
+
+	animes := make([]domain.Anime, 0, len(ids))
+	var g errgroup.Group
+	g.SetLimit(6)
+	var mu sync.Mutex
+
+	for _, id := range ids {
+		g.Go(func() error {
+			anime, fetchErr := s.jikan.GetAnimeByID(ctx, id)
+			if fetchErr != nil {
+				return fetchErr
+			}
+			mu.Lock()
+			animes = append(animes, anime)
+			mu.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
+		return animes, nil
+	}
+
+	return animes, nil
 }
 
 func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, error) {

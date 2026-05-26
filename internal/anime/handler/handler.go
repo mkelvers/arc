@@ -60,6 +60,9 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/discover/trending", h.HandleDiscoverTrending)
 	r.GET("/api/discover/upcoming", h.HandleDiscoverUpcoming)
 	r.GET("/api/discover/top", h.HandleDiscoverTop)
+	r.GET("/api/discover/for-you", h.HandleDiscoverForYou)
+	r.GET("/schedule", h.HandleSchedule)
+	r.GET("/api/schedule", h.HandleScheduleSection)
 	r.GET("/browse", h.HandleBrowse)
 	r.GET("/anime/:id", h.HandleAnimeDetails)
 	r.GET("/anime/:id/reviews", h.HandleAnimeReviews)
@@ -220,6 +223,36 @@ func (h *AnimeHandler) HandleDiscoverTop(c *gin.Context) {
 	h.renderDiscoverSection(c, "Top")
 }
 
+func (h *AnimeHandler) HandleDiscoverForYou(c *gin.Context) {
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
+	data, err := h.svc.GetDiscoverForYou(c.Request.Context(), userID)
+	if err != nil {
+		observability.Warn(
+			"discover_for_you_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"user_id": userID,
+			},
+			err,
+		)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
+
+	data.Section = "ForYou"
+	data.Fragment = "discover_row"
+	data.WatchlistMap = watchlistMap
+	c.HTML(http.StatusOK, "discover.gohtml", data)
+}
+
 func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	user, _ := c.Get("User")
 	userID := ""
@@ -248,6 +281,45 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	data.Fragment = "discover_section"
 	data.WatchlistMap = watchlistMap
 	c.HTML(http.StatusOK, "discover.gohtml", data)
+}
+
+func (h *AnimeHandler) HandleSchedule(c *gin.Context) {
+	user, _ := c.Get("User")
+	c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
+		"CurrentPath": "/schedule",
+		"User":        user,
+	})
+}
+
+func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
+	user, _ := c.Get("User")
+	userID := ""
+	if u, ok := user.(*domain.User); ok {
+		userID = u.ID
+	}
+
+	animes, err := h.svc.GetAiringSchedule(c.Request.Context(), userID)
+	if err != nil {
+		observability.Warn(
+			"schedule_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"user_id": userID,
+			},
+			err,
+		)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
+
+	c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
+		"_fragment":   "schedule_section",
+		"Animes":      animes,
+		"WatchlistMap": watchlistMap,
+	})
 }
 
 func (h *AnimeHandler) HandleBrowse(c *gin.Context) {

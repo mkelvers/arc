@@ -72,6 +72,17 @@
     </div>
   </section>
 
+  {{/* For You Section */}}
+  <section class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-normal text-foreground">For You</h2>
+      <span class="text-sm text-foreground-muted">Based on your watchlist</span>
+    </div>
+    <div hx-get="/api/discover/for-you" hx-trigger="load" hx-swap="outerHTML">
+      {{template "discover_skeleton"}}
+    </div>
+  </section>
+
   {{/* Upcoming Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
@@ -118,6 +129,14 @@
 
 {{define "discover_section"}}
 <div class="discover-grid">
+  {{range .Animes}}
+    {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
+  {{end}}
+</div>
+{{end}}
+
+{{define "discover_row"}}
+<div class="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
   {{range .Animes}}
     {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
   {{end}}

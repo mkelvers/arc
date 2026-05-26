@@ -19,6 +19,8 @@ type ReviewEntry = jikan.ReviewEntry
 type AnimeService interface {
 	GetCatalogSection(ctx context.Context, userID string, section string) (CatalogSectionData, error)
 	GetDiscoverSection(ctx context.Context, userID string, section string) (DiscoverSectionData, error)
+	GetDiscoverForYou(ctx context.Context, userID string) (DiscoverSectionData, error)
+	GetAiringSchedule(ctx context.Context, userID string) ([]Anime, error)
 	GetAnimeByID(ctx context.Context, id int) (Anime, error)
 	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error)
 	GetProducerNameByID(ctx context.Context, id int) (string, error)
