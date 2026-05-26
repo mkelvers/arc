@@ -3,10 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
-	"log"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -86,7 +86,17 @@ func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 
 	res, err := h.svc.GetProducers(c.Request.Context(), q, page, limit)
 	if err != nil {
-		log.Printf("failed to fetch producers list (q=%q page=%d limit=%d): %v", q, page, limit, err)
+		observability.Warn(
+			"producers_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"q":     q,
+				"page":  page,
+				"limit": limit,
+			},
+			err,
+		)
 		if strings.Contains(c.GetHeader("Accept"), "text/html") {
 			c.HTML(http.StatusOK, "browse.gohtml", gin.H{
 				"_fragment":   "studio_dropdown_items",
@@ -168,7 +178,16 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	}
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
 	if err != nil {
-		log.Printf("failed to fetch catalog section (section=%q user_id=%q): %v", section, userID, err)
+		observability.Warn(
+			"catalog_section_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"section": section,
+				"user_id": userID,
+			},
+			err,
+		)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -209,7 +228,16 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	}
 	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
 	if err != nil {
-		log.Printf("failed to fetch discover section (section=%q user_id=%q): %v", section, userID, err)
+		observability.Warn(
+			"discover_section_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"section": section,
+				"user_id": userID,
+			},
+			err,
+		)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -365,7 +393,16 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		}
 
 		if err != nil {
-			log.Printf("failed to fetch section %s: %v", section, err)
+			observability.Warn(
+				"anime_section_fetch_failed",
+				"anime",
+				"",
+				map[string]any{
+					"section":  section,
+					"anime_id": id,
+				},
+				err,
+			)
 			c.Status(http.StatusNoContent)
 			return
 		}
@@ -431,7 +468,15 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 
 	relations, err := h.svc.GetRelations(relationsCtx, id)
 	if err != nil {
-		log.Printf("failed to fetch relations for anime %d: %v", id, err)
+		observability.Warn(
+			"relations_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"anime_id": id,
+			},
+			err,
+		)
 		c.Status(http.StatusNoContent)
 		return
 	}
