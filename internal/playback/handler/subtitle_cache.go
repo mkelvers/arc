@@ -47,7 +47,11 @@ func (c *subtitleCache) Get(key string, now time.Time) (data []byte, contentType
 	if el == nil {
 		return nil, "", false
 	}
-	entry := el.Value.(subtitleCacheEntry)
+	entry, ok := el.Value.(subtitleCacheEntry)
+	if !ok {
+		c.removeElement(el)
+		return nil, "", false
+	}
 	if !entry.expiresAt.IsZero() && now.After(entry.expiresAt) {
 		c.removeElement(el)
 		return nil, "", false
@@ -61,7 +65,11 @@ func (c *subtitleCache) Set(key string, data []byte, contentType string, now tim
 	defer c.mu.Unlock()
 
 	if el := c.entries[key]; el != nil {
-		entry := el.Value.(subtitleCacheEntry)
+		entry, ok := el.Value.(subtitleCacheEntry)
+		if !ok {
+			c.removeElement(el)
+			return
+		}
 		entry.data = data
 		entry.contentType = contentType
 		entry.expiresAt = now.Add(c.ttl)
@@ -89,7 +97,11 @@ func (c *subtitleCache) Set(key string, data []byte, contentType string, now tim
 }
 
 func (c *subtitleCache) removeElement(el *list.Element) {
-	entry := el.Value.(subtitleCacheEntry)
+	entry, ok := el.Value.(subtitleCacheEntry)
+	if !ok {
+		c.lru.Remove(el)
+		return
+	}
 	delete(c.entries, entry.key)
 	c.lru.Remove(el)
 }
