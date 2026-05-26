@@ -1,7 +1,6 @@
 type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'theme';
-const COOKIE_KEY = 'theme';
 
 const getLocalStorage = (): Storage | null => {
   try {
@@ -9,24 +8,6 @@ const getLocalStorage = (): Storage | null => {
   } catch {
     return null;
   }
-};
-
-const readCookie = (key: string): string | null => {
-  const entries = document.cookie.split(';').map(part => part.trim());
-  for (const entry of entries) {
-    if (!entry) continue;
-    const eqIndex = entry.indexOf('=');
-    if (eqIndex === -1) continue;
-    const k = entry.slice(0, eqIndex).trim();
-    if (k !== key) continue;
-    return decodeURIComponent(entry.slice(eqIndex + 1));
-  }
-  return null;
-};
-
-const writeCookie = (key: string, value: string): void => {
-  const maxAgeSeconds = 60 * 60 * 24 * 365;
-  document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax`;
 };
 
 const getPreferredTheme = (): Theme => {
@@ -44,9 +25,6 @@ const getSavedTheme = (): Theme => {
   const fromStorage = normalizeTheme(storage?.getItem(STORAGE_KEY) ?? null);
   if (fromStorage) return fromStorage;
 
-  const fromCookie = normalizeTheme(readCookie(COOKIE_KEY));
-  if (fromCookie) return fromCookie;
-
   return getPreferredTheme();
 };
 
@@ -59,7 +37,6 @@ const applyTheme = (theme: Theme): void => {
   } catch {
     // ignore
   }
-  writeCookie(COOKIE_KEY, theme);
 };
 
 const cycleTheme = (): void => {
