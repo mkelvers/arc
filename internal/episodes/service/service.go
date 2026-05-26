@@ -19,6 +19,7 @@ import (
 const (
 	retryInterval = 15 * time.Minute
 	retryWindow   = 3 * time.Hour
+	airingFallbackRefreshInterval = 6 * time.Hour
 )
 
 type Clock interface {
@@ -59,7 +60,7 @@ func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.
 	}
 
 	if !forceRefresh {
-		if cached, ok := s.getFreshCached(ctx, anime.MalID); ok {
+		if cached, ok := s.getFreshCached(ctx, anime); ok {
 			return cached, nil
 		}
 	}
@@ -189,10 +190,23 @@ func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, pro
 }
 
 func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, source string, now time.Time, providerSuccess bool) (domain.CanonicalEpisodeList, error) {
-	nextRefresh := nextBroadcastAfter(anime, now)
 	var nextRefreshSQL sql.NullTime
-	if anime.Airing && !nextRefresh.IsZero() {
-		nextRefreshSQL = sql.NullTime{Time: nextRefresh, Valid: true}
+	if anime.Airing {
+		// During the hours immediately following a broadcast time, providers can lag.
+		// Keep retrying for a short window, even if the provider request succeeded.
+		lastBroadcast := nextBroadcastBeforeOrAt(anime, now)
+		if !lastBroadcast.IsZero() && now.Before(lastBroadcast.Add(retryWindow)) {
+			nextRefreshSQL = sql.NullTime{Time: now.Add(retryInterval).UTC(), Valid: true}
+		} else {
+			next := nextBroadcastAfter(anime, now)
+			if !next.IsZero() {
+				nextRefreshSQL = sql.NullTime{Time: next, Valid: true}
+			} else {
+				// Broadcast metadata is often missing or wrong for currently airing shows.
+				// Avoid "never refresh again" caches by falling back to a fixed interval.
+				nextRefreshSQL = sql.NullTime{Time: now.Add(airingFallbackRefreshInterval).UTC(), Valid: true}
+			}
+		}
 	}
 
 	episodes := mergeEpisodes(jikanEpisodes, availability)
@@ -278,26 +292,34 @@ func (s *EpisodeService) getCached(ctx context.Context, animeID int) (domain.Can
 	return payload, true
 }
 
-func (s *EpisodeService) getFreshCached(ctx context.Context, animeID int) (domain.CanonicalEpisodeList, bool) {
-	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(animeID))
+func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
+	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(anime.MalID))
 	if err != nil {
 		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		return domain.CanonicalEpisodeList{}, false
 	}
-	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(s.clock.Now()) {
+
+	now := s.clock.Now()
+	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(now) {
 		s.metrics.ObserveCache("episode_availability_fresh", "miss")
-		log.Printf("episodes: cached availability due for refresh anime_id=%d next_refresh=%s", animeID, row.NextRefreshAt.Time.Format(time.RFC3339))
+		log.Printf("episodes: cached availability due for refresh anime_id=%d next_refresh=%s", anime.MalID, row.NextRefreshAt.Time.Format(time.RFC3339))
+		return domain.CanonicalEpisodeList{}, false
+	}
+
+	if anime.Airing && row.UpdatedAt.Before(now.Add(-airingFallbackRefreshInterval)) {
+		s.metrics.ObserveCache("episode_availability_fresh", "miss")
+		log.Printf("episodes: cached availability too old for airing anime_id=%d updated_at=%s", anime.MalID, row.UpdatedAt.Format(time.RFC3339))
 		return domain.CanonicalEpisodeList{}, false
 	}
 
 	var payload domain.CanonicalEpisodeList
 	if err := json.Unmarshal([]byte(row.Data), &payload); err != nil {
 		s.metrics.ObserveCache("episode_availability_fresh", "miss")
-		log.Printf("episodes: invalid cached payload anime_id=%d error=%v", animeID, err)
+		log.Printf("episodes: invalid cached payload anime_id=%d error=%v", anime.MalID, err)
 		return domain.CanonicalEpisodeList{}, false
 	}
 	s.metrics.ObserveCache("episode_availability_fresh", "hit")
-	log.Printf("episodes: served cached availability anime_id=%d episodes=%d next_refresh=%s", animeID, len(payload.Episodes), payload.NextRefreshAt)
+	log.Printf("episodes: served cached availability anime_id=%d episodes=%d next_refresh=%s", anime.MalID, len(payload.Episodes), payload.NextRefreshAt)
 	return payload, true
 }
 
