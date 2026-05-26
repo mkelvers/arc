@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/internal/server"
 	"mal/pkg/net/limits"
 	"mal/pkg/net/proxytransport"
 	"mal/pkg/net/useragent"
@@ -86,13 +87,13 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 	animeID, err := strconv.Atoi(c.Param("animeId"))
 	if err != nil || animeID <= 0 {
-		c.Status(http.StatusBadRequest)
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
 		return
 	}
 
 	episode := c.Param("episode")
 	if episode == "" {
-		c.Status(http.StatusBadRequest)
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "missing episode")
 		return
 	}
 
@@ -106,7 +107,15 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	data, err := h.svc.BuildWatchData(c.Request.Context(), animeID, []string{}, episode, mode, userID)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watch_episode_data_build_failed",
+			"playback",
+			"failed to load episode data",
+			map[string]any{"anime_id": animeID, "episode": episode, "mode": mode, "user_id": userID},
+			err,
+		)
 		return
 	}
 
@@ -148,7 +157,7 @@ func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
 	}
 	if userID == "" {
 		// Avoid spamming 500s for anonymous playback; progress is user-scoped.
-		c.Status(http.StatusUnauthorized)
+		server.RespondHTMLOrJSONError(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -159,13 +168,21 @@ func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Status(http.StatusBadRequest)
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	err := h.svc.SaveProgress(c.Request.Context(), userID, req.MalID, req.Episode, req.TimeSeconds)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watch_progress_save_failed",
+			"playback",
+			"failed to save progress",
+			map[string]any{"mal_id": req.MalID, "episode": req.Episode, "user_id": userID},
+			err,
+		)
 		return
 	}
 
@@ -185,13 +202,21 @@ func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.Status(http.StatusBadRequest)
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	err := h.svc.CompleteAnime(c.Request.Context(), userID, req.MalID)
 	if err != nil {
-		c.Status(http.StatusInternalServerError)
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watch_complete_failed",
+			"playback",
+			"failed to complete anime",
+			map[string]any{"mal_id": req.MalID, "user_id": userID},
+			err,
+		)
 		return
 	}
 
