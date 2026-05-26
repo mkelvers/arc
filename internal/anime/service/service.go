@@ -181,13 +181,10 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 		return rankedIDs[i].votes > rankedIDs[j].votes
 	})
 
-	limit := 12
-	if len(rankedIDs) < limit {
-		limit = len(rankedIDs)
-	}
+	limit := min(len(rankedIDs), 12)
 
 	animes := make([]domain.Anime, 0, limit)
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		anime, fetchErr := s.jikan.GetAnimeByID(ctx, rankedIDs[i].id)
 		if fetchErr != nil {
 			continue
