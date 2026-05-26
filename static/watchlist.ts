@@ -265,7 +265,9 @@ const getRenderedWatchlistIds = (): number[] => {
   const ids = new Set<number>();
 
   document
-    .querySelectorAll<HTMLElement>('[data-watchlist-toggle][data-watchlist-state="in"][data-mal-id]')
+    .querySelectorAll<HTMLElement>(
+      '[data-watchlist-toggle][data-watchlist-state="in"][data-mal-id]'
+    )
     .forEach(button => {
       const id = toInt(button.dataset.malId);
       if (id === null) return;
