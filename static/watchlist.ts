@@ -66,6 +66,7 @@ const syncIconsForId = (id: number): void => {
     const malId = toInt(button.dataset.malId);
     if (malId !== id) return;
     button.classList.toggle('in-watchlist', shouldBeInWatchlist);
+    button.dataset.watchlistState = shouldBeInWatchlist ? 'in' : 'out';
     button.setAttribute(
       'aria-label',
       shouldBeInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'
@@ -109,8 +110,18 @@ const closeClosestDropdown = (from: HTMLElement): void => {
   });
 };
 
-const toggleWatchlist = async (id: number, title: string): Promise<void> => {
+const toggleWatchlist = async (
+  id: number,
+  title: string,
+  renderedState: string | undefined
+): Promise<void> => {
   if (inflight.has(id)) return;
+  if (renderedState === 'in') {
+    watchlistIds.add(id);
+  } else if (renderedState === 'out') {
+    watchlistIds.delete(id);
+  }
+
   const isInWatchlist = watchlistIds.has(id);
 
   setBusy(id, true);
@@ -250,6 +261,20 @@ const initWatchlist = (ids: number[]): void => {
   });
 };
 
+const getRenderedWatchlistIds = (): number[] => {
+  const ids = new Set<number>();
+
+  document
+    .querySelectorAll<HTMLElement>('[data-watchlist-toggle][data-watchlist-state="in"][data-mal-id]')
+    .forEach(button => {
+      const id = toInt(button.dataset.malId);
+      if (id === null) return;
+      ids.add(id);
+    });
+
+  return Array.from(ids);
+};
+
 const onReady = (fn: () => void): void => {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fn, { once: true });
@@ -272,7 +297,7 @@ const installDelegatedHandlers = (): void => {
       const id = toInt(toggleButton.getAttribute('data-mal-id') ?? undefined);
       if (id === null) return;
       const title = toggleButton.getAttribute('data-watchlist-title') ?? 'anime';
-      void toggleWatchlist(id, title);
+      void toggleWatchlist(id, title, toggleButton.dataset.watchlistState);
       return;
     }
 
@@ -320,6 +345,11 @@ onReady(() => {
     if (ids.length > 0) {
       initWatchlist(ids);
     }
+  }
+
+  const renderedWatchlistIds = getRenderedWatchlistIds();
+  if (renderedWatchlistIds.length > 0) {
+    initWatchlist(renderedWatchlistIds);
   }
 
   installDelegatedHandlers();

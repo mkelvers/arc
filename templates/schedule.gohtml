@@ -55,6 +55,7 @@
                   data-watchlist-toggle
                   data-mal-id="{{$anime.MalID}}"
                   data-watchlist-title="{{$anime.DisplayTitle}}"
+                  data-watchlist-state="{{if (index $.WatchlistMap $anime.MalID)}}in{{else}}out{{end}}"
                   class="shrink-0 text-accent hover:text-accent/80 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50 {{if (index $.WatchlistMap $anime.MalID)}}in-watchlist{{end}}"
                   aria-label="{{if (index $.WatchlistMap $anime.MalID)}}Remove from Watchlist{{else}}Add to Watchlist{{end}}"
                 >

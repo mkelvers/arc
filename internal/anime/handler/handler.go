@@ -316,8 +316,8 @@ func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 
 	c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
-		"_fragment":   "schedule_section",
-		"Animes":      animes,
+		"_fragment":    "schedule_section",
+		"Animes":       animes,
 		"WatchlistMap": watchlistMap,
 	})
 }

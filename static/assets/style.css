@@ -58,3 +58,13 @@ body {
   background-color: var(--color-background);
   color: var(--text);
 }
+
+[data-watchlist-toggle] .watchlist-icon,
+[data-watchlist-toggle] .watchlist-icon path {
+  fill: none;
+}
+
+[data-watchlist-toggle][data-watchlist-state='in'] .watchlist-icon,
+[data-watchlist-toggle][data-watchlist-state='in'] .watchlist-icon path {
+  fill: currentColor;
+}
