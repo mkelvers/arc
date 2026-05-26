@@ -17,6 +17,7 @@ type publicRoute struct {
 var publicRoutes = []publicRoute{
 	// Pages.
 	{method: http.MethodGet, path: "/login"},
+	{method: http.MethodPost, path: "/login"},
 	{method: http.MethodGet, path: "/logout"},
 
 	// Static assets.
