@@ -31,6 +31,7 @@ type playbackService struct {
 	episodes      domain.EpisodeService
 	httpClient    *http.Client
 	proxyTokenKey string
+	auditSvc      domain.AuditService
 }
 
 type proxyTokenPayload struct {
@@ -40,8 +41,16 @@ type proxyTokenPayload struct {
 	ExpiresAt int64  `json:"exp"`
 }
 
-func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, proxyTokenKey string) domain.PlaybackService {
-	return &playbackService{repo: repo, providers: providers, jikan: jikan, episodes: episodes, httpClient: &http.Client{Timeout: 10 * time.Second}, proxyTokenKey: proxyTokenKey}
+func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey string) domain.PlaybackService {
+	return &playbackService{
+		repo:          repo,
+		providers:     providers,
+		jikan:         jikan,
+		episodes:      episodes,
+		auditSvc:      auditSvc,
+		httpClient:    &http.Client{Timeout: 10 * time.Second},
+		proxyTokenKey: proxyTokenKey,
+	}
 }
 
 func (s *playbackService) SignProxyToken(targetURL, referer, scope string) (string, error) {
@@ -311,12 +320,21 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 		UserID:  userID,
 		AnimeID: animeID,
 	})
-	return s.repo.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
+	if err := s.repo.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
 		UserID:             userID,
 		AnimeID:            animeID,
 		CurrentEpisode:     sql.NullInt64{Valid: false},
 		CurrentTimeSeconds: 0,
+	}); err != nil {
+		return err
+	}
+	_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+		UserID:       userID,
+		Action:       "watch_completed",
+		ResourceType: "anime",
+		ResourceID:   strconv.FormatInt(animeID, 10),
 	})
+	return nil
 }
 
 func (s *playbackService) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error {
@@ -328,7 +346,31 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 		CurrentTimeSeconds: timeSeconds,
 		DurationSeconds:    sql.NullFloat64{Valid: false},
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	metadataBytes, marshalErr := json.Marshal(struct {
+		Episode     int     `json:"episode"`
+		TimeSeconds float64 `json:"time_seconds"`
+	}{Episode: episode, TimeSeconds: timeSeconds})
+	if marshalErr == nil {
+		_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+			UserID:       userID,
+			Action:       "watch_progress_saved",
+			ResourceType: "anime",
+			ResourceID:   strconv.FormatInt(animeID, 10),
+			MetadataJSON: metadataBytes,
+		})
+	} else {
+		_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+			UserID:       userID,
+			Action:       "watch_progress_saved",
+			ResourceType: "anime",
+			ResourceID:   strconv.FormatInt(animeID, 10),
+		})
+	}
+	return nil
 }
 
 func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error {
