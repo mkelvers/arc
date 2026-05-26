@@ -155,17 +155,64 @@ export const initState = (c: HTMLElement): boolean => {
   state.episodeGrid = qs<HTMLElement>('[data-episode-grid]');
   state.episodeList = qs<HTMLElement>('[data-episode-list]');
 
-  const safeJson = <T>(raw: string | undefined, fallback: T): T => {
+  const safeJsonUnknown = (raw: string | undefined): unknown => {
     try {
-      return JSON.parse(raw ?? '') as T;
+      return JSON.parse(raw ?? '');
     } catch {
-      return fallback;
+      return null;
     }
   };
 
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
+
+  const isStringArray = (v: unknown): v is string[] =>
+    Array.isArray(v) && v.every(item => typeof item === 'string');
+
+  const isSubtitleItemArray = (v: unknown): v is { lang: string; token: string }[] =>
+    Array.isArray(v) &&
+    v.every(
+      item =>
+        isRecord(item) && typeof item.lang === 'string' && typeof item.token === 'string'
+    );
+
+  const parseModeSources = (v: unknown): Record<string, ModeSource> => {
+    if (!isRecord(v)) return {};
+    const out: Record<string, ModeSource> = {};
+    for (const [key, value] of Object.entries(v)) {
+      if (!isRecord(value)) continue;
+      if (typeof value.token !== 'string' || value.token === '') continue;
+      if (!isSubtitleItemArray(value.subtitles)) continue;
+      const qualities = value.qualities;
+      out[key] = {
+        token: value.token,
+        subtitles: value.subtitles,
+        qualities: isStringArray(qualities) ? qualities : undefined,
+      };
+    }
+    return out;
+  };
+
+  const parseAvailableModes = (v: unknown): string[] => (isStringArray(v) ? v : []);
+
+  const parseSegments = (v: unknown): SkipSegment[] => {
+    if (!Array.isArray(v)) return [];
+    const out: SkipSegment[] = [];
+    for (const item of v) {
+      if (!isRecord(item)) continue;
+      const type = typeof item.type === 'string' ? item.type : '';
+      const start = typeof item.start === 'number' ? item.start : Number(item.start);
+      const end = typeof item.end === 'number' ? item.end : Number(item.end);
+      const source = typeof item.source === 'string' ? item.source : undefined;
+      if (!type || !Number.isFinite(start) || !Number.isFinite(end)) continue;
+      out.push({ type, start, end, source });
+    }
+    return out;
+  };
+
   // mode sources = { sub: { token, subtitles, qualities }, dub: { ... } }
-  state.modeSources = safeJson(dataset(c, 'modeSources'), {} as Record<string, ModeSource>);
-  state.availableModes = safeJson(dataset(c, 'availableModes'), [] as string[]);
+  state.modeSources = parseModeSources(safeJsonUnknown(dataset(c, 'modeSources')));
+  state.availableModes = parseAvailableModes(safeJsonUnknown(dataset(c, 'availableModes')));
 
   // resolve initial mode: localStorage > backend default > first available > 'dub'
   const backendInitialMode = dataset(c, 'initialMode') || 'dub';
@@ -179,7 +226,7 @@ export const initState = (c: HTMLElement): boolean => {
     : (fallbackMode ?? state.availableModes[0] ?? 'dub');
 
   // parse skip segments from data attribute
-  const segments = safeJson(dataset(c, 'segments'), [] as SkipSegment[]);
+  const segments = parseSegments(safeJsonUnknown(dataset(c, 'segments')));
   state.parsedSegments = segments
     .map(s => ({ ...s, start: Number(s.start) || 0, end: Number(s.end) || 0 }))
     .filter(s => s.end > s.start);
