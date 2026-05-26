@@ -10,8 +10,8 @@ import (
 	"mal/internal/episodes"
 	"mal/internal/playback"
 	"mal/internal/server"
-	"mal/internal/templates"
 	"mal/internal/watchlist"
+	"mal/templates"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
