@@ -169,6 +169,177 @@ const toggleWatchlist = async (
   }
 };
 
+type WatchlistSort = 'date' | 'title';
+
+const csvEscape = (value: unknown): string => {
+  const str = String(value ?? '');
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+const watchlistItems = (): HTMLElement[] =>
+  Array.from(document.querySelectorAll<HTMLElement>('.watchlist-item'));
+
+const sortVisibleWatchlistItems = (sortBy: WatchlistSort, desc: boolean): void => {
+  const grids: HTMLElement[] = [];
+
+  const singleGrid = document.getElementById('watchlist-items');
+  if (singleGrid) {
+    grids.push(singleGrid);
+  }
+
+  document.querySelectorAll<HTMLElement>('.watchlist-section .grid').forEach(grid => grids.push(grid));
+
+  const sortItemsInGrid = (grid: HTMLElement): void => {
+    const items = Array.from(grid.querySelectorAll<HTMLElement>('.watchlist-item'));
+    items.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'title') {
+        const titleA = (a.querySelector('h3')?.textContent ?? '').toLowerCase().trim();
+        const titleB = (b.querySelector('h3')?.textContent ?? '').toLowerCase().trim();
+        comparison = titleA.localeCompare(titleB);
+      } else {
+        const dateA = Number.parseInt(a.dataset.updatedAt ?? '0', 10) || 0;
+        const dateB = Number.parseInt(b.dataset.updatedAt ?? '0', 10) || 0;
+        comparison = dateA - dateB;
+      }
+      return desc ? -comparison : comparison;
+    });
+    items.forEach(item => grid.appendChild(item));
+  };
+
+  grids.forEach(sortItemsInGrid);
+};
+
+const setActiveFilterButton = (clicked: HTMLButtonElement): void => {
+  const parent = clicked.parentElement;
+  if (!parent) return;
+  parent.querySelectorAll('button').forEach(b => {
+    b.classList.remove('text-foreground');
+    b.classList.add('text-foreground-muted');
+    b.classList.remove('border-accent');
+    b.classList.add('border-transparent');
+  });
+  clicked.classList.remove('text-foreground-muted');
+  clicked.classList.add('text-foreground');
+  clicked.classList.remove('border-transparent');
+  clicked.classList.add('border-accent');
+};
+
+const applyWatchlistFilter = (status: string): void => {
+  const sections = Array.from(document.querySelectorAll<HTMLElement>('.watchlist-section'));
+  if (sections.length) {
+    sections.forEach(section => {
+      if (status === 'all') {
+        section.style.display = 'block';
+        return;
+      }
+      section.style.display = section.dataset.status === status ? 'block' : 'none';
+    });
+    return;
+  }
+
+  watchlistItems().forEach(item => {
+    if (status === 'all') {
+      item.style.display = 'flex';
+      return;
+    }
+    item.style.display = item.dataset.status === status ? 'flex' : 'none';
+  });
+};
+
+const exportWatchlistCsv = (): void => {
+  const rows = watchlistItems()
+    .slice()
+    .sort((a, b) => {
+      const dateA = Number.parseInt(a.dataset.updatedAt ?? '0', 10) || 0;
+      const dateB = Number.parseInt(b.dataset.updatedAt ?? '0', 10) || 0;
+      return dateB - dateA;
+    })
+    .map(item => {
+      const updatedAt = Number.parseInt(item.dataset.updatedAt ?? '0', 10) || 0;
+      const updatedAtISO = updatedAt > 0 ? new Date(updatedAt * 1000).toISOString() : '';
+      const title = item.dataset.title || item.querySelector('h3')?.textContent?.trim() || '';
+      return [item.dataset.malId || '', title, item.dataset.status || '', updatedAtISO];
+    });
+
+  const csv = [['mal_id', 'title', 'status', 'updated_at'], ...rows]
+    .map(row => row.map(csvEscape).join(','))
+    .join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'watchlist.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+const initWatchlistPage = (): void => {
+  let currentSortBy: WatchlistSort = 'date';
+  let sortOrderDesc = true;
+
+  sortVisibleWatchlistItems(currentSortBy, sortOrderDesc);
+
+  document.addEventListener('click', e => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+
+    const filterBtn = target.closest<HTMLButtonElement>('button[data-watchlist-filter]');
+    if (filterBtn) {
+      const status = filterBtn.dataset.watchlistFilter ?? 'all';
+      setActiveFilterButton(filterBtn);
+      applyWatchlistFilter(status);
+      sortVisibleWatchlistItems(currentSortBy, sortOrderDesc);
+      return;
+    }
+
+    const sortBtn = target.closest<HTMLButtonElement>('button[data-watchlist-sort]');
+    if (sortBtn) {
+      const sortBy = sortBtn.dataset.watchlistSort === 'title' ? 'title' : 'date';
+      currentSortBy = sortBy;
+      const display = document.getElementById('sort-by-display');
+      if (display) {
+        display.textContent = currentSortBy === 'date' ? 'Date Added' : 'Title';
+      }
+
+      const dropdownContent = sortBtn.closest('[data-content]');
+      dropdownContent?.querySelectorAll('button').forEach(b => {
+        b.classList.remove('text-foreground');
+        b.classList.add('text-foreground-muted');
+      });
+      sortBtn.classList.remove('text-foreground-muted');
+      sortBtn.classList.add('text-foreground');
+
+      sortVisibleWatchlistItems(currentSortBy, sortOrderDesc);
+
+      const parentDropdown = sortBtn.closest('ui-dropdown') as { close?: () => void } | null;
+      parentDropdown?.close?.();
+      return;
+    }
+
+    const sortOrderBtn = target.closest<HTMLButtonElement>('button[data-watchlist-sort-order]');
+    if (sortOrderBtn) {
+      sortOrderDesc = !sortOrderDesc;
+      const icon = sortOrderBtn.querySelector('svg');
+      icon?.classList.toggle('rotate-180', !sortOrderDesc);
+      sortVisibleWatchlistItems(currentSortBy, sortOrderDesc);
+      return;
+    }
+
+    const exportBtn = target.closest<HTMLButtonElement>('button[data-watchlist-export]');
+    if (exportBtn) {
+      exportWatchlistCsv();
+      return;
+    }
+  });
+};
+
 const updateWatchlist = async (
   id: number,
   status: WatchlistStatus,
@@ -252,6 +423,12 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
     syncRemoveButtonVisibility(id);
   }
 };
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initWatchlistPage);
+} else {
+  initWatchlistPage();
+}
 
 const initWatchlist = (ids: number[]): void => {
   ids.forEach(id => watchlistIds.add(id));
