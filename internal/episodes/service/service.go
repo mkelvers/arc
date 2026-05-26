@@ -94,7 +94,7 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 			)
 			continue
 		}
-		if _, err := s.refresh(ctx, anime); err != nil {
+		if _, err := s.refresh(ctx, domain.Anime{Anime: anime}); err != nil {
 			observability.Warn(
 				"episodes_refresh_failed",
 				"episodes",

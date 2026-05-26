@@ -6,7 +6,9 @@ import (
 	"mal/internal/db"
 )
 
-type Anime = jikan.Anime
+type Anime struct {
+	jikan.Anime
+}
 type TopAnimeResult = jikan.TopAnimeResult
 type Genre = jikan.Genre
 type Character = jikan.CharacterEntry

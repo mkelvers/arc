@@ -22,6 +22,14 @@ type AnimeHandler struct {
 	watchlistSvc domain.WatchlistService
 }
 
+func wrapAnimes(in []jikan.Anime) []domain.Anime {
+	out := make([]domain.Anime, 0, len(in))
+	for _, a := range in {
+		out = append(out, domain.Anime{Anime: a})
+	}
+	return out
+}
+
 func NewAnimeHandler(svc domain.AnimeService, watchlistSvc domain.WatchlistService) *AnimeHandler {
 	return &AnimeHandler{
 		svc:          svc,
@@ -405,7 +413,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	if u, ok := user.(*domain.User); ok {
 		userID = u.ID
 	}
-	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, res.Animes)
+	animes := wrapAnimes(res.Animes)
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 
 	studioName := ""
 	if studioID > 0 {
@@ -417,10 +426,10 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 
 	if c.GetHeader("HX-Request") == "true" && page > 1 {
 		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-			"_fragment":    "anime_card_scroll",
-			"Animes":       res.Animes,
-			"NextPage":     page + 1,
-			"HasNextPage":  res.HasNextPage,
+				"_fragment":    "anime_card_scroll",
+				"Animes":       animes,
+				"NextPage":     page + 1,
+				"HasNextPage":  res.HasNextPage,
 			"Query":        q,
 			"Type":         animeType,
 			"Status":       status,
@@ -450,9 +459,9 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 			"Studio":       studioID,
 			"StudioName":   studioName,
 			"SFW":          sfw,
-			"GenresList":   genresList,
-			"Animes":       res.Animes,
-			"HasNextPage":  res.HasNextPage,
+				"GenresList":   genresList,
+				"Animes":       animes,
+				"HasNextPage":  res.HasNextPage,
 			"NextPage":     page + 1,
 			"User":         user,
 			"WatchlistMap": watchlistMap,
@@ -472,8 +481,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		"StudioName":   studioName,
 		"SFW":          sfw,
 		"GenresList":   genresList,
-		"Animes":       res.Animes,
-		"HasNextPage":  res.HasNextPage,
+			"Animes":       animes,
+			"HasNextPage":  res.HasNextPage,
 		"NextPage":     page + 1,
 		"User":         user,
 		"WatchlistMap": watchlistMap,
@@ -634,7 +643,8 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 	if u, ok := user.(*domain.User); ok {
 		userID = u.ID
 	}
-	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, res.Animes)
+	animes := wrapAnimes(res.Animes)
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 
 	type quickSearchResult struct {
 		ID          int    `json:"id"`
@@ -645,8 +655,8 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		InWatchlist bool   `json:"in_watchlist"`
 	}
 
-	output := make([]quickSearchResult, len(res.Animes))
-	for i, anime := range res.Animes {
+	output := make([]quickSearchResult, len(animes))
+	for i, anime := range animes {
 		output[i] = quickSearchResult{
 			ID:          anime.MalID,
 			Title:       anime.DisplayTitle(),
@@ -736,8 +746,9 @@ func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) 
 		return nil
 	}
 
-	items := make([]commandPaletteItem, 0, len(res.Animes))
-	for _, anime := range res.Animes {
+	animes := wrapAnimes(res.Animes)
+	items := make([]commandPaletteItem, 0, len(animes))
+	for _, anime := range animes {
 		items = append(items, commandPaletteItem{
 			ID:       fmt.Sprintf("anime:%d", anime.MalID),
 			Type:     "anime",

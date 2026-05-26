@@ -143,7 +143,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		}
 	}
 
-	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, anime, false)
+	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, domain.Anime{Anime: anime}, false)
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch episodes: %w", err)
 	}
@@ -289,12 +289,12 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		Segments: segments,
 	}
 
-	return domain.WatchPageData{
-		WatchData:       watchData,
-		Anime:           anime,
-		Episodes:        canonicalEpisodes.Episodes,
-		CurrentEpID:     episode,
-		WatchlistStatus: watchlistStatus,
+		return domain.WatchPageData{
+			WatchData:       watchData,
+			Anime:           domain.Anime{Anime: anime},
+			Episodes:        canonicalEpisodes.Episodes,
+			CurrentEpID:     episode,
+			WatchlistStatus: watchlistStatus,
 		WatchlistIDs:    watchlistIDs,
 		Seasons:         seasons,
 	}, nil

@@ -21,6 +21,14 @@ type animeService struct {
 	repo  domain.AnimeRepository
 }
 
+func wrapAnimes(in []jikan.Anime) []domain.Anime {
+	out := make([]domain.Anime, 0, len(in))
+	for _, a := range in {
+		out = append(out, domain.Anime{Anime: a})
+	}
+	return out
+}
+
 func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) domain.AnimeService {
 	return &animeService{jikan: jikan, repo: repo}
 }
@@ -56,7 +64,7 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 		return domain.CatalogSectionData{}, err
 	}
 
-	animes := res.Animes
+	animes := wrapAnimes(res.Animes)
 	if len(animes) > 6 {
 		animes = animes[:6]
 	}
@@ -89,7 +97,7 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 		return domain.DiscoverSectionData{}, err
 	}
 
-	animes := res.Animes
+	animes := wrapAnimes(res.Animes)
 	if len(animes) > 8 {
 		animes = animes[:8]
 	}
@@ -197,7 +205,7 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 			)
 			continue
 		}
-		animes = append(animes, anime)
+		animes = append(animes, domain.Anime{Anime: anime})
 	}
 
 	return domain.DiscoverSectionData{Animes: animes}, nil
@@ -247,7 +255,7 @@ func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]
 				return fetchErr
 			}
 			mu.Lock()
-			animes = append(animes, anime)
+				animes = append(animes, domain.Anime{Anime: anime})
 			mu.Unlock()
 			return nil
 		})
@@ -271,7 +279,11 @@ func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]
 }
 
 func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, error) {
-	return s.jikan.GetAnimeByID(ctx, id)
+	anime, err := s.jikan.GetAnimeByID(ctx, id)
+	if err != nil {
+		return domain.Anime{}, err
+	}
+	return domain.Anime{Anime: anime}, nil
 }
 
 func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error) {
@@ -341,7 +353,7 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 
 	anime, err := s.jikan.GetRandomAnime(randomCtx)
 	if err == nil {
-		return anime, nil
+		return domain.Anime{Anime: anime}, nil
 	}
 
 	for _, fallback := range []func(context.Context, int) (jikan.TopAnimeResult, error){
@@ -350,12 +362,12 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		s.jikan.GetSeasonsUpcoming,
 	} {
 		res, fallbackErr := fallback(ctx, 1)
-		if fallbackErr != nil || len(res.Animes) == 0 {
-			continue
+			if fallbackErr != nil || len(res.Animes) == 0 {
+				continue
+			}
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			return domain.Anime{Anime: res.Animes[r.Intn(len(res.Animes))]}, nil
 		}
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		return res.Animes[r.Intn(len(res.Animes))], nil
-	}
 
 	return domain.Anime{}, err
 }

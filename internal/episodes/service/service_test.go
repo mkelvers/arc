@@ -29,7 +29,7 @@ func TestMergeEpisodesUsesUnionAndSynthesizesProviderOnlyEntries(t *testing.T) {
 }
 
 func TestNextBroadcastAfterUsesJikanTimezone(t *testing.T) {
-	anime := domain.Anime{MalID: 1}
+	anime := domain.Anime{Anime: jikan.Anime{MalID: 1}}
 	anime.Broadcast.Day = "Saturdays"
 	anime.Broadcast.Time = "23:00"
 	anime.Broadcast.Timezone = "Asia/Tokyo"
@@ -44,7 +44,7 @@ func TestNextBroadcastAfterUsesJikanTimezone(t *testing.T) {
 }
 
 func TestNextRetryTimeWithinAndAfterRetryWindow(t *testing.T) {
-	anime := domain.Anime{MalID: 1}
+	anime := domain.Anime{Anime: jikan.Anime{MalID: 1}}
 	anime.Broadcast.Day = "Saturdays"
 	anime.Broadcast.Time = "12:00"
 	anime.Broadcast.Timezone = "UTC"
