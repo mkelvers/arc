@@ -32,8 +32,8 @@ async function main(): Promise<void> {
   }
 
   const id = `${formatYYYYMMDD(new Date())}_${slug}`;
-  const dir = path.join(process.cwd(), 'internal', 'database');
-  const filePath = path.join(dir, `fix_${id}.go`);
+  const dir = path.join(process.cwd(), 'internal', 'database', 'fixes');
+  const filePath = path.join(dir, `${id}.go`);
 
   await mkdir(dir, { recursive: true });
 
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
     throw new Error(`data fix already exists: ${filePath}`);
   }
 
-  const contents = `package database
+  const contents = `package fixes
 
 import (
 	"context"
@@ -50,9 +50,9 @@ import (
 )
 
 func init() {
-	registerDataFix(dataFix{
-		id: "${id}",
-		apply: func(ctx context.Context, sqlDB *sql.DB) error {
+	Register(Fix{
+		ID: "${id}",
+		Apply: func(ctx context.Context, sqlDB *sql.DB) error {
 			// TODO: implement fix
 			// _, err := sqlDB.ExecContext(ctx, \`UPDATE ...\`)
 			// if err != nil { return fmt.Errorf("...: %w", err) }

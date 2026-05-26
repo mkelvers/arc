@@ -5,27 +5,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"sort"
 	"time"
+
+	dbfixes "mal/internal/database/fixes"
 )
-
-type dataFix struct {
-	id    string
-	apply func(ctx context.Context, sqlDB *sql.DB) error
-}
-
-var registeredDataFixes []dataFix
-
-func registerDataFix(fix dataFix) {
-	registeredDataFixes = append(registeredDataFixes, fix)
-}
 
 func RunDataFixes(sqlDB *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	fixes := append([]dataFix(nil), registeredDataFixes...)
-	sort.Slice(fixes, func(i, j int) bool { return fixes[i].id < fixes[j].id })
+	fixes := dbfixes.All()
 
 	if len(fixes) == 0 {
 		return nil
@@ -41,15 +30,15 @@ func RunDataFixes(sqlDB *sql.DB) error {
 	}
 
 	for _, fix := range fixes {
-		if applied[fix.id] {
+		if applied[fix.ID] {
 			continue
 		}
 
-		log.Printf("Running data fix id=%s", fix.id)
-		if err := fix.apply(ctx, sqlDB); err != nil {
-			return fmt.Errorf("data fix %s failed: %w", fix.id, err)
+		log.Printf("Running data fix id=%s", fix.ID)
+		if err := fix.Apply(ctx, sqlDB); err != nil {
+			return fmt.Errorf("data fix %s failed: %w", fix.ID, err)
 		}
-		if err := markFixApplied(ctx, sqlDB, fix.id); err != nil {
+		if err := markFixApplied(ctx, sqlDB, fix.ID); err != nil {
 			return err
 		}
 	}

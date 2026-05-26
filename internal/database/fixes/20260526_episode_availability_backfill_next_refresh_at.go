@@ -1,4 +1,4 @@
-package database
+package fixes
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 )
 
 func init() {
-	registerDataFix(dataFix{
-		id: "20260526_episode_availability_backfill_next_refresh_at",
-		apply: func(ctx context.Context, sqlDB *sql.DB) error {
+	Register(Fix{
+		ID: "20260526_episode_availability_backfill_next_refresh_at",
+		Apply: func(ctx context.Context, sqlDB *sql.DB) error {
 			// Old caches could have next_refresh_at NULL (especially for airing shows with missing broadcast metadata),
 			// which can result in "never refresh again" behavior on the server.
 			_, err := sqlDB.ExecContext(ctx, `
@@ -25,3 +25,4 @@ WHERE next_refresh_at IS NULL;
 		},
 	})
 }
+
