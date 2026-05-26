@@ -35,6 +35,8 @@ type playbackService struct {
 	auditSvc      domain.AuditService
 }
 
+type ProxyTokenKey string
+
 type proxyTokenPayload struct {
 	TargetURL string `json:"u"`
 	Referer   string `json:"r,omitempty"`
@@ -42,7 +44,7 @@ type proxyTokenPayload struct {
 	ExpiresAt int64  `json:"exp"`
 }
 
-func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey string) domain.PlaybackService {
+func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
 	return &playbackService{
 		repo:          repo,
 		providers:     providers,
@@ -50,7 +52,7 @@ func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provi
 		episodes:      episodes,
 		auditSvc:      auditSvc,
 		httpClient:    &http.Client{Timeout: 10 * time.Second},
-		proxyTokenKey: proxyTokenKey,
+		proxyTokenKey: string(proxyTokenKey),
 	}
 }
 

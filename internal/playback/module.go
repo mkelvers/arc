@@ -13,15 +13,15 @@ import (
 	"go.uber.org/fx"
 )
 
-func provideProxyTokenKey(cfg config.Config) string {
-	return cfg.PlaybackProxySecret
+func provideProxyTokenKey(cfg config.Config) service.ProxyTokenKey {
+	return service.ProxyTokenKey(cfg.PlaybackProxySecret)
 }
 
 var Module = fx.Options(
 	fx.Provide(
 		repository.NewPlaybackRepository,
 			fx.Annotate(
-				func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey string) domain.PlaybackService {
+				func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey service.ProxyTokenKey) domain.PlaybackService {
 					return service.NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
 				},
 			),
