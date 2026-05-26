@@ -255,7 +255,7 @@ func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]
 				return fetchErr
 			}
 			mu.Lock()
-				animes = append(animes, domain.Anime{Anime: anime})
+			animes = append(animes, domain.Anime{Anime: anime})
 			mu.Unlock()
 			return nil
 		})
@@ -362,12 +362,12 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		s.jikan.GetSeasonsUpcoming,
 	} {
 		res, fallbackErr := fallback(ctx, 1)
-			if fallbackErr != nil || len(res.Animes) == 0 {
-				continue
-			}
-			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			return domain.Anime{Anime: res.Animes[r.Intn(len(res.Animes))]}, nil
+		if fallbackErr != nil || len(res.Animes) == 0 {
+			continue
 		}
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		return domain.Anime{Anime: res.Animes[r.Intn(len(res.Animes))]}, nil
+	}
 
 	return domain.Anime{}, err
 }

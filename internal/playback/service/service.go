@@ -289,12 +289,12 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		Segments: segments,
 	}
 
-		return domain.WatchPageData{
-			WatchData:       watchData,
-			Anime:           domain.Anime{Anime: anime},
-			Episodes:        canonicalEpisodes.Episodes,
-			CurrentEpID:     episode,
-			WatchlistStatus: watchlistStatus,
+	return domain.WatchPageData{
+		WatchData:       watchData,
+		Anime:           domain.Anime{Anime: anime},
+		Episodes:        canonicalEpisodes.Episodes,
+		CurrentEpID:     episode,
+		WatchlistStatus: watchlistStatus,
 		WatchlistIDs:    watchlistIDs,
 		Seasons:         seasons,
 	}, nil

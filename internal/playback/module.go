@@ -20,11 +20,11 @@ func provideProxyTokenKey(cfg config.Config) service.ProxyTokenKey {
 var Module = fx.Options(
 	fx.Provide(
 		repository.NewPlaybackRepository,
-			fx.Annotate(
-				func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey service.ProxyTokenKey) domain.PlaybackService {
-					return service.NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
-				},
-			),
+		fx.Annotate(
+			func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey service.ProxyTokenKey) domain.PlaybackService {
+				return service.NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
+			},
+		),
 		func(svc domain.PlaybackService, animeSvc domain.AnimeService) *handler.PlaybackHandler {
 			return handler.NewPlaybackHandler(svc, animeSvc)
 		},
