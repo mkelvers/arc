@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"log"
+	"mal/internal/config"
 	"mal/internal/db"
 
 	"github.com/pressly/goose/v3"
@@ -22,9 +23,8 @@ var Module = fx.Options(
 	fx.Invoke(RunMigrationsAndFixes),
 )
 
-func ProvideSQLDB() (*sql.DB, error) {
-	dbPath := db.GetDBFile()
-	dbConn, err := db.Open(dbPath)
+func ProvideSQLDB(cfg config.Config) (*sql.DB, error) {
+	dbConn, err := db.Open(cfg.DatabaseFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
