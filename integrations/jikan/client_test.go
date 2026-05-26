@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io"
+	"mal/internal/config"
 	"mal/internal/db"
 	"mal/internal/observability"
 	"net/http"
@@ -42,7 +43,7 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	}
 
 	queries := db.New(sqlDB)
-	client := NewClient(queries, observability.NewMetrics())
+	client := NewClient(config.Config{}, queries, observability.NewMetrics())
 	stale := TopAnimeResponse{Data: []Anime{{MalID: 1, Title: "stale"}}}
 	staleBytes, err := json.Marshal(stale)
 	if err != nil {
