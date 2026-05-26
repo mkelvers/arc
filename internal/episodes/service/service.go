@@ -88,7 +88,7 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 				"episodes",
 				"",
 				map[string]any{
-					"anime_id": int64(id),
+					"anime_id": id,
 				},
 				err,
 			)
@@ -100,7 +100,7 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 				"episodes",
 				"",
 				map[string]any{
-					"anime_id": int64(id),
+					"anime_id": id,
 				},
 				err,
 			)
