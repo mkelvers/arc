@@ -1,5 +1,6 @@
 import { state } from '../state';
 import { qs } from '../../q';
+import { safeLocalStorage } from '../storage';
 
 /**
  * Syncs autoplay checkbox with localStorage on init.
@@ -8,11 +9,11 @@ import { qs } from '../../q';
 export const setupAutoplayButton = (): void => {
   const btn = document.querySelector('[data-autoplay]') as HTMLInputElement | null;
   if (!btn) return;
-  btn.checked = localStorage.getItem('mal:autoplay-enabled') !== 'false';
+  btn.checked = safeLocalStorage.getItem('mal:autoplay-enabled') !== 'false';
 };
 
 export const isAutoplayEnabled = (): boolean =>
-  localStorage.getItem('mal:autoplay-enabled') !== 'false';
+  safeLocalStorage.getItem('mal:autoplay-enabled') !== 'false';
 
 /**
  * Updates video overlay text (shown briefly on episode change).

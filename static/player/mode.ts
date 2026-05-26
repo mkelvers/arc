@@ -3,6 +3,7 @@ import { displayTimeFromAbsolute } from './timeline';
 import { showControls } from './controls';
 import { updateSubtitleOptions } from './subtitles';
 import { updateQualityOptions } from './quality';
+import { safeLocalStorage } from './storage';
 
 // builds stream URL with mode, token, and optional quality param
 const streamUrlForMode = (mode: string, quality?: string): string => {
@@ -33,7 +34,7 @@ const loadVideo = (url: string): void => {
 export const switchMode = (mode: string): void => {
   if (!state.availableModes.includes(mode) || mode === state.currentMode) return;
   state.currentMode = mode;
-  localStorage.setItem('player-audio-mode', mode);
+  safeLocalStorage.setItem('player-audio-mode', mode);
   const qualitySelect = state.container.querySelector(
     '[data-quality-select]'
   ) as HTMLSelectElement | null;
@@ -91,7 +92,7 @@ export const setupMode = (): void => {
 
   const autoplayBtn = document.querySelector('[data-autoplay]') as HTMLInputElement | null;
   autoplayBtn?.addEventListener('change', e => {
-    localStorage.setItem(
+    safeLocalStorage.setItem(
       'mal:autoplay-enabled',
       (e.target as HTMLInputElement).checked ? 'true' : 'false'
     );

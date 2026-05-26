@@ -1,5 +1,6 @@
 import { state } from './state';
 import { displayTimeFromAbsolute } from './timeline';
+import { safeLocalStorage } from './storage';
 
 // same as mode.ts - could be extracted to shared util
 const streamUrlForMode = (mode: string, quality?: string): string => {
@@ -29,7 +30,7 @@ const loadVideo = (url: string): void => {
 export const switchQuality = (quality: string): void => {
   const url = streamUrlForMode(state.currentMode, quality);
   if (!url) return;
-  localStorage.setItem('mal:preferred-quality', quality);
+  safeLocalStorage.setItem('mal:preferred-quality', quality);
   loadVideo(url);
 };
 
@@ -56,7 +57,7 @@ export const updateQualityOptions = (): void => {
   });
 
   // restore saved preference
-  const preferred = localStorage.getItem('mal:preferred-quality') || 'best';
+  const preferred = safeLocalStorage.getItem('mal:preferred-quality') || 'best';
   select.value = qualities.includes(preferred) ? preferred : 'best';
 
   // hide if no quality options

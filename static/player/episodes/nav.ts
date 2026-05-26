@@ -6,6 +6,7 @@ import { updateQualityOptions } from '../quality';
 import { updateModeButtons } from '../mode';
 import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from './ui';
 import { markEpisodeTransition } from '../progress';
+import { safeLocalStorage } from '../storage';
 
 /**
  * Handles video end: either marks complete or loads next episode.
@@ -71,7 +72,7 @@ export const goToNextEpisode = async (): Promise<void> => {
     state.container.dataset.startTimeSeconds = String(state.startTimeSeconds);
 
     // load new video (keep preferences)
-    const preferredQuality = localStorage.getItem('mal:preferred-quality') || 'best';
+    const preferredQuality = safeLocalStorage.getItem('mal:preferred-quality') || 'best';
     state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
     state.video.load();
     if (!state.video.paused) {

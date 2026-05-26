@@ -1,5 +1,6 @@
 import type { ModeSource, SkipSegment, SubtitleCue, SubtitleTrack, ActiveSegment } from './types';
 import { q, qs, dataset } from '../q';
+import { safeLocalStorage } from './storage';
 
 export interface PlayerState {
   container: HTMLElement;
@@ -169,7 +170,7 @@ export const initState = (c: HTMLElement): boolean => {
   // resolve initial mode: localStorage > backend default > first available > 'dub'
   const backendInitialMode = dataset(c, 'initialMode') || 'dub';
   state.modeSwitchedFrom = dataset(c, 'modeSwitchedFrom') || '';
-  const storedMode = localStorage.getItem('player-audio-mode');
+  const storedMode = safeLocalStorage.getItem('player-audio-mode');
   const initialMode =
     storedMode && state.availableModes.includes(storedMode) ? storedMode : backendInitialMode;
   const fallbackMode = Object.keys(state.modeSources).find(m => state.modeSources[m]?.token);

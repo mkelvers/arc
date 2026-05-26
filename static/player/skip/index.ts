@@ -2,6 +2,7 @@ import { state } from '../state';
 import { displayTimeFromAbsolute, absoluteTimeFromDisplay } from '../timeline';
 import { showControls } from '../controls';
 import { saveProgress } from '../progress';
+import { safeLocalStorage } from '../storage';
 
 // button label based on segment type
 const skipLabel = (type: string): string => (type === 'ed' ? 'Skip outro' : 'Skip intro');
@@ -27,7 +28,7 @@ export const updateSkipButton = (currentTime: number): void => {
   }
 
   // auto-skip: jump to end if enabled
-  const autoSkip = localStorage.getItem('mal:autoskip-enabled') === 'true';
+  const autoSkip = safeLocalStorage.getItem('mal:autoskip-enabled') === 'true';
   if (autoSkip && displayTime >= segment.start && displayTime < segment.end) {
     state.video.currentTime = absoluteTimeFromDisplay(segment.end + 0.01);
     void saveProgress();
@@ -49,7 +50,7 @@ export const updateSkipButton = (currentTime: number): void => {
 export const updateAutoSkipButton = (): void => {
   const btn = document.querySelector('[data-autoskip]') as HTMLInputElement | null;
   if (!btn) return;
-  btn.checked = localStorage.getItem('mal:autoskip-enabled') === 'true';
+  btn.checked = safeLocalStorage.getItem('mal:autoskip-enabled') === 'true';
 };
 
 /**
@@ -59,7 +60,7 @@ export const setupSkip = (): void => {
   document.addEventListener('change', e => {
     const target = e.target as HTMLElement;
     if (target.hasAttribute('data-autoskip')) {
-      localStorage.setItem(
+      safeLocalStorage.setItem(
         'mal:autoskip-enabled',
         (target as HTMLInputElement).checked ? 'true' : 'false'
       );
