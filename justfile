@@ -46,3 +46,6 @@ clean:
 
 new-data-fix name:
     bun scripts/new-data-fix.ts {{name}}
+
+run-fixes:
+    go run ./cmd/user run-fixes
