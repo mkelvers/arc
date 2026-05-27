@@ -47,7 +47,10 @@ export const saveProgress = async (): Promise<void> => {
         body: payload,
       });
       if (!res.ok) return;
-      state.lastSavedProgress = { episode: state.currentEpisode, seconds: safeTime };
+      state.lastSavedProgress = {
+        episode: state.currentEpisode,
+        seconds: safeTime,
+      };
     } catch {}
   })();
 
@@ -117,7 +120,9 @@ export const setupProgress = (): void => {
 
   // save on page close
   window.addEventListener('beforeunload', () => {
-    if (state.transitionEpisode !== null || state.completionSent || !state.malID) return;
+    if (state.transitionEpisode !== null || state.completionSent || !state.malID) {
+      return;
+    }
     const episode = Number.parseInt(state.currentEpisode, 10);
     if (!episode) return;
     sendBeacon(buildPayload(episode, displayTimeFromAbsolute(state.video.currentTime)));
