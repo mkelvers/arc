@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,7 @@ var Module = fx.Options(
 func ProvideRenderer() (*Renderer, error) {
 	funcs := template.FuncMap{
 		"dict":         dict,
+		"list":         func(items ...string) []string { return items },
 		"json":         jsonAttr,
 		"genresParams": genresParams,
 		"hasGenre":     hasGenre,
@@ -43,6 +45,7 @@ func ProvideRenderer() (*Renderer, error) {
 		"int":          toInt,
 		"percent":      percent,
 		"formatDate":   formatDate,
+		"urlquery":     url.QueryEscape,
 	}
 
 	pages, err := fs.Glob(templateFS, "*.gohtml")

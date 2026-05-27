@@ -9,7 +9,7 @@
     <a href="/watchlist" class="text-sm text-foreground-muted transition-colors hover:text-foreground">Manage watchlist</a>
   </section>
 
-  <div hx-get="/api/schedule" hx-trigger="load" hx-swap="outerHTML">
+  <div hx-get="/api/schedule?year={{.ScheduleYear}}&week={{.ScheduleWeek}}" hx-trigger="load" hx-swap="outerHTML">
     {{template "schedule_skeleton"}}
   </div>
 </div>
@@ -30,25 +30,94 @@
       </div>
     </div>
   {{else}}
-    <div class="grid gap-3 sm:[grid-template-columns:repeat(auto-fit,minmax(420px,1fr))] xl:[grid-template-columns:repeat(auto-fit,minmax(520px,1fr))]">
+    <div class="bg-background-surface p-4 ring-1 ring-black/5">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-wrap items-center gap-3 text-xs text-foreground-muted">
+          <div class="flex items-center gap-2">
+            <span class="text-foreground">Time</span>
+            <div class="inline-flex overflow-hidden ring-1 ring-black/5">
+              <button type="button" data-schedule-setting="timeFormat" data-schedule-value="24" class="h-9 px-3 bg-background-button hover:bg-background-button-hover text-foreground transition-colors">24H</button>
+              <button type="button" data-schedule-setting="timeFormat" data-schedule-value="12" class="h-9 px-3 bg-background-button hover:bg-background-button-hover text-foreground transition-colors">12H</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-foreground">Images</span>
+            <div class="inline-flex overflow-hidden ring-1 ring-black/5">
+              <button type="button" data-schedule-setting="showImages" data-schedule-value="true" class="h-9 px-3 bg-background-button hover:bg-background-button-hover text-foreground transition-colors">Show</button>
+              <button type="button" data-schedule-setting="showImages" data-schedule-value="false" class="h-9 px-3 bg-background-button hover:bg-background-button-hover text-foreground transition-colors">Hide</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-foreground">Sort</span>
+            <select data-schedule-setting="sortBy" class="h-9 bg-background-button px-3 text-foreground ring-1 ring-black/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+              <option value="time">Time</option>
+              <option value="alpha">Alphabetical</option>
+              <option value="score">Score</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="text-foreground">Week</span>
+            <select data-schedule-setting="weekStart" class="h-9 bg-background-button px-3 text-foreground ring-1 ring-black/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+              <option value="monday">Monday first</option>
+              <option value="sunday">Sunday first</option>
+              <option value="saturday">Saturday first</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" data-schedule-week-nav="-1" class="inline-flex h-9 items-center justify-center bg-background-button px-3 text-xs text-foreground transition-colors hover:bg-background-button-hover ring-1 ring-black/5">← Previous Week</button>
+          <button type="button" data-schedule-week-nav="1" class="inline-flex h-9 items-center justify-center bg-background-button px-3 text-xs text-foreground transition-colors hover:bg-background-button-hover ring-1 ring-black/5">Next Week →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid gap-3 lg:grid-cols-7" data-schedule-board>
+      {{range (list "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday")}}
+        {{$day := .}}
+        <section class="min-w-0 bg-background-surface ring-1 ring-black/5" data-schedule-day="{{$day}}">
+          <header class="flex items-baseline justify-between gap-3 border-b border-black/5 px-4 py-3">
+            <div class="min-w-0">
+              <h2 class="text-sm font-medium text-foreground" data-schedule-day-label>{{$day}}</h2>
+              <div class="text-xs text-foreground-muted" data-schedule-date-label>—</div>
+            </div>
+            <div class="text-xs text-foreground-muted tabular-nums" data-schedule-count>0</div>
+          </header>
+          <div class="flex flex-col gap-2 p-3" data-schedule-day-items></div>
+        </section>
+      {{end}}
+    </div>
+
+    <div class="hidden" data-schedule-items-source>
       {{range .Animes}}
         {{$anime := .}}
-        <div class="bg-background-surface p-5 ring-1 ring-black/5" data-notification-content>
-          <div class="flex gap-5">
-            <a href="/anime/{{$anime.MalID}}" class="shrink-0 overflow-hidden bg-background">
-              {{$imageUrl := "https://placehold.co/200x300?text=No+Image"}}
-              {{if $anime.Images.Webp.LargeImageURL}}
-                {{$imageUrl = $anime.Images.Webp.LargeImageURL}}
-              {{else if $anime.Images.Jpg.LargeImageURL}}
-                {{$imageUrl = $anime.Images.Jpg.LargeImageURL}}
-              {{end}}
-              <img src="{{$imageUrl}}" alt="{{$anime.DisplayTitle}}" class="h-32 w-24 object-cover" loading="lazy" />
+        {{$imageUrl := "https://placehold.co/200x300?text=No+Image"}}
+        {{if $anime.Images.Webp.LargeImageURL}}
+          {{$imageUrl = $anime.Images.Webp.LargeImageURL}}
+        {{else if $anime.Images.Jpg.LargeImageURL}}
+          {{$imageUrl = $anime.Images.Jpg.LargeImageURL}}
+        {{end}}
+        <article
+          data-schedule-item
+          data-mal-id="{{$anime.MalID}}"
+          data-title="{{$anime.DisplayTitle}}"
+          data-score="{{$anime.Score}}"
+          data-broadcast-day="{{$anime.Broadcast.Day}}"
+          data-broadcast-time="{{$anime.Broadcast.Time}}"
+          data-broadcast-timezone="{{$anime.Broadcast.Timezone}}"
+        >
+          <div class="flex gap-3 bg-background px-3 py-3 ring-1 ring-black/5 hover:bg-[color:var(--color-surface-hover)] transition-colors">
+            <a href="/anime/{{$anime.MalID}}" class="shrink-0 overflow-hidden bg-background" data-schedule-poster>
+              <img src="{{$imageUrl}}" alt="{{$anime.DisplayTitle}}" class="h-16 w-12 object-cover" loading="lazy" />
             </a>
 
             <div class="min-w-0 flex-1">
               <div class="flex items-start justify-between gap-2">
                 <a href="/anime/{{$anime.MalID}}" class="min-w-0">
-                  <h3 class="line-clamp-2 text-base font-medium text-foreground">{{$anime.DisplayTitle}}</h3>
+                  <div class="line-clamp-2 text-sm font-medium text-foreground">{{$anime.DisplayTitle}}</div>
                 </a>
                 <button
                   type="button"
@@ -59,38 +128,83 @@
                   class="shrink-0 text-accent hover:text-accent/80 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50 {{if (index $.WatchlistMap $anime.MalID)}}in-watchlist{{end}}"
                   aria-label="{{if (index $.WatchlistMap $anime.MalID)}}Remove from Watchlist{{else}}Add to Watchlist{{end}}"
                 >
-                  <svg class="size-5 watchlist-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
+                  <svg class="size-4 watchlist-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
                 </button>
               </div>
 
-              <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-foreground-muted">
-                {{if $anime.Type}}<span>{{$anime.Type}}</span>{{end}}
-                {{if $anime.Year}}<span>•</span><span>{{$anime.Year}}</span>{{end}}
-                {{if $anime.Episodes}}<span>•</span><span>{{$anime.Episodes}} ep</span>{{end}}
-                {{if $anime.Score}}<span>•</span><span class="flex items-center gap-1"><svg class="text-accent h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>{{$anime.Score}}</span>{{end}}
-              </div>
-
-              <div class="mt-3 flex flex-col gap-1.5 text-sm text-foreground-muted">
-                {{if $anime.Broadcast.String}}
-                  <div class="flex items-center gap-2">
-                    <span class="shrink-0 font-medium text-foreground">Broadcast</span>
-                    <span class="min-w-0 truncate" data-jst-text="{{$anime.Broadcast.String}}" data-broadcast-day="{{$anime.Broadcast.Day}}" data-broadcast-time="{{$anime.Broadcast.Time}}" data-broadcast-timezone="{{$anime.Broadcast.Timezone}}">{{$anime.Broadcast.String}}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="shrink-0 font-medium text-foreground">Next</span>
-                    <span data-next-airing class="min-w-0 truncate">—</span>
-                  </div>
-                {{else}}
-                  <div class="flex items-center gap-2">
-                    <span class="shrink-0 font-medium text-foreground">Broadcast</span>
-                    <span class="min-w-0 truncate">Unknown</span>
+              <div class="mt-1 flex items-center justify-between gap-3 text-xs text-foreground-muted">
+                <div class="min-w-0 truncate" data-schedule-time>Unknown</div>
+                {{if $anime.Score}}
+                  <div class="shrink-0 flex items-center gap-1 tabular-nums" title="Score">
+                    <svg class="text-accent h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <span>{{$anime.Score}}</span>
                   </div>
                 {{end}}
               </div>
             </div>
           </div>
-        </div>
+        </article>
       {{end}}
+    </div>
+  {{end}}
+</section>
+{{end}}
+
+{{define "schedule_section_scraped"}}
+<section class="flex w-full flex-col gap-5" data-schedule-section>
+  {{if eq (len .ScheduleDays) 0}}
+    <div class="bg-background-surface p-10 ring-1 ring-black/5">
+      <div class="mx-auto flex max-w-xl flex-col items-center gap-3 text-center">
+        <h2 class="text-base font-medium text-foreground">No schedule data</h2>
+        <p class="text-sm text-foreground-muted">Could not load the schedule feed right now.</p>
+      </div>
+    </div>
+  {{else}}
+    <div class="flex items-center justify-end gap-2 bg-background-surface px-4 py-3 ring-1 ring-black/5">
+      <a href="/schedule?year={{.PrevYear}}&week={{.PrevWeek}}" class="inline-flex h-9 items-center justify-center bg-background-button px-3 text-xs text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ring-1 ring-black/5">Previous Week</a>
+      <a href="/schedule?year={{.NextYear}}&week={{.NextWeek}}" class="inline-flex h-9 items-center justify-center bg-background-button px-3 text-xs text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ring-1 ring-black/5">Next Week</a>
+    </div>
+
+    <div class="overflow-x-auto">
+      <div class="grid min-w-[1120px] grid-cols-7 gap-3 2xl:min-w-0">
+      {{range .ScheduleDays}}
+        <section class="min-w-0 bg-background-surface ring-1 ring-black/5">
+          <header class="flex items-center justify-between gap-3 border-b border-black/5 bg-background px-3 py-2">
+            <div class="min-w-0">
+              <div class="text-[10px] font-medium uppercase tracking-[0.1em] text-foreground-muted">{{.DateLabel}}</div>
+              <h2 class="mt-0.5 text-base font-medium leading-tight text-foreground">{{.WeekdayLabel}}</h2>
+            </div>
+          </header>
+          <div class="flex flex-col gap-2 p-2">
+            {{if eq (len .Entries) 0}}
+              <div class="flex min-h-20 items-center justify-center bg-background px-3 py-6 text-center text-sm text-foreground-muted ring-1 ring-black/5">No releases scheduled</div>
+            {{else}}
+              {{range .Entries}}
+                <a href="/browse?q={{urlquery .Title}}" class="group flex min-h-24 gap-3 overflow-hidden bg-background p-2 ring-1 ring-black/5 transition-colors hover:bg-[color:var(--color-surface-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+                  <div class="relative aspect-2/3 h-24 shrink-0 overflow-hidden bg-background-surface">
+                    {{if .ImageURL}}
+                      <img src="{{.ImageURL}}" alt="{{.Title}}" class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" loading="lazy" />
+                    {{end}}
+                    <div class="absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-transparent opacity-80"></div>
+                  </div>
+
+                  <div class="flex min-w-0 flex-1 flex-col py-1 pr-1">
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] font-medium text-foreground-muted">
+                      <span class="bg-background-button px-2 py-1 tabular-nums text-foreground">{{.LocalTime}}</span>
+                      <span class="bg-background-button px-2 py-1 text-foreground">{{.EpisodeText}}</span>
+                      <span class="ml-auto bg-accent px-2 py-1 text-[10px] font-semibold text-black/90">{{.AirType}}</span>
+                    </div>
+
+                    <h3 class="mt-2 line-clamp-2 text-sm font-medium leading-snug text-foreground">{{.Title}}</h3>
+                    <div class="mt-auto pt-2 text-xs text-foreground-muted">Open details</div>
+                  </div>
+                </a>
+              {{end}}
+            {{end}}
+          </div>
+        </section>
+      {{end}}
+      </div>
     </div>
   {{end}}
 </section>
