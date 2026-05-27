@@ -46,6 +46,32 @@ The schedule board requires an API key from [animeschedule.net](https://animesch
 just dev
 ```
 
+## CI
+
+This repo uses Forgejo Actions workflows in `.forgejo/workflows/`:
+
+- `ci.yml`: main PR/push checks (Go + TS)
+- `go-deep.yml`: extra Go checks (mod tidy + race)
+- `frontend.yml`: frontend-only checks
+- `docker.yml`: Docker build verification
+- `nightly.yml`: scheduled “full” checks (incl. race + docker build)
+
+Local equivalents:
+
+```bash
+gofmt -l .
+go test ./...
+go build -o server ./cmd/server
+golangci-lint run ./...
+go mod tidy
+go test -race ./...
+bunx prettier . --check
+bun run lint:ts
+bun run typecheck
+bun run build:assets
+docker build -t mal:ci .
+```
+
 ## Contributing
 
 Bug reports and pull requests are welcome. This is a personal project, so there is no strict roadmap or issue triage cycle. If something is broken or missing, open an issue or send a PR.
