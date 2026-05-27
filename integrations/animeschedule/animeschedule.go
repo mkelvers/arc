@@ -217,7 +217,7 @@ func parseMeta(meta string) (episodeText string, localTime string, airType AirTy
 	}
 
 	// Find the time token(s)
-	var timeIdx int = -1
+	var timeIdx = -1
 	for i := 0; i < len(parts); i++ {
 		if strings.Contains(parts[i], ":") && len(parts[i]) >= 4 {
 			timeIdx = i
@@ -322,13 +322,13 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 }
 
 type timetableAnimeAPI struct {
-	Title                  string    `json:"title"`
-	Route                  string    `json:"route"`
-	EpisodeDate            time.Time `json:"episodeDate"`
-	EpisodeNumber          int       `json:"episodeNumber"`
-	SubtractedEpisodeNumber int      `json:"subtractedEpisodeNumber"`
-	AirType                string    `json:"airType"`
-	ImageVersionRoute      string    `json:"imageVersionRoute"`
+	Title                   string    `json:"title"`
+	Route                   string    `json:"route"`
+	EpisodeDate             time.Time `json:"episodeDate"`
+	EpisodeNumber           int       `json:"episodeNumber"`
+	SubtractedEpisodeNumber int       `json:"subtractedEpisodeNumber"`
+	AirType                 string    `json:"airType"`
+	ImageVersionRoute       string    `json:"imageVersionRoute"`
 }
 
 func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, year int, week int) (WeekSchedule, error) {
