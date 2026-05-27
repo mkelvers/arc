@@ -40,6 +40,8 @@ The frontend is Tailwind CSS v4 with HTMX handling pagination, infinite scroll, 
 
 Requires Go `1.25+`, Bun, and [just](https://github.com/casey/just). Migrations run on startup. Configuration lives in environment variables — see `cmd/server/main.go` for the full list.
 
+The schedule board requires an API key from [animeschedule.net](https://animeschedule.net). Create an account, generate a token under your profile, and set it as `ANIMESCHEDULE_API_TOKEN`.
+
 ```bash
 just dev
 ```
