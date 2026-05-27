@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -178,12 +179,7 @@ func selectionHasClass(selection *goquery.Selection, className string) bool {
 	if !ok {
 		return false
 	}
-	for _, class := range strings.Fields(raw) {
-		if class == className {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Fields(raw), className)
 }
 
 func parseWeekdayFromHeader(header string) *time.Weekday {
@@ -218,7 +214,7 @@ func parseMeta(meta string) (episodeText string, localTime string, airType AirTy
 
 	// Find the time token(s)
 	var timeIdx = -1
-	for i := 0; i < len(parts); i++ {
+	for i := range parts {
 		if strings.Contains(parts[i], ":") && len(parts[i]) >= 4 {
 			timeIdx = i
 			break
