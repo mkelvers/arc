@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mal/internal/observability"
 	"mal/pkg/net/limits"
 	"mal/pkg/net/useragent"
 	"net/http"
@@ -64,7 +63,6 @@ func scheduleLocation() *time.Location {
 }
 
 func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int) (WeekSchedule, error) {
-	debugScrape := os.Getenv("ANIMESCHEDULE_DEBUG_SCRAPE") == "1"
 	apiToken := strings.TrimSpace(os.Getenv("ANIMESCHEDULE_API_TOKEN"))
 
 	if apiToken != "" {
@@ -148,29 +146,9 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int)
 			metaText := strings.Join(strings.Fields(strings.TrimSpace(meta.Text())), " ")
 
 			epText, _, airType := parseMeta(metaText)
-			localTime, rawDatetime, rawRenderedTime := parseLocalTime(meta)
+			localTime, _, _ := parseLocalTime(meta)
 			if title == "" || animeURL == "" || localTime == "" || airType == "" {
 				return
-			}
-
-			if debugScrape {
-				observability.LogJSON(
-					observability.LogLevelInfo,
-					"animeschedule_scrape_time",
-					"integrations/animeschedule",
-					"scraped time info for entry",
-					map[string]any{
-						"title":            title,
-						"anime_url":        animeURL,
-						"meta_text":        metaText,
-						"raw_datetime":     rawDatetime,
-						"raw_renderedTime": rawRenderedTime,
-						"local_time":       localTime,
-						"week":             resolvedWeek,
-						"year":             resolvedYear,
-					},
-					nil,
-				)
 			}
 
 			dayEntries = append(dayEntries, Entry{
@@ -460,20 +438,6 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 			Weekday:     weekday,
 		})
 	}
-
-	observability.LogJSON(
-		observability.LogLevelInfo,
-		"animeschedule_api_timetables_loaded",
-		"integrations/animeschedule",
-		"loaded timetable entries via api",
-		map[string]any{
-			"count": len(payload),
-			"year":  out.Year,
-			"week":  out.Week,
-			"tz":    tz,
-		},
-		nil,
-	)
 
 	return out, nil
 }
