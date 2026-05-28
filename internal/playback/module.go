@@ -25,7 +25,7 @@ var Module = fx.Options(
 				return service.NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
 			},
 		),
-		func(svc domain.PlaybackService, animeSvc domain.AnimeService) *handler.PlaybackHandler {
+		func(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *handler.PlaybackHandler {
 			return handler.NewPlaybackHandler(svc, animeSvc)
 		},
 	),

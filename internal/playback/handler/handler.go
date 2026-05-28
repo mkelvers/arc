@@ -18,14 +18,14 @@ import (
 
 type PlaybackHandler struct {
 	svc      domain.PlaybackService
-	animeSvc domain.AnimeService
+	animeSvc domain.AnimePlaybackService
 
 	proxyClient     *http.Client
 	streamingClient *http.Client
 	subtitleCache   *subtitleCache
 }
 
-func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimeService) *PlaybackHandler {
+func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *PlaybackHandler {
 	return &PlaybackHandler{
 		svc:             svc,
 		animeSvc:        animeSvc,
