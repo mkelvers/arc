@@ -11,9 +11,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
-	"mal/pkg/net/limits"
-	"mal/pkg/net/useragent"
-	"mal/pkg/net/utls"
+	netutil "mal/pkg/net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -25,7 +23,7 @@ const (
 	allAnimeBaseURL  = "https://api.allanime.day"
 	allAnimeReferer  = "https://allmanga.to/"
 	allAnimeOrigin   = "https://youtu-chan.com"
-	defaultUserAgent = useragent.Firefox121
+	defaultUserAgent = netutil.Firefox121
 )
 
 var (
@@ -56,7 +54,7 @@ func NewAllAnimeProvider() *AllAnimeProvider {
 			Timeout: 30 * time.Second,
 		},
 		utlsClient: &http.Client{
-			Transport: &utls.UtlsRoundTripper{},
+			Transport: &netutil.UtlsRoundTripper{},
 			Timeout:   30 * time.Second,
 		},
 		extractor: newProviderExtractor(),
@@ -280,7 +278,7 @@ func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, var
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
 		return nil, fmt.Errorf("read graphql response: %w", err)
 	}
@@ -335,7 +333,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
