@@ -16,6 +16,7 @@ export interface PlayerState {
   modeSwitchedFrom: string;
   currentEpisode: string;
   totalEpisodes: number;
+  isAiring: boolean;
   malID: number;
   streamURL: string;
   initialStreamToken: string;
@@ -35,6 +36,7 @@ export interface PlayerState {
   transitionEpisode: number | null;
   completionSent: boolean;
   completionAttempts: number;
+  endedProgressSaved: boolean;
   lastSavedProgress: { episode: string; seconds: number };
   episodeGrid: HTMLElement | null;
   episodeList: HTMLElement | null;
@@ -57,6 +59,7 @@ const createInitialState = (): PlayerState => ({
   modeSwitchedFrom: "",
   currentEpisode: "1",
   totalEpisodes: 0,
+  isAiring: false,
   malID: 0,
   streamURL: "/watch/proxy/stream",
   initialStreamToken: "",
@@ -76,6 +79,7 @@ const createInitialState = (): PlayerState => ({
   transitionEpisode: null,
   completionSent: false,
   completionAttempts: 0,
+  endedProgressSaved: false,
   lastSavedProgress: { episode: "1", seconds: -1 },
   episodeGrid: null,
   episodeList: null,
@@ -85,6 +89,15 @@ const createInitialState = (): PlayerState => ({
 });
 
 export const state: PlayerState = createInitialState();
+
+export const showEndState = (): void => {
+  state.container.classList.add("video-ended");
+  state.video.pause();
+};
+
+export const hideEndState = (): void => {
+  state.container.classList.remove("video-ended");
+};
 
 interface RequiredPlayerElements {
   video: HTMLVideoElement;
@@ -143,7 +156,9 @@ export const initState = (c: HTMLElement): boolean => {
   // data attributes from server
   state.malID = Number.parseInt(dataset(c, "malId"), 10);
   state.currentEpisode = dataset(c, "currentEpisode") || "1";
+
   state.totalEpisodes = Number.parseInt(dataset(c, "totalEpisodes"), 10);
+  state.isAiring = dataset(c, "isAiring") === "true";
   state.streamURL = dataset(c, "streamUrl") || "/watch/proxy/stream";
   state.initialStreamToken = dataset(c, "streamToken") || "";
   state.startTimeSeconds = Number.parseFloat(dataset(c, "startTimeSeconds") || "0") || 0;

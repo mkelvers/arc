@@ -38,6 +38,7 @@ type WatchData struct {
 	ModeSwitchedFrom string
 	AvailableModes   []string
 	Segments         []SkipSegment
+	Airing           bool
 }
 
 type SubtitleItem struct {
