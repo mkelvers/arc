@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @source "../../templates/**/*.gohtml";
 @source "../**/*.ts";
@@ -47,9 +47,9 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
   --poster-max-height: 360px;
-  --font: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
-  --font-serif: 'Newsreader', ui-serif, Georgia, serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Geist Mono', 'JetBrains Mono', monospace;
+  --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Newsreader", ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", "Geist Mono", "JetBrains Mono", monospace;
   --radius: 0px;
 }
 
@@ -64,7 +64,7 @@ body {
   fill: none;
 }
 
-[data-watchlist-toggle][data-watchlist-state='in'] .watchlist-icon,
-[data-watchlist-toggle][data-watchlist-state='in'] .watchlist-icon path {
+[data-watchlist-toggle][data-watchlist-state="in"] .watchlist-icon,
+[data-watchlist-toggle][data-watchlist-state="in"] .watchlist-icon path {
   fill: currentColor;
 }
