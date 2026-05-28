@@ -10,7 +10,7 @@ interface ParsedBroadcast {
 }
 
 const parseBroadcastTime = (value: string | null): { hour: number; minute: number } | null => {
-  if (!value || typeof value !== 'string') {
+  if (!value || typeof value !== "string") {
     return null;
   }
 
@@ -42,13 +42,13 @@ const isJstTimezone = (timezone: string | null): boolean => {
   }
 
   const normalized = timezone.trim().toLowerCase();
-  return normalized === 'asia/tokyo' || normalized === 'jst';
+  return normalized === "asia/tokyo" || normalized === "jst";
 };
 
 const parseFromStructuredAttrs = (node: Element): ParsedBroadcast | null => {
-  const day = node.getAttribute('data-broadcast-day');
-  const time = node.getAttribute('data-broadcast-time');
-  const timezone = node.getAttribute('data-broadcast-timezone');
+  const day = node.getAttribute("data-broadcast-day");
+  const time = node.getAttribute("data-broadcast-time");
+  const timezone = node.getAttribute("data-broadcast-timezone");
 
   if (!day || !time || !isJstTimezone(timezone)) {
     return null;
@@ -63,7 +63,7 @@ const parseFromStructuredAttrs = (node: Element): ParsedBroadcast | null => {
 };
 
 const parseBroadcast = (text: string | null): ParsedBroadcast | null => {
-  if (!text || typeof text !== 'string') {
+  if (!text || typeof text !== "string") {
     return null;
   }
 
@@ -90,7 +90,7 @@ const parseBroadcast = (text: string | null): ParsedBroadcast | null => {
 
 const normalizeDay = (day: string): number | null => {
   // strip trailing 's' for plural forms, then lookup
-  const key = day.trim().toLowerCase().replace(/s$/, '');
+  const key = day.trim().toLowerCase().replace(/s$/, "");
   const days: Record<string, number> = {
     mon: 1,
     monday: 1,
@@ -111,7 +111,7 @@ const normalizeDay = (day: string): number | null => {
     sunday: 0,
   };
 
-  if (typeof days[key] !== 'number') {
+  if (typeof days[key] !== "number") {
     return null;
   }
 
@@ -134,11 +134,11 @@ const convertToLocal = (parsed: ParsedBroadcast, localOffsetMinutes: number): st
   }
 
   const localDayIndex = (((sourceDayIndex + dayShift) % 7) + 7) % 7; // proper modulo
-  const localDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+  const localDay = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
     localDayIndex
   ];
 
-  const time = `${localHour.toString().padStart(2, '0')}:${localMinute.toString().padStart(2, '0')}`;
+  const time = `${localHour.toString().padStart(2, "0")}:${localMinute.toString().padStart(2, "0")}`;
   return `${localDay} at ${time} (Local)`;
 };
 
@@ -168,8 +168,8 @@ const nextAiringUTC = (parsed: ParsedBroadcast): Date | null => {
 
 const formatRelative = (value: number, unit: Intl.RelativeTimeFormatUnit): string => {
   // Intl.RelativeTimeFormat not available in all environments
-  if (typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function') {
-    const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+  if (typeof Intl !== "undefined" && typeof Intl.RelativeTimeFormat === "function") {
+    const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
     return formatter.format(value, unit);
   }
 
@@ -181,39 +181,39 @@ const formatRelative = (value: number, unit: Intl.RelativeTimeFormatUnit): strin
 const relativeText = (target: Date): string => {
   const diffMs = target.getTime() - Date.now();
   if (diffMs <= 0) {
-    return 'soon';
+    return "soon";
   }
 
   const minutes = Math.ceil(diffMs / 60000);
   if (minutes < 60) {
-    return formatRelative(minutes, 'minute');
+    return formatRelative(minutes, "minute");
   }
 
   const hours = Math.ceil(minutes / 60);
   if (hours < 36) {
-    return formatRelative(hours, 'hour');
+    return formatRelative(hours, "hour");
   }
 
   const days = Math.ceil(hours / 24);
-  return formatRelative(days, 'day');
+  return formatRelative(days, "day");
 };
 
 const localDateTimeText = (date: Date): string => {
   const formatter = new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
   });
   return formatter.format(date);
 };
 
 const updateNextAiring = (node: Element, parsed: ParsedBroadcast): void => {
-  const card = node.closest('[data-notification-content]');
+  const card = node.closest("[data-notification-content]");
   if (!card) {
     return;
   }
 
-  const nextNode = card.querySelector('[data-next-airing]');
+  const nextNode = card.querySelector("[data-next-airing]");
   if (!(nextNode instanceof HTMLElement)) {
     return;
   }
@@ -228,12 +228,12 @@ const updateNextAiring = (node: Element, parsed: ParsedBroadcast): void => {
 };
 
 const updateNode = (node: Element, localOffsetMinutes: number): void => {
-  const card = node.closest('[data-notification-content]');
-  const nextNode = card ? card.querySelector('[data-next-airing]') : null;
+  const card = node.closest("[data-notification-content]");
+  const nextNode = card ? card.querySelector("[data-next-airing]") : null;
 
   // try structured attrs first, fall back to text parsing
   const structured = parseFromStructuredAttrs(node);
-  const source = node.getAttribute('data-jst-text');
+  const source = node.getAttribute("data-jst-text");
   const parsed = structured || parseBroadcast(source);
   if (!parsed) {
     if (nextNode instanceof HTMLElement) {
@@ -256,14 +256,14 @@ const updateNode = (node: Element, localOffsetMinutes: number): void => {
 
 const updateAll = (): void => {
   const localOffsetMinutes = -new Date().getTimezoneOffset();
-  const nodes = document.querySelectorAll('[data-jst-text]');
-  nodes.forEach(node => updateNode(node, localOffsetMinutes));
+  const nodes = document.querySelectorAll("[data-jst-text]");
+  nodes.forEach((node) => updateNode(node, localOffsetMinutes));
 };
 
 const initTimezoneConversion = (): void => {
   // run on initial load and after htmx swaps (content may change)
-  document.addEventListener('DOMContentLoaded', updateAll);
-  document.body.addEventListener('htmx:afterSwap', updateAll);
+  document.addEventListener("DOMContentLoaded", updateAll);
+  document.body.addEventListener("htmx:afterSwap", updateAll);
 };
 
 initTimezoneConversion();

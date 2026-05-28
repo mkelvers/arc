@@ -1,6 +1,6 @@
-type Theme = 'light' | 'dark';
+type Theme = "light" | "dark";
 
-const STORAGE_KEY = 'theme';
+const STORAGE_KEY = "theme";
 
 const getLocalStorage = (): Storage | null => {
   try {
@@ -11,12 +11,12 @@ const getLocalStorage = (): Storage | null => {
 };
 
 const getPreferredTheme = (): Theme => {
-  const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false;
-  return prefersDark ? 'dark' : 'light';
+  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false;
+  return prefersDark ? "dark" : "light";
 };
 
 const normalizeTheme = (raw: string | null): Theme | null => {
-  if (raw === 'light' || raw === 'dark') return raw;
+  if (raw === "light" || raw === "dark") return raw;
   return null;
 };
 
@@ -29,7 +29,7 @@ const getSavedTheme = (): Theme => {
 };
 
 const applyTheme = (theme: Theme): void => {
-  document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.style.colorScheme = theme;
   const storage = getLocalStorage();
   try {
@@ -41,7 +41,7 @@ const applyTheme = (theme: Theme): void => {
 
 const cycleTheme = (): void => {
   const current = getSavedTheme();
-  const next: Theme = current === 'light' ? 'dark' : 'light';
+  const next: Theme = current === "light" ? "dark" : "light";
   applyTheme(next);
 };
 
@@ -50,17 +50,17 @@ const initTheme = (): void => {
   applyTheme(saved);
 
   // delegated click handler on theme buttons
-  document.addEventListener('click', e => {
+  document.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof Element)) return;
-    const btn = target.closest('#theme-toggle, #footer-theme-toggle');
+    const btn = target.closest("#theme-toggle, #footer-theme-toggle");
     if (!(btn instanceof HTMLButtonElement)) return;
     cycleTheme();
   });
 };
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initTheme);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initTheme);
 } else {
   initTheme();
 }
