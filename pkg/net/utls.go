@@ -1,4 +1,4 @@
-package utls
+package netutil
 
 import (
 	"bufio"
