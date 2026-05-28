@@ -1,4 +1,4 @@
-package handler
+package watchlist
 
 import (
 	"mal/internal/domain"
