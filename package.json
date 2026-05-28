@@ -8,25 +8,23 @@
     "build:ts": "bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting && bun build ./static/*.ts --outdir ./dist/static --target browser --root ./static --entry-naming \"[name].js\"",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css && bun run build:ts",
-    "format": "bunx prettier . --write",
+    "format": "bunx oxfmt",
+    "format:check": "bunx oxfmt --check",
     "lint": "bun run lint:ts && bun run lint:go",
-    "lint:ts": "bunx eslint . --max-warnings 0",
-    "lint:ts:fix": "bunx eslint . --fix",
+    "lint:ts": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0",
+    "lint:ts:fix": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0 --fix",
     "lint:go": "golangci-lint run ./..."
   },
+  "dependencies": {},
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.4",
     "@types/node": "^24.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.59.2",
-    "@typescript-eslint/parser": "^8.59.2",
-    "eslint": "^10.3.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
     "jiti": "^2.7.0",
     "lefthook": "^2.1.6",
-    "prettier": "^3.8.3",
+    "oxfmt": "^0.52.0",
+    "oxlint": "^1.67.0",
+    "oxlint-tsgolint": "^0.23.0",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3"
-  },
-  "dependencies": {}
+  }
 }
