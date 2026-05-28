@@ -5,9 +5,7 @@ import (
 	"io"
 	"mal/internal/domain"
 	"mal/internal/server"
-	"mal/pkg/net/limits"
-	"mal/pkg/net/proxytransport"
-	"mal/pkg/net/useragent"
+	netutil "mal/pkg/net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -29,8 +27,8 @@ func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybac
 	return &PlaybackHandler{
 		svc:             svc,
 		animeSvc:        animeSvc,
-		proxyClient:     proxytransport.NewClient(),
-		streamingClient: proxytransport.NewStreamingClient(),
+		proxyClient:     netutil.NewClient(),
+		streamingClient: netutil.NewStreamingClient(),
 		subtitleCache:   newSubtitleCache(10*time.Minute, 256),
 	}
 }
@@ -330,7 +328,7 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	if ifRangeHeader := c.GetHeader("If-Range"); ifRangeHeader != "" {
 		req.Header.Set("If-Range", ifRangeHeader)
 	}
-	req.Header.Set("User-Agent", useragent.Firefox121)
+	req.Header.Set("User-Agent", netutil.Firefox121)
 
 	resp, err := h.streamingClient.Do(req)
 	if err != nil {
@@ -385,7 +383,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	if referer != "" {
 		req.Header.Set("Referer", referer)
 	}
-	req.Header.Set("User-Agent", useragent.Firefox121)
+	req.Header.Set("User-Agent", netutil.Firefox121)
 
 	resp, err := h.proxyClient.Do(req)
 	if err != nil {
@@ -394,7 +392,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
 		c.Status(http.StatusBadGateway)
 		return
