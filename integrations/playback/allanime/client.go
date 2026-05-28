@@ -32,11 +32,6 @@ var (
 	aesKeys = []string{"Xot36i3lK3:v1", "SimtVuagFbGR2K7P"}
 )
 
-var allAnimeUTLSClient = &http.Client{
-	Transport: &utls.UtlsRoundTripper{},
-	Timeout:   30 * time.Second,
-}
-
 type searchResult struct {
 	ID    string
 	MalID string
@@ -51,6 +46,7 @@ type AvailableEpisodes struct {
 
 type AllAnimeProvider struct {
 	httpClient *http.Client
+	utlsClient *http.Client
 	extractor  *providerExtractor
 }
 
@@ -58,6 +54,10 @@ func NewAllAnimeProvider() *AllAnimeProvider {
 	return &AllAnimeProvider{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+		},
+		utlsClient: &http.Client{
+			Transport: &utls.UtlsRoundTripper{},
+			Timeout:   30 * time.Second,
 		},
 		extractor: newProviderExtractor(),
 	}
@@ -329,7 +329,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	req.Header.Set("Sec-Fetch-Mode", "cors")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 
-	resp, err := allAnimeUTLSClient.Do(req)
+	resp, err := c.utlsClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("execute GET request: %w", err)
 	}
