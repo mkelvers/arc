@@ -10,11 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"mal/internal"
 	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/db"
 	"mal/internal/observability"
-	"mal/internal/users"
 )
 
 func main() {
@@ -92,7 +92,7 @@ func main() {
 	}
 
 	id := uuid.New().String()
-	avatarURL := users.DefaultAvatarURL(username)
+	avatarURL := internal.DefaultAvatarURL(username)
 	_, err = dbConn.Exec("INSERT INTO user (id, username, password_hash, avatar_url) VALUES (?, ?, ?, ?)", id, username, string(hash), avatarURL)
 	if err != nil {
 		observability.Error("cli_user_create_failed", "cmd/user", "", map[string]any{"username": username}, err)
@@ -118,7 +118,7 @@ func updateAvatars(dbConn *sql.DB) {
 			os.Exit(1)
 		}
 
-		avatarURL := users.DefaultAvatarURL(username)
+		avatarURL := internal.DefaultAvatarURL(username)
 		_, err := dbConn.Exec("UPDATE user SET avatar_url = ? WHERE id = ?", avatarURL, id)
 		if err != nil {
 			observability.Error("cli_user_avatar_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
