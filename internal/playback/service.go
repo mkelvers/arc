@@ -215,6 +215,8 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			watchlistIDs = []int64{entry.AnimeID}
 			if entry.CurrentEpisode.Valid && strconv.FormatInt(entry.CurrentEpisode.Int64, 10) == episode {
 				startTime = entry.CurrentTimeSeconds
+			} else if anime.Episodes > 0 && episode == strconv.Itoa(anime.Episodes) && entry.CurrentEpisode.Valid && entry.CurrentEpisode.Int64 == int64(anime.Episodes) {
+				startTime = entry.CurrentTimeSeconds
 			}
 		}
 
@@ -224,8 +226,12 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 				UserID:  userID,
 				AnimeID: int64(animeID),
 			})
-			if err == nil && cwEntry.CurrentEpisode.Valid && strconv.FormatInt(cwEntry.CurrentEpisode.Int64, 10) == episode {
-				startTime = cwEntry.CurrentTimeSeconds
+			if err == nil {
+				if cwEntry.CurrentEpisode.Valid && strconv.FormatInt(cwEntry.CurrentEpisode.Int64, 10) == episode {
+					startTime = cwEntry.CurrentTimeSeconds
+				} else if anime.Episodes > 0 && episode == strconv.Itoa(anime.Episodes) && cwEntry.CurrentEpisode.Valid && cwEntry.CurrentEpisode.Int64 == int64(anime.Episodes) {
+					startTime = cwEntry.CurrentTimeSeconds
+				}
 			}
 		}
 	}
@@ -286,6 +292,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			return modes
 		}(),
 		Segments: segments,
+		Airing:   anime.Airing,
 	}
 
 	return domain.WatchPageData{
@@ -311,26 +318,15 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 				UserID:             userID,
 				AnimeID:            animeID,
 				Status:             "completed",
-				CurrentEpisode:     sql.NullInt64{Valid: false},
-				CurrentTimeSeconds: 0,
+				CurrentEpisode:     entry.CurrentEpisode,
+				CurrentTimeSeconds: entry.CurrentTimeSeconds,
 			})
 			if err != nil {
 				return err
 			}
 		}
 
-		if err := repo.DeleteContinueWatchingEntry(txCtx, db.DeleteContinueWatchingEntryParams{
-			UserID:  userID,
-			AnimeID: animeID,
-		}); err != nil {
-			return err
-		}
-		return repo.SaveWatchProgress(txCtx, db.SaveWatchProgressParams{
-			UserID:             userID,
-			AnimeID:            animeID,
-			CurrentEpisode:     sql.NullInt64{Valid: false},
-			CurrentTimeSeconds: 0,
-		})
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -385,6 +381,12 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 			ResourceID:   strconv.FormatInt(animeID, 10),
 		})
 	}
+	observability.Info("watch_progress_saved", "playback", "", map[string]any{
+		"anime_id":     animeID,
+		"episode":      episode,
+		"time_seconds": timeSeconds,
+		"user_id":      userID,
+	})
 	return nil
 }
 

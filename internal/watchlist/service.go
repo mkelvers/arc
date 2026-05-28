@@ -41,11 +41,18 @@ func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, anime
 			}
 		}
 
-		_, err = repo.UpsertWatchListEntry(txCtx, db.UpsertWatchListEntryParams{
-			ID:      uuid.New().String(),
+		existing, _ := repo.GetWatchListEntry(txCtx, db.GetWatchListEntryParams{
 			UserID:  userID,
 			AnimeID: animeID,
-			Status:  status,
+		})
+
+		_, err = repo.UpsertWatchListEntry(txCtx, db.UpsertWatchListEntryParams{
+			ID:                 uuid.New().String(),
+			UserID:             userID,
+			AnimeID:            animeID,
+			Status:             status,
+			CurrentEpisode:     existing.CurrentEpisode,
+			CurrentTimeSeconds: existing.CurrentTimeSeconds,
 		})
 		return err
 	})
