@@ -1,4 +1,4 @@
-package service
+package playback
 
 import (
 	"context"
@@ -13,8 +13,7 @@ import (
 	"mal/internal/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
-	"mal/pkg/net/limits"
-	"mal/pkg/net/useragent"
+	netutil "mal/pkg/net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -433,11 +432,11 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 	endpoint := fmt.Sprintf("https://api.aniskip.com/v1/skip-times/%s/%s?types=op&types=ed", url.PathEscape(strconv.Itoa(malID)), url.PathEscape(episode))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err == nil {
-		req.Header.Set("User-Agent", useragent.Generic)
+		req.Header.Set("User-Agent", netutil.Generic)
 		if resp, err := s.httpClient.Do(req); err == nil {
 			defer func() { _ = resp.Body.Close() }()
 			if resp.StatusCode == http.StatusOK {
-				if body, err := io.ReadAll(io.LimitReader(resp.Body, limits.KiB512)); err == nil {
+				if body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.KiB512)); err == nil {
 					type resultItem struct {
 						SkipType string `json:"skip_type"`
 						Interval struct {
@@ -531,7 +530,7 @@ func (s *playbackService) warmStreamURL(targetURL, referer string) {
 	if referer != "" {
 		req.Header.Set("Referer", referer)
 	}
-	req.Header.Set("User-Agent", useragent.Firefox121)
+	req.Header.Set("User-Agent", netutil.Firefox121)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
