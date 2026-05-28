@@ -1,9 +1,9 @@
 const dedupe = (): void => {
   const seen = new Set<string>();
-  const elements = document.querySelectorAll('[data-id]');
+  const elements = document.querySelectorAll("[data-id]");
 
-  elements.forEach(item => {
-    const id = item.getAttribute('data-id');
+  elements.forEach((item) => {
+    const id = item.getAttribute("data-id");
     if (!id) {
       return;
     }
@@ -16,11 +16,11 @@ const dedupe = (): void => {
 };
 
 // run on DOM ready or immediately if already loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', dedupe);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", dedupe);
 } else {
   dedupe();
 }
 
 // also run on load as a fallback (e.g. htmx swaps)
-window.addEventListener('load', dedupe);
+window.addEventListener("load", dedupe);

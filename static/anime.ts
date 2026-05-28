@@ -1,23 +1,23 @@
-import { parseClassList } from './utils';
+import { parseClassList } from "./utils";
 
 const initSynopsisToggle = (): void => {
-  document.addEventListener('click', e => {
+  document.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof Element)) return;
 
-    const btn = target.closest<HTMLButtonElement>('[data-synopsis-toggle]');
+    const btn = target.closest<HTMLButtonElement>("[data-synopsis-toggle]");
     if (!btn) return;
-    const container = document.getElementById('synopsis-container');
+    const container = document.getElementById("synopsis-container");
     if (!container) return;
 
-    const isClamped = container.classList.contains('line-clamp-6');
+    const isClamped = container.classList.contains("line-clamp-6");
     if (isClamped) {
-      container.classList.remove('line-clamp-6');
-      btn.textContent = 'Show less';
+      container.classList.remove("line-clamp-6");
+      btn.textContent = "Show less";
       return;
     }
-    container.classList.add('line-clamp-6');
-    btn.textContent = 'Read more';
+    container.classList.add("line-clamp-6");
+    btn.textContent = "Read more";
   });
 };
 
@@ -25,8 +25,8 @@ initSynopsisToggle();
 
 const setDropdownMenuState = (menu: HTMLElement, isOpen: boolean): void => {
   // data attributes store the class lists to add/remove
-  const openClasses = parseClassList(menu.getAttribute('data-dropdown-open-classes'));
-  const closedClasses = parseClassList(menu.getAttribute('data-dropdown-closed-classes'));
+  const openClasses = parseClassList(menu.getAttribute("data-dropdown-open-classes"));
+  const closedClasses = parseClassList(menu.getAttribute("data-dropdown-closed-classes"));
 
   if (isOpen) {
     menu.classList.remove(...closedClasses);
@@ -39,29 +39,29 @@ const setDropdownMenuState = (menu: HTMLElement, isOpen: boolean): void => {
 };
 
 const setWatchlistDropdownState = (isOpen: boolean): void => {
-  const dropdown = document.getElementById('watchlist-dropdown');
+  const dropdown = document.getElementById("watchlist-dropdown");
   if (!dropdown) {
     return;
   }
 
-  dropdown.classList.toggle('open', isOpen);
-  const menu = dropdown.querySelector('[data-dropdown-menu]');
+  dropdown.classList.toggle("open", isOpen);
+  const menu = dropdown.querySelector("[data-dropdown-menu]");
   if (menu instanceof HTMLElement) {
     setDropdownMenuState(menu, isOpen);
   }
 };
 
 const toggleWatchlistDropdown = (): void => {
-  const dropdown = document.getElementById('watchlist-dropdown');
+  const dropdown = document.getElementById("watchlist-dropdown");
   if (!dropdown) {
     return;
   }
 
-  setWatchlistDropdownState(!dropdown.classList.contains('open'));
+  setWatchlistDropdownState(!dropdown.classList.contains("open"));
 };
 
 const closeDropdownOnOutsideClick = (event: MouseEvent): void => {
-  const dropdown = document.getElementById('watchlist-dropdown');
+  const dropdown = document.getElementById("watchlist-dropdown");
   if (!dropdown) {
     return;
   }
@@ -78,7 +78,7 @@ const closeDropdownOnOutsideClick = (event: MouseEvent): void => {
 
 const initWatchlistDropdown = (): void => {
   (window as Window & { toggleDropdown?: () => void }).toggleDropdown = toggleWatchlistDropdown;
-  document.addEventListener('click', closeDropdownOnOutsideClick);
+  document.addEventListener("click", closeDropdownOnOutsideClick);
 };
 
 initWatchlistDropdown();
