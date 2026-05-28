@@ -1,4 +1,4 @@
-package proxytransport
+package netutil
 
 import (
 	"context"
