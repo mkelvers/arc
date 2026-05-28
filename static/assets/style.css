@@ -33,6 +33,8 @@
   --surface-select: light-dark(#ffffff, #181818);
   --text-on-accent: light-dark(#fafaf9, #0c0a09);
   --overlay-subtle: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.04));
+  --border: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.07));
+  --border-light: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.035));
   --shadow-subtle: light-dark(0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.18));
   --shadow-card: light-dark(0 2px 8px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.28));
   --shadow-card-hover: light-dark(0 6px 18px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.34));
