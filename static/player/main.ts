@@ -1,25 +1,25 @@
-import { state, initState } from './state';
-import { invalidateBounds, updateTimeline } from './timeline';
-import { setupControls, showControls } from './controls';
-import { setupKeyboard } from './keyboard';
-import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from './subtitles';
-import { setupSkip, updateSkipButton, updateAutoSkipButton } from './skip';
-import { setupQuality, updateQualityOptions } from './quality';
-import { setupMode, updateModeButtons } from './mode';
-import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from './episodes/ui';
-import { goToNextEpisode } from './episodes/nav';
-import { resolveActiveSegments, renderSegments } from './skip/segments';
-import { setupSegmentEditor } from './skip/editor';
-import { setupThumbnails } from './episodes/thumbnails';
-import { markEpisodeTransition, setupProgress } from './progress';
-import { safeLocalStorage } from './storage';
+import { state, initState } from "./state";
+import { invalidateBounds, updateTimeline } from "./timeline";
+import { setupControls, showControls } from "./controls";
+import { setupKeyboard } from "./keyboard";
+import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
+import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
+import { setupQuality, updateQualityOptions } from "./quality";
+import { setupMode, updateModeButtons } from "./mode";
+import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
+import { goToNextEpisode } from "./episodes/nav";
+import { resolveActiveSegments, renderSegments } from "./skip/segments";
+import { setupSegmentEditor } from "./skip/editor";
+import { setupThumbnails } from "./episodes/thumbnails";
+import { markEpisodeTransition, setupProgress } from "./progress";
+import { safeLocalStorage } from "./storage";
 import {
   absoluteTimeFromDisplay,
   absoluteTimeFromRatio,
   getBounds,
   displayTimeFromAbsolute,
-} from './timeline';
-import { formatTime } from './controls';
+} from "./timeline";
+import { formatTime } from "./controls";
 
 let currentContainer: HTMLElement | null = null;
 let cleanup: (() => void) | null = null;
@@ -29,22 +29,22 @@ const isClosableDropdown = (el: Element | null): el is ClosableDropdown => {
   if (!el) return false;
   if (!(el instanceof HTMLElement)) return false;
   const maybe = el as Partial<{ close: unknown }>;
-  return typeof maybe.close === 'function';
+  return typeof maybe.close === "function";
 };
 
 const hidePreviewPopover = (): void => {
   if (!state.previewPopover) return;
-  state.previewPopover.classList.add('hidden');
-  state.previewPopover.classList.add('opacity-0');
-  state.previewPopover.classList.remove('opacity-100');
-  state.previewPopover.style.left = '';
+  state.previewPopover.classList.add("hidden");
+  state.previewPopover.classList.add("opacity-0");
+  state.previewPopover.classList.remove("opacity-100");
+  state.previewPopover.style.left = "";
 };
 
 const showPreviewPopover = (): void => {
   if (!state.previewPopover) return;
-  state.previewPopover.classList.remove('hidden');
-  state.previewPopover.classList.remove('opacity-0');
-  state.previewPopover.classList.add('opacity-100');
+  state.previewPopover.classList.remove("hidden");
+  state.previewPopover.classList.remove("opacity-0");
+  state.previewPopover.classList.add("opacity-100");
 };
 
 const teardownPlayer = (): void => {
@@ -55,7 +55,7 @@ const teardownPlayer = (): void => {
 
 // updates time preview on progress bar hover
 const updatePreviewUI = (ratio: number): void => {
-  const progressWrap = state.container.querySelector('[data-progress-wrap]') as HTMLElement | null;
+  const progressWrap = state.container.querySelector("[data-progress-wrap]") as HTMLElement | null;
   if (!progressWrap || !state.previewPopover || !state.previewTime) {
     hidePreviewPopover();
     return;
@@ -82,13 +82,13 @@ const updatePreviewUI = (ratio: number): void => {
 };
 
 const initPlayer = (): void => {
-  const container = document.querySelector('[data-video-player]') as HTMLElement | null;
+  const container = document.querySelector("[data-video-player]") as HTMLElement | null;
   if (!container) return;
   if (container === currentContainer) return;
   teardownPlayer();
 
   if (!initState(container)) {
-    console.error('Video player markup is missing required controls.');
+    console.error("Video player markup is missing required controls.");
     return;
   }
   currentContainer = container;
@@ -96,15 +96,15 @@ const initPlayer = (): void => {
   const signal = abortController.signal;
   cleanup = () => abortController.abort();
 
-  const loading = container.querySelector('[data-loading]') as HTMLElement | null;
-  const progressWrap = container.querySelector('[data-progress-wrap]') as HTMLElement | null;
+  const loading = container.querySelector("[data-loading]") as HTMLElement | null;
+  const progressWrap = container.querySelector("[data-progress-wrap]") as HTMLElement | null;
 
   // build video src from mode, token, and saved quality preference
   // Only set if not already provided by the inline script during HTML parsing
-  const preferredQuality = safeLocalStorage.getItem('mal:preferred-quality') || 'best';
+  const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
   const streamToken = state.modeSources[state.currentMode]?.token;
   if (!state.video.src && streamToken) {
-    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
+    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
   }
 
   setupProgress();
@@ -122,7 +122,7 @@ const initPlayer = (): void => {
   setupAutoplayButton();
   updateAutoSkipButton();
   showControls();
-  if (state.modeSwitchedFrom === 'dub' && state.currentMode === 'sub') {
+  if (state.modeSwitchedFrom === "dub" && state.currentMode === "sub") {
     window.showToast?.({
       message: `Episode ${state.currentEpisode} is only available in sub, switched from dub.`,
     });
@@ -130,7 +130,7 @@ const initPlayer = (): void => {
 
   const onLoadedMetadata = (): void => {
     if (loading) {
-      loading.style.display = 'none';
+      loading.style.display = "none";
     }
     invalidateBounds();
 
@@ -159,7 +159,7 @@ const initPlayer = (): void => {
     updateSkipButton(state.video.currentTime);
   };
 
-  state.video.addEventListener('loadedmetadata', onLoadedMetadata, { signal });
+  state.video.addEventListener("loadedmetadata", onLoadedMetadata, { signal });
   // inline script runs during HTML parsing before initPlayer; if metadata
   // already loaded, fire the handler immediately
   if (state.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
@@ -167,142 +167,142 @@ const initPlayer = (): void => {
   }
 
   state.video.addEventListener(
-    'waiting',
+    "waiting",
     () => {
       if (loading) {
-        loading.style.display = 'flex';
+        loading.style.display = "flex";
       }
     },
-    { signal }
+    { signal },
   );
   state.video.addEventListener(
-    'playing',
+    "playing",
     () => {
       if (loading) {
-        loading.style.display = 'none';
+        loading.style.display = "none";
       }
     },
-    { signal }
+    { signal },
   );
   // update progress bar during buffering
   state.video.addEventListener(
-    'progress',
+    "progress",
     () => {
       updateTimeline(state.video.currentTime);
     },
-    { signal }
+    { signal },
   );
 
   // main loop: update progress, subtitles, skip buttons
   state.video.addEventListener(
-    'timeupdate',
+    "timeupdate",
     () => {
       updateTimeline(state.video.currentTime);
       updateSubtitleRender(displayTimeFromAbsolute(state.video.currentTime));
       updateSkipButton(state.video.currentTime);
     },
-    { signal }
+    { signal },
   );
 
   state.video.addEventListener(
-    'ended',
+    "ended",
     () => {
       goToNextEpisode();
     },
-    { signal }
+    { signal },
   );
 
   // click/drag to seek (pointer events are more consistent across fullscreen/mobile)
   progressWrap?.addEventListener(
-    'pointerdown',
-    e => {
+    "pointerdown",
+    (e) => {
       // ignore right/middle click
-      if ('button' in e && e.button !== 0) return;
+      if ("button" in e && e.button !== 0) return;
       state.isScrubbing = true;
       try {
         (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
       } catch {}
       const rect = progressWrap.getBoundingClientRect();
       state.video.currentTime = absoluteTimeFromRatio(
-        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
       );
       updateTimeline(state.video.currentTime);
       updateSkipButton(state.video.currentTime);
       showControls();
     },
-    { signal }
+    { signal },
   );
 
   // hover to preview time
   progressWrap?.addEventListener(
-    'pointermove',
-    e => {
+    "pointermove",
+    (e) => {
       const rect = progressWrap.getBoundingClientRect();
       updatePreviewUI(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
     },
-    { signal }
+    { signal },
   );
 
-  progressWrap?.addEventListener('pointerleave', hidePreviewPopover, { signal });
+  progressWrap?.addEventListener("pointerleave", hidePreviewPopover, { signal });
   progressWrap?.addEventListener(
-    'pointerup',
+    "pointerup",
     () => {
       // ensure we finish the seek even if no window mousemove fired
       if (!progressWrap) return;
       state.isScrubbing = false;
     },
-    { signal }
+    { signal },
   );
 
   // dragging outside progress bar while scrubbing
   window.addEventListener(
-    'pointermove',
-    e => {
+    "pointermove",
+    (e) => {
       if (!state.isScrubbing || !progressWrap) return;
       const rect = progressWrap.getBoundingClientRect();
       state.video.currentTime = absoluteTimeFromRatio(
-        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
       );
       updateTimeline(state.video.currentTime);
       updateSkipButton(state.video.currentTime);
     },
-    { signal }
+    { signal },
   );
 
   // track next-episode links outside the player so they start fresh after finishing an episode
   document.addEventListener(
-    'click',
-    e => {
+    "click",
+    (e) => {
       const target = e.target;
       if (!(target instanceof Element)) return;
-      const anchor = target.closest('a[href]');
+      const anchor = target.closest("a[href]");
       if (!(anchor instanceof HTMLAnchorElement)) return;
       const url = new URL(anchor.href, location.origin);
       if (url.origin !== location.origin) return;
-      const parts = url.pathname.split('/').filter(Boolean);
-      if (parts[0] !== 'anime' || parts[2] !== 'watch') return;
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts[0] !== "anime" || parts[2] !== "watch") return;
       if (Number.parseInt(parts[1], 10) !== state.malID) return;
-      const nextEpisode = Number.parseInt(url.searchParams.get('ep') ?? '1', 10);
+      const nextEpisode = Number.parseInt(url.searchParams.get("ep") ?? "1", 10);
       const currentEpisode = Number.parseInt(state.currentEpisode, 10);
       if (nextEpisode === currentEpisode + 1) markEpisodeTransition(nextEpisode);
     },
-    { signal }
+    { signal },
   );
 
-  state.video.addEventListener('click', showControls, { signal });
+  state.video.addEventListener("click", showControls, { signal });
 
-  const searchInput = document.querySelector('[data-episode-search]') as HTMLInputElement | null;
-  const dropdown = document.querySelector('[data-episode-dropdown]') as HTMLElement | null;
+  const searchInput = document.querySelector("[data-episode-search]") as HTMLInputElement | null;
+  const dropdown = document.querySelector("[data-episode-dropdown]") as HTMLElement | null;
   let searchDebounce: number | undefined;
 
   if (searchInput) {
     searchInput.addEventListener(
-      'input',
+      "input",
       () => {
         clearTimeout(searchDebounce);
         // debounce to avoid excessive range switches while typing
         searchDebounce = window.setTimeout(() => {
-          const val = searchInput.value.replace(/\D/g, '');
+          const val = searchInput.value.replace(/\D/g, "");
           if (!val) {
             // clear: jump to current episode range
             const cur = Number.parseInt(state.currentEpisode, 10);
@@ -321,22 +321,22 @@ const initPlayer = (): void => {
           }
         }, 300);
       },
-      { signal }
+      { signal },
     );
   }
 
   // range buttons (100s of episodes)
   if (dropdown) {
-    dropdown.querySelectorAll('.episode-range-btn').forEach(btn => {
+    dropdown.querySelectorAll(".episode-range-btn").forEach((btn) => {
       btn.addEventListener(
-        'click',
+        "click",
         () => {
-          const idx = Number.parseInt((btn as HTMLElement).dataset.rangeIndex ?? '0', 10);
+          const idx = Number.parseInt((btn as HTMLElement).dataset.rangeIndex ?? "0", 10);
           switchEpisodeRange(idx);
-          const dd = btn.closest('ui-dropdown');
+          const dd = btn.closest("ui-dropdown");
           if (isClosableDropdown(dd)) dd.close();
         },
-        { signal }
+        { signal },
       );
     });
   }
@@ -349,13 +349,13 @@ const initPlayer = (): void => {
   setupThumbnails();
 };
 
-document.addEventListener('DOMContentLoaded', initPlayer);
-document.body.addEventListener('htmx:afterSwap', (e: Event) => {
+document.addEventListener("DOMContentLoaded", initPlayer);
+document.body.addEventListener("htmx:afterSwap", (e: Event) => {
   const target = (e as CustomEvent).detail?.target as HTMLElement | null;
-  if (target?.querySelector('[data-video-player]')) initPlayer();
+  if (target?.querySelector("[data-video-player]")) initPlayer();
 });
 
-document.body.addEventListener('htmx:beforeSwap', (e: Event) => {
+document.body.addEventListener("htmx:beforeSwap", (e: Event) => {
   const target = (e as CustomEvent).detail?.target as HTMLElement | null;
   if (target && currentContainer && target.contains(currentContainer)) {
     teardownPlayer();
