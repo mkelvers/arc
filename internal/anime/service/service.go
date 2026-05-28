@@ -308,15 +308,74 @@ func (s *animeService) GetProducers(ctx context.Context, query string, page int,
 }
 
 func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {
-	return s.jikan.GetAnimeGenres(ctx)
+	genres, err := s.jikan.GetAnimeGenres(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.Genre, 0, len(genres))
+	for _, g := range genres {
+		if g.MalID <= 0 || strings.TrimSpace(g.Name) == "" {
+			continue
+		}
+		out = append(out, domain.Genre{MalID: g.MalID, Name: g.Name})
+	}
+	return out, nil
 }
 
-func (s *animeService) GetCharacters(ctx context.Context, id int) ([]domain.Character, error) {
-	return s.jikan.GetAnimeCharacters(ctx, id)
+func (s *animeService) GetCharacters(ctx context.Context, id int) ([]domain.CharacterEntry, error) {
+	items, err := s.jikan.GetAnimeCharacters(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]domain.CharacterEntry, 0, len(items))
+	for _, it := range items {
+		var mapped domain.CharacterEntry
+		mapped.Character.MalID = it.Character.MalID
+		mapped.Character.URL = it.Character.URL
+		mapped.Character.Name = it.Character.Name
+		mapped.Character.Images.Jpg.ImageURL = it.Character.Images.Jpg.ImageURL
+		mapped.Character.Images.Webp.ImageURL = it.Character.Images.Webp.ImageURL
+		mapped.Character.Images.Webp.SmallImageURL = it.Character.Images.Webp.SmallImageURL
+		mapped.Role = it.Role
+
+		if len(it.VoiceActors) > 0 {
+			mapped.VoiceActors = make([]domain.CharacterVoiceActor, 0, len(it.VoiceActors))
+			for _, va := range it.VoiceActors {
+				var mappedVA domain.CharacterVoiceActor
+				mappedVA.Language = va.Language
+				mappedVA.Person.MalID = va.Person.MalID
+				mappedVA.Person.URL = va.Person.URL
+				mappedVA.Person.Name = va.Person.Name
+				mappedVA.Person.Images.Jpg.ImageURL = va.Person.Images.Jpg.ImageURL
+				mapped.VoiceActors = append(mapped.VoiceActors, mappedVA)
+			}
+		}
+
+		out = append(out, mapped)
+	}
+
+	return out, nil
 }
 
-func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain.Recommendation, error) {
-	return s.jikan.GetAnimeRecommendations(ctx, id)
+func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain.RecommendationEntry, error) {
+	items, err := s.jikan.GetAnimeRecommendations(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]domain.RecommendationEntry, 0, len(items))
+	for _, it := range items {
+		var mapped domain.RecommendationEntry
+		mapped.Entry.MalID = it.Entry.MalID
+		mapped.Entry.URL = it.Entry.URL
+		mapped.Entry.Title = it.Entry.Title
+		mapped.Entry.Images.Webp.LargeImageURL = it.Entry.Images.Webp.LargeImageURL
+		mapped.URL = it.URL
+		mapped.Votes = it.Votes
+		out = append(out, mapped)
+	}
+	return out, nil
 }
 
 func (s *animeService) GetRelations(ctx context.Context, id int) ([]jikan.RelationEntry, error) {
@@ -328,15 +387,56 @@ func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (jikan
 }
 
 func (s *animeService) GetStaff(ctx context.Context, id int) ([]domain.StaffEntry, error) {
-	return s.jikan.GetAnimeStaff(ctx, id)
+	items, err := s.jikan.GetAnimeStaff(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]domain.StaffEntry, 0, len(items))
+	for _, it := range items {
+		var mapped domain.StaffEntry
+		mapped.Person.MalID = it.Person.MalID
+		mapped.Person.URL = it.Person.URL
+		mapped.Person.Name = it.Person.Name
+		mapped.Person.Images.Jpg.ImageURL = it.Person.Images.Jpg.ImageURL
+		mapped.Positions = append([]string(nil), it.Positions...)
+		out = append(out, mapped)
+	}
+	return out, nil
 }
 
 func (s *animeService) GetStatistics(ctx context.Context, id int) (domain.Statistics, error) {
-	return s.jikan.GetAnimeStatistics(ctx, id)
+	stats, err := s.jikan.GetAnimeStatistics(ctx, id)
+	if err != nil {
+		return domain.Statistics{}, err
+	}
+
+	out := domain.Statistics{
+		Watching:    stats.Watching,
+		Completed:   stats.Completed,
+		OnHold:      stats.OnHold,
+		Dropped:     stats.Dropped,
+		PlanToWatch: stats.PlanToWatch,
+		Total:       stats.Total,
+	}
+	if len(stats.Scores) > 0 {
+		out.Scores = make([]domain.StatisticsScore, 0, len(stats.Scores))
+		for _, s := range stats.Scores {
+			out.Scores = append(out.Scores, domain.StatisticsScore{Score: s.Score, Votes: s.Votes, Percentage: s.Percentage})
+		}
+	}
+	return out, nil
 }
 
 func (s *animeService) GetThemes(ctx context.Context, id int) (domain.ThemesData, error) {
-	return s.jikan.GetAnimeThemes(ctx, id)
+	themes, err := s.jikan.GetAnimeThemes(ctx, id)
+	if err != nil {
+		return domain.ThemesData{}, err
+	}
+	return domain.ThemesData{
+		Openings: append([]string(nil), themes.Openings...),
+		Endings:  append([]string(nil), themes.Endings...),
+	}, nil
 }
 
 func (s *animeService) GetReviews(ctx context.Context, id int, page int) ([]domain.ReviewEntry, bool, error) {
@@ -344,7 +444,38 @@ func (s *animeService) GetReviews(ctx context.Context, id int, page int) ([]doma
 	if err != nil {
 		return nil, false, err
 	}
-	return data, pag.HasNextPage, nil
+	out := make([]domain.ReviewEntry, 0, len(data))
+	for _, it := range data {
+		mapped := domain.ReviewEntry{
+			MalID:         it.MalID,
+			URL:           it.URL,
+			Type:          it.Type,
+			Date:          it.Date,
+			Review:        it.Review,
+			Score:         it.Score,
+			Tags:          append([]string(nil), it.Tags...),
+			IsSpoiler:     it.IsSpoiler,
+			IsPreliminary: it.IsPreliminary,
+			EpisodesSeen:  it.EpisodesSeen,
+			Reactions: domain.ReviewReactions{
+				Overall:     it.Reactions.Overall,
+				Nice:        it.Reactions.Nice,
+				LoveIt:      it.Reactions.LoveIt,
+				Funny:       it.Reactions.Funny,
+				Confusing:   it.Reactions.Confusing,
+				Informative: it.Reactions.Informative,
+				WellWritten: it.Reactions.WellWritten,
+				Creative:    it.Reactions.Creative,
+			},
+		}
+		mapped.User.URL = it.User.URL
+		mapped.User.Username = it.User.Username
+		mapped.User.Images.Jpg.ImageURL = it.User.Images.Jpg.ImageURL
+		mapped.User.Images.Webp.ImageURL = it.User.Images.Webp.ImageURL
+		out = append(out, mapped)
+	}
+
+	return out, pag.HasNextPage, nil
 }
 
 func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error) {

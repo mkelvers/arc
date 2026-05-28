@@ -9,14 +9,126 @@ import (
 type Anime struct {
 	jikan.Anime
 }
-type TopAnimeResult = jikan.TopAnimeResult
-type Genre = jikan.Genre
-type Character = jikan.CharacterEntry
-type Recommendation = jikan.RecommendationEntry
-type StaffEntry = jikan.StaffEntry
-type Statistics = jikan.Statistics
-type ThemesData = jikan.ThemesData
-type ReviewEntry = jikan.ReviewEntry
+
+type Genre struct {
+	MalID int
+	Name  string
+}
+
+type CharacterPerson struct {
+	MalID  int
+	URL    string
+	Name   string
+	Images struct {
+		Jpg struct {
+			ImageURL string
+		}
+	}
+}
+
+type CharacterVoiceActor struct {
+	Person   CharacterPerson
+	Language string
+}
+
+type CharacterEntry struct {
+	Character struct {
+		MalID  int
+		URL    string
+		Name   string
+		Images struct {
+			Jpg struct {
+				ImageURL string
+			}
+			Webp struct {
+				ImageURL      string
+				SmallImageURL string
+			}
+		}
+	}
+	Role        string
+	VoiceActors []CharacterVoiceActor
+}
+
+type RecommendationEntry struct {
+	Entry struct {
+		MalID  int
+		URL    string
+		Title  string
+		Images struct {
+			Webp struct {
+				LargeImageURL string
+			}
+		}
+	}
+	URL   string
+	Votes int
+}
+
+type StaffEntry struct {
+	Person    CharacterPerson
+	Positions []string
+}
+
+type StatisticsScore struct {
+	Score      int
+	Votes      int
+	Percentage float64
+}
+
+type Statistics struct {
+	Watching    int
+	Completed   int
+	OnHold      int
+	Dropped     int
+	PlanToWatch int
+	Total       int
+	Scores      []StatisticsScore
+}
+
+type ThemesData struct {
+	Openings []string
+	Endings  []string
+}
+
+type ReviewReactions struct {
+	Overall     int
+	Nice        int
+	LoveIt      int
+	Funny       int
+	Confusing   int
+	Informative int
+	WellWritten int
+	Creative    int
+}
+
+type ReviewUser struct {
+	URL      string
+	Username string
+	Images   struct {
+		Jpg struct {
+			ImageURL string
+		}
+		Webp struct {
+			ImageURL string
+		}
+	}
+}
+
+type ReviewEntry struct {
+	MalID         int
+	URL           string
+	Type          string
+	Reactions     ReviewReactions
+	Date          string
+	Review        string
+	Score         int
+	Tags          []string
+	IsSpoiler     bool
+	IsPreliminary bool
+	EpisodesSeen  int
+	User          ReviewUser
+}
 
 type AnimeCatalogService interface {
 	GetCatalogSection(ctx context.Context, userID string, section string) (CatalogSectionData, error)
@@ -37,8 +149,8 @@ type AnimeSearchService interface {
 
 type AnimeDetailsService interface {
 	GetAnimeByID(ctx context.Context, id int) (Anime, error)
-	GetCharacters(ctx context.Context, id int) ([]Character, error)
-	GetRecommendations(ctx context.Context, id int) ([]Recommendation, error)
+	GetCharacters(ctx context.Context, id int) ([]CharacterEntry, error)
+	GetRecommendations(ctx context.Context, id int) ([]RecommendationEntry, error)
 	GetRelations(ctx context.Context, id int) ([]jikan.RelationEntry, error)
 	GetEpisodes(ctx context.Context, id int, page int) (jikan.EpisodesResponse, error)
 	GetAllEpisodes(ctx context.Context, id int) ([]EpisodeData, error)
