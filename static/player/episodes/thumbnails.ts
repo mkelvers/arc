@@ -1,4 +1,4 @@
-import { state } from '../state';
+import { state } from "../state";
 
 /**
  * Fetches episode thumbnails and titles from API.
@@ -9,25 +9,25 @@ export const setupThumbnails = (): void => {
   if (!episodeList) return;
 
   fetch(`/api/watch/thumbnails/${state.malID}`)
-    .then(res => res.json())
+    .then((res) => res.json())
     .then((data: { mal_id: number; url: string; title?: string }[]) => {
-      data.forEach(item => {
+      data.forEach((item) => {
         const card = episodeList.querySelector(`[data-episode-id="${item.mal_id}"]`);
         if (!card) return;
 
         // inject thumbnail image
         if (item.url) {
-          const imgContainer = card.querySelector('.relative.aspect-video');
+          const imgContainer = card.querySelector(".relative.aspect-video");
           if (imgContainer) {
-            let img = imgContainer.querySelector('img');
+            let img = imgContainer.querySelector("img");
             if (!img) {
               // replace placeholder with actual image
-              img = document.createElement('img');
+              img = document.createElement("img");
               img.className =
-                'h-full w-full object-cover transition-transform group-hover:scale-105';
-              img.loading = 'lazy';
+                "h-full w-full object-cover transition-transform group-hover:scale-105";
+              img.loading = "lazy";
               imgContainer
-                .querySelector('.flex.h-full.w-full.items-center.justify-center')
+                .querySelector(".flex.h-full.w-full.items-center.justify-center")
                 ?.remove();
               imgContainer.prepend(img);
             }
@@ -38,10 +38,10 @@ export const setupThumbnails = (): void => {
 
         // inject title text
         if (item.title) {
-          const titleEl = card.querySelector('[data-episode-title]');
+          const titleEl = card.querySelector("[data-episode-title]");
           if (titleEl) titleEl.textContent = item.title;
         }
       });
     })
-    .catch(err => console.error('Failed to fetch thumbnails:', err));
+    .catch((err) => console.error("Failed to fetch thumbnails:", err));
 };
