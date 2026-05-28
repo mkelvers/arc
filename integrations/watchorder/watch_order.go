@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mal/pkg/net/limits"
-	"mal/pkg/net/useragent"
+	netutil "mal/pkg/net"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -82,7 +81,7 @@ func parseRootID(url string) (int, error) {
 }
 
 func addCommonHeaders(request *http.Request) {
-	request.Header.Set("User-Agent", useragent.Chrome135)
+	request.Header.Set("User-Agent", netutil.Chrome135)
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	request.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	request.Header.Set("Referer", "https://chiaki.site/")
@@ -110,7 +109,7 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 
 	if response.StatusCode != http.StatusOK {
 		// limit body read for error context; avoid reading large error pages
-		body, _ := io.ReadAll(io.LimitReader(response.Body, limits.Bytes512))
+		body, _ := io.ReadAll(io.LimitReader(response.Body, netutil.Bytes512))
 		return nil, &HTTPStatusError{
 			StatusCode:  response.StatusCode,
 			URL:         url,
@@ -241,7 +240,7 @@ func fetchProxyText(ctx context.Context, httpClient *http.Client, url string) (s
 		return "", fmt.Errorf("proxy status %d", response.StatusCode)
 	}
 
-	body, err := io.ReadAll(io.LimitReader(response.Body, limits.MiB2))
+	body, err := io.ReadAll(io.LimitReader(response.Body, netutil.MiB2))
 	if err != nil {
 		return "", fmt.Errorf("failed to read proxy response: %w", err)
 	}
