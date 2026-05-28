@@ -318,6 +318,7 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 
 type timetableAnimeAPI struct {
 	Title                   string    `json:"title"`
+	English                 string    `json:"english"`
 	Route                   string    `json:"route"`
 	EpisodeDate             time.Time `json:"episodeDate"`
 	EpisodeNumber           int       `json:"episodeNumber"`
@@ -387,7 +388,10 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 	}
 
 	for _, item := range payload {
-		title := strings.TrimSpace(item.Title)
+		title := strings.TrimSpace(item.English)
+		if title == "" {
+			title = strings.TrimSpace(item.Title)
+		}
 		if title == "" {
 			continue
 		}
