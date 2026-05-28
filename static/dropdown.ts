@@ -10,22 +10,22 @@ class UIDropdown extends HTMLElement {
   }
 
   connectedCallback(): void {
-    const trigger = this.querySelector('[data-trigger]');
-    this.contentEl = this.querySelector('[data-content]');
+    const trigger = this.querySelector("[data-trigger]");
+    this.contentEl = this.querySelector("[data-content]");
 
     if (trigger) {
-      trigger.addEventListener('click', this.toggle);
+      trigger.addEventListener("click", this.toggle);
     }
 
-    document.addEventListener('click', this.handleClickOutside);
+    document.addEventListener("click", this.handleClickOutside);
   }
 
   disconnectedCallback(): void {
-    const trigger = this.querySelector('[data-trigger]');
+    const trigger = this.querySelector("[data-trigger]");
     if (trigger) {
-      trigger.removeEventListener('click', this.toggle);
+      trigger.removeEventListener("click", this.toggle);
     }
-    document.removeEventListener('click', this.handleClickOutside);
+    document.removeEventListener("click", this.handleClickOutside);
   }
 
   toggle(): void {
@@ -35,9 +35,9 @@ class UIDropdown extends HTMLElement {
     this.isOpen = !this.isOpen;
     if (this.contentEl) {
       if (this.isOpen) {
-        this.contentEl.classList.remove('hidden');
+        this.contentEl.classList.remove("hidden");
       } else {
-        this.contentEl.classList.add('hidden');
+        this.contentEl.classList.add("hidden");
       }
     }
   }
@@ -49,7 +49,7 @@ class UIDropdown extends HTMLElement {
     this.isClosing = true;
     this.isOpen = false;
     if (this.contentEl) {
-      this.contentEl.classList.add('hidden');
+      this.contentEl.classList.add("hidden");
     }
     setTimeout(() => {
       this.isClosing = false;
@@ -63,24 +63,24 @@ class UIDropdown extends HTMLElement {
   }
 }
 
-customElements.define('ui-dropdown', UIDropdown);
+customElements.define("ui-dropdown", UIDropdown);
 
 const initStudioDropdown = (): void => {
-  document.addEventListener('click', e => {
+  document.addEventListener("click", (e) => {
     const target = e.target;
     if (!(target instanceof Element)) return;
 
-    const btn = target.closest<HTMLButtonElement>('button[data-studio-select]');
+    const btn = target.closest<HTMLButtonElement>("button[data-studio-select]");
     if (!btn) return;
 
-    const input = document.getElementById('studio-input') as HTMLInputElement | null;
-    const form = document.getElementById('browse-search-form') as HTMLFormElement | null;
+    const input = document.getElementById("studio-input") as HTMLInputElement | null;
+    const form = document.getElementById("browse-search-form") as HTMLFormElement | null;
     if (!input || !form) return;
 
-    input.value = btn.dataset.studioSelect ?? '';
+    input.value = btn.dataset.studioSelect ?? "";
     form.requestSubmit();
 
-    const dropdown = btn.closest('ui-dropdown') as { close?: () => void } | null;
+    const dropdown = btn.closest("ui-dropdown") as { close?: () => void } | null;
     dropdown?.close?.();
   });
 };
