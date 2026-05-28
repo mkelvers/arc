@@ -1,23 +1,23 @@
-import { state } from './state';
-import { saveProgress } from './progress';
-import { safeLocalStorage } from './storage';
+import { state } from "./state";
+import { saveProgress } from "./progress";
+import { safeLocalStorage } from "./storage";
 
 export const formatTime = (seconds: number): string => {
-  if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
+  if (!Number.isFinite(seconds) || seconds < 0) return "00:00";
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
 /**
  * Shows the controls overlay and schedules auto-hide after 2s if playing.
  */
 export const showControls = (): void => {
-  state.container.classList.add('show-controls');
+  state.container.classList.add("show-controls");
   window.clearTimeout(state.playerControlsTimeout);
   state.playerControlsTimeout = window.setTimeout(() => {
     if (!state.isScrubbing && !state.video.paused) {
-      state.container.classList.remove('show-controls');
+      state.container.classList.remove("show-controls");
     }
   }, 2000);
 };
@@ -27,7 +27,7 @@ export const seekBy = (delta: number): void => {
   if (state.video.duration <= 0) return;
   state.video.currentTime = Math.max(
     0,
-    Math.min(state.video.duration, state.video.currentTime + delta)
+    Math.min(state.video.duration, state.video.currentTime + delta),
   );
   showControls();
 };
@@ -73,13 +73,13 @@ export const syncVolumeUI = (): void => {
   const value = state.video.muted ? 0 : Math.round(state.video.volume * 100);
   if (volumeRange) {
     volumeRange.value = String(value);
-    volumeRange.style.setProperty('--volume-percent', `${value}%`);
+    volumeRange.style.setProperty("--volume-percent", `${value}%`);
   }
   if (volumeUnderline) volumeUnderline.style.height = `${value}%`;
   updateMuteIcons(state.video.muted || state.video.volume === 0);
 };
 
-const VOLUME_STORAGE_KEY = 'player-volume';
+const VOLUME_STORAGE_KEY = "player-volume";
 
 const parseStoredVolume = (raw: string | null): number | null => {
   if (!raw) return null;
@@ -132,35 +132,35 @@ const getControls = (): Controls => {
   if (controlsCache) return controlsCache;
   const c = state.container;
   controlsCache = {
-    playPause: c.querySelector('[data-play-pause]'),
-    muteBtn: c.querySelector('[data-mute]'),
-    volumePanel: c.querySelector('[data-volume-panel]'),
-    volumeRange: c.querySelector('[data-volume-range]'),
-    volumeUnderline: c.querySelector('[data-volume-underline]'),
-    backwardBtn: c.querySelector('[data-backward]'),
-    forwardBtn: c.querySelector('[data-forward]'),
-    fullscreenBtn: c.querySelector('[data-fullscreen]'),
-    iconPlay: c.querySelector('[data-icon-play]'),
-    iconPause: c.querySelector('[data-icon-pause]'),
-    iconVolume: c.querySelector('[data-icon-volume]'),
-    iconMuted: c.querySelector('[data-icon-muted]'),
-    skipSegmentBtn: c.querySelector('[data-skip]'),
-    subtitleText: c.querySelector('[data-subtitle-text]'),
-    autoplayBtn: document.querySelector('[data-autoplay]'),
+    playPause: c.querySelector("[data-play-pause]"),
+    muteBtn: c.querySelector("[data-mute]"),
+    volumePanel: c.querySelector("[data-volume-panel]"),
+    volumeRange: c.querySelector("[data-volume-range]"),
+    volumeUnderline: c.querySelector("[data-volume-underline]"),
+    backwardBtn: c.querySelector("[data-backward]"),
+    forwardBtn: c.querySelector("[data-forward]"),
+    fullscreenBtn: c.querySelector("[data-fullscreen]"),
+    iconPlay: c.querySelector("[data-icon-play]"),
+    iconPause: c.querySelector("[data-icon-pause]"),
+    iconVolume: c.querySelector("[data-icon-volume]"),
+    iconMuted: c.querySelector("[data-icon-muted]"),
+    skipSegmentBtn: c.querySelector("[data-skip]"),
+    subtitleText: c.querySelector("[data-subtitle-text]"),
+    autoplayBtn: document.querySelector("[data-autoplay]"),
   };
   return controlsCache;
 };
 
 const updatePlayPauseIcons = (isPlaying: boolean): void => {
   const { iconPlay, iconPause } = getControls();
-  iconPlay?.classList.toggle('hidden', isPlaying);
-  iconPause?.classList.toggle('hidden', !isPlaying);
+  iconPlay?.classList.toggle("hidden", isPlaying);
+  iconPause?.classList.toggle("hidden", !isPlaying);
 };
 
 const updateMuteIcons = (isMuted: boolean): void => {
   const { iconVolume, iconMuted } = getControls();
-  iconVolume?.classList.toggle('hidden', isMuted);
-  iconMuted?.classList.toggle('hidden', !isMuted);
+  iconVolume?.classList.toggle("hidden", isMuted);
+  iconMuted?.classList.toggle("hidden", !isMuted);
 };
 
 /**
@@ -182,69 +182,69 @@ export const setupControls = (): void => {
   } = getControls();
 
   // play/pause on button and video click
-  playPause?.addEventListener('click', () => {
+  playPause?.addEventListener("click", () => {
     togglePlayPause();
     showControls();
   });
-  state.video.addEventListener('click', () => {
+  state.video.addEventListener("click", () => {
     togglePlayPause();
     showControls();
   });
 
-  muteBtn?.addEventListener('click', () => {
+  muteBtn?.addEventListener("click", () => {
     toggleMute();
     showControls();
   });
 
   // volume slider
-  volumeRange?.addEventListener('input', () => {
+  volumeRange?.addEventListener("input", () => {
     const value = Number(volumeRange.value) / 100;
     setVolume(value);
     showControls();
   });
   // dragging class for visual feedback
-  volumeRange?.addEventListener('pointerdown', () => volumePanel?.classList.add('is-dragging'));
-  window.addEventListener('pointerup', () => volumePanel?.classList.remove('is-dragging'));
+  volumeRange?.addEventListener("pointerdown", () => volumePanel?.classList.add("is-dragging"));
+  window.addEventListener("pointerup", () => volumePanel?.classList.remove("is-dragging"));
 
-  backwardBtn?.addEventListener('click', () => seekBy(-10));
-  forwardBtn?.addEventListener('click', () => seekBy(10));
+  backwardBtn?.addEventListener("click", () => seekBy(-10));
+  forwardBtn?.addEventListener("click", () => seekBy(10));
 
-  fullscreenBtn?.addEventListener('click', () => {
+  fullscreenBtn?.addEventListener("click", () => {
     toggleFullscreen();
     showControls();
   });
 
   // skip intro/outro button
-  skipSegmentBtn?.addEventListener('click', () => {
+  skipSegmentBtn?.addEventListener("click", () => {
     if (!state.activeSkipSegment) return;
     state.video.currentTime = state.activeSkipSegment.end + 0.01;
     showControls();
   });
 
   // fullscreen change handler
-  document.addEventListener('fullscreenchange', () => {
+  document.addEventListener("fullscreenchange", () => {
     state.isFullscreen = !!document.fullscreenElement;
-    state.container.classList.toggle('fullscreen', state.isFullscreen);
+    state.container.classList.toggle("fullscreen", state.isFullscreen);
     if (state.isFullscreen) showControls();
   });
 
   // icon sync on state changes
-  state.video.addEventListener('play', () => {
+  state.video.addEventListener("play", () => {
     updatePlayPauseIcons(true);
     showControls();
   });
-  state.video.addEventListener('pause', () => {
+  state.video.addEventListener("pause", () => {
     updatePlayPauseIcons(false);
     showControls();
     void saveProgress();
   });
-  state.video.addEventListener('volumechange', () => {
+  state.video.addEventListener("volumechange", () => {
     syncVolumeUI();
     schedulePersistVolume();
   });
 
   // mouse move in container shows controls
-  state.container.addEventListener('mousemove', showControls);
+  state.container.addEventListener("mousemove", showControls);
 
   // initial sync — check actual video state since inline script may have started playback
   updatePlayPauseIcons(!state.video.paused);
