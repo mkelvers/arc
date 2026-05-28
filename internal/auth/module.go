@@ -1,10 +1,6 @@
 package auth
 
 import (
-	"mal/internal/auth/handler"
-	"mal/internal/auth/middleware"
-	"mal/internal/auth/repository"
-	"mal/internal/auth/service"
 	"mal/internal/domain"
 	"mal/internal/server"
 
@@ -14,15 +10,15 @@ import (
 
 var Module = fx.Options(
 	fx.Provide(
-		repository.NewAuthRepository,
-		service.NewAuthService,
-		handler.NewAuthHandler,
+		NewAuthRepository,
+		NewAuthService,
+		NewAuthHandler,
 		func(svc domain.AuthService) gin.HandlerFunc {
-			return middleware.AuthMiddleware(svc)
+			return AuthMiddleware(svc)
 		},
 	),
 	fx.Provide(
-		server.AsRouteRegister(func(h *handler.AuthHandler) server.RouteRegister {
+		server.AsRouteRegister(func(h *AuthHandler) server.RouteRegister {
 			return h
 		}),
 	),
