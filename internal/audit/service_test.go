@@ -1,4 +1,4 @@
-package service_test
+package audit_test
 
 import (
 	"context"
@@ -6,8 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"mal/internal/audit/service"
-	"mal/internal/auditctx"
+	"mal/internal/audit"
 	"mal/internal/database"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -32,13 +31,13 @@ func TestRecordInsertsAuditLog(t *testing.T) {
 	}
 
 	queries := db.New(sqlDB)
-	svc := service.NewAuditService(queries)
+	svc := audit.NewAuditService(queries)
 
 	if _, err := sqlDB.Exec("INSERT INTO user (id, username, password_hash) VALUES (?, ?, ?)", "user-1", "test", "hash"); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
 
-	ctx := auditctx.WithRequestInfo(context.Background(), "127.0.0.1", "unit-test")
+	ctx := audit.WithRequestInfo(context.Background(), "127.0.0.1", "unit-test")
 	metadata, err := json.Marshal(struct {
 		Foo string `json:"foo"`
 	}{Foo: "bar"})
