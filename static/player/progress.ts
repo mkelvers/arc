@@ -1,5 +1,5 @@
-import { state } from './state';
-import { displayTimeFromAbsolute } from './timeline';
+import { state } from "./state";
+import { displayTimeFromAbsolute } from "./timeline";
 
 // builds JSON payload for progress API
 const buildPayload = (episode: number, seconds: number) =>
@@ -12,7 +12,7 @@ const buildPayload = (episode: number, seconds: number) =>
 // sends progress via beacon (survives page unload)
 const sendBeacon = (payload: string) => {
   if (!navigator.sendBeacon) return false;
-  navigator.sendBeacon('/api/watch-progress', new Blob([payload], { type: 'application/json' }));
+  navigator.sendBeacon("/api/watch-progress", new Blob([payload], { type: "application/json" }));
   return true;
 };
 
@@ -41,9 +41,9 @@ export const saveProgress = async (): Promise<void> => {
 
     const payload = buildPayload(episode, safeTime);
     try {
-      const res = await fetch('/api/watch-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/watch-progress", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: payload,
       });
       if (!res.ok) return;
@@ -87,9 +87,9 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
   const payload = buildPayload(episodeNumber, 0);
   // beacon falls back to fetch with keepalive
   if (!sendBeacon(payload)) {
-    fetch('/api/watch-progress', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    fetch("/api/watch-progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       keepalive: true,
       body: payload,
     }).catch(() => undefined);
@@ -101,25 +101,25 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
  */
 export const setupProgress = (): void => {
   // periodic save during playback
-  state.video.addEventListener('timeupdate', () => {
+  state.video.addEventListener("timeupdate", () => {
     scheduleProgressSave();
   });
 
   // immediate save on pause
-  state.video.addEventListener('pause', () => {
+  state.video.addEventListener("pause", () => {
     window.clearTimeout(state.progressSaveTimer);
     state.progressSaveTimer = undefined;
     saveProgress();
   });
 
   // save after scrubbing
-  window.addEventListener('mouseup', () => {
+  window.addEventListener("mouseup", () => {
     state.isScrubbing = false;
     saveProgress();
   });
 
   // save on page close
-  window.addEventListener('beforeunload', () => {
+  window.addEventListener("beforeunload", () => {
     if (state.transitionEpisode !== null || state.completionSent || !state.malID) {
       return;
     }

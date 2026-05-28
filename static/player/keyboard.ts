@@ -1,5 +1,5 @@
-import { state } from './state';
-import { absoluteTimeFromRatio, getBounds } from './timeline';
+import { state } from "./state";
+import { absoluteTimeFromRatio, getBounds } from "./timeline";
 import {
   showControls,
   toggleMute,
@@ -7,54 +7,54 @@ import {
   toggleFullscreen,
   seekBy,
   setVolume,
-} from './controls';
-import { saveProgress } from './progress';
+} from "./controls";
+import { saveProgress } from "./progress";
 
 /**
  * Sets up keyboard shortcuts for player control.
  * Ignores input/textarea to allow typing.
  */
 export const setupKeyboard = (): void => {
-  document.addEventListener('keydown', e => {
+  document.addEventListener("keydown", (e) => {
     const target = e.target as HTMLElement;
     // ignore when typing in form fields
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
       return;
 
     switch (e.code) {
-      case 'Space':
-      case 'KeyK':
+      case "Space":
+      case "KeyK":
         e.preventDefault();
         togglePlayPause();
         showControls();
         void saveProgress();
         break;
-      case 'ArrowLeft':
-      case 'KeyJ':
+      case "ArrowLeft":
+      case "KeyJ":
         e.preventDefault();
         seekBy(-10);
         break;
-      case 'ArrowRight':
-      case 'KeyL':
+      case "ArrowRight":
+      case "KeyL":
         e.preventDefault();
         seekBy(10);
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
         setVolume(state.video.volume + 0.05);
         showControls();
         break;
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
         setVolume(state.video.volume - 0.05);
         showControls();
         break;
-      case 'KeyM':
+      case "KeyM":
         e.preventDefault();
         toggleMute();
         showControls();
         break;
-      case 'KeyF':
+      case "KeyF":
         e.preventDefault();
         toggleFullscreen();
         showControls();
