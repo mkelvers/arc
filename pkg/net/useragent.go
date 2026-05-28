@@ -1,4 +1,4 @@
-package useragent
+package netutil
 
 // Keep these centralized so we don't end up with many drifting UA strings.
 
