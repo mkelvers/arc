@@ -89,6 +89,7 @@ type EpisodeData struct {
 }
 
 type PlaybackRepository interface {
+	InTx(ctx context.Context, fn func(ctx context.Context, repo PlaybackRepository) error) error
 	GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error)
 	GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	SaveWatchProgress(ctx context.Context, params db.SaveWatchProgressParams) error

@@ -2,16 +2,37 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"mal/internal/db"
 	"mal/internal/domain"
 )
 
 type watchlistRepository struct {
+	sqlDB   *sql.DB
 	queries *db.Queries
 }
 
-func NewWatchlistRepository(queries *db.Queries) domain.WatchlistRepository {
-	return &watchlistRepository{queries: queries}
+func NewWatchlistRepository(sqlDB *sql.DB, queries *db.Queries) domain.WatchlistRepository {
+	return &watchlistRepository{sqlDB: sqlDB, queries: queries}
+}
+
+func (r *watchlistRepository) InTx(ctx context.Context, fn func(ctx context.Context, repo domain.WatchlistRepository) error) error {
+	if r.sqlDB == nil {
+		return fn(ctx, r)
+	}
+
+	tx, err := r.sqlDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	txRepo := &watchlistRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
+	if err := fn(ctx, txRepo); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *watchlistRepository) UpsertAnime(ctx context.Context, arg db.UpsertAnimeParams) (db.Anime, error) {

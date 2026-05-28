@@ -21,6 +21,7 @@ type WatchlistService interface {
 }
 
 type WatchlistRepository interface {
+	InTx(ctx context.Context, fn func(ctx context.Context, repo WatchlistRepository) error) error
 	UpsertAnime(ctx context.Context, arg db.UpsertAnimeParams) (db.Anime, error)
 	GetAnime(ctx context.Context, id int64) (db.Anime, error)
 	UpsertWatchListEntry(ctx context.Context, arg db.UpsertWatchListEntryParams) (db.WatchListEntry, error)

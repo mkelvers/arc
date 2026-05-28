@@ -301,38 +301,41 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 }
 
 func (s *playbackService) CompleteAnime(ctx context.Context, userID string, animeID int64) error {
-	entry, err := s.repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
-		UserID:  userID,
-		AnimeID: animeID,
-	})
-	if err != nil || entry.Status != "completed" {
-		_, err = s.repo.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
-			ID:                 uuid.New().String(),
+	if err := s.repo.InTx(ctx, func(txCtx context.Context, repo domain.PlaybackRepository) error {
+		entry, err := repo.GetWatchListEntry(txCtx, db.GetWatchListEntryParams{
+			UserID:  userID,
+			AnimeID: animeID,
+		})
+		if err != nil || entry.Status != "completed" {
+			_, err = repo.UpsertWatchListEntry(txCtx, db.UpsertWatchListEntryParams{
+				ID:                 uuid.New().String(),
+				UserID:             userID,
+				AnimeID:            animeID,
+				Status:             "completed",
+				CurrentEpisode:     sql.NullInt64{Valid: false},
+				CurrentTimeSeconds: 0,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		if err := repo.DeleteContinueWatchingEntry(txCtx, db.DeleteContinueWatchingEntryParams{
+			UserID:  userID,
+			AnimeID: animeID,
+		}); err != nil {
+			return err
+		}
+		return repo.SaveWatchProgress(txCtx, db.SaveWatchProgressParams{
 			UserID:             userID,
 			AnimeID:            animeID,
-			Status:             "completed",
 			CurrentEpisode:     sql.NullInt64{Valid: false},
 			CurrentTimeSeconds: 0,
 		})
-		if err != nil {
-			return err
-		}
+	}); err != nil {
+		return err
 	}
 
-	if err := s.repo.DeleteContinueWatchingEntry(ctx, db.DeleteContinueWatchingEntryParams{
-		UserID:  userID,
-		AnimeID: animeID,
-	}); err != nil {
-		return err
-	}
-	if err := s.repo.SaveWatchProgress(ctx, db.SaveWatchProgressParams{
-		UserID:             userID,
-		AnimeID:            animeID,
-		CurrentEpisode:     sql.NullInt64{Valid: false},
-		CurrentTimeSeconds: 0,
-	}); err != nil {
-		return err
-	}
 	if err := s.auditSvc.Record(ctx, domain.AuditEvent{
 		UserID:       userID,
 		Action:       "watch_completed",
