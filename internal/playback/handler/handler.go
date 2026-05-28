@@ -50,11 +50,8 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 	ep := c.DefaultQuery("ep", "1")
 	mode := c.DefaultQuery("mode", "sub")
 
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	user := server.CurrentUser(c)
+	userID := server.CurrentUserID(c)
 
 	data, err := h.svc.BuildWatchData(c.Request.Context(), id, []string{}, ep, mode, userID)
 	if err != nil {
@@ -64,7 +61,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 			Anime:       anime,
 			Episodes:    []domain.CanonicalEpisode{},
 			CurrentPath: c.Request.URL.Path,
-			User:        currentUser(user),
+			User:        user,
 			CurrentEpID: ep,
 			WatchData: domain.WatchData{
 				Episodes:  []domain.CanonicalEpisode{},
@@ -74,7 +71,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 		return
 	}
 
-	data.User = currentUser(user)
+	data.User = user
 	data.CurrentPath = c.Request.URL.Path
 
 	c.HTML(http.StatusOK, "watch.gohtml", data)
@@ -97,11 +94,7 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	mode := c.DefaultQuery("mode", "sub")
 
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 
 	data, err := h.svc.BuildWatchData(c.Request.Context(), animeID, []string{}, episode, mode, userID)
 	if err != nil {
@@ -140,19 +133,8 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 	})
 }
 
-func currentUser(value any) *domain.User {
-	if user, ok := value.(*domain.User); ok {
-		return user
-	}
-	return nil
-}
-
 func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 	if userID == "" {
 		// Avoid spamming 500s for anonymous playback; progress is user-scoped.
 		server.RespondHTMLOrJSONError(c, http.StatusUnauthorized, "unauthorized")
@@ -188,10 +170,10 @@ func (h *PlaybackHandler) HandleSaveProgress(c *gin.Context) {
 }
 
 func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
+	userID := server.CurrentUserID(c)
+	if userID == "" {
+		server.RespondHTMLOrJSONError(c, http.StatusUnauthorized, "unauthorized")
+		return
 	}
 
 	var req struct {
@@ -222,13 +204,9 @@ func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
 }
 
 func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "login required"})
+		server.RespondHTMLOrJSONError(c, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 

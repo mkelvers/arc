@@ -25,11 +25,7 @@ func (h *WatchlistHandler) Register(r *gin.Engine) {
 }
 
 func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 
 	var body struct {
 		AnimeID int64  `json:"animeId"`
@@ -58,11 +54,7 @@ func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 
 	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
@@ -89,11 +81,7 @@ func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 
 	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
@@ -120,11 +108,8 @@ func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
 }
 
 func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	user := server.CurrentUser(c)
+	userID := server.CurrentUserID(c)
 
 	entries, err := h.svc.GetWatchlist(c.Request.Context(), userID)
 	if err != nil {

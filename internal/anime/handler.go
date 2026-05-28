@@ -187,7 +187,7 @@ func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleCatalog(c *gin.Context) {
-	user, _ := c.Get("User")
+	user := server.CurrentUser(c)
 
 	c.HTML(http.StatusOK, "index.gohtml", gin.H{
 		"CurrentPath":  "/",
@@ -209,11 +209,7 @@ func (h *AnimeHandler) HandleCatalogContinue(c *gin.Context) {
 }
 
 func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
 	if err != nil {
 		observability.Warn(
@@ -239,7 +235,7 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 }
 
 func (h *AnimeHandler) HandleDiscover(c *gin.Context) {
-	user, _ := c.Get("User")
+	user := server.CurrentUser(c)
 	c.HTML(http.StatusOK, "discover.gohtml", gin.H{
 		"CurrentPath": "/discover",
 		"User":        user,
@@ -259,11 +255,7 @@ func (h *AnimeHandler) HandleDiscoverTop(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleDiscoverForYou(c *gin.Context) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 
 	data, err := h.svc.GetDiscoverForYou(c.Request.Context(), userID)
 	if err != nil {
@@ -289,11 +281,7 @@ func (h *AnimeHandler) HandleDiscoverForYou(c *gin.Context) {
 }
 
 func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
 	if err != nil {
 		observability.Warn(
@@ -319,7 +307,7 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 }
 
 func (h *AnimeHandler) HandleSchedule(c *gin.Context) {
-	user, _ := c.Get("User")
+	user := server.CurrentUser(c)
 	year, week := parseYearWeek(c)
 	c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
 		"CurrentPath":  "/schedule",
@@ -515,11 +503,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	user := server.CurrentUser(c)
+	userID := server.CurrentUserID(c)
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 
@@ -655,19 +640,19 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("User")
+	user := server.CurrentUser(c)
 	status := ""
 	var watchlistIDs []int64
 	ep := 0
 	var cwSeconds float64
-	if u, ok := user.(*domain.User); ok {
-		entry, err := h.watchlistSvc.GetWatchListEntry(c.Request.Context(), u.ID, int64(id))
+	if user != nil {
+		entry, err := h.watchlistSvc.GetWatchListEntry(c.Request.Context(), user.ID, int64(id))
 		if err == nil {
 			status = entry.Status
 			watchlistIDs = []int64{entry.AnimeID}
 		}
 
-		cwEntry, err := h.watchlistSvc.GetContinueWatchingEntry(c.Request.Context(), u.ID, int64(id))
+		cwEntry, err := h.watchlistSvc.GetContinueWatchingEntry(c.Request.Context(), user.ID, int64(id))
 		if err == nil && cwEntry.CurrentEpisode.Valid {
 			ep = int(cwEntry.CurrentEpisode.Int64)
 			cwSeconds = cwEntry.CurrentTimeSeconds
@@ -692,11 +677,7 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 
 	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
@@ -745,11 +726,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("User")
-	userID := ""
-	if u, ok := user.(*domain.User); ok {
-		userID = u.ID
-	}
+	userID := server.CurrentUserID(c)
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 
@@ -787,9 +764,8 @@ type commandPaletteItem struct {
 }
 
 func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
-	user, _ := c.Get("User")
-	u, ok := user.(*domain.User)
-	if !ok {
+	user := server.CurrentUser(c)
+	if user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
@@ -812,15 +788,15 @@ func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
 		}
 
 		items = append(items, h.commandPaletteNavigationItems(query)...)
-		items = append(items, h.commandPaletteContinueItems(c, u.ID, query)...)
-		items = append(items, h.commandPalettePersonalItems(c, u.ID, query)...)
+		items = append(items, h.commandPaletteContinueItems(c, user.ID, query)...)
+		items = append(items, h.commandPalettePersonalItems(c, user.ID, query)...)
 		c.JSON(http.StatusOK, items)
 		return
 	}
 
-	items = append(items, h.commandPaletteContinueItems(c, u.ID, query)...)
+	items = append(items, h.commandPaletteContinueItems(c, user.ID, query)...)
 	items = append(items, h.commandPaletteNavigationItems(query)...)
-	items = append(items, h.commandPalettePersonalItems(c, u.ID, query)...)
+	items = append(items, h.commandPalettePersonalItems(c, user.ID, query)...)
 	c.JSON(http.StatusOK, items)
 }
 
@@ -983,10 +959,10 @@ func (h *AnimeHandler) HandleRandomAnime(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("User")
 	inWatchlist := false
-	if u, ok := user.(*domain.User); ok {
-		watchlistMap := h.watchlistMapForIDs(c.Request.Context(), u.ID, []int64{int64(anime.MalID)})
+	userID := server.CurrentUserID(c)
+	if userID != "" {
+		watchlistMap := h.watchlistMapForIDs(c.Request.Context(), userID, []int64{int64(anime.MalID)})
 		inWatchlist = watchlistMap[int64(anime.MalID)]
 	}
 
@@ -1026,7 +1002,7 @@ func (h *AnimeHandler) HandleAnimeReviews(c *gin.Context) {
 		return
 	}
 
-	user, _ := c.Get("User")
+	user := server.CurrentUser(c)
 
 	if c.GetHeader("HX-Request") == "true" && page > 1 {
 		c.HTML(http.StatusOK, "reviews.gohtml", gin.H{
