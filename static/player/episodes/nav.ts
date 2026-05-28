@@ -1,4 +1,4 @@
-import { state } from "../state";
+import { state, showEndState, hideEndState } from "../state";
 import type { SkipSegment } from "../types";
 import { resolveActiveSegments, renderSegments } from "../skip/segments";
 import { updateSubtitleOptions } from "../subtitles";
@@ -7,6 +7,7 @@ import { updateModeButtons } from "../mode";
 import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from "./ui";
 import { markEpisodeTransition } from "../progress";
 import { safeLocalStorage } from "../storage";
+import { completeAnime } from "./complete";
 
 /**
  * Handles video end: either marks complete or loads next episode.
@@ -16,14 +17,20 @@ export const goToNextEpisode = async (): Promise<void> => {
   const currentEp = Number.parseInt(state.currentEpisode, 10);
   if (!currentEp) return;
 
-  // final episode: trigger completion flow
+  // final episode: trigger completion flow or just stop if airing
   if (state.totalEpisodes > 0 && currentEp >= state.totalEpisodes) {
-    import("./complete").then((m) => m.completeAnime(currentEp));
+    if (!state.isAiring) {
+      void completeAnime(currentEp);
+    }
+    showEndState();
     return;
   }
 
   // skip if autoplay disabled
-  if (!isAutoplayEnabled()) return;
+  if (!isAutoplayEnabled()) {
+    showEndState();
+    return;
+  }
 
   const nextEp = currentEp + 1;
   markEpisodeTransition(nextEp);
@@ -61,6 +68,10 @@ export const goToNextEpisode = async (): Promise<void> => {
 
     state.currentEpisode = String(nextEp);
     state.currentMode = fallback;
+    state.endedProgressSaved = false;
+
+    hideEndState();
+
     if (data.mode_switched_from === "dub" && fallback === "sub") {
       window.showToast?.({
         message: `Episode ${nextEp} is only available in sub, switched from dub.`,

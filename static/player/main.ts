@@ -1,4 +1,4 @@
-import { state, initState } from "./state";
+import { state, initState, showEndState, hideEndState } from "./state";
 import { invalidateBounds, updateTimeline } from "./timeline";
 import { setupControls, showControls } from "./controls";
 import { setupKeyboard } from "./keyboard";
@@ -11,7 +11,7 @@ import { goToNextEpisode } from "./episodes/nav";
 import { resolveActiveSegments, renderSegments } from "./skip/segments";
 import { setupSegmentEditor } from "./skip/editor";
 import { setupThumbnails } from "./episodes/thumbnails";
-import { markEpisodeTransition, setupProgress } from "./progress";
+import { markEpisodeTransition, saveEndedProgress, setupProgress } from "./progress";
 import { safeLocalStorage } from "./storage";
 import {
   absoluteTimeFromDisplay,
@@ -137,10 +137,16 @@ const initPlayer = (): void => {
     resolveActiveSegments();
     renderSegments();
 
-    // resume from saved position
+    // Resume from saved position
     const startTime = state.startTimeSeconds;
-    if (startTime > 0 && state.video.currentTime <= 0.5 && getBounds().duration > startTime) {
-      state.video.currentTime = absoluteTimeFromDisplay(startTime);
+    const bounds = getBounds();
+    const resumeTime = bounds.duration > 0 ? Math.min(startTime, bounds.duration) : 0;
+    const isAtEnd = startTime > 0 && bounds.duration > 0 && startTime >= bounds.duration - 2;
+
+    if (startTime > 0 && state.video.currentTime <= 2) {
+      if (resumeTime > 0) {
+        state.video.currentTime = absoluteTimeFromDisplay(resumeTime);
+      }
     }
     // resume after mode switch
     if (state.pendingSeekTime !== null) {
@@ -151,12 +157,18 @@ const initPlayer = (): void => {
       state.transitionEpisode = null;
     }
     // autoplay if not already playing (inline script may have already called play())
-    if (state.shouldAutoPlay || state.video.paused) {
+    // but don't autoplay if we've reached the end
+    if (!isAtEnd && (state.shouldAutoPlay || state.video.paused)) {
       state.video.play().catch(() => undefined);
     }
 
     updateTimeline(state.video.currentTime);
     updateSkipButton(state.video.currentTime);
+
+    // Apply end-state visuals if we resumed at the end
+    if (isAtEnd) {
+      showEndState();
+    }
   };
 
   state.video.addEventListener("loadedmetadata", onLoadedMetadata, { signal });
@@ -200,14 +212,20 @@ const initPlayer = (): void => {
       updateTimeline(state.video.currentTime);
       updateSubtitleRender(displayTimeFromAbsolute(state.video.currentTime));
       updateSkipButton(state.video.currentTime);
+
+      // Restore visibility if we've moved away from the end
+      if (state.video.currentTime < state.video.duration - 1) {
+        hideEndState();
+      }
     },
     { signal },
   );
 
   state.video.addEventListener(
     "ended",
-    () => {
-      goToNextEpisode();
+    async () => {
+      await saveEndedProgress();
+      await goToNextEpisode();
     },
     { signal },
   );
