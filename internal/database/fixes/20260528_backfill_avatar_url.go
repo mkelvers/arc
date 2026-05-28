@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"mal/internal/users"
+	"mal/internal"
 )
 
 func init() {
@@ -34,7 +34,7 @@ func init() {
 			}
 
 			for _, u := range toUpdate {
-				avatarURL := users.DefaultAvatarURL(u.username)
+				avatarURL := internal.DefaultAvatarURL(u.username)
 				if _, err := sqlDB.ExecContext(ctx, `UPDATE user SET avatar_url = ? WHERE id = ?`, avatarURL, u.id); err != nil {
 					return fmt.Errorf("update avatar_url for user %s: %w", u.id, err)
 				}
