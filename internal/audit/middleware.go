@@ -5,14 +5,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"mal/internal/auditctx"
 )
 
 func ContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := clientIP(c.ClientIP())
 		userAgent := strings.TrimSpace(c.GetHeader("User-Agent"))
-		c.Request = c.Request.WithContext(auditctx.WithRequestInfo(c.Request.Context(), ip, userAgent))
+		c.Request = c.Request.WithContext(WithRequestInfo(c.Request.Context(), ip, userAgent))
 		c.Next()
 	}
 }
