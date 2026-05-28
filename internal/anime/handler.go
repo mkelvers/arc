@@ -1,4 +1,4 @@
-package handler
+package anime
 
 import (
 	"context"
@@ -37,14 +37,6 @@ type Service interface {
 type cachedWeekSchedule struct {
 	fetchedAt time.Time
 	value     animeschedule.WeekSchedule
-}
-
-func wrapAnimes(in []jikan.Anime) []domain.Anime {
-	out := make([]domain.Anime, 0, len(in))
-	for _, a := range in {
-		out = append(out, domain.Anime{Anime: a})
-	}
-	return out
 }
 
 func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService) *AnimeHandler {
