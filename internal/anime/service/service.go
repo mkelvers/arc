@@ -29,7 +29,7 @@ func wrapAnimes(in []jikan.Anime) []domain.Anime {
 	return out
 }
 
-func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) domain.AnimeService {
+func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) *animeService {
 	return &animeService{jikan: jikan, repo: repo}
 }
 

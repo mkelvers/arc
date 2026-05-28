@@ -20,11 +20,18 @@ import (
 )
 
 type AnimeHandler struct {
-	svc          domain.AnimeService
+	svc          Service
 	watchlistSvc domain.WatchlistService
 
 	scheduleCacheMu sync.Mutex
 	scheduleCache   map[string]cachedWeekSchedule
+}
+
+type Service interface {
+	domain.AnimeCatalogService
+	domain.AnimeDiscoverService
+	domain.AnimeSearchService
+	domain.AnimeDetailsService
 }
 
 type cachedWeekSchedule struct {
@@ -40,7 +47,7 @@ func wrapAnimes(in []jikan.Anime) []domain.Anime {
 	return out
 }
 
-func NewAnimeHandler(svc domain.AnimeService, watchlistSvc domain.WatchlistService) *AnimeHandler {
+func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService) *AnimeHandler {
 	return &AnimeHandler{
 		svc:           svc,
 		watchlistSvc:  watchlistSvc,
