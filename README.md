@@ -55,7 +55,7 @@ go build -o server ./cmd/server
 golangci-lint run ./...
 go mod tidy
 go test -race ./...
-bunx prettier . --check
+bunx oxfmt --check
 bun run lint:ts
 bun run typecheck
 bun run build:assets

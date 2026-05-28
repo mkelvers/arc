@@ -2,14 +2,14 @@ name: ci
 
 on:
   push:
-    branches: ['**']
+    branches: ["**"]
   pull_request:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: 'ci-${{ forgejo.ref }}'
+  group: "ci-${{ forgejo.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Run go tests (race)
         env:
-          CGO_ENABLED: '1'
+          CGO_ENABLED: "1"
         run: go test -race ./...
 
       - name: Build server binary
@@ -78,10 +78,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Check prettier formatting
-        run: bunx prettier . --check
+      - name: Check formatting
+        run: bun run format:check
 
-      - name: Run eslint
+      - name: Run oxlint
         run: bun run lint:ts
 
       - name: Typecheck
