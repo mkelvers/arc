@@ -192,23 +192,40 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 
 	limit := min(len(rankedIDs), 12)
 
-	animes := make([]domain.Anime, 0, limit)
+	animes := make([]domain.Anime, limit)
+	g.SetLimit(6)
+
 	for i := range limit {
-		anime, fetchErr := s.jikan.GetAnimeByID(ctx, rankedIDs[i].id)
-		if fetchErr != nil {
-			observability.Warn(
-				"recommendation_anime_fetch_failed",
-				"anime",
-				"",
-				map[string]any{"anime_id": rankedIDs[i].id},
-				fetchErr,
-			)
-			continue
-		}
-		animes = append(animes, domain.Anime{Anime: anime})
+		g.Go(func() error {
+			anime, fetchErr := s.jikan.GetAnimeByID(ctx, rankedIDs[i].id)
+			if fetchErr != nil {
+				observability.Warn(
+					"recommendation_anime_fetch_failed",
+					"anime",
+					"",
+					map[string]any{"anime_id": rankedIDs[i].id},
+					fetchErr,
+				)
+				return nil
+			}
+			animes[i] = domain.Anime{Anime: anime}
+			return nil
+		})
 	}
 
-	return domain.DiscoverSectionData{Animes: animes}, nil
+	if err := g.Wait(); err != nil {
+		return domain.DiscoverSectionData{}, err
+	}
+
+	// Filter out empty animes if any fetch failed silently
+	filtered := make([]domain.Anime, 0, len(animes))
+	for _, a := range animes {
+		if a.MalID > 0 {
+			filtered = append(filtered, a)
+		}
+	}
+
+	return domain.DiscoverSectionData{Animes: filtered}, nil
 }
 
 func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]domain.Anime, error) {
