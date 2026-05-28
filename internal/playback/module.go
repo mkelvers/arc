@@ -6,23 +6,21 @@ import (
 	"mal/internal/config"
 	"mal/internal/domain"
 	"mal/internal/playback/handler"
-	"mal/internal/playback/repository"
-	"mal/internal/playback/service"
 	"mal/internal/server"
 
 	"go.uber.org/fx"
 )
 
-func provideProxyTokenKey(cfg config.Config) service.ProxyTokenKey {
-	return service.ProxyTokenKey(cfg.PlaybackProxySecret)
+func provideProxyTokenKey(cfg config.Config) ProxyTokenKey {
+	return ProxyTokenKey(cfg.PlaybackProxySecret)
 }
 
 var Module = fx.Options(
 	fx.Provide(
-		repository.NewPlaybackRepository,
+		NewPlaybackRepository,
 		fx.Annotate(
-			func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey service.ProxyTokenKey) domain.PlaybackService {
-				return service.NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
+			func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
+				return NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
 			},
 		),
 		func(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *handler.PlaybackHandler {
