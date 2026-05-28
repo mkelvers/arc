@@ -13,4 +13,4 @@ export const qs = <T extends Element>(selector: string): T | null =>
 /**
  * Get a data attribute value from an element, defaults to empty string.
  */
-export const dataset = (el: HTMLElement, key: string): string => el.dataset[key] ?? '';
+export const dataset = (el: HTMLElement, key: string): string => el.dataset[key] ?? "";

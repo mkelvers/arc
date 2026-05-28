@@ -7,7 +7,7 @@ export const parseClassList = (value: string | null): string[] => {
   }
 
   return value
-    .split(' ')
+    .split(" ")
     .map((entry: string): string => entry.trim())
     .filter((entry: string): boolean => entry.length > 0);
 };
