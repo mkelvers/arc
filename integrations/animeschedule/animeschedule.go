@@ -5,8 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mal/pkg/net/limits"
-	"mal/pkg/net/useragent"
+	netutil "mal/pkg/net"
 	"net/http"
 	"net/url"
 	"os"
@@ -274,7 +273,7 @@ func absolutizeURL(base string, href string) string {
 }
 
 func addCommonHeaders(request *http.Request) {
-	request.Header.Set("User-Agent", useragent.Chrome135)
+	request.Header.Set("User-Agent", netutil.Chrome135)
 	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	request.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	request.Header.Set("Referer", "https://animeschedule.net/")
@@ -300,7 +299,7 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(response.Body, limits.Bytes512))
+		body, _ := io.ReadAll(io.LimitReader(response.Body, netutil.Bytes512))
 		return nil, url, &HTTPStatusError{
 			StatusCode:  response.StatusCode,
 			URL:         url,
@@ -352,7 +351,7 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", useragent.Chrome135)
+	req.Header.Set("User-Agent", netutil.Chrome135)
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -361,7 +360,7 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(res.Body, limits.Bytes512))
+		body, _ := io.ReadAll(io.LimitReader(res.Body, netutil.Bytes512))
 		return WeekSchedule{}, &HTTPStatusError{
 			StatusCode:  res.StatusCode,
 			URL:         u.String(),
