@@ -1,12 +1,12 @@
-import { state } from '../state';
-import type { SkipSegment } from '../types';
-import { resolveActiveSegments, renderSegments } from '../skip/segments';
-import { updateSubtitleOptions } from '../subtitles';
-import { updateQualityOptions } from '../quality';
-import { updateModeButtons } from '../mode';
-import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from './ui';
-import { markEpisodeTransition } from '../progress';
-import { safeLocalStorage } from '../storage';
+import { state } from "../state";
+import type { SkipSegment } from "../types";
+import { resolveActiveSegments, renderSegments } from "../skip/segments";
+import { updateSubtitleOptions } from "../subtitles";
+import { updateQualityOptions } from "../quality";
+import { updateModeButtons } from "../mode";
+import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from "./ui";
+import { markEpisodeTransition } from "../progress";
+import { safeLocalStorage } from "../storage";
 
 /**
  * Handles video end: either marks complete or loads next episode.
@@ -18,7 +18,7 @@ export const goToNextEpisode = async (): Promise<void> => {
 
   // final episode: trigger completion flow
   if (state.totalEpisodes > 0 && currentEp >= state.totalEpisodes) {
-    import('./complete').then(m => m.completeAnime(currentEp));
+    import("./complete").then((m) => m.completeAnime(currentEp));
     return;
   }
 
@@ -30,13 +30,13 @@ export const goToNextEpisode = async (): Promise<void> => {
 
   try {
     const res = await fetch(
-      `/api/watch/episode/${state.malID}/${nextEp}?mode=${encodeURIComponent(state.currentMode)}`
+      `/api/watch/episode/${state.malID}/${nextEp}?mode=${encodeURIComponent(state.currentMode)}`,
     );
     if (!res.ok) {
       // fallback: full page navigation
-      sessionStorage.setItem('mal:autoplay-next', 'true');
+      sessionStorage.setItem("mal:autoplay-next", "true");
       const url = new URL(window.location.href);
-      url.searchParams.set('ep', String(nextEp));
+      url.searchParams.set("ep", String(nextEp));
       window.location.href = url.toString();
       return;
     }
@@ -47,21 +47,21 @@ export const goToNextEpisode = async (): Promise<void> => {
     state.modeSources = data.mode_sources ?? {};
     state.availableModes = data.available_modes ?? [];
 
-    const backendMode = typeof data.initial_mode === 'string' ? data.initial_mode : '';
+    const backendMode = typeof data.initial_mode === "string" ? data.initial_mode : "";
     const fallback = state.modeSources[backendMode]?.token
       ? backendMode
-      : state.availableModes.find(m => state.modeSources[m]?.token);
+      : state.availableModes.find((m) => state.modeSources[m]?.token);
     if (!fallback) {
-      sessionStorage.setItem('mal:autoplay-next', 'true');
+      sessionStorage.setItem("mal:autoplay-next", "true");
       const url = new URL(window.location.href);
-      url.searchParams.set('ep', String(nextEp));
+      url.searchParams.set("ep", String(nextEp));
       window.location.href = url.toString();
       return;
     }
 
     state.currentEpisode = String(nextEp);
     state.currentMode = fallback;
-    if (data.mode_switched_from === 'dub' && fallback === 'sub') {
+    if (data.mode_switched_from === "dub" && fallback === "sub") {
       window.showToast?.({
         message: `Episode ${nextEp} is only available in sub, switched from dub.`,
       });
@@ -72,8 +72,8 @@ export const goToNextEpisode = async (): Promise<void> => {
     state.container.dataset.startTimeSeconds = String(state.startTimeSeconds);
 
     // load new video (keep preferences)
-    const preferredQuality = safeLocalStorage.getItem('mal:preferred-quality') || 'best';
-    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== 'best' ? `&quality=${encodeURIComponent(preferredQuality)}` : ''}`;
+    const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
+    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
     state.video.load();
     if (!state.video.paused) {
       state.video.play().catch(() => undefined);
@@ -88,7 +88,7 @@ export const goToNextEpisode = async (): Promise<void> => {
     updateSubtitleOptions();
     updateQualityOptions();
     updateModeButtons();
-    updateOverlay(state.currentEpisode, data.episode_title ?? '');
+    updateOverlay(state.currentEpisode, data.episode_title ?? "");
 
     // update skip segments
     if (data.segments?.length) {
@@ -101,28 +101,28 @@ export const goToNextEpisode = async (): Promise<void> => {
 
     // highlight new episode in list/grid
     state.episodeList
-      ?.querySelectorAll('[data-episode-id]')
-      .forEach(el => el.classList.remove('bg-accent/20'));
+      ?.querySelectorAll("[data-episode-id]")
+      .forEach((el) => el.classList.remove("bg-accent/20"));
     const newListEl = state.episodeList?.querySelector(`[data-episode-id="${nextEp}"]`);
-    newListEl?.classList.add('bg-accent/20');
+    newListEl?.classList.add("bg-accent/20");
 
     if (state.episodeGrid) {
-      state.episodeGrid.querySelectorAll('[data-episode-id]').forEach(el => {
-        el.classList.remove('bg-accent/20', 'ring-2', 'ring-accent', 'text-accent');
+      state.episodeGrid.querySelectorAll("[data-episode-id]").forEach((el) => {
+        el.classList.remove("bg-accent/20", "ring-2", "ring-accent", "text-accent");
       });
       switchEpisodeRange(Math.floor((nextEp - 1) / 100));
       const newGridEl = state.episodeGrid.querySelector(`[data-episode-id="${nextEp}"]`);
-      newGridEl?.classList.add('bg-accent/20', 'ring-2', 'ring-accent', 'text-accent');
+      newGridEl?.classList.add("bg-accent/20", "ring-2", "ring-accent", "text-accent");
     }
 
     // update URL without reload
     const url = new URL(window.location.href);
-    url.searchParams.set('ep', String(nextEp));
-    history.pushState(null, '', url.toString());
+    url.searchParams.set("ep", String(nextEp));
+    history.pushState(null, "", url.toString());
   } catch {
-    sessionStorage.setItem('mal:autoplay-next', 'true');
+    sessionStorage.setItem("mal:autoplay-next", "true");
     const url = new URL(window.location.href);
-    url.searchParams.set('ep', String(nextEp));
+    url.searchParams.set("ep", String(nextEp));
     window.location.href = url.toString();
   }
 };
