@@ -1,4 +1,4 @@
-import { state } from '../state';
+import { state } from "../state";
 
 // filter bounds for valid segments
 const MIN_SEGMENT_DURATION = 20; // at least 20s
@@ -17,17 +17,17 @@ export const resolveActiveSegments = (): void => {
     return;
   }
 
-  const normalizeType = (t: string): 'op' | 'ed' | null => {
-    const v = (t || '').toLowerCase();
-    if (v === 'op' || v === 'opening' || v === 'intro') return 'op';
-    if (v === 'ed' || v === 'ending' || v === 'outro') return 'ed';
+  const normalizeType = (t: string): "op" | "ed" | null => {
+    const v = (t || "").toLowerCase();
+    if (v === "op" || v === "opening" || v === "intro") return "op";
+    if (v === "ed" || v === "ending" || v === "outro") return "ed";
     return null;
   };
 
-  state.activeSegments = state.parsedSegments.filter(s => {
+  state.activeSegments = state.parsedSegments.filter((s) => {
     const t = normalizeType(s.type);
     if (!t) return false;
-    const isOverride = (s.source || '').toLowerCase() === 'override';
+    const isOverride = (s.source || "").toLowerCase() === "override";
 
     const len = s.end - s.start;
     // duration filter
@@ -39,11 +39,11 @@ export const resolveActiveSegments = (): void => {
     if (isOverride) return true;
 
     // intro: starts early, before 50% of video
-    if (t === 'op') {
+    if (t === "op") {
       return s.start <= MAX_INTRO_START && s.start <= bounds * 0.5;
     }
     // outro: starts in second half of video
-    if (t === 'ed') {
+    if (t === "ed") {
       return s.start >= bounds * MIN_OUTRO_START_RATIO;
     }
     return false;
@@ -54,21 +54,21 @@ export const resolveActiveSegments = (): void => {
  * Renders segment markers on the timeline progress bar.
  */
 export const renderSegments = (): void => {
-  const track = state.container.querySelector('[data-segments]') as HTMLElement | null;
+  const track = state.container.querySelector("[data-segments]") as HTMLElement | null;
   if (!track) return;
-  track.innerHTML = '';
+  track.innerHTML = "";
 
   const bounds = state.video.duration;
   if (bounds <= 0) return;
 
   // create clearly visible colored bars for each segment
-  state.activeSegments.forEach(s => {
-    const bar = document.createElement('div');
+  state.activeSegments.forEach((s) => {
+    const bar = document.createElement("div");
     // use distinct colors so segments are readable over buffered/progress fills
-    bar.className = 'absolute top-0 h-full opacity-95';
+    bar.className = "absolute top-0 h-full opacity-95";
     // distinct colors for OP/ED, rendered above buffered/progress fills
-    const t = (s.type || '').toLowerCase();
-    bar.style.backgroundColor = t === 'ed' ? '#60a5fa' : '#f5c542';
+    const t = (s.type || "").toLowerCase();
+    bar.style.backgroundColor = t === "ed" ? "#60a5fa" : "#f5c542";
     bar.style.left = `${(s.start / bounds) * 100}%`;
     bar.style.width = `${((s.end - s.start) / bounds) * 100}%`;
     track.appendChild(bar);
