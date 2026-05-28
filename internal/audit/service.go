@@ -1,11 +1,10 @@
-package service
+package audit
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"mal/internal/auditctx"
 	"mal/internal/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -31,7 +30,7 @@ func (s *auditService) Record(ctx context.Context, event domain.AuditEvent) erro
 		return errors.New("audit action missing")
 	}
 
-	ip, userAgent := auditctx.RequestInfoFromContext(ctx)
+	ip, userAgent := RequestInfoFromContext(ctx)
 	if strings.TrimSpace(event.IP) != "" {
 		ip = event.IP
 	}
