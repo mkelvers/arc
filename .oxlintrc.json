@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "typescript/unbound-method": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/no-floating-promises": "off"
+  },
+  "env": {
+    "builtin": true
+  }
+}
