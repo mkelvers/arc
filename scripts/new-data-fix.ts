@@ -1,17 +1,17 @@
-import { mkdir, writeFile, access } from 'node:fs/promises';
-import { constants as fsConstants } from 'node:fs';
-import path from 'node:path';
+import { mkdir, writeFile, access } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import path from "node:path";
 
 function toSlug(raw: string): string {
   const trimmed = raw.trim().toLowerCase();
-  const slug = trimmed.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const slug = trimmed.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   return slug;
 }
 
 function formatYYYYMMDD(date: Date): string {
   const year = String(date.getFullYear());
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}${month}${day}`;
 }
 
@@ -25,14 +25,14 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 async function main(): Promise<void> {
-  const rawName = process.argv[2] ?? '';
+  const rawName = process.argv[2] ?? "";
   const slug = toSlug(rawName);
   if (slug.length === 0) {
-    throw new Error('usage: bun scripts/new-data-fix.ts <name>');
+    throw new Error("usage: bun scripts/new-data-fix.ts <name>");
   }
 
   const id = `${formatYYYYMMDD(new Date())}_${slug}`;
-  const dir = path.join(process.cwd(), 'internal', 'database', 'fixes');
+  const dir = path.join(process.cwd(), "internal", "database", "fixes");
   const filePath = path.join(dir, `${id}.go`);
 
   await mkdir(dir, { recursive: true });
@@ -62,7 +62,7 @@ func init() {
 }
 `;
 
-  await writeFile(filePath, contents, { encoding: 'utf8' });
+  await writeFile(filePath, contents, { encoding: "utf8" });
   process.stdout.write(`${filePath}\n`);
 }
 
