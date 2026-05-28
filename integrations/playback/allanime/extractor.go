@@ -2,9 +2,10 @@ package allanime
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"mal/pkg/net/limits"
+	netutil "mal/pkg/net"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -54,7 +55,7 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.MiB2)) // 2MB limit
+	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2)) // 2MB limit
 	if err != nil {
 		return nil, fmt.Errorf("read provider response: %w", err)
 	}
@@ -66,25 +67,83 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 func (e *providerExtractor) parseProviderResponse(ctx context.Context, response string) []StreamSource {
 	sources := make([]StreamSource, 0)
 	providerReferer := e.referer
-
-	// extract per-source referer if present
-	refererPattern := regexp.MustCompile(`"Referer":"([^"]+)"`)
-	if match := refererPattern.FindStringSubmatch(response); len(match) >= 2 {
-		providerReferer = strings.ReplaceAll(match[1], `\/`, "/")
+	var root any
+	if err := json.Unmarshal([]byte(response), &root); err != nil {
+		return sources
 	}
+
+	type linkItem struct {
+		link          string
+		resolutionStr string
+	}
+	type hlsItem struct {
+		url         string
+		hardsubLang string
+	}
+
+	linkItems := make([]linkItem, 0)
+	hlsItems := make([]hlsItem, 0)
+	subtitles := make([]Subtitle, 0)
+
+	var walk func(v any)
+	walk = func(v any) {
+		switch x := v.(type) {
+		case map[string]any:
+			if ref, ok := x["Referer"].(string); ok && strings.TrimSpace(ref) != "" {
+				providerReferer = strings.TrimSpace(ref)
+			}
+
+			if link, ok := x["link"].(string); ok {
+				if res, ok := x["resolutionStr"].(string); ok {
+					linkItems = append(linkItems, linkItem{link: link, resolutionStr: res})
+				}
+			}
+
+			if u, ok := x["url"].(string); ok {
+				if lang, ok := x["hardsub_lang"].(string); ok {
+					hlsItems = append(hlsItems, hlsItem{url: u, hardsubLang: lang})
+				}
+			}
+
+			if subs, ok := x["subtitles"].([]any); ok {
+				for _, sub := range subs {
+					obj, ok := sub.(map[string]any)
+					if !ok {
+						continue
+					}
+					lang, _ := obj["lang"].(string)
+					src, _ := obj["src"].(string)
+					lang = strings.TrimSpace(lang)
+					src = strings.TrimSpace(src)
+					if lang == "" || src == "" {
+						continue
+					}
+					subtitles = append(subtitles, Subtitle{Lang: lang, URL: src})
+				}
+			}
+
+			for _, child := range x {
+				walk(child)
+			}
+		case []any:
+			for _, child := range x {
+				walk(child)
+			}
+		}
+	}
+
+	walk(root)
+
 	if providerReferer == "" {
 		providerReferer = e.referer
 	}
 
-	// extract direct link sources (mp4/embed)
-	linkPattern := regexp.MustCompile(`"link":"([^"]+)","resolutionStr":"([^"]+)"`)
-	for _, match := range linkPattern.FindAllStringSubmatch(response, -1) {
-		if len(match) < 3 {
+	for _, item := range linkItems {
+		link := strings.TrimSpace(item.link)
+		if link == "" {
 			continue
 		}
-
-		link := strings.ReplaceAll(match[1], `\/`, "/")
-		quality := strings.TrimSpace(match[2])
+		quality := strings.TrimSpace(item.resolutionStr)
 		sourceType := detectStreamType(link)
 		if sourceType == "unknown" {
 			sourceType = detectEmbedType(link)
@@ -99,14 +158,15 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		})
 	}
 
-	// extract HLS playlist sources
-	hlsPattern := regexp.MustCompile(`"url":"([^"]+)","hardsub_lang":"en-US"`)
-	for _, match := range hlsPattern.FindAllStringSubmatch(response, -1) {
-		if len(match) < 2 {
+	for _, item := range hlsItems {
+		if strings.TrimSpace(item.url) == "" {
+			continue
+		}
+		if item.hardsubLang != "en-US" {
 			continue
 		}
 
-		playlistURL := strings.ReplaceAll(match[1], `\/`, "/")
+		playlistURL := strings.TrimSpace(item.url)
 		if strings.Contains(playlistURL, "master.m3u8") {
 			parsed, err := e.parseM3U8(ctx, playlistURL, providerReferer)
 			if err == nil {
@@ -124,26 +184,9 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		})
 	}
 
-	// extract subtitles and attach to all sources
-	subtitlePattern := regexp.MustCompile(`"subtitles":\[(.*?)\]`)
-	if subtitleMatch := subtitlePattern.FindStringSubmatch(response); len(subtitleMatch) >= 2 {
-		subtitles := make([]Subtitle, 0)
-		subtitleEntryPattern := regexp.MustCompile(`"lang":"([^"]+)".*?"src":"([^"]+)"`)
-		for _, entry := range subtitleEntryPattern.FindAllStringSubmatch(subtitleMatch[1], -1) {
-			if len(entry) < 3 {
-				continue
-			}
-
-			subtitles = append(subtitles, Subtitle{
-				Lang: strings.TrimSpace(entry[1]),
-				URL:  strings.ReplaceAll(entry[2], `\/`, "/"),
-			})
-		}
-
-		if len(subtitles) > 0 {
-			for idx := range sources {
-				sources[idx].Subtitles = subtitles
-			}
+	if len(subtitles) > 0 && len(sources) > 0 {
+		for idx := range sources {
+			sources[idx].Subtitles = append([]Subtitle(nil), subtitles...)
 		}
 	}
 
@@ -158,7 +201,7 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, limits.KiB512)) // 512KB limit
+	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.KiB512)) // 512KB limit
 	if err != nil {
 		return nil, err
 	}
