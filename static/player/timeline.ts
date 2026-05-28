@@ -1,6 +1,6 @@
-import type { TimelineBounds } from './types';
-import { state } from './state';
-import { formatTime } from './controls';
+import type { TimelineBounds } from "./types";
+import { state } from "./state";
+import { formatTime } from "./controls";
 
 // cached to avoid recalc on every timeupdate
 let cachedBounds: TimelineBounds = { start: 0, end: 0, duration: 0 };
@@ -124,11 +124,11 @@ export const updateTimeline = (currentTime: number): void => {
   const b = getBounds();
 
   if (b.duration <= 0) {
-    progress.style.width = '0%';
-    buffered.style.width = '0%';
-    scrubber.style.left = '0%';
-    timeDisplay.textContent = '00:00';
-    durationDisplay.textContent = '00:00';
+    progress.style.width = "0%";
+    buffered.style.width = "0%";
+    scrubber.style.left = "0%";
+    timeDisplay.textContent = "00:00";
+    durationDisplay.textContent = "00:00";
     return;
   }
 
