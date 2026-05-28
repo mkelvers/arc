@@ -1,4 +1,4 @@
-package limits
+package netutil
 
 // Common size limits used when reading upstream responses.
 
