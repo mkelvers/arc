@@ -39,6 +39,7 @@ RUN sqlc generate
 
 # Build the server and CLI tools
 RUN go build -ldflags="-s -w" -o main_server ./cmd/server
+RUN go build -ldflags="-s -w" -o create-user ./cmd/user
 
 FROM debian:bookworm-slim
 
@@ -54,6 +55,7 @@ RUN mkdir -p /app/data
 ENV DATABASE_FILE=/app/data/mal.db
 
 COPY --from=builder /app/main_server .
+COPY --from=builder /app/create-user .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
