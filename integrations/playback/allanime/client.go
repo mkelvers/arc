@@ -220,6 +220,7 @@ func (c *AllAnimeProvider) GetEpisodeAvailabilityByProviderID(ctx context.Contex
 
 func (c *AllAnimeProvider) resolveShowIDStrict(ctx context.Context, animeID int, titleCandidates []string, mode string) (string, error) {
 	targetMalIDStr := strconv.Itoa(animeID)
+	var firstAvailableShowID string
 	for _, title := range titleCandidates {
 		searchResults, err := c.Search(ctx, title, mode)
 		if err != nil {
@@ -229,7 +230,13 @@ func (c *AllAnimeProvider) resolveShowIDStrict(ctx context.Context, animeID int,
 			if res.MalID == targetMalIDStr {
 				return res.ID, nil
 			}
+			if firstAvailableShowID == "" {
+				firstAvailableShowID = res.ID
+			}
 		}
+	}
+	if firstAvailableShowID != "" {
+		return firstAvailableShowID, nil
 	}
 	return "", fmt.Errorf("allanime: no strict mal id match for %d", animeID)
 }

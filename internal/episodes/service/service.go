@@ -80,7 +80,20 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 		return fmt.Errorf("get due tracked anime: %w", err)
 	}
 
-	for _, id := range ids {
+	for i, id := range ids {
+		if ctx.Err() != nil {
+			observability.Warn(
+				"episodes_worker_tick_interrupted",
+				"episodes",
+				"",
+				map[string]any{
+					"anime_id":  id,
+					"remaining": len(ids) - i,
+				},
+				ctx.Err(),
+			)
+			break
+		}
 		anime, err := s.jikan.GetAnimeByID(ctx, int(id))
 		if err != nil {
 			observability.Warn(
@@ -152,7 +165,13 @@ func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domai
 			return cached, nil
 		}
 		if jikanErr == nil {
-			return s.store(ctx, anime, jikanEpisodes, domain.EpisodeAvailability{}, "jikan_fallback", now, false)
+			storeCtx := ctx
+			if ctx.Err() != nil {
+				var cancel context.CancelFunc
+				storeCtx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+			}
+			return s.store(storeCtx, anime, jikanEpisodes, domain.EpisodeAvailability{}, "jikan_fallback", now, false)
 		}
 		return domain.CanonicalEpisodeList{}, providerErr
 	}
@@ -385,7 +404,13 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 		nextSQL = sql.NullTime{Time: next, Valid: true}
 	}
 
-	err := s.queries.MarkEpisodeAvailabilityRefreshFailed(ctx, db.MarkEpisodeAvailabilityRefreshFailedParams{
+	writeCtx := ctx
+	if ctx.Err() != nil {
+		var cancel context.CancelFunc
+		writeCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+	}
+	err := s.queries.MarkEpisodeAvailabilityRefreshFailed(writeCtx, db.MarkEpisodeAvailabilityRefreshFailedParams{
 		LastAttemptAt: sql.NullTime{Time: now, Valid: true},
 		LastError:     truncate(cause.Error(), 400),
 		NextRefreshAt: nextSQL,
