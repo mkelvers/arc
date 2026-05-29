@@ -2,10 +2,10 @@
 
 Application entrypoints.
 
-| binary       | purpose                           |
-| ------------ | --------------------------------- |
-| `cmd/server` | HTTP server and worker processes  |
-| `cmd/user`   | User management CLI               |
+| binary       | purpose                          |
+| ------------ | -------------------------------- |
+| `cmd/server` | HTTP server and worker processes |
+| `cmd/user`   | User management CLI              |
 
 ## Conventions
 
