@@ -1,4 +1,6 @@
-# Components Index
+# Components
+
+Reusable Go template components.
 
 ## Available Templates
 
@@ -16,18 +18,23 @@
 
 ## Usage
 
-All components are exposed as Go templates. Import by name:
+Components are rendered with `{{template "name" .}}`. Props follow a keyword convention:
 
 ```gohtml
 {{template "anime_card" dict "Anime" .Data "WithActions" true}}
 {{template "navigation" dict "CurrentPath" .CurrentPath}}
-{{/* header removed */}}
 ```
 
 ## Props Convention
 
-Components accept a `dict` with named keys:
+Components receive a `dict` with named keys — no positional arguments, no implicit state.
 
-- `dict "Key" .Value "Key2" .Value2`
+```
+dict "Key" .Value "Key2" .Value2
+```
 
-This keeps prop names explicit and self-documenting.
+## Adding a component
+
+1. Create `<name>.gohtml` in this directory.
+2. Register it in `template_fs.go` if not already picked up by the embed glob.
+3. Wire it into the page template.
