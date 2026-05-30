@@ -33,4 +33,3 @@ export const loadVideoSource = (url: string): void => {
     state.video.play().catch(() => undefined);
   }
 };
-
