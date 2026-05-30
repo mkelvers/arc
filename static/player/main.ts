@@ -143,6 +143,26 @@ const initPlayer = (): void => {
     const resumeTime = bounds.duration > 0 ? Math.min(startTime, bounds.duration) : 0;
     const isAtEnd = startTime > 0 && bounds.duration > 0 && startTime >= bounds.duration - 2;
 
+    // Resume after a mode-switch page reload (best effort, session-scoped).
+    const resumeAfterModeSwitch = (() => {
+      try {
+        const raw = sessionStorage.getItem("mal:resume-after-mode-switch");
+        if (raw === null) return null;
+        sessionStorage.removeItem("mal:resume-after-mode-switch");
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (resumeAfterModeSwitch !== null) {
+      const clamped = bounds.duration > 0 ? Math.min(resumeAfterModeSwitch, bounds.duration) : 0;
+      if (clamped > 0) {
+        state.video.currentTime = clamped;
+      }
+    }
+
     if (startTime > 0 && state.video.currentTime <= 2) {
       if (resumeTime > 0) {
         state.video.currentTime = absoluteTimeFromDisplay(resumeTime);

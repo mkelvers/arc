@@ -1,9 +1,9 @@
 import { state } from "./state";
-import { displayTimeFromAbsolute } from "./timeline";
 import { showControls } from "./controls";
 import { updateSubtitleOptions } from "./subtitles";
 import { updateQualityOptions } from "./quality";
 import { safeLocalStorage } from "./storage";
+import { loadVideoSource } from "./video";
 
 // builds stream URL with mode, token, and optional quality param
 const streamUrlForMode = (mode: string, quality?: string): string => {
@@ -12,19 +12,6 @@ const streamUrlForMode = (mode: string, quality?: string): string => {
   let url = `${state.streamURL}?mode=${encodeURIComponent(mode)}&token=${encodeURIComponent(src.token)}`;
   if (quality && quality !== "best") url += `&quality=${encodeURIComponent(quality)}`;
   return url;
-};
-
-// switches video src while preserving playback position
-const loadVideo = (url: string): void => {
-  if (!url) return;
-  const wasPlaying = !state.video.paused;
-  const prevTime = displayTimeFromAbsolute(state.video.currentTime);
-  state.video.src = url;
-  state.video.load();
-  state.pendingSeekTime = prevTime; // restored in loadedmetadata handler
-  if (wasPlaying) {
-    state.video.play().catch(() => undefined);
-  }
 };
 
 /**
@@ -38,7 +25,30 @@ export const switchMode = (mode: string): void => {
   const qualitySelect = state.container.querySelector(
     "[data-quality-select]",
   ) as HTMLSelectElement | null;
-  loadVideo(streamUrlForMode(mode, qualitySelect?.value));
+  const url = streamUrlForMode(mode, qualitySelect?.value);
+  loadVideoSource(url);
+
+  // Fallback: if the media element doesn't actually switch sources (some browsers can get "stuck"),
+  // reload the page with the desired mode and resume time via sessionStorage.
+  if (url) {
+    const expectedToken = state.modeSources[mode]?.token;
+    const expectedMode = mode;
+    const resumeSeconds = state.video.currentTime;
+    window.setTimeout(() => {
+      if (!expectedToken) return;
+      const currentSrc = state.video.currentSrc || state.video.src || "";
+      if (currentSrc.includes(`token=${encodeURIComponent(expectedToken)}`)) return;
+
+      try {
+        sessionStorage.setItem("mal:resume-after-mode-switch", String(resumeSeconds));
+        const next = new URL(window.location.href);
+        next.searchParams.set("mode", expectedMode);
+        window.location.href = next.toString();
+      } catch {
+        // no-op
+      }
+    }, 800);
+  }
   updateSubtitleOptions();
   updateQualityOptions();
   updateModeButtons();

@@ -196,11 +196,14 @@ export const initState = (c: HTMLElement): boolean => {
     for (const [key, value] of Object.entries(v)) {
       if (!isRecord(value)) continue;
       if (typeof value.token !== "string" || value.token === "") continue;
-      if (!isSubtitleItemArray(value.subtitles)) continue;
+      // `subtitles` can be `null` when the backend has no subtitles for the stream.
+      // Treat that as an empty list instead of dropping the whole mode source.
+      const subtitles = value.subtitles == null ? [] : value.subtitles;
+      if (!isSubtitleItemArray(subtitles)) continue;
       const qualities = value.qualities;
       out[key] = {
         token: value.token,
-        subtitles: value.subtitles,
+        subtitles,
         qualities: isStringArray(qualities) ? qualities : undefined,
       };
     }
@@ -238,6 +241,31 @@ export const initState = (c: HTMLElement): boolean => {
   state.currentMode = state.modeSources[initialMode]?.token
     ? initialMode
     : (fallbackMode ?? state.availableModes[0] ?? "dub");
+
+  // If the inline template script already set a video src, prefer deriving the mode from it.
+  // This avoids mismatches where the UI highlights one mode but the video is actually playing the other.
+  const deriveModeFromVideoSrc = (): string | null => {
+    const raw = state.video.currentSrc || state.video.src;
+    if (!raw) return null;
+    try {
+      const u = new URL(raw, window.location.href);
+      const modeParam = u.searchParams.get("mode");
+      if (modeParam === "sub" || modeParam === "dub") return modeParam;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const modeFromVideo = deriveModeFromVideoSrc();
+  if (
+    modeFromVideo &&
+    modeFromVideo !== state.currentMode &&
+    state.availableModes.includes(modeFromVideo) &&
+    state.modeSources[modeFromVideo]?.token
+  ) {
+    state.currentMode = modeFromVideo;
+  }
 
   // parse skip segments from data attribute
   const segments = parseSegments(safeJsonUnknown(dataset(c, "segments")));

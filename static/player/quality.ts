@@ -1,6 +1,6 @@
 import { state } from "./state";
-import { displayTimeFromAbsolute } from "./timeline";
 import { safeLocalStorage } from "./storage";
+import { loadVideoSource } from "./video";
 
 // same as mode.ts - could be extracted to shared util
 const streamUrlForMode = (mode: string, quality?: string): string => {
@@ -11,18 +11,6 @@ const streamUrlForMode = (mode: string, quality?: string): string => {
   return url;
 };
 
-const loadVideo = (url: string): void => {
-  if (!url) return;
-  const wasPlaying = !state.video.paused;
-  const prevTime = displayTimeFromAbsolute(state.video.currentTime);
-  state.video.src = url;
-  state.video.load();
-  state.pendingSeekTime = prevTime;
-  if (wasPlaying) {
-    state.video.play().catch(() => undefined);
-  }
-};
-
 /**
  * Switches video quality (resolution).
  * Persists preference to localStorage.
@@ -31,7 +19,7 @@ export const switchQuality = (quality: string): void => {
   const url = streamUrlForMode(state.currentMode, quality);
   if (!url) return;
   safeLocalStorage.setItem("mal:preferred-quality", quality);
-  loadVideo(url);
+  loadVideoSource(url);
 };
 
 /**
