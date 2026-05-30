@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mal/integrations/animeschedule"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -68,13 +69,25 @@ func buildScheduleDays(schedule animeschedule.WeekSchedule, year int, week int) 
 	out := make([]scheduleDayView, 0, 7)
 	for i, wd := range order {
 		date := start.AddDate(0, 0, i)
+		entries := schedule.Days[wd]
+		sort.SliceStable(entries, func(i, j int) bool {
+			return localTimeMinutes(entries[i].LocalTime) < localTimeMinutes(entries[j].LocalTime)
+		})
 		out = append(out, scheduleDayView{
 			DateLabel:    strings.ToUpper(date.Format("02 Jan")),
 			WeekdayLabel: wd.String(),
-			Entries:      schedule.Days[wd],
+			Entries:      entries,
 		})
 	}
 	return out
+}
+
+func localTimeMinutes(localTime string) int {
+	t, err := time.Parse("03:04 PM", localTime)
+	if err != nil {
+		return 0
+	}
+	return t.Hour()*60 + t.Minute()
 }
 
 func isoWeekStartMonday(year int, week int) time.Time {
