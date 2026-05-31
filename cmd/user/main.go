@@ -4,6 +4,7 @@ package main
 import (
 	"bufio"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -31,75 +32,156 @@ func main() {
 	}
 	defer func() { _ = dbConn.Close() }()
 
-	if len(os.Args) == 2 {
-		switch os.Args[1] {
-		case "update-avatar":
-			updateAvatars(dbConn)
-			return
-		case "run-fixes":
-			runFixes(dbConn)
-			return
+	os.Exit(run(dbConn, os.Args))
+}
+
+func run(dbConn *sql.DB, args []string) int {
+	cmd, err := parseArgs(args)
+	if err != nil {
+		observability.Warn("cli_usage", "cmd/user", "invalid arguments", map[string]any{"argc": len(args)}, err)
+		_, _ = fmt.Fprintln(os.Stderr, usage())
+		return 2
+	}
+
+	switch cmd.kind {
+	case commandUpdateAvatar:
+		updateAvatars(dbConn)
+		return 0
+	case commandRunFixes:
+		runFixes(dbConn)
+		return 0
+	case commandCreateOrUpdateUser:
+		if err := createOrUpdateUser(dbConn, cmd.username, cmd.password); err != nil {
+			return 1
+		}
+		return 0
+	default:
+		observability.Error("cli_command_unreachable", "cmd/user", "", map[string]any{"kind": cmd.kind}, errors.New("unhandled command"))
+		return 1
+	}
+}
+
+type commandKind string
+
+const (
+	commandUpdateAvatar       commandKind = "update-avatar"
+	commandRunFixes           commandKind = "run-fixes"
+	commandCreateOrUpdateUser commandKind = "create-or-update-user"
+)
+
+type command struct {
+	kind     commandKind
+	username string
+	password string
+}
+
+func parseArgs(args []string) (command, error) {
+	if len(args) == 2 {
+		switch args[1] {
+		case string(commandUpdateAvatar):
+			return command{kind: commandUpdateAvatar}, nil
+		case string(commandRunFixes):
+			return command{kind: commandRunFixes}, nil
 		}
 	}
 
-	if len(os.Args) != 3 {
-		observability.Warn("cli_usage", "cmd/user", "invalid arguments", map[string]any{"argc": len(os.Args)}, nil)
-		_, _ = fmt.Fprintln(os.Stderr, "Usage: go run cmd/user/main.go <username> <password>\n       go run cmd/user/main.go update-avatar\n       go run cmd/user/main.go run-fixes")
-		os.Exit(2)
+	if len(args) == 3 {
+		return command{
+			kind:     commandCreateOrUpdateUser,
+			username: args[1],
+			password: args[2],
+		}, nil
 	}
 
-	username := os.Args[1]
-	password := os.Args[2]
+	return command{}, errors.New("invalid arguments")
+}
 
-	var existingID string
-	err = dbConn.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&existingID)
-	if err != nil && err != sql.ErrNoRows {
+func usage() string {
+	return "Usage: go run cmd/user/main.go <username> <password>\n       go run cmd/user/main.go update-avatar\n       go run cmd/user/main.go run-fixes"
+}
+
+func createOrUpdateUser(dbConn *sql.DB, username string, password string) error {
+	existingID, err := lookupUserID(dbConn, username)
+	if err != nil {
 		observability.Error("cli_user_lookup_failed", "cmd/user", "", map[string]any{"username": username}, err)
-		os.Exit(1)
+		return err
 	}
 
-	if err == nil {
-		fmt.Printf("User '%s' already exists. Do you want to overwrite their password? [y/N]: ", username)
-		reader := bufio.NewReader(os.Stdin)
-		response, _ := reader.ReadString('\n')
-		response = strings.TrimSpace(strings.ToLower(response))
-
-		if response != "y" && response != "yes" {
+	if existingID != "" {
+		if !promptConfirmOverwrite(username) {
 			fmt.Println("Operation cancelled.")
-			return
+			return nil
 		}
-
-		hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
-		if err != nil {
-			observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
-			os.Exit(1)
+		if err := updateUserPassword(dbConn, existingID, username, password); err != nil {
+			return err
 		}
-
-		_, err = dbConn.Exec("UPDATE user SET password_hash = ? WHERE id = ?", string(hash), existingID)
-		if err != nil {
-			observability.Error("cli_user_password_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
-			os.Exit(1)
-		}
-
 		fmt.Printf("Password for '%s' updated successfully!\n", username)
-		return
+		return nil
 	}
 
+	if err := createUser(dbConn, username, password); err != nil {
+		return err
+	}
+	fmt.Printf("User '%s' was created successfully!\n", username)
+	return nil
+}
+
+func lookupUserID(dbConn *sql.DB, username string) (string, error) {
+	var id string
+	err := dbConn.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&id)
+	if err == nil {
+		return id, nil
+	}
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	return "", err
+}
+
+func promptConfirmOverwrite(username string) bool {
+	fmt.Printf("User '%s' already exists. Do you want to overwrite their password? [y/N]: ", username)
+	reader := bufio.NewReader(os.Stdin)
+	response, _ := reader.ReadString('\n')
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "y" || response == "yes"
+}
+
+func updateUserPassword(dbConn *sql.DB, userID string, username string, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
-		os.Exit(1)
+		return err
+	}
+
+	_, err = dbConn.Exec("UPDATE user SET password_hash = ? WHERE id = ?", string(hash), userID)
+	if err != nil {
+		observability.Error("cli_user_password_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
+		return err
+	}
+	return nil
+}
+
+func createUser(dbConn *sql.DB, username string, password string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	if err != nil {
+		observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
+		return err
 	}
 
 	id := uuid.New().String()
 	avatarURL := internal.DefaultAvatarURL(username)
-	_, err = dbConn.Exec("INSERT INTO user (id, username, password_hash, avatar_url) VALUES (?, ?, ?, ?)", id, username, string(hash), avatarURL)
+	_, err = dbConn.Exec(
+		"INSERT INTO user (id, username, password_hash, avatar_url) VALUES (?, ?, ?, ?)",
+		id,
+		username,
+		string(hash),
+		avatarURL,
+	)
 	if err != nil {
 		observability.Error("cli_user_create_failed", "cmd/user", "", map[string]any{"username": username}, err)
-		os.Exit(1)
+		return err
 	}
-
-	fmt.Printf("User '%s' was created successfully!\n", username)
+	return nil
 }
 
 func updateAvatars(dbConn *sql.DB) {
