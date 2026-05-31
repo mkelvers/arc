@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
 	"net/url"
@@ -65,60 +66,75 @@ func (c *AllAnimeProvider) Name() string {
 	return "AllAnime"
 }
 
-func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string) ([]searchResult, error) {
-	// 1. Search for the show to get its AllAnime ID
-	graphqlQuery := `query($search: SearchInput, $limit: Int, $page: Int, $translationType: VaildTranslationTypeEnumType, $countryOrigin: VaildCountryOriginEnumType) {
-		shows(search: $search, limit: $limit, page: $page, translationType: $translationType, countryOrigin: $countryOrigin) {
-			edges {
-				_id
-				malId
-				name
-			}
-		}
-	}`
+const searchQuery = `query(
+  $search: SearchInput
+  $translationType: VaildTranslationTypeEnumType
+  $limit: Int = 40
+  $page: Int = 1
+  $countryOrigin: VaildCountryOriginEnumType = ALL
+) {
+  shows(
+    search: $search
+    limit: $limit
+    page: $page
+    translationType: $translationType
+    countryOrigin: $countryOrigin
+  ) {
+    edges {
+      _id
+      malId
+      name
+    }
+  }
+}`
 
-	variables := map[string]any{
-		"search": map[string]any{
-			"allowAdult":   false,
-			"allowUnknown": false,
-			"query":        query,
-		},
-		"limit":           40,
-		"page":            1,
-		"translationType": mode,
-		"countryOrigin":   "ALL",
+func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string) ([]searchResult, error) {
+	type searchData struct {
+		Shows struct {
+			Edges []struct {
+				ID    string `json:"_id"`
+				MalID string `json:"malId"`
+				Name  string `json:"name"`
+			} `json:"edges"`
+		} `json:"shows"`
 	}
 
-	result, err := c.graphqlRequest(ctx, graphqlQuery, variables)
+	type searchInput struct {
+		AllowAdult   bool   `json:"allowAdult"`
+		AllowUnknown bool   `json:"allowUnknown"`
+		Query        string `json:"query"`
+	}
+
+	type searchVariables struct {
+		Search          searchInput `json:"search"`
+		TranslationType string      `json:"translationType"`
+	}
+
+	vars := searchVariables{
+		Search: searchInput{
+			AllowAdult:   false,
+			AllowUnknown: false,
+			Query:        query,
+		},
+		TranslationType: mode,
+	}
+
+	data, err := graphql.Post[searchData](ctx, c.httpClient, allAnimeBaseURL+"/api", searchQuery, vars, graphql.PostOptions{
+		Headers: map[string]string{
+			"Referer":    allAnimeReferer,
+			"User-Agent": defaultUserAgent,
+		},
+		BodyMax: netutil.MiB2,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	data, ok := result["data"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid search response")
-	}
-
-	shows, ok := data["shows"].(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid shows payload")
-	}
-
-	edges, ok := shows["edges"].([]any)
-	if !ok {
-		return nil, fmt.Errorf("invalid search edges")
-	}
-
-	out := make([]searchResult, 0, len(edges))
-	for _, edge := range edges {
-		item, ok := edge.(map[string]any)
-		if !ok {
-			continue
-		}
-
-		id, _ := item["_id"].(string)
-		malID, _ := item["malId"].(string)
-		name, _ := item["name"].(string)
+	out := make([]searchResult, 0, len(data.Shows.Edges))
+	for _, edge := range data.Shows.Edges {
+		id := edge.ID
+		malID := edge.MalID
+		name := edge.Name
 		if unquoted, err := strconv.Unquote("\"" + name + "\""); err == nil {
 			name = unquoted
 		}
