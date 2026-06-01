@@ -1,49 +1,17 @@
-export {};
+import {
+  convertJstToLocalTime,
+  isJstTimezone,
+  normalizeWeekday,
+  parseHHMM,
+} from "./shared/broadcast";
 
-// JST offset from UTC in minutes (UTC+9)
-const jstOffsetMinutes = 9 * 60;
+export {};
 
 interface ParsedBroadcast {
   day: string;
   hour: number;
   minute: number;
 }
-
-const parseBroadcastTime = (value: string | null): { hour: number; minute: number } | null => {
-  if (!value || typeof value !== "string") {
-    return null;
-  }
-
-  const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!match) {
-    return null;
-  }
-
-  const hour = Number.parseInt(match[1], 10);
-  const minute = Number.parseInt(match[2], 10);
-  // validate ranges
-  if (
-    Number.isNaN(hour) ||
-    Number.isNaN(minute) ||
-    hour < 0 ||
-    hour > 23 ||
-    minute < 0 ||
-    minute > 59
-  ) {
-    return null;
-  }
-
-  return { hour, minute };
-};
-
-const isJstTimezone = (timezone: string | null): boolean => {
-  if (!timezone) {
-    return true; // treat missing timezone as JST (anime default)
-  }
-
-  const normalized = timezone.trim().toLowerCase();
-  return normalized === "asia/tokyo" || normalized === "jst";
-};
 
 const parseFromStructuredAttrs = (node: Element): ParsedBroadcast | null => {
   const day = node.getAttribute("data-broadcast-day");
@@ -54,7 +22,7 @@ const parseFromStructuredAttrs = (node: Element): ParsedBroadcast | null => {
     return null;
   }
 
-  const parsedTime = parseBroadcastTime(time);
+  const parsedTime = parseHHMM(time);
   if (!parsedTime) {
     return null;
   }
@@ -88,69 +56,35 @@ const parseBroadcast = (text: string | null): ParsedBroadcast | null => {
   return { day, hour, minute };
 };
 
-const normalizeDay = (day: string): number | null => {
-  // strip trailing 's' for plural forms, then lookup
-  const key = day.trim().toLowerCase().replace(/s$/, "");
-  const days: Record<string, number> = {
-    mon: 1,
-    monday: 1,
-    tue: 2,
-    tues: 2,
-    tuesday: 2,
-    wed: 3,
-    wednesday: 3,
-    thu: 4,
-    thur: 4,
-    thurs: 4,
-    thursday: 4,
-    fri: 5,
-    friday: 5,
-    sat: 6,
-    saturday: 6,
-    sun: 0,
-    sunday: 0,
-  };
-
-  if (typeof days[key] !== "number") {
-    return null;
-  }
-
-  return days[key];
-};
-
 const convertToLocal = (parsed: ParsedBroadcast, localOffsetMinutes: number): string | null => {
-  const sourceMinutes = parsed.hour * 60 + parsed.minute;
-  const diff = jstOffsetMinutes - localOffsetMinutes; // JST ahead of local
-  const localTotal = sourceMinutes - diff;
-
-  const dayShift = Math.floor(localTotal / 1440);
-  const normalizedMinutes = ((localTotal % 1440) + 1440) % 1440; // handle negatives
-  const localHour = Math.floor(normalizedMinutes / 60);
-  const localMinute = normalizedMinutes % 60;
-
-  const sourceDayIndex = normalizeDay(parsed.day);
+  const sourceDayIndex = normalizeWeekday(parsed.day);
   if (sourceDayIndex === null) {
     return null;
   }
 
-  const localDayIndex = (((sourceDayIndex + dayShift) % 7) + 7) % 7; // proper modulo
+  const localTime = convertJstToLocalTime(
+    sourceDayIndex,
+    parsed.hour,
+    parsed.minute,
+    localOffsetMinutes,
+  );
   const localDay = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
-    localDayIndex
+    localTime.dayIndex
   ];
 
-  const time = `${localHour.toString().padStart(2, "0")}:${localMinute.toString().padStart(2, "0")}`;
+  const time = `${localTime.hour.toString().padStart(2, "0")}:${localTime.minute.toString().padStart(2, "0")}`;
   return `${localDay} at ${time} (Local)`;
 };
 
 const nextAiringUTC = (parsed: ParsedBroadcast): Date | null => {
-  const targetDay = normalizeDay(parsed.day);
+  const targetDay = normalizeWeekday(parsed.day);
   if (targetDay === null) {
     return null;
   }
 
   // convert local time to JST to compare against JST now
   const now = new Date();
-  const jstNow = new Date(now.getTime() + jstOffsetMinutes * 60 * 1000);
+  const jstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
 
   const currentDay = jstNow.getUTCDay();
   const currentMinuteOfDay = jstNow.getUTCHours() * 60 + jstNow.getUTCMinutes();

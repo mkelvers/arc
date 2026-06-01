@@ -1,3 +1,10 @@
+import {
+  convertJstToLocalTime,
+  isJstTimezone,
+  normalizeWeekday,
+  parseHHMM,
+} from "./shared/broadcast";
+
 export {};
 
 type WeekStart = "monday" | "sunday" | "saturday";
@@ -60,61 +67,6 @@ const saveSettings = (settings: ScheduleSettings): void => {
   localStorage.setItem(settingsKey, JSON.stringify(settings));
 };
 
-interface ParsedTime {
-  hour: number;
-  minute: number;
-}
-
-const parseHHMM = (value: string | null): ParsedTime | null => {
-  if (!value) return null;
-  const match = value.trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!match) return null;
-  const hour = Number.parseInt(match[1], 10);
-  const minute = Number.parseInt(match[2], 10);
-  if (
-    Number.isNaN(hour) ||
-    Number.isNaN(minute) ||
-    hour < 0 ||
-    hour > 23 ||
-    minute < 0 ||
-    minute > 59
-  ) {
-    return null;
-  }
-  return { hour, minute };
-};
-
-const normalizeWeekday = (value: string | null): number | null => {
-  if (!value) return null;
-  const key = value.trim().toLowerCase().replace(/s$/, "");
-  const map: Record<string, number> = {
-    sun: 0,
-    sunday: 0,
-    mon: 1,
-    monday: 1,
-    tue: 2,
-    tues: 2,
-    tuesday: 2,
-    wed: 3,
-    wednesday: 3,
-    thu: 4,
-    thur: 4,
-    thurs: 4,
-    thursday: 4,
-    fri: 5,
-    friday: 5,
-    sat: 6,
-    saturday: 6,
-  };
-  return typeof map[key] === "number" ? map[key] : null;
-};
-
-const isJstTimezone = (tz: string | null): boolean => {
-  const normalized = (tz ?? "").trim().toLowerCase();
-  if (!normalized) return true;
-  return normalized === "asia/tokyo" || normalized === "jst";
-};
-
 interface LocalSlot {
   localDayIndex: number;
   localMinutes: number;
@@ -144,23 +96,20 @@ const getLocalSlot = (
   if (sourceDayIndex === null || !parsed) return null;
   if (!isJstTimezone(broadcastTimezone)) return null;
 
-  // Treat the broadcast time as JST (UTC+9) and convert using the user's current local offset.
-  const jstOffsetMinutes = 9 * 60;
   const localOffsetMinutes = -new Date().getTimezoneOffset();
 
-  const sourceMinutes = parsed.hour * 60 + parsed.minute;
-  const diff = jstOffsetMinutes - localOffsetMinutes; // JST ahead of local
-  const localTotal = sourceMinutes - diff;
-
-  const dayShift = Math.floor(localTotal / 1440);
-  const normalizedMinutes = ((localTotal % 1440) + 1440) % 1440;
-  const localHour = Math.floor(normalizedMinutes / 60);
-  const localMinute = normalizedMinutes % 60;
-
-  const localDayIndex = (((sourceDayIndex + dayShift) % 7) + 7) % 7;
-  const localMinutes = localHour * 60 + localMinute;
-  const timeLabel = formatLocalTime(localHour, localMinute, timeFormat);
-  return { localDayIndex, localMinutes, timeLabel };
+  const localTime = convertJstToLocalTime(
+    sourceDayIndex,
+    parsed.hour,
+    parsed.minute,
+    localOffsetMinutes,
+  );
+  const timeLabel = formatLocalTime(localTime.hour, localTime.minute, timeFormat);
+  return {
+    localDayIndex: localTime.dayIndex,
+    localMinutes: localTime.totalMinutes,
+    timeLabel,
+  };
 };
 
 const orderedDayIndexes = (weekStart: WeekStart): number[] => {
