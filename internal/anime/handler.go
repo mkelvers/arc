@@ -203,17 +203,7 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	userID := server.CurrentUserID(c)
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
 	if err != nil {
-		observability.Warn(
-			"catalog_section_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"section": section,
-				"user_id": userID,
-			},
-			err,
-		)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		h.abortSectionFetch(c, "catalog_section_fetch_failed", userID, section, err)
 		return
 	}
 
@@ -275,17 +265,7 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	userID := server.CurrentUserID(c)
 	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
 	if err != nil {
-		observability.Warn(
-			"discover_section_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"section": section,
-				"user_id": userID,
-			},
-			err,
-		)
-		c.AbortWithStatus(http.StatusInternalServerError)
+		h.abortSectionFetch(c, "discover_section_fetch_failed", userID, section, err)
 		return
 	}
 
@@ -295,6 +275,20 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 	data.Fragment = "discover_section"
 	data.WatchlistMap = watchlistMap
 	c.HTML(http.StatusOK, "discover.gohtml", data)
+}
+
+func (h *AnimeHandler) abortSectionFetch(c *gin.Context, event string, userID string, section string, err error) {
+	observability.Warn(
+		event,
+		"anime",
+		"",
+		map[string]any{
+			"section": section,
+			"user_id": userID,
+		},
+		err,
+	)
+	c.AbortWithStatus(http.StatusInternalServerError)
 }
 
 func (h *AnimeHandler) HandleSchedule(c *gin.Context) {
