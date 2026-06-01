@@ -1,3 +1,4 @@
+// Package jikan provides a client for the Jikan v4 API.
 package jikan
 
 import "time"

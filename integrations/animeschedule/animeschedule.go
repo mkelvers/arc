@@ -1,3 +1,4 @@
+// Package animeschedule provides an integration with the animeschedule.net API.
 package animeschedule
 
 import (

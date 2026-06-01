@@ -1,3 +1,4 @@
+// Package allanime provides an integration with the AllAnime API for episode playback.
 package allanime
 
 import (

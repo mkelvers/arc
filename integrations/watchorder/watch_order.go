@@ -1,3 +1,4 @@
+// Package watchorder provides anime watch order data from various sources.
 package watchorder
 
 import (
