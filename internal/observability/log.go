@@ -1,3 +1,4 @@
+// Package observability provides logging and metrics instrumentation.
 package observability
 
 import (

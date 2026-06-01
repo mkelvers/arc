@@ -1,3 +1,4 @@
+// Package app bootstraps and wires the application dependencies.
 package app
 
 import (
