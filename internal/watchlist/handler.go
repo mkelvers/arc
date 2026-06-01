@@ -57,14 +57,12 @@ func (h *WatchlistHandler) HandleUpdateWatchlist(c *gin.Context) {
 func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 
-	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-
-	if err != nil || animeID <= 0 {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
+	animeID, ok := parseAnimeIDParam(c)
+	if !ok {
 		return
 	}
 
-	err = h.svc.RemoveEntry(c.Request.Context(), userID, animeID)
+	err := h.svc.RemoveEntry(c.Request.Context(), userID, animeID)
 	if err != nil {
 		server.RespondError(
 			c,
@@ -84,14 +82,12 @@ func (h *WatchlistHandler) HandleDeleteWatchlist(c *gin.Context) {
 func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 
-	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-
-	if err != nil || animeID <= 0 {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
+	animeID, ok := parseAnimeIDParam(c)
+	if !ok {
 		return
 	}
 
-	err = h.svc.DeleteContinueWatching(c.Request.Context(), userID, animeID)
+	err := h.svc.DeleteContinueWatching(c.Request.Context(), userID, animeID)
 	if err != nil {
 		server.RespondError(
 			c,
@@ -106,6 +102,16 @@ func (h *WatchlistHandler) HandleDeleteContinueWatching(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func parseAnimeIDParam(c *gin.Context) (int64, bool) {
+	animeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || animeID <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
+		return 0, false
+	}
+
+	return animeID, true
 }
 
 func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
