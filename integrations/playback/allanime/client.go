@@ -472,49 +472,7 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 		return nil, fmt.Errorf("no source references")
 	}
 
-	out := make([]StreamSource, 0, len(references))
-	for _, ref := range references {
-		target := strings.TrimSpace(ref.URL)
-		if target == "" {
-			continue
-		}
-
-		if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-			sourceType := detectStreamType(target)
-			if sourceType == "unknown" {
-				sourceType = detectEmbedType(target)
-			}
-
-			out = append(out, buildStreamSource(target, sourceType, ref.Name))
-			continue
-		}
-
-		decoded := decodeSourceURL(target)
-		if decoded == "" {
-			continue
-		}
-
-		if strings.HasPrefix(decoded, "http://") || strings.HasPrefix(decoded, "https://") {
-			sourceType := detectStreamType(decoded)
-			if sourceType == "unknown" {
-				sourceType = detectEmbedType(decoded)
-			}
-
-			out = append(out, buildStreamSource(decoded, sourceType, ref.Name))
-			continue
-		}
-
-		if !strings.HasPrefix(decoded, "/") {
-			decoded = "/" + decoded
-		}
-
-		extracted, err := c.extractor.ExtractVideoLinks(ctx, decoded)
-		if err != nil {
-			continue
-		}
-
-		out = append(out, extracted...)
-	}
+	out := c.resolveSourceReferences(ctx, references)
 
 	if len(out) == 0 {
 		return nil, fmt.Errorf("no playable sources extracted")
@@ -539,6 +497,10 @@ func (c *AllAnimeProvider) extractSourceURLsFromData(ctx context.Context, data m
 		return nil
 	}
 
+	return c.resolveSourceReferences(ctx, references)
+}
+
+func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, references []sourceReference) []StreamSource {
 	out := make([]StreamSource, 0, len(references))
 	for _, ref := range references {
 		target := strings.TrimSpace(ref.URL)
