@@ -296,15 +296,9 @@ func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, var
 	req.Header.Set("Referer", allAnimeReferer)
 	req.Header.Set("User-Agent", defaultUserAgent)
 
-	resp, err := c.httpClient.Do(req)
+	resp, respBody, err := executeAndReadResponse(c.httpClient, req, "execute graphql request", "read graphql response")
 	if err != nil {
-		return nil, fmt.Errorf("execute graphql request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
-	if err != nil {
-		return nil, fmt.Errorf("read graphql response: %w", err)
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -351,15 +345,9 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	req.Header.Set("Sec-Fetch-Mode", "cors")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 
-	resp, err := c.utlsClient.Do(req)
+	resp, respBody, err := executeAndReadResponse(c.utlsClient, req, "execute GET request", "read response")
 	if err != nil {
-		return nil, fmt.Errorf("execute GET request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
+		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -546,6 +534,21 @@ func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, referenc
 	}
 
 	return out
+}
+
+func executeAndReadResponse(client *http.Client, req *http.Request, executeErrPrefix string, readErrPrefix string) (*http.Response, []byte, error) {
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", executeErrPrefix, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", readErrPrefix, err)
+	}
+
+	return resp, body, nil
 }
 
 func buildStreamSource(url, sourceType, provider string) StreamSource {
