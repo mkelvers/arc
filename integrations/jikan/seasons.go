@@ -15,34 +15,22 @@ type ScheduleResult struct {
 
 // GetSeasonsNow returns currently airing anime for the current season.
 func (c *Client) GetSeasonsNow(ctx context.Context, page int) (TopAnimeResult, error) {
-	if page < 1 {
-		page = 1
-	}
-	cacheKey := fmt.Sprintf("seasons_now:%d", page)
-
-	var result TopAnimeResponse
-	reqURL := fmt.Sprintf("%s/seasons/now?page=%d", c.baseURL, page)
-
-	err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result)
-	if err != nil {
-		return TopAnimeResult{}, err
-	}
-
-	return TopAnimeResult{
-		Animes:      result.Data,
-		HasNextPage: result.Pagination.HasNextPage,
-	}, nil
+	return c.getSeasonList(ctx, page, "now")
 }
 
 // GetSeasonsUpcoming returns anime scheduled to air in upcoming seasons.
 func (c *Client) GetSeasonsUpcoming(ctx context.Context, page int) (TopAnimeResult, error) {
+	return c.getSeasonList(ctx, page, "upcoming")
+}
+
+func (c *Client) getSeasonList(ctx context.Context, page int, season string) (TopAnimeResult, error) {
 	if page < 1 {
 		page = 1
 	}
-	cacheKey := fmt.Sprintf("seasons_upcoming:%d", page)
+	cacheKey := fmt.Sprintf("seasons_%s:%d", season, page)
 
 	var result TopAnimeResponse
-	reqURL := fmt.Sprintf("%s/seasons/upcoming?page=%d", c.baseURL, page)
+	reqURL := fmt.Sprintf("%s/seasons/%s?page=%d", c.baseURL, season, page)
 
 	err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result)
 	if err != nil {
