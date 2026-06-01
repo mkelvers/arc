@@ -86,28 +86,8 @@ func addCommonHeaders(request *http.Request) {
 }
 
 func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*goquery.Document, error) {
-	client := httpClient
-	if client == nil {
-		client = http.DefaultClient
-	}
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	addCommonHeaders(request)
-
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode != http.StatusOK {
-		// limit body read for error context; avoid reading large error pages
-		body, _ := io.ReadAll(io.LimitReader(response.Body, netutil.Bytes512))
-		return nil, &HTTPStatusError{
+	document, _, err := netutil.FetchHTMLDocument(ctx, httpClient, url, addCommonHeaders, func(response *http.Response, body []byte) error {
+		return &HTTPStatusError{
 			StatusCode:  response.StatusCode,
 			URL:         url,
 			Server:      strings.TrimSpace(response.Header.Get("Server")),
@@ -116,14 +96,8 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 			ContentType: strings.TrimSpace(response.Header.Get("Content-Type")),
 			BodyPreview: strings.Join(strings.Fields(strings.TrimSpace(string(body))), " "),
 		}
-	}
-
-	document, err := goquery.NewDocumentFromReader(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse html: %w", err)
-	}
-
-	return document, nil
+	})
+	return document, err
 }
 
 func extractTypeLabelsByID(doc *goquery.Document) map[int]string {

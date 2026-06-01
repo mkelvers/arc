@@ -278,36 +278,16 @@ func addCommonHeaders(request *http.Request) {
 }
 
 func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*goquery.Document, string, error) {
-	client := httpClient
-	if client == nil {
-		client = http.DefaultClient
-	}
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, url, fmt.Errorf("failed to create request: %w", err)
-	}
-	addCommonHeaders(request)
-
-	response, err := client.Do(request)
-	if err != nil {
-		return nil, url, fmt.Errorf("request failed: %w", err)
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(response.Body, netutil.Bytes512))
-		return nil, url, &HTTPStatusError{
+	document, response, err := netutil.FetchHTMLDocument(ctx, httpClient, url, addCommonHeaders, func(response *http.Response, body []byte) error {
+		return &HTTPStatusError{
 			StatusCode:  response.StatusCode,
 			URL:         url,
 			ContentType: strings.TrimSpace(response.Header.Get("Content-Type")),
 			BodyPreview: strings.Join(strings.Fields(strings.TrimSpace(string(body))), " "),
 		}
-	}
-
-	document, err := goquery.NewDocumentFromReader(response.Body)
+	})
 	if err != nil {
-		return nil, url, fmt.Errorf("failed to parse html: %w", err)
+		return nil, url, err
 	}
 
 	return document, response.Request.URL.String(), nil
