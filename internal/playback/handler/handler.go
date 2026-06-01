@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"mal/internal/domain"
@@ -281,25 +282,15 @@ func (h *PlaybackHandler) HandleEpisodeThumbnails(c *gin.Context) {
 }
 
 func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
-	token := c.Query("token")
-	if token == "" {
-		c.Status(http.StatusBadRequest)
+	targetURL, referer, ok := h.resolveProxyRequestTarget(c)
+	if !ok {
 		return
 	}
 
-	targetURL, referer, err := h.svc.ResolveProxyToken(token)
-	if err != nil {
-		c.Status(http.StatusForbidden)
-		return
-	}
-
-	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, targetURL, nil)
+	req, err := newProxyRequest(c.Request.Context(), targetURL, referer)
 	if err != nil {
 		c.Status(http.StatusBadGateway)
 		return
-	}
-	if referer != "" {
-		req.Header.Set("Referer", referer)
 	}
 	if rangeHeader := c.GetHeader("Range"); rangeHeader != "" {
 		req.Header.Set("Range", rangeHeader)
@@ -307,7 +298,6 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	if ifRangeHeader := c.GetHeader("If-Range"); ifRangeHeader != "" {
 		req.Header.Set("If-Range", ifRangeHeader)
 	}
-	req.Header.Set("User-Agent", netutil.Firefox121)
 
 	resp, err := h.streamingClient.Do(req)
 	if err != nil {
@@ -336,16 +326,39 @@ func copyProxyHeaders(dst http.Header, src http.Header) {
 	}
 }
 
-func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
+func (h *PlaybackHandler) resolveProxyRequestTarget(c *gin.Context) (string, string, bool) {
 	token := c.Query("token")
 	if token == "" {
 		c.Status(http.StatusBadRequest)
-		return
+		return "", "", false
 	}
 
 	targetURL, referer, err := h.svc.ResolveProxyToken(token)
 	if err != nil {
 		c.Status(http.StatusForbidden)
+		return "", "", false
+	}
+
+	return targetURL, referer, true
+}
+
+func newProxyRequest(ctx context.Context, targetURL string, referer string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if referer != "" {
+		req.Header.Set("Referer", referer)
+	}
+	req.Header.Set("User-Agent", netutil.Firefox121)
+
+	return req, nil
+}
+
+func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
+	targetURL, referer, ok := h.resolveProxyRequestTarget(c)
+	if !ok {
 		return
 	}
 
@@ -354,15 +367,11 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 		return
 	}
 
-	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, targetURL, nil)
+	req, err := newProxyRequest(c.Request.Context(), targetURL, referer)
 	if err != nil {
 		c.Status(http.StatusBadGateway)
 		return
 	}
-	if referer != "" {
-		req.Header.Set("Referer", referer)
-	}
-	req.Header.Set("User-Agent", netutil.Firefox121)
 
 	resp, err := h.proxyClient.Do(req)
 	if err != nil {
