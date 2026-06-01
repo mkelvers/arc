@@ -1,3 +1,4 @@
+// Package auth provides authentication and session management.
 package auth
 
 import (

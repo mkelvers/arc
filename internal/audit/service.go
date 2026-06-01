@@ -1,3 +1,4 @@
+// Package audit provides audit logging for user actions.
 package audit
 
 import (
