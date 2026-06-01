@@ -1,3 +1,4 @@
+// Package watchlist manages user watchlist entries and related operations.
 package watchlist
 
 import (
