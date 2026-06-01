@@ -1,3 +1,4 @@
+// Package playback manages video playback, including episode sources and subtitle management.
 package playback
 
 import (

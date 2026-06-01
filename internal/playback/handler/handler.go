@@ -1,3 +1,4 @@
+// Package handler provides the HTTP handler for playback endpoints.
 package handler
 
 import (
