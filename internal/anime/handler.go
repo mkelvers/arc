@@ -450,31 +450,7 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	}
 
 	genresList, _ := h.svc.GetGenres(c.Request.Context())
-
-	if c.GetHeader("HX-Request") == "true" {
-		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-			"_fragment":    "browse_content",
-			"CurrentPath":  "/browse",
-			"Query":        q,
-			"Type":         animeType,
-			"Status":       status,
-			"OrderBy":      orderBy,
-			"Sort":         sort,
-			"Genres":       genres,
-			"Studio":       studioID,
-			"StudioName":   studioName,
-			"SFW":          sfw,
-			"GenresList":   genresList,
-			"Animes":       animes,
-			"HasNextPage":  res.HasNextPage,
-			"NextPage":     page + 1,
-			"User":         user,
-			"WatchlistMap": watchlistMap,
-		})
-		return
-	}
-
-	c.HTML(http.StatusOK, "browse.gohtml", gin.H{
+	browseData := gin.H{
 		"CurrentPath":  "/browse",
 		"Query":        q,
 		"Type":         animeType,
@@ -491,7 +467,15 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		"NextPage":     page + 1,
 		"User":         user,
 		"WatchlistMap": watchlistMap,
-	})
+	}
+
+	if c.GetHeader("HX-Request") == "true" {
+		browseData["_fragment"] = "browse_content"
+		c.HTML(http.StatusOK, "browse.gohtml", browseData)
+		return
+	}
+
+	c.HTML(http.StatusOK, "browse.gohtml", browseData)
 }
 
 func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
