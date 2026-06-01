@@ -2,6 +2,23 @@ package jikan
 
 import "testing"
 
+func runBoolCases(t *testing.T, tests []struct {
+	name  string
+	input string
+	want  bool
+}, fn func(string) bool) {
+	t.Helper()
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := fn(testCase.input)
+			if got != testCase.want {
+				t.Fatalf("expected %v, got %v", testCase.want, got)
+			}
+		})
+	}
+}
+
 func TestIsAllowedWatchOrderType(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -16,14 +33,7 @@ func TestIsAllowedWatchOrderType(t *testing.T) {
 		{name: "empty", input: "", want: false},
 	}
 
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			got := isAllowedWatchOrderType(testCase.input)
-			if got != testCase.want {
-				t.Fatalf("expected %v, got %v", testCase.want, got)
-			}
-		})
-	}
+	runBoolCases(t, tests, isAllowedWatchOrderType)
 }
 
 func TestWatchOrderTypeLabel(t *testing.T) {
@@ -58,12 +68,5 @@ func TestAllowedWatchOrderTypeFromDataset(t *testing.T) {
 		{name: "label special", input: "Special", want: false},
 	}
 
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			got := isAllowedWatchOrderType(testCase.input)
-			if got != testCase.want {
-				t.Fatalf("expected %v, got %v", testCase.want, got)
-			}
-		})
-	}
+	runBoolCases(t, tests, isAllowedWatchOrderType)
 }
