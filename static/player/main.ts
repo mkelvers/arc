@@ -99,6 +99,19 @@ const initPlayer = (): void => {
   const loading = container.querySelector("[data-loading]") as HTMLElement | null;
   const progressWrap = container.querySelector("[data-progress-wrap]") as HTMLElement | null;
 
+  const scrubToPointer = (clientX: number, shouldShowControls: boolean): void => {
+    if (!progressWrap) return;
+    const rect = progressWrap.getBoundingClientRect();
+    state.video.currentTime = absoluteTimeFromRatio(
+      Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+    );
+    updateTimeline(state.video.currentTime);
+    updateSkipButton(state.video.currentTime);
+    if (shouldShowControls) {
+      showControls();
+    }
+  };
+
   // build video src from mode, token, and saved quality preference
   // Only set if not already provided by the inline script during HTML parsing
   const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
@@ -260,13 +273,7 @@ const initPlayer = (): void => {
       try {
         (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
       } catch {}
-      const rect = progressWrap.getBoundingClientRect();
-      state.video.currentTime = absoluteTimeFromRatio(
-        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-      );
-      updateTimeline(state.video.currentTime);
-      updateSkipButton(state.video.currentTime);
-      showControls();
+      scrubToPointer(e.clientX, true);
     },
     { signal },
   );
@@ -297,12 +304,7 @@ const initPlayer = (): void => {
     "pointermove",
     (e) => {
       if (!state.isScrubbing || !progressWrap) return;
-      const rect = progressWrap.getBoundingClientRect();
-      state.video.currentTime = absoluteTimeFromRatio(
-        Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-      );
-      updateTimeline(state.video.currentTime);
-      updateSkipButton(state.video.currentTime);
+      scrubToPointer(e.clientX, false);
     },
     { signal },
   );
