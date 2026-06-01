@@ -1,3 +1,4 @@
+// Package fixes implements one-off database migration fixes.
 package fixes
 
 import (

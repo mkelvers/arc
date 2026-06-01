@@ -1,3 +1,4 @@
+// Package db provides database access via sqlc-generated queries and helper functions.
 package db
 
 import "database/sql"

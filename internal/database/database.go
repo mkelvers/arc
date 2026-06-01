@@ -1,3 +1,4 @@
+// Package database manages database schema migrations and fixes.
 package database
 
 import (

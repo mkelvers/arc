@@ -1,3 +1,4 @@
+// Package domain defines the core domain types and interfaces used across the application.
 package domain
 
 import (
