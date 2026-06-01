@@ -17,6 +17,17 @@ export const goToNextEpisode = async (): Promise<void> => {
   const currentEp = Number.parseInt(state.currentEpisode, 10);
   if (!currentEp) return;
 
+  const navigateToEpisode = (episode: number): void => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("ep", String(episode));
+    window.location.href = url.toString();
+  };
+
+  const fallbackToEpisodeNavigation = (episode: number): void => {
+    sessionStorage.setItem("mal:autoplay-next", "true");
+    navigateToEpisode(episode);
+  };
+
   // final episode: trigger completion flow or just stop if airing
   if (state.totalEpisodes > 0 && currentEp >= state.totalEpisodes) {
     if (!state.isAiring) {
@@ -41,10 +52,7 @@ export const goToNextEpisode = async (): Promise<void> => {
     );
     if (!res.ok) {
       // fallback: full page navigation
-      sessionStorage.setItem("mal:autoplay-next", "true");
-      const url = new URL(window.location.href);
-      url.searchParams.set("ep", String(nextEp));
-      window.location.href = url.toString();
+      fallbackToEpisodeNavigation(nextEp);
       return;
     }
 
@@ -59,10 +67,7 @@ export const goToNextEpisode = async (): Promise<void> => {
       ? backendMode
       : state.availableModes.find((m) => state.modeSources[m]?.token);
     if (!fallback) {
-      sessionStorage.setItem("mal:autoplay-next", "true");
-      const url = new URL(window.location.href);
-      url.searchParams.set("ep", String(nextEp));
-      window.location.href = url.toString();
+      fallbackToEpisodeNavigation(nextEp);
       return;
     }
 
@@ -131,9 +136,6 @@ export const goToNextEpisode = async (): Promise<void> => {
     url.searchParams.set("ep", String(nextEp));
     history.pushState(null, "", url.toString());
   } catch {
-    sessionStorage.setItem("mal:autoplay-next", "true");
-    const url = new URL(window.location.href);
-    url.searchParams.set("ep", String(nextEp));
-    window.location.href = url.toString();
+    fallbackToEpisodeNavigation(nextEp);
   }
 };
