@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"mal/internal/db"
+	"mal/internal/dbtx"
 	"mal/internal/domain"
 )
 
@@ -17,22 +18,9 @@ func NewPlaybackRepository(sqlDB *sql.DB, queries *db.Queries) domain.PlaybackRe
 }
 
 func (r *playbackRepository) InTx(ctx context.Context, fn func(ctx context.Context, repo domain.PlaybackRepository) error) error {
-	if r.sqlDB == nil {
-		return fn(ctx, r)
-	}
-
-	tx, err := r.sqlDB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	txRepo := &playbackRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
-	if err := fn(ctx, txRepo); err != nil {
-		_ = tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
+	return dbtx.Run(ctx, r.sqlDB, domain.PlaybackRepository(r), func(tx *sql.Tx) domain.PlaybackRepository {
+		return &playbackRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
+	}, fn)
 }
 
 func (r *playbackRepository) GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error) {
