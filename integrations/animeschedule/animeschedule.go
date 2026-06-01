@@ -274,11 +274,7 @@ func absolutizeURL(base string, href string) string {
 }
 
 func addCommonHeaders(request *http.Request) {
-	request.Header.Set("User-Agent", netutil.Chrome135)
-	request.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-	request.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	request.Header.Set("Referer", "https://animeschedule.net/")
-	request.Header.Set("Cache-Control", "no-cache")
+	netutil.SetBrowserHTMLHeaders(request, "https://animeschedule.net/")
 }
 
 func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*goquery.Document, string, error) {
