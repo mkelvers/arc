@@ -1,3 +1,4 @@
+// Package graphql provides a GraphQL client for the AniList API.
 package graphql
 
 import (

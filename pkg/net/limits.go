@@ -1,3 +1,4 @@
+// Package netutil provides HTTP networking utilities including rate limiting and proxy support.
 package netutil
 
 // Common size limits used when reading upstream responses.
