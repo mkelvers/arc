@@ -1,3 +1,4 @@
+// Package episodes manages episode availability checking and refresh scheduling.
 package episodes
 
 import (

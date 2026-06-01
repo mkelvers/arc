@@ -1,3 +1,4 @@
+// Package service provides episode availability checking logic.
 package service
 
 import (

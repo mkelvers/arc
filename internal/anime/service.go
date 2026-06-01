@@ -1,3 +1,4 @@
+// Package anime provides anime catalog, discovery, search, and details services.
 package anime
 
 import (
