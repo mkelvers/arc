@@ -94,18 +94,7 @@ func (c *Client) refreshAnimeByID(ctx context.Context, id int) (Anime, error) {
 }
 
 func (c *Client) refreshAnimeByIDAsync(id int) {
-	select {
-	case c.refreshSem <- struct{}{}:
-	default:
-		return
-	}
-
-	go func() {
-		defer func() { <-c.refreshSem }()
-
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-
+	c.runAsyncRefresh(func(ctx context.Context) {
 		_, _ = c.refreshAnimeByID(ctx, id)
-	}()
+	})
 }

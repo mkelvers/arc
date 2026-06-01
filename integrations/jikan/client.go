@@ -410,6 +410,12 @@ func (c *Client) refreshWithCacheAsync(cacheKey string, ttl time.Duration, url s
 		return
 	}
 
+	c.runAsyncRefresh(func(ctx context.Context) {
+		_ = c.refreshWithCache(ctx, cacheKey, ttl, url, target)
+	})
+}
+
+func (c *Client) runAsyncRefresh(refresh func(context.Context)) {
 	select {
 	case c.refreshSem <- struct{}{}:
 	default:
@@ -422,7 +428,7 @@ func (c *Client) refreshWithCacheAsync(cacheKey string, ttl time.Duration, url s
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 
-		_ = c.refreshWithCache(ctx, cacheKey, ttl, url, target)
+		refresh(ctx)
 	}()
 }
 
