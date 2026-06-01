@@ -45,7 +45,7 @@
           name="q"
         />
       </div>
-      <div class="flex max-h-72 flex-col overflow-y-auto py-1" id="studio-results" hx-get="/api/jikan/producers?page=1&limit=12" hx-trigger="load" hx-target="this" hx-swap="innerHTML" hx-push-url="false" hx-headers='{"Accept":"text/html"}'>
+      <div class="flex max-h-72 flex-col overflow-y-auto py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" id="studio-results" hx-get="/api/jikan/producers?page=1&limit=12" hx-trigger="load" hx-target="this" hx-swap="innerHTML" hx-push-url="false" hx-headers='{"Accept":"text/html"}'>
       </div>
     </div>
   </ui-dropdown>
@@ -75,7 +75,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
+    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col py-1">
         <input type="hidden" name="q" value="{{.Query}}">
         {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
