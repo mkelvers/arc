@@ -1,13 +1,6 @@
 export {};
 
-const onReady = (fn: () => void): void => {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", fn, { once: true });
-    return;
-  }
-
-  fn();
-};
+import { onReady } from "./utils";
 
 const isMobileViewport = (): boolean => window.matchMedia("(max-width: 1023px)").matches;
 

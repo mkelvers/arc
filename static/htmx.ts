@@ -1,5 +1,7 @@
 export {};
 
+import { onReady } from "./utils";
+
 type ToastFn = (opts: { message: string; duration?: number }) => void;
 
 const getToast = (): ToastFn | null => {
@@ -31,15 +33,6 @@ const setBusy = (el: Element | null, busy: boolean): void => {
 const getTriggerFromHtmxEvent = (event: Event): Element | null => {
   const detail = event as unknown as { detail?: { elt?: Element } };
   return detail.detail?.elt ?? null;
-};
-
-const onReady = (fn: () => void): void => {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", fn, { once: true });
-    return;
-  }
-
-  fn();
 };
 
 onReady(() => {

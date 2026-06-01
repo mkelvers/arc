@@ -458,15 +458,6 @@ const getRenderedWatchlistIds = (): number[] => {
   return Array.from(ids);
 };
 
-const onReady = (fn: () => void): void => {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", fn, { once: true });
-    return;
-  }
-
-  fn();
-};
-
 const installDelegatedHandlers = (): void => {
   document.addEventListener("click", (event) => {
     const target = event.target;
@@ -537,3 +528,4 @@ onReady(() => {
 
   installDelegatedHandlers();
 });
+import { onReady } from "./utils";
