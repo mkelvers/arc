@@ -1,15 +1,7 @@
 import { state } from "./state";
+import { streamUrlForMode } from "./source";
 import { safeLocalStorage } from "./storage";
 import { loadVideoSource } from "./video";
-
-// same as mode.ts - could be extracted to shared util
-const streamUrlForMode = (mode: string, quality?: string): string => {
-  const src = state.modeSources[mode];
-  if (!src?.token) return "";
-  let url = `${state.streamURL}?mode=${encodeURIComponent(mode)}&token=${encodeURIComponent(src.token)}`;
-  if (quality && quality !== "best") url += `&quality=${encodeURIComponent(quality)}`;
-  return url;
-};
 
 /**
  * Switches video quality (resolution).

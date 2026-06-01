@@ -3,16 +3,8 @@ import { showControls } from "./controls";
 import { updateSubtitleOptions } from "./subtitles";
 import { updateQualityOptions } from "./quality";
 import { safeLocalStorage } from "./storage";
+import { streamUrlForMode } from "./source";
 import { loadVideoSource } from "./video";
-
-// builds stream URL with mode, token, and optional quality param
-const streamUrlForMode = (mode: string, quality?: string): string => {
-  const src = state.modeSources[mode];
-  if (!src?.token) return "";
-  let url = `${state.streamURL}?mode=${encodeURIComponent(mode)}&token=${encodeURIComponent(src.token)}`;
-  if (quality && quality !== "best") url += `&quality=${encodeURIComponent(quality)}`;
-  return url;
-};
 
 /**
  * Switches between sub/dub mode.
