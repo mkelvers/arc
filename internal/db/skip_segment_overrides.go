@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -67,6 +68,9 @@ func (q *Queries) HasSkipSegmentOverrideTable(ctx context.Context) (bool, error)
 	const query = `SELECT name FROM sqlite_master WHERE type='table' AND name='skip_segment_override' LIMIT 1;`
 	var name sql.NullString
 	if err := q.db.QueryRowContext(ctx, query).Scan(&name); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
 		return false, fmt.Errorf("check skip segment override table: %w", err)
 	}
 	return name.Valid && name.String != "", nil
