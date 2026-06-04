@@ -43,15 +43,8 @@ func relationCacheKey(id int) string {
 	return fmt.Sprintf("relations:watch-order:%d", id)
 }
 
-// getWatchOrder fetches watch order from chiaki, caches result for 24h.
-func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrderResult, error) {
+func (c *Client) refreshWatchOrder(ctx context.Context, id int) (watchorder.WatchOrderResult, error) {
 	cacheKey := relationCacheKey(id)
-
-	var cached watchorder.WatchOrderResult
-	if c.getCache(ctx, cacheKey, &cached) {
-		return cached, nil
-	}
-
 	watchOrderURL := fmt.Sprintf(chiakiWatchOrderURL, id)
 	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -106,6 +99,37 @@ func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrd
 	}
 
 	c.setCache(ctx, cacheKey, result, watchOrderCacheTTL)
+	return result, nil
+}
+
+func (c *Client) refreshWatchOrderAsync(id int) {
+	c.runAsyncRefresh(func(ctx context.Context) {
+		_, _ = c.refreshWatchOrder(ctx, id)
+	})
+}
+
+// getWatchOrder fetches watch order from chiaki, caches result for 24h.
+func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrderResult, error) {
+	cacheKey := relationCacheKey(id)
+
+	var cached watchorder.WatchOrderResult
+	if c.getCache(ctx, cacheKey, &cached) {
+		return cached, nil
+	}
+
+	if c.getStaleCache(ctx, cacheKey, &cached) {
+		c.refreshWatchOrderAsync(id)
+		return cached, nil
+	}
+
+	result, err := c.refreshWatchOrder(ctx, id)
+	if err != nil {
+		if c.getStaleCache(ctx, cacheKey, &cached) {
+			return cached, nil
+		}
+		return watchorder.WatchOrderResult{}, err
+	}
+
 	return result, nil
 }
 
@@ -229,4 +253,10 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 	}
 
 	return relations, nil
+}
+
+func (c *Client) WarmFullRelations(id int) {
+	c.runAsyncRefresh(func(ctx context.Context) {
+		_, _ = c.GetFullRelations(ctx, id)
+	})
 }
