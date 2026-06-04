@@ -5,7 +5,7 @@
   "scripts": {
     "build:css": "bunx @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css",
     "watch:css": "bunx @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch",
-    "build:ts": "bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting && bun build ./static/*.ts --outdir ./dist/static --target browser --root ./static --entry-naming \"[name].js\"",
+    "build:ts": "bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting && bun build ./static/*.ts --outdir ./dist/static --target browser --root ./static --entry-naming \"[name].js\" && cp ./node_modules/htmx.org/dist/htmx.min.js ./dist/static/htmx-lib.js",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css && bun run build:ts",
     "format": "bunx oxfmt",
@@ -15,7 +15,9 @@
     "lint:ts:fix": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0 --fix",
     "lint:go": "golangci-lint run ./..."
   },
-  "dependencies": {},
+  "dependencies": {
+    "htmx.org": "1.9.12"
+  },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.4",
     "@types/node": "^24.0.0",
