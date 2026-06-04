@@ -18,3 +18,15 @@
   </div>
 </div>
 {{end}}
+
+{{define "watch_order_loading"}}
+<div
+  hx-get="/api/watch-order?animeId={{.AnimeID}}"
+  hx-trigger="load delay:1500ms"
+>
+  <div class="mt-8 flex items-center gap-3 text-foreground-muted">
+    <div class="size-5 animate-spin rounded-full border-2 border-t-transparent border-accent"></div>
+    <span class="text-sm">Loading watch order sequence...</span>
+  </div>
+</div>
+{{end}}
