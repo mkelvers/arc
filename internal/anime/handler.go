@@ -16,6 +16,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	animeSectionTimeout = 12 * time.Second
+	watchOrderTimeout   = 15 * time.Second
+)
+
 type AnimeHandler struct {
 	svc          Service
 	watchlistSvc domain.WatchlistService
@@ -29,6 +34,7 @@ type Service interface {
 	domain.AnimeDiscoverService
 	domain.AnimeSearchService
 	domain.AnimeDetailsService
+	WarmDetailSections(id int)
 }
 
 func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService) *AnimeHandler {
@@ -481,7 +487,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 
 	section := c.Query("section")
 	if section != "" && c.GetHeader("HX-Request") == "true" {
-		sectionCtx, cancel := context.WithTimeout(c.Request.Context(), 4*time.Second)
+		sectionCtx, cancel := context.WithTimeout(c.Request.Context(), animeSectionTimeout)
 		defer cancel()
 
 		var data any
@@ -514,6 +520,13 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 				},
 				err,
 			)
+			if section == "recommendations" {
+				c.HTML(http.StatusOK, "anime.gohtml", gin.H{
+					"_fragment": "anime_recommendations_loading",
+					"AnimeID":   id,
+				})
+				return
+			}
 			c.Status(http.StatusNoContent)
 			return
 		}
@@ -530,6 +543,8 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		c.Status(http.StatusNotFound)
 		return
 	}
+
+	h.svc.WarmDetailSections(id)
 
 	user := server.CurrentUser(c)
 	status := ""
@@ -570,7 +585,7 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 
 	userID := server.CurrentUserID(c)
 
-	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), watchOrderTimeout)
 	defer cancel()
 
 	relations, err := h.svc.GetRelations(relationsCtx, id)
@@ -584,7 +599,10 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 			},
 			err,
 		)
-		c.Status(http.StatusNoContent)
+		c.HTML(http.StatusOK, "anime.gohtml", gin.H{
+			"_fragment": "watch_order_loading",
+			"AnimeID":   id,
+		})
 		return
 	}
 

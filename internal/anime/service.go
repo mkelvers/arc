@@ -400,6 +400,11 @@ func (s *animeService) GetRelations(ctx context.Context, id int) ([]jikan.Relati
 	return s.jikan.GetFullRelations(ctx, id)
 }
 
+func (s *animeService) WarmDetailSections(id int) {
+	s.jikan.WarmAnimeRecommendations(id)
+	s.jikan.WarmFullRelations(id)
+}
+
 func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (jikan.EpisodesResponse, error) {
 	return s.jikan.GetEpisodes(ctx, id, page)
 }
