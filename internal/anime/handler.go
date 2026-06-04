@@ -256,7 +256,7 @@ func (h *AnimeHandler) HandleDiscoverForYou(c *gin.Context) {
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
 
 	data.Section = "ForYou"
-	data.Fragment = "discover_row"
+	data.Fragment = "discover_for_you_section"
 	data.WatchlistMap = watchlistMap
 	c.HTML(http.StatusOK, "discover.gohtml", data)
 }
