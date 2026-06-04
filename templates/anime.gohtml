@@ -262,9 +262,9 @@
             <section>
               <h3 class="mb-4 text-base font-normal text-foreground">Statistics</h3>
               <div hx-get="/anime/{{$anime.MalID}}?section=statistics" hx-trigger="load" hx-swap="innerHTML">
-                <div class="flex flex-col gap-3 pt-1 animate-pulse">
+                <div class="flex flex-col gap-3 pt-1">
                   {{range (seq 5)}}
-                    <div class="h-4 rounded bg-background-surface"></div>
+                    <div class="skeleton h-4"></div>
                   {{end}}
                 </div>
               </div>
@@ -299,13 +299,13 @@
   <div hx-get="/anime/{{$anime.MalID}}?section=characters" hx-trigger="revealed" hx-swap="outerHTML">
     <div class="mt-12 w-full">
       <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 animate-pulse">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {{range (seq 5)}}
-          <div class="flex gap-3 bg-background-surface p-3 h-20">
-            <div class="h-16 w-12 shrink-0 bg-background-button"></div>
+          <div class="flex h-20 gap-3 bg-background-surface p-3">
+            <div class="skeleton h-16 w-12 shrink-0"></div>
             <div class="flex flex-col justify-center gap-2 grow">
-              <div class="h-3 w-2/3 bg-background-button rounded"></div>
-              <div class="h-2 w-1/2 bg-background-button rounded"></div>
+              <div class="skeleton h-3 w-2/3"></div>
+              <div class="skeleton skeleton-subtle h-2 w-1/2"></div>
             </div>
           </div>
         {{end}}
@@ -325,11 +325,11 @@
   <div hx-get="/anime/{{$anime.MalID}}?section=recommendations" hx-trigger="revealed" hx-swap="outerHTML">
     <div class="w-full">
       <h2 class="mb-6 text-lg font-normal text-foreground">Recommendations</h2>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 animate-pulse">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
         {{range (seq 8)}}
           <div class="flex flex-col gap-2">
-            <div class="aspect-2/3 bg-background-surface"></div>
-            <div class="h-3 w-full bg-background-surface rounded"></div>
+            <div class="skeleton aspect-2/3"></div>
+            <div class="skeleton h-3 w-full"></div>
           </div>
         {{end}}
       </div>

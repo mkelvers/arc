@@ -34,20 +34,6 @@
   </section>
 </div>
 
-<style>
-  .skeleton {
-    background: light-dark(
-      linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%),
-      linear-gradient(90deg, #1f1f1f 25%, #2a2a2a 50%, #1f1f1f 75%)
-    );
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite;
-  }
-  @keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-</style>
 {{end}}
 
 {{define "catalog_section"}}
@@ -68,8 +54,8 @@
 <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
   {{range (seq 6)}}
   <div class="flex flex-col gap-2">
-    <div class="skeleton aspect-2/3 w-full rounded-xl"></div>
-    <div class="skeleton h-4 w-3/4 rounded"></div>
+    <div class="skeleton aspect-2/3 w-full"></div>
+    <div class="skeleton h-4 w-3/4"></div>
   </div>
   {{end}}
 </div>
@@ -81,9 +67,9 @@
   <div class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]">
     {{range (seq 3)}}
       <div class="flex w-70 shrink-0 snap-start flex-col gap-2 2xl:w-lg">
-        <div class="skeleton aspect-video w-full overflow-hidden rounded-xl"></div>
-        <div class="skeleton h-5 w-2/3 rounded"></div>
-        <div class="skeleton h-4 w-1/2 rounded opacity-70"></div>
+        <div class="skeleton aspect-video w-full overflow-hidden"></div>
+        <div class="skeleton h-5 w-2/3"></div>
+        <div class="skeleton skeleton-subtle h-4 w-1/2"></div>
       </div>
     {{end}}
   </div>

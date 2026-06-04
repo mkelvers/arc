@@ -17,6 +17,8 @@
 
 :root {
   color-scheme: light dark;
+  --skeleton-base: light-dark(#e5e5e5, #1f1f1f);
+  --skeleton-highlight: light-dark(#d4d4d4, #2a2a2a);
   --bg: var(--color-background);
   --panel: light-dark(#f7f7f7, #181818);
   --panel-soft: light-dark(#ececec, #202020);
@@ -59,6 +61,31 @@ html,
 body {
   background-color: var(--color-background);
   color: var(--text);
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-highlight) 50%,
+    var(--skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+.skeleton-subtle {
+  opacity: 0.7;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 [data-watchlist-toggle] .watchlist-icon,
