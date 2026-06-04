@@ -118,55 +118,84 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 		return domain.DiscoverSectionData{}, err
 	}
 
-	seedIDs := make([]int, 0, 5)
-	for _, entry := range watchlist {
-		status := strings.TrimSpace(entry.Status)
-		if status != "watching" && status != "completed" {
-			continue
-		}
-		if entry.AnimeID <= 0 {
-			continue
-		}
-		seedIDs = append(seedIDs, int(entry.AnimeID))
-		if len(seedIDs) >= 5 {
-			break
-		}
-	}
-
-	if len(seedIDs) == 0 {
+	now := time.Now()
+	seedPool := buildRecommendationSeeds(now, watchlist)
+	if len(seedPool) == 0 {
 		return domain.DiscoverSectionData{Animes: []domain.Anime{}}, nil
 	}
 
-	type ranked struct {
-		id    int
-		votes int
+	type rankedCandidate struct {
+		id                 int
+		collaborativeScore float64
 	}
 
-	recommended := map[int]ranked{}
+	watchlistAnimeIDs := make(map[int]struct{}, len(watchlist))
+	for _, entry := range watchlist {
+		if entry.AnimeID <= 0 {
+			continue
+		}
+		watchlistAnimeIDs[int(entry.AnimeID)] = struct{}{}
+	}
+
+	seedAnimes := make([]jikan.Anime, len(seedPool))
+	var seedFetchGroup errgroup.Group
+	seedFetchGroup.SetLimit(4)
+
+	for i, seed := range seedPool {
+		seedFetchGroup.Go(func() error {
+			anime, fetchErr := s.jikan.GetAnimeByID(ctx, seed.animeID)
+			if fetchErr != nil {
+				return fetchErr
+			}
+			seedAnimes[i] = anime
+			return nil
+		})
+	}
+
+	if err := seedFetchGroup.Wait(); err != nil {
+		return domain.DiscoverSectionData{}, err
+	}
+
+	profile := buildTasteProfile(seedAnimes)
+
+	recommended := map[int]rankedCandidate{}
+	var recommendedMu sync.Mutex
 	var g errgroup.Group
 	g.SetLimit(4)
 
-	for _, seedID := range seedIDs {
+	for _, seed := range seedPool {
 		g.Go(func() error {
-			recs, recErr := s.jikan.GetAnimeRecommendations(ctx, seedID)
+			recs, recErr := s.jikan.GetAnimeRecommendations(ctx, seed.animeID)
 			if recErr != nil {
 				return recErr
 			}
-			for _, rec := range recs {
+			for i, rec := range recs {
+				if i >= forYouMaxRecommendations {
+					break
+				}
 				id := rec.Entry.MalID
 				if id <= 0 {
 					continue
 				}
-				if id == seedID {
+				if id == seed.animeID {
 					continue
 				}
+				if _, exists := watchlistAnimeIDs[id]; exists {
+					continue
+				}
+				recommendedMu.Lock()
 				current, ok := recommended[id]
 				if !ok {
-					recommended[id] = ranked{id: id, votes: rec.Votes}
+					recommended[id] = rankedCandidate{
+						id:                 id,
+						collaborativeScore: float64(rec.Votes) * seed.weight,
+					}
+					recommendedMu.Unlock()
 					continue
 				}
-				current.votes += rec.Votes
+				current.collaborativeScore += float64(rec.Votes) * seed.weight
 				recommended[id] = current
+				recommendedMu.Unlock()
 			}
 			return nil
 		})
@@ -180,20 +209,20 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 		return domain.DiscoverSectionData{Animes: []domain.Anime{}}, nil
 	}
 
-	rankedIDs := make([]ranked, 0, len(recommended))
+	rankedIDs := make([]rankedCandidate, 0, len(recommended))
 	for _, item := range recommended {
 		rankedIDs = append(rankedIDs, item)
 	}
 	sort.Slice(rankedIDs, func(i, j int) bool {
-		if rankedIDs[i].votes == rankedIDs[j].votes {
+		if rankedIDs[i].collaborativeScore == rankedIDs[j].collaborativeScore {
 			return rankedIDs[i].id < rankedIDs[j].id
 		}
-		return rankedIDs[i].votes > rankedIDs[j].votes
+		return rankedIDs[i].collaborativeScore > rankedIDs[j].collaborativeScore
 	})
 
-	limit := min(len(rankedIDs), 12)
-
-	animes := make([]domain.Anime, limit)
+	limit := min(len(rankedIDs), forYouCandidateFetchLimit)
+	candidates := make([]recommendationCandidate, 0, limit)
+	var candidatesMu sync.Mutex
 	g.SetLimit(6)
 
 	for i := range limit {
@@ -209,7 +238,15 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 				)
 				return nil
 			}
-			animes[i] = domain.Anime{Anime: anime}
+			candidate := scoreRecommendationCandidate(
+				now,
+				profile,
+				anime,
+				rankedIDs[i].collaborativeScore,
+			)
+			candidatesMu.Lock()
+			candidates = append(candidates, candidate)
+			candidatesMu.Unlock()
 			return nil
 		})
 	}
@@ -218,15 +255,16 @@ func (s *animeService) GetDiscoverForYou(ctx context.Context, userID string) (do
 		return domain.DiscoverSectionData{}, err
 	}
 
-	// Filter out empty animes if any fetch failed silently
-	filtered := make([]domain.Anime, 0, len(animes))
-	for _, a := range animes {
-		if a.MalID > 0 {
-			filtered = append(filtered, a)
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].score == candidates[j].score {
+			return candidates[i].anime.MalID < candidates[j].anime.MalID
 		}
-	}
+		return candidates[i].score > candidates[j].score
+	})
 
-	return domain.DiscoverSectionData{Animes: filtered}, nil
+	return domain.DiscoverSectionData{
+		Animes: rerankRecommendationCandidates(candidates, forYouResultLimit),
+	}, nil
 }
 
 func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]domain.Anime, error) {
