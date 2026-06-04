@@ -32,6 +32,16 @@ func (c *Client) GetAnimeRecommendations(ctx context.Context, id int) ([]Recomme
 	return resp.Data, nil
 }
 
+func (c *Client) WarmAnimeRecommendations(id int) {
+	url := fmt.Sprintf("%s/anime/%d/recommendations", c.baseURL, id)
+	cacheKey := fmt.Sprintf("anime:recommendations:%d", id)
+
+	c.runAsyncRefresh(func(ctx context.Context) {
+		var resp RecommendationsResponse
+		_ = c.getWithCache(ctx, cacheKey, 24*time.Hour, url, &resp)
+	})
+}
+
 // GetAnimeByID returns full anime details; finished series cached 30 days, airing cached 1 day.
 func (c *Client) GetAnimeByID(ctx context.Context, id int) (Anime, error) {
 	cacheKey := fmt.Sprintf("anime:%d", id)
