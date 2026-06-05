@@ -33,6 +33,7 @@ type Entry struct {
 	ImageURL    string
 	EpisodeText string
 	AirType     AirType
+	AirsAt      time.Time
 	LocalTime   string
 	DateLabel   string
 	Weekday     time.Weekday
@@ -58,16 +59,28 @@ func (e *HTTPStatusError) Error() string {
 var reWeek = regexp.MustCompile(`(?i)[?&]week=(\d+)`)
 var reYear = regexp.MustCompile(`(?i)[?&]year=(\d+)`)
 
-func scheduleLocation() *time.Location {
-	// Use the host's local timezone (e.g. CEST) so the schedule matches the user's environment.
-	return time.Local
+func scheduleLocation(timezone string) (*time.Location, error) {
+	timezone = strings.TrimSpace(timezone)
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return nil, fmt.Errorf("load schedule timezone %q: %w", timezone, err)
+	}
+	return location, nil
 }
 
-func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int) (WeekSchedule, error) {
+func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int, timezone string) (WeekSchedule, error) {
 	apiToken := strings.TrimSpace(os.Getenv("ANIMESCHEDULE_API_TOKEN"))
 
 	if apiToken != "" {
-		return fetchWeekAPI(ctx, httpClient, apiToken, year, week)
+		return fetchWeekAPI(ctx, httpClient, apiToken, year, week, timezone)
+	}
+
+	location, err := scheduleLocation(timezone)
+	if err != nil {
+		return WeekSchedule{}, err
 	}
 
 	u, _ := url.Parse("https://animeschedule.net/")
@@ -147,8 +160,8 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int)
 			metaText := strings.Join(strings.Fields(strings.TrimSpace(meta.Text())), " ")
 
 			epText, _, airType := parseMeta(metaText)
-			localTime, _, _ := parseLocalTime(meta)
-			if title == "" || animeURL == "" || localTime == "" || airType == "" {
+			localTime, airsAt, _, _ := parseLocalTime(meta, location)
+			if title == "" || animeURL == "" || localTime == "" || airType != AirTypeSUB {
 				return
 			}
 
@@ -158,6 +171,7 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int)
 				ImageURL:    imageURL,
 				EpisodeText: epText,
 				AirType:     airType,
+				AirsAt:      airsAt,
 				LocalTime:   localTime,
 				DateLabel:   rawHeader,
 				Weekday:     *weekday,
@@ -168,7 +182,7 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int)
 			return
 		}
 
-		out.Days[*weekday] = append(out.Days[*weekday], dayEntries...)
+		out.Days[*weekday] = append(out.Days[*weekday], preferredReleaseEntries(dayEntries)...)
 	})
 
 	return out, nil
@@ -241,7 +255,50 @@ func parseMeta(meta string) (episodeText string, localTime string, airType AirTy
 	return episodeText, localTime, airType
 }
 
-func parseLocalTime(meta *goquery.Selection) (localTime string, rawDatetime string, rawRenderedTime string) {
+func preferredReleaseEntries(entries []Entry) []Entry {
+	type keyedEntry struct {
+		index int
+		entry Entry
+	}
+
+	selected := map[string]keyedEntry{}
+	for i, entry := range entries {
+		key := entry.AnimeURL + "\x00" + entry.EpisodeText
+		current, ok := selected[key]
+		if !ok || airTypePriority(entry.AirType) > airTypePriority(current.entry.AirType) {
+			selected[key] = keyedEntry{index: i, entry: entry}
+		}
+	}
+
+	out := make([]keyedEntry, 0, len(selected))
+	for _, entry := range selected {
+		out = append(out, entry)
+	}
+	slices.SortFunc(out, func(a keyedEntry, b keyedEntry) int {
+		return a.index - b.index
+	})
+
+	preferred := make([]Entry, 0, len(out))
+	for _, entry := range out {
+		preferred = append(preferred, entry.entry)
+	}
+	return preferred
+}
+
+func airTypePriority(airType AirType) int {
+	switch airType {
+	case AirTypeSUB:
+		return 3
+	case AirTypeDUB:
+		return 2
+	case AirTypeJPN:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func parseLocalTime(meta *goquery.Selection, location *time.Location) (localTime string, airsAt time.Time, rawDatetime string, rawRenderedTime string) {
 	// AnimeSchedule updates rendered time client-side based on the viewer's timezone.
 	// The server-rendered HTML can show a different time string, so we prefer the `datetime`
 	// attribute when available.
@@ -250,16 +307,27 @@ func parseLocalTime(meta *goquery.Selection) (localTime string, rawDatetime stri
 		rawRenderedTime = strings.Join(strings.Fields(strings.TrimSpace(t.Text())), " ")
 		if raw, ok := t.Attr("datetime"); ok {
 			rawDatetime = raw
-			if parsed, err := time.Parse(time.RFC3339, rawDatetime); err == nil {
-				localTime = parsed.In(scheduleLocation()).Format("03:04 PM")
-				return localTime, rawDatetime, rawRenderedTime
+			if parsed, err := parseScheduleDatetime(rawDatetime); err == nil {
+				airsAt = parsed.In(location)
+				localTime = airsAt.Format("15:04")
+				return localTime, airsAt, rawDatetime, rawRenderedTime
 			}
 		}
 	}
 
 	fallback := strings.Join(strings.Fields(strings.TrimSpace(meta.Text())), " ")
 	_, parsedTime, _ := parseMeta(fallback)
-	return parsedTime, "", ""
+	return parsedTime, time.Time{}, "", ""
+}
+
+func parseScheduleDatetime(value string) (time.Time, error) {
+	for _, layout := range []string{time.RFC3339, "2006-01-02T15:04Z07:00"} {
+		parsed, err := time.Parse(layout, strings.TrimSpace(value))
+		if err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("parse schedule datetime %q", value)
 }
 
 func absolutizeURL(base string, href string) string {
@@ -304,10 +372,15 @@ type timetableAnimeAPI struct {
 	ImageVersionRoute       string    `json:"imageVersionRoute"`
 }
 
-func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, year int, week int) (WeekSchedule, error) {
+func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, year int, week int, timezone string) (WeekSchedule, error) {
 	client := httpClient
 	if client == nil {
 		client = http.DefaultClient
+	}
+
+	location, err := scheduleLocation(timezone)
+	if err != nil {
+		return WeekSchedule{}, err
 	}
 
 	u, _ := url.Parse("https://animeschedule.net/api/v3/timetables/sub")
@@ -316,11 +389,7 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 		q.Set("year", strconv.Itoa(year))
 		q.Set("week", strconv.Itoa(week))
 	}
-	tz := strings.TrimSpace(os.Getenv("ANIMESCHEDULE_TZ"))
-	if tz == "" {
-		tz = "Europe/Copenhagen"
-	}
-	q.Set("tz", tz)
+	q.Set("tz", location.String())
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
@@ -386,13 +455,13 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 		}
 
 		airType := AirType(strings.ToUpper(strings.TrimSpace(item.AirType)))
-		if airType != AirTypeJPN && airType != AirTypeSUB && airType != AirTypeDUB {
+		if airType != AirTypeSUB {
 			continue
 		}
 
-		episodeTime := item.EpisodeDate.In(time.Local)
+		episodeTime := item.EpisodeDate.In(location)
 		weekday := episodeTime.Weekday()
-		localTime := episodeTime.Format("03:04 PM")
+		localTime := episodeTime.Format("15:04")
 
 		imageURL := ""
 		if strings.TrimSpace(item.ImageVersionRoute) != "" {
@@ -410,6 +479,7 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 			ImageURL:    imageURL,
 			EpisodeText: episodeText,
 			AirType:     airType,
+			AirsAt:      episodeTime,
 			LocalTime:   localTime,
 			Weekday:     weekday,
 		})

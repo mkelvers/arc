@@ -1,5 +1,4 @@
 import {
-  convertJstToLocalTime,
   isJstTimezone,
   normalizeWeekday,
   parseHHMM,
@@ -73,10 +72,8 @@ interface LocalSlot {
   timeLabel: string;
 }
 
-const formatLocalTime = (hour: number, minute: number, format: TimeFormat): string => {
+const formatLocalTime = (date: Date, format: TimeFormat): string => {
   const use12h = format === "12";
-  const date = new Date();
-  date.setHours(hour, minute, 0, 0);
   const formatter = new Intl.DateTimeFormat(undefined, {
     hour: "numeric",
     minute: "2-digit",
@@ -85,10 +82,33 @@ const formatLocalTime = (hour: number, minute: number, format: TimeFormat): stri
   return formatter.format(date);
 };
 
+const dateForDayIndex = (weekStartDate: Date, weekStart: WeekStart, dayIndex: number): Date => {
+  const dayOrder = orderedDayIndexes(weekStart);
+  const startIndex = dayOrder[0] ?? 1;
+  const date = new Date(weekStartDate);
+  date.setDate(date.getDate() + ((dayIndex - startIndex + 7) % 7));
+  return date;
+};
+
+const jstBroadcastInstant = (sourceDate: Date, hour: number, minute: number): Date =>
+  new Date(
+    Date.UTC(
+      sourceDate.getFullYear(),
+      sourceDate.getMonth(),
+      sourceDate.getDate(),
+      hour - 9,
+      minute,
+      0,
+      0,
+    ),
+  );
+
 const getLocalSlot = (
   broadcastDay: string | null,
   broadcastTime: string | null,
   broadcastTimezone: string | null,
+  weekStartDate: Date,
+  weekStart: WeekStart,
   timeFormat: TimeFormat,
 ): LocalSlot | null => {
   const sourceDayIndex = normalizeWeekday(broadcastDay);
@@ -96,18 +116,12 @@ const getLocalSlot = (
   if (sourceDayIndex === null || !parsed) return null;
   if (!isJstTimezone(broadcastTimezone)) return null;
 
-  const localOffsetMinutes = -new Date().getTimezoneOffset();
-
-  const localTime = convertJstToLocalTime(
-    sourceDayIndex,
-    parsed.hour,
-    parsed.minute,
-    localOffsetMinutes,
-  );
-  const timeLabel = formatLocalTime(localTime.hour, localTime.minute, timeFormat);
+  const sourceDate = dateForDayIndex(weekStartDate, weekStart, sourceDayIndex);
+  const localDate = jstBroadcastInstant(sourceDate, parsed.hour, parsed.minute);
+  const timeLabel = formatLocalTime(localDate, timeFormat);
   return {
-    localDayIndex: localTime.dayIndex,
-    localMinutes: localTime.totalMinutes,
+    localDayIndex: localDate.getDay(),
+    localMinutes: localDate.getHours() * 60 + localDate.getMinutes(),
     timeLabel,
   };
 };
@@ -268,6 +282,8 @@ const buildBoard = (section: HTMLElement): void => {
         node.getAttribute("data-broadcast-day"),
         node.getAttribute("data-broadcast-time"),
         node.getAttribute("data-broadcast-timezone"),
+        weekStartDate,
+        settings.weekStart,
         settings.timeFormat,
       );
       if (!slot) continue;

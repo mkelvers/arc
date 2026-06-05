@@ -357,8 +357,9 @@ func (h *AnimeHandler) HandleSchedule(c *gin.Context) {
 
 func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
 	year, week := parseYearWeek(c)
+	timezone := scheduleTimezone(c)
 
-	schedule, err := h.getCachedAnimeScheduleWeek(c.Request.Context(), year, week)
+	schedule, err := h.getCachedAnimeScheduleWeek(c.Request.Context(), year, week, timezone)
 	if err != nil {
 		prevYear, prevWeek := adjacentISOWeek(year, week, -1)
 		nextYear, nextWeek := adjacentISOWeek(year, week, 1)
@@ -367,8 +368,9 @@ func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
 			"anime",
 			"",
 			map[string]any{
-				"year": year,
-				"week": week,
+				"year":     year,
+				"week":     week,
+				"timezone": timezone,
 			},
 			err,
 		)

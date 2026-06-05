@@ -33,8 +33,16 @@ func parseYearWeek(c *gin.Context) (int, int) {
 	return year, week
 }
 
-func (h *AnimeHandler) getCachedAnimeScheduleWeek(ctx context.Context, year int, week int) (animeschedule.WeekSchedule, error) {
-	cacheKey := fmt.Sprintf("%d-%02d", year, week)
+func scheduleTimezone(c *gin.Context) string {
+	timezone := strings.TrimSpace(c.Query("timezone"))
+	if timezone == "" {
+		return "UTC"
+	}
+	return timezone
+}
+
+func (h *AnimeHandler) getCachedAnimeScheduleWeek(ctx context.Context, year int, week int, timezone string) (animeschedule.WeekSchedule, error) {
+	cacheKey := fmt.Sprintf("%d-%02d-%s", year, week, timezone)
 	const ttl = 10 * time.Minute
 
 	h.scheduleCacheMu.Lock()
@@ -45,7 +53,7 @@ func (h *AnimeHandler) getCachedAnimeScheduleWeek(ctx context.Context, year int,
 		return cached.value, nil
 	}
 
-	value, err := animeschedule.FetchWeek(ctx, nil, year, week)
+	value, err := animeschedule.FetchWeek(ctx, nil, year, week, timezone)
 	if err != nil {
 		return animeschedule.WeekSchedule{}, err
 	}
@@ -71,6 +79,9 @@ func buildScheduleDays(schedule animeschedule.WeekSchedule, year int, week int) 
 		date := start.AddDate(0, 0, i)
 		entries := schedule.Days[wd]
 		sort.SliceStable(entries, func(i, j int) bool {
+			if !entries[i].AirsAt.IsZero() && !entries[j].AirsAt.IsZero() {
+				return entries[i].AirsAt.Before(entries[j].AirsAt)
+			}
 			return localTimeMinutes(entries[i].LocalTime) < localTimeMinutes(entries[j].LocalTime)
 		})
 		out = append(out, scheduleDayView{
@@ -83,11 +94,13 @@ func buildScheduleDays(schedule animeschedule.WeekSchedule, year int, week int) 
 }
 
 func localTimeMinutes(localTime string) int {
-	t, err := time.Parse("03:04 PM", localTime)
-	if err != nil {
-		return 0
+	for _, layout := range []string{"15:04", "03:04 PM"} {
+		t, err := time.Parse(layout, localTime)
+		if err == nil {
+			return t.Hour()*60 + t.Minute()
+		}
 	}
-	return t.Hour()*60 + t.Minute()
+	return 0
 }
 
 func isoWeekStartMonday(year int, week int) time.Time {

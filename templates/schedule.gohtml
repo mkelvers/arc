@@ -7,7 +7,12 @@
     </div>
   </section>
 
-  <div hx-get="/api/schedule?year={{.ScheduleYear}}&week={{.ScheduleWeek}}" hx-trigger="load" hx-swap="outerHTML">
+  <div
+    hx-get="/api/schedule?year={{.ScheduleYear}}&week={{.ScheduleWeek}}"
+    hx-vals='js:{timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"}'
+    hx-trigger="load"
+    hx-swap="outerHTML"
+  >
     {{template "schedule_skeleton"}}
   </div>
 </div>
