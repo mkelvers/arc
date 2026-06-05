@@ -59,15 +59,110 @@ func TestScoreRecommendationCandidateRewardsProfileOverlap(t *testing.T) {
 		Genres:     []jikan.NamedEntity{{MalID: 1, Name: "Action"}},
 		Popularity: 100,
 		Score:      8.0,
-	}, 5.0)
+	}, 5.0, 0)
 	nonMatching := scoreRecommendationCandidate(now, profile, jikan.Anime{
 		MalID:      11,
 		Genres:     []jikan.NamedEntity{{MalID: 2, Name: "Drama"}},
 		Popularity: 100,
 		Score:      8.0,
-	}, 5.0)
+	}, 5.0, 0)
 
 	if matching.score <= nonMatching.score {
 		t.Fatalf("expected matching candidate to score higher, got matching=%f nonMatching=%f", matching.score, nonMatching.score)
 	}
+}
+
+func TestBuildTasteProfileUsesSeedWeights(t *testing.T) {
+	now := time.Date(2026, time.June, 4, 12, 0, 0, 0, time.UTC)
+
+	profile := buildTasteProfile(
+		now,
+		[]recommendationSeed{
+			{animeID: 1, weight: 2.0},
+			{animeID: 2, weight: 0.5},
+		},
+		[]jikan.Anime{
+			{
+				MalID:        1,
+				Airing:       true,
+				Year:         2026,
+				Genres:       []jikan.NamedEntity{{MalID: 1, Name: "Action"}},
+				Themes:       []jikan.NamedEntity{{MalID: 10, Name: "Team Sports"}},
+				Studios:      []jikan.NamedEntity{{MalID: 20, Name: "Production I.G"}},
+				Demographics: []jikan.NamedEntity{{MalID: 30, Name: "Shounen"}},
+			},
+			{
+				MalID:        2,
+				Year:         2001,
+				Genres:       []jikan.NamedEntity{{MalID: 2, Name: "Drama"}},
+				Themes:       []jikan.NamedEntity{{MalID: 11, Name: "School"}},
+				Studios:      []jikan.NamedEntity{{MalID: 21, Name: "Madhouse"}},
+				Demographics: []jikan.NamedEntity{{MalID: 31, Name: "Seinen"}},
+			},
+		},
+	)
+
+	if profile.genres[1] <= profile.genres[2] {
+		t.Fatalf("expected stronger seed genre to carry more weight, got profile=%+v", profile.genres)
+	}
+	if !profile.prefersAiring {
+		t.Fatal("expected weighted profile to prefer airing anime")
+	}
+	if !profile.prefersRecent {
+		t.Fatal("expected weighted profile to prefer recent anime")
+	}
+}
+
+func TestBuildProfileSearchQueriesIncludesTasteSignals(t *testing.T) {
+	profile := userTasteProfile{
+		genres: map[int]float64{
+			1: 2.0,
+			2: 1.5,
+			3: 0.2,
+		},
+		themes: map[int]float64{
+			10: 1.4,
+		},
+		studios: map[int]float64{
+			20: 1.0,
+		},
+		demographics: map[int]float64{
+			30: 1.2,
+		},
+	}
+
+	queries := buildProfileSearchQueries(profile)
+
+	if !hasGenreSearchQuery(queries, 1) {
+		t.Fatalf("expected strongest genre query, got %+v", queries)
+	}
+	if !hasGenreSearchQuery(queries, 10) {
+		t.Fatalf("expected theme query, got %+v", queries)
+	}
+	if !hasGenreSearchQuery(queries, 30) {
+		t.Fatalf("expected demographic query, got %+v", queries)
+	}
+	if !hasStudioSearchQuery(queries, 20) {
+		t.Fatalf("expected studio query, got %+v", queries)
+	}
+}
+
+func hasGenreSearchQuery(queries []profileSearchQuery, genreID int) bool {
+	for _, query := range queries {
+		for _, id := range query.genreIDs {
+			if id == genreID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasStudioSearchQuery(queries []profileSearchQuery, studioID int) bool {
+	for _, query := range queries {
+		if query.studioID == studioID {
+			return true
+		}
+	}
+	return false
 }
