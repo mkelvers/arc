@@ -32,6 +32,32 @@ const dedupe = (): void => {
   });
 };
 
+const dedupeSwapTarget = (target: EventTarget | null): void => {
+  if (!(target instanceof HTMLElement)) {
+    return;
+  }
+
+  if (target.matches("[data-id]")) {
+    const parent = target.parentElement;
+    if (parent) {
+      dedupeWithin(parent);
+    }
+    return;
+  }
+
+  const containers = new Set<ParentNode>();
+  const elements = target.querySelectorAll<HTMLElement>("[data-id]");
+  elements.forEach((item) => {
+    if (item.parentElement) {
+      containers.add(item.parentElement);
+    }
+  });
+
+  containers.forEach((container) => {
+    dedupeWithin(container);
+  });
+};
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", dedupe);
 } else {
@@ -39,3 +65,8 @@ if (document.readyState === "loading") {
 }
 
 window.addEventListener("load", dedupe);
+
+document.addEventListener("htmx:afterSwap", (event: Event): void => {
+  const customEvent = event as CustomEvent<{ target?: EventTarget | null }>;
+  dedupeSwapTarget(customEvent.detail?.target ?? event.target);
+});
