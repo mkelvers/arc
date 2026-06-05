@@ -11,6 +11,13 @@
   <title>MyAnimeList: {{template "title" .}}</title>
   <link rel="manifest" href="/static/assets/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/static/assets/favicon.svg">
+  <script>
+    (function () {
+      var theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+    })();
+  </script>
   <link rel="stylesheet" href="/dist/tailwind.css">
   <style>
     /* Prevent transition on load */
@@ -47,12 +54,6 @@
       transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
       transition-duration: 300ms;
     }
-
-    /* Theme toggle icon visibility */
-    html[data-theme="dark"] .theme-icon-dark { display: none; }
-    html[data-theme="dark"] .theme-icon-light { display: block; }
-    html[data-theme="light"] .theme-icon-light { display: none; }
-   html[data-theme="light"] .theme-icon-dark { display: block; }
 
     [data-htmx-loading="true"] {
       opacity: 0.65;
