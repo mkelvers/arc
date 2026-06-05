@@ -1,16 +1,19 @@
 # Recommendation Architecture
 
-This document defines the long-term shape of the `For You` discovery system.
+This document defines the long-term shape of the `Top Pick for You`
+recommendation system.
 The goal is to keep the current implementation simple enough to operate inside
 the existing Go application while preserving a clean path toward a larger
 recommender system.
 
 ## Current Serving Model
 
-The current `For You` implementation is a bounded hybrid ranker:
+The current `Top Pick for You` implementation is a bounded hybrid ranker:
 
 - builds weighted seeds from user watch history
 - uses Jikan recommendation edges as collaborative candidates
+- uses watchlist-derived genres, themes, studios, and demographics as profile
+  search candidates
 - excludes anime already present in the watchlist
 - boosts candidates that match user taste signals
 - reranks the final list to reduce genre pileups
@@ -19,10 +22,11 @@ The online request path stays intentionally small:
 
 1. load recent watchlist state
 2. derive strong seeds
-3. fetch bounded candidate set
-4. score candidates
-5. rerank for diversity
-6. return top results
+3. build a weighted taste profile from those seeds
+4. fetch bounded collaborative and profile-search candidate sets
+5. score candidates
+6. rerank for diversity
+7. return top results
 
 ## Target System Shape
 

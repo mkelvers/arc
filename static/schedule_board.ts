@@ -1,8 +1,4 @@
-import {
-  isJstTimezone,
-  normalizeWeekday,
-  parseHHMM,
-} from "./shared/broadcast";
+import { isJstTimezone, normalizeWeekday, parseHHMM } from "./shared/broadcast";
 
 export {};
 

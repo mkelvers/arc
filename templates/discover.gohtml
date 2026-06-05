@@ -34,17 +34,6 @@
     </div>
   </section>
 
-  {{/* For You Section */}}
-  <section id="discover-for-you-section" class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <h2 class="text-base font-normal text-foreground">For You</h2>
-      <span class="text-sm text-foreground-muted">Based on your watchlist</span>
-    </div>
-    <div hx-get="/api/discover/for-you" hx-trigger="load" hx-target="#discover-for-you-section" hx-swap="outerHTML">
-      {{template "discover_skeleton"}}
-    </div>
-  </section>
-
   {{/* Upcoming Section */}}
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
@@ -83,30 +72,6 @@
     {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
   {{end}}
 </div>
-{{end}}
-
-{{define "discover_row"}}
-<div class="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
-  {{range .Animes}}
-    {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
-  {{end}}
-</div>
-{{end}}
-
-{{define "discover_for_you_section"}}
-{{if gt (len .Animes) 0}}
-<section id="discover-for-you-section" class="flex flex-col gap-4">
-  <div class="flex items-center justify-between">
-    <h2 class="text-base font-normal text-foreground">For You</h2>
-    <span class="text-sm text-foreground-muted">Based on your watchlist</span>
-  </div>
-  <div class="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
-    {{range .Animes}}
-      {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
-    {{end}}
-  </div>
-</section>
-{{end}}
 {{end}}
 
 {{define "discover_skeleton"}}
