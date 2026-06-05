@@ -2,14 +2,6 @@ export {};
 
 import { onReady } from "./utils";
 
-declare global {
-  interface Window {
-    htmx?: {
-      process: (element: Element) => void;
-    };
-  }
-}
-
 type ToastFn = (opts: { message: string; duration?: number }) => void;
 
 const getToast = (): ToastFn | null => {
@@ -44,8 +36,6 @@ const getTriggerFromHtmxEvent = (event: Event): Element | null => {
 };
 
 onReady(() => {
-  window.htmx?.process(document.body);
-
   document.addEventListener("htmx:beforeRequest", (event) => {
     setBusy(getTriggerFromHtmxEvent(event), true);
   });
