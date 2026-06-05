@@ -6,15 +6,21 @@ import (
 	"mal/internal/domain"
 	"math"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 )
 
 const (
 	forYouMaxSeeds               = 8
-	forYouMaxRecommendations     = 8
-	forYouCandidateFetchLimit    = 36
-	forYouResultLimit            = 12
+	forYouMaxRecommendations     = 10
+	forYouCandidateFetchLimit    = 60
+	forYouResultLimit            = 18
+	forYouProfileSearchLimit     = 8
+	forYouProfileGenreSearches   = 2
+	forYouProfileThemeSearches   = 2
+	forYouCollaborativeWeight    = 1.4
+	forYouProfileSearchWeight    = 0.8
 	forYouSeedRecencyWindow      = 180 * 24 * time.Hour
 	forYouFreshReleaseWindow     = 540 * 24 * time.Hour
 	forYouGenreMatchWeight       = 1.8
@@ -26,6 +32,17 @@ const (
 type recommendationSeed struct {
 	animeID int
 	weight  float64
+}
+
+type weightedEntity struct {
+	id     int
+	weight float64
+}
+
+type profileSearchQuery struct {
+	genreIDs []int
+	studioID int
+	weight   float64
 }
 
 type recommendationCandidate struct {
@@ -101,7 +118,11 @@ func recommendationEntryWeight(now time.Time, entry db.GetUserWatchListRow) floa
 	return statusWeight * recencyWeight * progressWeight
 }
 
-func buildTasteProfile(seedAnimes []jikan.Anime) userTasteProfile {
+func buildTasteProfile(
+	now time.Time,
+	seeds []recommendationSeed,
+	seedAnimes []jikan.Anime,
+) userTasteProfile {
 	profile := userTasteProfile{
 		genres:       make(map[int]float64),
 		themes:       make(map[int]float64),
@@ -109,27 +130,33 @@ func buildTasteProfile(seedAnimes []jikan.Anime) userTasteProfile {
 		demographics: make(map[int]float64),
 	}
 
-	var airingCount int
-	var recentCount int
+	var totalWeight float64
+	var airingWeight float64
+	var recentWeight float64
 
-	for _, anime := range seedAnimes {
-		addEntityWeights(profile.genres, anime.Genres, 1.0)
-		addEntityWeights(profile.themes, anime.Themes, 0.7)
-		addEntityWeights(profile.studios, anime.Studios, 0.5)
-		addEntityWeights(profile.demographics, anime.Demographics, 0.7)
+	for i, anime := range seedAnimes {
+		seedWeight := 1.0
+		if i < len(seeds) && seeds[i].weight > 0 {
+			seedWeight = seeds[i].weight
+		}
+
+		addEntityWeights(profile.genres, anime.Genres, seedWeight)
+		addEntityWeights(profile.themes, anime.Themes, seedWeight*0.7)
+		addEntityWeights(profile.studios, anime.Studios, seedWeight*0.5)
+		addEntityWeights(profile.demographics, anime.Demographics, seedWeight*0.7)
 
 		if anime.Airing {
-			airingCount++
+			airingWeight += seedWeight
 		}
-		if anime.Year > 0 && time.Now().Year()-anime.Year <= 4 {
-			recentCount++
+		if anime.Year > 0 && now.Year()-anime.Year <= 4 {
+			recentWeight += seedWeight
 		}
+		totalWeight += seedWeight
 	}
 
-	total := len(seedAnimes)
-	if total > 0 {
-		profile.prefersAiring = float64(airingCount)/float64(total) >= 0.5
-		profile.prefersRecent = float64(recentCount)/float64(total) >= 0.5
+	if totalWeight > 0 {
+		profile.prefersAiring = airingWeight/totalWeight >= 0.5
+		profile.prefersRecent = recentWeight/totalWeight >= 0.5
 	}
 
 	return profile
@@ -144,18 +171,95 @@ func addEntityWeights(target map[int]float64, entities []jikan.NamedEntity, weig
 	}
 }
 
+func buildProfileSearchQueries(profile userTasteProfile) []profileSearchQuery {
+	queries := make([]profileSearchQuery, 0, 6)
+
+	for _, entity := range strongestWeightedEntities(profile.genres, forYouProfileGenreSearches) {
+		queries = append(queries, profileSearchQuery{
+			genreIDs: []int{entity.id},
+			weight:   entity.weight,
+		})
+	}
+
+	for _, entity := range strongestWeightedEntities(profile.themes, forYouProfileThemeSearches) {
+		queries = append(queries, profileSearchQuery{
+			genreIDs: []int{entity.id},
+			weight:   entity.weight * 0.8,
+		})
+	}
+
+	for _, entity := range strongestWeightedEntities(profile.demographics, 1) {
+		queries = append(queries, profileSearchQuery{
+			genreIDs: []int{entity.id},
+			weight:   entity.weight * 0.8,
+		})
+	}
+
+	for _, entity := range strongestWeightedEntities(profile.studios, 1) {
+		queries = append(queries, profileSearchQuery{
+			studioID: entity.id,
+			weight:   entity.weight * 0.7,
+		})
+	}
+
+	return queries
+}
+
+func strongestWeightedEntities(weights map[int]float64, limit int) []weightedEntity {
+	if limit <= 0 || len(weights) == 0 {
+		return []weightedEntity{}
+	}
+
+	items := make([]weightedEntity, 0, len(weights))
+	for id, weight := range weights {
+		if id <= 0 || weight <= 0 {
+			continue
+		}
+		items = append(items, weightedEntity{id: id, weight: weight})
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].weight == items[j].weight {
+			return items[i].id < items[j].id
+		}
+		return items[i].weight > items[j].weight
+	})
+
+	if len(items) > limit {
+		return items[:limit]
+	}
+	return items
+}
+
+func profileSearchRankWeight(rank int) float64 {
+	return math.Max(0.35, 1-(float64(rank)*0.08))
+}
+
+func rankedCandidateRetrievalScore(collaborativeScore float64, profileSearchScore float64) float64 {
+	return (math.Log1p(collaborativeScore) * forYouCollaborativeWeight) +
+		(profileSearchScore * forYouProfileSearchWeight)
+}
+
+func hasTasteMetadata(anime jikan.Anime) bool {
+	return len(anime.Genres) > 0 ||
+		len(anime.Themes) > 0 ||
+		len(anime.Studios) > 0 ||
+		len(anime.Demographics) > 0
+}
+
 func scoreRecommendationCandidate(
 	now time.Time,
 	profile userTasteProfile,
 	candidate jikan.Anime,
 	collaborativeScore float64,
+	profileSearchScore float64,
 ) recommendationCandidate {
 	genreMatches, genreScore := weightedEntityMatch(profile.genres, candidate.Genres)
 	themeMatches, themeScore := weightedEntityMatch(profile.themes, candidate.Themes)
 	studioMatches, studioScore := weightedEntityMatch(profile.studios, candidate.Studios)
 	demographicMatches, demographicScore := weightedEntityMatch(profile.demographics, candidate.Demographics)
 
-	score := collaborativeScore
+	score := rankedCandidateRetrievalScore(collaborativeScore, profileSearchScore)
 	score += genreScore * forYouGenreMatchWeight
 	score += themeScore * forYouThemeMatchWeight
 	score += studioScore * forYouStudioMatchWeight
