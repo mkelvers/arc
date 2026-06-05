@@ -139,22 +139,32 @@
         {{end}}
       </div>
 
-      <div class="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground-muted">
+      <div class="mb-6 flex flex-wrap items-center gap-x-2.5 gap-y-2 text-sm text-foreground-muted">
         {{if $anime.Score}}
-          <div class="flex items-center gap-1.5 font-medium text-foreground">
+          <div class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden font-medium text-foreground">
             <svg class="h-3.5 w-3.5 fill-current text-accent" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             {{$anime.Score}}
           </div>
         {{end}}
-        {{if $anime.Type}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Type}}</span>{{end}}
+        {{if $anime.Type}}<span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{$anime.Type}}</span>{{end}}
         {{if and $anime.Airing .EpisodesCount}}
-          <span class="flex items-center gap-1.5"><span>•</span>{{.EpisodesCount}}{{if $anime.Episodes}}/{{$anime.Episodes}}{{end}} episodes</span>
+          <span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{.EpisodesCount}}{{if $anime.Episodes}}/{{$anime.Episodes}}{{end}} episodes</span>
         {{else if $anime.Episodes}}
-          <span class="flex items-center gap-1.5"><span>•</span>{{$anime.Episodes}} episodes</span>
+          <span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{$anime.Episodes}} episodes</span>
         {{end}}
-        {{if $anime.Status}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Status}}</span>{{end}}
-        {{if $anime.Season}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.Premiered}}</span>{{end}}
-        {{if $anime.ShortRating}}<span class="flex items-center gap-1.5"><span>•</span>{{$anime.ShortRating}}</span>{{end}}
+        {{if $anime.Status}}<span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{$anime.Status}}</span>{{end}}
+        {{if $anime.Season}}<span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{$anime.Premiered}}</span>{{end}}
+        {{if $anime.ShortRating}}<span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{$anime.ShortRating}}</span>{{end}}
+        {{if .AudioAvailability}}
+          <span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-[3px] before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">
+            <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 14a9 9 0 0 1 18 0"></path>
+              <path d="M21 14v3a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2Z"></path>
+              <path d="M3 14v3a2 2 0 0 0 2 2h1v-7H5a2 2 0 0 0-2 2Z"></path>
+            </svg>
+            {{.AudioAvailability}}
+          </span>
+        {{end}}
       </div>
 
       <div class="mb-8">
@@ -226,6 +236,12 @@
                         <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
+                  </div>
+                {{end}}
+                {{if .AudioAvailability}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Audio</dt>
+                    <dd class="text-foreground">{{.AudioAvailability}}</dd>
                   </div>
                 {{end}}
                 <div class="grid grid-cols-2 gap-4">

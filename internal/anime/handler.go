@@ -19,11 +19,13 @@ import (
 const (
 	animeSectionTimeout = 12 * time.Second
 	watchOrderTimeout   = 15 * time.Second
+	audioLookupTimeout  = 8 * time.Second
 )
 
 type AnimeHandler struct {
 	svc          Service
 	watchlistSvc domain.WatchlistService
+	episodeSvc   domain.EpisodeService
 
 	scheduleCacheMu sync.Mutex
 	scheduleCache   map[string]cachedWeekSchedule
@@ -37,10 +39,11 @@ type Service interface {
 	WarmDetailSections(id int)
 }
 
-func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService) *AnimeHandler {
+func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService, episodeSvc domain.EpisodeService) *AnimeHandler {
 	return &AnimeHandler{
 		svc:           svc,
 		watchlistSvc:  watchlistSvc,
+		episodeSvc:    episodeSvc,
 		scheduleCache: map[string]cachedWeekSchedule{},
 	}
 }
@@ -65,6 +68,50 @@ func (h *AnimeHandler) watchlistMapForIDs(ctx context.Context, userID string, an
 		return map[int64]bool{}
 	}
 	return watchlistMap
+}
+
+func animeAudioAvailabilityLabel(episodes []domain.CanonicalEpisode) string {
+	hasKnownSub := false
+	for _, episode := range episodes {
+		if episode.HasDub {
+			return "Dub available"
+		}
+		if episode.HasSub || episode.SubOnly {
+			hasKnownSub = true
+		}
+	}
+	if hasKnownSub {
+		return "Subtitled only"
+	}
+	return ""
+}
+
+func (h *AnimeHandler) animeAudioAvailability(ctx context.Context, anime domain.Anime) string {
+	if h.episodeSvc == nil {
+		return ""
+	}
+
+	audioCtx, cancel := context.WithTimeout(ctx, audioLookupTimeout)
+	defer cancel()
+
+	episodeList, err := h.episodeSvc.GetCanonicalEpisodes(audioCtx, anime, true)
+	if err != nil {
+		observability.Warn(
+			"anime_audio_availability_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"anime_id": anime.MalID,
+			},
+			err,
+		)
+		return ""
+	}
+	if episodeList.Source != "AllAnime" {
+		return ""
+	}
+
+	return animeAudioAvailabilityLabel(episodeList.Episodes)
 }
 
 func (h *AnimeHandler) Register(r *gin.Engine) {
@@ -565,8 +612,11 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		}
 	}
 
+	audioAvailability := h.animeAudioAvailability(c.Request.Context(), anime)
+
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":                anime,
+		"AudioAvailability":    audioAvailability,
 		"CurrentPath":          fmt.Sprintf("/anime/%d", id),
 		"User":                 user,
 		"Status":               status,
