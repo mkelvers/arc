@@ -133,11 +133,11 @@ type ReviewEntry struct {
 
 type AnimeCatalogService interface {
 	GetCatalogSection(ctx context.Context, userID string, section string) (CatalogSectionData, error)
+	GetTopPickForYou(ctx context.Context, userID string) (CatalogSectionData, error)
 }
 
 type AnimeDiscoverService interface {
 	GetDiscoverSection(ctx context.Context, userID string, section string) (DiscoverSectionData, error)
-	GetDiscoverForYou(ctx context.Context, userID string) (DiscoverSectionData, error)
 	GetAiringSchedule(ctx context.Context, userID string) ([]Anime, error)
 }
 

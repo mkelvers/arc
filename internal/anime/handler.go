@@ -119,11 +119,11 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/catalog/airing", h.HandleCatalogAiring)
 	r.GET("/api/catalog/popular", h.HandleCatalogPopular)
 	r.GET("/api/catalog/continue", h.HandleCatalogContinue)
+	r.GET("/api/catalog/top-pick", h.HandleCatalogTopPickForYou)
 	r.GET("/discover", h.HandleDiscover)
 	r.GET("/api/discover/trending", h.HandleDiscoverTrending)
 	r.GET("/api/discover/upcoming", h.HandleDiscoverUpcoming)
 	r.GET("/api/discover/top", h.HandleDiscoverTop)
-	r.GET("/api/discover/for-you", h.HandleDiscoverForYou)
 	r.GET("/schedule", h.HandleSchedule)
 	r.GET("/api/schedule", h.HandleScheduleSection)
 	r.GET("/browse", h.HandleBrowse)
@@ -252,6 +252,32 @@ func (h *AnimeHandler) HandleCatalogContinue(c *gin.Context) {
 	h.renderCatalogSection(c, "Continue")
 }
 
+func (h *AnimeHandler) HandleCatalogTopPickForYou(c *gin.Context) {
+	userID := server.CurrentUserID(c)
+
+	data, err := h.svc.GetTopPickForYou(c.Request.Context(), userID)
+	if err != nil {
+		observability.Warn(
+			"top_pick_for_you_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"user_id": userID,
+			},
+			err,
+		)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
+
+	data.Section = "TopPickForYou"
+	data.Fragment = "top_pick_for_you_section"
+	data.WatchlistMap = watchlistMap
+	c.HTML(http.StatusOK, "index.gohtml", data)
+}
+
 func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	userID := server.CurrentUserID(c)
 	data, err := h.svc.GetCatalogSection(c.Request.Context(), userID, section)
@@ -286,32 +312,6 @@ func (h *AnimeHandler) HandleDiscoverUpcoming(c *gin.Context) {
 
 func (h *AnimeHandler) HandleDiscoverTop(c *gin.Context) {
 	h.renderDiscoverSection(c, "Top")
-}
-
-func (h *AnimeHandler) HandleDiscoverForYou(c *gin.Context) {
-	userID := server.CurrentUserID(c)
-
-	data, err := h.svc.GetDiscoverForYou(c.Request.Context(), userID)
-	if err != nil {
-		observability.Warn(
-			"discover_for_you_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"user_id": userID,
-			},
-			err,
-		)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
-
-	data.Section = "ForYou"
-	data.Fragment = "discover_for_you_section"
-	data.WatchlistMap = watchlistMap
-	c.HTML(http.StatusOK, "discover.gohtml", data)
 }
 
 func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
