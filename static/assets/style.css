@@ -57,6 +57,14 @@
   --radius: 0px;
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 html,
 body {
   background-color: var(--color-background);
