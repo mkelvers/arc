@@ -13,17 +13,11 @@ type ContinueWatchingCarousel = {
   nextFade: HTMLElement;
 };
 
-const getContinueWatchingCarousel = (
-  root: HTMLElement,
-): ContinueWatchingCarousel | null => {
+const getContinueWatchingCarousel = (root: HTMLElement): ContinueWatchingCarousel | null => {
   const track = root.querySelector<HTMLElement>("[data-continue-watching-track]");
-  const previous = root.querySelector<HTMLButtonElement>(
-    "[data-continue-watching-prev]",
-  );
+  const previous = root.querySelector<HTMLButtonElement>("[data-continue-watching-prev]");
   const next = root.querySelector<HTMLButtonElement>("[data-continue-watching-next]");
-  const previousFade = root.querySelector<HTMLElement>(
-    "[data-continue-watching-prev-fade]",
-  );
+  const previousFade = root.querySelector<HTMLElement>("[data-continue-watching-prev-fade]");
   const nextFade = root.querySelector<HTMLElement>("[data-continue-watching-next-fade]");
 
   if (!track || !previous || !next || !previousFade || !nextFade) {
@@ -39,11 +33,7 @@ const continueWatchingCarousels = (root: ParentNode = document): HTMLElement[] =
 const maxScrollLeft = (track: HTMLElement): number =>
   Math.max(0, track.scrollWidth - track.clientWidth);
 
-const setControlState = (
-  button: HTMLButtonElement,
-  fade: HTMLElement,
-  visible: boolean,
-): void => {
+const setControlState = (button: HTMLButtonElement, fade: HTMLElement, visible: boolean): void => {
   button.classList.toggle("hidden", !visible);
   button.classList.toggle("inline-flex", visible);
   button.setAttribute("aria-hidden", String(!visible));
@@ -61,10 +51,8 @@ const updateContinueWatchingCarousel = (root: HTMLElement): void => {
   const maxScroll = maxScrollLeft(carousel.track);
   const canScroll = maxScroll > carouselScrollEpsilon;
   const allowArrows = canScroll && items.length >= minimumArrowItems;
-  const hasPrevious =
-    allowArrows && carousel.track.scrollLeft > carouselScrollEpsilon;
-  const hasNext =
-    allowArrows && carousel.track.scrollLeft < maxScroll - carouselScrollEpsilon;
+  const hasPrevious = allowArrows && carousel.track.scrollLeft > carouselScrollEpsilon;
+  const hasNext = allowArrows && carousel.track.scrollLeft < maxScroll - carouselScrollEpsilon;
 
   setControlState(carousel.previous, carousel.previousFade, hasPrevious);
   setControlState(carousel.next, carousel.nextFade, hasNext);
@@ -86,10 +74,7 @@ const carouselScrollAmount = (track: HTMLElement): number => {
   return Math.max(itemWidth, track.clientWidth - Math.min(itemWidth, overlap));
 };
 
-const scrollContinueWatchingCarousel = (
-  root: HTMLElement,
-  direction: -1 | 1,
-): void => {
+const scrollContinueWatchingCarousel = (root: HTMLElement, direction: -1 | 1): void => {
   const carousel = getContinueWatchingCarousel(root);
   if (!carousel) {
     return;
@@ -150,10 +135,7 @@ document.addEventListener(
   "scroll",
   (event: Event): void => {
     const target = event.target;
-    if (
-      !(target instanceof HTMLElement) ||
-      !target.matches("[data-continue-watching-track]")
-    ) {
+    if (!(target instanceof HTMLElement) || !target.matches("[data-continue-watching-track]")) {
       return;
     }
 
