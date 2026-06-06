@@ -1,5 +1,7 @@
 export {};
 
+import { onReady } from "./utils";
+
 type WatchlistStatus = "watching" | "completed" | "plan_to_watch" | "dropped";
 
 type WatchlistUpdateDisplay =
@@ -428,11 +430,7 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
   }
 };
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initWatchlistPage);
-} else {
-  initWatchlistPage();
-}
+onReady(initWatchlistPage);
 
 const initWatchlist = (ids: number[]): void => {
   ids.forEach((id) => watchlistIds.add(id));
@@ -506,16 +504,23 @@ const installDelegatedHandlers = (): void => {
 declare global {
   interface Window {
     initWatchlist: (ids: number[]) => void;
-    __WATCHLIST_IDS__?: unknown;
   }
 }
 
 window.initWatchlist = initWatchlist;
 
 onReady(() => {
-  const raw = window.__WATCHLIST_IDS__;
-  if (Array.isArray(raw)) {
-    const ids: number[] = raw.filter((entry): entry is number => typeof entry === "number");
+  const raw = document.getElementById("watchlist-ids-json")?.textContent;
+  if (raw) {
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+    const ids = Array.isArray(parsed)
+      ? parsed.filter((entry): entry is number => typeof entry === "number")
+      : [];
     if (ids.length > 0) {
       initWatchlist(ids);
     }
@@ -528,4 +533,3 @@ onReady(() => {
 
   installDelegatedHandlers();
 });
-import { onReady } from "./utils";
