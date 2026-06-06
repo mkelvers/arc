@@ -1,3 +1,5 @@
+import { onReady } from "./utils";
+
 const initSortFilter = (): void => {
   const sortSelect = document.getElementById("sort-select") as HTMLSelectElement | null;
   const orderSelect = document.getElementById("order-select") as HTMLSelectElement | null;
@@ -21,4 +23,4 @@ const initSortFilter = (): void => {
   });
 };
 
-document.addEventListener("DOMContentLoaded", initSortFilter);
+onReady(initSortFilter);

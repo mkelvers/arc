@@ -1,3 +1,5 @@
+import { onReady } from "./utils";
+
 type Theme = "light" | "dark";
 
 const colorSchemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
@@ -17,8 +19,4 @@ const initTheme = (): void => {
   colorSchemeQuery?.addEventListener("change", () => applyTheme(getPreferredTheme()));
 };
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initTheme);
-} else {
-  initTheme();
-}
+onReady(initTheme);
