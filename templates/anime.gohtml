@@ -111,8 +111,9 @@
 {{end}}
 
 {{define "title"}}{{.Anime.DisplayTitle}}{{end}}
+{{define "scripts"}}{{end}}
 {{define "content"}}
-{{if .WatchlistIDs}}<script>window.__WATCHLIST_IDS__={{.WatchlistIDs}}</script>{{end}}
+{{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}
 {{$anime := .Anime}}
 
 <div class="flex w-full flex-col gap-10 lg:pr-80">
@@ -175,7 +176,7 @@
         <div class="grow lg:max-w-4xl">
           <section>
             <h2 class="mb-4 mt-2 text-base font-normal text-foreground">Synopsis</h2>
-            <p id="synopsis-container" class="text-foreground-muted text-base leading-relaxed line-clamp-6 md:line-clamp-none whitespace-pre-line">{{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}</p>
+            <p id="synopsis-container" data-synopsis-container class="text-foreground-muted text-base leading-relaxed line-clamp-6 md:line-clamp-none whitespace-pre-line">{{if $anime.Synopsis}}{{$anime.Synopsis}}{{else}}No synopsis available.{{end}}</p>
             {{if and $anime.Synopsis (gt (len $anime.Synopsis) 400)}}
               <button id="synopsis-toggle" data-synopsis-toggle class="mt-2 text-sm font-normal text-foreground-muted transition-colors hover:text-foreground md:hidden">
                 Read more
@@ -381,57 +382,15 @@
 </div>
 
 <div class="fixed inset-0 z-50 hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-themes-dialog aria-hidden="true">
-  <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)]">
+  <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)]" role="dialog" aria-modal="true" aria-label="Theme Songs">
     <div class="flex items-center justify-between px-6 py-4">
       <h2 class="text-base font-normal text-foreground">Theme Songs</h2>
-      <button type="button" data-themes-close class="px-2 py-1 text-xs text-foreground-muted transition-colors hover:text-foreground">Close</button>
+      <button type="button" data-themes-close class="px-2 py-1 text-xs text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Close</button>
     </div>
     <div data-themes-content class="max-h-[60vh] overflow-y-auto"></div>
   </div>
 </div>
 
 <div data-themes-loader hx-get="/anime/{{$anime.MalID}}?section=themes" hx-trigger="theme-songs:load from:body" hx-target="[data-themes-content]" hx-swap="innerHTML"></div>
-
-<script>
-(function(){
-  const dialog = document.querySelector('[data-themes-dialog]');
-  const openBtn = document.querySelector('[data-themes-open]');
-  const closeBtn = document.querySelector('[data-themes-close]');
-  const themesContent = document.querySelector('[data-themes-content]');
-  let themesRequested = false;
-  if (!dialog || !openBtn) return;
-
-  const open = () => {
-    dialog.classList.remove('hidden');
-    dialog.classList.add('flex');
-    dialog.setAttribute('aria-hidden', 'false');
-    if (!themesRequested) {
-      themesRequested = true;
-      if (themesContent) {
-        themesContent.innerHTML = '<div class="p-6 text-sm text-foreground-muted">Loading theme songs...</div>';
-      }
-      if (window.htmx) {
-        window.htmx.trigger(document.body, 'theme-songs:load');
-      }
-    }
-  };
-  const close = () => {
-    dialog.classList.add('hidden');
-    dialog.classList.remove('flex');
-    dialog.setAttribute('aria-hidden', 'true');
-  };
-
-  openBtn.addEventListener('click', open);
-  if (closeBtn) closeBtn.addEventListener('click', close);
-  dialog.addEventListener('click', (e) => { if (e.target === dialog) close(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-
-  const loader = document.querySelector('[data-themes-loader]');
-  if (loader) {
-    loader.addEventListener('htmx:responseError', () => { themesRequested = false; });
-    loader.addEventListener('htmx:sendError', () => { themesRequested = false; });
-  }
-})();
-</script>
 
 {{end}}
