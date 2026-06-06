@@ -16,6 +16,7 @@ const (
 	forYouMaxRecommendations     = 10
 	forYouCandidateFetchLimit    = 60
 	forYouResultLimit            = 18
+	forYouFullResultLimit        = 60
 	forYouProfileSearchLimit     = 8
 	forYouProfileGenreSearches   = 2
 	forYouProfileThemeSearches   = 2

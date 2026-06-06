@@ -109,6 +109,18 @@ func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, se
 }
 
 func (s *animeService) GetTopPickForYou(ctx context.Context, userID string) (domain.CatalogSectionData, error) {
+	return s.getTopPicksForYou(ctx, userID, forYouResultLimit)
+}
+
+func (s *animeService) GetTopPicksForYou(ctx context.Context, userID string) (domain.CatalogSectionData, error) {
+	return s.getTopPicksForYou(ctx, userID, forYouFullResultLimit)
+}
+
+func (s *animeService) getTopPicksForYou(
+	ctx context.Context,
+	userID string,
+	resultLimit int,
+) (domain.CatalogSectionData, error) {
 	if strings.TrimSpace(userID) == "" {
 		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
 	}
@@ -342,7 +354,7 @@ func (s *animeService) GetTopPickForYou(ctx context.Context, userID string) (dom
 	})
 
 	return domain.CatalogSectionData{
-		Animes: rerankRecommendationCandidates(candidates, forYouResultLimit),
+		Animes: rerankRecommendationCandidates(candidates, resultLimit),
 	}, nil
 }
 

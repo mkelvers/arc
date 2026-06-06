@@ -121,6 +121,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/catalog/continue", h.HandleCatalogContinue)
 	r.GET("/api/catalog/top-pick", h.HandleCatalogTopPickForYou)
 	r.GET("/discover", h.HandleDiscover)
+	r.GET("/discover/top-picks", h.HandleDiscoverTopPicksForYou)
 	r.GET("/api/discover/trending", h.HandleDiscoverTrending)
 	r.GET("/api/discover/upcoming", h.HandleDiscoverUpcoming)
 	r.GET("/api/discover/top", h.HandleDiscoverTop)
@@ -299,6 +300,37 @@ func (h *AnimeHandler) HandleDiscover(c *gin.Context) {
 	c.HTML(http.StatusOK, "discover.gohtml", gin.H{
 		"CurrentPath": "/discover",
 		"User":        user,
+	})
+}
+
+func (h *AnimeHandler) HandleDiscoverTopPicksForYou(c *gin.Context) {
+	user := server.CurrentUser(c)
+	userID := server.CurrentUserID(c)
+
+	data, err := h.svc.GetTopPicksForYou(c.Request.Context(), userID)
+	if err != nil {
+		observability.Warn(
+			"top_picks_for_you_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"user_id": userID,
+			},
+			err,
+		)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
+
+	c.HTML(http.StatusOK, "discover.gohtml", gin.H{
+		"_fragment":    "",
+		"CurrentPath":  "/discover",
+		"User":         user,
+		"Animes":       data.Animes,
+		"WatchlistMap": watchlistMap,
+		"IsTopPicks":   true,
 	})
 }
 

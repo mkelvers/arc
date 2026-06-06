@@ -134,6 +134,7 @@ type ReviewEntry struct {
 type AnimeCatalogService interface {
 	GetCatalogSection(ctx context.Context, userID string, section string) (CatalogSectionData, error)
 	GetTopPickForYou(ctx context.Context, userID string) (CatalogSectionData, error)
+	GetTopPicksForYou(ctx context.Context, userID string) (CatalogSectionData, error)
 }
 
 type AnimeDiscoverService interface {
