@@ -1,3 +1,5 @@
+import { onHtmxLoad, onReady } from "./utils";
+
 const dedupeWithin = (root: ParentNode): void => {
   const seen = new Set<string>();
   const elements = root.querySelectorAll<HTMLElement>(":scope > [data-id]");
@@ -17,9 +19,9 @@ const dedupeWithin = (root: ParentNode): void => {
   });
 };
 
-const dedupe = (): void => {
+const dedupe = (root: ParentNode = document): void => {
   const containers = new Set<ParentNode>();
-  const elements = document.querySelectorAll<HTMLElement>("[data-id]");
+  const elements = root.querySelectorAll<HTMLElement>("[data-id]");
 
   elements.forEach((item) => {
     if (item.parentElement) {
@@ -58,15 +60,6 @@ const dedupeSwapTarget = (target: EventTarget | null): void => {
   });
 };
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", dedupe);
-} else {
-  dedupe();
-}
-
-window.addEventListener("load", dedupe);
-
-document.addEventListener("htmx:afterSwap", (event: Event): void => {
-  const customEvent = event as CustomEvent<{ target?: EventTarget | null }>;
-  dedupeSwapTarget(customEvent.detail?.target ?? event.target);
-});
+onReady(() => dedupe());
+window.addEventListener("load", () => dedupe());
+onHtmxLoad((root) => dedupeSwapTarget(root));
