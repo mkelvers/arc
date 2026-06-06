@@ -1,6 +1,28 @@
 {{define "filter_bar"}}
 {{$selectedGenreIDs := .Genres}}
 {{$selectedCount := len $selectedGenreIDs}}
+{{$statusOptions := list
+  (dict "Value" "" "Label" "Any Status")
+  (dict "Value" "airing" "Label" "Airing")
+  (dict "Value" "complete" "Label" "Complete")
+  (dict "Value" "upcoming" "Label" "Upcoming")
+}}
+{{$typeOptions := list
+  (dict "Value" "" "Label" "Any Type")
+  (dict "Value" "tv" "Label" "TV")
+  (dict "Value" "movie" "Label" "Movie")
+  (dict "Value" "ova" "Label" "OVA")
+  (dict "Value" "special" "Label" "Special")
+  (dict "Value" "ona" "Label" "ONA")
+}}
+{{$sortOptions := list
+  (dict "Value" "" "Label" "Default")
+  (dict "Value" "popularity" "Label" "Popularity")
+  (dict "Value" "score" "Label" "Score")
+  (dict "Value" "title" "Label" "Title")
+  (dict "Value" "start_date" "Label" "Start Date")
+  (dict "Value" "episodes" "Label" "Episodes")
+}}
 <div class="flex flex-wrap items-center gap-3" hx-boost="true" hx-target="#browse-content" hx-swap="outerHTML" hx-push-url="true">
   <div class="min-w-50 flex-1">
     <form action="/browse" method="GET" id="browse-search-form" hx-get="/browse" hx-trigger="submit, input changed delay:350ms from:#search, search from:#search" hx-sync="this:replace">
@@ -60,9 +82,9 @@
     <input type="hidden" name="sfw" value="{{.SFW}}" data-sfw-value>
     {{range $g := .Genres}}<input type="hidden" name="genres" value="{{$g}}">{{end}}
     <label class="flex cursor-pointer items-center gap-2">
-      <input id="filter-sfw" type="checkbox" class="sr-only" {{if .SFW}}checked{{end}} onchange="this.form.querySelector('[data-sfw-value]').value = this.checked; const box = this.nextElementSibling; const icon = box.querySelector('svg'); icon.classList.toggle('hidden', !this.checked)">
-      <div class="flex h-4 w-4 items-center justify-center bg-white ring-1 ring-black/15 transition-colors">
-        <svg class="{{if not .SFW}}hidden {{end}}h-3 w-3 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
+      <input id="filter-sfw" type="checkbox" class="sr-only" data-checkbox-visual data-sfw-checkbox {{if .SFW}}checked{{end}}>
+      <div class="flex h-5 w-5 items-center justify-center border-2 border-white/45 bg-transparent transition-colors">
+        <svg class="{{if not .SFW}}hidden {{end}}h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
       </div>
       SFW
     </label>
@@ -88,9 +110,9 @@
           {{$genreID := .MalID}}
           {{$isSelected := hasGenre $genreID $selectedGenreIDs}}
           <label class="flex cursor-pointer items-center gap-3 px-2 py-1.5 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground">
-            <input id="genre-{{.MalID}}" type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" {{if $isSelected}}checked{{end}} onchange="const box = this.nextElementSibling; box.classList.toggle('bg-accent', this.checked); box.classList.toggle('bg-transparent', !this.checked); box.querySelector('svg').classList.toggle('hidden', !this.checked)">
-            <div class="flex h-4 w-4 items-center justify-center transition-colors {{if $isSelected}}bg-accent{{else}}bg-transparent{{end}}">
-              <svg class="{{if not $isSelected}}hidden {{end}}h-3 w-3 text-on-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
+            <input id="genre-{{.MalID}}" type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" data-checkbox-visual data-genre-visual {{if $isSelected}}checked{{end}}>
+            <div class="flex h-5 w-5 items-center justify-center border-2 transition-colors {{if $isSelected}}border-accent bg-foreground-muted/12{{else}}border-white/45 bg-transparent{{end}}">
+              <svg class="{{if not $isSelected}}hidden {{end}}h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
             </div>
             {{.Name}}
           </label>
@@ -108,10 +130,9 @@
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
-        <a href="?status=&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Status</a>
-        <a href="?status=airing&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Airing</a>
-        <a href="?status=complete&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Complete</a>
-        <a href="?status=upcoming&q={{.Query}}&type={{.Type}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Upcoming</a>
+        {{range $statusOptions}}
+          <a href='{{browseURL $ (dict "status" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
+        {{end}}
       </div>
     </div>
   </ui-dropdown>
@@ -125,12 +146,9 @@
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
       <div class="flex flex-col py-1">
-        <a href="?type=&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Any Type</a>
-        <a href="?type=tv&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">TV</a>
-        <a href="?type=movie&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Movie</a>
-        <a href="?type=ova&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">OVA</a>
-        <a href="?type=special&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Special</a>
-        <a href="?type=ona&q={{.Query}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">ONA</a>
+        {{range $typeOptions}}
+          <a href='{{browseURL $ (dict "type" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
+        {{end}}
       </div>
     </div>
   </ui-dropdown>
@@ -145,17 +163,14 @@
       </div>
       <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2 ">
         <div class="flex flex-col py-1">
-          <a href="?order_by=&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Default</a>
-          <a href="?order_by=popularity&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Popularity</a>
-          <a href="?order_by=score&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Score</a>
-          <a href="?order_by=title&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Title</a>
-          <a href="?order_by=start_date&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Start Date</a>
-          <a href="?order_by=episodes&q={{.Query}}&status={{.Status}}&type={{.Type}}&sort={{.Sort}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">Episodes</a>
+          {{range $sortOptions}}
+            <a href='{{browseURL $ (dict "order_by" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
+          {{end}}
         </div>
       </div>
     </ui-dropdown>
 
-    <a href="?sort={{if eq .Sort "asc"}}desc{{else}}asc{{end}}&q={{.Query}}&status={{.Status}}&type={{.Type}}&order_by={{.OrderBy}}&sfw={{.SFW}}{{if .Studio}}&studio={{.Studio}}{{end}}{{ if .Genres }}&{{ genresParams .Genres }}{{ end }}" class="!rounded-none flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+    <a href='{{browseURL . (dict "sort" (nextSort .Sort))}}' class="!rounded-none flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}
