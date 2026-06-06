@@ -12,11 +12,9 @@
   <link rel="manifest" href="/static/assets/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/static/assets/favicon.svg">
   <script>
-    (function () {
-      var theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      document.documentElement.dataset.theme = theme;
-      document.documentElement.style.colorScheme = theme;
-    })();
+    const preferredTheme = window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = preferredTheme;
+    document.documentElement.style.colorScheme = preferredTheme;
   </script>
   <link rel="stylesheet" href="/dist/tailwind.css">
   <style>
@@ -60,9 +58,9 @@
       pointer-events: none;
     }
   </style>
-   <script type="module" src="/dist/static/theme.js" defer></script>
+   <script type="module" src="/dist/static/app.js" defer></script>
    <template id="toast-template">
-      <div class="toast pointer-events-auto w-[22rem] max-w-[calc(100vw-2rem)] bg-background shadow-[var(--shadow-card)] ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0">
+      <div class="toast pointer-events-auto w-88 max-w-[calc(100vw-2rem)] bg-background shadow-(--shadow-card) ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0">
         <div class="min-w-0 flex-1">
          <div class="toast-message text-sm font-medium text-foreground leading-snug"></div>
        </div>
@@ -73,31 +71,8 @@
        </button>
      </div>
    </template>
-   <script type="module" src="/dist/static/dropdown.js" defer></script>
-   <script type="module" src="/dist/static/discover.js" defer></script>
-   <script type="module" src="/dist/static/top_pick_carousel.js" defer></script>
-   <script type="module" src="/dist/static/anime.js" defer></script>
-   <script type="module" src="/dist/static/timezone.js" defer></script>
-   <script type="module" src="/dist/static/player/main.js" defer></script>
-   <script type="module" src="/dist/static/search.js" defer></script>
-   <script type="module" src="/dist/static/sort_filter.js" defer></script>
-   <script type="module" src="/dist/static/dedupe.js" defer></script>
-   <script type="module" src="/dist/static/toast.js" defer></script>
-   <script type="module" src="/dist/static/shell.js" defer></script>
-   <script type="module" src="/dist/static/watchlist.js" defer></script>
-   <script type="module" src="/dist/static/schedule_board.js" defer></script>
    <script src="/dist/static/htmx-lib.js"></script>
-   <script type="module" src="/dist/static/htmx.js" defer></script>
-  <script>
-    document.addEventListener('htmx:afterSwap', function(evt) {
-      if (evt.detail.target.classList.contains('error')) {
-        if (window.showToast) showToast({ message: 'Failed to load content' });
-      }
-    });
-    document.addEventListener('htmx:responseError', function(evt) {
-      if (window.showToast) showToast({ message: 'Something went wrong' });
-    });
-  </script>
+  {{block "scripts" .}}{{end}}
 </head>
   <body class="bg-background text-foreground">
   <div class="flex min-h-screen flex-col">
@@ -123,8 +98,8 @@
 	          {{end}}
 	        </div>
 
-        <div class="fixed inset-0 z-[60] hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-command-palette-dialog aria-hidden="true">
-          <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-[var(--shadow-card)] ring-1 ring-black/10" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
+        <div class="fixed inset-0 z-60 hidden items-start justify-center bg-black/50 px-4 pt-[12vh]" data-command-palette-dialog aria-hidden="true">
+          <div class="w-full max-w-2xl overflow-hidden bg-background-button shadow-(--shadow-card) ring-1 ring-black/10" data-command-palette-root role="dialog" aria-modal="true" aria-label="Command palette">
             <label for="command-palette-input" class="sr-only">Search commands and anime</label>
             <div class="flex items-center border-b border-black/5">
               <svg class="mx-4 size-5 shrink-0 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
