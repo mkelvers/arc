@@ -1,6 +1,7 @@
 {{define "title"}}Watchlist{{end}}
+{{define "scripts"}}{{end}}
 {{define "content"}}
-{{if .WatchlistIDs}}<script>window.__WATCHLIST_IDS__={{.WatchlistIDs}}</script>{{end}}
+{{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}
 <div id="watchlist-content" class="flex w-full flex-col gap-6">
   <h1 class="text-xl font-normal tracking-[-0.02em] text-foreground">Watchlist</h1>
 

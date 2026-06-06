@@ -1,6 +1,7 @@
 {{define "title"}}Browse{{end}}
+{{define "scripts"}}{{end}}
 {{define "content"}}
-{{if .WatchlistIDs}}<script>window.__WATCHLIST_IDS__={{.WatchlistIDs}}</script>{{end}}
+{{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}
 {{template "browse_content" .}}
 {{end}}
 
@@ -70,7 +71,7 @@
 {{end}}
 
 {{define "browse_sentinel"}}
-  <div hx-get="/browse?q={{.Query}}&type={{.Type}}&status={{.Status}}&order_by={{.OrderBy}}&sort={{.Sort}}&studio={{.Studio}}&sfw={{.SFW}}{{ if .Genres }}&{{genresParams .Genres}}{{ end }}&page={{.NextPage}}"
+  <div hx-get='{{browseURL . (dict "page" .NextPage)}}'
        hx-trigger="intersect once"
        hx-swap="outerHTML"
        hx-target="this"

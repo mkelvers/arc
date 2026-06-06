@@ -1,6 +1,7 @@
 {{define "title"}}Watch {{.Anime.Title}}{{end}}
+{{define "scripts"}}<script type="module" src="/dist/static/player/main.js" defer></script>{{end}}
 {{define "content"}}
-{{if .WatchlistIDs}}<script>window.__WATCHLIST_IDS__={{.WatchlistIDs}}</script>{{end}}
+{{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}
 {{$anime := .Anime}}
 {{$episodes := .Episodes}}
 {{$currentEpID := .CurrentEpID}}
