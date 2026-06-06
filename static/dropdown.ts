@@ -1,65 +1,101 @@
+import { closestFocusable, onHtmxLoad } from "./utils";
+
 class UIDropdown extends HTMLElement {
   isOpen = false;
+  triggerEl: HTMLElement | null = null;
   contentEl: HTMLElement | null = null;
-  isClosing = false; // debounce flag
+  previouslyFocused: HTMLElement | null = null;
 
   constructor() {
     super();
-    this.toggle = this.toggle.bind(this);
-    this.handleClickOutside = this.handleClickOutside.bind(this);
+    this.onTriggerClick = this.onTriggerClick.bind(this);
+    this.handleDocumentClick = this.handleDocumentClick.bind(this);
+    this.handleKeydown = this.handleKeydown.bind(this);
   }
 
   connectedCallback(): void {
-    const trigger = this.querySelector("[data-trigger]");
+    this.triggerEl = this.querySelector("[data-trigger]");
     this.contentEl = this.querySelector("[data-content]");
 
-    if (trigger) {
-      trigger.addEventListener("click", this.toggle);
+    if (this.contentEl) {
+      this.contentEl.classList.add("hidden");
+      this.contentEl.setAttribute("aria-hidden", "true");
     }
 
-    document.addEventListener("click", this.handleClickOutside);
+    const triggerButton = this.triggerButton();
+    triggerButton?.setAttribute("aria-expanded", "false");
+
+    this.triggerEl?.addEventListener("click", this.onTriggerClick);
+    document.addEventListener("click", this.handleDocumentClick);
+    document.addEventListener("keydown", this.handleKeydown);
   }
 
   disconnectedCallback(): void {
-    const trigger = this.querySelector("[data-trigger]");
-    if (trigger) {
-      trigger.removeEventListener("click", this.toggle);
+    this.triggerEl?.removeEventListener("click", this.onTriggerClick);
+    document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("keydown", this.handleKeydown);
+  }
+
+  triggerButton(): HTMLButtonElement | null {
+    const button = this.triggerEl?.querySelector("button");
+    return button instanceof HTMLButtonElement ? button : null;
+  }
+
+  open(): void {
+    if (!this.contentEl || this.isOpen) return;
+
+    document.querySelectorAll<UIDropdown>("ui-dropdown").forEach((dropdown) => {
+      if (dropdown !== this) {
+        dropdown.close();
+      }
+    });
+
+    this.isOpen = true;
+    this.previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.contentEl.classList.remove("hidden");
+    this.contentEl.setAttribute("aria-hidden", "false");
+    this.triggerButton()?.setAttribute("aria-expanded", "true");
+    closestFocusable(this.contentEl)?.focus();
+  }
+
+  close(options: { restoreFocus?: boolean } = {}): void {
+    if (!this.contentEl || !this.isOpen) return;
+    this.isOpen = false;
+    this.contentEl.classList.add("hidden");
+    this.contentEl.setAttribute("aria-hidden", "true");
+    this.triggerButton()?.setAttribute("aria-expanded", "false");
+
+    if (options.restoreFocus !== false) {
+      this.previouslyFocused?.focus();
     }
-    document.removeEventListener("click", this.handleClickOutside);
   }
 
   toggle(): void {
-    if (this.isClosing) {
-      return;
-    }
-    this.isOpen = !this.isOpen;
-    if (this.contentEl) {
-      if (this.isOpen) {
-        this.contentEl.classList.remove("hidden");
-      } else {
-        this.contentEl.classList.add("hidden");
-      }
-    }
-  }
-
-  close(): void {
-    if (this.isClosing) {
-      return;
-    }
-    this.isClosing = true;
-    this.isOpen = false;
-    if (this.contentEl) {
-      this.contentEl.classList.add("hidden");
-    }
-    setTimeout(() => {
-      this.isClosing = false;
-    }, 100); // delay prevents rapid open/close flicker
-  }
-
-  handleClickOutside(event: MouseEvent): void {
-    if (!this.contains(event.target as Node)) {
+    if (this.isOpen) {
       this.close();
+      return;
     }
+    this.open();
+  }
+
+  onTriggerClick(event: Event): void {
+    event.preventDefault();
+    this.toggle();
+  }
+
+  handleDocumentClick(event: MouseEvent): void {
+    if (!this.isOpen) return;
+    if (!(event.target instanceof Node)) return;
+    if (this.contains(event.target)) return;
+    this.close({ restoreFocus: false });
+  }
+
+  handleKeydown(event: KeyboardEvent): void {
+    if (!this.isOpen) return;
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    this.close();
   }
 }
 
@@ -73,16 +109,65 @@ const initStudioDropdown = (): void => {
     const btn = target.closest<HTMLButtonElement>("button[data-studio-select]");
     if (!btn) return;
 
-    const input = document.getElementById("studio-input") as HTMLInputElement | null;
-    const form = document.getElementById("browse-search-form") as HTMLFormElement | null;
-    if (!input || !form) return;
+    const input = document.getElementById("studio-input");
+    const form = document.getElementById("browse-search-form");
+    if (!(input instanceof HTMLInputElement) || !(form instanceof HTMLFormElement)) return;
 
     input.value = btn.dataset.studioSelect ?? "";
     form.requestSubmit();
 
-    const dropdown = btn.closest("ui-dropdown") as { close?: () => void } | null;
-    dropdown?.close?.();
+    const dropdown = btn.closest("ui-dropdown");
+    if (dropdown instanceof UIDropdown) {
+      dropdown.close({ restoreFocus: false });
+    }
+  });
+};
+
+const initCheckboxVisuals = (): void => {
+  const syncCheckboxVisual = (input: HTMLInputElement): void => {
+    const box = input.nextElementSibling;
+    if (!(box instanceof HTMLElement)) return;
+
+    const icon = box.querySelector("svg");
+    icon?.classList.toggle("hidden", !input.checked);
+
+    if (input.matches("[data-genre-visual]")) {
+      box.classList.toggle("border-accent", input.checked);
+      box.classList.toggle("bg-foreground-muted/12", input.checked);
+      box.classList.toggle("border-white/45", !input.checked);
+      box.classList.toggle("bg-transparent", !input.checked);
+      return;
+    }
+
+    if (input.matches("[data-sfw-checkbox]")) {
+      box.classList.toggle("border-accent", input.checked);
+      box.classList.toggle("bg-foreground-muted/12", input.checked);
+      box.classList.toggle("border-white/45", !input.checked);
+      box.classList.toggle("bg-transparent", !input.checked);
+      const value = input.form?.querySelector<HTMLInputElement>("[data-sfw-value]");
+      if (value) {
+        value.value = String(input.checked);
+      }
+    }
+  };
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (!target.matches("[data-checkbox-visual], [data-sfw-checkbox], [data-genre-visual]")) {
+      return;
+    }
+    syncCheckboxVisual(target);
+  });
+
+  onHtmxLoad((root) => {
+    root
+      .querySelectorAll<HTMLInputElement>(
+        "[data-checkbox-visual], [data-sfw-checkbox], [data-genre-visual]",
+      )
+      .forEach(syncCheckboxVisual);
   });
 };
 
 initStudioDropdown();
+initCheckboxVisuals();
