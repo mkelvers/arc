@@ -1,0 +1,15 @@
+import "./theme";
+import "./toast";
+import "./htmx";
+import "./dropdown";
+import "./discover";
+import "./anime";
+import "./timezone";
+import "./search";
+import "./sort_filter";
+import "./dedupe";
+import "./shell";
+import "./watchlist";
+import "./top_pick_carousel";
+import "./login";
+import "./schedule";
