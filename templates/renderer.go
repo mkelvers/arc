@@ -28,8 +28,9 @@ var Module = fx.Options(
 func ProvideRenderer() (*Renderer, error) {
 	funcs := template.FuncMap{
 		"dict":         dict,
-		"list":         func(items ...string) []string { return items },
+		"list":         func(items ...any) []any { return items },
 		"json":         jsonAttr,
+		"browseURL":    browseURL,
 		"genresParams": genresParams,
 		"hasGenre":     hasGenre,
 		"add":          func(a, b int) int { return a + b },
@@ -46,6 +47,7 @@ func ProvideRenderer() (*Renderer, error) {
 		"int":          toInt,
 		"percent":      percent,
 		"formatDate":   formatDate,
+		"nextSort":     nextSort,
 		"urlquery":     url.QueryEscape,
 	}
 

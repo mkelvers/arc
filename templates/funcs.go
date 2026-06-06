@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/url"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -46,6 +48,165 @@ func genresParams(genres []int) string {
 		b.WriteString(strconv.Itoa(g))
 	}
 	return b.String()
+}
+
+type browseURLParams struct {
+	Query   string
+	Type    string
+	Status  string
+	OrderBy string
+	Sort    string
+	Studio  any
+	SFW     bool
+	Genres  []int
+	Page    any
+}
+
+func browseURL(v any, overrides map[string]any) (string, error) {
+	params, ok := v.(browseURLParams)
+	if !ok {
+		if mapped, mapOK := mapValue(v); mapOK {
+			params = browseURLParams{
+				Query:   stringValue(mapped["Query"]),
+				Type:    stringValue(mapped["Type"]),
+				Status:  stringValue(mapped["Status"]),
+				OrderBy: stringValue(mapped["OrderBy"]),
+				Sort:    stringValue(mapped["Sort"]),
+				Studio:  mapped["Studio"],
+				SFW:     boolValue(mapped["SFW"]),
+				Genres:  intSliceValue(mapped["Genres"]),
+				Page:    mapped["Page"],
+			}
+			ok = true
+		}
+	}
+	if !ok {
+		return "", fmt.Errorf("browseURL expects browseURLParams or map[string]any")
+	}
+
+	values := url.Values{}
+	setQueryValue(values, "q", params.Query)
+	setQueryValue(values, "type", params.Type)
+	setQueryValue(values, "status", params.Status)
+	setQueryValue(values, "order_by", params.OrderBy)
+	setQueryValue(values, "sort", params.Sort)
+	setQueryValue(values, "studio", stringValue(params.Studio))
+	values.Set("sfw", strconv.FormatBool(params.SFW))
+	for _, genre := range params.Genres {
+		values.Add("genres", strconv.Itoa(genre))
+	}
+	page := stringValue(params.Page)
+	setQueryValue(values, "page", page)
+
+	for key, raw := range overrides {
+		switch key {
+		case "genres":
+			values.Del("genres")
+			for _, genre := range intSliceValue(raw) {
+				values.Add("genres", strconv.Itoa(genre))
+			}
+		case "sfw":
+			values.Set("sfw", strconv.FormatBool(boolValue(raw)))
+		default:
+			setQueryValue(values, key, stringValue(raw))
+		}
+	}
+
+	encoded := values.Encode()
+	if encoded == "" {
+		return "/browse", nil
+	}
+	return "/browse?" + encoded, nil
+}
+
+func mapValue(v any) (map[string]any, bool) {
+	if mapped, ok := v.(map[string]any); ok {
+		return mapped, true
+	}
+
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() || rv.Kind() != reflect.Map {
+		return nil, false
+	}
+	if rv.Type().Key().Kind() != reflect.String {
+		return nil, false
+	}
+
+	out := make(map[string]any, rv.Len())
+	iter := rv.MapRange()
+	for iter.Next() {
+		out[iter.Key().String()] = iter.Value().Interface()
+	}
+	return out, true
+}
+
+func setQueryValue(values url.Values, key string, value string) {
+	if value == "" {
+		values.Del(key)
+		return
+	}
+	values.Set(key, value)
+}
+
+func stringValue(v any) string {
+	switch value := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return value
+	case int:
+		if value == 0 {
+			return ""
+		}
+		return strconv.Itoa(value)
+	case int64:
+		if value == 0 {
+			return ""
+		}
+		return strconv.FormatInt(value, 10)
+	case float64:
+		if value == 0 {
+			return ""
+		}
+		return strconv.Itoa(int(value))
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
+func boolValue(v any) bool {
+	switch value := v.(type) {
+	case bool:
+		return value
+	case string:
+		return value == "true"
+	default:
+		return false
+	}
+}
+
+func intSliceValue(v any) []int {
+	switch value := v.(type) {
+	case []int:
+		return value
+	case []int64:
+		out := make([]int, 0, len(value))
+		for _, item := range value {
+			out = append(out, int(item))
+		}
+		return out
+	case []any:
+		out := make([]int, 0, len(value))
+		for _, item := range value {
+			n := toInt(item)
+			if n > 0 {
+				out = append(out, n)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func hasGenre(id int, genres []int) bool {
@@ -148,4 +309,11 @@ func formatDate(dateStr string) string {
 		}
 	}
 	return t.Format("Jan 2, 2006")
+}
+
+func nextSort(sort string) string {
+	if sort == "asc" {
+		return "desc"
+	}
+	return "asc"
 }
