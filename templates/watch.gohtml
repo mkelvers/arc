@@ -276,7 +276,10 @@
             {{$isCurrent := eq (printf "%v" .Number) $currentEpID}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isFiller}}bg-yellow-500/10{{else if $isRecap}}bg-blue-500/10{{end}} {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}">
+            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}">
+              {{if or $isFiller $isRecap}}
+                <span aria-hidden="true" class="absolute inset-y-1 left-0 w-0.5 {{if $isFiller}}bg-yellow-400{{else}}bg-blue-400{{end}}"></span>
+              {{end}}
               <span class="w-10 shrink-0 text-xs font-normal text-foreground-muted tabular-nums">EP{{.Number}}</span>
               <span class="truncate text-sm {{if $isFiller}}text-yellow-400{{else if $isRecap}}text-blue-400{{else}}text-foreground-muted{{end}}" data-episode-title>{{.Title}}</span>
               {{if .SubOnly}}<span class="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-accent">Sub only</span>{{end}}
