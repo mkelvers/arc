@@ -1,4 +1,5 @@
 {{define "title"}}Login{{end}}
+{{define "scripts"}}{{end}}
 {{define "content"}}
 <main class="flex min-h-dvh items-center justify-center bg-[url(/static/images/background.png)] bg-cover bg-center px-3 py-4 sm:px-4 sm:py-8">
   <div class="mx-auto w-full max-w-[31.25rem] bg-background-surface px-5 pb-6 pt-7 shadow-sm sm:px-8 sm:pb-8 sm:pt-11 lg:px-12">
@@ -20,7 +21,7 @@
           placeholder="you@example.com"
           required
           value="{{.Username}}"
-          class="h-10 w-full bg-background-surface px-3 text-foreground outline-none transition focus:ring-1 focus:ring-accent rounded-none!"
+            class="h-10 w-full bg-background-surface px-3 text-foreground outline-none transition focus:ring-1 focus:ring-accent rounded-none!"
         />
       </div>
 
@@ -96,30 +97,4 @@
   </div>
 </main>
 
-<script>
-  (() => {
-    const button = document.querySelector('[data-toggle-password]');
-    const input = document.getElementById('password');
-    const openEye = document.querySelector('[data-eye-open]');
-    const closedEye = document.querySelector('[data-eye-closed]');
-    if (!(button instanceof HTMLButtonElement)) return;
-    if (!(input instanceof HTMLInputElement)) return;
-    if (!(openEye instanceof SVGElement)) return;
-    if (!(closedEye instanceof SVGElement)) return;
-
-    let showPassword = false;
-    const render = () => {
-      input.type = showPassword ? 'text' : 'password';
-      button.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
-      openEye.classList.toggle('hidden', showPassword);
-      closedEye.classList.toggle('hidden', !showPassword);
-    };
-
-    button.addEventListener('click', () => {
-      showPassword = !showPassword;
-      render();
-    });
-    render();
-  })();
-</script>
 {{end}}

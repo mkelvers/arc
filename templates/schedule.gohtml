@@ -1,4 +1,5 @@
 {{define "title"}}Schedule{{end}}
+{{define "scripts"}}<script type="module" src="/dist/static/schedule_board.js" defer></script>{{end}}
 {{define "content"}}
 <div class="flex flex-col gap-12 pb-24">
   <section class="px-1">
@@ -8,8 +9,8 @@
   </section>
 
   <div
+    data-schedule-loader
     hx-get="/api/schedule?year={{.ScheduleYear}}&week={{.ScheduleWeek}}"
-    hx-vals='js:{timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"}'
     hx-trigger="load"
     hx-swap="outerHTML"
   >
