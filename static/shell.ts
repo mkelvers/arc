@@ -67,11 +67,12 @@ const initMobileMenu = (): void => {
     closeMenu();
   });
 
-  menu.querySelectorAll<HTMLElement>("a, button").forEach((el) => {
-    el.addEventListener("click", () => {
-      if (!isMobileViewport()) return;
-      closeMenu();
-    });
+  menu.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (!target.closest("a, button")) return;
+    if (!isMobileViewport()) return;
+    closeMenu();
   });
 
   window.addEventListener("resize", () => {
