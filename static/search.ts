@@ -29,6 +29,7 @@ let lastQuery = "";
 let continueExpanded = false;
 let activeRequestController: AbortController | undefined;
 const responseCache = new Map<string, CommandPaletteItem[]>();
+let lastFocusedPaletteOpener: HTMLElement | null = null;
 
 const iconPaths: Record<string, string> = {
   bookmark: "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z",
@@ -61,6 +62,13 @@ const isTypingTarget = (target: EventTarget | null): boolean =>
   (target instanceof HTMLElement && target.isContentEditable);
 
 const isOpen = (): boolean => paletteDialog?.classList.contains("flex") ?? false;
+
+const setDialogState = (open: boolean): void => {
+  if (!paletteDialog) return;
+  paletteDialog.classList.toggle("hidden", !open);
+  paletteDialog.classList.toggle("flex", open);
+  paletteDialog.setAttribute("aria-hidden", open ? "false" : "true");
+};
 
 const setShortcutHints = (): void => {
   shortcutHints.forEach((hint) => {
@@ -391,9 +399,9 @@ const openPalette = (): void => {
     return;
   }
 
-  paletteDialog.classList.remove("hidden");
-  paletteDialog.classList.add("flex");
-  paletteDialog.setAttribute("aria-hidden", "false");
+  lastFocusedPaletteOpener =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  setDialogState(true);
   paletteInput.value = "";
   paletteInput.focus();
   continueExpanded = false;
@@ -405,9 +413,7 @@ const closePalette = (): void => {
     return;
   }
 
-  paletteDialog.classList.add("hidden");
-  paletteDialog.classList.remove("flex");
-  paletteDialog.setAttribute("aria-hidden", "true");
+  setDialogState(false);
   if (activeRequestController) {
     activeRequestController.abort();
     activeRequestController = undefined;
@@ -417,6 +423,7 @@ const closePalette = (): void => {
   paletteItems = [];
   continueExpanded = false;
   clearResults();
+  lastFocusedPaletteOpener?.focus();
 };
 
 const onDocumentClick = (event: MouseEvent): void => {
@@ -490,6 +497,9 @@ const initCommandPalette = (): void => {
   paletteInput.addEventListener("keydown", onInputKeydown);
   document.addEventListener("click", onDocumentClick);
   document.addEventListener("keydown", onDocumentKeydown);
+  paletteDialog?.setAttribute("aria-hidden", "true");
+  closestFocusable(paletteRoot ?? document.body);
 };
 
 initCommandPalette();
+import { closestFocusable } from "./utils";
