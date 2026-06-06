@@ -11,5 +11,6 @@ import "./dedupe";
 import "./shell";
 import "./watchlist";
 import "./top_pick_carousel";
+import "./continue_watching_carousel";
 import "./login";
 import "./schedule";

@@ -1,13 +1,14 @@
 {{define "continue_watching"}}
-<section id="continue-watching-section" class="w-full empty:hidden">
+<section id="continue-watching-section" class="w-full empty:hidden" data-continue-watching-carousel>
   <h2 class="mb-3 text-base font-normal text-foreground">Continue Watching</h2>
 
-  <div id="continue-watching-items" class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:thin] lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-[var(--scrollbar-track)] lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-[var(--scrollbar-thumb)] lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-[var(--scrollbar-thumb-hover)]">
+  <div class="relative overflow-hidden">
+  <div id="continue-watching-items" data-continue-watching-track class="flex snap-x snap-mandatory gap-2 overflow-x-auto scroll-smooth pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     {{range .}}
       {{$title := .TitleOriginal}}
       {{if .TitleEnglish.Valid}}{{$title = .TitleEnglish.String}}{{end}}
 
-      <div id="continue-watching-{{.AnimeID}}" class="continue-watching-item group relative w-70 shrink-0 snap-start space-y-2 2xl:w-lg">
+      <div id="continue-watching-{{.AnimeID}}" data-continue-watching-item class="continue-watching-item group relative w-70 shrink-0 snap-start space-y-2 2xl:w-lg">
         <div class="bg-background/80 relative aspect-video w-full overflow-hidden">
           <a href="/anime/{{.AnimeID}}/watch{{if .CurrentEpisode.Valid}}?ep={{.CurrentEpisode.Int64}}{{end}}" class="block h-full w-full outline-none ring-0 transition focus-visible:ring-1 focus-visible:ring-accent">
             <img src="{{if .ImageUrl}}{{.ImageUrl}}{{else}}https://placehold.co/500x500{{end}}" alt="{{$title}}" class="h-full w-full object-cover" />
@@ -40,6 +41,15 @@
         </div>
       </div>
     {{end}}
+  </div>
+    <div data-continue-watching-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-[70] hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <div data-continue-watching-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-[70] hidden w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <button type="button" data-unstyled-button data-continue-watching-prev class="pointer-events-auto absolute left-0 top-[42%] z-[80] hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll continue watching left" aria-hidden="true" tabindex="-1">
+      <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button type="button" data-unstyled-button data-continue-watching-next class="pointer-events-auto absolute right-0 top-[42%] z-[80] hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll continue watching right" aria-hidden="true" tabindex="-1">
+      <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
   </div>
 </section>
 {{end}}
