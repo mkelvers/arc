@@ -12,6 +12,7 @@ import (
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -333,7 +334,7 @@ func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, jikanEpi
 		}
 	}
 
-	episodes := mergeEpisodes(jikanEpisodes, availability)
+	episodes := mergeEpisodes(jikanEpisodes, availability, anime.Episodes)
 	payload := domain.CanonicalEpisodeList{
 		AnimeID:  anime.MalID,
 		Episodes: episodes,
@@ -516,6 +517,20 @@ func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime)
 		)
 		return domain.CanonicalEpisodeList{}, false
 	}
+	if !isCanonicalEpisodePayloadValid(payload, anime.Episodes) {
+		s.metrics.ObserveCache("episode_availability_fresh", "miss")
+		observability.Info(
+			"episodes_cached_payload_rejected",
+			"episodes",
+			"",
+			map[string]any{
+				"anime_id":        anime.MalID,
+				"expected_count":  anime.Episodes,
+				"cached_episodes": len(payload.Episodes),
+			},
+		)
+		return domain.CanonicalEpisodeList{}, false
+	}
 	s.metrics.ObserveCache("episode_availability_fresh", "hit")
 	observability.Info(
 		"episodes_cache_served",
@@ -530,6 +545,21 @@ func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime)
 	return payload, true
 }
 
+func isCanonicalEpisodePayloadValid(payload domain.CanonicalEpisodeList, expectedCount int) bool {
+	if expectedCount <= 0 {
+		return true
+	}
+	if len(payload.Episodes) > expectedCount {
+		return false
+	}
+	for _, episode := range payload.Episodes {
+		if episode.Number <= 0 || episode.Number > expectedCount {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *EpisodeService) jikanOnly(ctx context.Context, anime domain.Anime, source string) (domain.CanonicalEpisodeList, error) {
 	episodes, err := s.jikan.GetAllEpisodes(ctx, anime.MalID)
 	if err != nil {
@@ -537,7 +567,7 @@ func (s *EpisodeService) jikanOnly(ctx context.Context, anime domain.Anime, sour
 	}
 	return domain.CanonicalEpisodeList{
 		AnimeID:  anime.MalID,
-		Episodes: mergeEpisodes(episodes, domain.EpisodeAvailability{}),
+		Episodes: mergeEpisodes(episodes, domain.EpisodeAvailability{}, anime.Episodes),
 		Source:   source,
 	}, nil
 }
@@ -558,7 +588,7 @@ func titleCandidates(anime domain.Anime) []string {
 	return out
 }
 
-func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability) []domain.CanonicalEpisode {
+func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
 	type partial struct {
 		title  string
 		filler bool
@@ -568,18 +598,22 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 	}
 	byNumber := map[int]partial{}
 
-	for _, ep := range jikanEpisodes {
-		if ep.MalID <= 0 {
+	for i, ep := range jikanEpisodes {
+		if expectedCount > 0 && i >= expectedCount {
+			break
+		}
+		number, ok := jikanEpisodeNumber(ep, i)
+		if !ok || exceedsExpectedCount(number, expectedCount) {
 			continue
 		}
-		item := byNumber[ep.MalID]
+		item := byNumber[number]
 		item.title = strings.TrimSpace(ep.Title)
 		item.filler = ep.Filler
 		item.recap = ep.Recap
-		byNumber[ep.MalID] = item
+		byNumber[number] = item
 	}
 	for _, n := range availability.Sub {
-		if n <= 0 {
+		if n <= 0 || exceedsExpectedCount(n, expectedCount) {
 			continue
 		}
 		item := byNumber[n]
@@ -587,7 +621,7 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 		byNumber[n] = item
 	}
 	for _, n := range availability.Dub {
-		if n <= 0 {
+		if n <= 0 || exceedsExpectedCount(n, expectedCount) {
 			continue
 		}
 		item := byNumber[n]
@@ -619,6 +653,21 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 		})
 	}
 	return episodes
+}
+
+func jikanEpisodeNumber(ep jikan.Episode, index int) (int, bool) {
+	number, err := strconv.Atoi(strings.TrimSpace(ep.Episode))
+	if err == nil && number > 0 {
+		return number, true
+	}
+	if index < 0 {
+		return 0, false
+	}
+	return index + 1, true
+}
+
+func exceedsExpectedCount(number int, expectedCount int) bool {
+	return expectedCount > 0 && number > expectedCount
 }
 
 func nextRetryTime(anime domain.Anime, now time.Time) time.Time {
