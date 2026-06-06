@@ -1,3 +1,4 @@
+import { onHtmxLoad, onReady } from "./utils";
 import { isJstTimezone, normalizeWeekday, parseHHMM } from "./shared/broadcast";
 
 export {};
@@ -328,13 +329,13 @@ const buildBoard = (section: HTMLElement): void => {
 };
 
 const initScheduleBoard = (): void => {
-  const run = (): void => {
-    const sections = document.querySelectorAll<HTMLElement>("[data-schedule-section]");
+  const run = (root: ParentNode): void => {
+    const sections = root.querySelectorAll<HTMLElement>("[data-schedule-section]");
     sections.forEach(buildBoard);
   };
 
-  document.addEventListener("DOMContentLoaded", run);
-  document.body.addEventListener("htmx:afterSwap", run);
+  onReady(() => run(document));
+  onHtmxLoad((root) => run(root));
 };
 
 initScheduleBoard();

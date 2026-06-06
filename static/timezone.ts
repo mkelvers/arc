@@ -7,6 +7,8 @@ import {
 
 export {};
 
+import { onHtmxLoad } from "./utils";
+
 interface ParsedBroadcast {
   day: string;
   hour: number;
@@ -188,16 +190,14 @@ const updateNode = (node: Element, localOffsetMinutes: number): void => {
   updateNextAiring(node, parsed);
 };
 
-const updateAll = (): void => {
+const updateAll = (root: ParentNode): void => {
   const localOffsetMinutes = -new Date().getTimezoneOffset();
-  const nodes = document.querySelectorAll("[data-jst-text]");
+  const nodes = root.querySelectorAll("[data-jst-text]");
   nodes.forEach((node) => updateNode(node, localOffsetMinutes));
 };
 
 const initTimezoneConversion = (): void => {
-  // run on initial load and after htmx swaps (content may change)
-  document.addEventListener("DOMContentLoaded", updateAll);
-  document.body.addEventListener("htmx:afterSwap", updateAll);
+  onHtmxLoad((root) => updateAll(root));
 };
 
 initTimezoneConversion();

@@ -24,8 +24,8 @@ const getTopPickCarousel = (root: HTMLElement): TopPickCarousel | null => {
   return { track, previous, next, previousFade, nextFade };
 };
 
-const topPickCarousels = (): HTMLElement[] =>
-  Array.from(document.querySelectorAll<HTMLElement>("[data-top-pick-carousel]"));
+const topPickCarousels = (root: ParentNode = document): HTMLElement[] =>
+  Array.from(root.querySelectorAll<HTMLElement>("[data-top-pick-carousel]"));
 
 const maxScrollLeft = (track: HTMLElement): number =>
   Math.max(0, track.scrollWidth - track.clientWidth);
@@ -56,8 +56,8 @@ const updateTopPickCarousel = (root: HTMLElement): void => {
   carousel.nextFade.classList.toggle("hidden", !hasNext);
 };
 
-const updateTopPickCarousels = (): void => {
-  topPickCarousels().forEach(updateTopPickCarousel);
+const updateTopPickCarousels = (root: ParentNode = document): void => {
+  topPickCarousels(root).forEach(updateTopPickCarousel);
 };
 
 const carouselScrollAmount = (track: HTMLElement): number => {
@@ -145,9 +145,7 @@ document.addEventListener(
   true,
 );
 
-document.addEventListener("DOMContentLoaded", updateTopPickCarousels);
-document.addEventListener("htmx:afterSwap", updateTopPickCarousels);
-document.addEventListener("htmx:afterSettle", updateTopPickCarousels);
-window.addEventListener("resize", updateTopPickCarousels);
-
-updateTopPickCarousels();
+onReady(() => updateTopPickCarousels());
+onHtmxLoad((root) => updateTopPickCarousels(root));
+window.addEventListener("resize", () => updateTopPickCarousels());
+import { onHtmxLoad, onReady } from "./utils";

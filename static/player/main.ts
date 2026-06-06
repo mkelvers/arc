@@ -20,6 +20,7 @@ import {
   displayTimeFromAbsolute,
 } from "./timeline";
 import { formatTime } from "./controls";
+import { onHtmxLoad, onReady } from "../utils";
 
 let currentContainer: HTMLElement | null = null;
 let cleanup: (() => void) | null = null;
@@ -113,10 +114,9 @@ const initPlayer = (): void => {
   };
 
   // build video src from mode, token, and saved quality preference
-  // Only set if not already provided by the inline script during HTML parsing
   const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
   const streamToken = state.modeSources[state.currentMode]?.token;
-  if (!state.video.src && streamToken) {
+  if (streamToken) {
     state.video.src = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
   }
 
@@ -205,8 +205,6 @@ const initPlayer = (): void => {
   };
 
   state.video.addEventListener("loadedmetadata", onLoadedMetadata, { signal });
-  // inline script runs during HTML parsing before initPlayer; if metadata
-  // already loaded, fire the handler immediately
   if (state.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
     onLoadedMetadata();
   }
@@ -389,10 +387,11 @@ const initPlayer = (): void => {
   setupThumbnails();
 };
 
-document.addEventListener("DOMContentLoaded", initPlayer);
-document.body.addEventListener("htmx:afterSwap", (e: Event) => {
-  const target = (e as CustomEvent).detail?.target as HTMLElement | null;
-  if (target?.querySelector("[data-video-player]")) initPlayer();
+onReady(initPlayer);
+onHtmxLoad((root) => {
+  if (root.matches("[data-video-player]") || root.querySelector("[data-video-player]")) {
+    initPlayer();
+  }
 });
 
 document.body.addEventListener("htmx:beforeSwap", (e: Event) => {
