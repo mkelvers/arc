@@ -54,6 +54,14 @@ onReady(() => {
     toast("Something went wrong");
   });
 
+  document.addEventListener("htmx:afterSwap", (event) => {
+    const detail = event as CustomEvent<{ target?: EventTarget | null }>;
+    const target = detail.detail?.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.classList.contains("error")) return;
+    toast("Failed to load content");
+  });
+
   document.addEventListener("htmx:sendError", () => {
     toast("Network error");
   });
