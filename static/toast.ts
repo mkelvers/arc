@@ -11,7 +11,7 @@ const toastContainer = (): HTMLElement => {
   if (!container) {
     container = document.createElement("div");
     container.id = "toast-container";
-    container.className = "fixed bottom-4 right-4 z-[100] flex flex-col gap-2";
+    container.className = "fixed bottom-4 right-4 z-100 flex flex-col gap-2";
     container.setAttribute("role", "status");
     container.setAttribute("aria-live", "polite");
     container.setAttribute("aria-relevant", "additions");
