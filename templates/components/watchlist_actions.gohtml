@@ -6,7 +6,7 @@
 <div class="flex gap-2">
   <ui-dropdown class="relative block" data-align="left" data-width="min-w-[160px]">
     <div data-trigger class="cursor-pointer">
-      <button type="button" class="!rounded-none bg-background-button hover:bg-background-button-hover flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-normal text-foreground transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+      <button type="button" class="rounded-none! bg-background-button hover:bg-background-button-hover flex items-center justify-between gap-3 px-4 py-2.5 text-sm font-normal text-foreground transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
         <span id="watchlist-status-display-{{$anime.MalID}}">
           {{if $status}}
             {{if eq $status "watching"}}Watching{{end}}
@@ -21,7 +21,7 @@
       </button>
     </div>
 
-    <div data-content class="hidden absolute z-50 min-w-[160px] bg-background-button rounded-none shadow-[var(--shadow-card)] left-0 top-full mt-2">
+    <div data-content class="hidden absolute z-50 min-w-40 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2">
       <div class="flex flex-col py-1">
         <button
           data-unstyled-button
@@ -80,7 +80,7 @@
     </div>
   </ui-dropdown>
 
-  <a href="/anime/{{$anime.MalID}}/watch{{if gt .ContinueWatchingEp 0}}?ep={{.ContinueWatchingEp}}{{end}}" class="!rounded-none inline-flex items-center justify-center bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-normal text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+  <a href="/anime/{{$anime.MalID}}/watch{{if gt .ContinueWatchingEp 0}}?ep={{.ContinueWatchingEp}}{{end}}" class="rounded-none! inline-flex items-center justify-center bg-background-button hover:bg-background-button-hover px-5 py-2.5 text-sm font-normal text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
     {{if gt .ContinueWatchingEp 0}}Continue Watching Ep {{.ContinueWatchingEp}}{{else}}Watch Now{{end}}
   </a>
 </div>
