@@ -51,19 +51,19 @@
         </a>
       </div>
       <div class="relative overflow-hidden">
-        <div data-top-pick-track tabindex="0" class="grid min-w-0 grid-flow-col auto-cols-[calc((100%_-_0.75rem)/2.18)] gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:auto-cols-[calc((100%_-_2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%_-_3rem)/4.35)] xl:auto-cols-[calc((100%_-_4rem)/5.35)] 2xl:auto-cols-[calc((100%_-_5rem)/6.35)]">
+        <div data-top-pick-track tabindex="0" class="grid min-w-0 grid-flow-col auto-cols-[calc((100%-0.75rem)/2.18)] gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden md:auto-cols-[calc((100%-2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%-3rem)/4.35)] xl:auto-cols-[calc((100%-4rem)/5.35)] 2xl:auto-cols-[calc((100%-5rem)/6.35)]">
           {{range .Animes}}
             <div data-top-pick-item>
               {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
             </div>
           {{end}}
         </div>
-        <div data-top-pick-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-[70] hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
-        <div data-top-pick-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-[70] w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
-        <button type="button" data-unstyled-button data-top-pick-prev class="pointer-events-auto absolute left-0 top-[42%] z-[80] hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll top picks left" aria-hidden="true">
+        <div data-top-pick-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-70 hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
+        <div data-top-pick-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-70 w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
+        <button type="button" data-unstyled-button data-top-pick-prev class="pointer-events-auto absolute left-0 top-[42%] z-80 hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll top picks left" aria-hidden="true">
           <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
-        <button type="button" data-unstyled-button data-top-pick-next class="pointer-events-auto absolute right-0 top-[42%] z-[80] inline-flex h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll top picks right" aria-hidden="false">
+        <button type="button" data-unstyled-button data-top-pick-next class="pointer-events-auto absolute right-0 top-[42%] z-80 inline-flex h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll top picks right" aria-hidden="false">
           <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
       </div>
@@ -103,7 +103,7 @@
     <div class="skeleton skeleton-subtle h-4 w-24"></div>
   </div>
   <div class="relative overflow-hidden">
-    <div class="grid min-w-0 grid-flow-col auto-cols-[calc((100%_-_0.75rem)/2.18)] gap-3 overflow-hidden pb-1 md:auto-cols-[calc((100%_-_2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%_-_3rem)/4.35)] xl:auto-cols-[calc((100%_-_4rem)/5.35)] 2xl:auto-cols-[calc((100%_-_5rem)/6.35)]">
+    <div class="grid min-w-0 grid-flow-col auto-cols-[calc((100%-0.75rem)/2.18)] gap-3 overflow-hidden pb-1 md:auto-cols-[calc((100%-2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%-3rem)/4.35)] xl:auto-cols-[calc((100%-4rem)/5.35)] 2xl:auto-cols-[calc((100%-5rem)/6.35)]">
       {{range (seq 6)}}
       <div class="flex flex-col gap-2">
         <div class="skeleton aspect-2/3 w-full"></div>
@@ -120,7 +120,7 @@
 <section id="continue-watching-section" class="w-full" data-continue-watching-carousel>
   <h2 class="mb-3 text-base font-normal text-foreground">Continue Watching</h2>
   <div class="relative overflow-hidden">
-  <div data-continue-watching-track class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+  <div data-continue-watching-track class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
     {{range (seq 3)}}
       <div data-continue-watching-item class="flex w-70 shrink-0 snap-start flex-col gap-2 2xl:w-lg">
         <div class="skeleton aspect-video w-full overflow-hidden"></div>
@@ -129,12 +129,12 @@
       </div>
     {{end}}
   </div>
-    <div data-continue-watching-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-[70] hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
-    <div data-continue-watching-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-[70] hidden w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
-    <button type="button" data-unstyled-button data-continue-watching-prev class="pointer-events-auto absolute left-0 top-[42%] z-[80] hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll continue watching left" aria-hidden="true" tabindex="-1">
+    <div data-continue-watching-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-70 hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <div data-continue-watching-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-70 hidden w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <button type="button" data-unstyled-button data-continue-watching-prev class="pointer-events-auto absolute left-0 top-[42%] z-80 hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll continue watching left" aria-hidden="true" tabindex="-1">
       <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
-    <button type="button" data-unstyled-button data-continue-watching-next class="pointer-events-auto absolute right-0 top-[42%] z-[80] hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll continue watching right" aria-hidden="true" tabindex="-1">
+    <button type="button" data-unstyled-button data-continue-watching-next class="pointer-events-auto absolute right-0 top-[42%] z-80 hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll continue watching right" aria-hidden="true" tabindex="-1">
       <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
   </div>
