@@ -29,13 +29,19 @@ func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, anime
 	return s.repo.InTx(ctx, func(txCtx context.Context, repo domain.WatchlistRepository) error {
 		_, err := repo.GetAnime(txCtx, animeID)
 		if err != nil && fetchErr == nil {
+			durationSeconds := anime.DurationSeconds()
+			duration := sql.NullFloat64{Valid: durationSeconds > 0}
+			if duration.Valid {
+				duration.Float64 = durationSeconds
+			}
 			if _, err := repo.UpsertAnime(txCtx, db.UpsertAnimeParams{
-				ID:            int64(anime.MalID),
-				TitleOriginal: anime.Title,
-				TitleEnglish:  sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
-				TitleJapanese: sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
-				ImageUrl:      anime.ImageURL(),
-				Airing:        sql.NullBool{Bool: anime.Airing, Valid: true},
+				ID:              int64(anime.MalID),
+				TitleOriginal:   anime.Title,
+				TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
+				TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
+				ImageUrl:        anime.ImageURL(),
+				Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
+				DurationSeconds: duration,
 			}); err != nil {
 				return err
 			}
