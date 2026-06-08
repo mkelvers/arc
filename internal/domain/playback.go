@@ -9,7 +9,8 @@ type PlaybackService interface {
 	BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (WatchPageData, error)
 	SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error
 	CompleteAnime(ctx context.Context, userID string, animeID int64) error
-	ResolveProxyToken(token string) (string, string, error)
+	SignProxyToken(targetURL, referer, scope string) (string, error)
+	ResolveProxyToken(token string, scope string) (string, string, error)
 	UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error
 }
 
@@ -42,15 +43,11 @@ type WatchData struct {
 }
 
 type SubtitleItem struct {
-	Lang    string `json:"lang"`
-	URL     string `json:"url,omitempty"`
-	Referer string `json:"referer,omitempty"`
-	Token   string `json:"token"`
+	Lang  string `json:"lang"`
+	Token string `json:"token"`
 }
 
 type ModeSource struct {
-	URL       string         `json:"url,omitempty"`
-	Referer   string         `json:"referer,omitempty"`
 	Token     string         `json:"token"`
 	Subtitles []SubtitleItem `json:"subtitles"`
 	Qualities []string       `json:"qualities,omitempty"`
