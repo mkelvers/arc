@@ -3,8 +3,7 @@ package playback
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
+	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -20,6 +19,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,16 +32,70 @@ type playbackService struct {
 	episodes      domain.EpisodeService
 	httpClient    *http.Client
 	proxyTokenKey string
+	proxyTokens   *proxyTokenStore
 	auditSvc      domain.AuditService
 }
 
 type ProxyTokenKey string
 
-type proxyTokenPayload struct {
-	TargetURL string `json:"u"`
-	Referer   string `json:"r,omitempty"`
-	Scope     string `json:"s"`
-	ExpiresAt int64  `json:"exp"`
+type proxyTokenTarget struct {
+	targetURL string
+	referer   string
+	scope     string
+	expiresAt time.Time
+}
+
+type proxyTokenStore struct {
+	mu     sync.Mutex
+	tokens map[string]proxyTokenTarget
+}
+
+func newProxyTokenStore() *proxyTokenStore {
+	return &proxyTokenStore{
+		tokens: make(map[string]proxyTokenTarget),
+	}
+}
+
+func (s *proxyTokenStore) create(targetURL, referer, scope string, ttl time.Duration, now time.Time) (string, error) {
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", fmt.Errorf("generate proxy token: %w", err)
+	}
+
+	token := base64.RawURLEncoding.EncodeToString(tokenBytes)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.pruneExpiredLocked(now)
+	s.tokens[token] = proxyTokenTarget{
+		targetURL: targetURL,
+		referer:   referer,
+		scope:     scope,
+		expiresAt: now.Add(ttl),
+	}
+	return token, nil
+}
+
+func (s *proxyTokenStore) resolve(token string, now time.Time) (proxyTokenTarget, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	target, ok := s.tokens[token]
+	if !ok {
+		return proxyTokenTarget{}, fmt.Errorf("invalid proxy token")
+	}
+	if !target.expiresAt.After(now) {
+		delete(s.tokens, token)
+		return proxyTokenTarget{}, fmt.Errorf("proxy token expired")
+	}
+	return target, nil
+}
+
+func (s *proxyTokenStore) pruneExpiredLocked(now time.Time) {
+	for token, target := range s.tokens {
+		if !target.expiresAt.After(now) {
+			delete(s.tokens, token)
+		}
+	}
 }
 
 func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
@@ -53,6 +107,7 @@ func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provi
 		auditSvc:      auditSvc,
 		httpClient:    &http.Client{Timeout: 10 * time.Second},
 		proxyTokenKey: string(proxyTokenKey),
+		proxyTokens:   newProxyTokenStore(),
 	}
 }
 
@@ -60,66 +115,21 @@ func (s *playbackService) SignProxyToken(targetURL, referer, scope string) (stri
 	if s.proxyTokenKey == "" {
 		return "", nil
 	}
-	payload := proxyTokenPayload{
-		TargetURL: targetURL,
-		Referer:   referer,
-		Scope:     scope,
-		ExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
-	}
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-	mac := hmac.New(sha256.New, []byte(s.proxyTokenKey))
-	if _, err := mac.Write(body); err != nil {
-		return "", fmt.Errorf("sign proxy token: %w", err)
-	}
-	signature := mac.Sum(nil)
-	encodedBody := base64.RawURLEncoding.EncodeToString(body)
-	encodedSignature := base64.RawURLEncoding.EncodeToString(signature)
-	return encodedBody + "." + encodedSignature, nil
+	return s.proxyTokens.create(targetURL, referer, scope, 2*time.Hour, time.Now())
 }
 
-func (s *playbackService) VerifyProxyToken(token string) (proxyTokenPayload, error) {
+func (s *playbackService) ResolveProxyToken(token string, scope string) (string, string, error) {
 	if s.proxyTokenKey == "" {
-		return proxyTokenPayload{}, fmt.Errorf("proxy token key not configured")
+		return "", "", fmt.Errorf("proxy token key not configured")
 	}
-	parts := strings.Split(token, ".")
-	if len(parts) != 2 {
-		return proxyTokenPayload{}, fmt.Errorf("invalid token format")
-	}
-	body, err := base64.RawURLEncoding.DecodeString(parts[0])
-	if err != nil {
-		return proxyTokenPayload{}, err
-	}
-	decodedSig, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return proxyTokenPayload{}, fmt.Errorf("invalid signature encoding: %w", err)
-	}
-	mac := hmac.New(sha256.New, []byte(s.proxyTokenKey))
-	if _, err := mac.Write(body); err != nil {
-		return proxyTokenPayload{}, fmt.Errorf("verify proxy token: %w", err)
-	}
-	expectedSig := mac.Sum(nil)
-	if !hmac.Equal(expectedSig, decodedSig) {
-		return proxyTokenPayload{}, fmt.Errorf("invalid signature")
-	}
-	var payload proxyTokenPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return proxyTokenPayload{}, err
-	}
-	if payload.ExpiresAt < time.Now().Unix() {
-		return proxyTokenPayload{}, fmt.Errorf("token expired")
-	}
-	return payload, nil
-}
-
-func (s *playbackService) ResolveProxyToken(token string) (string, string, error) {
-	payload, err := s.VerifyProxyToken(token)
+	target, err := s.proxyTokens.resolve(token, time.Now())
 	if err != nil {
 		return "", "", err
 	}
-	return payload.TargetURL, payload.Referer, nil
+	if target.scope != scope {
+		return "", "", fmt.Errorf("invalid proxy token scope")
+	}
+	return target.targetURL, target.referer, nil
 }
 
 func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
@@ -181,8 +191,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 
 			streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
 			modeSources[m] = domain.ModeSource{
-				URL:       res.URL,
-				Referer:   res.Referer,
 				Token:     streamToken,
 				Subtitles: subItems,
 			}
@@ -241,7 +249,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	streams := []domain.ProviderStream{
 		{
 			Name:      "Primary",
-			URL:       result.URL,
 			Quality:   "Auto",
 			MalID:     animeID,
 			IsCurrent: true,
