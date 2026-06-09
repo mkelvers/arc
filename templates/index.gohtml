@@ -51,7 +51,7 @@
         </a>
       </div>
       <div class="relative overflow-hidden">
-        <div data-top-pick-track tabindex="0" class="grid min-w-0 grid-flow-col auto-cols-[calc((100%-0.75rem)/2.18)] gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden md:auto-cols-[calc((100%-2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%-3rem)/4.35)] xl:auto-cols-[calc((100%-4rem)/5.35)] 2xl:auto-cols-[calc((100%-5rem)/6.35)]">
+        <div data-top-pick-track tabindex="0" class="grid min-w-0 grid-flow-col auto-cols-[calc((100%-0.75rem)/2.18)] gap-3 overflow-x-auto scroll-smooth pb-1 scrollbar-hidden md:auto-cols-[calc((100%-2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%-3rem)/4.35)] xl:auto-cols-[calc((100%-4rem)/5.35)] 2xl:auto-cols-[calc((100%-5rem)/6.35)]">
           {{range .Animes}}
             <div data-top-pick-item>
               {{template "anime_card" dict "Anime" . "WithActions" true "IsWatchlist" (index $.WatchlistMap .MalID)}}
@@ -120,7 +120,7 @@
 <section id="continue-watching-section" class="w-full" data-continue-watching-carousel>
   <h2 class="mb-3 text-base font-normal text-foreground">Continue Watching</h2>
   <div class="relative overflow-hidden">
-  <div data-continue-watching-track class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+  <div data-continue-watching-track class="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-4 scrollbar-hidden">
     {{range (seq 3)}}
       <div data-continue-watching-item class="flex w-70 shrink-0 snap-start flex-col gap-2 2xl:w-lg">
         <div class="skeleton aspect-video w-full overflow-hidden"></div>
