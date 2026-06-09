@@ -7,12 +7,7 @@
 {{$hasTopBadge := .HasTopBadge}}
 {{$dataId := printf "id-%d" $anime.MalID}}
 
-{{$imageUrl := "https://placehold.co/400x600?text=No+Image"}}
-{{if $anime.Images.Webp.LargeImageURL}}
-  {{$imageUrl = $anime.Images.Webp.LargeImageURL}}
-{{else if $anime.Images.Jpg.LargeImageURL}}
-  {{$imageUrl = $anime.Images.Jpg.LargeImageURL}}
-{{end}}
+{{$imageUrl := posterURL $anime.Images.Webp.LargeImageURL $anime.Images.Jpg.LargeImageURL 400 600}}
 
 {{$displayTitle := $anime.DisplayTitle}}
 

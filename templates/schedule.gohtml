@@ -91,12 +91,7 @@
     <div class="hidden" data-schedule-items-source>
       {{range .Animes}}
         {{$anime := .}}
-        {{$imageUrl := "https://placehold.co/200x300?text=No+Image"}}
-        {{if $anime.Images.Webp.LargeImageURL}}
-          {{$imageUrl = $anime.Images.Webp.LargeImageURL}}
-        {{else if $anime.Images.Jpg.LargeImageURL}}
-          {{$imageUrl = $anime.Images.Jpg.LargeImageURL}}
-        {{end}}
+        {{$imageUrl := posterURL $anime.Images.Webp.LargeImageURL $anime.Images.Jpg.LargeImageURL 200 300}}
         <article
           data-schedule-item
           data-mal-id="{{$anime.MalID}}"
