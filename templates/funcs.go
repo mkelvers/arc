@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/url"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -50,53 +49,21 @@ func genresParams(genres []int) string {
 	return b.String()
 }
 
-type browseURLParams struct {
-	Query   string
-	Type    string
-	Status  string
-	OrderBy string
-	Sort    string
-	Studio  any
-	SFW     bool
-	Genres  []int
-	Page    any
-}
-
-func browseURL(v any, overrides map[string]any) (string, error) {
-	params, ok := v.(browseURLParams)
-	if !ok {
-		if mapped, mapOK := mapValue(v); mapOK {
-			params = browseURLParams{
-				Query:   stringValue(mapped["Query"]),
-				Type:    stringValue(mapped["Type"]),
-				Status:  stringValue(mapped["Status"]),
-				OrderBy: stringValue(mapped["OrderBy"]),
-				Sort:    stringValue(mapped["Sort"]),
-				Studio:  mapped["Studio"],
-				SFW:     boolValue(mapped["SFW"]),
-				Genres:  intSliceValue(mapped["Genres"]),
-				Page:    mapped["Page"],
-			}
-			ok = true
-		}
-	}
-	if !ok {
-		return "", fmt.Errorf("browseURL expects browseURLParams or map[string]any")
-	}
-
+func browseURL(v map[string]any, overrides map[string]any) (string, error) {
 	values := url.Values{}
-	setQueryValue(values, "q", params.Query)
-	setQueryValue(values, "type", params.Type)
-	setQueryValue(values, "status", params.Status)
-	setQueryValue(values, "order_by", params.OrderBy)
-	setQueryValue(values, "sort", params.Sort)
-	setQueryValue(values, "studio", stringValue(params.Studio))
-	values.Set("sfw", strconv.FormatBool(params.SFW))
-	for _, genre := range params.Genres {
+	setQueryValue(values, "q", stringValue(v["Query"]))
+	setQueryValue(values, "type", stringValue(v["Type"]))
+	setQueryValue(values, "status", stringValue(v["Status"]))
+	setQueryValue(values, "order_by", stringValue(v["OrderBy"]))
+	setQueryValue(values, "sort", stringValue(v["Sort"]))
+	setQueryValue(values, "studio", stringValue(v["Studio"]))
+	if sfw, ok := v["SFW"]; ok && !boolValue(sfw) {
+		values.Set("sfw", "false")
+	}
+	for _, genre := range intSliceValue(v["Genres"]) {
 		values.Add("genres", strconv.Itoa(genre))
 	}
-	page := stringValue(params.Page)
-	setQueryValue(values, "page", page)
+	setQueryValue(values, "page", stringValue(v["Page"]))
 
 	for key, raw := range overrides {
 		switch key {
@@ -117,27 +84,6 @@ func browseURL(v any, overrides map[string]any) (string, error) {
 		return "/browse", nil
 	}
 	return "/browse?" + encoded, nil
-}
-
-func mapValue(v any) (map[string]any, bool) {
-	if mapped, ok := v.(map[string]any); ok {
-		return mapped, true
-	}
-
-	rv := reflect.ValueOf(v)
-	if !rv.IsValid() || rv.Kind() != reflect.Map {
-		return nil, false
-	}
-	if rv.Type().Key().Kind() != reflect.String {
-		return nil, false
-	}
-
-	out := make(map[string]any, rv.Len())
-	iter := rv.MapRange()
-	for iter.Next() {
-		out[iter.Key().String()] = iter.Value().Interface()
-	}
-	return out, true
 }
 
 func setQueryValue(values url.Values, key string, value string) {
@@ -316,4 +262,25 @@ func nextSort(sort string) string {
 		return "desc"
 	}
 	return "asc"
+}
+
+func posterURL(webp, jpg any, width, height int) string {
+	if webp != nil {
+		if s, ok := webp.(string); ok && s != "" {
+			return s
+		}
+	}
+	if jpg != nil {
+		if s, ok := jpg.(string); ok && s != "" {
+			return s
+		}
+	}
+	return fmt.Sprintf("https://placehold.co/%dx%d?text=No+Image", width, height)
+}
+
+func episodeRangeStart(epNum, step int) int {
+	if epNum < 1 || step < 1 {
+		return 1
+	}
+	return ((epNum-1)/step)*step + 1
 }
