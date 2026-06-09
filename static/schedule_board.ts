@@ -229,6 +229,8 @@ const buildBoard = (section: HTMLElement): void => {
   const source = section.querySelector<HTMLElement>("[data-schedule-items-source]");
   if (!board || !source) return;
 
+  const sourceItems = Array.from(source.querySelectorAll<HTMLElement>("[data-schedule-item]"));
+
   const settings = loadSettings();
 
   const render = (): void => {
@@ -269,10 +271,12 @@ const buildBoard = (section: HTMLElement): void => {
       if (countNode) countNode.textContent = "0";
     }
 
-    const rawItems = Array.from(source.querySelectorAll<HTMLElement>("[data-schedule-item]"));
     const parsed: Item[] = [];
 
-    for (const node of rawItems) {
+    for (const sourceItem of sourceItems) {
+      const node = sourceItem.cloneNode(true);
+      if (!(node instanceof HTMLElement)) continue;
+
       const title = node.getAttribute("data-title") ?? "";
       const score = Number(node.getAttribute("data-score") ?? "0");
       const slot = getLocalSlot(
