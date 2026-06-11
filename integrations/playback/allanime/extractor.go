@@ -206,60 +206,89 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 		return nil, err
 	}
 
-	lines := strings.Split(string(body), "\n")
-	baseURL := masterURL
-	if idx := strings.LastIndex(masterURL, "/"); idx >= 0 {
-		baseURL = masterURL[:idx+1]
-	}
+	return parseM3U8Sources(string(body), masterURL, referer), nil
+}
 
+func parseM3U8Sources(body string, masterURL string, referer string) []StreamSource {
+	lines := strings.Split(body, "\n")
+	baseURL := playlistBaseURL(masterURL)
+	bwPattern := regexp.MustCompile(`BANDWIDTH=(\d+)`)
 	currentBandwidth := 0
 	sources := make([]StreamSource, 0)
-	bwPattern := regexp.MustCompile(`BANDWIDTH=(\d+)`)
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "#EXT-X-STREAM-INF") {
-			match := bwPattern.FindStringSubmatch(trimmed)
-			if len(match) >= 2 {
-				value, convErr := strconv.Atoi(match[1])
-				if convErr == nil {
-					currentBandwidth = value
-				}
-			}
+		if bandwidth, ok := parseStreamBandwidth(trimmed, bwPattern); ok {
+			currentBandwidth = bandwidth
 			continue
 		}
-
-		// skip empty lines and non-stream lines
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+		if shouldSkipM3U8Line(trimmed) {
 			continue
-		}
-
-		streamURL := trimmed
-		if !strings.HasPrefix(streamURL, "http://") && !strings.HasPrefix(streamURL, "https://") {
-			streamURL = baseURL + streamURL
-		}
-
-		quality := "auto"
-		kbps := currentBandwidth / 1000
-		switch {
-		case kbps >= 8000:
-			quality = "1080p"
-		case kbps >= 5000:
-			quality = "720p"
-		case kbps >= 2500:
-			quality = "480p"
-		case kbps > 0:
-			quality = "360p"
 		}
 
 		sources = append(sources, StreamSource{
-			URL:      streamURL,
-			Quality:  quality,
+			URL:      resolvePlaylistURL(trimmed, baseURL),
+			Quality:  qualityFromBandwidth(currentBandwidth),
 			Provider: "hls",
 			Type:     "m3u8",
 			Referer:  referer,
 		})
 	}
 
-	return sources, nil
+	return sources
+}
+
+func playlistBaseURL(masterURL string) string {
+	if idx := strings.LastIndex(masterURL, "/"); idx >= 0 {
+		return masterURL[:idx+1]
+	}
+
+	return masterURL
+}
+
+func parseStreamBandwidth(line string, bwPattern *regexp.Regexp) (int, bool) {
+	if !strings.HasPrefix(line, "#EXT-X-STREAM-INF") {
+		return 0, false
+	}
+
+	match := bwPattern.FindStringSubmatch(line)
+	if len(match) < 2 {
+		return 0, true
+	}
+
+	value, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0, true
+	}
+
+	return value, true
+}
+
+func shouldSkipM3U8Line(line string) bool {
+	return line == "" || strings.HasPrefix(line, "#")
+}
+
+func resolvePlaylistURL(streamURL string, baseURL string) string {
+	if strings.HasPrefix(streamURL, "http://") || strings.HasPrefix(streamURL, "https://") {
+		return streamURL
+	}
+
+	return baseURL + streamURL
+}
+
+func qualityFromBandwidth(bandwidth int) string {
+	kbps := bandwidth / 1000
+
+	switch {
+	case kbps >= 8000:
+		return "1080p"
+	case kbps >= 5000:
+		return "720p"
+	case kbps >= 2500:
+		return "480p"
+	case kbps > 0:
+		return "360p"
+	default:
+		return "auto"
+	}
 }
