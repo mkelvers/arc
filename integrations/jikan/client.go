@@ -149,25 +149,43 @@ func jikanTraceEnabled() bool {
 	return traceEnabled
 }
 
-func logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {
-	duration := time.Since(startedAt)
-	if !jikanTraceEnabled() && err == nil && source == "fresh" && duration < 50*time.Millisecond {
-		return
-	}
-	if !jikanTraceEnabled() && err == nil && source == "refresh" && duration < jikanSlowLogThreshold {
-		return
+func shouldSkipJikanCacheLog(source string, duration time.Duration, err error) bool {
+	if jikanTraceEnabled() || err != nil {
+		return false
 	}
 
-	level := observability.LogLevelInfo
+	if source == "fresh" {
+		return duration < 50*time.Millisecond
+	}
+
+	if source == "refresh" {
+		return duration < jikanSlowLogThreshold
+	}
+
+	return false
+}
+
+func jikanCacheLogLevel(source string, err error) observability.LogLevel {
 	if err != nil {
-		level = observability.LogLevelError
-	} else if source != "fresh" && source != "refresh" {
+		return observability.LogLevelError
+	}
+
+	if source != "fresh" && source != "refresh" {
 		// Stale reads are expected sometimes, but worth tracking in logs.
-		level = observability.LogLevelWarn
+		return observability.LogLevelWarn
+	}
+
+	return observability.LogLevelInfo
+}
+
+func logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {
+	duration := time.Since(startedAt)
+	if shouldSkipJikanCacheLog(source, duration, err) {
+		return
 	}
 
 	observability.LogJSON(
-		level,
+		jikanCacheLogLevel(source, err),
 		"jikan_cache",
 		"jikan",
 		"",
