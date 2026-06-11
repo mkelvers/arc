@@ -148,33 +148,28 @@ func (c *Client) currentOnlyRelation(ctx context.Context, id int) ([]RelationEnt
 	}}, nil
 }
 
-// GetFullRelations returns related anime based on watch order, with parallel fetching (3 concurrent).
-func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry, error) {
-	result, err := c.getWatchOrder(ctx, id)
-	if err != nil {
-		if errors.Is(err, watchorder.ErrWatchOrderNotFound) {
-			return c.currentOnlyRelation(ctx, id)
-		}
-		observability.Warn(
-			"relations_watch_order_fallback_current_only",
-			"jikan",
-			"",
-			map[string]any{
-				"anime_id": id,
-			},
-			err,
-		)
+func (c *Client) handleWatchOrderError(ctx context.Context, id int, err error) ([]RelationEntry, error) {
+	if errors.Is(err, watchorder.ErrWatchOrderNotFound) {
 		return c.currentOnlyRelation(ctx, id)
 	}
 
-	type fetchResult struct {
-		index int
-		anime Anime
-		entry watchorder.WatchOrderEntry
-	}
+	observability.Warn(
+		"relations_watch_order_fallback_current_only",
+		"jikan",
+		"",
+		map[string]any{
+			"anime_id": id,
+		},
+		err,
+	)
 
-	var allowedEntries []watchorder.WatchOrderEntry
+	return c.currentOnlyRelation(ctx, id)
+}
+
+func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult) ([]watchorder.WatchOrderEntry, map[int]bool) {
+	allowedEntries := make([]watchorder.WatchOrderEntry, 0, len(result.WatchOrder))
 	seen := make(map[int]bool)
+
 	for _, entry := range result.WatchOrder {
 		if len(allowedEntries) >= maxWatchOrderEntries {
 			break
@@ -182,16 +177,21 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 		if !isAllowedWatchOrderType(entry.Type) || seen[entry.ID] {
 			continue
 		}
+
 		seen[entry.ID] = true
 		allowedEntries = append(allowedEntries, entry)
 	}
 
+	return allowedEntries, seen
+}
+
+func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.WatchOrderEntry) []fetchResult {
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(3)
 
-	results := make(chan fetchResult, len(allowedEntries))
+	results := make(chan fetchResult, len(entries))
 
-	for i, entry := range allowedEntries {
+	for i, entry := range entries {
 		g.Go(func() error {
 			anime, err := c.GetAnimeByID(gCtx, entry.ID)
 			if err != nil {
@@ -201,10 +201,12 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 				c.EnqueueAnimeFetchRetry(gCtx, entry.ID, err)
 				return nil
 			}
+
 			select {
 			case results <- fetchResult{index: i, anime: anime, entry: entry}:
 			case <-gCtx.Done():
 			}
+
 			return nil
 		})
 	}
@@ -214,18 +216,21 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 		close(results)
 	}()
 
-	fetched := make([]fetchResult, 0, len(allowedEntries))
+	fetched := make([]fetchResult, 0, len(entries))
 	for res := range results {
 		fetched = append(fetched, res)
 	}
 
-	// Re-sort because they might have finished out of order
 	sort.Slice(fetched, func(i, j int) bool {
 		return fetched[i].index < fetched[j].index
 	})
 
-	relations := make([]RelationEntry, 0, len(fetched)+1)
-	for _, res := range fetched {
+	return fetched
+}
+
+func buildRelationsFromResults(results []fetchResult, id int) []RelationEntry {
+	relations := make([]RelationEntry, 0, len(results)+1)
+	for _, res := range results {
 		relations = append(relations, RelationEntry{
 			Anime:     res.anime,
 			Relation:  watchOrderTypeLabel(res.entry.Type),
@@ -234,18 +239,46 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 		})
 	}
 
-	if !seen[id] {
-		currentAnime, err := c.GetAnimeByID(ctx, id)
-		if err != nil {
-			return nil, err
-		}
+	return relations
+}
 
-		relations = append([]RelationEntry{{
-			Anime:     currentAnime,
-			Relation:  "Current",
-			IsCurrent: true,
-			IsExtra:   false,
-		}}, relations...)
+func (c *Client) ensureCurrentRelation(ctx context.Context, id int, seen map[int]bool, relations []RelationEntry) ([]RelationEntry, error) {
+	if seen[id] {
+		return relations, nil
+	}
+
+	currentAnime, err := c.GetAnimeByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]RelationEntry{{
+		Anime:     currentAnime,
+		Relation:  "Current",
+		IsCurrent: true,
+		IsExtra:   false,
+	}}, relations...), nil
+}
+
+type fetchResult struct {
+	index int
+	anime Anime
+	entry watchorder.WatchOrderEntry
+}
+
+// GetFullRelations returns related anime based on watch order, with parallel fetching (3 concurrent).
+func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry, error) {
+	result, err := c.getWatchOrder(ctx, id)
+	if err != nil {
+		return c.handleWatchOrderError(ctx, id, err)
+	}
+
+	allowedEntries, seen := buildAllowedWatchOrderEntries(result)
+	fetched := c.fetchRelationResults(ctx, allowedEntries)
+	relations := buildRelationsFromResults(fetched, id)
+	relations, err = c.ensureCurrentRelation(ctx, id, seen, relations)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(relations) == 0 {
