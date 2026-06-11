@@ -49,6 +49,33 @@ func isPublicRequest(method string, path string) bool {
 	return false
 }
 
+func authenticateAPIRequest(c *gin.Context, svc domain.AuthService) (*domain.User, string, bool, error) {
+	authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
+	if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+		token := strings.TrimSpace(authHeader[7:])
+		user, err := svc.ValidateAPIToken(c.Request.Context(), token)
+		return user, "", false, err
+	}
+
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		return nil, "", false, err
+	}
+
+	user, err := svc.ValidateSession(c.Request.Context(), sessionID)
+	return user, sessionID, true, err
+}
+
+func authenticatePageRequest(c *gin.Context, svc domain.AuthService) (*domain.User, string, error) {
+	sessionID, err := c.Cookie("session_id")
+	if err != nil {
+		return nil, "", err
+	}
+
+	user, err := svc.ValidateSession(c.Request.Context(), sessionID)
+	return user, sessionID, err
+}
+
 func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
@@ -65,18 +92,7 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 
 		// API routes can authenticate via Bearer token OR cookie session.
 		if strings.HasPrefix(path, "/api/") {
-			authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
-			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
-				token := strings.TrimSpace(authHeader[7:])
-				user, err = svc.ValidateAPIToken(c.Request.Context(), token)
-			} else if cookieSessionID, cookieErr := c.Cookie("session_id"); cookieErr == nil {
-				sessionID = cookieSessionID
-				usesCookieSession = true
-				user, err = svc.ValidateSession(c.Request.Context(), sessionID)
-			} else {
-				err = cookieErr
-			}
-
+			user, sessionID, usesCookieSession, err = authenticateAPIRequest(c, svc)
 			if err != nil || user == nil {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 				c.Abort()
@@ -84,16 +100,8 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 			}
 		} else {
 			// Non-API routes only use cookie sessions and redirect to /login.
-			cookieSessionID, cookieErr := c.Cookie("session_id")
-			if cookieErr != nil {
-				c.Redirect(http.StatusSeeOther, "/login")
-				c.Abort()
-				return
-			}
-
-			sessionID = cookieSessionID
+			user, sessionID, err = authenticatePageRequest(c, svc)
 			usesCookieSession = true
-			user, err = svc.ValidateSession(c.Request.Context(), sessionID)
 			if err != nil || user == nil {
 				c.Redirect(http.StatusSeeOther, "/login")
 				c.Abort()
