@@ -230,35 +230,34 @@ func (a Anime) DurationSeconds() float64 {
 		return 0
 	}
 	var hours, minutes int
-	var isHours bool
-	var currentNum string
+	var currentValue int
+	hasValue := false
 
-	for _, c := range a.Duration {
-		if c >= '0' && c <= '9' {
-			currentNum += string(c)
-		} else if c == ' ' && currentNum != "" {
-			val, _ := strconv.Atoi(currentNum)
-			if isHours {
-				hours = val
-			} else {
-				minutes = val
-			}
-			currentNum = ""
-		} else if len(currentNum) > 0 && (c == 'h' || c == 'H') {
-			isHours = true
-			val, _ := strconv.Atoi(currentNum)
-			hours = val
-			currentNum = ""
+	for _, token := range strings.Fields(strings.ToLower(a.Duration)) {
+		value, err := strconv.Atoi(token)
+		if err == nil {
+			currentValue = value
+			hasValue = true
+			continue
+		}
+		if !hasValue {
+			continue
+		}
+
+		switch {
+		case strings.HasPrefix(token, "h"):
+			hours = currentValue
+			hasValue = false
+		case strings.HasPrefix(token, "m"):
+			minutes = currentValue
+			hasValue = false
 		}
 	}
-	if currentNum != "" {
-		val, _ := strconv.Atoi(currentNum)
-		if isHours {
-			hours = val
-		} else {
-			minutes = val
-		}
+
+	if hasValue {
+		minutes = currentValue
 	}
+
 	return float64(hours*60+minutes) * 60
 }
 
