@@ -270,6 +270,24 @@ func scoreRecommendationCandidate(
 	score += themeScore * forYouThemeMatchWeight
 	score += studioScore * forYouStudioMatchWeight
 	score += demographicScore * forYouDemographicMatchWeight
+	score += recommendationCandidateScoreAdjustments(now, profile, candidate)
+
+	return recommendationCandidate{
+		anime:              candidate,
+		score:              score,
+		genreMatches:       genreMatches,
+		themeMatches:       themeMatches,
+		studioMatches:      studioMatches,
+		demographicMatches: demographicMatches,
+	}
+}
+
+func recommendationCandidateScoreAdjustments(
+	now time.Time,
+	profile userTasteProfile,
+	candidate jikan.Anime,
+) float64 {
+	var score float64
 
 	if candidate.Score > 0 {
 		score += min(candidate.Score/10.0, 1.0)
@@ -280,31 +298,41 @@ func scoreRecommendationCandidate(
 	if profile.prefersAiring && candidate.Airing {
 		score += 0.5
 	}
-	if profile.prefersRecent && candidate.Year > 0 && now.Year()-candidate.Year <= 4 {
+	if profile.prefersRecent && isRecentCandidate(now, candidate.Year) {
 		score += 0.45
 	}
-	if candidate.Year > 0 && now.Year()-candidate.Year > 15 {
+	if isClassicCandidate(now, candidate.Year) {
 		score -= 0.2
 	}
 	if candidate.Status == "Not yet aired" {
 		score -= 0.35
 	}
-	if candidate.Aired.From != "" {
-		if airedAt, err := time.Parse(time.RFC3339, candidate.Aired.From); err == nil {
-			if now.Sub(airedAt) <= forYouFreshReleaseWindow {
-				score += 0.3
-			}
-		}
+	if isFreshRelease(now, candidate.Aired.From) {
+		score += 0.3
 	}
 
-	return recommendationCandidate{
-		anime:              candidate,
-		score:              score,
-		genreMatches:       genreMatches,
-		themeMatches:       themeMatches,
-		studioMatches:      studioMatches,
-		demographicMatches: demographicMatches,
+	return score
+}
+
+func isRecentCandidate(now time.Time, year int) bool {
+	return year > 0 && now.Year()-year <= 4
+}
+
+func isClassicCandidate(now time.Time, year int) bool {
+	return year > 0 && now.Year()-year > 15
+}
+
+func isFreshRelease(now time.Time, airedFrom string) bool {
+	if airedFrom == "" {
+		return false
 	}
+
+	airedAt, err := time.Parse(time.RFC3339, airedFrom)
+	if err != nil {
+		return false
+	}
+
+	return now.Sub(airedAt) <= forYouFreshReleaseWindow
 }
 
 func weightedEntityMatch(weights map[int]float64, entities []jikan.NamedEntity) (int, float64) {
