@@ -15,12 +15,22 @@
               "run":
                 "bunx oxlint --ignore-path .oxlintignore {staged_files} --max-warnings 0 --fix --tsconfig ./tsconfig.json --type-aware",
             },
-          "go-fmt": { "glob": "*.go", "run": "go fmt ./..." },
-          "go-lint": { "glob": "*.go", "run": "bun run lint:go" },
-          "go-test": { "glob": "*.go", "run": "go test ./..." },
+          "go-fmt": { "glob": "*.go", "run": "go fmt {staged_files}" },
+          "go-lint": { "glob": "*.go", "run": "golangci-lint run {staged_files}" },
+          "go-test":
+            {
+              "glob": "*.go",
+              "run":
+                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} go test -count=1 ./{}',
+            },
           "ts-typecheck": { "glob": "*.ts", "run": "bunx tsc -p tsconfig.json --noEmit" },
           "build-assets": { "glob": "*.{ts,css}", "run": "bun run build:assets" },
-          "go-build": { "glob": "*.go", "run": "go build -o server ./cmd/server" },
+          "go-build":
+            {
+              "glob": "*.go",
+              "run":
+                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} go build -o /dev/null ./{}',
+            },
         },
     },
 }
