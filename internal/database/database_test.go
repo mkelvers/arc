@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestRunMigrationsCreatesHotPathIndexes(t *testing.T) {
 	} {
 		t.Run(indexName, func(t *testing.T) {
 			var count int
-			err := sqlDB.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = ?`, indexName).Scan(&count)
+			err := sqlDB.QueryRowContext(context.Background(), `SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = ?`, indexName).Scan(&count)
 			if err != nil {
 				t.Fatalf("query index: %v", err)
 			}
