@@ -221,27 +221,13 @@ func formatHTTPRequestLog(entry LogEvent) string {
 	clientIP := popField(fields, "client_ip")
 
 	parts := []string{entry.TS, formatLogLevel(entry.Level), "http"}
-	if status != "" {
-		parts = append(parts, status)
-	}
-	if method != "" || path != "" {
-		parts = append(parts, strings.TrimSpace(method+" "+path))
-	}
-	if duration != "" {
-		parts = append(parts, duration)
-	}
-	if bytes != "" {
-		parts = append(parts, bytes)
-	}
-	if route != "" {
-		parts = append(parts, "route="+route)
-	}
-	if query != "" {
-		parts = append(parts, "query="+quoteIfNeeded(query))
-	}
-	if clientIP != "" && !isLocalClientIP(clientIP) {
-		parts = append(parts, "ip="+clientIP)
-	}
+	appendNonEmpty(&parts, status)
+	appendNonEmpty(&parts, strings.TrimSpace(method+" "+path))
+	appendNonEmpty(&parts, duration)
+	appendNonEmpty(&parts, bytes)
+	appendKeyValue(&parts, "route", route)
+	appendKeyValueQuoted(&parts, "query", query)
+	appendClientIP(&parts, clientIP)
 	appendSortedFields(&parts, fields)
 
 	if entry.Error != "" {
@@ -249,6 +235,38 @@ func formatHTTPRequestLog(entry LogEvent) string {
 	}
 
 	return strings.Join(parts, " ")
+}
+
+func appendNonEmpty(parts *[]string, value string) {
+	if value == "" {
+		return
+	}
+
+	*parts = append(*parts, value)
+}
+
+func appendKeyValue(parts *[]string, key string, value string) {
+	if value == "" {
+		return
+	}
+
+	*parts = append(*parts, key+"="+value)
+}
+
+func appendKeyValueQuoted(parts *[]string, key string, value string) {
+	if value == "" {
+		return
+	}
+
+	*parts = append(*parts, key+"="+quoteIfNeeded(value))
+}
+
+func appendClientIP(parts *[]string, clientIP string) {
+	if clientIP == "" || isLocalClientIP(clientIP) {
+		return
+	}
+
+	*parts = append(*parts, "ip="+clientIP)
 }
 
 func appendSortedFields(parts *[]string, fields map[string]any) {
