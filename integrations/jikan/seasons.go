@@ -48,17 +48,15 @@ func (c *Client) getSeasonList(ctx context.Context, page int, season string) (To
 }
 
 // seedRandomPool seeds the in-memory pool of random anime
-func (c *Client) seedRandomPool(ctx context.Context) error {
+func (c *Client) seedRandomPool(ctx context.Context) {
 	if !c.markRandomPoolInitialized() {
-		return nil
+		return
 	}
 
 	c.loadCachedRandomPool(ctx)
 
 	// Fetch a solid baseline in the background, then start refreshing.
 	go c.seedRandomPoolBaseline()
-
-	return nil
 }
 
 func (c *Client) markRandomPoolInitialized() bool {
@@ -207,7 +205,7 @@ func (c *Client) GetRandomAnime(ctx context.Context) (Anime, error) {
 	c.poolMu.Unlock()
 
 	if !initialized {
-		_ = c.seedRandomPool(ctx)
+		c.seedRandomPool(ctx)
 	}
 
 	c.poolMu.RLock()
