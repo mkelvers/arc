@@ -26,7 +26,25 @@ var Module = fx.Options(
 )
 
 func ProvideRenderer() (*Renderer, error) {
-	funcs := template.FuncMap{
+	pages, components, err := templatePaths()
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := parseTemplates(pages, components, rendererFuncs())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(r.templates) == 0 {
+		return nil, errors.New("no templates parsed")
+	}
+
+	return r, nil
+}
+
+func rendererFuncs() template.FuncMap {
+	return template.FuncMap{
 		"dict":              dict,
 		"list":              func(items ...any) []any { return items },
 		"json":              jsonAttr,
@@ -52,25 +70,32 @@ func ProvideRenderer() (*Renderer, error) {
 		"posterURL":         posterURL,
 		"episodeRangeStart": episodeRangeStart,
 	}
+}
 
+func templatePaths() ([]string, []string, error) {
 	pages, err := fs.Glob(templateFS, "*.gohtml")
 	if err != nil {
-		return nil, fmt.Errorf("glob templates: %w", err)
+		return nil, nil, fmt.Errorf("glob templates: %w", err)
 	}
+
 	subpages, err := fs.Glob(templateFS, "anime/*.gohtml")
 	if err != nil {
-		return nil, fmt.Errorf("glob anime templates: %w", err)
+		return nil, nil, fmt.Errorf("glob anime templates: %w", err)
 	}
+
 	components, err := fs.Glob(templateFS, "components/*.gohtml")
 	if err != nil {
-		return nil, fmt.Errorf("glob components: %w", err)
+		return nil, nil, fmt.Errorf("glob components: %w", err)
 	}
 
-	basePath := "base.gohtml"
-	allPages := append(pages, subpages...)
+	return append(pages, subpages...), components, nil
+}
 
-	r := &Renderer{templates: make(map[string]*template.Template, len(allPages))}
-	for _, page := range allPages {
+func parseTemplates(pages []string, components []string, funcs template.FuncMap) (*Renderer, error) {
+	const basePath = "base.gohtml"
+
+	r := &Renderer{templates: make(map[string]*template.Template, len(pages))}
+	for _, page := range pages {
 		name := path.Base(page)
 		if name == path.Base(basePath) {
 			continue
@@ -86,11 +111,8 @@ func ProvideRenderer() (*Renderer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parse template %s: %w", name, err)
 		}
-		r.templates[name] = parsed
-	}
 
-	if len(r.templates) == 0 {
-		return nil, errors.New("no templates parsed")
+		r.templates[name] = parsed
 	}
 
 	return r, nil
