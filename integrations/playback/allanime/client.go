@@ -295,13 +295,13 @@ func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, var
 	req.Header.Set("Referer", allAnimeReferer)
 	req.Header.Set("User-Agent", defaultUserAgent)
 
-	resp, respBody, err := executeAndReadResponse(c.httpClient, req, "execute graphql request", "read graphql response")
+	statusCode, respBody, err := executeAndReadResponse(c.httpClient, req, "execute graphql request", "read graphql response")
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("graphql status %d", resp.StatusCode)
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("graphql status %d", statusCode)
 	}
 
 	var parsed map[string]any
@@ -344,13 +344,13 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	req.Header.Set("Sec-Fetch-Mode", "cors")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
 
-	resp, respBody, err := executeAndReadResponse(c.utlsClient, req, "execute GET request", "read response")
+	statusCode, respBody, err := executeAndReadResponse(c.utlsClient, req, "execute GET request", "read response")
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET status %d: %s", resp.StatusCode, string(respBody))
+	if statusCode != http.StatusOK {
+		return nil, fmt.Errorf("GET status %d: %s", statusCode, string(respBody))
 	}
 
 	var parsed map[string]any
@@ -535,19 +535,19 @@ func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, referenc
 	return out
 }
 
-func executeAndReadResponse(client *http.Client, req *http.Request, executeErrPrefix string, readErrPrefix string) (*http.Response, []byte, error) {
+func executeAndReadResponse(client *http.Client, req *http.Request, executeErrPrefix string, readErrPrefix string) (int, []byte, error) {
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", executeErrPrefix, err)
+		return 0, nil, fmt.Errorf("%s: %w", executeErrPrefix, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", readErrPrefix, err)
+		return 0, nil, fmt.Errorf("%s: %w", readErrPrefix, err)
 	}
 
-	return resp, body, nil
+	return resp.StatusCode, body, nil
 }
 
 func buildStreamSource(url, sourceType, provider string) StreamSource {

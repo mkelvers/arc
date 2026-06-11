@@ -20,7 +20,7 @@
             {
               "glob": "*.go",
               "run":
-                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} golangci-lint run ./{}',
+                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} golangci-lint run --new-from-rev=HEAD ./{}',
             },
           "go-test":
             {
