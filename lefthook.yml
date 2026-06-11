@@ -4,15 +4,23 @@
     {
       "commands":
         {
-          "format": { "run": "bunx oxfmt" },
+          "format":
+            {
+              "glob": "*.{ts,js,tsx,jsx,css,json,html}",
+              "run": "bunx oxfmt {staged_files}",
+            },
           "lint:ts":
-            { "run": "bunx oxlint --ignore-path .oxlintignore static --max-warnings 0 --fix" },
-          "go-fmt": { "run": "go fmt ./..." },
-          "go-lint": { "run": "bun run lint:go" },
-          "go-test": { "run": "go test ./..." },
-          "ts-typecheck": { "run": "bunx tsc -p tsconfig.json --noEmit" },
-          "build-assets": { "run": "bun run build:assets" },
-          "go-build": { "run": "go build -o server ./cmd/server" },
+            {
+              "glob": "*.{ts,js,tsx,jsx}",
+              "run":
+                "bunx oxlint --ignore-path .oxlintignore {staged_files} --max-warnings 0 --fix --tsconfig ./tsconfig.json --type-aware",
+            },
+          "go-fmt": { "glob": "*.go", "run": "go fmt ./..." },
+          "go-lint": { "glob": "*.go", "run": "bun run lint:go" },
+          "go-test": { "glob": "*.go", "run": "go test ./..." },
+          "ts-typecheck": { "glob": "*.ts", "run": "bunx tsc -p tsconfig.json --noEmit" },
+          "build-assets": { "glob": "*.{ts,css}", "run": "bun run build:assets" },
+          "go-build": { "glob": "*.go", "run": "go build -o server ./cmd/server" },
         },
     },
 }
