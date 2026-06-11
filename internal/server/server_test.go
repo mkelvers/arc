@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 	"mal/internal/observability"
@@ -48,7 +49,7 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 		c.String(http.StatusOK, "ok")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/anime/1?section=characters", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/anime/1?section=characters", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
