@@ -31,6 +31,11 @@ type AnimeHandler struct {
 	scheduleCache   map[string]cachedWeekSchedule
 }
 
+type producerItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 type Service interface {
 	domain.AnimeCatalogService
 	domain.AnimeDiscoverService
@@ -137,26 +142,61 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/jikan/producers", h.HandleProducers)
 }
 
-func (h *AnimeHandler) HandleProducers(c *gin.Context) {
+func producerQueryParams(c *gin.Context) (string, int, int, error) {
 	q := strings.TrimSpace(c.Query("q"))
+
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid page")
-		return
+		return "", 0, 0, fmt.Errorf("invalid page")
 	}
 	if page < 1 {
 		page = 1
 	}
+
 	limit, err := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	if err != nil {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid limit")
+		return "", 0, 0, fmt.Errorf("invalid limit")
+	}
+	if limit < 1 || limit > 12 {
+		limit = 12
+	}
+
+	return q, page, limit, nil
+}
+
+func producerItems(entries []jikan.ProducerListEntry) []producerItem {
+	items := make([]producerItem, 0, len(entries))
+	for _, producer := range entries {
+		name := jikan.ProducerListEntryName(producer)
+		if producer.MalID <= 0 || name == "" {
+			continue
+		}
+		items = append(items, producerItem{ID: producer.MalID, Name: name})
+	}
+	return items
+}
+
+func producerHTMLPayload(items []producerItem, hasNextPage bool, page int, q string, limit int) gin.H {
+	return gin.H{
+		"_fragment":   "studio_dropdown_items",
+		"StudioItems": items,
+		"HasNextPage": hasNextPage,
+		"Page":        page,
+		"NextPage":    page + 1,
+		"Query":       q,
+		"Limit":       limit,
+	}
+}
+
+func requestWantsHTML(c *gin.Context) bool {
+	return strings.Contains(c.GetHeader("Accept"), "text/html")
+}
+
+func (h *AnimeHandler) HandleProducers(c *gin.Context) {
+	q, page, limit, err := producerQueryParams(c)
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, err.Error())
 		return
-	}
-	if limit < 1 {
-		limit = 12
-	}
-	if limit > 12 {
-		limit = 12
 	}
 
 	res, err := h.svc.GetProducers(c.Request.Context(), q, page, limit)
@@ -172,16 +212,8 @@ func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 			},
 			err,
 		)
-		if strings.Contains(c.GetHeader("Accept"), "text/html") {
-			c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-				"_fragment":   "studio_dropdown_items",
-				"StudioItems": []any{},
-				"HasNextPage": false,
-				"Page":        page,
-				"NextPage":    page + 1,
-				"Query":       q,
-				"Limit":       limit,
-			})
+		if requestWantsHTML(c) {
+			c.HTML(http.StatusOK, "browse.gohtml", producerHTMLPayload([]producerItem{}, false, page, q, limit))
 			return
 		}
 
@@ -197,30 +229,10 @@ func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 		return
 	}
 
-	type item struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
+	items := producerItems(res.Items)
 
-	items := make([]item, 0, len(res.Items))
-	for _, p := range res.Items {
-		name := jikan.ProducerListEntryName(p)
-		if p.MalID <= 0 || name == "" {
-			continue
-		}
-		items = append(items, item{ID: p.MalID, Name: name})
-	}
-
-	if strings.Contains(c.GetHeader("Accept"), "text/html") {
-		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-			"_fragment":   "studio_dropdown_items",
-			"StudioItems": items,
-			"HasNextPage": res.HasNextPage,
-			"Page":        page,
-			"NextPage":    page + 1,
-			"Query":       q,
-			"Limit":       limit,
-		})
+	if requestWantsHTML(c) {
+		c.HTML(http.StatusOK, "browse.gohtml", producerHTMLPayload(items, res.HasNextPage, page, q, limit))
 		return
 	}
 
