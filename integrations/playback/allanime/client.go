@@ -152,38 +152,7 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 }
 
 func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string) (*domain.StreamResult, error) {
-	// 1. Search for the show to get its AllAnime ID
-	// Try each title candidate, preferring results with matching malId
-	targetMalIDStr := strconv.Itoa(animeID)
-	var showID string
-	var firstAvailableShowID string
-
-	for _, title := range titleCandidates {
-		searchResults, err := c.Search(ctx, title, mode)
-		if err != nil || len(searchResults) == 0 {
-			continue
-		}
-
-		for _, res := range searchResults {
-			if res.MalID == targetMalIDStr {
-				showID = res.ID
-				break
-			}
-		}
-
-		if showID != "" {
-			break
-		}
-
-		if firstAvailableShowID == "" {
-			firstAvailableShowID = searchResults[0].ID
-		}
-	}
-
-	if showID == "" {
-		showID = firstAvailableShowID
-	}
-
+	showID := c.resolveShowIDWithFallback(ctx, animeID, titleCandidates, mode)
 	if showID == "" {
 		return nil, fmt.Errorf("allanime: show not found for malID %d", animeID)
 	}
@@ -210,6 +179,36 @@ func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCan
 	}
 
 	return result, nil
+}
+
+func (c *AllAnimeProvider) resolveShowIDWithFallback(ctx context.Context, animeID int, titleCandidates []string, mode string) string {
+	targetMalIDStr := strconv.Itoa(animeID)
+	firstAvailableShowID := ""
+
+	for _, title := range titleCandidates {
+		searchResults, err := c.Search(ctx, title, mode)
+		if err != nil || len(searchResults) == 0 {
+			continue
+		}
+		if showID := exactMatchShowID(searchResults, targetMalIDStr); showID != "" {
+			return showID
+		}
+		if firstAvailableShowID == "" {
+			firstAvailableShowID = searchResults[0].ID
+		}
+	}
+
+	return firstAvailableShowID
+}
+
+func exactMatchShowID(searchResults []searchResult, targetMalID string) string {
+	for _, res := range searchResults {
+		if res.MalID == targetMalID {
+			return res.ID
+		}
+	}
+
+	return ""
 }
 
 func (c *AllAnimeProvider) GetEpisodeAvailability(ctx context.Context, animeID int, titleCandidates []string) (domain.EpisodeAvailability, error) {
