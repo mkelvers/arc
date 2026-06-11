@@ -34,6 +34,50 @@ func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) *animeSer
 	return &animeService{jikan: jikan, repo: repo}
 }
 
+func isAiringScheduleCandidate(entry db.GetUserWatchListRow) bool {
+	status := strings.TrimSpace(entry.Status)
+	if status != "watching" && status != "plan_to_watch" {
+		return false
+	}
+
+	if !entry.Airing.Valid || !entry.Airing.Bool {
+		return false
+	}
+
+	return entry.AnimeID > 0
+}
+
+func collectAiringScheduleIDs(watchlist []db.GetUserWatchListRow, limit int) []int {
+	ids := make([]int, 0, limit)
+	for _, entry := range watchlist {
+		if !isAiringScheduleCandidate(entry) {
+			continue
+		}
+
+		ids = append(ids, int(entry.AnimeID))
+		if len(ids) >= limit {
+			break
+		}
+	}
+
+	return ids
+}
+
+func handleAiringScheduleFetchError(err error, userID string, count int, animes []domain.Anime) ([]domain.Anime, error) {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil, err
+	}
+
+	observability.Warn(
+		"schedule_partial_fetch_failed",
+		"anime",
+		"",
+		map[string]any{"user_id": userID, "count": count},
+		err,
+	)
+	return animes, nil
+}
+
 func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (domain.CatalogSectionData, error) {
 	var (
 		res jikan.TopAnimeResult
@@ -368,23 +412,7 @@ func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]
 		return nil, err
 	}
 
-	ids := make([]int, 0, 50)
-	for _, entry := range watchlist {
-		status := strings.TrimSpace(entry.Status)
-		if status != "watching" && status != "plan_to_watch" {
-			continue
-		}
-		if !entry.Airing.Valid || !entry.Airing.Bool {
-			continue
-		}
-		if entry.AnimeID <= 0 {
-			continue
-		}
-		ids = append(ids, int(entry.AnimeID))
-		if len(ids) >= 50 {
-			break
-		}
-	}
+	ids := collectAiringScheduleIDs(watchlist, 50)
 
 	if len(ids) == 0 {
 		return []domain.Anime{}, nil
@@ -409,17 +437,7 @@ func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]
 	}
 
 	if err := g.Wait(); err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return nil, err
-		}
-		observability.Warn(
-			"schedule_partial_fetch_failed",
-			"anime",
-			"",
-			map[string]any{"user_id": userID, "count": len(ids)},
-			err,
-		)
-		return animes, nil
+		return handleAiringScheduleFetchError(err, userID, len(ids), animes)
 	}
 
 	return animes, nil
