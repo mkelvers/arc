@@ -6,6 +6,7 @@ import (
 )
 
 func DefaultAvatarURL(username string) string {
-	seed := url.QueryEscape(strings.TrimSpace(username))
-	return "https://api.dicebear.com/9.x/dylan/svg?seed=" + seed
+	params := url.Values{}
+	params.Set("seed", strings.TrimSpace(username))
+	return "https://api.dicebear.com/9.x/dylan/svg?" + params.Encode()
 }
