@@ -318,17 +318,7 @@ func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, var
 const episodeQueryHash = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec"
 
 func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, episode, mode string) (map[string]any, error) {
-	mode = strings.ToLower(mode)
-
-	varsJSON := fmt.Sprintf(`{"showId":"%s","translationType":"%s","episodeString":"%s"}`, showID, mode, episode)
-	extJSON := fmt.Sprintf(`{"persistedQuery":{"version":1,"sha256Hash":"%s"}}`, episodeQueryHash)
-
-	params := url.Values{}
-	params.Set("variables", varsJSON)
-	params.Set("extensions", extJSON)
-	apiURL := fmt.Sprintf("%s/api?%s", allAnimeBaseURL, params.Encode())
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	req, err := newEpisodeHashRequest(ctx, showID, episode, mode)
 	if err != nil {
 		return nil, fmt.Errorf("create GET request: %w", err)
 	}
@@ -352,13 +342,9 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 		return nil, fmt.Errorf("GET status %d: %s", statusCode, string(respBody))
 	}
 
-	var parsed map[string]any
-	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-
-	if errs, ok := parsed["errors"].([]any); ok && len(errs) > 0 {
-		return nil, fmt.Errorf("graphql error: %v", errs[0])
+	parsed, err := parseGraphQLResponse(respBody, "decode response")
+	if err != nil {
+		return nil, err
 	}
 
 	data, ok := parsed["data"].(map[string]any)
@@ -366,51 +352,146 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 		return nil, fmt.Errorf("no data in response")
 	}
 
-	var toBeParsed string
-	if s, ok := data["tobeparsed"].(string); ok && s != "" {
-		toBeParsed = s
-	} else if episodeData, ok := data["episode"].(map[string]any); ok {
-		if s, ok := episodeData["tobeparsed"].(string); ok {
-			toBeParsed = s
-		}
+	decrypted, err := responseFromTobeparsed(data)
+	if err != nil {
+		return nil, err
+	}
+	if decrypted != nil {
+		return decrypted, nil
 	}
 
-	if toBeParsed != "" {
-		decrypted, err := decryptTobeparsed(toBeParsed)
-		if err != nil {
-			return nil, fmt.Errorf("decrypt tobeparsed: %w", err)
-		}
-
-		var ep map[string]any
-		if jerr := json.Unmarshal(decrypted, &ep); jerr != nil {
-			return nil, fmt.Errorf("unmarshal decrypted: %w", jerr)
-		}
-
-		var sourceURLs []any
-		if srcs, ok := ep["sourceUrls"].([]any); ok {
-			sourceURLs = srcs
-		} else if epInner, ok := ep["episode"].(map[string]any); ok {
-			if srcs, ok := epInner["sourceUrls"].([]any); ok {
-				sourceURLs = srcs
-			}
-		}
-
-		if len(sourceURLs) > 0 {
-			return map[string]any{
-				"episode": map[string]any{
-					"sourceUrls": sourceURLs,
-				},
-			}, nil
-		}
-	}
-
-	if episodeData, ok := data["episode"].(map[string]any); ok {
-		if srcs, ok := episodeData["sourceUrls"].([]any); ok && len(srcs) > 0 {
-			return parsed, nil
-		}
+	if hasEpisodeSourceURLs(data) {
+		return parsed, nil
 	}
 
 	return nil, fmt.Errorf("no usable data in response")
+}
+
+func newEpisodeHashRequest(ctx context.Context, showID, episode, mode string) (*http.Request, error) {
+	varsJSON := fmt.Sprintf(`{"showId":"%s","translationType":"%s","episodeString":"%s"}`, showID, strings.ToLower(mode), episode)
+	extJSON := fmt.Sprintf(`{"persistedQuery":{"version":1,"sha256Hash":"%s"}}`, episodeQueryHash)
+
+	params := url.Values{}
+	params.Set("variables", varsJSON)
+	params.Set("extensions", extJSON)
+
+	return http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api?%s", allAnimeBaseURL, params.Encode()), nil)
+}
+
+func parseGraphQLResponse(respBody []byte, decodeErrPrefix string) (map[string]any, error) {
+	var parsed map[string]any
+	if err := json.Unmarshal(respBody, &parsed); err != nil {
+		return nil, fmt.Errorf("%s: %w", decodeErrPrefix, err)
+	}
+
+	if errs, ok := parsed["errors"].([]any); ok && len(errs) > 0 {
+		return nil, fmt.Errorf("graphql error: %v", errs[0])
+	}
+
+	return parsed, nil
+}
+
+func responseFromTobeparsed(data map[string]any) (map[string]any, error) {
+	toBeParsed := firstNonEmptyString(
+		nestedString(data, "tobeparsed"),
+		nestedString(data, "episode", "tobeparsed"),
+	)
+	if toBeParsed == "" {
+		return nil, nil
+	}
+
+	decrypted, err := decryptTobeparsed(toBeParsed)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt tobeparsed: %w", err)
+	}
+
+	parsed, err := parseGraphQLResponse(decrypted, "unmarshal decrypted")
+	if err != nil {
+		return nil, err
+	}
+
+	sourceURLs := firstNonEmptySlice(
+		nestedSlice(parsed, "sourceUrls"),
+		nestedSlice(parsed, "episode", "sourceUrls"),
+	)
+	if len(sourceURLs) == 0 {
+		return nil, nil
+	}
+
+	return map[string]any{
+		"episode": map[string]any{
+			"sourceUrls": sourceURLs,
+		},
+	}, nil
+}
+
+func hasEpisodeSourceURLs(data map[string]any) bool {
+	return len(nestedSlice(data, "episode", "sourceUrls")) > 0
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+
+	return ""
+}
+
+func firstNonEmptySlice(values ...[]any) []any {
+	for _, value := range values {
+		if len(value) > 0 {
+			return value
+		}
+	}
+
+	return nil
+}
+
+func nestedString(data map[string]any, path ...string) string {
+	value, ok := nestedValue(data, path...)
+	if !ok {
+		return ""
+	}
+
+	str, ok := value.(string)
+	if !ok {
+		return ""
+	}
+
+	return str
+}
+
+func nestedSlice(data map[string]any, path ...string) []any {
+	value, ok := nestedValue(data, path...)
+	if !ok {
+		return nil
+	}
+
+	slice, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+
+	return slice
+}
+
+func nestedValue(data map[string]any, path ...string) (any, bool) {
+	var current any = data
+	for _, key := range path {
+		currentMap, ok := current.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+
+		current, ok = currentMap[key]
+		if !ok {
+			return nil, false
+		}
+	}
+
+	return current, true
 }
 
 // GetEpisodeSources fetches stream URLs for a given show, episode, and mode (dub/sub).
