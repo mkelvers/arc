@@ -493,80 +493,114 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 
 	for attempt := range maxRetries {
 		attempts = attempt + 1
-		select {
-		case <-ctx.Done():
-			return logAndReturn(0, fmt.Errorf("request canceled while retrying jikan request: %w", ctx.Err()))
-		default:
-		}
-
-		if err := c.waitRateLimit(ctx); err != nil {
+		if err := c.prepareRetryAttempt(ctx); err != nil {
 			return logAndReturn(0, err)
 		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+		resp, err := c.doRequest(ctx, urlStr)
 		if err != nil {
-			return logAndReturn(0, fmt.Errorf("failed to create jikan request: %w", err))
-		}
-		req.Header.Set("User-Agent", netutil.Generic)
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				return logAndReturn(0, fmt.Errorf("request canceled while retrying jikan request: %w", err))
-			}
-			if attempt < maxRetries-1 && IsRetryableError(err) {
-				if retryErr := waitForRetry(ctx, retryDelay(attempt)); retryErr != nil {
-					return logAndReturn(0, retryErr)
-				}
+			retry, requestErr := handleRequestRetry(ctx, err, attempt, maxRetries)
+			if retry {
 				continue
 			}
 
-			return logAndReturn(0, fmt.Errorf("jikan api error: %w", err))
+			return logAndReturn(0, requestErr)
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			apiErr := &APIError{StatusCode: resp.StatusCode, URL: urlStr}
-			retryable := isRetryableStatus(resp.StatusCode)
-
-			retryAfter := time.Duration(0)
-			if parsed, ok := parseRetryAfter(resp.Header.Get("Retry-After")); ok {
-				retryAfter = parsed
-			}
-
-			if retryable && attempt < maxRetries-1 {
-				_ = resp.Body.Close()
-				delay := max(retryAfter, retryDelay(attempt))
-
-				if retryErr := waitForRetry(ctx, delay); retryErr != nil {
-					return logAndReturn(resp.StatusCode, retryErr)
-				}
-
-				continue
-			}
-
-			// Best-effort decode (often useful for debugging), but still treat non-200 as error.
-			_ = json.NewDecoder(resp.Body).Decode(out)
-			_ = resp.Body.Close()
-			return logAndReturn(resp.StatusCode, apiErr)
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(out)
-		_ = resp.Body.Close()
-		if err == nil {
-			return logAndReturn(resp.StatusCode, nil)
-		}
-
-		if attempt < maxRetries-1 {
-			if retryErr := waitForRetry(ctx, retryDelay(attempt)); retryErr != nil {
-				return logAndReturn(resp.StatusCode, retryErr)
-			}
+		statusCode, retry, err := handleResponseRetry(ctx, resp, urlStr, out, attempt, maxRetries)
+		if retry {
 			continue
 		}
 
-		return logAndReturn(resp.StatusCode, fmt.Errorf("failed to decode jikan response: %w", err))
+		return logAndReturn(statusCode, err)
 	}
 
 	return logAndReturn(0, fmt.Errorf("max retries exceeded for %s", urlStr))
+}
+
+func (c *Client) prepareRetryAttempt(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("request canceled while retrying jikan request: %w", ctx.Err())
+	default:
+	}
+
+	return c.waitRateLimit(ctx)
+}
+
+func (c *Client) doRequest(ctx context.Context, urlStr string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, urlStr, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create jikan request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", netutil.Generic)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func handleRequestRetry(ctx context.Context, err error, attempt int, maxRetries int) (bool, error) {
+	if errors.Is(err, context.Canceled) {
+		return false, fmt.Errorf("request canceled while retrying jikan request: %w", err)
+	}
+
+	if attempt >= maxRetries-1 || !IsRetryableError(err) {
+		return false, fmt.Errorf("jikan api error: %w", err)
+	}
+
+	if retryErr := waitForRetry(ctx, retryDelay(attempt)); retryErr != nil {
+		return false, retryErr
+	}
+
+	return true, nil
+}
+
+func handleResponseRetry(ctx context.Context, resp *http.Response, urlStr string, out any, attempt int, maxRetries int) (int, bool, error) {
+	if resp.StatusCode != http.StatusOK {
+		return handleStatusRetry(ctx, resp, urlStr, out, attempt, maxRetries)
+	}
+
+	err := json.NewDecoder(resp.Body).Decode(out)
+	_ = resp.Body.Close()
+	if err == nil {
+		return resp.StatusCode, false, nil
+	}
+
+	if attempt < maxRetries-1 {
+		if retryErr := waitForRetry(ctx, retryDelay(attempt)); retryErr != nil {
+			return resp.StatusCode, false, retryErr
+		}
+		return resp.StatusCode, true, nil
+	}
+
+	return resp.StatusCode, false, fmt.Errorf("failed to decode jikan response: %w", err)
+}
+
+func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, out any, attempt int, maxRetries int) (int, bool, error) {
+	statusCode := resp.StatusCode
+	apiErr := &APIError{StatusCode: statusCode, URL: urlStr}
+
+	retryAfter := time.Duration(0)
+	if parsed, ok := parseRetryAfter(resp.Header.Get("Retry-After")); ok {
+		retryAfter = parsed
+	}
+
+	if isRetryableStatus(statusCode) && attempt < maxRetries-1 {
+		_ = resp.Body.Close()
+		if retryErr := waitForRetry(ctx, max(retryAfter, retryDelay(attempt))); retryErr != nil {
+			return statusCode, false, retryErr
+		}
+		return statusCode, true, nil
+	}
+
+	// Best-effort decode (often useful for debugging), but still treat non-200 as error.
+	_ = json.NewDecoder(resp.Body).Decode(out)
+	_ = resp.Body.Close()
+	return statusCode, false, apiErr
 }
 
 func metricsEndpoint(urlStr string) string {
