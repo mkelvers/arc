@@ -7,9 +7,6 @@ import (
 	"fmt"
 )
 
-// Note: we intentionally avoid naming this struct SkipSegmentOverride because
-// some environments may have an sqlc-generated SkipSegmentOverride model,
-// which would cause a redeclare build error.
 type SkipSegmentOverrideRow struct {
 	ID        string
 	UserID    string
