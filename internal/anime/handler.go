@@ -651,54 +651,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 
 	section := c.Query("section")
 	if section != "" && c.GetHeader("HX-Request") == "true" {
-		sectionCtx, cancel := context.WithTimeout(c.Request.Context(), animeSectionTimeout)
-		defer cancel()
-
-		var data any
-		var tplName string
-		var err error
-		switch section {
-		case "characters":
-			data, err = h.svc.GetCharacters(sectionCtx, id)
-			tplName = "anime_characters"
-		case "recommendations":
-			data, err = h.svc.GetRecommendations(sectionCtx, id)
-			tplName = "anime_recommendations"
-
-		case "statistics":
-			data, err = h.svc.GetStatistics(sectionCtx, id)
-			tplName = "anime_statistics"
-		case "themes":
-			data, err = h.svc.GetThemes(sectionCtx, id)
-			tplName = "anime_themes"
-		}
-
-		if err != nil {
-			observability.Warn(
-				"anime_section_fetch_failed",
-				"anime",
-				"",
-				map[string]any{
-					"section":  section,
-					"anime_id": id,
-				},
-				err,
-			)
-			if section == "recommendations" {
-				c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-					"_fragment": "anime_recommendations_loading",
-					"AnimeID":   id,
-				})
-				return
-			}
-			c.Status(http.StatusNoContent)
-			return
-		}
-
-		c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-			"_fragment": tplName,
-			"Items":     data,
-		})
+		h.handleAnimeDetailsSection(c, id, section)
 		return
 	}
 
@@ -741,6 +694,58 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		"ContinueWatchingEp":   ep,
 		"ContinueWatchingTime": cwSeconds,
 	})
+}
+
+func (h *AnimeHandler) handleAnimeDetailsSection(c *gin.Context, id int, section string) {
+	sectionCtx, cancel := context.WithTimeout(c.Request.Context(), animeSectionTimeout)
+	defer cancel()
+
+	data, tplName, err := h.loadAnimeDetailsSection(sectionCtx, id, section)
+	if err != nil {
+		observability.Warn(
+			"anime_section_fetch_failed",
+			"anime",
+			"",
+			map[string]any{
+				"section":  section,
+				"anime_id": id,
+			},
+			err,
+		)
+		if section == "recommendations" {
+			c.HTML(http.StatusOK, "anime.gohtml", gin.H{
+				"_fragment": "anime_recommendations_loading",
+				"AnimeID":   id,
+			})
+			return
+		}
+		c.Status(http.StatusNoContent)
+		return
+	}
+
+	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
+		"_fragment": tplName,
+		"Items":     data,
+	})
+}
+
+func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, section string) (any, string, error) {
+	switch section {
+	case "characters":
+		data, err := h.svc.GetCharacters(ctx, id)
+		return data, "anime_characters", err
+	case "recommendations":
+		data, err := h.svc.GetRecommendations(ctx, id)
+		return data, "anime_recommendations", err
+	case "statistics":
+		data, err := h.svc.GetStatistics(ctx, id)
+		return data, "anime_statistics", err
+	case "themes":
+		data, err := h.svc.GetThemes(ctx, id)
+		return data, "anime_themes", err
+	default:
+		return nil, "", nil
+	}
 }
 
 func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
