@@ -35,12 +35,15 @@ func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
 	items := make([]commandPaletteItem, 0, 12)
 
 	if query != "" {
+		values := url.Values{}
+		values.Set("q", query)
+
 		items = append(items, commandPaletteItem{
 			ID:       "search:" + strings.ToLower(query),
 			Type:     "search",
 			Label:    fmt.Sprintf("Search anime for %q", query),
 			Subtitle: "Browse",
-			Href:     "/browse?q=" + url.QueryEscape(query),
+			Href:     "/browse?" + values.Encode(),
 			Icon:     "search",
 		})
 
