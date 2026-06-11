@@ -133,185 +133,251 @@ func (s *playbackService) ResolveProxyToken(token string, scope string) (string,
 }
 
 func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
-	// 1. Get Anime details for total episodes and titles
 	anime, err := s.jikan.GetAnimeByID(ctx, animeID)
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch anime: %w", err)
 	}
 
-	// 2. Resolve streams from providers
-	searchTitles := []string{anime.Title}
-	if anime.TitleEnglish != "" && anime.TitleEnglish != anime.Title {
-		searchTitles = append(searchTitles, anime.TitleEnglish)
-	}
-	if anime.TitleJapanese != "" {
-		searchTitles = append(searchTitles, anime.TitleJapanese)
-	}
-	for _, syn := range anime.TitleSynonyms {
-		if syn != "" && syn != anime.Title && syn != anime.TitleEnglish && syn != anime.TitleJapanese {
-			searchTitles = append(searchTitles, syn)
-		}
-	}
-
-	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, domain.Anime{Anime: anime}, false)
+	animeData := domain.Anime{Anime: anime}
+	searchTitles := buildSearchTitles(animeData, titleCandidates)
+	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch episodes: %w", err)
 	}
 
-	requestedMode := mode
-	modeSwitchedFrom := ""
-	if epNum, parseErr := strconv.Atoi(episode); parseErr == nil && requestedMode == "dub" {
-		for _, ep := range canonicalEpisodes.Episodes {
-			if ep.Number == epNum && !ep.HasDub && ep.HasSub {
-				mode = "sub"
-				modeSwitchedFrom = requestedMode
-				break
-			}
-		}
-	}
-
-	modeSources := map[string]domain.ModeSource{}
-	var result *domain.StreamResult
-
-	for _, m := range []string{"sub", "dub"} {
-		for _, p := range s.providers {
-			res, err := p.GetStreams(ctx, animeID, searchTitles, episode, m)
-			if err != nil || res == nil {
-				continue
-			}
-
-			var subItems []domain.SubtitleItem
-			for _, sub := range res.Subtitles {
-				subToken, _ := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
-				subItems = append(subItems, domain.SubtitleItem{
-					Lang:  sub.Label,
-					Token: subToken,
-				})
-			}
-
-			streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
-			modeSources[m] = domain.ModeSource{
-				Token:     streamToken,
-				Subtitles: subItems,
-			}
-
-			if m == mode {
-				result = res
-			}
-			break
-		}
-	}
-
+	mode, modeSwitchedFrom := resolveMode(episode, mode, canonicalEpisodes.Episodes)
+	modeSources, result := s.resolveModeSources(ctx, animeID, searchTitles, episode, mode)
 	if len(modeSources) == 0 {
 		return domain.WatchPageData{}, fmt.Errorf("no streams found")
 	}
-
 	if result == nil {
 		return domain.WatchPageData{}, fmt.Errorf("no streams found for mode %s", mode)
 	}
 
-	// 3. Get start time from progress
-	startTime := 0.0
-	var watchlistStatus string
-	var watchlistIDs []int64
-	if userID != "" {
-		entry, err := s.repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
-			UserID:  userID,
-			AnimeID: int64(animeID),
-		})
-		if err == nil {
-			watchlistStatus = entry.Status
-			watchlistIDs = []int64{entry.AnimeID}
-			if entry.CurrentEpisode.Valid && strconv.FormatInt(entry.CurrentEpisode.Int64, 10) == episode {
-				startTime = entry.CurrentTimeSeconds
-			} else if anime.Episodes > 0 && episode == strconv.Itoa(anime.Episodes) && entry.CurrentEpisode.Valid && entry.CurrentEpisode.Int64 == int64(anime.Episodes) {
-				startTime = entry.CurrentTimeSeconds
-			}
-		}
-
-		// Fall back to continue_watching_entry for progress if not in watchlist
-		if startTime == 0 {
-			cwEntry, err := s.repo.GetContinueWatchingEntry(ctx, db.GetContinueWatchingEntryParams{
-				UserID:  userID,
-				AnimeID: int64(animeID),
-			})
-			if err == nil {
-				if cwEntry.CurrentEpisode.Valid && strconv.FormatInt(cwEntry.CurrentEpisode.Int64, 10) == episode {
-					startTime = cwEntry.CurrentTimeSeconds
-				} else if anime.Episodes > 0 && episode == strconv.Itoa(anime.Episodes) && cwEntry.CurrentEpisode.Valid && cwEntry.CurrentEpisode.Int64 == int64(anime.Episodes) {
-					startTime = cwEntry.CurrentTimeSeconds
-				}
-			}
-		}
-	}
-
-	// 5. Build provider data
-	streams := []domain.ProviderStream{
-		{
-			Name:      "Primary",
-			Quality:   "Auto",
-			MalID:     animeID,
-			IsCurrent: true,
-		},
-	}
-
+	startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(ctx, userID, animeID, anime.Episodes, episode)
 	go s.warmStreamURL(result.URL, result.Referer)
-
-	// 6. Resolve relations/seasons
-	relations, _ := s.jikan.GetFullRelations(ctx, animeID)
-	var seasons []domain.SeasonEntry
-	tvCounter := 1
-	for _, rel := range relations {
-		if strings.ToLower(rel.Anime.Type) == "tv" || strings.ToLower(rel.Anime.Type) == "movie" {
-			seasons = append(seasons, domain.SeasonEntry{
-				MalID:     rel.Anime.MalID,
-				Title:     rel.Anime.DisplayTitle(),
-				Prefix:    rel.Relation,
-				IsCurrent: rel.IsCurrent,
-			})
-			if rel.Relation == "TV" {
-				seasons[len(seasons)-1].Prefix = fmt.Sprintf("S%d", tvCounter)
-				tvCounter++
-			}
-		}
-	}
-
-	// Final assembly
+	seasons := s.loadSeasons(ctx, animeID)
 	segments := s.fetchSkipSegments(ctx, userID, animeID, episode)
+	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, canonicalEpisodes.Episodes, modeSources, mode, modeSwitchedFrom, segments)
+	return buildWatchPageData(animeData, canonicalEpisodes.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData), nil
+}
 
-	watchData := domain.WatchData{
+func buildWatchDataPayload(anime domain.Anime, animeID int, episode string, startTime float64, episodes []domain.CanonicalEpisode, modeSources map[string]domain.ModeSource, mode string, modeSwitchedFrom string, segments []domain.SkipSegment) domain.WatchData {
+	return domain.WatchData{
 		MalID:            animeID,
 		Title:            anime.DisplayTitle(),
 		CurrentEpisode:   episode,
 		StartTimeSeconds: startTime,
-		Episodes:         canonicalEpisodes.Episodes,
-		Providers: []domain.ProviderData{
-			{Streams: streams},
-		},
+		Episodes:         episodes,
+		Providers: []domain.ProviderData{{Streams: []domain.ProviderStream{{
+			Name:      "Primary",
+			Quality:   "Auto",
+			MalID:     animeID,
+			IsCurrent: true,
+		}}}},
 		ModeSources:      modeSources,
 		InitialMode:      mode,
 		ModeSwitchedFrom: modeSwitchedFrom,
-		AvailableModes: func() []string {
-			var modes []string
-			for m := range modeSources {
-				modes = append(modes, m)
-			}
-			sort.Strings(modes)
-			return modes
-		}(),
-		Segments: segments,
-		Airing:   anime.Airing,
+		AvailableModes:   availableModes(modeSources),
+		Segments:         segments,
+		Airing:           anime.Airing,
 	}
+}
 
+func buildWatchPageData(anime domain.Anime, episodes []domain.CanonicalEpisode, episode string, watchlistStatus string, watchlistIDs []int64, seasons []domain.SeasonEntry, watchData domain.WatchData) domain.WatchPageData {
 	return domain.WatchPageData{
 		WatchData:       watchData,
-		Anime:           domain.Anime{Anime: anime},
-		Episodes:        canonicalEpisodes.Episodes,
+		Anime:           anime,
+		Episodes:        episodes,
 		CurrentEpID:     episode,
 		WatchlistStatus: watchlistStatus,
 		WatchlistIDs:    watchlistIDs,
 		Seasons:         seasons,
-	}, nil
+	}
+}
+
+func buildSearchTitles(anime domain.Anime, titleCandidates []string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0, 3+len(anime.TitleSynonyms)+len(titleCandidates))
+
+	appendTitle := func(title string) {
+		title = strings.TrimSpace(title)
+		if title == "" {
+			return
+		}
+		if _, ok := seen[title]; ok {
+			return
+		}
+		seen[title] = struct{}{}
+		out = append(out, title)
+	}
+
+	appendTitle(anime.Title)
+	appendTitle(anime.TitleEnglish)
+	appendTitle(anime.TitleJapanese)
+	for _, syn := range anime.TitleSynonyms {
+		appendTitle(syn)
+	}
+	for _, candidate := range titleCandidates {
+		appendTitle(candidate)
+	}
+
+	return out
+}
+
+func resolveMode(episode string, requestedMode string, episodes []domain.CanonicalEpisode) (string, string) {
+	if requestedMode != "dub" {
+		return requestedMode, ""
+	}
+
+	epNum, err := strconv.Atoi(episode)
+	if err != nil {
+		return requestedMode, ""
+	}
+
+	for _, ep := range episodes {
+		if ep.Number == epNum && !ep.HasDub && ep.HasSub {
+			return "sub", requestedMode
+		}
+	}
+
+	return requestedMode, ""
+}
+
+func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, searchTitles []string, episode string, mode string) (map[string]domain.ModeSource, *domain.StreamResult) {
+	modeSources := map[string]domain.ModeSource{}
+	var result *domain.StreamResult
+
+	for _, currentMode := range []string{"sub", "dub"} {
+		res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, currentMode)
+		if res == nil {
+			continue
+		}
+
+		modeSources[currentMode] = s.buildModeSource(res)
+		if currentMode == mode {
+			result = res
+		}
+	}
+
+	return modeSources, result
+}
+
+func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, searchTitles []string, episode string, mode string) *domain.StreamResult {
+	for _, p := range s.providers {
+		res, err := p.GetStreams(ctx, animeID, searchTitles, episode, mode)
+		if err == nil && res != nil {
+			return res
+		}
+	}
+
+	return nil
+}
+
+func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeSource {
+	var subtitles []domain.SubtitleItem
+	for _, sub := range res.Subtitles {
+		token, _ := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
+		subtitles = append(subtitles, domain.SubtitleItem{
+			Lang:  sub.Label,
+			Token: token,
+		})
+	}
+
+	streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
+	return domain.ModeSource{
+		Token:     streamToken,
+		Subtitles: subtitles,
+	}
+}
+
+func (s *playbackService) loadWatchProgress(ctx context.Context, userID string, animeID int, totalEpisodes int, episode string) (float64, string, []int64) {
+	if userID == "" {
+		return 0, "", nil
+	}
+
+	entry, err := s.repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
+		UserID:  userID,
+		AnimeID: int64(animeID),
+	})
+
+	watchlistStatus := ""
+	var watchlistIDs []int64
+	startTime := 0.0
+	if err == nil {
+		watchlistStatus = entry.Status
+		watchlistIDs = []int64{entry.AnimeID}
+		if resumeTimeForEpisode(entry.CurrentEpisode, entry.CurrentTimeSeconds, totalEpisodes, episode) > 0 {
+			startTime = entry.CurrentTimeSeconds
+		}
+	}
+
+	if startTime > 0 {
+		return startTime, watchlistStatus, watchlistIDs
+	}
+
+	cwEntry, err := s.repo.GetContinueWatchingEntry(ctx, db.GetContinueWatchingEntryParams{
+		UserID:  userID,
+		AnimeID: int64(animeID),
+	})
+	if err == nil {
+		startTime = resumeTimeForEpisode(cwEntry.CurrentEpisode, cwEntry.CurrentTimeSeconds, totalEpisodes, episode)
+	}
+
+	return startTime, watchlistStatus, watchlistIDs
+}
+
+func resumeTimeForEpisode(currentEpisode sql.NullInt64, currentTimeSeconds float64, totalEpisodes int, requestedEpisode string) float64 {
+	if !currentEpisode.Valid {
+		return 0
+	}
+
+	if strconv.FormatInt(currentEpisode.Int64, 10) == requestedEpisode {
+		return currentTimeSeconds
+	}
+
+	if totalEpisodes > 0 && requestedEpisode == strconv.Itoa(totalEpisodes) && currentEpisode.Int64 == int64(totalEpisodes) {
+		return currentTimeSeconds
+	}
+
+	return 0
+}
+
+func (s *playbackService) loadSeasons(ctx context.Context, animeID int) []domain.SeasonEntry {
+	relations, _ := s.jikan.GetFullRelations(ctx, animeID)
+	seasons := make([]domain.SeasonEntry, 0, len(relations))
+	tvCounter := 1
+
+	for _, rel := range relations {
+		animeType := strings.ToLower(rel.Anime.Type)
+		if animeType != "tv" && animeType != "movie" {
+			continue
+		}
+
+		season := domain.SeasonEntry{
+			MalID:     rel.Anime.MalID,
+			Title:     rel.Anime.DisplayTitle(),
+			Prefix:    rel.Relation,
+			IsCurrent: rel.IsCurrent,
+		}
+		if rel.Relation == "TV" {
+			season.Prefix = fmt.Sprintf("S%d", tvCounter)
+			tvCounter++
+		}
+
+		seasons = append(seasons, season)
+	}
+
+	return seasons
+}
+
+func availableModes(modeSources map[string]domain.ModeSource) []string {
+	modes := make([]string, 0, len(modeSources))
+	for mode := range modeSources {
+		modes = append(modes, mode)
+	}
+	sort.Strings(modes)
+	return modes
 }
 
 func (s *playbackService) CompleteAnime(ctx context.Context, userID string, animeID int64) error {
