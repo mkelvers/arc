@@ -389,6 +389,32 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 		return WeekSchedule{}, err
 	}
 
+	payload, err := fetchWeekAPIPayload(ctx, client, token, year, week, location)
+	if err != nil {
+		return WeekSchedule{}, err
+	}
+
+	resolvedYear, resolvedWeek := resolveRequestedISOWeek(year, week)
+	out := WeekSchedule{
+		Year: resolvedYear,
+		Week: resolvedWeek,
+		Days: map[time.Weekday][]Entry{},
+	}
+
+	for _, item := range payload {
+		entry, ok := weekEntryFromAPI(item, location)
+		if !ok {
+			continue
+		}
+
+		out.Days[entry.Weekday] = append(out.Days[entry.Weekday], entry)
+	}
+
+	return out, nil
+}
+
+func fetchWeekAPIPayload(ctx context.Context, client *http.Client, token string, year int, week int, location *time.Location) ([]timetableAnimeAPI, error) {
+
 	u, _ := url.Parse("https://animeschedule.net/api/v3/timetables/sub")
 	q := u.Query()
 	if year > 0 && week > 0 {
@@ -400,7 +426,7 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return WeekSchedule{}, fmt.Errorf("create api request: %w", err)
+		return nil, fmt.Errorf("create api request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
@@ -408,13 +434,13 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 
 	res, err := client.Do(req)
 	if err != nil {
-		return WeekSchedule{}, fmt.Errorf("api request failed: %w", err)
+		return nil, fmt.Errorf("api request failed: %w", err)
 	}
 	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(res.Body, netutil.Bytes512))
-		return WeekSchedule{}, &HTTPStatusError{
+		return nil, &HTTPStatusError{
 			StatusCode:  res.StatusCode,
 			URL:         u.String(),
 			ContentType: strings.TrimSpace(res.Header.Get("Content-Type")),
@@ -424,72 +450,64 @@ func fetchWeekAPI(ctx context.Context, httpClient *http.Client, token string, ye
 
 	var payload []timetableAnimeAPI
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-		return WeekSchedule{}, fmt.Errorf("decode timetables api: %w", err)
+		return nil, fmt.Errorf("decode timetables api: %w", err)
 	}
 
-	resolvedYear := year
-	resolvedWeek := week
-	if resolvedYear == 0 || resolvedWeek == 0 {
-		resolvedYear, resolvedWeek = time.Now().In(time.Local).ISOWeek()
+	return payload, nil
+}
+
+func resolveRequestedISOWeek(year int, week int) (int, int) {
+	if year > 0 && week > 0 {
+		return year, week
 	}
 
-	out := WeekSchedule{
-		Year: resolvedYear,
-		Week: resolvedWeek,
-		Days: map[time.Weekday][]Entry{},
+	return time.Now().In(time.Local).ISOWeek()
+}
+
+func weekEntryFromAPI(item timetableAnimeAPI, location *time.Location) (Entry, bool) {
+	title := strings.TrimSpace(item.English)
+	if title == "" {
+		title = strings.TrimSpace(item.Title)
+	}
+	if title == "" {
+		return Entry{}, false
 	}
 
-	for _, item := range payload {
-		title := strings.TrimSpace(item.English)
-		if title == "" {
-			title = strings.TrimSpace(item.Title)
-		}
-		if title == "" {
-			continue
-		}
-
-		episodeNumber := item.EpisodeNumber
-		subtracted := item.SubtractedEpisodeNumber
-		episodeText := ""
-		switch {
-		case subtracted > 0 && subtracted < episodeNumber:
-			episodeText = fmt.Sprintf("Ep %d-%d", subtracted, episodeNumber)
-		case episodeNumber > 0:
-			episodeText = fmt.Sprintf("Ep %d", episodeNumber)
-		default:
-			episodeText = "Ep ?"
-		}
-
-		airType := AirType(strings.ToUpper(strings.TrimSpace(item.AirType)))
-		if airType != AirTypeSUB {
-			continue
-		}
-
-		episodeTime := item.EpisodeDate.In(location)
-		weekday := episodeTime.Weekday()
-		localTime := episodeTime.Format("15:04")
-
-		imageURL := ""
-		if strings.TrimSpace(item.ImageVersionRoute) != "" {
-			imageURL = "https://img.animeschedule.net/production/assets/public/img/" + strings.TrimLeft(strings.TrimSpace(item.ImageVersionRoute), "/")
-		}
-
-		animeURL := ""
-		if strings.TrimSpace(item.Route) != "" {
-			animeURL = "https://animeschedule.net/anime/" + strings.TrimLeft(strings.TrimSpace(item.Route), "/")
-		}
-
-		out.Days[weekday] = append(out.Days[weekday], Entry{
-			Title:       title,
-			AnimeURL:    animeURL,
-			ImageURL:    imageURL,
-			EpisodeText: episodeText,
-			AirType:     airType,
-			AirsAt:      episodeTime,
-			LocalTime:   localTime,
-			Weekday:     weekday,
-		})
+	airType := AirType(strings.ToUpper(strings.TrimSpace(item.AirType)))
+	if airType != AirTypeSUB {
+		return Entry{}, false
 	}
 
-	return out, nil
+	episodeTime := item.EpisodeDate.In(location)
+
+	return Entry{
+		Title:       title,
+		AnimeURL:    joinURLPath("https://animeschedule.net/anime/", item.Route),
+		ImageURL:    joinURLPath("https://img.animeschedule.net/production/assets/public/img/", item.ImageVersionRoute),
+		EpisodeText: formatEpisodeText(item.EpisodeNumber, item.SubtractedEpisodeNumber),
+		AirType:     airType,
+		AirsAt:      episodeTime,
+		LocalTime:   episodeTime.Format("15:04"),
+		Weekday:     episodeTime.Weekday(),
+	}, true
+}
+
+func formatEpisodeText(episodeNumber int, subtracted int) string {
+	switch {
+	case subtracted > 0 && subtracted < episodeNumber:
+		return fmt.Sprintf("Ep %d-%d", subtracted, episodeNumber)
+	case episodeNumber > 0:
+		return fmt.Sprintf("Ep %d", episodeNumber)
+	default:
+		return "Ep ?"
+	}
+}
+
+func joinURLPath(base string, path string) string {
+	trimmed := strings.TrimSpace(path)
+	if trimmed == "" {
+		return ""
+	}
+
+	return base + strings.TrimLeft(trimmed, "/")
 }
