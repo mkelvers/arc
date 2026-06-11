@@ -1,6 +1,7 @@
 package observability
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +18,7 @@ func TestMetricsHandlerRendersPrometheusFamilies(t *testing.T) {
 	metrics.ObserveCache("jikan", "hit")
 	metrics.ObserveCache("episode_availability", "miss")
 
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/metrics", nil)
 	rec := httptest.NewRecorder()
 	metrics.Handler().ServeHTTP(rec, req)
 
