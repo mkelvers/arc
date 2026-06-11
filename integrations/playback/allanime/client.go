@@ -765,6 +765,25 @@ func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) []byte {
 	return plainText
 }
 
+func stringSliceFromAny(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+
+	values := make([]string, 0, len(items))
+	for _, item := range items {
+		str, ok := item.(string)
+		if !ok {
+			continue
+		}
+
+		values = append(values, str)
+	}
+
+	return values
+}
+
 // GetAvailableEpisodes returns the count of sub/dub/raw episodes available for a show.
 func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID string) (AvailableEpisodes, error) {
 	graphqlQuery := `query($showId: String!) {
@@ -794,30 +813,11 @@ func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID stri
 		return AvailableEpisodes{}, fmt.Errorf("invalid detail")
 	}
 
-	var count AvailableEpisodes
-	if sub, ok := detail["sub"].([]any); ok {
-		for _, s := range sub {
-			if str, ok := s.(string); ok {
-				count.Sub = append(count.Sub, str)
-			}
-		}
-	}
-	if dub, ok := detail["dub"].([]any); ok {
-		for _, s := range dub {
-			if str, ok := s.(string); ok {
-				count.Dub = append(count.Dub, str)
-			}
-		}
-	}
-	if raw, ok := detail["raw"].([]any); ok {
-		for _, s := range raw {
-			if str, ok := s.(string); ok {
-				count.Raw = append(count.Raw, str)
-			}
-		}
-	}
-
-	return count, nil
+	return AvailableEpisodes{
+		Sub: stringSliceFromAny(detail["sub"]),
+		Dub: stringSliceFromAny(detail["dub"]),
+		Raw: stringSliceFromAny(detail["raw"]),
+	}, nil
 }
 
 func decodeSourceURL(encoded string) string {
