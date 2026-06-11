@@ -48,22 +48,8 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 
 	items := make([]GetContinueWatchingEntriesRow, 0, int(limit))
 	for rows.Next() {
-		var item GetContinueWatchingEntriesRow
-		if err := rows.Scan(
-			&item.ID,
-			&item.UserID,
-			&item.AnimeID,
-			&item.CurrentEpisode,
-			&item.CurrentTimeSeconds,
-			&item.DurationSeconds,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.TitleOriginal,
-			&item.TitleEnglish,
-			&item.TitleJapanese,
-			&item.ImageUrl,
-			&item.AnimeDurationSeconds,
-		); err != nil {
+		item, err := scanContinueWatchingEntry(rows)
+		if err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -73,6 +59,26 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 	}
 
 	return items, nil
+}
+
+func scanContinueWatchingEntry(rows scanner) (GetContinueWatchingEntriesRow, error) {
+	var item GetContinueWatchingEntriesRow
+	err := rows.Scan(
+		&item.ID,
+		&item.UserID,
+		&item.AnimeID,
+		&item.CurrentEpisode,
+		&item.CurrentTimeSeconds,
+		&item.DurationSeconds,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&item.TitleOriginal,
+		&item.TitleEnglish,
+		&item.TitleJapanese,
+		&item.ImageUrl,
+		&item.AnimeDurationSeconds,
+	)
+	return item, err
 }
 
 func (q *Queries) GetCommandPaletteWatchlist(ctx context.Context, userID string, query string, limit int64) ([]GetUserWatchListRow, error) {
@@ -157,4 +163,8 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 func commandPalettePattern(query string) (string, string) {
 	needle := strings.ToLower(strings.TrimSpace(query))
 	return needle, "%" + needle + "%"
+}
+
+type scanner interface {
+	Scan(dest ...interface{}) error
 }
