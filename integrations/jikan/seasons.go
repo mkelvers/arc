@@ -49,75 +49,116 @@ func (c *Client) getSeasonList(ctx context.Context, page int, season string) (To
 
 // seedRandomPool seeds the in-memory pool of random anime
 func (c *Client) seedRandomPool(ctx context.Context) error {
-	c.poolMu.Lock()
-	if c.poolInitialized {
-		c.poolMu.Unlock()
+	if !c.markRandomPoolInitialized() {
 		return nil
 	}
-	c.poolInitialized = true
-	c.poolMu.Unlock()
 
-	// 1. Try to load all cached anime from the database
-	cachedJSONs, err := c.db.GetAllCachedAnime(ctx)
-	if err == nil && len(cachedJSONs) > 0 {
-		var loadedAnimes []Anime
-		for _, dataStr := range cachedJSONs {
-			var anime Anime
-			if err := json.Unmarshal([]byte(dataStr), &anime); err == nil && anime.MalID > 0 {
-				loadedAnimes = append(loadedAnimes, anime)
-			}
-		}
+	c.loadCachedRandomPool(ctx)
 
-		if len(loadedAnimes) > 0 {
-			c.poolMu.Lock()
-			c.randomPool = append(c.randomPool, loadedAnimes...)
-			c.poolMu.Unlock()
-		}
-	}
-
-	// 2. Fetch Top Anime page 1 & 2 to ensure we have a robust baseline of high-quality popular anime
-	go func() {
-		bgCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-
-		var fetchedAnimes []Anime
-
-		top, err := c.GetTopAnime(bgCtx, 1)
-		if err == nil && len(top.Animes) > 0 {
-			fetchedAnimes = append(fetchedAnimes, top.Animes...)
-		}
-
-		top2, err := c.GetTopAnime(bgCtx, 2)
-		if err == nil && len(top2.Animes) > 0 {
-			fetchedAnimes = append(fetchedAnimes, top2.Animes...)
-		}
-
-		now, err := c.GetSeasonsNow(bgCtx, 1)
-		if err == nil && len(now.Animes) > 0 {
-			fetchedAnimes = append(fetchedAnimes, now.Animes...)
-		}
-
-		if len(fetchedAnimes) > 0 {
-			c.poolMu.Lock()
-			// Use map to de-duplicate any anime
-			seen := make(map[int]bool)
-			for _, a := range c.randomPool {
-				seen[a.MalID] = true
-			}
-			for _, a := range fetchedAnimes {
-				if !seen[a.MalID] {
-					c.randomPool = append(c.randomPool, a)
-					seen[a.MalID] = true
-				}
-			}
-			c.poolMu.Unlock()
-		}
-
-		// Start background refresher once seeding completes
-		c.startPoolRefresher()
-	}()
+	// Fetch a solid baseline in the background, then start refreshing.
+	go c.seedRandomPoolBaseline()
 
 	return nil
+}
+
+func (c *Client) markRandomPoolInitialized() bool {
+	c.poolMu.Lock()
+	defer c.poolMu.Unlock()
+
+	if c.poolInitialized {
+		return false
+	}
+
+	c.poolInitialized = true
+	return true
+}
+
+func (c *Client) loadCachedRandomPool(ctx context.Context) {
+	cachedJSONs, err := c.db.GetAllCachedAnime(ctx)
+	if err != nil || len(cachedJSONs) == 0 {
+		return
+	}
+
+	loadedAnimes := decodeCachedAnime(cachedJSONs)
+	if len(loadedAnimes) == 0 {
+		return
+	}
+
+	c.poolMu.Lock()
+	c.randomPool = append(c.randomPool, loadedAnimes...)
+	c.poolMu.Unlock()
+}
+
+func decodeCachedAnime(cachedJSONs []string) []Anime {
+	loadedAnimes := make([]Anime, 0, len(cachedJSONs))
+	for _, dataStr := range cachedJSONs {
+		var anime Anime
+		if err := json.Unmarshal([]byte(dataStr), &anime); err != nil || anime.MalID == 0 {
+			continue
+		}
+
+		loadedAnimes = append(loadedAnimes, anime)
+	}
+
+	return loadedAnimes
+}
+
+func (c *Client) seedRandomPoolBaseline() {
+	bgCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	fetchedAnimes := c.fetchBaselineAnime(bgCtx)
+	if len(fetchedAnimes) > 0 {
+		c.appendUniqueRandomPool(fetchedAnimes)
+	}
+
+	// Start background refresher once seeding completes
+	c.startPoolRefresher()
+}
+
+func (c *Client) fetchBaselineAnime(ctx context.Context) []Anime {
+	fetchedAnimes := make([]Anime, 0)
+	fetchedAnimes = append(fetchedAnimes, c.fetchTopAnimePage(ctx, 1)...)
+	fetchedAnimes = append(fetchedAnimes, c.fetchTopAnimePage(ctx, 2)...)
+	fetchedAnimes = append(fetchedAnimes, c.fetchCurrentSeasonAnime(ctx)...)
+	return fetchedAnimes
+}
+
+func (c *Client) fetchTopAnimePage(ctx context.Context, page int) []Anime {
+	top, err := c.GetTopAnime(ctx, page)
+	if err != nil {
+		return nil
+	}
+
+	return top.Animes
+}
+
+func (c *Client) fetchCurrentSeasonAnime(ctx context.Context) []Anime {
+	now, err := c.GetSeasonsNow(ctx, 1)
+	if err != nil {
+		return nil
+	}
+
+	return now.Animes
+}
+
+func (c *Client) appendUniqueRandomPool(animes []Anime) {
+	c.poolMu.Lock()
+	defer c.poolMu.Unlock()
+
+	seen := make(map[int]bool, len(c.randomPool)+len(animes))
+	for _, anime := range c.randomPool {
+		seen[anime.MalID] = true
+	}
+
+	for _, anime := range animes {
+		if seen[anime.MalID] {
+			continue
+		}
+
+		c.randomPool = append(c.randomPool, anime)
+		seen[anime.MalID] = true
+	}
 }
 
 // startPoolRefresher runs in the background to slowly mix in true random anime
