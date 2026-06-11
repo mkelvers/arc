@@ -509,103 +509,15 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 		return []domain.SkipSegment{}
 	}
 
-	segments := []domain.SkipSegment{}
-
-	endpoint := fmt.Sprintf("https://api.aniskip.com/v1/skip-times/%s/%s?types=op&types=ed", url.PathEscape(strconv.Itoa(malID)), url.PathEscape(episode))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err == nil {
-		req.Header.Set("User-Agent", netutil.Generic)
-		if resp, err := s.httpClient.Do(req); err == nil {
-			defer func() { _ = resp.Body.Close() }()
-			if resp.StatusCode == http.StatusOK {
-				if body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.KiB512)); err == nil {
-					type resultItem struct {
-						SkipType string `json:"skip_type"`
-						Interval struct {
-							StartTime float64 `json:"start_time"`
-							EndTime   float64 `json:"end_time"`
-						} `json:"interval"`
-					}
-					type apiResponse struct {
-						Found  bool         `json:"found"`
-						Result []resultItem `json:"results"`
-					}
-
-					var parsed apiResponse
-					if err := json.Unmarshal(body, &parsed); err == nil && parsed.Found && len(parsed.Result) > 0 {
-						segments = make([]domain.SkipSegment, 0, len(parsed.Result))
-						for _, r := range parsed.Result {
-							skipType := strings.ToLower(r.SkipType)
-							switch skipType {
-							case "op":
-								skipType = "opening"
-							case "ed":
-								skipType = "ending"
-							}
-							segments = append(segments, domain.SkipSegment{
-								Type:   skipType,
-								Start:  r.Interval.StartTime,
-								End:    r.Interval.EndTime,
-								Source: "aniskip",
-							})
-						}
-					}
-				}
-			}
-		}
-	}
-
-	epNum, _ := strconv.ParseInt(strings.TrimSpace(episode), 10, 64)
-	if userID != "" && epNum > 0 {
-		if ok, err := s.repo.HasSkipSegmentOverrideTable(ctx); err == nil && ok {
-			if overrides, err := s.repo.ListSkipSegmentOverrides(ctx, userID, int64(malID), epNum); err == nil {
-				// Build map keyed by normalized type ("opening"/"ending")
-				overrideByType := make(map[string]domain.SkipSegment, len(overrides))
-				for _, o := range overrides {
-					t := strings.ToLower(strings.TrimSpace(o.SkipType))
-					switch t {
-					case "op", "opening", "intro":
-						t = "opening"
-					case "ed", "ending", "outro":
-						t = "ending"
-					default:
-						continue
-					}
-					overrideByType[t] = domain.SkipSegment{
-						Type:   t,
-						Start:  o.StartTime,
-						End:    o.EndTime,
-						Source: "override",
-					}
-				}
-				if len(overrideByType) > 0 {
-					merged := make([]domain.SkipSegment, 0, len(segments)+len(overrideByType))
-					seen := map[string]bool{}
-					for _, seg := range segments {
-						if o, ok := overrideByType[seg.Type]; ok {
-							merged = append(merged, o)
-							seen[seg.Type] = true
-						} else {
-							merged = append(merged, seg)
-							seen[seg.Type] = true
-						}
-					}
-					for t, o := range overrideByType {
-						if !seen[t] {
-							merged = append(merged, o)
-						}
-					}
-					segments = merged
-				}
-			}
-		}
-	}
-
-	return segments
+	segments := s.fetchAniSkipSegments(ctx, malID, episode)
+	return s.applySkipSegmentOverrides(ctx, segments, userID, malID, episode)
 }
 
 func (s *playbackService) warmStreamURL(targetURL, referer string) {
-	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
 		return
 	}
@@ -614,13 +526,153 @@ func (s *playbackService) warmStreamURL(targetURL, referer string) {
 	}
 	req.Header.Set("User-Agent", netutil.Firefox121)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	req = req.WithContext(ctx)
-
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return
 	}
 	_ = resp.Body.Close()
+}
+
+func (s *playbackService) fetchAniSkipSegments(ctx context.Context, malID int, episode string) []domain.SkipSegment {
+	endpoint := fmt.Sprintf("https://api.aniskip.com/v1/skip-times/%s/%s?types=op&types=ed", url.PathEscape(strconv.Itoa(malID)), url.PathEscape(episode))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("User-Agent", netutil.Generic)
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.KiB512))
+	if err != nil {
+		return nil
+	}
+
+	return parseAniSkipSegments(body)
+}
+
+func parseAniSkipSegments(body []byte) []domain.SkipSegment {
+	type resultItem struct {
+		SkipType string `json:"skip_type"`
+		Interval struct {
+			StartTime float64 `json:"start_time"`
+			EndTime   float64 `json:"end_time"`
+		} `json:"interval"`
+	}
+	type apiResponse struct {
+		Found  bool         `json:"found"`
+		Result []resultItem `json:"results"`
+	}
+
+	var parsed apiResponse
+	if err := json.Unmarshal(body, &parsed); err != nil || !parsed.Found || len(parsed.Result) == 0 {
+		return nil
+	}
+
+	segments := make([]domain.SkipSegment, 0, len(parsed.Result))
+	for _, item := range parsed.Result {
+		segments = append(segments, domain.SkipSegment{
+			Type:   normalizeSkipSegmentLabel(item.SkipType),
+			Start:  item.Interval.StartTime,
+			End:    item.Interval.EndTime,
+			Source: "aniskip",
+		})
+	}
+
+	return segments
+}
+
+func normalizeSkipSegmentLabel(skipType string) string {
+	switch strings.ToLower(strings.TrimSpace(skipType)) {
+	case "op":
+		return "opening"
+	case "ed":
+		return "ending"
+	default:
+		return strings.ToLower(strings.TrimSpace(skipType))
+	}
+}
+
+func (s *playbackService) applySkipSegmentOverrides(ctx context.Context, segments []domain.SkipSegment, userID string, malID int, episode string) []domain.SkipSegment {
+	epNum, err := strconv.ParseInt(strings.TrimSpace(episode), 10, 64)
+	if userID == "" || err != nil || epNum <= 0 {
+		return segments
+	}
+
+	ok, err := s.repo.HasSkipSegmentOverrideTable(ctx)
+	if err != nil || !ok {
+		return segments
+	}
+
+	overrides, err := s.repo.ListSkipSegmentOverrides(ctx, userID, int64(malID), epNum)
+	if err != nil {
+		return segments
+	}
+
+	overrideByType := buildOverrideSegments(overrides)
+	if len(overrideByType) == 0 {
+		return segments
+	}
+
+	return mergeSkipSegments(segments, overrideByType)
+}
+
+func buildOverrideSegments(overrides []db.SkipSegmentOverrideRow) map[string]domain.SkipSegment {
+	byType := make(map[string]domain.SkipSegment, len(overrides))
+	for _, override := range overrides {
+		skipType, ok := normalizeOverrideSkipType(override.SkipType)
+		if !ok {
+			continue
+		}
+
+		byType[skipType] = domain.SkipSegment{
+			Type:   skipType,
+			Start:  override.StartTime,
+			End:    override.EndTime,
+			Source: "override",
+		}
+	}
+
+	return byType
+}
+
+func normalizeOverrideSkipType(skipType string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(skipType)) {
+	case "op", "opening", "intro":
+		return "opening", true
+	case "ed", "ending", "outro":
+		return "ending", true
+	default:
+		return "", false
+	}
+}
+
+func mergeSkipSegments(segments []domain.SkipSegment, overrides map[string]domain.SkipSegment) []domain.SkipSegment {
+	merged := make([]domain.SkipSegment, 0, len(segments)+len(overrides))
+	seen := make(map[string]bool, len(segments))
+
+	for _, segment := range segments {
+		if override, ok := overrides[segment.Type]; ok {
+			merged = append(merged, override)
+		} else {
+			merged = append(merged, segment)
+		}
+		seen[segment.Type] = true
+	}
+
+	for skipType, override := range overrides {
+		if !seen[skipType] {
+			merged = append(merged, override)
+		}
+	}
+
+	return merged
 }
