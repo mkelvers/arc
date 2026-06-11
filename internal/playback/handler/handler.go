@@ -415,7 +415,9 @@ func (h *PlaybackHandler) proxyPlaylistURI(rawURI string, baseURL *url.URL, refe
 	if err != nil {
 		return "", err
 	}
-	return "/watch/proxy/stream?token=" + url.QueryEscape(token), nil
+	params := url.Values{}
+	params.Set("token", token)
+	return "/watch/proxy/stream?" + params.Encode(), nil
 }
 
 func copyProxyHeaders(dst http.Header, src http.Header) {
