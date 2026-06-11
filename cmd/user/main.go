@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -36,6 +37,8 @@ func main() {
 }
 
 func run(dbConn *sql.DB, args []string) int {
+	ctx := context.Background()
+
 	cmd, err := parseArgs(args)
 	if err != nil {
 		observability.Warn("cli_usage", "cmd/user", "invalid arguments", map[string]any{"argc": len(args)}, err)
@@ -45,13 +48,13 @@ func run(dbConn *sql.DB, args []string) int {
 
 	switch cmd.kind {
 	case commandUpdateAvatar:
-		updateAvatars(dbConn)
+		updateAvatars(ctx, dbConn)
 		return 0
 	case commandRunFixes:
-		runFixes(dbConn)
+		runFixes(ctx, dbConn)
 		return 0
 	case commandCreateOrUpdateUser:
-		if err := createOrUpdateUser(dbConn, cmd.username, cmd.password); err != nil {
+		if err := createOrUpdateUser(ctx, dbConn, cmd.username, cmd.password); err != nil {
 			return 1
 		}
 		return 0
@@ -100,8 +103,8 @@ func usage() string {
 	return "Usage: go run cmd/user/main.go <username> <password>\n       go run cmd/user/main.go update-avatar\n       go run cmd/user/main.go run-fixes"
 }
 
-func createOrUpdateUser(dbConn *sql.DB, username string, password string) error {
-	existingID, err := lookupUserID(dbConn, username)
+func createOrUpdateUser(ctx context.Context, dbConn *sql.DB, username string, password string) error {
+	existingID, err := lookupUserID(ctx, dbConn, username)
 	if err != nil {
 		observability.Error("cli_user_lookup_failed", "cmd/user", "", map[string]any{"username": username}, err)
 		return err
@@ -112,23 +115,23 @@ func createOrUpdateUser(dbConn *sql.DB, username string, password string) error 
 			fmt.Println("Operation cancelled.")
 			return nil
 		}
-		if err := updateUserPassword(dbConn, existingID, username, password); err != nil {
+		if err := updateUserPassword(ctx, dbConn, existingID, username, password); err != nil {
 			return err
 		}
 		fmt.Printf("Password for '%s' updated successfully!\n", username)
 		return nil
 	}
 
-	if err := createUser(dbConn, username, password); err != nil {
+	if err := createUser(ctx, dbConn, username, password); err != nil {
 		return err
 	}
 	fmt.Printf("User '%s' was created successfully!\n", username)
 	return nil
 }
 
-func lookupUserID(dbConn *sql.DB, username string) (string, error) {
+func lookupUserID(ctx context.Context, dbConn *sql.DB, username string) (string, error) {
 	var id string
-	err := dbConn.QueryRow("SELECT id FROM user WHERE username = ?", username).Scan(&id)
+	err := dbConn.QueryRowContext(ctx, "SELECT id FROM user WHERE username = ?", username).Scan(&id)
 	if err == nil {
 		return id, nil
 	}
@@ -146,14 +149,14 @@ func promptConfirmOverwrite(username string) bool {
 	return response == "y" || response == "yes"
 }
 
-func updateUserPassword(dbConn *sql.DB, userID string, username string, password string) error {
+func updateUserPassword(ctx context.Context, dbConn *sql.DB, userID string, username string, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
 		return err
 	}
 
-	_, err = dbConn.Exec("UPDATE user SET password_hash = ? WHERE id = ?", string(hash), userID)
+	_, err = dbConn.ExecContext(ctx, "UPDATE user SET password_hash = ? WHERE id = ?", string(hash), userID)
 	if err != nil {
 		observability.Error("cli_user_password_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
 		return err
@@ -161,7 +164,7 @@ func updateUserPassword(dbConn *sql.DB, userID string, username string, password
 	return nil
 }
 
-func createUser(dbConn *sql.DB, username string, password string) error {
+func createUser(ctx context.Context, dbConn *sql.DB, username string, password string) error {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		observability.Error("cli_password_hash_failed", "cmd/user", "", nil, err)
@@ -170,7 +173,8 @@ func createUser(dbConn *sql.DB, username string, password string) error {
 
 	id := uuid.New().String()
 	avatarURL := internal.DefaultAvatarURL(username)
-	_, err = dbConn.Exec(
+	_, err = dbConn.ExecContext(
+		ctx,
 		"INSERT INTO user (id, username, password_hash, avatar_url) VALUES (?, ?, ?, ?)",
 		id,
 		username,
@@ -184,8 +188,8 @@ func createUser(dbConn *sql.DB, username string, password string) error {
 	return nil
 }
 
-func updateAvatars(dbConn *sql.DB) {
-	rows, err := dbConn.Query("SELECT id, username FROM user")
+func updateAvatars(ctx context.Context, dbConn *sql.DB) {
+	rows, err := dbConn.QueryContext(ctx, "SELECT id, username FROM user")
 	if err != nil {
 		observability.Error("cli_users_list_failed", "cmd/user", "", nil, err)
 		os.Exit(1)
@@ -201,7 +205,7 @@ func updateAvatars(dbConn *sql.DB) {
 		}
 
 		avatarURL := internal.DefaultAvatarURL(username)
-		_, err := dbConn.Exec("UPDATE user SET avatar_url = ? WHERE id = ?", avatarURL, id)
+		_, err := dbConn.ExecContext(ctx, "UPDATE user SET avatar_url = ? WHERE id = ?", avatarURL, id)
 		if err != nil {
 			observability.Error("cli_user_avatar_update_failed", "cmd/user", "", map[string]any{"username": username}, err)
 			os.Exit(1)
@@ -217,13 +221,13 @@ func updateAvatars(dbConn *sql.DB) {
 	fmt.Printf("Updated avatars for %d user(s)\n", count)
 }
 
-func runFixes(dbConn *sql.DB) {
+func runFixes(ctx context.Context, dbConn *sql.DB) {
 	if err := database.RunMigrationsAndFixes(dbConn); err != nil {
 		observability.Error("cli_run_migrations_and_fixes_failed", "cmd/user", "", nil, err)
 		os.Exit(1)
 	}
 
-	rows, err := dbConn.Query("SELECT id, applied_at FROM data_fixes ORDER BY id ASC")
+	rows, err := dbConn.QueryContext(ctx, "SELECT id, applied_at FROM data_fixes ORDER BY id ASC")
 	if err != nil {
 		observability.Error("cli_data_fixes_list_failed", "cmd/user", "", nil, err)
 		os.Exit(1)
