@@ -11,42 +11,50 @@ func NewFxLogger() fxevent.Logger {
 }
 
 func (fxLogger) LogEvent(event fxevent.Event) {
+	eventName, fields, err := describeFXEventError(event)
+	if err == nil {
+		return
+	}
+
+	Error(eventName, "fx", "", fields, err)
+}
+
+func describeFXEventError(event fxevent.Event) (string, map[string]any, error) {
+	if ok, eventName, fields, err := describeFXExecutionEventError(event); ok {
+		return eventName, fields, err
+	}
+
+	return describeFXLifecycleEventError(event)
+}
+
+func describeFXExecutionEventError(event fxevent.Event) (bool, string, map[string]any, error) {
 	switch e := event.(type) {
 	case *fxevent.Provided:
-		if e.Err != nil {
-			Error("fx_provide_failed", "fx", "", map[string]any{"constructor": e.ConstructorName}, e.Err)
-		}
+		return true, "fx_provide_failed", map[string]any{"constructor": e.ConstructorName}, e.Err
 	case *fxevent.Invoked:
-		if e.Err != nil {
-			Error("fx_invoke_failed", "fx", "", map[string]any{"function": e.FunctionName}, e.Err)
-		}
+		return true, "fx_invoke_failed", map[string]any{"function": e.FunctionName}, e.Err
 	case *fxevent.Run:
-		if e.Err != nil {
-			Error("fx_run_failed", "fx", "", map[string]any{"function": e.Name, "kind": e.Kind}, e.Err)
-		}
+		return true, "fx_run_failed", map[string]any{"function": e.Name, "kind": e.Kind}, e.Err
 	case *fxevent.OnStartExecuted:
-		if e.Err != nil {
-			Error("fx_on_start_failed", "fx", "", map[string]any{"caller": e.CallerName, "function": e.FunctionName, "runtime": e.Runtime}, e.Err)
-		}
+		return true, "fx_on_start_failed", map[string]any{"caller": e.CallerName, "function": e.FunctionName, "runtime": e.Runtime}, e.Err
 	case *fxevent.OnStopExecuted:
-		if e.Err != nil {
-			Error("fx_on_stop_failed", "fx", "", map[string]any{"caller": e.CallerName, "function": e.FunctionName, "runtime": e.Runtime}, e.Err)
-		}
+		return true, "fx_on_stop_failed", map[string]any{"caller": e.CallerName, "function": e.FunctionName, "runtime": e.Runtime}, e.Err
+	default:
+		return false, "", nil, nil
+	}
+}
+
+func describeFXLifecycleEventError(event fxevent.Event) (string, map[string]any, error) {
+	switch e := event.(type) {
 	case *fxevent.Started:
-		if e.Err != nil {
-			Error("fx_start_failed", "fx", "", nil, e.Err)
-		}
+		return "fx_start_failed", nil, e.Err
 	case *fxevent.Stopped:
-		if e.Err != nil {
-			Error("fx_stop_failed", "fx", "", nil, e.Err)
-		}
+		return "fx_stop_failed", nil, e.Err
 	case *fxevent.RollingBack:
-		if e.StartErr != nil {
-			Error("fx_rollback_start", "fx", "", nil, e.StartErr)
-		}
+		return "fx_rollback_start", nil, e.StartErr
 	case *fxevent.RolledBack:
-		if e.Err != nil {
-			Error("fx_rollback_failed", "fx", "", nil, e.Err)
-		}
+		return "fx_rollback_failed", nil, e.Err
+	default:
+		return "", nil, nil
 	}
 }
