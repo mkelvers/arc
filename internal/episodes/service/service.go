@@ -588,46 +588,33 @@ func titleCandidates(anime domain.Anime) []string {
 	return out
 }
 
+type episodePartial struct {
+	title  string
+	filler bool
+	recap  bool
+	sub    bool
+	dub    bool
+}
+
 func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
-	type partial struct {
-		title  string
-		filler bool
-		recap  bool
-		sub    bool
-		dub    bool
-	}
-	byNumber := map[int]partial{}
+	byNumber := map[int]episodePartial{}
 
 	for i, ep := range jikanEpisodes {
-		if expectedCount > 0 && i >= expectedCount {
+		if exceedsExpectedCount(i+1, expectedCount) {
 			break
 		}
 		number, ok := jikanEpisodeNumber(ep, i)
 		if !ok || exceedsExpectedCount(number, expectedCount) {
 			continue
 		}
-		item := byNumber[number]
-		item.title = strings.TrimSpace(ep.Title)
-		item.filler = ep.Filler
-		item.recap = ep.Recap
-		byNumber[number] = item
+		mergeEpisode(&byNumber, number, func(item *episodePartial) {
+			item.title = strings.TrimSpace(ep.Title)
+			item.filler = ep.Filler
+			item.recap = ep.Recap
+		})
 	}
-	for _, n := range availability.Sub {
-		if n <= 0 || exceedsExpectedCount(n, expectedCount) {
-			continue
-		}
-		item := byNumber[n]
-		item.sub = true
-		byNumber[n] = item
-	}
-	for _, n := range availability.Dub {
-		if n <= 0 || exceedsExpectedCount(n, expectedCount) {
-			continue
-		}
-		item := byNumber[n]
-		item.dub = true
-		byNumber[n] = item
-	}
+	mergeAvailability(&byNumber, availability.Sub, expectedCount, func(item *episodePartial) { item.sub = true })
+	mergeAvailability(&byNumber, availability.Dub, expectedCount, func(item *episodePartial) { item.dub = true })
 
 	numbers := make([]int, 0, len(byNumber))
 	for number := range byNumber {
@@ -653,6 +640,21 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 		})
 	}
 	return episodes
+}
+
+func mergeEpisode(byNumber *map[int]episodePartial, number int, update func(*episodePartial)) {
+	item := (*byNumber)[number]
+	update(&item)
+	(*byNumber)[number] = item
+}
+
+func mergeAvailability(byNumber *map[int]episodePartial, numbers []int, expectedCount int, update func(*episodePartial)) {
+	for _, number := range numbers {
+		if number <= 0 || exceedsExpectedCount(number, expectedCount) {
+			continue
+		}
+		mergeEpisode(byNumber, number, update)
+	}
 }
 
 func jikanEpisodeNumber(ep jikan.Episode, index int) (int, bool) {
