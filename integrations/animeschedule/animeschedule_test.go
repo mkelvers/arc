@@ -25,7 +25,7 @@ func TestParseLocalTimeUsesRequestedTimezone(t *testing.T) {
 		t.Fatalf("load location: %v", err)
 	}
 
-	localTime, airsAt, _, rendered := parseLocalTime(doc.Find(".time-bar").First(), location)
+	localTime, airsAt, rendered := parseLocalTime(doc.Find(".time-bar").First(), location)
 
 	if localTime != "17:00" {
 		t.Fatalf("localTime = %q, want %q", localTime, "17:00")
@@ -55,7 +55,7 @@ func TestParseLocalTimeUsesExactAngelNextDoorSubRelease(t *testing.T) {
 		t.Fatalf("load location: %v", err)
 	}
 
-	localTime, _, _, _ := parseLocalTime(doc.Find(".time-bar").First(), location)
+	localTime, _, _ := parseLocalTime(doc.Find(".time-bar").First(), location)
 
 	if localTime != "16:30" {
 		t.Fatalf("localTime = %q, want %q", localTime, "16:30")

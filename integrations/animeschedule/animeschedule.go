@@ -83,6 +83,15 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int,
 		return WeekSchedule{}, err
 	}
 
+	doc, finalURL, err := fetchDocument(ctx, httpClient, buildWeekURL(year, week))
+	if err != nil {
+		return WeekSchedule{}, err
+	}
+
+	return scrapeWeekSchedule(doc, finalURL, year, week, location), nil
+}
+
+func buildWeekURL(year int, week int) string {
 	u, _ := url.Parse("https://animeschedule.net/")
 	q := u.Query()
 	if year > 0 {
@@ -92,29 +101,11 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int,
 		q.Set("week", strconv.Itoa(week))
 	}
 	u.RawQuery = q.Encode()
+	return u.String()
+}
 
-	doc, finalURL, err := fetchDocument(ctx, httpClient, u.String())
-	if err != nil {
-		return WeekSchedule{}, err
-	}
-
-	resolvedYear := year
-	resolvedWeek := week
-	if resolvedWeek == 0 {
-		if match := reWeek.FindStringSubmatch(finalURL); len(match) == 2 {
-			if v, err := strconv.Atoi(match[1]); err == nil {
-				resolvedWeek = v
-			}
-		}
-	}
-	if resolvedYear == 0 {
-		if match := reYear.FindStringSubmatch(finalURL); len(match) == 2 {
-			if v, err := strconv.Atoi(match[1]); err == nil {
-				resolvedYear = v
-			}
-		}
-	}
-
+func scrapeWeekSchedule(doc *goquery.Document, finalURL string, year int, week int, location *time.Location) WeekSchedule {
+	resolvedYear, resolvedWeek := resolveWeekFromFinalURL(finalURL, year, week)
 	out := WeekSchedule{
 		Year: resolvedYear,
 		Week: resolvedWeek,
@@ -122,70 +113,122 @@ func FetchWeek(ctx context.Context, httpClient *http.Client, year int, week int,
 	}
 
 	doc.Find(".timetable-column").Each(func(_ int, column *goquery.Selection) {
-		h1 := column.Find("h1.timetable-column-date").First()
-		rawHeader := strings.Join(strings.Fields(strings.TrimSpace(h1.Text())), " ")
-		weekday := parseWeekdayFromHeader(rawHeader)
-		if weekday == nil {
+		weekday, dayEntries, ok := scrapeDayColumn(column, location)
+		if !ok {
 			return
 		}
 
-		dayEntries := make([]Entry, 0, 16)
-
-		column.Find(".timetable-column-show").Each(func(_ int, show *goquery.Selection) {
-			if selectionHasClass(show, "filtered-out") {
-				return
-			}
-
-			a := show.Find("a.show-link").First()
-			title := strings.TrimSpace(a.Find("h2").First().Text())
-			if title == "" {
-				title = strings.TrimSpace(a.Text())
-			}
-			href, _ := a.Attr("href")
-			animeURL := absolutizeURL("https://animeschedule.net", href)
-
-			imageURL := ""
-			if img := a.Find("img").First(); img != nil && img.Length() == 1 {
-				if src, ok := img.Attr("data-src"); ok {
-					imageURL = strings.TrimSpace(src)
-				}
-				if imageURL == "" {
-					if src, ok := img.Attr("src"); ok && !strings.HasPrefix(src, "data:") {
-						imageURL = strings.TrimSpace(src)
-					}
-				}
-			}
-
-			meta := show.Find("h3.time-bar").First()
-			metaText := strings.Join(strings.Fields(strings.TrimSpace(meta.Text())), " ")
-
-			epText, _, airType := parseMeta(metaText)
-			localTime, airsAt, _, _ := parseLocalTime(meta, location)
-			if title == "" || animeURL == "" || localTime == "" || airType != AirTypeSUB {
-				return
-			}
-
-			dayEntries = append(dayEntries, Entry{
-				Title:       title,
-				AnimeURL:    animeURL,
-				ImageURL:    imageURL,
-				EpisodeText: epText,
-				AirType:     airType,
-				AirsAt:      airsAt,
-				LocalTime:   localTime,
-				DateLabel:   rawHeader,
-				Weekday:     *weekday,
-			})
-		})
-
-		if len(dayEntries) == 0 {
-			return
-		}
-
-		out.Days[*weekday] = append(out.Days[*weekday], preferredReleaseEntries(dayEntries)...)
+		out.Days[weekday] = append(out.Days[weekday], preferredReleaseEntries(dayEntries)...)
 	})
 
-	return out, nil
+	return out
+}
+
+func resolveWeekFromFinalURL(finalURL string, year int, week int) (int, int) {
+	resolvedYear := year
+	resolvedWeek := week
+	if resolvedWeek == 0 {
+		resolvedWeek = parseIntFromURLMatch(reWeek, finalURL)
+	}
+	if resolvedYear == 0 {
+		resolvedYear = parseIntFromURLMatch(reYear, finalURL)
+	}
+	return resolvedYear, resolvedWeek
+}
+
+func parseIntFromURLMatch(pattern *regexp.Regexp, rawURL string) int {
+	match := pattern.FindStringSubmatch(rawURL)
+	if len(match) != 2 {
+		return 0
+	}
+
+	value, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0
+	}
+
+	return value
+}
+
+func scrapeDayColumn(column *goquery.Selection, location *time.Location) (time.Weekday, []Entry, bool) {
+	rawHeader := strings.Join(strings.Fields(strings.TrimSpace(column.Find("h1.timetable-column-date").First().Text())), " ")
+	weekday := parseWeekdayFromHeader(rawHeader)
+	if weekday == nil {
+		return time.Sunday, nil, false
+	}
+
+	dayEntries := make([]Entry, 0, 16)
+	column.Find(".timetable-column-show").Each(func(_ int, show *goquery.Selection) {
+		entry, ok := scrapeShowEntry(show, rawHeader, *weekday, location)
+		if !ok {
+			return
+		}
+
+		dayEntries = append(dayEntries, entry)
+	})
+	if len(dayEntries) == 0 {
+		return time.Sunday, nil, false
+	}
+
+	return *weekday, dayEntries, true
+}
+
+func scrapeShowEntry(show *goquery.Selection, rawHeader string, weekday time.Weekday, location *time.Location) (Entry, bool) {
+	if selectionHasClass(show, "filtered-out") {
+		return Entry{}, false
+	}
+
+	a := show.Find("a.show-link").First()
+	title := strings.TrimSpace(a.Find("h2").First().Text())
+	if title == "" {
+		title = strings.TrimSpace(a.Text())
+	}
+
+	href, _ := a.Attr("href")
+	animeURL := absolutizeURL("https://animeschedule.net", href)
+	if title == "" || animeURL == "" {
+		return Entry{}, false
+	}
+
+	meta := show.Find("h3.time-bar").First()
+	metaText := strings.Join(strings.Fields(strings.TrimSpace(meta.Text())), " ")
+	epText, _, airType := parseMeta(metaText)
+	localTime, airsAt, _ := parseLocalTime(meta, location)
+	if localTime == "" || airType != AirTypeSUB {
+		return Entry{}, false
+	}
+
+	return Entry{
+		Title:       title,
+		AnimeURL:    animeURL,
+		ImageURL:    extractShowImageURL(a),
+		EpisodeText: epText,
+		AirType:     airType,
+		AirsAt:      airsAt,
+		LocalTime:   localTime,
+		DateLabel:   rawHeader,
+		Weekday:     weekday,
+	}, true
+}
+
+func extractShowImageURL(link *goquery.Selection) string {
+	img := link.Find("img").First()
+	if img == nil || img.Length() != 1 {
+		return ""
+	}
+
+	if src, ok := img.Attr("data-src"); ok {
+		if trimmed := strings.TrimSpace(src); trimmed != "" {
+			return trimmed
+		}
+	}
+
+	src, ok := img.Attr("src")
+	if !ok || strings.HasPrefix(src, "data:") {
+		return ""
+	}
+
+	return strings.TrimSpace(src)
 }
 
 func selectionHasClass(selection *goquery.Selection, className string) bool {
@@ -304,7 +347,7 @@ func airTypePriority(airType AirType) int {
 	}
 }
 
-func parseLocalTime(meta *goquery.Selection, location *time.Location) (localTime string, airsAt time.Time, rawDatetime string, rawRenderedTime string) {
+func parseLocalTime(meta *goquery.Selection, location *time.Location) (localTime string, airsAt time.Time, rawRenderedTime string) {
 	// AnimeSchedule updates rendered time client-side based on the viewer's timezone.
 	// The server-rendered HTML can show a different time string, so we prefer the `datetime`
 	// attribute when available.
@@ -312,18 +355,17 @@ func parseLocalTime(meta *goquery.Selection, location *time.Location) (localTime
 	if t.Length() == 1 {
 		rawRenderedTime = strings.Join(strings.Fields(strings.TrimSpace(t.Text())), " ")
 		if raw, ok := t.Attr("datetime"); ok {
-			rawDatetime = raw
-			if parsed, err := parseScheduleDatetime(rawDatetime); err == nil {
+			if parsed, err := parseScheduleDatetime(raw); err == nil {
 				airsAt = parsed.In(location)
 				localTime = airsAt.Format("15:04")
-				return localTime, airsAt, rawDatetime, rawRenderedTime
+				return localTime, airsAt, rawRenderedTime
 			}
 		}
 	}
 
 	fallback := strings.Join(strings.Fields(strings.TrimSpace(meta.Text())), " ")
 	_, parsedTime, _ := parseMeta(fallback)
-	return parsedTime, time.Time{}, "", ""
+	return parsedTime, time.Time{}, ""
 }
 
 func parseScheduleDatetime(value string) (time.Time, error) {
