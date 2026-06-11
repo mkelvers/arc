@@ -570,49 +570,65 @@ func (c *AllAnimeProvider) extractSourceURLsFromData(ctx context.Context, data m
 func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, references []sourceReference) []StreamSource {
 	out := make([]StreamSource, 0, len(references))
 	for _, ref := range references {
-		target := strings.TrimSpace(ref.URL)
-		if target == "" {
+		if source, ok := resolveDirectSource(ref); ok {
+			out = append(out, source)
 			continue
 		}
 
-		if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-			sourceType := detectStreamType(target)
-			if sourceType == "unknown" {
-				sourceType = detectEmbedType(target)
-			}
-
-			out = append(out, buildStreamSource(target, sourceType, ref.Name))
-			continue
-		}
-
-		decoded := decodeSourceURL(target)
-		if decoded == "" {
-			continue
-		}
-
-		if strings.HasPrefix(decoded, "http://") || strings.HasPrefix(decoded, "https://") {
-			sourceType := detectStreamType(decoded)
-			if sourceType == "unknown" {
-				sourceType = detectEmbedType(decoded)
-			}
-
-			out = append(out, buildStreamSource(decoded, sourceType, ref.Name))
-			continue
-		}
-
-		if !strings.HasPrefix(decoded, "/") {
-			decoded = "/" + decoded
-		}
-
-		extracted, err := c.extractor.ExtractVideoLinks(ctx, decoded)
-		if err != nil {
-			continue
-		}
-
+		extracted := c.resolveExtractedSources(ctx, ref)
 		out = append(out, extracted...)
 	}
 
 	return out
+}
+
+func resolveDirectSource(ref sourceReference) (StreamSource, bool) {
+	target := strings.TrimSpace(ref.URL)
+	if target == "" {
+		return StreamSource{}, false
+	}
+
+	if isHTTPURL(target) {
+		return buildStreamSource(target, detectSourceType(target), ref.Name), true
+	}
+
+	decoded := decodeSourceURL(target)
+	if !isHTTPURL(decoded) {
+		return StreamSource{}, false
+	}
+
+	return buildStreamSource(decoded, detectSourceType(decoded), ref.Name), true
+}
+
+func (c *AllAnimeProvider) resolveExtractedSources(ctx context.Context, ref sourceReference) []StreamSource {
+	decoded := decodeSourceURL(strings.TrimSpace(ref.URL))
+	if decoded == "" {
+		return nil
+	}
+
+	if !strings.HasPrefix(decoded, "/") {
+		decoded = "/" + decoded
+	}
+
+	extracted, err := c.extractor.ExtractVideoLinks(ctx, decoded)
+	if err != nil {
+		return nil
+	}
+
+	return extracted
+}
+
+func detectSourceType(sourceURL string) string {
+	sourceType := detectStreamType(sourceURL)
+	if sourceType != "unknown" {
+		return sourceType
+	}
+
+	return detectEmbedType(sourceURL)
+}
+
+func isHTTPURL(value string) bool {
+	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
 }
 
 func executeAndReadResponse(client *http.Client, req *http.Request, executeErrPrefix string, readErrPrefix string) (int, []byte, error) {
