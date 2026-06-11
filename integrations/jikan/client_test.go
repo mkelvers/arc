@@ -23,42 +23,13 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
-	sqlDB, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatalf("open sqlite: %v", err)
-	}
+	sqlDB := newTestCacheDB(t)
 	defer sqlDB.Close()
-	sqlDB.SetMaxOpenConns(1)
-
-	_, err = sqlDB.Exec(`
-		CREATE TABLE jikan_cache (
-			key TEXT PRIMARY KEY,
-			data TEXT NOT NULL,
-			expires_at DATETIME NOT NULL,
-			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-	`)
-	if err != nil {
-		t.Fatalf("create cache table: %v", err)
-	}
 
 	queries := db.New(sqlDB)
 	client := NewClient(config.Config{}, queries, observability.NewMetrics())
 	stale := TopAnimeResponse{Data: []Anime{{MalID: 1, Title: "stale"}}}
-	staleBytes, err := json.Marshal(stale)
-	if err != nil {
-		t.Fatalf("marshal stale response: %v", err)
-	}
-
-	_, err = sqlDB.Exec(
-		`INSERT INTO jikan_cache (key, data, expires_at) VALUES (?, ?, ?)`,
-		"top:1",
-		string(staleBytes),
-		time.Now().Add(-time.Hour),
-	)
-	if err != nil {
-		t.Fatalf("insert stale cache: %v", err)
-	}
+	insertCachedResponse(t, sqlDB, "top:1", stale, time.Now().Add(-time.Hour))
 
 	client.httpClient = &http.Client{
 		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
@@ -78,11 +49,64 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	if len(got.Data) != 1 || got.Data[0].Title != "stale" {
 		t.Fatalf("got %+v, want stale cache response", got.Data)
 	}
+	waitForFreshCache(t, sqlDB, client, "top:1")
+}
+
+
+func newTestCacheDB(t *testing.T) *sql.DB {
+	t.Helper()
+	ctx := context.Background()
+
+	sqlDB, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+
+	_, err = sqlDB.ExecContext(ctx, `
+		CREATE TABLE jikan_cache (
+			key TEXT PRIMARY KEY,
+			data TEXT NOT NULL,
+			expires_at DATETIME NOT NULL,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+	`)
+	if err != nil {
+		sqlDB.Close()
+		t.Fatalf("create cache table: %v", err)
+	}
+
+	return sqlDB
+}
+
+func insertCachedResponse(t *testing.T, sqlDB *sql.DB, key string, value TopAnimeResponse, expiresAt time.Time) {
+	t.Helper()
+	ctx := context.Background()
+
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal cached response: %v", err)
+	}
+
+	_, err = sqlDB.ExecContext(
+		ctx,
+		`INSERT INTO jikan_cache (key, data, expires_at) VALUES (?, ?, ?)`,
+		key,
+		string(encoded),
+		expiresAt,
+	)
+	if err != nil {
+		t.Fatalf("insert cached response: %v", err)
+	}
+}
+
+func waitForFreshCache(t *testing.T, sqlDB *sql.DB, client *Client, key string) {
+	t.Helper()
 
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		var refreshed TopAnimeResponse
-		if client.getCache(context.Background(), "top:1", &refreshed) && len(refreshed.Data) == 1 && refreshed.Data[0].Title == "fresh" {
+		if client.getCache(context.Background(), key, &refreshed) && len(refreshed.Data) == 1 && refreshed.Data[0].Title == "fresh" {
 			return
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -90,6 +114,6 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 
 	var rawData string
 	var rawExpires string
-	_ = sqlDB.QueryRow(`SELECT data, expires_at FROM jikan_cache WHERE key = ?`, "top:1").Scan(&rawData, &rawExpires)
+	_ = sqlDB.QueryRowContext(context.Background(), `SELECT data, expires_at FROM jikan_cache WHERE key = ?`, key).Scan(&rawData, &rawExpires)
 	t.Fatalf("cache was not refreshed asynchronously; data=%s expires_at=%s", rawData, rawExpires)
 }
