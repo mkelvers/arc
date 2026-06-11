@@ -60,7 +60,7 @@ func openCommandPaletteTestDB(t *testing.T) *sql.DB {
 	}
 	t.Cleanup(func() { _ = sqlDB.Close() })
 
-	_, err = sqlDB.Exec(`
+	_, err = sqlDB.ExecContext(context.Background(), `
 		CREATE TABLE anime (
 			id INTEGER PRIMARY KEY,
 			title_original TEXT NOT NULL,

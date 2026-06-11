@@ -16,7 +16,7 @@ func TestGetUserWatchlistAnimeIDsFiltersRequestedIDs(t *testing.T) {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
-	_, err = sqlDB.Exec(`
+	_, err = sqlDB.ExecContext(context.Background(), `
 		CREATE TABLE watch_list_entry (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL,
