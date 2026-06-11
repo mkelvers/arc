@@ -56,10 +56,11 @@ func (c *Client) GetProducers(ctx context.Context, query string, page int, limit
 func (c *Client) fetchProducersPage(ctx context.Context, query string, page int, limit int) (ProducerListResult, error) {
 	q := strings.TrimSpace(query)
 	cacheKey := fmt.Sprintf("producers:%s:%d:%d", q, page, limit)
-	reqURL := fmt.Sprintf("%s/producers?page=%d&limit=%d", c.baseURL, page, limit)
-	if q != "" {
-		reqURL += "&q=" + url.QueryEscape(q)
-	}
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	params.Set("limit", strconv.Itoa(limit))
+	setQueryValue(params, "q", q)
+	reqURL := buildRequestURL(c.baseURL, "/producers", params)
 
 	var result ProducersResponse
 	if err := c.getWithCache(ctx, cacheKey, producerCacheTTL, reqURL, &result); err != nil {

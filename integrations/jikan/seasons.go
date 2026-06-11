@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -30,7 +32,9 @@ func (c *Client) getSeasonList(ctx context.Context, page int, season string) (To
 	cacheKey := fmt.Sprintf("seasons_%s:%d", season, page)
 
 	var result TopAnimeResponse
-	reqURL := fmt.Sprintf("%s/seasons/%s?page=%d", c.baseURL, season, page)
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	reqURL := buildRequestURL(c.baseURL, fmt.Sprintf("/seasons/%s", season), params)
 
 	err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result)
 	if err != nil {

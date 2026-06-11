@@ -3,6 +3,8 @@ package jikan
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strconv"
 )
 
 func (c *Client) GetAnimeStaff(ctx context.Context, id int) ([]StaffEntry, error) {
@@ -46,7 +48,9 @@ func (c *Client) GetAnimeReviews(ctx context.Context, id int, page int) ([]Revie
 		page = 1
 	}
 
-	url := fmt.Sprintf("%s/anime/%d/reviews?page=%d", c.baseURL, id, page)
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	url := buildRequestURL(c.baseURL, fmt.Sprintf("/anime/%d/reviews", id), params)
 	cacheKey := fmt.Sprintf("anime:reviews:%d:%d", id, page)
 
 	var resp ReviewsResponse

@@ -3,6 +3,8 @@ package jikan
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -15,7 +17,9 @@ func (c *Client) GetEpisodes(ctx context.Context, animeID int, page int) (Episod
 
 	cacheKey := fmt.Sprintf("anime:%d:episodes:%d", animeID, page)
 	var result EpisodesResponse
-	reqURL := fmt.Sprintf("%s/anime/%d/episodes?page=%d", c.baseURL, animeID, page)
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	reqURL := buildRequestURL(c.baseURL, fmt.Sprintf("/anime/%d/episodes", animeID), params)
 
 	err := c.getWithCache(ctx, cacheKey, 12*time.Hour, reqURL, &result)
 	return result, err

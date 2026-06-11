@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-// SearchAdvanced performs a filtered anime search with type, status, ordering, genre filters, and studio (producer) filters.
-func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (SearchResult, error) {
+func normalizeSearchPagination(page, limit int) (int, int) {
 	if page < 1 {
 		page = 1
 	}
@@ -17,46 +16,47 @@ func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, o
 		limit = 0
 	}
 
-	genresParam := ""
-	if len(genres) > 0 {
-		ids := make([]string, len(genres))
-		for i, g := range genres {
-			ids[i] = strconv.Itoa(g)
-		}
-		genresParam = strings.Join(ids, ",")
+	return page, limit
+}
+
+func joinGenreIDs(genres []int) string {
+	if len(genres) == 0 {
+		return ""
 	}
+
+	ids := make([]string, len(genres))
+	for i, g := range genres {
+		ids[i] = strconv.Itoa(g)
+	}
+
+	return strings.Join(ids, ",")
+}
+
+func buildAdvancedSearchURL(baseURL, query, animeType, status, orderBy, sort, genres string, studioID int, sfw bool, page, limit int) string {
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	setTrueQueryValue(params, "sfw", sfw)
+	setQueryValue(params, "q", query)
+	setQueryValue(params, "type", animeType)
+	setQueryValue(params, "status", status)
+	setPositiveIntQueryValue(params, "producers", studioID)
+	setQueryValue(params, "order_by", orderBy)
+	setQueryValue(params, "sort", sort)
+	setQueryValue(params, "genres", genres)
+	setPositiveIntQueryValue(params, "limit", limit)
+
+	return buildRequestURL(baseURL, "/anime", params)
+}
+
+// SearchAdvanced performs a filtered anime search with type, status, ordering, genre filters, and studio (producer) filters.
+func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (SearchResult, error) {
+	page, limit = normalizeSearchPagination(page, limit)
+	genresParam := joinGenreIDs(genres)
 
 	cacheKey := fmt.Sprintf("search:%s:%s:%s:%s:%s:%s:%d:%v:%d:%d", query, animeType, status, orderBy, sort, genresParam, studioID, sfw, page, limit)
 
 	var result SearchResponse
-	reqURL := fmt.Sprintf("%s/anime?page=%d", c.baseURL, page)
-	if sfw {
-		reqURL += "&sfw=true"
-	}
-	if query != "" {
-		reqURL += "&q=" + url.QueryEscape(query)
-	}
-	if animeType != "" {
-		reqURL += "&type=" + url.QueryEscape(animeType)
-	}
-	if status != "" {
-		reqURL += "&status=" + url.QueryEscape(status)
-	}
-	if studioID > 0 {
-		reqURL += "&producers=" + strconv.Itoa(studioID)
-	}
-	if orderBy != "" {
-		reqURL += "&order_by=" + url.QueryEscape(orderBy)
-	}
-	if sort != "" {
-		reqURL += "&sort=" + url.QueryEscape(sort)
-	}
-	if genresParam != "" {
-		reqURL += "&genres=" + genresParam
-	}
-	if limit > 0 {
-		reqURL += fmt.Sprintf("&limit=%d", limit)
-	}
+	reqURL := buildAdvancedSearchURL(c.baseURL, query, animeType, status, orderBy, sort, genresParam, studioID, sfw, page, limit)
 
 	if err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result); err != nil {
 		return SearchResult{}, err
@@ -76,7 +76,9 @@ func (c *Client) GetTopAnime(ctx context.Context, page int) (TopAnimeResult, err
 	cacheKey := fmt.Sprintf("top:%d", page)
 
 	var result TopAnimeResponse
-	reqURL := fmt.Sprintf("%s/top/anime?page=%d", c.baseURL, page)
+	params := url.Values{}
+	params.Set("page", strconv.Itoa(page))
+	reqURL := buildRequestURL(c.baseURL, "/top/anime", params)
 
 	if err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result); err != nil {
 		return TopAnimeResult{}, err
