@@ -324,10 +324,10 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	varsJSON := fmt.Sprintf(`{"showId":"%s","translationType":"%s","episodeString":"%s"}`, showID, mode, episode)
 	extJSON := fmt.Sprintf(`{"persistedQuery":{"version":1,"sha256Hash":"%s"}}`, episodeQueryHash)
 
-	apiURL := fmt.Sprintf("%s/api?variables=%s&extensions=%s",
-		allAnimeBaseURL,
-		url.QueryEscape(varsJSON),
-		url.QueryEscape(extJSON))
+	params := url.Values{}
+	params.Set("variables", varsJSON)
+	params.Set("extensions", extJSON)
+	apiURL := fmt.Sprintf("%s/api?%s", allAnimeBaseURL, params.Encode())
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
