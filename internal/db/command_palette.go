@@ -9,9 +9,7 @@ func (q *Queries) GetCommandPaletteContinueWatching(ctx context.Context, userID 
 	if userID == "" {
 		return nil, nil
 	}
-	if limit <= 0 {
-		limit = 5
-	}
+	limit = commandPaletteLimit(limit)
 
 	needle, pattern := commandPalettePattern(query)
 	rows, err := q.db.QueryContext(ctx, `
@@ -85,9 +83,7 @@ func (q *Queries) GetCommandPaletteWatchlist(ctx context.Context, userID string,
 	if userID == "" {
 		return nil, nil
 	}
-	if limit <= 0 {
-		limit = 5
-	}
+	limit = commandPaletteLimit(limit)
 
 	needle, pattern := commandPalettePattern(query)
 	rows, err := q.db.QueryContext(ctx, `
@@ -132,23 +128,8 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 
 	items := make([]GetUserWatchListRow, 0, int(limit))
 	for rows.Next() {
-		var item GetUserWatchListRow
-		if err := rows.Scan(
-			&item.ID,
-			&item.UserID,
-			&item.AnimeID,
-			&item.Status,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.CurrentEpisode,
-			&item.LastEpisodeAt,
-			&item.CurrentTimeSeconds,
-			&item.TitleOriginal,
-			&item.TitleEnglish,
-			&item.TitleJapanese,
-			&item.ImageUrl,
-			&item.Airing,
-		); err != nil {
+		item, err := scanWatchListEntry(rows)
+		if err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -160,9 +141,38 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 	return items, nil
 }
 
+func scanWatchListEntry(rows scanner) (GetUserWatchListRow, error) {
+	var item GetUserWatchListRow
+	err := rows.Scan(
+		&item.ID,
+		&item.UserID,
+		&item.AnimeID,
+		&item.Status,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&item.CurrentEpisode,
+		&item.LastEpisodeAt,
+		&item.CurrentTimeSeconds,
+		&item.TitleOriginal,
+		&item.TitleEnglish,
+		&item.TitleJapanese,
+		&item.ImageUrl,
+		&item.Airing,
+	)
+	return item, err
+}
+
 func commandPalettePattern(query string) (string, string) {
 	needle := strings.ToLower(strings.TrimSpace(query))
 	return needle, "%" + needle + "%"
+}
+
+func commandPaletteLimit(limit int64) int64 {
+	if limit <= 0 {
+		return 5
+	}
+
+	return limit
 }
 
 type scanner interface {
