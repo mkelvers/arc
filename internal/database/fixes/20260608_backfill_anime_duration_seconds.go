@@ -17,7 +17,7 @@ type animeDurationRow struct {
 
 func init() {
 	Register(Fix{
-		ID: "20260608_backfill_anime_duration_seconds",
+		ID:    "20260608_backfill_anime_duration_seconds",
 		Apply: applyAnimeDurationSecondsBackfill,
 	})
 }
