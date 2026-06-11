@@ -20,167 +20,151 @@ func isLikelyMP4(data []byte) bool {
 	return string(data[4:8]) == "ftyp"
 }
 
-func TestDecodeSourceURL(t *testing.T) {
-	t.Parallel()
+type stringTransformTestCase struct {
+	name  string
+	input string
+	want  string
+}
 
-	tests := []struct {
-		name    string
-		encoded string
-		want    string
-	}{
-		{
-			name:    "empty returns empty",
-			encoded: "",
-			want:    "",
-		},
-		{
-			name:    "with double prefix stripped",
-			encoded: "--example.com/video.mp4",
-			want:    "example.com/video.mp4",
-		},
-		{
-			name:    "hex substitution",
-			encoded: "7aexample",
-			want:    "Bexample",
-		},
-		{
-			name:    "mixed substitution",
-			encoded: "79url7a01",
-			want:    "AurlB9",
-		},
-		{
-			name:    "clock replacement",
-			encoded: "/clock",
-			want:    "/clock.json",
-		},
-		{
-			name:    "no clock replacement if already json",
-			encoded: "/clock.json",
-			want:    "/clock.json",
-		},
-		{
-			name:    "complex url",
-			encoded: "--79stream7acom",
-			want:    "AstreamBcom",
-		},
-	}
+func runStringTransformTests(t *testing.T, tests []stringTransformTestCase, fn func(string) string) {
+	t.Helper()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := decodeSourceURL(tt.encoded)
+			got := fn(tt.input)
 			if got != tt.want {
-				t.Errorf("decodeSourceURL(%q) = %q, want %q", tt.encoded, got, tt.want)
+				t.Errorf("got %q for input %q, want %q", got, tt.input, tt.want)
 			}
 		})
 	}
+}
+
+func TestDecodeSourceURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []stringTransformTestCase{
+		{
+			name:  "empty returns empty",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "with double prefix stripped",
+			input: "--example.com/video.mp4",
+			want:  "example.com/video.mp4",
+		},
+		{
+			name:  "hex substitution",
+			input: "7aexample",
+			want:  "Bexample",
+		},
+		{
+			name:  "mixed substitution",
+			input: "79url7a01",
+			want:  "AurlB9",
+		},
+		{
+			name:  "clock replacement",
+			input: "/clock",
+			want:  "/clock.json",
+		},
+		{
+			name:  "no clock replacement if already json",
+			input: "/clock.json",
+			want:  "/clock.json",
+		},
+		{
+			name:  "complex url",
+			input: "--79stream7acom",
+			want:  "AstreamBcom",
+		},
+	}
+
+	runStringTransformTests(t, tests, decodeSourceURL)
 }
 
 func TestDetectStreamType(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name     string
-		url      string
-		wantType string
-	}{
+	tests := []stringTransformTestCase{
 		{
-			name:     "m3u8 extension",
-			url:      "https://example.com/video.m3u8",
-			wantType: "m3u8",
+			name:  "m3u8 extension",
+			input: "https://example.com/video.m3u8",
+			want:  "m3u8",
 		},
 		{
-			name:     "master m3u8",
-			url:      "https://example.com/master.m3u8",
-			wantType: "m3u8",
+			name:  "master m3u8",
+			input: "https://example.com/master.m3u8",
+			want:  "m3u8",
 		},
 		{
-			name:     "mp4 extension",
-			url:      "https://example.com/video.mp4",
-			wantType: "mp4",
+			name:  "mp4 extension",
+			input: "https://example.com/video.mp4",
+			want:  "mp4",
 		},
 		{
-			name:     "unknown",
-			url:      "https://example.com/video.avi",
-			wantType: "unknown",
+			name:  "unknown",
+			input: "https://example.com/video.avi",
+			want:  "unknown",
 		},
 		{
-			name:     "empty returns unknown",
-			url:      "",
-			wantType: "unknown",
+			name:  "empty returns unknown",
+			input: "",
+			want:  "unknown",
 		},
 		{
-			name:     "case insensitive - M3U8",
-			url:      "https://example.com/MASTER.M3U8",
-			wantType: "m3u8",
+			name:  "case insensitive - M3U8",
+			input: "https://example.com/MASTER.M3U8",
+			want:  "m3u8",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := detectStreamType(tt.url)
-			if got != tt.wantType {
-				t.Errorf("detectStreamType(%q) = %q, want %q", tt.url, got, tt.wantType)
-			}
-		})
-	}
+	runStringTransformTests(t, tests, detectStreamType)
 }
 
 func TestDetectEmbedType(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name     string
-		url      string
-		wantType string
-	}{
+	tests := []stringTransformTestCase{
 		{
-			name:     "streamwish",
-			url:      "https://streamwish.com/e/abc123",
-			wantType: "embed",
+			name:  "streamwish",
+			input: "https://streamwish.com/e/abc123",
+			want:  "embed",
 		},
 		{
-			name:     "streamsb",
-			url:      "https://streamsb.com/e/abc123",
-			wantType: "embed",
+			name:  "streamsb",
+			input: "https://streamsb.com/e/abc123",
+			want:  "embed",
 		},
 		{
-			name:     "mp4upload",
-			url:      "https://mp4upload.com/e/abc123",
-			wantType: "embed",
+			name:  "mp4upload",
+			input: "https://mp4upload.com/e/abc123",
+			want:  "embed",
 		},
 		{
-			name:     "ok.ru",
-			url:      "https://ok.ru/video/123",
-			wantType: "embed",
+			name:  "ok.ru",
+			input: "https://ok.ru/video/123",
+			want:  "embed",
 		},
 		{
-			name:     "gogoplay",
-			url:      "https://gogoplay.io/embed/123",
-			wantType: "embed",
+			name:  "gogoplay",
+			input: "https://gogoplay.io/embed/123",
+			want:  "embed",
 		},
 		{
-			name:     "streamlare",
-			url:      "https://streamlare.com/e/abc",
-			wantType: "embed",
+			name:  "streamlare",
+			input: "https://streamlare.com/e/abc",
+			want:  "embed",
 		},
 		{
-			name:     "unknown host",
-			url:      "https://unknown.com/video",
-			wantType: "unknown",
+			name:  "unknown host",
+			input: "https://unknown.com/video",
+			want:  "unknown",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := detectEmbedType(tt.url)
-			if got != tt.wantType {
-				t.Errorf("detectEmbedType(%q) = %q, want %q", tt.url, got, tt.wantType)
-			}
-		})
-	}
+	runStringTransformTests(t, tests, detectEmbedType)
 }
 
 func TestBuildStreamSource(t *testing.T) {
