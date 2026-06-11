@@ -27,7 +27,7 @@ func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender, metrics *obs
 		gin.SetMode(cfg.GinMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddlewareWithConfig(cfg), audit.ContextMiddleware(), RequestLogger(metrics), gin.Recovery())
+	r.Use(CORSMiddlewareWithConfig(cfg), RequestContextMiddleware(), audit.ContextMiddleware(), RequestLogger(metrics), gin.Recovery())
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
 	r.GET("/metrics", gin.WrapH(metrics.Handler()))

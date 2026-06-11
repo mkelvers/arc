@@ -201,7 +201,7 @@ func (h *AnimeHandler) HandleProducers(c *gin.Context) {
 
 	res, err := h.svc.GetProducers(c.Request.Context(), q, page, limit)
 	if err != nil {
-		observability.Warn(
+		observability.WarnContext(c.Request.Context(),
 			"producers_fetch_failed",
 			"anime",
 			"",
@@ -270,7 +270,7 @@ func (h *AnimeHandler) HandleCatalogTopPickForYou(c *gin.Context) {
 
 	data, err := h.svc.GetTopPickForYou(c.Request.Context(), userID)
 	if err != nil {
-		observability.Warn(
+		observability.WarnContext(c.Request.Context(),
 			"top_pick_for_you_fetch_failed",
 			"anime",
 			"",
@@ -321,7 +321,7 @@ func (h *AnimeHandler) HandleDiscoverTopPicksForYou(c *gin.Context) {
 
 	data, err := h.svc.GetTopPicksForYou(c.Request.Context(), userID)
 	if err != nil {
-		observability.Warn(
+		observability.WarnContext(c.Request.Context(),
 			"top_picks_for_you_fetch_failed",
 			"anime",
 			"",
@@ -375,7 +375,7 @@ func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
 }
 
 func (h *AnimeHandler) abortSectionFetch(c *gin.Context, event string, userID string, section string, err error) {
-	observability.Warn(
+	observability.WarnContext(c.Request.Context(),
 		event,
 		"anime",
 		"",
@@ -407,7 +407,7 @@ func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
 	if err != nil {
 		prevYear, prevWeek := adjacentISOWeek(year, week, -1)
 		nextYear, nextWeek := adjacentISOWeek(year, week, 1)
-		observability.Warn(
+		observability.WarnContext(c.Request.Context(),
 			"animeschedule_fetch_failed",
 			"anime",
 			"",

@@ -27,7 +27,18 @@ func RespondError(c *gin.Context, status int, event string, component string, me
 	if status >= http.StatusInternalServerError {
 		level = observability.LogLevelError
 	}
-	observability.LogJSON(level, event, component, "", fields, err)
+	if fields == nil {
+		fields = make(map[string]any, 2)
+	}
+	if _, exists := fields["request_path"]; !exists {
+		fields["request_path"] = c.Request.URL.Path
+	}
+	if route := c.FullPath(); route != "" && route != c.Request.URL.Path {
+		if _, exists := fields["request_route"]; !exists {
+			fields["request_route"] = route
+		}
+	}
+	observability.LogContext(c.Request.Context(), level, event, component, "", fields, err)
 	RespondHTMLOrJSONError(c, status, message)
 }
 

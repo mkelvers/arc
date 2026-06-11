@@ -31,23 +31,40 @@ func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
 			level = observability.LogLevelWarn
 		}
 
-		observability.LogJSON(
+		fields := map[string]any{
+			"client_ip":   c.ClientIP(),
+			"duration_ms": float64(duration.Microseconds()) / 1000,
+			"method":      c.Request.Method,
+			"path":        path,
+			"request_id":  c.Writer.Header().Get(requestIDHeader),
+			"status":      status,
+		}
+		privateErrors := c.Errors.ByType(gin.ErrorTypePrivate)
+		var logErr error
+		if len(privateErrors) > 0 {
+			logErr = privateErrors.Last().Err
+		}
+		if route != path {
+			fields["route"] = route
+		}
+		if query != "" {
+			fields["query"] = query
+		}
+		if size := c.Writer.Size(); size >= 0 {
+			fields["bytes"] = size
+		}
+		if errors := privateErrors.String(); errors != "" {
+			fields["errors"] = errors
+		}
+
+		observability.LogContext(
+			c.Request.Context(),
 			level,
 			"http_request",
 			"http",
-			"",
-			map[string]any{
-				"method":      c.Request.Method,
-				"route":       route,
-				"path":        path,
-				"query":       query,
-				"status":      status,
-				"duration_ms": float64(duration.Microseconds()) / 1000,
-				"bytes":       c.Writer.Size(),
-				"client_ip":   c.ClientIP(),
-				"errors":      c.Errors.ByType(gin.ErrorTypePrivate).String(),
-			},
-			nil,
+			c.Request.Method+" "+path,
+			fields,
+			logErr,
 		)
 	}
 }

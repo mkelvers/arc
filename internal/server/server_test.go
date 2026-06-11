@@ -44,6 +44,7 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 	defer log.SetOutput(previousOutput)
 
 	router := gin.New()
+	router.Use(RequestContextMiddleware())
 	router.Use(RequestLogger(observability.NewMetrics()))
 	router.GET("/anime/:id", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
@@ -59,13 +60,54 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 	}
 
 	logLine := string(output)
-	if !strings.Contains(logLine, `"event":"http_request"`) {
-		t.Fatalf("log line missing event: %s", logLine)
+	if !strings.Contains(logLine, " INFO http 200 GET /anime/1") {
+		t.Fatalf("log line missing compact http summary: %s", logLine)
 	}
-	if !strings.Contains(logLine, `"route":"/anime/:id"`) {
+	if !strings.Contains(logLine, " route=/anime/:id") {
 		t.Fatalf("log line missing route: %s", logLine)
 	}
-	if !strings.Contains(logLine, `"status":200`) {
-		t.Fatalf("log line missing status: %s", logLine)
+	if !strings.Contains(logLine, " request_id=") {
+		t.Fatalf("log line missing request id: %s", logLine)
+	}
+	if strings.Contains(logLine, `"GET /anime/1"`) {
+		t.Fatalf("log line should not duplicate request summary: %s", logLine)
+	}
+	if rec.Header().Get(requestIDHeader) == "" {
+		t.Fatalf("expected %s response header to be set", requestIDHeader)
+	}
+}
+
+func TestRespondErrorIncludesRequestContext(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var logs bytes.Buffer
+	previousOutput := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(previousOutput)
+
+	router := gin.New()
+	router.Use(RequestContextMiddleware())
+	router.GET("/anime/:id", func(c *gin.Context) {
+		RespondError(c, http.StatusInternalServerError, "anime_lookup_failed", "anime", "failed", nil, context.DeadlineExceeded)
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/anime/1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	output, err := io.ReadAll(&logs)
+	if err != nil {
+		t.Fatalf("read logs: %v", err)
+	}
+
+	logLine := string(output)
+	if !strings.Contains(logLine, " request_id=") {
+		t.Fatalf("log line missing request id: %s", logLine)
+	}
+	if !strings.Contains(logLine, " request_path=/anime/1") {
+		t.Fatalf("log line missing request path: %s", logLine)
+	}
+	if !strings.Contains(logLine, " request_route=/anime/:id") {
+		t.Fatalf("log line missing request route: %s", logLine)
 	}
 }

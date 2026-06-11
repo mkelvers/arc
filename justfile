@@ -17,14 +17,13 @@ test:
     go test ./...
 
 build-go:
-    go build -o server ./cmd/server
+    @go build -o server ./cmd/server
 
 build-css:
-    bunx @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css
+    @bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css
 
 build-ts:
-    bun build ./static/player/main.ts --outdir ./dist/static/player --target browser --splitting
-    bun build ./static/*.ts --outdir ./dist/static --target browser --root ./static --entry-naming "[name].js"
+    @bun ./scripts/build-ts.ts
 
 build: build-go build-css build-ts
 
@@ -37,7 +36,7 @@ install-hooks:
     bunx lefthook install
 
 dev: build
-    ./server
+    @./server
 
 clean:
     rm -rf dist/*

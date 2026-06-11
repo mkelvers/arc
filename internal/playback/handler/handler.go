@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"mal/internal/server"
 	netutil "mal/pkg/net"
 	"net/http"
@@ -302,6 +303,8 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 
 	resp, err := h.streamingClient.Do(req)
 	if err != nil {
+		observability.ErrorContext(c.Request.Context(), "proxy_stream_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -310,11 +313,15 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	if isHLSPlaylistResponse(targetURL, resp.Header) {
 		body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 		if err != nil {
+			observability.ErrorContext(c.Request.Context(), "proxy_stream_playlist_read_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+			_ = c.Error(err).SetType(gin.ErrorTypePrivate)
 			c.Status(http.StatusBadGateway)
 			return
 		}
 		rewritten, err := h.rewriteHLSPlaylist(string(body), targetURL, referer)
 		if err != nil {
+			observability.ErrorContext(c.Request.Context(), "proxy_stream_playlist_rewrite_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+			_ = c.Error(err).SetType(gin.ErrorTypePrivate)
 			c.Status(http.StatusBadGateway)
 			return
 		}
@@ -484,6 +491,8 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 
 	resp, err := h.proxyClient.Do(req)
 	if err != nil {
+		observability.ErrorContext(c.Request.Context(), "proxy_subtitle_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -491,6 +500,8 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
+		observability.ErrorContext(c.Request.Context(), "proxy_subtitle_read_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
 		c.Status(http.StatusBadGateway)
 		return
 	}

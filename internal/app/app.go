@@ -10,6 +10,7 @@ import (
 	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/episodes"
+	"mal/internal/observability"
 	"mal/internal/playback"
 	"mal/internal/server"
 	"mal/internal/watchlist"
@@ -18,10 +19,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 )
 
 func NewApp() *fx.App {
 	return fx.New(
+		fx.WithLogger(func() fxevent.Logger {
+			return observability.NewFxLogger()
+		}),
 		config.Module,
 		database.Module,
 		audit.Module,
