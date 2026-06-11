@@ -26,6 +26,12 @@ type stringTransformTestCase struct {
 	want  string
 }
 
+type sourceReferencesTestCase struct {
+	name     string
+	rawURLs  []any
+	wantRefs []sourceReference
+}
+
 func runStringTransformTests(t *testing.T, tests []stringTransformTestCase, fn func(string) string) {
 	t.Helper()
 
@@ -35,6 +41,31 @@ func runStringTransformTests(t *testing.T, tests []stringTransformTestCase, fn f
 			got := fn(tt.input)
 			if got != tt.want {
 				t.Errorf("got %q for input %q, want %q", got, tt.input, tt.want)
+			}
+		})
+	}
+}
+
+func runSourceReferenceTests(t *testing.T, tests []sourceReferencesTestCase) {
+	t.Helper()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := buildSourceReferences(tt.rawURLs)
+			if len(got) != len(tt.wantRefs) {
+				t.Errorf("got %d refs, want %d", len(got), len(tt.wantRefs))
+				return
+			}
+
+			for i, want := range tt.wantRefs {
+				if got[i].URL != want.URL {
+					t.Errorf("ref[%d].URL = %q, want %q", i, got[i].URL, want.URL)
+				}
+				if got[i].Name != want.Name {
+					t.Errorf("ref[%d].Name = %q, want %q", i, got[i].Name, want.Name)
+				}
 			}
 		})
 	}
@@ -191,11 +222,7 @@ func TestBuildStreamSource(t *testing.T) {
 func TestBuildSourceReferences(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name     string
-		rawURLs  []any
-		wantRefs []sourceReference
-	}{
+	tests := []sourceReferencesTestCase{
 		{
 			name:     "empty returns empty",
 			rawURLs:  nil,
@@ -247,26 +274,7 @@ func TestBuildSourceReferences(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			got := buildSourceReferences(tt.rawURLs)
-
-			if len(got) != len(tt.wantRefs) {
-				t.Errorf("got %d refs, want %d", len(got), len(tt.wantRefs))
-				return
-			}
-
-			for i, want := range tt.wantRefs {
-				if got[i].URL != want.URL {
-					t.Errorf("ref[%d].URL = %q, want %q", i, got[i].URL, want.URL)
-				}
-				if got[i].Name != want.Name {
-					t.Errorf("ref[%d].Name = %q, want %q", i, got[i].Name, want.Name)
-				}
-			}
-		})
-	}
+	runSourceReferenceTests(t, tests)
 }
 
 func TestBuildSourceReferencesOrder(t *testing.T) {
