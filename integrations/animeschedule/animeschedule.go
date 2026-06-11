@@ -239,20 +239,26 @@ func parseMeta(meta string) (episodeText string, localTime string, airType AirTy
 	}
 
 	localTime = strings.TrimSpace(parts[timeIdx] + " " + parts[timeIdx+1])
-	typeRaw := strings.TrimSpace(parts[timeIdx+2])
-	switch strings.ToUpper(typeRaw) {
-	case "JPN":
-		airType = AirTypeJPN
-	case "SUB":
-		airType = AirTypeSUB
-	case "DUB":
-		airType = AirTypeDUB
-	default:
+	airType, ok := parseAirType(parts[timeIdx+2])
+	if !ok {
 		return "", "", ""
 	}
 
 	episodeText = strings.TrimSpace(strings.Join(parts[:timeIdx], " "))
 	return episodeText, localTime, airType
+}
+
+func parseAirType(raw string) (AirType, bool) {
+	switch strings.ToUpper(strings.TrimSpace(raw)) {
+	case "JPN":
+		return AirTypeJPN, true
+	case "SUB":
+		return AirTypeSUB, true
+	case "DUB":
+		return AirTypeDUB, true
+	default:
+		return "", false
+	}
 }
 
 func preferredReleaseEntries(entries []Entry) []Entry {
