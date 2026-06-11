@@ -346,7 +346,7 @@ func addCommonHeaders(request *http.Request) {
 }
 
 func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*goquery.Document, string, error) {
-	document, response, err := netutil.FetchHTMLDocument(ctx, httpClient, url, addCommonHeaders, func(response *http.Response, body []byte) error {
+	document, finalURL, err := netutil.FetchHTMLDocument(ctx, httpClient, url, addCommonHeaders, func(response *http.Response, body []byte) error {
 		return &HTTPStatusError{
 			StatusCode:  response.StatusCode,
 			URL:         url,
@@ -355,10 +355,10 @@ func fetchDocument(ctx context.Context, httpClient *http.Client, url string) (*g
 		}
 	})
 	if err != nil {
-		return nil, url, err
+		return nil, finalURL, err
 	}
 
-	return document, response.Request.URL.String(), nil
+	return document, finalURL, nil
 }
 
 type timetableAnimeAPI struct {
