@@ -448,29 +448,33 @@ func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
 	})
 }
 
-func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
-	q := c.Query("q")
-	animeType := c.Query("type")
-	status := c.Query("status")
-	orderBy := c.Query("order_by")
-	sort := c.Query("sort")
-	sfw := c.Query("sfw") != "false"
+type browseQuery struct {
+	q         string
+	animeType string
+	status    string
+	orderBy   string
+	sort      string
+	sfw       bool
+	studioID  int
+	genres    []int
+	page      int
+}
+
+func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
 	studioID := 0
 	if raw := strings.TrimSpace(c.Query("studio")); raw != "" {
 		id, err := strconv.Atoi(raw)
 		if err != nil || id < 0 {
-			server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid studio id")
-			return
+			return browseQuery{}, fmt.Errorf("invalid studio id")
 		}
 		studioID = id
 	}
 
-	var genres []int
+	genres := make([]int, 0, len(c.QueryArray("genres")))
 	for _, g := range c.QueryArray("genres") {
 		id, err := strconv.Atoi(g)
 		if err != nil {
-			server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid genre id")
-			return
+			return browseQuery{}, fmt.Errorf("invalid genre id")
 		}
 		if id > 0 {
 			genres = append(genres, id)
@@ -479,33 +483,139 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid page")
-		return
+		return browseQuery{}, fmt.Errorf("invalid page")
 	}
 	if page < 1 {
 		page = 1
 	}
 
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), q, animeType, status, orderBy, sort, genres, studioID, sfw, page, 24)
+	return browseQuery{
+		q:         c.Query("q"),
+		animeType: c.Query("type"),
+		status:    c.Query("status"),
+		orderBy:   c.Query("order_by"),
+		sort:      c.Query("sort"),
+		sfw:       c.Query("sfw") != "false",
+		studioID:  studioID,
+		genres:    genres,
+		page:      page,
+	}, nil
+}
+
+func browseStudioName(ctx context.Context, svc Service, studioID int) string {
+	if studioID <= 0 {
+		return ""
+	}
+
+	name, err := svc.GetProducerNameByID(ctx, studioID)
 	if err != nil {
-		server.RespondError(
-			c,
-			http.StatusInternalServerError,
-			"browse_search_failed",
-			"anime",
-			"failed to load browse results",
-			map[string]any{
-				"q":        q,
-				"type":     animeType,
-				"status":   status,
-				"order_by": orderBy,
-				"sort":     sort,
-				"studio":   studioID,
-				"sfw":      sfw,
-				"page":     page,
-			},
-			err,
-		)
+		return ""
+	}
+
+	return name
+}
+
+func browseTemplateData(
+	q browseQuery,
+	studioName string,
+	genresList []domain.Genre,
+	animes []domain.Anime,
+	user any,
+	watchlistMap map[int64]bool,
+	hasNextPage bool,
+) gin.H {
+	return gin.H{
+		"CurrentPath":  "/browse",
+		"Query":        q.q,
+		"Type":         q.animeType,
+		"Status":       q.status,
+		"OrderBy":      q.orderBy,
+		"Sort":         q.sort,
+		"Genres":       q.genres,
+		"Studio":       q.studioID,
+		"StudioName":   studioName,
+		"SFW":          q.sfw,
+		"GenresList":   genresList,
+		"Animes":       animes,
+		"HasNextPage":  hasNextPage,
+		"NextPage":     q.page + 1,
+		"User":         user,
+		"WatchlistMap": watchlistMap,
+	}
+}
+
+func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (jikan.SearchResult, error) {
+	return h.svc.SearchAdvanced(
+		ctx,
+		query.q,
+		query.animeType,
+		query.status,
+		query.orderBy,
+		query.sort,
+		query.genres,
+		query.studioID,
+		query.sfw,
+		query.page,
+		24,
+	)
+}
+
+func browseScrollData(
+	query browseQuery,
+	studioName string,
+	animes []domain.Anime,
+	watchlistMap map[int64]bool,
+	hasNextPage bool,
+) gin.H {
+	return gin.H{
+		"_fragment":    "anime_card_scroll",
+		"Animes":       animes,
+		"NextPage":     query.page + 1,
+		"HasNextPage":  hasNextPage,
+		"Query":        query.q,
+		"Type":         query.animeType,
+		"Status":       query.status,
+		"OrderBy":      query.orderBy,
+		"Sort":         query.sort,
+		"Genres":       query.genres,
+		"Studio":       query.studioID,
+		"StudioName":   studioName,
+		"SFW":          query.sfw,
+		"WatchlistMap": watchlistMap,
+	}
+}
+
+func (h *AnimeHandler) respondBrowseSearchError(c *gin.Context, query browseQuery, err error) {
+	server.RespondError(
+		c,
+		http.StatusInternalServerError,
+		"browse_search_failed",
+		"anime",
+		"failed to load browse results",
+		map[string]any{
+			"q":        query.q,
+			"type":     query.animeType,
+			"status":   query.status,
+			"order_by": query.orderBy,
+			"sort":     query.sort,
+			"studio":   query.studioID,
+			"sfw":      query.sfw,
+			"page":     query.page,
+		},
+		err,
+	)
+}
+
+func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
+	query, err := parseBrowseQuery(c)
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	res, err := h.searchBrowse(c.Request.Context(), query)
+	if err != nil {
+		h.respondBrowseSearchError(c, query, err)
 		return
 	}
 
@@ -513,54 +623,15 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
+	studioName := browseStudioName(c.Request.Context(), h.svc, query.studioID)
 
-	studioName := ""
-	if studioID > 0 {
-		name, err := h.svc.GetProducerNameByID(c.Request.Context(), studioID)
-		if err == nil {
-			studioName = name
-		}
-	}
-
-	if c.GetHeader("HX-Request") == "true" && page > 1 {
-		c.HTML(http.StatusOK, "browse.gohtml", gin.H{
-			"_fragment":    "anime_card_scroll",
-			"Animes":       animes,
-			"NextPage":     page + 1,
-			"HasNextPage":  res.HasNextPage,
-			"Query":        q,
-			"Type":         animeType,
-			"Status":       status,
-			"OrderBy":      orderBy,
-			"Sort":         sort,
-			"Genres":       genres,
-			"Studio":       studioID,
-			"StudioName":   studioName,
-			"SFW":          sfw,
-			"WatchlistMap": watchlistMap,
-		})
+	if c.GetHeader("HX-Request") == "true" && query.page > 1 {
+		c.HTML(http.StatusOK, "browse.gohtml", browseScrollData(query, studioName, animes, watchlistMap, res.HasNextPage))
 		return
 	}
 
 	genresList, _ := h.svc.GetGenres(c.Request.Context())
-	browseData := gin.H{
-		"CurrentPath":  "/browse",
-		"Query":        q,
-		"Type":         animeType,
-		"Status":       status,
-		"OrderBy":      orderBy,
-		"Sort":         sort,
-		"Genres":       genres,
-		"Studio":       studioID,
-		"StudioName":   studioName,
-		"SFW":          sfw,
-		"GenresList":   genresList,
-		"Animes":       animes,
-		"HasNextPage":  res.HasNextPage,
-		"NextPage":     page + 1,
-		"User":         user,
-		"WatchlistMap": watchlistMap,
-	}
+	browseData := browseTemplateData(query, studioName, genresList, animes, user, watchlistMap, res.HasNextPage)
 
 	if c.GetHeader("HX-Request") == "true" {
 		browseData["_fragment"] = "browse_content"
