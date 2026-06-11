@@ -398,6 +398,17 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 	return nil
 }
 
+func normalizeSkipType(skipType string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(skipType)) {
+	case "op", "opening", "intro":
+		return "op", nil
+	case "ed", "ending", "outro":
+		return "ed", nil
+	default:
+		return "", fmt.Errorf("invalid skip_type")
+	}
+}
+
 func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error {
 	if userID == "" {
 		return fmt.Errorf("not authenticated")
@@ -405,14 +416,9 @@ func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID 
 	if animeID <= 0 || episode <= 0 {
 		return fmt.Errorf("invalid anime/episode")
 	}
-	t := strings.ToLower(strings.TrimSpace(skipType))
-	switch t {
-	case "op", "opening", "intro":
-		t = "op"
-	case "ed", "ending", "outro":
-		t = "ed"
-	default:
-		return fmt.Errorf("invalid skip_type")
+	t, err := normalizeSkipType(skipType)
+	if err != nil {
+		return err
 	}
 	if !(startTime >= 0) || !(endTime > startTime) {
 		return fmt.Errorf("invalid interval")
