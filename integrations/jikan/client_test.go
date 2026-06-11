@@ -52,7 +52,6 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	waitForFreshCache(t, sqlDB, client, "top:1")
 }
 
-
 func newTestCacheDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
