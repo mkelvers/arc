@@ -3,14 +3,26 @@ version: "2"
 linters:
   default: none
   enable:
+    - bodyclose
     - copyloopvar
+    - cyclop
+    - dupl
     - errcheck
+    - funlen
+    - gocognit
+    - gocyclo
     - govet
     - ineffassign
+    - maintidx
+    - nakedret
+    - nilerr
+    - noctx
     - revive
     - staticcheck
     - unconvert
+    - unparam
     - unused
+    - wastedassign
   settings:
     revive:
       enable-all-rules: false

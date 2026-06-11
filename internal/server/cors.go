@@ -8,10 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CORSMiddleware() gin.HandlerFunc {
-	return CORSMiddlewareWithConfig(config.Config{})
-}
-
 func CORSMiddlewareWithConfig(cfg config.Config) gin.HandlerFunc {
 	allowAll := cfg.CORSAllowAll
 	return func(c *gin.Context) {
