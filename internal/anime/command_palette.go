@@ -7,7 +7,6 @@ import (
 	"mal/internal/domain"
 	"mal/internal/server"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -35,18 +34,6 @@ func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
 	items := make([]commandPaletteItem, 0, 12)
 
 	if query != "" {
-		values := url.Values{}
-		values.Set("q", query)
-
-		items = append(items, commandPaletteItem{
-			ID:       "search:" + strings.ToLower(query),
-			Type:     "search",
-			Label:    fmt.Sprintf("Search anime for %q", query),
-			Subtitle: "Browse",
-			Href:     "/browse?" + values.Encode(),
-			Icon:     "search",
-		})
-
 		if len(query) >= 2 {
 			items = append(items, h.commandPaletteAnimeResults(c, query)...)
 		}
@@ -88,7 +75,7 @@ func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) 
 	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 800*time.Millisecond)
 	defer cancel()
 
-	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, 0, true, 1, 5)
+	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, 0, true, 1, 24)
 	if err != nil {
 		return nil
 	}
