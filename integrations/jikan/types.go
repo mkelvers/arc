@@ -33,12 +33,18 @@ type Aired struct {
 	String string `json:"string"`
 }
 
+type TitleEntry struct {
+	Type  string `json:"type"`
+	Title string `json:"title"`
+}
+
 type Anime struct {
-	MalID         int      `json:"mal_id"`
-	Title         string   `json:"title"`
-	TitleEnglish  string   `json:"title_english"`
-	TitleJapanese string   `json:"title_japanese"`
-	TitleSynonyms []string `json:"title_synonyms"`
+	MalID         int          `json:"mal_id"`
+	Title         string       `json:"title"`
+	TitleEnglish  string       `json:"title_english"`
+	TitleJapanese string       `json:"title_japanese"`
+	TitleSynonyms []string     `json:"title_synonyms"`
+	Titles        []TitleEntry `json:"titles"`
 	Images        struct {
 		Jpg struct {
 			LargeImageURL string `json:"large_image_url"`
@@ -454,13 +460,16 @@ type ReviewsResponse struct {
 	Pagination Pagination    `json:"pagination"`
 }
 
-// DisplayTitle returns English title if available, otherwise Japanese, then default.
+// DisplayTitle returns English title if available, otherwise default title, titles[0], then Japanese.
 func (a Anime) DisplayTitle() string {
 	if a.TitleEnglish != "" {
 		return a.TitleEnglish
 	}
-	if a.TitleJapanese != "" {
-		return a.TitleJapanese
+	if a.Title != "" {
+		return a.Title
 	}
-	return a.Title
+	if len(a.Titles) > 0 && a.Titles[0].Title != "" {
+		return a.Titles[0].Title
+	}
+	return a.TitleJapanese
 }
