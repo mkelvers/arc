@@ -9,6 +9,16 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+func responseURL(response *http.Response, fallbackRequest *http.Request) string {
+	if response != nil && response.Request != nil && response.Request.URL != nil {
+		return response.Request.URL.String()
+	}
+	if fallbackRequest != nil && fallbackRequest.URL != nil {
+		return fallbackRequest.URL.String()
+	}
+	return ""
+}
+
 func FetchHTMLDocument(
 	ctx context.Context,
 	httpClient *http.Client,
@@ -37,13 +47,13 @@ func FetchHTMLDocument(
 
 	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, Bytes512))
-		return nil, response.Request.URL.String(), buildStatusError(response, body)
+		return nil, responseURL(response, request), buildStatusError(response, body)
 	}
 
 	document, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
-		return nil, response.Request.URL.String(), fmt.Errorf("failed to parse html: %w", err)
+		return nil, responseURL(response, request), fmt.Errorf("failed to parse html: %w", err)
 	}
 
-	return document, response.Request.URL.String(), nil
+	return document, responseURL(response, request), nil
 }
