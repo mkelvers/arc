@@ -11,9 +11,15 @@ func NullStringOr(n sql.NullString, fallback string) string {
 	return fallback
 }
 
-// DisplayTitle returns the English title, falling back to Japanese then original
+// DisplayTitle returns the English title, falling back to original then Japanese.
 func DisplayTitle(titleEnglish, titleJapanese sql.NullString, titleOriginal string) string {
-	return NullStringOr(titleEnglish, NullStringOr(titleJapanese, titleOriginal))
+	if titleEnglish.Valid && titleEnglish.String != "" {
+		return titleEnglish.String
+	}
+	if titleOriginal != "" {
+		return titleOriginal
+	}
+	return NullStringOr(titleJapanese, titleOriginal)
 }
 
 func (r GetUserWatchListRow) DisplayTitle() string {
