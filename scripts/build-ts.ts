@@ -76,7 +76,8 @@ async function main(): Promise<void> {
 }
 
 function summarizeFailure(stderr: Uint8Array, stdout: Uint8Array): string {
-  const combined = `${Buffer.from(stderr).toString("utf8")}${Buffer.from(stdout).toString("utf8")}`.trim();
+  const combined =
+    `${Buffer.from(stderr).toString("utf8")}${Buffer.from(stdout).toString("utf8")}`.trim();
   if (combined === "") {
     return "";
   }

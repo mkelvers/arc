@@ -493,7 +493,8 @@ const openSearch = (): void => {
     return;
   }
 
-  lastFocusedSearchOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  lastFocusedSearchOpener =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
   setSearchState(true);
   searchInput.value = "";
   lastQuery = "";
