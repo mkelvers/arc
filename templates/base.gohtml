@@ -93,7 +93,7 @@
         <!-- Sidebar -->
         <div id="mobile-menu-backdrop" data-mobile-menu-backdrop class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden"></div>
 
-        <div id="mobile-menu" data-mobile-open="false" class="fixed inset-y-0 left-0 z-50 w-64 shrink-0 overflow-hidden bg-background-sidebar transition-transform duration-300 lg:static lg:translate-x-0 lg:transition-none">
+        <div id="mobile-menu" data-mobile-open="false" class="fixed inset-y-0 left-0 z-50 w-64 shrink-0 overflow-hidden border-r border-(--border-light) bg-background-sidebar transition-transform duration-300 lg:static lg:translate-x-0 lg:transition-none">
 	          {{block "sidebar" .}}
 	            {{template "navigation" dict "CurrentPath" .CurrentPath "IsCollapsed" false}}
 	          {{end}}
