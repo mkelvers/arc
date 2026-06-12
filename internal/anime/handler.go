@@ -756,11 +756,12 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 	}
 
 	userID := server.CurrentUserID(c)
+	mode := jikan.NormalizeWatchOrderMode(c.Query("mode"))
 
 	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), watchOrderTimeout)
 	defer cancel()
 
-	relations, err := h.svc.GetRelations(relationsCtx, id)
+	relations, err := h.svc.GetRelations(relationsCtx, id, mode)
 	if err != nil {
 		observability.Warn(
 			"relations_fetch_failed",
@@ -774,6 +775,7 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 		c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 			"_fragment": "watch_order_loading",
 			"AnimeID":   id,
+			"Mode":      string(mode),
 		})
 		return
 	}
@@ -790,6 +792,7 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 		"_fragment":    "watch_order",
 		"Relations":    relations,
 		"AnimeID":      id,
+		"Mode":         string(mode),
 		"WatchlistMap": watchlistMap,
 	})
 }

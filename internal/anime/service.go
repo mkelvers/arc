@@ -588,8 +588,8 @@ func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain
 	return out, nil
 }
 
-func (s *animeService) GetRelations(ctx context.Context, id int) ([]jikan.RelationEntry, error) {
-	return s.jikan.GetFullRelations(ctx, id)
+func (s *animeService) GetRelations(ctx context.Context, id int, mode jikan.WatchOrderMode) ([]jikan.RelationEntry, error) {
+	return s.jikan.GetFullRelations(ctx, id, mode)
 }
 
 func (s *animeService) WarmDetailSections(id int) {

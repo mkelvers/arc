@@ -1,17 +1,18 @@
 package anime
 
 import (
-	"context"
 	"fmt"
 	"mal/internal/db"
 	"mal/internal/domain"
 	"mal/internal/server"
 	"net/http"
+	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+const commandPaletteAnimeLimit = 24
 
 type commandPaletteItem struct {
 	ID       string `json:"id"`
@@ -23,6 +24,12 @@ type commandPaletteItem struct {
 	Icon     string `json:"icon,omitempty"`
 }
 
+type commandPaletteResponse struct {
+	Items       []commandPaletteItem `json:"items"`
+	HasNextPage bool                 `json:"hasNextPage"`
+	NextPage    int                  `json:"nextPage,omitempty"`
+}
+
 func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
 	user := server.CurrentUser(c)
 	if user == nil {
@@ -31,24 +38,40 @@ func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
 	}
 
 	query := strings.TrimSpace(c.Query("q"))
-	items := make([]commandPaletteItem, 0, 12)
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid page"})
+		return
+	}
+
+	items := make([]commandPaletteItem, 0, commandPaletteAnimeLimit)
 
 	if query != "" {
+		hasNextPage := false
 		if len(query) >= 2 {
-			items = append(items, h.commandPaletteAnimeResults(c, query)...)
+			var animeItems []commandPaletteItem
+			animeItems, hasNextPage = h.commandPaletteAnimeResults(c, query, page)
+			items = append(items, animeItems...)
 		}
 
-		items = append(items, h.commandPaletteNavigationItems(query)...)
-		items = append(items, h.commandPaletteContinueItems(c, user.ID, query)...)
-		items = append(items, h.commandPalettePersonalItems(c, user.ID, query)...)
-		c.JSON(http.StatusOK, items)
+		if page == 1 {
+			items = append(items, h.commandPaletteNavigationItems(query)...)
+			items = append(items, h.commandPaletteContinueItems(c, user.ID, query)...)
+			items = append(items, h.commandPalettePersonalItems(c, user.ID, query)...)
+		}
+
+		c.JSON(http.StatusOK, commandPaletteResponse{
+			Items:       items,
+			HasNextPage: hasNextPage,
+			NextPage:    page + 1,
+		})
 		return
 	}
 
 	items = append(items, h.commandPaletteContinueItems(c, user.ID, query)...)
 	items = append(items, h.commandPaletteNavigationItems(query)...)
 	items = append(items, h.commandPalettePersonalItems(c, user.ID, query)...)
-	c.JSON(http.StatusOK, items)
+	c.JSON(http.StatusOK, commandPaletteResponse{Items: items})
 }
 
 func (h *AnimeHandler) commandPaletteNavigationItems(query string) []commandPaletteItem {
@@ -71,13 +94,10 @@ func (h *AnimeHandler) commandPaletteNavigationItems(query string) []commandPale
 	return filtered
 }
 
-func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) []commandPaletteItem {
-	searchCtx, cancel := context.WithTimeout(c.Request.Context(), 800*time.Millisecond)
-	defer cancel()
-
-	res, err := h.svc.SearchAdvanced(searchCtx, query, "", "", "", "", nil, 0, true, 1, 24)
+func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string, page int) ([]commandPaletteItem, bool) {
+	res, err := h.svc.SearchAdvanced(c.Request.Context(), query, "", "", "", "", nil, 0, true, page, commandPaletteAnimeLimit)
 	if err != nil {
-		return nil
+		return nil, false
 	}
 
 	animes := wrapAnimes(res.Animes)
@@ -92,7 +112,7 @@ func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string) 
 			Image:    anime.ImageURL(),
 		})
 	}
-	return items
+	return items, res.HasNextPage
 }
 
 func (h *AnimeHandler) commandPalettePersonalItems(c *gin.Context, userID string, query string) []commandPaletteItem {
