@@ -61,14 +61,12 @@ export const renderSegments = (): void => {
   const bounds = state.video.duration;
   if (bounds <= 0) return;
 
-  // create clearly visible colored bars for each segment
   state.activeSegments.forEach((s) => {
     const bar = document.createElement("div");
-    // use distinct colors so segments are readable over buffered/progress fills
-    bar.className = "absolute top-0 h-full opacity-95";
-    // distinct colors for OP/ED, rendered above buffered/progress fills
-    const t = (s.type || "").toLowerCase();
-    bar.style.backgroundColor = t === "ed" ? "#60a5fa" : "#f5c542";
+    bar.className = "absolute opacity-95";
+    bar.style.backgroundColor = "var(--player-segment)";
+    bar.style.top = "-1px";
+    bar.style.height = "calc(100% + 2px)";
     bar.style.left = `${(s.start / bounds) * 100}%`;
     bar.style.width = `${((s.end - s.start) / bounds) * 100}%`;
     track.appendChild(bar);
