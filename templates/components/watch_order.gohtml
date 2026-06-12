@@ -1,6 +1,29 @@
 {{define "watch_order"}}
-<div class="space-y-4">
-  <h2 class="text-base font-normal text-foreground">Watch Order</h2>
+<div class="space-y-4" id="watch-order-section">
+  <div class="flex items-center justify-between gap-4">
+    <h2 class="text-base font-normal text-foreground">Watch Order</h2>
+    {{if ne .Mode "complete"}}
+      <button
+        type="button"
+        class="bg-background-button px-3 py-1.5 text-xs font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        hx-get="/api/watch-order?animeId={{.AnimeID}}&mode=complete"
+        hx-target="#watch-order-section"
+        hx-swap="outerHTML"
+      >
+        Show complete list
+      </button>
+    {{else}}
+      <button
+        type="button"
+        class="bg-background-button px-3 py-1.5 text-xs font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        hx-get="/api/watch-order?animeId={{.AnimeID}}&mode=main"
+        hx-target="#watch-order-section"
+        hx-swap="outerHTML"
+      >
+        Show main list
+      </button>
+    {{end}}
+  </div>
   <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
     {{range .Relations}}
       <div class="group relative">
@@ -21,7 +44,7 @@
 
 {{define "watch_order_loading"}}
 <div
-  hx-get="/api/watch-order?animeId={{.AnimeID}}"
+  hx-get="/api/watch-order?animeId={{.AnimeID}}&mode={{if .Mode}}{{.Mode}}{{else}}main{{end}}"
   hx-trigger="load delay:1500ms"
 >
   <div class="mt-8 flex items-center gap-3 text-foreground-muted">

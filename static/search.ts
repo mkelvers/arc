@@ -8,6 +8,12 @@ interface CommandPaletteItem {
   icon?: string;
 }
 
+interface CommandPaletteResponse {
+  items: CommandPaletteItem[];
+  hasNextPage: boolean;
+  nextPage?: number;
+}
+
 const commandPaletteInitializedKey = Symbol("commandPaletteInitialized");
 const globalWindow = window as Window & { [commandPaletteInitializedKey]?: boolean };
 
@@ -27,8 +33,11 @@ let selectedIndex = 0;
 let fetchTimeout: number | undefined;
 let lastQuery = "";
 let activeRequestController: AbortController | undefined;
+let nextSearchPage: number | undefined;
+let hasNextSearchPage = false;
+let isFetchingNextPage = false;
 let lastFocusedSearchOpener: HTMLElement | null = null;
-const responseCache = new Map<string, CommandPaletteItem[]>();
+const responseCache = new Map<string, CommandPaletteResponse>();
 
 const iconPaths: Record<string, string> = {
   bookmark: "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z",
@@ -136,6 +145,9 @@ const buildPosterImage = (item: CommandPaletteItem): HTMLElement => {
 const clearResults = (): void => {
   resultItems = [];
   selectedIndex = 0;
+  nextSearchPage = undefined;
+  hasNextSearchPage = false;
+  isFetchingNextPage = false;
   searchResults?.replaceChildren();
 };
 
@@ -409,12 +421,43 @@ const renderItems = (items: CommandPaletteItem[]): void => {
   selectItem(0, false);
 };
 
+const appendItems = (items: CommandPaletteItem[]): void => {
+  if (!searchResults || items.length === 0) {
+    return;
+  }
+
+  const existingIDs = new Set(resultItems.map((item) => item.id));
+  const nextItems = items.filter((item) => !existingIDs.has(item.id));
+  if (nextItems.length === 0) {
+    return;
+  }
+
+  renderItems([...resultItems, ...nextItems]);
+};
+
 const visibleSearchItems = (items: CommandPaletteItem[], query: string): CommandPaletteItem[] => {
   if (query === "") {
     return [];
   }
 
   return items.filter((item) => item.type === "anime");
+};
+
+const parseCommandPaletteResponse = (payload: unknown): CommandPaletteResponse => {
+  if (Array.isArray(payload)) {
+    return { items: payload as CommandPaletteItem[], hasNextPage: false };
+  }
+
+  if (payload && typeof payload === "object" && Array.isArray((payload as CommandPaletteResponse).items)) {
+    const response = payload as CommandPaletteResponse;
+    return {
+      items: response.items,
+      hasNextPage: response.hasNextPage,
+      nextPage: response.nextPage,
+    };
+  }
+
+  return { items: [], hasNextPage: false };
 };
 
 const renderPendingQuery = (query: string): void => {
@@ -441,7 +484,9 @@ const fetchSearchItems = (query: string): void => {
 
   const cached = responseCache.get(query);
   if (cached) {
-    renderItems(cached);
+    nextSearchPage = cached.nextPage;
+    hasNextSearchPage = cached.hasNextPage;
+    renderItems(visibleSearchItems(cached.items, query));
     return;
   }
 
@@ -453,18 +498,21 @@ const fetchSearchItems = (query: string): void => {
   fetch("/api/command-palette?q=" + encodeURIComponent(query), { signal: controller.signal })
     .then((res: Response) => {
       if (!res.ok) {
-        return [];
+        return { items: [], hasNextPage: false };
       }
       return res.json();
     })
-    .then((items: CommandPaletteItem[]) => {
+    .then((payload: unknown) => {
       if (controller.signal.aborted || query !== lastQuery) {
         return;
       }
 
-      const visibleItems = visibleSearchItems(items, query);
+      const response = parseCommandPaletteResponse(payload);
+      const visibleItems = visibleSearchItems(response.items, query);
       activeRequestController = undefined;
-      responseCache.set(query, visibleItems);
+      nextSearchPage = response.nextPage;
+      hasNextSearchPage = response.hasNextPage;
+      responseCache.set(query, response);
       renderItems(visibleItems);
     })
     .catch((err: unknown) => {
@@ -476,6 +524,62 @@ const fetchSearchItems = (query: string): void => {
       console.error("Search overlay error:", err);
       renderItems([]);
     });
+};
+
+const fetchNextSearchPage = (): void => {
+  if (!lastQuery || !hasNextSearchPage || !nextSearchPage || isFetchingNextPage) {
+    return;
+  }
+
+  isFetchingNextPage = true;
+  const query = lastQuery;
+  const page = nextSearchPage;
+
+  fetch(
+    "/api/command-palette?q=" + encodeURIComponent(query) + "&page=" + encodeURIComponent(String(page)),
+  )
+    .then((res: Response) => {
+      if (!res.ok) {
+        return { items: [], hasNextPage: false };
+      }
+      return res.json();
+    })
+    .then((payload: unknown) => {
+      if (query !== lastQuery) {
+        return;
+      }
+
+      const response = parseCommandPaletteResponse(payload);
+      const visibleItems = visibleSearchItems(response.items, query);
+      const cached = responseCache.get(query);
+      if (cached) {
+        responseCache.set(query, {
+          items: [...cached.items, ...response.items],
+          hasNextPage: response.hasNextPage,
+          nextPage: response.nextPage,
+        });
+      }
+      nextSearchPage = response.nextPage;
+      hasNextSearchPage = response.hasNextPage;
+      appendItems(visibleItems);
+    })
+    .catch((err: unknown) => {
+      console.error("Search overlay pagination error:", err);
+    })
+    .finally(() => {
+      isFetchingNextPage = false;
+    });
+};
+
+const onResultsScroll = (): void => {
+  if (!searchResults) {
+    return;
+  }
+
+  const remainingScroll = searchResults.scrollHeight - searchResults.scrollTop - searchResults.clientHeight;
+  if (remainingScroll < 480) {
+    fetchNextSearchPage();
+  }
 };
 
 const scheduleFetch = (): void => {
@@ -606,6 +710,7 @@ const initSearchOverlay = (): void => {
   });
   searchInput.addEventListener("input", scheduleFetch);
   searchInput.addEventListener("keydown", onInputKeydown);
+  searchResults.addEventListener("scroll", onResultsScroll);
   document.addEventListener("click", onDocumentClick);
   document.addEventListener("keydown", onDocumentKeydown);
   searchDialog?.setAttribute("aria-hidden", "true");

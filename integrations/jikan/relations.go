@@ -20,6 +20,22 @@ const chiakiWatchOrderURL = "https://chiaki.site/?/tools/watch_order/id/%d"
 const watchOrderCacheTTL = time.Hour * 24
 const maxWatchOrderEntries = 120 // cap to prevent huge relation chains
 
+type WatchOrderMode string
+
+const (
+	WatchOrderModeMain     WatchOrderMode = "main"
+	WatchOrderModeComplete WatchOrderMode = "complete"
+)
+
+func NormalizeWatchOrderMode(value string) WatchOrderMode {
+	switch WatchOrderMode(strings.ToLower(strings.TrimSpace(value))) {
+	case WatchOrderModeComplete:
+		return WatchOrderModeComplete
+	default:
+		return WatchOrderModeMain
+	}
+}
+
 // watchOrderTypeLabel normalizes watch order type to display-friendly labels.
 func watchOrderTypeLabel(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
@@ -28,15 +44,33 @@ func watchOrderTypeLabel(value string) string {
 		return "TV"
 	case "movie":
 		return "Movie"
+	case "ona":
+		return "ONA"
+	case "ova":
+		return "OVA"
 	default:
 		return strings.TrimSpace(value)
 	}
 }
 
-// isAllowedWatchOrderType returns true only for TV and Movie types (filters out specials, etc).
+func isTVWatchOrderType(value string) bool {
+	return strings.EqualFold(strings.TrimSpace(value), "tv")
+}
+
+// isAllowedWatchOrderType returns true for the default uncluttered watch order types.
 func isAllowedWatchOrderType(value string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	return normalized == "tv" || normalized == "movie"
+}
+
+func hasTVWatchOrderEntry(entries []watchorder.WatchOrderEntry) bool {
+	for _, entry := range entries {
+		if isTVWatchOrderType(entry.Type) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func relationCacheKey(id int) string {
@@ -166,15 +200,19 @@ func (c *Client) handleWatchOrderError(ctx context.Context, id int, err error) (
 	return c.currentOnlyRelation(ctx, id)
 }
 
-func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult) ([]watchorder.WatchOrderEntry, map[int]bool) {
+func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode WatchOrderMode) ([]watchorder.WatchOrderEntry, map[int]bool) {
 	allowedEntries := make([]watchorder.WatchOrderEntry, 0, len(result.WatchOrder))
 	seen := make(map[int]bool)
+	shouldIncludeAllTypes := mode == WatchOrderModeComplete || !hasTVWatchOrderEntry(result.WatchOrder)
 
 	for _, entry := range result.WatchOrder {
 		if len(allowedEntries) >= maxWatchOrderEntries {
 			break
 		}
-		if !isAllowedWatchOrderType(entry.Type) || seen[entry.ID] {
+		if seen[entry.ID] {
+			continue
+		}
+		if !shouldIncludeAllTypes && !isAllowedWatchOrderType(entry.Type) {
 			continue
 		}
 
@@ -267,13 +305,13 @@ type fetchResult struct {
 }
 
 // GetFullRelations returns related anime based on watch order, with parallel fetching (3 concurrent).
-func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry, error) {
+func (c *Client) GetFullRelations(ctx context.Context, id int, mode WatchOrderMode) ([]RelationEntry, error) {
 	result, err := c.getWatchOrder(ctx, id)
 	if err != nil {
 		return c.handleWatchOrderError(ctx, id, err)
 	}
 
-	allowedEntries, seen := buildAllowedWatchOrderEntries(result)
+	allowedEntries, seen := buildAllowedWatchOrderEntries(result, mode)
 	fetched := c.fetchRelationResults(ctx, allowedEntries)
 	relations := buildRelationsFromResults(fetched, id)
 	relations, err = c.ensureCurrentRelation(ctx, id, seen, relations)
@@ -290,6 +328,6 @@ func (c *Client) GetFullRelations(ctx context.Context, id int) ([]RelationEntry,
 
 func (c *Client) WarmFullRelations(id int) {
 	c.runAsyncRefresh(func(ctx context.Context) {
-		_, _ = c.GetFullRelations(ctx, id)
+		_, _ = c.GetFullRelations(ctx, id, WatchOrderModeMain)
 	})
 }
