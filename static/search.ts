@@ -448,7 +448,11 @@ const parseCommandPaletteResponse = (payload: unknown): CommandPaletteResponse =
     return { items: payload as CommandPaletteItem[], hasNextPage: false };
   }
 
-  if (payload && typeof payload === "object" && Array.isArray((payload as CommandPaletteResponse).items)) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    Array.isArray((payload as CommandPaletteResponse).items)
+  ) {
     const response = payload as CommandPaletteResponse;
     return {
       items: response.items,
@@ -536,7 +540,10 @@ const fetchNextSearchPage = (): void => {
   const page = nextSearchPage;
 
   fetch(
-    "/api/command-palette?q=" + encodeURIComponent(query) + "&page=" + encodeURIComponent(String(page)),
+    "/api/command-palette?q=" +
+      encodeURIComponent(query) +
+      "&page=" +
+      encodeURIComponent(String(page)),
   )
     .then((res: Response) => {
       if (!res.ok) {
@@ -576,7 +583,8 @@ const onResultsScroll = (): void => {
     return;
   }
 
-  const remainingScroll = searchResults.scrollHeight - searchResults.scrollTop - searchResults.clientHeight;
+  const remainingScroll =
+    searchResults.scrollHeight - searchResults.scrollTop - searchResults.clientHeight;
   if (remainingScroll < 480) {
     fetchNextSearchPage();
   }
