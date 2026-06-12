@@ -344,7 +344,7 @@ func resumeTimeForEpisode(currentEpisode sql.NullInt64, currentTimeSeconds float
 }
 
 func (s *playbackService) loadSeasons(ctx context.Context, animeID int) []domain.SeasonEntry {
-	relations, _ := s.jikan.GetFullRelations(ctx, animeID)
+	relations, _ := s.jikan.GetFullRelations(ctx, animeID, jikan.WatchOrderModeMain)
 	seasons := make([]domain.SeasonEntry, 0, len(relations))
 	tvCounter := 1
 
