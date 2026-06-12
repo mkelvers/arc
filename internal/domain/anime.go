@@ -153,7 +153,7 @@ type AnimeDetailsService interface {
 	GetAnimeByID(ctx context.Context, id int) (Anime, error)
 	GetCharacters(ctx context.Context, id int) ([]CharacterEntry, error)
 	GetRecommendations(ctx context.Context, id int) ([]RecommendationEntry, error)
-	GetRelations(ctx context.Context, id int) ([]jikan.RelationEntry, error)
+	GetRelations(ctx context.Context, id int, mode jikan.WatchOrderMode) ([]jikan.RelationEntry, error)
 	GetEpisodes(ctx context.Context, id int, page int) (jikan.EpisodesResponse, error)
 	GetAllEpisodes(ctx context.Context, id int) ([]EpisodeData, error)
 	GetRandomAnime(ctx context.Context) (Anime, error)
