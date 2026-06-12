@@ -11,25 +11,24 @@ interface CommandPaletteItem {
 const commandPaletteInitializedKey = Symbol("commandPaletteInitialized");
 const globalWindow = window as Window & { [commandPaletteInitializedKey]?: boolean };
 
-const paletteInput = document.getElementById("command-palette-input") as HTMLInputElement | null;
-const paletteResults = document.querySelector(
+const searchInput = document.getElementById("command-palette-input") as HTMLInputElement | null;
+const searchResults = document.querySelector(
   "[data-command-palette-results]",
 ) as HTMLElement | null;
-const paletteDialog = document.querySelector("[data-command-palette-dialog]") as HTMLElement | null;
-const paletteRoot = document.querySelector("[data-command-palette-root]") as HTMLElement | null;
-const paletteOpenButtons = document.querySelectorAll("[data-command-palette-open]");
-const paletteCloseButtons = document.querySelectorAll("[data-command-palette-close]");
+const searchDialog = document.querySelector("[data-command-palette-dialog]") as HTMLElement | null;
+const searchRoot = document.querySelector("[data-command-palette-root]") as HTMLElement | null;
+const searchOpenButtons = document.querySelectorAll("[data-command-palette-open]");
+const searchCloseButtons = document.querySelectorAll("[data-command-palette-close]");
+const searchClearButtons = document.querySelectorAll("[data-command-palette-clear]");
 const shortcutHints = document.querySelectorAll("[data-command-palette-shortcut]");
 
-let allPaletteItems: CommandPaletteItem[] = [];
-let paletteItems: CommandPaletteItem[] = [];
+let resultItems: CommandPaletteItem[] = [];
 let selectedIndex = 0;
 let fetchTimeout: number | undefined;
 let lastQuery = "";
-let continueExpanded = false;
 let activeRequestController: AbortController | undefined;
+let lastFocusedSearchOpener: HTMLElement | null = null;
 const responseCache = new Map<string, CommandPaletteItem[]>();
-let lastFocusedPaletteOpener: HTMLElement | null = null;
 
 const iconPaths: Record<string, string> = {
   bookmark: "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z",
@@ -40,10 +39,24 @@ const iconPaths: Record<string, string> = {
   trending: "M3 17l6-6 4 4 8-8 M14 7h7v7",
 };
 
+const typeLabels: Record<string, string> = {
+  anime: "Top results",
+};
+
+const groupOrder = ["anime"];
+
 const isMac = (): boolean => /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
+const isTypingTarget = (target: EventTarget | null): boolean =>
+  target instanceof HTMLInputElement ||
+  target instanceof HTMLTextAreaElement ||
+  target instanceof HTMLSelectElement ||
+  (target instanceof HTMLElement && target.isContentEditable);
+
+const isSearchOpen = (): boolean => searchDialog?.classList.contains("flex") ?? false;
+
 const isSafeImageUrl = (rawUrl?: string): boolean => {
-  if (!rawUrl || typeof rawUrl !== "string") {
+  if (!rawUrl) {
     return false;
   }
 
@@ -55,19 +68,15 @@ const isSafeImageUrl = (rawUrl?: string): boolean => {
   }
 };
 
-const isTypingTarget = (target: EventTarget | null): boolean =>
-  target instanceof HTMLInputElement ||
-  target instanceof HTMLTextAreaElement ||
-  target instanceof HTMLSelectElement ||
-  (target instanceof HTMLElement && target.isContentEditable);
+const setSearchState = (open: boolean): void => {
+  if (!searchDialog) {
+    return;
+  }
 
-const isOpen = (): boolean => paletteDialog?.classList.contains("flex") ?? false;
-
-const setDialogState = (open: boolean): void => {
-  if (!paletteDialog) return;
-  paletteDialog.classList.toggle("hidden", !open);
-  paletteDialog.classList.toggle("flex", open);
-  paletteDialog.setAttribute("aria-hidden", open ? "false" : "true");
+  searchDialog.classList.toggle("hidden", !open);
+  searchDialog.classList.toggle("flex", open);
+  searchDialog.setAttribute("aria-hidden", open ? "false" : "true");
+  document.body.classList.toggle("overflow-hidden", open);
 };
 
 const setShortcutHints = (): void => {
@@ -76,46 +85,11 @@ const setShortcutHints = (): void => {
   });
 };
 
-const clearResults = (): void => {
-  paletteResults?.replaceChildren();
-};
-
-const buildSearchActionItem = (query: string): CommandPaletteItem => ({
-  id: "search:" + query.toLowerCase(),
-  type: "search",
-  label: `Search anime for "${query}"`,
-  subtitle: "Browse",
-  href: "/browse?q=" + encodeURIComponent(query),
-  icon: "search",
-});
-
-const buildIcon = (item: CommandPaletteItem): HTMLElement => {
-  if (isSafeImageUrl(item.image)) {
-    const img = document.createElement("img");
-    img.className = "h-11 w-8 shrink-0 bg-background-surface object-cover";
-    img.src = item.image || "";
-    img.alt = "";
-    return img;
-  }
-
-  const icon = document.createElement("div");
-  icon.className = "flex h-8 w-8 shrink-0 items-center justify-center text-foreground-muted";
-
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", item.icon === "play" ? "currentColor" : "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "1.7");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  svg.classList.add("size-5");
-
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", iconPaths[item.icon || "search"] || iconPaths.search);
-  svg.appendChild(path);
-  icon.appendChild(svg);
-
-  return icon;
+const setClearButtonState = (hasQuery: boolean): void => {
+  searchClearButtons.forEach((button) => {
+    button.classList.toggle("opacity-0", !hasQuery);
+    button.classList.toggle("pointer-events-none", !hasQuery);
+  });
 };
 
 const buildSvgIcon = (pathData: string, className: string): SVGSVGElement => {
@@ -123,7 +97,7 @@ const buildSvgIcon = (pathData: string, className: string): SVGSVGElement => {
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-width", "1.8");
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
   svg.setAttribute("aria-hidden", "true");
@@ -136,52 +110,68 @@ const buildSvgIcon = (pathData: string, className: string): SVGSVGElement => {
   return svg;
 };
 
-const selectItem = (index: number): void => {
-  if (!paletteResults || paletteItems.length === 0) {
+const buildFallbackIcon = (item: CommandPaletteItem): HTMLElement => {
+  const icon = document.createElement("div");
+  icon.className =
+    "flex aspect-2/3 w-full items-center justify-center bg-background-button text-foreground-muted";
+
+  const path = iconPaths[item.icon || "search"] || iconPaths.search;
+  icon.appendChild(buildSvgIcon(path, "size-7"));
+  return icon;
+};
+
+const buildPosterImage = (item: CommandPaletteItem): HTMLElement => {
+  if (!isSafeImageUrl(item.image)) {
+    return buildFallbackIcon(item);
+  }
+
+  const img = document.createElement("img");
+  img.className = "aspect-2/3 w-full bg-background-button object-cover";
+  img.src = item.image || "";
+  img.alt = "";
+  img.loading = "lazy";
+  return img;
+};
+
+const clearResults = (): void => {
+  resultItems = [];
+  selectedIndex = 0;
+  searchResults?.replaceChildren();
+};
+
+const cancelScheduledFetch = (): void => {
+  if (!fetchTimeout) {
+    return;
+  }
+
+  window.clearTimeout(fetchTimeout);
+  fetchTimeout = undefined;
+};
+
+const selectItem = (index: number, scrollIntoView: boolean): void => {
+  if (!searchResults || resultItems.length === 0) {
     selectedIndex = 0;
     return;
   }
 
-  selectedIndex = Math.max(0, Math.min(index, paletteItems.length - 1));
-  paletteResults.querySelectorAll<HTMLElement>("[data-command-palette-item]").forEach((row, i) => {
-    const selected = i === selectedIndex;
-    row.classList.toggle("bg-surface-hover", selected);
-    row.setAttribute("aria-selected", String(selected));
-    if (selected) {
-      row.scrollIntoView({ block: "nearest" });
+  selectedIndex = Math.max(0, Math.min(index, resultItems.length - 1));
+  searchResults.querySelectorAll<HTMLElement>("[data-command-palette-item]").forEach((item) => {
+    const selected = Number(item.dataset.resultIndex) === selectedIndex;
+    item.classList.toggle("opacity-75", selected);
+    item.setAttribute("aria-selected", String(selected));
+    if (selected && scrollIntoView) {
+      item.scrollIntoView({ block: "nearest" });
     }
   });
 };
 
 const runSelectedItem = (): void => {
-  const item = paletteItems[selectedIndex];
+  const item = resultItems[selectedIndex];
   if (!item) {
     return;
   }
+
   window.location.href = item.href;
-};
-
-const removeContinueWatchingItem = (item: CommandPaletteItem): void => {
-  const animeID = item.id.replace("continue:", "");
-  if (!animeID || animeID === item.id) {
-    return;
-  }
-
-  fetch("/api/continue-watching/" + encodeURIComponent(animeID), { method: "DELETE" })
-    .then((res: Response) => {
-      if (!res.ok) {
-        return;
-      }
-
-      allPaletteItems = allPaletteItems.filter((candidate) => candidate.id !== item.id);
-      paletteItems = paletteItems.filter((candidate) => candidate.id !== item.id);
-      responseCache.clear();
-      removeContinueWatchingCard(animeID);
-      renderItems(allPaletteItems);
-    })
-    .catch((err: unknown) => {
-      console.error("Continue watching remove error:", err);
-    });
 };
 
 const removeContinueWatchingCard = (animeID: string): void => {
@@ -197,41 +187,59 @@ const removeContinueWatchingCard = (animeID: string): void => {
   }
 };
 
-const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement => {
-  const row = document.createElement("a");
-  row.href = item.href;
-  row.className =
-    "flex min-h-12 items-center gap-3 px-4 py-2 text-foreground no-underline transition-colors hover:bg-surface-hover hover:no-underline focus-visible:bg-surface-hover focus-visible:outline-none";
-  row.dataset.commandPaletteItem = item.id;
-  row.setAttribute("role", "option");
-  row.setAttribute("aria-selected", String(index === selectedIndex));
-
-  row.addEventListener("mouseenter", () => selectItem(index));
-
-  row.appendChild(buildIcon(item));
-
-  const copy = document.createElement("div");
-  copy.className = "grid min-w-0 flex-1 gap-0.5";
-
-  const label = document.createElement("div");
-  label.className = "truncate text-sm font-normal text-foreground";
-  label.textContent = item.label;
-  copy.appendChild(label);
-
-  if (item.subtitle && item.type !== "navigation") {
-    const subtitle = document.createElement("div");
-    subtitle.className = "truncate text-xs font-normal text-foreground-muted";
-    subtitle.textContent = item.subtitle;
-    copy.appendChild(subtitle);
+const removeContinueWatchingItem = (item: CommandPaletteItem): void => {
+  const animeID = item.id.replace("continue:", "");
+  if (!animeID || animeID === item.id) {
+    return;
   }
 
-  row.appendChild(copy);
+  fetch("/api/continue-watching/" + encodeURIComponent(animeID), { method: "DELETE" })
+    .then((res: Response) => {
+      if (!res.ok) {
+        return;
+      }
+
+      responseCache.clear();
+      removeContinueWatchingCard(animeID);
+      renderItems(resultItems.filter((candidate) => candidate.id !== item.id));
+    })
+    .catch((err: unknown) => {
+      console.error("Continue watching remove error:", err);
+    });
+};
+
+const cleanLabel = (item: CommandPaletteItem): string => {
+  if (item.type === "continue") {
+    return item.label.replace(/^Continue watching\s+/i, "");
+  }
+
+  if (item.type === "navigation") {
+    return item.label.replace(/^Go to\s+/i, "");
+  }
+
+  return item.label;
+};
+
+const buildCard = (item: CommandPaletteItem, index: number): HTMLAnchorElement => {
+  const card = document.createElement("a");
+  card.href = item.href;
+  card.className =
+    "group block min-w-0 text-foreground no-underline transition focus-visible:outline-none hover:no-underline";
+  card.dataset.commandPaletteItem = item.id;
+  card.dataset.resultIndex = String(index);
+  card.setAttribute("role", "option");
+  card.setAttribute("aria-selected", String(index === selectedIndex));
+  card.addEventListener("mouseenter", () => selectItem(index, false));
+
+  const media = document.createElement("div");
+  media.className = "relative mb-3 overflow-hidden bg-background-button";
+  media.appendChild(buildPosterImage(item));
 
   if (item.type === "continue") {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.className =
-      "flex h-8 w-8 shrink-0 items-center justify-center text-red-500/70 transition-colors hover:text-red-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent";
+      "absolute right-2 top-2 flex size-8 items-center justify-center bg-black/70 text-white opacity-0 transition hover:bg-black group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent";
     removeButton.setAttribute("aria-label", "Remove from Continue Watching");
     removeButton.appendChild(buildSvgIcon("M18 6 6 18 M6 6l12 12", "size-4"));
     removeButton.addEventListener("click", (event) => {
@@ -239,98 +247,174 @@ const buildRow = (item: CommandPaletteItem, index: number): HTMLAnchorElement =>
       event.stopPropagation();
       removeContinueWatchingItem(item);
     });
-    row.appendChild(removeButton);
-  } else {
-    const hint = document.createElement("div");
-    hint.className = "hidden text-xs text-foreground-muted sm:block";
-    hint.textContent = index === selectedIndex ? "Enter" : "";
-    row.appendChild(hint);
+    media.appendChild(removeButton);
   }
 
+  card.appendChild(media);
+
+  const title = document.createElement("div");
+  title.className = "line-clamp-2 text-sm font-semibold leading-snug text-foreground";
+  title.textContent = cleanLabel(item);
+  card.appendChild(title);
+
+  if (item.subtitle) {
+    const subtitle = document.createElement("div");
+    subtitle.className = "mt-1 truncate text-xs font-medium text-foreground-muted";
+    subtitle.textContent = item.subtitle;
+    card.appendChild(subtitle);
+  }
+
+  return card;
+};
+
+const buildCompactItem = (item: CommandPaletteItem, index: number): HTMLAnchorElement => {
+  const row = document.createElement("a");
+  row.href = item.href;
+  row.className =
+    "group flex min-h-16 items-center gap-3 px-3 py-2 text-foreground no-underline transition hover:bg-surface-hover hover:no-underline focus-visible:outline-none";
+  row.dataset.commandPaletteItem = item.id;
+  row.dataset.resultIndex = String(index);
+  row.setAttribute("role", "option");
+  row.setAttribute("aria-selected", String(index === selectedIndex));
+  row.addEventListener("mouseenter", () => selectItem(index, false));
+
+  const thumb = document.createElement("div");
+  thumb.className = "w-11 shrink-0 overflow-hidden";
+  thumb.appendChild(buildPosterImage(item));
+  row.appendChild(thumb);
+
+  const copy = document.createElement("div");
+  copy.className = "min-w-0 flex-1";
+
+  const title = document.createElement("div");
+  title.className = "truncate text-sm font-semibold text-foreground";
+  title.textContent = cleanLabel(item);
+  copy.appendChild(title);
+
+  if (item.subtitle) {
+    const subtitle = document.createElement("div");
+    subtitle.className = "mt-0.5 truncate text-xs text-foreground-muted";
+    subtitle.textContent = item.subtitle;
+    copy.appendChild(subtitle);
+  }
+
+  row.appendChild(copy);
   return row;
 };
 
-const buildContinueToggle = (hiddenCount: number): HTMLButtonElement => {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className =
-    "flex w-full items-center gap-3 px-4 py-2 text-left text-xs font-normal text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent";
+const buildSection = (
+  title: string,
+  items: CommandPaletteItem[],
+  startIndex: number,
+  variant: "grid" | "compact",
+): HTMLElement => {
+  const section = document.createElement("section");
+  section.className = "min-w-0";
 
-  const spacer = document.createElement("span");
-  spacer.className = "h-8 w-8 shrink-0";
-  button.appendChild(spacer);
-
-  const label = document.createElement("span");
-  label.className = "flex-1";
-  label.textContent = continueExpanded
-    ? "Hide extra continue watching"
-    : `Show ${hiddenCount} more continue watching`;
-  button.appendChild(label);
-
-  const chevron = buildSvgIcon(continueExpanded ? "m18 15-6-6-6 6" : "m6 9 6 6 6-6", "size-4");
-  button.appendChild(chevron);
-
-  button.addEventListener("click", () => {
-    continueExpanded = !continueExpanded;
-    renderItems(allPaletteItems);
-  });
-
-  return button;
-};
-
-const visiblePaletteItems = (items: CommandPaletteItem[]): CommandPaletteItem[] => {
-  if (lastQuery !== "") {
-    return items;
-  }
-
-  const continueItems = items.filter((item) => item.type === "continue");
-  if (continueItems.length <= 1 || continueExpanded) {
-    return items;
-  }
-
-  let firstContinueShown = false;
-  return items.filter((item) => {
-    if (item.type !== "continue") {
-      return true;
-    }
-    if (!firstContinueShown) {
-      firstContinueShown = true;
-      return true;
-    }
-    return false;
-  });
-};
-
-const renderItems = (items: CommandPaletteItem[]): void => {
-  if (!paletteResults) {
-    return;
-  }
-
-  allPaletteItems = items;
-  paletteItems = visiblePaletteItems(items);
-  selectedIndex = 0;
-
-  if (paletteItems.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "px-4 py-8 text-center text-sm font-normal text-foreground-muted";
-    empty.textContent = "No commands found";
-    paletteResults.replaceChildren(empty);
-    return;
-  }
+  const heading = document.createElement("h2");
+  heading.className = "mb-4 text-base font-bold text-foreground md:text-lg";
+  heading.textContent = title;
+  section.appendChild(heading);
 
   const list = document.createElement("div");
   list.setAttribute("role", "listbox");
-  list.setAttribute("aria-label", "Command palette results");
-  paletteItems.forEach((item, index) => {
-    list.appendChild(buildRow(item, index));
+  list.setAttribute("aria-label", title);
+  list.className =
+    variant === "grid"
+      ? "grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 lg:grid-cols-4"
+      : "grid gap-1 sm:grid-cols-2";
 
-    const continueCount = items.filter((candidate) => candidate.type === "continue").length;
-    if (lastQuery === "" && continueCount > 1 && item.type === "continue" && index === 0) {
-      list.appendChild(buildContinueToggle(continueCount - 1));
-    }
+  items.forEach((item, itemIndex) => {
+    const index = startIndex + itemIndex;
+    list.appendChild(variant === "grid" ? buildCard(item, index) : buildCompactItem(item, index));
   });
-  paletteResults.replaceChildren(list);
-  selectItem(0);
+
+  section.appendChild(list);
+  return section;
+};
+
+const renderEmptyState = (query: string): void => {
+  if (!searchResults) {
+    return;
+  }
+
+  const empty = document.createElement("div");
+  empty.className =
+    "mx-auto flex min-h-80 w-full max-w-5xl flex-col justify-center px-5 py-14 text-center md:px-8";
+
+  const title = document.createElement("div");
+  title.className = "text-2xl font-semibold text-foreground";
+  title.textContent = query ? "No results found" : "Start typing to search your anime";
+  empty.appendChild(title);
+
+  const subtitle = document.createElement("p");
+  subtitle.className = "mx-auto mt-3 max-w-lg text-sm leading-6 text-foreground-muted";
+  subtitle.textContent = query
+    ? "Try a shorter title, alternate spelling, or browse the full search results."
+    : "Search opens title results first, then your watchlist and quick links when they matter.";
+  empty.appendChild(subtitle);
+
+  searchResults.replaceChildren(empty);
+};
+
+const groupedItems = (items: CommandPaletteItem[]): Map<string, CommandPaletteItem[]> => {
+  const groups = new Map<string, CommandPaletteItem[]>();
+  items.forEach((item) => {
+    const key = item.type in typeLabels ? item.type : "anime";
+    const group = groups.get(key) || [];
+    group.push(item);
+    groups.set(key, group);
+  });
+  return groups;
+};
+
+const orderedGroupKeys = (groups: Map<string, CommandPaletteItem[]>): string[] => {
+  return groupOrder.filter((key) => groups.has(key));
+};
+
+const renderItems = (items: CommandPaletteItem[]): void => {
+  if (!searchResults) {
+    return;
+  }
+
+  selectedIndex = 0;
+
+  if (items.length === 0) {
+    renderEmptyState(lastQuery);
+    return;
+  }
+
+  const shell = document.createElement("div");
+  shell.className = "mx-auto w-full max-w-5xl px-5 py-9 md:px-8 md:py-12";
+
+  const groups = groupedItems(items);
+  const keys = orderedGroupKeys(groups);
+  resultItems = keys.flatMap((key) => groups.get(key) || []);
+  let cursor = 0;
+
+  keys.forEach((key) => {
+    const groupItems = groups.get(key);
+    if (!groupItems) {
+      return;
+    }
+
+    const variant = key === "anime" ? "grid" : "compact";
+    const section = buildSection(typeLabels[key] || "Results", groupItems, cursor, variant);
+    section.classList.add("mb-12");
+    shell.appendChild(section);
+    cursor += groupItems.length;
+  });
+
+  searchResults.replaceChildren(shell);
+  selectItem(0, false);
+};
+
+const visibleSearchItems = (items: CommandPaletteItem[], query: string): CommandPaletteItem[] => {
+  if (query === "") {
+    return [];
+  }
+
+  return items.filter((item) => item.type === "anime");
 };
 
 const renderPendingQuery = (query: string): void => {
@@ -338,15 +422,21 @@ const renderPendingQuery = (query: string): void => {
     return;
   }
 
-  renderItems([buildSearchActionItem(query)]);
+  clearResults();
 };
 
-const fetchPaletteItems = (query: string): void => {
+const fetchSearchItems = (query: string): void => {
   lastQuery = query;
+  setClearButtonState(query !== "");
 
   if (activeRequestController) {
     activeRequestController.abort();
     activeRequestController = undefined;
+  }
+
+  if (query === "") {
+    clearResults();
+    return;
   }
 
   const cached = responseCache.get(query);
@@ -371,16 +461,19 @@ const fetchPaletteItems = (query: string): void => {
       if (controller.signal.aborted || query !== lastQuery) {
         return;
       }
+
+      const visibleItems = visibleSearchItems(items, query);
       activeRequestController = undefined;
-      responseCache.set(query, items);
-      renderItems(items);
+      responseCache.set(query, visibleItems);
+      renderItems(visibleItems);
     })
     .catch((err: unknown) => {
       if (controller.signal.aborted) {
         return;
       }
+
       activeRequestController = undefined;
-      console.error("Command palette error:", err);
+      console.error("Search overlay error:", err);
       renderItems([]);
     });
 };
@@ -390,58 +483,72 @@ const scheduleFetch = (): void => {
     window.clearTimeout(fetchTimeout);
   }
 
-  const query = paletteInput?.value.trim() || "";
-  fetchTimeout = window.setTimeout(() => fetchPaletteItems(query), query.length >= 2 ? 300 : 120);
+  const query = searchInput?.value.trim() || "";
+  setClearButtonState(query !== "");
+  fetchTimeout = window.setTimeout(() => fetchSearchItems(query), query.length >= 2 ? 240 : 80);
 };
 
-const openPalette = (): void => {
-  if (!paletteDialog || !paletteInput) {
+const openSearch = (): void => {
+  if (!searchDialog || !searchInput) {
     return;
   }
 
-  lastFocusedPaletteOpener =
-    document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  setDialogState(true);
-  paletteInput.value = "";
-  paletteInput.focus();
-  continueExpanded = false;
-  fetchPaletteItems("");
+  lastFocusedSearchOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  setSearchState(true);
+  searchInput.value = "";
+  lastQuery = "";
+  cancelScheduledFetch();
+  setClearButtonState(false);
+  clearResults();
+  searchInput.focus();
 };
 
-const closePalette = (): void => {
-  if (!paletteDialog || !paletteInput) {
+const closeSearch = (): void => {
+  if (!searchDialog || !searchInput) {
     return;
   }
 
-  setDialogState(false);
+  setSearchState(false);
+  cancelScheduledFetch();
   if (activeRequestController) {
     activeRequestController.abort();
     activeRequestController = undefined;
   }
-  paletteInput.value = "";
-  allPaletteItems = [];
-  paletteItems = [];
-  continueExpanded = false;
+  searchInput.value = "";
+  lastQuery = "";
+  setClearButtonState(false);
   clearResults();
-  lastFocusedPaletteOpener?.focus();
+  lastFocusedSearchOpener?.focus();
+};
+
+const clearSearchInput = (): void => {
+  if (!searchInput) {
+    return;
+  }
+
+  searchInput.value = "";
+  searchInput.focus();
+  cancelScheduledFetch();
+  setClearButtonState(false);
+  fetchSearchItems("");
 };
 
 const onDocumentClick = (event: MouseEvent): void => {
-  if (event.target === paletteDialog) {
-    closePalette();
+  if (event.target === searchDialog) {
+    closeSearch();
   }
 };
 
 const onInputKeydown = (event: KeyboardEvent): void => {
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    selectItem(selectedIndex + 1);
+    selectItem(selectedIndex + 1, true);
     return;
   }
 
   if (event.key === "ArrowUp") {
     event.preventDefault();
-    selectItem(selectedIndex - 1);
+    selectItem(selectedIndex - 1, true);
     return;
   }
 
@@ -456,50 +563,51 @@ const onDocumentKeydown = (event: KeyboardEvent): void => {
 
   if (commandShortcut && !isTypingTarget(event.target)) {
     event.preventDefault();
-    if (isOpen()) {
-      closePalette();
+    if (isSearchOpen()) {
+      closeSearch();
     } else {
-      openPalette();
+      openSearch();
     }
     return;
   }
 
   if (event.key === "/" && !isTypingTarget(event.target)) {
     event.preventDefault();
-    openPalette();
+    openSearch();
     return;
   }
 
-  if (event.key === "Escape" && isOpen()) {
+  if (event.key === "Escape" && isSearchOpen()) {
     event.preventDefault();
-    closePalette();
+    closeSearch();
   }
 };
 
-const initCommandPalette = (): void => {
+const initSearchOverlay = (): void => {
   if (globalWindow[commandPaletteInitializedKey]) {
     return;
   }
   globalWindow[commandPaletteInitializedKey] = true;
 
-  if (!paletteInput || !paletteResults || !paletteRoot) {
+  if (!searchInput || !searchResults || !searchRoot) {
     return;
   }
 
   setShortcutHints();
-  paletteOpenButtons.forEach((button) => {
-    button.addEventListener("click", openPalette);
+  searchOpenButtons.forEach((button) => {
+    button.addEventListener("click", openSearch);
   });
-  paletteCloseButtons.forEach((button) => {
-    button.addEventListener("click", closePalette);
+  searchCloseButtons.forEach((button) => {
+    button.addEventListener("click", closeSearch);
   });
-  paletteInput.addEventListener("input", scheduleFetch);
-  paletteInput.addEventListener("keydown", onInputKeydown);
+  searchClearButtons.forEach((button) => {
+    button.addEventListener("click", clearSearchInput);
+  });
+  searchInput.addEventListener("input", scheduleFetch);
+  searchInput.addEventListener("keydown", onInputKeydown);
   document.addEventListener("click", onDocumentClick);
   document.addEventListener("keydown", onDocumentKeydown);
-  paletteDialog?.setAttribute("aria-hidden", "true");
-  closestFocusable(paletteRoot ?? document.body);
+  searchDialog?.setAttribute("aria-hidden", "true");
 };
 
-initCommandPalette();
-import { closestFocusable } from "./utils";
+initSearchOverlay();
