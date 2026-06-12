@@ -56,7 +56,7 @@
   <section class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <h2 class="text-base font-normal text-foreground">Trending This Season</h2>
-      <a href="/browse?order_by=popularity&sort=desc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
+      <a href="/browse?order_by=popularity&sort=asc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
     </div>
     <div hx-get="/api/discover/trending" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}
