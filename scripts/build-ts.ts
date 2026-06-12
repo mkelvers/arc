@@ -1,4 +1,6 @@
 import { copyFile } from "node:fs/promises";
+import { readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 type BuildStep = {
   name: string;
@@ -23,9 +25,16 @@ const steps: BuildStep[] = [
 
 const startedAt = performance.now();
 
-try {
-  const appEntries = Array.from(new Bun.Glob("*.ts").scanSync("./static"))
-    .map((file) => `./static/${file}`)
+main().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`ts build failed: ${message}`);
+  process.exit(1);
+});
+
+async function main(): Promise<void> {
+  const appEntries = readdirSync("./static", { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => `./static/${entry.name}`)
     .sort();
 
   steps.push({
@@ -46,15 +55,14 @@ try {
   });
 
   for (const step of steps) {
-    const result = Bun.spawnSync(step.command, {
-      stdout: "pipe",
-      stderr: "pipe",
+    const result = spawnSync(step.command[0], step.command.slice(1), {
+      stdio: "pipe",
     });
 
-    if (result.exitCode !== 0) {
+    if (result.status !== 0) {
       const detail = summarizeFailure(result.stderr, result.stdout);
       console.error(`ts build failed at ${step.name}${detail === "" ? "" : `: ${detail}`}`);
-      process.exit(result.exitCode);
+      process.exit(result.status ?? 1);
     }
   }
 
@@ -65,10 +73,6 @@ try {
   const elapsedMs = Math.round(performance.now() - startedAt);
 
   console.log(`ts build ok (${totalEntries} entries, ${elapsedMs}ms)`);
-} catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`ts build failed: ${message}`);
-  process.exit(1);
 }
 
 function summarizeFailure(stderr: Uint8Array, stdout: Uint8Array): string {
@@ -82,5 +86,5 @@ function summarizeFailure(stderr: Uint8Array, stdout: Uint8Array): string {
     .map((line) => line.trim())
     .filter((line) => line !== "");
 
-  return lines.at(-1) ?? "";
+  return lines[lines.length - 1] ?? "";
 }
