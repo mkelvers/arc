@@ -71,18 +71,18 @@
     </div>
 
     <div class="overflow-x-auto pb-3">
-      <div class="grid min-w-350 grid-cols-7 gap-px border border-(--border) bg-(--border)" data-schedule-board>
+      <div class="grid min-w-0 grid-cols-1 gap-px border border-(--border) bg-(--border) 2xl:min-w-350 2xl:grid-cols-7" data-schedule-board>
       {{range (list "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday")}}
         {{$day := .}}
         <section class="flex min-w-0 flex-col bg-background-surface" data-schedule-day="{{$day}}">
-          <header class="flex min-h-28 items-end justify-between gap-3 border-b border-(--border-light) px-5 py-5">
+          <header class="flex min-h-20 items-end justify-between gap-3 border-b border-(--border-light) px-5 py-4 2xl:min-h-28 2xl:py-5">
             <div class="min-w-0">
               <div class="text-xs font-normal uppercase tracking-wide text-foreground-muted" data-schedule-date-label>—</div>
-              <h2 class="mt-1 text-xl font-normal tracking-[-0.02em] text-foreground" data-schedule-day-label>{{$day}}</h2>
+              <h2 class="mt-1 text-lg font-normal tracking-[-0.02em] text-foreground 2xl:text-xl" data-schedule-day-label>{{$day}}</h2>
             </div>
             <span class="shrink-0 text-sm font-normal tabular-nums text-foreground-muted" data-schedule-count>0</span>
           </header>
-          <div class="flex min-h-136 flex-col" data-schedule-day-items></div>
+          <div class="flex min-h-0 flex-col 2xl:min-h-136" data-schedule-day-items></div>
         </section>
       {{end}}
       </div>
@@ -101,15 +101,15 @@
           data-broadcast-time="{{$anime.Broadcast.Time}}"
           data-broadcast-timezone="{{$anime.Broadcast.Timezone}}"
         >
-          <div class="flex min-h-124 flex-col gap-4 border-b border-(--border-light) px-5 py-5 transition-colors last:border-b-0 hover:bg-surface-hover">
+          <div class="flex min-h-0 flex-col gap-4 border-b border-(--border-light) px-5 py-5 transition-colors last:border-b-0 hover:bg-surface-hover sm:flex-row 2xl:min-h-124 2xl:flex-col">
             <a href="/anime/{{$anime.MalID}}" class="overflow-hidden bg-background-button" data-schedule-poster>
-              <img src="{{$imageUrl}}" alt="{{$anime.DisplayTitle}}" class="h-44 w-full object-cover" loading="lazy" />
+              <img src="{{$imageUrl}}" alt="{{$anime.DisplayTitle}}" class="h-36 w-full object-cover sm:h-40 sm:w-28 2xl:h-44 2xl:w-full" loading="lazy" />
             </a>
 
             <div class="flex min-w-0 flex-1 flex-col gap-3">
               <div class="flex items-start justify-between gap-4">
                 <a href="/anime/{{$anime.MalID}}" class="min-w-0">
-                  <h3 class="line-clamp-3 min-h-18 text-xl font-normal leading-tight tracking-[-0.02em] text-foreground">{{$anime.DisplayTitle}}</h3>
+                  <h3 class="line-clamp-2 text-base font-normal leading-tight tracking-[-0.02em] text-foreground 2xl:line-clamp-3 2xl:min-h-18 2xl:text-xl">{{$anime.DisplayTitle}}</h3>
                 </a>
                 <button
                   type="button"
@@ -165,22 +165,22 @@
     </div>
 
     <div class="overflow-x-auto pb-3">
-      <div class="grid min-w-350 grid-cols-7 gap-px border border-(--border) bg-(--border)">
+      <div class="grid min-w-0 grid-cols-1 gap-px border border-(--border) bg-(--border) 2xl:min-w-350 2xl:grid-cols-7">
       {{range .ScheduleDays}}
         <section class="flex min-w-0 flex-col bg-background-surface">
-          <header class="flex min-h-28 items-end justify-between gap-3 border-b border-(--border-light) bg-background px-5 py-5">
+          <header class="flex min-h-20 items-end justify-between gap-3 border-b border-(--border-light) bg-background px-5 py-4 2xl:min-h-28 2xl:py-5">
             <div class="min-w-0">
               <div class="text-xs font-normal uppercase tracking-wide text-foreground-muted">{{.DateLabel}}</div>
-              <h2 class="mt-1 text-xl font-normal tracking-[-0.02em] text-foreground">{{.WeekdayLabel}}</h2>
+              <h2 class="mt-1 text-lg font-normal tracking-[-0.02em] text-foreground 2xl:text-xl">{{.WeekdayLabel}}</h2>
             </div>
           </header>
-          <div class="flex min-h-136 flex-col">
+          <div class="flex min-h-0 flex-col 2xl:min-h-136">
             {{if eq (len .Entries) 0}}
               <div class="flex min-h-32 flex-1 items-center justify-center px-6 py-10 text-center text-sm text-foreground-muted">No releases scheduled</div>
             {{else}}
               {{range .Entries}}
-                <a href="/browse?q={{urlquery .Title}}" class="group flex min-h-124 flex-col gap-4 border-b border-(--border-light) px-5 py-5 transition-colors last:border-b-0 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-                  <div class="relative aspect-4/5 w-full overflow-hidden bg-background-button">
+                <a href="/browse?q={{urlquery .Title}}" class="group flex min-h-0 flex-col gap-4 border-b border-(--border-light) px-5 py-5 transition-colors last:border-b-0 hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent sm:flex-row 2xl:min-h-124 2xl:flex-col">
+                  <div class="relative aspect-4/5 w-full overflow-hidden bg-background-button sm:h-40 sm:w-28 sm:shrink-0 2xl:h-auto 2xl:w-full">
                     {{if .ImageURL}}
                       <img src="{{.ImageURL}}" alt="{{.Title}}" class="h-full w-full object-cover" loading="lazy" />
                     {{end}}
@@ -194,7 +194,7 @@
                       <span class="bg-background-button px-2.5 py-1 text-sm font-normal text-accent">{{.AirType}}</span>
                     </div>
 
-                    <h3 class="line-clamp-3 min-h-18 text-xl font-normal leading-tight tracking-[-0.02em] text-foreground">{{.Title}}</h3>
+                    <h3 class="line-clamp-2 text-base font-normal leading-tight tracking-[-0.02em] text-foreground 2xl:line-clamp-3 2xl:min-h-18 2xl:text-xl">{{.Title}}</h3>
                     <span class="mt-auto pt-2 text-sm font-normal text-foreground-muted transition-colors group-hover:text-foreground">View details</span>
                   </div>
                 </a>
@@ -222,20 +222,20 @@
   </div>
 </div>
 <div class="overflow-x-auto pb-3">
-  <div class="grid min-w-350 grid-cols-7 gap-px border border-(--border) bg-(--border)">
+  <div class="grid min-w-0 grid-cols-1 gap-px border border-(--border) bg-(--border) 2xl:min-w-350 2xl:grid-cols-7">
   {{range (seq 7)}}
     <div class="flex flex-col bg-background-surface">
-      <div class="flex min-h-28 items-end justify-between border-b border-(--border-light) px-5 py-5">
+      <div class="flex min-h-20 items-end justify-between border-b border-(--border-light) px-5 py-4 2xl:min-h-28 2xl:py-5">
         <div class="flex flex-col gap-2">
           <div class="skeleton skeleton-subtle h-3 w-20"></div>
           <div class="skeleton h-8 w-28"></div>
         </div>
         <div class="skeleton skeleton-subtle h-8 w-10"></div>
       </div>
-      <div class="flex min-h-136 flex-col">
+      <div class="flex min-h-0 flex-col 2xl:min-h-136">
         {{range (seq 3)}}
-          <div class="flex flex-col gap-4 border-b border-(--border-light) px-5 py-5 last:border-b-0">
-            <div class="skeleton h-44 w-full"></div>
+          <div class="flex flex-col gap-4 border-b border-(--border-light) px-5 py-5 last:border-b-0 sm:flex-row 2xl:flex-col">
+            <div class="skeleton h-36 w-full sm:h-40 sm:w-28 2xl:h-44 2xl:w-full"></div>
             <div class="flex flex-1 flex-col gap-3">
               <div class="skeleton skeleton-subtle h-7 w-20"></div>
               <div class="skeleton h-6 w-full"></div>
