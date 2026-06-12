@@ -54,9 +54,9 @@
 
   {{/* Trending Section */}}
   <section class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <h2 class="text-base font-normal text-foreground">Trending This Season</h2>
-      <a href="/browse?order_by=popularity&sort=asc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
+      {{template "section_action" dict "Href" "/browse?order_by=popularity&sort=asc" "Label" "View all"}}
     </div>
     <div hx-get="/api/discover/trending" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}
@@ -65,9 +65,9 @@
 
   {{/* Upcoming Section */}}
   <section class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <h2 class="text-base font-normal text-foreground">Highly Anticipated</h2>
-      <a href="/browse?status=upcoming&order_by=members&sort=desc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
+      {{template "section_action" dict "Href" "/browse?status=upcoming&order_by=members&sort=desc" "Label" "View all"}}
     </div>
     <div hx-get="/api/discover/upcoming" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}
@@ -76,9 +76,9 @@
 
   {{/* Top Section */}}
   <section class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <h2 class="text-base font-normal text-foreground">All-Time Greats</h2>
-      <a href="/browse?order_by=score&sort=desc" class="text-sm text-foreground-muted transition-colors hover:text-foreground">View all</a>
+      {{template "section_action" dict "Href" "/browse?order_by=score&sort=desc" "Label" "View all"}}
     </div>
     <div hx-get="/api/discover/top" hx-trigger="load" hx-swap="outerHTML">
       {{template "discover_skeleton"}}

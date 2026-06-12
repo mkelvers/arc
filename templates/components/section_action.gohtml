@@ -1,0 +1,20 @@
+{{define "section_action"}}
+<a href="{{.Href}}" class="group inline-flex min-h-9 shrink-0 items-center gap-2 bg-background-button px-3 text-sm font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+  <span>{{.Label}}</span>
+  <svg class="size-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path
+      d="M5 12h12"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+    />
+    <path
+      d="m13 7 5 5-5 5"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+</a>
+{{end}}
