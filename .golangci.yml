@@ -51,7 +51,7 @@ linters:
       - third_party$
       - builtin$
       - examples$
-      - node_modules$
+      - node_modules/
 
 issues:
   max-issues-per-linter: 0
