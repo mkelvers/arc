@@ -18,10 +18,13 @@ import (
 )
 
 const (
-	ansiReset  = "\x1b[0m"
-	ansiBlue   = "\x1b[36m"
-	ansiYellow = "\x1b[33m"
-	ansiRed    = "\x1b[31m"
+	ansiReset      = "\x1b[0m"
+	ansiBlue       = "\x1b[36m"
+	ansiStatusBlue = "\x1b[34m"
+	ansiGreen      = "\x1b[32m"
+	ansiYellow     = "\x1b[33m"
+	ansiOrange     = "\x1b[38;5;208m"
+	ansiRed        = "\x1b[31m"
 )
 
 var colorLogs = shouldColorLogs()
@@ -315,7 +318,7 @@ func popField(fields map[string]any, key string) string {
 func formatInlineField(key string, value any) string {
 	switch key {
 	case "status":
-		return fmt.Sprint(value)
+		return formatHTTPStatus(value)
 	case "duration_ms":
 		return formatDurationMillis(value)
 	case "bytes":
@@ -325,6 +328,28 @@ func formatInlineField(key string, value any) string {
 			return text
 		}
 		return fmt.Sprint(value)
+	}
+}
+
+func formatHTTPStatus(value any) string {
+	status := fmt.Sprint(value)
+	if !colorLogs || len(status) == 0 {
+		return status
+	}
+
+	switch status[0] {
+	case '1':
+		return ansiStatusBlue + status + ansiReset
+	case '2':
+		return ansiGreen + status + ansiReset
+	case '3':
+		return ansiYellow + status + ansiReset
+	case '4':
+		return ansiOrange + status + ansiReset
+	case '5':
+		return ansiRed + status + ansiReset
+	default:
+		return status
 	}
 }
 
