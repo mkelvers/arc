@@ -9,60 +9,47 @@
   <img alt="SQLite" src="https://img.shields.io/badge/database-sqlite-003B57?style=flat-square&logo=sqlite" />
   <img alt="Tailwind" src="https://img.shields.io/badge/tailwind-4-06D6D4?style=flat-square&logo=tailwindcss" />
   <img alt="HTMX" src="https://img.shields.io/badge/htmx-partial--updates-3366CC?style=flat-square" />
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
 </p>
 
----
+MyAnimeList is a small self-hosted anime tracker and playback app. It keeps the catalog, watchlist, progress tracking, and player in one place, backed by a single SQLite database and a single Go server.
 
-I built this because nothing else felt right. Every tracker I tried had decent pieces but the whole never clicked — awkward UI, missing features, or it just got in the way of actually watching anime. So I built one that fits how I work.
+Most of the UI is rendered on the server. HTMX handles lightweight updates like search, pagination, and watchlist changes, while TypeScript is kept for the parts that need real browser state: the video player, command palette, theme handling, and skip segment editor. The app also includes local users, API tokens, subtitle support, playlist rewriting, provider integrations, migrations, and startup data fixes.
 
-It is a self-hosted Go server that streams anime through a proxy layer, catalogs metadata, and tracks your progress.
+## Running
 
-The frontend is Tailwind CSS v4 with HTMX handling pagination, infinite scroll, search, and watchlist interactions. TypeScript only steps in where HTMX cannot — the video player, command palette bound to Cmd+K, skip segment editor, theme toggling with system preference detection, and custom UI components. Everything lives in one process, one SQLite database, one deployment.
-
-## Repository structure
-
-| Path              | Purpose                                          |
-| ----------------- | ------------------------------------------------ |
-| `api/*`           | Feature routes: anime, auth, playback, watchlist |
-| `cmd/server`      | Application entrypoint and CLI commands          |
-| `cmd/user`        | User management CLI (create, update, delete)     |
-| `integrations/*`  | External API clients and scraping                |
-| `internal/*`      | Core services: db, middleware, server, worker    |
-| `pkg/middleware`  | Generic HTTP middleware                          |
-| `templates/*`     | Server-rendered HTML templates                   |
-| `migrations`      | Schema evolution (20 migrations)                 |
-| `static` / `dist` | Frontend assets                                  |
-
-## Running locally
-
-Requires Go `1.25+`, Bun, and [just](https://github.com/casey/just). Migrations run on startup. Configuration lives in environment variables — see `cmd/server/main.go` for the full list.
-
-An optional API key from [animeschedule.net](https://animeschedule.net) can be used for the schedule board to enable English titles and improve performance. Create an account, generate a token under your profile, and set it as `ANIMESCHEDULE_API_TOKEN`.
+Requires Go `1.25+`, Bun, [`just`](https://github.com/casey/just), and a C compiler for SQLite.
 
 ```bash
+bun install
+just build
+go run ./cmd/user <username> <password>
 just dev
 ```
 
-## Quality checks
+The app starts on `http://localhost:3000` by default. Configuration comes from environment variables, and a local `.env` file is loaded automatically. The most useful options are `PORT`, `DATABASE_FILE`, `PLAYBACK_PROXY_SECRET`, `EPISODE_AVAILABILITY_MODE`, and `ANIMESCHEDULE_API_TOKEN`.
+
+## Development
+
+The codebase is split between Go feature packages, external integrations, server-rendered templates, and a small frontend asset pipeline. `cmd/server` starts the web app, `cmd/user` contains local admin tools, `internal` holds the application modules, `integrations` holds provider clients, and `templates`, `static`, and `dist` contain the UI.
+
+The common development commands are in the `justfile`.
 
 ```bash
-gofmt -l .
-go test ./...
-go build -o server ./cmd/server
-golangci-lint run ./...
-go mod tidy
-go test -race ./...
-bunx oxfmt --check
-bun run lint:ts
-bun run typecheck
-bun run build:assets
-docker build -t mal:ci .
+just fmt
+just test
+just lint-go
+just lint-ts
+just typecheck
+just build
 ```
 
-## Contributing
+Run the full local check with:
 
-Bug reports and pull requests are welcome. This is a personal project, so there is no strict roadmap or issue triage cycle. If something is broken or missing, open an issue or send a PR.
+```bash
+just check
+```
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](LICENSE).
