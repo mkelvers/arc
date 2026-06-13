@@ -1,5 +1,10 @@
 {{define "title"}}Watch {{.Anime.Title}}{{end}}
 {{define "scripts"}}<script type="module" src="/dist/static/player/main.js" defer></script>{{end}}
+{{define "page_container"}}
+<div class="-m-4 h-[calc(100dvh-4rem)] overflow-hidden p-4 md:-m-8 md:p-6">
+  {{template "content" .}}
+</div>
+{{end}}
 {{define "content"}}
 {{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}
 {{$anime := .Anime}}
@@ -11,80 +16,8 @@
 {{$rangeStart := episodeRangeStart $currentEpNum 100}}
 {{$rangeEnd := min (add $rangeStart 99) $totalEpisodes}}
 
-<div id="watch-layout" class="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-6{{if le $totalEpisodes 100}} max-h-dvh{{end}}">
-  <div class="{{if le $totalEpisodes 100}}shrink-0 lg:flex-1 lg:self-start{{else}}flex-1{{end}} min-w-0">
-    <div class="mb-4 flex items-center justify-between">
-      <a href="/anime/{{$anime.MalID}}" class="inline-flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-        Back
-      </a>
-      <ui-dropdown class="relative block" data-align="right" data-width="min-w-[160px]">
-        <div data-trigger class="cursor-pointer">
-          <button type="button" class=" inline-flex h-10 items-center justify-between gap-2 bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-            <span id="watchlist-status-display-{{$anime.MalID}}">
-              {{if .WatchlistStatus}}{{if eq .WatchlistStatus "watching"}}Watching{{else if eq .WatchlistStatus "completed"}}Completed{{else if eq .WatchlistStatus "plan_to_watch"}}Plan to Watch{{else if eq .WatchlistStatus "dropped"}}Dropped{{end}}{{else}}Add to Watchlist{{end}}
-            </span>
-            <svg class="h-4 w-4 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" /></svg>
-          </button>
-        </div>
-        <div data-content class="hidden absolute z-50 min-w-40 bg-background-button shadow-(--shadow-card) ring-1 ring-black/10 right-0 top-full mt-2">
-          <div class="flex flex-col py-1">
-            <button
-              data-unstyled-button
-              data-watchlist-update
-              data-mal-id="{{$anime.MalID}}"
-              data-watchlist-status="watching"
-              data-watchlist-display="Watching"
-              data-watchlist-title="{{$anime.Title}}"
-              class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
-            >
-              <span class="text-sm font-normal text-foreground">Watching</span>
-            </button>
-            <button
-              data-unstyled-button
-              data-watchlist-update
-              data-mal-id="{{$anime.MalID}}"
-              data-watchlist-status="completed"
-              data-watchlist-display="Completed"
-              data-watchlist-title="{{$anime.Title}}"
-              class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
-            >
-              <span class="text-sm font-normal text-foreground">Completed</span>
-            </button>
-            <button
-              data-unstyled-button
-              data-watchlist-update
-              data-mal-id="{{$anime.MalID}}"
-              data-watchlist-status="plan_to_watch"
-              data-watchlist-display="Plan to Watch"
-              data-watchlist-title="{{$anime.Title}}"
-              class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
-            >
-              <span class="text-sm font-normal text-foreground">Plan to Watch</span>
-            </button>
-            <button
-              data-unstyled-button
-              data-watchlist-update
-              data-mal-id="{{$anime.MalID}}"
-              data-watchlist-status="dropped"
-              data-watchlist-display="Dropped"
-              data-watchlist-title="{{$anime.Title}}"
-              class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
-            >
-              <span class="text-sm font-normal text-foreground">Dropped</span>
-            </button>
-            {{template "watchlist_remove_button" dict
-              "ID" $anime.MalID
-              "Title" $anime.Title
-              "ContainerClass" "hidden"
-              "DividerClass" "my-1"
-              "ButtonClass" "flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-              "SpanClass" "text-sm font-normal text-red-400 whitespace-nowrap"
-            }}
-          </div>
-        </div>
-      </ui-dropdown>
-    </div>
+<div id="watch-layout" class="flex h-full flex-col gap-6 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,min(calc(100%_-_24rem_-_3rem),calc((100dvh-10.5rem)*16/9)))_24rem] lg:items-start lg:gap-x-12 lg:gap-y-0 lg:overflow-hidden">
+  <div class="min-w-0">
     <div id="video-player-container">
       {{template "video_player" dict "WatchData" .WatchData "TotalEpisodes" $totalEpisodes}}
     </div>
@@ -107,7 +40,73 @@
         {{end}}
       </div>
 
-      <div class="flex justify-end" data-segment-editor-root>
+      <div class="flex justify-end gap-2" data-segment-editor-root>
+        <ui-dropdown class="relative block" data-align="right" data-width="min-w-[160px]">
+          <div data-trigger class="cursor-pointer">
+            <button type="button" class=" inline-flex items-center justify-between gap-2 bg-background-button px-4 py-2 text-sm font-normal leading-none text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+              <span id="watchlist-status-display-{{$anime.MalID}}">
+                {{if .WatchlistStatus}}{{if eq .WatchlistStatus "watching"}}Watching{{else if eq .WatchlistStatus "completed"}}Completed{{else if eq .WatchlistStatus "plan_to_watch"}}Plan to Watch{{else if eq .WatchlistStatus "dropped"}}Dropped{{end}}{{else}}Add to Watchlist{{end}}
+              </span>
+              <svg class="h-4 w-4 text-foreground-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" /></svg>
+            </button>
+          </div>
+          <div data-content class="hidden absolute z-50 right-0 bottom-full mb-2 min-w-40 bg-background-button shadow-(--shadow-card) ring-1 ring-black/10">
+            <div class="flex flex-col py-1">
+              <button
+                data-unstyled-button
+                data-watchlist-update
+                data-mal-id="{{$anime.MalID}}"
+                data-watchlist-status="watching"
+                data-watchlist-display="Watching"
+                data-watchlist-title="{{$anime.Title}}"
+                class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <span class="text-sm font-normal text-foreground">Watching</span>
+              </button>
+              <button
+                data-unstyled-button
+                data-watchlist-update
+                data-mal-id="{{$anime.MalID}}"
+                data-watchlist-status="completed"
+                data-watchlist-display="Completed"
+                data-watchlist-title="{{$anime.Title}}"
+                class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <span class="text-sm font-normal text-foreground">Completed</span>
+              </button>
+              <button
+                data-unstyled-button
+                data-watchlist-update
+                data-mal-id="{{$anime.MalID}}"
+                data-watchlist-status="plan_to_watch"
+                data-watchlist-display="Plan to Watch"
+                data-watchlist-title="{{$anime.Title}}"
+                class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <span class="text-sm font-normal text-foreground">Plan to Watch</span>
+              </button>
+              <button
+                data-unstyled-button
+                data-watchlist-update
+                data-mal-id="{{$anime.MalID}}"
+                data-watchlist-status="dropped"
+                data-watchlist-display="Dropped"
+                data-watchlist-title="{{$anime.Title}}"
+                class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <span class="text-sm font-normal text-foreground">Dropped</span>
+              </button>
+              {{template "watchlist_remove_button" dict
+                "ID" $anime.MalID
+                "Title" $anime.Title
+                "ContainerClass" "hidden"
+                "DividerClass" "my-1"
+                "ButtonClass" "flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+                "SpanClass" "text-sm font-normal text-red-400 whitespace-nowrap"
+              }}
+            </div>
+          </div>
+        </ui-dropdown>
         <ui-dropdown class="relative block" data-align="right" data-width="min-w-[220px]">
           <div data-trigger>
             <button type="button" class=" inline-flex items-center gap-2 bg-background-button px-4 py-2 text-sm font-normal leading-none text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
@@ -187,7 +186,7 @@
     </div>
   </div>
 
-    <div class="w-full lg:w-80 xl:w-96{{if le $totalEpisodes 100}} flex flex-col min-h-0 flex-1 lg:flex-none lg:shrink-0 lg:sticky lg:top-8 lg:self-start lg:h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:pb-4{{else}} shrink-0{{end}}">
+    <div class="w-full flex flex-col min-h-0{{if le $totalEpisodes 100}} flex-1 lg:h-full lg:overflow-y-auto lg:pb-4{{else}} shrink-0{{end}}">
       {{if .Seasons}}
         {{$currentSeason := dict "Prefix" "" "Title" $anime.Title}}
         {{range .Seasons}}
