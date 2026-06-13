@@ -19,14 +19,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 )
 
 func NewApp() *fx.App {
 	return fx.New(
-		fx.WithLogger(func() fxevent.Logger {
-			return observability.NewFxLogger()
-		}),
+		fx.WithLogger(observability.NewFxLogger),
 		config.Module,
 		database.Module,
 		audit.Module,
