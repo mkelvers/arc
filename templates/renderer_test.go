@@ -78,7 +78,7 @@ func TestRenderWithFragment(t *testing.T) {
 	if err := render.Render(w); err != nil {
 		t.Fatalf("Render error: %v", err)
 	}
-	if !strings.Contains(w.Body.String(), "Currently Airing") {
+	if !strings.Contains(w.Body.String(), "Airing & Popular") {
 		t.Error("expected content block in fragment render")
 	}
 }
@@ -115,7 +115,7 @@ func TestExecuteFragmentValid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ExecuteFragment error: %v", err)
 	}
-	if !strings.Contains(buf.String(), "Currently Airing") {
+	if !strings.Contains(buf.String(), "Airing & Popular") {
 		t.Error("expected content in fragment output")
 	}
 }

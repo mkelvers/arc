@@ -1,6 +1,6 @@
 {{define "title"}}Home{{end}}
 {{define "content"}}
-  <div class="flex flex-col gap-10">
+<div class="flex flex-col gap-8 pb-12">
   {{if .User}}
   <div hx-get="/api/catalog/continue" hx-trigger="load" hx-swap="outerHTML">
     {{template "continue_watching_skeleton"}}
@@ -13,7 +13,9 @@
 
   <section class="w-full">
     <div class="mb-4 flex items-end justify-between gap-3">
-      <h2 class="text-base font-normal text-foreground">Currently Airing</h2>
+      <div>
+        <h2 class="text-base font-normal text-foreground">Airing & Popular</h2>
+      </div>
       {{template "section_action" dict "Href" "/browse?status=airing&order_by=popularity&sort=asc" "Label" "View all"}}
     </div>
     <div hx-get="/api/catalog/airing" hx-trigger="load" hx-swap="outerHTML">
@@ -21,15 +23,6 @@
     </div>
   </section>
 
-  <section class="w-full">
-    <div class="mb-4 flex items-end justify-between gap-3">
-      <h2 class="text-base font-normal text-foreground">Most Popular</h2>
-      {{template "section_action" dict "Href" "/browse?order_by=popularity&sort=asc" "Label" "View all"}}
-    </div>
-    <div hx-get="/api/catalog/popular" hx-trigger="load" hx-swap="outerHTML">
-      {{template "catalog_skeleton"}}
-    </div>
-  </section>
 </div>
 
 {{end}}
