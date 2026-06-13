@@ -14,7 +14,6 @@ var Module = fx.Options(
 			NewAnimeService,
 			fx.As(new(Service)),
 			fx.As(new(domain.AnimeCatalogService)),
-			fx.As(new(domain.AnimeDiscoverService)),
 			fx.As(new(domain.AnimeSearchService)),
 			fx.As(new(domain.AnimeDetailsService)),
 			fx.As(new(domain.AnimePlaybackService)),
