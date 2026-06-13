@@ -18,9 +18,7 @@ var Module = fx.Options(
 	fx.Provide(
 		NewPlaybackRepository,
 		NewPlaybackService,
-		func(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *handler.PlaybackHandler {
-			return handler.NewPlaybackHandler(svc, animeSvc)
-		},
+		handler.NewPlaybackHandler,
 	),
 	fx.Provide(
 		server.AsRouteRegister(func(h *handler.PlaybackHandler) server.RouteRegister {
