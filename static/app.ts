@@ -8,7 +8,6 @@ import "./timezone";
 import "./search";
 import "./sort_filter";
 import "./dedupe";
-import "./shell";
 import "./watchlist";
 import "./top_pick_carousel";
 import "./continue_watching_carousel";
