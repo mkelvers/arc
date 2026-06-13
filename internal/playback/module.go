@@ -1,7 +1,6 @@
 package playback
 
 import (
-	"mal/integrations/jikan"
 	"mal/integrations/playback/allanime"
 	"mal/internal/config"
 	"mal/internal/domain"
@@ -18,11 +17,7 @@ func provideProxyTokenKey(cfg config.Config) ProxyTokenKey {
 var Module = fx.Options(
 	fx.Provide(
 		NewPlaybackRepository,
-		fx.Annotate(
-			func(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodeSvc domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
-				return NewPlaybackService(repo, providers, jikan, episodeSvc, auditSvc, proxyTokenKey)
-			},
-		),
+		NewPlaybackService,
 		func(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *handler.PlaybackHandler {
 			return handler.NewPlaybackHandler(svc, animeSvc)
 		},
