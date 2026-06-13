@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,9 +25,6 @@ type AnimeHandler struct {
 	svc          Service
 	watchlistSvc domain.WatchlistService
 	episodeSvc   domain.EpisodeService
-
-	scheduleCacheMu sync.Mutex
-	scheduleCache   map[string]cachedWeekSchedule
 }
 
 type producerItem struct {
@@ -38,7 +34,6 @@ type producerItem struct {
 
 type Service interface {
 	domain.AnimeCatalogService
-	domain.AnimeDiscoverService
 	domain.AnimeSearchService
 	domain.AnimeDetailsService
 	WarmDetailSections(id int)
@@ -46,10 +41,9 @@ type Service interface {
 
 func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService, episodeSvc domain.EpisodeService) *AnimeHandler {
 	return &AnimeHandler{
-		svc:           svc,
-		watchlistSvc:  watchlistSvc,
-		episodeSvc:    episodeSvc,
-		scheduleCache: map[string]cachedWeekSchedule{},
+		svc:          svc,
+		watchlistSvc: watchlistSvc,
+		episodeSvc:   episodeSvc,
 	}
 }
 
@@ -126,13 +120,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/catalog/continue", h.HandleCatalogContinue)
 	r.GET("/api/catalog/top-pick", h.HandleCatalogTopPickForYou)
 	r.GET("/search", h.HandleSearch)
-	r.GET("/discover", h.HandleDiscover)
-	r.GET("/discover/top-picks", h.HandleDiscoverTopPicksForYou)
-	r.GET("/api/discover/trending", h.HandleDiscoverTrending)
-	r.GET("/api/discover/upcoming", h.HandleDiscoverUpcoming)
-	r.GET("/api/discover/top", h.HandleDiscoverTop)
-	r.GET("/schedule", h.HandleSchedule)
-	r.GET("/api/schedule", h.HandleScheduleSection)
+	r.GET("/top-picks", h.HandleTopPicks)
 	r.GET("/browse", h.HandleBrowse)
 	r.GET("/anime/:id", h.HandleAnimeDetails)
 	r.GET("/anime/:id/reviews", h.HandleAnimeReviews)
@@ -315,11 +303,7 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	c.HTML(http.StatusOK, "index.gohtml", data)
 }
 
-func (h *AnimeHandler) HandleDiscover(c *gin.Context) {
-	c.Redirect(http.StatusSeeOther, "/")
-}
-
-func (h *AnimeHandler) HandleDiscoverTopPicksForYou(c *gin.Context) {
+func (h *AnimeHandler) HandleTopPicks(c *gin.Context) {
 	user := server.CurrentUser(c)
 	userID := server.CurrentUserID(c)
 
@@ -340,42 +324,12 @@ func (h *AnimeHandler) HandleDiscoverTopPicksForYou(c *gin.Context) {
 
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
 
-	c.HTML(http.StatusOK, "discover.gohtml", gin.H{
-		"_fragment":    "",
-		"CurrentPath":  "/discover",
+	c.HTML(http.StatusOK, "top_picks.gohtml", gin.H{
+		"CurrentPath":  "/top-picks",
 		"User":         user,
 		"Animes":       data.Animes,
 		"WatchlistMap": watchlistMap,
-		"IsTopPicks":   true,
 	})
-}
-
-func (h *AnimeHandler) HandleDiscoverTrending(c *gin.Context) {
-	h.renderDiscoverSection(c, "Trending")
-}
-
-func (h *AnimeHandler) HandleDiscoverUpcoming(c *gin.Context) {
-	h.renderDiscoverSection(c, "Upcoming")
-}
-
-func (h *AnimeHandler) HandleDiscoverTop(c *gin.Context) {
-	h.renderDiscoverSection(c, "Top")
-}
-
-func (h *AnimeHandler) renderDiscoverSection(c *gin.Context, section string) {
-	userID := server.CurrentUserID(c)
-	data, err := h.svc.GetDiscoverSection(c.Request.Context(), userID, section)
-	if err != nil {
-		h.abortSectionFetch(c, "discover_section_fetch_failed", userID, section, err)
-		return
-	}
-
-	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
-
-	data.Section = section
-	data.Fragment = "discover_section"
-	data.WatchlistMap = watchlistMap
-	c.HTML(http.StatusOK, "discover.gohtml", data)
 }
 
 func (h *AnimeHandler) abortSectionFetch(c *gin.Context, event string, userID string, section string, err error) {
@@ -390,66 +344,6 @@ func (h *AnimeHandler) abortSectionFetch(c *gin.Context, event string, userID st
 		err,
 	)
 	c.AbortWithStatus(http.StatusInternalServerError)
-}
-
-func (h *AnimeHandler) HandleSchedule(c *gin.Context) {
-	user := server.CurrentUser(c)
-	year, week := parseYearWeek(c)
-	c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
-		"CurrentPath":  "/schedule",
-		"User":         user,
-		"ScheduleYear": year,
-		"ScheduleWeek": week,
-	})
-}
-
-func (h *AnimeHandler) HandleScheduleSection(c *gin.Context) {
-	year, week := parseYearWeek(c)
-	timezone := scheduleTimezone(c)
-
-	schedule, err := h.getCachedAnimeScheduleWeek(c.Request.Context(), year, week, timezone)
-	if err != nil {
-		prevYear, prevWeek := adjacentISOWeek(year, week, -1)
-		nextYear, nextWeek := adjacentISOWeek(year, week, 1)
-		observability.WarnContext(c.Request.Context(),
-			"animeschedule_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"year":     year,
-				"week":     week,
-				"timezone": timezone,
-			},
-			err,
-		)
-		c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
-			"_fragment":     "schedule_section_scraped",
-			"ScheduleDays":  []any{},
-			"ScheduleYear":  year,
-			"ScheduleWeek":  week,
-			"PrevYear":      prevYear,
-			"PrevWeek":      prevWeek,
-			"NextYear":      nextYear,
-			"NextWeek":      nextWeek,
-			"ScheduleError": true,
-		})
-		return
-	}
-
-	days := buildScheduleDays(schedule, schedule.Year, schedule.Week)
-	prevYear, prevWeek := adjacentISOWeek(schedule.Year, schedule.Week, -1)
-	nextYear, nextWeek := adjacentISOWeek(schedule.Year, schedule.Week, 1)
-
-	c.HTML(http.StatusOK, "schedule.gohtml", gin.H{
-		"_fragment":    "schedule_section_scraped",
-		"ScheduleDays": days,
-		"ScheduleYear": schedule.Year,
-		"ScheduleWeek": schedule.Week,
-		"PrevYear":     prevYear,
-		"PrevWeek":     prevWeek,
-		"NextYear":     nextYear,
-		"NextWeek":     nextWeek,
-	})
 }
 
 type browseQuery struct {
