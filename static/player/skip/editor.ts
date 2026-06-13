@@ -3,9 +3,17 @@ import { formatTime, showControls } from "../controls";
 import { resolveActiveSegments, renderSegments } from "./segments";
 
 type SkipType = "op" | "ed";
+type ClosableDropdown = HTMLElement & {
+  close: (options?: { restoreFocus?: boolean }) => void;
+};
 
 const qs = <T extends Element>(root: ParentNode, sel: string): T | null =>
   root.querySelector(sel) as T | null;
+
+const isClosableDropdown = (element: Element | null): element is ClosableDropdown =>
+  element instanceof HTMLElement &&
+  "close" in element &&
+  typeof element.close === "function";
 
 export const setupSegmentEditor = (): void => {
   const root = document.querySelector("[data-segment-editor-root]") as HTMLElement | null;
@@ -76,8 +84,16 @@ export const setupSegmentEditor = (): void => {
   };
 
   toggleBtn.addEventListener("click", () => {
-    if (panel.classList.contains("hidden")) open();
-    else close();
+    if (!panel.classList.contains("hidden")) {
+      close();
+      return;
+    }
+
+    const dropdown = toggleBtn.closest("ui-dropdown");
+    if (isClosableDropdown(dropdown)) {
+      dropdown.close({ restoreFocus: false });
+    }
+    open();
   });
   closeBtn?.addEventListener("click", close);
 
@@ -135,10 +151,10 @@ export const setupSegmentEditor = (): void => {
       const v = (btn.getAttribute("data-value") || "ed") as SkipType;
       if (typeValue) typeValue.value = v;
       if (typeLabel) typeLabel.textContent = v === "op" ? "Opening (OP)" : "Ending (ED)";
-      // close dropdown popover if it exists
       const dropdown = btn.closest("ui-dropdown");
-      const content = dropdown?.querySelector("[data-content]") as HTMLElement | null;
-      content?.classList.add("hidden");
+      if (isClosableDropdown(dropdown)) {
+        dropdown.close({ restoreFocus: false });
+      }
       showControls();
     });
   });
