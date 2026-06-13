@@ -3,6 +3,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"mal/internal/domain"
@@ -302,8 +303,10 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 
 	resp, err := h.streamingClient.Do(req)
 	if err != nil {
-		observability.ErrorContext(c.Request.Context(), "proxy_stream_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		if !errors.Is(err, context.Canceled) {
+			observability.ErrorContext(c.Request.Context(), "proxy_stream_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+			_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		}
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -490,8 +493,10 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 
 	resp, err := h.proxyClient.Do(req)
 	if err != nil {
-		observability.ErrorContext(c.Request.Context(), "proxy_subtitle_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		if !errors.Is(err, context.Canceled) {
+			observability.ErrorContext(c.Request.Context(), "proxy_subtitle_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
+			_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		}
 		c.Status(http.StatusBadGateway)
 		return
 	}
