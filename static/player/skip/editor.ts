@@ -11,9 +11,7 @@ const qs = <T extends Element>(root: ParentNode, sel: string): T | null =>
   root.querySelector(sel) as T | null;
 
 const isClosableDropdown = (element: Element | null): element is ClosableDropdown =>
-  element instanceof HTMLElement &&
-  "close" in element &&
-  typeof element.close === "function";
+  element instanceof HTMLElement && "close" in element && typeof element.close === "function";
 
 export const setupSegmentEditor = (): void => {
   const root = document.querySelector("[data-segment-editor-root]") as HTMLElement | null;
