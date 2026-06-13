@@ -6,24 +6,55 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
+    - dogsled
     - dupl
     - errcheck
     - funlen
     - gocognit
+    - gocritic
     - gocyclo
     - govet
     - ineffassign
     - maintidx
+    - makezero
     - nakedret
     - nilerr
     - noctx
+    - prealloc
+    - predeclared
     - revive
     - staticcheck
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
     - wastedassign
+    - whitespace
   settings:
+    gocritic:
+      disable-all: true
+      enabled-checks:
+        - appendCombine
+        - boolExprSimplify
+        - commentedOutCode
+        - commentedOutImport
+        - deferUnlambda
+        - dupBranchBody
+        - dupImport
+        - dupSubExpr
+        - emptyDecl
+        - emptyFallthrough
+        - emptyStringTest
+        - equalFold
+        - redundantSprint
+        - regexpPattern
+        - stringConcatSimplify
+        - typeUnparen
+        - underef
+        - unlambda
+        - unnecessaryBlock
+        - unnecessaryDefer
+        - unslice
     revive:
       enable-all-rules: false
       rules:
