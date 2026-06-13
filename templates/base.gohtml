@@ -12,48 +12,15 @@
     document.documentElement.style.colorScheme = preferredTheme;
   </script>
   <link rel="manifest" href="/static/assets/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/static/assets/favicon.svg">
+  <link rel="icon" type="image/png" href="/static/assets/favicon.png">
+  <link rel="apple-touch-icon" href="/static/assets/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/static/assets/apple-touch-icon-120x120.png">
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap"></noscript>
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&display=swap"></noscript>
   <link rel="stylesheet" href="/dist/tailwind.css">
   <style>
-    /* Prevent transition on load */
-    @media (min-width: 1024px) {
-      #mobile-menu {
-        width: 5rem !important; /* lg:w-20 */
-      }
-
-      .nav-label-container {
-        grid-template-columns: 0fr !important;
-        opacity: 0 !important;
-        margin-left: 0 !important;
-      }
-    }
-
-    @media (max-width: 1023px) {
-      #mobile-menu {
-        transform: translateX(-100%);
-      }
-
-      #mobile-menu[data-mobile-open='true'] {
-        transform: translateX(0);
-      }
-
-      #mobile-menu-backdrop[data-mobile-open='true'] {
-        display: block;
-      }
-    }
-
-    /* Re-enable transitions after initialization */
-    .sidebar-ready #mobile-menu,
-    .sidebar-ready .nav-label-container {
-      transition-property: all;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 300ms;
-    }
-
     [data-htmx-loading="true"] {
       opacity: 0.65;
       pointer-events: none;
@@ -78,28 +45,10 @@
   <body class="bg-background text-foreground">
   <div class="flex min-h-screen flex-col">
     {{if .User}}
-      <header class="fixed inset-x-0 top-0 z-50 flex h-14 items-center bg-background-sidebar px-4 lg:hidden">
-        <button type="button" data-unstyled-button data-mobile-menu-toggle class="inline-flex items-center justify-center bg-background-button p-2 text-foreground" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
-          <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <path d="M4 6h16"></path>
-            <path d="M4 12h16"></path>
-            <path d="M4 18h16"></path>
-          </svg>
-        </button>
-        <div class="ml-3 min-w-0 flex-1 truncate text-sm font-medium text-foreground">MyAnimeList</div>
-      </header>
+      {{template "header_navigation" dict "CurrentPath" .CurrentPath}}
 
-      <div class="flex flex-1 overflow-hidden pt-14 lg:pt-0">
-        <!-- Sidebar -->
-        <div id="mobile-menu-backdrop" data-mobile-menu-backdrop class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden"></div>
-
-        <div id="mobile-menu" data-mobile-open="false" class="fixed inset-y-0 left-0 z-50 w-64 shrink-0 overflow-hidden border-r border-(--border-light) bg-background-sidebar transition-transform duration-300 lg:static lg:translate-x-0 lg:transition-none">
-	          {{block "sidebar" .}}
-	            {{template "navigation" dict "CurrentPath" .CurrentPath "IsCollapsed" false}}
-	          {{end}}
-	        </div>
-
-        <main class="w-full flex-1 flex flex-col h-[calc(100dvh-3.5rem)] overflow-y-auto lg:h-screen">
+      <div class="flex flex-1 overflow-hidden pt-16">
+        <main class="scrollbar-hidden w-full flex-1 flex flex-col h-[calc(100dvh-4rem)] overflow-y-auto">
           <div class="flex-1 p-4 md:p-8">
             {{block "page_container" .}}
               {{template "content" .}}
