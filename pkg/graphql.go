@@ -53,12 +53,12 @@ func Post[T any](ctx context.Context, httpClient *http.Client, url string, query
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	max := opts.BodyMax
-	if max <= 0 {
-		max = 2 << 20
+	bodyMax := opts.BodyMax
+	if bodyMax <= 0 {
+		bodyMax = 2 << 20
 	}
 
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, max))
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, bodyMax))
 	if err != nil {
 		return zero, fmt.Errorf("graphql: read response: %w", err)
 	}

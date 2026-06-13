@@ -275,7 +275,7 @@ func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, 
 }
 
 func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeSource {
-	var subtitles []domain.SubtitleItem
+	subtitles := make([]domain.SubtitleItem, 0, len(res.Subtitles))
 	for _, sub := range res.Subtitles {
 		token, _ := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
 		subtitles = append(subtitles, domain.SubtitleItem{
