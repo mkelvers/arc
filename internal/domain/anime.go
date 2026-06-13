@@ -137,11 +137,6 @@ type AnimeCatalogService interface {
 	GetTopPicksForYou(ctx context.Context, userID string) (CatalogSectionData, error)
 }
 
-type AnimeDiscoverService interface {
-	GetDiscoverSection(ctx context.Context, userID string, section string) (DiscoverSectionData, error)
-	GetAiringSchedule(ctx context.Context, userID string) ([]Anime, error)
-}
-
 type AnimeSearchService interface {
 	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error)
 	GetProducerNameByID(ctx context.Context, id int) (string, error)
@@ -177,17 +172,6 @@ type CatalogSectionData struct {
 }
 
 func (d CatalogSectionData) TemplateFragment() string {
-	return d.Fragment
-}
-
-type DiscoverSectionData struct {
-	Animes       []Anime
-	Section      string
-	WatchlistMap map[int64]bool
-	Fragment     string
-}
-
-func (d DiscoverSectionData) TemplateFragment() string {
 	return d.Fragment
 }
 
