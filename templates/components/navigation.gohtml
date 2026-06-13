@@ -18,22 +18,6 @@
 </svg>
 {{end}}
 
-{{define "nav_icon_discover"}}
-<svg class="size-6 shrink-0 transition-colors duration-200 {{if .}}text-accent{{else}}text-foreground-muted group-hover:text-foreground{{end}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="10" />
-  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-</svg>
-{{end}}
-
-{{define "nav_icon_schedule"}}
-<svg class="size-6 shrink-0 transition-colors duration-200 {{if .}}text-accent{{else}}text-foreground-muted group-hover:text-foreground{{end}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="3" y="4" width="18" height="18" rx="2" />
-  <line x1="16" y1="2" x2="16" y2="6" />
-  <line x1="8" y1="2" x2="8" y2="6" />
-  <line x1="3" y1="10" x2="21" y2="10" />
-</svg>
-{{end}}
-
 {{define "nav_icon_watchlist"}}
 <svg class="size-6 shrink-0 transition-colors duration-200 {{if .}}text-accent{{else}}text-foreground-muted group-hover:text-foreground{{end}}" viewBox="0 0 24 24" fill="currentColor">
   <path d="M17 18.113l-3.256-2.326A2.989 2.989 0 0 0 12 15.228c-.629 0-1.232.194-1.744.559L7 18.113V4h10v14.113zM18 2H6a1 1 0 0 0-1 1v17.056c0 .209.065.412.187.581a.994.994 0 0 0 1.394.233l4.838-3.455a1 1 0 0 1 1.162 0l4.838 3.455A1 1 0 0 0 19 20.056V3a1 1 0 0 0-1-1z" />
@@ -49,8 +33,6 @@
   {{end}}
   {{if eq .key "home"}}{{template "nav_icon_home" $isActive}}
   {{else if eq .key "browse"}}{{template "nav_icon_browse" $isActive}}
-  {{else if eq .key "discover"}}{{template "nav_icon_discover" $isActive}}
-  {{else if eq .key "schedule"}}{{template "nav_icon_schedule" $isActive}}
   {{else if eq .key "watchlist"}}{{template "nav_icon_watchlist" $isActive}}
   {{end}}
   <div class="nav-label-container grid grid-cols-[1fr] opacity-100 ml-4">
@@ -116,9 +98,12 @@
 {{$currentPath := .CurrentPath}}
 <header class="fixed inset-x-0 top-0 z-50 h-16 bg-background-sidebar">
   <nav class="flex h-full items-center justify-between pl-4 md:pl-8" aria-label="Primary navigation">
-    <a href="/" class="inline-flex size-12 items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted" title="Home" aria-label="Home" aria-current="{{if eq $currentPath "/"}}page{{end}}">
-      <img src="/static/assets/logo.png" alt="" class="h-10 w-auto shrink-0" aria-hidden="true">
-    </a>
+    <div class="flex h-full items-center gap-4">
+      <a href="/" class="inline-flex size-12 items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted" title="Home" aria-label="Home" aria-current="{{if eq $currentPath "/"}}page{{end}}">
+        <img src="/static/assets/logo.png" alt="" class="h-10 w-auto shrink-0" aria-hidden="true">
+      </a>
+      <a href="/top-picks" class="inline-flex h-full items-center px-2 text-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted sm:px-3 {{if eq $currentPath "/top-picks"}}text-accent{{else}}text-foreground-muted{{end}}" aria-current="{{if eq $currentPath "/top-picks"}}page{{end}}">Top Picks</a>
+    </div>
 
     <div class="flex h-full items-center">
       {{template "header_nav_link" dict "key" "watchlist" "href" "/watchlist" "label" "Watchlist" "isActive" (eq $currentPath "/watchlist")}}
