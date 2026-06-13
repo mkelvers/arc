@@ -1,9 +1,8 @@
-// Package anime provides anime catalog, discovery, search, and details services.
+// Package anime provides anime catalog, search, and details services.
 package anime
 
 import (
 	"context"
-	"errors"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -107,50 +106,6 @@ func (s *candidateStore) ranked() []rankedCandidate {
 	return ranked
 }
 
-func isAiringScheduleCandidate(entry db.GetUserWatchListRow) bool {
-	status := strings.TrimSpace(entry.Status)
-	if status != "watching" && status != "plan_to_watch" {
-		return false
-	}
-
-	if !entry.Airing.Valid || !entry.Airing.Bool {
-		return false
-	}
-
-	return entry.AnimeID > 0
-}
-
-func collectAiringScheduleIDs(watchlist []db.GetUserWatchListRow, limit int) []int {
-	ids := make([]int, 0, limit)
-	for _, entry := range watchlist {
-		if !isAiringScheduleCandidate(entry) {
-			continue
-		}
-
-		ids = append(ids, int(entry.AnimeID))
-		if len(ids) >= limit {
-			break
-		}
-	}
-
-	return ids
-}
-
-func handleAiringScheduleFetchError(err error, userID string, count int, animes []domain.Anime) ([]domain.Anime, error) {
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return nil, err
-	}
-
-	observability.Warn(
-		"schedule_partial_fetch_failed",
-		"anime",
-		"",
-		map[string]any{"user_id": userID, "count": count},
-		err,
-	)
-	return animes, nil
-}
-
 func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (domain.CatalogSectionData, error) {
 	var (
 		res jikan.TopAnimeResult
@@ -190,38 +145,6 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 	return domain.CatalogSectionData{
 		Animes:           animes,
 		ContinueWatching: cw,
-	}, nil
-}
-
-func (s *animeService) GetDiscoverSection(ctx context.Context, userID string, section string) (domain.DiscoverSectionData, error) {
-	var res jikan.TopAnimeResult
-
-	g, gCtx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		var err error
-		switch section {
-		case "Trending":
-			res, err = s.jikan.GetSeasonsNow(gCtx, 1)
-		case "Upcoming":
-			res, err = s.jikan.GetSeasonsUpcoming(gCtx, 1)
-		case "Top":
-			res, err = s.jikan.GetTopAnime(gCtx, 1)
-		}
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
-		return domain.DiscoverSectionData{}, err
-	}
-
-	animes := wrapAnimes(res.Animes)
-	if len(animes) > 8 {
-		animes = animes[:8]
-	}
-
-	return domain.DiscoverSectionData{
-		Animes: animes,
 	}, nil
 }
 
@@ -445,47 +368,6 @@ func (s *animeService) getTopPicksForYou(
 	return domain.CatalogSectionData{
 		Animes: rerankRecommendationCandidates(candidates, resultLimit),
 	}, nil
-}
-
-func (s *animeService) GetAiringSchedule(ctx context.Context, userID string) ([]domain.Anime, error) {
-	if strings.TrimSpace(userID) == "" {
-		return []domain.Anime{}, nil
-	}
-
-	watchlist, err := s.repo.GetUserWatchList(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	ids := collectAiringScheduleIDs(watchlist, 50)
-
-	if len(ids) == 0 {
-		return []domain.Anime{}, nil
-	}
-
-	animes := make([]domain.Anime, 0, len(ids))
-	var g errgroup.Group
-	g.SetLimit(6)
-	var mu sync.Mutex
-
-	for _, id := range ids {
-		g.Go(func() error {
-			anime, fetchErr := s.jikan.GetAnimeByID(ctx, id)
-			if fetchErr != nil {
-				return fetchErr
-			}
-			mu.Lock()
-			animes = append(animes, domain.Anime{Anime: anime})
-			mu.Unlock()
-			return nil
-		})
-	}
-
-	if err := g.Wait(); err != nil {
-		return handleAiringScheduleFetchError(err, userID, len(ids), animes)
-	}
-
-	return animes, nil
 }
 
 func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, error) {
