@@ -1,3 +1,5 @@
+import { dedupeByID, dedupeWithin } from "./dedupe";
+
 interface CommandPaletteItem {
   id: string;
   type: string;
@@ -53,6 +55,7 @@ const typeLabels: Record<string, string> = {
 };
 
 const groupOrder = ["anime"];
+const maxPosterImageRetries = 2;
 
 const isMac = (): boolean => /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
@@ -134,11 +137,24 @@ const buildPosterImage = (item: CommandPaletteItem): HTMLElement => {
     return buildFallbackIcon(item);
   }
 
+  const source = item.image || "";
+  let retries = 0;
   const img = document.createElement("img");
   img.className = "aspect-2/3 w-full bg-background-button object-cover";
-  img.src = item.image || "";
   img.alt = "";
   img.loading = "lazy";
+  img.addEventListener("error", () => {
+    if (retries < maxPosterImageRetries) {
+      retries += 1;
+      const retryURL = new URL(source);
+      retryURL.searchParams.set("_retry", String(retries));
+      img.src = retryURL.toString();
+      return;
+    }
+
+    img.replaceWith(buildFallbackIcon(item));
+  });
+  img.src = source;
   return img;
 };
 
@@ -238,6 +254,7 @@ const buildCard = (item: CommandPaletteItem, index: number): HTMLAnchorElement =
   card.className =
     "group block min-w-0 text-foreground no-underline transition focus-visible:outline-none hover:no-underline";
   card.dataset.commandPaletteItem = item.id;
+  card.dataset.id = item.id;
   card.dataset.resultIndex = String(index);
   card.setAttribute("role", "option");
   card.setAttribute("aria-selected", String(index === selectedIndex));
@@ -285,6 +302,7 @@ const buildCompactItem = (item: CommandPaletteItem, index: number): HTMLAnchorEl
   row.className =
     "group flex min-h-16 items-center gap-3 px-3 py-2 text-foreground no-underline transition hover:bg-surface-hover hover:no-underline focus-visible:outline-none";
   row.dataset.commandPaletteItem = item.id;
+  row.dataset.id = item.id;
   row.dataset.resultIndex = String(index);
   row.setAttribute("role", "option");
   row.setAttribute("aria-selected", String(index === selectedIndex));
@@ -399,7 +417,7 @@ const renderItems = (items: CommandPaletteItem[]): void => {
   const shell = document.createElement("div");
   shell.className = "mx-auto w-full max-w-5xl px-5 py-9 md:px-8 md:py-12";
 
-  const groups = groupedItems(items);
+  const groups = groupedItems(dedupeByID(items, (item) => item.id));
   const keys = orderedGroupKeys(groups);
   resultItems = keys.flatMap((key) => groups.get(key) || []);
   let cursor = 0;
@@ -418,6 +436,7 @@ const renderItems = (items: CommandPaletteItem[]): void => {
   });
 
   searchResults.replaceChildren(shell);
+  shell.querySelectorAll<HTMLElement>("[role='listbox']").forEach((list) => dedupeWithin(list));
   selectItem(0, false);
 };
 
@@ -427,7 +446,7 @@ const appendItems = (items: CommandPaletteItem[]): void => {
   }
 
   const existingIDs = new Set(resultItems.map((item) => item.id));
-  const nextItems = items.filter((item) => !existingIDs.has(item.id));
+  const nextItems = dedupeByID(items, (item) => item.id).filter((item) => !existingIDs.has(item.id));
   if (nextItems.length === 0) {
     return;
   }
