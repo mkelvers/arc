@@ -333,7 +333,7 @@ func formatInlineField(key string, value any) string {
 
 func formatHTTPStatus(value any) string {
 	status := fmt.Sprint(value)
-	if !colorLogs || len(status) == 0 {
+	if !colorLogs || status == "" {
 		return status
 	}
 
