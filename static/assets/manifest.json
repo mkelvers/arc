@@ -4,19 +4,19 @@
   "description": "Personal Anime Watchlist and Discovery",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#fb923c",
+  "background_color": "#ffffff",
+  "theme_color": "#007a85",
   "icons": [
     {
-      "src": "/static/assets/app-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/static/assets/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/assets/app-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/static/assets/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]
