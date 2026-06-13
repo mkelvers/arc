@@ -74,18 +74,20 @@
 <nav class="bg-background-sidebar h-full">
   <div class="flex h-full flex-col justify-between">
     <div class="flex flex-col">
-    <button type="button" data-unstyled-button class="group relative flex w-full items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" data-command-palette-open {{if $isCollapsed}}title="Search"{{end}}>
-      <svg class="size-6 shrink-0 text-foreground-muted transition-colors duration-200 group-hover:text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <a href="/search" class="group relative flex w-full items-center px-7 py-3 text-left transition-colors hover:bg-surface-hover" {{if $isCollapsed}}title="Search"{{end}} aria-current="{{if eq $currentPath "/search"}}page{{end}}">
+      {{if eq $currentPath "/search"}}
+        <div class="bg-accent absolute top-1/2 left-0 h-12 w-0.5 -translate-y-1/2 rounded-r-sm"></div>
+      {{end}}
+      <svg class="size-6 shrink-0 transition-colors duration-200 {{if eq $currentPath "/search"}}text-accent{{else}}text-foreground-muted group-hover:text-foreground{{end}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
       </svg>
       <div class="nav-label-container ml-4 grid min-w-0 flex-1 grid-cols-[1fr] opacity-100">
         <div class="flex min-w-0 items-center justify-between gap-3 overflow-hidden">
-          <span class="whitespace-nowrap text-sm font-medium text-foreground-muted transition-colors duration-200 group-hover:text-foreground">Search</span>
-          <kbd class="hidden whitespace-nowrap bg-background-surface px-1.5 py-0.5 text-[0.65rem] font-medium text-foreground-muted lg:inline" data-command-palette-shortcut>⌘P</kbd>
+          <span class="whitespace-nowrap text-sm font-medium transition-colors duration-200 {{if eq $currentPath "/search"}}text-accent{{else}}text-foreground-muted group-hover:text-foreground{{end}}">Search</span>
         </div>
       </div>
-    </button>
+    </a>
 
     {{range $navItems}}
       {{template "nav_item" dict "key" .key "href" .href "label" .label "isActive" .isActive "isCollapsed" $isCollapsed}}

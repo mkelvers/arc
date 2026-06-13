@@ -25,6 +25,7 @@ const searchResults = document.querySelector(
 ) as HTMLElement | null;
 const searchDialog = document.querySelector("[data-command-palette-dialog]") as HTMLElement | null;
 const searchRoot = document.querySelector("[data-command-palette-root]") as HTMLElement | null;
+const searchPage = document.querySelector("[data-command-palette-page]") as HTMLElement | null;
 const searchOpenButtons = document.querySelectorAll("[data-command-palette-open]");
 const searchCloseButtons = document.querySelectorAll("[data-command-palette-close]");
 const searchClearButtons = document.querySelectorAll("[data-command-palette-clear]");
@@ -446,7 +447,9 @@ const appendItems = (items: CommandPaletteItem[]): void => {
   }
 
   const existingIDs = new Set(resultItems.map((item) => item.id));
-  const nextItems = dedupeByID(items, (item) => item.id).filter((item) => !existingIDs.has(item.id));
+  const nextItems = dedupeByID(items, (item) => item.id).filter(
+    (item) => !existingIDs.has(item.id),
+  );
   if (nextItems.length === 0) {
     return;
   }
@@ -502,6 +505,7 @@ const fetchSearchItems = (query: string): void => {
 
   if (query === "") {
     clearResults();
+    renderEmptyState("");
     return;
   }
 
@@ -620,18 +624,21 @@ const scheduleFetch = (): void => {
 };
 
 const openSearch = (): void => {
-  if (!searchDialog || !searchInput) {
+  if (!searchInput) {
+    window.location.href = "/search";
     return;
   }
 
   lastFocusedSearchOpener =
     document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  setSearchState(true);
-  searchInput.value = "";
-  lastQuery = "";
-  cancelScheduledFetch();
-  setClearButtonState(false);
-  clearResults();
+  if (searchDialog) {
+    setSearchState(true);
+    searchInput.value = "";
+    lastQuery = "";
+    cancelScheduledFetch();
+    setClearButtonState(false);
+    clearResults();
+  }
   searchInput.focus();
 };
 
@@ -695,7 +702,9 @@ const onDocumentKeydown = (event: KeyboardEvent): void => {
 
   if (commandShortcut && !isTypingTarget(event.target)) {
     event.preventDefault();
-    if (isSearchOpen()) {
+    if (searchPage) {
+      searchInput?.focus();
+    } else if (isSearchOpen()) {
       closeSearch();
     } else {
       openSearch();
@@ -705,7 +714,11 @@ const onDocumentKeydown = (event: KeyboardEvent): void => {
 
   if (event.key === "/" && !isTypingTarget(event.target)) {
     event.preventDefault();
-    openSearch();
+    if (searchPage) {
+      searchInput?.focus();
+    } else {
+      openSearch();
+    }
     return;
   }
 
@@ -741,6 +754,17 @@ const initSearchOverlay = (): void => {
   document.addEventListener("click", onDocumentClick);
   document.addEventListener("keydown", onDocumentKeydown);
   searchDialog?.setAttribute("aria-hidden", "true");
+
+  const initialQuery = new URLSearchParams(window.location.search).get("q")?.trim() || "";
+  if (initialQuery) {
+    searchInput.value = initialQuery;
+    fetchSearchItems(initialQuery);
+  } else {
+    renderEmptyState("");
+  }
+  if (searchPage) {
+    searchInput.focus();
+  }
 };
 
 initSearchOverlay();

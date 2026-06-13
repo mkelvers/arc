@@ -125,6 +125,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/catalog/popular", h.HandleCatalogPopular)
 	r.GET("/api/catalog/continue", h.HandleCatalogContinue)
 	r.GET("/api/catalog/top-pick", h.HandleCatalogTopPickForYou)
+	r.GET("/search", h.HandleSearch)
 	r.GET("/discover", h.HandleDiscover)
 	r.GET("/discover/top-picks", h.HandleDiscoverTopPicksForYou)
 	r.GET("/api/discover/trending", h.HandleDiscoverTrending)
@@ -140,6 +141,13 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/api/command-palette", h.HandleCommandPalette)
 	r.GET("/api/jikan/random/anime", h.HandleRandomAnime)
 	r.GET("/api/jikan/producers", h.HandleProducers)
+}
+
+func (h *AnimeHandler) HandleSearch(c *gin.Context) {
+	c.HTML(http.StatusOK, "search.gohtml", gin.H{
+		"User":        server.CurrentUser(c),
+		"CurrentPath": "/search",
+	})
 }
 
 func producerQueryParams(c *gin.Context) (string, int, int, error) {
