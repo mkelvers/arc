@@ -78,7 +78,7 @@ func (h *AnimeHandler) commandPaletteNavigationItems(query string) []commandPale
 	all := []commandPaletteItem{
 		{ID: "nav:home", Type: "navigation", Label: "Go to Home", Subtitle: "Navigation", Href: "/", Icon: "home"},
 		{ID: "nav:watchlist", Type: "navigation", Label: "Go to Watchlist", Subtitle: "Navigation", Href: "/watchlist", Icon: "bookmark"},
-		{ID: "nav:schedule", Type: "navigation", Label: "Open Broadcast Guide", Subtitle: "External broadcast metadata", Href: "/schedule", Icon: "calendar"},
+		{ID: "nav:top-picks", Type: "navigation", Label: "Open Top Picks", Subtitle: "Navigation", Href: "/top-picks", Icon: "sparkles"},
 		{ID: "nav:popular", Type: "navigation", Label: "Browse popular", Subtitle: "Browse", Href: "/browse?order_by=popularity&sort=asc", Icon: "trending"},
 		{ID: "nav:airing", Type: "navigation", Label: "Currently airing", Subtitle: "Browse", Href: "/browse?status=airing&order_by=popularity&sort=asc", Icon: "play"},
 	}
