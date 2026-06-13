@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
@@ -86,7 +87,7 @@ func (c *Client) refreshWatchOrder(ctx context.Context, id int) (watchorder.Watc
 	result, err := watchorder.FetchWatchOrder(requestCtx, c.httpClient, watchOrderURL)
 	if err != nil {
 		var statusError *watchorder.HTTPStatusError
-		if errors.As(err, &statusError) && statusError.StatusCode == 404 {
+		if errors.As(err, &statusError) && statusError.StatusCode == http.StatusNotFound {
 			return watchorder.WatchOrderResult{}, watchorder.ErrWatchOrderNotFound
 		}
 		if errors.Is(err, watchorder.ErrWatchOrderMarkupNotFound) {
