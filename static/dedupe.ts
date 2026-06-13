@@ -1,25 +1,34 @@
 import { onHtmxLoad, onReady } from "./utils";
 
-const dedupeWithin = (root: ParentNode): void => {
+export const dedupeByID = <T>(items: T[], idForItem: (item: T) => string | undefined): T[] => {
   const seen = new Set<string>();
-  const elements = root.querySelectorAll<HTMLElement>(":scope > [data-id]");
-
-  elements.forEach((item) => {
-    const id = item.dataset.id;
+  return items.filter((item) => {
+    const id = idForItem(item);
     if (!id) {
-      return;
+      return true;
     }
 
     if (seen.has(id)) {
-      item.remove();
-      return;
+      return false;
     }
 
     seen.add(id);
+    return true;
   });
 };
 
-const dedupe = (root: ParentNode = document): void => {
+export const dedupeWithin = (root: ParentNode): void => {
+  const elements = root.querySelectorAll<HTMLElement>(":scope > [data-id]");
+  const uniqueElements = new Set(dedupeByID(Array.from(elements), (item) => item.dataset.id));
+
+  elements.forEach((item) => {
+    if (!uniqueElements.has(item)) {
+      item.remove();
+    }
+  });
+};
+
+export const dedupe = (root: ParentNode = document): void => {
   const containers = new Set<ParentNode>();
   const elements = root.querySelectorAll<HTMLElement>("[data-id]");
 
