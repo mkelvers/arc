@@ -45,7 +45,7 @@
   --scrollbar-track: light-dark(rgba(0, 0, 0, 0.04), rgba(244, 241, 234, 0.05));
   --scrollbar-thumb: light-dark(rgba(0, 0, 0, 0.16), rgba(244, 241, 234, 0.22));
   --scrollbar-thumb-hover: light-dark(rgba(0, 0, 0, 0.26), rgba(244, 241, 234, 0.32));
-  --player-segment: #0ea5e9;
+  --player-segment: #f5c542;
 }
 
 html[data-theme="light"] {
