@@ -115,10 +115,14 @@ func (c *Client) seedRandomPoolBaseline() {
 }
 
 func (c *Client) fetchBaselineAnime(ctx context.Context) []Anime {
-	fetchedAnimes := make([]Anime, 0)
-	fetchedAnimes = append(fetchedAnimes, c.fetchTopAnimePage(ctx, 1)...)
-	fetchedAnimes = append(fetchedAnimes, c.fetchTopAnimePage(ctx, 2)...)
-	fetchedAnimes = append(fetchedAnimes, c.fetchCurrentSeasonAnime(ctx)...)
+	topPageOne := c.fetchTopAnimePage(ctx, 1)
+	topPageTwo := c.fetchTopAnimePage(ctx, 2)
+	currentSeason := c.fetchCurrentSeasonAnime(ctx)
+
+	fetchedAnimes := make([]Anime, 0, len(topPageOne)+len(topPageTwo)+len(currentSeason))
+	fetchedAnimes = append(fetchedAnimes, topPageOne...)
+	fetchedAnimes = append(fetchedAnimes, topPageTwo...)
+	fetchedAnimes = append(fetchedAnimes, currentSeason...)
 	return fetchedAnimes
 }
 
