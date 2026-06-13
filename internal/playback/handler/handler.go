@@ -38,7 +38,6 @@ func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybac
 }
 
 func (h *PlaybackHandler) Register(r *gin.Engine) {
-
 	r.GET("/anime/:id/watch", h.HandleWatchPage)
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
