@@ -1,10 +1,8 @@
 package auth
 
 import (
-	"mal/internal/domain"
 	"mal/internal/server"
 
-	"github.com/gin-gonic/gin"
 	"go.uber.org/fx"
 )
 
@@ -13,9 +11,7 @@ var Module = fx.Options(
 		NewAuthRepository,
 		NewAuthService,
 		NewAuthHandler,
-		func(svc domain.AuthService) gin.HandlerFunc {
-			return AuthMiddleware(svc)
-		},
+		AuthMiddleware,
 	),
 	fx.Provide(
 		server.AsRouteRegister(func(h *AuthHandler) server.RouteRegister {
