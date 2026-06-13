@@ -1,10 +1,7 @@
 # MyAnimeList
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="/static/assets/readme-logo-dark.svg" />
-    <img src="/static/assets/readme-logo-light.svg" alt="MyAnimeList logo" width="120" />
-  </picture>
+  <img src="/static/assets/logo.png" alt="MyAnimeList logo" width="120" />
 </p>
 
 <p align="center">
