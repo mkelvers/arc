@@ -316,11 +316,7 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 }
 
 func (h *AnimeHandler) HandleDiscover(c *gin.Context) {
-	user := server.CurrentUser(c)
-	c.HTML(http.StatusOK, "discover.gohtml", gin.H{
-		"CurrentPath": "/discover",
-		"User":        user,
-	})
+	c.Redirect(http.StatusSeeOther, "/")
 }
 
 func (h *AnimeHandler) HandleDiscoverTopPicksForYou(c *gin.Context) {

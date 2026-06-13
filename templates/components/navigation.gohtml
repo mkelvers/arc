@@ -66,8 +66,6 @@
 {{$isCollapsed := .IsCollapsed}}
 {{$navItems := list
   (dict "key" "home" "href" "/" "label" "Home" "isActive" (eq $currentPath "/"))
-  (dict "key" "discover" "href" "/discover" "label" "Discover" "isActive" (eq $currentPath "/discover"))
-  (dict "key" "schedule" "href" "/schedule" "label" "Schedule" "isActive" (eq $currentPath "/schedule"))
   (dict "key" "watchlist" "href" "/watchlist" "label" "Watchlist" "isActive" (eq $currentPath "/watchlist"))
 }}
 
@@ -93,6 +91,7 @@
       {{template "nav_item" dict "key" .key "href" .href "label" .label "isActive" .isActive "isCollapsed" $isCollapsed}}
     {{end}}
     </div>
+
   </div>
 </nav>
 {{end}}

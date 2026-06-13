@@ -7,7 +7,7 @@
       <h1 class="text-xl font-normal tracking-[-0.02em] text-foreground">Top Picks for You</h1>
       <p class="mt-1 text-sm text-foreground-muted">The full ranked list from your current watchlist profile.</p>
     </div>
-    <a href="/discover" class="text-sm text-foreground-muted transition-colors hover:text-foreground">Back to Discover</a>
+    <a href="/" class="text-sm text-foreground-muted transition-colors hover:text-foreground">Back to Home</a>
   </div>
 
   {{if eq (len .Animes) 0}}
@@ -17,7 +17,7 @@
       <p class="text-sm">Add a few anime to your watchlist so the recommender has something to learn from.</p>
       <div class="mt-2 flex gap-2">
         <a href="/watchlist" class=" inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Open watchlist</a>
-        <a href="/discover" class=" inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Discover anime</a>
+        <a href="/browse" class=" inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Browse anime</a>
       </div>
     </div>
   {{else}}
