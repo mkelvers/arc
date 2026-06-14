@@ -16,6 +16,7 @@
     "lint:go": "golangci-lint run ./..."
   },
   "dependencies": {
+    "hls.js": "^1.6.16",
     "htmx.org": "1.9.12"
   },
   "devDependencies": {
