@@ -206,3 +206,14 @@ func availableModes(modeSources map[string]domain.ModeSource) []string {
 	sort.Strings(modes)
 	return modes
 }
+
+func fallbackModes(requestedMode string) []string {
+	switch requestedMode {
+	case "sub":
+		return []string{"dub"}
+	case "dub":
+		return []string{"sub"}
+	default:
+		return []string{"sub", "dub"}
+	}
+}
