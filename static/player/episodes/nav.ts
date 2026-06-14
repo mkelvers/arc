@@ -91,7 +91,7 @@ export const goToNextEpisode = async (): Promise<void> => {
     // load new video (keep preferences)
     const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
     const source = state.modeSources[fallback];
-    const nextSourceURL = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(source.token)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    const nextSourceURL = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(source.token)}${source.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
     loadVideoSource(nextSourceURL, source.type);
     if (!state.video.paused) {
       state.video.play().catch(() => undefined);

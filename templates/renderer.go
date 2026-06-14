@@ -69,6 +69,7 @@ func rendererFuncs() template.FuncMap {
 		"urlquery":          url.QueryEscape,
 		"posterURL":         posterURL,
 		"episodeRangeStart": episodeRangeStart,
+		"assetURL":          assetURL,
 	}
 }
 

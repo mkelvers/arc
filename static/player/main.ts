@@ -120,7 +120,7 @@ const initPlayer = (): void => {
   const streamToken = state.modeSources[state.currentMode]?.token;
   if (streamToken) {
     const source = state.modeSources[state.currentMode];
-    const url = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    const url = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
     loadVideoSource(url, source?.type);
   }
 

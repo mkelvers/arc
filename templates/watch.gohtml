@@ -1,5 +1,5 @@
 {{define "title"}}Watch {{.Anime.Title}}{{end}}
-{{define "scripts"}}<script type="module" src="/dist/static/player/main.js" defer></script>{{end}}
+{{define "scripts"}}<script type="module" src="{{assetURL "/dist/static/player/main.js"}}" defer></script>{{end}}
 {{define "page_container"}}
 <div class="-m-4 h-[calc(100dvh-4rem)] overflow-hidden p-4 md:-m-8 md:p-6">
   {{template "content" .}}

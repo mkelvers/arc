@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/url"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -283,4 +284,15 @@ func episodeRangeStart(epNum, step int) int {
 		return 1
 	}
 	return ((epNum-1)/step)*step + 1
+}
+
+func assetURL(assetPath string) string {
+	info, err := os.Stat(strings.TrimPrefix(assetPath, "/"))
+	if err != nil {
+		return assetPath
+	}
+
+	values := url.Values{}
+	values.Set("v", fmt.Sprintf("%d-%d", info.ModTime().Unix(), info.Size()))
+	return assetPath + "?" + values.Encode()
 }

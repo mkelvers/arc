@@ -20,6 +20,7 @@ const shouldUseHLS = (type: string | undefined, url: string): boolean => {
   if (type === "m3u8") return true;
   try {
     const parsed = new URL(url, window.location.href);
+    if (parsed.searchParams.get("hls") === "1") return true;
     return parsed.pathname.toLowerCase().endsWith(".m3u8");
   } catch {
     return url.toLowerCase().includes(".m3u8");
