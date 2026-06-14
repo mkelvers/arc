@@ -92,11 +92,14 @@ func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, referenc
 	for _, ref := range references {
 		if source, ok := resolveDirectSource(ref); ok {
 			out = append(out, source)
-			continue
+			return out
 		}
 
 		extracted := c.resolveExtractedSources(ctx, ref)
-		out = append(out, extracted...)
+		if len(extracted) > 0 {
+			out = append(out, extracted...)
+			return out
+		}
 	}
 
 	return out
@@ -109,6 +112,9 @@ func resolveDirectSource(ref sourceReference) (StreamSource, bool) {
 	}
 
 	if isHTTPURL(target) {
+		if detectEmbedType(target) == "embed" {
+			return StreamSource{}, false
+		}
 		return buildStreamSource(target, detectSourceType(target), ref.Name), true
 	}
 
@@ -117,13 +123,26 @@ func resolveDirectSource(ref sourceReference) (StreamSource, bool) {
 		return StreamSource{}, false
 	}
 
+	if detectEmbedType(decoded) == "embed" {
+		return StreamSource{}, false
+	}
+
 	return buildStreamSource(decoded, detectSourceType(decoded), ref.Name), true
 }
 
 func (c *AllAnimeProvider) resolveExtractedSources(ctx context.Context, ref sourceReference) []StreamSource {
-	decoded := decodeSourceURL(strings.TrimSpace(ref.URL))
+	rawURL := strings.TrimSpace(ref.URL)
+	decoded := decodeSourceURL(rawURL)
 	if decoded == "" {
 		return nil
+	}
+
+	if isHTTPURL(decoded) {
+		extracted, err := c.extractor.ExtractEmbedVideoLinks(ctx, decoded)
+		if err != nil {
+			return nil
+		}
+		return extracted
 	}
 
 	if !strings.HasPrefix(decoded, "/") {
