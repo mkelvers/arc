@@ -219,6 +219,17 @@ func TestBuildStreamSource(t *testing.T) {
 	})
 }
 
+func TestResolveDirectSourceSkipsEmbeds(t *testing.T) {
+	t.Parallel()
+
+	if _, ok := resolveDirectSource(sourceReference{
+		URL:  "https://ok.ru/videoembed/123",
+		Name: "ok",
+	}); ok {
+		t.Fatal("expected embed URL to require extraction")
+	}
+}
+
 func TestBuildSourceReferences(t *testing.T) {
 	t.Parallel()
 
