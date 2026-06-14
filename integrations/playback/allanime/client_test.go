@@ -394,6 +394,27 @@ func TestIsLikelyMP4(t *testing.T) {
 	}
 }
 
+func TestParseOKRUSources(t *testing.T) {
+	t.Parallel()
+
+	body := `{"flashvars":{"metadata":"{\"hlsManifestUrl\":\"https://vd.example.test/video.m3u8?cmd=videoPlayerCdn\\u0026id=123\"}"}}`
+
+	got := parseOKRUSources(body, allAnimeReferer)
+	if len(got) != 1 {
+		t.Fatalf("len(got) = %d, want 1", len(got))
+	}
+
+	if got[0].URL != "https://vd.example.test/video.m3u8?cmd=videoPlayerCdn&id=123" {
+		t.Fatalf("URL = %q", got[0].URL)
+	}
+	if got[0].Type != "m3u8" {
+		t.Fatalf("Type = %q, want m3u8", got[0].Type)
+	}
+	if got[0].Provider != "ok" {
+		t.Fatalf("Provider = %q, want ok", got[0].Provider)
+	}
+}
+
 func TestDecryptTobeparsed(t *testing.T) {
 	t.Parallel()
 
