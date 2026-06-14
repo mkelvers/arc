@@ -25,7 +25,13 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	mode, modeSwitchedFrom := resolveMode(episode, mode, canonicalEpisodes.Episodes)
-	modeSources, result := s.resolveModeSources(ctx, animeID, searchTitles, episode, mode)
+	modeSources, result, resolvedMode, resolvedModeSwitchedFrom := s.resolveModeSources(ctx, animeID, searchTitles, episode, mode)
+	if resolvedMode != "" {
+		mode = resolvedMode
+	}
+	if resolvedModeSwitchedFrom != "" {
+		modeSwitchedFrom = resolvedModeSwitchedFrom
+	}
 	if len(modeSources) == 0 {
 		return domain.WatchPageData{}, fmt.Errorf("no streams found")
 	}
@@ -123,23 +129,24 @@ func resolveMode(episode string, requestedMode string, episodes []domain.Canonic
 	return requestedMode, ""
 }
 
-func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, searchTitles []string, episode string, mode string) (map[string]domain.ModeSource, *domain.StreamResult) {
-	modeSources := map[string]domain.ModeSource{}
-	var result *domain.StreamResult
+func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, searchTitles []string, episode string, requestedMode string) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
+	if res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, requestedMode); res != nil {
+		return map[string]domain.ModeSource{
+			requestedMode: s.buildModeSource(res),
+		}, res, requestedMode, ""
+	}
 
-	for _, currentMode := range []string{"sub", "dub"} {
-		res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, currentMode)
+	for _, fallbackMode := range fallbackModes(requestedMode) {
+		res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, fallbackMode)
 		if res == nil {
 			continue
 		}
-
-		modeSources[currentMode] = s.buildModeSource(res)
-		if currentMode == mode {
-			result = res
-		}
+		return map[string]domain.ModeSource{
+			fallbackMode: s.buildModeSource(res),
+		}, res, fallbackMode, requestedMode
 	}
 
-	return modeSources, result
+	return map[string]domain.ModeSource{}, nil, requestedMode, ""
 }
 
 func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, searchTitles []string, episode string, mode string) *domain.StreamResult {
