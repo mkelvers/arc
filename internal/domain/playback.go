@@ -49,6 +49,7 @@ type SubtitleItem struct {
 
 type ModeSource struct {
 	Token     string         `json:"token"`
+	Type      string         `json:"type,omitempty"`
 	Subtitles []SubtitleItem `json:"subtitles"`
 	Qualities []string       `json:"qualities,omitempty"`
 }

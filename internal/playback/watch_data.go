@@ -173,6 +173,7 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 	streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
 	return domain.ModeSource{
 		Token:     streamToken,
+		Type:      res.Type,
 		Subtitles: subtitles,
 	}
 }

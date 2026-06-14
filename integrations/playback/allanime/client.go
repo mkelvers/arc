@@ -60,6 +60,7 @@ func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCan
 	result := &domain.StreamResult{
 		URL:     primary.URL,
 		Referer: primary.Referer,
+		Type:    primary.Type,
 	}
 
 	for _, sub := range primary.Subtitles {

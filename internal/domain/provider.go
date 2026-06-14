@@ -12,6 +12,7 @@ type StreamSource struct {
 type StreamResult struct {
 	URL       string
 	Referer   string
+	Type      string
 	Subtitles []Subtitle
 	Qualities []StreamSource
 }
