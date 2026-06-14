@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	netutil "mal/pkg/net"
 	"net/http"
@@ -78,6 +79,21 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 	}
 
 	return e.parseProviderResponse(ctx, string(body)), nil
+}
+
+func (e *providerExtractor) ExtractEmbedVideoLinks(ctx context.Context, rawURL string) ([]StreamSource, error) {
+	resp, err := doProxiedRequest(ctx, e.httpClient, rawURL, e.referer)
+	if err != nil {
+		return nil, fmt.Errorf("fetch embed response: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
+	if err != nil {
+		return nil, fmt.Errorf("read embed response: %w", err)
+	}
+
+	return parseExternalEmbedResponse(rawURL, string(body), e.referer), nil
 }
 
 // parseProviderResponse extracts stream sources from provider JSON response.
@@ -342,4 +358,74 @@ func qualityFromBandwidth(bandwidth int) string {
 	default:
 		return "auto"
 	}
+}
+
+func parseExternalEmbedResponse(rawURL string, body string, fallbackReferer string) []StreamSource {
+	switch {
+	case strings.Contains(strings.ToLower(rawURL), "ok.ru/"):
+		return parseOKRUSources(body, fallbackReferer)
+	case strings.Contains(strings.ToLower(rawURL), "mp4upload.com/"):
+		return parseMP4UploadSources(body, fallbackReferer)
+	default:
+		return nil
+	}
+}
+
+func parseOKRUSources(body string, referer string) []StreamSource {
+	unescapedBody := html.UnescapeString(body)
+	manifestPattern := regexp.MustCompile(`\\"hlsManifestUrl\\":\\"([^"]+)\\"|"hlsManifestUrl":"([^"]+)"`)
+	match := manifestPattern.FindStringSubmatch(unescapedBody)
+	if len(match) < 3 {
+		return nil
+	}
+
+	playlistURL := decodeEscapedMediaURL(firstNonEmptyString(match[1], match[2]))
+	if playlistURL == "" {
+		return nil
+	}
+
+	return []StreamSource{{
+		URL:      playlistURL,
+		Quality:  "auto",
+		Provider: "ok",
+		Type:     "m3u8",
+		Referer:  referer,
+	}}
+}
+
+func parseMP4UploadSources(body string, referer string) []StreamSource {
+	srcPattern := regexp.MustCompile(`(?m)src:\s*"([^"]+)"`)
+	match := srcPattern.FindStringSubmatch(body)
+	if len(match) < 2 {
+		return nil
+	}
+
+	mediaURL := decodeEscapedMediaURL(match[1])
+	if mediaURL == "" {
+		return nil
+	}
+
+	return []StreamSource{{
+		URL:      mediaURL,
+		Provider: "mp4upload",
+		Type:     detectProviderSourceType(mediaURL),
+		Referer:  referer,
+	}}
+}
+
+func decodeEscapedMediaURL(raw string) string {
+	if unquoted, err := strconv.Unquote(`"` + raw + `"`); err == nil {
+		raw = unquoted
+	}
+
+	replacer := strings.NewReplacer(
+		`\\u002F`, `/`,
+		`\\u0026`, "&",
+		`\/`, `/`,
+		`\u002F`, `/`,
+		`\u0026`, "&",
+		`&amp;`, "&",
+	)
+
+	return strings.TrimSpace(replacer.Replace(raw))
 }
