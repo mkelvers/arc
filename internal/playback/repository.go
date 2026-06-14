@@ -23,6 +23,14 @@ func (r *playbackRepository) InTx(ctx context.Context, fn func(ctx context.Conte
 	}, fn)
 }
 
+func (r *playbackRepository) UpsertAnime(ctx context.Context, params db.UpsertAnimeParams) (db.Anime, error) {
+	return r.queries.UpsertAnime(ctx, params)
+}
+
+func (r *playbackRepository) GetAnime(ctx context.Context, id int64) (db.Anime, error) {
+	return r.queries.GetAnime(ctx, id)
+}
+
 func (r *playbackRepository) GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error) {
 	return r.queries.GetWatchListEntry(ctx, params)
 }

@@ -18,6 +18,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	animeData := domain.Anime{Anime: anime}
+	s.ensureAnimeRow(ctx, animeData)
 	searchTitles := buildSearchTitles(animeData, titleCandidates)
 	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
 	if err != nil {

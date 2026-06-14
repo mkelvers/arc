@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -108,13 +109,22 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 }
 
 func (s *playbackService) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error {
-	_, err := s.repo.UpsertContinueWatchingEntry(ctx, db.UpsertContinueWatchingEntryParams{
-		ID:                 uuid.New().String(),
-		UserID:             userID,
-		AnimeID:            animeID,
-		CurrentEpisode:     sql.NullInt64{Int64: int64(episode), Valid: true},
-		CurrentTimeSeconds: timeSeconds,
-		DurationSeconds:    sql.NullFloat64{Valid: false},
+	err := s.repo.InTx(ctx, func(txCtx context.Context, repo domain.PlaybackRepository) error {
+		if _, err := repo.GetAnime(txCtx, animeID); err != nil {
+			if _, err := repo.UpsertAnime(txCtx, minimalAnimeParams(animeID)); err != nil {
+				return err
+			}
+		}
+
+		_, err := repo.UpsertContinueWatchingEntry(txCtx, db.UpsertContinueWatchingEntryParams{
+			ID:                 uuid.New().String(),
+			UserID:             userID,
+			AnimeID:            animeID,
+			CurrentEpisode:     sql.NullInt64{Int64: int64(episode), Valid: true},
+			CurrentTimeSeconds: timeSeconds,
+			DurationSeconds:    sql.NullFloat64{Valid: false},
+		})
+		return err
 	})
 	if err != nil {
 		return err
@@ -147,4 +157,37 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 		"user_id":      userID,
 	})
 	return nil
+}
+
+func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) {
+	if _, err := s.repo.GetAnime(ctx, int64(anime.MalID)); err == nil {
+		return
+	}
+	_, _ = s.repo.UpsertAnime(ctx, animeParams(anime))
+}
+
+func animeParams(anime domain.Anime) db.UpsertAnimeParams {
+	durationSeconds := anime.DurationSeconds()
+	duration := sql.NullFloat64{Valid: durationSeconds > 0}
+	if duration.Valid {
+		duration.Float64 = durationSeconds
+	}
+
+	return db.UpsertAnimeParams{
+		ID:              int64(anime.MalID),
+		TitleOriginal:   anime.Title,
+		TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
+		TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
+		ImageUrl:        anime.ImageURL(),
+		Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
+		DurationSeconds: duration,
+	}
+}
+
+func minimalAnimeParams(animeID int64) db.UpsertAnimeParams {
+	return db.UpsertAnimeParams{
+		ID:            animeID,
+		TitleOriginal: fmt.Sprintf("Anime %d", animeID),
+		Airing:        sql.NullBool{Valid: false},
+	}
 }
