@@ -3,7 +3,7 @@ import type { SkipSegment } from "../types";
 import { resolveActiveSegments, renderSegments } from "../skip/segments";
 import { updateSubtitleOptions } from "../subtitles";
 import { updateQualityOptions } from "../quality";
-import { updateModeButtons } from "../mode";
+import { hydrateAlternateMode, updateModeButtons } from "../mode";
 import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from "./ui";
 import { markEpisodeTransition } from "../progress";
 import { safeLocalStorage } from "../storage";
@@ -105,6 +105,7 @@ export const goToNextEpisode = async (): Promise<void> => {
     updateQualityOptions();
     updateModeButtons();
     updateOverlay(state.currentEpisode, data.episode_title ?? "");
+    void hydrateAlternateMode();
 
     // update skip segments
     if (data.segments?.length) {

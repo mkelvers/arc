@@ -5,6 +5,85 @@ import { updateQualityOptions } from "./quality";
 import { safeLocalStorage } from "./storage";
 import { streamUrlForMode } from "./source";
 import { loadVideoSource } from "./video";
+import type { ModeSource } from "./types";
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+const isStringArray = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((item) => typeof item === "string");
+
+const isSubtitleItemArray = (v: unknown): v is { lang: string; token: string }[] =>
+  Array.isArray(v) &&
+  v.every(
+    (item) => isRecord(item) && typeof item.lang === "string" && typeof item.token === "string",
+  );
+
+const parseModeSources = (v: unknown): Record<string, ModeSource> => {
+  if (!isRecord(v)) return {};
+
+  const out: Record<string, ModeSource> = {};
+  for (const [key, value] of Object.entries(v)) {
+    if (!isRecord(value)) continue;
+    if (typeof value.token !== "string" || value.token === "") continue;
+
+    const subtitles = value.subtitles == null ? [] : value.subtitles;
+    if (!isSubtitleItemArray(subtitles)) continue;
+
+    const qualities = value.qualities;
+    out[key] = {
+      token: value.token,
+      subtitles,
+      qualities: isStringArray(qualities) ? qualities : undefined,
+    };
+  }
+
+  return out;
+};
+
+const alternateModeFor = (mode: string): "sub" | "dub" | null => {
+  if (mode === "sub") return "dub";
+  if (mode === "dub") return "sub";
+  return null;
+};
+
+const mergeAvailableMode = (mode: string): void => {
+  if (state.availableModes.includes(mode)) return;
+  state.availableModes = [...state.availableModes, mode].sort();
+};
+
+export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> => {
+  const alternateMode = alternateModeFor(state.currentMode);
+  if (!alternateMode) return;
+  if (state.modeSources[alternateMode]?.token) return;
+
+  try {
+    const res = await fetch(
+      `/api/watch/episode/${state.malID}/${encodeURIComponent(state.currentEpisode)}?mode=${encodeURIComponent(alternateMode)}`,
+      { signal },
+    );
+    if (!res.ok) return;
+
+    const data: unknown = await res.json();
+    if (!isRecord(data)) return;
+
+    const sources = parseModeSources(data.mode_sources);
+    const alternateSource = sources[alternateMode];
+    if (!alternateSource?.token) return;
+
+    state.modeSources = {
+      ...state.modeSources,
+      [alternateMode]: alternateSource,
+    };
+    mergeAvailableMode(alternateMode);
+
+    updateSubtitleOptions();
+    updateQualityOptions();
+    updateModeButtons();
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+  }
+};
 
 /**
  * Switches between sub/dub mode.

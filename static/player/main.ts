@@ -5,7 +5,7 @@ import { setupKeyboard } from "./keyboard";
 import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
 import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
 import { setupQuality, updateQualityOptions } from "./quality";
-import { setupMode, updateModeButtons } from "./mode";
+import { hydrateAlternateMode, setupMode, updateModeButtons } from "./mode";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { goToNextEpisode } from "./episodes/nav";
 import { resolveActiveSegments, renderSegments } from "./skip/segments";
@@ -385,6 +385,7 @@ const initPlayer = (): void => {
   }
 
   setupThumbnails();
+  void hydrateAlternateMode(signal);
 };
 
 onReady(initPlayer);
