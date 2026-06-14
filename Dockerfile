@@ -18,9 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Install sqlc for code generation
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
-
 ENV GOPROXY=direct
 COPY go.mod go.sum ./
 RUN go mod download
@@ -33,9 +30,6 @@ COPY . .
 
 # Ensure dist is clean at build time (belt + suspenders)
 RUN rm -rf dist/ && bun run build:assets
-
-# Generate sqlc code
-RUN sqlc generate
 
 # Build the server and CLI tools
 RUN go build -ldflags="-s -w" -o main_server ./cmd/server
