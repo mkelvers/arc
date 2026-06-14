@@ -13,6 +13,7 @@ import { setupSegmentEditor } from "./skip/editor";
 import { setupThumbnails } from "./episodes/thumbnails";
 import { markEpisodeTransition, saveEndedProgress, setupProgress } from "./progress";
 import { safeLocalStorage } from "./storage";
+import { destroyVideoSource, loadVideoSource } from "./video";
 import {
   absoluteTimeFromDisplay,
   absoluteTimeFromRatio,
@@ -49,6 +50,7 @@ const showPreviewPopover = (): void => {
 };
 
 const teardownPlayer = (): void => {
+  destroyVideoSource();
   cleanup?.();
   cleanup = null;
   currentContainer = null;
@@ -117,7 +119,9 @@ const initPlayer = (): void => {
   const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
   const streamToken = state.modeSources[state.currentMode]?.token;
   if (streamToken) {
-    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    const source = state.modeSources[state.currentMode];
+    const url = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    loadVideoSource(url, source?.type);
   }
 
   setupProgress();

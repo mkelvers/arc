@@ -1,6 +1,7 @@
 // stream source for a single mode (sub/dub)
 export interface ModeSource {
   token: string;
+  type?: string;
   subtitles: SubtitleItem[];
   qualities?: string[];
 }

@@ -203,6 +203,7 @@ export const initState = (c: HTMLElement): boolean => {
       const qualities = value.qualities;
       out[key] = {
         token: value.token,
+        type: typeof value.type === "string" ? value.type : undefined,
         subtitles,
         qualities: isStringArray(qualities) ? qualities : undefined,
       };

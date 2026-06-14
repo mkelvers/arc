@@ -8,6 +8,7 @@ import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from "./ui";
 import { markEpisodeTransition } from "../progress";
 import { safeLocalStorage } from "../storage";
 import { completeAnime } from "./complete";
+import { loadVideoSource } from "../video";
 
 /**
  * Handles video end: either marks complete or loads next episode.
@@ -89,8 +90,9 @@ export const goToNextEpisode = async (): Promise<void> => {
 
     // load new video (keep preferences)
     const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
-    state.video.src = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(state.modeSources[fallback].token)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
-    state.video.load();
+    const source = state.modeSources[fallback];
+    const nextSourceURL = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(source.token)}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    loadVideoSource(nextSourceURL, source.type);
     if (!state.video.paused) {
       state.video.play().catch(() => undefined);
     }

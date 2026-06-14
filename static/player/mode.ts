@@ -33,6 +33,7 @@ const parseModeSources = (v: unknown): Record<string, ModeSource> => {
     const qualities = value.qualities;
     out[key] = {
       token: value.token,
+      type: typeof value.type === "string" ? value.type : undefined,
       subtitles,
       qualities: isStringArray(qualities) ? qualities : undefined,
     };
@@ -97,7 +98,7 @@ export const switchMode = (mode: string): void => {
     "[data-quality-select]",
   ) as HTMLSelectElement | null;
   const url = streamUrlForMode(mode, qualitySelect?.value);
-  loadVideoSource(url);
+  loadVideoSource(url, state.modeSources[mode]?.type);
 
   // Fallback: if the media element doesn't actually switch sources (some browsers can get "stuck"),
   // reload the page with the desired mode and resume time via sessionStorage.

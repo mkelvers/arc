@@ -11,7 +11,7 @@ export const switchQuality = (quality: string): void => {
   const url = streamUrlForMode(state.currentMode, quality);
   if (!url) return;
   safeLocalStorage.setItem("mal:preferred-quality", quality);
-  loadVideoSource(url);
+  loadVideoSource(url, state.modeSources[state.currentMode]?.type);
 };
 
 /**
