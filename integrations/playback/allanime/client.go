@@ -15,7 +15,8 @@ import (
 
 const (
 	allAnimeBaseURL  = "https://api.allanime.day"
-	allAnimeReferer  = "https://allmanga.to/"
+	allAnimeSiteURL  = "https://allanime.day"
+	allAnimeReferer  = "https://youtu-chan.com"
 	allAnimeOrigin   = "https://youtu-chan.com"
 	defaultUserAgent = netutil.Firefox121
 )

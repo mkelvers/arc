@@ -39,7 +39,7 @@ type providerResponseData struct {
 func newProviderExtractor() *providerExtractor {
 	return &providerExtractor{
 		httpClient: &http.Client{Timeout: 30 * time.Second},
-		baseURL:    allAnimeBaseURL,
+		baseURL:    allAnimeSiteURL,
 		referer:    allAnimeReferer,
 	}
 }
