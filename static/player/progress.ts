@@ -69,7 +69,9 @@ export const saveProgress = async (
         episode: state.currentEpisode,
         seconds: savedTime,
       };
-    } catch {}
+    } catch (e) {
+      console.warn("Progress save failed:", e);
+    }
   })();
 
   saveProgressInFlight = request;

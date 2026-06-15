@@ -211,10 +211,8 @@ export const setupSegmentEditor = (): void => {
       });
       if (!res.ok) {
         let message = res.status === 401 ? "Login required." : "Failed to save segment.";
-        try {
-          const payload = (await res.json()) as { error?: string };
-          if (payload?.error) message = payload.error;
-        } catch {}
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        if (payload?.error) message = payload.error;
         setError(message);
         return;
       }

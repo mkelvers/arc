@@ -274,7 +274,9 @@ const initPlayer = (): void => {
       state.isScrubbing = true;
       try {
         (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
-      } catch {}
+      } catch (e) {
+        console.warn("Failed to capture pointer:", e);
+      }
       scrubToPointer(e.clientX, true);
     },
     { signal },
