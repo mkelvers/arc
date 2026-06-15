@@ -3,6 +3,7 @@ package anime
 
 import (
 	"context"
+	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -75,7 +76,7 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, error) {
 	anime, err := s.jikan.GetAnimeByID(ctx, id)
 	if err != nil {
-		return domain.Anime{}, err
+		return domain.Anime{}, fmt.Errorf("get anime by id: %w", err)
 	}
 	return domain.Anime{Anime: anime}, nil
 }
@@ -87,7 +88,7 @@ func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status,
 func (s *animeService) GetProducerNameByID(ctx context.Context, id int) (string, error) {
 	res, err := s.jikan.GetProducerByID(ctx, id)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get producer name: %w", err)
 	}
 	for _, t := range res.Data.Titles {
 		if t.Title != "" {
@@ -104,7 +105,7 @@ func (s *animeService) GetProducers(ctx context.Context, query string, page int,
 func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {
 	genres, err := s.jikan.GetAnimeGenres(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get genres: %w", err)
 	}
 	out := make([]domain.Genre, 0, len(genres))
 	for _, g := range genres {
@@ -119,7 +120,7 @@ func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {
 func (s *animeService) GetCharacters(ctx context.Context, id int) ([]domain.CharacterEntry, error) {
 	items, err := s.jikan.GetAnimeCharacters(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get characters: %w", err)
 	}
 
 	out := make([]domain.CharacterEntry, 0, len(items))
@@ -155,7 +156,7 @@ func (s *animeService) GetCharacters(ctx context.Context, id int) ([]domain.Char
 func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain.RecommendationEntry, error) {
 	items, err := s.jikan.GetAnimeRecommendations(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get recommendations: %w", err)
 	}
 
 	out := make([]domain.RecommendationEntry, 0, len(items))
@@ -188,7 +189,7 @@ func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (jikan
 func (s *animeService) GetStaff(ctx context.Context, id int) ([]domain.StaffEntry, error) {
 	items, err := s.jikan.GetAnimeStaff(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get staff: %w", err)
 	}
 
 	out := make([]domain.StaffEntry, 0, len(items))
@@ -207,7 +208,7 @@ func (s *animeService) GetStaff(ctx context.Context, id int) ([]domain.StaffEntr
 func (s *animeService) GetStatistics(ctx context.Context, id int) (domain.Statistics, error) {
 	stats, err := s.jikan.GetAnimeStatistics(ctx, id)
 	if err != nil {
-		return domain.Statistics{}, err
+		return domain.Statistics{}, fmt.Errorf("get statistics: %w", err)
 	}
 
 	out := domain.Statistics{
@@ -230,7 +231,7 @@ func (s *animeService) GetStatistics(ctx context.Context, id int) (domain.Statis
 func (s *animeService) GetThemes(ctx context.Context, id int) (domain.ThemesData, error) {
 	themes, err := s.jikan.GetAnimeThemes(ctx, id)
 	if err != nil {
-		return domain.ThemesData{}, err
+		return domain.ThemesData{}, fmt.Errorf("get themes: %w", err)
 	}
 	return domain.ThemesData{
 		Openings: append([]string(nil), themes.Openings...),
@@ -241,7 +242,7 @@ func (s *animeService) GetThemes(ctx context.Context, id int) (domain.ThemesData
 func (s *animeService) GetReviews(ctx context.Context, id int, page int) ([]domain.ReviewEntry, bool, error) {
 	data, pag, err := s.jikan.GetAnimeReviews(ctx, id, page)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("get reviews: %w", err)
 	}
 	out := make([]domain.ReviewEntry, 0, len(data))
 	for _, it := range data {
@@ -305,7 +306,7 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 func (s *animeService) GetAllEpisodes(ctx context.Context, id int) ([]domain.EpisodeData, error) {
 	episodes, err := s.jikan.GetAllEpisodes(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get all episodes: %w", err)
 	}
 	result := make([]domain.EpisodeData, len(episodes))
 	for i, ep := range episodes {
