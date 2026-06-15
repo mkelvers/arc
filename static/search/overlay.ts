@@ -1,5 +1,4 @@
 import {
-  state,
   commandPaletteInitializedKey,
   globalWindow,
   searchInput,
@@ -10,6 +9,7 @@ import {
   searchCloseButtons,
   searchClearButtons,
   searchDialog,
+  getSelectedIndex,
   isSearchOpen,
   isTypingTarget,
 } from "./state";
@@ -26,13 +26,13 @@ const onDocumentClick = (event: MouseEvent): void => {
 const onInputKeydown = (event: KeyboardEvent): void => {
   if (event.key === "ArrowDown") {
     event.preventDefault();
-    selectItem(state.selectedIndex + 1, true);
+    selectItem(getSelectedIndex() + 1, true);
     return;
   }
 
   if (event.key === "ArrowUp") {
     event.preventDefault();
-    selectItem(state.selectedIndex - 1, true);
+    selectItem(getSelectedIndex() - 1, true);
     return;
   }
 

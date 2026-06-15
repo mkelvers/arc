@@ -1,5 +1,20 @@
 import type { CommandPaletteItem, CommandPaletteResponse } from "./state";
-import { state, searchInput, searchResults, responseCache } from "./state";
+import {
+  searchInput,
+  searchResults,
+  responseCache,
+  getFetchTimeout,
+  setFetchTimeout,
+  setLastQuery,
+  getLastQuery,
+  getActiveRequestController,
+  setActiveRequestController,
+  setSearchPagination,
+  getNextSearchPage,
+  hasNextSearchPage,
+  isFetchingNextPage,
+  setFetchingNextPage,
+} from "./state";
 import {
   setClearButtonState,
   clearResults,
@@ -46,21 +61,23 @@ const renderPendingQuery = (query: string): void => {
 };
 
 export const cancelScheduledFetch = (): void => {
-  if (!state.fetchTimeout) {
+  const fetchTimeout = getFetchTimeout();
+  if (!fetchTimeout) {
     return;
   }
 
-  window.clearTimeout(state.fetchTimeout);
-  state.fetchTimeout = undefined;
+  window.clearTimeout(fetchTimeout);
+  setFetchTimeout(undefined);
 };
 
 export const fetchSearchItems = (query: string): void => {
-  state.lastQuery = query;
+  setLastQuery(query);
   setClearButtonState(query !== "");
 
-  if (state.activeRequestController) {
-    state.activeRequestController.abort();
-    state.activeRequestController = undefined;
+  const activeRequestController = getActiveRequestController();
+  if (activeRequestController) {
+    activeRequestController.abort();
+    setActiveRequestController(undefined);
   }
 
   if (query === "") {
@@ -71,8 +88,7 @@ export const fetchSearchItems = (query: string): void => {
 
   const cached = responseCache.get(query);
   if (cached) {
-    state.nextSearchPage = cached.nextPage;
-    state.hasNextSearchPage = cached.hasNextPage;
+    setSearchPagination(cached.nextPage, cached.hasNextPage);
     renderItems(visibleSearchItems(cached.items, query));
     return;
   }
@@ -80,7 +96,7 @@ export const fetchSearchItems = (query: string): void => {
   renderPendingQuery(query);
 
   const controller = new AbortController();
-  state.activeRequestController = controller;
+  setActiveRequestController(controller);
 
   fetch("/api/command-palette?q=" + encodeURIComponent(query), { signal: controller.signal })
     .then((res: Response) => {
@@ -90,15 +106,14 @@ export const fetchSearchItems = (query: string): void => {
       return res.json();
     })
     .then((payload: unknown) => {
-      if (controller.signal.aborted || query !== state.lastQuery) {
+      if (controller.signal.aborted || query !== getLastQuery()) {
         return;
       }
 
       const response = parseCommandPaletteResponse(payload);
       const visibleItems = visibleSearchItems(response.items, query);
-      state.activeRequestController = undefined;
-      state.nextSearchPage = response.nextPage;
-      state.hasNextSearchPage = response.hasNextPage;
+      setActiveRequestController(undefined);
+      setSearchPagination(response.nextPage, response.hasNextPage);
       responseCache.set(query, response);
       renderItems(visibleItems);
     })
@@ -107,25 +122,21 @@ export const fetchSearchItems = (query: string): void => {
         return;
       }
 
-      state.activeRequestController = undefined;
+      setActiveRequestController(undefined);
       console.error("Search overlay error:", err);
       renderItems([]);
     });
 };
 
 export const fetchNextSearchPage = (): void => {
-  if (
-    !state.lastQuery ||
-    !state.hasNextSearchPage ||
-    !state.nextSearchPage ||
-    state.isFetchingNextPage
-  ) {
+  const query = getLastQuery();
+  const page = getNextSearchPage();
+
+  if (!query || !hasNextSearchPage() || !page || isFetchingNextPage()) {
     return;
   }
 
-  state.isFetchingNextPage = true;
-  const query = state.lastQuery;
-  const page = state.nextSearchPage;
+  setFetchingNextPage(true);
 
   fetch(
     "/api/command-palette?q=" +
@@ -140,7 +151,7 @@ export const fetchNextSearchPage = (): void => {
       return res.json();
     })
     .then((payload: unknown) => {
-      if (query !== state.lastQuery) {
+      if (query !== getLastQuery()) {
         return;
       }
 
@@ -154,15 +165,14 @@ export const fetchNextSearchPage = (): void => {
           nextPage: response.nextPage,
         });
       }
-      state.nextSearchPage = response.nextPage;
-      state.hasNextSearchPage = response.hasNextPage;
+      setSearchPagination(response.nextPage, response.hasNextPage);
       appendItems(visibleItems);
     })
     .catch((err: unknown) => {
       console.error("Search overlay pagination error:", err);
     })
     .finally(() => {
-      state.isFetchingNextPage = false;
+      setFetchingNextPage(false);
     });
 };
 
@@ -179,14 +189,12 @@ export const onResultsScroll = (): void => {
 };
 
 export const scheduleFetch = (): void => {
-  if (state.fetchTimeout) {
-    window.clearTimeout(state.fetchTimeout);
+  const fetchTimeout = getFetchTimeout();
+  if (fetchTimeout) {
+    window.clearTimeout(fetchTimeout);
   }
 
   const query = searchInput?.value.trim() || "";
   setClearButtonState(query !== "");
-  state.fetchTimeout = window.setTimeout(
-    () => fetchSearchItems(query),
-    query.length >= 2 ? 240 : 80,
-  );
+  setFetchTimeout(window.setTimeout(() => fetchSearchItems(query), query.length >= 2 ? 240 : 80));
 };

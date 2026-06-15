@@ -1,12 +1,17 @@
 import { dedupeByID, dedupeWithin } from "../dedupe";
 import type { CommandPaletteItem } from "./state";
 import {
-  state,
   searchResults,
   searchClearButtons,
   shortcutHints,
   searchDialog,
   responseCache,
+  getResultItems,
+  setResultItems,
+  getSelectedIndex,
+  setSelectedIndex,
+  getLastQuery,
+  resetSearchResultsState,
   iconPaths,
   typeLabels,
   groupOrder,
@@ -94,23 +99,21 @@ const buildPosterImage = (item: CommandPaletteItem): HTMLElement => {
 };
 
 export const clearResults = (): void => {
-  state.resultItems = [];
-  state.selectedIndex = 0;
-  state.nextSearchPage = undefined;
-  state.hasNextSearchPage = false;
-  state.isFetchingNextPage = false;
+  resetSearchResultsState();
   searchResults?.replaceChildren();
 };
 
 export const selectItem = (index: number, scrollIntoView: boolean): void => {
-  if (!searchResults || state.resultItems.length === 0) {
-    state.selectedIndex = 0;
+  const resultItems = getResultItems();
+  if (!searchResults || resultItems.length === 0) {
+    setSelectedIndex(0);
     return;
   }
 
-  state.selectedIndex = Math.max(0, Math.min(index, state.resultItems.length - 1));
+  const selectedIndex = Math.max(0, Math.min(index, resultItems.length - 1));
+  setSelectedIndex(selectedIndex);
   searchResults.querySelectorAll<HTMLElement>("[data-command-palette-item]").forEach((item) => {
-    const selected = Number(item.dataset.resultIndex) === state.selectedIndex;
+    const selected = Number(item.dataset.resultIndex) === selectedIndex;
     item.classList.toggle("opacity-75", selected);
     item.setAttribute("aria-selected", String(selected));
     if (selected && scrollIntoView) {
@@ -120,7 +123,7 @@ export const selectItem = (index: number, scrollIntoView: boolean): void => {
 };
 
 export const runSelectedItem = (): void => {
-  const item = state.resultItems[state.selectedIndex];
+  const item = getResultItems()[getSelectedIndex()];
   if (!item) {
     return;
   }
@@ -155,7 +158,7 @@ export const removeContinueWatchingItem = (item: CommandPaletteItem): void => {
 
       responseCache.clear();
       removeContinueWatchingCard(animeID);
-      renderItems(state.resultItems.filter((candidate) => candidate.id !== item.id));
+      renderItems(getResultItems().filter((candidate) => candidate.id !== item.id));
     })
     .catch((err: unknown) => {
       console.error("Continue watching remove error:", err);
@@ -183,7 +186,7 @@ const buildCard = (item: CommandPaletteItem, index: number): HTMLAnchorElement =
   card.dataset.id = item.id;
   card.dataset.resultIndex = String(index);
   card.setAttribute("role", "option");
-  card.setAttribute("aria-selected", String(index === state.selectedIndex));
+  card.setAttribute("aria-selected", String(index === getSelectedIndex()));
   card.addEventListener("mouseenter", () => selectItem(index, false));
 
   const media = document.createElement("div");
@@ -231,7 +234,7 @@ const buildCompactItem = (item: CommandPaletteItem, index: number): HTMLAnchorEl
   row.dataset.id = item.id;
   row.dataset.resultIndex = String(index);
   row.setAttribute("role", "option");
-  row.setAttribute("aria-selected", String(index === state.selectedIndex));
+  row.setAttribute("aria-selected", String(index === getSelectedIndex()));
   row.addEventListener("mouseenter", () => selectItem(index, false));
 
   const thumb = document.createElement("div");
@@ -333,10 +336,10 @@ export const renderItems = (items: CommandPaletteItem[]): void => {
     return;
   }
 
-  state.selectedIndex = 0;
+  setSelectedIndex(0);
 
   if (items.length === 0) {
-    renderEmptyState(state.lastQuery);
+    renderEmptyState(getLastQuery());
     return;
   }
 
@@ -345,7 +348,7 @@ export const renderItems = (items: CommandPaletteItem[]): void => {
 
   const groups = groupedItems(dedupeByID(items, (item) => item.id));
   const keys = orderedGroupKeys(groups);
-  state.resultItems = keys.flatMap((key) => groups.get(key) || []);
+  setResultItems(keys.flatMap((key) => groups.get(key) || []));
   let cursor = 0;
 
   keys.forEach((key) => {
@@ -371,7 +374,8 @@ export const appendItems = (items: CommandPaletteItem[]): void => {
     return;
   }
 
-  const existingIDs = new Set(state.resultItems.map((item) => item.id));
+  const resultItems = getResultItems();
+  const existingIDs = new Set(resultItems.map((item) => item.id));
   const nextItems = dedupeByID(items, (item) => item.id).filter(
     (item) => !existingIDs.has(item.id),
   );
@@ -379,5 +383,5 @@ export const appendItems = (items: CommandPaletteItem[]): void => {
     return;
   }
 
-  renderItems([...state.resultItems, ...nextItems]);
+  renderItems([...resultItems, ...nextItems]);
 };

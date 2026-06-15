@@ -1,4 +1,12 @@
-import { state, searchInput, searchDialog } from "./state";
+import {
+  searchInput,
+  searchDialog,
+  rememberSearchOpener,
+  focusLastSearchOpener,
+  setLastQuery,
+  getActiveRequestController,
+  setActiveRequestController,
+} from "./state";
 import { setSearchState, setClearButtonState, clearResults } from "./render";
 import { cancelScheduledFetch, fetchSearchItems } from "./fetch";
 
@@ -8,12 +16,11 @@ export const openSearch = (): void => {
     return;
   }
 
-  state.lastFocusedSearchOpener =
-    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  rememberSearchOpener();
   if (searchDialog) {
     setSearchState(true);
     searchInput.value = "";
-    state.lastQuery = "";
+    setLastQuery("");
     cancelScheduledFetch();
     setClearButtonState(false);
     clearResults();
@@ -28,15 +35,16 @@ export const closeSearch = (): void => {
 
   setSearchState(false);
   cancelScheduledFetch();
-  if (state.activeRequestController) {
-    state.activeRequestController.abort();
-    state.activeRequestController = undefined;
+  const activeRequestController = getActiveRequestController();
+  if (activeRequestController) {
+    activeRequestController.abort();
+    setActiveRequestController(undefined);
   }
   searchInput.value = "";
-  state.lastQuery = "";
+  setLastQuery("");
   setClearButtonState(false);
   clearResults();
-  state.lastFocusedSearchOpener?.focus();
+  focusLastSearchOpener();
 };
 
 export const clearSearchInput = (): void => {

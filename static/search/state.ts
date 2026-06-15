@@ -37,19 +37,119 @@ export const searchCloseButtons = document.querySelectorAll("[data-command-palet
 export const searchClearButtons = document.querySelectorAll("[data-command-palette-clear]");
 export const shortcutHints = document.querySelectorAll("[data-command-palette-shortcut]");
 
-export const state = {
-  resultItems: [] as CommandPaletteItem[],
-  selectedIndex: 0,
-  fetchTimeout: undefined as number | undefined,
-  lastQuery: "",
-  activeRequestController: undefined as AbortController | undefined,
-  nextSearchPage: undefined as number | undefined,
-  hasNextSearchPage: false,
-  isFetchingNextPage: false,
-  lastFocusedSearchOpener: null as HTMLElement | null,
+let resultItems: CommandPaletteItem[] = [];
+let selectedIndex = 0;
+let fetchTimeout: number | undefined;
+let lastQuery = "";
+let activeRequestController: AbortController | undefined;
+let nextSearchPage: number | undefined;
+let searchHasNextPage = false;
+let fetchingNextPage = false;
+let lastFocusedSearchOpener: HTMLElement | null = null;
+
+export const getResultItems = (): CommandPaletteItem[] => resultItems;
+
+export const setResultItems = (items: CommandPaletteItem[]): void => {
+  resultItems = items;
 };
 
-export const responseCache = new Map<string, CommandPaletteResponse>();
+export const getSelectedIndex = (): number => selectedIndex;
+
+export const setSelectedIndex = (index: number): void => {
+  selectedIndex = index;
+};
+
+export const getLastQuery = (): string => lastQuery;
+
+export const setLastQuery = (query: string): void => {
+  lastQuery = query;
+};
+
+export const getFetchTimeout = (): number | undefined => fetchTimeout;
+
+export const setFetchTimeout = (timeout: number | undefined): void => {
+  fetchTimeout = timeout;
+};
+
+export const getActiveRequestController = (): AbortController | undefined =>
+  activeRequestController;
+
+export const setActiveRequestController = (controller: AbortController | undefined): void => {
+  activeRequestController = controller;
+};
+
+export const getNextSearchPage = (): number | undefined => nextSearchPage;
+
+export const hasNextSearchPage = (): boolean => searchHasNextPage;
+
+export const setSearchPagination = (nextPage: number | undefined, hasNextPage: boolean): void => {
+  nextSearchPage = nextPage;
+  searchHasNextPage = hasNextPage;
+};
+
+export const isFetchingNextPage = (): boolean => fetchingNextPage;
+
+export const setFetchingNextPage = (isFetching: boolean): void => {
+  fetchingNextPage = isFetching;
+};
+
+export const resetSearchResultsState = (): void => {
+  resultItems = [];
+  selectedIndex = 0;
+  nextSearchPage = undefined;
+  searchHasNextPage = false;
+  fetchingNextPage = false;
+};
+
+export const rememberSearchOpener = (): void => {
+  lastFocusedSearchOpener =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
+};
+
+export const focusLastSearchOpener = (): void => {
+  lastFocusedSearchOpener?.focus();
+};
+
+const maxCachedResponses = 20;
+
+const createResponseCache = () => {
+  const responses = new Map<string, CommandPaletteResponse>();
+
+  return {
+    get(query: string): CommandPaletteResponse | undefined {
+      const response = responses.get(query);
+      if (!response) {
+        return undefined;
+      }
+
+      responses.delete(query);
+      responses.set(query, response);
+      return response;
+    },
+
+    set(query: string, response: CommandPaletteResponse): void {
+      if (responses.has(query)) {
+        responses.delete(query);
+      }
+
+      responses.set(query, response);
+      if (responses.size <= maxCachedResponses) {
+        return;
+      }
+
+      const oldestResponse = responses.keys().next();
+      if (!oldestResponse.done) {
+        responses.delete(oldestResponse.value);
+      }
+    },
+
+    clear(): void {
+      responses.clear();
+    },
+  };
+};
+
+export const responseCache = createResponseCache();
 
 export const iconPaths: Record<string, string> = {
   bookmark: "M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z",
