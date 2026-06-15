@@ -1,0 +1,239 @@
+package recommendations
+
+import (
+	"context"
+	"mal/integrations/jikan"
+	"mal/internal/domain"
+	"mal/internal/observability"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"golang.org/x/sync/errgroup"
+)
+
+type engine struct {
+	jikan *jikan.Client
+	repo  domain.AnimeRepository
+}
+
+func GetTopPicksForYou(
+	ctx context.Context,
+	jikanClient *jikan.Client,
+	repo domain.AnimeRepository,
+	userID string,
+	resultLimit int,
+) (domain.CatalogSectionData, error) {
+	return engine{jikan: jikanClient, repo: repo}.getTopPicksForYou(ctx, userID, resultLimit)
+}
+
+func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimit int) (domain.CatalogSectionData, error) {
+	if strings.TrimSpace(userID) == "" {
+		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
+	}
+
+	watchlist, err := e.repo.GetUserWatchList(ctx, userID)
+	if err != nil {
+		return domain.CatalogSectionData{}, err
+	}
+
+	now := time.Now()
+	seedPool := buildRecommendationSeeds(now, watchlist)
+	if len(seedPool) == 0 {
+		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
+	}
+
+	seedAnimes, err := e.fetchSeedAnimes(ctx, seedPool)
+	if err != nil {
+		return domain.CatalogSectionData{}, err
+	}
+
+	profile := buildTasteProfile(now, seedPool, seedAnimes)
+	store := newCandidateStore(watchlist)
+
+	if err := e.collectCollaborativeCandidates(ctx, seedPool, store); err != nil {
+		return domain.CatalogSectionData{}, err
+	}
+	if err := e.collectProfileSearchCandidates(ctx, profile, store); err != nil {
+		return domain.CatalogSectionData{}, err
+	}
+
+	ranked := store.ranked()
+	if len(ranked) == 0 {
+		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
+	}
+
+	candidates, err := e.scoreRankedCandidates(ctx, now, profile, ranked)
+	if err != nil {
+		return domain.CatalogSectionData{}, err
+	}
+
+	return domain.CatalogSectionData{
+		Animes: rerankRecommendationCandidates(candidates, resultLimit),
+	}, nil
+}
+
+func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSeed) ([]jikan.Anime, error) {
+	seedAnimes := make([]jikan.Anime, len(seedPool))
+	var g errgroup.Group
+	g.SetLimit(4)
+
+	for i, seed := range seedPool {
+		g.Go(func() error {
+			anime, err := e.jikan.GetAnimeByID(ctx, seed.animeID)
+			if err != nil {
+				return err
+			}
+			seedAnimes[i] = anime
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	return seedAnimes, nil
+}
+
+func (e engine) collectCollaborativeCandidates(ctx context.Context, seedPool []recommendationSeed, store *candidateStore) error {
+	var g errgroup.Group
+	g.SetLimit(4)
+
+	for _, seed := range seedPool {
+		g.Go(func() error {
+			recs, err := e.jikan.GetAnimeRecommendations(ctx, seed.animeID)
+			if err != nil {
+				return err
+			}
+			for i, rec := range recs {
+				if i >= maxRecommendations {
+					break
+				}
+				id := rec.Entry.MalID
+				if id <= 0 || id == seed.animeID {
+					continue
+				}
+				store.upsert(rankedCandidate{
+					id:                 id,
+					collaborativeScore: float64(rec.Votes) * seed.weight,
+				})
+			}
+			return nil
+		})
+	}
+
+	return g.Wait()
+}
+
+func (e engine) collectProfileSearchCandidates(ctx context.Context, profile userTasteProfile, store *candidateStore) error {
+	queries := buildProfileSearchQueries(profile)
+	var g errgroup.Group
+	g.SetLimit(3)
+
+	for _, query := range queries {
+		g.Go(func() error {
+			res, err := e.jikan.SearchAdvanced(
+				ctx,
+				"",
+				"",
+				"",
+				"score",
+				"desc",
+				query.genreIDs,
+				query.studioID,
+				true,
+				1,
+				profileSearchLimit,
+			)
+			if err != nil {
+				observability.Warn(
+					"top_pick_profile_search_failed",
+					"anime",
+					"",
+					map[string]any{
+						"genres":    query.genreIDs,
+						"studio_id": query.studioID,
+					},
+					err,
+				)
+				return nil
+			}
+
+			for i, anime := range res.Animes {
+				if anime.MalID <= 0 {
+					continue
+				}
+				store.upsert(rankedCandidate{
+					id:                 anime.MalID,
+					profileSearchScore: query.weight * profileSearchRankWeight(i),
+					anime:              anime,
+					hasAnime:           true,
+				})
+			}
+			return nil
+		})
+	}
+
+	return g.Wait()
+}
+
+func (e engine) scoreRankedCandidates(
+	ctx context.Context,
+	now time.Time,
+	profile userTasteProfile,
+	ranked []rankedCandidate,
+) ([]recommendationCandidate, error) {
+	limit := min(len(ranked), candidateFetchLimit)
+	candidates := make([]recommendationCandidate, 0, limit)
+	var candidatesMu sync.Mutex
+	var g errgroup.Group
+	g.SetLimit(6)
+
+	for i := 0; i < limit; i++ {
+		item := ranked[i]
+		g.Go(func() error {
+			anime := item.anime
+			if !item.hasAnime || !hasTasteMetadata(anime) {
+				fetchedAnime, err := e.jikan.GetAnimeByID(ctx, item.id)
+				if err != nil {
+					observability.Warn(
+						"recommendation_anime_fetch_failed",
+						"anime",
+						"",
+						map[string]any{"anime_id": item.id},
+						err,
+					)
+					return nil
+				}
+				anime = fetchedAnime
+			}
+
+			candidate := scoreRecommendationCandidate(
+				now,
+				profile,
+				anime,
+				item.collaborativeScore,
+				item.profileSearchScore,
+			)
+			candidatesMu.Lock()
+			candidates = append(candidates, candidate)
+			candidatesMu.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].score == candidates[j].score {
+			return candidates[i].anime.MalID < candidates[j].anime.MalID
+		}
+		return candidates[i].score > candidates[j].score
+	})
+
+	return candidates, nil
+}

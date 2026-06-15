@@ -1,4 +1,4 @@
-package anime
+package recommendations
 
 import (
 	"database/sql"
