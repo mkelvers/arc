@@ -346,11 +346,21 @@ func (c *Client) setCache(parentCtx context.Context, key string, data any, ttl t
 		return
 	}
 
-	_ = c.db.SetJikanCache(ctx, db.SetJikanCacheParams{
+	err = c.db.SetJikanCache(ctx, db.SetJikanCacheParams{
 		Key:       key,
 		Data:      string(bytes),
 		ExpiresAt: time.Now().Add(ttl),
 	})
+	if err != nil {
+		observability.LogJSON(
+			observability.LogLevelError,
+			"jikan_cache_set",
+			"jikan",
+			"",
+			map[string]any{"cache_key": key},
+			err,
+		)
+	}
 }
 
 // isEmptyResult detects if response contains no meaningful data.
