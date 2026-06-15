@@ -235,7 +235,6 @@ func (q *Queries) GetAllCachedAnime(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []string
 	for rows.Next() {
 		var data string
@@ -308,7 +307,6 @@ func (q *Queries) GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNe
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []GetAnimeNeedingRelationSyncRow
 	for rows.Next() {
 		var i GetAnimeNeedingRelationSyncRow
@@ -344,7 +342,6 @@ func (q *Queries) GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUs
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []AuditLog
 	for rows.Next() {
 		var i AuditLog
@@ -414,7 +411,6 @@ func (q *Queries) GetContinueWatchingEntries(ctx context.Context, userID string)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []GetContinueWatchingEntriesRow
 	for rows.Next() {
 		var i GetContinueWatchingEntriesRow
@@ -485,7 +481,6 @@ func (q *Queries) GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]A
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []AnimeFetchRetry
 	for rows.Next() {
 		var i AnimeFetchRetry
@@ -626,7 +621,6 @@ func (q *Queries) GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Conte
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []int64
 	for rows.Next() {
 		var anime_id int64
@@ -703,7 +697,6 @@ func (q *Queries) GetUpcomingSeasons(ctx context.Context, userID string) ([]GetU
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []GetUpcomingSeasonsRow
 	for rows.Next() {
 		var i GetUpcomingSeasonsRow
@@ -803,7 +796,6 @@ func (q *Queries) GetUserWatchList(ctx context.Context, userID string) ([]GetUse
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []GetUserWatchListRow
 	for rows.Next() {
 		var i GetUserWatchListRow
@@ -899,7 +891,6 @@ func (q *Queries) GetWatchingAnime(ctx context.Context, userID string) ([]GetWat
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 	var items []GetWatchingAnimeRow
 	for rows.Next() {
 		var i GetWatchingAnimeRow
