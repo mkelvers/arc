@@ -2,7 +2,7 @@ package allanime
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"mal/internal/domain"
 	"strconv"
 	"strings"
@@ -48,17 +48,17 @@ func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID stri
 
 	data, ok := result["data"].(map[string]any)
 	if !ok {
-		return AvailableEpisodes{}, fmt.Errorf("invalid response")
+		return AvailableEpisodes{}, errors.New("invalid response")
 	}
 
 	show, ok := data["show"].(map[string]any)
 	if !ok || show == nil {
-		return AvailableEpisodes{}, fmt.Errorf("show not found")
+		return AvailableEpisodes{}, errors.New("show not found")
 	}
 
 	detail, ok := show["availableEpisodesDetail"].(map[string]any)
 	if !ok {
-		return AvailableEpisodes{}, fmt.Errorf("invalid detail")
+		return AvailableEpisodes{}, errors.New("invalid detail")
 	}
 
 	return AvailableEpisodes{

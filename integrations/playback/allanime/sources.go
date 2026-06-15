@@ -2,6 +2,7 @@ package allanime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -41,28 +42,28 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 
 	data, ok := result["data"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid source response")
+		return nil, errors.New("invalid source response")
 	}
 
 	rawSourceURLs, ok := data["episode"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid episode response")
+		return nil, errors.New("invalid episode response")
 	}
 
 	sourceURLs, ok := rawSourceURLs["sourceUrls"].([]any)
 	if !ok || len(sourceURLs) == 0 {
-		return nil, fmt.Errorf("no source urls")
+		return nil, errors.New("no source urls")
 	}
 
 	references := buildSourceReferences(sourceURLs)
 	if len(references) == 0 {
-		return nil, fmt.Errorf("no source references")
+		return nil, errors.New("no source references")
 	}
 
 	out := c.resolveSourceReferences(ctx, references)
 
 	if len(out) == 0 {
-		return nil, fmt.Errorf("no playable sources extracted")
+		return nil, errors.New("no playable sources extracted")
 	}
 
 	return out, nil
@@ -261,7 +262,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 
 	data, ok := parsed["data"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("no data in response")
+		return nil, errors.New("no data in response")
 	}
 
 	decrypted, err := responseFromTobeparsed(data)
@@ -276,7 +277,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 		return parsed, nil
 	}
 
-	return nil, fmt.Errorf("no usable data in response")
+	return nil, errors.New("no usable data in response")
 }
 
 func newEpisodeHashRequest(ctx context.Context, showID, episode, mode string) (*http.Request, error) {

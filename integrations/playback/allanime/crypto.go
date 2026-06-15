@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -21,7 +22,7 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 	}
 
 	if len(raw) < 29 {
-		return nil, fmt.Errorf("encrypted payload too short")
+		return nil, errors.New("encrypted payload too short")
 	}
 
 	version := raw[0]
@@ -54,7 +55,7 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("decryption failed")
+	return nil, errors.New("decryption failed")
 }
 
 func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) []byte {
