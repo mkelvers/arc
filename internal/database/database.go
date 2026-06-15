@@ -32,8 +32,8 @@ func ProvideSQLDB(cfg config.Config) (*sql.DB, error) {
 	return dbConn, nil
 }
 
-func ProvideQueries(sqlDB *sql.DB) *db.Queries {
-	return db.New(sqlDB)
+func ProvideQueries(sqlDB *sql.DB, metrics *observability.Metrics) *db.Queries {
+	return db.New(observability.InstrumentDB(sqlDB, metrics))
 }
 
 func RunMigrations(sqlDB *sql.DB) error {

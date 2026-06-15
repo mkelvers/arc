@@ -56,6 +56,7 @@ type Metrics struct {
 	jikanRequests      *counterVec
 	jikanRequestErrors *counterVec
 	jikanLatency       *histogramVec
+	dbQueryLatency     *histogramVec
 	workerTicks        *counterVec
 	cacheOperations    *counterVec
 }
@@ -67,6 +68,7 @@ func NewMetrics() *Metrics {
 		jikanRequests:      newCounterVec("endpoint", "status"),
 		jikanRequestErrors: newCounterVec("endpoint", "status"),
 		jikanLatency:       newHistogramVec(defaultDurationBuckets, "endpoint", "status"),
+		dbQueryLatency:     newHistogramVec(defaultDurationBuckets, "operation", "result"),
 		workerTicks:        newCounterVec("worker", "result"),
 		cacheOperations:    newCounterVec("cache", "result"),
 	}
@@ -95,6 +97,14 @@ func (m *Metrics) ObserveJikanRequest(endpoint string, status int, duration time
 	}
 }
 
+func (m *Metrics) ObserveDBQuery(operation string, duration time.Duration, err error) {
+	result := "success"
+	if err != nil {
+		result = "error"
+	}
+	m.dbQueryLatency.Observe(duration.Seconds(), operation, result)
+}
+
 func (m *Metrics) ObserveWorkerTick(worker string, err error) {
 	if err != nil {
 		m.workerTicks.Inc(worker, "failure")
@@ -113,6 +123,7 @@ func (m *Metrics) writePrometheus(w http.ResponseWriter) {
 	writeCounterMetric(w, "mal_jikan_upstream_requests_total", "Total upstream Jikan requests by endpoint and status.", m.jikanRequests.snapshot())
 	writeCounterMetric(w, "mal_jikan_upstream_errors_total", "Total upstream Jikan errors by endpoint and status.", m.jikanRequestErrors.snapshot())
 	writeHistogramMetric(w, "mal_jikan_upstream_request_duration_seconds", "Upstream Jikan request latency in seconds.", m.jikanLatency.snapshot(), m.jikanLatency.bounds)
+	writeHistogramMetric(w, "mal_db_query_duration_seconds", "Database query latency in seconds.", m.dbQueryLatency.snapshot(), m.dbQueryLatency.bounds)
 	writeCounterMetric(w, "mal_worker_ticks_total", "Total background worker ticks by worker and result.", m.workerTicks.snapshot())
 	writeCounterMetric(w, "mal_cache_operations_total", "Total cache hits and misses by cache name.", m.cacheOperations.snapshot())
 }
