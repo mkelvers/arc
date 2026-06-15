@@ -17,6 +17,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var (
+	ErrUserNotFound  = fmt.Errorf("user not found")
+	ErrWrongPassword = fmt.Errorf("wrong password")
+)
+
 type authService struct {
 	repo     domain.AuthRepository
 	auditSvc domain.AuditService
@@ -32,11 +37,11 @@ func (s *authService) Login(ctx context.Context, username, password string) (*do
 		return nil, err
 	}
 	if user == nil {
-		return nil, errors.New("invalid credentials")
+		return nil, ErrUserNotFound
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, ErrWrongPassword
 	}
 
 	sessionID := uuid.New().String()
@@ -49,11 +54,11 @@ func (s *authService) LoginForAPIToken(ctx context.Context, username, password, 
 		return "", nil, err
 	}
 	if user == nil {
-		return "", nil, errors.New("invalid credentials")
+		return "", nil, ErrUserNotFound
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", nil, errors.New("invalid credentials")
+		return "", nil, ErrWrongPassword
 	}
 
 	trimmedName := strings.TrimSpace(name)
