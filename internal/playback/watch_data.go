@@ -9,6 +9,7 @@ import (
 
 	"mal/integrations/jikan"
 	"mal/internal/domain"
+	"mal/internal/observability"
 )
 
 func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
@@ -164,14 +165,20 @@ func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, 
 func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeSource {
 	subtitles := make([]domain.SubtitleItem, 0, len(res.Subtitles))
 	for _, sub := range res.Subtitles {
-		token, _ := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
+		token, err := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
+		if err != nil {
+			observability.LogJSON(observability.LogLevelWarn, "sign_subtitle_token_failed", "playback", err.Error(), map[string]any{"url": sub.URL}, nil)
+		}
 		subtitles = append(subtitles, domain.SubtitleItem{
 			Lang:  sub.Label,
 			Token: token,
 		})
 	}
 
-	streamToken, _ := s.SignProxyToken(res.URL, res.Referer, "stream")
+	streamToken, err := s.SignProxyToken(res.URL, res.Referer, "stream")
+	if err != nil {
+		observability.LogJSON(observability.LogLevelWarn, "sign_stream_token_failed", "playback", err.Error(), map[string]any{"url": res.URL}, nil)
+	}
 	return domain.ModeSource{
 		Token:     streamToken,
 		Type:      res.Type,
