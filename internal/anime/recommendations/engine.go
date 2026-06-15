@@ -64,7 +64,7 @@ func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimi
 		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
 	}
 
-	candidates, err := e.scoreRankedCandidates(ctx, now, profile, ranked)
+	candidates, err := e.scoreRankedCandidates(ctx, now, profile, ranked, resultLimit)
 	if err != nil {
 		return domain.CatalogSectionData{}, err
 	}
@@ -191,8 +191,9 @@ func (e engine) scoreRankedCandidates(
 	now time.Time,
 	profile userTasteProfile,
 	ranked []rankedCandidate,
+	resultLimit int,
 ) ([]recommendationCandidate, error) {
-	limit := min(len(ranked), candidateFetchLimit)
+	limit := min(len(ranked), candidateScoreLimit(resultLimit))
 	candidates := make([]recommendationCandidate, 0, limit)
 	var candidatesMu sync.Mutex
 	var g errgroup.Group
@@ -243,4 +244,12 @@ func (e engine) scoreRankedCandidates(
 	})
 
 	return candidates, nil
+}
+
+func candidateScoreLimit(resultLimit int) int {
+	if resultLimit <= 0 {
+		return 0
+	}
+
+	return min(candidateFetchLimit, resultLimit+candidateFetchBuffer)
 }

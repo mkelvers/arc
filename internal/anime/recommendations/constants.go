@@ -6,6 +6,7 @@ const (
 	maxSeeds               = 8
 	maxRecommendations     = 10
 	candidateFetchLimit    = 60
+	candidateFetchBuffer   = 6
 	TopPickLimit           = 18
 	TopPicksLimit          = 60
 	profileSearchLimit     = 8

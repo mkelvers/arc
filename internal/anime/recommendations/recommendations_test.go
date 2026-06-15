@@ -174,6 +174,18 @@ func TestRerankRecommendationCandidatesSpreadsRepeatedGenres(t *testing.T) {
 	}
 }
 
+func TestCandidateScoreLimitTracksRequestedResultSize(t *testing.T) {
+	if got := candidateScoreLimit(TopPickLimit); got != TopPickLimit+candidateFetchBuffer {
+		t.Fatalf("expected top-pick scoring to fetch a small oversample, got %d", got)
+	}
+	if got := candidateScoreLimit(TopPicksLimit); got != candidateFetchLimit {
+		t.Fatalf("expected full top-picks scoring to keep existing cap, got %d", got)
+	}
+	if got := candidateScoreLimit(0); got != 0 {
+		t.Fatalf("expected zero result limit to skip scoring, got %d", got)
+	}
+}
+
 func testRecommendationAnime(id int, genreID int) jikan.Anime {
 	return jikan.Anime{
 		MalID:  id,
