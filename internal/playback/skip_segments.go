@@ -56,39 +56,42 @@ func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID 
 	})
 }
 
-func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, malID int, episode string) []domain.SkipSegment {
+func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, malID int, episode string) ([]domain.SkipSegment, error) {
 	if malID <= 0 || strings.TrimSpace(episode) == "" {
-		return []domain.SkipSegment{}
+		return []domain.SkipSegment{}, nil
 	}
 
-	segments := s.fetchAniSkipSegments(ctx, malID, episode)
-	return s.applySkipSegmentOverrides(ctx, segments, userID, malID, episode)
+	segments, err := s.fetchAniSkipSegments(ctx, malID, episode)
+	if err != nil {
+		return nil, fmt.Errorf("aniskip: %w", err)
+	}
+	return s.applySkipSegmentOverrides(ctx, segments, userID, malID, episode), nil
 }
 
-func (s *playbackService) fetchAniSkipSegments(ctx context.Context, malID int, episode string) []domain.SkipSegment {
+func (s *playbackService) fetchAniSkipSegments(ctx context.Context, malID int, episode string) ([]domain.SkipSegment, error) {
 	endpoint := fmt.Sprintf("https://api.aniskip.com/v1/skip-times/%s/%s?types=op&types=ed", url.PathEscape(strconv.Itoa(malID)), url.PathEscape(episode))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("User-Agent", netutil.Generic)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("http request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil
+		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.KiB512))
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("read body: %w", err)
 	}
 
-	return parseAniSkipSegments(body)
+	return parseAniSkipSegments(body), nil
 }
 
 func parseAniSkipSegments(body []byte) []domain.SkipSegment {

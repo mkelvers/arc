@@ -49,7 +49,13 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(ctx, userID, animeID, anime.Episodes, episode)
 	go s.warmStreamURL(result.URL, result.Referer)
 	seasons := s.loadSeasons(ctx, animeID)
-	segments := s.fetchSkipSegments(ctx, userID, animeID, episode)
+	segments, err := s.fetchSkipSegments(ctx, userID, animeID, episode)
+	if err != nil {
+		observability.Warn("fetch_skip_segments_failed", "playback", "",
+			map[string]any{"anime_id": animeID, "episode": episode},
+			err,
+		)
+	}
 	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, canonicalEpisodes.Episodes, modeSources, mode, modeSwitchedFrom, segments)
 	return buildWatchPageData(animeData, canonicalEpisodes.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData), nil
 }
