@@ -105,7 +105,14 @@ func (e engine) collectCollaborativeCandidates(ctx context.Context, seedPool []r
 		g.Go(func() error {
 			recs, err := e.jikan.GetAnimeRecommendations(ctx, seed.animeID)
 			if err != nil {
-				return err
+				observability.Warn(
+					"collaborative_recommendations_failed",
+					"anime",
+					"",
+					map[string]any{"seed_id": seed.animeID},
+					err,
+				)
+				return nil
 			}
 			for i, rec := range recs {
 				if i >= maxRecommendations {
