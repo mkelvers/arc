@@ -1,10 +1,14 @@
 import Hls from "hls.js";
+import { attachHLSProfile } from "./hls_profile";
 import { state } from "./state";
 import { absoluteTimeFromDisplay, displayTimeFromAbsolute, invalidateBounds } from "./timeline";
 
 let hls: Hls | null = null;
+let stopHLSProfile: (() => void) | null = null;
 
 const destroyHLS = (): void => {
+  stopHLSProfile?.();
+  stopHLSProfile = null;
   hls?.destroy();
   hls = null;
 };
@@ -44,6 +48,7 @@ export const loadVideoSource = (url: string, type?: string): void => {
 
   if (shouldUseHLS(type, url) && Hls.isSupported()) {
     hls = new Hls();
+    stopHLSProfile = attachHLSProfile(hls, state.video);
     hls.loadSource(url);
     hls.attachMedia(state.video);
   } else {
