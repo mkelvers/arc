@@ -84,7 +84,7 @@ func (c *Client) refreshWatchOrder(ctx context.Context, id int) (watchorder.Watc
 	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	result, err := watchorder.FetchWatchOrder(requestCtx, c.httpClient, watchOrderURL)
+	result, err := watchorder.FetchWatchOrder(requestCtx, c.fetcher.HTTPClient, watchOrderURL)
 	if err != nil {
 		var statusError *watchorder.HTTPStatusError
 		if errors.As(err, &statusError) && statusError.StatusCode == http.StatusNotFound {

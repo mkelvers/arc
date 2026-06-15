@@ -31,7 +31,7 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	stale := TopAnimeResponse{Data: []Anime{{MalID: 1, Title: "stale"}}}
 	insertCachedResponse(t, sqlDB, "top:1", stale, time.Now().Add(-time.Hour))
 
-	client.httpClient = &http.Client{
+	client.fetcher.HTTPClient = &http.Client{
 		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 			body := `{"data":[{"mal_id":2,"title":"fresh"}]}`
 			return &http.Response{
