@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mal/internal/domain"
+	"net/http"
 	"strings"
 	"testing"
 )
@@ -77,7 +78,45 @@ func TestRewriteHLSPlaylistProxiesSegmentAndKeyURIs(t *testing.T) {
 }
 
 func TestIsHLSPlaylistResponse(t *testing.T) {
-	if !isHLSPlaylistResponse("https://example.test/master.m3u8?token=abc", nil) {
-		t.Fatal("expected .m3u8 URL to be treated as playlist")
+	tests := []struct {
+		name    string
+		target  string
+		headers map[string]string
+		want    bool
+	}{
+		{
+			name:   "playlist url",
+			target: "https://example.test/master.m3u8?token=abc",
+			want:   true,
+		},
+		{
+			name:   "playlist content type",
+			target: "https://example.test/video.bin",
+			headers: map[string]string{
+				"Content-Type": "application/x-mpegurl; charset=utf-8",
+			},
+			want: true,
+		},
+		{
+			name:   "non playlist",
+			target: "https://example.test/video.bin",
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var headers http.Header
+			if len(tt.headers) > 0 {
+				headers = make(http.Header)
+				for key, value := range tt.headers {
+					headers.Set(key, value)
+				}
+			}
+
+			if got := isHLSPlaylistResponse(tt.target, headers); got != tt.want {
+				t.Fatalf("isHLSPlaylistResponse() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
