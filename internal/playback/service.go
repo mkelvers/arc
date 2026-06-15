@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	netutil "mal/pkg/net"
 	"net/http"
 	"time"
@@ -73,7 +74,11 @@ func (s *playbackService) warmStreamURL(targetURL, referer string) {
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
+		if resp != nil {
+			_ = resp.Body.Close()
+		}
+		observability.LogJSON(observability.LogLevelWarn, "warm_stream_failed", "playback", err.Error(), map[string]any{"url": targetURL}, nil)
 		return
 	}
-	_ = resp.Body.Close()
+	resp.Body.Close()
 }
