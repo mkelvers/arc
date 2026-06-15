@@ -237,6 +237,16 @@ func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					return nil
 				}
+				observability.Warn(
+					"relations_fetch_entry_failed",
+					"jikan",
+					"",
+					map[string]any{
+						"anime_id": entry.ID,
+						"index":    i,
+					},
+					err,
+				)
 				c.EnqueueAnimeFetchRetry(gCtx, entry.ID, err)
 				return nil
 			}
@@ -258,6 +268,20 @@ func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.
 	fetched := make([]fetchResult, 0, len(entries))
 	for res := range results {
 		fetched = append(fetched, res)
+	}
+
+	if len(fetched) < len(entries) {
+		observability.Warn(
+			"relations_fetch_incomplete",
+			"jikan",
+			"",
+			map[string]any{
+				"expected": len(entries),
+				"fetched":  len(fetched),
+				"missing":  len(entries) - len(fetched),
+			},
+			nil,
+		)
 	}
 
 	sort.Slice(fetched, func(i, j int) bool {
