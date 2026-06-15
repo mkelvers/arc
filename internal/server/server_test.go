@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"log"
+	"mal/internal/config"
 	"mal/internal/observability"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +33,23 @@ func TestNewHTTPServer_TimeoutsAndAddr(t *testing.T) {
 	}
 	if srv.IdleTimeout != 2*time.Minute {
 		t.Fatalf("IdleTimeout: got %s want %s", srv.IdleTimeout, 2*time.Minute)
+	}
+}
+
+func TestProvideRouterRegistersPprof(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := ProvideRouter(config.Config{GinMode: gin.TestMode}, nil, observability.NewMetrics())
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/debug/pprof/", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("pprof status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), "Types of profiles available") {
+		t.Fatalf("pprof index missing profile list: %s", rec.Body.String())
 	}
 }
 

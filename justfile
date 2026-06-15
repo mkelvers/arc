@@ -16,6 +16,12 @@ lint-go:
 test:
     go test ./...
 
+bench:
+    go test -bench=. -benchmem -count=5 ./internal/anime/... ./integrations/jikan/... ./internal/playback/...
+
+bench-all:
+    go test -bench=. -benchmem ./...
+
 build-go:
     @go build -o server ./cmd/server
 
