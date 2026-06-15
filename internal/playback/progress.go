@@ -161,11 +161,12 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 	return nil
 }
 
-func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) {
+func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) error {
 	if _, err := s.repo.GetAnime(ctx, int64(anime.MalID)); err == nil {
-		return
+		return nil
 	}
-	_, _ = s.repo.UpsertAnime(ctx, animeParams(anime))
+	_, err := s.repo.UpsertAnime(ctx, animeParams(anime))
+	return err
 }
 
 func animeParams(anime domain.Anime) db.UpsertAnimeParams {

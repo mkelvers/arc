@@ -19,7 +19,12 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	animeData := domain.Anime{Anime: anime}
-	s.ensureAnimeRow(ctx, animeData)
+	if err := s.ensureAnimeRow(ctx, animeData); err != nil {
+		observability.Warn("upsert_anime_failed", "playback", "",
+			map[string]any{"anime_id": animeID},
+			err,
+		)
+	}
 	searchTitles := buildSearchTitles(animeData, titleCandidates)
 	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
 	if err != nil {
