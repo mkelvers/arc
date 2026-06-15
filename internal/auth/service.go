@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"strings"
 	"time"
 
@@ -74,22 +75,25 @@ func (s *authService) LoginForAPIToken(ctx context.Context, username, password, 
 		return "", nil, err
 	}
 
-	metadataBytes, err := json.Marshal(struct {
+	event := domain.AuditEvent{
+		UserID:       user.ID,
+		Action:       "api_token_created",
+		ResourceType: "api_token",
+	}
+	metadataBytes, marshalErr := json.Marshal(struct {
 		Name string `json:"name"`
 	}{Name: trimmedName})
-	if err == nil {
-		_ = s.auditSvc.Record(ctx, domain.AuditEvent{
-			UserID:       user.ID,
-			Action:       "api_token_created",
-			ResourceType: "api_token",
-			MetadataJSON: metadataBytes,
-		})
-	} else {
-		_ = s.auditSvc.Record(ctx, domain.AuditEvent{
-			UserID:       user.ID,
-			Action:       "api_token_created",
-			ResourceType: "api_token",
-		})
+	if marshalErr == nil {
+		event.MetadataJSON = metadataBytes
+	}
+	if err := s.auditSvc.Record(ctx, event); err != nil {
+		observability.Warn(
+			"audit_record_failed",
+			"auth",
+			"",
+			map[string]any{"user_id": user.ID, "action": "api_token_created"},
+			err,
+		)
 	}
 
 	return rawToken, user, nil
@@ -152,11 +156,19 @@ func (s *authService) RevokeAllAPITokensForUser(ctx context.Context, userID stri
 	if err := s.repo.RevokeAllAPITokensForUser(ctx, userID); err != nil {
 		return err
 	}
-	_ = s.auditSvc.Record(ctx, domain.AuditEvent{
+	if err := s.auditSvc.Record(ctx, domain.AuditEvent{
 		UserID:       userID,
 		Action:       "api_token_revoked_all",
 		ResourceType: "api_token",
-	})
+	}); err != nil {
+		observability.Warn(
+			"audit_record_failed",
+			"auth",
+			"",
+			map[string]any{"user_id": userID, "action": "api_token_revoked_all"},
+			err,
+		)
+	}
 	return nil
 }
 
