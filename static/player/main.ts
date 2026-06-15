@@ -91,7 +91,7 @@ const initPlayer = (): void => {
   teardownPlayer();
 
   if (!initState(container)) {
-    console.error("Video player markup is missing required controls.");
+    window.showToast?.({ message: "Video player markup is missing required controls." });
     return;
   }
   currentContainer = container;

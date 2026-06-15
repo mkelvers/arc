@@ -2,9 +2,10 @@
 export const parseVttTime = (raw: string): number => {
   const parts = raw.trim().split(":");
   if (parts.length < 2) return 0;
-  const secPart = parts.pop()!;
-  const minPart = parts.pop()!;
-  const hourPart = parts.pop() ?? "0";
+  const secPart = parts[parts.length - 1];
+  const minPart = parts[parts.length - 2];
+  const hourPart = parts.length > 2 ? parts[parts.length - 3] : "0";
+  if (!secPart || !minPart) return 0;
   return Number(hourPart) * 3600 + Number(minPart) * 60 + Number(secPart.replace(",", "."));
 };
 

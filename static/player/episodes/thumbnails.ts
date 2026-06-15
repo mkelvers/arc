@@ -43,5 +43,7 @@ export const setupThumbnails = (): void => {
         }
       });
     })
-    .catch((err) => console.error("Failed to fetch thumbnails:", err));
+    .catch(() => {
+      window.showToast?.({ message: "Failed to load episode thumbnails." });
+    });
 };
