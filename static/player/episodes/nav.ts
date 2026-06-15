@@ -61,7 +61,6 @@ export const goToNextEpisode = async (): Promise<void> => {
 
     // update state with new episode data
     state.modeSources = data.mode_sources ?? {};
-    state.availableModes = data.available_modes ?? [];
 
     const backendMode = typeof data.initial_mode === "string" ? data.initial_mode : "";
     const fallback = state.modeSources[backendMode]?.token

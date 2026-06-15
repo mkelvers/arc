@@ -48,11 +48,6 @@ const alternateModeFor = (mode: string): "sub" | "dub" | null => {
   return null;
 };
 
-const mergeAvailableMode = (mode: string): void => {
-  if (state.availableModes.includes(mode)) return;
-  state.availableModes = [...state.availableModes, mode].sort();
-};
-
 export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> => {
   const alternateMode = alternateModeFor(state.currentMode);
   if (!alternateMode) return;
@@ -76,7 +71,6 @@ export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> 
       ...state.modeSources,
       [alternateMode]: alternateSource,
     };
-    mergeAvailableMode(alternateMode);
 
     updateSubtitleOptions();
     updateQualityOptions();

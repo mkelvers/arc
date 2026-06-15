@@ -11,7 +11,7 @@ export interface PlayerState {
   timeDisplay: HTMLElement;
   durationDisplay: HTMLElement;
   modeSources: Record<string, ModeSource>;
-  availableModes: string[];
+  readonly availableModes: string[];
   currentMode: string;
   modeSwitchedFrom: string;
   currentEpisode: string;
@@ -54,7 +54,9 @@ const createInitialState = (): PlayerState => ({
   timeDisplay: document.createElement("div"),
   durationDisplay: document.createElement("div"),
   modeSources: {},
-  availableModes: [],
+  get availableModes() {
+    return Object.keys(this.modeSources);
+  },
   currentMode: "dub",
   modeSwitchedFrom: "",
   currentEpisode: "1",
@@ -211,8 +213,6 @@ export const initState = (c: HTMLElement): boolean => {
     return out;
   };
 
-  const parseAvailableModes = (v: unknown): string[] => (isStringArray(v) ? v : []);
-
   const parseSegments = (v: unknown): SkipSegment[] => {
     if (!Array.isArray(v)) return [];
     const out: SkipSegment[] = [];
@@ -230,7 +230,6 @@ export const initState = (c: HTMLElement): boolean => {
 
   // mode sources = { sub: { token, subtitles, qualities }, dub: { ... } }
   state.modeSources = parseModeSources(safeJsonUnknown(dataset(c, "modeSources")));
-  state.availableModes = parseAvailableModes(safeJsonUnknown(dataset(c, "availableModes")));
 
   // resolve initial mode: localStorage > backend default > first available > 'dub'
   const backendInitialMode = dataset(c, "initialMode") || "dub";
