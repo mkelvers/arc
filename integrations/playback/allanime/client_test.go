@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/aes"
-	"encoding/json"
+	"crypto/cipher"
+	"crypto/sha256"
+	"encoding/base64"
 	"mal/internal/domain"
 	"testing"
 )
@@ -31,6 +33,10 @@ type sourceReferencesTestCase struct {
 	rawURLs  []any
 	wantRefs []sourceReference
 }
+
+var _ interface {
+	GetStreams(context.Context, int, []string, string, string) (*domain.StreamResult, error)
+} = (*AllAnimeProvider)(nil)
 
 func runStringTransformTests(t *testing.T, tests []stringTransformTestCase, fn func(string) string) {
 	t.Helper()
@@ -69,6 +75,29 @@ func runSourceReferenceTests(t *testing.T, tests []sourceReferencesTestCase) {
 			}
 		})
 	}
+}
+
+func buildEncryptedTobeparsedPayload(t *testing.T, plaintext []byte) string {
+	t.Helper()
+
+	key := sha256.Sum256([]byte(aesKeys[0]))
+	block, err := aes.NewCipher(key[:])
+	if err != nil {
+		t.Fatalf("create cipher: %v", err)
+	}
+
+	iv := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b}
+	ctrIV := append([]byte{}, iv...)
+	ctrIV = append(ctrIV, 0x00, 0x00, 0x00, 0x02)
+
+	cipherText := make([]byte, len(plaintext))
+	cipher.NewCTR(block, ctrIV).XORKeyStream(cipherText, plaintext)
+
+	raw := append([]byte{1}, iv...)
+	raw = append(raw, cipherText...)
+	raw = append(raw, make([]byte, 16)...)
+
+	return base64.StdEncoding.EncodeToString(raw)
 }
 
 func TestDecodeSourceURL(t *testing.T) {
@@ -419,18 +448,16 @@ func TestDecryptTobeparsed(t *testing.T) {
 	t.Parallel()
 
 	t.Run("valid encrypted payload with first key", func(t *testing.T) {
-		payload := "AQAAAAABc2S7yj94zW6j4A8d9D6C3qFvYjR1hI4L6z1J3qKj5pXhKj"
+		plaintext := []byte(`{"ok":true,"items":[1,2,3]}`)
+		payload := buildEncryptedTobeparsedPayload(t, plaintext)
 
 		decrypted, err := decryptTobeparsed(payload)
-		if err == nil {
-			var result map[string]any
-			if err := json.Unmarshal(decrypted, &result); err != nil {
-				t.Logf("decrypted (not valid json): %s", string(decrypted))
-			} else {
-				t.Logf("decrypted: %+v", result)
-			}
-		} else {
-			t.Logf("expected decryption to succeed or fail gracefully: %v", err)
+		if err != nil {
+			t.Fatalf("decryptTobeparsed: %v", err)
+		}
+
+		if string(decrypted) != string(plaintext) {
+			t.Fatalf("decrypted = %q, want %q", decrypted, plaintext)
 		}
 	})
 
@@ -465,21 +492,16 @@ func TestTryDecryptCTR(t *testing.T) {
 		}
 
 		iv := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b}
-		cipherText := []byte("test plaintext  ")
+		plaintext := []byte("test plaintext  ")
 
-		plainText := tryDecryptCTR(block, iv, cipherText)
-		_ = plainText
+		ctrIV := append([]byte{}, iv...)
+		ctrIV = append(ctrIV, 0x00, 0x00, 0x00, 0x02)
+		cipherText := make([]byte, len(plaintext))
+		cipher.NewCTR(block, ctrIV).XORKeyStream(cipherText, plaintext)
+
+		got := tryDecryptCTR(block, iv, cipherText)
+		if !bytes.Equal(got, plaintext) {
+			t.Fatalf("tryDecryptCTR() = %q, want %q", got, plaintext)
+		}
 	})
-}
-
-func TestAllAnimeClientImplementsInterfaces(t *testing.T) {
-	t.Parallel()
-
-	var (
-		_ interface {
-			GetStreams(context.Context, int, []string, string, string) (*domain.StreamResult, error)
-		} = &AllAnimeProvider{}
-	)
-
-	t.Log("allAnimeClient implements required interfaces")
 }
