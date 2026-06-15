@@ -18,7 +18,11 @@ func Open(dbFile string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
 	// WAL improves concurrency between readers and writers.
-	_, _ = db.ExecContext(context.Background(), "PRAGMA journal_mode=WAL;")
-	_, _ = db.ExecContext(context.Background(), "PRAGMA busy_timeout=5000;")
+	if _, err := db.ExecContext(context.Background(), "PRAGMA journal_mode=WAL;"); err != nil {
+		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
+	}
+	if _, err := db.ExecContext(context.Background(), "PRAGMA busy_timeout=5000;"); err != nil {
+		return nil, fmt.Errorf("failed to set busy timeout: %w", err)
+	}
 	return db, nil
 }
