@@ -9,7 +9,7 @@ import (
 
 type Limiter struct {
 	mu          sync.Mutex
-	lastReqTime time.Time
+	nextReqTime time.Time
 	interval    time.Duration
 }
 
@@ -19,24 +19,32 @@ func NewLimiter(interval time.Duration) *Limiter {
 
 // Wait enforces minimum spacing between upstream Jikan requests.
 func (l *Limiter) Wait(ctx context.Context) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	now := time.Now()
-	nextAllowed := l.lastReqTime.Add(l.interval)
-	if now.Before(nextAllowed) {
-		timer := time.NewTimer(nextAllowed.Sub(now))
-		defer timer.Stop()
-
-		select {
-		case <-timer.C:
-		case <-ctx.Done():
-			return fmt.Errorf("request canceled while waiting for rate limit: %w", ctx.Err())
-		}
-		l.lastReqTime = time.Now()
+	waitUntil := l.reserve(time.Now())
+	if waitUntil.IsZero() {
 		return nil
 	}
 
-	l.lastReqTime = now
-	return nil
+	timer := time.NewTimer(time.Until(waitUntil))
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("request canceled while waiting for rate limit: %w", ctx.Err())
+	}
+}
+
+func (l *Limiter) reserve(now time.Time) time.Time {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.nextReqTime.IsZero() || now.After(l.nextReqTime) {
+		l.nextReqTime = now.Add(l.interval)
+		return time.Time{}
+	}
+
+	waitUntil := l.nextReqTime
+	l.nextReqTime = l.nextReqTime.Add(l.interval)
+	return waitUntil
 }
