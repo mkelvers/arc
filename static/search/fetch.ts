@@ -19,6 +19,7 @@ import {
   setClearButtonState,
   clearResults,
   renderEmptyState,
+  renderSearchErrorState,
   renderItems,
   appendItems,
 } from "./render";
@@ -117,14 +118,13 @@ export const fetchSearchItems = (query: string): void => {
       responseCache.set(query, response);
       renderItems(visibleItems);
     })
-    .catch((err: unknown) => {
+    .catch(() => {
       if (controller.signal.aborted) {
         return;
       }
 
       setActiveRequestController(undefined);
-      console.error("Search overlay error:", err);
-      renderItems([]);
+      renderSearchErrorState(query);
     });
 };
 
@@ -168,8 +168,8 @@ export const fetchNextSearchPage = (): void => {
       setSearchPagination(response.nextPage, response.hasNextPage);
       appendItems(visibleItems);
     })
-    .catch((err: unknown) => {
-      console.error("Search overlay pagination error:", err);
+    .catch(() => {
+      window.showToast?.({ message: "Failed to load more search results." });
     })
     .finally(() => {
       setFetchingNextPage(false);

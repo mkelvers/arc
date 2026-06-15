@@ -160,8 +160,8 @@ export const removeContinueWatchingItem = (item: CommandPaletteItem): void => {
       removeContinueWatchingCard(animeID);
       renderItems(getResultItems().filter((candidate) => candidate.id !== item.id));
     })
-    .catch((err: unknown) => {
-      console.error("Continue watching remove error:", err);
+    .catch(() => {
+      window.showToast?.({ message: "Failed to remove from Continue Watching." });
     });
 };
 
@@ -311,6 +311,30 @@ export const renderEmptyState = (query: string): void => {
   subtitle.textContent = query
     ? "Try a shorter title, alternate spelling, or browse the full search results."
     : "Search opens title results first, then your watchlist and quick links when they matter.";
+  empty.appendChild(subtitle);
+
+  searchResults.replaceChildren(empty);
+};
+
+export const renderSearchErrorState = (query: string): void => {
+  if (!searchResults) {
+    return;
+  }
+
+  const empty = document.createElement("div");
+  empty.className =
+    "mx-auto flex min-h-80 w-full max-w-5xl flex-col justify-center px-5 py-14 text-center md:px-8";
+
+  const title = document.createElement("div");
+  title.className = "text-2xl font-semibold text-foreground";
+  title.textContent = "Search is unavailable right now";
+  empty.appendChild(title);
+
+  const subtitle = document.createElement("p");
+  subtitle.className = "mx-auto mt-3 max-w-lg text-sm leading-6 text-foreground-muted";
+  subtitle.textContent = query
+    ? "Try again in a moment or narrow the search query."
+    : "Try again in a moment.";
   empty.appendChild(subtitle);
 
   searchResults.replaceChildren(empty);
