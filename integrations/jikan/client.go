@@ -18,16 +18,15 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-var traceEnabled bool
-
 type Client struct {
-	baseURL     string
-	db          db.Querier
-	retrySignal chan struct{} // signals retry worker to process queued retries
-	sf          singleflight.Group
-	refreshSem  chan struct{}
-	cache       *jcache.Store
-	fetcher     *jtransport.Client
+	baseURL      string
+	db           db.Querier
+	retrySignal  chan struct{} // signals retry worker to process queued retries
+	sf           singleflight.Group
+	refreshSem   chan struct{}
+	cache        *jcache.Store
+	fetcher      *jtransport.Client
+	traceEnabled bool
 
 	// Random anime pool for DDoS-proof truly random "Surprise Me"
 	randomPool      []Anime
@@ -40,22 +39,24 @@ const jikanSlowLogThreshold = 750 * time.Millisecond
 type APIError = jtransport.APIError
 
 func NewClient(cfg config.Config, queries *db.Queries, metrics *observability.Metrics) *Client {
-	traceEnabled = cfg.JikanTrace
 	limiter := rate.NewLimiter(400 * time.Millisecond)
-	return &Client{
-		baseURL:     "https://api.jikan.moe/v4",
-		db:          queries,
-		retrySignal: make(chan struct{}, 1),
-		refreshSem:  make(chan struct{}, 4),
-		cache:       jcache.NewStore(queries, metrics),
-		fetcher: jtransport.NewClient(jtransport.Config{
-			HTTPClient:   jtransport.NewHTTPClient(),
-			Limiter:      limiter,
-			Metrics:      metrics,
-			TraceEnabled: jikanTraceEnabled,
-		}),
-		randomPool: make([]Anime, 0),
+	client := &Client{
+		baseURL:      "https://api.jikan.moe/v4",
+		db:           queries,
+		retrySignal:  make(chan struct{}, 1),
+		refreshSem:   make(chan struct{}, 4),
+		cache:        jcache.NewStore(queries, metrics),
+		traceEnabled: cfg.JikanTrace,
+		randomPool:   make([]Anime, 0),
 	}
+	client.fetcher = jtransport.NewClient(jtransport.Config{
+		HTTPClient:   jtransport.NewHTTPClient(),
+		Limiter:      limiter,
+		Metrics:      metrics,
+		TraceEnabled: client.jikanTraceEnabled,
+	})
+
+	return client
 }
 
 // IsRetryableError returns true if the error should trigger a retry.
@@ -63,12 +64,12 @@ func IsRetryableError(err error) bool {
 	return jtransport.IsRetryableError(err)
 }
 
-func jikanTraceEnabled() bool {
-	return traceEnabled
+func (c *Client) jikanTraceEnabled() bool {
+	return c.traceEnabled
 }
 
-func shouldSkipJikanCacheLog(source string, duration time.Duration, err error) bool {
-	if jikanTraceEnabled() || err != nil {
+func (c *Client) shouldSkipJikanCacheLog(source string, duration time.Duration, err error) bool {
+	if c.jikanTraceEnabled() || err != nil {
 		return false
 	}
 
@@ -96,9 +97,9 @@ func jikanCacheLogLevel(source string, err error) observability.LogLevel {
 	return observability.LogLevelInfo
 }
 
-func logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {
+func (c *Client) logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {
 	duration := time.Since(startedAt)
-	if shouldSkipJikanCacheLog(source, duration, err) {
+	if c.shouldSkipJikanCacheLog(source, duration, err) {
 		return
 	}
 
@@ -275,26 +276,26 @@ func (c *Client) getWithCache(ctx context.Context, cacheKey string, ttl time.Dur
 	startedAt := time.Now()
 	if c.getCache(ctx, cacheKey, out) {
 		if !isEmptyResult(out) {
-			logJikanCache(cacheKey, "fresh", startedAt, nil)
+			c.logJikanCache(cacheKey, "fresh", startedAt, nil)
 			return nil
 		}
 	}
 
 	if c.getStaleCache(ctx, cacheKey, out) && !isEmptyResult(out) {
-		logJikanCache(cacheKey, "stale", startedAt, nil)
+		c.logJikanCache(cacheKey, "stale", startedAt, nil)
 		c.refreshWithCacheAsync(cacheKey, ttl, url, out)
 		return nil
 	}
 
 	if err := c.refreshWithCache(ctx, cacheKey, ttl, url, out); err != nil {
 		if c.getStaleCache(ctx, cacheKey, out) && !isEmptyResult(out) {
-			logJikanCache(cacheKey, "stale_after_error", startedAt, err)
+			c.logJikanCache(cacheKey, "stale_after_error", startedAt, err)
 			return nil
 		}
-		logJikanCache(cacheKey, "miss", startedAt, err)
+		c.logJikanCache(cacheKey, "miss", startedAt, err)
 		return err
 	}
 
-	logJikanCache(cacheKey, "refresh", startedAt, nil)
+	c.logJikanCache(cacheKey, "refresh", startedAt, nil)
 	return nil
 }
