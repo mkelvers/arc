@@ -166,14 +166,14 @@ export const setupSegmentEditor = (): void => {
   resetBtn?.addEventListener("click", reset);
 
   markStartBtn?.addEventListener("click", () => {
-    startTime = Math.max(0, state.video.currentTime);
+    startTime = Math.max(0, state.elements.video.currentTime);
     if (endTime != null && startTime >= endTime) endTime = null;
     setError(null);
     updateLabels();
     showControls();
   });
   markEndBtn?.addEventListener("click", () => {
-    endTime = Math.max(0, state.video.currentTime);
+    endTime = Math.max(0, state.elements.video.currentTime);
     if (startTime != null && endTime <= startTime) {
       setError("End must be after start.");
       return;
@@ -202,8 +202,8 @@ export const setupSegmentEditor = (): void => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mal_id: state.malID,
-          episode: Number.parseInt(state.currentEpisode, 10),
+          mal_id: state.episode.malID,
+          episode: Number.parseInt(state.episode.current, 10),
           skip_type: skipType,
           start_time: startTime,
           end_time: endTime,
@@ -219,12 +219,12 @@ export const setupSegmentEditor = (): void => {
 
       // Update local segments immediately so UI reflects the saved data.
       const normalizedType = skipType === "ed" ? "ending" : "opening";
-      state.parsedSegments = (state.parsedSegments || []).filter((s) => {
+      state.skip.parsedSegments = state.skip.parsedSegments.filter((s) => {
         const t = (s.type || "").toLowerCase();
         if (normalizedType === "ending") return t !== "ed" && t !== "ending" && t !== "outro";
         return t !== "op" && t !== "opening" && t !== "intro";
       });
-      state.parsedSegments.push({
+      state.skip.parsedSegments.push({
         type: normalizedType,
         start: startTime,
         end: endTime,

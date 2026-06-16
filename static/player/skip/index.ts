@@ -12,17 +12,17 @@ const skipLabel = (type: string): string => (type === "ed" ? "Skip outro" : "Ski
  * Called on timeupdate. Shows button when in active segment.
  */
 export const updateSkipButton = (currentTime: number): void => {
-  const btn = state.container.querySelector("[data-skip]") as HTMLButtonElement | null;
+  const btn = state.elements.container.querySelector("[data-skip]") as HTMLButtonElement | null;
   const displayTime = displayTimeFromAbsolute(currentTime);
 
   // find segment that contains current time (with delay buffer)
-  const segment = state.activeSegments.find((s) => {
+  const segment = state.skip.activeSegments.find((s) => {
     const delay = Math.min(1, Math.max(0.25, (s.end - s.start) * 0.02));
     return displayTime >= s.start + delay && displayTime < s.end;
   });
 
   if (!segment) {
-    state.activeSkipSegment = null;
+    state.skip.activeSegment = null;
     btn?.classList.add("hidden");
     return;
   }
@@ -30,13 +30,13 @@ export const updateSkipButton = (currentTime: number): void => {
   // auto-skip: jump to end if enabled
   const autoSkip = safeLocalStorage.getItem("mal:autoskip-enabled") === "true";
   if (autoSkip && displayTime >= segment.start && displayTime < segment.end) {
-    state.video.currentTime = absoluteTimeFromDisplay(segment.end + 0.01);
+    state.elements.video.currentTime = absoluteTimeFromDisplay(segment.end + 0.01);
     void saveProgress();
     return;
   }
 
   // show skip button
-  state.activeSkipSegment = segment;
+  state.skip.activeSegment = segment;
   if (btn) {
     btn.textContent = skipLabel(segment.type);
     btn.title = skipLabel(segment.type);

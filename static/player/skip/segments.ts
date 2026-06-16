@@ -11,9 +11,9 @@ const MIN_OUTRO_START_RATIO = 0.5; // outro must start at least 50% in
  * Validates intro/outro positioning.
  */
 export const resolveActiveSegments = (): void => {
-  const bounds = state.video.duration;
+  const bounds = state.elements.video.duration;
   if (bounds <= 0) {
-    state.activeSegments = [];
+    state.skip.activeSegments = [];
     return;
   }
 
@@ -24,7 +24,7 @@ export const resolveActiveSegments = (): void => {
     return null;
   };
 
-  state.activeSegments = state.parsedSegments.filter((s) => {
+  state.skip.activeSegments = state.skip.parsedSegments.filter((s) => {
     const t = normalizeType(s.type);
     if (!t) return false;
     const isOverride = (s.source || "").toLowerCase() === "override";
@@ -54,14 +54,14 @@ export const resolveActiveSegments = (): void => {
  * Renders segment markers on the timeline progress bar.
  */
 export const renderSegments = (): void => {
-  const track = state.container.querySelector("[data-segments]") as HTMLElement | null;
+  const track = state.elements.container.querySelector("[data-segments]") as HTMLElement | null;
   if (!track) return;
   track.innerHTML = "";
 
-  const bounds = state.video.duration;
+  const bounds = state.elements.video.duration;
   if (bounds <= 0) return;
 
-  state.activeSegments.forEach((s) => {
+  state.skip.activeSegments.forEach((s) => {
     const bar = document.createElement("div");
     bar.className = "absolute opacity-95";
     bar.style.backgroundColor = "var(--player-segment)";
