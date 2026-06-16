@@ -72,7 +72,7 @@
     </div>
   </ui-dropdown>
 
-  <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class=" flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
+  <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content" hx-select="#browse-content" hx-swap="outerHTML" class=" flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
     <input type="hidden" name="q" value="{{.Query}}">
     {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
     {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
@@ -98,7 +98,7 @@
       </button>
     </div>
     <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button shadow-(--shadow-card) left-0 top-full mt-2 scrollbar-hidden">
-      <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col">
+      <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content" hx-select="#browse-content" hx-swap="outerHTML" class="flex flex-col">
         <input type="hidden" name="q" value="{{.Query}}">
         {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
         {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
