@@ -144,10 +144,11 @@ const initCheckboxVisuals = (): void => {
       box.classList.toggle("bg-foreground-muted/12", input.checked);
       box.classList.toggle("border-white/45", !input.checked);
       box.classList.toggle("bg-transparent", !input.checked);
-      const value = input.form?.querySelector<HTMLInputElement>("[data-sfw-value]");
-      if (value) {
-        value.value = String(input.checked);
-      }
+      document
+        .querySelectorAll<HTMLInputElement>('input[type="hidden"][name="sfw"]')
+        .forEach((value) => {
+          value.value = String(input.checked);
+        });
     }
   };
 
