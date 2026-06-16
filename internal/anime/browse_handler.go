@@ -303,7 +303,16 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		return
 	}
 
-	genresList, _ := h.svc.GetGenres(c.Request.Context())
+	genresList, err := h.svc.GetGenres(c.Request.Context())
+	if err != nil {
+		observability.WarnContext(c.Request.Context(),
+			"genres_fetch_failed",
+			"anime",
+			"",
+			map[string]any{"q": query.q, "type": query.animeType, "status": query.status},
+			err,
+		)
+	}
 	browseData := browseTemplateData(query, studioName, genresList, animes, user, watchlistMap, res.HasNextPage)
 
 	if c.GetHeader("HX-Request") == "true" {
