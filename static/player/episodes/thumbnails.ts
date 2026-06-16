@@ -5,10 +5,10 @@ import { state } from "../state";
  * Injects images into episode cards, replaces placeholder.
  */
 export const setupThumbnails = (): void => {
-  const episodeList = state.episodeList;
+  const episodeList = state.elements.episodeList;
   if (!episodeList) return;
 
-  fetch(`/api/watch/thumbnails/${state.malID}`)
+  fetch(`/api/watch/thumbnails/${state.episode.malID}`)
     .then((res) => res.json())
     .then((data: { mal_id: number; url: string; title?: string }[]) => {
       data.forEach((item) => {

@@ -12,7 +12,7 @@ const snapToEnd = (time: number): number => {
 // builds JSON payload for progress API
 const buildPayload = (episode: number, seconds: number): string =>
   JSON.stringify({
-    mal_id: state.malID,
+    mal_id: state.episode.malID,
     episode,
     time_seconds: seconds,
   });
@@ -26,7 +26,7 @@ const sendBeacon = (payload: string): boolean => {
 
 let saveProgressInFlight: Promise<void> | null = null;
 
-const currentProgressTime = (): number => displayTimeFromAbsolute(state.video.currentTime);
+const currentProgressTime = (): number => displayTimeFromAbsolute(state.elements.video.currentTime);
 
 /**
  * Saves current progress to backend.
@@ -42,17 +42,18 @@ export const saveProgress = async (
   }
 
   const request = (async (): Promise<void> => {
-    if (state.endedProgressSaved && !force) return;
-    if (state.transitionEpisode !== null || !state.malID || progressSeconds < 1) return;
-    const episode = Number.parseInt(state.currentEpisode, 10);
+    if (state.episode.endedProgressSaved && !force) return;
+    if (state.episode.transitionEpisode !== null || !state.episode.malID || progressSeconds < 1)
+      return;
+    const episode = Number.parseInt(state.episode.current, 10);
     if (!episode) return;
 
     const savedTime = snapToEnd(progressSeconds);
     // skip if recently saved, unless forced
     if (
       !force &&
-      state.lastSavedProgress.episode === state.currentEpisode &&
-      Math.abs(state.lastSavedProgress.seconds - savedTime) < 5
+      state.episode.lastSavedProgress.episode === state.episode.current &&
+      Math.abs(state.episode.lastSavedProgress.seconds - savedTime) < 5
     ) {
       return;
     }
@@ -65,8 +66,8 @@ export const saveProgress = async (
         body: payload,
       });
       if (!res.ok) return;
-      state.lastSavedProgress = {
-        episode: state.currentEpisode,
+      state.episode.lastSavedProgress = {
+        episode: state.episode.current,
         seconds: savedTime,
       };
     } catch (e) {
@@ -86,9 +87,9 @@ export const saveProgress = async (
 
 // schedules periodic save every 30s during playback
 const scheduleProgressSave = (): void => {
-  if (state.progressSaveTimer !== undefined) return;
-  state.progressSaveTimer = window.setTimeout(() => {
-    state.progressSaveTimer = undefined;
+  if (state.timers.progressSaveTimer !== undefined) return;
+  state.timers.progressSaveTimer = window.setTimeout(() => {
+    state.timers.progressSaveTimer = undefined;
     saveProgress();
   }, 30000);
 };
@@ -98,12 +99,12 @@ const scheduleProgressSave = (): void => {
  * Uses beacon for reliability on page unload.
  */
 export const markEpisodeTransition = (episodeNumber: number): void => {
-  if (!state.malID || !episodeNumber) return;
-  if (state.progressSaveTimer !== undefined) {
-    window.clearTimeout(state.progressSaveTimer);
-    state.progressSaveTimer = undefined;
+  if (!state.episode.malID || !episodeNumber) return;
+  if (state.timers.progressSaveTimer !== undefined) {
+    window.clearTimeout(state.timers.progressSaveTimer);
+    state.timers.progressSaveTimer = undefined;
   }
-  state.transitionEpisode = episodeNumber;
+  state.episode.transitionEpisode = episodeNumber;
   const payload = buildPayload(episodeNumber, 0);
   // beacon falls back to fetch with keepalive
   if (!sendBeacon(payload)) {
@@ -121,44 +122,49 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
  */
 export const setupProgress = (): void => {
   // periodic save during playback
-  state.video.addEventListener("timeupdate", () => {
+  state.elements.video.addEventListener("timeupdate", () => {
     scheduleProgressSave();
   });
 
   // immediate save on pause
-  state.video.addEventListener("pause", () => {
-    window.clearTimeout(state.progressSaveTimer);
-    state.progressSaveTimer = undefined;
-    if (state.endedProgressSaved) return;
+  state.elements.video.addEventListener("pause", () => {
+    window.clearTimeout(state.timers.progressSaveTimer);
+    state.timers.progressSaveTimer = undefined;
+    if (state.episode.endedProgressSaved) return;
 
     // If we're at the very end, force a save to ensure we don't skip the last frame
     const isAtEnd =
-      state.video.duration > 0 && Math.abs(state.video.currentTime - state.video.duration) < 1.5;
+      state.elements.video.duration > 0 &&
+      Math.abs(state.elements.video.currentTime - state.elements.video.duration) < 1.5;
 
     saveProgress(isAtEnd);
   });
 
   // save after scrubbing
   window.addEventListener("mouseup", () => {
-    state.isScrubbing = false;
-    if (state.endedProgressSaved) return;
+    state.ui.isScrubbing = false;
+    if (state.episode.endedProgressSaved) return;
     saveProgress();
   });
 
   // save on page close
   window.addEventListener("beforeunload", () => {
-    if (state.endedProgressSaved || state.transitionEpisode !== null || !state.malID) {
+    if (
+      state.episode.endedProgressSaved ||
+      state.episode.transitionEpisode !== null ||
+      !state.episode.malID
+    ) {
       return;
     }
-    const episode = Number.parseInt(state.currentEpisode, 10);
+    const episode = Number.parseInt(state.episode.current, 10);
     if (!episode) return;
-    const time = displayTimeFromAbsolute(state.video.currentTime);
+    const time = displayTimeFromAbsolute(state.elements.video.currentTime);
     sendBeacon(buildPayload(episode, snapToEnd(time)));
   });
 };
 
 export const saveEndedProgress = async (): Promise<void> => {
   const duration = getBounds().duration;
-  state.endedProgressSaved = true;
+  state.episode.endedProgressSaved = true;
   await saveProgress(true, duration > 0 ? duration : currentProgressTime());
 };

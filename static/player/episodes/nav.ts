@@ -15,7 +15,7 @@ import { loadVideoSource } from "../video";
  * Fetches episode data from API, updates player state and URL.
  */
 export const goToNextEpisode = async (): Promise<void> => {
-  const currentEp = Number.parseInt(state.currentEpisode, 10);
+  const currentEp = Number.parseInt(state.episode.current, 10);
   if (!currentEp) return;
 
   const navigateToEpisode = (episode: number): void => {
@@ -30,8 +30,8 @@ export const goToNextEpisode = async (): Promise<void> => {
   };
 
   // final episode: trigger completion flow or just stop if airing
-  if (state.totalEpisodes > 0 && currentEp >= state.totalEpisodes) {
-    if (!state.isAiring) {
+  if (state.episode.total > 0 && currentEp >= state.episode.total) {
+    if (!state.episode.isAiring) {
       void completeAnime(currentEp);
     }
     showEndState();
@@ -49,7 +49,7 @@ export const goToNextEpisode = async (): Promise<void> => {
 
   try {
     const res = await fetch(
-      `/api/watch/episode/${state.malID}/${nextEp}?mode=${encodeURIComponent(state.currentMode)}`,
+      `/api/watch/episode/${state.episode.malID}/${nextEp}?mode=${encodeURIComponent(state.playback.currentMode)}`,
     );
     if (!res.ok) {
       // fallback: full page navigation
@@ -60,20 +60,20 @@ export const goToNextEpisode = async (): Promise<void> => {
     const data = await res.json();
 
     // update state with new episode data
-    state.modeSources = data.mode_sources ?? {};
+    state.playback.modeSources = data.mode_sources ?? {};
 
     const backendMode = typeof data.initial_mode === "string" ? data.initial_mode : "";
-    const fallback = state.modeSources[backendMode]?.token
+    const fallback = state.playback.modeSources[backendMode]?.token
       ? backendMode
-      : state.availableModes.find((m) => state.modeSources[m]?.token);
+      : state.playback.availableModes.find((m) => state.playback.modeSources[m]?.token);
     if (!fallback) {
       fallbackToEpisodeNavigation(nextEp);
       return;
     }
 
-    state.currentEpisode = String(nextEp);
-    state.currentMode = fallback;
-    state.endedProgressSaved = false;
+    state.episode.current = String(nextEp);
+    state.playback.currentMode = fallback;
+    state.episode.endedProgressSaved = false;
 
     hideEndState();
 
@@ -83,34 +83,34 @@ export const goToNextEpisode = async (): Promise<void> => {
       });
     }
     // The progress reset is sent asynchronously, so do not trust the fetch to observe it first.
-    state.startTimeSeconds = 0;
-    state.container.dataset.currentEpisode = state.currentEpisode;
-    state.container.dataset.startTimeSeconds = String(state.startTimeSeconds);
+    state.playback.startTimeSeconds = 0;
+    state.elements.container.dataset.currentEpisode = state.episode.current;
+    state.elements.container.dataset.startTimeSeconds = String(state.playback.startTimeSeconds);
 
     // load new video (keep preferences)
     const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
-    const source = state.modeSources[fallback];
-    const nextSourceURL = `${state.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(source.token)}${source.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    const source = state.playback.modeSources[fallback];
+    const nextSourceURL = `${state.playback.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(source.token)}${source.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
     loadVideoSource(nextSourceURL, source.type);
-    if (!state.video.paused) {
-      state.video.play().catch(() => undefined);
+    if (!state.elements.video.paused) {
+      state.elements.video.play().catch(() => undefined);
     }
 
-    state.pendingSeekTime = null;
-    state.completionSent = false;
-    state.completionAttempts = 0;
-    state.activeSubtitles = [];
+    state.playback.pendingSeekTime = null;
+    state.episode.completionSent = false;
+    state.episode.completionAttempts = 0;
+    state.subtitles.activeCues = [];
 
     // update UI
     updateSubtitleOptions();
     updateQualityOptions();
     updateModeButtons();
-    updateOverlay(state.currentEpisode, data.episode_title ?? "");
+    updateOverlay(state.episode.current, data.episode_title ?? "");
     void hydrateAlternateMode();
 
     // update skip segments
     if (data.segments?.length) {
-      state.parsedSegments = data.segments
+      state.skip.parsedSegments = data.segments
         .map((s: SkipSegment) => ({ ...s, start: Number(s.start) || 0, end: Number(s.end) || 0 }))
         .filter((s: SkipSegment) => s.end > s.start);
       resolveActiveSegments();
@@ -118,18 +118,18 @@ export const goToNextEpisode = async (): Promise<void> => {
     }
 
     // highlight new episode in list/grid
-    state.episodeList
+    state.elements.episodeList
       ?.querySelectorAll("[data-episode-id]")
       .forEach((el) => el.classList.remove("bg-accent/20"));
-    const newListEl = state.episodeList?.querySelector(`[data-episode-id="${nextEp}"]`);
+    const newListEl = state.elements.episodeList?.querySelector(`[data-episode-id="${nextEp}"]`);
     newListEl?.classList.add("bg-accent/20");
 
-    if (state.episodeGrid) {
-      state.episodeGrid.querySelectorAll("[data-episode-id]").forEach((el) => {
+    if (state.elements.episodeGrid) {
+      state.elements.episodeGrid.querySelectorAll("[data-episode-id]").forEach((el) => {
         el.classList.remove("bg-accent/20", "ring-2", "ring-accent", "text-accent");
       });
       switchEpisodeRange(Math.floor((nextEp - 1) / 100));
-      const newGridEl = state.episodeGrid.querySelector(`[data-episode-id="${nextEp}"]`);
+      const newGridEl = state.elements.episodeGrid.querySelector(`[data-episode-id="${nextEp}"]`);
       newGridEl?.classList.add("bg-accent/20", "ring-2", "ring-accent", "text-accent");
     }
 

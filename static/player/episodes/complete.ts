@@ -1,21 +1,21 @@
 import { state } from "../state";
 
 export const completeAnime = async (episodeNumber: number): Promise<void> => {
-  if (state.completionSent || !state.malID || !episodeNumber) return;
-  state.completionSent = true;
+  if (state.episode.completionSent || !state.episode.malID || !episodeNumber) return;
+  state.episode.completionSent = true;
 
   try {
     const res = await fetch("/api/watch-complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       keepalive: true,
-      body: JSON.stringify({ mal_id: state.malID, episode: episodeNumber }),
+      body: JSON.stringify({ mal_id: state.episode.malID, episode: episodeNumber }),
     });
 
     if (!res.ok) {
-      state.completionSent = false;
-      if (state.completionAttempts < 2) {
-        state.completionAttempts++;
+      state.episode.completionSent = false;
+      if (state.episode.completionAttempts < 2) {
+        state.episode.completionAttempts++;
         setTimeout(() => completeAnime(episodeNumber), 1000);
       }
       return;
@@ -30,9 +30,9 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       trigger.appendChild(caret);
     }
   } catch {
-    state.completionSent = false;
-    if (state.completionAttempts < 2) {
-      state.completionAttempts++;
+    state.episode.completionSent = false;
+    if (state.episode.completionAttempts < 2) {
+      state.episode.completionAttempts++;
       setTimeout(() => completeAnime(episodeNumber), 1000);
     }
   }

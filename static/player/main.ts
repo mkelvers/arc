@@ -35,18 +35,18 @@ const isClosableDropdown = (el: Element | null): el is ClosableDropdown => {
 };
 
 const hidePreviewPopover = (): void => {
-  if (!state.previewPopover) return;
-  state.previewPopover.classList.add("hidden");
-  state.previewPopover.classList.add("opacity-0");
-  state.previewPopover.classList.remove("opacity-100");
-  state.previewPopover.style.left = "";
+  if (!state.elements.previewPopover) return;
+  state.elements.previewPopover.classList.add("hidden");
+  state.elements.previewPopover.classList.add("opacity-0");
+  state.elements.previewPopover.classList.remove("opacity-100");
+  state.elements.previewPopover.style.left = "";
 };
 
 const showPreviewPopover = (): void => {
-  if (!state.previewPopover) return;
-  state.previewPopover.classList.remove("hidden");
-  state.previewPopover.classList.remove("opacity-0");
-  state.previewPopover.classList.add("opacity-100");
+  if (!state.elements.previewPopover) return;
+  state.elements.previewPopover.classList.remove("hidden");
+  state.elements.previewPopover.classList.remove("opacity-0");
+  state.elements.previewPopover.classList.add("opacity-100");
 };
 
 const teardownPlayer = (): void => {
@@ -58,8 +58,10 @@ const teardownPlayer = (): void => {
 
 // updates time preview on progress bar hover
 const updatePreviewUI = (ratio: number): void => {
-  const progressWrap = state.container.querySelector("[data-progress-wrap]") as HTMLElement | null;
-  if (!progressWrap || !state.previewPopover || !state.previewTime) {
+  const progressWrap = state.elements.container.querySelector(
+    "[data-progress-wrap]",
+  ) as HTMLElement | null;
+  if (!progressWrap || !state.elements.previewPopover || !state.elements.previewTime) {
     hidePreviewPopover();
     return;
   }
@@ -70,7 +72,9 @@ const updatePreviewUI = (ratio: number): void => {
   }
 
   // show time for hovered position
-  state.previewTime.textContent = formatTime(Math.max(0, Math.min(b.duration, ratio * b.duration)));
+  state.elements.previewTime.textContent = formatTime(
+    Math.max(0, Math.min(b.duration, ratio * b.duration)),
+  );
 
   const barWidth = progressWrap.clientWidth;
   if (barWidth <= 0) {
@@ -80,8 +84,8 @@ const updatePreviewUI = (ratio: number): void => {
 
   showPreviewPopover();
   // clamp to stay within bar bounds
-  const popoverWidth = state.previewPopover.offsetWidth || 72;
-  state.previewPopover.style.left = `${Math.max(popoverWidth / 2, Math.min(barWidth - popoverWidth / 2, ratio * barWidth))}px`;
+  const popoverWidth = state.elements.previewPopover.offsetWidth || 72;
+  state.elements.previewPopover.style.left = `${Math.max(popoverWidth / 2, Math.min(barWidth - popoverWidth / 2, ratio * barWidth))}px`;
 };
 
 const initPlayer = (): void => {
@@ -105,11 +109,11 @@ const initPlayer = (): void => {
   const scrubToPointer = (clientX: number, shouldShowControls: boolean): void => {
     if (!progressWrap) return;
     const rect = progressWrap.getBoundingClientRect();
-    state.video.currentTime = absoluteTimeFromRatio(
+    state.elements.video.currentTime = absoluteTimeFromRatio(
       Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
     );
-    updateTimeline(state.video.currentTime);
-    updateSkipButton(state.video.currentTime);
+    updateTimeline(state.elements.video.currentTime);
+    updateSkipButton(state.elements.video.currentTime);
     if (shouldShowControls) {
       showControls();
     }
@@ -117,10 +121,10 @@ const initPlayer = (): void => {
 
   // build video src from mode, token, and saved quality preference
   const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
-  const streamToken = state.modeSources[state.currentMode]?.token;
+  const streamToken = state.playback.modeSources[state.playback.currentMode]?.token;
   if (streamToken) {
-    const source = state.modeSources[state.currentMode];
-    const url = `${state.streamURL}?mode=${encodeURIComponent(state.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    const source = state.playback.modeSources[state.playback.currentMode];
+    const url = `${state.playback.streamURL}?mode=${encodeURIComponent(state.playback.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
     loadVideoSource(url, source?.type);
   }
 
@@ -139,9 +143,9 @@ const initPlayer = (): void => {
   setupAutoplayButton();
   updateAutoSkipButton();
   showControls();
-  if (state.modeSwitchedFrom === "dub" && state.currentMode === "sub") {
+  if (state.playback.modeSwitchedFrom === "dub" && state.playback.currentMode === "sub") {
     window.showToast?.({
-      message: `Episode ${state.currentEpisode} is only available in sub, switched from dub.`,
+      message: `Episode ${state.episode.current} is only available in sub, switched from dub.`,
     });
   }
 
@@ -155,7 +159,7 @@ const initPlayer = (): void => {
     renderSegments();
 
     // Resume from saved position
-    const startTime = state.startTimeSeconds;
+    const startTime = state.playback.startTimeSeconds;
     const bounds = getBounds();
     const resumeTime = bounds.duration > 0 ? Math.min(startTime, bounds.duration) : 0;
     const isAtEnd = startTime > 0 && bounds.duration > 0 && startTime >= bounds.duration - 2;
@@ -176,31 +180,31 @@ const initPlayer = (): void => {
     if (resumeAfterModeSwitch !== null) {
       const clamped = bounds.duration > 0 ? Math.min(resumeAfterModeSwitch, bounds.duration) : 0;
       if (clamped > 0) {
-        state.video.currentTime = clamped;
+        state.elements.video.currentTime = clamped;
       }
     }
 
-    if (startTime > 0 && state.video.currentTime <= 2) {
+    if (startTime > 0 && state.elements.video.currentTime <= 2) {
       if (resumeTime > 0) {
-        state.video.currentTime = absoluteTimeFromDisplay(resumeTime);
+        state.elements.video.currentTime = absoluteTimeFromDisplay(resumeTime);
       }
     }
     // resume after mode switch
-    if (state.pendingSeekTime !== null) {
-      state.video.currentTime = absoluteTimeFromDisplay(state.pendingSeekTime);
-      state.pendingSeekTime = null;
+    if (state.playback.pendingSeekTime !== null) {
+      state.elements.video.currentTime = absoluteTimeFromDisplay(state.playback.pendingSeekTime);
+      state.playback.pendingSeekTime = null;
     }
-    if (state.transitionEpisode === Number.parseInt(state.currentEpisode, 10)) {
-      state.transitionEpisode = null;
+    if (state.episode.transitionEpisode === Number.parseInt(state.episode.current, 10)) {
+      state.episode.transitionEpisode = null;
     }
     // autoplay if not already playing (inline script may have already called play())
     // but don't autoplay if we've reached the end
-    if (!isAtEnd && (state.shouldAutoPlay || state.video.paused)) {
-      state.video.play().catch(() => undefined);
+    if (!isAtEnd && (state.playback.shouldAutoPlay || state.elements.video.paused)) {
+      state.elements.video.play().catch(() => undefined);
     }
 
-    updateTimeline(state.video.currentTime);
-    updateSkipButton(state.video.currentTime);
+    updateTimeline(state.elements.video.currentTime);
+    updateSkipButton(state.elements.video.currentTime);
 
     // Apply end-state visuals if we resumed at the end
     if (isAtEnd) {
@@ -208,12 +212,12 @@ const initPlayer = (): void => {
     }
   };
 
-  state.video.addEventListener("loadedmetadata", onLoadedMetadata, { signal });
-  if (state.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+  state.elements.video.addEventListener("loadedmetadata", onLoadedMetadata, { signal });
+  if (state.elements.video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
     onLoadedMetadata();
   }
 
-  state.video.addEventListener(
+  state.elements.video.addEventListener(
     "waiting",
     () => {
       if (loading) {
@@ -222,7 +226,7 @@ const initPlayer = (): void => {
     },
     { signal },
   );
-  state.video.addEventListener(
+  state.elements.video.addEventListener(
     "playing",
     () => {
       if (loading) {
@@ -232,31 +236,31 @@ const initPlayer = (): void => {
     { signal },
   );
   // update progress bar during buffering
-  state.video.addEventListener(
+  state.elements.video.addEventListener(
     "progress",
     () => {
-      updateTimeline(state.video.currentTime);
+      updateTimeline(state.elements.video.currentTime);
     },
     { signal },
   );
 
   // main loop: update progress, subtitles, skip buttons
-  state.video.addEventListener(
+  state.elements.video.addEventListener(
     "timeupdate",
     () => {
-      updateTimeline(state.video.currentTime);
-      updateSubtitleRender(displayTimeFromAbsolute(state.video.currentTime));
-      updateSkipButton(state.video.currentTime);
+      updateTimeline(state.elements.video.currentTime);
+      updateSubtitleRender(displayTimeFromAbsolute(state.elements.video.currentTime));
+      updateSkipButton(state.elements.video.currentTime);
 
       // Restore visibility if we've moved away from the end
-      if (state.video.currentTime < state.video.duration - 1) {
+      if (state.elements.video.currentTime < state.elements.video.duration - 1) {
         hideEndState();
       }
     },
     { signal },
   );
 
-  state.video.addEventListener(
+  state.elements.video.addEventListener(
     "ended",
     async () => {
       await saveEndedProgress();
@@ -271,7 +275,7 @@ const initPlayer = (): void => {
     (e) => {
       // ignore right/middle click
       if ("button" in e && e.button !== 0) return;
-      state.isScrubbing = true;
+      state.ui.isScrubbing = true;
       try {
         (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
       } catch (e) {
@@ -298,7 +302,7 @@ const initPlayer = (): void => {
     () => {
       // ensure we finish the seek even if no window mousemove fired
       if (!progressWrap) return;
-      state.isScrubbing = false;
+      state.ui.isScrubbing = false;
     },
     { signal },
   );
@@ -307,7 +311,7 @@ const initPlayer = (): void => {
   window.addEventListener(
     "pointermove",
     (e) => {
-      if (!state.isScrubbing || !progressWrap) return;
+      if (!state.ui.isScrubbing || !progressWrap) return;
       scrubToPointer(e.clientX, false);
     },
     { signal },
@@ -325,15 +329,15 @@ const initPlayer = (): void => {
       if (url.origin !== location.origin) return;
       const parts = url.pathname.split("/").filter(Boolean);
       if (parts[0] !== "anime" || parts[2] !== "watch") return;
-      if (Number.parseInt(parts[1], 10) !== state.malID) return;
+      if (Number.parseInt(parts[1], 10) !== state.episode.malID) return;
       const nextEpisode = Number.parseInt(url.searchParams.get("ep") ?? "1", 10);
-      const currentEpisode = Number.parseInt(state.currentEpisode, 10);
+      const currentEpisode = Number.parseInt(state.episode.current, 10);
       if (nextEpisode === currentEpisode + 1) markEpisodeTransition(nextEpisode);
     },
     { signal },
   );
 
-  state.video.addEventListener("click", showControls, { signal });
+  state.elements.video.addEventListener("click", showControls, { signal });
 
   const searchInput = document.querySelector("[data-episode-search]") as HTMLInputElement | null;
   const dropdown = document.querySelector("[data-episode-dropdown]") as HTMLElement | null;
@@ -349,17 +353,17 @@ const initPlayer = (): void => {
           const val = searchInput.value.replace(/\D/g, "");
           if (!val) {
             // clear: jump to current episode range
-            const cur = Number.parseInt(state.currentEpisode, 10);
+            const cur = Number.parseInt(state.episode.current, 10);
             switchEpisodeRange(Math.floor((cur - 1) / 100));
             updateEpisodeHighlight(cur);
             return;
           }
           const ep = Number.parseInt(val, 10);
           if (!ep || ep <= 0) return;
-          const maxEp = state.totalEpisodes > 0 ? state.totalEpisodes : 500;
+          const maxEp = state.episode.total > 0 ? state.episode.total : 500;
           const clamped = Math.min(ep, maxEp);
           searchInput.value = String(clamped);
-          if (state.episodeGrid) {
+          if (state.elements.episodeGrid) {
             switchEpisodeRange(Math.floor((clamped - 1) / 100));
             updateEpisodeHighlight(clamped);
           }
@@ -386,8 +390,8 @@ const initPlayer = (): void => {
   }
 
   // initial range for large episode lists
-  if (state.episodeGrid && state.totalEpisodes > 100) {
-    switchEpisodeRange(Math.floor((Number.parseInt(state.currentEpisode, 10) - 1) / 100));
+  if (state.elements.episodeGrid && state.episode.total > 100) {
+    switchEpisodeRange(Math.floor((Number.parseInt(state.episode.current, 10) - 1) / 100));
   }
 
   setupThumbnails();
