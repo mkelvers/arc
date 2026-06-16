@@ -93,7 +93,9 @@ export const goToNextEpisode = async (): Promise<void> => {
     const nextSourceURL = `${state.playback.streamURL}?mode=${encodeURIComponent(fallback)}&token=${encodeURIComponent(source.token)}${source.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
     loadVideoSource(nextSourceURL, source.type);
     if (!state.elements.video.paused) {
-      state.elements.video.play().catch(() => undefined);
+      state.elements.video.play().catch((error) => {
+        console.debug("failed to play video:", error);
+      });
     }
 
     state.playback.pendingSeekTime = null;
@@ -137,7 +139,8 @@ export const goToNextEpisode = async (): Promise<void> => {
     const url = new URL(window.location.href);
     url.searchParams.set("ep", String(nextEp));
     history.pushState(null, "", url.toString());
-  } catch {
+  } catch (error) {
+    console.error("failed to update url:", error);
     fallbackToEpisodeNavigation(nextEp);
   }
 };

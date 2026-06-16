@@ -29,8 +29,9 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       caret.textContent = "▾";
       trigger.appendChild(caret);
     }
-  } catch {
+  } catch (error) {
     state.episode.completionSent = false;
+    console.error("failed to complete anime:", error);
     if (state.episode.completionAttempts < 2) {
       state.episode.completionAttempts++;
       setTimeout(() => completeAnime(episodeNumber), 1000);

@@ -43,7 +43,8 @@ export const setupThumbnails = (): void => {
         }
       });
     })
-    .catch(() => {
+    .catch((error) => {
       window.showToast?.({ message: "Failed to load episode thumbnails." });
+      console.error("failed to load episode thumbnails:", error);
     });
 };
