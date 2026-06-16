@@ -123,14 +123,15 @@
           </div>
         </ui-dropdown>
 
-      <div data-segment-editor class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 px-4" role="dialog" aria-modal="true" aria-labelledby="segment-editor-title" aria-describedby="segment-editor-description">
+      <div data-segment-editor class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 px-4" role="dialog" aria-modal="true" aria-labelledby="segment-editor-title">
         <div class="w-full max-w-130 max-h-[min(420px,60vh)] overflow-auto bg-background-button shadow-(--shadow-card) ring-1 ring-black/10">
-          <div class="flex items-center justify-between px-4 py-3">
-            <div class="flex flex-col">
-              <span id="segment-editor-title" class="text-sm font-normal text-foreground">Segment capture</span>
-              <span id="segment-editor-description" class="text-xs text-foreground-muted">Mark start (position 1), then end (position 2), then save.</span>
-            </div>
-            <button type="button" data-segment-editor-close class="text-sm font-normal text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Close</button>
+          <div class="flex items-start justify-between px-4 py-3">
+            <span id="segment-editor-title" class="text-base font-medium tracking-[0.02em] text-foreground">Segment capture</span>
+            <button type="button" data-segment-editor-close class="inline-flex h-8 w-8 items-center justify-center text-foreground/60 transition-opacity hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Close segment capture modal">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
           </div>
 
           <div class="px-4 py-4 flex flex-col gap-4">
@@ -163,19 +164,19 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-              <div class="flex items-center justify-between px-3 py-2 bg-background-button">
+              <div class="flex items-center justify-between bg-black/5 px-3 py-2">
                 <span class="text-xs text-foreground-muted">Start</span>
                 <span data-segment-start class="text-sm tabular-nums text-foreground">—</span>
               </div>
-              <div class="flex items-center justify-between px-3 py-2 bg-background-button">
+              <div class="flex items-center justify-between bg-black/5 px-3 py-2">
                 <span class="text-xs text-foreground-muted">End</span>
                 <span data-segment-end class="text-sm tabular-nums text-foreground">—</span>
               </div>
             </div>
 
             <div class="flex items-center justify-between">
-              <button type="button" data-segment-reset class="text-sm font-normal text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Reset</button>
-              <button type="button" data-segment-save class=" px-4 py-2 bg-accent text-sm font-normal text-on-accent transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Save</button>
+              <button type="button" data-segment-reset class="cursor-pointer px-4 py-2 bg-black/5 text-sm font-normal text-foreground-muted transition-colors hover:bg-black/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Reset</button>
+              <button type="button" data-segment-save class="px-4 py-2 bg-accent text-sm font-normal text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Save</button>
             </div>
 
             <div data-segment-error class="hidden text-sm text-red-400"></div>
