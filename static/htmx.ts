@@ -2,7 +2,18 @@ export {};
 
 import { onReady } from "./utils";
 
-type ToastFn = (opts: { message: string; duration?: number }) => void;
+type ToastFn = (opts: {
+  message: string;
+  duration?: number;
+  variant?: "default" | "destructive";
+}) => void;
+
+type HtmxParameters = Record<string, string | string[]>;
+
+type HtmxConfigRequestDetail = {
+  elt?: Element;
+  parameters?: HtmxParameters;
+};
 
 const getToast = (): ToastFn | null => {
   const anyWindow = window as unknown as { showToast?: ToastFn };
@@ -35,7 +46,22 @@ const getTriggerFromHtmxEvent = (event: Event): Element | null => {
   return detail.detail?.elt ?? null;
 };
 
+const syncSFWRequestParameter = (event: Event): void => {
+  const detail = (event as CustomEvent<HtmxConfigRequestDetail>).detail;
+  if (!detail.parameters) return;
+
+  const form = detail.elt instanceof HTMLFormElement ? detail.elt : detail.elt?.closest("form");
+  if (!(form instanceof HTMLFormElement)) return;
+
+  const checkbox = form.querySelector<HTMLInputElement>("[data-sfw-checkbox]");
+  if (!checkbox) return;
+
+  detail.parameters.sfw = String(checkbox.checked);
+};
+
 onReady(() => {
+  document.addEventListener("htmx:configRequest", syncSFWRequestParameter);
+
   document.addEventListener("htmx:beforeRequest", (event) => {
     setBusy(getTriggerFromHtmxEvent(event), true);
   });
