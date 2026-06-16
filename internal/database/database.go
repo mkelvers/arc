@@ -60,7 +60,10 @@ func RunMigrations(sqlDB *sql.DB) error {
 }
 func RunMigrationsAndFixes(sqlDB *sql.DB) error {
 	if err := RunMigrations(sqlDB); err != nil {
-		return err
+		return fmt.Errorf("run migrations: %w", err)
 	}
-	return RunDataFixes(sqlDB)
+	if err := RunDataFixes(sqlDB); err != nil {
+		return fmt.Errorf("run data fixes: %w", err)
+	}
+	return nil
 }

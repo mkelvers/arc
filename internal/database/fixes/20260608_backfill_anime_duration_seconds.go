@@ -25,7 +25,7 @@ func init() {
 func applyAnimeDurationSecondsBackfill(ctx context.Context, sqlDB *sql.DB) error {
 	toUpdate, err := listAnimeMissingDurationSeconds(ctx, sqlDB)
 	if err != nil {
-		return err
+		return fmt.Errorf("list anime missing duration_seconds: %w", err)
 	}
 
 	client := jikan.NewClient(config.Config{}, db.New(sqlDB), observability.NewMetrics())

@@ -13,7 +13,7 @@ func init() {
 		Apply: func(ctx context.Context, sqlDB *sql.DB) error {
 			rows, err := sqlDB.QueryContext(ctx, `SELECT id, username FROM user WHERE avatar_url = ''`)
 			if err != nil {
-				return err
+				return fmt.Errorf("query users missing avatar_url: %w", err)
 			}
 			defer func() { _ = rows.Close() }()
 
@@ -25,12 +25,12 @@ func init() {
 			for rows.Next() {
 				var r userRow
 				if err := rows.Scan(&r.id, &r.username); err != nil {
-					return err
+					return fmt.Errorf("scan user missing avatar_url: %w", err)
 				}
 				toUpdate = append(toUpdate, r)
 			}
 			if err := rows.Err(); err != nil {
-				return err
+				return fmt.Errorf("iterate users missing avatar_url: %w", err)
 			}
 
 			for _, u := range toUpdate {

@@ -21,12 +21,12 @@ func RunDataFixes(sqlDB *sql.DB) error {
 	}
 
 	if err := ensureDataFixTable(ctx, sqlDB); err != nil {
-		return err
+		return fmt.Errorf("ensure data fix table: %w", err)
 	}
 
 	applied, err := loadAppliedFixes(ctx, sqlDB)
 	if err != nil {
-		return err
+		return fmt.Errorf("load applied data fixes: %w", err)
 	}
 
 	for _, fix := range fixes {
@@ -46,7 +46,7 @@ func RunDataFixes(sqlDB *sql.DB) error {
 			return fmt.Errorf("data fix %s failed: %w", fix.ID, err)
 		}
 		if err := markFixApplied(ctx, sqlDB, fix.ID); err != nil {
-			return err
+			return fmt.Errorf("mark data fix %s applied: %w", fix.ID, err)
 		}
 	}
 
