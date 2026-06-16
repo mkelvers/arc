@@ -3,12 +3,13 @@ package handler
 
 import (
 	"fmt"
-	"mal/internal/domain"
-	"mal/internal/server"
-	netutil "mal/pkg/net"
 	"net/http"
 	"strconv"
 	"time"
+
+	"mal/internal/domain"
+	"mal/internal/server"
+	netutil "mal/pkg/net"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,7 +54,10 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 
 	data, err := h.svc.BuildWatchData(c.Request.Context(), id, []string{}, ep, mode, userID)
 	if err != nil {
-		anime, _ := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
+		anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
+		if fetchErr != nil {
+			fmt.Printf("error fetching anime for error page: %v\n", fetchErr)
+		}
 		c.HTML(http.StatusOK, "watch.gohtml", domain.WatchPageData{
 			Error:       err.Error(),
 			Anime:       anime,
@@ -241,7 +245,10 @@ func (h *PlaybackHandler) HandleEpisodeThumbnails(c *gin.Context) {
 		return
 	}
 
-	anime, _ := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
+	anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
+	if fetchErr != nil {
+		fmt.Printf("error fetching anime for thumbnail fill: %v\n", fetchErr)
+	}
 	if anime.Episodes > 0 && anime.Episodes > len(allEpisodes) {
 		epMap := make(map[int]domain.EpisodeData)
 		for _, ep := range allEpisodes {
