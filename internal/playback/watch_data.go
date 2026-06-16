@@ -198,7 +198,13 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 }
 
 func (s *playbackService) loadSeasons(ctx context.Context, animeID int) []domain.SeasonEntry {
-	relations, _ := s.jikan.GetFullRelations(ctx, animeID, jikan.WatchOrderModeMain)
+	relations, err := s.jikan.GetFullRelations(ctx, animeID, jikan.WatchOrderModeMain)
+	if err != nil {
+		observability.Warn("fetch_relations_failed", "playback", "",
+			map[string]any{"anime_id": animeID},
+			err,
+		)
+	}
 	seasons := make([]domain.SeasonEntry, 0, len(relations))
 	tvCounter := 1
 
