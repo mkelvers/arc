@@ -86,7 +86,7 @@ func TestBrowseURLPreservesAndOverridesParams(t *testing.T) {
 		t.Fatalf("browseURL error: %v", err)
 	}
 
-	want := "/browse?genres=1&genres=2&order_by=score&page=4&q=full+metal&sort=asc&studio=42&type=tv"
+	want := "/browse?genres=1&genres=2&order_by=score&page=4&q=full+metal&sfw=true&sort=asc&studio=42&type=tv"
 	if got != want {
 		t.Fatalf("unexpected url\nwant: %s\ngot:  %s", want, got)
 	}
@@ -117,7 +117,7 @@ func TestBrowseURLClearsAndEncodesValues(t *testing.T) {
 	}
 }
 
-func TestBrowseURLPreservesDefaultSFWOmitted(t *testing.T) {
+func TestBrowseURLWithoutSFWStateOmitsParameter(t *testing.T) {
 	t.Parallel()
 
 	got, err := browseURL(
@@ -132,6 +132,25 @@ func TestBrowseURLPreservesDefaultSFWOmitted(t *testing.T) {
 
 	if got != "/browse?q=monster" {
 		t.Fatalf("expected sfw to be omitted, got %s", got)
+	}
+}
+
+func TestBrowseURLIncludesSFWTrue(t *testing.T) {
+	t.Parallel()
+
+	got, err := browseURL(
+		map[string]any{
+			"Query": "monster",
+			"SFW":   true,
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("browseURL error: %v", err)
+	}
+
+	if got != "/browse?q=monster&sfw=true" {
+		t.Fatalf("expected sfw=true, got %s", got)
 	}
 }
 

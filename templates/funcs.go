@@ -58,8 +58,8 @@ func browseURL(v map[string]any, overrides map[string]any) (string, error) {
 	setQueryValue(values, "order_by", stringValue(v["OrderBy"]))
 	setQueryValue(values, "sort", stringValue(v["Sort"]))
 	setQueryValue(values, "studio", stringValue(v["Studio"]))
-	if sfw, ok := v["SFW"]; ok && !boolValue(sfw) {
-		values.Set("sfw", "false")
+	if sfw, ok := v["SFW"]; ok {
+		values.Set("sfw", strconv.FormatBool(boolValue(sfw)))
 	}
 	for _, genre := range intSliceValue(v["Genres"]) {
 		values.Add("genres", strconv.Itoa(genre))
