@@ -166,12 +166,12 @@ func handleRequestRetry(ctx context.Context, err error, attempt int, maxRetries 
 }
 
 func handleResponseRetry(ctx context.Context, resp *http.Response, urlStr string, out any, attempt int, maxRetries int) (int, bool, error) {
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return handleStatusRetry(ctx, resp, urlStr, out, attempt, maxRetries)
 	}
 
 	err := json.NewDecoder(resp.Body).Decode(out)
-	_ = resp.Body.Close()
 	if err == nil {
 		return resp.StatusCode, false, nil
 	}
@@ -196,7 +196,6 @@ func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, 
 	}
 
 	if isRetryableStatus(statusCode) && attempt < maxRetries-1 {
-		_ = resp.Body.Close()
 		if retryErr := waitForRetry(ctx, max(retryAfter, retryDelay(attempt))); retryErr != nil {
 			return statusCode, false, retryErr
 		}
@@ -205,7 +204,6 @@ func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, 
 
 	// Best-effort decode (often useful for debugging), but still treat non-200 as error.
 	_ = json.NewDecoder(resp.Body).Decode(out)
-	_ = resp.Body.Close()
 	return statusCode, false, apiErr
 }
 
