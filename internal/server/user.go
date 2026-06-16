@@ -10,11 +10,15 @@ func CurrentUser(c *gin.Context) *domain.User {
 	if c == nil {
 		return nil
 	}
-	user, _ := c.Get("User")
-	if u, ok := user.(*domain.User); ok {
-		return u
+	user, exists := c.Get("User")
+	if !exists {
+		return nil
 	}
-	return nil
+	u, ok := user.(*domain.User)
+	if !ok {
+		return nil
+	}
+	return u
 }
 
 func CurrentUserID(c *gin.Context) string {
