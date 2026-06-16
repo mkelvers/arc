@@ -8,6 +8,7 @@ import (
 	"mal/internal/observability"
 	"mal/internal/server"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -181,6 +182,25 @@ func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
 	}, nil
 }
 
+func canonicalBrowseURL(rawURL *url.URL) (string, bool) {
+	if rawURL == nil {
+		return "", false
+	}
+
+	query := rawURL.Query()
+	if _, exists := query["sfw"]; exists {
+		return "", false
+	}
+
+	query.Set("sfw", "true")
+	encoded := query.Encode()
+	if encoded == "" {
+		return rawURL.Path, true
+	}
+
+	return rawURL.Path + "?" + encoded, true
+}
+
 func browseStudioName(ctx context.Context, svc Service, studioID int) string {
 	if studioID <= 0 {
 		return ""
@@ -286,6 +306,11 @@ func (h *AnimeHandler) respondBrowseSearchError(c *gin.Context, query browseQuer
 }
 
 func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
+	if target, ok := canonicalBrowseURL(c.Request.URL); ok {
+		c.Redirect(http.StatusSeeOther, target)
+		return
+	}
+
 	query, err := parseBrowseQuery(c)
 	if err != nil {
 		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, err.Error())
