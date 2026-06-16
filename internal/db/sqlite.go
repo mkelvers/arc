@@ -13,7 +13,9 @@ import (
 func Open(dbFile string) (*sql.DB, error) {
 	// busy_timeout avoids immediate SQLITE_BUSY errors under concurrent access.
 	// foreign_keys ensures FK constraints are enforced for this connection.
-	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on&_busy_timeout=5000", dbFile))
+	// txlock=immediate acquires SQLite's write lock when a transaction starts,
+	// which avoids deferred read->write lock upgrades failing mid-transaction.
+	db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?_foreign_keys=on&_busy_timeout=5000&_txlock=immediate", dbFile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
