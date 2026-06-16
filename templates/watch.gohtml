@@ -51,7 +51,7 @@
             </button>
           </div>
           <div data-content class="hidden absolute z-50 right-0 bottom-full mb-2 min-w-40 bg-background-button shadow-(--shadow-card) ring-1 ring-black/10">
-            <div class="flex flex-col py-1">
+            <div class="flex flex-col">
               <button
                 data-unstyled-button
                 data-watchlist-update
@@ -115,7 +115,7 @@
             </button>
           </div>
           <div data-content class="hidden absolute z-50 right-0 bottom-full mb-2 min-w-55 bg-background-button shadow-(--shadow-card) ring-1 ring-black/10">
-            <div class="flex flex-col py-1">
+            <div class="flex flex-col">
               <button type="button" data-segment-editor-toggle class="flex w-full items-center px-4 py-2.5 text-left text-sm font-normal text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
                 Add missing segment
               </button>
@@ -145,7 +145,7 @@
                   </button>
                 </div>
                 <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button shadow-(--shadow-card) ring-1 ring-black/10">
-                  <div class="flex flex-col py-1">
+                  <div class="flex flex-col">
                     <button type="button" data-segment-type-option data-value="ed" class="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
                       <span class="text-sm font-normal text-foreground">Ending (ED)</span>
                     </button>
@@ -203,7 +203,7 @@
             </button>
           </div>
           <div data-content class="hidden absolute z-50 top-full mt-1 left-0 w-full bg-background-button shadow-(--shadow-card) ring-1 ring-black/10 max-h-64 overflow-y-auto scrollbar-hidden lg:scrollbar-thin lg:[scrollbar-color:var(--scrollbar-thumb)_var(--scrollbar-track)] lg:[&::-webkit-scrollbar]:block lg:[&::-webkit-scrollbar]:h-2 lg:[&::-webkit-scrollbar-track]:bg-(--scrollbar-track) lg:[&::-webkit-scrollbar-track]:rounded-none lg:[&::-webkit-scrollbar-thumb]:bg-(--scrollbar-thumb) lg:[&::-webkit-scrollbar-thumb]:rounded-none lg:[&::-webkit-scrollbar-thumb:hover]:bg-(--scrollbar-thumb-hover)">
-            <div class="flex flex-col py-1">
+            <div class="flex flex-col">
               {{range .Seasons}}
                 <a href="/anime/{{.MalID}}/watch" class="px-4 py-2 text-left text-sm {{if .IsCurrent}}text-accent bg-accent/10{{else}}text-foreground-muted hover:bg-surface-hover{{end}} transition-colors">
                   <span class="font-normal text-foreground mr-1">{{.Prefix}}:</span>
@@ -239,7 +239,7 @@
                 </button>
               </div>
               <div data-content class="hidden absolute z-50 top-full mt-1 left-0 min-w-50 bg-background-button shadow-(--shadow-card) ring-1 ring-black/10">
-                <div class="flex flex-col py-1">
+                <div class="flex flex-col">
                   {{$ranges := ceilDiv $totalEpisodes 100}}
                   {{range $i := seq $ranges}}
                     {{$start := imul $i 100}}

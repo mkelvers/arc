@@ -67,7 +67,7 @@
           name="q"
         />
       </div>
-      <div class="flex max-h-72 flex-col overflow-y-auto py-1 scrollbar-hidden" id="studio-results" hx-get="/api/jikan/producers?page=1&limit=12" hx-trigger="load" hx-target="this" hx-swap="innerHTML" hx-push-url="false" hx-headers='{"Accept":"text/html"}'>
+      <div class="flex max-h-72 flex-col overflow-y-auto scrollbar-hidden" id="studio-results" hx-get="/api/jikan/producers?page=1&limit=12" hx-trigger="load" hx-target="this" hx-swap="innerHTML" hx-push-url="false" hx-headers='{"Accept":"text/html"}'>
       </div>
     </div>
   </ui-dropdown>
@@ -98,7 +98,7 @@
       </button>
     </div>
     <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button shadow-(--shadow-card) left-0 top-full mt-2 scrollbar-hidden">
-      <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col py-1">
+      <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content main" hx-select="#browse-content main" hx-swap="outerHTML" class="flex flex-col">
         <input type="hidden" name="q" value="{{.Query}}">
         {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
         {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
@@ -129,7 +129,7 @@
       </button>
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2 ">
-      <div class="flex flex-col py-1">
+      <div class="flex flex-col">
         {{range $statusOptions}}
           <a href='{{browseURL $ (dict "status" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
         {{end}}
@@ -145,7 +145,7 @@
       </button>
     </div>
     <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2 ">
-      <div class="flex flex-col py-1">
+      <div class="flex flex-col">
         {{range $typeOptions}}
           <a href='{{browseURL $ (dict "type" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
         {{end}}
@@ -162,7 +162,7 @@
         </button>
       </div>
       <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2 ">
-        <div class="flex flex-col py-1">
+        <div class="flex flex-col">
           {{range $sortOptions}}
             <a href='{{browseURL $ (dict "order_by" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
           {{end}}
