@@ -5,6 +5,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
+	"slices"
 	"testing"
 	"time"
 )
@@ -219,10 +220,8 @@ func animeIDs(animes []domain.Anime) []int {
 
 func hasGenreSearchQuery(queries []profileSearchQuery, genreID int) bool {
 	for _, query := range queries {
-		for _, id := range query.genreIDs {
-			if id == genreID {
-				return true
-			}
+		if slices.Contains(query.genreIDs, genreID) {
+			return true
 		}
 	}
 	return false

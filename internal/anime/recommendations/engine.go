@@ -206,7 +206,7 @@ func (e engine) scoreRankedCandidates(
 	var g errgroup.Group
 	g.SetLimit(6)
 
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		item := ranked[i]
 		g.Go(func() error {
 			anime := item.anime

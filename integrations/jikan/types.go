@@ -239,7 +239,7 @@ func (a Anime) DurationSeconds() float64 {
 	var currentValue int
 	hasValue := false
 
-	for _, token := range strings.Fields(strings.ToLower(a.Duration)) {
+	for token := range strings.FieldsSeq(strings.ToLower(a.Duration)) {
 		value, err := strconv.Atoi(token)
 		if err == nil {
 			currentValue = value

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
@@ -294,9 +295,7 @@ func cloneFields(fields map[string]any) map[string]any {
 	}
 
 	copyFields := make(map[string]any, len(fields))
-	for key, value := range fields {
-		copyFields[key] = value
-	}
+	maps.Copy(copyFields, fields)
 
 	return copyFields
 }
