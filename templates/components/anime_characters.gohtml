@@ -1,0 +1,40 @@
+{{define "anime_characters"}}
+<div class="mt-12 w-full">
+  <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    {{range (slice .Items 0 (min (len .Items) 10))}}
+      <div class="flex gap-3 bg-background-surface p-3">
+        <div class="h-16 w-12 shrink-0 overflow-hidden bg-background-surface">
+          <img src="{{.Character.Images.Jpg.ImageURL}}" alt="{{.Character.Name}}" class="h-full w-full object-cover" loading="lazy" />
+        </div>
+        <div class="flex flex-col justify-center overflow-hidden">
+          <span class="truncate text-sm font-medium text-foreground">{{.Character.Name}}</span>
+          <span class="truncate text-xs text-foreground-muted">{{.Role}}</span>
+          {{if .VoiceActors}}
+            <span class="mt-1 truncate text-[11px] text-foreground-muted">{{(index .VoiceActors 0).Person.Name}}</span>
+          {{end}}
+        </div>
+      </div>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+{{define "anime_characters_loading"}}
+<div hx-get="/anime/{{.AnimeID}}?section=characters" hx-trigger="load" hx-swap="outerHTML">
+  <div class="mt-12 w-full">
+    <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {{range (seq 5)}}
+        <div class="flex h-20 gap-3 bg-background-surface p-3">
+          <div class="skeleton h-16 w-12 shrink-0"></div>
+          <div class="flex flex-col justify-center gap-2 grow">
+            <div class="skeleton h-3 w-2/3"></div>
+            <div class="skeleton skeleton-subtle h-2 w-1/2"></div>
+          </div>
+        </div>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}
