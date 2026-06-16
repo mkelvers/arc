@@ -1,5 +1,4 @@
 import { copyFile } from "node:fs/promises";
-import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 type BuildStep = {
@@ -32,17 +31,12 @@ main().catch((error: unknown) => {
 });
 
 async function main(): Promise<void> {
-  const appEntries = readdirSync("./static", { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
-    .map((entry) => `./static/${entry.name}`)
-    .sort();
-
   steps.push({
     name: "app",
     command: [
       "bun",
       "build",
-      ...appEntries,
+      "./static/app.ts",
       "--outdir",
       "./dist/static",
       "--target",
@@ -69,7 +63,7 @@ async function main(): Promise<void> {
   await copyFile("./node_modules/htmx.org/dist/htmx.min.js", "./dist/static/htmx-lib.js");
 
   const playerEntries = 1;
-  const totalEntries = playerEntries + appEntries.length;
+  const totalEntries = playerEntries + 1;
   const elapsedMs = Math.round(performance.now() - startedAt);
 
   console.log(`ts build ok (${totalEntries} entries, ${elapsedMs}ms)`);
