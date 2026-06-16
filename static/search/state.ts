@@ -23,19 +23,13 @@ export const searchInput = document.getElementById(
 export const searchResults = document.querySelector(
   "[data-command-palette-results]",
 ) as HTMLElement | null;
-export const searchDialog = document.querySelector(
-  "[data-command-palette-dialog]",
-) as HTMLElement | null;
 export const searchRoot = document.querySelector(
   "[data-command-palette-root]",
 ) as HTMLElement | null;
 export const searchPage = document.querySelector(
   "[data-command-palette-page]",
 ) as HTMLElement | null;
-export const searchOpenButtons = document.querySelectorAll("[data-command-palette-open]");
-export const searchCloseButtons = document.querySelectorAll("[data-command-palette-close]");
 export const searchClearButtons = document.querySelectorAll("[data-command-palette-clear]");
-export const shortcutHints = document.querySelectorAll("[data-command-palette-shortcut]");
 
 let resultItems: CommandPaletteItem[] = [];
 let selectedIndex = 0;
@@ -174,8 +168,6 @@ export const isTypingTarget = (target: EventTarget | null): boolean =>
   target instanceof HTMLTextAreaElement ||
   target instanceof HTMLSelectElement ||
   (target instanceof HTMLElement && target.isContentEditable);
-
-export const isSearchOpen = (): boolean => searchDialog?.classList.contains("flex") ?? false;
 
 export const isSafeImageUrl = (rawUrl?: string): boolean => {
   if (!rawUrl) {

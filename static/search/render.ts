@@ -3,8 +3,6 @@ import type { CommandPaletteItem } from "./state";
 import {
   searchResults,
   searchClearButtons,
-  shortcutHints,
-  searchDialog,
   responseCache,
   getResultItems,
   setResultItems,
@@ -17,25 +15,7 @@ import {
   groupOrder,
   maxPosterImageRetries,
   isSafeImageUrl,
-  isMac,
 } from "./state";
-
-export const setSearchState = (open: boolean): void => {
-  if (!searchDialog) {
-    return;
-  }
-
-  searchDialog.classList.toggle("hidden", !open);
-  searchDialog.classList.toggle("flex", open);
-  searchDialog.setAttribute("aria-hidden", open ? "false" : "true");
-  document.body.classList.toggle("overflow-hidden", open);
-};
-
-export const setShortcutHints = (): void => {
-  shortcutHints.forEach((hint) => {
-    hint.textContent = isMac() ? "⌘P" : "Ctrl P";
-  });
-};
 
 export const setClearButtonState = (hasQuery: boolean): void => {
   searchClearButtons.forEach((button) => {

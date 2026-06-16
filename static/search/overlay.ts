@@ -5,23 +5,13 @@ import {
   searchResults,
   searchRoot,
   searchPage,
-  searchOpenButtons,
-  searchCloseButtons,
   searchClearButtons,
-  searchDialog,
   getSelectedIndex,
-  isSearchOpen,
   isTypingTarget,
 } from "./state";
-import { setShortcutHints, selectItem, runSelectedItem, renderEmptyState } from "./render";
+import { selectItem, runSelectedItem, renderEmptyState } from "./render";
 import { scheduleFetch, fetchSearchItems, onResultsScroll } from "./fetch";
-import { openSearch, closeSearch, clearSearchInput } from "./actions";
-
-const onDocumentClick = (event: MouseEvent): void => {
-  if (event.target === searchDialog) {
-    closeSearch();
-  }
-};
+import { openSearch, clearSearchInput } from "./actions";
 
 const onInputKeydown = (event: KeyboardEvent): void => {
   if (event.key === "ArrowDown") {
@@ -49,8 +39,6 @@ const onDocumentKeydown = (event: KeyboardEvent): void => {
     event.preventDefault();
     if (searchPage) {
       searchInput?.focus();
-    } else if (isSearchOpen()) {
-      closeSearch();
     } else {
       openSearch();
     }
@@ -66,11 +54,6 @@ const onDocumentKeydown = (event: KeyboardEvent): void => {
     }
     return;
   }
-
-  if (event.key === "Escape" && isSearchOpen()) {
-    event.preventDefault();
-    closeSearch();
-  }
 };
 
 export const initSearchOverlay = (): void => {
@@ -83,22 +66,13 @@ export const initSearchOverlay = (): void => {
     return;
   }
 
-  setShortcutHints();
-  searchOpenButtons.forEach((button) => {
-    button.addEventListener("click", openSearch);
-  });
-  searchCloseButtons.forEach((button) => {
-    button.addEventListener("click", closeSearch);
-  });
   searchClearButtons.forEach((button) => {
     button.addEventListener("click", clearSearchInput);
   });
   searchInput.addEventListener("input", scheduleFetch);
   searchInput.addEventListener("keydown", onInputKeydown);
   searchResults.addEventListener("scroll", onResultsScroll);
-  document.addEventListener("click", onDocumentClick);
   document.addEventListener("keydown", onDocumentKeydown);
-  searchDialog?.setAttribute("aria-hidden", "true");
 
   const initialQuery = new URLSearchParams(window.location.search).get("q")?.trim() || "";
   if (initialQuery) {
