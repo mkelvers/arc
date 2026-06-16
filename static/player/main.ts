@@ -101,7 +101,7 @@ const initPlayer = (): void => {
   currentContainer = container;
   const abortController = new AbortController();
   const signal = abortController.signal;
-  cleanup = () => abortController.abort();
+  cleanup = null;
 
   const loading = container.querySelector("[data-loading]") as HTMLElement | null;
   const progressWrap = container.querySelector("[data-progress-wrap]") as HTMLElement | null;
@@ -396,18 +396,27 @@ const initPlayer = (): void => {
 
   setupThumbnails();
   void hydrateAlternateMode(signal);
+
+  document.body.addEventListener(
+    "htmx:beforeSwap",
+    (e: Event) => {
+      const target = (e as CustomEvent).detail?.target as HTMLElement | null;
+      if (target && currentContainer && target.contains(currentContainer)) {
+        teardownPlayer();
+      }
+    },
+    { signal },
+  );
+
+  cleanup = () => {
+    clearTimeout(searchDebounce);
+    abortController.abort();
+  };
 };
 
 onReady(initPlayer);
 onHtmxLoad((root) => {
   if (root.matches("[data-video-player]") || root.querySelector("[data-video-player]")) {
     initPlayer();
-  }
-});
-
-document.body.addEventListener("htmx:beforeSwap", (e: Event) => {
-  const target = (e as CustomEvent).detail?.target as HTMLElement | null;
-  if (target && currentContainer && target.contains(currentContainer)) {
-    teardownPlayer();
   }
 });
