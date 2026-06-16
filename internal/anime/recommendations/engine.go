@@ -2,6 +2,7 @@ package recommendations
 
 import (
 	"context"
+	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -35,7 +36,7 @@ func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimi
 
 	watchlist, err := e.repo.GetUserWatchList(ctx, userID)
 	if err != nil {
-		return domain.CatalogSectionData{}, err
+		return domain.CatalogSectionData{}, fmt.Errorf("get user watchlist for %q: %w", userID, err)
 	}
 
 	now := time.Now()
@@ -46,17 +47,17 @@ func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimi
 
 	seedAnimes, err := e.fetchSeedAnimes(ctx, seedPool)
 	if err != nil {
-		return domain.CatalogSectionData{}, err
+		return domain.CatalogSectionData{}, fmt.Errorf("fetch seed animes: %w", err)
 	}
 
 	profile := buildTasteProfile(now, seedPool, seedAnimes)
 	store := newCandidateStore(watchlist)
 
 	if err := e.collectCollaborativeCandidates(ctx, seedPool, store); err != nil {
-		return domain.CatalogSectionData{}, err
+		return domain.CatalogSectionData{}, fmt.Errorf("collect collaborative candidates: %w", err)
 	}
 	if err := e.collectProfileSearchCandidates(ctx, profile, store); err != nil {
-		return domain.CatalogSectionData{}, err
+		return domain.CatalogSectionData{}, fmt.Errorf("collect profile search candidates: %w", err)
 	}
 
 	ranked := store.ranked()
@@ -66,7 +67,7 @@ func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimi
 
 	candidates, err := e.scoreRankedCandidates(ctx, now, profile, ranked, resultLimit)
 	if err != nil {
-		return domain.CatalogSectionData{}, err
+		return domain.CatalogSectionData{}, fmt.Errorf("score ranked candidates: %w", err)
 	}
 
 	return domain.CatalogSectionData{
@@ -83,7 +84,7 @@ func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSe
 		g.Go(func() error {
 			anime, err := e.jikan.GetAnimeByID(ctx, seed.animeID)
 			if err != nil {
-				return err
+				return fmt.Errorf("get seed anime %d: %w", seed.animeID, err)
 			}
 			seedAnimes[i] = anime
 			return nil
@@ -91,7 +92,7 @@ func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSe
 	}
 
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("wait for seed anime fetches: %w", err)
 	}
 
 	return seedAnimes, nil
@@ -131,7 +132,10 @@ func (e engine) collectCollaborativeCandidates(ctx context.Context, seedPool []r
 		})
 	}
 
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("wait for collaborative candidate fetches: %w", err)
+	}
+	return nil
 }
 
 func (e engine) collectProfileSearchCandidates(ctx context.Context, profile userTasteProfile, store *candidateStore) error {
@@ -183,7 +187,10 @@ func (e engine) collectProfileSearchCandidates(ctx context.Context, profile user
 		})
 	}
 
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("wait for profile search candidate fetches: %w", err)
+	}
+	return nil
 }
 
 func (e engine) scoreRankedCandidates(
@@ -233,7 +240,7 @@ func (e engine) scoreRankedCandidates(
 	}
 
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("wait for candidate scoring: %w", err)
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {

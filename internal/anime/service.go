@@ -47,19 +47,25 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 		case "Popular":
 			res, err = s.jikan.GetTopAnime(gCtx, 1)
 		}
-		return err
+		if err != nil {
+			return fmt.Errorf("get catalog section %q: %w", section, err)
+		}
+		return nil
 	})
 
 	if userID != "" && section == "Continue" {
 		g.Go(func() error {
 			var err error
 			cw, err = s.repo.GetContinueWatchingEntries(gCtx, userID)
-			return err
+			if err != nil {
+				return fmt.Errorf("get continue watching entries for %q: %w", userID, err)
+			}
+			return nil
 		})
 	}
 
 	if err := g.Wait(); err != nil {
-		return domain.CatalogSectionData{}, err
+		return domain.CatalogSectionData{}, fmt.Errorf("wait for catalog section %q: %w", section, err)
 	}
 
 	animes := wrapAnimes(res.Animes)
@@ -300,7 +306,7 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		return domain.Anime{Anime: res.Animes[r.Intn(len(res.Animes))]}, nil
 	}
 
-	return domain.Anime{}, err
+	return domain.Anime{}, fmt.Errorf("get random anime: %w", err)
 }
 
 func (s *animeService) GetAllEpisodes(ctx context.Context, id int) ([]domain.EpisodeData, error) {

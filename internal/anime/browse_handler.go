@@ -35,17 +35,19 @@ type browseQuery struct {
 func producerQueryParams(c *gin.Context) (string, int, int, error) {
 	q := strings.TrimSpace(c.Query("q"))
 
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	rawPage := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(rawPage)
 	if err != nil {
-		return "", 0, 0, fmt.Errorf("invalid page")
+		return "", 0, 0, fmt.Errorf("invalid page %q: %w", rawPage, err)
 	}
 	if page < 1 {
 		page = 1
 	}
 
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	rawLimit := c.DefaultQuery("limit", "50")
+	limit, err := strconv.Atoi(rawLimit)
 	if err != nil {
-		return "", 0, 0, fmt.Errorf("invalid limit")
+		return "", 0, 0, fmt.Errorf("invalid limit %q: %w", rawLimit, err)
 	}
 	if limit < 1 || limit > 12 {
 		limit = 12
@@ -137,8 +139,11 @@ func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
 	studioID := 0
 	if raw := strings.TrimSpace(c.Query("studio")); raw != "" {
 		id, err := strconv.Atoi(raw)
-		if err != nil || id < 0 {
-			return browseQuery{}, fmt.Errorf("invalid studio id")
+		if err != nil {
+			return browseQuery{}, fmt.Errorf("invalid studio id %q: %w", raw, err)
+		}
+		if id < 0 {
+			return browseQuery{}, fmt.Errorf("invalid studio id %d", id)
 		}
 		studioID = id
 	}
@@ -147,16 +152,17 @@ func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
 	for _, g := range c.QueryArray("genres") {
 		id, err := strconv.Atoi(g)
 		if err != nil {
-			return browseQuery{}, fmt.Errorf("invalid genre id")
+			return browseQuery{}, fmt.Errorf("invalid genre id %q: %w", g, err)
 		}
 		if id > 0 {
 			genres = append(genres, id)
 		}
 	}
 
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	rawPage := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(rawPage)
 	if err != nil {
-		return browseQuery{}, fmt.Errorf("invalid page")
+		return browseQuery{}, fmt.Errorf("invalid page %q: %w", rawPage, err)
 	}
 	if page < 1 {
 		page = 1

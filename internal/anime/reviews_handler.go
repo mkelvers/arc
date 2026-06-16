@@ -15,14 +15,19 @@ type reviewsQuery struct {
 }
 
 func parseReviewsQuery(c *gin.Context) (reviewsQuery, error) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil || id <= 0 {
-		return reviewsQuery{}, fmt.Errorf("invalid anime id")
+	rawID := c.Param("id")
+	id, err := strconv.Atoi(rawID)
+	if err != nil {
+		return reviewsQuery{}, fmt.Errorf("invalid anime id %q: %w", rawID, err)
+	}
+	if id <= 0 {
+		return reviewsQuery{}, fmt.Errorf("invalid anime id %d", id)
 	}
 
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	rawPage := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(rawPage)
 	if err != nil {
-		return reviewsQuery{}, fmt.Errorf("invalid page")
+		return reviewsQuery{}, fmt.Errorf("invalid page %q: %w", rawPage, err)
 	}
 	if page < 1 {
 		page = 1
