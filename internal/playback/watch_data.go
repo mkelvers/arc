@@ -39,15 +39,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	if resolvedModeSwitchedFrom != "" {
 		modeSwitchedFrom = resolvedModeSwitchedFrom
 	}
-	if len(modeSources) == 0 {
-		return domain.WatchPageData{}, fmt.Errorf("no streams found")
-	}
-	if result == nil {
-		return domain.WatchPageData{}, fmt.Errorf("no streams found for mode %s", mode)
-	}
-
 	startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(ctx, userID, animeID, anime.Episodes, episode)
-	go s.warmStreamURL(result.URL, result.Referer)
 	seasons := s.loadSeasons(ctx, animeID)
 	segments, err := s.fetchSkipSegments(ctx, userID, animeID, episode)
 	if err != nil {
@@ -57,7 +49,16 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		)
 	}
 	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, canonicalEpisodes.Episodes, modeSources, mode, modeSwitchedFrom, segments)
-	return buildWatchPageData(animeData, canonicalEpisodes.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData), nil
+	pageData := buildWatchPageData(animeData, canonicalEpisodes.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData)
+	if len(modeSources) == 0 {
+		return pageData, fmt.Errorf("no streams found")
+	}
+	if result == nil {
+		return pageData, fmt.Errorf("no streams found for mode %s", mode)
+	}
+
+	go s.warmStreamURL(result.URL, result.Referer)
+	return pageData, nil
 }
 
 func buildWatchDataPayload(anime domain.Anime, animeID int, episode string, startTime float64, episodes []domain.CanonicalEpisode, modeSources map[string]domain.ModeSource, mode string, modeSwitchedFrom string, segments []domain.SkipSegment) domain.WatchData {

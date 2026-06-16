@@ -54,22 +54,32 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 
 	data, err := h.svc.BuildWatchData(c.Request.Context(), id, []string{}, ep, mode, userID)
 	if err != nil {
-		anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
-		if fetchErr != nil {
-			fmt.Printf("error fetching anime for error page: %v\n", fetchErr)
+		if data.Anime.MalID == 0 && data.WatchData.MalID == 0 && len(data.Episodes) == 0 {
+			anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
+			if fetchErr != nil {
+				fmt.Printf("error fetching anime for error page: %v\n", fetchErr)
+			}
+			data = domain.WatchPageData{
+				Anime:       anime,
+				CurrentEpID: ep,
+				WatchData: domain.WatchData{
+					MalID:          id,
+					Title:          anime.DisplayTitle(),
+					CurrentEpisode: ep,
+					Episodes:       []domain.CanonicalEpisode{},
+					Providers:      []domain.ProviderData{},
+					ModeSources:    map[string]domain.ModeSource{},
+					AvailableModes: []string{},
+					Airing:         anime.Airing,
+				},
+			}
 		}
-		c.HTML(http.StatusOK, "watch.gohtml", domain.WatchPageData{
-			Error:       err.Error(),
-			Anime:       anime,
-			Episodes:    []domain.CanonicalEpisode{},
-			CurrentPath: c.Request.URL.Path,
-			User:        user,
-			CurrentEpID: ep,
-			WatchData: domain.WatchData{
-				Episodes:  []domain.CanonicalEpisode{},
-				Providers: []domain.ProviderData{},
-			},
-		})
+
+		data.Error = err.Error()
+		data.User = user
+		data.CurrentPath = c.Request.URL.Path
+
+		c.HTML(http.StatusOK, "watch.gohtml", data)
 		return
 	}
 
