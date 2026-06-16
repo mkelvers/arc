@@ -8,10 +8,12 @@ let cachedDuration = 0;
 let cachedSeekableEnd = 0;
 
 const getDuration = (): number =>
-  Number.isFinite(state.video.duration) && state.video.duration > 0 ? state.video.duration : 0;
+  Number.isFinite(state.elements.video.duration) && state.elements.video.duration > 0
+    ? state.elements.video.duration
+    : 0;
 
 const getSeekableEnd = (): number => {
-  const ranges = state.video.seekable;
+  const ranges = state.elements.video.seekable;
   if (!ranges || ranges.length <= 0) return 0;
   const end = ranges.end(ranges.length - 1);
   return Number.isFinite(end) && end > 0 ? end : 0;
@@ -27,9 +29,9 @@ export const timelineBounds = (): TimelineBounds => {
     return { start: 0, end: duration, duration };
   }
 
-  if (state.video.seekable.length > 0) {
-    const seekableStart = state.video.seekable.start(0);
-    const seekableEnd = state.video.seekable.end(state.video.seekable.length - 1);
+  if (state.elements.video.seekable.length > 0) {
+    const seekableStart = state.elements.video.seekable.start(0);
+    const seekableEnd = state.elements.video.seekable.end(state.elements.video.seekable.length - 1);
     if (
       Number.isFinite(seekableStart) &&
       Number.isFinite(seekableEnd) &&
@@ -92,23 +94,23 @@ export const absoluteTimeFromRatio = (ratio: number): number => {
 
 // finds the end of the buffered region containing currentTime
 export const getBufferedEnd = (): number => {
-  const currentTime = state.video.currentTime;
+  const currentTime = state.elements.video.currentTime;
   let end = 0;
   // first: find buffered range that contains current time
-  for (let i = 0; i < state.video.buffered.length; i++) {
+  for (let i = 0; i < state.elements.video.buffered.length; i++) {
     if (
-      state.video.buffered.start(i) <= currentTime &&
-      state.video.buffered.end(i) >= currentTime
+      state.elements.video.buffered.start(i) <= currentTime &&
+      state.elements.video.buffered.end(i) >= currentTime
     ) {
-      end = state.video.buffered.end(i);
+      end = state.elements.video.buffered.end(i);
       break;
     }
   }
   // fallback: next buffered range after current time
   if (end === 0) {
-    for (let i = 0; i < state.video.buffered.length; i++) {
-      if (state.video.buffered.end(i) > currentTime) {
-        end = Math.max(end, state.video.buffered.end(i));
+    for (let i = 0; i < state.elements.video.buffered.length; i++) {
+      if (state.elements.video.buffered.end(i) > currentTime) {
+        end = Math.max(end, state.elements.video.buffered.end(i));
       }
     }
   }
@@ -120,7 +122,7 @@ export const getBufferedEnd = (): number => {
  * Called on timeupdate, progress events, and seek.
  */
 export const updateTimeline = (currentTime: number): void => {
-  const { progress, scrubber, timeDisplay, durationDisplay, buffered } = state;
+  const { progress, scrubber, timeDisplay, durationDisplay, buffered } = state.elements;
   const b = getBounds();
 
   if (b.duration <= 0) {

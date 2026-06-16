@@ -41,12 +41,12 @@ export const setupKeyboard = (): void => {
         break;
       case "ArrowUp":
         e.preventDefault();
-        setVolume(state.video.volume + 0.05);
+        setVolume(state.elements.video.volume + 0.05);
         showControls();
         break;
       case "ArrowDown":
         e.preventDefault();
-        setVolume(state.video.volume - 0.05);
+        setVolume(state.elements.video.volume - 0.05);
         showControls();
         break;
       case "KeyM":
@@ -65,7 +65,7 @@ export const setupKeyboard = (): void => {
           const b = getBounds();
           if (b.duration > 0) {
             e.preventDefault();
-            state.video.currentTime = absoluteTimeFromRatio(parseInt(e.key, 10) / 10);
+            state.elements.video.currentTime = absoluteTimeFromRatio(parseInt(e.key, 10) / 10);
             showControls();
           }
         }

@@ -13,50 +13,53 @@ export const formatTime = (seconds: number): string => {
  * Shows the controls overlay and schedules auto-hide after 2s if playing.
  */
 export const showControls = (): void => {
-  state.container.classList.add("show-controls");
-  window.clearTimeout(state.playerControlsTimeout);
-  state.playerControlsTimeout = window.setTimeout(() => {
-    if (!state.isScrubbing && !state.video.paused) {
-      state.container.classList.remove("show-controls");
+  state.elements.container.classList.add("show-controls");
+  window.clearTimeout(state.timers.playerControlsTimeout);
+  state.timers.playerControlsTimeout = window.setTimeout(() => {
+    if (!state.ui.isScrubbing && !state.elements.video.paused) {
+      state.elements.container.classList.remove("show-controls");
     }
   }, 2000);
 };
 
 // seek relative to current position
 export const seekBy = (delta: number): void => {
-  if (state.video.duration <= 0) return;
-  state.video.currentTime = Math.max(
+  if (state.elements.video.duration <= 0) return;
+  state.elements.video.currentTime = Math.max(
     0,
-    Math.min(state.video.duration, state.video.currentTime + delta),
+    Math.min(state.elements.video.duration, state.elements.video.currentTime + delta),
   );
   showControls();
 };
 
 export const togglePlayPause = (): void => {
-  if (state.video.paused) {
-    state.video.play();
+  if (state.elements.video.paused) {
+    state.elements.video.play();
   } else {
-    state.video.pause();
+    state.elements.video.pause();
   }
 };
 
 // toggle mute, restoring previous volume
 export const toggleMute = (): void => {
-  if (state.video.muted || state.video.volume === 0) {
-    const restored = state.lastKnownVolume > 0 ? state.lastKnownVolume : 1;
-    state.video.muted = false;
-    state.video.volume = restored;
+  if (state.elements.video.muted || state.elements.video.volume === 0) {
+    const restored = state.playback.lastKnownVolume > 0 ? state.playback.lastKnownVolume : 1;
+    state.elements.video.muted = false;
+    state.elements.video.volume = restored;
   } else {
-    state.lastKnownVolume = state.video.volume > 0 ? state.video.volume : state.lastKnownVolume;
-    state.video.muted = true;
+    state.playback.lastKnownVolume =
+      state.elements.video.volume > 0
+        ? state.elements.video.volume
+        : state.playback.lastKnownVolume;
+    state.elements.video.muted = true;
   }
 };
 
 // set volume (0-1), auto-unmute
 export const setVolume = (value: number): void => {
-  state.video.volume = Math.max(0, Math.min(1, value));
-  state.video.muted = value === 0;
-  if (value > 0) state.lastKnownVolume = value;
+  state.elements.video.volume = Math.max(0, Math.min(1, value));
+  state.elements.video.muted = value === 0;
+  if (value > 0) state.playback.lastKnownVolume = value;
 };
 
 export const toggleFullscreen = (): void => {
@@ -64,19 +67,19 @@ export const toggleFullscreen = (): void => {
     document.exitFullscreen();
     return;
   }
-  state.container.requestFullscreen?.();
+  state.elements.container.requestFullscreen?.();
 };
 
 // syncs volume slider, underline, and mute icon
 export const syncVolumeUI = (): void => {
   const { volumeRange, volumeUnderline } = getControls();
-  const value = state.video.muted ? 0 : Math.round(state.video.volume * 100);
+  const value = state.elements.video.muted ? 0 : Math.round(state.elements.video.volume * 100);
   if (volumeRange) {
     volumeRange.value = String(value);
     volumeRange.style.setProperty("--volume-percent", `${value}%`);
   }
   if (volumeUnderline) volumeUnderline.style.height = `${value}%`;
-  updateMuteIcons(state.video.muted || state.video.volume === 0);
+  updateMuteIcons(state.elements.video.muted || state.elements.video.volume === 0);
 };
 
 const VOLUME_STORAGE_KEY = "player-volume";
@@ -93,17 +96,17 @@ const applyStoredVolume = (): void => {
   const stored = parseStoredVolume(safeLocalStorage.getItem(VOLUME_STORAGE_KEY));
   if (stored === null) return;
 
-  state.video.volume = stored;
-  state.video.muted = stored === 0;
-  if (stored > 0) state.lastKnownVolume = stored;
+  state.elements.video.volume = stored;
+  state.elements.video.muted = stored === 0;
+  if (stored > 0) state.playback.lastKnownVolume = stored;
 };
 
 let volumeSaveTimer: number | undefined;
 const schedulePersistVolume = (): void => {
   window.clearTimeout(volumeSaveTimer);
   volumeSaveTimer = window.setTimeout(() => {
-    if (!Number.isFinite(state.video.volume)) return;
-    const clamped = Math.max(0, Math.min(1, state.video.volume));
+    if (!Number.isFinite(state.elements.video.volume)) return;
+    const clamped = Math.max(0, Math.min(1, state.elements.video.volume));
     safeLocalStorage.setItem(VOLUME_STORAGE_KEY, clamped.toFixed(3));
   }, 250);
 };
@@ -130,7 +133,7 @@ let controlsCache: Controls | null = null;
 
 const getControls = (): Controls => {
   if (controlsCache) return controlsCache;
-  const c = state.container;
+  const c = state.elements.container;
   controlsCache = {
     playPause: c.querySelector("[data-play-pause]"),
     muteBtn: c.querySelector("[data-mute]"),
@@ -186,7 +189,7 @@ export const setupControls = (): void => {
     togglePlayPause();
     showControls();
   });
-  state.video.addEventListener("click", () => {
+  state.elements.video.addEventListener("click", () => {
     togglePlayPause();
     showControls();
   });
@@ -216,37 +219,37 @@ export const setupControls = (): void => {
 
   // skip intro/outro button
   skipSegmentBtn?.addEventListener("click", () => {
-    if (!state.activeSkipSegment) return;
-    state.video.currentTime = state.activeSkipSegment.end + 0.01;
+    if (!state.skip.activeSegment) return;
+    state.elements.video.currentTime = state.skip.activeSegment.end + 0.01;
     showControls();
   });
 
   // fullscreen change handler
   document.addEventListener("fullscreenchange", () => {
-    state.isFullscreen = !!document.fullscreenElement;
-    state.container.classList.toggle("fullscreen", state.isFullscreen);
-    if (state.isFullscreen) showControls();
+    state.ui.isFullscreen = !!document.fullscreenElement;
+    state.elements.container.classList.toggle("fullscreen", state.ui.isFullscreen);
+    if (state.ui.isFullscreen) showControls();
   });
 
   // icon sync on state changes
-  state.video.addEventListener("play", () => {
+  state.elements.video.addEventListener("play", () => {
     updatePlayPauseIcons(true);
     showControls();
   });
-  state.video.addEventListener("pause", () => {
+  state.elements.video.addEventListener("pause", () => {
     updatePlayPauseIcons(false);
     showControls();
     void saveProgress();
   });
-  state.video.addEventListener("volumechange", () => {
+  state.elements.video.addEventListener("volumechange", () => {
     syncVolumeUI();
     schedulePersistVolume();
   });
 
   // mouse move in container shows controls
-  state.container.addEventListener("mousemove", showControls);
+  state.elements.container.addEventListener("mousemove", showControls);
 
   // initial sync — check actual video state since inline script may have started playback
-  updatePlayPauseIcons(!state.video.paused);
+  updatePlayPauseIcons(!state.elements.video.paused);
   syncVolumeUI();
 };

@@ -8,10 +8,10 @@ import { loadVideoSource } from "./video";
  * Persists preference to localStorage.
  */
 export const switchQuality = (quality: string): void => {
-  const url = streamUrlForMode(state.currentMode, quality);
+  const url = streamUrlForMode(state.playback.currentMode, quality);
   if (!url) return;
   safeLocalStorage.setItem("mal:preferred-quality", quality);
-  loadVideoSource(url, state.modeSources[state.currentMode]?.type);
+  loadVideoSource(url, state.playback.modeSources[state.playback.currentMode]?.type);
 };
 
 /**
@@ -19,9 +19,11 @@ export const switchQuality = (quality: string): void => {
  * Shows/hides dropdown based on availability.
  */
 export const updateQualityOptions = (): void => {
-  const select = state.container.querySelector("[data-quality-select]") as HTMLSelectElement | null;
+  const select = state.elements.container.querySelector(
+    "[data-quality-select]",
+  ) as HTMLSelectElement | null;
   if (!select) return;
-  const qualities = state.modeSources[state.currentMode]?.qualities ?? [];
+  const qualities = state.playback.modeSources[state.playback.currentMode]?.qualities ?? [];
   select.innerHTML = "";
 
   const best = document.createElement("option");
@@ -49,7 +51,9 @@ export const updateQualityOptions = (): void => {
  * Binds quality select change handler.
  */
 export const setupQuality = (): void => {
-  const select = state.container.querySelector("[data-quality-select]") as HTMLSelectElement | null;
+  const select = state.elements.container.querySelector(
+    "[data-quality-select]",
+  ) as HTMLSelectElement | null;
   select?.addEventListener("change", (e) => {
     switchQuality((e.target as HTMLSelectElement).value);
   });

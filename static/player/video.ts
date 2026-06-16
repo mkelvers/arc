@@ -15,9 +15,9 @@ const destroyHLS = (): void => {
 
 export const destroyVideoSource = (): void => {
   destroyHLS();
-  state.video.pause();
-  state.video.removeAttribute("src");
-  state.video.load();
+  state.elements.video.pause();
+  state.elements.video.removeAttribute("src");
+  state.elements.video.load();
 };
 
 const shouldUseHLS = (type: string | undefined, url: string): boolean => {
@@ -40,31 +40,31 @@ const shouldUseHLS = (type: string | undefined, url: string): boolean => {
 export const loadVideoSource = (url: string, type?: string): void => {
   if (!url) return;
 
-  const wasPlaying = !state.video.paused;
-  const prevDisplayTime = displayTimeFromAbsolute(state.video.currentTime);
+  const wasPlaying = !state.elements.video.paused;
+  const prevDisplayTime = displayTimeFromAbsolute(state.elements.video.currentTime);
 
   // Fully reset the element before setting a new source.
   destroyVideoSource();
 
   if (shouldUseHLS(type, url) && Hls.isSupported()) {
     hls = new Hls();
-    stopHLSProfile = attachHLSProfile(hls, state.video);
+    stopHLSProfile = attachHLSProfile(hls, state.elements.video);
     hls.loadSource(url);
-    hls.attachMedia(state.video);
+    hls.attachMedia(state.elements.video);
   } else {
-    state.video.src = url;
-    state.video.load();
+    state.elements.video.src = url;
+    state.elements.video.load();
   }
 
   // Try an eager seek; if metadata isn't ready yet, main.ts will restore via pendingSeekTime.
-  state.pendingSeekTime = prevDisplayTime;
-  if (state.video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+  state.playback.pendingSeekTime = prevDisplayTime;
+  if (state.elements.video.readyState >= HTMLMediaElement.HAVE_METADATA) {
     invalidateBounds();
-    state.video.currentTime = absoluteTimeFromDisplay(prevDisplayTime);
-    state.pendingSeekTime = null;
+    state.elements.video.currentTime = absoluteTimeFromDisplay(prevDisplayTime);
+    state.playback.pendingSeekTime = null;
   }
 
   if (wasPlaying) {
-    state.video.play().catch(() => undefined);
+    state.elements.video.play().catch(() => undefined);
   }
 };
