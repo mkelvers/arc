@@ -51,6 +51,7 @@ func rendererFuncs() template.FuncMap {
 		"browseURL":         browseURL,
 		"genresParams":      genresParams,
 		"hasGenre":          hasGenre,
+		"orderedGenres":     orderedGenreOptions,
 		"add":               func(a, b int) int { return a + b },
 		"sub":               func(a, b int) int { return a - b },
 		"mul":               func(a, b float64) float64 { return a * b },

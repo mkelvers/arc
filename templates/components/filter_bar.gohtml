@@ -106,15 +106,14 @@
         {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
         {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
         <input type="hidden" name="sfw" value="{{.SFW}}">
-        {{range .GenresList}}
-          {{$genreID := .MalID}}
-          {{$isSelected := hasGenre $genreID $selectedGenreIDs}}
-          <label class="flex cursor-pointer items-center gap-3 px-2 py-1.5 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground">
-            <input id="genre-{{.MalID}}" type="checkbox" class="sr-only" name="genres" value="{{.MalID}}" data-checkbox-visual data-genre-visual {{if $isSelected}}checked{{end}}>
-            <div class="flex h-5 w-5 items-center justify-center border-2 transition-colors {{if $isSelected}}border-accent bg-foreground-muted/12{{else}}border-white/45 bg-transparent{{end}}">
-              <svg class="{{if not $isSelected}}hidden {{end}}h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
+        {{range orderedGenres .GenresList $selectedGenreIDs}}
+          {{$genre := .Genre}}
+          <label class="flex cursor-pointer items-center gap-3 px-2 py-1.5 text-sm text-foreground-muted hover:bg-surface-hover hover:text-foreground {{if .StartsInactive}}border-t border-white/15 mt-1 pt-2{{end}}">
+            <input id="genre-{{$genre.MalID}}" type="checkbox" class="sr-only" name="genres" value="{{$genre.MalID}}" data-checkbox-visual data-genre-visual {{if .Selected}}checked{{end}}>
+            <div class="flex h-5 w-5 items-center justify-center border-2 transition-colors {{if .Selected}}border-accent bg-foreground-muted/12{{else}}border-white/45 bg-transparent{{end}}">
+              <svg class="{{if not .Selected}}hidden {{end}}h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
             </div>
-            {{.Name}}
+            {{$genre.Name}}
           </label>
         {{end}}
       </form>

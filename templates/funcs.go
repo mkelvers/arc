@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"mal/internal/domain"
 	"net/url"
 	"os"
 	"slices"
@@ -11,6 +12,12 @@ import (
 	"strings"
 	"time"
 )
+
+type genreOption struct {
+	Genre          domain.Genre
+	Selected       bool
+	StartsInactive bool
+}
 
 func dict(values ...any) (map[string]any, error) {
 	if len(values)%2 != 0 {
@@ -158,6 +165,31 @@ func intSliceValue(v any) []int {
 
 func hasGenre(id int, genres []int) bool {
 	return slices.Contains(genres, id)
+}
+
+func orderedGenreOptions(genres []domain.Genre, selectedGenres []int) []genreOption {
+	selected := make(map[int]struct{}, len(selectedGenres))
+	for _, genreID := range selectedGenres {
+		selected[genreID] = struct{}{}
+	}
+
+	out := make([]genreOption, 0, len(genres))
+	inactive := make([]genreOption, 0, len(genres))
+	for _, genre := range genres {
+		_, isSelected := selected[genre.MalID]
+		option := genreOption{Genre: genre, Selected: isSelected}
+		if isSelected {
+			out = append(out, option)
+			continue
+		}
+		inactive = append(inactive, option)
+	}
+
+	if len(out) > 0 && len(inactive) > 0 {
+		inactive[0].StartsInactive = true
+	}
+
+	return append(out, inactive...)
 }
 
 func div(a, b float64) float64 {

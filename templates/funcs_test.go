@@ -2,6 +2,7 @@ package templates
 
 import (
 	"html/template"
+	"mal/internal/domain"
 	"testing"
 )
 
@@ -442,6 +443,63 @@ func TestGenresParamsEmpty(t *testing.T) {
 	got := genresParams(nil)
 	if got != "" {
 		t.Errorf("expected empty, got %q", got)
+	}
+}
+
+func TestOrderedGenreOptionsSelectedFirst(t *testing.T) {
+	t.Parallel()
+
+	got := orderedGenreOptions(
+		[]domain.Genre{
+			{MalID: 1, Name: "Action"},
+			{MalID: 2, Name: "Comedy"},
+			{MalID: 3, Name: "Shounen"},
+			{MalID: 4, Name: "Drama"},
+		},
+		[]int{3, 1},
+	)
+
+	wantIDs := []int{1, 3, 2, 4}
+	if len(got) != len(wantIDs) {
+		t.Fatalf("expected %d genres, got %d", len(wantIDs), len(got))
+	}
+	for i, wantID := range wantIDs {
+		if got[i].Genre.MalID != wantID {
+			t.Fatalf("genre at index %d = %d, want %d", i, got[i].Genre.MalID, wantID)
+		}
+	}
+	if !got[0].Selected || !got[1].Selected {
+		t.Fatalf("expected first two genres to be selected, got %+v", got[:2])
+	}
+	if !got[2].StartsInactive {
+		t.Fatalf("expected first inactive genre to start divider, got %+v", got[2])
+	}
+	if got[3].StartsInactive {
+		t.Fatalf("expected divider only on first inactive genre, got %+v", got[3])
+	}
+}
+
+func TestOrderedGenreOptionsNoSelectedGenresPreservesOrder(t *testing.T) {
+	t.Parallel()
+
+	got := orderedGenreOptions(
+		[]domain.Genre{
+			{MalID: 1, Name: "Action"},
+			{MalID: 2, Name: "Comedy"},
+		},
+		nil,
+	)
+
+	for i, option := range got {
+		if option.Selected {
+			t.Fatalf("expected genre at index %d to be inactive", i)
+		}
+		if option.StartsInactive {
+			t.Fatalf("expected no inactive divider without active genres")
+		}
+		if option.Genre.MalID != i+1 {
+			t.Fatalf("genre at index %d = %d, want %d", i, option.Genre.MalID, i+1)
+		}
 	}
 }
 
