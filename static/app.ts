@@ -4,7 +4,6 @@ import "./htmx";
 import "./dropdown";
 import "./anime";
 import "./search";
-import "./sort_filter";
 import "./dedupe";
 import "./watchlist";
 import "./top_pick_carousel";
