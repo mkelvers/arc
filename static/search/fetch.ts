@@ -118,12 +118,13 @@ export const fetchSearchItems = (query: string): void => {
       responseCache.set(query, response);
       renderItems(visibleItems);
     })
-    .catch(() => {
+    .catch((error) => {
       if (controller.signal.aborted) {
         return;
       }
 
       setActiveRequestController(undefined);
+      console.error("search request failed:", error);
       renderSearchErrorState(query);
     });
 };
@@ -168,8 +169,9 @@ export const fetchNextSearchPage = (): void => {
       setSearchPagination(response.nextPage, response.hasNextPage);
       appendItems(visibleItems);
     })
-    .catch(() => {
+    .catch((error) => {
       window.showToast?.({ message: "Failed to load more search results." });
+      console.error("failed to load more search results:", error);
     })
     .finally(() => {
       setFetchingNextPage(false);

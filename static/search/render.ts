@@ -140,8 +140,9 @@ export const removeContinueWatchingItem = (item: CommandPaletteItem): void => {
       removeContinueWatchingCard(animeID);
       renderItems(getResultItems().filter((candidate) => candidate.id !== item.id));
     })
-    .catch(() => {
+    .catch((error) => {
       window.showToast?.({ message: "Failed to remove from Continue Watching." });
+      console.error("failed to remove from continue watching:", error);
     });
 };
 

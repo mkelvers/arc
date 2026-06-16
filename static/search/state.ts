@@ -177,7 +177,8 @@ export const isSafeImageUrl = (rawUrl?: string): boolean => {
   try {
     const parsed = new URL(rawUrl, window.location.origin);
     return parsed.protocol === "https:" || parsed.protocol === "http:";
-  } catch {
+  } catch (error) {
+    console.error("Failed to validate URL:", error);
     return false;
   }
 };
