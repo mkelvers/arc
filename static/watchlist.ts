@@ -54,9 +54,15 @@ class WatchlistStore {
 
 const watchlistStore = new WatchlistStore();
 
-const getShowToast = (): ((opts: { message: string; duration?: number }) => void) | null => {
+const getShowToast = ():
+  | ((opts: { message: string; duration?: number; variant?: "default" | "destructive" }) => void)
+  | null => {
   const anyWindow = window as unknown as {
-    showToast?: (opts: { message: string; duration?: number }) => void;
+    showToast?: (opts: {
+      message: string;
+      duration?: number;
+      variant?: "default" | "destructive";
+    }) => void;
   };
   return typeof anyWindow.showToast === "function" ? anyWindow.showToast : null;
 };
