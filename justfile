@@ -29,7 +29,7 @@ build-css:
     @bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css
 
 build-ts:
-    @bun ./scripts/build-ts.ts
+    bun run build:ts
 
 build: build-go build-css build-ts
 
@@ -49,7 +49,7 @@ clean:
     rm -f server
 
 new-data-fix name:
-    bun scripts/new-data-fix.ts {{name}}
+    bash scripts/new-data-fix.sh {{name}}
 
 run-fixes:
     go run ./cmd/user run-fixes

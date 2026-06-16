@@ -7,6 +7,7 @@
     "watch:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css",
+    "build:ts": "bash ./scripts/build-ts.sh",
     "format": "bunx oxfmt",
     "format:check": "bunx oxfmt --check",
     "lint": "bun run lint:ts && bun run lint:go",
