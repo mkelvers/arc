@@ -5,20 +5,8 @@ interface ToastOptions {
   duration?: number;
 }
 
-/** Lazily create and return the toast container element. */
-const toastContainer = (): HTMLElement => {
-  let container = document.getElementById("toast-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.id = "toast-container";
-    container.className = "fixed bottom-4 right-4 z-100 flex flex-col gap-2";
-    container.setAttribute("role", "status");
-    container.setAttribute("aria-live", "polite");
-    container.setAttribute("aria-relevant", "additions");
-    document.body.appendChild(container);
-  }
-  return container;
-};
+/** Return the toast container element. */
+const toastContainer = (): HTMLElement | null => document.getElementById("toast-container");
 
 /**
  * Show a toast notification with optional auto-dismiss.
@@ -28,7 +16,7 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
   const container = toastContainer();
   const template = document.getElementById("toast-template") as HTMLTemplateElement | null;
 
-  if (!template) {
+  if (!container || !template) {
     return;
   }
 
