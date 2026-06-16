@@ -5,7 +5,12 @@ import { setupKeyboard } from "./keyboard";
 import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
 import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
 import { setupQuality, updateQualityOptions } from "./quality";
-import { hydrateAlternateMode, setupMode, updateModeButtons } from "./mode";
+import {
+  ensurePreferredModeSource,
+  hydrateAlternateMode,
+  setupMode,
+  updateModeButtons,
+} from "./mode";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { goToNextEpisode } from "./episodes/nav";
 import { resolveActiveSegments, renderSegments } from "./skip/segments";
@@ -88,7 +93,7 @@ const updatePreviewUI = (ratio: number): void => {
   state.elements.previewPopover.style.left = `${Math.max(popoverWidth / 2, Math.min(barWidth - popoverWidth / 2, ratio * barWidth))}px`;
 };
 
-const initPlayer = (): void => {
+const initPlayer = async (): Promise<void> => {
   const container = document.querySelector("[data-video-player]") as HTMLElement | null;
   if (!container) return;
   if (container === currentContainer) return;
@@ -119,15 +124,6 @@ const initPlayer = (): void => {
     }
   };
 
-  // build video src from mode, token, and saved quality preference
-  const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
-  const streamToken = state.playback.modeSources[state.playback.currentMode]?.token;
-  if (streamToken) {
-    const source = state.playback.modeSources[state.playback.currentMode];
-    const url = `${state.playback.streamURL}?mode=${encodeURIComponent(state.playback.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
-    loadVideoSource(url, source?.type);
-  }
-
   setupProgress();
   setupControls();
   setupKeyboard();
@@ -143,6 +139,22 @@ const initPlayer = (): void => {
   setupAutoplayButton();
   updateAutoSkipButton();
   showControls();
+
+  await ensurePreferredModeSource(signal);
+
+  // build video src from mode, token, and saved quality preference
+  const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
+  const streamToken = state.playback.modeSources[state.playback.currentMode]?.token;
+  if (streamToken) {
+    const source = state.playback.modeSources[state.playback.currentMode];
+    const url = `${state.playback.streamURL}?mode=${encodeURIComponent(state.playback.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+    loadVideoSource(url, source?.type);
+  }
+
+  updateSubtitleOptions();
+  updateQualityOptions();
+  updateModeButtons();
+
   if (state.playback.modeSwitchedFrom === "dub" && state.playback.currentMode === "sub") {
     window.showToast?.({
       message: `Episode ${state.episode.current} is only available in sub, switched from dub.`,
@@ -418,9 +430,11 @@ const initPlayer = (): void => {
   };
 };
 
-onReady(initPlayer);
+onReady(() => {
+  void initPlayer();
+});
 onHtmxLoad((root) => {
   if (root.matches("[data-video-player]") || root.querySelector("[data-video-player]")) {
-    initPlayer();
+    void initPlayer();
   }
 });

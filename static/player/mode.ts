@@ -1,3 +1,4 @@
+import type { ModeSource } from "./types";
 import { state } from "./state";
 import { showControls } from "./controls";
 import { updateSubtitleOptions } from "./subtitles";
@@ -13,23 +14,58 @@ const alternateModeFor = (mode: string): "sub" | "dub" | null => {
   return null;
 };
 
+const fetchModeSource = async (
+  episode: string,
+  mode: "sub" | "dub",
+  signal?: AbortSignal,
+): Promise<ModeSource | null> => {
+  const res = await fetch(
+    `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(episode)}?mode=${encodeURIComponent(mode)}`,
+    { signal },
+  );
+  if (!res.ok) return null;
+
+  const data: unknown = await res.json();
+  if (!isRecord(data)) return null;
+
+  const sources = parseModeSources(data.mode_sources);
+  return sources[mode] ?? null;
+};
+
+export const ensurePreferredModeSource = async (signal?: AbortSignal): Promise<string> => {
+  const storedMode = safeLocalStorage.getItem("player-audio-mode");
+  const preferredMode = storedMode === "sub" || storedMode === "dub" ? storedMode : null;
+  if (!preferredMode) return state.playback.currentMode;
+  if (state.playback.modeSources[preferredMode]?.token) {
+    state.playback.currentMode = preferredMode;
+    return preferredMode;
+  }
+
+  try {
+    const preferredSource = await fetchModeSource(state.episode.current, preferredMode, signal);
+    if (!preferredSource?.token) return state.playback.currentMode;
+
+    state.playback.modeSources = {
+      ...state.playback.modeSources,
+      [preferredMode]: preferredSource,
+    };
+    state.playback.currentMode = preferredMode;
+  } catch (error: unknown) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return state.playback.currentMode;
+    }
+  }
+
+  return state.playback.currentMode;
+};
+
 export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> => {
   const alternateMode = alternateModeFor(state.playback.currentMode);
   if (!alternateMode) return;
   if (state.playback.modeSources[alternateMode]?.token) return;
 
   try {
-    const res = await fetch(
-      `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(state.episode.current)}?mode=${encodeURIComponent(alternateMode)}`,
-      { signal },
-    );
-    if (!res.ok) return;
-
-    const data: unknown = await res.json();
-    if (!isRecord(data)) return;
-
-    const sources = parseModeSources(data.mode_sources);
-    const alternateSource = sources[alternateMode];
+    const alternateSource = await fetchModeSource(state.episode.current, alternateMode, signal);
     if (!alternateSource?.token) return;
 
     state.playback.modeSources = {
