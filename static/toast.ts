@@ -3,6 +3,7 @@ export {};
 interface ToastOptions {
   message: string;
   duration?: number;
+  variant?: "default" | "destructive";
 }
 
 /** Return the toast container element. */
@@ -12,7 +13,7 @@ const toastContainer = (): HTMLElement | null => document.getElementById("toast-
  * Show a toast notification with optional auto-dismiss.
  * Exposed globally via window.showToast.
  */
-const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
+const showToast = ({ message, duration = 3000, variant = "default" }: ToastOptions): void => {
   const container = toastContainer();
   const template = document.getElementById("toast-template") as HTMLTemplateElement | null;
 
@@ -23,6 +24,7 @@ const showToast = ({ message, duration = 3000 }: ToastOptions): void => {
   const toast = (template.content.cloneNode(true) as DocumentFragment)
     .firstElementChild as HTMLElement;
   if (!toast) return;
+  toast.dataset.variant = variant;
   toast.setAttribute("role", "status");
   toast.setAttribute("aria-live", "polite");
   const messageEl = toast.querySelector(".toast-message");

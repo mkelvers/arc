@@ -28,12 +28,12 @@
   </style>
    <script type="module" src="{{assetURL "/dist/static/app.js"}}" defer></script>
    <template id="toast-template">
-      <div class="toast pointer-events-auto w-88 max-w-[calc(100vw-2rem)] bg-background shadow-(--shadow-card) ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0">
+      <div class="toast pointer-events-auto w-88 max-w-[calc(100vw-2rem)] bg-background shadow-(--shadow-card) ring-1 ring-black/5 flex items-start gap-3 px-4 py-3 transform transition-all duration-300 translate-y-2 opacity-0 data-[variant=destructive]:bg-red-950/92 data-[variant=destructive]:ring-red-500/35">
         <div class="min-w-0 flex-1">
-         <div class="toast-message text-sm font-medium text-foreground leading-snug"></div>
+         <div class="toast-message text-sm font-medium text-foreground leading-snug data-[variant=destructive]:text-red-100"></div>
        </div>
-       <button class="toast-close -mr-1 -mt-1 rounded-md p-1.5 opacity-70 hover:opacity-100 hover:bg-foreground/10 focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Close">
-         <svg class="size-4 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+       <button class="toast-close -mr-1 -mt-1 rounded-md p-1.5 opacity-70 hover:opacity-100 hover:bg-foreground/10 focus:outline-none focus:ring-2 focus:ring-ring data-[variant=destructive]:hover:bg-red-400/12 data-[variant=destructive]:focus:ring-red-300/60" aria-label="Close">
+         <svg class="size-4 text-foreground-muted data-[variant=destructive]:text-red-200/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
            <path d="M18 6L6 18M6 6l12 12"/>
          </svg>
        </button>
