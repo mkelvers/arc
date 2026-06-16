@@ -46,21 +46,38 @@ const getTriggerFromHtmxEvent = (event: Event): Element | null => {
   return detail.detail?.elt ?? null;
 };
 
-const syncSFWRequestParameter = (event: Event): void => {
+const isBrowseForm = (form: HTMLFormElement): boolean =>
+  form.getAttribute("action") === "/browse" || form.getAttribute("hx-get") === "/browse";
+
+const selectedGenreValues = (): string[] =>
+  Array.from(document.querySelectorAll<HTMLInputElement>("[data-genre-visual]:checked"))
+    .map((input) => input.value)
+    .filter((value) => value !== "");
+
+const syncBrowseRequestParameters = (event: Event): void => {
   const detail = (event as CustomEvent<HtmxConfigRequestDetail>).detail;
   if (!detail.parameters) return;
 
   const form = detail.elt instanceof HTMLFormElement ? detail.elt : detail.elt?.closest("form");
   if (!(form instanceof HTMLFormElement)) return;
+  if (!isBrowseForm(form)) return;
 
-  const checkbox = form.querySelector<HTMLInputElement>("[data-sfw-checkbox]");
-  if (!checkbox) return;
+  const checkbox = document.querySelector<HTMLInputElement>("[data-sfw-checkbox]");
+  if (checkbox) {
+    detail.parameters.sfw = String(checkbox.checked);
+  }
 
-  detail.parameters.sfw = String(checkbox.checked);
+  const genres = selectedGenreValues();
+  if (genres.length > 0) {
+    detail.parameters.genres = genres;
+    return;
+  }
+
+  delete detail.parameters.genres;
 };
 
 onReady(() => {
-  document.addEventListener("htmx:configRequest", syncSFWRequestParameter);
+  document.addEventListener("htmx:configRequest", syncBrowseRequestParameters);
 
   document.addEventListener("htmx:beforeRequest", (event) => {
     setBusy(getTriggerFromHtmxEvent(event), true);
