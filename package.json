@@ -5,9 +5,8 @@
   "scripts": {
     "build:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css",
     "watch:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch",
-    "build:ts": "bun ./scripts/build-ts.ts",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
-    "build:assets": "bun run build:css && bun run build:ts",
+    "build:assets": "bun run build:css",
     "format": "bunx oxfmt",
     "format:check": "bunx oxfmt --check",
     "lint": "bun run lint:ts && bun run lint:go",
