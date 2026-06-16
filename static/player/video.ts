@@ -43,6 +43,7 @@ export const loadVideoSource = (url: string, type?: string): void => {
 
   const wasPlaying = !state.elements.video.paused;
   const prevDisplayTime = displayTimeFromAbsolute(state.elements.video.currentTime);
+  const shouldPreservePosition = prevDisplayTime > 0;
 
   // Fully reset the element before setting a new source.
   destroyVideoSource();
@@ -57,9 +58,10 @@ export const loadVideoSource = (url: string, type?: string): void => {
     state.elements.video.load();
   }
 
-  // Try an eager seek; if metadata isn't ready yet, main.ts will restore via pendingSeekTime.
-  state.playback.pendingSeekTime = prevDisplayTime;
-  if (state.elements.video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+  // Preserve position only when switching away from an existing playback state.
+  // On initial load, a zero pending seek would overwrite server-provided resume time.
+  state.playback.pendingSeekTime = shouldPreservePosition ? prevDisplayTime : null;
+  if (shouldPreservePosition && state.elements.video.readyState >= HTMLMediaElement.HAVE_METADATA) {
     invalidateBounds();
     state.elements.video.currentTime = absoluteTimeFromDisplay(prevDisplayTime);
     state.playback.pendingSeekTime = null;
