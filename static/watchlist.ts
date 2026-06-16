@@ -189,15 +189,14 @@ const toggleWatchlist = async (
     if (!response.ok) {
       throw new Error("not ok");
     }
-
-    toast(optimisticNext ? `Added ${title} to watchlist` : `Removed ${title} from watchlist`);
-  } catch {
+  } catch (error) {
     rollback();
     toast("Failed to update watchlist");
+    console.error("failed to update watchlist:", error);
+    throw error;
   } finally {
     watchlistStore.settle(id);
     setBusy(id, false);
-    syncIconsForId(id);
     syncRemoveButtonVisibility(id);
   }
 };
@@ -412,9 +411,11 @@ const updateWatchlist = async (
 
     closeClosestDropdown(source);
     toast(`Marked ${title} as ${display}`);
-  } catch {
+  } catch (error) {
     rollback();
     toast("Failed to update watchlist");
+    console.error("failed to update watchlist:", error);
+    throw error;
   } finally {
     watchlistStore.settle(id);
     setBusy(id, false);
@@ -451,9 +452,11 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
         window.setTimeout(() => window.location.reload(), 50);
       }
     }
-  } catch {
+  } catch (error) {
     rollback();
     toast("Failed to update watchlist");
+    console.error("failed to update watchlist:", error);
+    throw error;
   } finally {
     watchlistStore.settle(id);
     setBusy(id, false);
@@ -546,7 +549,8 @@ onReady(() => {
     let parsed: unknown = null;
     try {
       parsed = JSON.parse(raw);
-    } catch {
+    } catch (error) {
+      console.error("Failed to parse watchlist IDs JSON:", error);
       parsed = null;
     }
     const ids = Array.isArray(parsed)
