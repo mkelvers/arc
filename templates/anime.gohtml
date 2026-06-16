@@ -68,7 +68,7 @@
                   <div>
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
                     <dd class="text-foreground">
-                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}<a href="/browse?studio={{$s.MalID}}" class="underline underline-offset-2 decoration-foreground-muted/60 text-foreground-muted transition-colors hover:text-foreground hover:decoration-foreground/70">{{$s.Name}}</a>{{end}}
+                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}<a href="/browse?studio={{$s.MalID}}&sfw=true" class="underline underline-offset-2 decoration-foreground-muted/60 text-foreground-muted transition-colors hover:text-foreground hover:decoration-foreground/70">{{$s.Name}}</a>{{end}}
                     </dd>
                   </div>
                 {{end}}
@@ -89,7 +89,7 @@
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Genres</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Genres}}
-                        <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
+                        <a href="/browse?genres={{.MalID}}&sfw=true" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
@@ -99,7 +99,7 @@
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Themes</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Themes}}
-                        <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
+                        <a href="/browse?genres={{.MalID}}&sfw=true" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
@@ -109,7 +109,7 @@
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Demographics</dt>
                     <dd class="flex flex-wrap gap-2 pt-1">
                       {{range $anime.Demographics}}
-                        <a href="/browse?genres={{.MalID}}" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
+                        <a href="/browse?genres={{.MalID}}&sfw=true" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
                       {{end}}
                     </dd>
                   </div>
