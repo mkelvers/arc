@@ -224,7 +224,7 @@ func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode Watc
 	return allowedEntries, seen
 }
 
-func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.WatchOrderEntry) []fetchResult {
+func (c *Client) fetchRelationEntries(ctx context.Context, entries []watchorder.WatchOrderEntry) chan fetchResult {
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(3)
 
@@ -264,6 +264,12 @@ func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.
 		_ = g.Wait()
 		close(results)
 	}()
+
+	return results
+}
+
+func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.WatchOrderEntry) []fetchResult {
+	results := c.fetchRelationEntries(ctx, entries)
 
 	fetched := make([]fetchResult, 0, len(entries))
 	for res := range results {
