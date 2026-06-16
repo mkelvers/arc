@@ -53,3 +53,6 @@ new-data-fix name:
 
 run-fixes:
     go run ./cmd/user run-fixes
+
+fix-all:
+    bash scripts/fix-all.sh
