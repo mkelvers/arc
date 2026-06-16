@@ -6,6 +6,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/domain"
 	"testing"
+	"time"
 )
 
 type stubEpisodeService struct {
@@ -24,6 +25,92 @@ func (s *stubEpisodeService) GetCanonicalEpisodes(ctx context.Context, anime dom
 
 func (s *stubEpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error {
 	return nil
+}
+
+type releasedCountTest struct {
+	name  string
+	anime domain.Anime
+	now   time.Time
+	want  int
+}
+
+var releasedCountTests = []releasedCountTest{
+	{
+		name: "weekly airing count",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing:   true,
+			Episodes: 24,
+			Aired:    jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+		}},
+		now:  time.Date(2026, time.June, 13, 15, 0, 0, 0, time.UTC),
+		want: 11,
+	},
+	{
+		name: "before first release",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing: true,
+			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+		}},
+		now:  time.Date(2026, time.April, 4, 14, 59, 0, 0, time.UTC),
+		want: 0,
+	},
+	{
+		name: "first release counts as one",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing: true,
+			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+		}},
+		now:  time.Date(2026, time.April, 4, 15, 0, 0, 0, time.UTC),
+		want: 1,
+	},
+	{
+		name: "caps at total episode count",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing:   true,
+			Episodes: 12,
+			Aired:    jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+		}},
+		now:  time.Date(2026, time.December, 1, 15, 0, 0, 0, time.UTC),
+		want: 12,
+	},
+	{
+		name: "unknown total still estimates current count",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing: true,
+			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+		}},
+		now:  time.Date(2026, time.April, 18, 15, 0, 0, 0, time.UTC),
+		want: 3,
+	},
+	{
+		name: "non airing anime is not estimated",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing: false,
+			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+		}},
+		now:  time.Date(2026, time.April, 18, 15, 0, 0, 0, time.UTC),
+		want: 0,
+	},
+	{
+		name: "invalid aired date is ignored",
+		anime: domain.Anime{Anime: jikan.Anime{
+			Airing: true,
+			Aired:  jikan.Aired{From: "not-a-date"},
+		}},
+		now:  time.Date(2026, time.April, 18, 15, 0, 0, 0, time.UTC),
+		want: 0,
+	},
+}
+
+func TestReleasedEpisodeCount(t *testing.T) {
+	for _, tt := range releasedCountTests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := releasedEpisodeCount(tt.anime, tt.now)
+			if got != tt.want {
+				t.Fatalf("releasedEpisodeCount() = %d, want %d", got, tt.want)
+			}
+		})
+	}
 }
 
 func TestAnimeAudioAvailabilityLabel(t *testing.T) {

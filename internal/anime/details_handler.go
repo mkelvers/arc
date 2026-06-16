@@ -20,6 +20,23 @@ const (
 	audioLookupTimeout  = 8 * time.Second
 )
 
+func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
+	if !anime.Airing || anime.Aired.From == "" {
+		return 0
+	}
+
+	firstAired, err := time.Parse(time.RFC3339, anime.Aired.From)
+	if err != nil || now.Before(firstAired) {
+		return 0
+	}
+
+	count := int(now.Sub(firstAired)/(7*24*time.Hour)) + 1
+	if anime.Episodes > 0 && count > anime.Episodes {
+		return anime.Episodes
+	}
+	return count
+}
+
 func animeAudioAvailabilityLabel(episodes []domain.CanonicalEpisode) string {
 	hasKnownSub := false
 	for _, episode := range episodes {
@@ -105,6 +122,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 	}
 
 	audioAvailability := h.animeAudioAvailability(c.Request.Context(), anime)
+	episodesCount := releasedEpisodeCount(anime, time.Now())
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":                anime,
@@ -115,6 +133,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		"WatchlistIDs":         watchlistIDs,
 		"ContinueWatchingEp":   ep,
 		"ContinueWatchingTime": cwSeconds,
+		"EpisodesCount":        episodesCount,
 	})
 }
 
