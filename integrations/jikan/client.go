@@ -180,7 +180,7 @@ func isEmptyResult(out any) bool {
 	case *TopAnimeResponse:
 		return len(v.Data) == 0
 	case *SearchResponse:
-		return len(v.Data) == 0
+		return false
 	case *AnimeResponse:
 		return v.Data.MalID == 0
 	case *EpisodesResponse:

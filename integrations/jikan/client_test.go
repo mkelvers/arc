@@ -52,6 +52,32 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	waitForFreshCache(t, sqlDB, client, "top:1")
 }
 
+func TestGetWithCacheAllowsEmptySearchResults(t *testing.T) {
+	sqlDB := newTestCacheDB(t)
+	defer sqlDB.Close()
+
+	queries := db.New(sqlDB)
+	client := NewClient(config.Config{}, queries, observability.NewMetrics())
+	client.fetcher.HTTPClient = &http.Client{
+		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			body := `{"pagination":{"has_next_page":false},"data":[]}`
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(body)),
+				Header:     make(http.Header),
+			}, nil
+		}),
+	}
+
+	var got SearchResponse
+	if err := client.getWithCache(context.Background(), "search::::::12:0:true:1:24", time.Hour, "https://example.test/anime?genres=12", &got); err != nil {
+		t.Fatalf("getWithCache() returned error for empty search response: %v", err)
+	}
+	if len(got.Data) != 0 {
+		t.Fatalf("getWithCache() data length = %d, want 0", len(got.Data))
+	}
+}
+
 func newTestCacheDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
