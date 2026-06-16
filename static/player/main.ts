@@ -172,7 +172,8 @@ const initPlayer = (): void => {
         sessionStorage.removeItem("mal:resume-after-mode-switch");
         const parsed = Number(raw);
         return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-      } catch {
+      } catch (error) {
+        console.error("failed to parse resume state:", error);
         return null;
       }
     })();
@@ -200,7 +201,9 @@ const initPlayer = (): void => {
     // autoplay if not already playing (inline script may have already called play())
     // but don't autoplay if we've reached the end
     if (!isAtEnd && (state.playback.shouldAutoPlay || state.elements.video.paused)) {
-      state.elements.video.play().catch(() => undefined);
+      state.elements.video.play().catch((error) => {
+        console.debug("failed to autoplay video:", error);
+      });
     }
 
     updateTimeline(state.elements.video.currentTime);
@@ -279,7 +282,8 @@ const initPlayer = (): void => {
       try {
         (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
       } catch (e) {
-        console.warn("Failed to capture pointer:", e);
+        console.error("failed to capture pointer:", e);
+        throw e;
       }
       scrubToPointer(e.clientX, true);
     },

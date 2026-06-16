@@ -3,7 +3,8 @@ export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 const getLocalStorage = (): StorageLike | null => {
   try {
     return window.localStorage;
-  } catch {
+  } catch (error) {
+    console.error("failed to access localstorage:", error);
     return null;
   }
 };
@@ -14,7 +15,8 @@ export const safeLocalStorage = {
     if (!storage) return null;
     try {
       return storage.getItem(key);
-    } catch {
+    } catch (error) {
+      console.error(`failed to get localstorage item '${key}':`, error);
       return null;
     }
   },
@@ -23,8 +25,8 @@ export const safeLocalStorage = {
     if (!storage) return;
     try {
       storage.setItem(key, value);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error(`failed to set localstorage item '${key}':`, error);
     }
   },
   removeItem(key: string): void {
@@ -32,8 +34,8 @@ export const safeLocalStorage = {
     if (!storage) return;
     try {
       storage.removeItem(key);
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error(`failed to remove localstorage item '${key}':`, error);
     }
   },
 };

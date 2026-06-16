@@ -204,7 +204,8 @@ export const initState = (c: HTMLElement): boolean => {
   const safeJsonUnknown = (raw: string | undefined): unknown => {
     try {
       return JSON.parse(raw ?? "");
-    } catch {
+    } catch (error) {
+      console.error("failed to parse json:", error);
       return null;
     }
   };
@@ -237,7 +238,8 @@ export const initState = (c: HTMLElement): boolean => {
       const modeParam = u.searchParams.get("mode");
       if (modeParam === "sub" || modeParam === "dub") return modeParam;
       return null;
-    } catch {
+    } catch (error) {
+      console.error("failed to parse mode url:", error);
       return null;
     }
   };

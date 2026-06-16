@@ -211,7 +211,12 @@ export const setupSegmentEditor = (): void => {
       });
       if (!res.ok) {
         let message = res.status === 401 ? "Login required." : "Failed to save segment.";
-        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        let payload: { error?: string } | null = null;
+        try {
+          payload = await res.json();
+        } catch (error) {
+          console.error("failed to parse response json:", error);
+        }
         if (payload?.error) message = payload.error;
         setError(message);
         return;
@@ -235,8 +240,10 @@ export const setupSegmentEditor = (): void => {
 
       window.showToast?.({ message: "Segment saved." });
       close();
-    } catch {
-      setError("Failed to save segment.");
+    } catch (error) {
+      setError("Failed To Save Segment.");
+      console.error("failed to save segment:", error);
+      throw error;
     } finally {
       saveBtn.disabled = false;
       saveBtn.classList.remove("opacity-70");

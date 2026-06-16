@@ -71,7 +71,8 @@ export const saveProgress = async (
         seconds: savedTime,
       };
     } catch (e) {
-      console.warn("Progress save failed:", e);
+      console.error("progress save failed:", e);
+      throw e;
     }
   })();
 
@@ -113,7 +114,9 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
       headers: { "Content-Type": "application/json" },
       keepalive: true,
       body: payload,
-    }).catch(() => undefined);
+    }).catch((error) => {
+      console.debug("failed to save progress:", error);
+    });
   }
 };
 

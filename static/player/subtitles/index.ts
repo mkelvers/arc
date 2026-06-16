@@ -32,7 +32,8 @@ const loadSubtitle = async (url: string): Promise<SubtitleCue[]> => {
     const res = await fetch(url);
     if (!res.ok) return [];
     return parseVtt(await res.text());
-  } catch {
+  } catch (error) {
+    console.error("failed to load subtitle:", error);
     return [];
   }
 };

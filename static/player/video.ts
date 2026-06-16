@@ -26,7 +26,8 @@ const shouldUseHLS = (type: string | undefined, url: string): boolean => {
     const parsed = new URL(url, window.location.href);
     if (parsed.searchParams.get("hls") === "1") return true;
     return parsed.pathname.toLowerCase().endsWith(".m3u8");
-  } catch {
+  } catch (error) {
+    console.error("Failed to parse video URL:", error);
     return url.toLowerCase().includes(".m3u8");
   }
 };
@@ -65,6 +66,8 @@ export const loadVideoSource = (url: string, type?: string): void => {
   }
 
   if (wasPlaying) {
-    state.elements.video.play().catch(() => undefined);
+    state.elements.video.play().catch((error) => {
+      console.debug("failed to play video:", error);
+    });
   }
 };

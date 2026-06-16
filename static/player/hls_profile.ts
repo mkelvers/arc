@@ -38,8 +38,9 @@ const mark = (name: string): void => {
 const measure = (name: string, startMark: string): void => {
   try {
     performance.measure(`mal.hls.${name}`, `mal.hls.${startMark}`);
-  } catch {
+  } catch (error) {
     // Missing marks can happen if HLS.js emits a later event after cleanup.
+    console.debug("failed to measure performance:", error);
   }
 };
 

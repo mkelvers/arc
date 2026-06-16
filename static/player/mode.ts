@@ -75,8 +75,8 @@ export const switchMode = (mode: string): void => {
         const next = new URL(window.location.href);
         next.searchParams.set("mode", expectedMode);
         window.location.href = next.toString();
-      } catch {
-        // no-op
+      } catch (error) {
+        console.error("failed to save resume state or switch mode:", error);
       }
     }, 800);
   }
