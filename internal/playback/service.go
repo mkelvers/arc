@@ -32,7 +32,7 @@ func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provi
 		jikan:         jikan,
 		episodes:      episodes,
 		auditSvc:      auditSvc,
-		httpClient:    &http.Client{Timeout: 10 * time.Second},
+		httpClient:    netutil.NewClient(),
 		proxyTokenKey: string(proxyTokenKey),
 		proxyTokens:   newProxyTokenStore(),
 	}
