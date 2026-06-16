@@ -29,7 +29,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Ensure dist is clean at build time (belt + suspenders)
-RUN rm -rf dist/ && bun run build:assets
+RUN rm -rf dist/ && bun run build:assets && bun run build:ts
 
 # Build the server and CLI tools
 RUN go build -ldflags="-s -w" -o main_server ./cmd/server
