@@ -41,7 +41,7 @@
       {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
       {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
       {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
-      {{if not .SFW}}<input type="hidden" name="sfw" value="false">{{end}}
+      <input type="hidden" name="sfw" value="{{.SFW}}">
       {{range $g := .Genres}}<input type="hidden" name="genres" value="{{$g}}">{{end}}
     </form>
   </div>
@@ -105,7 +105,7 @@
         {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
         {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
         {{if .Sort}}<input type="hidden" name="sort" value="{{.Sort}}">{{end}}
-        {{if not .SFW}}<input type="hidden" name="sfw" value="false">{{end}}
+        <input type="hidden" name="sfw" value="{{.SFW}}">
         {{range .GenresList}}
           {{$genreID := .MalID}}
           {{$isSelected := hasGenre $genreID $selectedGenreIDs}}
