@@ -24,7 +24,7 @@ func normalizeSkipType(skipType string) (string, error) {
 	case "ed", "ending", "outro":
 		return "ed", nil
 	default:
-		return "", fmt.Errorf("invalid skip_type")
+		return "", fmt.Errorf("invalid skip_type %q", skipType)
 	}
 }
 
@@ -33,19 +33,19 @@ func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID 
 		return fmt.Errorf("not authenticated")
 	}
 	if animeID <= 0 || episode <= 0 {
-		return fmt.Errorf("invalid anime/episode")
+		return fmt.Errorf("invalid anime/episode: anime_id=%d episode=%d", animeID, episode)
 	}
 	t, err := normalizeSkipType(skipType)
 	if err != nil {
-		return err
+		return fmt.Errorf("normalize skip type: %w", err)
 	}
 	if !(startTime >= 0) || !(endTime > startTime) {
-		return fmt.Errorf("invalid interval")
+		return fmt.Errorf("invalid interval: start=%f end=%f", startTime, endTime)
 	}
 	if endTime-startTime < 5 || endTime-startTime > 10*60 {
-		return fmt.Errorf("interval duration out of range")
+		return fmt.Errorf("interval duration out of range: duration=%f", endTime-startTime)
 	}
-	return s.repo.UpsertSkipSegmentOverride(ctx, db.SkipSegmentOverrideRow{
+	if err := s.repo.UpsertSkipSegmentOverride(ctx, db.SkipSegmentOverrideRow{
 		ID:        uuid.New().String(),
 		UserID:    userID,
 		AnimeID:   animeID,
@@ -53,7 +53,10 @@ func (s *playbackService) UpsertSkipSegmentOverride(ctx context.Context, userID 
 		SkipType:  t,
 		StartTime: startTime,
 		EndTime:   endTime,
-	})
+	}); err != nil {
+		return fmt.Errorf("upsert skip segment override: %w", err)
+	}
+	return nil
 }
 
 func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, malID int, episode string) ([]domain.SkipSegment, error) {

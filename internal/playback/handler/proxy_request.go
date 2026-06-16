@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	netutil "mal/pkg/net"
 	"net/http"
 )
@@ -9,7 +10,7 @@ import (
 func newProxyRequest(ctx context.Context, targetURL string, referer string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("build proxy request for %q: %w", targetURL, err)
 	}
 
 	if referer != "" {

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -22,7 +23,7 @@ func isHLSPlaylistResponse(targetURL string, headers http.Header) bool {
 func (h *PlaybackHandler) rewriteHLSPlaylist(body string, playlistURL string, referer string) (string, error) {
 	baseURL, err := url.Parse(playlistURL)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parse playlist url %q: %w", playlistURL, err)
 	}
 
 	lines := strings.SplitAfter(body, "\n")
@@ -47,7 +48,7 @@ func (h *PlaybackHandler) rewriteHLSPlaylist(body string, playlistURL string, re
 				rewritten, err = h.proxyPlaylistURI(trimmed, baseURL, referer)
 			}
 			if err != nil {
-				return "", err
+				return "", fmt.Errorf("rewrite hls playlist line %q: %w", trimmed, err)
 			}
 		}
 		out.WriteString(rewritten)
@@ -76,7 +77,7 @@ func (h *PlaybackHandler) rewriteHLSQuotedURIs(line string, baseURL *url.URL, re
 		}
 		proxied, err := h.proxyPlaylistURI(remaining[:end], baseURL, referer)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("rewrite quoted hls uri %q: %w", remaining[:end], err)
 		}
 		out.WriteString(proxied)
 		remaining = remaining[end:]
@@ -86,11 +87,11 @@ func (h *PlaybackHandler) rewriteHLSQuotedURIs(line string, baseURL *url.URL, re
 func (h *PlaybackHandler) proxyPlaylistURI(rawURI string, baseURL *url.URL, referer string) (string, error) {
 	target, err := baseURL.Parse(rawURI)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parse hls uri %q: %w", rawURI, err)
 	}
 	token, err := h.svc.SignProxyToken(target.String(), referer, "stream")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("sign hls proxy token for %q: %w", target.String(), err)
 	}
 	params := url.Values{}
 	params.Set("token", token)

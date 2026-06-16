@@ -82,13 +82,13 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 				CurrentTimeSeconds: entry.CurrentTimeSeconds,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("upsert completed watchlist entry user_id=%s anime_id=%d: %w", userID, animeID, err)
 			}
 		}
 
 		return nil
 	}); err != nil {
-		return err
+		return fmt.Errorf("complete anime transaction user_id=%s anime_id=%d: %w", userID, animeID, err)
 	}
 
 	if err := s.auditSvc.Record(ctx, domain.AuditEvent{
@@ -112,7 +112,7 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 	err := s.repo.InTx(ctx, func(txCtx context.Context, repo domain.PlaybackRepository) error {
 		if _, err := repo.GetAnime(txCtx, animeID); err != nil {
 			if _, err := repo.UpsertAnime(txCtx, minimalAnimeParams(animeID)); err != nil {
-				return err
+				return fmt.Errorf("upsert minimal anime %d: %w", animeID, err)
 			}
 		}
 
@@ -124,10 +124,13 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 			CurrentTimeSeconds: timeSeconds,
 			DurationSeconds:    sql.NullFloat64{Valid: false},
 		})
-		return err
+		if err != nil {
+			return fmt.Errorf("upsert continue watching entry user_id=%s anime_id=%d episode=%d: %w", userID, animeID, episode, err)
+		}
+		return nil
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("save progress transaction user_id=%s anime_id=%d episode=%d: %w", userID, animeID, episode, err)
 	}
 
 	event := domain.AuditEvent{
@@ -166,7 +169,10 @@ func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime
 		return nil
 	}
 	_, err := s.repo.UpsertAnime(ctx, animeParams(anime))
-	return err
+	if err != nil {
+		return fmt.Errorf("upsert anime %d: %w", anime.MalID, err)
+	}
+	return nil
 }
 
 func animeParams(anime domain.Anime) db.UpsertAnimeParams {
