@@ -3,6 +3,7 @@ package watchlist
 import (
 	"context"
 	"database/sql"
+
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -47,10 +48,13 @@ func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, anime
 			}
 		}
 
-		existing, _ := repo.GetWatchListEntry(txCtx, db.GetWatchListEntryParams{
+		existing, err := repo.GetWatchListEntry(txCtx, db.GetWatchListEntryParams{
 			UserID:  userID,
 			AnimeID: animeID,
 		})
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
 
 		_, err = repo.UpsertWatchListEntry(txCtx, db.UpsertWatchListEntryParams{
 			ID:                 uuid.New().String(),
