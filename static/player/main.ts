@@ -140,6 +140,20 @@ const initPlayer = async (): Promise<void> => {
   updateAutoSkipButton();
   showControls();
 
+  const playbackError = container.dataset.playbackError?.trim() ?? "";
+  const hasPlayableSource = Object.values(state.playback.modeSources).some((source) =>
+    Boolean(source?.token),
+  );
+  if (!hasPlayableSource) {
+    if (playbackError) {
+      window.showToast?.({
+        message: "Playback is unavailable for this episode.",
+        variant: "destructive",
+      });
+    }
+    return;
+  }
+
   await ensurePreferredModeSource(signal);
 
   // build video src from mode, token, and saved quality preference
