@@ -11,8 +11,48 @@ type WatchlistUpdateDisplay =
   | "Dropped"
   | "Add to Watchlist";
 
-const watchlistIds = new Set<number>();
-const inflight = new Set<number>();
+class WatchlistStore {
+  private readonly watchlistIds = new Set<number>();
+  private readonly inflight = new Set<number>();
+
+  add(id: number): void {
+    this.watchlistIds.add(id);
+  }
+
+  remove(id: number): void {
+    this.watchlistIds.delete(id);
+  }
+
+  has(id: number): boolean {
+    return this.watchlistIds.has(id);
+  }
+
+  isBusy(id: number): boolean {
+    return this.inflight.has(id);
+  }
+
+  withOptimistic(id: number, onRollback: () => void): (() => void) | null {
+    if (this.isBusy(id)) return null;
+
+    const wasInWatchlist = this.has(id);
+    this.inflight.add(id);
+
+    return () => {
+      if (wasInWatchlist) {
+        this.add(id);
+      } else {
+        this.remove(id);
+      }
+      onRollback();
+    };
+  }
+
+  settle(id: number): void {
+    this.inflight.delete(id);
+  }
+}
+
+const watchlistStore = new WatchlistStore();
 
 const getShowToast = (): ((opts: { message: string; duration?: number }) => void) | null => {
   const anyWindow = window as unknown as {
@@ -52,7 +92,7 @@ const requestJson = async (input: string, init: RequestInit): Promise<Response> 
 const syncRemoveButtonVisibility = (id: number): void => {
   const container = document.getElementById(`remove-watchlist-container-${id}`);
   if (!container) return;
-  container.classList.toggle("hidden", !watchlistIds.has(id));
+  container.classList.toggle("hidden", !watchlistStore.has(id));
 };
 
 const syncWatchlistDropdown = (id: number, inWatchlist: boolean): void => {
@@ -63,7 +103,7 @@ const syncWatchlistDropdown = (id: number, inWatchlist: boolean): void => {
 };
 
 const syncIconsForId = (id: number): void => {
-  const shouldBeInWatchlist = watchlistIds.has(id);
+  const shouldBeInWatchlist = watchlistStore.has(id);
   document
     .querySelectorAll<HTMLElement>("[data-watchlist-toggle][data-mal-id]")
     .forEach((button) => {
@@ -75,29 +115,18 @@ const syncIconsForId = (id: number): void => {
         "aria-label",
         shouldBeInWatchlist ? "Remove from Watchlist" : "Add to Watchlist",
       );
-      button.toggleAttribute("aria-busy", inflight.has(id));
+      button.toggleAttribute("aria-busy", watchlistStore.isBusy(id));
     });
 };
 
 const setBusy = (id: number, busy: boolean): void => {
-  if (busy) {
-    inflight.add(id);
-  } else {
-    inflight.delete(id);
-  }
-
-  document
-    .querySelectorAll<HTMLButtonElement>("[data-watchlist-toggle][data-mal-id]")
-    .forEach((button) => {
-      const malId = toInt(button.dataset.malId);
-      if (malId !== id) return;
-      button.disabled = busy;
-      button.toggleAttribute("aria-busy", busy);
-    });
-
   document
     .querySelectorAll<HTMLButtonElement>(
-      "[data-watchlist-update][data-mal-id], [data-watchlist-remove][data-mal-id]",
+      [
+        "[data-watchlist-toggle][data-mal-id]",
+        "[data-watchlist-update][data-mal-id]",
+        "[data-watchlist-remove][data-mal-id]",
+      ].join(", "),
     )
     .forEach((button) => {
       const malId = toInt(button.dataset.malId);
@@ -119,22 +148,27 @@ const toggleWatchlist = async (
   title: string,
   renderedState: string | undefined,
 ): Promise<void> => {
-  if (inflight.has(id)) return;
   if (renderedState === "in") {
-    watchlistIds.add(id);
+    watchlistStore.add(id);
   } else if (renderedState === "out") {
-    watchlistIds.delete(id);
+    watchlistStore.remove(id);
   }
 
-  const isInWatchlist = watchlistIds.has(id);
+  const rollback = watchlistStore.withOptimistic(id, () => {
+    syncIconsForId(id);
+    syncWatchlistDropdown(id, watchlistStore.has(id));
+  });
+  if (!rollback) return;
+
+  const isInWatchlist = watchlistStore.has(id);
 
   setBusy(id, true);
 
   const optimisticNext = !isInWatchlist;
   if (optimisticNext) {
-    watchlistIds.add(id);
+    watchlistStore.add(id);
   } else {
-    watchlistIds.delete(id);
+    watchlistStore.remove(id);
   }
   syncIconsForId(id);
   syncWatchlistDropdown(id, optimisticNext);
@@ -158,15 +192,10 @@ const toggleWatchlist = async (
 
     toast(optimisticNext ? `Added ${title} to watchlist` : `Removed ${title} from watchlist`);
   } catch {
-    if (optimisticNext) {
-      watchlistIds.delete(id);
-    } else {
-      watchlistIds.add(id);
-    }
-    syncIconsForId(id);
-    syncWatchlistDropdown(id, watchlistIds.has(id));
+    rollback();
     toast("Failed to update watchlist");
   } finally {
+    watchlistStore.settle(id);
     setBusy(id, false);
     syncIconsForId(id);
     syncRemoveButtonVisibility(id);
@@ -353,11 +382,15 @@ const updateWatchlist = async (
   title: string,
   source: HTMLElement,
 ): Promise<void> => {
-  if (inflight.has(id)) return;
+  const rollback = watchlistStore.withOptimistic(id, () => {
+    syncIconsForId(id);
+    syncRemoveButtonVisibility(id);
+  });
+  if (!rollback) return;
+
   setBusy(id, true);
 
-  const wasInWatchlist = watchlistIds.has(id);
-  watchlistIds.add(id);
+  watchlistStore.add(id);
   syncIconsForId(id);
   syncRemoveButtonVisibility(id);
 
@@ -380,23 +413,24 @@ const updateWatchlist = async (
     closeClosestDropdown(source);
     toast(`Marked ${title} as ${display}`);
   } catch {
-    if (!wasInWatchlist) {
-      watchlistIds.delete(id);
-    }
-    syncIconsForId(id);
-    syncRemoveButtonVisibility(id);
+    rollback();
     toast("Failed to update watchlist");
   } finally {
+    watchlistStore.settle(id);
     setBusy(id, false);
   }
 };
 
 const removeWatchlist = async (id: number, title: string, source: HTMLElement): Promise<void> => {
-  if (inflight.has(id)) return;
+  const rollback = watchlistStore.withOptimistic(id, () => {
+    syncIconsForId(id);
+    syncWatchlistDropdown(id, watchlistStore.has(id));
+  });
+  if (!rollback) return;
+
   setBusy(id, true);
 
-  const wasInWatchlist = watchlistIds.has(id);
-  watchlistIds.delete(id);
+  watchlistStore.remove(id);
   syncIconsForId(id);
   syncWatchlistDropdown(id, false);
 
@@ -418,13 +452,10 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
       }
     }
   } catch {
-    if (wasInWatchlist) {
-      watchlistIds.add(id);
-    }
-    syncIconsForId(id);
-    syncWatchlistDropdown(id, watchlistIds.has(id));
+    rollback();
     toast("Failed to update watchlist");
   } finally {
+    watchlistStore.settle(id);
     setBusy(id, false);
     syncRemoveButtonVisibility(id);
   }
@@ -433,7 +464,7 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
 onReady(initWatchlistPage);
 
 const initWatchlist = (ids: number[]): void => {
-  ids.forEach((id) => watchlistIds.add(id));
+  ids.forEach((id) => watchlistStore.add(id));
   ids.forEach((id) => {
     syncRemoveButtonVisibility(id);
     syncIconsForId(id);
