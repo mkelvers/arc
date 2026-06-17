@@ -113,6 +113,20 @@ func TestReleasedEpisodeCount(t *testing.T) {
 	}
 }
 
+func TestListedEpisodeCount(t *testing.T) {
+	episodes := []domain.EpisodeData{
+		{MalID: 1, Title: "Episode 1"},
+		{MalID: 2, Title: "Episode 2"},
+		{MalID: 3, Title: "Recap", IsRecap: true},
+		{Title: "missing id"},
+	}
+
+	got := listedEpisodeCount(episodes)
+	if got != 2 {
+		t.Fatalf("listedEpisodeCount() = %d, want 2", got)
+	}
+}
+
 func TestAnimeAudioAvailabilityLabel(t *testing.T) {
 	tests := []struct {
 		name     string

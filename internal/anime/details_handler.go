@@ -18,7 +18,19 @@ const (
 	animeSectionTimeout = 12 * time.Second
 	watchOrderTimeout   = 15 * time.Second
 	audioLookupTimeout  = 8 * time.Second
+	episodeCountTimeout = 4 * time.Second
 )
+
+func listedEpisodeCount(episodes []domain.EpisodeData) int {
+	count := 0
+	for _, episode := range episodes {
+		if episode.MalID <= 0 || episode.IsRecap {
+			continue
+		}
+		count++
+	}
+	return count
+}
 
 func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
 	if !anime.Airing || anime.Aired.From == "" {
@@ -35,6 +47,32 @@ func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
 		return anime.Episodes
 	}
 	return count
+}
+
+func (h *AnimeHandler) animeEpisodeCount(ctx context.Context, anime domain.Anime, now time.Time) int {
+	if h.svc != nil && anime.Airing {
+		episodeCtx, cancel := context.WithTimeout(ctx, episodeCountTimeout)
+		defer cancel()
+
+		episodes, err := h.svc.GetAllEpisodes(episodeCtx, anime.MalID)
+		if err == nil {
+			if count := listedEpisodeCount(episodes); count > 0 {
+				return count
+			}
+		} else {
+			observability.Warn(
+				"anime_episode_count_fetch_failed",
+				"anime",
+				"",
+				map[string]any{
+					"anime_id": anime.MalID,
+				},
+				err,
+			)
+		}
+	}
+
+	return releasedEpisodeCount(anime, now)
 }
 
 func animeAudioAvailabilityLabel(episodes []domain.CanonicalEpisode) string {
@@ -122,7 +160,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 	}
 
 	audioAvailability := h.animeAudioAvailability(c.Request.Context(), anime)
-	episodesCount := releasedEpisodeCount(anime, time.Now())
+	episodesCount := h.animeEpisodeCount(c.Request.Context(), anime, time.Now())
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":                anime,
