@@ -2,6 +2,7 @@ package anime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/domain"
@@ -181,6 +182,9 @@ func (h *AnimeHandler) handleAnimeDetailsSection(c *gin.Context, id int, section
 
 	data, tplName, err := h.loadAnimeDetailsSection(sectionCtx, id, section)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
 		observability.Warn(
 			"anime_section_fetch_failed",
 			"anime",

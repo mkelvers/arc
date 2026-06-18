@@ -67,6 +67,9 @@ func IsRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
 
 	var apiErr *APIError
 	if errors.As(err, &apiErr) {
@@ -92,6 +95,9 @@ func (c *Client) FetchWithRetry(ctx context.Context, urlStr string, out any) err
 	attempts := 0
 	endpoint := metricsEndpoint(urlStr)
 	logAndReturn := func(statusCode int, err error) error {
+		if isDoneContextError(ctx, err) {
+			return err
+		}
 		c.Metrics.ObserveJikanRequest(endpoint, statusCode, time.Since(startedAt), err)
 		c.logUpstream(urlStr, statusCode, attempts, startedAt, err)
 		return err
@@ -127,7 +133,7 @@ func (c *Client) FetchWithRetry(ctx context.Context, urlStr string, out any) err
 func (c *Client) prepareRetryAttempt(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
-		return fmt.Errorf("request canceled while retrying jikan request: %w", ctx.Err())
+		return ctx.Err()
 	default:
 	}
 
@@ -150,8 +156,11 @@ func (c *Client) doRequest(ctx context.Context, urlStr string) (*http.Response, 
 }
 
 func handleRequestRetry(ctx context.Context, err error, attempt int, maxRetries int) (bool, error) {
+	if ctx.Err() != nil {
+		return false, ctx.Err()
+	}
 	if errors.Is(err, context.Canceled) {
-		return false, fmt.Errorf("request canceled while retrying jikan request: %w", err)
+		return false, err
 	}
 
 	if attempt >= maxRetries-1 || !IsRetryableError(err) {
@@ -253,8 +262,12 @@ func waitForRetry(ctx context.Context, delay time.Duration) error {
 	case <-timer.C:
 		return nil
 	case <-ctx.Done():
-		return fmt.Errorf("request canceled while retrying jikan request: %w", ctx.Err())
+		return ctx.Err()
 	}
+}
+
+func isDoneContextError(ctx context.Context, err error) bool {
+	return err != nil && ctx.Err() != nil && errors.Is(err, ctx.Err())
 }
 
 func (c *Client) logUpstream(urlStr string, statusCode int, attempts int, startedAt time.Time, err error) {

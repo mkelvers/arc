@@ -2,7 +2,6 @@ package rate
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -19,6 +18,12 @@ func NewLimiter(interval time.Duration) *Limiter {
 
 // Wait enforces minimum spacing between upstream Jikan requests.
 func (l *Limiter) Wait(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+
 	waitUntil := l.reserve(time.Now())
 	if waitUntil.IsZero() {
 		return nil
@@ -31,7 +36,8 @@ func (l *Limiter) Wait(ctx context.Context) error {
 	case <-timer.C:
 		return nil
 	case <-ctx.Done():
-		return fmt.Errorf("request canceled while waiting for rate limit: %w", ctx.Err())
+		l.release(waitUntil)
+		return ctx.Err()
 	}
 }
 
@@ -47,4 +53,14 @@ func (l *Limiter) reserve(now time.Time) time.Time {
 	waitUntil := l.nextReqTime
 	l.nextReqTime = l.nextReqTime.Add(l.interval)
 	return waitUntil
+}
+
+func (l *Limiter) release(waitUntil time.Time) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	reservationEnd := waitUntil.Add(l.interval)
+	if l.nextReqTime.Equal(reservationEnd) {
+		l.nextReqTime = waitUntil
+	}
 }

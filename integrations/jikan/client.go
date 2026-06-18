@@ -3,6 +3,7 @@ package jikan
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -98,6 +99,10 @@ func jikanCacheLogLevel(source string, err error) observability.LogLevel {
 }
 
 func (c *Client) logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {
+	if isContextError(err) {
+		return
+	}
+
 	duration := time.Since(startedAt)
 	if c.shouldSkipJikanCacheLog(source, duration, err) {
 		return
@@ -123,6 +128,10 @@ func truncateErrorMessage(message string) string {
 	}
 
 	return message[:400]
+}
+
+func isContextError(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // notifyRetryWorker signals the retry worker, non-blocking.
