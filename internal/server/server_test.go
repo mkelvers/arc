@@ -95,6 +95,60 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 	}
 }
 
+func TestRequestLoggerSkipsSuccessfulStreamProxy(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var logs bytes.Buffer
+	previousOutput := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(previousOutput)
+
+	router := gin.New()
+	router.Use(RequestContextMiddleware())
+	router.Use(RequestLogger(observability.NewMetrics()))
+	router.GET("/watch/proxy/stream", func(c *gin.Context) {
+		c.String(http.StatusOK, "segment")
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/watch/proxy/stream?token=abc", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := logs.String(); got != "" {
+		t.Fatalf("expected no successful stream proxy log, got %s", got)
+	}
+}
+
+func TestRequestLoggerLogsFailedStreamProxy(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var logs bytes.Buffer
+	previousOutput := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(previousOutput)
+
+	router := gin.New()
+	router.Use(RequestContextMiddleware())
+	router.Use(RequestLogger(observability.NewMetrics()))
+	router.GET("/watch/proxy/stream", func(c *gin.Context) {
+		c.Status(http.StatusBadGateway)
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/watch/proxy/stream?token=abc", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusBadGateway)
+	}
+	if got := logs.String(); !strings.Contains(got, " ERROR http 502 GET /watch/proxy/stream") {
+		t.Fatalf("expected failed stream proxy log, got %s", got)
+	}
+}
+
 func TestRespondErrorIncludesRequestContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

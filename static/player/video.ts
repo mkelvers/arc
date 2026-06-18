@@ -38,7 +38,7 @@ const shouldUseHLS = (type: string | undefined, url: string): boolean => {
  * Some browsers can be flaky when switching between HLS URLs while playing.
  * Clearing `src` first ensures the media element fully resets before the new URL is set.
  */
-export const loadVideoSource = (url: string, type?: string): void => {
+export const loadVideoSource = (url: string, type?: string, startTimeSeconds?: number): void => {
   if (!url) return;
 
   const wasPlaying = !state.elements.video.paused;
@@ -49,10 +49,24 @@ export const loadVideoSource = (url: string, type?: string): void => {
   destroyVideoSource();
 
   if (shouldUseHLS(type, url) && Hls.isSupported()) {
-    hls = new Hls();
+    hls = new Hls({
+      autoStartLoad: false,
+      backBufferLength: 30,
+      maxBufferLength: 18,
+      maxMaxBufferLength: 30,
+      maxBufferSize: 20 * 1000 * 1000,
+      startFragPrefetch: false,
+    });
     stopHLSProfile = attachHLSProfile(hls, state.elements.video);
     hls.loadSource(url);
     hls.attachMedia(state.elements.video);
+    hls.once(Hls.Events.MEDIA_ATTACHED, () => {
+      const startPosition =
+        startTimeSeconds !== undefined && Number.isFinite(startTimeSeconds) && startTimeSeconds > 0
+          ? startTimeSeconds
+          : -1;
+      hls?.startLoad(startPosition);
+    });
   } else {
     state.elements.video.src = url;
     state.elements.video.load();

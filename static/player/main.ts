@@ -156,13 +156,27 @@ const initPlayer = async (): Promise<void> => {
 
   await ensurePreferredModeSource(signal);
 
+  const resumeAfterModeSwitch = (() => {
+    try {
+      const raw = sessionStorage.getItem("mal:resume-after-mode-switch");
+      if (raw === null) return null;
+      sessionStorage.removeItem("mal:resume-after-mode-switch");
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+    } catch (error) {
+      console.error("failed to parse resume state:", error);
+      return null;
+    }
+  })();
+  const initialStartTime = resumeAfterModeSwitch ?? state.playback.startTimeSeconds;
+
   // build video src from mode, token, and saved quality preference
   const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
   const streamToken = state.playback.modeSources[state.playback.currentMode]?.token;
   if (streamToken) {
     const source = state.playback.modeSources[state.playback.currentMode];
     const url = `${state.playback.streamURL}?mode=${encodeURIComponent(state.playback.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
-    loadVideoSource(url, source?.type);
+    loadVideoSource(url, source?.type, initialStartTime);
   }
 
   updateSubtitleOptions();
@@ -189,20 +203,6 @@ const initPlayer = async (): Promise<void> => {
     const bounds = getBounds();
     const resumeTime = bounds.duration > 0 ? Math.min(startTime, bounds.duration) : 0;
     const isAtEnd = startTime > 0 && bounds.duration > 0 && startTime >= bounds.duration - 2;
-
-    // Resume after a mode-switch page reload (best effort, session-scoped).
-    const resumeAfterModeSwitch = (() => {
-      try {
-        const raw = sessionStorage.getItem("mal:resume-after-mode-switch");
-        if (raw === null) return null;
-        sessionStorage.removeItem("mal:resume-after-mode-switch");
-        const parsed = Number(raw);
-        return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-      } catch (error) {
-        console.error("failed to parse resume state:", error);
-        return null;
-      }
-    })();
 
     if (resumeAfterModeSwitch !== null) {
       const clamped = bounds.duration > 0 ? Math.min(resumeAfterModeSwitch, bounds.duration) : 0;
@@ -425,7 +425,9 @@ const initPlayer = async (): Promise<void> => {
   }
 
   setupThumbnails();
-  void hydrateAlternateMode(signal);
+  window.setTimeout(() => {
+    if (!signal.aborted) void hydrateAlternateMode(signal);
+  }, 3000);
 
   document.body.addEventListener(
     "htmx:beforeSwap",

@@ -44,6 +44,9 @@ func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
 		if len(privateErrors) > 0 {
 			logErr = privateErrors.Last().Err
 		}
+		if route == "/watch/proxy/stream" && status < 400 && len(privateErrors) == 0 {
+			return
+		}
 		if route != path {
 			fields["route"] = route
 		}
