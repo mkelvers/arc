@@ -149,6 +149,10 @@ const closeClosestDropdown = (from: HTMLElement): void => {
   });
 };
 
+const dispatchWatchlistChange = (id: number, inWatchlist: boolean): void => {
+  window.dispatchEvent(new CustomEvent("watchlist:change", { detail: { id, inWatchlist } }));
+};
+
 const toggleWatchlist = async (
   id: number,
   title: string,
@@ -178,6 +182,7 @@ const toggleWatchlist = async (
   }
   syncIconsForId(id);
   syncWatchlistDropdown(id, optimisticNext);
+  dispatchWatchlistChange(id, optimisticNext);
 
   const url = isInWatchlist ? `/api/watchlist/${id}` : "/api/watchlist";
   const method: "DELETE" | "POST" = isInWatchlist ? "DELETE" : "POST";
@@ -197,6 +202,7 @@ const toggleWatchlist = async (
     }
   } catch (error) {
     rollback();
+    dispatchWatchlistChange(id, isInWatchlist);
     toast("Failed to update watchlist");
     console.error("failed to update watchlist:", error);
     throw error;
@@ -398,6 +404,7 @@ const updateWatchlist = async (
   watchlistStore.add(id);
   syncIconsForId(id);
   syncRemoveButtonVisibility(id);
+  dispatchWatchlistChange(id, true);
 
   try {
     const response = await requestJson("/api/watchlist", {
@@ -419,6 +426,7 @@ const updateWatchlist = async (
     toast(`Marked ${title} as ${display}`);
   } catch (error) {
     rollback();
+    dispatchWatchlistChange(id, watchlistStore.has(id));
     toast("Failed to update watchlist");
     console.error("failed to update watchlist:", error);
     throw error;
@@ -440,6 +448,7 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
   watchlistStore.remove(id);
   syncIconsForId(id);
   syncWatchlistDropdown(id, false);
+  dispatchWatchlistChange(id, false);
 
   try {
     const response = await requestJson(`/api/watchlist/${id}`, { method: "DELETE" });
@@ -460,6 +469,7 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
     }
   } catch (error) {
     rollback();
+    dispatchWatchlistChange(id, watchlistStore.has(id));
     toast("Failed to update watchlist");
     console.error("failed to update watchlist:", error);
     throw error;

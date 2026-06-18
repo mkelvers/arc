@@ -15,13 +15,14 @@ import (
 const commandPaletteAnimeLimit = 24
 
 type commandPaletteItem struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Label    string `json:"label"`
-	Subtitle string `json:"subtitle"`
-	Href     string `json:"href"`
-	Image    string `json:"image,omitempty"`
-	Icon     string `json:"icon,omitempty"`
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Label       string `json:"label"`
+	Subtitle    string `json:"subtitle"`
+	Href        string `json:"href"`
+	Image       string `json:"image,omitempty"`
+	Icon        string `json:"icon,omitempty"`
+	InWatchlist bool   `json:"inWatchlist,omitempty"`
 }
 
 type commandPaletteResponse struct {
@@ -50,7 +51,7 @@ func (h *AnimeHandler) HandleCommandPalette(c *gin.Context) {
 		hasNextPage := false
 		if len(query) >= 2 {
 			var animeItems []commandPaletteItem
-			animeItems, hasNextPage = h.commandPaletteAnimeResults(c, query, page)
+			animeItems, hasNextPage = h.commandPaletteAnimeResults(c, user.ID, query, page)
 			items = append(items, animeItems...)
 		}
 
@@ -95,22 +96,24 @@ func (h *AnimeHandler) commandPaletteNavigationItems(query string) []commandPale
 	return filtered
 }
 
-func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, query string, page int) ([]commandPaletteItem, bool) {
+func (h *AnimeHandler) commandPaletteAnimeResults(c *gin.Context, userID string, query string, page int) ([]commandPaletteItem, bool) {
 	res, err := h.svc.SearchAdvanced(c.Request.Context(), query, "", "", "", "", nil, 0, true, page, commandPaletteAnimeLimit)
 	if err != nil {
 		return nil, false
 	}
 
 	animes := wrapAnimes(res.Animes)
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 	items := make([]commandPaletteItem, 0, len(animes))
 	for _, anime := range animes {
 		items = append(items, commandPaletteItem{
-			ID:       fmt.Sprintf("anime:%d", anime.MalID),
-			Type:     "anime",
-			Label:    anime.DisplayTitle(),
-			Subtitle: strings.TrimSpace("Anime " + anime.Type),
-			Href:     fmt.Sprintf("/anime/%d", anime.MalID),
-			Image:    anime.ImageURL(),
+			ID:          fmt.Sprintf("anime:%d", anime.MalID),
+			Type:        "anime",
+			Label:       anime.DisplayTitle(),
+			Subtitle:    strings.TrimSpace("Anime " + anime.Type),
+			Href:        fmt.Sprintf("/anime/%d", anime.MalID),
+			Image:       anime.ImageURL(),
+			InWatchlist: watchlistMap[int64(anime.MalID)],
 		})
 	}
 	return items, res.HasNextPage

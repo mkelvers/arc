@@ -17,6 +17,21 @@ import {
   isSafeImageUrl,
 } from "./state";
 
+const watchlistOverrides = new Map<number, boolean>();
+
+window.addEventListener("watchlist:change", (event) => {
+  if (!(event instanceof CustomEvent)) {
+    return;
+  }
+
+  const detail = event.detail as { id?: unknown; inWatchlist?: unknown } | null;
+  if (!detail || typeof detail.id !== "number" || typeof detail.inWatchlist !== "boolean") {
+    return;
+  }
+
+  watchlistOverrides.set(detail.id, detail.inWatchlist);
+});
+
 export const setClearButtonState = (hasQuery: boolean): void => {
   searchClearButtons.forEach((button) => {
     button.classList.toggle("opacity-0", !hasQuery);
@@ -158,6 +173,40 @@ const cleanLabel = (item: CommandPaletteItem): string => {
   return item.label;
 };
 
+const animeMalID = (item: CommandPaletteItem): number | null => {
+  if (item.type !== "anime") {
+    return null;
+  }
+
+  const match = item.id.match(/^anime:(\d+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const id = Number.parseInt(match[1], 10);
+  return Number.isFinite(id) ? id : null;
+};
+
+const buildWatchlistButton = (item: CommandPaletteItem): HTMLButtonElement | null => {
+  const malID = animeMalID(item);
+  if (malID === null) {
+    return null;
+  }
+
+  const button = document.createElement("button");
+  const inWatchlist = watchlistOverrides.get(malID) ?? item.inWatchlist === true;
+  button.type = "button";
+  button.className =
+    "absolute bottom-5 left-5 z-20 text-accent opacity-0 transition hover:text-accent/80 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50";
+  button.dataset.watchlistToggle = "";
+  button.dataset.malId = String(malID);
+  button.dataset.watchlistTitle = cleanLabel(item);
+  button.dataset.watchlistState = inWatchlist ? "in" : "out";
+  button.setAttribute("aria-label", inWatchlist ? "Remove from Watchlist" : "Add to Watchlist");
+  button.appendChild(buildSvgIcon(iconPaths.bookmark, "size-6 watchlist-icon"));
+  return button;
+};
+
 const buildCard = (item: CommandPaletteItem, index: number): HTMLAnchorElement => {
   const card = document.createElement("a");
   card.href = item.href;
@@ -173,6 +222,11 @@ const buildCard = (item: CommandPaletteItem, index: number): HTMLAnchorElement =
   const media = document.createElement("div");
   media.className = "relative mb-3 overflow-hidden bg-background-button";
   media.appendChild(buildPosterImage(item));
+
+  const watchlistButton = buildWatchlistButton(item);
+  if (watchlistButton) {
+    media.appendChild(watchlistButton);
+  }
 
   if (item.type === "continue") {
     const removeButton = document.createElement("button");

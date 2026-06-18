@@ -6,6 +6,7 @@ export interface CommandPaletteItem {
   href: string;
   image?: string;
   icon?: string;
+  inWatchlist?: boolean;
 }
 
 export interface CommandPaletteResponse {
