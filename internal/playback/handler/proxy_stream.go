@@ -47,12 +47,15 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 
 	copyProxyHeaders(c.Writer.Header(), resp.Header)
 	c.Status(resp.StatusCode)
-	if n, err := io.Copy(c.Writer, resp.Body); err != nil {
-		if errors.Is(err, context.Canceled) || c.Request.Context().Err() != nil {
-			return
-		}
-		observability.WarnContext(c.Request.Context(), "proxy_stream_copy_failed", "playback", "", map[string]any{"target_url": targetURL, "bytes_copied": n}, err)
+	copyProxyResponseBody(c, resp.Body, targetURL)
+}
+
+func copyProxyResponseBody(c *gin.Context, body io.Reader, targetURL string) {
+	n, err := io.Copy(c.Writer, body)
+	if err == nil || errors.Is(err, context.Canceled) || c.Request.Context().Err() != nil {
+		return
 	}
+	observability.WarnContext(c.Request.Context(), "proxy_stream_copy_failed", "playback", "", map[string]any{"target_url": targetURL, "bytes_copied": n}, err)
 }
 
 func (h *PlaybackHandler) writeProxyPlaylist(c *gin.Context, resp *http.Response, targetURL string, referer string) {
