@@ -66,9 +66,18 @@ func (s *playbackService) fetchSkipSegments(ctx context.Context, userID string, 
 
 	segments, err := s.fetchAniSkipSegments(ctx, malID, episode)
 	if err != nil {
+		overrides := s.loadSkipSegmentOverrides(ctx, userID, malID, episode)
+		if len(overrides) > 0 {
+			return mergeSkipSegments(nil, overrides), nil
+		}
 		return nil, fmt.Errorf("aniskip: %w", err)
 	}
-	return s.applySkipSegmentOverrides(ctx, segments, userID, malID, episode), nil
+
+	overrides := s.loadSkipSegmentOverrides(ctx, userID, malID, episode)
+	if len(overrides) == 0 {
+		return segments, nil
+	}
+	return mergeSkipSegments(segments, overrides), nil
 }
 
 func (s *playbackService) fetchAniSkipSegments(ctx context.Context, malID int, episode string) ([]domain.SkipSegment, error) {
@@ -139,28 +148,23 @@ func normalizeSkipSegmentLabel(skipType string) string {
 	}
 }
 
-func (s *playbackService) applySkipSegmentOverrides(ctx context.Context, segments []domain.SkipSegment, userID string, malID int, episode string) []domain.SkipSegment {
+func (s *playbackService) loadSkipSegmentOverrides(ctx context.Context, userID string, malID int, episode string) map[string]domain.SkipSegment {
 	epNum, err := strconv.ParseInt(strings.TrimSpace(episode), 10, 64)
 	if userID == "" || err != nil || epNum <= 0 {
-		return segments
+		return nil
 	}
 
 	ok, err := s.repo.HasSkipSegmentOverrideTable(ctx)
 	if err != nil || !ok {
-		return segments
+		return nil
 	}
 
 	overrides, err := s.repo.ListSkipSegmentOverrides(ctx, userID, int64(malID), epNum)
 	if err != nil {
-		return segments
+		return nil
 	}
 
-	overrideByType := buildOverrideSegments(overrides)
-	if len(overrideByType) == 0 {
-		return segments
-	}
-
-	return mergeSkipSegments(segments, overrideByType)
+	return buildOverrideSegments(overrides)
 }
 
 func buildOverrideSegments(overrides []db.SkipSegmentOverrideRow) map[string]domain.SkipSegment {
