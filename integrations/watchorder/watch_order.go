@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
 	"regexp"
