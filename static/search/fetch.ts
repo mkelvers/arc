@@ -1,4 +1,4 @@
-import type { CommandPaletteItem, CommandPaletteResponse } from "./state";
+import type { SearchItem, SearchResponse } from "./state";
 import {
   searchInput,
   searchResults,
@@ -24,17 +24,13 @@ import {
   appendItems,
 } from "./render";
 
-const parseCommandPaletteResponse = (payload: unknown): CommandPaletteResponse => {
+const parseSearchResponse = (payload: unknown): SearchResponse => {
   if (Array.isArray(payload)) {
-    return { items: payload as CommandPaletteItem[], hasNextPage: false };
+    return { items: payload as SearchItem[], hasNextPage: false };
   }
 
-  if (
-    payload &&
-    typeof payload === "object" &&
-    Array.isArray((payload as CommandPaletteResponse).items)
-  ) {
-    const response = payload as CommandPaletteResponse;
+  if (payload && typeof payload === "object" && Array.isArray((payload as SearchResponse).items)) {
+    const response = payload as SearchResponse;
     return {
       items: response.items,
       hasNextPage: response.hasNextPage,
@@ -45,7 +41,7 @@ const parseCommandPaletteResponse = (payload: unknown): CommandPaletteResponse =
   return { items: [], hasNextPage: false };
 };
 
-const visibleSearchItems = (items: CommandPaletteItem[], query: string): CommandPaletteItem[] => {
+const visibleSearchItems = (items: SearchItem[], query: string): SearchItem[] => {
   if (query === "") {
     return [];
   }
@@ -99,7 +95,7 @@ export const fetchSearchItems = (query: string): void => {
   const controller = new AbortController();
   setActiveRequestController(controller);
 
-  fetch("/api/command-palette?q=" + encodeURIComponent(query), { signal: controller.signal })
+  fetch("/api/search?q=" + encodeURIComponent(query), { signal: controller.signal })
     .then((res: Response) => {
       if (!res.ok) {
         return { items: [], hasNextPage: false };
@@ -111,7 +107,7 @@ export const fetchSearchItems = (query: string): void => {
         return;
       }
 
-      const response = parseCommandPaletteResponse(payload);
+      const response = parseSearchResponse(payload);
       const visibleItems = visibleSearchItems(response.items, query);
       setActiveRequestController(undefined);
       setSearchPagination(response.nextPage, response.hasNextPage);
@@ -139,12 +135,7 @@ export const fetchNextSearchPage = (): void => {
 
   setFetchingNextPage(true);
 
-  fetch(
-    "/api/command-palette?q=" +
-      encodeURIComponent(query) +
-      "&page=" +
-      encodeURIComponent(String(page)),
-  )
+  fetch("/api/search?q=" + encodeURIComponent(query) + "&page=" + encodeURIComponent(String(page)))
     .then((res: Response) => {
       if (!res.ok) {
         return { items: [], hasNextPage: false };
@@ -156,7 +147,7 @@ export const fetchNextSearchPage = (): void => {
         return;
       }
 
-      const response = parseCommandPaletteResponse(payload);
+      const response = parseSearchResponse(payload);
       const visibleItems = visibleSearchItems(response.items, query);
       const cached = responseCache.get(query);
       if (cached) {
