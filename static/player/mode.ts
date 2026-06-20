@@ -23,7 +23,7 @@ const fetchModeSource = async (
     `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(episode)}?mode=${encodeURIComponent(mode)}`,
     { signal },
   );
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`mode source request failed with status ${res.status}`);
 
   const data: unknown = await res.json();
   if (!isRecord(data)) return null;
@@ -54,6 +54,7 @@ export const ensurePreferredModeSource = async (signal?: AbortSignal): Promise<s
     if (error instanceof DOMException && error.name === "AbortError") {
       return state.playback.currentMode;
     }
+    console.error("failed to load preferred mode source:", error);
   }
 
   return state.playback.currentMode;
@@ -78,6 +79,7 @@ export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> 
     updateModeButtons();
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === "AbortError") return;
+    console.error("failed to hydrate alternate mode:", error);
   }
 };
 
