@@ -33,7 +33,7 @@ RUN rm -rf dist/ && bun run build:assets && bun run build:ts
 
 # Build the server and CLI tools
 RUN go build -ldflags="-s -w" -o main_server ./cmd/server
-RUN go build -ldflags="-s -w" -o create-user ./cmd/user
+RUN go build -ldflags="-s -w" -o user_admin ./cmd/user
 
 FROM debian:bookworm-slim
 
@@ -49,12 +49,15 @@ RUN mkdir -p /app/data
 ENV DATABASE_FILE=/app/data/mal.db
 
 COPY --from=builder /app/main_server .
-COPY --from=builder /app/create-user .
+COPY --from=builder /app/user_admin .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/internal/database/migrations ./migrations
 COPY entrypoint.sh ./entrypoint.sh
+
+RUN printf '%s\n' '#!/bin/sh' 'set -e' 'exec /app/user_admin "$@"' > /app/create-user \
+  && chmod +x /app/create-user
 
 EXPOSE 3000
 
