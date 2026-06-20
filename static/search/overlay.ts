@@ -1,5 +1,5 @@
 import {
-  commandPaletteInitializedKey,
+  searchInitializedKey,
   globalWindow,
   searchInput,
   searchResults,
@@ -56,11 +56,11 @@ const onDocumentKeydown = (event: KeyboardEvent): void => {
   }
 };
 
-export const initSearchOverlay = (): void => {
-  if (globalWindow[commandPaletteInitializedKey]) {
+export const initSearchPage = (): void => {
+  if (globalWindow[searchInitializedKey]) {
     return;
   }
-  globalWindow[commandPaletteInitializedKey] = true;
+  globalWindow[searchInitializedKey] = true;
 
   if (!searchInput || !searchResults || !searchRoot) {
     return;
