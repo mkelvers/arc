@@ -13,7 +13,7 @@ import (
 
 	"mal/integrations/jikan/rate"
 	"mal/internal/observability"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 )
 
