@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 	"net/http"
 	"strings"
@@ -34,17 +35,19 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			observability.ErrorContext(c.Request.Context(), "proxy_subtitle_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-			_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+			recordPrivateGinError(c, err)
 		}
 		c.Status(http.StatusBadGateway)
 		return
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close proxy subtitle response body", resp.Body.Close())
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
 		observability.ErrorContext(c.Request.Context(), "proxy_subtitle_read_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		recordPrivateGinError(c, err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
