@@ -13,6 +13,7 @@ import (
 
 	"mal/integrations/jikan/rate"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 )
 
@@ -119,7 +120,12 @@ func (c *Client) FetchWithRetry(ctx context.Context, urlStr string, out any) err
 			return logAndReturn(0, requestErr)
 		}
 
-		statusCode, retry, err := handleResponseRetry(ctx, resp, urlStr, out, attempt, maxRetries)
+		statusCode, retry, err := func() (int, bool, error) {
+			defer func() {
+				errlog.Log("failed to close jikan response body", resp.Body.Close())
+			}()
+			return handleResponseRetry(ctx, resp, urlStr, out, attempt, maxRetries)
+		}()
 		if retry {
 			continue
 		}
@@ -175,7 +181,6 @@ func handleRequestRetry(ctx context.Context, err error, attempt int, maxRetries 
 }
 
 func handleResponseRetry(ctx context.Context, resp *http.Response, urlStr string, out any, attempt int, maxRetries int) (int, bool, error) {
-	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return handleStatusRetry(ctx, resp, urlStr, out, attempt, maxRetries)
 	}
@@ -212,7 +217,9 @@ func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, 
 	}
 
 	// Best-effort decode (often useful for debugging), but still treat non-200 as error.
-	_ = json.NewDecoder(resp.Body).Decode(out)
+	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		return statusCode, false, errors.Join(apiErr, fmt.Errorf("failed to decode error response: %w", err))
+	}
 	return statusCode, false, apiErr
 }
 
