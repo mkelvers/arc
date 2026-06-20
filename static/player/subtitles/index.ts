@@ -48,7 +48,7 @@ export const updateSubtitleOptions = (): void => {
   ) as HTMLSelectElement | null;
   if (!select) return;
   state.subtitles.tracks = subtitlesForMode();
-  select.innerHTML = "";
+  select.replaceChildren();
 
   const none = document.createElement("option");
   none.value = "none";
