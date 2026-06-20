@@ -5,7 +5,7 @@ fmt:
     go fmt ./...
 
 lint:
-    bun run lint:go
+    bun run lint
 
 lint-ts:
     bun run lint:ts
