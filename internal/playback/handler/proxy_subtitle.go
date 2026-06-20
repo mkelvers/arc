@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 	"mal/internal/observability"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
 	"strings"
