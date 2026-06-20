@@ -1,4 +1,4 @@
-export interface CommandPaletteItem {
+export interface SearchItem {
   id: string;
   type: string;
   label: string;
@@ -9,30 +9,22 @@ export interface CommandPaletteItem {
   inWatchlist?: boolean;
 }
 
-export interface CommandPaletteResponse {
-  items: CommandPaletteItem[];
+export interface SearchResponse {
+  items: SearchItem[];
   hasNextPage: boolean;
   nextPage?: number;
 }
 
-export const commandPaletteInitializedKey = Symbol("commandPaletteInitialized");
-export const globalWindow = window as Window & { [commandPaletteInitializedKey]?: boolean };
+export const searchInitializedKey = Symbol("searchInitialized");
+export const globalWindow = window as Window & { [searchInitializedKey]?: boolean };
 
-export const searchInput = document.getElementById(
-  "command-palette-input",
-) as HTMLInputElement | null;
-export const searchResults = document.querySelector(
-  "[data-command-palette-results]",
-) as HTMLElement | null;
-export const searchRoot = document.querySelector(
-  "[data-command-palette-root]",
-) as HTMLElement | null;
-export const searchPage = document.querySelector(
-  "[data-command-palette-page]",
-) as HTMLElement | null;
-export const searchClearButtons = document.querySelectorAll("[data-command-palette-clear]");
+export const searchInput = document.getElementById("search-input") as HTMLInputElement | null;
+export const searchResults = document.querySelector("[data-search-results]") as HTMLElement | null;
+export const searchRoot = document.querySelector("[data-search-root]") as HTMLElement | null;
+export const searchPage = document.querySelector("[data-search-page]") as HTMLElement | null;
+export const searchClearButtons = document.querySelectorAll("[data-search-clear]");
 
-let resultItems: CommandPaletteItem[] = [];
+let resultItems: SearchItem[] = [];
 let selectedIndex = 0;
 let fetchTimeout: number | undefined;
 let lastQuery = "";
@@ -42,9 +34,9 @@ let searchHasNextPage = false;
 let fetchingNextPage = false;
 let lastFocusedSearchOpener: HTMLElement | null = null;
 
-export const getResultItems = (): CommandPaletteItem[] => resultItems;
+export const getResultItems = (): SearchItem[] => resultItems;
 
-export const setResultItems = (items: CommandPaletteItem[]): void => {
+export const setResultItems = (items: SearchItem[]): void => {
   resultItems = items;
 };
 
@@ -108,10 +100,10 @@ export const focusLastSearchOpener = (): void => {
 const maxCachedResponses = 20;
 
 const createResponseCache = () => {
-  const responses = new Map<string, CommandPaletteResponse>();
+  const responses = new Map<string, SearchResponse>();
 
   return {
-    get(query: string): CommandPaletteResponse | undefined {
+    get(query: string): SearchResponse | undefined {
       const response = responses.get(query);
       if (!response) {
         return undefined;
@@ -122,7 +114,7 @@ const createResponseCache = () => {
       return response;
     },
 
-    set(query: string, response: CommandPaletteResponse): void {
+    set(query: string, response: SearchResponse): void {
       if (responses.has(query)) {
         responses.delete(query);
       }
