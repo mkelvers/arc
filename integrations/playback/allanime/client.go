@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 	"net/http"
 	"strings"
@@ -123,7 +124,9 @@ func executeAndReadResponse(client *http.Client, req *http.Request, executeErrPr
 	if err != nil {
 		return 0, nil, fmt.Errorf("%s: %w", executeErrPrefix, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close allanime response body", resp.Body.Close())
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
