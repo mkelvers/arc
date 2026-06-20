@@ -1,3 +1,3 @@
-import { initSearchOverlay } from "./search/overlay";
+import { initSearchPage } from "./search/overlay";
 
-initSearchOverlay();
+initSearchPage();
