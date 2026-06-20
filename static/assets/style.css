@@ -14,6 +14,12 @@
   --color-accent: light-dark(#007a85, #00b3c4);
   --color-on-accent: light-dark(#ffffff, #000000);
   --color-surface-hover: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
+  --color-skeleton-base: light-dark(#e5e5e5, #242529);
+  --color-skeleton-highlight: light-dark(#d4d4d4, #303137);
+  --color-border: light-dark(rgba(0, 0, 0, 0.08), rgba(244, 241, 234, 0.08));
+  --color-border-light: light-dark(rgba(0, 0, 0, 0.04), rgba(244, 241, 234, 0.04));
+  --color-player-segment: #f5c542;
+  --shadow-card: light-dark(0 2px 8px rgba(0, 0, 0, 0.04), 0 2px 12px rgba(0, 0, 0, 0.32));
 }
 
 @layer base {
@@ -26,26 +32,28 @@
   }
 }
 
-.scrollbar-hidden {
+@utility scrollbar-hidden {
   -ms-overflow-style: none;
   scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.scrollbar-hidden::-webkit-scrollbar {
-  display: none;
+@utility skeleton {
+  @apply animate-[skeleton-loading_1.5s_infinite] bg-[linear-gradient(90deg,var(--color-skeleton-base)_25%,var(--color-skeleton-highlight)_50%,var(--color-skeleton-base)_75%)] bg-[length:200%_100%];
+}
+
+@utility skeleton-subtle {
+  @apply opacity-70;
 }
 
 :root {
   color-scheme: light dark;
-  --skeleton-base: light-dark(#e5e5e5, #242529);
-  --skeleton-highlight: light-dark(#d4d4d4, #303137);
-  --border: light-dark(rgba(0, 0, 0, 0.08), rgba(244, 241, 234, 0.08));
-  --border-light: light-dark(rgba(0, 0, 0, 0.04), rgba(244, 241, 234, 0.04));
-  --shadow-card: light-dark(0 2px 8px rgba(0, 0, 0, 0.04), 0 2px 12px rgba(0, 0, 0, 0.32));
   --scrollbar-track: light-dark(rgba(0, 0, 0, 0.04), rgba(244, 241, 234, 0.05));
   --scrollbar-thumb: light-dark(rgba(0, 0, 0, 0.16), rgba(244, 241, 234, 0.22));
   --scrollbar-thumb-hover: light-dark(rgba(0, 0, 0, 0.26), rgba(244, 241, 234, 0.32));
-  --player-segment: #f5c542;
 }
 
 html[data-theme="light"] {
@@ -56,27 +64,6 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-html,
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-}
-
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--skeleton-base) 25%,
-    var(--skeleton-highlight) 50%,
-    var(--skeleton-base) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-.skeleton-subtle {
-  opacity: 0.7;
-}
-
 @keyframes skeleton-loading {
   0% {
     background-position: 200% 0;
@@ -85,14 +72,4 @@ body {
   100% {
     background-position: -200% 0;
   }
-}
-
-[data-watchlist-toggle] .watchlist-icon,
-[data-watchlist-toggle] .watchlist-icon path {
-  fill: none;
-}
-
-[data-watchlist-toggle][data-watchlist-state="in"] .watchlist-icon,
-[data-watchlist-toggle][data-watchlist-state="in"] .watchlist-icon path {
-  fill: currentColor;
 }

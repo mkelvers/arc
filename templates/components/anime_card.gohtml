@@ -39,10 +39,10 @@
             data-mal-id="{{$anime.MalID}}"
             data-watchlist-title="{{$anime.DisplayTitle}}"
             data-watchlist-state="{{if $isWatchlist}}in{{else}}out{{end}}"
-            class="text-accent hover:text-accent/80 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50 {{if $isWatchlist}}in-watchlist{{end}}"
+            class="group text-accent hover:text-accent/80 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50 {{if $isWatchlist}}in-watchlist{{end}}"
             aria-label="{{if $isWatchlist}}Remove from Watchlist{{else}}Add to Watchlist{{end}}"
           >
-            <svg class="size-6 watchlist-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
+            <svg class="size-6 watchlist-icon fill-none group-data-[watchlist-state=in]:fill-current [&_path]:fill-none group-data-[watchlist-state=in]:[&_path]:fill-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" /></svg>
           </button>
         </div>
       </div>

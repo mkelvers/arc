@@ -197,13 +197,18 @@ const buildWatchlistButton = (item: CommandPaletteItem): HTMLButtonElement | nul
   const inWatchlist = watchlistOverrides.get(malID) ?? item.inWatchlist === true;
   button.type = "button";
   button.className =
-    "absolute bottom-5 left-5 z-20 text-accent opacity-0 transition hover:text-accent/80 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50";
+    "group absolute bottom-5 left-5 z-20 text-accent opacity-0 transition hover:text-accent/80 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50";
   button.dataset.watchlistToggle = "";
   button.dataset.malId = String(malID);
   button.dataset.watchlistTitle = cleanLabel(item);
   button.dataset.watchlistState = inWatchlist ? "in" : "out";
   button.setAttribute("aria-label", inWatchlist ? "Remove from Watchlist" : "Add to Watchlist");
-  button.appendChild(buildSvgIcon(iconPaths.bookmark, "size-6 watchlist-icon"));
+  button.appendChild(
+    buildSvgIcon(
+      iconPaths.bookmark,
+      "size-6 watchlist-icon fill-none group-data-[watchlist-state=in]:fill-current [&_path]:fill-none group-data-[watchlist-state=in]:[&_path]:fill-current",
+    ),
+  );
   return button;
 };
 
