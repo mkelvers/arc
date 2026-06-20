@@ -7,7 +7,7 @@ export interface ModeSource {
 }
 
 // subtitle track from backend
-export interface SubtitleItem {
+interface SubtitleItem {
   lang: string;
   token: string;
 }
