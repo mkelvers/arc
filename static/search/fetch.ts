@@ -125,7 +125,7 @@ export const fetchSearchItems = (query: string): void => {
     });
 };
 
-export const fetchNextSearchPage = (): void => {
+const fetchNextSearchPage = (): void => {
   const query = getLastQuery();
   const page = getNextSearchPage();
 
