@@ -3,8 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+	"mal/internal/observability"
 	netutil "mal/pkg/net"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func newProxyRequest(ctx context.Context, targetURL string, referer string) (*http.Request, error) {
@@ -19,4 +22,10 @@ func newProxyRequest(ctx context.Context, targetURL string, referer string) (*ht
 	req.Header.Set("User-Agent", netutil.Firefox121)
 
 	return req, nil
+}
+
+func recordPrivateGinError(c *gin.Context, err error) {
+	if recorded := c.Error(err).SetType(gin.ErrorTypePrivate); recorded == nil {
+		observability.WarnContext(c.Request.Context(), "gin_error_record_failed", "playback", "", nil, err)
+	}
 }
