@@ -28,7 +28,7 @@ export const dedupeWithin = (root: ParentNode): void => {
   });
 };
 
-export const dedupe = (root: ParentNode = document): void => {
+const dedupe = (root: ParentNode = document): void => {
   const containers = new Set<ParentNode>();
   const elements = root.querySelectorAll<HTMLElement>("[data-id]");
 
