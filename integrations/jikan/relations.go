@@ -139,7 +139,15 @@ func (c *Client) refreshWatchOrder(ctx context.Context, id int) (watchorder.Watc
 
 func (c *Client) refreshWatchOrderAsync(id int) {
 	c.runAsyncRefresh(func(ctx context.Context) {
-		_, _ = c.refreshWatchOrder(ctx, id)
+		if _, err := c.refreshWatchOrder(ctx, id); err != nil {
+			observability.Warn(
+				"relations_watch_order_async_refresh_failed",
+				"jikan",
+				"",
+				map[string]any{"anime_id": id},
+				err,
+			)
+		}
 	})
 }
 
@@ -261,7 +269,9 @@ func (c *Client) fetchRelationEntries(ctx context.Context, entries []watchorder.
 	}
 
 	go func() {
-		_ = g.Wait()
+		if err := g.Wait(); err != nil {
+			observability.Warn("relations_fetch_group_failed", "jikan", "", nil, err)
+		}
 		close(results)
 	}()
 
@@ -359,6 +369,14 @@ func (c *Client) GetFullRelations(ctx context.Context, id int, mode WatchOrderMo
 
 func (c *Client) WarmFullRelations(id int) {
 	c.runAsyncRefresh(func(ctx context.Context) {
-		_, _ = c.GetFullRelations(ctx, id, WatchOrderModeMain)
+		if _, err := c.GetFullRelations(ctx, id, WatchOrderModeMain); err != nil {
+			observability.Warn(
+				"relations_warm_full_failed",
+				"jikan",
+				"",
+				map[string]any{"anime_id": id},
+				err,
+			)
+		}
 	})
 }
