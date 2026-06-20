@@ -7,7 +7,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/domain"
 	"mal/internal/observability"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
 	"time"
