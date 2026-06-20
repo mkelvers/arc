@@ -161,6 +161,13 @@ func (c *Client) EnqueueAnimeFetchRetry(parentCtx context.Context, animeID int, 
 		LastError: truncateErrorMessage(cause.Error()),
 	})
 	if err != nil {
+		observability.Warn(
+			"jikan_retry_enqueue_failed",
+			"jikan",
+			"",
+			map[string]any{"anime_id": animeID},
+			err,
+		)
 		return
 	}
 
@@ -220,7 +227,7 @@ func cloneResponseTarget(out any) (any, bool) {
 }
 
 func (c *Client) refreshWithCache(ctx context.Context, cacheKey string, ttl time.Duration, url string, out any) error {
-	value, err, _ := c.sf.Do("refresh:"+cacheKey, func() (any, error) {
+	value, err, shared := c.sf.Do("refresh:"+cacheKey, func() (any, error) {
 		if c.getCache(ctx, cacheKey, out) {
 			if !isEmptyResult(out) {
 				return json.Marshal(out)
@@ -242,6 +249,14 @@ func (c *Client) refreshWithCache(ctx context.Context, cacheKey string, ttl time
 	if err != nil {
 		return err
 	}
+	if shared {
+		observability.Info(
+			"jikan_cache_refresh_shared",
+			"jikan",
+			"",
+			map[string]any{"cache_key": cacheKey, "url": url},
+		)
+	}
 
 	if bytes, ok := value.([]byte); ok {
 		if err := json.Unmarshal(bytes, out); err == nil && !isEmptyResult(out) {
@@ -259,7 +274,15 @@ func (c *Client) refreshWithCacheAsync(cacheKey string, ttl time.Duration, url s
 	}
 
 	c.runAsyncRefresh(func(ctx context.Context) {
-		_ = c.refreshWithCache(ctx, cacheKey, ttl, url, target)
+		if err := c.refreshWithCache(ctx, cacheKey, ttl, url, target); err != nil {
+			observability.Warn(
+				"jikan_async_cache_refresh_failed",
+				"jikan",
+				"",
+				map[string]any{"cache_key": cacheKey, "url": url},
+				err,
+			)
+		}
 	})
 }
 
