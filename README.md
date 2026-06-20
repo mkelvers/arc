@@ -18,9 +18,10 @@ Most of the UI is rendered on the server. HTMX handles lightweight updates like 
 
 ## Running
 
-Requires Go `1.25+`, Bun, [`just`](https://github.com/casey/just), and a C compiler for SQLite.
+Requires [`mise`](https://mise.jdx.dev/), a C compiler for SQLite, and the tools managed in `.mise.toml`.
 
 ```bash
+mise install
 bun install
 just build
 go run ./cmd/user <username> <password>
@@ -36,6 +37,8 @@ The codebase is split between Go feature packages, external integrations, server
 The common development commands are in the `justfile`.
 
 ```bash
+just setup
+just dev
 just fmt
 just test
 just lint-go
