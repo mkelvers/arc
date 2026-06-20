@@ -24,7 +24,9 @@ func TestGraphqlRequest_SuccessAndHeaders(t *testing.T) {
 				ct = req.Header.Get("Content-Type")
 				referer = req.Header.Get("Referer")
 				ua = req.Header.Get("User-Agent")
-				_, _ = io.Copy(&bodyBuf, req.Body)
+				if _, err := io.Copy(&bodyBuf, req.Body); err != nil {
+					t.Fatalf("copy request body: %v", err)
+				}
 				return mockStringResponse(http.StatusOK, `{"data":{"key":"val"}}`), nil
 			}),
 		},
