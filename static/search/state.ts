@@ -32,7 +32,6 @@ let activeRequestController: AbortController | undefined;
 let nextSearchPage: number | undefined;
 let searchHasNextPage = false;
 let fetchingNextPage = false;
-let lastFocusedSearchOpener: HTMLElement | null = null;
 
 export const getResultItems = (): SearchItem[] => resultItems;
 
@@ -86,15 +85,6 @@ export const resetSearchResultsState = (): void => {
   nextSearchPage = undefined;
   searchHasNextPage = false;
   fetchingNextPage = false;
-};
-
-export const rememberSearchOpener = (): void => {
-  lastFocusedSearchOpener =
-    document.activeElement instanceof HTMLElement ? document.activeElement : null;
-};
-
-export const focusLastSearchOpener = (): void => {
-  lastFocusedSearchOpener?.focus();
 };
 
 const maxCachedResponses = 20;
@@ -153,8 +143,6 @@ export const typeLabels: Record<string, string> = {
 
 export const groupOrder = ["anime"];
 export const maxPosterImageRetries = 2;
-
-export const isMac = (): boolean => /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
 export const isTypingTarget = (target: EventTarget | null): boolean =>
   target instanceof HTMLInputElement ||
