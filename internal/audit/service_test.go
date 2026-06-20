@@ -56,14 +56,24 @@ func openTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("CreateTemp: %v", err)
 	}
-	_ = tmp.Close()
-	t.Cleanup(func() { _ = os.Remove(tmp.Name()) })
+	if err := tmp.Close(); err != nil {
+		t.Fatalf("close temp db: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Remove(tmp.Name()); err != nil {
+			t.Errorf("remove temp db: %v", err)
+		}
+	})
 
 	sqlDB, err := db.Open(tmp.Name())
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
+	t.Cleanup(func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	})
 
 	if err := database.RunMigrations(sqlDB); err != nil {
 		t.Fatalf("RunMigrations: %v", err)
@@ -87,7 +97,11 @@ func queryAuditRow(t *testing.T, sqlDB *sql.DB, userID string) auditRow {
 	if err != nil {
 		t.Fatalf("Query: %v", err)
 	}
-	defer func() { _ = rows.Close() }()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close audit rows: %v", err)
+		}
+	}()
 
 	if !rows.Next() {
 		t.Fatalf("expected audit row")
