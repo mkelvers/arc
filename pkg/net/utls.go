@@ -3,6 +3,7 @@ package netutil
 import (
 	"bufio"
 	"fmt"
+	"mal/pkg/errlog"
 	"net"
 	"net/http"
 	"time"
@@ -38,7 +39,7 @@ func (rt *UtlsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 	}, utls.HelloFirefox_120)
 
 	if err := uconn.HandshakeContext(req.Context()); err != nil {
-		_ = uconn.Close()
+		errlog.Close(uconn, "failed to close utls connection after handshake error")
 		return nil, fmt.Errorf("utls handshake: %w", err)
 	}
 
@@ -47,7 +48,7 @@ func (rt *UtlsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 		t := &http2.Transport{}
 		cc, err := t.NewClientConn(uconn)
 		if err != nil {
-			_ = uconn.Close()
+			errlog.Close(uconn, "failed to close utls connection after http2 setup error")
 			return nil, fmt.Errorf("http2 client conn: %w", err)
 		}
 		return cc.RoundTrip(req)
@@ -55,7 +56,7 @@ func (rt *UtlsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 
 	// Fallback to HTTP/1.1
 	if err := req.Write(uconn); err != nil {
-		_ = uconn.Close()
+		errlog.Close(uconn, "failed to close utls connection after http1 write error")
 		return nil, fmt.Errorf("http1 write: %w", err)
 	}
 	return http.ReadResponse(bufio.NewReader(uconn), req)
