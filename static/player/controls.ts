@@ -239,7 +239,9 @@ export const setupControls = (): void => {
   state.elements.video.addEventListener("pause", () => {
     updatePlayPauseIcons(false);
     showControls();
-    void saveProgress();
+    saveProgress().catch((error) => {
+      console.error("pause control progress save failed:", error);
+    });
   });
   state.elements.video.addEventListener("volumechange", () => {
     syncVolumeUI();
