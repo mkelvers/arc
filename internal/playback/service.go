@@ -7,6 +7,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/domain"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 	"net/http"
 	"time"
@@ -75,10 +76,10 @@ func (s *playbackService) warmStreamURL(targetURL, referer string) {
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		if resp != nil {
-			_ = resp.Body.Close()
+			errlog.Close(resp.Body, "failed to close warm stream error response body")
 		}
 		observability.LogJSON(observability.LogLevelWarn, "warm_stream_failed", "playback", err.Error(), map[string]any{"url": targetURL}, nil)
 		return
 	}
-	resp.Body.Close()
+	errlog.Log("failed to close warm stream response body", resp.Body.Close())
 }
