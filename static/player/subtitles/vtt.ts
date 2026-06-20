@@ -10,7 +10,7 @@ export const parseVttTime = (raw: string): number => {
 };
 
 // parses a single VTT cue: timestamp line + text lines
-export const parseVttCue = (line: string, lines: string[], i: number) => {
+const parseVttCue = (line: string, lines: string[], i: number) => {
   if (!line.includes("-->")) return null;
   const [startRaw, endRaw] = line.split("-->");
   const payload: string[] = [];
