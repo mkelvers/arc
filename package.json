@@ -7,10 +7,11 @@
     "watch:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css",
-    "build:ts": "bash ./scripts/build-ts.sh",
+    "build:ts": "bun run ./scripts/build-ts.ts",
     "format": "bunx oxfmt",
     "format:check": "bunx oxfmt --check",
-    "lint": "bun run lint:ts && bun run lint:go",
+    "lint": "bun run lint:ts && bun run lint:dead && bun run lint:go",
+    "lint:dead": "knip --no-progress",
     "lint:ts": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0",
     "lint:ts:fix": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0 --fix",
     "lint:go": "golangci-lint run ./..."
@@ -22,7 +23,6 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.0",
     "@types/node": "^24.0.0",
-    "jiti": "^2.7.0",
     "lefthook": "^2.1.6",
     "oxfmt": "^0.52.0",
     "oxlint": "^1.67.0",
