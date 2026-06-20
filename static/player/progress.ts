@@ -65,7 +65,7 @@ export const saveProgress = async (
         headers: { "Content-Type": "application/json" },
         body: payload,
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error(`progress save failed with status ${res.status}`);
       state.episode.lastSavedProgress = {
         episode: state.episode.current,
         seconds: savedTime,
@@ -91,7 +91,9 @@ const scheduleProgressSave = (): void => {
   if (state.timers.progressSaveTimer !== undefined) return;
   state.timers.progressSaveTimer = window.setTimeout(() => {
     state.timers.progressSaveTimer = undefined;
-    saveProgress();
+    saveProgress().catch((error) => {
+      console.error("scheduled progress save failed:", error);
+    });
   }, 30000);
 };
 
@@ -140,14 +142,18 @@ export const setupProgress = (): void => {
       state.elements.video.duration > 0 &&
       Math.abs(state.elements.video.currentTime - state.elements.video.duration) < 1.5;
 
-    saveProgress(isAtEnd);
+    saveProgress(isAtEnd).catch((error) => {
+      console.error("pause progress save failed:", error);
+    });
   });
 
   // save after scrubbing
   window.addEventListener("mouseup", () => {
     state.ui.isScrubbing = false;
     if (state.episode.endedProgressSaved) return;
-    saveProgress();
+    saveProgress().catch((error) => {
+      console.error("scrub progress save failed:", error);
+    });
   });
 
   // save on page close
