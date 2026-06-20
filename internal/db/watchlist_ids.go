@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"mal/pkg/errlog"
 	"strings"
 )
 
@@ -24,7 +25,7 @@ func (q *Queries) GetUserWatchlistAnimeIDs(ctx context.Context, userID string, a
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close watchlist id rows")
 
 	matches := make([]int64, 0, len(animeIDs))
 	for rows.Next() {
