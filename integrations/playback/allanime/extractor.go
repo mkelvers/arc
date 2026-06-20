@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 	"net/http"
 	"regexp"
@@ -71,7 +72,9 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 		}
 	}
 
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close provider response body", resp.Body.Close())
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2)) // 2MB limit
 	if err != nil {
@@ -86,7 +89,9 @@ func (e *providerExtractor) ExtractEmbedVideoLinks(ctx context.Context, rawURL s
 	if err != nil {
 		return nil, fmt.Errorf("fetch embed response: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close embed response body", resp.Body.Close())
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
@@ -170,8 +175,14 @@ func parseProviderSubtitles(items []any) []Subtitle {
 			continue
 		}
 
-		lang, _ := node["lang"].(string)
-		src, _ := node["src"].(string)
+		lang, ok := node["lang"].(string)
+		if !ok {
+			continue
+		}
+		src, ok := node["src"].(string)
+		if !ok {
+			continue
+		}
 		lang = strings.TrimSpace(lang)
 		src = strings.TrimSpace(src)
 		if lang == "" || src == "" {
@@ -266,7 +277,9 @@ func (e *providerExtractor) parseM3U8(ctx context.Context, masterURL string, ref
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close m3u8 response body", resp.Body.Close())
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.KiB512)) // 512KB limit
 	if err != nil {
