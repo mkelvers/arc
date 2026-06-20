@@ -194,8 +194,11 @@ func buildSourceReferences(rawSourceURLs []any) []sourceReference {
 			continue
 		}
 
-		sourceURL, _ := item["sourceUrl"].(string)
-		sourceName, _ := item["sourceName"].(string)
+		sourceURL, ok := stringMapValue(item, "sourceUrl")
+		if !ok {
+			continue
+		}
+		sourceName, _ := stringMapValue(item, "sourceName")
 		sourceURL = strings.TrimSpace(sourceURL)
 		sourceName = strings.TrimSpace(sourceName)
 		if sourceURL == "" {
@@ -228,6 +231,11 @@ func buildSourceReferences(rawSourceURLs []any) []sourceReference {
 
 	ordered = append(ordered, fallback...)
 	return ordered
+}
+
+func stringMapValue(item map[string]any, key string) (string, bool) {
+	value, ok := item[key].(string)
+	return value, ok
 }
 
 func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, episode, mode string) (map[string]any, error) {
