@@ -62,14 +62,6 @@ func (r *watchlistRepository) GetUserWatchlistAnimeIDs(ctx context.Context, user
 	return r.queries.GetUserWatchlistAnimeIDs(ctx, userID, animeIDs)
 }
 
-func (r *watchlistRepository) GetCommandPaletteWatchlist(ctx context.Context, userID string, query string, limit int64) ([]db.GetUserWatchListRow, error) {
-	return r.queries.GetCommandPaletteWatchlist(ctx, userID, query, limit)
-}
-
-func (r *watchlistRepository) GetCommandPaletteContinueWatching(ctx context.Context, userID string, query string, limit int64) ([]db.GetContinueWatchingEntriesRow, error) {
-	return r.queries.GetCommandPaletteContinueWatching(ctx, userID, query, limit)
-}
-
 func (r *watchlistRepository) GetWatchListEntry(ctx context.Context, arg db.GetWatchListEntryParams) (db.WatchListEntry, error) {
 	return r.queries.GetWatchListEntry(ctx, arg)
 }
