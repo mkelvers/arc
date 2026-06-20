@@ -24,7 +24,11 @@ func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	sqlDB := newTestCacheDB(t)
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
 
 	queries := db.New(sqlDB)
 	client := NewClient(config.Config{}, queries, observability.NewMetrics())
@@ -54,7 +58,11 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 
 func TestGetWithCacheAllowsEmptySearchResults(t *testing.T) {
 	sqlDB := newTestCacheDB(t)
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
 
 	queries := db.New(sqlDB)
 	client := NewClient(config.Config{}, queries, observability.NewMetrics())
@@ -97,7 +105,9 @@ func newTestCacheDB(t *testing.T) *sql.DB {
 		);
 	`)
 	if err != nil {
-		sqlDB.Close()
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			t.Fatalf("create cache table: %v; close sqlite: %v", err, closeErr)
+		}
 		t.Fatalf("create cache table: %v", err)
 	}
 
@@ -139,6 +149,8 @@ func waitForFreshCache(t *testing.T, sqlDB *sql.DB, client *Client, key string) 
 
 	var rawData string
 	var rawExpires string
-	_ = sqlDB.QueryRowContext(context.Background(), `SELECT data, expires_at FROM jikan_cache WHERE key = ?`, key).Scan(&rawData, &rawExpires)
+	if err := sqlDB.QueryRowContext(context.Background(), `SELECT data, expires_at FROM jikan_cache WHERE key = ?`, key).Scan(&rawData, &rawExpires); err != nil {
+		t.Fatalf("query cached refresh result: %v", err)
+	}
 	t.Fatalf("cache was not refreshed asynchronously; data=%s expires_at=%s", rawData, rawExpires)
 }
