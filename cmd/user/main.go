@@ -17,6 +17,7 @@ import (
 	"mal/internal/database"
 	"mal/internal/db"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 )
 
 func main() {
@@ -31,7 +32,7 @@ func main() {
 		observability.Error("cli_db_open_failed", "cmd/user", "", map[string]any{"db_file": cfg.DatabaseFile}, err)
 		os.Exit(1)
 	}
-	defer func() { _ = dbConn.Close() }()
+	defer errlog.Close(dbConn, "failed to close cli database")
 
 	os.Exit(run(dbConn, os.Args))
 }
@@ -42,7 +43,9 @@ func run(dbConn *sql.DB, args []string) int {
 	cmd, err := parseArgs(args)
 	if err != nil {
 		observability.Warn("cli_usage", "cmd/user", "invalid arguments", map[string]any{"argc": len(args)}, err)
-		_, _ = fmt.Fprintln(os.Stderr, usage())
+		if _, writeErr := fmt.Fprintln(os.Stderr, usage()); writeErr != nil {
+			observability.Warn("cli_usage_write_failed", "cmd/user", "", nil, writeErr)
+		}
 		return 2
 	}
 
@@ -144,7 +147,11 @@ func lookupUserID(ctx context.Context, dbConn *sql.DB, username string) (string,
 func promptConfirmOverwrite(username string) bool {
 	fmt.Printf("User '%s' already exists. Do you want to overwrite their password? [y/N]: ", username)
 	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		observability.Warn("cli_confirm_read_failed", "cmd/user", "", map[string]any{"username": username}, err)
+		return false
+	}
 	response = strings.TrimSpace(strings.ToLower(response))
 	return response == "y" || response == "yes"
 }
@@ -194,7 +201,7 @@ func updateAvatars(ctx context.Context, dbConn *sql.DB) {
 		observability.Error("cli_users_list_failed", "cmd/user", "", nil, err)
 		os.Exit(1)
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close users rows")
 
 	count := 0
 	for rows.Next() {
@@ -232,7 +239,7 @@ func runFixes(ctx context.Context, dbConn *sql.DB) {
 		observability.Error("cli_data_fixes_list_failed", "cmd/user", "", nil, err)
 		os.Exit(1)
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close data fixes rows")
 
 	count := 0
 	for rows.Next() {
