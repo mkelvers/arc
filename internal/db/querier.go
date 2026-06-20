@@ -26,8 +26,6 @@ type Querier interface {
 	GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntry(ctx context.Context, arg GetContinueWatchingEntryParams) (ContinueWatchingEntry, error)
-	GetCommandPaletteContinueWatching(ctx context.Context, userID string, query string, limit int64) ([]GetContinueWatchingEntriesRow, error)
-	GetCommandPaletteWatchlist(ctx context.Context, userID string, query string, limit int64) ([]GetUserWatchListRow, error)
 	GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]AnimeFetchRetry, error)
 	GetEpisodeAvailabilityCache(ctx context.Context, animeID int64) (EpisodeAvailabilityCache, error)
 	GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeProviderMappingParams) (EpisodeProviderMapping, error)
