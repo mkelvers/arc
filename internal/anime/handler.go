@@ -63,7 +63,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/anime/:id/reviews", h.HandleAnimeReviews)
 	r.GET("/api/watch-order", h.HandleHTMLWatchOrder)
 	r.GET("/api/search-quick", h.HandleQuickSearch)
-	r.GET("/api/command-palette", h.HandleCommandPalette)
+	r.GET("/api/search", h.HandleSearchAPI)
 	r.GET("/api/jikan/random/anime", h.HandleRandomAnime)
 	r.GET("/api/jikan/producers", h.HandleProducers)
 }
