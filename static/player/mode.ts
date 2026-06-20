@@ -87,7 +87,7 @@ export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> 
  * Switches between sub/dub mode.
  * Saves preference to localStorage, reloads video src.
  */
-export const switchMode = (mode: string): void => {
+const switchMode = (mode: string): void => {
   if (!state.playback.availableModes.includes(mode) || mode === state.playback.currentMode) return;
   state.playback.currentMode = mode;
   safeLocalStorage.setItem("player-audio-mode", mode);
