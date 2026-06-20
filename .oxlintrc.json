@@ -115,7 +115,17 @@
     {
       "files": ["scripts/**/*.ts"],
       "env": { "browser": false, "node": true },
-      "rules": { "no-console": "off", "no-process-exit": "off", "unicorn/prefer-top-level-await": "off" }
+      "rules": {
+        "import/no-nodejs-modules": "off",
+        "no-console": "off",
+        "no-process-exit": "off",
+        "promise/prefer-await-to-callbacks": "off",
+        "promise/prefer-await-to-then": "off",
+        "typescript/no-unnecessary-condition": "off",
+        "unicorn/no-array-sort": "off",
+        "unicorn/prefer-string-replace-all": "off",
+        "unicorn/prefer-top-level-await": "off"
+      }
     }
   ]
 }
