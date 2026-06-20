@@ -13,7 +13,11 @@ func TestHasSkipSegmentOverrideTableReturnsFalseWhenMissing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer func() { _ = sqlDB.Close() }()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
 
 	ok, err := New(sqlDB).HasSkipSegmentOverrideTable(context.Background())
 	if err != nil {
@@ -29,7 +33,11 @@ func TestHasSkipSegmentOverrideTableReturnsTrueWhenPresent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
-	defer func() { _ = sqlDB.Close() }()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
 
 	queries := New(sqlDB)
 
@@ -47,7 +55,11 @@ func TestSkipSegmentOverrideUpsertAndList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
-	defer func() { _ = sqlDB.Close() }()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
 
 	queries := New(sqlDB)
 
@@ -118,7 +130,9 @@ func openSkipSegmentOverrideTestDB(t *testing.T) (*sql.DB, error) {
 		);
 	`)
 	if err != nil {
-		_ = sqlDB.Close()
+		if closeErr := sqlDB.Close(); closeErr != nil {
+			return nil, closeErr
+		}
 		return nil, err
 	}
 
