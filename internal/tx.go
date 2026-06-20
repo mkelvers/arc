@@ -1,4 +1,4 @@
-package dbtx
+package internal
 
 import (
 	"context"

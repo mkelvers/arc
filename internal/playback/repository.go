@@ -3,8 +3,8 @@ package playback
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"mal/internal/db"
-	"mal/internal/dbtx"
 	"mal/internal/domain"
 )
 
@@ -18,9 +18,24 @@ func NewPlaybackRepository(sqlDB *sql.DB, queries *db.Queries) domain.PlaybackRe
 }
 
 func (r *playbackRepository) InTx(ctx context.Context, fn func(ctx context.Context, repo domain.PlaybackRepository) error) error {
-	return dbtx.Run(ctx, r.sqlDB, domain.PlaybackRepository(r), func(tx *sql.Tx) domain.PlaybackRepository {
-		return &playbackRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
-	}, fn)
+	if r.sqlDB == nil {
+		return fn(ctx, r)
+	}
+
+	tx, err := r.sqlDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	txRepo := &playbackRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
+	if err := fn(ctx, txRepo); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Join(err, rollbackErr)
+		}
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *playbackRepository) UpsertAnime(ctx context.Context, params db.UpsertAnimeParams) (db.Anime, error) {

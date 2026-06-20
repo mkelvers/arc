@@ -3,8 +3,8 @@ package watchlist
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"mal/internal/db"
-	"mal/internal/dbtx"
 	"mal/internal/domain"
 )
 
@@ -18,9 +18,24 @@ func NewWatchlistRepository(sqlDB *sql.DB, queries *db.Queries) domain.Watchlist
 }
 
 func (r *watchlistRepository) InTx(ctx context.Context, fn func(ctx context.Context, repo domain.WatchlistRepository) error) error {
-	return dbtx.Run(ctx, r.sqlDB, domain.WatchlistRepository(r), func(tx *sql.Tx) domain.WatchlistRepository {
-		return &watchlistRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
-	}, fn)
+	if r.sqlDB == nil {
+		return fn(ctx, r)
+	}
+
+	tx, err := r.sqlDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	txRepo := &watchlistRepository{sqlDB: nil, queries: r.queries.WithTx(tx)}
+	if err := fn(ctx, txRepo); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return errors.Join(err, rollbackErr)
+		}
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *watchlistRepository) UpsertAnime(ctx context.Context, arg db.UpsertAnimeParams) (db.Anime, error) {
