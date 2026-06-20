@@ -71,7 +71,7 @@ export const toggleFullscreen = (): void => {
 };
 
 // syncs volume slider, underline, and mute icon
-export const syncVolumeUI = (): void => {
+const syncVolumeUI = (): void => {
   const { volumeRange, volumeUnderline } = getControls();
   const value = state.elements.video.muted ? 0 : Math.round(state.elements.video.volume * 100);
   if (volumeRange) {
