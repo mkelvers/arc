@@ -32,7 +32,9 @@ export const goToNextEpisode = async (): Promise<void> => {
   // final episode: trigger completion flow or just stop if airing
   if (state.episode.total > 0 && currentEp >= state.episode.total) {
     if (!state.episode.isAiring) {
-      void completeAnime(currentEp);
+      completeAnime(currentEp).catch((error) => {
+        console.error("failed to complete final episode:", error);
+      });
     }
     showEndState();
     return;
@@ -108,7 +110,9 @@ export const goToNextEpisode = async (): Promise<void> => {
     updateQualityOptions();
     updateModeButtons();
     updateOverlay(state.episode.current, data.episode_title ?? "");
-    void hydrateAlternateMode();
+    hydrateAlternateMode().catch((error) => {
+      console.error("failed to hydrate alternate mode after episode change:", error);
+    });
 
     // update skip segments
     if (data.segments?.length) {
