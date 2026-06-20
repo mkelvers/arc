@@ -97,14 +97,6 @@ func (s *watchlistService) GetWatchlistMap(ctx context.Context, userID string, a
 	return watchlistMap, nil
 }
 
-func (s *watchlistService) GetCommandPaletteWatchlist(ctx context.Context, userID string, query string, limit int64) ([]domain.UserWatchListRow, error) {
-	return s.repo.GetCommandPaletteWatchlist(ctx, userID, query, limit)
-}
-
-func (s *watchlistService) GetCommandPaletteContinueWatching(ctx context.Context, userID string, query string, limit int64) ([]db.GetContinueWatchingEntriesRow, error) {
-	return s.repo.GetCommandPaletteContinueWatching(ctx, userID, query, limit)
-}
-
 func (s *watchlistService) GetWatchListEntry(ctx context.Context, userID string, animeID int64) (db.WatchListEntry, error) {
 	return s.repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
 		UserID:  userID,
