@@ -7,7 +7,7 @@ import { loadVideoSource } from "./video";
  * Switches video quality (resolution).
  * Persists preference to localStorage.
  */
-export const switchQuality = (quality: string): void => {
+const switchQuality = (quality: string): void => {
   const url = streamUrlForMode(state.playback.currentMode, quality);
   if (!url) return;
   safeLocalStorage.setItem("mal:preferred-quality", quality);
@@ -24,7 +24,7 @@ export const updateQualityOptions = (): void => {
   ) as HTMLSelectElement | null;
   if (!select) return;
   const qualities = state.playback.modeSources[state.playback.currentMode]?.qualities ?? [];
-  select.innerHTML = "";
+  select.replaceChildren();
 
   const best = document.createElement("option");
   best.value = "best";
