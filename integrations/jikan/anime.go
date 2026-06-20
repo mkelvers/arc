@@ -3,6 +3,7 @@ package jikan
 import (
 	"context"
 	"fmt"
+	"mal/internal/observability"
 	"time"
 )
 
@@ -38,7 +39,9 @@ func (c *Client) WarmAnimeRecommendations(id int) {
 
 	c.runAsyncRefresh(func(ctx context.Context) {
 		var resp RecommendationsResponse
-		_ = c.getWithCache(ctx, cacheKey, 24*time.Hour, url, &resp)
+		if err := c.getWithCache(ctx, cacheKey, 24*time.Hour, url, &resp); err != nil {
+			c.EnqueueAnimeFetchRetry(ctx, id, err)
+		}
 	})
 }
 
@@ -71,7 +74,7 @@ func (c *Client) GetAnimeByID(ctx context.Context, id int) (Anime, error) {
 func (c *Client) refreshAnimeByID(ctx context.Context, id int) (Anime, error) {
 	cacheKey := fmt.Sprintf("anime:%d", id)
 
-	value, err, _ := c.sf.Do("refresh:"+cacheKey, func() (any, error) {
+	value, err, shared := c.sf.Do("refresh:"+cacheKey, func() (any, error) {
 		var cached Anime
 		if c.getCache(ctx, cacheKey, &cached) && cached.MalID != 0 {
 			return cached, nil
@@ -95,6 +98,14 @@ func (c *Client) refreshAnimeByID(ctx context.Context, id int) (Anime, error) {
 	if err != nil {
 		return Anime{}, err
 	}
+	if shared {
+		observability.Info(
+			"jikan_anime_refresh_shared",
+			"jikan",
+			"",
+			map[string]any{"anime_id": id, "cache_key": cacheKey},
+		)
+	}
 
 	if anime, ok := value.(Anime); ok && anime.MalID != 0 {
 		return anime, nil
@@ -105,6 +116,8 @@ func (c *Client) refreshAnimeByID(ctx context.Context, id int) (Anime, error) {
 
 func (c *Client) refreshAnimeByIDAsync(id int) {
 	c.runAsyncRefresh(func(ctx context.Context) {
-		_, _ = c.refreshAnimeByID(ctx, id)
+		if _, err := c.refreshAnimeByID(ctx, id); err != nil {
+			c.EnqueueAnimeFetchRetry(ctx, id, err)
+		}
 	})
 }
