@@ -45,7 +45,11 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 }
 
 func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
+		return
+	}
 	ep := c.DefaultQuery("ep", "1")
 	mode := c.DefaultQuery("mode", "sub")
 
@@ -126,7 +130,11 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	// Try to resolve a title for this episode from the episode list.
 	episodeTitle := ""
-	epNum, _ := strconv.Atoi(episode)
+	epNum, err := strconv.Atoi(episode)
+	if err != nil {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid episode")
+		return
+	}
 	for _, e := range watchData.Episodes {
 		if e.Number == epNum {
 			episodeTitle = e.Title
