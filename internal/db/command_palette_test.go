@@ -58,7 +58,7 @@ func openCommandPaletteTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
+	cleanupSQLDB(t, sqlDB)
 
 	_, err = sqlDB.ExecContext(context.Background(), `
 		CREATE TABLE anime (
@@ -111,4 +111,13 @@ func openCommandPaletteTestDB(t *testing.T) *sql.DB {
 	}
 
 	return sqlDB
+}
+
+func cleanupSQLDB(t *testing.T, sqlDB *sql.DB) {
+	t.Helper()
+	t.Cleanup(func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	})
 }
