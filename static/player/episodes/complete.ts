@@ -14,9 +14,14 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
 
     if (!res.ok) {
       state.episode.completionSent = false;
+      console.error(`failed to complete anime: status ${res.status}`);
       if (state.episode.completionAttempts < 2) {
         state.episode.completionAttempts++;
-        setTimeout(() => completeAnime(episodeNumber), 1000);
+        setTimeout(() => {
+          completeAnime(episodeNumber).catch((error) => {
+            console.error("failed to retry anime completion:", error);
+          });
+        }, 1000);
       }
       return;
     }
@@ -34,7 +39,11 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
     console.error("failed to complete anime:", error);
     if (state.episode.completionAttempts < 2) {
       state.episode.completionAttempts++;
-      setTimeout(() => completeAnime(episodeNumber), 1000);
+      setTimeout(() => {
+        completeAnime(episodeNumber).catch((retryError) => {
+          console.error("failed to retry anime completion:", retryError);
+        });
+      }, 1000);
     }
   }
 };
