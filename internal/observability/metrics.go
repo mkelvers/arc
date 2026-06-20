@@ -78,7 +78,9 @@ func (m *Metrics) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		m.writePrometheus(w)
+		if err := m.writePrometheus(w); err != nil {
+			WarnContext(r.Context(), "metrics_write_failed", "observability", "", nil, err)
+		}
 	})
 }
 
@@ -117,15 +119,29 @@ func (m *Metrics) ObserveCache(cache string, result string) {
 	m.cacheOperations.Inc(cache, result)
 }
 
-func (m *Metrics) writePrometheus(w http.ResponseWriter) {
-	writeCounterMetric(w, "mal_http_requests_total", "Total HTTP requests by method, route, and status.", m.httpRequests.snapshot())
-	writeHistogramMetric(w, "mal_http_request_duration_seconds", "HTTP request latency in seconds.", m.httpRequestLatency.snapshot(), m.httpRequestLatency.bounds)
-	writeCounterMetric(w, "mal_jikan_upstream_requests_total", "Total upstream Jikan requests by endpoint and status.", m.jikanRequests.snapshot())
-	writeCounterMetric(w, "mal_jikan_upstream_errors_total", "Total upstream Jikan errors by endpoint and status.", m.jikanRequestErrors.snapshot())
-	writeHistogramMetric(w, "mal_jikan_upstream_request_duration_seconds", "Upstream Jikan request latency in seconds.", m.jikanLatency.snapshot(), m.jikanLatency.bounds)
-	writeHistogramMetric(w, "mal_db_query_duration_seconds", "Database query latency in seconds.", m.dbQueryLatency.snapshot(), m.dbQueryLatency.bounds)
-	writeCounterMetric(w, "mal_worker_ticks_total", "Total background worker ticks by worker and result.", m.workerTicks.snapshot())
-	writeCounterMetric(w, "mal_cache_operations_total", "Total cache hits and misses by cache name.", m.cacheOperations.snapshot())
+func (m *Metrics) writePrometheus(w http.ResponseWriter) error {
+	if err := writeCounterMetric(w, "mal_http_requests_total", "Total HTTP requests by method, route, and status.", m.httpRequests.snapshot()); err != nil {
+		return err
+	}
+	if err := writeHistogramMetric(w, "mal_http_request_duration_seconds", "HTTP request latency in seconds.", m.httpRequestLatency.snapshot(), m.httpRequestLatency.bounds); err != nil {
+		return err
+	}
+	if err := writeCounterMetric(w, "mal_jikan_upstream_requests_total", "Total upstream Jikan requests by endpoint and status.", m.jikanRequests.snapshot()); err != nil {
+		return err
+	}
+	if err := writeCounterMetric(w, "mal_jikan_upstream_errors_total", "Total upstream Jikan errors by endpoint and status.", m.jikanRequestErrors.snapshot()); err != nil {
+		return err
+	}
+	if err := writeHistogramMetric(w, "mal_jikan_upstream_request_duration_seconds", "Upstream Jikan request latency in seconds.", m.jikanLatency.snapshot(), m.jikanLatency.bounds); err != nil {
+		return err
+	}
+	if err := writeHistogramMetric(w, "mal_db_query_duration_seconds", "Database query latency in seconds.", m.dbQueryLatency.snapshot(), m.dbQueryLatency.bounds); err != nil {
+		return err
+	}
+	if err := writeCounterMetric(w, "mal_worker_ticks_total", "Total background worker ticks by worker and result.", m.workerTicks.snapshot()); err != nil {
+		return err
+	}
+	return writeCounterMetric(w, "mal_cache_operations_total", "Total cache hits and misses by cache name.", m.cacheOperations.snapshot())
 }
 
 func newCounterVec(labelNames ...string) *counterVec {
@@ -260,29 +276,49 @@ func sortedHistogramSampleKeys(samples map[string]*histogramSample) []string {
 	return keys
 }
 
-func writeCounterMetric(w http.ResponseWriter, name string, help string, samples []counterSample) {
-	_, _ = fmt.Fprintf(w, "# HELP %s %s\n", name, help)
-	_, _ = fmt.Fprintf(w, "# TYPE %s counter\n", name)
-	for _, sample := range samples {
-		_, _ = fmt.Fprintf(w, "%s%s %d\n", name, formatLabels(sample.labels), sample.value)
+func writeCounterMetric(w http.ResponseWriter, name string, help string, samples []counterSample) error {
+	if _, err := fmt.Fprintf(w, "# HELP %s %s\n", name, help); err != nil {
+		return err
 	}
+	if _, err := fmt.Fprintf(w, "# TYPE %s counter\n", name); err != nil {
+		return err
+	}
+	for _, sample := range samples {
+		if _, err := fmt.Fprintf(w, "%s%s %d\n", name, formatLabels(sample.labels), sample.value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func writeHistogramMetric(w http.ResponseWriter, name string, help string, samples []histogramSample, bounds []float64) {
-	_, _ = fmt.Fprintf(w, "# HELP %s %s\n", name, help)
-	_, _ = fmt.Fprintf(w, "# TYPE %s histogram\n", name)
+func writeHistogramMetric(w http.ResponseWriter, name string, help string, samples []histogramSample, bounds []float64) error {
+	if _, err := fmt.Fprintf(w, "# HELP %s %s\n", name, help); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "# TYPE %s histogram\n", name); err != nil {
+		return err
+	}
 	for _, sample := range samples {
 		for idx, bound := range bounds {
 			labels := copyLabels(sample.labels)
 			labels["le"] = formatFloat(bound)
-			_, _ = fmt.Fprintf(w, "%s_bucket%s %d\n", name, formatLabels(labels), sample.buckets[idx])
+			if _, err := fmt.Fprintf(w, "%s_bucket%s %d\n", name, formatLabels(labels), sample.buckets[idx]); err != nil {
+				return err
+			}
 		}
 		labels := copyLabels(sample.labels)
 		labels["le"] = "+Inf"
-		_, _ = fmt.Fprintf(w, "%s_bucket%s %d\n", name, formatLabels(labels), sample.count)
-		_, _ = fmt.Fprintf(w, "%s_sum%s %s\n", name, formatLabels(sample.labels), formatFloat(sample.sum))
-		_, _ = fmt.Fprintf(w, "%s_count%s %d\n", name, formatLabels(sample.labels), sample.count)
+		if _, err := fmt.Fprintf(w, "%s_bucket%s %d\n", name, formatLabels(labels), sample.count); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "%s_sum%s %s\n", name, formatLabels(sample.labels), formatFloat(sample.sum)); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "%s_count%s %d\n", name, formatLabels(sample.labels), sample.count); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func formatLabels(labels map[string]string) string {
