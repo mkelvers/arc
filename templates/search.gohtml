@@ -6,9 +6,9 @@
 {{end}}
 
 {{define "content"}}
-<div class="flex min-h-[calc(100dvh-7.5rem)] flex-col bg-background" data-command-palette-page>
-  <div class="border-b border-border bg-background shadow-[0_10px_28px_rgba(0,0,0,0.18)]" data-command-palette-root aria-label="Search anime">
-    <label for="command-palette-input" class="sr-only">Search anime</label>
+<div class="flex h-[calc(100dvh-4rem)] flex-col bg-background" data-search-page>
+  <div class="border-b border-border bg-background shadow-[0_10px_28px_rgba(0,0,0,0.18)]" data-search-root aria-label="Search anime">
+    <label for="search-input" class="sr-only">Search anime</label>
     <div class="mx-auto flex min-h-32 w-full max-w-4xl items-end gap-4 px-5 pb-6 pt-8 md:min-h-40 md:px-8 md:pb-7">
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-3 border-b-2 border-accent">
@@ -17,14 +17,14 @@
             <path d="m21 21-4.35-4.35" />
           </svg>
           <input
-            id="command-palette-input"
+            id="search-input"
             name="q"
             type="search"
             autocomplete="off"
             placeholder="Search anime..."
             class="min-w-0 flex-1 bg-transparent py-3 text-3xl font-medium text-foreground placeholder:text-foreground-muted outline-none md:text-4xl"
           />
-          <button type="button" data-unstyled-button class="pointer-events-none flex size-10 shrink-0 items-center justify-center text-foreground-muted opacity-0 transition hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" data-command-palette-clear aria-label="Clear search">
+          <button type="button" data-unstyled-button class="pointer-events-none flex size-10 shrink-0 items-center justify-center text-foreground-muted opacity-0 transition hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" data-search-clear aria-label="Clear search">
             <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
               <path d="M18 6 6 18"></path>
               <path d="m6 6 12 12"></path>
@@ -34,6 +34,6 @@
       </div>
     </div>
   </div>
-  <div data-command-palette-results class="min-h-0 flex-1 overflow-y-auto"></div>
+  <div data-search-results class="min-h-0 flex-1 overflow-y-auto"></div>
 </div>
 {{end}}
