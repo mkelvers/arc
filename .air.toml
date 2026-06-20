@@ -1,0 +1,54 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "just build-dev"
+entrypoint = "./tmp/server"
+full_bin = "./tmp/server"
+delay = 300
+exclude_dir = [
+  ".git",
+  ".mise",
+  "dist",
+  "node_modules",
+  "tmp",
+]
+exclude_file = [
+  "mal.db",
+  "mal.db-shm",
+  "mal.db-wal",
+]
+exclude_regex = [
+  "_test\\.go",
+]
+exclude_unchanged = true
+follow_symlink = false
+include_ext = [
+  "css",
+  "go",
+  "gohtml",
+  "html",
+  "sql",
+  "toml",
+  "ts",
+]
+kill_delay = "500ms"
+log = "air-build.log"
+send_interrupt = true
+stop_on_error = true
+
+[color]
+app = "white"
+build = "yellow"
+main = "magenta"
+runner = "green"
+watcher = "cyan"
+
+[log]
+main_only = false
+silent = false
+time = true
+
+[misc]
+clean_on_exit = true
+startup_banner = ""
