@@ -8,7 +8,7 @@ import (
 	"mal/internal/config"
 	"mal/internal/db"
 	"mal/internal/observability"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 )
 
 type animeDurationRow struct {
