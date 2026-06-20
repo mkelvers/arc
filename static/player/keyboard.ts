@@ -27,7 +27,9 @@ export const setupKeyboard = (): void => {
         e.preventDefault();
         togglePlayPause();
         showControls();
-        void saveProgress();
+        saveProgress().catch((error) => {
+          console.error("keyboard progress save failed:", error);
+        });
         break;
       case "ArrowLeft":
       case "KeyJ":
