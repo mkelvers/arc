@@ -205,7 +205,6 @@ const toggleWatchlist = async (
     dispatchWatchlistChange(id, isInWatchlist);
     toast("Failed to update watchlist");
     console.error("failed to update watchlist:", error);
-    throw error;
   } finally {
     watchlistStore.settle(id);
     setBusy(id, false);
@@ -429,7 +428,6 @@ const updateWatchlist = async (
     dispatchWatchlistChange(id, watchlistStore.has(id));
     toast("Failed to update watchlist");
     console.error("failed to update watchlist:", error);
-    throw error;
   } finally {
     watchlistStore.settle(id);
     setBusy(id, false);
@@ -472,7 +470,6 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
     dispatchWatchlistChange(id, watchlistStore.has(id));
     toast("Failed to update watchlist");
     console.error("failed to update watchlist:", error);
-    throw error;
   } finally {
     watchlistStore.settle(id);
     setBusy(id, false);
@@ -519,7 +516,9 @@ const installDelegatedHandlers = (): void => {
       const id = toInt(toggleButton.getAttribute("data-mal-id") ?? undefined);
       if (id === null) return;
       const title = toggleButton.getAttribute("data-watchlist-title") ?? "anime";
-      void toggleWatchlist(id, title, toggleButton.dataset.watchlistState);
+      toggleWatchlist(id, title, toggleButton.dataset.watchlistState).catch((error) => {
+        console.error("unhandled watchlist toggle failure:", error);
+      });
       return;
     }
 
@@ -535,7 +534,9 @@ const installDelegatedHandlers = (): void => {
       ) as WatchlistUpdateDisplay | null;
       const title = updateButton.getAttribute("data-watchlist-title") ?? "anime";
       if (!status || !display) return;
-      void updateWatchlist(id, status, display, title, updateButton);
+      updateWatchlist(id, status, display, title, updateButton).catch((error) => {
+        console.error("unhandled watchlist update failure:", error);
+      });
       return;
     }
 
@@ -546,7 +547,9 @@ const installDelegatedHandlers = (): void => {
       const id = toInt(removeButton.getAttribute("data-mal-id") ?? undefined);
       if (id === null) return;
       const title = removeButton.getAttribute("data-watchlist-title") ?? "anime";
-      void removeWatchlist(id, title, removeButton);
+      removeWatchlist(id, title, removeButton).catch((error) => {
+        console.error("unhandled watchlist remove failure:", error);
+      });
     }
   });
 };
