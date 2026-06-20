@@ -41,12 +41,23 @@ check: lint test typecheck build
 install-hooks:
     bunx lefthook install
 
-dev: build
+setup:
+    mise install
+    bun install
+
+build-dev: build-css build-ts
+    @go build -o tmp/server ./cmd/server
+
+dev:
+    @mise exec -- air
+
+run: build
     @./server
 
 clean:
     rm -rf dist/*
     rm -f server
+    rm -rf tmp
 
 new-data-fix name:
     bun run ./scripts/new-data-fix.ts {{name}}
