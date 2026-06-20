@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 	"net/http"
 
@@ -33,12 +34,14 @@ func (h *PlaybackHandler) HandleProxyStream(c *gin.Context) {
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			observability.ErrorContext(c.Request.Context(), "proxy_stream_upstream_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-			_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+			recordPrivateGinError(c, err)
 		}
 		c.Status(http.StatusBadGateway)
 		return
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close proxy stream response body", resp.Body.Close())
+	}()
 
 	if isHLSPlaylistResponse(targetURL, resp.Header) {
 		h.writeProxyPlaylist(c, resp, targetURL, referer)
@@ -62,7 +65,7 @@ func (h *PlaybackHandler) writeProxyPlaylist(c *gin.Context, resp *http.Response
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
 		observability.ErrorContext(c.Request.Context(), "proxy_stream_playlist_read_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		recordPrivateGinError(c, err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
@@ -70,7 +73,7 @@ func (h *PlaybackHandler) writeProxyPlaylist(c *gin.Context, resp *http.Response
 	rewritten, err := h.rewriteHLSPlaylist(string(body), targetURL, referer)
 	if err != nil {
 		observability.ErrorContext(c.Request.Context(), "proxy_stream_playlist_rewrite_failed", "playback", "", map[string]any{"target_url": targetURL}, err)
-		_ = c.Error(err).SetType(gin.ErrorTypePrivate)
+		recordPrivateGinError(c, err)
 		c.Status(http.StatusBadGateway)
 		return
 	}
