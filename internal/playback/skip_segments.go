@@ -14,7 +14,7 @@ import (
 
 	"mal/internal/db"
 	"mal/internal/domain"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 )
 
