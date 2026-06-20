@@ -23,11 +23,34 @@
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.0",
     "@types/node": "^24.0.0",
+    "knip": "^6.17.1",
     "lefthook": "^2.1.6",
     "oxfmt": "^0.52.0",
     "oxlint": "^1.67.0",
     "oxlint-tsgolint": "^0.23.0",
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
+  },
+  "knip": {
+    "entry": [
+      "static/app.ts",
+      "static/player/main.ts",
+      "static/player/subtitles/vtt.test.ts",
+      "scripts/fix-all.ts",
+      "scripts/new-data-fix.ts"
+    ],
+    "project": [
+      "static/**/*.ts",
+      "scripts/**/*.ts"
+    ],
+    "ignoreDependencies": [
+      "htmx.org",
+      "tailwindcss"
+    ],
+    "ignoreBinaries": [
+      "go",
+      "gofmt",
+      "golangci-lint"
+    ]
   }
 }
