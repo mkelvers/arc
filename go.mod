@@ -16,6 +16,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/pressly/goose/v3 v3.27.1
 	go.uber.org/fx v1.24.0
+	golang.org/x/term v0.43.0
 )
 
 require (
@@ -56,6 +57,6 @@ require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	golang.org/x/sync v0.20.0 // direct
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 )
