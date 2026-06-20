@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
