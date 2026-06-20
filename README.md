@@ -14,7 +14,7 @@
 
 MyAnimeList is a small self-hosted anime tracker and playback app. It keeps the catalog, watchlist, progress tracking, and player in one place, backed by a single SQLite database and a single Go server.
 
-Most of the UI is rendered on the server. HTMX handles lightweight updates like search, pagination, and watchlist changes, while TypeScript is kept for the parts that need real browser state: the video player, command palette, theme handling, and skip segment editor. The app also includes local users, API tokens, subtitle support, playlist rewriting, provider integrations, migrations, and startup data fixes.
+Most of the UI is rendered on the server. HTMX handles lightweight updates like pagination and watchlist changes, while TypeScript is kept for the parts that need real browser state: the video player, search page, theme handling, and skip segment editor. The app also includes local users, API tokens, subtitle support, playlist rewriting, provider integrations, migrations, and startup data fixes.
 
 ## Running
 
