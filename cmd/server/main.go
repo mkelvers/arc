@@ -2,7 +2,7 @@
 package main
 
 import (
-	"mal/internal/app"
+	"mal/internal"
 	"mal/internal/observability"
 
 	"github.com/joho/godotenv"
@@ -13,6 +13,6 @@ func main() {
 		observability.Warn("env_file_load_failed", "server", "", nil, err)
 	}
 
-	application := app.NewApp()
+	application := internal.NewApp()
 	application.Run()
 }

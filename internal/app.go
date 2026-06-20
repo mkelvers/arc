@@ -1,5 +1,4 @@
-// Package app bootstraps and wires the application dependencies.
-package app
+package internal
 
 import (
 	"mal/integrations/jikan"
@@ -36,6 +35,7 @@ func NewApp() *fx.App {
 		playback.Module,
 		templates.Module,
 		server.Module,
+		fx.Invoke(RunMigrationsAndFixes),
 		fx.Provide(func(r *templates.Renderer) render.HTMLRender {
 			return r
 		}),
