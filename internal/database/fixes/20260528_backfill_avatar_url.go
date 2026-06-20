@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"mal/internal"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 )
 
 func init() {
