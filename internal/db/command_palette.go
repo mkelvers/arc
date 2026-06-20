@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"mal/pkg/errlog"
 	"strings"
 )
 
@@ -42,7 +43,7 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close continue watching command palette rows")
 
 	items := make([]GetContinueWatchingEntriesRow, 0, int(limit))
 	for rows.Next() {
@@ -124,7 +125,7 @@ LIMIT ?`, userID, needle, pattern, pattern, pattern, pattern, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close watchlist command palette rows")
 
 	items := make([]GetUserWatchListRow, 0, int(limit))
 	for rows.Next() {
