@@ -14,6 +14,7 @@ import (
 
 	"mal/internal/db"
 	"mal/internal/domain"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 )
 
@@ -92,7 +93,9 @@ func (s *playbackService) fetchAniSkipSegments(ctx context.Context, malID int, e
 	if err != nil {
 		return nil, fmt.Errorf("http request: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close aniskip response body", resp.Body.Close())
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
