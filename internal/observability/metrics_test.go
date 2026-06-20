@@ -47,7 +47,11 @@ func TestInstrumentDBRecordsQueryLatency(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	defer func() { _ = sqlDB.Close() }()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
 
 	instrumented := InstrumentDB(sqlDB, metrics)
 	if _, err := instrumented.ExecContext(context.Background(), `CREATE TABLE item (id INTEGER PRIMARY KEY)`); err != nil {
