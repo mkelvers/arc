@@ -31,7 +31,9 @@ export const updateSkipButton = (currentTime: number): void => {
   const autoSkip = safeLocalStorage.getItem("mal:autoskip-enabled") === "true";
   if (autoSkip && displayTime >= segment.start && displayTime < segment.end) {
     state.elements.video.currentTime = absoluteTimeFromDisplay(segment.end + 0.01);
-    void saveProgress();
+    saveProgress().catch((error) => {
+      console.error("autoskip progress save failed:", error);
+    });
     return;
   }
 
