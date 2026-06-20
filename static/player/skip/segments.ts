@@ -56,7 +56,7 @@ export const resolveActiveSegments = (): void => {
 export const renderSegments = (): void => {
   const track = state.elements.container.querySelector("[data-segments]") as HTMLElement | null;
   if (!track) return;
-  track.innerHTML = "";
+  track.replaceChildren();
 
   const bounds = state.elements.video.duration;
   if (bounds <= 0) return;
