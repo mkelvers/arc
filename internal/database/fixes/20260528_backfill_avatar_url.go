@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"mal/internal"
+	"mal/pkg/errlog"
 )
 
 func init() {
@@ -15,7 +16,7 @@ func init() {
 			if err != nil {
 				return fmt.Errorf("query users missing avatar_url: %w", err)
 			}
-			defer func() { _ = rows.Close() }()
+			defer errlog.Close(rows, "failed to close avatar backfill rows")
 
 			type userRow struct {
 				id       string
