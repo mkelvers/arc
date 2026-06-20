@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 )
 
 type SkipSegmentOverrideRow struct {
