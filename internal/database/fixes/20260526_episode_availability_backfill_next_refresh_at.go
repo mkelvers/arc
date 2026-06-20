@@ -9,7 +9,7 @@ import (
 func init() {
 	Register(Fix{
 		ID: "20260526_episode_availability_backfill_next_refresh_at",
-		Apply: func(ctx context.Context, sqlDB *sql.DB) error {
+		Apply: func(ctx context.Context, sqlDB *sql.DB, _ Dependencies) error {
 			// Old caches could have next_refresh_at NULL (especially for airing shows with missing broadcast metadata),
 			// which can result in "never refresh again" behavior on the server.
 			_, err := sqlDB.ExecContext(ctx, `

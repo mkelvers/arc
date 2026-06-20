@@ -4,14 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"mal/internal"
 	errlog "mal/pkg"
 )
 
 func init() {
 	Register(Fix{
 		ID: "20260528_backfill_avatar_url",
-		Apply: func(ctx context.Context, sqlDB *sql.DB) error {
+		Apply: func(ctx context.Context, sqlDB *sql.DB, deps Dependencies) error {
+			if deps.DefaultAvatarURL == nil {
+				return fmt.Errorf("default avatar URL dependency is required")
+			}
+
 			rows, err := sqlDB.QueryContext(ctx, `SELECT id, username FROM user WHERE avatar_url = ''`)
 			if err != nil {
 				return fmt.Errorf("query users missing avatar_url: %w", err)
@@ -35,7 +38,7 @@ func init() {
 			}
 
 			for _, u := range toUpdate {
-				avatarURL := internal.DefaultAvatarURL(u.username)
+				avatarURL := deps.DefaultAvatarURL(u.username)
 				if _, err := sqlDB.ExecContext(ctx, `UPDATE user SET avatar_url = ? WHERE id = ?`, avatarURL, u.id); err != nil {
 					return fmt.Errorf("update avatar_url for user %s: %w", u.id, err)
 				}

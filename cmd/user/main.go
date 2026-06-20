@@ -14,7 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"mal/internal"
 	"mal/internal/config"
-	"mal/internal/database"
 	"mal/internal/db"
 	"mal/internal/observability"
 	errlog "mal/pkg"
@@ -229,7 +228,7 @@ func updateAvatars(ctx context.Context, dbConn *sql.DB) {
 }
 
 func runFixes(ctx context.Context, dbConn *sql.DB) {
-	if err := database.RunMigrationsAndFixes(dbConn); err != nil {
+	if err := internal.RunMigrationsAndFixes(dbConn); err != nil {
 		observability.Error("cli_run_migrations_and_fixes_failed", "cmd/user", "", nil, err)
 		os.Exit(1)
 	}

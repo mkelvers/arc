@@ -9,7 +9,11 @@ import (
 
 type Fix struct {
 	ID    string
-	Apply func(ctx context.Context, sqlDB *sql.DB) error
+	Apply func(ctx context.Context, sqlDB *sql.DB, deps Dependencies) error
+}
+
+type Dependencies struct {
+	DefaultAvatarURL func(username string) string
 }
 
 var registered []Fix

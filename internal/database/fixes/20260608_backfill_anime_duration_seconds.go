@@ -18,8 +18,10 @@ type animeDurationRow struct {
 
 func init() {
 	Register(Fix{
-		ID:    "20260608_backfill_anime_duration_seconds",
-		Apply: applyAnimeDurationSecondsBackfill,
+		ID: "20260608_backfill_anime_duration_seconds",
+		Apply: func(ctx context.Context, sqlDB *sql.DB, _ Dependencies) error {
+			return applyAnimeDurationSecondsBackfill(ctx, sqlDB)
+		},
 	})
 }
 

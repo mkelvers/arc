@@ -11,7 +11,7 @@ import (
 	errlog "mal/pkg"
 )
 
-func RunDataFixes(sqlDB *sql.DB) error {
+func RunDataFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -43,7 +43,7 @@ func RunDataFixes(sqlDB *sql.DB) error {
 				"id": fix.ID,
 			},
 		)
-		if err := fix.Apply(ctx, sqlDB); err != nil {
+		if err := fix.Apply(ctx, sqlDB, deps); err != nil {
 			return fmt.Errorf("data fix %s failed: %w", fix.ID, err)
 		}
 		if err := markFixApplied(ctx, sqlDB, fix.ID); err != nil {

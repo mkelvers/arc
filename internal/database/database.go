@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 	"mal/internal/config"
+	dbfixes "mal/internal/database/fixes"
 	"mal/internal/db"
 	"mal/internal/observability"
 
@@ -21,7 +22,6 @@ var Module = fx.Options(
 		ProvideSQLDB,
 		ProvideQueries,
 	),
-	fx.Invoke(RunMigrationsAndFixes),
 )
 
 func ProvideSQLDB(cfg config.Config) (*sql.DB, error) {
@@ -58,11 +58,11 @@ func RunMigrations(sqlDB *sql.DB) error {
 
 	return nil
 }
-func RunMigrationsAndFixes(sqlDB *sql.DB) error {
+func RunMigrationsAndFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
 	if err := RunMigrations(sqlDB); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
-	if err := RunDataFixes(sqlDB); err != nil {
+	if err := RunDataFixes(sqlDB, deps); err != nil {
 		return fmt.Errorf("run data fixes: %w", err)
 	}
 	return nil
