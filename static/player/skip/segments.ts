@@ -63,8 +63,7 @@ export const renderSegments = (): void => {
 
   state.skip.activeSegments.forEach((s) => {
     const bar = document.createElement("div");
-    bar.className = "absolute opacity-95";
-    bar.style.backgroundColor = "var(--player-segment)";
+    bar.className = "absolute bg-player-segment opacity-95";
     bar.style.top = "-1px";
     bar.style.height = "calc(100% + 2px)";
     bar.style.left = `${(s.start / bounds) * 100}%`;

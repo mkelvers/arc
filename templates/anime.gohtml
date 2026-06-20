@@ -7,7 +7,7 @@
 <div class="flex w-full flex-col gap-10 lg:pr-80">
   <div class="flex flex-col gap-8 md:flex-row lg:gap-12">
     <div class="flex w-64 shrink-0 flex-col items-center gap-6 md:w-80 md:items-start lg:w-96">
-      <div class="aspect-2/3 w-full overflow-hidden bg-background-surface shadow-(--shadow-card) ring-1 ring-black/10">
+      <div class="aspect-2/3 w-full overflow-hidden bg-background-surface shadow-card ring-1 ring-black/10">
         {{$imageUrl := posterURL $anime.Images.Webp.LargeImageURL $anime.Images.Jpg.LargeImageURL 400 600}}
         <img src="{{$imageUrl}}" alt="{{$anime.Title}}" class="h-full w-full object-cover" />
       </div>
@@ -59,7 +59,7 @@
         <div class="grow lg:max-w-4xl">
           {{template "anime_synopsis" dict "Anime" $anime}}
         </div>
-        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-(--border-light) bg-background-sidebar p-8 lg:flex">
+        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-border-light bg-background-sidebar p-8 lg:flex">
           <div class="flex flex-col gap-8">
             <section>
               <h3 class="mb-6 text-base font-normal text-foreground">Information</h3>

@@ -53,7 +53,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-72 overflow-hidden bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2">
+    <div data-content class="hidden absolute z-50 w-72 overflow-hidden bg-background-button rounded-none shadow-card left-0 top-full mt-2">
       <div class="p-2">
         <input id="studio-search" type="text" placeholder="Search studios..." class=" w-full bg-background-sidebar px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1 focus:ring-accent"
           hx-get="/api/jikan/producers"
@@ -97,7 +97,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button shadow-(--shadow-card) left-0 top-full mt-2 scrollbar-hidden">
+    <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button shadow-card left-0 top-full mt-2 scrollbar-hidden">
       <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content" hx-select="#browse-content" hx-swap="outerHTML" class="flex flex-col">
         <input type="hidden" name="q" value="{{.Query}}">
         {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
@@ -127,7 +127,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2 ">
+    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-card left-0 top-full mt-2 ">
       <div class="flex flex-col">
         {{range $statusOptions}}
           <a href='{{browseURL $ (dict "status" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
@@ -143,7 +143,7 @@
         <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
     </div>
-    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2 ">
+    <div data-content class="hidden absolute z-50 w-40 bg-background-button rounded-none shadow-card left-0 top-full mt-2 ">
       <div class="flex flex-col">
         {{range $typeOptions}}
           <a href='{{browseURL $ (dict "type" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
@@ -160,7 +160,7 @@
           <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
         </button>
       </div>
-      <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-(--shadow-card) left-0 top-full mt-2 ">
+      <div data-content class="hidden absolute z-50 w-48 bg-background-button rounded-none shadow-card left-0 top-full mt-2 ">
         <div class="flex flex-col">
           {{range $sortOptions}}
             <a href='{{browseURL $ (dict "order_by" .Value)}}' class="flex w-full items-center px-5 py-2.5 transition-colors focus:outline-none hover:bg-surface-hover text-sm text-foreground">{{.Label}}</a>
