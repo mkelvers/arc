@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"mal/pkg/errlog"
 )
 
 type SkipSegmentOverrideRow struct {
@@ -28,7 +29,7 @@ ORDER BY skip_type ASC;
 	if err != nil {
 		return nil, fmt.Errorf("list skip segment overrides: %w", err)
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close skip segment override rows")
 
 	var out []SkipSegmentOverrideRow
 	for rows.Next() {
