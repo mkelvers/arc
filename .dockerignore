@@ -2,7 +2,13 @@ node_modules
 dist
 .env
 *.db
+*.db-shm
 *.db-journal
 *.db-wal
+server
+main_server
+create_user
+*.log
+*.pid
 .DS_Store
 .git
