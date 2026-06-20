@@ -8,6 +8,7 @@ import (
 
 	dbfixes "mal/internal/database/fixes"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 )
 
 func RunDataFixes(sqlDB *sql.DB) error {
@@ -72,7 +73,7 @@ func loadAppliedFixes(ctx context.Context, sqlDB *sql.DB) (map[string]bool, erro
 	if err != nil {
 		return nil, fmt.Errorf("load applied data fixes: %w", err)
 	}
-	defer rows.Close()
+	defer errlog.Close(rows, "failed to close applied data fixes rows")
 
 	applied := make(map[string]bool)
 	for rows.Next() {
