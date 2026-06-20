@@ -426,7 +426,11 @@ const initPlayer = async (): Promise<void> => {
 
   setupThumbnails();
   window.setTimeout(() => {
-    if (!signal.aborted) void hydrateAlternateMode(signal);
+    if (!signal.aborted) {
+      hydrateAlternateMode(signal).catch((error) => {
+        console.error("delayed alternate mode hydration failed:", error);
+      });
+    }
   }, 3000);
 
   document.body.addEventListener(
@@ -447,10 +451,14 @@ const initPlayer = async (): Promise<void> => {
 };
 
 onReady(() => {
-  void initPlayer();
+  initPlayer().catch((error) => {
+    console.error("player initialization failed:", error);
+  });
 });
 onHtmxLoad((root) => {
   if (root.matches("[data-video-player]") || root.querySelector("[data-video-player]")) {
-    void initPlayer();
+    initPlayer().catch((error) => {
+      console.error("player initialization after htmx load failed:", error);
+    });
   }
 });
