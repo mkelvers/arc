@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	"strings"
 )
 
