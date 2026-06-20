@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mal/internal/domain"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
 	"strings"
