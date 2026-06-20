@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mal/pkg/errlog"
 	netutil "mal/pkg/net"
 	"net/http"
 	"regexp"
@@ -205,7 +206,9 @@ func fetchProxyText(ctx context.Context, httpClient *http.Client, url string) (s
 	if err != nil {
 		return "", fmt.Errorf("proxy request failed: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close watch order proxy response body", response.Body.Close())
+	}()
 
 	if response.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("proxy status %d", response.StatusCode)
