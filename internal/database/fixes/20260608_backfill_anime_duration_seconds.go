@@ -8,6 +8,7 @@ import (
 	"mal/internal/config"
 	"mal/internal/db"
 	"mal/internal/observability"
+	"mal/pkg/errlog"
 )
 
 type animeDurationRow struct {
@@ -62,7 +63,7 @@ WHERE duration_seconds IS NULL;
 	if err != nil {
 		return nil, fmt.Errorf("query anime rows missing duration_seconds: %w", err)
 	}
-	defer func() { _ = rows.Close() }()
+	defer errlog.Close(rows, "failed to close anime duration backfill rows")
 
 	var toUpdate []animeDurationRow
 	for rows.Next() {
