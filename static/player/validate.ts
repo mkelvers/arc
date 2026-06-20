@@ -3,10 +3,10 @@ import type { ModeSource, SkipSegment } from "./types";
 export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-export const isStringArray = (v: unknown): v is string[] =>
+const isStringArray = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((item) => typeof item === "string");
 
-export const isSubtitleItemArray = (v: unknown): v is { lang: string; token: string }[] =>
+const isSubtitleItemArray = (v: unknown): v is { lang: string; token: string }[] =>
   Array.isArray(v) &&
   v.every(
     (item) => isRecord(item) && typeof item.lang === "string" && typeof item.token === "string",
