@@ -54,11 +54,10 @@ COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/internal/database/migrations ./migrations
-COPY entrypoint.sh ./entrypoint.sh
 
 RUN printf '%s\n' '#!/bin/sh' 'set -e' 'exec /app/user_admin "$@"' > /app/create-user \
   && chmod +x /app/create-user
 
 EXPOSE 3000
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/app/main_server"]
