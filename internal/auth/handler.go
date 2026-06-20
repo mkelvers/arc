@@ -3,6 +3,7 @@ package auth
 
 import (
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -54,7 +55,9 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 func (h *AuthHandler) HandleLogout(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
 	if err == nil {
-		_ = h.svc.Logout(c.Request.Context(), sessionID)
+		if err := h.svc.Logout(c.Request.Context(), sessionID); err != nil {
+			observability.WarnContext(c.Request.Context(), "logout_failed", "auth", "", nil, err)
+		}
 	}
 
 	c.SetCookie("session_id", "", -1, "/", "", false, true)
