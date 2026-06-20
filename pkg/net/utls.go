@@ -3,7 +3,7 @@ package netutil
 import (
 	"bufio"
 	"fmt"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 	"net"
 	"net/http"
 	"time"
