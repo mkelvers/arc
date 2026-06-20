@@ -8,7 +8,7 @@ import (
 
 	dbfixes "mal/internal/database/fixes"
 	"mal/internal/observability"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 )
 
 func RunDataFixes(sqlDB *sql.DB) error {
