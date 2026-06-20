@@ -14,29 +14,39 @@
           "lint:ts":
             {
               "glob": "*.{ts,js,tsx,jsx}",
-              "run": "bunx oxlint --ignore-path .oxlintignore {staged_files} --max-warnings 0 --tsconfig ./tsconfig.json --type-aware",
+              "run":
+                "bunx oxlint --ignore-path .oxlintignore {staged_files} --max-warnings 0 --tsconfig
+                ./tsconfig.json --type-aware",
             },
           "go-fmt":
             {
               "glob": "*.go",
-              "run": 'files=$(gofmt -l {staged_files}); test -z "$files" || (printf "go files need formatting:\n%s\n" "$files"; exit 1)',
+              "run":
+                'files=$(gofmt -l {staged_files}); test -z "$files" || (printf "go files need
+                formatting:\n%s\n" "$files"; exit 1)',
             },
           "go-lint":
             {
               "glob": "*.go",
-              "run": 'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} golangci-lint run --new-from-rev=HEAD ./{}',
+              "run":
+                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{}
+                golangci-lint run --new-from-rev=HEAD ./{}',
             },
           "go-test":
             {
               "glob": "*.go",
-              "run": 'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} go test -count=1 ./{}',
+              "run":
+                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} go test
+                -count=1 ./{}',
             },
           "ts-typecheck": { "glob": "*.ts", "run": "bunx tsc -p tsconfig.json --noEmit" },
           "build-assets": { "glob": "*.{ts,css}", "run": "bun run build:assets" },
           "go-build":
             {
               "glob": "*.go",
-              "run": 'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} go build -o /dev/null ./{}',
+              "run":
+                'printf "%s\n" {staged_files} | xargs -n1 dirname | sort -u | xargs -I{} go build -o
+                /dev/null ./{}',
             },
         },
     },
