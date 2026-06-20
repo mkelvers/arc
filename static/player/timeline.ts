@@ -23,7 +23,7 @@ const getSeekableEnd = (): number => {
  * Computes timeline bounds from video.
  * Uses the full duration for VOD, and seekable ranges only when duration is unavailable.
  */
-export const timelineBounds = (): TimelineBounds => {
+const timelineBounds = (): TimelineBounds => {
   const duration = getDuration();
   if (duration > 0) {
     return { start: 0, end: duration, duration };
@@ -93,7 +93,7 @@ export const absoluteTimeFromRatio = (ratio: number): number => {
 };
 
 // finds the end of the buffered region containing currentTime
-export const getBufferedEnd = (): number => {
+const getBufferedEnd = (): number => {
   const currentTime = state.elements.video.currentTime;
   let end = 0;
   // first: find buffered range that contains current time
