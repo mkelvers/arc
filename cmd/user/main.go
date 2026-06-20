@@ -17,7 +17,7 @@ import (
 	"mal/internal/database"
 	"mal/internal/db"
 	"mal/internal/observability"
-	"mal/pkg/errlog"
+	errlog "mal/pkg"
 )
 
 func main() {
