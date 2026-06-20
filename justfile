@@ -49,10 +49,10 @@ clean:
     rm -f server
 
 new-data-fix name:
-    bash scripts/new-data-fix.sh {{name}}
+    bun run ./scripts/new-data-fix.ts {{name}}
 
 run-fixes:
     go run ./cmd/user run-fixes
 
 fix-all:
-    bash scripts/fix-all.sh
+    bun run ./scripts/fix-all.ts
