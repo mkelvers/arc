@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mal/pkg/errlog"
 	"net/http"
 )
 
@@ -53,7 +52,7 @@ func Post[T any](ctx context.Context, httpClient *http.Client, url string, query
 		return zero, fmt.Errorf("graphql: execute request: %w", err)
 	}
 	defer func() {
-		errlog.Log("failed to close graphql response body", resp.Body.Close())
+		Log("failed to close graphql response body", resp.Body.Close())
 	}()
 
 	bodyMax := opts.BodyMax
