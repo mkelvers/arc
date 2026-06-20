@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mal/pkg/errlog"
 	"net/http"
 
 	"github.com/PuerkitoBio/goquery"
@@ -43,10 +44,15 @@ func FetchHTMLDocument(
 	if err != nil {
 		return nil, "", fmt.Errorf("request failed: %w", err)
 	}
-	defer func() { _ = response.Body.Close() }()
+	defer func() {
+		errlog.Log("failed to close html response body", response.Body.Close())
+	}()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(io.LimitReader(response.Body, Bytes512))
+		body, readErr := io.ReadAll(io.LimitReader(response.Body, Bytes512))
+		if readErr != nil {
+			return nil, responseURL(response, request), fmt.Errorf("failed to read error response body: %w", readErr)
+		}
 		return nil, responseURL(response, request), buildStatusError(response, body)
 	}
 
