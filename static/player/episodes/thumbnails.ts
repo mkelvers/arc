@@ -1,19 +1,23 @@
 import { state } from "../state";
 
 /**
- * Fetches episode thumbnails and titles from API.
- * Injects images into episode cards, replaces placeholder.
+ * Fetches episode thumbnails and titles from API. Injects images into episode cards, replaces
+ * placeholder.
  */
 export const setupThumbnails = (): void => {
-  const episodeList = state.elements.episodeList;
-  if (!episodeList) return;
+  const { episodeList } = state.elements;
+  if (!episodeList) {
+    return;
+  }
 
   fetch(`/api/watch/thumbnails/${state.episode.malID}`)
     .then((res) => res.json())
-    .then((data: { mal_id: number; url: string; title?: string }[]) => {
+    .then((data: Array<{ mal_id: number; url: string; title?: string }>) => {
       data.forEach((item) => {
         const card = episodeList.querySelector(`[data-episode-id="${item.mal_id}"]`);
-        if (!card) return;
+        if (!card) {
+          return;
+        }
 
         // inject thumbnail image
         if (item.url) {
@@ -39,7 +43,9 @@ export const setupThumbnails = (): void => {
         // inject title text
         if (item.title) {
           const titleEl = card.querySelector("[data-episode-title]");
-          if (titleEl) titleEl.textContent = item.title;
+          if (titleEl) {
+            titleEl.textContent = item.title;
+          }
         }
       });
     })
