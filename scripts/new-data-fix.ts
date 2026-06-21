@@ -1,13 +1,13 @@
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 
 const toSlug = (raw: string): string =>
   raw
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
+    .replace(/[^a-z0-9]+/gu, "_")
+    .replace(/^_+|_+$/gu, "");
 
 const formatYyyymmdd = (date = new Date()): string => {
   const year = date.getFullYear();
