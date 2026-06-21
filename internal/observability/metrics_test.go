@@ -21,6 +21,7 @@ func TestMetricsHandlerRendersPrometheusFamilies(t *testing.T) {
 	metrics.ObserveWorkerTick("episodes_availability", nil)
 	metrics.ObserveCache("jikan", "hit")
 	metrics.ObserveCache("episode_availability", "miss")
+	metrics.ObserveJikanCacheStats(12, 3, 1770000000)
 
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/metrics", nil)
 	rec := httptest.NewRecorder()
@@ -39,6 +40,9 @@ func TestMetricsHandlerRendersPrometheusFamilies(t *testing.T) {
 	assertContains(t, text, `mal_db_query_duration_seconds_count{operation="query",result="success"} 1`)
 	assertContains(t, text, `mal_worker_ticks_total{result="success",worker="episodes_availability"} 1`)
 	assertContains(t, text, `mal_cache_operations_total{cache="episode_availability",result="miss"} 1`)
+	assertContains(t, text, `mal_jikan_cache_rows{state="total"} 12`)
+	assertContains(t, text, `mal_jikan_cache_rows{state="expired"} 3`)
+	assertContains(t, text, `mal_jikan_cache_oldest_expires_at_seconds 1770000000`)
 }
 
 func TestInstrumentDBRecordsQueryLatency(t *testing.T) {

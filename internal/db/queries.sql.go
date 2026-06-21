@@ -576,6 +576,27 @@ func (q *Queries) GetJikanCache(ctx context.Context, key string) (string, error)
 	return data, err
 }
 
+const getJikanCacheStats = `-- name: GetJikanCacheStats :one
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(*) FILTER (WHERE datetime(expires_at) <= CURRENT_TIMESTAMP) AS expired_rows,
+    COALESCE(unixepoch(MIN(expires_at)), 0) AS oldest_expires_at_seconds
+FROM jikan_cache
+`
+
+type GetJikanCacheStatsRow struct {
+	TotalRows              int64 `json:"total_rows"`
+	ExpiredRows            int64 `json:"expired_rows"`
+	OldestExpiresAtSeconds int64 `json:"oldest_expires_at_seconds"`
+}
+
+func (q *Queries) GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getJikanCacheStats)
+	var i GetJikanCacheStatsRow
+	err := row.Scan(&i.TotalRows, &i.ExpiredRows, &i.OldestExpiresAtSeconds)
+	return i, err
+}
+
 const getJikanCacheStale = `-- name: GetJikanCacheStale :one
 SELECT data FROM jikan_cache
 WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1

@@ -37,6 +37,11 @@ type histogramSample struct {
 	sum     float64
 }
 
+type gaugeSample struct {
+	labels map[string]string
+	value  float64
+}
+
 type counterVec struct {
 	mu         sync.Mutex
 	labelNames []string
@@ -50,6 +55,12 @@ type histogramVec struct {
 	samples    map[string]*histogramSample
 }
 
+type gaugeVec struct {
+	mu         sync.Mutex
+	labelNames []string
+	samples    map[string]*gaugeSample
+}
+
 type Metrics struct {
 	httpRequests       *counterVec
 	httpRequestLatency *histogramVec
@@ -59,6 +70,8 @@ type Metrics struct {
 	dbQueryLatency     *histogramVec
 	workerTicks        *counterVec
 	cacheOperations    *counterVec
+	jikanCacheRows     *gaugeVec
+	jikanCacheOldest   *gaugeVec
 }
 
 func NewMetrics() *Metrics {
@@ -71,6 +84,8 @@ func NewMetrics() *Metrics {
 		dbQueryLatency:     newHistogramVec(defaultDurationBuckets, "operation", "result"),
 		workerTicks:        newCounterVec("worker", "result"),
 		cacheOperations:    newCounterVec("cache", "result"),
+		jikanCacheRows:     newGaugeVec("state"),
+		jikanCacheOldest:   newGaugeVec(),
 	}
 }
 
@@ -119,6 +134,12 @@ func (m *Metrics) ObserveCache(cache string, result string) {
 	m.cacheOperations.Inc(cache, result)
 }
 
+func (m *Metrics) ObserveJikanCacheStats(totalRows int64, expiredRows int64, oldestExpiresAtSeconds int64) {
+	m.jikanCacheRows.Set(float64(totalRows), "total")
+	m.jikanCacheRows.Set(float64(expiredRows), "expired")
+	m.jikanCacheOldest.Set(float64(oldestExpiresAtSeconds))
+}
+
 func (m *Metrics) writePrometheus(w http.ResponseWriter) error {
 	if err := writeCounterMetric(w, "mal_http_requests_total", "Total HTTP requests by method, route, and status.", m.httpRequests.snapshot()); err != nil {
 		return err
@@ -141,7 +162,13 @@ func (m *Metrics) writePrometheus(w http.ResponseWriter) error {
 	if err := writeCounterMetric(w, "mal_worker_ticks_total", "Total background worker ticks by worker and result.", m.workerTicks.snapshot()); err != nil {
 		return err
 	}
-	return writeCounterMetric(w, "mal_cache_operations_total", "Total cache hits and misses by cache name.", m.cacheOperations.snapshot())
+	if err := writeCounterMetric(w, "mal_cache_operations_total", "Total cache hits and misses by cache name.", m.cacheOperations.snapshot()); err != nil {
+		return err
+	}
+	if err := writeGaugeMetric(w, "mal_jikan_cache_rows", "Current jikan_cache row count by state.", m.jikanCacheRows.snapshot()); err != nil {
+		return err
+	}
+	return writeGaugeMetric(w, "mal_jikan_cache_oldest_expires_at_seconds", "Unix timestamp for the oldest jikan_cache expires_at value, or 0 when empty.", m.jikanCacheOldest.snapshot())
 }
 
 func newCounterVec(labelNames ...string) *counterVec {
@@ -237,6 +264,45 @@ func (h *histogramVec) snapshot() []histogramSample {
 	return out
 }
 
+func newGaugeVec(labelNames ...string) *gaugeVec {
+	return &gaugeVec{
+		labelNames: append([]string(nil), labelNames...),
+		samples:    make(map[string]*gaugeSample),
+	}
+}
+
+func (g *gaugeVec) Set(value float64, labelValues ...string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	key, labels := buildLabelKey(g.labelNames, labelValues)
+	if labels == nil {
+		return
+	}
+	sample, ok := g.samples[key]
+	if !ok {
+		sample = &gaugeSample{labels: labels}
+		g.samples[key] = sample
+	}
+	sample.value = value
+}
+
+func (g *gaugeVec) snapshot() []gaugeSample {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	keys := sortedGaugeSampleKeys(g.samples)
+	out := make([]gaugeSample, 0, len(keys))
+	for _, key := range keys {
+		sample := g.samples[key]
+		out = append(out, gaugeSample{
+			labels: copyLabels(sample.labels),
+			value:  sample.value,
+		})
+	}
+	return out
+}
+
 func buildLabelKey(labelNames []string, labelValues []string) (string, map[string]string) {
 	if len(labelNames) != len(labelValues) {
 		return "", nil
@@ -276,6 +342,15 @@ func sortedHistogramSampleKeys(samples map[string]*histogramSample) []string {
 	return keys
 }
 
+func sortedGaugeSampleKeys(samples map[string]*gaugeSample) []string {
+	keys := make([]string, 0, len(samples))
+	for key := range samples {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func writeCounterMetric(w http.ResponseWriter, name string, help string, samples []counterSample) error {
 	if _, err := fmt.Fprintf(w, "# HELP %s %s\n", name, help); err != nil {
 		return err
@@ -285,6 +360,21 @@ func writeCounterMetric(w http.ResponseWriter, name string, help string, samples
 	}
 	for _, sample := range samples {
 		if _, err := fmt.Fprintf(w, "%s%s %d\n", name, formatLabels(sample.labels), sample.value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeGaugeMetric(w http.ResponseWriter, name string, help string, samples []gaugeSample) error {
+	if _, err := fmt.Fprintf(w, "# HELP %s %s\n", name, help); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(w, "# TYPE %s gauge\n", name); err != nil {
+		return err
+	}
+	for _, sample := range samples {
+		if _, err := fmt.Fprintf(w, "%s%s %s\n", name, formatLabels(sample.labels), formatFloat(sample.value)); err != nil {
 			return err
 		}
 	}
