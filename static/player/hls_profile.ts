@@ -1,7 +1,8 @@
-import Hls from "hls.js";
 import type { ErrorData } from "hls.js";
 
-interface HLSPlaybackProfile {
+import Hls from "hls.js";
+
+type HLSPlaybackProfile = {
   sourceLoads: number;
   manifestParsed: number;
   stalls: number;
@@ -11,7 +12,7 @@ interface HLSPlaybackProfile {
   errors: number;
   fatalErrors: number;
   lastErrorType: string;
-}
+};
 
 declare global {
   interface Window {
@@ -70,14 +71,18 @@ export const attachHLSProfile = (hls: Hls, video: HTMLVideoElement): (() => void
   };
 
   const onWaiting = (): void => {
-    if (stallStartedAt !== null) return;
+    if (stallStartedAt !== null) {
+      return;
+    }
     stallStartedAt = performance.now();
     profile.stalls += 1;
     mark("stall_start");
   };
 
   const onPlaying = (): void => {
-    if (stallStartedAt === null) return;
+    if (stallStartedAt === null) {
+      return;
+    }
     profile.totalStallMs += performance.now() - stallStartedAt;
     stallStartedAt = null;
     measure("stall", "stall_start");
@@ -89,7 +94,9 @@ export const attachHLSProfile = (hls: Hls, video: HTMLVideoElement): (() => void
   };
 
   const onSeeked = (): void => {
-    if (seekStartedAt === null) return;
+    if (seekStartedAt === null) {
+      return;
+    }
     profile.seeks += 1;
     profile.totalSeekMs += performance.now() - seekStartedAt;
     seekStartedAt = null;
