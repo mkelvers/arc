@@ -42,7 +42,9 @@ class UIDropdown extends HTMLElement {
   }
 
   open(): void {
-    if (!this.contentEl || this.isOpen) return;
+    if (!this.contentEl || this.isOpen) {
+      return;
+    }
 
     document.querySelectorAll<UIDropdown>("ui-dropdown").forEach((dropdown) => {
       if (dropdown !== this) {
@@ -60,7 +62,9 @@ class UIDropdown extends HTMLElement {
   }
 
   close(options: { restoreFocus?: boolean } = {}): void {
-    if (!this.contentEl || !this.isOpen) return;
+    if (!this.contentEl || !this.isOpen) {
+      return;
+    }
     this.isOpen = false;
     this.contentEl.classList.add("hidden");
     this.contentEl.setAttribute("aria-hidden", "true");
@@ -85,15 +89,25 @@ class UIDropdown extends HTMLElement {
   }
 
   handleDocumentClick(event: MouseEvent): void {
-    if (!this.isOpen) return;
-    if (!(event.target instanceof Node)) return;
-    if (this.contains(event.target)) return;
+    if (!this.isOpen) {
+      return;
+    }
+    if (!(event.target instanceof Node)) {
+      return;
+    }
+    if (this.contains(event.target)) {
+      return;
+    }
     this.close({ restoreFocus: false });
   }
 
   handleKeydown(event: KeyboardEvent): void {
-    if (!this.isOpen) return;
-    if (event.key !== "Escape") return;
+    if (!this.isOpen) {
+      return;
+    }
+    if (event.key !== "Escape") {
+      return;
+    }
     event.preventDefault();
     this.close();
   }
@@ -103,15 +117,21 @@ customElements.define("ui-dropdown", UIDropdown);
 
 const initStudioDropdown = (): void => {
   document.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof Element)) return;
+    const { target } = e;
+    if (!(target instanceof Element)) {
+      return;
+    }
 
     const btn = target.closest<HTMLButtonElement>("button[data-studio-select]");
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
 
-    const input = document.getElementById("studio-input");
-    const form = document.getElementById("browse-search-form");
-    if (!(input instanceof HTMLInputElement) || !(form instanceof HTMLFormElement)) return;
+    const input = document.querySelector("#studio-input");
+    const form = document.querySelector("#browse-search-form");
+    if (!(input instanceof HTMLInputElement) || !(form instanceof HTMLFormElement)) {
+      return;
+    }
 
     input.value = btn.dataset.studioSelect ?? "";
     form.requestSubmit();
@@ -126,7 +146,9 @@ const initStudioDropdown = (): void => {
 const initCheckboxVisuals = (): void => {
   const syncCheckboxVisual = (input: HTMLInputElement): void => {
     const box = input.nextElementSibling;
-    if (!(box instanceof HTMLElement)) return;
+    if (!(box instanceof HTMLElement)) {
+      return;
+    }
 
     const icon = box.querySelector("svg");
     icon?.classList.toggle("hidden", !input.checked);
@@ -153,8 +175,10 @@ const initCheckboxVisuals = (): void => {
   };
 
   document.addEventListener("change", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement)) return;
+    const { target } = event;
+    if (!(target instanceof HTMLInputElement)) {
+      return;
+    }
     if (!target.matches("[data-checkbox-visual], [data-sfw-checkbox], [data-genre-visual]")) {
       return;
     }
