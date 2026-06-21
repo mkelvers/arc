@@ -1,5 +1,3 @@
-export {};
-
 import { onReady } from "./utils";
 
 type WatchlistStatus = "watching" | "completed" | "plan_to_watch" | "dropped";
@@ -32,7 +30,9 @@ class WatchlistStore {
   }
 
   withOptimistic(id: number, onRollback: () => void): (() => void) | null {
-    if (this.isBusy(id)) return null;
+    if (this.isBusy(id)) {
+      return null;
+    }
 
     const wasInWatchlist = this.has(id);
     this.inflight.add(id);
@@ -72,7 +72,9 @@ const toast = (message: string): void => {
 };
 
 const toInt = (value: string | undefined): number | null => {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : null;
 };
@@ -80,7 +82,9 @@ const toInt = (value: string | undefined): number | null => {
 const withTimeout = async <T>(promise: Promise<T>, ms: number): Promise<T> => {
   let timeoutId: number | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timeoutId = window.setTimeout(() => reject(new Error("timeout")), ms);
+    timeoutId = window.setTimeout(() => {
+      reject(new Error("timeout"));
+    }, ms);
   });
 
   try {
@@ -97,13 +101,17 @@ const requestJson = async (input: string, init: RequestInit): Promise<Response> 
 
 const syncRemoveButtonVisibility = (id: number): void => {
   const container = document.getElementById(`remove-watchlist-container-${id}`);
-  if (!container) return;
+  if (!container) {
+    return;
+  }
   container.classList.toggle("hidden", !watchlistStore.has(id));
 };
 
 const syncWatchlistDropdown = (id: number, inWatchlist: boolean): void => {
   const statusDisplay = document.getElementById(`watchlist-status-display-${id}`);
-  if (!statusDisplay) return;
+  if (!statusDisplay) {
+    return;
+  }
   statusDisplay.textContent = inWatchlist ? "Plan to Watch" : "Add to Watchlist";
   syncRemoveButtonVisibility(id);
 };
@@ -114,7 +122,9 @@ const syncIconsForId = (id: number): void => {
     .querySelectorAll<HTMLElement>("[data-watchlist-toggle][data-mal-id]")
     .forEach((button) => {
       const malId = toInt(button.dataset.malId);
-      if (malId !== id) return;
+      if (malId !== id) {
+        return;
+      }
       button.classList.toggle("in-watchlist", shouldBeInWatchlist);
       button.dataset.watchlistState = shouldBeInWatchlist ? "in" : "out";
       button.setAttribute(
@@ -136,7 +146,9 @@ const setBusy = (id: number, busy: boolean): void => {
     )
     .forEach((button) => {
       const malId = toInt(button.dataset.malId);
-      if (malId !== id) return;
+      if (malId !== id) {
+        return;
+      }
       button.disabled = busy;
       button.toggleAttribute("aria-busy", busy);
     });
@@ -168,7 +180,9 @@ const toggleWatchlist = async (
     syncIconsForId(id);
     syncWatchlistDropdown(id, watchlistStore.has(id));
   });
-  if (!rollback) return;
+  if (!rollback) {
+    return;
+  }
 
   const isInWatchlist = watchlistStore.has(id);
 
@@ -217,18 +231,19 @@ type WatchlistSort = "date" | "title";
 const csvEscape = (value: unknown): string => {
   const str = String(value ?? "");
   if (/[",\r\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
+    return `"${str.replaceAll(/"/g, '""')}"`;
   }
   return str;
 };
 
-const watchlistItems = (): HTMLElement[] =>
-  Array.from(document.querySelectorAll<HTMLElement>(".watchlist-item"));
+const watchlistItems = (): HTMLElement[] => [
+  ...document.querySelectorAll<HTMLElement>(".watchlist-item"),
+];
 
 const sortVisibleWatchlistItems = (sortBy: WatchlistSort, desc: boolean): void => {
   const grids: HTMLElement[] = [];
 
-  const singleGrid = document.getElementById("watchlist-items");
+  const singleGrid = document.querySelector<HTMLElement>("#watchlist-items");
   if (singleGrid) {
     grids.push(singleGrid);
   }
@@ -238,7 +253,7 @@ const sortVisibleWatchlistItems = (sortBy: WatchlistSort, desc: boolean): void =
     .forEach((grid) => grids.push(grid));
 
   const sortItemsInGrid = (grid: HTMLElement): void => {
-    const items = Array.from(grid.querySelectorAll<HTMLElement>(".watchlist-item"));
+    const items = [...grid.querySelectorAll<HTMLElement>(".watchlist-item")];
     items.sort((a, b) => {
       let comparison = 0;
       if (sortBy === "title") {
@@ -252,7 +267,9 @@ const sortVisibleWatchlistItems = (sortBy: WatchlistSort, desc: boolean): void =
       }
       return desc ? -comparison : comparison;
     });
-    items.forEach((item) => grid.appendChild(item));
+    items.forEach((item) => {
+      grid.append(item);
+    });
   };
 
   grids.forEach(sortItemsInGrid);
@@ -260,7 +277,9 @@ const sortVisibleWatchlistItems = (sortBy: WatchlistSort, desc: boolean): void =
 
 const setActiveFilterButton = (clicked: HTMLButtonElement): void => {
   const parent = clicked.parentElement;
-  if (!parent) return;
+  if (!parent) {
+    return;
+  }
   parent.querySelectorAll("button").forEach((b) => {
     b.classList.remove("text-foreground");
     b.classList.add("text-foreground-muted");
@@ -274,8 +293,8 @@ const setActiveFilterButton = (clicked: HTMLButtonElement): void => {
 };
 
 const applyWatchlistFilter = (status: string): void => {
-  const sections = Array.from(document.querySelectorAll<HTMLElement>(".watchlist-section"));
-  if (sections.length) {
+  const sections = [...document.querySelectorAll<HTMLElement>(".watchlist-section")];
+  if (sections.length > 0) {
     sections.forEach((section) => {
       if (status === "all") {
         section.style.display = "block";
@@ -296,9 +315,8 @@ const applyWatchlistFilter = (status: string): void => {
 };
 
 const exportWatchlistCsv = (): void => {
-  const rows = watchlistItems()
-    .slice()
-    .sort((a, b) => {
+  const rows = [...watchlistItems()]
+    .toSorted((a, b) => {
       const dateA = Number.parseInt(a.dataset.updatedAt ?? "0", 10) || 0;
       const dateB = Number.parseInt(b.dataset.updatedAt ?? "0", 10) || 0;
       return dateB - dateA;
@@ -319,7 +337,7 @@ const exportWatchlistCsv = (): void => {
   const link = document.createElement("a");
   link.href = url;
   link.download = "watchlist.csv";
-  document.body.appendChild(link);
+  document.body.append(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
@@ -332,8 +350,10 @@ const initWatchlistPage = (): void => {
   sortVisibleWatchlistItems(currentSortBy, sortOrderDesc);
 
   document.addEventListener("click", (e) => {
-    const target = e.target;
-    if (!(target instanceof Element)) return;
+    const { target } = e;
+    if (!(target instanceof Element)) {
+      return;
+    }
 
     const filterBtn = target.closest<HTMLButtonElement>("button[data-watchlist-filter]");
     if (filterBtn) {
@@ -348,7 +368,7 @@ const initWatchlistPage = (): void => {
     if (sortBtn) {
       const sortBy = sortBtn.dataset.watchlistSort === "title" ? "title" : "date";
       currentSortBy = sortBy;
-      const display = document.getElementById("sort-by-display");
+      const display = document.querySelector("#sort-by-display");
       if (display) {
         display.textContent = currentSortBy === "date" ? "Date Added" : "Title";
       }
@@ -396,7 +416,9 @@ const updateWatchlist = async (
     syncIconsForId(id);
     syncRemoveButtonVisibility(id);
   });
-  if (!rollback) return;
+  if (!rollback) {
+    return;
+  }
 
   setBusy(id, true);
 
@@ -439,7 +461,9 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
     syncIconsForId(id);
     syncWatchlistDropdown(id, watchlistStore.has(id));
   });
-  if (!rollback) return;
+  if (!rollback) {
+    return;
+  }
 
   setBusy(id, true);
 
@@ -462,7 +486,9 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
       card.remove();
       const remaining = document.querySelectorAll(".watchlist-item").length;
       if (remaining === 0) {
-        window.setTimeout(() => window.location.reload(), 50);
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 50);
       }
     }
   } catch (error) {
@@ -480,7 +506,9 @@ const removeWatchlist = async (id: number, title: string, source: HTMLElement): 
 onReady(initWatchlistPage);
 
 const initWatchlist = (ids: number[]): void => {
-  ids.forEach((id) => watchlistStore.add(id));
+  ids.forEach((id) => {
+    watchlistStore.add(id);
+  });
   ids.forEach((id) => {
     syncRemoveButtonVisibility(id);
     syncIconsForId(id);
@@ -496,26 +524,32 @@ const getRenderedWatchlistIds = (): number[] => {
     )
     .forEach((button) => {
       const id = toInt(button.dataset.malId);
-      if (id === null) return;
+      if (id === null) {
+        return;
+      }
       ids.add(id);
     });
 
-  return Array.from(ids);
+  return [...ids];
 };
 
 const installDelegatedHandlers = (): void => {
   document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
+    const { target } = event;
+    if (!(target instanceof Element)) {
+      return;
+    }
 
     const toggleButton = target.closest("[data-watchlist-toggle]") as HTMLElement | null;
     if (toggleButton) {
       event.preventDefault();
       event.stopPropagation();
 
-      const id = toInt(toggleButton.getAttribute("data-mal-id") ?? undefined);
-      if (id === null) return;
-      const title = toggleButton.getAttribute("data-watchlist-title") ?? "anime";
+      const id = toInt(toggleButton.dataset.malId ?? undefined);
+      if (id === null) {
+        return;
+      }
+      const title = toggleButton.dataset.watchlistTitle ?? "anime";
       toggleWatchlist(id, title, toggleButton.dataset.watchlistState).catch((error) => {
         console.error("unhandled watchlist toggle failure:", error);
       });
@@ -526,14 +560,16 @@ const installDelegatedHandlers = (): void => {
     if (updateButton) {
       event.preventDefault();
       event.stopPropagation();
-      const id = toInt(updateButton.getAttribute("data-mal-id") ?? undefined);
-      if (id === null) return;
-      const status = updateButton.getAttribute("data-watchlist-status") as WatchlistStatus | null;
-      const display = updateButton.getAttribute(
-        "data-watchlist-display",
-      ) as WatchlistUpdateDisplay | null;
-      const title = updateButton.getAttribute("data-watchlist-title") ?? "anime";
-      if (!status || !display) return;
+      const id = toInt(updateButton.dataset.malId ?? undefined);
+      if (id === null) {
+        return;
+      }
+      const status = updateButton.dataset.watchlistStatus as WatchlistStatus | null;
+      const display = updateButton.dataset.watchlistDisplay as WatchlistUpdateDisplay | null;
+      const title = updateButton.dataset.watchlistTitle ?? "anime";
+      if (!status || !display) {
+        return;
+      }
       updateWatchlist(id, status, display, title, updateButton).catch((error) => {
         console.error("unhandled watchlist update failure:", error);
       });
@@ -544,9 +580,11 @@ const installDelegatedHandlers = (): void => {
     if (removeButton) {
       event.preventDefault();
       event.stopPropagation();
-      const id = toInt(removeButton.getAttribute("data-mal-id") ?? undefined);
-      if (id === null) return;
-      const title = removeButton.getAttribute("data-watchlist-title") ?? "anime";
+      const id = toInt(removeButton.dataset.malId ?? undefined);
+      if (id === null) {
+        return;
+      }
+      const title = removeButton.dataset.watchlistTitle ?? "anime";
       removeWatchlist(id, title, removeButton).catch((error) => {
         console.error("unhandled watchlist remove failure:", error);
       });
@@ -563,7 +601,7 @@ declare global {
 window.initWatchlist = initWatchlist;
 
 onReady(() => {
-  const raw = document.getElementById("watchlist-ids-json")?.textContent;
+  const raw = document.querySelector("#watchlist-ids-json")?.textContent;
   if (raw) {
     let parsed: unknown = null;
     try {
