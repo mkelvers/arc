@@ -18,8 +18,8 @@ Report security concerns privately to the repository maintainer. Include as much
 - the potential impact;
 - any suggested fix or mitigation, if you have one.
 
-You can expect a best-effort response acknowledging the report, followed by validation and a fix when
-the issue is reproducible and in scope.
+You can expect a best-effort response acknowledging the report, followed by validation and a fix
+when the issue is reproducible and in scope.
 
 ## Security Scope
 
@@ -48,17 +48,17 @@ The following are generally out of scope unless they expose a direct application
 ## Operational Notes
 
 This application is designed to be self-hosted and local-first. If you deploy it beyond a private
-local environment, you are responsible for the surrounding production controls, including TLS, network
-access, backups, secrets management, reverse proxy configuration, logging retention, and dependency
-monitoring.
+local environment, you are responsible for the surrounding production controls, including TLS,
+network access, backups, secrets management, reverse proxy configuration, logging retention, and
+dependency monitoring.
 
 Use a strong `PLAYBACK_PROXY_SECRET` if playback proxy token signing is enabled. Do not commit real
 secrets, provider tokens, session data, or production databases to the repository.
 
 ## Dependency Security
 
-Dependencies are managed through Go modules and Bun. When updating dependencies, run the normal local
-checks before merging:
+Dependencies are managed through Go modules and Bun. When updating dependencies, run the normal
+local checks before merging:
 
 ```bash
 just check
