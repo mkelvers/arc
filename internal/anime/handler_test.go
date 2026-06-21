@@ -10,13 +10,15 @@ import (
 )
 
 type stubEpisodeService struct {
-	episodes domain.CanonicalEpisodeList
-	err      error
-	forced   bool
+	episodes     domain.CanonicalEpisodeList
+	err          error
+	called       int
+	forceRefresh bool
 }
 
 func (s *stubEpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.Anime, forceRefresh bool) (domain.CanonicalEpisodeList, error) {
-	s.forced = forceRefresh
+	s.called++
+	s.forceRefresh = forceRefresh
 	if s.err != nil {
 		return domain.CanonicalEpisodeList{}, s.err
 	}
@@ -127,6 +129,52 @@ func TestListedEpisodeCount(t *testing.T) {
 	}
 }
 
+func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
+	episodeSvc := &stubEpisodeService{
+		episodes: domain.CanonicalEpisodeList{
+			Source: "AllAnime",
+			Episodes: []domain.CanonicalEpisode{
+				{Number: 1},
+				{Number: 2},
+				{Number: 3},
+			},
+		},
+	}
+	handler := NewAnimeHandler(nil, nil, episodeSvc)
+
+	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
+		MalID:    59970,
+		Airing:   true,
+		Episodes: 12,
+		Aired:    jikan.Aired{From: "2026-04-03T00:00:00+00:00"},
+	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
+
+	if got.Count != 3 || got.Label != "Available episodes" {
+		t.Fatalf("animeEpisodeCount() = %+v, want count=3 label=%q", got, "Available episodes")
+	}
+	if episodeSvc.called != 1 {
+		t.Fatalf("GetCanonicalEpisodes() calls = %d, want 1", episodeSvc.called)
+	}
+	if episodeSvc.forceRefresh {
+		t.Fatal("animeEpisodeCount() should use fresh cache when available")
+	}
+}
+
+func TestAnimeEpisodeCountFallsBackToMetadata(t *testing.T) {
+	episodeSvc := &stubEpisodeService{err: errors.New("provider unavailable")}
+	handler := NewAnimeHandler(nil, nil, episodeSvc)
+
+	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
+		MalID:    59970,
+		Airing:   false,
+		Episodes: 12,
+	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
+
+	if got.Count != 12 || got.Label != "Total episodes" {
+		t.Fatalf("animeEpisodeCount() = %+v, want count=12 label=%q", got, "Total episodes")
+	}
+}
+
 func TestAnimeAudioAvailabilityLabel(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -217,7 +265,7 @@ func TestAnimeAudioAvailabilityRequiresAllAnimeSource(t *testing.T) {
 			if got != tt.want {
 				t.Fatalf("animeAudioAvailability() = %q, want %q", got, tt.want)
 			}
-			if !episodeSvc.forced {
+			if !episodeSvc.forceRefresh {
 				t.Fatal("animeAudioAvailability() did not force provider refresh")
 			}
 		})
