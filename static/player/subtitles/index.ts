@@ -1,4 +1,5 @@
 import type { SubtitleCue, SubtitleTrack } from "../types";
+
 import { state } from "../state";
 import { parseVtt } from "./vtt";
 
@@ -8,7 +9,9 @@ const proxyUrl = (token: string) => `/watch/proxy/subtitle?token=${encodeURIComp
 // builds subtitle track list from current mode's source
 const subtitlesForMode = (): SubtitleTrack[] => {
   const src = state.playback.modeSources[state.playback.currentMode];
-  if (!src?.subtitles) return [];
+  if (!src?.subtitles) {
+    return [];
+  }
   return src.subtitles
     .map((t) => ({
       lang: (t.lang || "unknown").toLowerCase(),
@@ -19,8 +22,10 @@ const subtitlesForMode = (): SubtitleTrack[] => {
 };
 
 const hideSubtitleText = (): void => {
-  const el = state.elements.container.querySelector("[data-subtitle-text]") as HTMLElement | null;
-  if (!el) return;
+  const el = state.elements.container.querySelector("[data-subtitle-text]");
+  if (!el) {
+    return;
+  }
   el.textContent = "";
   el.classList.remove("block");
   el.classList.add("hidden");
@@ -30,7 +35,9 @@ const hideSubtitleText = (): void => {
 const loadSubtitle = async (url: string): Promise<SubtitleCue[]> => {
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`subtitle request failed with status ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`subtitle request failed with status ${res.status}`);
+    }
     return parseVtt(await res.text());
   } catch (error) {
     console.error("failed to load subtitle:", error);
@@ -39,28 +46,29 @@ const loadSubtitle = async (url: string): Promise<SubtitleCue[]> => {
 };
 
 /**
- * Rebuilds subtitle dropdown from current mode's available tracks.
- * Shows/hides dropdown based on availability.
+ * Rebuilds subtitle dropdown from current mode's available tracks. Shows/hides dropdown based on
+ * availability.
  */
 export const updateSubtitleOptions = (): void => {
-  const select = state.elements.container.querySelector(
-    "[data-subtitle-select]",
-  ) as HTMLSelectElement | null;
-  if (!select) return;
+  const select =
+    state.elements.container.querySelector<HTMLSelectElement>("[data-subtitle-select]");
+  if (!select) {
+    return;
+  }
   state.subtitles.tracks = subtitlesForMode();
   select.replaceChildren();
 
   const none = document.createElement("option");
   none.value = "none";
   none.textContent = "Off";
-  select.appendChild(none);
+  select.append(none);
   select.value = "none";
 
   state.subtitles.tracks.forEach((t, i) => {
     const opt = document.createElement("option");
     opt.value = String(i);
     opt.textContent = t.label;
-    select.appendChild(opt);
+    select.append(opt);
   });
 
   const wrapper = select.parentElement;
@@ -70,13 +78,15 @@ export const updateSubtitleOptions = (): void => {
 };
 
 /**
- * Updates subtitle text display based on current video time.
- * Finds active cue and shows/hides overlay.
+ * Updates subtitle text display based on current video time. Finds active cue and shows/hides
+ * overlay.
  */
 export const updateSubtitleRender = (time: number): void => {
-  const el = state.elements.container.querySelector("[data-subtitle-text]") as HTMLElement | null;
-  if (!el) return;
-  if (!state.subtitles.activeCues.length) {
+  const el = state.elements.container.querySelector("[data-subtitle-text]");
+  if (!el) {
+    return;
+  }
+  if (state.subtitles.activeCues.length === 0) {
     hideSubtitleText();
     return;
   }
@@ -108,14 +118,10 @@ export const updateSubtitleRender = (time: number): void => {
   el.classList.remove("hidden");
 };
 
-/**
- * Binds subtitle select change handler.
- * Loads and parses selected VTT track.
- */
+/** Binds subtitle select change handler. Loads and parses selected VTT track. */
 export const setupSubtitles = (): void => {
-  const select = state.elements.container.querySelector(
-    "[data-subtitle-select]",
-  ) as HTMLSelectElement | null;
+  const select =
+    state.elements.container.querySelector<HTMLSelectElement>("[data-subtitle-select]");
   select?.addEventListener("change", async () => {
     if (select.value === "none") {
       state.subtitles.activeCues = [];
