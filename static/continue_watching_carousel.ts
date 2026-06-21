@@ -27,8 +27,9 @@ const getContinueWatchingCarousel = (root: HTMLElement): ContinueWatchingCarouse
   return { track, previous, next, previousFade, nextFade };
 };
 
-const continueWatchingCarousels = (root: ParentNode = document): HTMLElement[] =>
-  Array.from(root.querySelectorAll<HTMLElement>("[data-continue-watching-carousel]"));
+const continueWatchingCarousels = (root: ParentNode = document): HTMLElement[] => [
+  ...root.querySelectorAll<HTMLElement>("[data-continue-watching-carousel]"),
+];
 
 const maxScrollLeft = (track: HTMLElement): number =>
   Math.max(0, track.scrollWidth - track.clientWidth);
@@ -89,18 +90,17 @@ const scrollContinueWatchingCarousel = (root: HTMLElement, direction: -1 | 1): v
           currentScroll + carouselScrollAmount(carousel.track),
         );
 
-  carousel.track.scrollTo({
-    left: targetScroll,
-    behavior: "smooth",
-  });
+  carousel.track.scrollTo({ left: targetScroll, behavior: "smooth" });
 
-  window.setTimeout(() => updateContinueWatchingCarousel(root), 350);
+  window.setTimeout(() => {
+    updateContinueWatchingCarousel(root);
+  }, 350);
 };
 
 document.addEventListener(
   "click",
   (event: MouseEvent): void => {
-    const target = event.target;
+    const { target } = event;
     if (!(target instanceof Element)) {
       return;
     }
@@ -134,7 +134,7 @@ document.addEventListener(
 document.addEventListener(
   "scroll",
   (event: Event): void => {
-    const target = event.target;
+    const { target } = event;
     if (!(target instanceof HTMLElement) || !target.matches("[data-continue-watching-track]")) {
       return;
     }
@@ -147,6 +147,12 @@ document.addEventListener(
   true,
 );
 
-onReady(() => updateContinueWatchingCarousels());
-onHtmxLoad((root) => updateContinueWatchingCarousels(root));
-window.addEventListener("resize", () => updateContinueWatchingCarousels());
+onReady(() => {
+  updateContinueWatchingCarousels();
+});
+onHtmxLoad((root) => {
+  updateContinueWatchingCarousels(root);
+});
+window.addEventListener("resize", () => {
+  updateContinueWatchingCarousels();
+});
