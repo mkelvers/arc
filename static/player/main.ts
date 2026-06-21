@@ -1,46 +1,52 @@
-import { state, initState, showEndState, hideEndState } from "./state";
-import { invalidateBounds, updateTimeline } from "./timeline";
+import { onHtmxLoad, onReady } from "../utils";
 import { setupControls, showControls } from "./controls";
+import { formatTime } from "./controls";
+import { goToNextEpisode } from "./episodes/nav";
+import { setupThumbnails } from "./episodes/thumbnails";
+import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
-import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
-import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
-import { setupQuality, updateQualityOptions } from "./quality";
 import {
   ensurePreferredModeSource,
   hydrateAlternateMode,
   setupMode,
   updateModeButtons,
 } from "./mode";
-import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
-import { goToNextEpisode } from "./episodes/nav";
-import { resolveActiveSegments, renderSegments } from "./skip/segments";
-import { setupSegmentEditor } from "./skip/editor";
-import { setupThumbnails } from "./episodes/thumbnails";
 import { markEpisodeTransition, saveEndedProgress, setupProgress } from "./progress";
+import { setupQuality, updateQualityOptions } from "./quality";
+import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
+import { setupSegmentEditor } from "./skip/editor";
+import { resolveActiveSegments, renderSegments } from "./skip/segments";
+import { state, initState, showEndState, hideEndState } from "./state";
 import { safeLocalStorage } from "./storage";
-import { destroyVideoSource, loadVideoSource } from "./video";
+import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
+import { invalidateBounds, updateTimeline } from "./timeline";
 import {
   absoluteTimeFromDisplay,
   absoluteTimeFromRatio,
   getBounds,
   displayTimeFromAbsolute,
 } from "./timeline";
-import { formatTime } from "./controls";
-import { onHtmxLoad, onReady } from "../utils";
+import { destroyVideoSource, loadVideoSource } from "./video";
 
 let currentContainer: HTMLElement | null = null;
 let cleanup: (() => void) | null = null;
 
 type ClosableDropdown = HTMLElement & { close: () => void };
 const isClosableDropdown = (el: Element | null): el is ClosableDropdown => {
-  if (!el) return false;
-  if (!(el instanceof HTMLElement)) return false;
+  if (!el) {
+    return false;
+  }
+  if (!(el instanceof HTMLElement)) {
+    return false;
+  }
   const maybe = el as Partial<{ close: unknown }>;
   return typeof maybe.close === "function";
 };
 
 const hidePreviewPopover = (): void => {
-  if (!state.elements.previewPopover) return;
+  if (!state.elements.previewPopover) {
+    return;
+  }
   state.elements.previewPopover.classList.add("hidden");
   state.elements.previewPopover.classList.add("opacity-0");
   state.elements.previewPopover.classList.remove("opacity-100");
@@ -48,7 +54,9 @@ const hidePreviewPopover = (): void => {
 };
 
 const showPreviewPopover = (): void => {
-  if (!state.elements.previewPopover) return;
+  if (!state.elements.previewPopover) {
+    return;
+  }
   state.elements.previewPopover.classList.remove("hidden");
   state.elements.previewPopover.classList.remove("opacity-0");
   state.elements.previewPopover.classList.add("opacity-100");
@@ -95,8 +103,12 @@ const updatePreviewUI = (ratio: number): void => {
 
 const initPlayer = async (): Promise<void> => {
   const container = document.querySelector("[data-video-player]") as HTMLElement | null;
-  if (!container) return;
-  if (container === currentContainer) return;
+  if (!container) {
+    return;
+  }
+  if (container === currentContainer) {
+    return;
+  }
   teardownPlayer();
 
   if (!initState(container)) {
@@ -105,14 +117,16 @@ const initPlayer = async (): Promise<void> => {
   }
   currentContainer = container;
   const abortController = new AbortController();
-  const signal = abortController.signal;
+  const { signal } = abortController;
   cleanup = null;
 
   const loading = container.querySelector("[data-loading]") as HTMLElement | null;
   const progressWrap = container.querySelector("[data-progress-wrap]") as HTMLElement | null;
 
   const scrubToPointer = (clientX: number, shouldShowControls: boolean): void => {
-    if (!progressWrap) return;
+    if (!progressWrap) {
+      return;
+    }
     const rect = progressWrap.getBoundingClientRect();
     state.elements.video.currentTime = absoluteTimeFromRatio(
       Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
@@ -159,7 +173,9 @@ const initPlayer = async (): Promise<void> => {
   const resumeAfterModeSwitch = (() => {
     try {
       const raw = sessionStorage.getItem("mal:resume-after-mode-switch");
-      if (raw === null) return null;
+      if (raw === null) {
+        return null;
+      }
       sessionStorage.removeItem("mal:resume-after-mode-switch");
       const parsed = Number(raw);
       return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
@@ -303,13 +319,15 @@ const initPlayer = async (): Promise<void> => {
     "pointerdown",
     (e) => {
       // ignore right/middle click
-      if ("button" in e && e.button !== 0) return;
+      if ("button" in e && e.button !== 0) {
+        return;
+      }
       state.ui.isScrubbing = true;
       try {
-        (e.currentTarget as HTMLElement).setPointerCapture((e as PointerEvent).pointerId);
-      } catch (e) {
-        console.error("failed to capture pointer:", e);
-        throw e;
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch (error) {
+        console.error("failed to capture pointer:", error);
+        throw error;
       }
       scrubToPointer(e.clientX, true);
     },
@@ -331,7 +349,9 @@ const initPlayer = async (): Promise<void> => {
     "pointerup",
     () => {
       // ensure we finish the seek even if no window mousemove fired
-      if (!progressWrap) return;
+      if (!progressWrap) {
+        return;
+      }
       state.ui.isScrubbing = false;
     },
     { signal },
@@ -341,7 +361,9 @@ const initPlayer = async (): Promise<void> => {
   window.addEventListener(
     "pointermove",
     (e) => {
-      if (!state.ui.isScrubbing || !progressWrap) return;
+      if (!state.ui.isScrubbing || !progressWrap) {
+        return;
+      }
       scrubToPointer(e.clientX, false);
     },
     { signal },
@@ -351,18 +373,30 @@ const initPlayer = async (): Promise<void> => {
   document.addEventListener(
     "click",
     (e) => {
-      const target = e.target;
-      if (!(target instanceof Element)) return;
+      const { target } = e;
+      if (!(target instanceof Element)) {
+        return;
+      }
       const anchor = target.closest("a[href]");
-      if (!(anchor instanceof HTMLAnchorElement)) return;
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return;
+      }
       const url = new URL(anchor.href, location.origin);
-      if (url.origin !== location.origin) return;
+      if (url.origin !== location.origin) {
+        return;
+      }
       const parts = url.pathname.split("/").filter(Boolean);
-      if (parts[0] !== "anime" || parts[2] !== "watch") return;
-      if (Number.parseInt(parts[1], 10) !== state.episode.malID) return;
+      if (parts[0] !== "anime" || parts[2] !== "watch") {
+        return;
+      }
+      if (Number.parseInt(parts[1], 10) !== state.episode.malID) {
+        return;
+      }
       const nextEpisode = Number.parseInt(url.searchParams.get("ep") ?? "1", 10);
       const currentEpisode = Number.parseInt(state.episode.current, 10);
-      if (nextEpisode === currentEpisode + 1) markEpisodeTransition(nextEpisode);
+      if (nextEpisode === currentEpisode + 1) {
+        markEpisodeTransition(nextEpisode);
+      }
     },
     { signal },
   );
@@ -380,7 +414,7 @@ const initPlayer = async (): Promise<void> => {
         clearTimeout(searchDebounce);
         // debounce to avoid excessive range switches while typing
         searchDebounce = window.setTimeout(() => {
-          const val = searchInput.value.replace(/\D/g, "");
+          const val = searchInput.value.replaceAll(/\D/g, "");
           if (!val) {
             // clear: jump to current episode range
             const cur = Number.parseInt(state.episode.current, 10);
@@ -389,7 +423,9 @@ const initPlayer = async (): Promise<void> => {
             return;
           }
           const ep = Number.parseInt(val, 10);
-          if (!ep || ep <= 0) return;
+          if (!ep || ep <= 0) {
+            return;
+          }
           const maxEp = state.episode.total > 0 ? state.episode.total : 500;
           const clamped = Math.min(ep, maxEp);
           searchInput.value = String(clamped);
@@ -412,7 +448,9 @@ const initPlayer = async (): Promise<void> => {
           const idx = Number.parseInt((btn as HTMLElement).dataset.rangeIndex ?? "0", 10);
           switchEpisodeRange(idx);
           const dd = btn.closest("ui-dropdown");
-          if (isClosableDropdown(dd)) dd.close();
+          if (isClosableDropdown(dd)) {
+            dd.close();
+          }
         },
         { signal },
       );
