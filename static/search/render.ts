@@ -1,5 +1,6 @@
-import { dedupeByID, dedupeWithin } from "../dedupe";
 import type { SearchItem } from "./state";
+
+import { dedupeByID, dedupeWithin } from "../dedupe";
 import {
   searchResults,
   searchClearButtons,
@@ -51,7 +52,7 @@ const buildSvgIcon = (pathData: string, className: string): SVGSVGElement => {
 
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
   path.setAttribute("d", pathData);
-  svg.appendChild(path);
+  svg.append(path);
 
   return svg;
 };
@@ -62,7 +63,7 @@ const buildFallbackIcon = (item: SearchItem): HTMLElement => {
     "flex aspect-2/3 w-full items-center justify-center bg-background-button text-foreground-muted";
 
   const path = iconPaths[item.icon || "search"] || iconPaths.search;
-  icon.appendChild(buildSvgIcon(path, "size-7"));
+  icon.append(buildSvgIcon(path, "size-7"));
   return icon;
 };
 
@@ -125,16 +126,14 @@ export const runSelectedItem = (): void => {
   window.location.href = item.href;
 };
 
-const cleanLabel = (item: SearchItem): string => {
-  return item.label;
-};
+const cleanLabel = (item: SearchItem): string => item.label;
 
 const animeMalID = (item: SearchItem): number | null => {
   if (item.type !== "anime") {
     return null;
   }
 
-  const match = item.id.match(/^anime:(\d+)$/);
+  const match = /^anime:(\d+)$/.exec(item.id);
   if (!match) {
     return null;
   }
@@ -159,7 +158,7 @@ const buildWatchlistButton = (item: SearchItem): HTMLButtonElement | null => {
   button.dataset.watchlistTitle = cleanLabel(item);
   button.dataset.watchlistState = inWatchlist ? "in" : "out";
   button.setAttribute("aria-label", inWatchlist ? "Remove from Watchlist" : "Add to Watchlist");
-  button.appendChild(
+  button.append(
     buildSvgIcon(
       iconPaths.bookmark,
       "size-6 watchlist-icon fill-none group-data-[watchlist-state=in]:fill-current [&_path]:fill-none group-data-[watchlist-state=in]:[&_path]:fill-current",
@@ -178,29 +177,31 @@ const buildCard = (item: SearchItem, index: number): HTMLAnchorElement => {
   card.dataset.resultIndex = String(index);
   card.setAttribute("role", "option");
   card.setAttribute("aria-selected", String(index === getSelectedIndex()));
-  card.addEventListener("mouseenter", () => selectItem(index, false));
+  card.addEventListener("mouseenter", () => {
+    selectItem(index, false);
+  });
 
   const media = document.createElement("div");
   media.className = "relative mb-3 overflow-hidden bg-background-button";
-  media.appendChild(buildPosterImage(item));
+  media.append(buildPosterImage(item));
 
   const watchlistButton = buildWatchlistButton(item);
   if (watchlistButton) {
-    media.appendChild(watchlistButton);
+    media.append(watchlistButton);
   }
 
-  card.appendChild(media);
+  card.append(media);
 
   const title = document.createElement("div");
   title.className = "line-clamp-2 text-sm font-semibold leading-snug text-foreground";
   title.textContent = cleanLabel(item);
-  card.appendChild(title);
+  card.append(title);
 
   if (item.subtitle) {
     const subtitle = document.createElement("div");
     subtitle.className = "mt-1 truncate text-xs font-medium text-foreground-muted";
     subtitle.textContent = item.subtitle;
-    card.appendChild(subtitle);
+    card.append(subtitle);
   }
 
   return card;
@@ -213,7 +214,7 @@ const buildSection = (title: string, items: SearchItem[], startIndex: number): H
   const heading = document.createElement("h2");
   heading.className = "mb-4 text-base font-bold text-foreground md:text-lg";
   heading.textContent = title;
-  section.appendChild(heading);
+  section.append(heading);
 
   const list = document.createElement("div");
   list.setAttribute("role", "listbox");
@@ -222,10 +223,10 @@ const buildSection = (title: string, items: SearchItem[], startIndex: number): H
 
   items.forEach((item, itemIndex) => {
     const index = startIndex + itemIndex;
-    list.appendChild(buildCard(item, index));
+    list.append(buildCard(item, index));
   });
 
-  section.appendChild(list);
+  section.append(list);
   return section;
 };
 
@@ -241,14 +242,14 @@ export const renderEmptyState = (query: string): void => {
   const title = document.createElement("div");
   title.className = "text-2xl font-semibold text-foreground";
   title.textContent = query ? "No results found" : "Start typing to search your anime";
-  empty.appendChild(title);
+  empty.append(title);
 
   const subtitle = document.createElement("p");
   subtitle.className = "mx-auto mt-3 max-w-lg text-sm leading-6 text-foreground-muted";
   subtitle.textContent = query
     ? "Try a shorter title, alternate spelling, or browse the full search results."
     : "Search anime titles and open a result to view its details.";
-  empty.appendChild(subtitle);
+  empty.append(subtitle);
 
   searchResults.replaceChildren(empty);
 };
@@ -265,14 +266,14 @@ export const renderSearchErrorState = (query: string): void => {
   const title = document.createElement("div");
   title.className = "text-2xl font-semibold text-foreground";
   title.textContent = "Search is unavailable right now";
-  empty.appendChild(title);
+  empty.append(title);
 
   const subtitle = document.createElement("p");
   subtitle.className = "mx-auto mt-3 max-w-lg text-sm leading-6 text-foreground-muted";
   subtitle.textContent = query
     ? "Try again in a moment or narrow the search query."
     : "Try again in a moment.";
-  empty.appendChild(subtitle);
+  empty.append(subtitle);
 
   searchResults.replaceChildren(empty);
 };
@@ -288,9 +289,8 @@ const groupedItems = (items: SearchItem[]): Map<string, SearchItem[]> => {
   return groups;
 };
 
-const orderedGroupKeys = (groups: Map<string, SearchItem[]>): string[] => {
-  return groupOrder.filter((key) => groups.has(key));
-};
+const orderedGroupKeys = (groups: Map<string, SearchItem[]>): string[] =>
+  groupOrder.filter((key) => groups.has(key));
 
 export const renderItems = (items: SearchItem[]): void => {
   if (!searchResults) {
@@ -320,12 +320,14 @@ export const renderItems = (items: SearchItem[]): void => {
 
     const section = buildSection(typeLabels[key] || "Results", groupItems, cursor);
     section.classList.add("mb-12");
-    shell.appendChild(section);
+    shell.append(section);
     cursor += groupItems.length;
   });
 
   searchResults.replaceChildren(shell);
-  shell.querySelectorAll<HTMLElement>("[role='listbox']").forEach((list) => dedupeWithin(list));
+  shell.querySelectorAll<HTMLElement>("[role='listbox']").forEach((list) => {
+    dedupeWithin(list);
+  });
   selectItem(0, false);
 };
 
