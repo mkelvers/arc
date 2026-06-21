@@ -160,12 +160,10 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		}
 	}
 
-	audioAvailability := h.animeAudioAvailability(c.Request.Context(), anime)
-	episodesCount := h.animeEpisodeCount(c.Request.Context(), anime, time.Now())
+	episodesCount := releasedEpisodeCount(anime, time.Now())
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":                anime,
-		"AudioAvailability":    audioAvailability,
 		"CurrentPath":          fmt.Sprintf("/anime/%d", id),
 		"User":                 user,
 		"Status":               status,
