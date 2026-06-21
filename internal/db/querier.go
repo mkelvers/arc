@@ -15,6 +15,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteAnimeFetchRetry(ctx context.Context, animeID int64) error
 	DeleteContinueWatchingEntry(ctx context.Context, arg DeleteContinueWatchingEntryParams) error
+	DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error
 	DeleteExpiredJikanCache(ctx context.Context) error
 	DeleteSession(ctx context.Context, id string) error
 	DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListEntryParams) error
