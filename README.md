@@ -30,7 +30,7 @@ only appears where browser state actually earns its place.
 > This is a personal, local-first project. It is written to demonstrate product engineering choices,
 > not to present itself as an official MyAnimeList client or a hosted streaming platform.
 
-## Contents
+### Contents
 
 - [What This Project Is](#what-this-project-is)
 - [What It Includes](#what-it-includes)
@@ -38,7 +38,7 @@ only appears where browser state actually earns its place.
 - [Working Locally](#working-locally)
 - [Repository Map](#repository-map)
 
-## What This Project Is
+### What This Project Is
 
 This project started from a simple idea: anime tracking becomes more interesting when catalog data,
 personal progress, and playback live in the same interface. A user should be able to discover a
@@ -55,7 +55,7 @@ those choices make the system easy to run, inspect, and reason about. The archit
 clear ownership than novelty: feature packages own their handlers and services, integrations stay at
 the edges, and the UI is mostly rendered by the server.
 
-## What It Includes
+### What It Includes
 
 | Area            | What it does                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -81,7 +81,7 @@ segments, episode completion, and thumbnail navigation.
 
 </details>
 
-## How It Is Built
+### How It Is Built
 
 The application is organized around product boundaries rather than framework layers.
 `internal/anime` owns catalog-facing behavior, `internal/watchlist` owns saved user state,
@@ -98,7 +98,7 @@ The result is a codebase that behaves like a small product rather than a tutoria
 repeatable toolchain, database evolution, local maintenance commands, focused tests, and a clear
 split between app code and external integrations.
 
-## Working Locally
+### Working Locally
 
 The local workflow assumes [`mise`](https://mise.jdx.dev/) for tool versions and `just` for common
 commands.
@@ -118,7 +118,7 @@ Create a local user with:
 go run ./cmd/user <username> <password>
 ```
 
-### Commands
+#### Commands
 
 | Command                         | Use it for                                          |
 | ------------------------------- | --------------------------------------------------- |
@@ -161,7 +161,7 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 
 </details>
 
-## Repository Map
+### Repository Map
 
 | Path                             | Responsibility                                                  |
 | -------------------------------- | --------------------------------------------------------------- |
