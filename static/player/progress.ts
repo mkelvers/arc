@@ -2,7 +2,7 @@ import { state } from "./state";
 import { displayTimeFromAbsolute, getBounds } from "./timeline";
 
 const snapToEnd = (time: number): number => {
-  const duration = getBounds().duration;
+  const { duration } = getBounds();
   if (duration > 0 && Math.abs(time - duration) < 2) {
     return duration;
   }
@@ -11,15 +11,13 @@ const snapToEnd = (time: number): number => {
 
 // builds JSON payload for progress API
 const buildPayload = (episode: number, seconds: number): string =>
-  JSON.stringify({
-    mal_id: state.episode.malID,
-    episode,
-    time_seconds: seconds,
-  });
+  JSON.stringify({ mal_id: state.episode.malID, episode, time_seconds: seconds });
 
 // sends progress via beacon (survives page unload)
 const sendBeacon = (payload: string): boolean => {
-  if (!navigator.sendBeacon) return false;
+  if (!navigator.sendBeacon) {
+    return false;
+  }
   navigator.sendBeacon("/api/watch-progress", new Blob([payload], { type: "application/json" }));
   return true;
 };
@@ -28,25 +26,29 @@ let saveProgressInFlight: Promise<void> | null = null;
 
 const currentProgressTime = (): number => displayTimeFromAbsolute(state.elements.video.currentTime);
 
-/**
- * Saves current progress to backend.
- * Debounced: skips if within 5s of last save for same episode.
- */
+/** Saves current progress to backend. Debounced: skips if within 5s of last save for same episode. */
 export const saveProgress = async (
   force: boolean = false,
   progressSeconds: number = currentProgressTime(),
 ): Promise<void> => {
   if (saveProgressInFlight) {
-    if (!force) return saveProgressInFlight;
+    if (!force) {
+      return saveProgressInFlight;
+    }
     await saveProgressInFlight;
   }
 
   const request = (async (): Promise<void> => {
-    if (state.episode.endedProgressSaved && !force) return;
-    if (state.episode.transitionEpisode !== null || !state.episode.malID || progressSeconds < 1)
+    if (state.episode.endedProgressSaved && !force) {
       return;
+    }
+    if (state.episode.transitionEpisode !== null || !state.episode.malID || progressSeconds < 1) {
+      return;
+    }
     const episode = Number.parseInt(state.episode.current, 10);
-    if (!episode) return;
+    if (!episode) {
+      return;
+    }
 
     const savedTime = snapToEnd(progressSeconds);
     // skip if recently saved, unless forced
@@ -65,14 +67,13 @@ export const saveProgress = async (
         headers: { "Content-Type": "application/json" },
         body: payload,
       });
-      if (!res.ok) throw new Error(`progress save failed with status ${res.status}`);
-      state.episode.lastSavedProgress = {
-        episode: state.episode.current,
-        seconds: savedTime,
-      };
-    } catch (e) {
-      console.error("progress save failed:", e);
-      throw e;
+      if (!res.ok) {
+        throw new Error(`progress save failed with status ${res.status}`);
+      }
+      state.episode.lastSavedProgress = { episode: state.episode.current, seconds: savedTime };
+    } catch (error) {
+      console.error("progress save failed:", error);
+      throw error;
     }
   })();
 
@@ -88,21 +89,25 @@ export const saveProgress = async (
 
 // schedules periodic save every 30s during playback
 const scheduleProgressSave = (): void => {
-  if (state.timers.progressSaveTimer !== undefined) return;
+  if (state.timers.progressSaveTimer !== undefined) {
+    return;
+  }
   state.timers.progressSaveTimer = window.setTimeout(() => {
     state.timers.progressSaveTimer = undefined;
     saveProgress().catch((error) => {
       console.error("scheduled progress save failed:", error);
     });
-  }, 30000);
+  }, 30_000);
 };
 
 /**
- * Records episode transition (clicked external link to next episode).
- * Uses beacon for reliability on page unload.
+ * Records episode transition (clicked external link to next episode). Uses beacon for reliability
+ * on page unload.
  */
 export const markEpisodeTransition = (episodeNumber: number): void => {
-  if (!state.episode.malID || !episodeNumber) return;
+  if (!state.episode.malID || !episodeNumber) {
+    return;
+  }
   if (state.timers.progressSaveTimer !== undefined) {
     window.clearTimeout(state.timers.progressSaveTimer);
     state.timers.progressSaveTimer = undefined;
@@ -122,9 +127,7 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
   }
 };
 
-/**
- * Sets up progress save on timeupdate, pause, mouseup (scrub end), and beforeunload.
- */
+/** Sets up progress save on timeupdate, pause, mouseup (scrub end), and beforeunload. */
 export const setupProgress = (): void => {
   // periodic save during playback
   state.elements.video.addEventListener("timeupdate", () => {
@@ -135,7 +138,9 @@ export const setupProgress = (): void => {
   state.elements.video.addEventListener("pause", () => {
     window.clearTimeout(state.timers.progressSaveTimer);
     state.timers.progressSaveTimer = undefined;
-    if (state.episode.endedProgressSaved) return;
+    if (state.episode.endedProgressSaved) {
+      return;
+    }
 
     // If we're at the very end, force a save to ensure we don't skip the last frame
     const isAtEnd =
@@ -150,7 +155,9 @@ export const setupProgress = (): void => {
   // save after scrubbing
   window.addEventListener("mouseup", () => {
     state.ui.isScrubbing = false;
-    if (state.episode.endedProgressSaved) return;
+    if (state.episode.endedProgressSaved) {
+      return;
+    }
     saveProgress().catch((error) => {
       console.error("scrub progress save failed:", error);
     });
@@ -166,14 +173,16 @@ export const setupProgress = (): void => {
       return;
     }
     const episode = Number.parseInt(state.episode.current, 10);
-    if (!episode) return;
+    if (!episode) {
+      return;
+    }
     const time = displayTimeFromAbsolute(state.elements.video.currentTime);
     sendBeacon(buildPayload(episode, snapToEnd(time)));
   });
 };
 
 export const saveEndedProgress = async (): Promise<void> => {
-  const duration = getBounds().duration;
+  const { duration } = getBounds();
   state.episode.endedProgressSaved = true;
   await saveProgress(true, duration > 0 ? duration : currentProgressTime());
 };
