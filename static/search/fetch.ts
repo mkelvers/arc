@@ -1,4 +1,13 @@
 import type { SearchItem, SearchResponse } from "./state";
+
+import {
+  setClearButtonState,
+  clearResults,
+  renderEmptyState,
+  renderSearchErrorState,
+  renderItems,
+  appendItems,
+} from "./render";
 import {
   searchInput,
   searchResults,
@@ -15,14 +24,6 @@ import {
   isFetchingNextPage,
   setFetchingNextPage,
 } from "./state";
-import {
-  setClearButtonState,
-  clearResults,
-  renderEmptyState,
-  renderSearchErrorState,
-  renderItems,
-  appendItems,
-} from "./render";
 
 const parseSearchResponse = (payload: unknown): SearchResponse => {
   if (Array.isArray(payload)) {
@@ -95,7 +96,7 @@ export const fetchSearchItems = (query: string): void => {
   const controller = new AbortController();
   setActiveRequestController(controller);
 
-  fetch("/api/search?q=" + encodeURIComponent(query), { signal: controller.signal })
+  fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: controller.signal })
     .then((res: Response) => {
       if (!res.ok) {
         return { items: [], hasNextPage: false };
@@ -135,7 +136,7 @@ const fetchNextSearchPage = (): void => {
 
   setFetchingNextPage(true);
 
-  fetch("/api/search?q=" + encodeURIComponent(query) + "&page=" + encodeURIComponent(String(page)))
+  fetch(`/api/search?q=${encodeURIComponent(query)}&page=${encodeURIComponent(String(page))}`)
     .then((res: Response) => {
       if (!res.ok) {
         return { items: [], hasNextPage: false };
@@ -189,5 +190,12 @@ export const scheduleFetch = (): void => {
 
   const query = searchInput?.value.trim() || "";
   setClearButtonState(query !== "");
-  setFetchTimeout(window.setTimeout(() => fetchSearchItems(query), query.length >= 2 ? 240 : 80));
+  setFetchTimeout(
+    window.setTimeout(
+      () => {
+        fetchSearchItems(query);
+      },
+      query.length >= 2 ? 240 : 80,
+    ),
+  );
 };
