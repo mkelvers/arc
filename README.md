@@ -39,7 +39,6 @@ only appears where browser state actually earns its place.
 - [How It Is Built](#how-it-is-built)
 - [Working Locally](#working-locally)
 - [Repository Map](#repository-map)
-- [Project Documents](#project-documents)
 
 ## What This Project Is
 
@@ -180,16 +179,6 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | `templates` | Server-rendered pages and reusable components. |
 | `static` | TypeScript source for client-side behavior. |
 | `scripts` | Bun-powered development and maintenance scripts. |
-
-## Project Documents
-
-This repository includes the usual project-level documents for public review and reuse:
-
-| Document | Purpose |
-| --- | --- |
-| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Sets expectations for respectful project participation. |
-| [`SECURITY.md`](SECURITY.md) | Explains how to report vulnerabilities and what is in scope. |
-| [`LICENSE`](LICENSE) | MIT license terms. |
 
 ---
 
