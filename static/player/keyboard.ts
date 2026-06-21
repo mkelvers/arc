@@ -1,5 +1,3 @@
-import { state } from "./state";
-import { absoluteTimeFromRatio, getBounds } from "./timeline";
 import {
   showControls,
   toggleMute,
@@ -9,21 +7,21 @@ import {
   setVolume,
 } from "./controls";
 import { saveProgress } from "./progress";
+import { state } from "./state";
+import { absoluteTimeFromRatio, getBounds } from "./timeline";
 
-/**
- * Sets up keyboard shortcuts for player control.
- * Ignores input/textarea to allow typing.
- */
+/** Sets up keyboard shortcuts for player control. Ignores input/textarea to allow typing. */
 export const setupKeyboard = (): void => {
   document.addEventListener("keydown", (e) => {
     const target = e.target as HTMLElement;
     // ignore when typing in form fields
-    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+    if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
       return;
+    }
 
     switch (e.code) {
       case "Space":
-      case "KeyK":
+      case "KeyK": {
         e.preventDefault();
         togglePlayPause();
         showControls();
@@ -31,37 +29,44 @@ export const setupKeyboard = (): void => {
           console.error("keyboard progress save failed:", error);
         });
         break;
+      }
       case "ArrowLeft":
-      case "KeyJ":
+      case "KeyJ": {
         e.preventDefault();
         seekBy(-10);
         break;
+      }
       case "ArrowRight":
-      case "KeyL":
+      case "KeyL": {
         e.preventDefault();
         seekBy(10);
         break;
-      case "ArrowUp":
+      }
+      case "ArrowUp": {
         e.preventDefault();
         setVolume(state.elements.video.volume + 0.05);
         showControls();
         break;
-      case "ArrowDown":
+      }
+      case "ArrowDown": {
         e.preventDefault();
         setVolume(state.elements.video.volume - 0.05);
         showControls();
         break;
-      case "KeyM":
+      }
+      case "KeyM": {
         e.preventDefault();
         toggleMute();
         showControls();
         break;
-      case "KeyF":
+      }
+      case "KeyF": {
         e.preventDefault();
         toggleFullscreen();
         showControls();
         break;
-      default:
+      }
+      default: {
         // number keys 0-9: jump to 0%-90% of video
         if (/^\d$/.test(e.key)) {
           const b = getBounds();
@@ -71,6 +76,7 @@ export const setupKeyboard = (): void => {
             showControls();
           }
         }
+      }
     }
   });
 };
