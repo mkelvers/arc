@@ -1,15 +1,15 @@
-import { state } from "../state";
-import { displayTimeFromAbsolute, absoluteTimeFromDisplay } from "../timeline";
 import { showControls } from "../controls";
 import { saveProgress } from "../progress";
+import { state } from "../state";
 import { safeLocalStorage } from "../storage";
+import { displayTimeFromAbsolute, absoluteTimeFromDisplay } from "../timeline";
 
 // button label based on segment type
 const skipLabel = (type: string): string => (type === "ed" ? "Skip outro" : "Skip intro");
 
 /**
- * Updates skip button visibility and auto-skip logic.
- * Called on timeupdate. Shows button when in active segment.
+ * Updates skip button visibility and auto-skip logic. Called on timeupdate. Shows button when in
+ * active segment.
  */
 export const updateSkipButton = (currentTime: number): void => {
   const btn = state.elements.container.querySelector("[data-skip]") as HTMLButtonElement | null;
@@ -46,22 +46,20 @@ export const updateSkipButton = (currentTime: number): void => {
   }
 };
 
-/**
- * Syncs autoskip checkbox with localStorage.
- */
+/** Syncs autoskip checkbox with localStorage. */
 export const updateAutoSkipButton = (): void => {
   const btn = document.querySelector("[data-autoskip]") as HTMLInputElement | null;
-  if (!btn) return;
+  if (!btn) {
+    return;
+  }
   btn.checked = safeLocalStorage.getItem("mal:autoskip-enabled") === "true";
 };
 
-/**
- * Binds autoskip toggle change handler.
- */
+/** Binds autoskip toggle change handler. */
 export const setupSkip = (): void => {
   document.addEventListener("change", (e) => {
     const target = e.target as HTMLElement;
-    if (target.hasAttribute("data-autoskip")) {
+    if (Object.hasOwn(target.dataset, "autoskip")) {
       safeLocalStorage.setItem(
         "mal:autoskip-enabled",
         (target as HTMLInputElement).checked ? "true" : "false",
