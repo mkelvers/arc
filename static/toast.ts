@@ -1,21 +1,12 @@
-export {};
-
-interface ToastOptions {
-  message: string;
-  duration?: number;
-  variant?: "default" | "destructive";
-}
+type ToastOptions = { message: string; duration?: number; variant?: "default" | "destructive" };
 
 /** Return the toast container element. */
-const toastContainer = (): HTMLElement | null => document.getElementById("toast-container");
+const toastContainer = (): HTMLElement | null => document.querySelector("#toast-container");
 
-/**
- * Show a toast notification with optional auto-dismiss.
- * Exposed globally via window.showToast.
- */
+/** Show a toast notification with optional auto-dismiss. Exposed globally via window.showToast. */
 const showToast = ({ message, duration = 3000, variant = "default" }: ToastOptions): void => {
   const container = toastContainer();
-  const template = document.getElementById("toast-template") as HTMLTemplateElement | null;
+  const template = document.querySelector("#toast-template") as HTMLTemplateElement | null;
 
   if (!container || !template) {
     return;
@@ -23,7 +14,9 @@ const showToast = ({ message, duration = 3000, variant = "default" }: ToastOptio
 
   const toast = (template.content.cloneNode(true) as DocumentFragment)
     .firstElementChild as HTMLElement;
-  if (!toast) return;
+  if (!toast) {
+    return;
+  }
   toast.dataset.variant = variant;
   toast.setAttribute("role", "status");
   toast.setAttribute("aria-live", "polite");
@@ -39,16 +32,22 @@ const showToast = ({ message, duration = 3000, variant = "default" }: ToastOptio
   let removeTimeout: number | undefined;
 
   const remove = (): void => {
-    if (removed) return;
+    if (removed) {
+      return;
+    }
     removed = true;
-    if (typeof dismissTimeout === "number") window.clearTimeout(dismissTimeout);
-    if (typeof removeTimeout === "number") window.clearTimeout(removeTimeout);
+    if (typeof dismissTimeout === "number") {
+      window.clearTimeout(dismissTimeout);
+    }
+    if (typeof removeTimeout === "number") {
+      window.clearTimeout(removeTimeout);
+    }
     toast.remove();
   };
 
   closeBtn?.addEventListener("click", remove);
 
-  container.appendChild(toast);
+  container.append(toast);
 
   // trigger entrance animation
   requestAnimationFrame(() => {
@@ -69,3 +68,5 @@ declare global {
 }
 
 window.showToast = showToast;
+
+export {};
