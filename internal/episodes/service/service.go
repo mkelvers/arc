@@ -143,7 +143,7 @@ func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domai
 	providerAvailability, source, providerErr := s.fetchProviderAvailability(ctx, anime)
 	if providerErr != nil {
 		s.markFailure(ctx, anime, providerErr)
-		if cached, ok := s.getCached(ctx, anime.MalID); ok {
+		if cached, ok := s.getCached(ctx, anime); ok {
 			observability.Warn(
 				"episodes_provider_failed_serving_stale_cache",
 				"episodes",

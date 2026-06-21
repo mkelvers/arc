@@ -131,8 +131,8 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 	)
 }
 
-func (s *EpisodeService) getCached(ctx context.Context, animeID int) (domain.CanonicalEpisodeList, bool) {
-	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(animeID))
+func (s *EpisodeService) getCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
+	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(anime.MalID))
 	if err != nil {
 		s.metrics.ObserveCache("episode_availability", "miss")
 		return domain.CanonicalEpisodeList{}, false
@@ -145,9 +145,23 @@ func (s *EpisodeService) getCached(ctx context.Context, animeID int) (domain.Can
 			"episodes",
 			"",
 			map[string]any{
-				"anime_id": animeID,
+				"anime_id": anime.MalID,
 			},
 			err,
+		)
+		return domain.CanonicalEpisodeList{}, false
+	}
+	if !isCanonicalEpisodePayloadValid(payload, anime.Episodes) {
+		s.metrics.ObserveCache("episode_availability", "miss")
+		observability.Info(
+			"episodes_cached_payload_rejected",
+			"episodes",
+			"",
+			map[string]any{
+				"anime_id":        anime.MalID,
+				"expected_count":  anime.Episodes,
+				"cached_episodes": len(payload.Episodes),
+			},
 		)
 		return domain.CanonicalEpisodeList{}, false
 	}

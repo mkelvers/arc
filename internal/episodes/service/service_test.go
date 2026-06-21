@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestMergeEpisodesUsesUnionAndSynthesizesProviderOnlyEntries(t *testing.T) {
+func TestMergeEpisodesUsesProviderAvailabilityAsSourceOfTruth(t *testing.T) {
 	episodes := mergeEpisodes([]jikan.Episode{
 		{MalID: 101, Episode: "1", Title: "Start"},
 		{MalID: 102, Episode: "2", Title: "Second", Filler: true},
@@ -17,15 +17,28 @@ func TestMergeEpisodesUsesUnionAndSynthesizesProviderOnlyEntries(t *testing.T) {
 		Dub: []int{1, 2, 3},
 	}, 0)
 
-	if len(episodes) != 5 {
-		t.Fatalf("len(episodes) = %d, want 5", len(episodes))
+	if len(episodes) != 4 {
+		t.Fatalf("len(episodes) = %d, want 4", len(episodes))
 	}
 
 	assertEpisode(t, episodes[0], 1, "Start", true, true, false, false, false)
 	assertEpisode(t, episodes[1], 2, "Second", true, true, false, true, false)
 	assertEpisode(t, episodes[2], 3, "Episode 3", true, true, false, false, false)
-	assertEpisode(t, episodes[3], 5, "Future", false, false, false, false, true)
-	assertEpisode(t, episodes[4], 6, "Episode 6", true, false, true, false, false)
+	assertEpisode(t, episodes[3], 6, "Episode 6", true, false, true, false, false)
+}
+
+func TestMergeEpisodesUsesJikanWhenProviderAvailabilityMissing(t *testing.T) {
+	episodes := mergeEpisodes([]jikan.Episode{
+		{MalID: 101, Episode: "1", Title: "Start"},
+		{MalID: 102, Episode: "2", Title: "Second"},
+	}, domain.EpisodeAvailability{}, 0)
+
+	if len(episodes) != 2 {
+		t.Fatalf("len(episodes) = %d, want 2", len(episodes))
+	}
+
+	assertEpisode(t, episodes[0], 1, "Start", false, false, false, false, false)
+	assertEpisode(t, episodes[1], 2, "Second", false, false, false, false, false)
 }
 
 func TestMergeEpisodesIgnoresInvalidJikanEpisodeNumbers(t *testing.T) {
@@ -83,6 +96,34 @@ func TestIsCanonicalEpisodePayloadValidRejectsOverflowingCachedPayload(t *testin
 
 	if isCanonicalEpisodePayloadValid(payload, 12) {
 		t.Fatal("expected cached payload to be rejected")
+	}
+}
+
+func TestIsCanonicalEpisodePayloadValidRejectsProviderEpisodesWithoutAvailability(t *testing.T) {
+	payload := domain.CanonicalEpisodeList{
+		Source: "AllAnime",
+		Episodes: []domain.CanonicalEpisode{
+			{Number: 1, Title: "Episode 1", HasSub: true},
+			{Number: 2, Title: "Episode 2"},
+		},
+	}
+
+	if isCanonicalEpisodePayloadValid(payload, 13) {
+		t.Fatal("expected cached payload to be rejected")
+	}
+}
+
+func TestIsCanonicalEpisodePayloadValidAllowsJikanFallbackWithoutAvailability(t *testing.T) {
+	payload := domain.CanonicalEpisodeList{
+		Source: "jikan_fallback",
+		Episodes: []domain.CanonicalEpisode{
+			{Number: 1, Title: "Episode 1"},
+			{Number: 2, Title: "Episode 2"},
+		},
+	}
+
+	if !isCanonicalEpisodePayloadValid(payload, 13) {
+		t.Fatal("expected cached payload to be valid")
 	}
 }
 

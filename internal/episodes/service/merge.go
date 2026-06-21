@@ -36,7 +36,7 @@ func titleCandidates(anime domain.Anime) []string {
 
 func isCanonicalEpisodePayloadValid(payload domain.CanonicalEpisodeList, expectedCount int) bool {
 	if expectedCount <= 0 {
-		return true
+		return providerBackedPayloadHasAvailability(payload)
 	}
 	if len(payload.Episodes) > expectedCount {
 		return false
@@ -46,18 +46,36 @@ func isCanonicalEpisodePayloadValid(payload domain.CanonicalEpisodeList, expecte
 			return false
 		}
 	}
+	return providerBackedPayloadHasAvailability(payload)
+}
+
+func providerBackedPayloadHasAvailability(payload domain.CanonicalEpisodeList) bool {
+	if payload.Source == "" || payload.Source == "jikan_fallback" || payload.Source == "legacy_disabled" {
+		return true
+	}
+	for _, episode := range payload.Episodes {
+		if !episode.HasSub && !episode.HasDub {
+			return false
+		}
+	}
 	return true
 }
 
 func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
 	byNumber := map[int]episodePartial{}
+	providerNumbers := availableEpisodeNumbers(availability, expectedCount)
+	providerBacked := len(providerNumbers) > 0
+
+	for number := range providerNumbers {
+		mergeEpisode(&byNumber, number, func(item *episodePartial) {})
+	}
 
 	for i, ep := range jikanEpisodes {
 		if exceedsExpectedCount(i+1, expectedCount) {
 			break
 		}
 		number, ok := jikanEpisodeNumber(ep, i)
-		if !ok || exceedsExpectedCount(number, expectedCount) {
+		if !ok || exceedsExpectedCount(number, expectedCount) || (providerBacked && !providerNumbers[number]) {
 			continue
 		}
 		mergeEpisode(&byNumber, number, func(item *episodePartial) {
@@ -93,6 +111,21 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 		})
 	}
 	return episodes
+}
+
+func availableEpisodeNumbers(availability domain.EpisodeAvailability, expectedCount int) map[int]bool {
+	numbers := map[int]bool{}
+	for _, number := range availability.Sub {
+		if number > 0 && !exceedsExpectedCount(number, expectedCount) {
+			numbers[number] = true
+		}
+	}
+	for _, number := range availability.Dub {
+		if number > 0 && !exceedsExpectedCount(number, expectedCount) {
+			numbers[number] = true
+		}
+	}
+	return numbers
 }
 
 func mergeEpisode(byNumber *map[int]episodePartial, number int, update func(*episodePartial)) {
