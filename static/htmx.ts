@@ -1,5 +1,3 @@
-export {};
-
 import { onReady } from "./utils";
 
 type ToastFn = (opts: {
@@ -10,10 +8,7 @@ type ToastFn = (opts: {
 
 type HtmxParameters = Record<string, string | string[]>;
 
-type HtmxConfigRequestDetail = {
-  elt?: Element;
-  parameters?: HtmxParameters;
-};
+type HtmxConfigRequestDetail = { elt?: Element; parameters?: HtmxParameters };
 
 const getToast = (): ToastFn | null => {
   const anyWindow = window as unknown as { showToast?: ToastFn };
@@ -25,7 +20,9 @@ const toast = (message: string): void => {
 };
 
 const setBusy = (el: Element | null, busy: boolean): void => {
-  if (!(el instanceof HTMLElement)) return;
+  if (!(el instanceof HTMLElement)) {
+    return;
+  }
   el.toggleAttribute("aria-busy", busy);
   el.dataset.htmxLoading = busy ? "true" : "false";
 
@@ -50,17 +47,23 @@ const isBrowseForm = (form: HTMLFormElement): boolean =>
   form.getAttribute("action") === "/browse" || form.getAttribute("hx-get") === "/browse";
 
 const selectedGenreValues = (): string[] =>
-  Array.from(document.querySelectorAll<HTMLInputElement>("[data-genre-visual]:checked"))
+  [...document.querySelectorAll<HTMLInputElement>("[data-genre-visual]:checked")]
     .map((input) => input.value)
     .filter((value) => value !== "");
 
 const syncBrowseRequestParameters = (event: Event): void => {
-  const detail = (event as CustomEvent<HtmxConfigRequestDetail>).detail;
-  if (!detail.parameters) return;
+  const { detail } = event as CustomEvent<HtmxConfigRequestDetail>;
+  if (!detail.parameters) {
+    return;
+  }
 
   const form = detail.elt instanceof HTMLFormElement ? detail.elt : detail.elt?.closest("form");
-  if (!(form instanceof HTMLFormElement)) return;
-  if (!isBrowseForm(form)) return;
+  if (!(form instanceof HTMLFormElement)) {
+    return;
+  }
+  if (!isBrowseForm(form)) {
+    return;
+  }
 
   const checkbox = document.querySelector<HTMLInputElement>("[data-sfw-checkbox]");
   if (checkbox) {
@@ -87,9 +90,11 @@ onReady(() => {
     setBusy(getTriggerFromHtmxEvent(event), false);
 
     const remaining = document.querySelectorAll(".continue-watching-item").length;
-    if (remaining !== 0) return;
+    if (remaining !== 0) {
+      return;
+    }
 
-    const section = document.getElementById("continue-watching-section");
+    const section = document.querySelector("#continue-watching-section");
     section?.remove();
   });
 
@@ -100,8 +105,12 @@ onReady(() => {
   document.addEventListener("htmx:afterSwap", (event) => {
     const detail = event as CustomEvent<{ target?: EventTarget | null }>;
     const target = detail.detail?.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.classList.contains("error")) return;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    if (!target.classList.contains("error")) {
+      return;
+    }
     toast("Failed to load content");
   });
 
