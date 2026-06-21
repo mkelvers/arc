@@ -10,13 +10,15 @@ const getPreferredTheme = (): Theme => {
 };
 
 const applyTheme = (theme: Theme): void => {
-  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
 };
 
 const initTheme = (): void => {
   applyTheme(getPreferredTheme());
-  colorSchemeQuery?.addEventListener("change", () => applyTheme(getPreferredTheme()));
+  colorSchemeQuery?.addEventListener("change", () => {
+    applyTheme(getPreferredTheme());
+  });
 };
 
 onReady(initTheme);
