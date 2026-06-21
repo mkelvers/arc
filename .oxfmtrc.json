@@ -6,7 +6,7 @@
   "embeddedLanguageFormatting": "auto",
   "endOfLine": "lf",
   "htmlWhitespaceSensitivity": "css",
-  "ignorePatterns": ["dist/**", "node_modules/**", "static/assets/manifest.json"],
+  "ignorePatterns": ["dist/**", "node_modules/**", "README.md", "static/assets/manifest.json"],
   "insertFinalNewline": true,
   "jsdoc": true,
   "jsxSingleQuote": false,
