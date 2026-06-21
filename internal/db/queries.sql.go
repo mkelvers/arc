@@ -149,6 +149,17 @@ func (q *Queries) DeleteContinueWatchingEntry(ctx context.Context, arg DeleteCon
 	return err
 }
 
+const deleteExpiredFailedEpisodeProviderMappings = `-- name: DeleteExpiredFailedEpisodeProviderMappings :exec
+DELETE FROM episode_provider_mapping
+WHERE provider_show_id = ''
+  AND failed_until <= CURRENT_TIMESTAMP
+`
+
+func (q *Queries) DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredFailedEpisodeProviderMappings)
+	return err
+}
+
 const deleteExpiredJikanCache = `-- name: DeleteExpiredJikanCache :exec
 DELETE FROM jikan_cache WHERE datetime(expires_at) <= CURRENT_TIMESTAMP
 `

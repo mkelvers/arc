@@ -333,6 +333,11 @@ SELECT anime_id, provider, provider_show_id, failed_until, last_error, updated_a
 FROM episode_provider_mapping
 WHERE anime_id = ? AND provider = ? LIMIT 1;
 
+-- name: DeleteExpiredFailedEpisodeProviderMappings :exec
+DELETE FROM episode_provider_mapping
+WHERE provider_show_id = ''
+  AND failed_until <= CURRENT_TIMESTAMP;
+
 -- name: GetTrackedAiringAnimeIDsDueForEpisodeRefresh :many
 WITH tracked AS (
     SELECT DISTINCT w.anime_id
