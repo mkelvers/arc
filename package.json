@@ -3,17 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css",
-    "watch:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch",
-    "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "build:assets": "bun run build:css",
+    "build:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css",
     "build:ts": "bun run ./scripts/build-ts.ts",
     "format": "bunx oxfmt",
     "format:check": "bunx oxfmt --check",
     "lint": "bun run lint:ts && bun run lint:go",
+    "lint:go": "golangci-lint run ./...",
     "lint:ts": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0",
     "lint:ts:fix": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0 --fix",
-    "lint:go": "golangci-lint run ./..."
+    "typecheck": "bunx tsc -p tsconfig.json --noEmit",
+    "watch:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch"
   },
   "dependencies": {
     "hls.js": "^1.6.16",
