@@ -578,7 +578,7 @@ func (q *Queries) GetJikanCache(ctx context.Context, key string) (string, error)
 
 const getJikanCacheStale = `-- name: GetJikanCacheStale :one
 SELECT data FROM jikan_cache
-WHERE key = ? LIMIT 1
+WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1
 `
 
 func (q *Queries) GetJikanCacheStale(ctx context.Context, key string) (string, error) {
