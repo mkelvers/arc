@@ -1,4 +1,5 @@
 import Hls from "hls.js";
+
 import { attachHLSProfile } from "./hls_profile";
 import { state } from "./state";
 import { absoluteTimeFromDisplay, displayTimeFromAbsolute, invalidateBounds } from "./timeline";
@@ -21,10 +22,14 @@ export const destroyVideoSource = (): void => {
 };
 
 const shouldUseHLS = (type: string | undefined, url: string): boolean => {
-  if (type === "m3u8") return true;
+  if (type === "m3u8") {
+    return true;
+  }
   try {
     const parsed = new URL(url, window.location.href);
-    if (parsed.searchParams.get("hls") === "1") return true;
+    if (parsed.searchParams.get("hls") === "1") {
+      return true;
+    }
     return parsed.pathname.toLowerCase().endsWith(".m3u8");
   } catch (error) {
     console.error("Failed to parse video URL:", error);
@@ -35,11 +40,13 @@ const shouldUseHLS = (type: string | undefined, url: string): boolean => {
 /**
  * Force-loads a new video source and preserves playback position.
  *
- * Some browsers can be flaky when switching between HLS URLs while playing.
- * Clearing `src` first ensures the media element fully resets before the new URL is set.
+ * Some browsers can be flaky when switching between HLS URLs while playing. Clearing `src` first
+ * ensures the media element fully resets before the new URL is set.
  */
 export const loadVideoSource = (url: string, type?: string, startTimeSeconds?: number): void => {
-  if (!url) return;
+  if (!url) {
+    return;
+  }
 
   const wasPlaying = !state.elements.video.paused;
   const prevDisplayTime = displayTimeFromAbsolute(state.elements.video.currentTime);
