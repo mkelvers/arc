@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <strong>A local-first anime catalog, watchlist, recommendation, and playback app.</strong>
+</p>
+
+<p align="center">
   <img alt="Go" src="https://img.shields.io/badge/go-1.25-00ADD8?style=flat-square&logo=go" />
   <img alt="SQLite" src="https://img.shields.io/badge/database-sqlite-003B57?style=flat-square&logo=sqlite" />
   <img alt="Bun" src="https://img.shields.io/badge/runtime-bun-000000?style=flat-square&logo=bun" />
@@ -13,99 +17,93 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
 </p>
 
-MyAnimeList is a self-hosted anime tracker, catalog browser, watchlist, and playback app built as a
-portfolio-grade full-stack project. It brings the parts of an anime discovery workflow that usually
-live across several services into one local application: browsing titles, saving a watchlist,
-tracking progress, continuing episodes, reading metadata, finding recommendations, and watching
-through a browser player backed by provider integrations.
+---
 
-The project is intentionally built like a small real-world product instead of a throwaway demo. The
-backend is a Go application with feature-oriented modules, SQLite persistence, schema migrations,
-startup data fixes, provider clients, and tests around the parts that are easy to regress. The UI is
-mostly server-rendered with Go templates and enhanced with HTMX where partial updates make sense.
-TypeScript is reserved for browser-heavy behavior such as the video player, search interactions,
-theme handling, progress updates, subtitles, skip segments, and carousel controls.
+MyAnimeList is a self-hosted media app for browsing anime, managing a watchlist, resuming episodes,
+and playing streams through a browser-based player. It collects the parts of an anime workflow that
+usually live across several products and keeps them in one small Go application backed by SQLite.
 
-## Why This Exists
+I built it as a portfolio project, but the goal was never to make a disposable demo. The interesting
+part of the project is the product shape: server-rendered pages, a local database, provider
+integrations, playback proxying, recommendations, migrations, tests, and a TypeScript player that
+only appears where browser state actually earns its place.
 
-I made this project to explore what a focused, personal media app can look like when it is treated
-with the same care as a production product. Anime tracking is a good problem space because it touches
-many practical engineering concerns without needing a large team or cloud platform:
+> [!NOTE]
+> This is a personal, local-first project. It is written to demonstrate product engineering choices,
+> not to present itself as an official MyAnimeList client or a hosted streaming platform.
 
-- local authentication and user-owned data
-- catalog search, browse filters, details pages, and recommendations
-- long-lived state such as watchlists, playback progress, and continue-watching rows
-- server-rendered pages with small, deliberate frontend islands
-- integration boundaries around external metadata and playback providers
-- background refresh policies, cache behavior, migrations, and data repair jobs
-- observability, request context, error handling, and testable service boundaries
+## Contents
 
-The goal is not to replace a commercial anime platform. The goal is to show how I think about product
-engineering: keeping the architecture understandable, making features feel cohesive, choosing boring
-tools where possible, and building enough operational structure that the app feels like it could keep
-growing.
+- [What This Project Is](#what-this-project-is)
+- [What It Includes](#what-it-includes)
+- [How It Is Built](#how-it-is-built)
+- [Working Locally](#working-locally)
+- [Repository Map](#repository-map)
+- [Project Documents](#project-documents)
 
-## What It Can Do
+## What This Project Is
 
-- Browse and search anime using external catalog data.
-- View detail pages with metadata, synopsis, reviews, characters, statistics, related titles, themes,
-  and watch-order information.
-- Maintain a local watchlist with status-oriented user state.
-- Continue watching from stored playback progress.
-- Play episodes through an HLS-capable web player.
-- Rewrite playlists and proxy playback/subtitle requests through the server.
-- Track progress, completion, episode navigation, quality, keyboard controls, and player state in
-  TypeScript.
-- Support subtitles, subtitle caching, and VTT parsing.
-- Manage skip segments and local skip-segment overrides.
-- Generate personalized top picks from watchlist taste signals and recommendation data.
-- Run SQLite migrations and one-off data fixes as the data model evolves.
-- Create local users and run maintenance commands from `cmd/user`.
+This project started from a simple idea: anime tracking becomes more interesting when catalog data,
+personal progress, and playback live in the same interface. A user should be able to discover a
+title, inspect its metadata, add it to a watchlist, watch an episode, come back later, and continue
+from the right place without stitching that flow together manually.
 
-## Architecture
+That makes the app a useful playground for real application concerns. It has authentication,
+long-lived user state, external APIs, background refresh behavior, migrations, data fixes, cache
+boundaries, provider-specific code, and enough frontend complexity to justify TypeScript without
+turning the whole product into a single-page app.
 
-The repository is organized around product features and integration boundaries:
+The project is also intentionally modest. It uses a single Go server and a SQLite database because
+those choices make the system easy to run, inspect, and reason about. The architecture is more about
+clear ownership than novelty: feature packages own their handlers and services, integrations stay at
+the edges, and the UI is mostly rendered by the server.
 
-| Path | Purpose |
+## What It Includes
+
+| Area | What it does |
 | --- | --- |
-| `cmd/server` | Application entry point for the web server. |
-| `cmd/user` | Local admin and maintenance commands. |
-| `internal/anime` | Catalog, details, browse, search, reviews, and recommendations wiring. |
-| `internal/auth` | Local authentication, middleware, and user session behavior. |
-| `internal/watchlist` | Watchlist handlers, service logic, and persistence access. |
-| `internal/playback` | Playback state, progress, proxy tokens, skip segments, and watch data. |
-| `internal/episodes` | Episode refresh and provider mapping logic. |
-| `internal/database` | SQLite setup, migrations, and startup data fixes. |
-| `internal/db` | Generated and helper database access code. |
-| `integrations/jikan` | Jikan API client, rate limiting, query helpers, and catalog types. |
-| `integrations/playback/allanime` | Playback provider client and extraction logic. |
-| `templates` | Server-rendered pages and reusable Go template components. |
-| `static` | TypeScript source for client-side interactions and player behavior. |
-| `scripts` | Bun-powered development and maintenance scripts. |
+| Catalog | Browse, search, and inspect anime metadata from external catalog sources. |
+| Details | Render synopsis, reviews, characters, statistics, relations, themes, and watch-order data. |
+| Watchlist | Store local user state for saved titles, statuses, and progress-driven flows. |
+| Playback | Serve watch pages, proxy streams/subtitles, rewrite playlists, and track progress. |
+| Player | Handle HLS playback, quality selection, subtitles, keyboard controls, episode navigation, and skip segments. |
+| Recommendations | Generate personal top picks from watchlist signals and recommendation data. |
+| Maintenance | Run migrations, startup fixes, local user commands, and data repair scripts. |
 
-The application uses Go for the long-running server, domain services, provider clients, and data
-access. SQLite keeps the app simple to run locally while still supporting real schema evolution
-through migrations. Bun is used for the frontend toolchain, TypeScript checks, formatting, linting,
-and small developer scripts. `mise` pins the tool versions so a fresh checkout can get to a working
-environment quickly.
+<details>
+<summary><strong>Implementation notes</strong></summary>
 
-## Technology Choices
+The backend is written in Go with Gin for HTTP routing and Fx for module wiring. SQLite is used for
+local persistence, with migrations and data fixes committed alongside the application. Templates are
+rendered on the server, HTMX handles small partial updates, and TypeScript powers the interactive
+parts of the browser experience.
 
-- **Go** keeps the backend fast, explicit, and easy to ship as a single binary.
-- **Gin** provides HTTP routing and middleware without hiding the request lifecycle.
-- **Uber Fx** wires modules together in a way that keeps feature packages independent.
-- **SQLite** makes the project self-contained and easy to run without external infrastructure.
-- **Goose** manages migrations as the schema changes.
-- **Go templates** keep most UI rendering close to the server data model.
-- **HTMX** adds small partial updates without turning the app into a full SPA.
-- **TypeScript** handles the browser behavior that benefits from strong client-side structure.
-- **Tailwind CSS** provides a compact styling workflow.
-- **Bun** runs the frontend build, lint, format, and script tasks.
-- **mise** pins local tool versions for reproducible development.
+The most stateful frontend code lives under `static/player`, where the app handles playback mode,
+source loading, progress storage, subtitles, timelines, quality changes, keyboard shortcuts, skip
+segments, episode completion, and thumbnail navigation.
 
-## Developer Experience
+</details>
 
-This project is set up around a small number of repeatable commands. The main workflow is:
+## How It Is Built
+
+The application is organized around product boundaries rather than framework layers. `internal/anime`
+owns catalog-facing behavior, `internal/watchlist` owns saved user state, `internal/playback` owns
+watch data and proxy behavior, and `integrations` contains provider clients. This keeps the core app
+from depending directly on the details of a specific metadata or playback source.
+
+Server-rendered templates are the default because most pages are content-heavy and benefit from
+simple request-response rendering. TypeScript is used where the browser has real ongoing state:
+search interactions, theme handling, carousels, watchlist actions, toast messages, and especially
+the video player.
+
+The result is a codebase that behaves like a small product rather than a tutorial project: it has a
+repeatable toolchain, database evolution, local maintenance commands, focused tests, and a clear
+split between app code and external integrations.
+
+## Working Locally
+
+The local workflow assumes [`mise`](https://mise.jdx.dev/) for tool versions and `just` for common
+commands.
 
 ```bash
 mise install
@@ -113,80 +111,86 @@ bun install
 just dev
 ```
 
-`just dev` runs the app through Air, which rebuilds the Go server and frontend assets when relevant
-files change. The default server address is `http://localhost:3000`.
+The development server runs on `http://localhost:3000` by default. `just dev` uses Air to rebuild the
+Go server and frontend assets when relevant files change.
 
-Configuration is read from environment variables, and a local `.env` file is loaded automatically.
-Useful variables include:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3000` | HTTP port for the local server. |
-| `DATABASE_FILE` | `mal.db` | SQLite database path. |
-| `GIN_MODE` | release default | Gin runtime mode. |
-| `MAL_CORS_ALLOW_ALL` | disabled | Allows any origin when set to `1`; useful only for local or proxy setups. |
-| `PLAYBACK_PROXY_SECRET` | empty | Enables signed playback proxy tokens when set. |
-| `EPISODE_AVAILABILITY_MODE` | `auto` | Episode availability strategy: `auto`, `legacy`, or `jikan`. |
-| `MAL_JIKAN_TRACE` | disabled | Enables optional Jikan client tracing when truthy. |
-
-## Common Commands
-
-The project uses `just` as the command runner:
-
-| Command | Description |
-| --- | --- |
-| `just setup` | Install pinned tools with `mise` and install Bun dependencies. |
-| `just dev` | Start the local development server with live rebuilds. |
-| `just build` | Build the Go server, Tailwind CSS, and TypeScript assets. |
-| `just test` | Run the Go test suite. |
-| `just fmt` | Format Go code. |
-| `bun run format` | Format TypeScript and related frontend files with `oxfmt`. |
-| `just lint-go` | Run `golangci-lint` across Go packages. |
-| `just lint-ts` | Run type-aware `oxlint` against the TypeScript source. |
-| `just typecheck` | Run `tsc` without emitting files. |
-| `just check` | Run linting, tests, typechecking, and a full build. |
-| `just run` | Build and run the compiled server binary. |
-| `just clean` | Remove generated build output. |
-| `just new-data-fix name` | Scaffold a new data-fix file. |
-| `just run-fixes` | Run registered data fixes through the user command. |
-| `just fix-all` | Run the Bun maintenance script for data fixes. |
-
-To create a local user after setup:
+Create a local user with:
 
 ```bash
 go run ./cmd/user <username> <password>
 ```
 
-## Quality Bar
+### Commands
 
-The codebase aims for a practical production style:
+| Command | Use it for |
+| --- | --- |
+| `just setup` | Install pinned tools and Bun dependencies. |
+| `just dev` | Run the app locally with live rebuilds. |
+| `just build` | Build the Go binary, CSS, and TypeScript assets. |
+| `just test` | Run the Go test suite. |
+| `just check` | Run linting, tests, typechecking, and a full build. |
+| `just lint-go` / `just lint-ts` | Run backend or frontend linting separately. |
+| `just typecheck` | Run TypeScript without emitting files. |
+| `just run` | Build and run the compiled server. |
+| `just clean` | Remove generated build output. |
 
-- feature packages own their handlers, services, repositories, and module wiring;
-- external provider behavior is isolated in `integrations`;
-- migrations are versioned and committed with the application code;
-- template components use named props instead of implicit positional state;
-- tests focus on database helpers, provider behavior, rendering helpers, recommendations, playback,
-  observability, and request handling;
-- linting and typechecking are part of the normal local workflow;
-- maintenance scripts are kept in the repo instead of living as undocumented one-off commands.
+<details>
+<summary><strong>Configuration</strong></summary>
 
-## Project Status
+Configuration is loaded from environment variables, and a local `.env` file is read automatically.
 
-This is a personal portfolio project and local-first application. It is still evolving, but the repo
-is structured to make future work straightforward: add migrations when the data model changes, keep
-provider-specific logic behind integration packages, prefer server-rendered flows by default, and use
-TypeScript only where browser state is genuinely doing work.
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3000` | HTTP port for the server. |
+| `DATABASE_FILE` | `mal.db` | SQLite database path. |
+| `GIN_MODE` | release default | Gin runtime mode. |
+| `MAL_CORS_ALLOW_ALL` | disabled | Allows any origin when set to `1`; intended for local/proxy setups. |
+| `PLAYBACK_PROXY_SECRET` | empty | Enables signed playback proxy tokens when set. |
+| `EPISODE_AVAILABILITY_MODE` | `auto` | Episode availability strategy: `auto`, `legacy`, or `jikan`. |
+| `MAL_JIKAN_TRACE` | disabled | Enables optional Jikan client tracing when truthy. |
 
-## Community And Security
+</details>
 
-Please read the project docs before contributing or using code from this repository:
+<details>
+<summary><strong>Maintenance commands</strong></summary>
 
-- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) describes the expected standard for respectful
-  participation.
-- [`SECURITY.md`](SECURITY.md) explains how to report security issues and how this project treats
-  sensitive playback, auth, and local data concerns.
-- [`LICENSE`](LICENSE) contains the MIT license for this project.
+| Command | Use it for |
+| --- | --- |
+| `just new-data-fix name` | Scaffold a new data-fix file. |
+| `just run-fixes` | Run registered data fixes through `cmd/user`. |
+| `just fix-all` | Run the Bun maintenance script for data fixes. |
+| `bun run format` | Format TypeScript and related frontend files with `oxfmt`. |
 
-## License
+</details>
 
-This project is released under the MIT License. See [`LICENSE`](LICENSE) for the full text.
+## Repository Map
+
+| Path | Responsibility |
+| --- | --- |
+| `cmd/server` | Web server entry point. |
+| `cmd/user` | Local user and maintenance commands. |
+| `internal/anime` | Catalog, details, browse, search, reviews, and recommendations. |
+| `internal/auth` | Authentication, middleware, and local user handling. |
+| `internal/watchlist` | Watchlist handlers, service logic, and persistence. |
+| `internal/playback` | Watch data, progress, proxy tokens, and skip segments. |
+| `internal/episodes` | Episode refresh and provider mapping. |
+| `internal/database` | SQLite setup, migrations, and startup data fixes. |
+| `integrations/jikan` | Jikan API client and catalog types. |
+| `integrations/playback/allanime` | Playback provider client and extraction logic. |
+| `templates` | Server-rendered pages and reusable components. |
+| `static` | TypeScript source for client-side behavior. |
+| `scripts` | Bun-powered development and maintenance scripts. |
+
+## Project Documents
+
+This repository includes the usual project-level documents for public review and reuse:
+
+| Document | Purpose |
+| --- | --- |
+| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Sets expectations for respectful project participation. |
+| [`SECURITY.md`](SECURITY.md) | Explains how to report vulnerabilities and what is in scope. |
+| [`LICENSE`](LICENSE) | MIT license terms. |
+
+---
+
+Released under the [MIT License](LICENSE).
