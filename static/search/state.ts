@@ -1,4 +1,4 @@
-export interface SearchItem {
+export type SearchItem = {
   id: string;
   type: string;
   label: string;
@@ -7,18 +7,14 @@ export interface SearchItem {
   image?: string;
   icon?: string;
   inWatchlist?: boolean;
-}
+};
 
-export interface SearchResponse {
-  items: SearchItem[];
-  hasNextPage: boolean;
-  nextPage?: number;
-}
+export type SearchResponse = { items: SearchItem[]; hasNextPage: boolean; nextPage?: number };
 
 export const searchInitializedKey = Symbol("searchInitialized");
 export const globalWindow = window as Window & { [searchInitializedKey]?: boolean };
 
-export const searchInput = document.getElementById("search-input") as HTMLInputElement | null;
+export const searchInput = document.querySelector("#search-input") as HTMLInputElement | null;
 export const searchResults = document.querySelector("[data-search-results]") as HTMLElement | null;
 export const searchRoot = document.querySelector("[data-search-root]") as HTMLElement | null;
 export const searchPage = document.querySelector("[data-search-page]") as HTMLElement | null;
@@ -137,9 +133,7 @@ export const iconPaths: Record<string, string> = {
   trending: "M3 17l6-6 4 4 8-8 M14 7h7v7",
 };
 
-export const typeLabels: Record<string, string> = {
-  anime: "Top results",
-};
+export const typeLabels: Record<string, string> = { anime: "Top results" };
 
 export const groupOrder = ["anime"];
 export const maxPosterImageRetries = 2;
