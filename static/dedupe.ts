@@ -19,7 +19,7 @@ export const dedupeByID = <T>(items: T[], idForItem: (item: T) => string | undef
 
 export const dedupeWithin = (root: ParentNode): void => {
   const elements = root.querySelectorAll<HTMLElement>(":scope > [data-id]");
-  const uniqueElements = new Set(dedupeByID(Array.from(elements), (item) => item.dataset.id));
+  const uniqueElements = new Set(dedupeByID([...elements], (item) => item.dataset.id));
 
   elements.forEach((item) => {
     if (!uniqueElements.has(item)) {
@@ -69,6 +69,12 @@ const dedupeSwapTarget = (target: EventTarget | null): void => {
   });
 };
 
-onReady(() => dedupe());
-window.addEventListener("load", () => dedupe());
-onHtmxLoad((root) => dedupeSwapTarget(root));
+onReady(() => {
+  dedupe();
+});
+window.addEventListener("load", () => {
+  dedupe();
+});
+onHtmxLoad((root) => {
+  dedupeSwapTarget(root);
+});
