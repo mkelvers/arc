@@ -1,7 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
-import { spawnSync } from "node:child_process";
 
 const ignoredDirectories = new Set([".git", "dist", "node_modules", "vendor"]);
 
@@ -10,18 +10,14 @@ const goFiles = (root: string): string[] => {
 
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir)) {
-      if (ignoredDirectories.has(entry)) {
-        continue;
-      }
-
-      const path = join(dir, entry);
-      const stat = statSync(path);
-      if (stat.isDirectory()) {
-        walk(path);
-        continue;
-      }
-      if (stat.isFile() && path.endsWith(".go")) {
-        files.push(path);
+      if (!ignoredDirectories.has(entry)) {
+        const path = join(dir, entry);
+        const stat = statSync(path);
+        if (stat.isDirectory()) {
+          walk(path);
+        } else if (stat.isFile() && path.endsWith(".go")) {
+          files.push(path);
+        }
       }
     }
   };
