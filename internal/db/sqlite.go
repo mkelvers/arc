@@ -19,6 +19,9 @@ func Open(dbFile string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
 	// WAL improves concurrency between readers and writers.
 	if _, err := db.ExecContext(context.Background(), "PRAGMA journal_mode=WAL;"); err != nil {
 		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
