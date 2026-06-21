@@ -1,7 +1,9 @@
 import { state } from "../state";
 
 export const completeAnime = async (episodeNumber: number): Promise<void> => {
-  if (state.episode.completionSent || !state.episode.malID || !episodeNumber) return;
+  if (state.episode.completionSent || !state.episode.malID || !episodeNumber) {
+    return;
+  }
   state.episode.completionSent = true;
 
   try {
@@ -32,7 +34,7 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       const caret = document.createElement("span");
       caret.className = "text-xs";
       caret.textContent = "▾";
-      trigger.appendChild(caret);
+      trigger.append(caret);
     }
   } catch (error) {
     state.episode.completionSent = false;
