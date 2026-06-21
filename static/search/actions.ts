@@ -1,6 +1,6 @@
-import { searchInput } from "./state";
-import { setClearButtonState } from "./render";
 import { cancelScheduledFetch, fetchSearchItems } from "./fetch";
+import { setClearButtonState } from "./render";
+import { searchInput } from "./state";
 
 export const openSearch = (): void => {
   if (!searchInput) {
