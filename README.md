@@ -28,9 +28,8 @@ part of the project is the product shape: server-rendered pages, a local databas
 integrations, playback proxying, recommendations, migrations, tests, and a TypeScript player that
 only appears where browser state actually earns its place.
 
-> [!NOTE]
-> This is a personal, local-first project. It is written to demonstrate product engineering choices,
-> not to present itself as an official MyAnimeList client or a hosted streaming platform.
+> [!NOTE] This is a personal, local-first project. It is written to demonstrate product engineering
+> choices, not to present itself as an official MyAnimeList client or a hosted streaming platform.
 
 ## Contents
 
@@ -59,15 +58,15 @@ the edges, and the UI is mostly rendered by the server.
 
 ## What It Includes
 
-| Area | What it does |
-| --- | --- |
-| Catalog | Browse, search, and inspect anime metadata from external catalog sources. |
-| Details | Render synopsis, reviews, characters, statistics, relations, themes, and watch-order data. |
-| Watchlist | Store local user state for saved titles, statuses, and progress-driven flows. |
-| Playback | Serve watch pages, proxy streams/subtitles, rewrite playlists, and track progress. |
-| Player | Handle HLS playback, quality selection, subtitles, keyboard controls, episode navigation, and skip segments. |
-| Recommendations | Generate personal top picks from watchlist signals and recommendation data. |
-| Maintenance | Run migrations, startup fixes, local user commands, and data repair scripts. |
+| Area            | What it does                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------ |
+| Catalog         | Browse, search, and inspect anime metadata from external catalog sources.                                    |
+| Details         | Render synopsis, reviews, characters, statistics, relations, themes, and watch-order data.                   |
+| Watchlist       | Store local user state for saved titles, statuses, and progress-driven flows.                                |
+| Playback        | Serve watch pages, proxy streams/subtitles, rewrite playlists, and track progress.                           |
+| Player          | Handle HLS playback, quality selection, subtitles, keyboard controls, episode navigation, and skip segments. |
+| Recommendations | Generate personal top picks from watchlist signals and recommendation data.                                  |
+| Maintenance     | Run migrations, startup fixes, local user commands, and data repair scripts.                                 |
 
 <details>
 <summary><strong>Implementation notes</strong></summary>
@@ -85,10 +84,11 @@ segments, episode completion, and thumbnail navigation.
 
 ## How It Is Built
 
-The application is organized around product boundaries rather than framework layers. `internal/anime`
-owns catalog-facing behavior, `internal/watchlist` owns saved user state, `internal/playback` owns
-watch data and proxy behavior, and `integrations` contains provider clients. This keeps the core app
-from depending directly on the details of a specific metadata or playback source.
+The application is organized around product boundaries rather than framework layers.
+`internal/anime` owns catalog-facing behavior, `internal/watchlist` owns saved user state,
+`internal/playback` owns watch data and proxy behavior, and `integrations` contains provider
+clients. This keeps the core app from depending directly on the details of a specific metadata or
+playback source.
 
 Server-rendered templates are the default because most pages are content-heavy and benefit from
 simple request-response rendering. TypeScript is used where the browser has real ongoing state:
@@ -110,8 +110,8 @@ bun install
 just dev
 ```
 
-The development server runs on `http://localhost:3000` by default. `just dev` uses Air to rebuild the
-Go server and frontend assets when relevant files change.
+The development server runs on `http://localhost:3000` by default. `just dev` uses Air to rebuild
+the Go server and frontend assets when relevant files change.
 
 Create a local user with:
 
@@ -121,64 +121,64 @@ go run ./cmd/user <username> <password>
 
 ### Commands
 
-| Command | Use it for |
-| --- | --- |
-| `just setup` | Install pinned tools and Bun dependencies. |
-| `just dev` | Run the app locally with live rebuilds. |
-| `just build` | Build the Go binary, CSS, and TypeScript assets. |
-| `just test` | Run the Go test suite. |
-| `just check` | Run linting, tests, typechecking, and a full build. |
-| `just lint-go` / `just lint-ts` | Run backend or frontend linting separately. |
-| `just typecheck` | Run TypeScript without emitting files. |
-| `just run` | Build and run the compiled server. |
-| `just clean` | Remove generated build output. |
+| Command                         | Use it for                                          |
+| ------------------------------- | --------------------------------------------------- |
+| `just setup`                    | Install pinned tools and Bun dependencies.          |
+| `just dev`                      | Run the app locally with live rebuilds.             |
+| `just build`                    | Build the Go binary, CSS, and TypeScript assets.    |
+| `just test`                     | Run the Go test suite.                              |
+| `just check`                    | Run linting, tests, typechecking, and a full build. |
+| `just lint-go` / `just lint-ts` | Run backend or frontend linting separately.         |
+| `just typecheck`                | Run TypeScript without emitting files.              |
+| `just run`                      | Build and run the compiled server.                  |
+| `just clean`                    | Remove generated build output.                      |
 
 <details>
 <summary><strong>Configuration</strong></summary>
 
 Configuration is loaded from environment variables, and a local `.env` file is read automatically.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PORT` | `3000` | HTTP port for the server. |
-| `DATABASE_FILE` | `mal.db` | SQLite database path. |
-| `GIN_MODE` | release default | Gin runtime mode. |
-| `MAL_CORS_ALLOW_ALL` | disabled | Allows any origin when set to `1`; intended for local/proxy setups. |
-| `PLAYBACK_PROXY_SECRET` | empty | Enables signed playback proxy tokens when set. |
-| `EPISODE_AVAILABILITY_MODE` | `auto` | Episode availability strategy: `auto`, `legacy`, or `jikan`. |
-| `MAL_JIKAN_TRACE` | disabled | Enables optional Jikan client tracing when truthy. |
+| Variable                    | Default         | Purpose                                                             |
+| --------------------------- | --------------- | ------------------------------------------------------------------- |
+| `PORT`                      | `3000`          | HTTP port for the server.                                           |
+| `DATABASE_FILE`             | `mal.db`        | SQLite database path.                                               |
+| `GIN_MODE`                  | release default | Gin runtime mode.                                                   |
+| `MAL_CORS_ALLOW_ALL`        | disabled        | Allows any origin when set to `1`; intended for local/proxy setups. |
+| `PLAYBACK_PROXY_SECRET`     | empty           | Enables signed playback proxy tokens when set.                      |
+| `EPISODE_AVAILABILITY_MODE` | `auto`          | Episode availability strategy: `auto`, `legacy`, or `jikan`.        |
+| `MAL_JIKAN_TRACE`           | disabled        | Enables optional Jikan client tracing when truthy.                  |
 
 </details>
 
 <details>
 <summary><strong>Maintenance commands</strong></summary>
 
-| Command | Use it for |
-| --- | --- |
-| `just new-data-fix name` | Scaffold a new data-fix file. |
-| `just run-fixes` | Run registered data fixes through `cmd/user`. |
-| `just fix-all` | Run the Bun maintenance script for data fixes. |
-| `bun run format` | Format TypeScript and related frontend files with `oxfmt`. |
+| Command                  | Use it for                                                 |
+| ------------------------ | ---------------------------------------------------------- |
+| `just new-data-fix name` | Scaffold a new data-fix file.                              |
+| `just run-fixes`         | Run registered data fixes through `cmd/user`.              |
+| `just fix-all`           | Run the Bun maintenance script for data fixes.             |
+| `bun run format`         | Format TypeScript and related frontend files with `oxfmt`. |
 
 </details>
 
 ## Repository Map
 
-| Path | Responsibility |
-| --- | --- |
-| `cmd/server` | Web server entry point. |
-| `cmd/user` | Local user and maintenance commands. |
-| `internal/anime` | Catalog, details, browse, search, reviews, and recommendations. |
-| `internal/auth` | Authentication, middleware, and local user handling. |
-| `internal/watchlist` | Watchlist handlers, service logic, and persistence. |
-| `internal/playback` | Watch data, progress, proxy tokens, and skip segments. |
-| `internal/episodes` | Episode refresh and provider mapping. |
-| `internal/database` | SQLite setup, migrations, and startup data fixes. |
-| `integrations/jikan` | Jikan API client and catalog types. |
-| `integrations/playback/allanime` | Playback provider client and extraction logic. |
-| `templates` | Server-rendered pages and reusable components. |
-| `static` | TypeScript source for client-side behavior. |
-| `scripts` | Bun-powered development and maintenance scripts. |
+| Path                             | Responsibility                                                  |
+| -------------------------------- | --------------------------------------------------------------- |
+| `cmd/server`                     | Web server entry point.                                         |
+| `cmd/user`                       | Local user and maintenance commands.                            |
+| `internal/anime`                 | Catalog, details, browse, search, reviews, and recommendations. |
+| `internal/auth`                  | Authentication, middleware, and local user handling.            |
+| `internal/watchlist`             | Watchlist handlers, service logic, and persistence.             |
+| `internal/playback`              | Watch data, progress, proxy tokens, and skip segments.          |
+| `internal/episodes`              | Episode refresh and provider mapping.                           |
+| `internal/database`              | SQLite setup, migrations, and startup data fixes.               |
+| `integrations/jikan`             | Jikan API client and catalog types.                             |
+| `integrations/playback/allanime` | Playback provider client and extraction logic.                  |
+| `templates`                      | Server-rendered pages and reusable components.                  |
+| `static`                         | TypeScript source for client-side behavior.                     |
+| `scripts`                        | Bun-powered development and maintenance scripts.                |
 
 ---
 
