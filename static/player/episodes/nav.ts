@@ -1,22 +1,25 @@
-import { state, showEndState, hideEndState } from "../state";
 import type { SkipSegment } from "../types";
-import { resolveActiveSegments, renderSegments } from "../skip/segments";
-import { updateSubtitleOptions } from "../subtitles";
-import { updateQualityOptions } from "../quality";
+
 import { hydrateAlternateMode, updateModeButtons } from "../mode";
-import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from "./ui";
 import { markEpisodeTransition } from "../progress";
+import { updateQualityOptions } from "../quality";
+import { resolveActiveSegments, renderSegments } from "../skip/segments";
+import { state, showEndState, hideEndState } from "../state";
 import { safeLocalStorage } from "../storage";
-import { completeAnime } from "./complete";
+import { updateSubtitleOptions } from "../subtitles";
 import { loadVideoSource } from "../video";
+import { completeAnime } from "./complete";
+import { updateOverlay, isAutoplayEnabled, switchEpisodeRange } from "./ui";
 
 /**
- * Handles video end: either marks complete or loads next episode.
- * Fetches episode data from API, updates player state and URL.
+ * Handles video end: either marks complete or loads next episode. Fetches episode data from API,
+ * updates player state and URL.
  */
 export const goToNextEpisode = async (): Promise<void> => {
   const currentEp = Number.parseInt(state.episode.current, 10);
-  if (!currentEp) return;
+  if (!currentEp) {
+    return;
+  }
 
   const navigateToEpisode = (episode: number): void => {
     const url = new URL(window.location.href);
@@ -124,9 +127,9 @@ export const goToNextEpisode = async (): Promise<void> => {
     }
 
     // highlight new episode in list/grid
-    state.elements.episodeList
-      ?.querySelectorAll("[data-episode-id]")
-      .forEach((el) => el.classList.remove("bg-accent/20"));
+    state.elements.episodeList?.querySelectorAll("[data-episode-id]").forEach((el) => {
+      el.classList.remove("bg-accent/20");
+    });
     const newListEl = state.elements.episodeList?.querySelector(`[data-episode-id="${nextEp}"]`);
     newListEl?.classList.add("bg-accent/20");
 
