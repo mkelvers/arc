@@ -12,7 +12,9 @@ const getLocalStorage = (): StorageLike | null => {
 export const safeLocalStorage = {
   getItem(key: string): string | null {
     const storage = getLocalStorage();
-    if (!storage) return null;
+    if (!storage) {
+      return null;
+    }
     try {
       return storage.getItem(key);
     } catch (error) {
@@ -22,7 +24,9 @@ export const safeLocalStorage = {
   },
   setItem(key: string, value: string): void {
     const storage = getLocalStorage();
-    if (!storage) return;
+    if (!storage) {
+      return;
+    }
     try {
       storage.setItem(key, value);
     } catch (error) {
@@ -31,7 +35,9 @@ export const safeLocalStorage = {
   },
   removeItem(key: string): void {
     const storage = getLocalStorage();
-    if (!storage) return;
+    if (!storage) {
+      return;
+    }
     try {
       storage.removeItem(key);
     } catch (error) {
