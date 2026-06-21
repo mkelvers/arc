@@ -24,8 +24,9 @@ const getTopPickCarousel = (root: HTMLElement): TopPickCarousel | null => {
   return { track, previous, next, previousFade, nextFade };
 };
 
-const topPickCarousels = (root: ParentNode = document): HTMLElement[] =>
-  Array.from(root.querySelectorAll<HTMLElement>("[data-top-pick-carousel]"));
+const topPickCarousels = (root: ParentNode = document): HTMLElement[] => [
+  ...root.querySelectorAll<HTMLElement>("[data-top-pick-carousel]"),
+];
 
 const maxScrollLeft = (track: HTMLElement): number =>
   Math.max(0, track.scrollWidth - track.clientWidth);
@@ -87,18 +88,17 @@ const scrollTopPickCarousel = (root: HTMLElement, direction: -1 | 1): void => {
           currentScroll + carouselScrollAmount(carousel.track),
         );
 
-  carousel.track.scrollTo({
-    left: targetScroll,
-    behavior: "smooth",
-  });
+  carousel.track.scrollTo({ left: targetScroll, behavior: "smooth" });
 
-  window.setTimeout(() => updateTopPickCarousel(root), 350);
+  window.setTimeout(() => {
+    updateTopPickCarousel(root);
+  }, 350);
 };
 
 document.addEventListener(
   "click",
   (event: MouseEvent): void => {
-    const target = event.target;
+    const { target } = event;
     if (!(target instanceof Element)) {
       return;
     }
@@ -132,7 +132,7 @@ document.addEventListener(
 document.addEventListener(
   "scroll",
   (event: Event): void => {
-    const target = event.target;
+    const { target } = event;
     if (!(target instanceof HTMLElement) || !target.matches("[data-top-pick-track]")) {
       return;
     }
@@ -145,7 +145,13 @@ document.addEventListener(
   true,
 );
 
-onReady(() => updateTopPickCarousels());
-onHtmxLoad((root) => updateTopPickCarousels(root));
-window.addEventListener("resize", () => updateTopPickCarousels());
+onReady(() => {
+  updateTopPickCarousels();
+});
+onHtmxLoad((root) => {
+  updateTopPickCarousels(root);
+});
+window.addEventListener("resize", () => {
+  updateTopPickCarousels();
+});
 import { onHtmxLoad, onReady } from "./utils";
