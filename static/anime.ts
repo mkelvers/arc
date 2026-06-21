@@ -2,15 +2,21 @@ import { closestFocusable, onReady } from "./utils";
 
 const initSynopsisToggle = (): void => {
   document.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
+    const { target } = event;
+    if (!(target instanceof Element)) {
+      return;
+    }
 
     const button = target.closest<HTMLButtonElement>("[data-synopsis-toggle]");
-    if (!button) return;
+    if (!button) {
+      return;
+    }
 
     const section = button.closest("section");
     const container = section?.querySelector<HTMLElement>("[data-synopsis-container]");
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     const isClamped = container.classList.contains("line-clamp-6");
     container.classList.toggle("line-clamp-6", !isClamped);
@@ -25,7 +31,9 @@ const initThemesDialog = (): void => {
     const closeButton = document.querySelector<HTMLButtonElement>("[data-themes-close]");
     const content = document.querySelector<HTMLElement>("[data-themes-content]");
     const loader = document.querySelector<HTMLElement>("[data-themes-loader]");
-    if (!dialog || !openButton || !content || !loader) return;
+    if (!dialog || !openButton || !content || !loader) {
+      return;
+    }
 
     let themesRequested = false;
     let lastFocused: HTMLElement | null = null;
@@ -37,7 +45,9 @@ const initThemesDialog = (): void => {
       dialog.setAttribute("aria-hidden", "false");
       closestFocusable(dialog)?.focus();
 
-      if (themesRequested) return;
+      if (themesRequested) {
+        return;
+      }
       themesRequested = true;
       content.textContent = "Loading theme songs...";
       const htmxApi = (
@@ -61,8 +71,12 @@ const initThemesDialog = (): void => {
       }
     });
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-      if (dialog.classList.contains("hidden")) return;
+      if (event.key !== "Escape") {
+        return;
+      }
+      if (dialog.classList.contains("hidden")) {
+        return;
+      }
       event.preventDefault();
       close();
     });
