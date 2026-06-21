@@ -25,8 +25,8 @@ Examples of unacceptable behavior include:
 ## Scope
 
 This code of conduct applies to project spaces such as issues, pull requests, discussions, commits,
-reviews, and any other forum used to coordinate work on this repository. It also applies when someone
-is representing the project in public.
+reviews, and any other forum used to coordinate work on this repository. It also applies when
+someone is representing the project in public.
 
 ## Reporting
 
