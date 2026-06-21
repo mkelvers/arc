@@ -28,8 +28,9 @@ part of the project is the product shape: server-rendered pages, a local databas
 integrations, playback proxying, recommendations, migrations, tests, and a TypeScript player that
 only appears where browser state actually earns its place.
 
-> [!NOTE] This is a personal, local-first project. It is written to demonstrate product engineering
-> choices, not to present itself as an official MyAnimeList client or a hosted streaming platform.
+> [!NOTE]
+> This is a personal, local-first project. It is written to demonstrate product engineering choices,
+> not to present itself as an official MyAnimeList client or a hosted streaming platform.
 
 ## Contents
 
