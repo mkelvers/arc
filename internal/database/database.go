@@ -22,6 +22,7 @@ var Module = fx.Options(
 		ProvideSQLDB,
 		ProvideQueries,
 	),
+	fx.Invoke(RegisterJikanCacheCleanupWorker),
 )
 
 func ProvideSQLDB(cfg config.Config) (*sql.DB, error) {

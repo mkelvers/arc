@@ -233,7 +233,14 @@ WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1;
 
 -- name: GetJikanCacheStale :one
 SELECT data FROM jikan_cache
-WHERE key = ? LIMIT 1;
+WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1;
+
+-- name: GetJikanCacheStats :one
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(*) FILTER (WHERE datetime(expires_at) <= CURRENT_TIMESTAMP) AS expired_rows,
+    COALESCE(unixepoch(MIN(expires_at)), 0) AS oldest_expires_at_seconds
+FROM jikan_cache;
 
 -- name: SetJikanCache :exec
 INSERT INTO jikan_cache (key, data, expires_at)
@@ -333,6 +340,11 @@ SELECT anime_id, provider, provider_show_id, failed_until, last_error, updated_a
 FROM episode_provider_mapping
 WHERE anime_id = ? AND provider = ? LIMIT 1;
 
+-- name: DeleteExpiredFailedEpisodeProviderMappings :exec
+DELETE FROM episode_provider_mapping
+WHERE provider_show_id = ''
+  AND failed_until <= CURRENT_TIMESTAMP;
+
 -- name: GetTrackedAiringAnimeIDsDueForEpisodeRefresh :many
 WITH tracked AS (
     SELECT DISTINCT w.anime_id
@@ -357,4 +369,4 @@ LIMIT ?;
 
 -- name: GetAllCachedAnime :many
 SELECT data FROM jikan_cache
-WHERE key LIKE 'anime:%' LIMIT 1000;
+WHERE key LIKE 'anime:%' AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1000;

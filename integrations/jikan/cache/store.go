@@ -22,6 +22,7 @@ func NewStore(queries db.Querier, metrics *observability.Metrics) *Store {
 func (s *Store) Get(parentCtx context.Context, key string, out any) bool {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
+	defer s.observeStats(parentCtx)
 
 	data, err := s.db.GetJikanCache(ctx, key)
 	if err != nil {
@@ -42,6 +43,7 @@ func (s *Store) Get(parentCtx context.Context, key string, out any) bool {
 func (s *Store) GetStale(parentCtx context.Context, key string, out any) bool {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
+	defer s.observeStats(parentCtx)
 
 	data, err := s.db.GetJikanCacheStale(ctx, key)
 	if err != nil {
@@ -62,6 +64,7 @@ func (s *Store) GetStale(parentCtx context.Context, key string, out any) bool {
 func (s *Store) Set(parentCtx context.Context, key string, data any, ttl time.Duration) {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
+	defer s.observeStats(parentCtx)
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
@@ -83,4 +86,23 @@ func (s *Store) Set(parentCtx context.Context, key string, data any, ttl time.Du
 			err,
 		)
 	}
+}
+
+func (s *Store) observeStats(parentCtx context.Context) {
+	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
+	defer cancel()
+
+	stats, err := s.db.GetJikanCacheStats(ctx)
+	if err != nil {
+		observability.LogJSON(
+			observability.LogLevelWarn,
+			"jikan_cache_stats",
+			"jikan",
+			"",
+			nil,
+			err,
+		)
+		return
+	}
+	s.metrics.ObserveJikanCacheStats(stats.TotalRows, stats.ExpiredRows, stats.OldestExpiresAtSeconds)
 }

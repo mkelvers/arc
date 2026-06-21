@@ -15,6 +15,7 @@ type Querier interface {
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteAnimeFetchRetry(ctx context.Context, animeID int64) error
 	DeleteContinueWatchingEntry(ctx context.Context, arg DeleteContinueWatchingEntryParams) error
+	DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error
 	DeleteExpiredJikanCache(ctx context.Context) error
 	DeleteSession(ctx context.Context, id string) error
 	DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListEntryParams) error
@@ -30,6 +31,7 @@ type Querier interface {
 	GetEpisodeAvailabilityCache(ctx context.Context, animeID int64) (EpisodeAvailabilityCache, error)
 	GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeProviderMappingParams) (EpisodeProviderMapping, error)
 	GetJikanCache(ctx context.Context, key string) (string, error)
+	GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow, error)
 	GetJikanCacheStale(ctx context.Context, key string) (string, error)
 	GetSession(ctx context.Context, id string) (Session, error)
 	GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Context, limit int64) ([]int64, error)

@@ -149,6 +149,17 @@ func (q *Queries) DeleteContinueWatchingEntry(ctx context.Context, arg DeleteCon
 	return err
 }
 
+const deleteExpiredFailedEpisodeProviderMappings = `-- name: DeleteExpiredFailedEpisodeProviderMappings :exec
+DELETE FROM episode_provider_mapping
+WHERE provider_show_id = ''
+  AND failed_until <= CURRENT_TIMESTAMP
+`
+
+func (q *Queries) DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredFailedEpisodeProviderMappings)
+	return err
+}
+
 const deleteExpiredJikanCache = `-- name: DeleteExpiredJikanCache :exec
 DELETE FROM jikan_cache WHERE datetime(expires_at) <= CURRENT_TIMESTAMP
 `
@@ -227,7 +238,7 @@ func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiT
 
 const getAllCachedAnime = `-- name: GetAllCachedAnime :many
 SELECT data FROM jikan_cache
-WHERE key LIKE 'anime:%' LIMIT 1000
+WHERE key LIKE 'anime:%' AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1000
 `
 
 func (q *Queries) GetAllCachedAnime(ctx context.Context) ([]string, error) {
@@ -565,9 +576,30 @@ func (q *Queries) GetJikanCache(ctx context.Context, key string) (string, error)
 	return data, err
 }
 
+const getJikanCacheStats = `-- name: GetJikanCacheStats :one
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(*) FILTER (WHERE datetime(expires_at) <= CURRENT_TIMESTAMP) AS expired_rows,
+    COALESCE(unixepoch(MIN(expires_at)), 0) AS oldest_expires_at_seconds
+FROM jikan_cache
+`
+
+type GetJikanCacheStatsRow struct {
+	TotalRows              int64 `json:"total_rows"`
+	ExpiredRows            int64 `json:"expired_rows"`
+	OldestExpiresAtSeconds int64 `json:"oldest_expires_at_seconds"`
+}
+
+func (q *Queries) GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getJikanCacheStats)
+	var i GetJikanCacheStatsRow
+	err := row.Scan(&i.TotalRows, &i.ExpiredRows, &i.OldestExpiresAtSeconds)
+	return i, err
+}
+
 const getJikanCacheStale = `-- name: GetJikanCacheStale :one
 SELECT data FROM jikan_cache
-WHERE key = ? LIMIT 1
+WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1
 `
 
 func (q *Queries) GetJikanCacheStale(ctx context.Context, key string) (string, error) {

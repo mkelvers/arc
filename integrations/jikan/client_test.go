@@ -86,6 +86,59 @@ func TestGetWithCacheAllowsEmptySearchResults(t *testing.T) {
 	}
 }
 
+func TestLoadCachedRandomPoolIgnoresExpiredAnimeCache(t *testing.T) {
+	sqlDB := newTestCacheDB(t)
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
+
+	queries := db.New(sqlDB)
+	client := NewClient(config.Config{}, queries, observability.NewMetrics())
+	insertCachedAnime(t, sqlDB, "anime:1", Anime{MalID: 1, Title: "fresh"}, time.Now().Add(time.Hour))
+	insertCachedAnime(t, sqlDB, "anime:2", Anime{MalID: 2, Title: "expired"}, time.Now().Add(-time.Hour))
+
+	client.loadCachedRandomPool(context.Background())
+
+	client.poolMu.RLock()
+	defer client.poolMu.RUnlock()
+
+	if len(client.randomPool) != 1 {
+		t.Fatalf("randomPool length = %d, want 1", len(client.randomPool))
+	}
+	if client.randomPool[0].MalID != 1 || client.randomPool[0].Title != "fresh" {
+		t.Fatalf("randomPool[0] = %+v, want fresh anime", client.randomPool[0])
+	}
+}
+
+func TestGetJikanCacheStatsCountsRowsAndExpiry(t *testing.T) {
+	sqlDB := newTestCacheDB(t)
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			t.Errorf("close sqlite: %v", err)
+		}
+	}()
+
+	oldest := time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC)
+	insertCachedResponse(t, sqlDB, "expired", TopAnimeResponse{Data: []Anime{{MalID: 1}}}, oldest)
+	insertCachedResponse(t, sqlDB, "fresh", TopAnimeResponse{Data: []Anime{{MalID: 2}}}, time.Now().Add(time.Hour))
+
+	stats, err := db.New(sqlDB).GetJikanCacheStats(context.Background())
+	if err != nil {
+		t.Fatalf("GetJikanCacheStats: %v", err)
+	}
+	if stats.TotalRows != 2 {
+		t.Fatalf("TotalRows = %d, want 2", stats.TotalRows)
+	}
+	if stats.ExpiredRows != 1 {
+		t.Fatalf("ExpiredRows = %d, want 1", stats.ExpiredRows)
+	}
+	if stats.OldestExpiresAtSeconds != oldest.Unix() {
+		t.Fatalf("OldestExpiresAtSeconds = %d, want %d", stats.OldestExpiresAtSeconds, oldest.Unix())
+	}
+}
+
 func newTestCacheDB(t *testing.T) *sql.DB {
 	t.Helper()
 	ctx := context.Background()
@@ -132,6 +185,27 @@ func insertCachedResponse(t *testing.T, sqlDB *sql.DB, key string, value TopAnim
 	)
 	if err != nil {
 		t.Fatalf("insert cached response: %v", err)
+	}
+}
+
+func insertCachedAnime(t *testing.T, sqlDB *sql.DB, key string, value Anime, expiresAt time.Time) {
+	t.Helper()
+	ctx := context.Background()
+
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshal cached anime: %v", err)
+	}
+
+	_, err = sqlDB.ExecContext(
+		ctx,
+		`INSERT INTO jikan_cache (key, data, expires_at) VALUES (?, ?, ?)`,
+		key,
+		string(encoded),
+		expiresAt,
+	)
+	if err != nil {
+		t.Fatalf("insert cached anime: %v", err)
 	}
 }
 
