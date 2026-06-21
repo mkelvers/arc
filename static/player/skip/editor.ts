@@ -1,11 +1,9 @@
-import { state } from "../state";
 import { formatTime, showControls } from "../controls";
+import { state } from "../state";
 import { resolveActiveSegments, renderSegments } from "./segments";
 
 type SkipType = "op" | "ed";
-type ClosableDropdown = HTMLElement & {
-  close: (options?: { restoreFocus?: boolean }) => void;
-};
+type ClosableDropdown = HTMLElement & { close: (options?: { restoreFocus?: boolean }) => void };
 
 const qs = <T extends Element>(root: ParentNode, sel: string): T | null =>
   root.querySelector(sel) as T | null;
@@ -15,11 +13,15 @@ const isClosableDropdown = (element: Element | null): element is ClosableDropdow
 
 export const setupSegmentEditor = (): void => {
   const root = document.querySelector("[data-segment-editor-root]") as HTMLElement | null;
-  if (!root) return;
+  if (!root) {
+    return;
+  }
 
   const toggleBtn = qs<HTMLButtonElement>(root, "[data-segment-editor-toggle]");
   const panel = qs<HTMLElement>(root, "[data-segment-editor]");
-  if (!toggleBtn || !panel) return;
+  if (!toggleBtn || !panel) {
+    return;
+  }
 
   const closeBtn = qs<HTMLButtonElement>(panel, "[data-segment-editor-close]");
   const typeValue = qs<HTMLInputElement>(panel, "[data-segment-type-value]");
@@ -31,9 +33,9 @@ export const setupSegmentEditor = (): void => {
   const resetBtn = qs<HTMLButtonElement>(panel, "[data-segment-reset]");
   const saveBtn = qs<HTMLButtonElement>(panel, "[data-segment-save]");
   const errorBox = qs<HTMLElement>(panel, "[data-segment-error]");
-  const typeOptions = Array.from(
-    panel.querySelectorAll("[data-segment-type-option]"),
-  ) as HTMLButtonElement[];
+  const typeOptions = [
+    ...panel.querySelectorAll("[data-segment-type-option]"),
+  ] as HTMLButtonElement[];
   const focusableSelector = [
     "button:not([disabled])",
     "input:not([disabled])",
@@ -47,7 +49,9 @@ export const setupSegmentEditor = (): void => {
   let lastActiveElement: HTMLElement | null = null;
 
   const setError = (msg: string | null): void => {
-    if (!errorBox) return;
+    if (!errorBox) {
+      return;
+    }
     if (!msg) {
       errorBox.classList.add("hidden");
       errorBox.textContent = "";
@@ -58,8 +62,12 @@ export const setupSegmentEditor = (): void => {
   };
 
   const updateLabels = (): void => {
-    if (startLabel) startLabel.textContent = startTime == null ? "—" : formatTime(startTime);
-    if (endLabel) endLabel.textContent = endTime == null ? "—" : formatTime(endTime);
+    if (startLabel) {
+      startLabel.textContent = startTime == null ? "—" : formatTime(startTime);
+    }
+    if (endLabel) {
+      endLabel.textContent = endTime == null ? "—" : formatTime(endTime);
+    }
   };
 
   const open = (): void => {
@@ -96,26 +104,34 @@ export const setupSegmentEditor = (): void => {
   closeBtn?.addEventListener("click", close);
 
   document.addEventListener("keydown", (e) => {
-    if (panel.classList.contains("hidden")) return;
+    if (panel.classList.contains("hidden")) {
+      return;
+    }
     if (e.key === "Escape") {
       e.preventDefault();
       close();
       return;
     }
 
-    if (e.key !== "Tab") return;
-    const focusables = Array.from(panel.querySelectorAll(focusableSelector)).filter(
+    if (e.key !== "Tab") {
+      return;
+    }
+    const focusables = [...panel.querySelectorAll(focusableSelector)].filter(
       (el) =>
         el instanceof HTMLElement &&
         !el.hasAttribute("disabled") &&
         !el.getAttribute("aria-hidden"),
     ) as HTMLElement[];
-    if (focusables.length === 0) return;
+    if (focusables.length === 0) {
+      return;
+    }
 
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
     const active = document.activeElement;
-    if (!(active instanceof HTMLElement)) return;
+    if (!(active instanceof HTMLElement)) {
+      return;
+    }
 
     if (e.shiftKey && active === first) {
       e.preventDefault();
@@ -131,24 +147,35 @@ export const setupSegmentEditor = (): void => {
 
   // close when clicking the backdrop outside the modal content
   document.addEventListener("pointerdown", (e) => {
-    if (panel.classList.contains("hidden")) return;
+    if (panel.classList.contains("hidden")) {
+      return;
+    }
     const target = e.target as Node | null;
-    if (!target) return;
+    if (!target) {
+      return;
+    }
     if (
       (e.target as HTMLElement | null)?.closest("[data-segment-editor] [data-segment-editor-close]")
-    )
+    ) {
       return;
+    }
     const content = panel.firstElementChild;
-    if (content && content.contains(target)) return;
+    if (content && content.contains(target)) {
+      return;
+    }
     close();
   });
 
   // dropdown type selector (uses ui-dropdown for visuals; we manage the value)
   typeOptions.forEach((btn) => {
     btn.addEventListener("click", () => {
-      const v = (btn.getAttribute("data-value") || "ed") as SkipType;
-      if (typeValue) typeValue.value = v;
-      if (typeLabel) typeLabel.textContent = v === "op" ? "Opening (OP)" : "Ending (ED)";
+      const v = (btn.dataset.value || "ed") as SkipType;
+      if (typeValue) {
+        typeValue.value = v;
+      }
+      if (typeLabel) {
+        typeLabel.textContent = v === "op" ? "Opening (OP)" : "Ending (ED)";
+      }
       const dropdown = btn.closest("ui-dropdown");
       if (isClosableDropdown(dropdown)) {
         dropdown.close({ restoreFocus: false });
@@ -167,7 +194,9 @@ export const setupSegmentEditor = (): void => {
 
   markStartBtn?.addEventListener("click", () => {
     startTime = Math.max(0, state.elements.video.currentTime);
-    if (endTime != null && startTime >= endTime) endTime = null;
+    if (endTime != null && startTime >= endTime) {
+      endTime = null;
+    }
     setError(null);
     updateLabels();
     showControls();
@@ -217,7 +246,9 @@ export const setupSegmentEditor = (): void => {
         } catch (error) {
           console.error("failed to parse response json:", error);
         }
-        if (payload?.error) message = payload.error;
+        if (payload?.error) {
+          message = payload.error;
+        }
         setError(message);
         return;
       }
@@ -226,7 +257,9 @@ export const setupSegmentEditor = (): void => {
       const normalizedType = skipType === "ed" ? "ending" : "opening";
       state.skip.parsedSegments = state.skip.parsedSegments.filter((s) => {
         const t = (s.type || "").toLowerCase();
-        if (normalizedType === "ending") return t !== "ed" && t !== "ending" && t !== "outro";
+        if (normalizedType === "ending") {
+          return t !== "ed" && t !== "ending" && t !== "outro";
+        }
         return t !== "op" && t !== "opening" && t !== "intro";
       });
       state.skip.parsedSegments.push({
