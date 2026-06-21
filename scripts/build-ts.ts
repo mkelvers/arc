@@ -2,10 +2,7 @@ import { spawnSync } from "node:child_process";
 import { cp, mkdir } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 
-type BuildStep = {
-  name: string;
-  args: string[];
-};
+type BuildStep = { name: string; args: string[] };
 
 const buildSteps: BuildStep[] = [
   {
@@ -55,7 +52,9 @@ const runBuildStep = (step: BuildStep): void => {
 const main = async (): Promise<void> => {
   const startedAt = performance.now();
 
-  buildSteps.forEach(runBuildStep);
+  buildSteps.forEach((step) => {
+    runBuildStep(step);
+  });
 
   await mkdir("./dist/static", { recursive: true });
   await cp("./node_modules/htmx.org/dist/htmx.min.js", "./dist/static/htmx-lib.js");
