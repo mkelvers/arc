@@ -70,20 +70,7 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 		mergeEpisode(&byNumber, number, func(item *episodePartial) {})
 	}
 
-	for i, ep := range jikanEpisodes {
-		if exceedsExpectedCount(i+1, expectedCount) {
-			break
-		}
-		number, ok := jikanEpisodeNumber(ep, i)
-		if !ok || exceedsExpectedCount(number, expectedCount) || (providerBacked && !providerNumbers[number]) {
-			continue
-		}
-		mergeEpisode(&byNumber, number, func(item *episodePartial) {
-			item.title = strings.TrimSpace(ep.Title)
-			item.filler = ep.Filler
-			item.recap = ep.Recap
-		})
-	}
+	mergeJikanEpisodes(&byNumber, jikanEpisodes, providerNumbers, providerBacked, expectedCount)
 	mergeAvailability(&byNumber, availability.Sub, expectedCount, func(item *episodePartial) { item.sub = true })
 	mergeAvailability(&byNumber, availability.Dub, expectedCount, func(item *episodePartial) { item.dub = true })
 
@@ -111,6 +98,23 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 		})
 	}
 	return episodes
+}
+
+func mergeJikanEpisodes(byNumber *map[int]episodePartial, episodes []jikan.Episode, providerNumbers map[int]bool, providerBacked bool, expectedCount int) {
+	for i, ep := range episodes {
+		if exceedsExpectedCount(i+1, expectedCount) {
+			break
+		}
+		number, ok := jikanEpisodeNumber(ep, i)
+		if !ok || exceedsExpectedCount(number, expectedCount) || (providerBacked && !providerNumbers[number]) {
+			continue
+		}
+		mergeEpisode(byNumber, number, func(item *episodePartial) {
+			item.title = strings.TrimSpace(ep.Title)
+			item.filler = ep.Filler
+			item.recap = ep.Recap
+		})
+	}
 }
 
 func availableEpisodeNumbers(availability domain.EpisodeAvailability, expectedCount int) map[int]bool {
