@@ -362,4 +362,4 @@ LIMIT ?;
 
 -- name: GetAllCachedAnime :many
 SELECT data FROM jikan_cache
-WHERE key LIKE 'anime:%' LIMIT 1000;
+WHERE key LIKE 'anime:%' AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1000;
