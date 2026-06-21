@@ -1,3 +1,6 @@
+import { openSearch, clearSearchInput } from "./actions";
+import { scheduleFetch, fetchSearchItems, onResultsScroll } from "./fetch";
+import { selectItem, runSelectedItem, renderEmptyState } from "./render";
 import {
   searchInitializedKey,
   globalWindow,
@@ -9,9 +12,6 @@ import {
   getSelectedIndex,
   isTypingTarget,
 } from "./state";
-import { selectItem, runSelectedItem, renderEmptyState } from "./render";
-import { scheduleFetch, fetchSearchItems, onResultsScroll } from "./fetch";
-import { openSearch, clearSearchInput } from "./actions";
 
 const onInputKeydown = (event: KeyboardEvent): void => {
   if (event.key === "ArrowDown") {
