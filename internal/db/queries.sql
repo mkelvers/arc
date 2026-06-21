@@ -235,6 +235,13 @@ WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1;
 SELECT data FROM jikan_cache
 WHERE key = ? LIMIT 1;
 
+-- name: GetJikanCacheStats :one
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(*) FILTER (WHERE datetime(expires_at) <= CURRENT_TIMESTAMP) AS expired_rows,
+    COALESCE(unixepoch(MIN(expires_at)), 0) AS oldest_expires_at_seconds
+FROM jikan_cache;
+
 -- name: SetJikanCache :exec
 INSERT INTO jikan_cache (key, data, expires_at)
 VALUES (?, ?, ?)
