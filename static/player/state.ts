@@ -1,9 +1,10 @@
 import type { ModeSource, SkipSegment, SubtitleCue, SubtitleTrack, ActiveSegment } from "./types";
-import { parseModeSources, parseSegments } from "./validate";
+
 import { q, qs, dataset } from "../q";
 import { safeLocalStorage } from "./storage";
+import { parseModeSources, parseSegments } from "./validate";
 
-export interface PlayerState {
+export type PlayerState = {
   elements: {
     container: HTMLElement;
     video: HTMLVideoElement;
@@ -46,19 +47,10 @@ export interface PlayerState {
     activeSegments: ActiveSegment[];
     activeSegment: ActiveSegment | null;
   };
-  subtitles: {
-    activeCues: SubtitleCue[];
-    tracks: SubtitleTrack[];
-  };
-  ui: {
-    isScrubbing: boolean;
-    isFullscreen: boolean;
-  };
-  timers: {
-    playerControlsTimeout: number | undefined;
-    progressSaveTimer: number | undefined;
-  };
-}
+  subtitles: { activeCues: SubtitleCue[]; tracks: SubtitleTrack[] };
+  ui: { isScrubbing: boolean; isFullscreen: boolean };
+  timers: { playerControlsTimeout: number | undefined; progressSaveTimer: number | undefined };
+};
 
 const createInitialState = (): PlayerState => ({
   elements: {
@@ -100,23 +92,10 @@ const createInitialState = (): PlayerState => ({
     endedProgressSaved: false,
     lastSavedProgress: { episode: "1", seconds: -1 },
   },
-  skip: {
-    parsedSegments: [],
-    activeSegments: [],
-    activeSegment: null,
-  },
-  subtitles: {
-    activeCues: [],
-    tracks: [],
-  },
-  ui: {
-    isScrubbing: false,
-    isFullscreen: false,
-  },
-  timers: {
-    playerControlsTimeout: undefined,
-    progressSaveTimer: undefined,
-  },
+  skip: { parsedSegments: [], activeSegments: [], activeSegment: null },
+  subtitles: { activeCues: [], tracks: [] },
+  ui: { isScrubbing: false, isFullscreen: false },
+  timers: { playerControlsTimeout: undefined, progressSaveTimer: undefined },
 });
 
 export const state: PlayerState = createInitialState();
@@ -130,14 +109,14 @@ export const hideEndState = (): void => {
   state.elements.container.classList.remove("video-ended");
 };
 
-interface RequiredPlayerElements {
+type RequiredPlayerElements = {
   video: HTMLVideoElement;
   progress: HTMLElement;
   scrubber: HTMLElement;
   buffered: HTMLElement;
   timeDisplay: HTMLElement;
   durationDisplay: HTMLElement;
-}
+};
 
 const findElement = <T extends Element>(
   container: HTMLElement,
@@ -145,7 +124,9 @@ const findElement = <T extends Element>(
   elementType: new () => T,
 ): T | null => {
   const element = container.querySelector(selector);
-  if (element instanceof elementType) return element;
+  if (element instanceof elementType) {
+    return element;
+  }
   return null;
 };
 
@@ -164,13 +145,12 @@ const requiredPlayerElements = (container: HTMLElement): RequiredPlayerElements 
   return { video, progress, scrubber, buffered, timeDisplay, durationDisplay };
 };
 
-/**
- * Initializes player state from DOM data attributes.
- * Called once on page load or htmx swap.
- */
+/** Initializes player state from DOM data attributes. Called once on page load or htmx swap. */
 export const initState = (c: HTMLElement): boolean => {
   const elements = requiredPlayerElements(c);
-  if (!elements) return false;
+  if (!elements) {
+    return false;
+  }
 
   // core elements
   state.elements.container = c;
@@ -232,11 +212,15 @@ export const initState = (c: HTMLElement): boolean => {
   // This avoids mismatches where the UI highlights one mode but the video is actually playing the other.
   const deriveModeFromVideoSrc = (): string | null => {
     const raw = state.elements.video.currentSrc || state.elements.video.src;
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     try {
       const u = new URL(raw, window.location.href);
       const modeParam = u.searchParams.get("mode");
-      if (modeParam === "sub" || modeParam === "dub") return modeParam;
+      if (modeParam === "sub" || modeParam === "dub") {
+        return modeParam;
+      }
       return null;
     } catch (error) {
       console.error("failed to parse mode url:", error);
