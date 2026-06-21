@@ -233,7 +233,7 @@ WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1;
 
 -- name: GetJikanCacheStale :one
 SELECT data FROM jikan_cache
-WHERE key = ? LIMIT 1;
+WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1;
 
 -- name: SetJikanCache :exec
 INSERT INTO jikan_cache (key, data, expires_at)
