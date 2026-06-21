@@ -21,10 +21,10 @@ func TestMergeEpisodesUsesProviderAvailabilityAsSourceOfTruth(t *testing.T) {
 		t.Fatalf("len(episodes) = %d, want 4", len(episodes))
 	}
 
-	assertEpisode(t, episodes[0], 1, "Start", true, true, false, false, false)
-	assertEpisode(t, episodes[1], 2, "Second", true, true, false, true, false)
-	assertEpisode(t, episodes[2], 3, "Episode 3", true, true, false, false, false)
-	assertEpisode(t, episodes[3], 6, "Episode 6", true, false, true, false, false)
+	assertEpisode(t, episodes[0], 1, "Start", true, true, false, false)
+	assertEpisode(t, episodes[1], 2, "Second", true, true, false, true)
+	assertEpisode(t, episodes[2], 3, "Episode 3", true, true, false, false)
+	assertEpisode(t, episodes[3], 6, "Episode 6", true, false, true, false)
 }
 
 func TestMergeEpisodesUsesJikanWhenProviderAvailabilityMissing(t *testing.T) {
@@ -37,8 +37,8 @@ func TestMergeEpisodesUsesJikanWhenProviderAvailabilityMissing(t *testing.T) {
 		t.Fatalf("len(episodes) = %d, want 2", len(episodes))
 	}
 
-	assertEpisode(t, episodes[0], 1, "Start", false, false, false, false, false)
-	assertEpisode(t, episodes[1], 2, "Second", false, false, false, false, false)
+	assertEpisode(t, episodes[0], 1, "Start", false, false, false, false)
+	assertEpisode(t, episodes[1], 2, "Second", false, false, false, false)
 }
 
 func TestMergeEpisodesIgnoresInvalidJikanEpisodeNumbers(t *testing.T) {
@@ -52,9 +52,9 @@ func TestMergeEpisodesIgnoresInvalidJikanEpisodeNumbers(t *testing.T) {
 		t.Fatalf("len(episodes) = %d, want 3", len(episodes))
 	}
 
-	assertEpisode(t, episodes[0], 1, "Missing", false, false, false, false, false)
-	assertEpisode(t, episodes[1], 2, "Preview", false, false, false, false, false)
-	assertEpisode(t, episodes[2], 3, "Zero", false, false, false, false, false)
+	assertEpisode(t, episodes[0], 1, "Missing", false, false, false, false)
+	assertEpisode(t, episodes[1], 2, "Preview", false, false, false, false)
+	assertEpisode(t, episodes[2], 3, "Zero", false, false, false, false)
 }
 
 func TestMergeEpisodesCapsMalformedJikanListsToDeclaredEpisodeCount(t *testing.T) {
@@ -81,8 +81,8 @@ func TestMergeEpisodesCapsMalformedJikanListsToDeclaredEpisodeCount(t *testing.T
 		t.Fatalf("len(episodes) = %d, want 12", len(episodes))
 	}
 
-	assertEpisode(t, episodes[0], 1, "Rimuru's Busy Life", true, true, false, false, false)
-	assertEpisode(t, episodes[11], 12, "The One Unleashed", true, true, false, false, false)
+	assertEpisode(t, episodes[0], 1, "Rimuru's Busy Life", true, true, false, false)
+	assertEpisode(t, episodes[11], 12, "The One Unleashed", true, true, false, false)
 }
 
 func TestIsCanonicalEpisodePayloadValidRejectsOverflowingCachedPayload(t *testing.T) {
@@ -160,9 +160,9 @@ func TestNextRetryTimeWithinAndAfterRetryWindow(t *testing.T) {
 	}
 }
 
-func assertEpisode(t *testing.T, got domain.CanonicalEpisode, number int, title string, sub bool, dub bool, subOnly bool, filler bool, recap bool) {
+func assertEpisode(t *testing.T, got domain.CanonicalEpisode, number int, title string, sub bool, dub bool, subOnly bool, filler bool) {
 	t.Helper()
-	if got.Number != number || got.Title != title || got.HasSub != sub || got.HasDub != dub || got.SubOnly != subOnly || got.Filler != filler || got.Recap != recap {
-		t.Fatalf("episode = %+v, want number=%d title=%q sub=%t dub=%t subOnly=%t filler=%t recap=%t", got, number, title, sub, dub, subOnly, filler, recap)
+	if got.Number != number || got.Title != title || got.HasSub != sub || got.HasDub != dub || got.SubOnly != subOnly || got.Filler != filler || got.Recap {
+		t.Fatalf("episode = %+v, want number=%d title=%q sub=%t dub=%t subOnly=%t filler=%t recap=false", got, number, title, sub, dub, subOnly, filler)
 	}
 }
