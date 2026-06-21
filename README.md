@@ -17,8 +17,6 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
 </p>
 
----
-
 MyAnimeList is a self-hosted media app for browsing anime, managing a watchlist, resuming episodes,
 and playing streams through a browser-based player. It collects the parts of an anime workflow that
 usually live across several products and keeps them in one small Go application backed by SQLite.
@@ -180,7 +178,5 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | `templates`                      | Server-rendered pages and reusable components.                  |
 | `static`                         | TypeScript source for client-side behavior.                     |
 | `scripts`                        | Bun-powered development and maintenance scripts.                |
-
----
 
 Released under the [MIT License](LICENSE).
