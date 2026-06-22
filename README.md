@@ -116,7 +116,7 @@ Playback proxying requires a local `PLAYBACK_PROXY_SECRET` so the server can min
 subtitle proxy tokens. Generate a strong value and add it to `.env` before using playback:
 
 ```bash
-printf 'PLAYBACK_PROXY_SECRET=%s\n' "$(openssl rand -base64 32)" >> .env
+echo "PLAYBACK_PROXY_SECRET=$(openssl rand -base64 32)" >> .env
 ```
 
 Create a local user with:
