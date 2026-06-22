@@ -112,6 +112,13 @@ just dev
 The development server runs on `http://localhost:3000` by default. `just dev` uses Air to rebuild
 the Go server and frontend assets when relevant files change.
 
+Playback proxying requires a local `PLAYBACK_PROXY_SECRET` so the server can mint stream and
+subtitle proxy tokens. Generate a strong value and add it to `.env` before using playback:
+
+```bash
+printf 'PLAYBACK_PROXY_SECRET=%s\n' "$(openssl rand -base64 32)" >> .env
+```
+
 Create a local user with:
 
 ```bash
@@ -137,15 +144,15 @@ go run ./cmd/user <username> <password>
 
 Configuration is loaded from environment variables, and a local `.env` file is read automatically.
 
-| Variable                    | Default         | Purpose                                                             |
-| --------------------------- | --------------- | ------------------------------------------------------------------- |
-| `PORT`                      | `3000`          | HTTP port for the server.                                           |
-| `DATABASE_FILE`             | `mal.db`        | SQLite database path.                                               |
-| `GIN_MODE`                  | release default | Gin runtime mode.                                                   |
-| `MAL_CORS_ALLOW_ALL`        | disabled        | Allows any origin when set to `1`; intended for local/proxy setups. |
-| `PLAYBACK_PROXY_SECRET`     | empty           | Enables signed playback proxy tokens when set.                      |
-| `EPISODE_AVAILABILITY_MODE` | `auto`          | Episode availability strategy: `auto`, `legacy`, or `jikan`.        |
-| `MAL_JIKAN_TRACE`           | disabled        | Enables optional Jikan client tracing when truthy.                  |
+| Variable                    | Default         | Purpose                                                                    |
+| --------------------------- | --------------- | -------------------------------------------------------------------------- |
+| `PORT`                      | `3000`          | HTTP port for the server.                                                  |
+| `DATABASE_FILE`             | `mal.db`        | SQLite database path.                                                      |
+| `GIN_MODE`                  | release default | Gin runtime mode.                                                          |
+| `MAL_CORS_ALLOW_ALL`        | disabled        | Allows any origin when set to `1`; intended for local/proxy setups.        |
+| `PLAYBACK_PROXY_SECRET`     | empty           | Secret used to mint playback proxy tokens; required for playback proxying. |
+| `EPISODE_AVAILABILITY_MODE` | `auto`          | Episode availability strategy: `auto`, `legacy`, or `jikan`.               |
+| `MAL_JIKAN_TRACE`           | disabled        | Enables optional Jikan client tracing when truthy.                         |
 
 </details>
 

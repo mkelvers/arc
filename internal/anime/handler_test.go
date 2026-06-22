@@ -175,6 +175,28 @@ func TestAnimeEpisodeCountFallsBackToMetadata(t *testing.T) {
 	}
 }
 
+func TestAnimeInitialEpisodeCountDoesNotCallEpisodeService(t *testing.T) {
+	episodeSvc := &stubEpisodeService{
+		episodes: domain.CanonicalEpisodeList{
+			Episodes: []domain.CanonicalEpisode{{Number: 1}, {Number: 2}, {Number: 3}},
+		},
+	}
+
+	got := animeInitialEpisodeCount(domain.Anime{Anime: jikan.Anime{
+		MalID:    59970,
+		Airing:   true,
+		Episodes: 12,
+		Aired:    jikan.Aired{From: "2026-04-03T00:00:00+00:00"},
+	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
+
+	if got.Count != 12 || got.Label != "Total episodes" {
+		t.Fatalf("animeInitialEpisodeCount() = %+v, want count=12 label=%q", got, "Total episodes")
+	}
+	if episodeSvc.called != 0 {
+		t.Fatalf("GetCanonicalEpisodes() calls = %d, want 0", episodeSvc.called)
+	}
+}
+
 func TestAnimeAudioAvailabilityLabel(t *testing.T) {
 	tests := []struct {
 		name     string

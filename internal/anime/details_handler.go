@@ -109,6 +109,16 @@ func (h *AnimeHandler) animeEpisodeCount(ctx context.Context, anime domain.Anime
 	return animeEpisodeCountDisplay{}
 }
 
+func animeInitialEpisodeCount(anime domain.Anime, now time.Time) animeEpisodeCountDisplay {
+	if anime.Episodes > 0 {
+		return animeEpisodeCountDisplay{Count: anime.Episodes, Label: "Total episodes"}
+	}
+	if count := releasedEpisodeCount(anime, now); count > 0 {
+		return animeEpisodeCountDisplay{Count: count, Label: "Estimated aired episodes"}
+	}
+	return animeEpisodeCountDisplay{}
+}
+
 func animeAudioAvailabilityLabel(episodes []domain.CanonicalEpisode) string {
 	hasKnownSub := false
 	for _, episode := range episodes {
@@ -193,7 +203,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		}
 	}
 
-	episodesCount := h.animeEpisodeCount(c.Request.Context(), anime, time.Now())
+	episodesCount := animeInitialEpisodeCount(anime, time.Now())
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":                anime,
@@ -255,6 +265,12 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 	case "statistics":
 		data, err := h.svc.GetStatistics(ctx, id)
 		return data, "anime_statistics", err
+	case "episode-count":
+		anime, err := h.svc.GetAnimeByID(ctx, id)
+		if err != nil {
+			return nil, "", err
+		}
+		return h.animeEpisodeCount(ctx, anime, time.Now()), "anime_episode_count", nil
 	case "themes":
 		data, err := h.svc.GetThemes(ctx, id)
 		return data, "anime_themes", err
