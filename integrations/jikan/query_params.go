@@ -24,7 +24,7 @@ func setQueryValue(values url.Values, key, value string) {
 	values.Set(key, value)
 }
 
-func setPositiveIntQueryValue(values url.Values, key string, value int) {
+func setPositiveInt(values url.Values, key string, value int) {
 	if value <= 0 {
 		values.Del(key)
 		return
