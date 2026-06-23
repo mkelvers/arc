@@ -185,7 +185,8 @@ func (c *Client) handleWatchOrderError(ctx context.Context, id int, err error) (
 	return c.currentOnlyRelation(ctx, id)
 }
 
-func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode WatchOrderMode) ([]watchorder.WatchOrderEntry, map[int]bool) {
+// relation filter
+func allowedWatchOrder(result watchorder.WatchOrderResult, mode WatchOrderMode) ([]watchorder.WatchOrderEntry, map[int]bool) {
 	allowedEntries := make([]watchorder.WatchOrderEntry, 0, len(result.WatchOrder))
 	seen := make(map[int]bool)
 	hasTVEntry := false
@@ -216,7 +217,7 @@ func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode Watc
 	return allowedEntries, seen
 }
 
-func (c *Client) fetchRelationEntries(ctx context.Context, entries []watchorder.WatchOrderEntry) chan fetchResult {
+func (c *Client) fetchEntries(ctx context.Context, entries []watchorder.WatchOrderEntry) chan fetchResult {
 	g, gCtx := errgroup.WithContext(ctx)
 	g.SetLimit(3)
 
@@ -262,8 +263,8 @@ func (c *Client) fetchRelationEntries(ctx context.Context, entries []watchorder.
 	return results
 }
 
-func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.WatchOrderEntry) []fetchResult {
-	results := c.fetchRelationEntries(ctx, entries)
+func (c *Client) fetchResults(ctx context.Context, entries []watchorder.WatchOrderEntry) []fetchResult {
+	results := c.fetchEntries(ctx, entries)
 
 	fetched := make([]fetchResult, 0, len(entries))
 	for res := range results {
@@ -291,7 +292,7 @@ func (c *Client) fetchRelationResults(ctx context.Context, entries []watchorder.
 	return fetched
 }
 
-func buildRelationsFromResults(results []fetchResult, id int) []RelationEntry {
+func buildRelations(results []fetchResult, id int) []RelationEntry {
 	relations := make([]RelationEntry, 0, len(results)+1)
 	for _, res := range results {
 		relations = append(relations, RelationEntry{
@@ -305,7 +306,7 @@ func buildRelationsFromResults(results []fetchResult, id int) []RelationEntry {
 	return relations
 }
 
-func (c *Client) ensureCurrentRelation(ctx context.Context, id int, seen map[int]bool, relations []RelationEntry) ([]RelationEntry, error) {
+func (c *Client) ensureCurrent(ctx context.Context, id int, seen map[int]bool, relations []RelationEntry) ([]RelationEntry, error) {
 	if seen[id] {
 		return relations, nil
 	}
@@ -336,10 +337,10 @@ func (c *Client) GetFullRelations(ctx context.Context, id int, mode WatchOrderMo
 		return c.handleWatchOrderError(ctx, id, err)
 	}
 
-	allowedEntries, seen := buildAllowedWatchOrderEntries(result, mode)
-	fetched := c.fetchRelationResults(ctx, allowedEntries)
-	relations := buildRelationsFromResults(fetched, id)
-	relations, err = c.ensureCurrentRelation(ctx, id, seen, relations)
+	allowedEntries, seen := allowedWatchOrder(result, mode)
+	fetched := c.fetchResults(ctx, allowedEntries)
+	relations := buildRelations(fetched, id)
+	relations, err = c.ensureCurrent(ctx, id, seen, relations)
 	if err != nil {
 		return nil, err
 	}

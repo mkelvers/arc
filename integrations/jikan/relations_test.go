@@ -38,7 +38,7 @@ func TestBuildAllowedWatchOrderEntriesKeepsDefaultTypesWhenTVExists(t *testing.T
 		},
 	}
 
-	entries, seen := buildAllowedWatchOrderEntries(result, WatchOrderModeMain)
+	entries, seen := allowedWatchOrder(result, WatchOrderModeMain)
 	if len(entries) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(entries))
 	}
@@ -62,7 +62,7 @@ func TestBuildAllowedWatchOrderEntriesIncludesAllTypesWhenNoTVExists(t *testing.
 		},
 	}
 
-	entries, seen := buildAllowedWatchOrderEntries(result, WatchOrderModeMain)
+	entries, seen := allowedWatchOrder(result, WatchOrderModeMain)
 	if len(entries) != 3 {
 		t.Fatalf("expected 3 entries, got %d", len(entries))
 	}
@@ -86,7 +86,7 @@ func TestBuildAllowedWatchOrderEntriesIncludesAllTypesInCompleteMode(t *testing.
 		},
 	}
 
-	entries, seen := buildAllowedWatchOrderEntries(result, WatchOrderModeComplete)
+	entries, seen := allowedWatchOrder(result, WatchOrderModeComplete)
 	if len(entries) != 4 {
 		t.Fatalf("expected 4 entries, got %d", len(entries))
 	}
