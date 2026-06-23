@@ -293,13 +293,13 @@ func parseM3U8Sources(body string, masterURL string, referer string) []StreamSou
 	lines := strings.Split(body, "\n")
 	baseURL := playlistBaseURL(masterURL)
 	bwPattern := regexp.MustCompile(`BANDWIDTH=(\d+)`)
-	currentBandwidth := 0
+	bw := 0
 	sources := make([]StreamSource, 0)
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if bandwidth, ok := parseStreamBandwidth(trimmed, bwPattern); ok {
-			currentBandwidth = bandwidth
+			bw = bandwidth
 			continue
 		}
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
@@ -313,7 +313,7 @@ func parseM3U8Sources(body string, masterURL string, referer string) []StreamSou
 
 		sources = append(sources, StreamSource{
 			URL:      streamURL,
-			Quality:  qualityFromBandwidth(currentBandwidth),
+			Quality:  qualityFromBandwidth(bw),
 			Provider: "hls",
 			Type:     "m3u8",
 			Referer:  referer,

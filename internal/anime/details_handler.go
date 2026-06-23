@@ -317,13 +317,13 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 		return
 	}
 
-	relationAnimeIDs := make([]int64, 0, len(relations))
+	ids := make([]int64, 0, len(relations))
 	for _, relation := range relations {
 		if relation.Anime.MalID > 0 {
-			relationAnimeIDs = append(relationAnimeIDs, int64(relation.Anime.MalID))
+			ids = append(ids, int64(relation.Anime.MalID))
 		}
 	}
-	watchlistMap := h.watchlistMapForIDs(c.Request.Context(), userID, relationAnimeIDs)
+	watchlistMap := h.watchlistMapForIDs(c.Request.Context(), userID, ids)
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"_fragment":    "watch_order",

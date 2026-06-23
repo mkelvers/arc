@@ -195,7 +195,7 @@ func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode Watc
 			break
 		}
 	}
-	shouldIncludeAllTypes := mode == WatchOrderModeComplete || !hasTVEntry
+	allTypes := mode == WatchOrderModeComplete || !hasTVEntry
 
 	for _, entry := range result.WatchOrder {
 		if len(allowedEntries) >= maxWatchOrderEntries {
@@ -204,8 +204,8 @@ func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode Watc
 		if seen[entry.ID] {
 			continue
 		}
-		normalizedType := strings.ToLower(strings.TrimSpace(entry.Type))
-		if !shouldIncludeAllTypes && normalizedType != "tv" && normalizedType != "movie" {
+		typ := strings.ToLower(strings.TrimSpace(entry.Type))
+		if !allTypes && typ != "tv" && typ != "movie" {
 			continue
 		}
 

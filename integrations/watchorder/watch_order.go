@@ -156,13 +156,13 @@ func extractRows(doc *goquery.Document) []watchOrderRow {
 		}
 
 		title := strings.TrimSpace(selection.Find(".wo_title").First().Text())
-		alternativeTitle := strings.TrimSpace(selection.Find(".uk-text-small").First().Text())
+		alt := strings.TrimSpace(selection.Find(".uk-text-small").First().Text())
 
 		rows = append(rows, watchOrderRow{
 			id:               id,
 			typeID:           typeID,
 			title:            title,
-			alternativeTitle: alternativeTitle,
+			alternativeTitle: alt,
 		})
 	})
 

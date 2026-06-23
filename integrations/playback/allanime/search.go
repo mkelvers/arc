@@ -101,7 +101,7 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 
 func (c *AllAnimeProvider) resolveShowIDWithFallback(ctx context.Context, animeID int, titleCandidates []string, mode string) string {
 	targetMalIDStr := strconv.Itoa(animeID)
-	firstAvailableShowID := ""
+	fallbackID := ""
 
 	for _, title := range titleCandidates {
 		searchResults, err := c.Search(ctx, title, mode)
@@ -111,12 +111,12 @@ func (c *AllAnimeProvider) resolveShowIDWithFallback(ctx context.Context, animeI
 		if showID := exactMatchShowID(searchResults, targetMalIDStr); showID != "" {
 			return showID
 		}
-		if firstAvailableShowID == "" {
-			firstAvailableShowID = searchResults[0].ID
+		if fallbackID == "" {
+			fallbackID = searchResults[0].ID
 		}
 	}
 
-	return firstAvailableShowID
+	return fallbackID
 }
 
 func exactMatchShowID(searchResults []searchResult, targetMalID string) string {

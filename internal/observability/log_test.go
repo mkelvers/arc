@@ -36,10 +36,10 @@ func TestFormatLogEntryFormatsHTTPRequestCompactly(t *testing.T) {
 }
 
 func TestFormatHTTPStatusColorsByStatusFamily(t *testing.T) {
-	previousColorLogs := colorLogs
+	prev := colorLogs
 	colorLogs = true
 	t.Cleanup(func() {
-		colorLogs = previousColorLogs
+		colorLogs = prev
 	})
 
 	tests := map[any]string{

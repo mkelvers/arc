@@ -10,11 +10,11 @@ import (
 func rerankRecommendationCandidates(candidates []recommendationCandidate, limit int) []domain.Anime {
 	selected := make([]domain.Anime, 0, min(limit, len(candidates)))
 	remaining := slices.Clone(candidates)
-	seenFeatures := newDiversityFeatureCounts()
-	recentFeatures := make([]diversityFeatureSet, 0, recentDiversityWindow)
+	seen := newDiversityFeatureCounts()
+	recent := make([]diversityFeatureSet, 0, recentDiversityWindow)
 
 	for len(selected) < limit && len(remaining) > 0 {
-		bestIndex := bestDiverseCandidateIndex(remaining, seenFeatures, recentFeatures)
+		bestIndex := bestDiverseCandidateIndex(remaining, seen, recent)
 		candidate := remaining[bestIndex]
 		remaining = slices.Delete(remaining, bestIndex, bestIndex+1)
 
@@ -26,10 +26,10 @@ func rerankRecommendationCandidates(candidates []recommendationCandidate, limit 
 
 		selected = append(selected, domain.Anime{Anime: candidate.anime})
 		features := diversityFeatures(candidate.anime)
-		seenFeatures.add(features)
-		recentFeatures = append(recentFeatures, features)
-		if len(recentFeatures) > recentDiversityWindow {
-			recentFeatures = recentFeatures[1:]
+		seen.add(features)
+		recent = append(recent, features)
+		if len(recent) > recentDiversityWindow {
+			recent = recent[1:]
 		}
 	}
 

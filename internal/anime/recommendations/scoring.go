@@ -29,25 +29,25 @@ func scoreRecommendationCandidate(
 	collaborativeScore float64,
 	profileSearchScore float64,
 ) recommendationCandidate {
-	genreMatches, genreScore := weightedEntityMatch(profile.genres, candidate.Genres)
-	themeMatches, themeScore := weightedEntityMatch(profile.themes, candidate.Themes)
-	studioMatches, studioScore := weightedEntityMatch(profile.studios, candidate.Studios)
-	demographicMatches, demographicScore := weightedEntityMatch(profile.demographics, candidate.Demographics)
+	genres, genreScore := weightedEntityMatch(profile.genres, candidate.Genres)
+	themes, themeScore := weightedEntityMatch(profile.themes, candidate.Themes)
+	studios, studioScore := weightedEntityMatch(profile.studios, candidate.Studios)
+	demos, demoScore := weightedEntityMatch(profile.demographics, candidate.Demographics)
 
 	score := rankedCandidateRetrievalScore(collaborativeScore, profileSearchScore)
 	score += genreScore * genreMatchWeight
 	score += themeScore * themeMatchWeight
 	score += studioScore * studioMatchWeight
-	score += demographicScore * demographicMatchWeight
+	score += demoScore * demographicMatchWeight
 	score += recommendationCandidateScoreAdjustments(now, profile, candidate)
 
 	return recommendationCandidate{
 		anime:              candidate,
 		score:              score,
-		genreMatches:       genreMatches,
-		themeMatches:       themeMatches,
-		studioMatches:      studioMatches,
-		demographicMatches: demographicMatches,
+		genreMatches:       genres,
+		themeMatches:       themes,
+		studioMatches:      studios,
+		demographicMatches: demos,
 	}
 }
 

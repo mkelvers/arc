@@ -26,18 +26,19 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		)
 	}
 	searchTitles := buildSearchTitles(animeData, titleCandidates)
-	canonicalEpisodes, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
+	eps, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch episodes: %w", err)
 	}
 
-	mode, modeSwitchedFrom := resolveMode(episode, mode, canonicalEpisodes.Episodes)
-	modeSources, result, resolvedMode, resolvedModeSwitchedFrom := s.resolveModeSources(ctx, animeID, searchTitles, episode, mode)
+	// mode fallback
+	mode, from := resolveMode(episode, mode, eps.Episodes)
+	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(ctx, animeID, searchTitles, episode, mode)
 	if resolvedMode != "" {
 		mode = resolvedMode
 	}
-	if resolvedModeSwitchedFrom != "" {
-		modeSwitchedFrom = resolvedModeSwitchedFrom
+	if switchedFrom != "" {
+		from = switchedFrom
 	}
 	startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(ctx, userID, animeID, anime.Episodes, episode)
 	seasons := s.loadSeasons(ctx, animeID)
@@ -48,8 +49,8 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 			err,
 		)
 	}
-	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, canonicalEpisodes.Episodes, modeSources, mode, modeSwitchedFrom, segments)
-	pageData := buildWatchPageData(animeData, canonicalEpisodes.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData)
+	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, eps.Episodes, modeSources, mode, from, segments)
+	pageData := buildWatchPageData(animeData, eps.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData)
 	if len(modeSources) == 0 {
 		return pageData, fmt.Errorf("no streams found")
 	}

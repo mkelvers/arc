@@ -212,7 +212,7 @@ func buildSourceReferences(rawSourceURLs []any) []sourceReference {
 
 		ref := sourceReference{URL: sourceURL, Name: sourceName}
 		normalized := strings.ToLower(sourceName)
-		if _, prioritizedProvider := prioritySet[normalized]; prioritizedProvider {
+		if _, priority := prioritySet[normalized]; priority {
 			if _, exists := prioritized[normalized]; !exists {
 				prioritized[normalized] = ref
 			}

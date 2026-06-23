@@ -138,7 +138,7 @@ func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domai
 		)
 	}
 
-	providerAvailability, source, providerErr := s.fetchProviderAvailability(ctx, anime)
+	availability, source, providerErr := s.fetchProviderAvailability(ctx, anime)
 	if providerErr != nil {
 		s.markFailure(ctx, anime, providerErr)
 		if cached, ok := s.getDecodedCached(ctx, anime); ok {
@@ -165,7 +165,7 @@ func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domai
 		return domain.CanonicalEpisodeList{}, providerErr
 	}
 
-	return s.store(ctx, anime, jikanEpisodes, providerAvailability, source, now, true)
+	return s.store(ctx, anime, jikanEpisodes, availability, source, now, true)
 }
 
 func (s *EpisodeService) fetchProviderAvailability(ctx context.Context, anime domain.Anime) (domain.EpisodeAvailability, string, error) {

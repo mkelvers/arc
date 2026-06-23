@@ -13,16 +13,16 @@ type candidateStore struct {
 }
 
 func newCandidateStore(watchlist []db.GetUserWatchListRow) *candidateStore {
-	watchlistAnimeIDs := make(map[int]struct{}, len(watchlist))
+	watched := make(map[int]struct{}, len(watchlist))
 	for _, entry := range watchlist {
 		if entry.AnimeID <= 0 {
 			continue
 		}
-		watchlistAnimeIDs[int(entry.AnimeID)] = struct{}{}
+		watched[int(entry.AnimeID)] = struct{}{}
 	}
 
 	return &candidateStore{
-		watchlistAnimeIDs: watchlistAnimeIDs,
+		watchlistAnimeIDs: watched,
 		byID:              map[int]rankedCandidate{},
 	}
 }
