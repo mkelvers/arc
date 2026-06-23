@@ -45,7 +45,6 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 		Provider: provider.Name(),
 	})
 	if err != nil {
-		s.metrics.ObserveCache("episode_provider_mapping", "miss")
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", false, nil
 		}
@@ -63,15 +62,12 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 	}
 
 	if row.FailedUntil.Valid && row.FailedUntil.Time.After(s.clock.Now()) {
-		s.metrics.ObserveCache("episode_provider_mapping", "hit")
 		return "", true, fmt.Errorf("cached provider mapping failure active until %s: %s", row.FailedUntil.Time.Format(time.RFC3339), row.LastError)
 	}
 	if strings.TrimSpace(row.ProviderShowID) == "" {
-		s.metrics.ObserveCache("episode_provider_mapping", "miss")
 		return "", false, nil
 	}
 
-	s.metrics.ObserveCache("episode_provider_mapping", "hit")
 	observability.Info(
 		"episodes_provider_id_cache_hit",
 		"episodes",

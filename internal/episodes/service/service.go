@@ -26,21 +26,19 @@ type EpisodeService struct {
 	providers []domain.EpisodeAvailabilityProvider
 	clock     Clock
 	enabled   bool
-	metrics   *observability.Metrics
 }
 
-func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, metrics *observability.Metrics) domain.EpisodeService {
-	return NewEpisodeServiceWithClock(queries, jikanClient, providers, enabled, realClock{}, metrics)
+func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool) domain.EpisodeService {
+	return NewEpisodeServiceWithClock(queries, jikanClient, providers, enabled, realClock{})
 }
 
-func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, clock Clock, metrics *observability.Metrics) *EpisodeService {
+func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, clock Clock) *EpisodeService {
 	return &EpisodeService{
 		queries:   queries,
 		jikan:     jikanClient,
 		providers: providers,
 		clock:     clock,
 		enabled:   enabled,
-		metrics:   metrics,
 	}
 }
 

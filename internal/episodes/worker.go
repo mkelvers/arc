@@ -11,7 +11,7 @@ import (
 
 const workerInterval = time.Minute
 
-func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observability.Metrics) {
+func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lc.Append(fx.Hook{
@@ -31,7 +31,6 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observa
 					err := svc.RefreshTrackedDue(tickCtx, 25)
 					tickCancel()
 					if err != nil {
-						metrics.ObserveWorkerTick("episodes_availability", err)
 						observability.Warn(
 							"episodes_worker_tick_failed",
 							"episodes",
@@ -41,8 +40,6 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService, metrics *observa
 							},
 							err,
 						)
-					} else {
-						metrics.ObserveWorkerTick("episodes_availability", nil)
 					}
 
 					select {

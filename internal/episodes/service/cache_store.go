@@ -132,13 +132,12 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 }
 
 func (s *EpisodeService) getCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
-	return s.getDecodedCached(ctx, anime, "episode_availability")
+	return s.getDecodedCached(ctx, anime)
 }
 
 func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
 	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(anime.MalID))
 	if err != nil {
-		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		return domain.CanonicalEpisodeList{}, false
 	}
 
@@ -147,11 +146,10 @@ func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime)
 		return domain.CanonicalEpisodeList{}, false
 	}
 
-	payload, ok := s.decodeCachedPayload(anime, row.Data, "episode_availability_fresh")
+	payload, ok := s.decodeCachedPayload(anime, row.Data)
 	if !ok {
 		return domain.CanonicalEpisodeList{}, false
 	}
-	s.metrics.ObserveCache("episode_availability_fresh", "hit")
 	observability.Info(
 		"episodes_cache_served",
 		"episodes",
@@ -165,23 +163,20 @@ func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime)
 	return payload, true
 }
 
-func (s *EpisodeService) getDecodedCached(ctx context.Context, anime domain.Anime, metric string) (domain.CanonicalEpisodeList, bool) {
+func (s *EpisodeService) getDecodedCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
 	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(anime.MalID))
 	if err != nil {
-		s.metrics.ObserveCache(metric, "miss")
 		return domain.CanonicalEpisodeList{}, false
 	}
-	payload, ok := s.decodeCachedPayload(anime, row.Data, metric)
+	payload, ok := s.decodeCachedPayload(anime, row.Data)
 	if !ok {
 		return domain.CanonicalEpisodeList{}, false
 	}
-	s.metrics.ObserveCache(metric, "hit")
 	return payload, true
 }
 
 func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row db.EpisodeAvailabilityCache, now time.Time) bool {
 	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(now) {
-		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		observability.Info(
 			"episodes_cache_due_for_refresh",
 			"episodes",
@@ -194,7 +189,6 @@ func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row db.EpisodeA
 		return false
 	}
 	if anime.Airing && row.UpdatedAt.Before(now.Add(-airingFallbackRefreshInterval)) {
-		s.metrics.ObserveCache("episode_availability_fresh", "miss")
 		observability.Info(
 			"episodes_cache_too_old_for_airing",
 			"episodes",
@@ -209,10 +203,9 @@ func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row db.EpisodeA
 	return true
 }
 
-func (s *EpisodeService) decodeCachedPayload(anime domain.Anime, raw string, metric string) (domain.CanonicalEpisodeList, bool) {
+func (s *EpisodeService) decodeCachedPayload(anime domain.Anime, raw string) (domain.CanonicalEpisodeList, bool) {
 	var payload domain.CanonicalEpisodeList
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		s.metrics.ObserveCache(metric, "miss")
 		observability.Warn(
 			"episodes_cached_payload_invalid",
 			"episodes",
@@ -226,7 +219,6 @@ func (s *EpisodeService) decodeCachedPayload(anime domain.Anime, raw string, met
 	}
 
 	if !isCanonicalEpisodePayloadValid(payload, anime.Episodes) {
-		s.metrics.ObserveCache(metric, "miss")
 		observability.Info(
 			"episodes_cached_payload_rejected",
 			"episodes",
