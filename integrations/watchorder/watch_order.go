@@ -169,10 +169,6 @@ func extractRows(doc *goquery.Document) []watchOrderRow {
 	return rows
 }
 
-func hasWatchOrderTable(doc *goquery.Document) bool {
-	return doc.Find("#wo_list").Length() > 0
-}
-
 // shouldTryProxy returns true for transient errors where the Jina proxy may help
 // (e.g. Cloudflare blocking, rate limits)
 func shouldTryProxy(err error) bool {
@@ -358,7 +354,7 @@ func FetchWatchOrder(ctx context.Context, httpClient *http.Client, url string) (
 	}
 
 	// empty table indicates JS-rendered content; need proxy
-	if !hasWatchOrderTable(doc) {
+	if doc.Find("#wo_list").Length() == 0 {
 		return fetchViaProxy(ctx, httpClient, url, rootID)
 	}
 
