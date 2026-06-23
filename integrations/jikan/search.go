@@ -67,39 +67,3 @@ func (c *Client) SearchAdvanced(ctx context.Context, query, animeType, status, o
 		HasNextPage: result.Pagination.HasNextPage,
 	}, nil
 }
-
-// GetTopAnime returns the top-rated anime list for a given page.
-func (c *Client) GetTopAnime(ctx context.Context, page int) (TopAnimeResult, error) {
-	if page < 1 {
-		page = 1
-	}
-	cacheKey := fmt.Sprintf("top:%d", page)
-
-	var result TopAnimeResponse
-	params := url.Values{}
-	params.Set("page", strconv.Itoa(page))
-	reqURL := buildRequestURL(c.baseURL, "/top/anime", params)
-
-	if err := c.getWithCache(ctx, cacheKey, shortCacheTTL, reqURL, &result); err != nil {
-		return TopAnimeResult{}, err
-	}
-
-	return TopAnimeResult{
-		Animes:      result.Data,
-		HasNextPage: result.Pagination.HasNextPage,
-	}, nil
-}
-
-// GetAnimeGenres returns list of all anime genres, cached long-term.
-func (c *Client) GetAnimeGenres(ctx context.Context) ([]Genre, error) {
-	const cacheKey = "anime_genres"
-
-	var result GenresResponse
-	reqURL := fmt.Sprintf("%s/genres/anime", c.baseURL)
-
-	if err := c.getWithCache(ctx, cacheKey, longCacheTTL, reqURL, &result); err != nil {
-		return nil, err
-	}
-
-	return result.Data, nil
-}
