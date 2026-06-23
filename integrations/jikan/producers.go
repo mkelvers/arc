@@ -27,6 +27,21 @@ type ProducerListResult struct {
 	HasNextPage bool
 }
 
+func (c *Client) GetProducerByID(ctx context.Context, id int) (ProducerResponse, error) {
+	if id <= 0 {
+		return ProducerResponse{}, fmt.Errorf("invalid producer id")
+	}
+
+	cacheKey := fmt.Sprintf("producer:%d", id)
+	reqURL := fmt.Sprintf("%s/producers/%d", c.baseURL, id)
+
+	var result ProducerResponse
+	if err := c.getWithCache(ctx, cacheKey, producerCacheTTL, reqURL, &result); err != nil {
+		return ProducerResponse{}, err
+	}
+	return result, nil
+}
+
 func (c *Client) GetProducers(ctx context.Context, query string, page int, limit int) (ProducerListResult, error) {
 	if page < 1 {
 		page = 1
