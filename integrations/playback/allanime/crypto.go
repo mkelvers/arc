@@ -120,7 +120,7 @@ func decodeSourceURL(encoded string) string {
 }
 
 func responseFromTobeparsed(data map[string]any) (map[string]any, error) {
-	toBeParsed := firstNonEmptyString(
+	toBeParsed := firstString(
 		nestedString(data, "tobeparsed"),
 		nestedString(data, "episode", "tobeparsed"),
 	)
@@ -138,7 +138,7 @@ func responseFromTobeparsed(data map[string]any) (map[string]any, error) {
 		return nil, err
 	}
 
-	sourceURLs := firstNonEmptySlice(
+	sourceURLs := firstSlice(
 		nestedSlice(parsed, "sourceUrls"),
 		nestedSlice(parsed, "episode", "sourceUrls"),
 	)
@@ -166,7 +166,8 @@ func parseGraphQLResponse(respBody []byte, decodeErrPrefix string) (map[string]a
 	return parsed, nil
 }
 
-func firstNonEmptyString(values ...string) string {
+// first non-empty
+func firstString(values ...string) string {
 	for _, value := range values {
 		if value != "" {
 			return value
@@ -176,7 +177,8 @@ func firstNonEmptyString(values ...string) string {
 	return ""
 }
 
-func firstNonEmptySlice(values ...[]any) []any {
+// first non-empty
+func firstSlice(values ...[]any) []any {
 	for _, value := range values {
 		if len(value) > 0 {
 			return value

@@ -251,7 +251,7 @@ func TestBuildStreamSource(t *testing.T) {
 func TestResolveDirectSourceSkipsEmbeds(t *testing.T) {
 	t.Parallel()
 
-	if _, ok := resolveDirectSource(sourceReference{
+	if _, ok := directSource(sourceReference{
 		URL:  "https://ok.ru/videoembed/123",
 		Name: "ok",
 	}); ok {

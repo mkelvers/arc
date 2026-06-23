@@ -539,7 +539,7 @@ func TestParseProviderResponse(t *testing.T) {
 			referer: allAnimeReferer,
 		}
 
-		sources := extractor.parseProviderResponse(context.Background(), body)
+		sources := extractor.parseResponse(context.Background(), body)
 		if len(sources) == 0 {
 			t.Fatal("expected at least one source")
 		}
@@ -566,7 +566,7 @@ func TestParseProviderResponse(t *testing.T) {
 			referer: allAnimeReferer,
 		}
 
-		sources := extractor.parseProviderResponse(context.Background(), "not json")
+		sources := extractor.parseResponse(context.Background(), "not json")
 		if len(sources) != 0 {
 			t.Errorf("expected empty, got %d sources", len(sources))
 		}
@@ -580,7 +580,7 @@ func TestParseProviderResponse(t *testing.T) {
 			referer: allAnimeReferer,
 		}
 
-		sources := extractor.parseProviderResponse(context.Background(), "{}")
+		sources := extractor.parseResponse(context.Background(), "{}")
 		if len(sources) != 0 {
 			t.Errorf("expected empty, got %d sources", len(sources))
 		}
@@ -594,7 +594,7 @@ func TestParseExternalEmbedResponse(t *testing.T) {
 		t.Parallel()
 
 		body := `{"flashvars":{"metadata":"{\"hlsManifestUrl\":\"https://ok.example.test/playlist.m3u8\"}"}}`
-		sources := parseExternalEmbedResponse("https://ok.ru/video/123", body, allAnimeReferer)
+		sources := parseEmbed("https://ok.ru/video/123", body, allAnimeReferer)
 		if len(sources) != 1 {
 			t.Fatalf("got %d sources, want 1", len(sources))
 		}
@@ -610,7 +610,7 @@ func TestParseExternalEmbedResponse(t *testing.T) {
 		t.Parallel()
 
 		body := `src: "https://mp4upload.example.test/video.mp4"`
-		sources := parseExternalEmbedResponse("https://mp4upload.com/e/abc", body, allAnimeReferer)
+		sources := parseEmbed("https://mp4upload.com/e/abc", body, allAnimeReferer)
 		if len(sources) != 1 {
 			t.Fatalf("got %d sources, want 1", len(sources))
 		}
@@ -625,7 +625,7 @@ func TestParseExternalEmbedResponse(t *testing.T) {
 	t.Run("unknown embed returns empty", func(t *testing.T) {
 		t.Parallel()
 
-		sources := parseExternalEmbedResponse("https://unknown.example.com/video", "<html></html>", allAnimeReferer)
+		sources := parseEmbed("https://unknown.example.com/video", "<html></html>", allAnimeReferer)
 		if len(sources) != 0 {
 			t.Errorf("expected empty, got %d sources", len(sources))
 		}

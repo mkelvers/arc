@@ -99,7 +99,7 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 	return out, nil
 }
 
-func (c *AllAnimeProvider) resolveShowIDWithFallback(ctx context.Context, animeID int, titleCandidates []string, mode string) string {
+func (c *AllAnimeProvider) showID(ctx context.Context, animeID int, titleCandidates []string, mode string) string {
 	targetMalIDStr := strconv.Itoa(animeID)
 	fallbackID := ""
 
@@ -131,7 +131,7 @@ func exactMatchShowID(searchResults []searchResult, targetMalID string) string {
 
 func (c *AllAnimeProvider) ResolveEpisodeProviderID(ctx context.Context, animeID int, titleCandidates []string) (string, error) {
 	for _, mode := range []string{"sub", "dub"} {
-		showID, err := c.resolveShowIDStrict(ctx, animeID, titleCandidates, mode)
+		showID, err := c.strictShowID(ctx, animeID, titleCandidates, mode)
 		if err == nil {
 			return showID, nil
 		}
@@ -139,7 +139,7 @@ func (c *AllAnimeProvider) ResolveEpisodeProviderID(ctx context.Context, animeID
 	return "", fmt.Errorf("allanime: no exact mal id match for %d", animeID)
 }
 
-func (c *AllAnimeProvider) resolveShowIDStrict(ctx context.Context, animeID int, titleCandidates []string, mode string) (string, error) {
+func (c *AllAnimeProvider) strictShowID(ctx context.Context, animeID int, titleCandidates []string, mode string) (string, error) {
 	targetMalIDStr := strconv.Itoa(animeID)
 	for _, title := range titleCandidates {
 		searchResults, err := c.Search(ctx, title, mode)

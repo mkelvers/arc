@@ -81,7 +81,7 @@ func (e *providerExtractor) ExtractVideoLinks(ctx context.Context, providerPath 
 		return nil, fmt.Errorf("read provider response: %w", err)
 	}
 
-	return e.parseProviderResponse(ctx, string(body)), nil
+	return e.parseResponse(ctx, string(body)), nil
 }
 
 func (e *providerExtractor) ExtractEmbedVideoLinks(ctx context.Context, rawURL string) ([]StreamSource, error) {
@@ -98,11 +98,11 @@ func (e *providerExtractor) ExtractEmbedVideoLinks(ctx context.Context, rawURL s
 		return nil, fmt.Errorf("read embed response: %w", err)
 	}
 
-	return parseExternalEmbedResponse(rawURL, string(body), e.referer), nil
+	return parseEmbed(rawURL, string(body), e.referer), nil
 }
 
-// parseProviderResponse extracts stream sources from provider JSON response.
-func (e *providerExtractor) parseProviderResponse(ctx context.Context, response string) []StreamSource {
+// provider response
+func (e *providerExtractor) parseResponse(ctx context.Context, response string) []StreamSource {
 	var root any
 	if err := json.Unmarshal([]byte(response), &root); err != nil {
 		return []StreamSource{}
@@ -367,12 +367,13 @@ func quality(bandwidth int) string {
 	}
 }
 
-func parseExternalEmbedResponse(rawURL string, body string, fallbackReferer string) []StreamSource {
+// embed page
+func parseEmbed(rawURL string, body string, fallbackReferer string) []StreamSource {
 	switch {
 	case strings.Contains(strings.ToLower(rawURL), "ok.ru/"):
 		return parseOKRUSources(body, fallbackReferer)
 	case strings.Contains(strings.ToLower(rawURL), "mp4upload.com/"):
-		return parseMP4UploadSources(body, fallbackReferer)
+		return parseMP4Upload(body, fallbackReferer)
 	default:
 		return nil
 	}
@@ -386,7 +387,7 @@ func parseOKRUSources(body string, referer string) []StreamSource {
 		return nil
 	}
 
-	playlistURL := decodeEscapedMediaURL(firstNonEmptyString(match[1], match[2]))
+	playlistURL := mediaURL(firstString(match[1], match[2]))
 	if playlistURL == "" {
 		return nil
 	}
@@ -400,27 +401,27 @@ func parseOKRUSources(body string, referer string) []StreamSource {
 	}}
 }
 
-func parseMP4UploadSources(body string, referer string) []StreamSource {
+func parseMP4Upload(body string, referer string) []StreamSource {
 	srcPattern := regexp.MustCompile(`(?m)src:\s*"([^"]+)"`)
 	match := srcPattern.FindStringSubmatch(body)
 	if len(match) < 2 {
 		return nil
 	}
 
-	mediaURL := decodeEscapedMediaURL(match[1])
-	if mediaURL == "" {
+	url := mediaURL(match[1])
+	if url == "" {
 		return nil
 	}
 
 	return []StreamSource{{
-		URL:      mediaURL,
+		URL:      url,
 		Provider: "mp4upload",
-		Type:     sourceType(mediaURL),
+		Type:     sourceType(url),
 		Referer:  referer,
 	}}
 }
 
-func decodeEscapedMediaURL(raw string) string {
+func mediaURL(raw string) string {
 	if unquoted, err := strconv.Unquote(`"` + raw + `"`); err == nil {
 		raw = unquoted
 	}

@@ -25,7 +25,7 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 
 	result, err := c.graphqlRequestWithHash(ctx, showID, episode, mode)
 	if err == nil {
-		sources := c.extractSourceURLsFromData(ctx, result)
+		sources := c.sourcesFrom(ctx, result)
 		if len(sources) > 0 {
 			return sources, nil
 		}
@@ -69,7 +69,7 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 	return out, nil
 }
 
-func (c *AllAnimeProvider) extractSourceURLsFromData(ctx context.Context, data map[string]any) []StreamSource {
+func (c *AllAnimeProvider) sourcesFrom(ctx context.Context, data map[string]any) []StreamSource {
 	episodeData, ok := data["episode"].(map[string]any)
 	if !ok {
 		return nil
@@ -91,7 +91,7 @@ func (c *AllAnimeProvider) extractSourceURLsFromData(ctx context.Context, data m
 func (c *AllAnimeProvider) resolveRefs(ctx context.Context, references []sourceReference) []StreamSource {
 	out := make([]StreamSource, 0, len(references))
 	for _, ref := range references {
-		if source, ok := resolveDirectSource(ref); ok {
+		if source, ok := directSource(ref); ok {
 			out = append(out, source)
 			return out
 		}
@@ -106,7 +106,7 @@ func (c *AllAnimeProvider) resolveRefs(ctx context.Context, references []sourceR
 	return out
 }
 
-func resolveDirectSource(ref sourceReference) (StreamSource, bool) {
+func directSource(ref sourceReference) (StreamSource, bool) {
 	target := strings.TrimSpace(ref.URL)
 	if target == "" {
 		return StreamSource{}, false
@@ -240,7 +240,7 @@ func stringMapValue(item map[string]any, key string) (string, bool) {
 }
 
 func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, episode, mode string) (map[string]any, error) {
-	req, err := newEpisodeHashRequest(ctx, showID, episode, mode)
+	req, err := newHashRequest(ctx, showID, episode, mode)
 	if err != nil {
 		return nil, fmt.Errorf("create GET request: %w", err)
 	}
@@ -289,7 +289,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	return nil, errors.New("no usable data in response")
 }
 
-func newEpisodeHashRequest(ctx context.Context, showID, episode, mode string) (*http.Request, error) {
+func newHashRequest(ctx context.Context, showID, episode, mode string) (*http.Request, error) {
 	varsJSON := fmt.Sprintf(`{"showId":"%s","translationType":"%s","episodeString":"%s"}`, showID, strings.ToLower(mode), episode)
 	extJSON := fmt.Sprintf(`{"persistedQuery":{"version":1,"sha256Hash":"%s"}}`, episodeQueryHash)
 
