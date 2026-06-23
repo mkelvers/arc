@@ -302,12 +302,17 @@ func parseM3U8Sources(body string, masterURL string, referer string) []StreamSou
 			currentBandwidth = bandwidth
 			continue
 		}
-		if shouldSkipM3U8Line(trimmed) {
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
 
+		streamURL := trimmed
+		if !strings.HasPrefix(streamURL, "http://") && !strings.HasPrefix(streamURL, "https://") {
+			streamURL = baseURL + streamURL
+		}
+
 		sources = append(sources, StreamSource{
-			URL:      resolvePlaylistURL(trimmed, baseURL),
+			URL:      streamURL,
 			Quality:  qualityFromBandwidth(currentBandwidth),
 			Provider: "hls",
 			Type:     "m3u8",
@@ -342,18 +347,6 @@ func parseStreamBandwidth(line string, bwPattern *regexp.Regexp) (int, bool) {
 	}
 
 	return value, true
-}
-
-func shouldSkipM3U8Line(line string) bool {
-	return line == "" || strings.HasPrefix(line, "#")
-}
-
-func resolvePlaylistURL(streamURL string, baseURL string) string {
-	if strings.HasPrefix(streamURL, "http://") || strings.HasPrefix(streamURL, "https://") {
-		return streamURL
-	}
-
-	return baseURL + streamURL
 }
 
 func qualityFromBandwidth(bandwidth int) string {

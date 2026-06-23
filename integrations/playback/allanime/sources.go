@@ -281,7 +281,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 		return decrypted, nil
 	}
 
-	if hasEpisodeSourceURLs(data) {
+	if len(nestedSlice(data, "episode", "sourceUrls")) > 0 {
 		return parsed, nil
 	}
 

@@ -153,10 +153,6 @@ func responseFromTobeparsed(data map[string]any) (map[string]any, error) {
 	}, nil
 }
 
-func hasEpisodeSourceURLs(data map[string]any) bool {
-	return len(nestedSlice(data, "episode", "sourceUrls")) > 0
-}
-
 func parseGraphQLResponse(respBody []byte, decodeErrPrefix string) (map[string]any, error) {
 	var parsed map[string]any
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
