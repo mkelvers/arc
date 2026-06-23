@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -34,6 +35,7 @@ type Config struct {
 type APIError struct {
 	StatusCode int
 	URL        string
+	Body       json.RawMessage
 }
 
 func (e *APIError) Error() string {
@@ -177,7 +179,7 @@ func handleRequestRetry(ctx context.Context, err error, attempt int, maxRetries 
 
 func handleResponseRetry(ctx context.Context, resp *http.Response, urlStr string, out any, attempt int, maxRetries int) (int, bool, error) {
 	if resp.StatusCode != http.StatusOK {
-		return handleStatusRetry(ctx, resp, urlStr, out, attempt, maxRetries)
+		return handleStatusRetry(ctx, resp, urlStr, attempt, maxRetries)
 	}
 
 	err := json.NewDecoder(resp.Body).Decode(out)
@@ -195,7 +197,7 @@ func handleResponseRetry(ctx context.Context, resp *http.Response, urlStr string
 	return resp.StatusCode, false, fmt.Errorf("failed to decode jikan response: %w", err)
 }
 
-func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, out any, attempt int, maxRetries int) (int, bool, error) {
+func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, attempt int, maxRetries int) (int, bool, error) {
 	statusCode := resp.StatusCode
 	apiErr := &APIError{StatusCode: statusCode, URL: urlStr}
 
@@ -211,11 +213,25 @@ func handleStatusRetry(ctx context.Context, resp *http.Response, urlStr string, 
 		return statusCode, true, nil
 	}
 
-	// Best-effort decode (often useful for debugging), but still treat non-200 as error.
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return statusCode, false, errors.Join(apiErr, fmt.Errorf("failed to decode error response: %w", err))
-	}
+	apiErr.Body = readErrorBody(resp)
 	return statusCode, false, apiErr
+}
+
+func readErrorBody(resp *http.Response) json.RawMessage {
+	if resp.Body == nil {
+		return nil
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+	body = []byte(strings.TrimSpace(string(body)))
+	if len(body) == 0 || !json.Valid(body) {
+		return nil
+	}
+
+	return json.RawMessage(body)
 }
 
 func isRetryableStatus(statusCode int) bool {
