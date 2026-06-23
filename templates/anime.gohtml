@@ -130,23 +130,23 @@
                   {{end}}
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                  {{if $anime.MembersFormatted}}
+                  {{if $anime.Members}}
                     <div>
                       <dt class="mb-1 text-xs font-normal text-foreground-muted">Members</dt>
-                      <dd class="text-foreground">{{$anime.MembersFormatted}}</dd>
+                      <dd class="text-foreground">{{formatNumber $anime.Members}}</dd>
                     </div>
                   {{end}}
-                  {{if $anime.FavoritesFormatted}}
+                  {{if $anime.Favorites}}
                     <div>
                       <dt class="mb-1 text-xs font-normal text-foreground-muted">Favorites</dt>
-                      <dd class="text-foreground">{{$anime.FavoritesFormatted}}</dd>
+                      <dd class="text-foreground">{{formatNumber $anime.Favorites}}</dd>
                     </div>
                   {{end}}
                 </div>
-                {{if $anime.ScoredByFormatted}}
+                {{if $anime.ScoredBy}}
                   <div>
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
-                    <dd class="text-foreground">{{$anime.ScoredByFormatted}} users</dd>
+                    <dd class="text-foreground">{{formatNumber $anime.ScoredBy}} users</dd>
                   </div>
                 {{end}}
               </dl>
