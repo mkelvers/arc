@@ -72,7 +72,7 @@ func (h *AnimeHandler) searchAnimeResults(c *gin.Context, userID string, query s
 			Label:       anime.DisplayTitle(),
 			Subtitle:    strings.TrimSpace("Anime " + anime.Type),
 			Href:        fmt.Sprintf("/anime/%d", anime.MalID),
-			Image:       anime.ImageURL(),
+			Image:       anime.Images.Webp.LargeImageURL,
 			InWatchlist: watchlistMap[int64(anime.MalID)],
 		})
 	}

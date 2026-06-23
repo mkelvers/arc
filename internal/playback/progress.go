@@ -187,7 +187,7 @@ func animeParams(anime domain.Anime) db.UpsertAnimeParams {
 		TitleOriginal:   anime.Title,
 		TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
 		TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
-		ImageUrl:        anime.ImageURL(),
+		ImageUrl:        anime.Images.Webp.LargeImageURL,
 		Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
 		DurationSeconds: duration,
 	}

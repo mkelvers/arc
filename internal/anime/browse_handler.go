@@ -388,7 +388,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 			Title:       anime.DisplayTitle(),
 			Type:        anime.Type,
 			Year:        anime.Year,
-			Image:       anime.ImageURL(),
+			Image:       anime.Images.Webp.LargeImageURL,
 			InWatchlist: watchlistMap[int64(anime.MalID)],
 		}
 	}
