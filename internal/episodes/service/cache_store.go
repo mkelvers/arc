@@ -131,10 +131,6 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 	)
 }
 
-func (s *EpisodeService) getCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
-	return s.getDecodedCached(ctx, anime)
-}
-
 func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
 	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(anime.MalID))
 	if err != nil {
