@@ -28,8 +28,8 @@ func (c *AllAnimeProvider) GetEpisodeAvailabilityByProviderID(ctx context.Contex
 		return domain.EpisodeAvailability{}, err
 	}
 
-	sub := parseEpisodeNumbers(append(available.Sub, available.Raw...))
-	dub := parseEpisodeNumbers(available.Dub)
+	sub := episodeNums(append(available.Sub, available.Raw...))
+	dub := episodeNums(available.Dub)
 	return domain.EpisodeAvailability{Sub: sub, Dub: dub}, nil
 }
 
@@ -62,13 +62,14 @@ func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID stri
 	}
 
 	return AvailableEpisodes{
-		Sub: stringSliceFromAny(detail["sub"]),
-		Dub: stringSliceFromAny(detail["dub"]),
-		Raw: stringSliceFromAny(detail["raw"]),
+		Sub: stringsFrom(detail["sub"]),
+		Dub: stringsFrom(detail["dub"]),
+		Raw: stringsFrom(detail["raw"]),
 	}, nil
 }
 
-func parseEpisodeNumbers(raw []string) []int {
+// episode ids
+func episodeNums(raw []string) []int {
 	seen := make(map[int]bool, len(raw))
 	out := make([]int, 0, len(raw))
 	for _, value := range raw {
@@ -82,7 +83,8 @@ func parseEpisodeNumbers(raw []string) []int {
 	return out
 }
 
-func stringSliceFromAny(value any) []string {
+// graphql list
+func stringsFrom(value any) []string {
 	items, ok := value.([]any)
 	if !ok {
 		return nil

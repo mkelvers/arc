@@ -108,23 +108,24 @@ func (e *providerExtractor) parseProviderResponse(ctx context.Context, response 
 		return []StreamSource{}
 	}
 
-	data := collectProviderResponseData(root, e.referer)
-	sources := buildProviderLinkSources(data.links, data.referer)
-	sources = append(sources, e.buildProviderHLSSources(ctx, data.hls, data.referer)...)
+	data := collectData(root, e.referer)
+	sources := linkSources(data.links, data.referer)
+	sources = append(sources, e.hlsSources(ctx, data.hls, data.referer)...)
 
 	attachSubtitles(sources, data.subtitles)
 
 	return sources
 }
 
-func collectProviderResponseData(root any, fallbackReferer string) providerResponseData {
+// provider payload
+func collectData(root any, fallbackReferer string) providerResponseData {
 	data := providerResponseData{referer: fallbackReferer}
 
 	var walk func(v any)
 	walk = func(v any) {
 		switch x := v.(type) {
 		case map[string]any:
-			collectProviderMapData(x, &data)
+			collectMapData(x, &data)
 			for _, child := range x {
 				walk(child)
 			}
@@ -143,7 +144,7 @@ func collectProviderResponseData(root any, fallbackReferer string) providerRespo
 	return data
 }
 
-func collectProviderMapData(node map[string]any, data *providerResponseData) {
+func collectMapData(node map[string]any, data *providerResponseData) {
 	if ref, ok := node["Referer"].(string); ok {
 		if trimmedRef := strings.TrimSpace(ref); trimmedRef != "" {
 			data.referer = trimmedRef
@@ -163,11 +164,11 @@ func collectProviderMapData(node map[string]any, data *providerResponseData) {
 	}
 
 	if subs, ok := node["subtitles"].([]any); ok {
-		data.subtitles = append(data.subtitles, parseProviderSubtitles(subs)...)
+		data.subtitles = append(data.subtitles, parseSubtitles(subs)...)
 	}
 }
 
-func parseProviderSubtitles(items []any) []Subtitle {
+func parseSubtitles(items []any) []Subtitle {
 	subtitles := make([]Subtitle, 0, len(items))
 	for _, item := range items {
 		node, ok := item.(map[string]any)
@@ -195,7 +196,7 @@ func parseProviderSubtitles(items []any) []Subtitle {
 	return subtitles
 }
 
-func buildProviderLinkSources(items []providerLinkItem, referer string) []StreamSource {
+func linkSources(items []providerLinkItem, referer string) []StreamSource {
 	sources := make([]StreamSource, 0, len(items))
 	for _, item := range items {
 		link := strings.TrimSpace(item.link)
@@ -207,7 +208,7 @@ func buildProviderLinkSources(items []providerLinkItem, referer string) []Stream
 			URL:      link,
 			Quality:  strings.TrimSpace(item.resolutionStr),
 			Provider: "wixmp",
-			Type:     detectProviderSourceType(link),
+			Type:     sourceType(link),
 			Referer:  referer,
 		})
 	}
@@ -215,19 +216,19 @@ func buildProviderLinkSources(items []providerLinkItem, referer string) []Stream
 	return sources
 }
 
-func detectProviderSourceType(link string) string {
-	sourceType := detectStreamType(link)
-	if sourceType != "unknown" {
-		return sourceType
+func sourceType(link string) string {
+	typ := detectStreamType(link)
+	if typ != "unknown" {
+		return typ
 	}
 
 	return detectEmbedType(link)
 }
 
-func (e *providerExtractor) buildProviderHLSSources(ctx context.Context, items []providerHLSItem, referer string) []StreamSource {
+func (e *providerExtractor) hlsSources(ctx context.Context, items []providerHLSItem, referer string) []StreamSource {
 	sources := make([]StreamSource, 0, len(items))
 	for _, item := range items {
-		playlistURL, ok := providerPlaylistURL(item)
+		playlistURL, ok := playlistURL(item)
 		if !ok {
 			continue
 		}
@@ -252,7 +253,7 @@ func (e *providerExtractor) buildProviderHLSSources(ctx context.Context, items [
 	return sources
 }
 
-func providerPlaylistURL(item providerHLSItem) (string, bool) {
+func playlistURL(item providerHLSItem) (string, bool) {
 	playlistURL := strings.TrimSpace(item.url)
 	if playlistURL == "" || item.hardsubLang != "en-US" {
 		return "", false
@@ -298,7 +299,7 @@ func parseM3U8Sources(body string, masterURL string, referer string) []StreamSou
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if bandwidth, ok := parseStreamBandwidth(trimmed, bwPattern); ok {
+		if bandwidth, ok := streamBandwidth(trimmed, bwPattern); ok {
 			bw = bandwidth
 			continue
 		}
@@ -313,7 +314,7 @@ func parseM3U8Sources(body string, masterURL string, referer string) []StreamSou
 
 		sources = append(sources, StreamSource{
 			URL:      streamURL,
-			Quality:  qualityFromBandwidth(bw),
+			Quality:  quality(bw),
 			Provider: "hls",
 			Type:     "m3u8",
 			Referer:  referer,
@@ -331,7 +332,7 @@ func playlistBaseURL(masterURL string) string {
 	return masterURL
 }
 
-func parseStreamBandwidth(line string, bwPattern *regexp.Regexp) (int, bool) {
+func streamBandwidth(line string, bwPattern *regexp.Regexp) (int, bool) {
 	if !strings.HasPrefix(line, "#EXT-X-STREAM-INF") {
 		return 0, false
 	}
@@ -349,7 +350,7 @@ func parseStreamBandwidth(line string, bwPattern *regexp.Regexp) (int, bool) {
 	return value, true
 }
 
-func qualityFromBandwidth(bandwidth int) string {
+func quality(bandwidth int) string {
 	kbps := bandwidth / 1000
 
 	switch {
@@ -414,7 +415,7 @@ func parseMP4UploadSources(body string, referer string) []StreamSource {
 	return []StreamSource{{
 		URL:      mediaURL,
 		Provider: "mp4upload",
-		Type:     detectProviderSourceType(mediaURL),
+		Type:     sourceType(mediaURL),
 		Referer:  referer,
 	}}
 }

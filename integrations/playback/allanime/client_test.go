@@ -59,7 +59,7 @@ func runSourceReferenceTests(t *testing.T, tests []sourceReferencesTestCase) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := buildSourceReferences(tt.rawURLs)
+			got := sourceRefs(tt.rawURLs)
 			if len(got) != len(tt.wantRefs) {
 				t.Errorf("got %d refs, want %d", len(got), len(tt.wantRefs))
 				return
@@ -327,7 +327,7 @@ func TestBuildSourceReferencesOrder(t *testing.T) {
 		map[string]any{"sourceUrl": "https://yt.com/v.mp4", "sourceName": "yt-mp4"},
 	}
 
-	got := buildSourceReferences(rawURLs)
+	got := sourceRefs(rawURLs)
 
 	wantOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
 	if len(got) != len(wantOrder) {

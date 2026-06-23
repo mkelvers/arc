@@ -55,12 +55,12 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 		return nil, errors.New("no source urls")
 	}
 
-	references := buildSourceReferences(sourceURLs)
+	references := sourceRefs(sourceURLs)
 	if len(references) == 0 {
 		return nil, errors.New("no source references")
 	}
 
-	out := c.resolveSourceReferences(ctx, references)
+	out := c.resolveRefs(ctx, references)
 
 	if len(out) == 0 {
 		return nil, errors.New("no playable sources extracted")
@@ -80,15 +80,15 @@ func (c *AllAnimeProvider) extractSourceURLsFromData(ctx context.Context, data m
 		return nil
 	}
 
-	references := buildSourceReferences(sourceURLs)
+	references := sourceRefs(sourceURLs)
 	if len(references) == 0 {
 		return nil
 	}
 
-	return c.resolveSourceReferences(ctx, references)
+	return c.resolveRefs(ctx, references)
 }
 
-func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, references []sourceReference) []StreamSource {
+func (c *AllAnimeProvider) resolveRefs(ctx context.Context, references []sourceReference) []StreamSource {
 	out := make([]StreamSource, 0, len(references))
 	for _, ref := range references {
 		if source, ok := resolveDirectSource(ref); ok {
@@ -96,7 +96,7 @@ func (c *AllAnimeProvider) resolveSourceReferences(ctx context.Context, referenc
 			return out
 		}
 
-		extracted := c.resolveExtractedSources(ctx, ref)
+		extracted := c.resolveExtracted(ctx, ref)
 		if len(extracted) > 0 {
 			out = append(out, extracted...)
 			return out
@@ -131,7 +131,7 @@ func resolveDirectSource(ref sourceReference) (StreamSource, bool) {
 	return buildStreamSource(decoded, detectSourceType(decoded), ref.Name), true
 }
 
-func (c *AllAnimeProvider) resolveExtractedSources(ctx context.Context, ref sourceReference) []StreamSource {
+func (c *AllAnimeProvider) resolveExtracted(ctx context.Context, ref sourceReference) []StreamSource {
 	rawURL := strings.TrimSpace(ref.URL)
 	decoded := decodeSourceURL(rawURL)
 	if decoded == "" {
@@ -180,7 +180,8 @@ func buildStreamSource(url, sourceType, provider string) StreamSource {
 	}
 }
 
-func buildSourceReferences(rawSourceURLs []any) []sourceReference {
+// source priority
+func sourceRefs(rawSourceURLs []any) []sourceReference {
 	priorityOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
 	prioritySet := map[string]struct{}{"default": {}, "yt-mp4": {}, "s-mp4": {}, "luf-mp4": {}}
 
