@@ -185,40 +185,6 @@ type RecommendationsResponse struct {
 	Data []RecommendationEntry `json:"data"`
 }
 
-// ScoredByFormatted returns formatted count (e.g. "1 234 567").
-func (a Anime) ScoredByFormatted() string {
-	return formatNumber(a.ScoredBy)
-}
-
-// MembersFormatted returns formatted count (e.g. "1 234 567").
-func (a Anime) MembersFormatted() string {
-	return formatNumber(a.Members)
-}
-
-// FavoritesFormatted returns formatted count (e.g. "1 234 567").
-func (a Anime) FavoritesFormatted() string {
-	return formatNumber(a.Favorites)
-}
-
-// formatNumber adds space separators to a number (1234567 -> "1 234 567").
-func formatNumber(n int) string {
-	if n == 0 {
-		return ""
-	}
-	s := fmt.Sprintf("%d", n)
-	var res []string
-	for i := len(s); i > 0; i -= 3 {
-		start := max(i-3, 0)
-		res = append([]string{s[start:i]}, res...)
-	}
-	return strings.Join(res, " ")
-}
-
-// ImageURL returns the webp large image URL for the anime.
-func (a Anime) ImageURL() string {
-	return a.Images.Webp.LargeImageURL
-}
-
 // ShortRating extracts just the rating code (e.g. "PG-13") from full rating string.
 func (a Anime) ShortRating() string {
 	if a.Rating == "" {
