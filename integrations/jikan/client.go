@@ -98,7 +98,7 @@ func jikanCacheLogLevel(source string, err error) observability.LogLevel {
 }
 
 func (c *Client) logJikanCache(cacheKey string, source string, startedAt time.Time, err error) {
-	if isContextError(err) {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return
 	}
 
@@ -119,18 +119,6 @@ func (c *Client) logJikanCache(cacheKey string, source string, startedAt time.Ti
 		},
 		err,
 	)
-}
-
-func truncateErrorMessage(message string) string {
-	if len(message) <= 400 {
-		return message
-	}
-
-	return message[:400]
-}
-
-func isContextError(err error) bool {
-	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 // notifyRetryWorker signals the retry worker, non-blocking.
@@ -155,9 +143,14 @@ func (c *Client) EnqueueAnimeFetchRetry(parentCtx context.Context, animeID int, 
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
 
+	message := cause.Error()
+	if len(message) > 400 {
+		message = message[:400]
+	}
+
 	err := c.db.EnqueueAnimeFetchRetry(ctx, db.EnqueueAnimeFetchRetryParams{
 		AnimeID:   int64(animeID),
-		LastError: truncateErrorMessage(cause.Error()),
+		LastError: message,
 	})
 	if err != nil {
 		observability.Warn(
