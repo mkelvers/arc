@@ -271,6 +271,12 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 			return nil, "", err
 		}
 		return h.animeEpisodeCount(ctx, anime, time.Now()), "anime_episode_count", nil
+	case "audio-availability":
+		anime, err := h.svc.GetAnimeByID(ctx, id)
+		if err != nil {
+			return nil, "", err
+		}
+		return h.animeAudioAvailability(ctx, anime), "anime_audio_availability", nil
 	case "themes":
 		data, err := h.svc.GetThemes(ctx, id)
 		return data, "anime_themes", err

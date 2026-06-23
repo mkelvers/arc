@@ -15,6 +15,28 @@
 {{end}}
 {{end}}
 
+{{define "anime_audio_availability"}}
+{{if .Items}}
+<span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-0.75 before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">
+  <svg class="size-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 14a9 9 0 0 1 18 0"></path>
+    <path d="M21 14v3a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2Z"></path>
+    <path d="M3 14v3a2 2 0 0 0 2 2h1v-7H5a2 2 0 0 0-2 2Z"></path>
+  </svg>
+  {{.Items}}
+</span>
+{{end}}
+{{end}}
+
+{{define "anime_audio_availability_loading"}}
+<span
+  hx-get="/anime/{{.AnimeID}}?section=audio-availability"
+  hx-trigger="load"
+  hx-swap="outerHTML"
+  class="hidden"
+></span>
+{{end}}
+
 {{define "anime_episode_count_loading"}}
 {{if .Count}}
 <span
