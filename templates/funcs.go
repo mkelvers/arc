@@ -279,6 +279,19 @@ func percent(current, total float64) float64 {
 	return (current / total) * 100
 }
 
+func formatNumber(n int) string {
+	if n == 0 {
+		return ""
+	}
+	s := fmt.Sprintf("%d", n)
+	var parts []string
+	for i := len(s); i > 0; i -= 3 {
+		start := max(i-3, 0)
+		parts = append([]string{s[start:i]}, parts...)
+	}
+	return strings.Join(parts, " ")
+}
+
 func formatDate(dateStr string) string {
 	t, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {

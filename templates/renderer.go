@@ -65,6 +65,7 @@ func rendererFuncs() template.FuncMap {
 		"min":               func(a, b int) int { return min(a, b) },
 		"int":               toInt,
 		"percent":           percent,
+		"formatNumber":      formatNumber,
 		"formatDate":        formatDate,
 		"nextSort":          nextSort,
 		"urlquery":          url.QueryEscape,
