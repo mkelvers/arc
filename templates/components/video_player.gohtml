@@ -56,7 +56,7 @@
                 <svg class="size-6 transition-transform duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               </button>
             </div>
-            <div data-content class="hidden absolute z-50 w-64 bg-background-button rounded-none shadow-card ring-1 ring-black/10 right-0 bottom-full mb-2">
+            <div data-content class="hidden absolute z-50 w-72 bg-background-button rounded-none shadow-card ring-1 ring-black/10 right-0 bottom-full mb-2">
               <div class="flex flex-col">
                 <div class="flex items-center justify-between px-5 py-2.5">
                   <span class="text-[15px] font-normal text-foreground">Autoplay</span>
@@ -74,21 +74,21 @@
                 </div>
                 <div class="my-1 h-px w-full bg-white/10"></div>
                 <div>
-                  <span class="mb-1 block px-5 text-xs font-normal tracking-wider text-foreground-muted">Audio / Subtitles</span>
+                  <span class="mb-1.5 block px-5 text-sm font-normal tracking-wider text-foreground-muted">Audio / Subtitles</span>
                   <div class="flex flex-col">
-                    <button data-mode-dub data-unstyled-button class="flex items-center justify-between px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-                      <span class="text-sm font-normal">English (Dub)</span>
+                    <button data-mode-dub data-unstyled-button class="flex items-center justify-between px-5 py-3 text-left transition-colors hover:bg-surface-hover text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+                      <span class="text-[15px] font-normal">English (Dub)</span>
                     </button>
-                    <button data-mode-sub data-unstyled-button class="flex items-center justify-between px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-                      <span class="text-sm font-normal">Japanese (Sub)</span>
+                    <button data-mode-sub data-unstyled-button class="flex items-center justify-between px-5 py-3 text-left transition-colors hover:bg-surface-hover text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+                      <span class="text-[15px] font-normal">Japanese (Sub)</span>
                     </button>
-                    <div class="px-5 py-2 flex flex-col gap-1">
-                      <span class="text-[10px] text-neutral-500 uppercase font-normal tracking-widest">Subtitles</span>
-                      <select id="player-subtitle-select" data-subtitle-select class="w-full bg-white/5 text-white text-xs px-2 py-1.5 outline-none rounded"></select>
+                    <div class="px-5 py-2.5 flex flex-col gap-1.5">
+                      <span class="text-xs text-neutral-500 uppercase font-normal tracking-widest">Subtitles</span>
+                      <select id="player-subtitle-select" data-subtitle-select class="w-full bg-white/5 text-white text-sm px-3 py-2 outline-none rounded"></select>
                     </div>
-                    <div class="px-5 py-2 flex flex-col gap-1">
-                      <span class="text-[10px] text-neutral-500 uppercase font-normal tracking-widest">Quality</span>
-                      <select id="player-quality-select" data-quality-select class="w-full bg-white/5 text-white text-xs px-2 py-1.5 outline-none rounded"></select>
+                    <div class="px-5 py-2.5 flex flex-col gap-1.5">
+                      <span class="text-xs text-neutral-500 uppercase font-normal tracking-widest">Quality</span>
+                      <select id="player-quality-select" data-quality-select class="w-full bg-white/5 text-white text-sm px-3 py-2 outline-none rounded"></select>
                     </div>
                   </div>
                 </div>
