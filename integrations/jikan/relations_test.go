@@ -5,40 +5,6 @@ import (
 	"testing"
 )
 
-func runBoolCases(t *testing.T, tests []struct {
-	name  string
-	input string
-	want  bool
-}, fn func(string) bool) {
-	t.Helper()
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			got := fn(testCase.input)
-			if got != testCase.want {
-				t.Fatalf("expected %v, got %v", testCase.want, got)
-			}
-		})
-	}
-}
-
-func TestIsAllowedWatchOrderType(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
-		{name: "tv", input: "tv", want: true},
-		{name: "movie", input: "movie", want: true},
-		{name: "case and whitespace", input: "  TV  ", want: true},
-		{name: "tv special", input: "tv special", want: false},
-		{name: "ova", input: "ova", want: false},
-		{name: "empty", input: "", want: false},
-	}
-
-	runBoolCases(t, tests, isAllowedWatchOrderType)
-}
-
 func TestNormalizeWatchOrderMode(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -62,46 +28,12 @@ func TestNormalizeWatchOrderMode(t *testing.T) {
 	}
 }
 
-func TestHasTVWatchOrderEntry(t *testing.T) {
-	tests := []struct {
-		name    string
-		entries []watchorder.WatchOrderEntry
-		want    bool
-	}{
-		{
-			name: "contains tv",
-			entries: []watchorder.WatchOrderEntry{
-				{ID: 1, Type: "Movie"},
-				{ID: 2, Type: " TV "},
-			},
-			want: true,
-		},
-		{
-			name: "ona only",
-			entries: []watchorder.WatchOrderEntry{
-				{ID: 1, Type: "ONA"},
-				{ID: 2, Type: "Special"},
-			},
-			want: false,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			got := hasTVWatchOrderEntry(testCase.entries)
-			if got != testCase.want {
-				t.Fatalf("expected %v, got %v", testCase.want, got)
-			}
-		})
-	}
-}
-
 func TestBuildAllowedWatchOrderEntriesKeepsDefaultTypesWhenTVExists(t *testing.T) {
 	result := watchorder.WatchOrderResult{
 		WatchOrder: []watchorder.WatchOrderEntry{
 			{ID: 1, Type: "TV"},
 			{ID: 2, Type: "Special"},
-			{ID: 3, Type: "Movie"},
+			{ID: 3, Type: " Movie "},
 			{ID: 4, Type: "ONA"},
 		},
 	}
@@ -192,18 +124,4 @@ func TestWatchOrderTypeLabel(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestAllowedWatchOrderTypeFromDataset(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
-		{name: "label tv", input: "TV", want: true},
-		{name: "label movie", input: "Movie", want: true},
-		{name: "label special", input: "Special", want: false},
-	}
-
-	runBoolCases(t, tests, isAllowedWatchOrderType)
 }

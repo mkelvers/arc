@@ -54,32 +54,8 @@ func watchOrderTypeLabel(value string) string {
 	}
 }
 
-func isTVWatchOrderType(value string) bool {
-	return strings.EqualFold(strings.TrimSpace(value), "tv")
-}
-
-// isAllowedWatchOrderType returns true for the default uncluttered watch order types.
-func isAllowedWatchOrderType(value string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(value))
-	return normalized == "tv" || normalized == "movie"
-}
-
-func hasTVWatchOrderEntry(entries []watchorder.WatchOrderEntry) bool {
-	for _, entry := range entries {
-		if isTVWatchOrderType(entry.Type) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func relationCacheKey(id int) string {
-	return fmt.Sprintf("relations:watch-order:%d", id)
-}
-
 func (c *Client) refreshWatchOrder(ctx context.Context, id int) (watchorder.WatchOrderResult, error) {
-	cacheKey := relationCacheKey(id)
+	cacheKey := fmt.Sprintf("relations:watch-order:%d", id)
 	watchOrderURL := fmt.Sprintf(chiakiWatchOrderURL, id)
 	requestCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -153,7 +129,7 @@ func (c *Client) refreshWatchOrderAsync(id int) {
 
 // getWatchOrder fetches watch order from chiaki, caches result for 24h.
 func (c *Client) getWatchOrder(ctx context.Context, id int) (watchorder.WatchOrderResult, error) {
-	cacheKey := relationCacheKey(id)
+	cacheKey := fmt.Sprintf("relations:watch-order:%d", id)
 
 	var cached watchorder.WatchOrderResult
 	if c.getCache(ctx, cacheKey, &cached) {
@@ -212,7 +188,14 @@ func (c *Client) handleWatchOrderError(ctx context.Context, id int, err error) (
 func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode WatchOrderMode) ([]watchorder.WatchOrderEntry, map[int]bool) {
 	allowedEntries := make([]watchorder.WatchOrderEntry, 0, len(result.WatchOrder))
 	seen := make(map[int]bool)
-	shouldIncludeAllTypes := mode == WatchOrderModeComplete || !hasTVWatchOrderEntry(result.WatchOrder)
+	hasTVEntry := false
+	for _, entry := range result.WatchOrder {
+		if strings.EqualFold(strings.TrimSpace(entry.Type), "tv") {
+			hasTVEntry = true
+			break
+		}
+	}
+	shouldIncludeAllTypes := mode == WatchOrderModeComplete || !hasTVEntry
 
 	for _, entry := range result.WatchOrder {
 		if len(allowedEntries) >= maxWatchOrderEntries {
@@ -221,7 +204,8 @@ func buildAllowedWatchOrderEntries(result watchorder.WatchOrderResult, mode Watc
 		if seen[entry.ID] {
 			continue
 		}
-		if !shouldIncludeAllTypes && !isAllowedWatchOrderType(entry.Type) {
+		normalizedType := strings.ToLower(strings.TrimSpace(entry.Type))
+		if !shouldIncludeAllTypes && normalizedType != "tv" && normalizedType != "movie" {
 			continue
 		}
 
