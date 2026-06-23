@@ -189,25 +189,37 @@ func (c *Client) fetchWithRetry(ctx context.Context, urlStr string, out any) err
 	return c.fetcher.FetchWithRetry(ctx, urlStr, out)
 }
 
+var emptyResultChecks = map[reflect.Type]func(any) bool{
+	reflect.TypeFor[*TopAnimeResponse](): func(out any) bool {
+		return len(out.(*TopAnimeResponse).Data) == 0
+	},
+	reflect.TypeFor[*AnimeResponse](): func(out any) bool {
+		return out.(*AnimeResponse).Data.MalID == 0
+	},
+	reflect.TypeFor[*EpisodesResponse](): func(out any) bool {
+		return len(out.(*EpisodesResponse).Data) == 0
+	},
+	reflect.TypeFor[*StaffResponse](): func(out any) bool {
+		return len(out.(*StaffResponse).Data) == 0
+	},
+	reflect.TypeFor[*StatisticsResponse](): func(out any) bool {
+		return out.(*StatisticsResponse).Data.Total == 0
+	},
+	reflect.TypeFor[*ThemesResponse](): func(out any) bool {
+		themes := out.(*ThemesResponse).Data
+		return len(themes.Openings) == 0 && len(themes.Endings) == 0
+	},
+}
+
 // isEmptyResult detects if response contains no meaningful data.
 func isEmptyResult(out any) bool {
-	switch v := out.(type) {
-	case *TopAnimeResponse:
-		return len(v.Data) == 0
-	case *SearchResponse:
-		return false
-	case *AnimeResponse:
-		return v.Data.MalID == 0
-	case *EpisodesResponse:
-		return len(v.Data) == 0
-	case *StaffResponse:
-		return len(v.Data) == 0
-	case *StatisticsResponse:
-		return v.Data.Total == 0
-	case *ThemesResponse:
-		return len(v.Data.Openings) == 0 && len(v.Data.Endings) == 0
-	case *ReviewsResponse:
-		return false // empty reviews is a valid state
+	if out == nil {
+		return true
+	}
+
+	outType := reflect.TypeOf(out)
+	if check, ok := emptyResultChecks[outType]; ok {
+		return check(out)
 	}
 	return false
 }
