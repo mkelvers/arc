@@ -39,21 +39,20 @@ const jikanSlowLogThreshold = 750 * time.Millisecond
 
 type APIError = jtransport.APIError
 
-func NewClient(cfg config.Config, queries *db.Queries, metrics *observability.Metrics) *Client {
+func NewClient(cfg config.Config, queries *db.Queries) *Client {
 	limiter := rate.NewLimiter(400 * time.Millisecond)
 	client := &Client{
 		baseURL:      "https://api.jikan.moe/v4",
 		db:           queries,
 		retrySignal:  make(chan struct{}, 1),
 		refreshSem:   make(chan struct{}, 4),
-		cache:        jcache.NewStore(queries, metrics),
+		cache:        jcache.NewStore(queries),
 		traceEnabled: cfg.JikanTrace,
 		randomPool:   make([]Anime, 0),
 	}
 	client.fetcher = jtransport.NewClient(jtransport.Config{
 		HTTPClient:   jtransport.NewHTTPClient(),
 		Limiter:      limiter,
-		Metrics:      metrics,
 		TraceEnabled: client.jikanTraceEnabled,
 	})
 

@@ -7,7 +7,6 @@ import (
 	"io"
 	"mal/internal/config"
 	"mal/internal/db"
-	"mal/internal/observability"
 	"net/http"
 	"strings"
 	"testing"
@@ -31,7 +30,7 @@ func TestGetWithCacheReturnsStaleAndRefreshesAsync(t *testing.T) {
 	}()
 
 	queries := db.New(sqlDB)
-	client := NewClient(config.Config{}, queries, observability.NewMetrics())
+	client := NewClient(config.Config{}, queries)
 	stale := TopAnimeResponse{Data: []Anime{{MalID: 1, Title: "stale"}}}
 	insertCachedResponse(t, sqlDB, "top:1", stale, time.Now().Add(-time.Hour))
 
@@ -65,7 +64,7 @@ func TestGetWithCacheAllowsEmptySearchResults(t *testing.T) {
 	}()
 
 	queries := db.New(sqlDB)
-	client := NewClient(config.Config{}, queries, observability.NewMetrics())
+	client := NewClient(config.Config{}, queries)
 	client.fetcher.HTTPClient = &http.Client{
 		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 			body := `{"pagination":{"has_next_page":false},"data":[]}`
@@ -95,7 +94,7 @@ func TestLoadCachedRandomPoolIgnoresExpiredAnimeCache(t *testing.T) {
 	}()
 
 	queries := db.New(sqlDB)
-	client := NewClient(config.Config{}, queries, observability.NewMetrics())
+	client := NewClient(config.Config{}, queries)
 	insertCachedAnime(t, sqlDB, "anime:1", Anime{MalID: 1, Title: "fresh"}, time.Now().Add(time.Hour))
 	insertCachedAnime(t, sqlDB, "anime:2", Anime{MalID: 2, Title: "expired"}, time.Now().Add(-time.Hour))
 

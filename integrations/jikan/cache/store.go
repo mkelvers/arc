@@ -10,32 +10,27 @@ import (
 )
 
 type Store struct {
-	db      db.Querier
-	metrics *observability.Metrics
+	db db.Querier
 }
 
-func NewStore(queries db.Querier, metrics *observability.Metrics) *Store {
-	return &Store{db: queries, metrics: metrics}
+func NewStore(queries db.Querier) *Store {
+	return &Store{db: queries}
 }
 
 // Get retrieves a fresh cached value by key.
 func (s *Store) Get(parentCtx context.Context, key string, out any) bool {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
-	defer s.observeStats(parentCtx)
 
 	data, err := s.db.GetJikanCache(ctx, key)
 	if err != nil {
-		s.metrics.ObserveCache("jikan", "miss")
 		return false
 	}
 
 	if err := json.Unmarshal([]byte(data), out); err != nil {
-		s.metrics.ObserveCache("jikan", "miss")
 		return false
 	}
 
-	s.metrics.ObserveCache("jikan", "hit")
 	return true
 }
 
@@ -43,20 +38,16 @@ func (s *Store) Get(parentCtx context.Context, key string, out any) bool {
 func (s *Store) GetStale(parentCtx context.Context, key string, out any) bool {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
-	defer s.observeStats(parentCtx)
 
 	data, err := s.db.GetJikanCacheStale(ctx, key)
 	if err != nil {
-		s.metrics.ObserveCache("jikan_stale", "miss")
 		return false
 	}
 
 	if err := json.Unmarshal([]byte(data), out); err != nil {
-		s.metrics.ObserveCache("jikan_stale", "miss")
 		return false
 	}
 
-	s.metrics.ObserveCache("jikan_stale", "hit")
 	return true
 }
 
@@ -64,7 +55,6 @@ func (s *Store) GetStale(parentCtx context.Context, key string, out any) bool {
 func (s *Store) Set(parentCtx context.Context, key string, data any, ttl time.Duration) {
 	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
 	defer cancel()
-	defer s.observeStats(parentCtx)
 
 	bytes, err := json.Marshal(data)
 	if err != nil {
@@ -86,23 +76,4 @@ func (s *Store) Set(parentCtx context.Context, key string, data any, ttl time.Du
 			err,
 		)
 	}
-}
-
-func (s *Store) observeStats(parentCtx context.Context) {
-	ctx, cancel := context.WithTimeout(parentCtx, 2*time.Second)
-	defer cancel()
-
-	stats, err := s.db.GetJikanCacheStats(ctx)
-	if err != nil {
-		observability.LogJSON(
-			observability.LogLevelWarn,
-			"jikan_cache_stats",
-			"jikan",
-			"",
-			nil,
-			err,
-		)
-		return
-	}
-	s.metrics.ObserveJikanCacheStats(stats.TotalRows, stats.ExpiredRows, stats.OldestExpiresAtSeconds)
 }

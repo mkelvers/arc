@@ -22,14 +22,12 @@ const slowLogThreshold = 750 * time.Millisecond
 type Client struct {
 	HTTPClient   *http.Client
 	Limiter      *rate.Limiter
-	Metrics      *observability.Metrics
 	TraceEnabled func() bool
 }
 
 type Config struct {
 	HTTPClient   *http.Client
 	Limiter      *rate.Limiter
-	Metrics      *observability.Metrics
 	TraceEnabled func() bool
 }
 
@@ -58,7 +56,6 @@ func NewClient(cfg Config) *Client {
 	return &Client{
 		HTTPClient:   cfg.HTTPClient,
 		Limiter:      cfg.Limiter,
-		Metrics:      cfg.Metrics,
 		TraceEnabled: cfg.TraceEnabled,
 	}
 }
@@ -94,12 +91,10 @@ func (c *Client) FetchWithRetry(ctx context.Context, urlStr string, out any) err
 	maxRetries := 5
 	startedAt := time.Now()
 	attempts := 0
-	endpoint := metricsEndpoint(urlStr)
 	logAndReturn := func(statusCode int, err error) error {
 		if isDoneContextError(ctx, err) {
 			return err
 		}
-		c.Metrics.ObserveJikanRequest(endpoint, statusCode, time.Since(startedAt), err)
 		c.logUpstream(urlStr, statusCode, attempts, startedAt, err)
 		return err
 	}
@@ -298,7 +293,7 @@ func (c *Client) logUpstream(urlStr string, statusCode int, attempts int, starte
 		"",
 		map[string]any{
 			"url":         urlStr,
-			"endpoint":    metricsEndpoint(urlStr),
+			"endpoint":    endpointLabel(urlStr),
 			"status":      statusCode,
 			"attempts":    attempts,
 			"duration_ms": float64(duration.Microseconds()) / 1000,
@@ -307,7 +302,7 @@ func (c *Client) logUpstream(urlStr string, statusCode int, attempts int, starte
 	)
 }
 
-func metricsEndpoint(urlStr string) string {
+func endpointLabel(urlStr string) string {
 	trimmed := strings.TrimSpace(urlStr)
 	if trimmed == "" {
 		return "unknown"
