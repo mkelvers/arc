@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"mal/internal/db"
-	"mal/internal/observability"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -64,7 +63,7 @@ func TestCleanupExpiredJikanCache(t *testing.T) {
 		}
 	}
 
-	cleanupExpiredJikanCache(ctx, db.New(sqlDB), observability.NewMetrics())
+	cleanupExpiredJikanCache(ctx, db.New(sqlDB))
 
 	keys := jikanCacheKeys(ctx, t, sqlDB)
 	if len(keys) != 1 || keys[0] != "fresh" {

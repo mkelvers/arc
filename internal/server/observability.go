@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
+func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
@@ -21,8 +21,6 @@ func RequestLogger(metrics *observability.Metrics) gin.HandlerFunc {
 		}
 
 		duration := time.Since(start)
-		metrics.ObserveHTTPRequest(c.Request.Method, route, c.Writer.Status(), duration)
-
 		status := c.Writer.Status()
 		fields := map[string]any{
 			"client_ip":   c.ClientIP(),

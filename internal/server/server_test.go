@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"mal/internal/config"
-	"mal/internal/observability"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -39,7 +38,7 @@ func TestNewHTTPServer_TimeoutsAndAddr(t *testing.T) {
 func TestProvideRouterRegistersPprof(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	router := ProvideRouter(config.Config{GinMode: gin.TestMode}, nil, observability.NewMetrics())
+	router := ProvideRouter(config.Config{GinMode: gin.TestMode}, nil)
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/debug/pprof/", nil)
 	rec := httptest.NewRecorder()
 
@@ -63,7 +62,7 @@ func TestRequestLoggerUsesMatchedRoute(t *testing.T) {
 
 	router := gin.New()
 	router.Use(RequestContextMiddleware())
-	router.Use(RequestLogger(observability.NewMetrics()))
+	router.Use(RequestLogger())
 	router.GET("/anime/:id", func(c *gin.Context) {
 		c.String(http.StatusOK, "ok")
 	})
@@ -105,7 +104,7 @@ func TestRequestLoggerSkipsSuccessfulStreamProxy(t *testing.T) {
 
 	router := gin.New()
 	router.Use(RequestContextMiddleware())
-	router.Use(RequestLogger(observability.NewMetrics()))
+	router.Use(RequestLogger())
 	router.GET("/watch/proxy/stream", func(c *gin.Context) {
 		c.String(http.StatusOK, "segment")
 	})
@@ -132,7 +131,7 @@ func TestRequestLoggerLogsFailedStreamProxy(t *testing.T) {
 
 	router := gin.New()
 	router.Use(RequestContextMiddleware())
-	router.Use(RequestLogger(observability.NewMetrics()))
+	router.Use(RequestLogger())
 	router.GET("/watch/proxy/stream", func(c *gin.Context) {
 		c.Status(http.StatusBadGateway)
 	})

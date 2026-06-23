@@ -7,7 +7,6 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/config"
 	"mal/internal/db"
-	"mal/internal/observability"
 	errlog "mal/pkg"
 )
 
@@ -31,7 +30,7 @@ func applyAnimeDurationSecondsBackfill(ctx context.Context, sqlDB *sql.DB) error
 		return fmt.Errorf("list anime missing duration_seconds: %w", err)
 	}
 
-	client := jikan.NewClient(config.Config{}, db.New(sqlDB), observability.NewMetrics())
+	client := jikan.NewClient(config.Config{}, db.New(sqlDB))
 	for _, row := range toUpdate {
 		anime, err := client.GetAnimeByID(ctx, int(row.id))
 		if err != nil {

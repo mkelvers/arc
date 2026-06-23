@@ -24,9 +24,6 @@ var publicRoutes = []publicRoute{
 	{path: "/static", prefix: true},
 	{path: "/dist", prefix: true},
 
-	// Observability endpoints.
-	{method: http.MethodGet, path: "/metrics"},
-
 	// Auth API.
 	{method: http.MethodPost, path: "/api/auth/login"},
 }

@@ -15,7 +15,7 @@ const (
 	jikanCacheCleanupWorker   = "jikan_cache_cleanup"
 )
 
-func RegisterJikanCacheCleanupWorker(lc fx.Lifecycle, queries *db.Queries, metrics *observability.Metrics) {
+func RegisterJikanCacheCleanupWorker(lc fx.Lifecycle, queries *db.Queries) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lc.Append(fx.Hook{
@@ -24,7 +24,7 @@ func RegisterJikanCacheCleanupWorker(lc fx.Lifecycle, queries *db.Queries, metri
 				<-startCtx.Done()
 				cancel()
 			}()
-			go runJikanCacheCleanupWorker(ctx, queries, metrics)
+			go runJikanCacheCleanupWorker(ctx, queries)
 			return nil
 		},
 		OnStop: func(context.Context) error {
@@ -34,14 +34,14 @@ func RegisterJikanCacheCleanupWorker(lc fx.Lifecycle, queries *db.Queries, metri
 	})
 }
 
-func runJikanCacheCleanupWorker(ctx context.Context, queries *db.Queries, metrics *observability.Metrics) {
+func runJikanCacheCleanupWorker(ctx context.Context, queries *db.Queries) {
 	observability.Info("jikan_cache_cleanup_worker_start", "database", "", nil)
 
 	ticker := time.NewTicker(jikanCacheCleanupInterval)
 	defer ticker.Stop()
 
 	for {
-		cleanupExpiredJikanCache(ctx, queries, metrics)
+		cleanupExpiredJikanCache(ctx, queries)
 
 		select {
 		case <-ticker.C:
@@ -52,12 +52,11 @@ func runJikanCacheCleanupWorker(ctx context.Context, queries *db.Queries, metric
 	}
 }
 
-func cleanupExpiredJikanCache(ctx context.Context, queries *db.Queries, metrics *observability.Metrics) {
+func cleanupExpiredJikanCache(ctx context.Context, queries *db.Queries) {
 	cleanupCtx, cancel := context.WithTimeout(ctx, jikanCacheCleanupTimeout)
 	defer cancel()
 
 	err := queries.DeleteExpiredJikanCache(cleanupCtx)
-	metrics.ObserveWorkerTick(jikanCacheCleanupWorker, err)
 	if err != nil {
 		observability.Warn(
 			"jikan_cache_cleanup_failed",
