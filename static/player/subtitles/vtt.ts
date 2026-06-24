@@ -10,7 +10,13 @@ export const parseVttTime = (raw: string): number => {
   if (!secPart || !minPart) {
     return 0;
   }
-  return Number(hourPart) * 3600 + Number(minPart) * 60 + Number(secPart.replace(",", "."));
+  const hour = Number(hourPart);
+  const minute = Number(minPart);
+  const second = Number(secPart.replace(",", "."));
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) {
+    return 0;
+  }
+  return hour * 3600 + minute * 60 + second;
 };
 
 // parses a single VTT cue: timestamp line + text lines
@@ -34,7 +40,8 @@ const parseVttCue = (line: string, lines: string[], i: number) => {
   if (!text) {
     return null;
   }
-  return { start: parseVttTime(startRaw), end: parseVttTime(endRaw), text };
+  const endTime = endRaw.trim().split(/\s+/)[0] ?? "";
+  return { start: parseVttTime(startRaw), end: parseVttTime(endTime), text };
 };
 
 /**
