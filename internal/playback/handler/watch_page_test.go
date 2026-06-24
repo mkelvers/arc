@@ -15,6 +15,8 @@ import (
 )
 
 type watchPagePlaybackService struct {
+	domain.PlaybackService
+
 	data domain.WatchPageData
 	err  error
 }
@@ -23,34 +25,14 @@ func (s *watchPagePlaybackService) BuildWatchData(context.Context, int, []string
 	return s.data, s.err
 }
 
-func (s *watchPagePlaybackService) SaveProgress(context.Context, string, int64, int, float64) error {
-	return nil
+type watchPageAnimeService struct {
+	domain.AnimePlaybackService
+	t *testing.T
 }
 
-func (s *watchPagePlaybackService) CompleteAnime(context.Context, string, int64) error {
-	return nil
-}
-
-func (s *watchPagePlaybackService) SignProxyToken(string, string, string) (string, error) {
-	return "", nil
-}
-
-func (s *watchPagePlaybackService) ResolveProxyToken(string, string) (string, string, error) {
-	return "", "", nil
-}
-
-func (s *watchPagePlaybackService) UpsertSkipSegmentOverride(context.Context, string, int64, int, string, float64, float64) error {
-	return nil
-}
-
-type watchPageAnimeService struct{}
-
-func (watchPageAnimeService) GetAnimeByID(context.Context, int) (domain.Anime, error) {
-	return domain.Anime{}, errors.New("unexpected anime lookup")
-}
-
-func (watchPageAnimeService) GetAllEpisodes(context.Context, int) ([]domain.EpisodeData, error) {
-	return nil, nil
+func (s watchPageAnimeService) GetAnimeByID(context.Context, int) (domain.Anime, error) {
+	s.t.Fatal("unexpected anime lookup")
+	return domain.Anime{}, nil
 }
 
 func baseWatchPageData() domain.WatchPageData {
@@ -96,7 +78,7 @@ func TestHandleWatchPagePreservesPartialDataOnPlaybackFailure(t *testing.T) {
 			data: baseWatchPageData(),
 			err:  errors.New("no streams found"),
 		},
-		animeSvc: watchPageAnimeService{},
+		animeSvc: watchPageAnimeService{t: t},
 	})
 
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/anime/123/watch?ep=1", nil)
