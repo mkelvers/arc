@@ -179,6 +179,17 @@
       "rules": { "typescript/no-explicit-any": "off" }
     },
     {
+      "files": ["tests/e2e/**/*.ts"],
+      "env": { "browser": false, "node": true },
+      "rules": {
+        "import/no-nodejs-modules": "off",
+        "no-console": "off",
+        "no-duplicate-imports": "off",
+        "no-process-exit": "off",
+        "promise/prefer-await-to-then": "off"
+      }
+    },
+    {
       "files": ["scripts/**/*.ts"],
       "env": { "browser": false, "node": true },
       "rules": {
