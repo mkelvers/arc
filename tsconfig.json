@@ -13,5 +13,5 @@
     "removeComments": false,
     "skipLibCheck": true
   },
-  "include": ["static/**/*.ts", "scripts/**/*.ts"]
+  "include": ["static/**/*.ts", "scripts/**/*.ts", "tests/e2e/**/*.ts", "playwright.config.ts"]
 }

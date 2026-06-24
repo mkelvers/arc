@@ -12,6 +12,10 @@
     "lint:go": "golangci-lint run ./...",
     "lint:ts": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0",
     "lint:ts:fix": "bunx oxlint --ignore-path .oxlintignore static --tsconfig ./tsconfig.json --type-aware --max-warnings 0 --fix",
+    "test": "bun test",
+    "test:e2e": "playwright test",
+    "test:go": "go test ./...",
+    "test:ts": "bun test",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
     "watch:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css --watch"
   },
@@ -20,6 +24,7 @@
     "htmx.org": "1.9.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/cli": "^4.3.0",
     "@types/node": "^24.0.0",
     "lefthook": "^2.1.6",
