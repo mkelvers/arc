@@ -3,8 +3,8 @@
   <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
     {{range (slice .Items 0 (min (len .Items) 10))}}
-      <div class="flex gap-3 bg-background-surface p-3">
-        <div class="h-16 w-12 shrink-0 overflow-hidden bg-background-surface">
+      <div class="flex gap-3 bg-background-button p-3">
+        <div class="h-16 w-12 shrink-0 overflow-hidden bg-background-button">
           <img src="{{.Character.Images.Jpg.ImageURL}}" alt="{{.Character.Name}}" class="h-full w-full object-cover" loading="lazy" />
         </div>
         <div class="flex flex-col justify-center overflow-hidden">
@@ -26,7 +26,7 @@
     <h2 class="mb-6 text-lg font-normal text-foreground">Characters & Cast</h2>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {{range (seq 5)}}
-        <div class="flex h-20 gap-3 bg-background-surface p-3">
+        <div class="flex h-20 gap-3 bg-background-button p-3">
           <div class="skeleton h-16 w-12 shrink-0"></div>
           <div class="flex flex-col justify-center gap-2 grow">
             <div class="skeleton h-3 w-2/3"></div>
