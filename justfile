@@ -23,9 +23,6 @@ bench:
 bench-all:
     go test -bench=. -benchmem ./...
 
-e2e:
-    bun run test:e2e
-
 build-go:
     @go build -o server ./cmd/server
 
