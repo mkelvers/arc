@@ -52,7 +52,7 @@
           </svg>
           <span class="sr-only">Open anime details</span>
         </button>
-        <div data-anime-sidebar-drawer class="fixed inset-x-0 top-16 bottom-0 z-100 hidden w-full translate-x-full flex-col bg-background-sidebar shadow-card transition-transform duration-300 lg:static lg:z-auto lg:flex lg:h-screen lg:w-80 lg:translate-x-0 lg:overflow-y-auto lg:border-l lg:border-border-light lg:p-8">
+        <div data-anime-sidebar-drawer class="fixed inset-x-0 top-16 bottom-0 z-100 hidden w-full translate-x-full flex-col bg-background-sidebar shadow-card transition-transform duration-300 lg:hidden">
           <aside class="flex h-full flex-col overflow-y-auto p-8 lg:h-auto lg:p-0">
             <div class="mb-6 flex items-center justify-between lg:hidden">
               <h3 class="text-base font-normal text-foreground">Details</h3>
@@ -196,6 +196,139 @@
           </aside>
         </div>
         <button type="button" data-anime-sidebar-backdrop class="fixed inset-0 z-90 hidden bg-black/30 lg:hidden" aria-label="Close anime details"></button>
+        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-border-light bg-background-sidebar p-8 lg:flex">
+          <div class="flex flex-col gap-8">
+            <section>
+              <h3 class="mb-6 text-base font-normal text-foreground">Information</h3>
+              <dl class="flex flex-col gap-6 text-sm">
+                {{if $anime.Studios}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
+                    <dd class="text-foreground">
+                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}<a href="/browse?studio={{$s.MalID}}&sfw=true" class="underline underline-offset-2 decoration-foreground-muted/60 text-foreground-muted transition-colors hover:text-foreground hover:decoration-foreground/70">{{$s.Name}}</a>{{end}}
+                    </dd>
+                  </div>
+                {{end}}
+                {{if $anime.Producers}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Producers</dt>
+                    <dd class="text-foreground text-xs leading-relaxed">{{range $i, $p := $anime.Producers}}{{if $i}}, {{end}}{{$p.Name}}{{end}}</dd>
+                  </div>
+                {{end}}
+                {{if $anime.Licensors}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Licensors</dt>
+                    <dd class="text-foreground text-xs leading-relaxed">{{range $i, $l := $anime.Licensors}}{{if $i}}, {{end}}{{$l.Name}}{{end}}</dd>
+                  </div>
+                {{end}}
+                {{if $anime.Genres}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Genres</dt>
+                    <dd class="flex flex-wrap gap-2 pt-1">
+                      {{range $anime.Genres}}
+                        <a href="/browse?genres={{.MalID}}&sfw=true" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
+                      {{end}}
+                    </dd>
+                  </div>
+                {{end}}
+                {{if $anime.Themes}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Themes</dt>
+                    <dd class="flex flex-wrap gap-2 pt-1">
+                      {{range $anime.Themes}}
+                        <a href="/browse?genres={{.MalID}}&sfw=true" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
+                      {{end}}
+                    </dd>
+                  </div>
+                {{end}}
+                {{if $anime.Demographics}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Demographics</dt>
+                    <dd class="flex flex-wrap gap-2 pt-1">
+                      {{range $anime.Demographics}}
+                        <a href="/browse?genres={{.MalID}}&sfw=true" class="bg-background-surface px-2.5 py-1 text-[11px] font-normal text-foreground-muted transition-colors hover:bg-background-button-hover hover:text-foreground">{{.Name}}</a>
+                      {{end}}
+                    </dd>
+                  </div>
+                {{end}}
+                <div class="grid grid-cols-2 gap-4">
+                  {{if $anime.Source}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Source</dt>
+                      <dd class="text-foreground">{{$anime.Source}}</dd>
+                    </div>
+                  {{end}}
+                  {{if $anime.Duration}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Duration</dt>
+                      <dd class="text-foreground">{{$anime.Duration}}</dd>
+                    </div>
+                  {{end}}
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  {{if $anime.Rank}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Rank</dt>
+                      <dd class="text-foreground">#{{$anime.Rank}}</dd>
+                    </div>
+                  {{end}}
+                  {{if $anime.Popularity}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Popularity</dt>
+                      <dd class="text-foreground">#{{$anime.Popularity}}</dd>
+                    </div>
+                  {{end}}
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  {{if $anime.Members}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Members</dt>
+                      <dd class="text-foreground">{{formatNumber $anime.Members}}</dd>
+                    </div>
+                  {{end}}
+                  {{if $anime.Favorites}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Favorites</dt>
+                      <dd class="text-foreground">{{formatNumber $anime.Favorites}}</dd>
+                    </div>
+                  {{end}}
+                </div>
+                {{if $anime.ScoredBy}}
+                  <div>
+                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
+                    <dd class="text-foreground">{{formatNumber $anime.ScoredBy}} users</dd>
+                  </div>
+                {{end}}
+              </dl>
+            </section>
+
+            <section>
+              <h3 class="mb-4 text-base font-normal text-foreground">Statistics</h3>
+              {{template "anime_statistics_loading" dict "AnimeID" $anime.MalID}}
+            </section>
+
+            <section>
+              <h3 class="mb-4 text-base font-normal text-foreground">More</h3>
+              <div class="flex flex-col gap-3">
+                {{if $anime.External}}
+                  <div>
+                    <div class="flex flex-wrap gap-2">
+                      {{range $anime.External}}
+                        <a href="{{.URL}}" target="_blank" title="{{.Name}}">
+                          <img src="https://www.google.com/s2/favicons?domain={{.URL}}" alt="{{.Name}}" class="h-4 w-4 shrink-0 opacity-70 transition-opacity hover:opacity-100" loading="lazy" />
+                        </a>
+                      {{end}}
+                    </div>
+                  </div>
+                {{end}}
+                <button type="button" data-unstyled-button data-themes-open class="text-left text-sm text-foreground-muted transition-colors hover:text-foreground">
+                  Theme Songs
+                </button>
+                <a href="/anime/{{$anime.MalID}}/reviews" class="text-sm text-foreground-muted transition-colors hover:text-foreground">Reviews</a>
+              </div>
+            </section>
+          </div>
+        </aside>
       </div>
     </div>
   </div>
