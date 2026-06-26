@@ -7,7 +7,6 @@ import (
 	"mal/internal/config"
 	"mal/internal/observability"
 	"net/http"
-	_ "net/http/pprof" // register pprof handlers on http.DefaultServeMux
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -39,8 +38,6 @@ func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender) *gin.Engine 
 	})
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
-	r.GET("/debug/pprof", gin.WrapH(http.DefaultServeMux))
-	r.GET("/debug/pprof/*action", gin.WrapH(http.DefaultServeMux))
 	r.HTMLRender = htmlRender
 	return r
 }
