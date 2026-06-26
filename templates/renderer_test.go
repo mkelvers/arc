@@ -2,9 +2,14 @@ package templates
 
 import (
 	"bytes"
+	"encoding/json"
+	"mal/integrations/jikan"
+	"mal/internal/domain"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 func TestProvideRendererParsesTemplates(t *testing.T) {
@@ -99,6 +104,68 @@ func TestRenderWithNonStringFragment(t *testing.T) {
 	// non-string fragment should fall through to default template rendering
 	if !strings.Contains(w.Body.String(), "<!DOCTYPE html>") {
 		t.Error("expected HTML output for non-string fragment fallthrough")
+	}
+}
+
+func TestWatchTemplateEscapesJSONDataAttributes(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	label := `English ' data-injected='yes' <b>&"`
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "watch.gohtml", "content", domain.WatchPageData{
+		Anime:       domain.Anime{Anime: jikan.Anime{MalID: 123, Title: "Example Anime"}},
+		CurrentEpID: "1",
+		Episodes: []domain.CanonicalEpisode{
+			{Number: 1, Title: "Episode 1", HasSub: true},
+		},
+		WatchData: domain.WatchData{
+			MalID:          123,
+			Title:          "Example Anime",
+			CurrentEpisode: "1",
+			ModeSources: map[string]domain.ModeSource{
+				"sub": {
+					Token: "stream-token",
+					Subtitles: []domain.SubtitleItem{
+						{Lang: label, Token: "subtitle-token"},
+					},
+				},
+			},
+			AvailableModes: []string{"sub"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(buf.String()))
+	if err != nil {
+		t.Fatalf("parse rendered html: %v", err)
+	}
+	player := doc.Find("[data-video-player]")
+	if got := player.Length(); got != 1 {
+		t.Fatalf("data-video-player count = %d, want 1", got)
+	}
+	if injected, ok := player.Attr("data-injected"); ok {
+		t.Fatalf("json data created injected attribute %q in html:\n%s", injected, buf.String())
+	}
+	if got := player.Find("b").Length(); got != 0 {
+		t.Fatalf("json data created %d nested b tags in html:\n%s", got, buf.String())
+	}
+
+	raw, ok := player.Attr("data-mode-sources")
+	if !ok {
+		t.Fatalf("missing data-mode-sources in html:\n%s", buf.String())
+	}
+	var sources map[string]domain.ModeSource
+	if err := json.Unmarshal([]byte(raw), &sources); err != nil {
+		t.Fatalf("data-mode-sources is not recoverable json: %v\nraw: %s", err, raw)
+	}
+	got := sources["sub"].Subtitles[0].Lang
+	if got != label {
+		t.Fatalf("subtitle label mismatch\nwant: %q\ngot:  %q", label, got)
 	}
 }
 

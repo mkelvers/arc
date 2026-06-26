@@ -3,7 +3,6 @@ package templates
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"mal/internal/domain"
 	"net/url"
 	"os"
@@ -34,12 +33,12 @@ func dict(values ...any) (map[string]any, error) {
 	return out, nil
 }
 
-func jsonAttr(v any) (template.HTMLAttr, error) {
+func jsonAttr(v any) (string, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return "", fmt.Errorf("json marshal: %w", err)
 	}
-	return template.HTMLAttr(b), nil
+	return string(b), nil
 }
 
 func genresParams(genres []int) string {

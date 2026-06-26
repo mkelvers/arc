@@ -47,7 +47,13 @@ func TestJSONAttr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("jsonAttr error: %v", err)
 	}
-	want := template.HTMLAttr(`{"a":1}`)
+	if _, ok := any(got).(template.HTMLAttr); ok {
+		t.Fatal("jsonAttr returned trusted HTML attribute content")
+	}
+	if _, ok := any(got).(string); !ok {
+		t.Fatalf("jsonAttr returned %T, want string", got)
+	}
+	want := `{"a":1}`
 	if got != want {
 		t.Errorf("expected %q, got %q", want, got)
 	}
