@@ -189,6 +189,33 @@ func TestPlaybackServiceProxyTokenDisabled(t *testing.T) {
 	}
 }
 
+func TestPlaybackServiceSignProxyTokenRejectsUnsafeTargets(t *testing.T) {
+	svc := &playbackService{proxyTokenKey: "secret", proxyTokens: newProxyTokenStore()}
+
+	tests := []struct {
+		name      string
+		targetURL string
+	}{
+		{name: "loopback ipv4", targetURL: "http://127.0.0.1/video.m3u8"},
+		{name: "private ipv4", targetURL: "https://10.0.0.4/segment.ts"},
+		{name: "loopback ipv6", targetURL: "http://[::1]/subtitle.vtt"},
+		{name: "unsupported scheme", targetURL: "file:///tmp/video.m3u8"},
+		{name: "missing host", targetURL: "https:///segment.ts"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			token, err := svc.SignProxyToken(tt.targetURL, "", "stream")
+			if err == nil {
+				t.Fatalf("SignProxyToken(%q) error = nil, token = %q", tt.targetURL, token)
+			}
+			if token != "" {
+				t.Fatalf("SignProxyToken(%q) token = %q, want empty", tt.targetURL, token)
+			}
+		})
+	}
+}
+
 type fakePlaybackRepository struct {
 	inTxCalled            bool
 	getAnimeErr           error
