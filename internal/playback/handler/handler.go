@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"mal/internal/domain"
+	"mal/internal/playback/proxytarget"
 	"mal/internal/server"
-	netutil "mal/pkg/net"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,8 +27,8 @@ func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybac
 	return &PlaybackHandler{
 		svc:             svc,
 		animeSvc:        animeSvc,
-		proxyClient:     netutil.NewClient(),
-		streamingClient: netutil.NewStreamingClient(),
+		proxyClient:     proxytarget.NewClient(60 * time.Second),
+		streamingClient: proxytarget.NewStreamingClient(),
 		subtitleCache:   newSubtitleCache(10*time.Minute, 256),
 	}
 }

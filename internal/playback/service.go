@@ -7,6 +7,7 @@ import (
 	"mal/integrations/jikan"
 	"mal/internal/domain"
 	"mal/internal/observability"
+	"mal/internal/playback/proxytarget"
 	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
@@ -42,6 +43,9 @@ func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provi
 func (s *playbackService) SignProxyToken(targetURL, referer, scope string) (string, error) {
 	if s.proxyTokenKey == "" {
 		return "", nil
+	}
+	if err := proxytarget.Validate(targetURL); err != nil {
+		return "", err
 	}
 	return s.proxyTokens.create(targetURL, referer, scope, 2*time.Hour, time.Now())
 }
