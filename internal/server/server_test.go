@@ -36,7 +36,7 @@ func TestNewHTTPServer_TimeoutsAndAddr(t *testing.T) {
 	}
 }
 
-func TestProvideRouterRegistersPprof(t *testing.T) {
+func TestProvideRouterDoesNotRegisterPprof(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	router := ProvideRouter(config.Config{GinMode: gin.TestMode}, nil)
@@ -45,11 +45,11 @@ func TestProvideRouterRegistersPprof(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("pprof status = %d, want %d", rec.Code, http.StatusOK)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("pprof status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
-	if !strings.Contains(rec.Body.String(), "Types of profiles available") {
-		t.Fatalf("pprof index missing profile list: %s", rec.Body.String())
+	if strings.Contains(rec.Body.String(), "Types of profiles available") {
+		t.Fatalf("pprof index should not be exposed: %s", rec.Body.String())
 	}
 }
 
