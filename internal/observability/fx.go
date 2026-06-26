@@ -20,13 +20,28 @@ func (fxLogger) LogEvent(event fxevent.Event) {
 }
 
 func describeFXEventError(event fxevent.Event) (string, map[string]any, error) {
+	if eventName, fields, ok, err := describeFXBuildEventError(event); ok {
+		return eventName, fields, err
+	}
+
+	return describeFXLifecycleEventError(event)
+}
+
+func describeFXBuildEventError(event fxevent.Event) (string, map[string]any, bool, error) {
 	switch e := event.(type) {
 	case *fxevent.Provided:
-		return "fx_provide_failed", map[string]any{"constructor": e.ConstructorName}, e.Err
+		return "fx_provide_failed", map[string]any{"constructor": e.ConstructorName}, true, e.Err
 	case *fxevent.Invoked:
-		return "fx_invoke_failed", map[string]any{"function": e.FunctionName}, e.Err
+		return "fx_invoke_failed", map[string]any{"function": e.FunctionName}, true, e.Err
 	case *fxevent.Run:
-		return "fx_run_failed", map[string]any{"function": e.Name, "kind": e.Kind}, e.Err
+		return "fx_run_failed", map[string]any{"function": e.Name, "kind": e.Kind}, true, e.Err
+	default:
+		return "", nil, false, nil
+	}
+}
+
+func describeFXLifecycleEventError(event fxevent.Event) (string, map[string]any, error) {
+	switch e := event.(type) {
 	case *fxevent.OnStartExecuted:
 		return "fx_on_start_failed", map[string]any{"caller": e.CallerName, "function": e.FunctionName, "runtime": e.Runtime}, e.Err
 	case *fxevent.OnStopExecuted:
