@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"mal/internal/config"
+	"mal/templates"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -180,5 +181,52 @@ func TestRespondErrorIncludesRequestContext(t *testing.T) {
 	}
 	if !strings.Contains(logLine, " request_route=/anime/:id") {
 		t.Fatalf("log line missing request route: %s", logLine)
+	}
+}
+
+func TestProvideRouterRendersNotFoundPageForHTMLRequests(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	renderer, err := templates.ProvideRenderer()
+	if err != nil {
+		t.Fatalf("ProvideRenderer: %v", err)
+	}
+
+	router := ProvideRouter(config.Config{GinMode: gin.TestMode}, renderer)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/missing", nil)
+	req.Header.Set("Accept", "text/html")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	for _, want := range []string{"You got a little lost", "This page slipped off the map for a minute", "Head back home"} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("not found page missing %q in body:\n%s", want, rec.Body.String())
+		}
+	}
+}
+
+func TestProvideRouterReturnsJSONForAPINotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	renderer, err := templates.ProvideRenderer()
+	if err != nil {
+		t.Fatalf("ProvideRenderer: %v", err)
+	}
+
+	router := ProvideRouter(config.Config{GinMode: gin.TestMode}, renderer)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/missing", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if got := rec.Body.String(); got != `{"error":"Not found"}` {
+		t.Fatalf("body = %q, want %q", got, `{"error":"Not found"}`)
 	}
 }
