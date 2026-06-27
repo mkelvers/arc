@@ -12,10 +12,12 @@ import (
 )
 
 func RunDataFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
+	return runDataFixList(sqlDB, deps, dbfixes.All())
+}
+
+func runDataFixList(sqlDB *sql.DB, deps dbfixes.Dependencies, fixes []dbfixes.Fix) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-
-	fixes := dbfixes.All()
 
 	if len(fixes) == 0 {
 		return nil
