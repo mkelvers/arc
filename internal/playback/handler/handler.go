@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"mal/internal/domain"
+	"mal/internal/observability"
 	"mal/internal/playback/proxytarget"
 	"mal/internal/server"
 
@@ -79,7 +80,17 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 			}
 		}
 
-		data.Error = err.Error()
+		observability.LogContext(
+			c.Request.Context(),
+			observability.LogLevelError,
+			"watch_page_build_failed",
+			"playback",
+			"",
+			map[string]any{"anime_id": id, "episode": ep, "mode": mode, "user_id": userID, "request_path": c.Request.URL.Path},
+			err,
+		)
+
+		data.Error = "failed to load playback data"
 		data.User = user
 		data.CurrentPath = c.Request.URL.Path
 
@@ -243,7 +254,15 @@ func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
 	}
 
 	if err := h.svc.UpsertSkipSegmentOverride(c.Request.Context(), userID, req.MalID, req.Episode, req.SkipType, req.StartTime, req.EndTime); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		server.RespondError(
+			c,
+			http.StatusBadRequest,
+			"skip_segment_upsert_failed",
+			"playback",
+			"invalid skip segment",
+			map[string]any{"mal_id": req.MalID, "episode": req.Episode, "skip_type": req.SkipType, "user_id": userID},
+			err,
+		)
 		return
 	}
 
@@ -259,7 +278,15 @@ func (h *PlaybackHandler) HandleEpisodeMetadata(c *gin.Context) {
 
 	allEpisodes, err := h.animeSvc.GetAllEpisodes(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"episode_metadata_load_failed",
+			"playback",
+			"failed to load episode metadata",
+			map[string]any{"anime_id": id},
+			err,
+		)
 		return
 	}
 
