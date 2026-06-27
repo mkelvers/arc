@@ -48,6 +48,7 @@ type FakeVideoElement = FakeElement & {
 
 type PlayerModules = {
   completeAnime: (episodeNumber: number) => Promise<void>;
+  refreshCurrentModeSource: (signal?: AbortSignal) => Promise<boolean>;
   saveProgress: (force?: boolean, progressSeconds?: number) => Promise<void>;
   setupProgress: () => void;
   state: typeof import("./state").state;
@@ -187,16 +188,25 @@ const flushPromises = async (): Promise<void> => {
   await Promise.resolve();
 };
 
+const loadPlayerModules = async (): Promise<PlayerModules> => {
+  const completeModule = await import("./episodes/complete");
+  const progressModule = await import("./progress");
+  const stateModule = await import("./state");
+  const sourceModule = await import("./source");
+
+  return {
+    completeAnime: completeModule.completeAnime,
+    refreshCurrentModeSource: sourceModule.refreshCurrentModeSource,
+    saveProgress: progressModule.saveProgress,
+    setupProgress: progressModule.setupProgress,
+    state: stateModule.state,
+    streamUrlForMode: sourceModule.streamUrlForMode,
+  };
+};
+
 before(async () => {
   installBrowserGlobals();
-  const [{ completeAnime }, { saveProgress, setupProgress }, { state }, { streamUrlForMode }] =
-    await Promise.all([
-      import("./episodes/complete"),
-      import("./progress"),
-      import("./state"),
-      import("./source"),
-    ]);
-  modules = { completeAnime, saveProgress, setupProgress, state, streamUrlForMode };
+  modules = await loadPlayerModules();
 });
 
 beforeEach(() => {
