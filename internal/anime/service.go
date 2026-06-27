@@ -15,8 +15,11 @@ import (
 )
 
 type animeService struct {
-	jikan *jikan.Client
-	repo  domain.AnimeRepository
+	jikan            *jikan.Client
+	repo             domain.AnimeRepository
+	topPicksCache    *topPicksCache
+	topPicksCacheTTL time.Duration
+	computeTopPicks  recommendationComputeFunc
 }
 
 const continueWatchingCarouselLimit int64 = 24
@@ -30,7 +33,14 @@ func wrapAnimes(in []jikan.Anime) []domain.Anime {
 }
 
 func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) *animeService {
-	return &animeService{jikan: jikan, repo: repo}
+	svc := &animeService{
+		jikan:            jikan,
+		repo:             repo,
+		topPicksCache:    &topPicksCache{entries: map[topPicksCacheKey]*topPicksCacheEntry{}},
+		topPicksCacheTTL: 15 * time.Minute,
+	}
+	svc.computeTopPicks = svc.fetchTopPicksForYou
+	return svc
 }
 
 func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (domain.CatalogSectionData, error) {
