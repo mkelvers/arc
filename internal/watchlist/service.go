@@ -22,59 +22,71 @@ func NewWatchlistService(repo domain.WatchlistRepository, jikan *jikan.Client, i
 }
 
 func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, animeID int64, status string) error {
-	var anime jikan.Anime
-	var fetchErr error
-	if s.jikan != nil {
-		anime, fetchErr = s.jikan.GetAnimeByID(ctx, int(animeID))
-	}
-	if fetchErr != nil {
-		// still allow status updates for already-known anime rows
-		anime = jikan.Anime{}
-	}
+	anime, fetchedAnime := s.fetchAnimeForWatchlist(ctx, animeID)
 
 	if err := s.repo.InTx(ctx, func(txCtx context.Context, repo domain.WatchlistRepository) error {
-		_, err := repo.GetAnime(txCtx, animeID)
-		if err != nil && fetchErr == nil && anime.MalID > 0 {
-			durationSeconds := anime.DurationSeconds()
-			duration := sql.NullFloat64{Valid: durationSeconds > 0}
-			if duration.Valid {
-				duration.Float64 = durationSeconds
-			}
-			if _, err := repo.UpsertAnime(txCtx, db.UpsertAnimeParams{
-				ID:              int64(anime.MalID),
-				TitleOriginal:   anime.Title,
-				TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
-				TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
-				ImageUrl:        anime.Images.Webp.LargeImageURL,
-				Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
-				DurationSeconds: duration,
-			}); err != nil {
-				return err
-			}
-		}
-
-		existing, err := repo.GetWatchListEntry(txCtx, db.GetWatchListEntryParams{
-			UserID:  userID,
-			AnimeID: animeID,
-		})
-		if err != nil && err != sql.ErrNoRows {
-			return err
-		}
-
-		_, err = repo.UpsertWatchListEntry(txCtx, db.UpsertWatchListEntryParams{
-			ID:                 uuid.New().String(),
-			UserID:             userID,
-			AnimeID:            animeID,
-			Status:             status,
-			CurrentEpisode:     existing.CurrentEpisode,
-			CurrentTimeSeconds: existing.CurrentTimeSeconds,
-		})
-		return err
+		return s.updateEntryInTx(txCtx, repo, userID, animeID, status, anime, fetchedAnime)
 	}); err != nil {
 		return err
 	}
 	s.invalidateTopPicks(userID)
 	return nil
+}
+
+func (s *watchlistService) fetchAnimeForWatchlist(ctx context.Context, animeID int64) (jikan.Anime, bool) {
+	if s.jikan == nil {
+		return jikan.Anime{}, false
+	}
+	anime, err := s.jikan.GetAnimeByID(ctx, int(animeID))
+	if err != nil {
+		// still allow status updates for already-known anime rows
+		return jikan.Anime{}, false
+	}
+	return anime, anime.MalID > 0
+}
+
+func (s *watchlistService) updateEntryInTx(ctx context.Context, repo domain.WatchlistRepository, userID string, animeID int64, status string, anime jikan.Anime, fetchedAnime bool) error {
+	_, err := repo.GetAnime(ctx, animeID)
+	if err != nil && fetchedAnime {
+		if _, err := repo.UpsertAnime(ctx, watchlistAnimeParams(anime)); err != nil {
+			return err
+		}
+	}
+
+	existing, err := repo.GetWatchListEntry(ctx, db.GetWatchListEntryParams{
+		UserID:  userID,
+		AnimeID: animeID,
+	})
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	_, err = repo.UpsertWatchListEntry(ctx, db.UpsertWatchListEntryParams{
+		ID:                 uuid.New().String(),
+		UserID:             userID,
+		AnimeID:            animeID,
+		Status:             status,
+		CurrentEpisode:     existing.CurrentEpisode,
+		CurrentTimeSeconds: existing.CurrentTimeSeconds,
+	})
+	return err
+}
+
+func watchlistAnimeParams(anime jikan.Anime) db.UpsertAnimeParams {
+	durationSeconds := anime.DurationSeconds()
+	duration := sql.NullFloat64{Valid: durationSeconds > 0}
+	if duration.Valid {
+		duration.Float64 = durationSeconds
+	}
+	return db.UpsertAnimeParams{
+		ID:              int64(anime.MalID),
+		TitleOriginal:   anime.Title,
+		TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
+		TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
+		ImageUrl:        anime.Images.Webp.LargeImageURL,
+		Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
+		DurationSeconds: duration,
+	}
 }
 
 func (s *watchlistService) RemoveEntry(ctx context.Context, userID string, animeID int64) error {
