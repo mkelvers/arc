@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -72,6 +73,85 @@ func TestHandleAPILoginRejectsInvalidRequests(t *testing.T) {
 	}
 }
 
+func TestHandleLoginSetsHardenedSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	tests := []struct {
+		name       string
+		configure  func(*http.Request)
+		wantSecure bool
+	}{
+		{name: "local http", wantSecure: false},
+		{name: "direct https", configure: func(req *http.Request) { req.TLS = &tls.ConnectionState{} }, wantSecure: true},
+		{name: "forwarded https", configure: func(req *http.Request) { req.Header.Set("X-Forwarded-Proto", "https") }, wantSecure: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &fakeAuthService{}
+			router := gin.New()
+			NewAuthHandler(svc).Register(router)
+
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/login", strings.NewReader("username=alice&password=correct"))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			if tt.configure != nil {
+				tt.configure(req)
+			}
+			router.ServeHTTP(rec, req)
+
+			cookie := findSetCookie(t, rec, "session_id")
+			if cookie.SameSite != http.SameSiteLaxMode {
+				t.Fatalf("SameSite = %v, want %v", cookie.SameSite, http.SameSiteLaxMode)
+			}
+			if cookie.Secure != tt.wantSecure {
+				t.Fatalf("Secure = %v, want %v", cookie.Secure, tt.wantSecure)
+			}
+			if !cookie.HttpOnly {
+				t.Fatalf("expected HttpOnly cookie")
+			}
+		})
+	}
+}
+
+func TestHandleLogoutRequiresPostAndClearsHardenedSessionCookie(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &fakeAuthService{}
+	router := gin.New()
+	NewAuthHandler(svc).Register(router)
+
+	getRec := httptest.NewRecorder()
+	getReq := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/logout", nil)
+	router.ServeHTTP(getRec, getReq)
+	if getRec.Code == http.StatusSeeOther {
+		t.Fatalf("GET /logout must not perform logout redirect")
+	}
+
+	postRec := httptest.NewRecorder()
+	postReq := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/logout", nil)
+	postReq.Header.Set("X-Forwarded-Proto", "https")
+	postReq.AddCookie(&http.Cookie{Name: "session_id", Value: "session-1"})
+	router.ServeHTTP(postRec, postReq)
+
+	if postRec.Code != http.StatusSeeOther {
+		t.Fatalf("POST /logout status = %d, want %d", postRec.Code, http.StatusSeeOther)
+	}
+	if svc.loggedOutSessionID != "session-1" {
+		t.Fatalf("logged out session = %q, want session-1", svc.loggedOutSessionID)
+	}
+	cookie := findSetCookie(t, postRec, "session_id")
+	if cookie.MaxAge >= 0 {
+		t.Fatalf("MaxAge = %d, want deletion cookie", cookie.MaxAge)
+	}
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("SameSite = %v, want %v", cookie.SameSite, http.SameSiteLaxMode)
+	}
+	if !cookie.Secure {
+		t.Fatalf("expected Secure cookie for forwarded https")
+	}
+}
+
 func TestAuthMiddlewareAllowsPublicRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -133,6 +213,7 @@ func TestAuthMiddlewareAuthenticatesCookieSessionAndRefreshes(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
 	req.AddCookie(&http.Cookie{Name: "session_id", Value: "session-1"})
 	router.ServeHTTP(rec, req)
 
@@ -147,6 +228,13 @@ func TestAuthMiddlewareAuthenticatesCookieSessionAndRefreshes(t *testing.T) {
 	}
 	if got := rec.Header().Values("Set-Cookie"); len(got) == 0 || !strings.Contains(got[0], "session_id=session-1") {
 		t.Fatalf("Set-Cookie = %v, want refreshed session cookie", got)
+	}
+	cookie := findSetCookie(t, rec, "session_id")
+	if cookie.SameSite != http.SameSiteLaxMode {
+		t.Fatalf("SameSite = %v, want %v", cookie.SameSite, http.SameSiteLaxMode)
+	}
+	if !cookie.Secure {
+		t.Fatalf("expected Secure cookie for forwarded https")
 	}
 }
 
@@ -251,5 +339,16 @@ func (s *fakeAuthService) Logout(_ context.Context, sessionID string) error {
 
 func (s *fakeAuthService) RevokeAllAPITokensForUser(_ context.Context, userID string) error {
 	s.revokedAPITokensForUser = userID
+	return nil
+}
+
+func findSetCookie(t *testing.T, rec *httptest.ResponseRecorder, name string) *http.Cookie {
+	t.Helper()
+	for _, cookie := range rec.Result().Cookies() {
+		if cookie.Name == name {
+			return cookie
+		}
+	}
+	t.Fatalf("missing Set-Cookie %q in %v", name, rec.Header().Values("Set-Cookie"))
 	return nil
 }
