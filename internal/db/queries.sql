@@ -117,6 +117,27 @@ JOIN anime a ON c.anime_id = a.id
 WHERE c.user_id = ?
 ORDER BY c.updated_at DESC;
 
+-- name: GetContinueWatchingCarouselEntries :many
+SELECT
+    c.id,
+    c.user_id,
+    c.anime_id,
+    c.current_episode,
+    c.current_time_seconds,
+    c.duration_seconds,
+    c.created_at,
+    c.updated_at,
+    a.title_original,
+    a.title_english,
+    a.title_japanese,
+    a.image_url,
+    a.duration_seconds as anime_duration_seconds
+FROM continue_watching_entry c
+JOIN anime a ON c.anime_id = a.id
+WHERE c.user_id = ?
+ORDER BY c.updated_at DESC
+LIMIT ?;
+
 -- name: DeleteContinueWatchingEntry :exec
 DELETE FROM continue_watching_entry
 WHERE user_id = ? AND anime_id = ?;

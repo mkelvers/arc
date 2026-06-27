@@ -25,6 +25,7 @@ type Querier interface {
 	GetAnime(ctx context.Context, id int64) (Anime, error)
 	GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNeedingRelationSyncRow, error)
 	GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error)
+	GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntry(ctx context.Context, arg GetContinueWatchingEntryParams) (ContinueWatchingEntry, error)
 	GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]AnimeFetchRetry, error)

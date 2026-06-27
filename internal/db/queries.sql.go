@@ -453,6 +453,69 @@ func (q *Queries) GetContinueWatchingEntries(ctx context.Context, userID string)
 	return items, nil
 }
 
+const getContinueWatchingCarouselEntries = `-- name: GetContinueWatchingCarouselEntries :many
+SELECT
+    c.id,
+    c.user_id,
+    c.anime_id,
+    c.current_episode,
+    c.current_time_seconds,
+    c.duration_seconds,
+    c.created_at,
+    c.updated_at,
+    a.title_original,
+    a.title_english,
+    a.title_japanese,
+    a.image_url,
+    a.duration_seconds as anime_duration_seconds
+FROM continue_watching_entry c
+JOIN anime a ON c.anime_id = a.id
+WHERE c.user_id = ?
+ORDER BY c.updated_at DESC
+LIMIT ?
+`
+
+type GetContinueWatchingCarouselEntriesParams struct {
+	UserID string `json:"user_id"`
+	Limit  int64  `json:"limit"`
+}
+
+func (q *Queries) GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingEntriesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getContinueWatchingCarouselEntries, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	var items []GetContinueWatchingEntriesRow
+	for rows.Next() {
+		var i GetContinueWatchingEntriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AnimeID,
+			&i.CurrentEpisode,
+			&i.CurrentTimeSeconds,
+			&i.DurationSeconds,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TitleOriginal,
+			&i.TitleEnglish,
+			&i.TitleJapanese,
+			&i.ImageUrl,
+			&i.AnimeDurationSeconds,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getContinueWatchingEntry = `-- name: GetContinueWatchingEntry :one
 SELECT id, user_id, anime_id, current_episode, current_time_seconds, created_at, updated_at, duration_seconds FROM continue_watching_entry
 WHERE user_id = ? AND anime_id = ? LIMIT 1
