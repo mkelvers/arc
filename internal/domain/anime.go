@@ -137,6 +137,10 @@ type AnimeCatalogService interface {
 	GetTopPicksForYou(ctx context.Context, userID string) (CatalogSectionData, error)
 }
 
+type RecommendationInvalidator interface {
+	InvalidateTopPicksForUser(userID string)
+}
+
 type AnimeSearchService interface {
 	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error)
 	GetProducerNameByID(ctx context.Context, id int) (string, error)
