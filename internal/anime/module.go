@@ -17,6 +17,7 @@ var Module = fx.Options(
 			fx.As(new(domain.AnimeSearchService)),
 			fx.As(new(domain.AnimeDetailsService)),
 			fx.As(new(domain.AnimePlaybackService)),
+			fx.As(new(domain.RecommendationInvalidator)),
 		),
 		NewAnimeHandler,
 	),
