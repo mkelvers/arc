@@ -16,6 +16,7 @@ import { setupQuality, updateQualityOptions } from "./quality";
 import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
 import { setupSegmentEditor } from "./skip/editor";
 import { resolveActiveSegments, renderSegments } from "./skip/segments";
+import { refreshCurrentModeSource } from "./source";
 import { state, initState, showEndState, hideEndState } from "./state";
 import { safeLocalStorage } from "./storage";
 import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
@@ -277,6 +278,27 @@ const initPlayer = async (): Promise<void> => {
       if (loading) {
         loading.style.display = "none";
       }
+    },
+    { signal },
+  );
+  let sourceRefreshInFlight = false;
+  state.elements.video.addEventListener(
+    "error",
+    () => {
+      if (sourceRefreshInFlight) {
+        return;
+      }
+      sourceRefreshInFlight = true;
+      refreshCurrentModeSource(signal)
+        .catch((error) => {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+          console.error("failed to refresh video source:", error);
+        })
+        .finally(() => {
+          sourceRefreshInFlight = false;
+        });
     },
     { signal },
   );

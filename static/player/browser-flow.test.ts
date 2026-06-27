@@ -243,6 +243,40 @@ describe("browser player flow", () => {
     assert.equal(modules.streamUrlForMode("sub", "best"), "");
   });
 
+  test("refreshes stale current stream token from episode data", async () => {
+    modules.state.elements.video.currentTime = 64;
+    modules.state.playback.modeSources = {
+      sub: { token: "stale-token", type: "m3u8", qualities: ["720p"], subtitles: [] },
+    };
+    globalThis.fetch = ((url: string) => {
+      fetchCalls.push({ url });
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            mode_sources: {
+              sub: { token: "fresh-token", type: "m3u8", qualities: ["720p"], subtitles: [] },
+            },
+          }),
+      } as Response);
+    }) as typeof fetch;
+
+    const refreshed = await modules.refreshCurrentModeSource();
+
+    assert.equal(refreshed, true);
+    assert.deepEqual(
+      fetchCalls.map((call) => call.url),
+      ["/api/watch/episode/42/3?mode=sub"],
+    );
+    assert.equal(modules.state.playback.modeSources.sub?.token, "fresh-token");
+    assert.equal(
+      modules.state.elements.video.src,
+      "/watch/proxy/stream?mode=sub&token=fresh-token&hls=1",
+    );
+    assert.equal(modules.state.playback.pendingSeekTime, 64);
+  });
+
   test("saves progress on pause and after scrub mouseup", async () => {
     modules.setupProgress();
     modules.state.elements.video.currentTime = 30;
