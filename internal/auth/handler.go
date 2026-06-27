@@ -43,7 +43,7 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("session_id", session.ID, int(domain.SessionLifetime.Seconds()), "/", "", false, true)
+	setPersistentSessionCookie(c, session.ID)
 	if c.GetHeader("HX-Request") == "true" {
 		c.Header("HX-Redirect", "/")
 		c.Status(http.StatusOK)

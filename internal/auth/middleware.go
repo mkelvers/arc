@@ -112,7 +112,7 @@ func AuthMiddleware(svc domain.AuthService) gin.HandlerFunc {
 
 		if usesCookieSession {
 			if refreshErr := svc.RefreshSession(c.Request.Context(), sessionID); refreshErr == nil {
-				c.SetCookie("session_id", sessionID, int(domain.SessionLifetime.Seconds()), "/", "", false, true)
+				setPersistentSessionCookie(c, sessionID)
 			}
 		}
 
