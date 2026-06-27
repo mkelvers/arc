@@ -179,4 +179,5 @@ type AnimeRepository interface {
 	GetUserWatchList(ctx context.Context, userID string) ([]db.GetUserWatchListRow, error)
 	GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]db.GetContinueWatchingEntriesRow, error)
+	GetContinueWatchingCarouselEntries(ctx context.Context, userID string, limit int64) ([]db.GetContinueWatchingEntriesRow, error)
 }

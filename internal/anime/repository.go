@@ -25,3 +25,10 @@ func (r *animeRepository) GetWatchListEntry(ctx context.Context, params db.GetWa
 func (r *animeRepository) GetContinueWatchingEntries(ctx context.Context, userID string) ([]db.GetContinueWatchingEntriesRow, error) {
 	return r.queries.GetContinueWatchingEntries(ctx, userID)
 }
+
+func (r *animeRepository) GetContinueWatchingCarouselEntries(ctx context.Context, userID string, limit int64) ([]db.GetContinueWatchingEntriesRow, error) {
+	return r.queries.GetContinueWatchingCarouselEntries(ctx, db.GetContinueWatchingCarouselEntriesParams{
+		UserID: userID,
+		Limit:  limit,
+	})
+}

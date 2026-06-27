@@ -19,6 +19,8 @@ type animeService struct {
 	repo  domain.AnimeRepository
 }
 
+const continueWatchingCarouselLimit int64 = 24
+
 func wrapAnimes(in []jikan.Anime) []domain.Anime {
 	out := make([]domain.Anime, 0, len(in))
 	for _, a := range in {
@@ -56,7 +58,7 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 	if userID != "" && section == "Continue" {
 		g.Go(func() error {
 			var err error
-			cw, err = s.repo.GetContinueWatchingEntries(gCtx, userID)
+			cw, err = s.repo.GetContinueWatchingCarouselEntries(gCtx, userID, continueWatchingCarouselLimit)
 			if err != nil {
 				return fmt.Errorf("get continue watching entries for %q: %w", userID, err)
 			}
