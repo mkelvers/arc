@@ -24,15 +24,8 @@ func RequestLogger() gin.HandlerFunc {
 
 		duration := time.Since(start)
 		status := c.Writer.Status()
-		fields := map[string]any{
-			"client_ip":   c.ClientIP(),
-			"duration_ms": float64(duration.Microseconds()) / 1000,
-			"method":      c.Request.Method,
-			"path":        path,
-			"request_id":  c.Writer.Header().Get(requestIDHeader),
-			"status":      status,
-		}
 		privateErrors := c.Errors.ByType(gin.ErrorTypePrivate)
+		privateErrorText := privateErrors.String()
 		var logErr error
 		if len(privateErrors) > 0 {
 			logErr = privateErrors.Last().Err
@@ -43,18 +36,6 @@ func RequestLogger() gin.HandlerFunc {
 		if c.FullPath() == "" && status == http.StatusSeeOther {
 			return
 		}
-		if route != path {
-			fields["route"] = route
-		}
-		if query != "" {
-			fields["query"] = redactSensitiveQuery(query)
-		}
-		if size := c.Writer.Size(); size >= 0 {
-			fields["bytes"] = size
-		}
-		if errors := privateErrors.String(); errors != "" {
-			fields["errors"] = errors
-		}
 
 		observability.LogContext(
 			c.Request.Context(),
@@ -62,7 +43,7 @@ func RequestLogger() gin.HandlerFunc {
 			"http_request",
 			"http",
 			c.Request.Method+" "+path,
-			fields,
+			requestLogFields(c, path, query, route, duration, status, privateErrorText),
 			logErr,
 		)
 	}
