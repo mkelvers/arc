@@ -149,6 +149,37 @@ func TestRequestLoggerLogsFailedStreamProxy(t *testing.T) {
 	}
 }
 
+func TestRequestLoggerRedactsProxyTokenQuery(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var logs bytes.Buffer
+	previousOutput := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(previousOutput)
+
+	router := gin.New()
+	router.Use(RequestContextMiddleware())
+	router.Use(RequestLogger())
+	router.GET("/watch/proxy/subtitle", func(c *gin.Context) {
+		c.Status(http.StatusForbidden)
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/watch/proxy/subtitle?lang=en&token=secret-token", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	got := logs.String()
+	if strings.Contains(got, "secret-token") {
+		t.Fatalf("log line leaked proxy token: %s", got)
+	}
+	if !strings.Contains(got, `query="lang=en&token=REDACTED"`) {
+		t.Fatalf("log line missing redacted query: %s", got)
+	}
+}
+
 func TestRespondErrorIncludesRequestContext(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
