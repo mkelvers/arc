@@ -18,7 +18,7 @@ var publicRoutes = []publicRoute{
 	// Pages.
 	{method: http.MethodGet, path: "/login"},
 	{method: http.MethodPost, path: "/login"},
-	{method: http.MethodGet, path: "/logout"},
+	{method: http.MethodPost, path: "/logout"},
 
 	// Crawler noise.
 	{method: http.MethodGet, path: "/robots.txt"},

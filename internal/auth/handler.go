@@ -20,7 +20,7 @@ func NewAuthHandler(svc domain.AuthService) *AuthHandler {
 func (h *AuthHandler) Register(r *gin.Engine) {
 	r.GET("/login", h.HandleLoginPage)
 	r.POST("/login", h.HandleLogin)
-	r.GET("/logout", h.HandleLogout)
+	r.POST("/logout", h.HandleLogout)
 	r.POST("/api/auth/login", h.HandleAPILogin)
 }
 
@@ -60,7 +60,7 @@ func (h *AuthHandler) HandleLogout(c *gin.Context) {
 		}
 	}
 
-	c.SetCookie("session_id", "", -1, "/", "", false, true)
+	clearSessionCookie(c)
 	c.Redirect(http.StatusSeeOther, "/login")
 }
 
