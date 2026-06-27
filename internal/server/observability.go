@@ -68,6 +68,31 @@ func RequestLogger() gin.HandlerFunc {
 	}
 }
 
+func requestLogFields(c *gin.Context, path, query, route string, duration time.Duration, status int, privateErrorText string) map[string]any {
+	fields := map[string]any{
+		"client_ip":   c.ClientIP(),
+		"duration_ms": float64(duration.Microseconds()) / 1000,
+		"method":      c.Request.Method,
+		"path":        path,
+		"request_id":  c.Writer.Header().Get(requestIDHeader),
+		"status":      status,
+	}
+	if route != path {
+		fields["route"] = route
+	}
+	if query != "" {
+		fields["query"] = redactSensitiveQuery(query)
+	}
+	if size := c.Writer.Size(); size >= 0 {
+		fields["bytes"] = size
+	}
+	if privateErrorText != "" {
+		fields["errors"] = privateErrorText
+	}
+
+	return fields
+}
+
 func requestLogLevel(status int) observability.LogLevel {
 	if status >= 500 {
 		return observability.LogLevelError
