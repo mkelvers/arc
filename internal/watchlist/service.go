@@ -12,24 +12,29 @@ import (
 )
 
 type watchlistService struct {
-	repo  domain.WatchlistRepository
-	jikan *jikan.Client
+	repo        domain.WatchlistRepository
+	jikan       *jikan.Client
+	invalidator domain.RecommendationInvalidator
 }
 
-func NewWatchlistService(repo domain.WatchlistRepository, jikan *jikan.Client) domain.WatchlistService {
-	return &watchlistService{repo: repo, jikan: jikan}
+func NewWatchlistService(repo domain.WatchlistRepository, jikan *jikan.Client, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
+	return &watchlistService{repo: repo, jikan: jikan, invalidator: invalidator}
 }
 
 func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, animeID int64, status string) error {
-	anime, fetchErr := s.jikan.GetAnimeByID(ctx, int(animeID))
+	var anime jikan.Anime
+	var fetchErr error
+	if s.jikan != nil {
+		anime, fetchErr = s.jikan.GetAnimeByID(ctx, int(animeID))
+	}
 	if fetchErr != nil {
 		// still allow status updates for already-known anime rows
 		anime = jikan.Anime{}
 	}
 
-	return s.repo.InTx(ctx, func(txCtx context.Context, repo domain.WatchlistRepository) error {
+	if err := s.repo.InTx(ctx, func(txCtx context.Context, repo domain.WatchlistRepository) error {
 		_, err := repo.GetAnime(txCtx, animeID)
-		if err != nil && fetchErr == nil {
+		if err != nil && fetchErr == nil && anime.MalID > 0 {
 			durationSeconds := anime.DurationSeconds()
 			duration := sql.NullFloat64{Valid: durationSeconds > 0}
 			if duration.Valid {
@@ -65,14 +70,28 @@ func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, anime
 			CurrentTimeSeconds: existing.CurrentTimeSeconds,
 		})
 		return err
-	})
+	}); err != nil {
+		return err
+	}
+	s.invalidateTopPicks(userID)
+	return nil
 }
 
 func (s *watchlistService) RemoveEntry(ctx context.Context, userID string, animeID int64) error {
-	return s.repo.DeleteWatchListEntry(ctx, db.DeleteWatchListEntryParams{
+	if err := s.repo.DeleteWatchListEntry(ctx, db.DeleteWatchListEntryParams{
 		UserID:  userID,
 		AnimeID: animeID,
-	})
+	}); err != nil {
+		return err
+	}
+	s.invalidateTopPicks(userID)
+	return nil
+}
+
+func (s *watchlistService) invalidateTopPicks(userID string) {
+	if s.invalidator != nil {
+		s.invalidator.InvalidateTopPicksForUser(userID)
+	}
 }
 
 func (s *watchlistService) GetWatchlist(ctx context.Context, userID string) ([]domain.UserWatchListRow, error) {

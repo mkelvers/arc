@@ -12,7 +12,7 @@ import (
 
 func TestWatchlistServiceGetWatchlistMap(t *testing.T) {
 	repo := &fakeWatchlistRepository{watchlistAnimeIDs: []int64{1, 3}}
-	svc := NewWatchlistService(repo, nil)
+	svc := NewWatchlistService(repo, nil, nil)
 
 	got, err := svc.GetWatchlistMap(context.Background(), "user-1", []int64{1, 2, 3})
 	if err != nil {
@@ -28,7 +28,7 @@ func TestWatchlistServiceGetWatchlistMap(t *testing.T) {
 
 func TestWatchlistServiceGetWatchlistMapSkipsEmptyInputs(t *testing.T) {
 	repo := &fakeWatchlistRepository{}
-	svc := NewWatchlistService(repo, nil)
+	svc := NewWatchlistService(repo, nil, nil)
 
 	got, err := svc.GetWatchlistMap(context.Background(), "", []int64{1})
 	if err != nil {
@@ -52,7 +52,7 @@ func TestWatchlistServiceGetWatchlistMapSkipsEmptyInputs(t *testing.T) {
 
 func TestWatchlistServiceDeleteContinueWatchingClearsProgressInTransaction(t *testing.T) {
 	repo := &fakeWatchlistRepository{}
-	svc := NewWatchlistService(repo, nil)
+	svc := NewWatchlistService(repo, nil, nil)
 
 	if err := svc.DeleteContinueWatching(context.Background(), "user-1", 12); err != nil {
 		t.Fatalf("DeleteContinueWatching: %v", err)
@@ -76,7 +76,7 @@ func TestWatchlistServiceDeleteContinueWatchingClearsProgressInTransaction(t *te
 
 func TestWatchlistServiceDeleteContinueWatchingStopsAfterDeleteError(t *testing.T) {
 	repo := &fakeWatchlistRepository{deleteContinueErr: errors.New("delete failed")}
-	svc := NewWatchlistService(repo, nil)
+	svc := NewWatchlistService(repo, nil, nil)
 
 	if err := svc.DeleteContinueWatching(context.Background(), "user-1", 12); err == nil || err.Error() != "delete failed" {
 		t.Fatalf("DeleteContinueWatching error = %v, want delete failed", err)
@@ -88,13 +88,30 @@ func TestWatchlistServiceDeleteContinueWatchingStopsAfterDeleteError(t *testing.
 
 func TestWatchlistServiceRemoveEntry(t *testing.T) {
 	repo := &fakeWatchlistRepository{}
-	svc := NewWatchlistService(repo, nil)
+	invalidator := &fakeRecommendationInvalidator{}
+	svc := NewWatchlistService(repo, nil, invalidator)
 
 	if err := svc.RemoveEntry(context.Background(), "user-1", 9); err != nil {
 		t.Fatalf("RemoveEntry: %v", err)
 	}
 	if repo.deletedWatchlist.UserID != "user-1" || repo.deletedWatchlist.AnimeID != 9 {
 		t.Fatalf("delete params = %#v", repo.deletedWatchlist)
+	}
+	if invalidator.userID != "user-1" {
+		t.Fatalf("invalidated user = %q, want user-1", invalidator.userID)
+	}
+}
+
+func TestWatchlistServiceUpdateEntryInvalidatesRecommendations(t *testing.T) {
+	repo := &fakeWatchlistRepository{}
+	invalidator := &fakeRecommendationInvalidator{}
+	svc := NewWatchlistService(repo, nil, invalidator)
+
+	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching"); err != nil {
+		t.Fatalf("UpdateEntry: %v", err)
+	}
+	if invalidator.userID != "user-1" {
+		t.Fatalf("invalidated user = %q, want user-1", invalidator.userID)
 	}
 }
 
@@ -108,6 +125,14 @@ type fakeWatchlistRepository struct {
 	deletedContinue    db.DeleteContinueWatchingEntryParams
 	savedProgress      db.SaveWatchProgressParams
 	deletedWatchlist   db.DeleteWatchListEntryParams
+}
+
+type fakeRecommendationInvalidator struct {
+	userID string
+}
+
+func (i *fakeRecommendationInvalidator) InvalidateTopPicksForUser(userID string) {
+	i.userID = userID
 }
 
 func (r *fakeWatchlistRepository) InTx(ctx context.Context, fn func(context.Context, domain.WatchlistRepository) error) error {
