@@ -28,6 +28,10 @@ type CanonicalEpisodeList struct {
 	Episodes      []CanonicalEpisode `json:"episodes"`
 	Source        string             `json:"source"`
 	NextRefreshAt string             `json:"next_refresh_at,omitempty"`
+	RetryUntilAt  string             `json:"retry_until_at,omitempty"`
+	LastAttemptAt string             `json:"last_attempt_at,omitempty"`
+	LastSuccessAt string             `json:"last_success_at,omitempty"`
+	FailureCount  int64              `json:"failure_count,omitempty"`
 }
 
 type EpisodeService interface {

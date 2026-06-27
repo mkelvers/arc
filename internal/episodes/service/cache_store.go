@@ -16,9 +16,14 @@ func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, jikanEpi
 	nextRefreshSQL := nextRefreshAt(anime, now)
 	episodes := mergeEpisodes(jikanEpisodes, availability, anime.Episodes)
 	payload := domain.CanonicalEpisodeList{
-		AnimeID:  anime.MalID,
-		Episodes: episodes,
-		Source:   source,
+		AnimeID:       anime.MalID,
+		Episodes:      episodes,
+		Source:        source,
+		LastAttemptAt: now.Format(time.RFC3339),
+		FailureCount:  0,
+	}
+	if providerSuccess {
+		payload.LastSuccessAt = now.Format(time.RFC3339)
 	}
 	if nextRefreshSQL.Valid {
 		payload.NextRefreshAt = nextRefreshSQL.Time.Format(time.RFC3339)
@@ -146,6 +151,7 @@ func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime)
 	if !ok {
 		return domain.CanonicalEpisodeList{}, false
 	}
+	payload = enrichCachedPayload(payload, row)
 	observability.Info(
 		"episodes_cache_served",
 		"episodes",
@@ -168,7 +174,25 @@ func (s *EpisodeService) getDecodedCached(ctx context.Context, anime domain.Anim
 	if !ok {
 		return domain.CanonicalEpisodeList{}, false
 	}
+	payload = enrichCachedPayload(payload, row)
 	return payload, true
+}
+
+func enrichCachedPayload(payload domain.CanonicalEpisodeList, row db.EpisodeAvailabilityCache) domain.CanonicalEpisodeList {
+	if row.NextRefreshAt.Valid {
+		payload.NextRefreshAt = row.NextRefreshAt.Time.Format(time.RFC3339)
+	}
+	if row.RetryUntilAt.Valid {
+		payload.RetryUntilAt = row.RetryUntilAt.Time.Format(time.RFC3339)
+	}
+	if row.LastAttemptAt.Valid {
+		payload.LastAttemptAt = row.LastAttemptAt.Time.Format(time.RFC3339)
+	}
+	if row.LastSuccessAt.Valid {
+		payload.LastSuccessAt = row.LastSuccessAt.Time.Format(time.RFC3339)
+	}
+	payload.FailureCount = row.FailureCount
+	return payload
 }
 
 func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row db.EpisodeAvailabilityCache, now time.Time) bool {

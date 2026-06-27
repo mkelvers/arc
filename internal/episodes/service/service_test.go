@@ -1,7 +1,9 @@
 package service
 
 import (
+	"database/sql"
 	"mal/integrations/jikan"
+	"mal/internal/db"
 	"mal/internal/domain"
 	"testing"
 	"time"
@@ -124,6 +126,37 @@ func TestIsCanonicalEpisodePayloadValidAllowsJikanFallbackWithoutAvailability(t 
 
 	if !isCanonicalEpisodePayloadValid(payload, 13) {
 		t.Fatal("expected cached payload to be valid")
+	}
+}
+
+func TestEnrichCachedPayloadAddsRefreshMetadata(t *testing.T) {
+	now := time.Date(2026, time.June, 27, 11, 0, 0, 0, time.UTC)
+	payload := enrichCachedPayload(domain.CanonicalEpisodeList{
+		AnimeID:  59970,
+		Episodes: []domain.CanonicalEpisode{{Number: 1}},
+		Source:   "AllAnime",
+	}, db.EpisodeAvailabilityCache{
+		NextRefreshAt: sql.NullTime{Time: now.Add(time.Hour), Valid: true},
+		RetryUntilAt:  sql.NullTime{Time: now.Add(30 * time.Minute), Valid: true},
+		LastAttemptAt: sql.NullTime{Time: now.Add(-5 * time.Minute), Valid: true},
+		LastSuccessAt: sql.NullTime{Time: now.Add(-time.Hour), Valid: true},
+		FailureCount:  2,
+	})
+
+	if payload.NextRefreshAt != "2026-06-27T12:00:00Z" {
+		t.Fatalf("NextRefreshAt = %q, want RFC3339 timestamp", payload.NextRefreshAt)
+	}
+	if payload.RetryUntilAt != "2026-06-27T11:30:00Z" {
+		t.Fatalf("RetryUntilAt = %q, want RFC3339 timestamp", payload.RetryUntilAt)
+	}
+	if payload.LastAttemptAt != "2026-06-27T10:55:00Z" {
+		t.Fatalf("LastAttemptAt = %q, want RFC3339 timestamp", payload.LastAttemptAt)
+	}
+	if payload.LastSuccessAt != "2026-06-27T10:00:00Z" {
+		t.Fatalf("LastSuccessAt = %q, want RFC3339 timestamp", payload.LastSuccessAt)
+	}
+	if payload.FailureCount != 2 {
+		t.Fatalf("FailureCount = %d, want 2", payload.FailureCount)
 	}
 }
 
