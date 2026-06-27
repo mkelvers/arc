@@ -39,7 +39,7 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
 	r.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
 	r.POST("/api/watch/segments", h.HandleUpsertSkipSegment)
-	r.GET("/api/watch/thumbnails/:animeId", h.HandleEpisodeThumbnails)
+	r.GET("/api/watch/episodes/:animeId/metadata", h.HandleEpisodeMetadata)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
 	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
 }
@@ -250,7 +250,7 @@ func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *PlaybackHandler) HandleEpisodeThumbnails(c *gin.Context) {
+func (h *PlaybackHandler) HandleEpisodeMetadata(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("animeId"))
 	if err != nil {
 		c.Status(http.StatusBadRequest)
