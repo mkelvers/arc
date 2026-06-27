@@ -96,8 +96,11 @@ func TestHandleWatchPagePreservesPartialDataOnPlaybackFailure(t *testing.T) {
 	if !strings.Contains(body, `data-episode-id="1"`) {
 		t.Fatalf("expected episode list in body, got:\n%s", body)
 	}
-	if !strings.Contains(body, `data-playback-error="no streams found"`) {
-		t.Fatalf("expected playback error data attribute in body, got:\n%s", body)
+	if !strings.Contains(body, `data-playback-error="failed to load playback data"`) {
+		t.Fatalf("expected stable playback error data attribute in body, got:\n%s", body)
+	}
+	if strings.Contains(body, "no streams found") {
+		t.Fatalf("expected private playback error to stay out of body, got:\n%s", body)
 	}
 	if !strings.Contains(body, `/anime/123/watch?ep=2`) {
 		t.Fatalf("expected episode links to keep the anime id, got:\n%s", body)
