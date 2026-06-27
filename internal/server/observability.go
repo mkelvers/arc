@@ -2,6 +2,7 @@ package server
 
 import (
 	"mal/internal/observability"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -36,6 +37,9 @@ func RequestLogger() gin.HandlerFunc {
 			logErr = privateErrors.Last().Err
 		}
 		if route == "/watch/proxy/stream" && status < 400 && len(privateErrors) == 0 {
+			return
+		}
+		if c.FullPath() == "" && status == http.StatusSeeOther {
 			return
 		}
 		if route != path {
