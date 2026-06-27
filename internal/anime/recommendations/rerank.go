@@ -24,7 +24,7 @@ func rerankRecommendationCandidates(candidates []recommendationCandidate, limit 
 			continue
 		}
 
-		selected = append(selected, domain.Anime{Anime: candidate.anime})
+		selected = append(selected, domain.Anime{Anime: candidate.anime, RecommendationRationale: candidate.rationale})
 		features := diversityFeatures(candidate.anime)
 		seen.add(features)
 		recent = append(recent, features)

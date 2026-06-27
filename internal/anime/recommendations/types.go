@@ -25,6 +25,7 @@ type recommendationCandidate struct {
 	themeMatches       int
 	studioMatches      int
 	demographicMatches int
+	rationale          []string
 }
 
 type userTasteProfile struct {

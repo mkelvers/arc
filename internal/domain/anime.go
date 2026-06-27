@@ -9,6 +9,7 @@ import (
 
 type Anime struct {
 	jikan.Anime
+	RecommendationRationale []string
 }
 
 type Genre struct {

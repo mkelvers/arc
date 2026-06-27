@@ -48,7 +48,21 @@ func scoreRecommendationCandidate(
 		themeMatches:       themes,
 		studioMatches:      studios,
 		demographicMatches: demos,
+		rationale:          buildRecommendationRationale(profile, candidate),
 	}
+}
+
+func buildRecommendationRationale(profile userTasteProfile, candidate jikan.Anime) []string {
+	rationale := make([]string, 0, 4)
+	rationale = append(rationale, matchedEntityNames(profile.genres, candidate.Genres)...)
+	rationale = append(rationale, matchedEntityNames(profile.themes, candidate.Themes)...)
+	rationale = append(rationale, matchedEntityNames(profile.studios, candidate.Studios)...)
+	rationale = append(rationale, matchedEntityNames(profile.demographics, candidate.Demographics)...)
+
+	if len(rationale) > 4 {
+		return rationale[:4]
+	}
+	return rationale
 }
 
 func recommendationCandidateScoreAdjustments(now time.Time, profile userTasteProfile, candidate jikan.Anime) float64 {
@@ -114,4 +128,23 @@ func weightedEntityMatch(weights map[int]float64, entities []jikan.NamedEntity) 
 	}
 
 	return matches, score
+}
+
+func matchedEntityNames(weights map[int]float64, entities []jikan.NamedEntity) []string {
+	if len(weights) == 0 {
+		return []string{}
+	}
+
+	names := make([]string, 0, 1)
+	for _, entity := range entities {
+		if entity.Name == "" || weights[entity.MalID] <= 0 {
+			continue
+		}
+		names = append(names, entity.Name)
+		if len(names) >= 1 {
+			break
+		}
+	}
+
+	return names
 }
