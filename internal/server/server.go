@@ -36,6 +36,15 @@ func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender) *gin.Engine 
 		}
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Not found"})
 	})
+	r.GET("/robots.txt", func(c *gin.Context) {
+		c.String(http.StatusOK, "User-agent: *\nDisallow: /\n")
+	})
+	r.GET("/sitemap.xml", func(c *gin.Context) {
+		c.String(http.StatusOK, `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+</urlset>
+`)
+	})
 	r.Static("/static", "./static")
 	r.Static("/dist", "./dist")
 	r.HTMLRender = htmlRender

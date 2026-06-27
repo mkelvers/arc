@@ -20,6 +20,10 @@ var publicRoutes = []publicRoute{
 	{method: http.MethodPost, path: "/login"},
 	{method: http.MethodGet, path: "/logout"},
 
+	// Crawler noise.
+	{method: http.MethodGet, path: "/robots.txt"},
+	{method: http.MethodGet, path: "/sitemap.xml"},
+
 	// Static assets.
 	{path: "/static", prefix: true},
 	{path: "/dist", prefix: true},
