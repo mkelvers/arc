@@ -3,6 +3,7 @@ import "./toast";
 import "./htmx";
 import "./dropdown";
 import "./anime";
+import "./episode_availability_warning";
 import "./search";
 import "./dedupe";
 import "./watchlist";

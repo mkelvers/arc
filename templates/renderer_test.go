@@ -138,6 +138,30 @@ func TestTopPicksTemplateRendersRecommendationRationale(t *testing.T) {
 	}
 }
 
+func TestAnimeEpisodeCountTemplateDoesNotRenderAvailabilityStatus(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "anime.gohtml", "anime_episode_count", map[string]any{
+		"Items": map[string]any{
+			"Count":      3,
+			"Label":      "Available episodes",
+			"Status":     "Retrying soon",
+			"StatusTone": "warning",
+		},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+	body := buf.String()
+	if strings.Contains(body, "Retrying soon") || strings.Contains(body, "data-episode-availability-status") {
+		t.Fatalf("anime episode count should not expose availability status:\n%s", body)
+	}
+}
+
 func TestWatchTemplateEscapesJSONDataAttributes(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {

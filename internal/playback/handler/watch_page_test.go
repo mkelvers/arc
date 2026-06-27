@@ -106,3 +106,32 @@ func TestHandleWatchPagePreservesPartialDataOnPlaybackFailure(t *testing.T) {
 		t.Fatalf("expected partial episode list instead of empty state, got:\n%s", body)
 	}
 }
+
+func TestHandleWatchPageRendersEpisodeAvailabilityWarningModal(t *testing.T) {
+	t.Parallel()
+
+	data := baseWatchPageData()
+	data.EpisodeAvailabilityWarning = "Episode availability may be incomplete or out of date. Continue only if you understand that the episode list and audio availability may be uncertain."
+	router := newWatchPageRouter(t, &PlaybackHandler{
+		svc: &watchPagePlaybackService{data: data},
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/anime/123/watch?ep=1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`data-episode-availability-warning`,
+		`Episode availability is uncertain`,
+		`Continue anyway`,
+		data.EpisodeAvailabilityWarning,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("watch page missing %q in body:\n%s", want, body)
+		}
+	}
+}

@@ -6,11 +6,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"mal/integrations/jikan"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
+
+const episodeAvailabilityUncertainWarning = "Episode availability may be incomplete or out of date. Continue only if you understand that the episode list and audio availability may be uncertain."
 
 func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
 	anime, err := s.jikan.GetAnimeByID(ctx, animeID)
@@ -51,6 +54,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, eps.Episodes, modeSources, mode, from, segments)
 	pageData := buildWatchPageData(animeData, eps.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData)
+	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(eps, time.Now())
 	if len(modeSources) == 0 {
 		return pageData, fmt.Errorf("no streams found")
 	}
@@ -94,6 +98,23 @@ func buildWatchPageData(anime domain.Anime, episodes []domain.CanonicalEpisode, 
 		WatchlistIDs:    watchlistIDs,
 		Seasons:         seasons,
 	}
+}
+
+func episodeAvailabilityWarning(episodeList domain.CanonicalEpisodeList, now time.Time) string {
+	if episodeList.FailureCount > 0 {
+		return episodeAvailabilityUncertainWarning
+	}
+	if episodeList.NextRefreshAt == "" {
+		return ""
+	}
+	nextRefresh, err := time.Parse(time.RFC3339, episodeList.NextRefreshAt)
+	if err != nil {
+		return ""
+	}
+	if nextRefresh.After(now) {
+		return ""
+	}
+	return episodeAvailabilityUncertainWarning
 }
 
 func buildSearchTitles(anime domain.Anime, titleCandidates []string) []string {

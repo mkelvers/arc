@@ -15,16 +15,17 @@ type PlaybackService interface {
 }
 
 type WatchPageData struct {
-	WatchData       WatchData
-	Anime           Anime
-	Episodes        []CanonicalEpisode
-	CurrentEpID     string
-	WatchlistStatus string
-	WatchlistIDs    []int64
-	Seasons         []SeasonEntry
-	User            *User
-	CurrentPath     string
-	Error           string
+	WatchData                  WatchData
+	Anime                      Anime
+	Episodes                   []CanonicalEpisode
+	CurrentEpID                string
+	WatchlistStatus            string
+	WatchlistIDs               []int64
+	Seasons                    []SeasonEntry
+	User                       *User
+	CurrentPath                string
+	Error                      string
+	EpisodeAvailabilityWarning string
 }
 
 type WatchData struct {
