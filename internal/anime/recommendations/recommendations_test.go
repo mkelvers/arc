@@ -74,6 +74,47 @@ func TestScoreRecommendationCandidateRewardsProfileOverlap(t *testing.T) {
 	}
 }
 
+func TestScoreRecommendationCandidateBuildsRationaleFromProfileMatches(t *testing.T) {
+	now := time.Date(2026, time.June, 4, 12, 0, 0, 0, time.UTC)
+	profile := userTasteProfile{
+		genres:       map[int]float64{1: 2.0},
+		themes:       map[int]float64{10: 1.5},
+		studios:      map[int]float64{20: 1.0},
+		demographics: map[int]float64{30: 1.0},
+	}
+
+	candidate := scoreRecommendationCandidate(now, profile, jikan.Anime{
+		MalID:        10,
+		Genres:       []jikan.NamedEntity{{MalID: 1, Name: "Action"}},
+		Themes:       []jikan.NamedEntity{{MalID: 10, Name: "School"}},
+		Studios:      []jikan.NamedEntity{{MalID: 20, Name: "Production I.G"}},
+		Demographics: []jikan.NamedEntity{{MalID: 30, Name: "Shounen"}},
+	}, 5.0, 0)
+
+	want := []string{"Action", "School", "Production I.G", "Shounen"}
+	if !slices.Equal(candidate.rationale, want) {
+		t.Fatalf("expected profile match rationale %v, got %v", want, candidate.rationale)
+	}
+}
+
+func TestScoreRecommendationCandidateOmitsRationaleWhenSignalsAreWeak(t *testing.T) {
+	now := time.Date(2026, time.June, 4, 12, 0, 0, 0, time.UTC)
+	profile := userTasteProfile{
+		genres:       map[int]float64{1: 2.0},
+		themes:       map[int]float64{},
+		studios:      map[int]float64{},
+		demographics: map[int]float64{},
+	}
+
+	candidate := scoreRecommendationCandidate(now, profile, jikan.Anime{
+		MalID: 10,
+	}, 5.0, 0)
+
+	if len(candidate.rationale) != 0 {
+		t.Fatalf("expected no rationale for weak signals, got %v", candidate.rationale)
+	}
+}
+
 func TestBuildTasteProfileUsesSeedWeights(t *testing.T) {
 	now := time.Date(2026, time.June, 4, 12, 0, 0, 0, time.UTC)
 

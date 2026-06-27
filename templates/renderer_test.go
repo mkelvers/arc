@@ -107,6 +107,37 @@ func TestRenderWithNonStringFragment(t *testing.T) {
 	}
 }
 
+func TestTopPicksTemplateRendersRecommendationRationale(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "top_picks.gohtml", "content", map[string]any{
+		"Animes": []domain.Anime{
+			{
+				Anime: jikan.Anime{
+					MalID: 1,
+					Title: "Haikyuu!!",
+				},
+				RecommendationRationale: []string{"Sports", "Production I.G"},
+			},
+		},
+		"WatchlistMap": map[int64]bool{},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+
+	body := buf.String()
+	for _, want := range []string{"Why this was picked", "Sports", "Production I.G"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("top picks template missing %q in output:\n%s", want, body)
+		}
+	}
+}
+
 func TestWatchTemplateEscapesJSONDataAttributes(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {
