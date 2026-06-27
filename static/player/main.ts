@@ -1,8 +1,8 @@
 import { onHtmxLoad, onReady } from "../utils";
 import { setupControls, showControls } from "./controls";
 import { formatTime } from "./controls";
+import { setupEpisodeMetadata } from "./episodes/metadata";
 import { goToNextEpisode } from "./episodes/nav";
-import { setupThumbnails } from "./episodes/thumbnails";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
 import {
@@ -462,7 +462,7 @@ const initPlayer = async (): Promise<void> => {
     switchEpisodeRange(Math.floor((Number.parseInt(state.episode.current, 10) - 1) / 100));
   }
 
-  setupThumbnails();
+  setupEpisodeMetadata();
   window.setTimeout(() => {
     if (!signal.aborted) {
       hydrateAlternateMode(signal).catch((error) => {
