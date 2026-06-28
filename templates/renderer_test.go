@@ -109,7 +109,7 @@ func TestRenderWithNonStringFragment(t *testing.T) {
 	}
 }
 
-func TestTopPicksTemplateRendersRecommendationRationale(t *testing.T) {
+func TestTopPicksTemplateDoesNotRenderRecommendationRationale(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {
 		t.Fatal(err)
@@ -134,8 +134,8 @@ func TestTopPicksTemplateRendersRecommendationRationale(t *testing.T) {
 
 	body := buf.String()
 	for _, want := range []string{"Why this was picked", "Sports", "Production I.G"} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("top picks template missing %q in output:\n%s", want, body)
+		if strings.Contains(body, want) {
+			t.Fatalf("top picks template should not render %q:\n%s", want, body)
 		}
 	}
 }
