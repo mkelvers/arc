@@ -3,7 +3,6 @@ package server
 import (
 	"mal/internal/observability"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -62,7 +61,7 @@ func requestLogFields(c *gin.Context, path, query, route string, duration time.D
 		fields["route"] = route
 	}
 	if query != "" {
-		fields["query"] = redactSensitiveQuery(query)
+		fields["query"] = query
 	}
 	if size := c.Writer.Size(); size >= 0 {
 		fields["bytes"] = size
@@ -82,18 +81,4 @@ func requestLogLevel(status int) observability.LogLevel {
 		return observability.LogLevelWarn
 	}
 	return observability.LogLevelInfo
-}
-
-func redactSensitiveQuery(query string) string {
-	parts := strings.Split(query, "&")
-	for i, part := range parts {
-		key := part
-		if before, _, ok := strings.Cut(part, "="); ok {
-			key = before
-		}
-		if strings.EqualFold(key, "token") {
-			parts[i] = key + "=REDACTED"
-		}
-	}
-	return strings.Join(parts, "&")
 }
