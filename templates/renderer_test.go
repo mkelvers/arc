@@ -2,8 +2,10 @@ package templates
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"mal/integrations/jikan"
+	"mal/internal/db"
 	"mal/internal/domain"
 	"net/http/httptest"
 	"strings"
@@ -252,5 +254,34 @@ func TestExecuteFragmentInvalidTemplate(t *testing.T) {
 	err = r.ExecuteFragment(&buf, "missing.gohtml", "content", nil)
 	if err == nil {
 		t.Fatal("expected error for missing template")
+	}
+}
+
+func TestContinueWatchingTemplateIncludesAnimeDetailsLink(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "index.gohtml", "continue_watching", []db.GetContinueWatchingEntriesRow{
+		{
+			AnimeID:        321,
+			TitleOriginal:  "Original Title",
+			TitleEnglish:   sql.NullString{String: "English Title", Valid: true},
+			ImageUrl:       "https://example.com/poster.webp",
+			CurrentEpisode: sql.NullInt64{Int64: 7, Valid: true},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+
+	body := buf.String()
+	if !strings.Contains(body, `href="/anime/321"`) {
+		t.Fatalf("continue watching card should include anime details link:\n%s", body)
+	}
+	if !strings.Contains(body, `href="/anime/321/watch?ep=7"`) {
+		t.Fatalf("continue watching card should keep watch link:\n%s", body)
 	}
 }
