@@ -140,6 +140,28 @@ func TestTopPicksTemplateDoesNotRenderRecommendationRationale(t *testing.T) {
 	}
 }
 
+func TestTopPicksTemplateStylesBackToHomeAsButton(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "top_picks.gohtml", "content", map[string]any{
+		"Animes":       []domain.Anime{},
+		"WatchlistMap": map[int64]bool{},
+	})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+
+	body := buf.String()
+	want := `href="/" class="inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"`
+	if !strings.Contains(body, want) {
+		t.Fatalf("top picks back link should use button styling:\n%s", body)
+	}
+}
+
 func TestAnimeEpisodeCountTemplateDoesNotRenderAvailabilityStatus(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {
