@@ -168,6 +168,17 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 
 </details>
 
+### Public Watchlist JSON
+
+`GET /api/public/users/{user_id}/watchlist` returns a versioned, agent-friendly JSON view of a
+user's complete watchlist. It includes status summaries, episode progress,
+added/completed/last-watched dates, and localized titles. Add `?download=1` to receive the same
+response as a `watchlist-{user_id}.json` attachment; the watchlist page's export action uses this
+URL.
+
+This endpoint is intentionally unauthenticated. A deployment that should keep watchlist and
+playback data private must restrict access to `/api/public/` at the network or reverse-proxy layer.
+
 ### Repository Map
 
 | Path                             | Responsibility                                                  |

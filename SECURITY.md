@@ -55,6 +55,10 @@ dependency monitoring.
 Use a strong `PLAYBACK_PROXY_SECRET` if playback proxy token signing is enabled. Do not commit real
 secrets, provider tokens, session data, or production databases to the repository.
 
+The read-only `/api/public/users/{user_id}/watchlist` endpoint intentionally exposes watchlist
+statuses, episode progress, and watchlist dates without authentication. Restrict `/api/public/` at
+the network or reverse-proxy layer when that data should not be public.
+
 ## Dependency Security
 
 Dependencies are managed through Go modules and Bun. When updating dependencies, run the normal
