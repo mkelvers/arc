@@ -103,6 +103,38 @@ type JikanCache struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type RecommendationEvent struct {
+	ID           string         `json:"id"`
+	UserID       string         `json:"user_id"`
+	AnimeID      sql.NullInt64  `json:"anime_id"`
+	EventType    string         `json:"event_type"`
+	Source       sql.NullString `json:"source"`
+	MetadataJson sql.NullString `json:"metadata_json"`
+	OccurredAt   time.Time      `json:"occurred_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+}
+
+type RecommendationImpression struct {
+	ID           string         `json:"id"`
+	UserID       string         `json:"user_id"`
+	AnimeID      int64          `json:"anime_id"`
+	Rail         string         `json:"rail"`
+	Position     int64          `json:"position"`
+	RequestID    sql.NullString `json:"request_id"`
+	MetadataJson sql.NullString `json:"metadata_json"`
+	OccurredAt   time.Time      `json:"occurred_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+}
+
+type RecommendationProfileSnapshot struct {
+	UserID            string       `json:"user_id"`
+	ProfileJson       string       `json:"profile_json"`
+	SourceWindowStart sql.NullTime `json:"source_window_start"`
+	SourceWindowEnd   sql.NullTime `json:"source_window_end"`
+	ComputedAt        time.Time    `json:"computed_at"`
+	UpdatedAt         time.Time    `json:"updated_at"`
+}
+
 type Session struct {
 	ID        string    `json:"id"`
 	UserID    string    `json:"user_id"`
@@ -131,13 +163,15 @@ type User struct {
 }
 
 type WatchListEntry struct {
-	ID                 string        `json:"id"`
-	UserID             string        `json:"user_id"`
-	AnimeID            int64         `json:"anime_id"`
-	Status             string        `json:"status"`
-	CreatedAt          time.Time     `json:"created_at"`
-	UpdatedAt          time.Time     `json:"updated_at"`
-	CurrentEpisode     sql.NullInt64 `json:"current_episode"`
-	LastEpisodeAt      sql.NullTime  `json:"last_episode_at"`
-	CurrentTimeSeconds float64       `json:"current_time_seconds"`
+	ID                   string        `json:"id"`
+	UserID               string        `json:"user_id"`
+	AnimeID              int64         `json:"anime_id"`
+	Status               string        `json:"status"`
+	CreatedAt            time.Time     `json:"created_at"`
+	UpdatedAt            time.Time     `json:"updated_at"`
+	CurrentEpisode       sql.NullInt64 `json:"current_episode"`
+	LastEpisodeAt        sql.NullTime  `json:"last_episode_at"`
+	CurrentTimeSeconds   float64       `json:"current_time_seconds"`
+	CompletedAt          sql.NullTime  `json:"completed_at"`
+	CompletedAtEstimated bool          `json:"completed_at_estimated"`
 }

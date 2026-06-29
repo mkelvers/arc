@@ -68,12 +68,32 @@ RETURNING *;
 SELECT * FROM anime WHERE id = ? LIMIT 1;
 
 -- name: UpsertWatchListEntry :one
-INSERT INTO watch_list_entry (id, user_id, anime_id, status, current_episode, current_time_seconds, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+INSERT INTO watch_list_entry (id, user_id, anime_id, status, current_episode, current_time_seconds, completed_at, completed_at_estimated, updated_at)
+VALUES (
+    sqlc.arg(id),
+    sqlc.arg(user_id),
+    sqlc.arg(anime_id),
+    sqlc.arg(status),
+    sqlc.arg(current_episode),
+    sqlc.arg(current_time_seconds),
+    CASE WHEN sqlc.arg(status) = 'completed' THEN CURRENT_TIMESTAMP END,
+    0,
+    CURRENT_TIMESTAMP
+)
 ON CONFLICT (user_id, anime_id) DO UPDATE SET
     status = excluded.status,
     current_episode = excluded.current_episode,
     current_time_seconds = excluded.current_time_seconds,
+    completed_at = CASE
+        WHEN excluded.status != 'completed' THEN NULL
+        WHEN watch_list_entry.status = 'completed' THEN COALESCE(watch_list_entry.completed_at, CURRENT_TIMESTAMP)
+        ELSE CURRENT_TIMESTAMP
+    END,
+    completed_at_estimated = CASE
+        WHEN excluded.status = 'completed' AND watch_list_entry.status = 'completed'
+            THEN watch_list_entry.completed_at_estimated
+        ELSE 0
+    END,
     updated_at = CURRENT_TIMESTAMP
 RETURNING *;
 
@@ -148,7 +168,20 @@ WHERE user_id = ? AND anime_id = ? LIMIT 1;
 
 -- name: GetUserWatchList :many
 SELECT 
-    e.*,
+    e.id,
+    e.user_id,
+    e.anime_id,
+    e.status,
+    e.created_at,
+    e.updated_at,
+    e.current_episode,
+    e.last_episode_at,
+    e.current_time_seconds,
+    e.completed_at,
+    e.completed_at_estimated,
+    c.current_episode AS playback_current_episode,
+    c.current_time_seconds AS playback_current_time_seconds,
+    c.updated_at AS playback_updated_at,
     a.title_original,
     a.title_english,
     a.title_japanese,
@@ -156,6 +189,7 @@ SELECT
     a.airing
 FROM watch_list_entry e
 JOIN anime a ON e.anime_id = a.id
+LEFT JOIN continue_watching_entry c ON c.user_id = e.user_id AND c.anime_id = e.anime_id
 WHERE e.user_id = ?
 ORDER BY e.updated_at DESC;
 

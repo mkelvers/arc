@@ -246,6 +246,7 @@ func (q *Queries) GetAllCachedAnime(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []string
 	for rows.Next() {
 		var data string
@@ -318,6 +319,7 @@ func (q *Queries) GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNe
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []GetAnimeNeedingRelationSyncRow
 	for rows.Next() {
 		var i GetAnimeNeedingRelationSyncRow
@@ -353,6 +355,7 @@ func (q *Queries) GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUs
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []AuditLog
 	for rows.Next() {
 		var i AuditLog
@@ -366,6 +369,70 @@ func (q *Queries) GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUs
 			&i.Ip,
 			&i.UserAgent,
 			&i.MetadataJson,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getContinueWatchingCarouselEntries = `-- name: GetContinueWatchingCarouselEntries :many
+SELECT
+    c.id,
+    c.user_id,
+    c.anime_id,
+    c.current_episode,
+    c.current_time_seconds,
+    c.duration_seconds,
+    c.created_at,
+    c.updated_at,
+    a.title_original,
+    a.title_english,
+    a.title_japanese,
+    a.image_url,
+    a.duration_seconds as anime_duration_seconds
+FROM continue_watching_entry c
+JOIN anime a ON c.anime_id = a.id
+WHERE c.user_id = ?
+ORDER BY c.updated_at DESC
+LIMIT ?
+`
+
+type GetContinueWatchingCarouselEntriesParams struct {
+	UserID string `json:"user_id"`
+	Limit  int64  `json:"limit"`
+}
+
+func (q *Queries) GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingEntriesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getContinueWatchingCarouselEntries, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetContinueWatchingEntriesRow
+	for rows.Next() {
+		var i GetContinueWatchingEntriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.AnimeID,
+			&i.CurrentEpisode,
+			&i.CurrentTimeSeconds,
+			&i.DurationSeconds,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.TitleOriginal,
+			&i.TitleEnglish,
+			&i.TitleJapanese,
+			&i.ImageUrl,
+			&i.AnimeDurationSeconds,
 		); err != nil {
 			return nil, err
 		}
@@ -422,69 +489,7 @@ func (q *Queries) GetContinueWatchingEntries(ctx context.Context, userID string)
 	if err != nil {
 		return nil, err
 	}
-	var items []GetContinueWatchingEntriesRow
-	for rows.Next() {
-		var i GetContinueWatchingEntriesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.AnimeID,
-			&i.CurrentEpisode,
-			&i.CurrentTimeSeconds,
-			&i.DurationSeconds,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.TitleOriginal,
-			&i.TitleEnglish,
-			&i.TitleJapanese,
-			&i.ImageUrl,
-			&i.AnimeDurationSeconds,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getContinueWatchingCarouselEntries = `-- name: GetContinueWatchingCarouselEntries :many
-SELECT
-    c.id,
-    c.user_id,
-    c.anime_id,
-    c.current_episode,
-    c.current_time_seconds,
-    c.duration_seconds,
-    c.created_at,
-    c.updated_at,
-    a.title_original,
-    a.title_english,
-    a.title_japanese,
-    a.image_url,
-    a.duration_seconds as anime_duration_seconds
-FROM continue_watching_entry c
-JOIN anime a ON c.anime_id = a.id
-WHERE c.user_id = ?
-ORDER BY c.updated_at DESC
-LIMIT ?
-`
-
-type GetContinueWatchingCarouselEntriesParams struct {
-	UserID string `json:"user_id"`
-	Limit  int64  `json:"limit"`
-}
-
-func (q *Queries) GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingEntriesRow, error) {
-	rows, err := q.db.QueryContext(ctx, getContinueWatchingCarouselEntries, arg.UserID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
+	defer rows.Close()
 	var items []GetContinueWatchingEntriesRow
 	for rows.Next() {
 		var i GetContinueWatchingEntriesRow
@@ -555,6 +560,7 @@ func (q *Queries) GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]A
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []AnimeFetchRetry
 	for rows.Next() {
 		var i AnimeFetchRetry
@@ -639,6 +645,18 @@ func (q *Queries) GetJikanCache(ctx context.Context, key string) (string, error)
 	return data, err
 }
 
+const getJikanCacheStale = `-- name: GetJikanCacheStale :one
+SELECT data FROM jikan_cache
+WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1
+`
+
+func (q *Queries) GetJikanCacheStale(ctx context.Context, key string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getJikanCacheStale, key)
+	var data string
+	err := row.Scan(&data)
+	return data, err
+}
+
 const getJikanCacheStats = `-- name: GetJikanCacheStats :one
 SELECT
     COUNT(*) AS total_rows,
@@ -658,18 +676,6 @@ func (q *Queries) GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow
 	var i GetJikanCacheStatsRow
 	err := row.Scan(&i.TotalRows, &i.ExpiredRows, &i.OldestExpiresAtSeconds)
 	return i, err
-}
-
-const getJikanCacheStale = `-- name: GetJikanCacheStale :one
-SELECT data FROM jikan_cache
-WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1
-`
-
-func (q *Queries) GetJikanCacheStale(ctx context.Context, key string) (string, error) {
-	row := q.db.QueryRowContext(ctx, getJikanCacheStale, key)
-	var data string
-	err := row.Scan(&data)
-	return data, err
 }
 
 const getSession = `-- name: GetSession :one
@@ -716,6 +722,7 @@ func (q *Queries) GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Conte
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []int64
 	for rows.Next() {
 		var anime_id int64
@@ -792,6 +799,7 @@ func (q *Queries) GetUpcomingSeasons(ctx context.Context, userID string) ([]GetU
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []GetUpcomingSeasonsRow
 	for rows.Next() {
 		var i GetUpcomingSeasonsRow
@@ -857,7 +865,20 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 
 const getUserWatchList = `-- name: GetUserWatchList :many
 SELECT 
-    e.id, e.user_id, e.anime_id, e.status, e.created_at, e.updated_at, e.current_episode, e.last_episode_at, e.current_time_seconds,
+    e.id,
+    e.user_id,
+    e.anime_id,
+    e.status,
+    e.created_at,
+    e.updated_at,
+    e.current_episode,
+    e.last_episode_at,
+    e.current_time_seconds,
+    e.completed_at,
+    e.completed_at_estimated,
+    c.current_episode AS playback_current_episode,
+    c.current_time_seconds AS playback_current_time_seconds,
+    c.updated_at AS playback_updated_at,
     a.title_original,
     a.title_english,
     a.title_japanese,
@@ -865,25 +886,31 @@ SELECT
     a.airing
 FROM watch_list_entry e
 JOIN anime a ON e.anime_id = a.id
+LEFT JOIN continue_watching_entry c ON c.user_id = e.user_id AND c.anime_id = e.anime_id
 WHERE e.user_id = ?
 ORDER BY e.updated_at DESC
 `
 
 type GetUserWatchListRow struct {
-	ID                 string         `json:"id"`
-	UserID             string         `json:"user_id"`
-	AnimeID            int64          `json:"anime_id"`
-	Status             string         `json:"status"`
-	CreatedAt          time.Time      `json:"created_at"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	CurrentEpisode     sql.NullInt64  `json:"current_episode"`
-	LastEpisodeAt      sql.NullTime   `json:"last_episode_at"`
-	CurrentTimeSeconds float64        `json:"current_time_seconds"`
-	TitleOriginal      string         `json:"title_original"`
-	TitleEnglish       sql.NullString `json:"title_english"`
-	TitleJapanese      sql.NullString `json:"title_japanese"`
-	ImageUrl           string         `json:"image_url"`
-	Airing             sql.NullBool   `json:"airing"`
+	ID                         string          `json:"id"`
+	UserID                     string          `json:"user_id"`
+	AnimeID                    int64           `json:"anime_id"`
+	Status                     string          `json:"status"`
+	CreatedAt                  time.Time       `json:"created_at"`
+	UpdatedAt                  time.Time       `json:"updated_at"`
+	CurrentEpisode             sql.NullInt64   `json:"current_episode"`
+	LastEpisodeAt              sql.NullTime    `json:"last_episode_at"`
+	CurrentTimeSeconds         float64         `json:"current_time_seconds"`
+	CompletedAt                sql.NullTime    `json:"completed_at"`
+	CompletedAtEstimated       bool            `json:"completed_at_estimated"`
+	PlaybackCurrentEpisode     sql.NullInt64   `json:"playback_current_episode"`
+	PlaybackCurrentTimeSeconds sql.NullFloat64 `json:"playback_current_time_seconds"`
+	PlaybackUpdatedAt          sql.NullTime    `json:"playback_updated_at"`
+	TitleOriginal              string          `json:"title_original"`
+	TitleEnglish               sql.NullString  `json:"title_english"`
+	TitleJapanese              sql.NullString  `json:"title_japanese"`
+	ImageUrl                   string          `json:"image_url"`
+	Airing                     sql.NullBool    `json:"airing"`
 }
 
 func (q *Queries) GetUserWatchList(ctx context.Context, userID string) ([]GetUserWatchListRow, error) {
@@ -891,6 +918,7 @@ func (q *Queries) GetUserWatchList(ctx context.Context, userID string) ([]GetUse
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []GetUserWatchListRow
 	for rows.Next() {
 		var i GetUserWatchListRow
@@ -904,6 +932,11 @@ func (q *Queries) GetUserWatchList(ctx context.Context, userID string) ([]GetUse
 			&i.CurrentEpisode,
 			&i.LastEpisodeAt,
 			&i.CurrentTimeSeconds,
+			&i.CompletedAt,
+			&i.CompletedAtEstimated,
+			&i.PlaybackCurrentEpisode,
+			&i.PlaybackCurrentTimeSeconds,
+			&i.PlaybackUpdatedAt,
 			&i.TitleOriginal,
 			&i.TitleEnglish,
 			&i.TitleJapanese,
@@ -924,7 +957,7 @@ func (q *Queries) GetUserWatchList(ctx context.Context, userID string) ([]GetUse
 }
 
 const getWatchListEntry = `-- name: GetWatchListEntry :one
-SELECT id, user_id, anime_id, status, created_at, updated_at, current_episode, last_episode_at, current_time_seconds FROM watch_list_entry
+SELECT id, user_id, anime_id, status, created_at, updated_at, current_episode, last_episode_at, current_time_seconds, completed_at, completed_at_estimated FROM watch_list_entry
 WHERE user_id = ? AND anime_id = ? LIMIT 1
 `
 
@@ -946,13 +979,15 @@ func (q *Queries) GetWatchListEntry(ctx context.Context, arg GetWatchListEntryPa
 		&i.CurrentEpisode,
 		&i.LastEpisodeAt,
 		&i.CurrentTimeSeconds,
+		&i.CompletedAt,
+		&i.CompletedAtEstimated,
 	)
 	return i, err
 }
 
 const getWatchingAnime = `-- name: GetWatchingAnime :many
 SELECT 
-    e.id, e.user_id, e.anime_id, e.status, e.created_at, e.updated_at, e.current_episode, e.last_episode_at, e.current_time_seconds,
+    e.id, e.user_id, e.anime_id, e.status, e.created_at, e.updated_at, e.current_episode, e.last_episode_at, e.current_time_seconds, e.completed_at, e.completed_at_estimated,
     a.title_original,
     a.title_english,
     a.title_japanese,
@@ -965,20 +1000,22 @@ ORDER BY e.updated_at DESC
 `
 
 type GetWatchingAnimeRow struct {
-	ID                 string         `json:"id"`
-	UserID             string         `json:"user_id"`
-	AnimeID            int64          `json:"anime_id"`
-	Status             string         `json:"status"`
-	CreatedAt          time.Time      `json:"created_at"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	CurrentEpisode     sql.NullInt64  `json:"current_episode"`
-	LastEpisodeAt      sql.NullTime   `json:"last_episode_at"`
-	CurrentTimeSeconds float64        `json:"current_time_seconds"`
-	TitleOriginal      string         `json:"title_original"`
-	TitleEnglish       sql.NullString `json:"title_english"`
-	TitleJapanese      sql.NullString `json:"title_japanese"`
-	ImageUrl           string         `json:"image_url"`
-	Airing             sql.NullBool   `json:"airing"`
+	ID                   string         `json:"id"`
+	UserID               string         `json:"user_id"`
+	AnimeID              int64          `json:"anime_id"`
+	Status               string         `json:"status"`
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
+	CurrentEpisode       sql.NullInt64  `json:"current_episode"`
+	LastEpisodeAt        sql.NullTime   `json:"last_episode_at"`
+	CurrentTimeSeconds   float64        `json:"current_time_seconds"`
+	CompletedAt          sql.NullTime   `json:"completed_at"`
+	CompletedAtEstimated bool           `json:"completed_at_estimated"`
+	TitleOriginal        string         `json:"title_original"`
+	TitleEnglish         sql.NullString `json:"title_english"`
+	TitleJapanese        sql.NullString `json:"title_japanese"`
+	ImageUrl             string         `json:"image_url"`
+	Airing               sql.NullBool   `json:"airing"`
 }
 
 func (q *Queries) GetWatchingAnime(ctx context.Context, userID string) ([]GetWatchingAnimeRow, error) {
@@ -986,6 +1023,7 @@ func (q *Queries) GetWatchingAnime(ctx context.Context, userID string) ([]GetWat
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var items []GetWatchingAnimeRow
 	for rows.Next() {
 		var i GetWatchingAnimeRow
@@ -999,6 +1037,8 @@ func (q *Queries) GetWatchingAnime(ctx context.Context, userID string) ([]GetWat
 			&i.CurrentEpisode,
 			&i.LastEpisodeAt,
 			&i.CurrentTimeSeconds,
+			&i.CompletedAt,
+			&i.CompletedAtEstimated,
 			&i.TitleOriginal,
 			&i.TitleEnglish,
 			&i.TitleJapanese,
@@ -1362,14 +1402,34 @@ func (q *Queries) UpsertEpisodeProviderMapping(ctx context.Context, arg UpsertEp
 }
 
 const upsertWatchListEntry = `-- name: UpsertWatchListEntry :one
-INSERT INTO watch_list_entry (id, user_id, anime_id, status, current_episode, current_time_seconds, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+INSERT INTO watch_list_entry (id, user_id, anime_id, status, current_episode, current_time_seconds, completed_at, completed_at_estimated, updated_at)
+VALUES (
+    ?1,
+    ?2,
+    ?3,
+    ?4,
+    ?5,
+    ?6,
+    CASE WHEN ?4 = 'completed' THEN CURRENT_TIMESTAMP END,
+    0,
+    CURRENT_TIMESTAMP
+)
 ON CONFLICT (user_id, anime_id) DO UPDATE SET
     status = excluded.status,
     current_episode = excluded.current_episode,
     current_time_seconds = excluded.current_time_seconds,
+    completed_at = CASE
+        WHEN excluded.status != 'completed' THEN NULL
+        WHEN watch_list_entry.status = 'completed' THEN COALESCE(watch_list_entry.completed_at, CURRENT_TIMESTAMP)
+        ELSE CURRENT_TIMESTAMP
+    END,
+    completed_at_estimated = CASE
+        WHEN excluded.status = 'completed' AND watch_list_entry.status = 'completed'
+            THEN watch_list_entry.completed_at_estimated
+        ELSE 0
+    END,
     updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, anime_id, status, created_at, updated_at, current_episode, last_episode_at, current_time_seconds
+RETURNING id, user_id, anime_id, status, created_at, updated_at, current_episode, last_episode_at, current_time_seconds, completed_at, completed_at_estimated
 `
 
 type UpsertWatchListEntryParams struct {
@@ -1401,6 +1461,8 @@ func (q *Queries) UpsertWatchListEntry(ctx context.Context, arg UpsertWatchListE
 		&i.CurrentEpisode,
 		&i.LastEpisodeAt,
 		&i.CurrentTimeSeconds,
+		&i.CompletedAt,
+		&i.CompletedAtEstimated,
 	)
 	return i, err
 }
