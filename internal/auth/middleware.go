@@ -30,6 +30,9 @@ var publicRoutes = []publicRoute{
 
 	// Auth API.
 	{method: http.MethodPost, path: "/api/auth/login"},
+
+	// Explicitly public, read-only API resources.
+	{method: http.MethodGet, path: "/api/public/", prefix: true},
 }
 
 func isPublicRequest(method string, path string) bool {

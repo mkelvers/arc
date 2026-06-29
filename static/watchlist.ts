@@ -228,14 +228,6 @@ const toggleWatchlist = async (
 
 type WatchlistSort = "date" | "title";
 
-const csvEscape = (value: unknown): string => {
-  const str = String(value ?? "");
-  if (/[",\r\n]/.test(str)) {
-    return `"${str.replaceAll(/"/g, '""')}"`;
-  }
-  return str;
-};
-
 const watchlistItems = (): HTMLElement[] => [
   ...document.querySelectorAll<HTMLElement>(".watchlist-item"),
 ];
@@ -314,35 +306,6 @@ const applyWatchlistFilter = (status: string): void => {
   });
 };
 
-const exportWatchlistCsv = (): void => {
-  const rows = [...watchlistItems()]
-    .toSorted((a, b) => {
-      const dateA = Number.parseInt(a.dataset.updatedAt ?? "0", 10) || 0;
-      const dateB = Number.parseInt(b.dataset.updatedAt ?? "0", 10) || 0;
-      return dateB - dateA;
-    })
-    .map((item) => {
-      const updatedAt = Number.parseInt(item.dataset.updatedAt ?? "0", 10) || 0;
-      const updatedAtISO = updatedAt > 0 ? new Date(updatedAt * 1000).toISOString() : "";
-      const title = item.dataset.title || item.querySelector("h3")?.textContent?.trim() || "";
-      return [item.dataset.malId || "", title, item.dataset.status || "", updatedAtISO];
-    });
-
-  const csv = [["mal_id", "title", "status", "updated_at"], ...rows]
-    .map((row) => row.map(csvEscape).join(","))
-    .join("\r\n");
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "watchlist.csv";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-};
-
 const initWatchlistPage = (): void => {
   let currentSortBy: WatchlistSort = "date";
   let sortOrderDesc = true;
@@ -394,12 +357,6 @@ const initWatchlistPage = (): void => {
       const icon = sortOrderBtn.querySelector("svg");
       icon?.classList.toggle("rotate-180", !sortOrderDesc);
       sortVisibleWatchlistItems(currentSortBy, sortOrderDesc);
-      return;
-    }
-
-    const exportBtn = target.closest<HTMLButtonElement>("button[data-watchlist-export]");
-    if (exportBtn) {
-      exportWatchlistCsv();
       return;
     }
   });

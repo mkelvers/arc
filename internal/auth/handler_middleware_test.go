@@ -272,6 +272,26 @@ func TestAuthMiddlewareRejectsUnauthenticatedRequests(t *testing.T) {
 	}
 }
 
+func TestAuthMiddlewareAllowsPublicWatchlistAPI(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &fakeAuthService{validateErr: errors.New("no auth")}
+	router := gin.New()
+	router.Use(AuthMiddleware(svc))
+	router.GET("/api/public/users/:userID/watchlist", func(c *gin.Context) { c.Status(http.StatusOK) })
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/public/users/user-42/watchlist", nil)
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if svc.validateSessionCalled || svc.validateAPITokenCalled {
+		t.Fatalf("public watchlist endpoint should not authenticate")
+	}
+}
+
 type fakeAuthService struct {
 	user *domain.User
 

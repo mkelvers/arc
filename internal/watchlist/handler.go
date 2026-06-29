@@ -6,6 +6,8 @@ import (
 	"mal/internal/server"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +24,7 @@ func (h *WatchlistHandler) Register(r *gin.Engine) {
 	r.POST("/api/watchlist", h.HandleUpdateWatchlist)
 	r.DELETE("/api/watchlist/:id", h.HandleDeleteWatchlist)
 	r.DELETE("/api/continue-watching/:id", h.HandleDeleteContinueWatching)
+	r.GET("/api/public/users/:userID/watchlist", h.HandleGetPublicWatchlist)
 	r.GET("/watchlist", h.HandleGetWatchlist)
 }
 
@@ -137,4 +140,46 @@ func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
 		"CurrentPath": "/watchlist",
 		"User":        user,
 	})
+}
+
+func (h *WatchlistHandler) HandleGetPublicWatchlist(c *gin.Context) {
+	userID := strings.TrimSpace(c.Param("userID"))
+	if userID == "" {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+
+	entries, err := h.svc.GetWatchlist(c.Request.Context(), userID)
+	if err != nil {
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"public_watchlist_load_failed",
+			"watchlist",
+			"failed to load public watchlist",
+			map[string]any{"user_id": userID},
+			err,
+		)
+		return
+	}
+
+	c.Header("Cache-Control", "no-store")
+	if c.Query("download") == "1" {
+		c.Header("Content-Disposition", `attachment; filename="watchlist-`+safeFilenamePart(userID)+`.json"`)
+	}
+	c.JSON(http.StatusOK, newPublicWatchlist(userID, entries, time.Now().UTC()))
+}
+
+func safeFilenamePart(value string) string {
+	const allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+	var filename strings.Builder
+	for _, char := range value {
+		if strings.ContainsRune(allowed, char) {
+			filename.WriteRune(char)
+		}
+	}
+	if filename.Len() == 0 {
+		return "user"
+	}
+	return filename.String()
 }
