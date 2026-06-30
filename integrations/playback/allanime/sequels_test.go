@@ -35,7 +35,7 @@ func TestDirectSequelsReturnsOnlyPlayableSequels(t *testing.T) {
 func TestGetProviderShowKeepsOnlyPositiveIntegerEpisodes(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":{"show":{"_id":"season-2","name":"Example Season 2","englishName":"Example Season 2","malId":"42","status":"Finished","episodeCount":"2","availableEpisodesDetail":{"sub":["2","1","0","1.5"],"dub":["1"],"raw":[]}}}}`))
+		_, _ = w.Write([]byte(`{"data":{"show":{"_id":"season-2","name":"Example Season 2","englishName":"Example Season 2","description":"A useful<br><i>synopsis</i> &amp; summary.","malId":"42","status":"Finished","episodeCount":"2","availableEpisodesDetail":{"sub":["2","1","0","1.5"],"dub":["1"],"raw":[]}}}}`))
 	}))
 	defer server.Close()
 
@@ -49,6 +49,9 @@ func TestGetProviderShowKeepsOnlyPositiveIntegerEpisodes(t *testing.T) {
 	}
 	if got.MalID != 42 || len(got.SubEpisodes) != 2 || len(got.DubEpisodes) != 1 {
 		t.Fatalf("GetProviderShow = %+v", got)
+	}
+	if got.Description != "A useful synopsis & summary." {
+		t.Fatalf("Description = %q", got.Description)
 	}
 }
 

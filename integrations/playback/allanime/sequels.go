@@ -1,17 +1,22 @@
 package allanime
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	stdhtml "html"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 type ProviderShow struct {
 	ID           string
 	Name         string
 	EnglishName  string
+	Description  string
 	MalID        int
 	Status       string
 	Thumbnail    string
@@ -43,7 +48,7 @@ func (c *AllAnimeProvider) DirectSequels(ctx context.Context, show ProviderShow)
 }
 
 func (c *AllAnimeProvider) GetProviderShow(ctx context.Context, showID string) (ProviderShow, error) {
-	query := `query($showId: String!) { show(_id: $showId) { _id name englishName malId status thumbnail type season episodeCount availableEpisodesDetail } }`
+	query := `query($showId: String!) { show(_id: $showId) { _id name englishName description malId status thumbnail type season episodeCount availableEpisodesDetail } }`
 	result, err := c.graphqlRequest(ctx, query, map[string]any{"showId": showID})
 	if err != nil {
 		return ProviderShow{}, err
@@ -58,7 +63,7 @@ func (c *AllAnimeProvider) GetProviderShow(ctx context.Context, showID string) (
 
 func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, year int) ([]ProviderShow, error) {
 	const pageSize = 40
-	query := `query($search: SearchInput, $page: Int) { shows(search: $search, limit: 40, page: $page, countryOrigin: ALL) { edges { _id name englishName malId status thumbnail type season episodeCount availableEpisodesDetail } } }`
+	query := `query($search: SearchInput, $page: Int) { shows(search: $search, limit: 40, page: $page, countryOrigin: ALL) { edges { _id name englishName description malId status thumbnail type season episodeCount availableEpisodesDetail } } }`
 	if season == "" {
 		return nil, errors.New("allanime: season is required")
 	}
@@ -103,6 +108,7 @@ func providerShowFrom(raw map[string]any) ProviderShow {
 		ID:           stringValue(raw["_id"]),
 		Name:         stringValue(raw["name"]),
 		EnglishName:  stringValue(raw["englishName"]),
+		Description:  plainText(stringValue(raw["description"])),
 		MalID:        intValue(raw["malId"]),
 		Status:       stringValue(raw["status"]),
 		Thumbnail:    stringValue(raw["thumbnail"]),
@@ -111,6 +117,26 @@ func providerShowFrom(raw map[string]any) ProviderShow {
 		EpisodeCount: intValue(raw["episodeCount"]),
 		SubEpisodes:  episodeNums(stringsFrom(detail["sub"])),
 		DubEpisodes:  episodeNums(stringsFrom(detail["dub"])),
+	}
+}
+
+func plainText(value string) string {
+	tokenizer := html.NewTokenizer(bytes.NewBufferString(value))
+	var out strings.Builder
+	for {
+		switch tokenizer.Next() {
+		case html.ErrorToken:
+			return out.String()
+		case html.TextToken:
+			text := strings.Join(strings.Fields(stdhtml.UnescapeString(string(tokenizer.Text()))), " ")
+			if text == "" {
+				continue
+			}
+			if out.Len() > 0 {
+				out.WriteByte(' ')
+			}
+			out.WriteString(text)
+		}
 	}
 }
 
