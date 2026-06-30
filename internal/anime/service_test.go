@@ -7,13 +7,14 @@ import (
 )
 
 type catalogRepoStub struct {
+	watchlist            []db.GetUserWatchListRow
 	allContinueRows      []db.GetContinueWatchingEntriesRow
 	carouselContinueRows []db.GetContinueWatchingEntriesRow
 	carouselLimit        int64
 }
 
 func (r *catalogRepoStub) GetUserWatchList(ctx context.Context, userID string) ([]db.GetUserWatchListRow, error) {
-	return nil, nil
+	return r.watchlist, nil
 }
 
 func (r *catalogRepoStub) GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error) {

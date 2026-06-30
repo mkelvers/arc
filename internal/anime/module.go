@@ -10,6 +10,7 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		NewAnimeRepository,
+		NewSeasonDiscoveryService,
 		fx.Annotate(
 			NewAnimeService,
 			fx.As(new(Service)),

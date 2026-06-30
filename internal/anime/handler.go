@@ -11,6 +11,7 @@ type AnimeHandler struct {
 	svc          Service
 	watchlistSvc domain.WatchlistService
 	episodeSvc   domain.EpisodeService
+	discoverySvc *SeasonDiscoveryService
 }
 
 type Service interface {
@@ -20,11 +21,12 @@ type Service interface {
 	WarmDetailSections(id int)
 }
 
-func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService, episodeSvc domain.EpisodeService) *AnimeHandler {
+func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService, episodeSvc domain.EpisodeService, discoverySvc *SeasonDiscoveryService) *AnimeHandler {
 	return &AnimeHandler{
 		svc:          svc,
 		watchlistSvc: watchlistSvc,
 		episodeSvc:   episodeSvc,
+		discoverySvc: discoverySvc,
 	}
 }
 
@@ -59,6 +61,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/search", h.HandleSearch)
 	r.GET("/top-picks", h.HandleTopPicks)
 	r.GET("/browse", h.HandleBrowse)
+	r.GET("/simulcast", h.HandleSimulcast)
 	r.GET("/anime/:id", h.HandleAnimeDetails)
 	r.GET("/anime/:id/reviews", h.HandleAnimeReviews)
 	r.GET("/api/watch-order", h.HandleHTMLWatchOrder)

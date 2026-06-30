@@ -140,7 +140,7 @@ func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
 			},
 		},
 	}
-	handler := NewAnimeHandler(nil, nil, episodeSvc)
+	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
 	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
 		MalID:    59970,
@@ -162,7 +162,7 @@ func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
 
 func TestAnimeEpisodeCountFallsBackToMetadata(t *testing.T) {
 	episodeSvc := &stubEpisodeService{err: errors.New("provider unavailable")}
-	handler := NewAnimeHandler(nil, nil, episodeSvc)
+	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
 	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
 		MalID:    59970,
@@ -279,7 +279,7 @@ func TestAnimeAudioAvailabilityRequiresAllAnimeSource(t *testing.T) {
 				},
 				err: tt.err,
 			}
-			handler := NewAnimeHandler(nil, nil, episodeSvc)
+			handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
 			got := handler.animeAudioAvailability(context.Background(), domain.Anime{
 				Anime: jikan.Anime{MalID: 52991},

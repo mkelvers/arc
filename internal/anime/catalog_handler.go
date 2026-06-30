@@ -4,9 +4,38 @@ import (
 	"mal/internal/observability"
 	"mal/internal/server"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+func (h *AnimeHandler) HandleSimulcast(c *gin.Context) {
+	now := time.Now()
+	current := calendarSeason(now.Year(), int(now.Month()))
+	latest := h.discoverySvc.LatestAvailableSeason(c.Request.Context(), current)
+	selected := seasonSelection(c.Query("season"), c.Query("year"), current, latest)
+	data, err := h.discoverySvc.GetSimulcast(c.Request.Context(), selected)
+	if err != nil {
+		observability.WarnContext(c.Request.Context(), "simulcast_fetch_failed", "anime", "", nil, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), server.CurrentUserID(c), data.Animes)
+	previous, next := seasonNavigation(selected, 2018, latest)
+	c.HTML(http.StatusOK, "simulcast.gohtml", gin.H{
+		"CurrentPath":   "/simulcast",
+		"User":          server.CurrentUser(c),
+		"Animes":        data.Animes,
+		"Season":        data.Season,
+		"SeasonLabel":   strings.ToUpper(data.Season[:1]) + data.Season[1:],
+		"Year":          data.Year,
+		"SeasonOptions": seasonOptions(2018, latest),
+		"Previous":      previous,
+		"Next":          next,
+		"WatchlistMap":  watchlistMap,
+	})
+}
 
 func (h *AnimeHandler) HandleSearch(c *gin.Context) {
 	c.HTML(http.StatusOK, "search.gohtml", gin.H{
