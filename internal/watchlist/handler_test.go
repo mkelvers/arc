@@ -151,6 +151,31 @@ func TestHandleGetPublicWatchlistReturnsMinimalJSON(t *testing.T) {
 	assertMinimalPublicWatchlistJSON(t, rec.Body.Bytes())
 }
 
+func TestHandleDownloadWatchlistReturnsAttachment(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	addedAt := time.Date(2026, time.June, 1, 12, 30, 0, 0, time.UTC)
+	completedAt := time.Date(2026, time.June, 20, 18, 45, 0, 0, time.UTC)
+	lastWatchedAt := time.Date(2026, time.June, 28, 20, 15, 0, 0, time.UTC)
+	svc := &fakeWatchlistService{watchlist: publicWatchlistRows(addedAt, completedAt, lastWatchedAt)}
+	router := newWatchlistTestRouter(svc)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/watchlist/export", nil)
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if got := rec.Header().Get("Content-Disposition"); got != `attachment; filename="watchlist.json"` {
+		t.Fatalf("Content-Disposition = %q, want watchlist.json attachment", got)
+	}
+	if got := rec.Header().Get("Content-Type"); !strings.HasPrefix(got, "application/json") {
+		t.Fatalf("Content-Type = %q, want application/json", got)
+	}
+	assertMinimalPublicWatchlistJSON(t, rec.Body.Bytes())
+}
+
 func publicWatchlistRows(addedAt time.Time, completedAt time.Time, lastWatchedAt time.Time) []domain.UserWatchListRow {
 	return []domain.UserWatchListRow{
 		{

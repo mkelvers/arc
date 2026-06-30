@@ -24,6 +24,7 @@ func (h *WatchlistHandler) Register(r *gin.Engine) {
 	r.POST("/api/watchlist", h.HandleUpdateWatchlist)
 	r.DELETE("/api/watchlist/:id", h.HandleDeleteWatchlist)
 	r.DELETE("/api/continue-watching/:id", h.HandleDeleteContinueWatching)
+	r.GET("/watchlist/export", h.HandleDownloadWatchlist)
 	r.GET("/api/public/users/:userID/watchlist", h.HandleGetPublicWatchlist)
 	r.GET("/watchlist", h.HandleGetWatchlist)
 }
@@ -140,6 +141,28 @@ func (h *WatchlistHandler) HandleGetWatchlist(c *gin.Context) {
 		"CurrentPath": "/watchlist",
 		"User":        user,
 	})
+}
+
+func (h *WatchlistHandler) HandleDownloadWatchlist(c *gin.Context) {
+	userID := server.CurrentUserID(c)
+
+	entries, err := h.svc.GetWatchlist(c.Request.Context(), userID)
+	if err != nil {
+		server.RespondError(
+			c,
+			http.StatusInternalServerError,
+			"watchlist_load_failed",
+			"watchlist",
+			"failed to load watchlist",
+			map[string]any{"user_id": userID},
+			err,
+		)
+		return
+	}
+
+	c.Header("Cache-Control", "no-store")
+	c.Header("Content-Disposition", `attachment; filename="watchlist.json"`)
+	c.JSON(http.StatusOK, newPublicWatchlist(userID, entries, time.Now().UTC()))
 }
 
 func (h *WatchlistHandler) HandleGetPublicWatchlist(c *gin.Context) {
