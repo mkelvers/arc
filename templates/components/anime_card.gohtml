@@ -5,6 +5,7 @@
 {{$hideTitle := .HideTitle}}
 {{$isWatchlist := .IsWatchlist}}
 {{$hasTopBadge := .HasTopBadge}}
+{{$smallHoverTitle := .SmallHoverTitle}}
 {{$dataId := printf "id-%d" $anime.MalID}}
 
 {{$imageUrl := posterURL $anime.Images.Webp.LargeImageURL $anime.Images.Jpg.LargeImageURL 400 600}}
@@ -21,7 +22,7 @@
     {{if $withActions}}
       <div class="absolute inset-0 z-10 flex flex-col p-3 {{if $hasTopBadge}}pt-10{{end}} opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         {{if not $isWatchlist}}
-          <h3 class="mb-1.5 line-clamp-2 text-base font-medium text-white">
+          <h3 class="mb-1.5 line-clamp-2 {{if $smallHoverTitle}}text-sm{{else}}text-base{{end}} font-medium text-white">
             {{$displayTitle}}
           </h3>
         {{end}}
