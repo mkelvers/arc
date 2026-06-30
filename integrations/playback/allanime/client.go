@@ -26,6 +26,7 @@ type AllAnimeProvider struct {
 	httpClient *http.Client
 	utlsClient *http.Client
 	extractor  *providerExtractor
+	baseURL    string
 }
 
 func NewAllAnimeProvider() *AllAnimeProvider {
@@ -38,11 +39,19 @@ func NewAllAnimeProvider() *AllAnimeProvider {
 			Timeout:   30 * time.Second,
 		},
 		extractor: newProviderExtractor(),
+		baseURL:   allAnimeBaseURL,
 	}
 }
 
 func (c *AllAnimeProvider) Name() string {
 	return "AllAnime"
+}
+
+func (c *AllAnimeProvider) apiBaseURL() string {
+	if c.baseURL != "" {
+		return c.baseURL
+	}
+	return allAnimeBaseURL
 }
 
 func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string) (*domain.StreamResult, error) {
@@ -89,7 +98,7 @@ func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, var
 		return nil, fmt.Errorf("marshal graphql payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, allAnimeBaseURL+"/api", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.apiBaseURL()+"/api", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("create graphql request: %w", err)
 	}

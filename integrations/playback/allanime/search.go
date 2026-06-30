@@ -68,7 +68,7 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 		TranslationType: mode,
 	}
 
-	data, err := graphql.Post[searchData](ctx, c.httpClient, allAnimeBaseURL+"/api", searchQuery, vars, graphql.PostOptions{
+	data, err := graphql.Post[searchData](ctx, c.httpClient, c.apiBaseURL()+"/api", searchQuery, vars, graphql.PostOptions{
 		Headers: map[string]string{
 			"Referer":    allAnimeReferer,
 			"User-Agent": defaultUserAgent,
