@@ -132,6 +132,7 @@ func (s *SeasonDiscoveryService) GetSimulcast(ctx context.Context, selected anim
 			MalID:        show.MalID,
 			Title:        show.Name,
 			TitleEnglish: show.EnglishName,
+			Synopsis:     show.Description,
 			Status:       show.Status,
 			Type:         show.Type,
 			Year:         show.Year,
