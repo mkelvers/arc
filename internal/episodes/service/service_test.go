@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"encoding/json"
 	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
@@ -41,6 +42,74 @@ func TestMergeEpisodesUsesJikanWhenProviderAvailabilityMissing(t *testing.T) {
 
 	assertEpisode(t, episodes[0], 1, "Start", false, false, false, false)
 	assertEpisode(t, episodes[1], 2, "Second", false, false, false, false)
+}
+
+func TestMergeEpisodesSkipsFutureJikanEpisodesWithoutProviderAvailability(t *testing.T) {
+	now := time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+		Aired:  jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+	}}
+	episodes := mergeEpisodesForAnime(anime, decodeJikanEpisodes(t, `[
+		{"mal_id":1,"title":"Episode 1","episode":null,"aired":"2026-07-09T00:00:00+00:00"},
+		{"mal_id":2,"title":"Episode 2","episode":null,"aired":"2026-07-16T00:00:00+00:00"}
+	]`), domain.EpisodeAvailability{}, now, false)
+
+	if len(episodes) != 0 {
+		t.Fatalf("len(episodes) = %d, want 0", len(episodes))
+	}
+}
+
+func TestMergeEpisodesSkipsUndatedJikanEpisodesForAiringAnimeWithoutProviderAvailability(t *testing.T) {
+	now := time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+		Aired:  jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+	}}
+	episodes := mergeEpisodesForAnime(anime, []jikan.Episode{
+		{MalID: 1, Title: "Episode 1"},
+		{MalID: 2, Title: "Episode 2"},
+	}, domain.EpisodeAvailability{}, now, false)
+
+	if len(episodes) != 0 {
+		t.Fatalf("len(episodes) = %d, want 0", len(episodes))
+	}
+}
+
+func TestMergeEpisodesKeepsReleasedJikanEpisodesWithoutProviderAvailability(t *testing.T) {
+	now := time.Date(2026, time.July, 10, 12, 0, 0, 0, time.UTC)
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+		Aired:  jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+	}}
+	episodes := mergeEpisodesForAnime(anime, decodeJikanEpisodes(t, `[
+		{"mal_id":1,"title":"Episode 1","episode":null,"aired":"2026-07-09T00:00:00+00:00"},
+		{"mal_id":2,"title":"Episode 2","episode":null,"aired":"2026-07-16T00:00:00+00:00"}
+	]`), domain.EpisodeAvailability{}, now, false)
+
+	if len(episodes) != 1 {
+		t.Fatalf("len(episodes) = %d, want 1", len(episodes))
+	}
+	assertEpisode(t, episodes[0], 1, "Episode 1", false, false, false, false)
+}
+
+func TestMergeEpisodesTreatsEmptyProviderAvailabilityAsAuthoritative(t *testing.T) {
+	now := time.Date(2026, time.July, 10, 12, 0, 0, 0, time.UTC)
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+		Aired:  jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+	}}
+	episodes := mergeEpisodesForAnime(anime, decodeJikanEpisodes(t, `[
+		{"mal_id":1,"title":"Episode 1","episode":null,"aired":"2026-07-09T00:00:00+00:00"}
+	]`), domain.EpisodeAvailability{}, now, true)
+
+	if len(episodes) != 0 {
+		t.Fatalf("len(episodes) = %d, want 0", len(episodes))
+	}
 }
 
 func TestMergeEpisodesIgnoresInvalidJikanEpisodeNumbers(t *testing.T) {
@@ -129,6 +198,58 @@ func TestIsCanonicalEpisodePayloadValidAllowsJikanFallbackWithoutAvailability(t 
 	}
 }
 
+func TestDecodeCachedPayloadRejectsUncheckedAiringJikanFallback(t *testing.T) {
+	svc := &EpisodeService{}
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+	}}
+	raw := `{"anime_id":62076,"source":"jikan_fallback","episodes":[{"number":1,"title":"Episode 1"}]}`
+
+	if _, ok := svc.decodeCachedPayload(anime, raw); ok {
+		t.Fatal("expected unchecked airing jikan fallback cache to be rejected")
+	}
+}
+
+func TestDecodeCachedPayloadRejectsOldReleaseCheckedAiringFallback(t *testing.T) {
+	svc := &EpisodeService{}
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+	}}
+	raw := `{"anime_id":62076,"source":"jikan_fallback","release_checked":true,"episodes":[{"number":1,"title":"Episode 1"}]}`
+
+	if _, ok := svc.decodeCachedPayload(anime, raw); ok {
+		t.Fatal("expected old release-checked jikan fallback cache to be rejected")
+	}
+}
+
+func TestDecodeCachedPayloadRejectsOldAiringProviderPayload(t *testing.T) {
+	svc := &EpisodeService{}
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+	}}
+	raw := `{"anime_id":62076,"source":"AllAnime","episodes":[{"number":1,"title":"Episode 1","has_sub":true}]}`
+
+	if _, ok := svc.decodeCachedPayload(anime, raw); ok {
+		t.Fatal("expected old airing provider cache to be rejected")
+	}
+}
+
+func TestDecodeCachedPayloadAllowsCurrentReleaseCheckedJikanFallback(t *testing.T) {
+	svc := &EpisodeService{}
+	anime := domain.Anime{Anime: jikan.Anime{
+		MalID:  62076,
+		Airing: true,
+	}}
+	raw := `{"anime_id":62076,"source":"jikan_fallback","availability_version":2,"release_checked":true,"episodes":[{"number":1,"title":"Episode 1"}]}`
+
+	if _, ok := svc.decodeCachedPayload(anime, raw); !ok {
+		t.Fatal("expected release-checked jikan fallback cache to be valid")
+	}
+}
+
 func TestEnrichCachedPayloadAddsRefreshMetadata(t *testing.T) {
 	now := time.Date(2026, time.June, 27, 11, 0, 0, 0, time.UTC)
 	payload := enrichCachedPayload(domain.CanonicalEpisodeList{
@@ -191,6 +312,16 @@ func TestNextRetryTimeWithinAndAfterRetryWindow(t *testing.T) {
 	if got := nextRetryTime(anime, after); !got.Equal(want) {
 		t.Fatalf("nextRetryTime(after) = %s, want %s", got, want)
 	}
+}
+
+func decodeJikanEpisodes(t *testing.T, raw string) []jikan.Episode {
+	t.Helper()
+
+	var episodes []jikan.Episode
+	if err := json.Unmarshal([]byte(raw), &episodes); err != nil {
+		t.Fatalf("json.Unmarshal episodes: %v", err)
+	}
+	return episodes
 }
 
 func assertEpisode(t *testing.T, got domain.CanonicalEpisode, number int, title string, sub bool, dub bool, subOnly bool, filler bool) {

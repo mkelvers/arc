@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"mal/integrations/jikan"
@@ -12,15 +13,19 @@ import (
 	"mal/internal/observability"
 )
 
+const episodeAvailabilityPayloadVersion = 2
+
 func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, source string, now time.Time, providerSuccess bool) (domain.CanonicalEpisodeList, error) {
 	nextRefreshSQL := nextRefreshAt(anime, now)
-	episodes := mergeEpisodes(jikanEpisodes, availability, anime.Episodes)
+	episodes := mergeEpisodesForAnime(anime, jikanEpisodes, availability, now, providerSuccess)
 	payload := domain.CanonicalEpisodeList{
-		AnimeID:       anime.MalID,
-		Episodes:      episodes,
-		Source:        source,
-		LastAttemptAt: now.Format(time.RFC3339),
-		FailureCount:  0,
+		AnimeID:             anime.MalID,
+		Episodes:            episodes,
+		Source:              source,
+		AvailabilityVersion: episodeAvailabilityPayloadVersion,
+		ReleaseChecked:      !providerSuccess,
+		LastAttemptAt:       now.Format(time.RFC3339),
+		FailureCount:        0,
 	}
 	if providerSuccess {
 		payload.LastSuccessAt = now.Format(time.RFC3339)
@@ -238,6 +243,35 @@ func (s *EpisodeService) decodeCachedPayload(anime domain.Anime, raw string) (do
 		return domain.CanonicalEpisodeList{}, false
 	}
 
+	if isStaleAiringEpisodePayload(anime, payload) {
+		observability.Info(
+			"episodes_cached_payload_rejected_stale_version",
+			"episodes",
+			"",
+			map[string]any{
+				"anime_id":             anime.MalID,
+				"cached_episodes":      len(payload.Episodes),
+				"source":               payload.Source,
+				"availability_version": payload.AvailabilityVersion,
+			},
+		)
+		return domain.CanonicalEpisodeList{}, false
+	}
+
+	if isUncheckedAiringJikanFallback(anime, payload) {
+		observability.Info(
+			"episodes_cached_payload_rejected_unchecked_fallback",
+			"episodes",
+			"",
+			map[string]any{
+				"anime_id":        anime.MalID,
+				"cached_episodes": len(payload.Episodes),
+				"source":          payload.Source,
+			},
+		)
+		return domain.CanonicalEpisodeList{}, false
+	}
+
 	if !isCanonicalEpisodePayloadValid(payload, anime.Episodes) {
 		observability.Info(
 			"episodes_cached_payload_rejected",
@@ -253,4 +287,19 @@ func (s *EpisodeService) decodeCachedPayload(anime domain.Anime, raw string) (do
 	}
 
 	return payload, true
+}
+
+func isStaleAiringEpisodePayload(anime domain.Anime, payload domain.CanonicalEpisodeList) bool {
+	return isAiring(anime) && len(payload.Episodes) > 0 && payload.AvailabilityVersion < episodeAvailabilityPayloadVersion
+}
+
+func isUncheckedAiringJikanFallback(anime domain.Anime, payload domain.CanonicalEpisodeList) bool {
+	if !isAiring(anime) || payload.ReleaseChecked || len(payload.Episodes) == 0 {
+		return false
+	}
+	return payload.Source == "jikan_fallback" || payload.Source == "legacy_disabled"
+}
+
+func isAiring(anime domain.Anime) bool {
+	return anime.Airing || strings.EqualFold(strings.TrimSpace(anime.Status), "Currently Airing")
 }

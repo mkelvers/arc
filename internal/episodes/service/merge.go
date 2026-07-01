@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"mal/integrations/jikan"
 	"mal/internal/domain"
@@ -62,15 +63,23 @@ func providerBackedPayloadHasAvailability(payload domain.CanonicalEpisodeList) b
 }
 
 func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
+	return mergeEpisodeData(jikanEpisodes, availability, expectedCount, time.Now(), false, "", false)
+}
+
+func mergeEpisodesForAnime(anime domain.Anime, jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, now time.Time, providerVerified bool) []domain.CanonicalEpisode {
+	return mergeEpisodeData(jikanEpisodes, availability, anime.Episodes, now, providerVerified, anime.Aired.From, anime.Airing)
+}
+
+func mergeEpisodeData(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, expectedCount int, now time.Time, providerVerified bool, firstAired string, requireJikanAiredDates bool) []domain.CanonicalEpisode {
 	byNumber := map[int]episodePartial{}
 	providerNumbers := availableEpisodeNumbers(availability, expectedCount)
-	providerBacked := len(providerNumbers) > 0
+	providerBacked := providerVerified || len(providerNumbers) > 0
 
 	for number := range providerNumbers {
 		mergeEpisode(&byNumber, number, func(item *episodePartial) {})
 	}
 
-	mergeJikanEpisodes(&byNumber, jikanEpisodes, providerNumbers, providerBacked, expectedCount)
+	mergeJikanEpisodes(&byNumber, jikanEpisodes, providerNumbers, providerBacked, expectedCount, now, firstAired, requireJikanAiredDates)
 	mergeAvailability(&byNumber, availability.Sub, expectedCount, func(item *episodePartial) { item.sub = true })
 	mergeAvailability(&byNumber, availability.Dub, expectedCount, func(item *episodePartial) { item.dub = true })
 
@@ -100,13 +109,26 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 	return episodes
 }
 
-func mergeJikanEpisodes(byNumber *map[int]episodePartial, episodes []jikan.Episode, providerNumbers map[int]bool, providerBacked bool, expectedCount int) {
+func mergeJikanEpisodes(byNumber *map[int]episodePartial, episodes []jikan.Episode, providerNumbers map[int]bool, providerBacked bool, expectedCount int, now time.Time, firstAired string, requireAiredDates bool) {
+	if shouldSkipJikanMerge(providerBacked, firstAired, now) {
+		return
+	}
+
 	for i, ep := range episodes {
 		if exceedsExpectedCount(i+1, expectedCount) {
 			break
 		}
 		number, ok := jikanEpisodeNumber(ep, i)
-		if !ok || exceedsExpectedCount(number, expectedCount) || (providerBacked && !providerNumbers[number]) {
+		if !ok {
+			continue
+		}
+		if exceedsExpectedCount(number, expectedCount) {
+			continue
+		}
+		if providerBacked && !providerNumbers[number] {
+			continue
+		}
+		if !providerBacked && !hasEpisodeAired(ep, now, requireAiredDates) {
 			continue
 		}
 		mergeEpisode(byNumber, number, func(item *episodePartial) {
@@ -115,6 +137,10 @@ func mergeJikanEpisodes(byNumber *map[int]episodePartial, episodes []jikan.Episo
 			item.recap = ep.Recap
 		})
 	}
+}
+
+func shouldSkipJikanMerge(providerBacked bool, firstAired string, now time.Time) bool {
+	return !providerBacked && !hasStartedAiring(firstAired, now)
 }
 
 func availableEpisodeNumbers(availability domain.EpisodeAvailability, expectedCount int) map[int]bool {
@@ -156,6 +182,28 @@ func jikanEpisodeNumber(ep jikan.Episode, index int) (int, bool) {
 		return 0, false
 	}
 	return index + 1, true
+}
+
+func hasStartedAiring(firstAired string, now time.Time) bool {
+	if strings.TrimSpace(firstAired) == "" {
+		return true
+	}
+	startedAt, err := time.Parse(time.RFC3339, firstAired)
+	if err != nil {
+		return true
+	}
+	return !now.Before(startedAt)
+}
+
+func hasEpisodeAired(ep jikan.Episode, now time.Time, requireAiredDate bool) bool {
+	if strings.TrimSpace(ep.Aired) == "" {
+		return !requireAiredDate
+	}
+	airedAt, err := time.Parse(time.RFC3339, ep.Aired)
+	if err != nil {
+		return !requireAiredDate
+	}
+	return !now.Before(airedAt)
 }
 
 func exceedsExpectedCount(number int, expectedCount int) bool {

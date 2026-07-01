@@ -222,8 +222,10 @@ func (s *EpisodeService) jikanOnly(ctx context.Context, anime domain.Anime, sour
 		return domain.CanonicalEpisodeList{}, err
 	}
 	return domain.CanonicalEpisodeList{
-		AnimeID:  anime.MalID,
-		Episodes: mergeEpisodes(episodes, domain.EpisodeAvailability{}, anime.Episodes),
-		Source:   source,
+		AnimeID:             anime.MalID,
+		Episodes:            mergeEpisodesForAnime(anime, episodes, domain.EpisodeAvailability{}, s.clock.Now(), false),
+		Source:              source,
+		AvailabilityVersion: episodeAvailabilityPayloadVersion,
+		ReleaseChecked:      true,
 	}, nil
 }
