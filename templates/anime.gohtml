@@ -45,7 +45,7 @@
         <div class="grow lg:max-w-4xl">
           {{template "anime_synopsis" dict "Anime" $anime}}
         </div>
-        <button type="button" data-anime-sidebar-open class="fixed right-0 top-1/2 z-90 flex h-14 -translate-y-1/2 items-center gap-2 border border-r-0 border-border-light bg-background-sidebar px-3 text-sm text-foreground-muted shadow-card transition-colors hover:text-foreground lg:hidden" aria-controls="anime-sidebar-drawer" aria-expanded="false">
+        <button type="button" data-anime-sidebar-open class="fixed right-0 top-1/2 z-90 flex h-14 -translate-y-1/2 items-center gap-2 bg-background-sidebar px-3 text-sm text-foreground-muted shadow-card transition-colors hover:text-foreground lg:hidden" aria-controls="anime-sidebar-drawer" aria-expanded="false">
           <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 18l6-6-6-6" />
           </svg>
@@ -195,7 +195,7 @@
           </aside>
         </div>
         <button type="button" data-anime-sidebar-backdrop class="fixed inset-0 z-90 hidden bg-black/30 lg:hidden" aria-label="Close anime details"></button>
-        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto border-l border-border-light bg-background-sidebar p-8 lg:flex">
+        <aside class="fixed right-0 top-0 hidden h-screen w-80 shrink-0 flex-col overflow-y-auto bg-background-sidebar p-8 lg:flex">
           <div class="flex flex-col gap-8">
             <section>
               <h3 class="mb-6 text-base font-normal text-foreground">Information</h3>
