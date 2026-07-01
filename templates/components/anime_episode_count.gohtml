@@ -6,13 +6,31 @@
     total eps
   {{else if eq .Items.Label "Available episodes"}}
     available eps
-  {{else if eq .Items.Label "Listed episodes"}}
-    listed eps
   {{else}}
     aired eps
   {{end}}
 </span>
 {{end}}
+{{end}}
+
+{{define "anime_release_info"}}
+<span class="contents">
+  {{if .Items.Count}}
+  <span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-0.75 before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">
+    <span class="text-foreground">{{.Items.Count}}</span>
+    {{if eq .Items.Label "Total episodes"}}
+      total eps
+    {{else if eq .Items.Label "Available episodes"}}
+      available eps
+    {{else}}
+      aired eps
+    {{end}}
+  </span>
+  {{end}}
+  {{if .Items.Status}}
+  <span class="flex min-w-0 items-center gap-1.5 before:mr-1 before:block before:size-0.75 before:shrink-0 before:rounded-full before:bg-current before:opacity-65 first:before:hidden">{{.Items.Status}}</span>
+  {{end}}
+</span>
 {{end}}
 
 {{define "anime_audio_availability"}}
@@ -53,4 +71,15 @@
   {{end}}
 </span>
 {{end}}
+{{end}}
+
+{{define "anime_release_info_loading"}}
+<span
+  hx-get="/anime/{{.AnimeID}}?section=release-info"
+  hx-trigger="load"
+  hx-swap="outerHTML"
+  class="contents"
+>
+  {{template "anime_release_info" dict "Items" .}}
+</span>
 {{end}}

@@ -10,6 +10,7 @@ import (
 	"mal/internal/server"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,15 +28,10 @@ type animeEpisodeCountDisplay struct {
 	Label string
 }
 
-func listedEpisodeCount(episodes []domain.EpisodeData) int {
-	count := 0
-	for _, episode := range episodes {
-		if episode.MalID <= 0 || episode.IsRecap {
-			continue
-		}
-		count++
-	}
-	return count
+type animeReleaseInfoDisplay struct {
+	Count  int
+	Label  string
+	Status string
 }
 
 func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
@@ -56,15 +52,18 @@ func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
 }
 
 func (h *AnimeHandler) animeEpisodeCount(ctx context.Context, anime domain.Anime, now time.Time) animeEpisodeCountDisplay {
+	info := h.animeReleaseInfo(ctx, anime, now)
+	return animeEpisodeCountDisplay{Count: info.Count, Label: info.Label}
+}
+
+func (h *AnimeHandler) animeReleaseInfo(ctx context.Context, anime domain.Anime, now time.Time) animeReleaseInfoDisplay {
 	if h.episodeSvc != nil {
 		episodeCtx, cancel := context.WithTimeout(ctx, episodeCountTimeout)
 		defer cancel()
 
 		episodeList, err := h.episodeSvc.GetCanonicalEpisodes(episodeCtx, anime, false)
 		if err == nil {
-			if count := len(episodeList.Episodes); count > 0 {
-				return animeEpisodeCountDisplay{Count: count, Label: "Available episodes"}
-			}
+			return releaseInfoFromCanonical(anime, episodeList)
 		} else {
 			observability.Warn(
 				"anime_episode_availability_count_fetch_failed",
@@ -78,45 +77,63 @@ func (h *AnimeHandler) animeEpisodeCount(ctx context.Context, anime domain.Anime
 		}
 	}
 
-	if h.svc != nil && anime.Airing {
-		episodeCtx, cancel := context.WithTimeout(ctx, episodeCountTimeout)
-		defer cancel()
+	return animeInitialReleaseInfo(anime, now)
+}
 
-		episodes, err := h.svc.GetAllEpisodes(episodeCtx, anime.MalID)
-		if err == nil {
-			if count := listedEpisodeCount(episodes); count > 0 {
-				return animeEpisodeCountDisplay{Count: count, Label: "Listed episodes"}
-			}
-		} else {
-			observability.Warn(
-				"anime_episode_count_fetch_failed",
-				"anime",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-				},
-				err,
-			)
-		}
+func releaseInfoFromCanonical(anime domain.Anime, episodeList domain.CanonicalEpisodeList) animeReleaseInfoDisplay {
+	info := animeReleaseInfoDisplay{Status: trustedAnimeStatus(anime, len(episodeList.Episodes))}
+	if count := len(episodeList.Episodes); count > 0 {
+		info.Count = count
+		info.Label = canonicalEpisodeCountLabel(episodeList.Source)
+	}
+	return info
+}
+
+func canonicalEpisodeCountLabel(source string) string {
+	if source == "jikan_fallback" || source == "legacy_disabled" {
+		return "Estimated aired episodes"
+	}
+	return "Available episodes"
+}
+
+func animeInitialReleaseInfo(anime domain.Anime, now time.Time) animeReleaseInfoDisplay {
+	if isCurrentlyAiring(anime) {
+		return animeReleaseInfoDisplay{}
 	}
 
+	info := animeReleaseInfoDisplay{Status: strings.TrimSpace(anime.Status)}
 	if anime.Episodes > 0 {
-		return animeEpisodeCountDisplay{Count: anime.Episodes, Label: "Total episodes"}
+		info.Count = anime.Episodes
+		info.Label = "Total episodes"
+		return info
 	}
 	if count := releasedEpisodeCount(anime, now); count > 0 {
-		return animeEpisodeCountDisplay{Count: count, Label: "Estimated aired episodes"}
+		info.Count = count
+		info.Label = "Estimated aired episodes"
 	}
-	return animeEpisodeCountDisplay{}
+	return info
 }
 
 func animeInitialEpisodeCount(anime domain.Anime, now time.Time) animeEpisodeCountDisplay {
-	if anime.Episodes > 0 {
-		return animeEpisodeCountDisplay{Count: anime.Episodes, Label: "Total episodes"}
+	info := animeInitialReleaseInfo(anime, now)
+	return animeEpisodeCountDisplay{Count: info.Count, Label: info.Label}
+}
+
+func trustedAnimeStatus(anime domain.Anime, canonicalEpisodes int) string {
+	if canonicalEpisodes == 0 && isCurrentlyAiring(anime) {
+		return "Not yet aired"
 	}
-	if count := releasedEpisodeCount(anime, now); count > 0 {
-		return animeEpisodeCountDisplay{Count: count, Label: "Estimated aired episodes"}
+	if status := strings.TrimSpace(anime.Status); status != "" {
+		return status
 	}
-	return animeEpisodeCountDisplay{}
+	if anime.Airing {
+		return "Currently Airing"
+	}
+	return ""
+}
+
+func isCurrentlyAiring(anime domain.Anime) bool {
+	return anime.Airing || strings.EqualFold(strings.TrimSpace(anime.Status), "Currently Airing")
 }
 
 func animeAudioAvailabilityLabel(episodes []domain.CanonicalEpisode) string {
@@ -203,7 +220,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		}
 	}
 
-	episodesCount := animeInitialEpisodeCount(anime, time.Now())
+	releaseInfo := animeInitialReleaseInfo(anime, time.Now())
 
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 		"Anime":                anime,
@@ -213,8 +230,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		"WatchlistIDs":         watchlistIDs,
 		"ContinueWatchingEp":   ep,
 		"ContinueWatchingTime": cwSeconds,
-		"EpisodesCount":        episodesCount.Count,
-		"EpisodesCountLabel":   episodesCount.Label,
+		"ReleaseInfo":          releaseInfo,
 	})
 }
 
@@ -265,12 +281,12 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 	case "statistics":
 		data, err := h.svc.GetStatistics(ctx, id)
 		return data, "anime_statistics", err
-	case "episode-count":
+	case "episode-count", "release-info":
 		anime, err := h.svc.GetAnimeByID(ctx, id)
 		if err != nil {
 			return nil, "", err
 		}
-		return h.animeEpisodeCount(ctx, anime, time.Now()), "anime_episode_count", nil
+		return h.animeReleaseInfo(ctx, anime, time.Now()), "anime_release_info", nil
 	case "audio-availability":
 		anime, err := h.svc.GetAnimeByID(ctx, id)
 		if err != nil {
