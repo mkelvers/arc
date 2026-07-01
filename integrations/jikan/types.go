@@ -321,6 +321,7 @@ type Episode struct {
 	MalID   int            `json:"mal_id"`
 	Title   string         `json:"title"`
 	Episode string         `json:"episode"`
+	Aired   string         `json:"aired"`
 	Filler  bool           `json:"filler"`
 	Recap   bool           `json:"recap"`
 	Images  *EpisodeImages `json:"images,omitempty"`
