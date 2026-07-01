@@ -55,8 +55,8 @@ func (c *AllAnimeProvider) apiBaseURL() string {
 }
 
 func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string) (*domain.StreamResult, error) {
-	showID := c.showID(ctx, animeID, titleCandidates, mode)
-	if showID == "" {
+	showID, err := c.strictShowID(ctx, animeID, titleCandidates, mode)
+	if err != nil {
 		return nil, fmt.Errorf("allanime: show not found for malID %d", animeID)
 	}
 

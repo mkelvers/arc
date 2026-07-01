@@ -99,36 +99,6 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 	return out, nil
 }
 
-func (c *AllAnimeProvider) showID(ctx context.Context, animeID int, titleCandidates []string, mode string) string {
-	targetMalIDStr := strconv.Itoa(animeID)
-	fallbackID := ""
-
-	for _, title := range titleCandidates {
-		searchResults, err := c.Search(ctx, title, mode)
-		if err != nil || len(searchResults) == 0 {
-			continue
-		}
-		if showID := exactMatchShowID(searchResults, targetMalIDStr); showID != "" {
-			return showID
-		}
-		if fallbackID == "" {
-			fallbackID = searchResults[0].ID
-		}
-	}
-
-	return fallbackID
-}
-
-func exactMatchShowID(searchResults []searchResult, targetMalID string) string {
-	for _, res := range searchResults {
-		if res.MalID == targetMalID {
-			return res.ID
-		}
-	}
-
-	return ""
-}
-
 func (c *AllAnimeProvider) ResolveEpisodeProviderID(ctx context.Context, animeID int, titleCandidates []string) (string, error) {
 	for _, mode := range []string{"sub", "dub"} {
 		showID, err := c.strictShowID(ctx, animeID, titleCandidates, mode)

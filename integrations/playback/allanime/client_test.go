@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"mal/internal/domain"
+	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -246,6 +248,29 @@ func TestBuildStreamSource(t *testing.T) {
 			t.Errorf("Referer = %q, want %q", got.Referer, allAnimeReferer)
 		}
 	})
+}
+
+func TestGetStreamsRequiresExactMalIDMatch(t *testing.T) {
+	t.Parallel()
+
+	provider := &AllAnimeProvider{
+		httpClient: &http.Client{
+			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				return mockStringResponse(http.StatusOK, `{"data":{"shows":{"edges":[{"_id":"wrong-show","malId":"1","name":"Wrong Anime"}]}}}`), nil
+			}),
+		},
+		utlsClient: &http.Client{
+			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				t.Fatal("GetStreams should not fetch episode sources without an exact MAL ID match")
+				return nil, nil
+			}),
+		},
+	}
+
+	_, err := provider.GetStreams(context.Background(), 62076, []string{"Super no Ura de Yani Suu Futari"}, "1", "sub")
+	if err == nil || !strings.Contains(err.Error(), "show not found") {
+		t.Fatalf("GetStreams() error = %v, want show not found", err)
+	}
 }
 
 func TestResolveDirectSourceSkipsEmbeds(t *testing.T) {
