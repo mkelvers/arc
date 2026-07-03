@@ -14,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//nolint:unused
 func addVary(header http.Header, value string) {
 	for _, line := range header.Values("Vary") {
 		for _, existing := range strings.Split(line, ",") {
@@ -293,4 +292,33 @@ func (w *compressionWriter) writePlain(data []byte) (int, error) {
 	}
 	//nolint:staticcheck
 	return w.ResponseWriter.Write(data)
+}
+
+//nolint:unused
+func (w *compressionWriter) startGzip() {
+	if w.mode != compressionUndecided {
+		return
+	}
+	w.mode = compressionGzip
+	w.Header().Del("Content-Length")
+	if etag := w.Header().Get("ETag"); etag != "" && !strings.HasPrefix(etag, "W/") {
+		w.Header().Set("ETag", "W/"+etag)
+	}
+	addVary(w.Header(), "Accept-Encoding")
+	w.Header().Set("Content-Encoding", "gzip")
+	w.ResponseWriter.WriteHeader(w.Status())
+	w.gzip = gzip.NewWriter(w.ResponseWriter)
+}
+
+//nolint:unused
+func (w *compressionWriter) knownContentLength() (compress, known bool) {
+	contentLength := w.Header().Get("Content-Length")
+	if contentLength == "" {
+		return false, false
+	}
+	length, err := strconv.ParseInt(contentLength, 10, 64)
+	if err != nil {
+		return false, false
+	}
+	return length >= compressionMinLength, true
 }
