@@ -1,10 +1,14 @@
 package server
 
 import (
+	"bufio"
 	"mime"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 //nolint:unused
@@ -56,7 +60,6 @@ func isImagePath(path string) bool {
 	}
 }
 
-//nolint:unused
 func staticCachePolicy(r *http.Request) string {
 	path := r.URL.Path
 	switch {
@@ -69,5 +72,77 @@ func staticCachePolicy(r *http.Request) string {
 		return "public, max-age=86400"
 	default:
 		return ""
+	}
+}
+
+type cacheControlWriter struct {
+	gin.ResponseWriter
+	policy string
+}
+
+//nolint:unused
+func (w *cacheControlWriter) WriteHeader(status int) {
+	w.apply(status)
+	w.ResponseWriter.WriteHeader(status)
+}
+
+//nolint:unused
+func (w *cacheControlWriter) WriteHeaderNow() {
+	w.apply(w.Status())
+	w.ResponseWriter.WriteHeaderNow()
+}
+
+//nolint:unused
+func (w *cacheControlWriter) Write(data []byte) (int, error) {
+	if !w.Written() {
+		w.apply(w.Status())
+	}
+	return w.ResponseWriter.Write(data)
+}
+
+//nolint:unused
+func (w *cacheControlWriter) WriteString(data string) (int, error) {
+	if !w.Written() {
+		w.apply(w.Status())
+	}
+	return w.ResponseWriter.WriteString(data)
+}
+
+//nolint:unused
+func (w *cacheControlWriter) Flush() {
+	if !w.Written() {
+		w.apply(w.Status())
+	}
+	w.ResponseWriter.Flush()
+}
+
+//nolint:unused
+func (w *cacheControlWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return w.ResponseWriter.Hijack()
+}
+
+//nolint:unused
+func (w *cacheControlWriter) apply(status int) {
+	if status >= http.StatusOK && status < http.StatusMultipleChoices || status == http.StatusNotModified {
+		w.Header().Set("Cache-Control", w.policy)
+	} else {
+		w.Header().Del("Cache-Control")
+	}
+}
+
+//nolint:unused
+func StaticCacheMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {
+			return
+		}
+
+		policy := staticCachePolicy(c.Request)
+		if policy == "" {
+			return
+		}
+
+		c.Writer = &cacheControlWriter{ResponseWriter: c.Writer, policy: policy}
+		c.Next()
 	}
 }
