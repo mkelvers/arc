@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -286,5 +288,106 @@ func TestCompressionMiddlewarePreservesNotModifiedAndHead(t *testing.T) {
 				t.Fatalf("Vary contains Accept-Encoding = %t, want %t", got, tt.wantVary)
 			}
 		})
+	}
+}
+
+func TestCompressionMiddlewareReportsFinalBytes(t *testing.T) {
+	var status, size int
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Next()
+		status = c.Writer.Status()
+		size = c.Writer.Size()
+	})
+	router.Use(CompressionMiddleware())
+	router.GET("/text", func(c *gin.Context) {
+		c.String(http.StatusCreated, strings.Repeat("text response;", 200))
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/text", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if status != http.StatusCreated {
+		t.Fatalf("logged status = %d, want %d", status, http.StatusCreated)
+	}
+	if size != rec.Body.Len() {
+		t.Fatalf("logged bytes = %d, response bytes = %d", size, rec.Body.Len())
+	}
+}
+
+func TestStaticHandlerUsesCacheAndCompressionMiddleware(t *testing.T) {
+	body := strings.Repeat("const staticAsset = true;\n", 100)
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "app.js"), []byte(body), 0o600); err != nil {
+		t.Fatalf("write static asset: %v", err)
+	}
+
+	router := gin.New()
+	router.Use(CompressionMiddleware(), StaticCacheMiddleware())
+	router.Static("/dist", dir)
+	lastModified := testCompressedStaticAsset(t, router, body)
+	testStaticNotModified(t, router, lastModified)
+	testMissingStaticAsset(t, router)
+}
+
+func testCompressedStaticAsset(t *testing.T, router http.Handler, body string) string {
+	t.Helper()
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/dist/app.js?v=test", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "public, max-age=31536000, immutable" {
+		t.Fatalf("Cache-Control = %q", got)
+	}
+	if got := rec.Header().Get("Content-Encoding"); got != "gzip" {
+		t.Fatalf("Content-Encoding = %q, want gzip", got)
+	}
+	if got := responseBody(t, rec, "gzip"); got != body {
+		t.Fatalf("body length = %d, want %d", len(got), len(body))
+	}
+
+	lastModified := rec.Header().Get("Last-Modified")
+	if lastModified == "" {
+		t.Fatal("Last-Modified is empty")
+	}
+	return lastModified
+}
+
+func testStaticNotModified(t *testing.T, router http.Handler, lastModified string) {
+	t.Helper()
+	conditional := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/dist/app.js", nil)
+	conditional.Header.Set("Accept-Encoding", "gzip")
+	conditional.Header.Set("If-Modified-Since", lastModified)
+	conditionalRec := httptest.NewRecorder()
+	router.ServeHTTP(conditionalRec, conditional)
+
+	if conditionalRec.Code != http.StatusNotModified || conditionalRec.Body.Len() != 0 {
+		t.Fatalf("conditional response = %d with %d body bytes", conditionalRec.Code, conditionalRec.Body.Len())
+	}
+	if got := conditionalRec.Header().Get("Content-Encoding"); got != "" {
+		t.Fatalf("conditional Content-Encoding = %q, want empty", got)
+	}
+	if !headerContains(conditionalRec.Header(), "Vary", "Accept-Encoding") {
+		t.Fatal("conditional Vary does not contain Accept-Encoding")
+	}
+}
+
+func testMissingStaticAsset(t *testing.T, router http.Handler) {
+	t.Helper()
+	missing := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/dist/missing.js?v=test", nil)
+	missingRec := httptest.NewRecorder()
+	router.ServeHTTP(missingRec, missing)
+
+	if missingRec.Code != http.StatusNotFound {
+		t.Fatalf("missing status = %d, want %d", missingRec.Code, http.StatusNotFound)
+	}
+	if got := missingRec.Header().Get("Cache-Control"); got != "" {
+		t.Fatalf("missing Cache-Control = %q, want empty", got)
 	}
 }
