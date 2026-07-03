@@ -148,19 +148,16 @@ func StaticCacheMiddleware() gin.HandlerFunc {
 	}
 }
 
-//nolint:unused
 type compressionMode uint8
 
 const (
-	compressionUndecided compressionMode = iota //nolint:unused
-	compressionPlain                            //nolint:unused
-	compressionGzip                             //nolint:unused
+	compressionUndecided compressionMode = iota
+	compressionPlain
+	compressionGzip
 )
 
-//nolint:unused
 const compressionMinLength = 1024
 
-//nolint:unused
 func acceptsGzip(value string) bool {
 	wildcard := false
 	for _, part := range strings.Split(value, ",") {
@@ -189,7 +186,6 @@ func acceptsGzip(value string) bool {
 	return wildcard
 }
 
-//nolint:unused
 func canNegotiateCompression(r *http.Request) bool {
 	if r.Method == http.MethodHead || r.Header.Get("Range") != "" {
 		return false
@@ -203,7 +199,6 @@ func canNegotiateCompression(r *http.Request) bool {
 	return !isCompressedPath(r.URL.Path)
 }
 
-//nolint:unused
 type compressionWriter struct {
 	gin.ResponseWriter
 	buffer      bytes.Buffer
@@ -214,14 +209,12 @@ type compressionWriter struct {
 	acceptsGzip bool
 }
 
-//nolint:unused
 func (w *compressionWriter) WriteHeader(status int) {
 	if status > 0 && w.mode == compressionUndecided && !w.wroteBody {
 		w.status = status
 	}
 }
 
-//nolint:unused
 func (w *compressionWriter) WriteHeaderNow() {
 	if w.mode == compressionUndecided {
 		w.startPlain()
@@ -229,12 +222,10 @@ func (w *compressionWriter) WriteHeaderNow() {
 	}
 }
 
-//nolint:unused
 func (w *compressionWriter) WriteString(data string) (int, error) {
 	return w.Write([]byte(data))
 }
 
-//nolint:unused
 func (w *compressionWriter) Status() int {
 	if w.status != 0 {
 		return w.status
@@ -242,7 +233,6 @@ func (w *compressionWriter) Status() int {
 	return w.ResponseWriter.Status()
 }
 
-//nolint:unused
 func (w *compressionWriter) Size() int {
 	if size := w.ResponseWriter.Size(); size >= 0 {
 		return size
@@ -253,12 +243,10 @@ func (w *compressionWriter) Size() int {
 	return -1
 }
 
-//nolint:unused
 func (w *compressionWriter) Written() bool {
 	return w.wroteBody || w.ResponseWriter.Written()
 }
 
-//nolint:unused
 func (w *compressionWriter) startPlain() {
 	if w.mode != compressionUndecided {
 		return
@@ -267,7 +255,6 @@ func (w *compressionWriter) startPlain() {
 	w.ResponseWriter.WriteHeader(w.Status())
 }
 
-//nolint:unused
 func (w *compressionWriter) flushBuffer() error {
 	if w.buffer.Len() == 0 {
 		return nil
@@ -284,7 +271,6 @@ func (w *compressionWriter) flushBuffer() error {
 	return err
 }
 
-//nolint:unused
 func (w *compressionWriter) writePlain(data []byte) (int, error) {
 	w.startPlain()
 	if err := w.flushBuffer(); err != nil {
@@ -294,7 +280,6 @@ func (w *compressionWriter) writePlain(data []byte) (int, error) {
 	return w.ResponseWriter.Write(data)
 }
 
-//nolint:unused
 func (w *compressionWriter) startGzip() {
 	if w.mode != compressionUndecided {
 		return
@@ -310,7 +295,6 @@ func (w *compressionWriter) startGzip() {
 	w.gzip = gzip.NewWriter(w.ResponseWriter)
 }
 
-//nolint:unused
 func (w *compressionWriter) knownContentLength() (compress, known bool) {
 	contentLength := w.Header().Get("Content-Length")
 	if contentLength == "" {
@@ -323,7 +307,6 @@ func (w *compressionWriter) knownContentLength() (compress, known bool) {
 	return length >= compressionMinLength, true
 }
 
-//nolint:unused
 func (w *compressionWriter) canCompress(data []byte) bool {
 	status := w.Status()
 	if status < http.StatusOK || status == http.StatusNoContent || status == http.StatusPartialContent || status == http.StatusNotModified {
@@ -345,7 +328,6 @@ func (w *compressionWriter) canCompress(data []byte) bool {
 	return w.acceptsGzip
 }
 
-//nolint:unused
 func (w *compressionWriter) Write(data []byte) (int, error) {
 	w.wroteBody = true
 
@@ -380,7 +362,6 @@ func (w *compressionWriter) Write(data []byte) (int, error) {
 	return w.gzip.Write(data)
 }
 
-//nolint:unused
 func (w *compressionWriter) Flush() {
 	if w.mode == compressionUndecided {
 		if w.canCompress(w.buffer.Bytes()) {
@@ -397,7 +378,6 @@ func (w *compressionWriter) Flush() {
 	w.ResponseWriter.Flush()
 }
 
-//nolint:unused
 func (w *compressionWriter) finish() error {
 	if w.mode == compressionUndecided {
 		if w.Status() == http.StatusNotModified {
@@ -419,4 +399,22 @@ func (w *compressionWriter) finish() error {
 		return errors.New("gzip writer was not initialized")
 	}
 	return w.gzip.Close()
+}
+
+func CompressionMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !canNegotiateCompression(c.Request) {
+			return
+		}
+
+		writer := &compressionWriter{
+			ResponseWriter: c.Writer,
+			acceptsGzip:    acceptsGzip(c.Request.Header.Get("Accept-Encoding")),
+		}
+		c.Writer = writer
+		c.Next()
+		if err := writer.finish(); err != nil {
+			_ = c.Error(err)
+		}
+	}
 }
