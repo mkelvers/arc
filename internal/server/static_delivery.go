@@ -81,19 +81,16 @@ type cacheControlWriter struct {
 	policy string
 }
 
-//nolint:unused
 func (w *cacheControlWriter) WriteHeader(status int) {
 	w.apply(status)
 	w.ResponseWriter.WriteHeader(status)
 }
 
-//nolint:unused
 func (w *cacheControlWriter) WriteHeaderNow() {
 	w.apply(w.Status())
 	w.ResponseWriter.WriteHeaderNow()
 }
 
-//nolint:unused
 func (w *cacheControlWriter) Write(data []byte) (int, error) {
 	if !w.Written() {
 		w.apply(w.Status())
@@ -101,7 +98,6 @@ func (w *cacheControlWriter) Write(data []byte) (int, error) {
 	return w.ResponseWriter.Write(data)
 }
 
-//nolint:unused
 func (w *cacheControlWriter) WriteString(data string) (int, error) {
 	if !w.Written() {
 		w.apply(w.Status())
@@ -109,7 +105,6 @@ func (w *cacheControlWriter) WriteString(data string) (int, error) {
 	return w.ResponseWriter.WriteString(data)
 }
 
-//nolint:unused
 func (w *cacheControlWriter) Flush() {
 	if !w.Written() {
 		w.apply(w.Status())
@@ -117,12 +112,10 @@ func (w *cacheControlWriter) Flush() {
 	w.ResponseWriter.Flush()
 }
 
-//nolint:unused
 func (w *cacheControlWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return w.ResponseWriter.Hijack()
 }
 
-//nolint:unused
 func (w *cacheControlWriter) apply(status int) {
 	if status >= http.StatusOK && status < http.StatusMultipleChoices || status == http.StatusNotModified {
 		w.Header().Set("Cache-Control", w.policy)
@@ -131,7 +124,6 @@ func (w *cacheControlWriter) apply(status int) {
 	}
 }
 
-//nolint:unused
 func StaticCacheMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method != http.MethodGet && c.Request.Method != http.MethodHead {

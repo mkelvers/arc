@@ -26,7 +26,7 @@ func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender) *gin.Engine 
 		gin.SetMode(cfg.GinMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddlewareWithConfig(cfg), RequestContextMiddleware(), audit.ContextMiddleware(), RequestLogger(), gin.Recovery())
+	r.Use(CORSMiddlewareWithConfig(cfg), RequestContextMiddleware(), audit.ContextMiddleware(), RequestLogger(), CompressionMiddleware(), StaticCacheMiddleware(), gin.Recovery())
 	r.NoRoute(func(c *gin.Context) {
 		if acceptsHTML(c) {
 			c.HTML(http.StatusNotFound, "not_found.gohtml", gin.H{
