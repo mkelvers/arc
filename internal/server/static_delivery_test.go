@@ -1,7 +1,9 @@
 package server
 
 import (
+	"compress/gzip"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +44,6 @@ func TestStaticCacheMiddleware(t *testing.T) {
 	}
 }
 
-//nolint:unused
 type compressionTestCase struct {
 	name            string
 	method          string
@@ -56,7 +57,6 @@ type compressionTestCase struct {
 	wantVary        bool
 }
 
-//nolint:unused
 var compressionCases = []compressionTestCase{
 	{
 		name:           "gzip text",
@@ -136,7 +136,6 @@ var compressionCases = []compressionTestCase{
 	},
 }
 
-//nolint:unused
 func headerContains(header http.Header, name, want string) bool {
 	for _, line := range header.Values(name) {
 		for _, value := range strings.Split(line, ",") {
@@ -146,4 +145,88 @@ func headerContains(header http.Header, name, want string) bool {
 		}
 	}
 	return false
+}
+
+func TestCompressionMiddleware(t *testing.T) {
+	body := strings.Repeat("compressible javascript;", 100)
+
+	for _, tt := range compressionCases {
+		t.Run(tt.name, func(t *testing.T) {
+			testCompressionResponse(t, tt, body)
+		})
+	}
+}
+
+func testCompressionResponse(t *testing.T, tt compressionTestCase, body string) {
+	t.Helper()
+	router := compressionRouter(tt, body)
+	req := compressionRequest(tt)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	assertCompressionResponse(t, tt, rec, body)
+}
+
+func compressionRouter(tt compressionTestCase, body string) *gin.Engine {
+	router := gin.New()
+	router.Use(CompressionMiddleware())
+	router.Handle(tt.method, tt.path, func(c *gin.Context) {
+		if tt.contentEncoding != "" {
+			c.Header("Content-Encoding", tt.contentEncoding)
+		}
+		if tt.status == http.StatusPartialContent {
+			c.Header("Accept-Ranges", "bytes")
+			c.Header("Content-Range", "bytes 0-99/2300")
+		}
+		c.Data(tt.status, tt.contentType, []byte(body))
+	})
+	return router
+}
+
+func compressionRequest(tt compressionTestCase) *http.Request {
+	req := httptest.NewRequestWithContext(context.Background(), tt.method, tt.path, nil)
+	if tt.acceptEncoding != "" {
+		req.Header.Set("Accept-Encoding", tt.acceptEncoding)
+	}
+	if tt.rangeHeader != "" {
+		req.Header.Set("Range", tt.rangeHeader)
+	}
+	return req
+}
+
+func assertCompressionResponse(t *testing.T, tt compressionTestCase, rec *httptest.ResponseRecorder, body string) {
+	t.Helper()
+	if got := rec.Header().Get("Content-Encoding"); got != tt.wantEncoding {
+		t.Fatalf("Content-Encoding = %q, want %q", got, tt.wantEncoding)
+	}
+	if got := headerContains(rec.Header(), "Vary", "Accept-Encoding"); got != tt.wantVary {
+		t.Fatalf("Vary contains Accept-Encoding = %t, want %t", got, tt.wantVary)
+	}
+	if rec.Code != tt.status {
+		t.Fatalf("status = %d, want %d", rec.Code, tt.status)
+	}
+	if got := responseBody(t, rec, tt.wantEncoding); got != body {
+		t.Fatalf("body length = %d, want %d", len(got), len(body))
+	}
+	if tt.status == http.StatusPartialContent && rec.Header().Get("Content-Range") != "bytes 0-99/2300" {
+		t.Fatalf("Content-Range = %q", rec.Header().Get("Content-Range"))
+	}
+}
+
+func responseBody(t *testing.T, rec *httptest.ResponseRecorder, encoding string) string {
+	t.Helper()
+	if encoding != "gzip" {
+		return rec.Body.String()
+	}
+	reader, err := gzip.NewReader(rec.Body)
+	if err != nil {
+		t.Fatalf("open gzip response: %v", err)
+	}
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("read gzip response: %v", err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatalf("close gzip response: %v", err)
+	}
+	return string(decompressed)
 }
