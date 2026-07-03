@@ -1,7 +1,7 @@
 # MyAnimeList
 
 <p align="center">
-  <img src="/static/assets/logo.png" alt="MyAnimeList logo" width="120" />
+  <img src="/static/assets/logo-128.png" alt="MyAnimeList logo" width="120" />
 </p>
 
 <p align="center">
