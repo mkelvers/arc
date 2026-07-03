@@ -32,6 +32,9 @@ build-css:
 build-ts:
     bun run build:ts
 
+build-ts-dev:
+    bun run build:ts:dev
+
 build: build-go build-css build-ts
 
 typecheck:
@@ -46,7 +49,7 @@ setup:
     mise install
     bun install
 
-build-dev: build-css build-ts
+build-dev: build-css build-ts-dev
     @go build -o tmp/server ./cmd/server
 
 dev:
