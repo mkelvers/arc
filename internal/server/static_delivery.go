@@ -69,6 +69,8 @@ func staticCachePolicy(r *http.Request) string {
 			return "public, max-age=31536000, immutable"
 		}
 		return "public, max-age=0, must-revalidate"
+	case strings.HasPrefix(path, "/static/assets/") && r.URL.Query().Get("v") != "":
+		return "public, max-age=31536000, immutable"
 	case strings.HasPrefix(path, "/static/assets/") && isImagePath(path):
 		return "public, max-age=86400"
 	default:
