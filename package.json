@@ -6,6 +6,7 @@
     "build:assets": "bun run build:css",
     "build:css": "bunx --bun @tailwindcss/cli -i ./static/assets/style.css -o ./dist/tailwind.css",
     "build:ts": "bun run ./scripts/build-ts.ts",
+    "build:ts:dev": "bun run ./scripts/build-ts.ts --development",
     "format": "bunx oxfmt",
     "format:check": "bunx oxfmt --check",
     "lint": "bun run lint:ts && bun run lint:go",
