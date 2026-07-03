@@ -2,6 +2,8 @@ package server
 
 import (
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"mime"
 	"net"
 	"net/http"
@@ -157,6 +159,9 @@ const (
 )
 
 //nolint:unused
+const compressionMinLength = 1024
+
+//nolint:unused
 func acceptsGzip(value string) bool {
 	wildcard := false
 	for _, part := range strings.Split(value, ",") {
@@ -197,4 +202,95 @@ func canNegotiateCompression(r *http.Request) bool {
 		return false
 	}
 	return !isCompressedPath(r.URL.Path)
+}
+
+//nolint:unused
+type compressionWriter struct {
+	gin.ResponseWriter
+	buffer      bytes.Buffer
+	gzip        *gzip.Writer
+	mode        compressionMode
+	status      int
+	wroteBody   bool
+	acceptsGzip bool
+}
+
+//nolint:unused
+func (w *compressionWriter) WriteHeader(status int) {
+	if status > 0 && w.mode == compressionUndecided && !w.wroteBody {
+		w.status = status
+	}
+}
+
+//nolint:unused
+func (w *compressionWriter) WriteHeaderNow() {
+	if w.mode == compressionUndecided {
+		w.startPlain()
+		_ = w.flushBuffer()
+	}
+}
+
+//nolint:unused
+func (w *compressionWriter) WriteString(data string) (int, error) {
+	return w.Write([]byte(data))
+}
+
+//nolint:unused
+func (w *compressionWriter) Status() int {
+	if w.status != 0 {
+		return w.status
+	}
+	return w.ResponseWriter.Status()
+}
+
+//nolint:unused
+func (w *compressionWriter) Size() int {
+	if size := w.ResponseWriter.Size(); size >= 0 {
+		return size
+	}
+	if w.buffer.Len() > 0 {
+		return w.buffer.Len()
+	}
+	return -1
+}
+
+//nolint:unused
+func (w *compressionWriter) Written() bool {
+	return w.wroteBody || w.ResponseWriter.Written()
+}
+
+//nolint:unused
+func (w *compressionWriter) startPlain() {
+	if w.mode != compressionUndecided {
+		return
+	}
+	w.mode = compressionPlain
+	w.ResponseWriter.WriteHeader(w.Status())
+}
+
+//nolint:unused
+func (w *compressionWriter) flushBuffer() error {
+	if w.buffer.Len() == 0 {
+		return nil
+	}
+	data := w.buffer.Bytes()
+	w.buffer.Reset()
+	var err error
+	if w.mode == compressionGzip {
+		_, err = w.gzip.Write(data)
+	} else {
+		//nolint:staticcheck
+		_, err = w.ResponseWriter.Write(data)
+	}
+	return err
+}
+
+//nolint:unused
+func (w *compressionWriter) writePlain(data []byte) (int, error) {
+	w.startPlain()
+	if err := w.flushBuffer(); err != nil {
+		return 0, err
+	}
+	//nolint:staticcheck
+	return w.ResponseWriter.Write(data)
 }
