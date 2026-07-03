@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,6 @@ func isCompressibleContentType(value string) bool {
 	}
 }
 
-//nolint:unused
 func isCompressedPath(path string) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".7z", ".avif", ".br", ".gif", ".gz", ".ico", ".jpeg", ".jpg", ".m4a", ".m4v", ".mov", ".mp3", ".mp4", ".oga", ".ogg", ".ogv", ".pdf", ".png", ".rar", ".webm", ".webp", ".woff", ".woff2", ".zip":
@@ -145,4 +145,56 @@ func StaticCacheMiddleware() gin.HandlerFunc {
 		c.Writer = &cacheControlWriter{ResponseWriter: c.Writer, policy: policy}
 		c.Next()
 	}
+}
+
+//nolint:unused
+type compressionMode uint8
+
+const (
+	compressionUndecided compressionMode = iota //nolint:unused
+	compressionPlain                            //nolint:unused
+	compressionGzip                             //nolint:unused
+)
+
+//nolint:unused
+func acceptsGzip(value string) bool {
+	wildcard := false
+	for _, part := range strings.Split(value, ",") {
+		params := strings.Split(part, ";")
+		encoding := strings.TrimSpace(strings.ToLower(params[0]))
+		quality := 1.0
+		for _, param := range params[1:] {
+			name, raw, ok := strings.Cut(strings.TrimSpace(param), "=")
+			if !ok || !strings.EqualFold(name, "q") {
+				continue
+			}
+			parsed, err := strconv.ParseFloat(raw, 64)
+			if err != nil {
+				quality = 0
+			} else {
+				quality = parsed
+			}
+		}
+		if encoding == "gzip" {
+			return quality > 0
+		}
+		if encoding == "*" && quality > 0 {
+			wildcard = true
+		}
+	}
+	return wildcard
+}
+
+//nolint:unused
+func canNegotiateCompression(r *http.Request) bool {
+	if r.Method == http.MethodHead || r.Header.Get("Range") != "" {
+		return false
+	}
+	if strings.EqualFold(r.Header.Get("Connection"), "Upgrade") {
+		return false
+	}
+	if r.URL.Path == "/watch/proxy/stream" || r.URL.Path == "/watch/proxy/subtitle" {
+		return false
+	}
+	return !isCompressedPath(r.URL.Path)
 }
