@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"mime"
 	"net"
 	"net/http"
@@ -377,4 +378,45 @@ func (w *compressionWriter) Write(data []byte) (int, error) {
 		return 0, err
 	}
 	return w.gzip.Write(data)
+}
+
+//nolint:unused
+func (w *compressionWriter) Flush() {
+	if w.mode == compressionUndecided {
+		if w.canCompress(w.buffer.Bytes()) {
+			w.startGzip()
+			_ = w.flushBuffer()
+		} else {
+			w.startPlain()
+			_ = w.flushBuffer()
+		}
+	}
+	if w.mode == compressionGzip {
+		_ = w.gzip.Flush()
+	}
+	w.ResponseWriter.Flush()
+}
+
+//nolint:unused
+func (w *compressionWriter) finish() error {
+	if w.mode == compressionUndecided {
+		if w.Status() == http.StatusNotModified {
+			addVary(w.Header(), "Accept-Encoding")
+		}
+		if w.buffer.Len() > 0 || w.status != 0 {
+			w.startPlain()
+			if err := w.flushBuffer(); err != nil {
+				return err
+			}
+			w.ResponseWriter.WriteHeaderNow()
+		}
+		return nil
+	}
+	if w.mode == compressionPlain {
+		return w.flushBuffer()
+	}
+	if w.gzip == nil {
+		return errors.New("gzip writer was not initialized")
+	}
+	return w.gzip.Close()
 }
