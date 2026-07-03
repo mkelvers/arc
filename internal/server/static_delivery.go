@@ -25,7 +25,6 @@ func addVary(header http.Header, value string) {
 	header.Add("Vary", value)
 }
 
-//nolint:unused
 func isCompressibleContentType(value string) bool {
 	mediaType, _, err := mime.ParseMediaType(value)
 	if err != nil {
@@ -321,4 +320,26 @@ func (w *compressionWriter) knownContentLength() (compress, known bool) {
 		return false, false
 	}
 	return length >= compressionMinLength, true
+}
+
+//nolint:unused
+func (w *compressionWriter) canCompress(data []byte) bool {
+	status := w.Status()
+	if status < http.StatusOK || status == http.StatusNoContent || status == http.StatusPartialContent || status == http.StatusNotModified {
+		return false
+	}
+	if w.Header().Get("Content-Encoding") != "" {
+		return false
+	}
+
+	contentType := w.Header().Get("Content-Type")
+	if contentType == "" && len(data) > 0 {
+		contentType = http.DetectContentType(data)
+		w.Header().Set("Content-Type", contentType)
+	}
+	if !isCompressibleContentType(contentType) {
+		return false
+	}
+	addVary(w.Header(), "Accept-Encoding")
+	return w.acceptsGzip
 }
