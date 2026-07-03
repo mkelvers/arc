@@ -343,3 +343,38 @@ func (w *compressionWriter) canCompress(data []byte) bool {
 	addVary(w.Header(), "Accept-Encoding")
 	return w.acceptsGzip
 }
+
+//nolint:unused
+func (w *compressionWriter) Write(data []byte) (int, error) {
+	w.wroteBody = true
+
+	switch w.mode {
+	case compressionPlain:
+		//nolint:staticcheck
+		return w.ResponseWriter.Write(data)
+	case compressionGzip:
+		return w.gzip.Write(data)
+	}
+
+	if !w.canCompress(data) {
+		return w.writePlain(data)
+	}
+
+	if compress, known := w.knownContentLength(); known {
+		if compress {
+			w.startGzip()
+			return w.gzip.Write(data)
+		}
+		return w.writePlain(data)
+	}
+
+	if w.buffer.Len()+len(data) < compressionMinLength {
+		return w.buffer.Write(data)
+	}
+
+	w.startGzip()
+	if err := w.flushBuffer(); err != nil {
+		return 0, err
+	}
+	return w.gzip.Write(data)
+}
