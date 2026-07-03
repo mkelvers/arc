@@ -58,6 +58,60 @@ func TestRenderValidTemplate(t *testing.T) {
 	}
 }
 
+func TestRenderUsesPurposeSizedBrandAssets(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	render := r.Instance("index.gohtml", map[string]any{
+		"User":        true,
+		"CurrentPath": "/",
+	})
+	w := httptest.NewRecorder()
+	if err := render.Render(w); err != nil {
+		t.Fatalf("Render error: %v", err)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(w.Body.String()))
+	if err != nil {
+		t.Fatalf("parse rendered html: %v", err)
+	}
+
+	assets := map[string]string{
+		`link[rel="manifest"]`:                          "/static/assets/manifest.json",
+		`link[rel="icon"][sizes="32x32"]`:               "/static/assets/favicon-32.png",
+		`link[rel="icon"][sizes="16x16"]`:               "/static/assets/favicon-16.png",
+		`link[rel="apple-touch-icon"][sizes="180x180"]`: "/static/assets/apple-touch-icon-180.png",
+	}
+	for selector, want := range assets {
+		got, ok := doc.Find(selector).Attr("href")
+		if !ok {
+			t.Fatalf("missing %s", selector)
+		}
+		path, _, _ := strings.Cut(got, "?")
+		if path != want {
+			t.Fatalf("%s href = %q, want %q", selector, path, want)
+		}
+	}
+
+	logo := doc.Find(`a[title="Home"] img`)
+	if logo.Length() != 1 {
+		t.Fatalf("navigation logo count = %d, want 1", logo.Length())
+	}
+	src, _ := logo.Attr("src")
+	src, _, _ = strings.Cut(src, "?")
+	if src != "/static/assets/logo-128.png" {
+		t.Fatalf("navigation logo src = %q", src)
+	}
+	if width, _ := logo.Attr("width"); width != "166" {
+		t.Fatalf("navigation logo width = %q, want 166", width)
+	}
+	if height, _ := logo.Attr("height"); height != "128" {
+		t.Fatalf("navigation logo height = %q, want 128", height)
+	}
+}
+
 func TestRenderInvalidTemplate(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {
