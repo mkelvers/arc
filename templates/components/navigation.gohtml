@@ -100,7 +100,7 @@
   <nav class="flex h-full items-center justify-between pl-4 md:pl-8" aria-label="Primary navigation">
     <div class="flex h-full items-center gap-4">
       <a href="/" class="inline-flex size-12 items-center justify-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted" title="Home" aria-label="Home" aria-current="{{if eq $currentPath "/"}}page{{end}}">
-        <img src="/static/assets/logo.png" alt="" class="h-10 w-auto shrink-0" aria-hidden="true">
+        <img src="{{assetURL "/static/assets/logo-128.png"}}" alt="" width="166" height="128" class="h-10 w-auto shrink-0" aria-hidden="true">
       </a>
       <a href="/browse" class="hidden h-full items-center px-2 text-base transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted sm:inline-flex sm:px-3 {{if eq $currentPath "/browse"}}text-foreground{{else}}text-foreground-muted{{end}}" aria-current="{{if eq $currentPath "/browse"}}page{{end}}">Browse</a>
       <a href="/top-picks" class="hidden h-full items-center px-2 text-base transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted sm:inline-flex sm:px-3 {{if eq $currentPath "/top-picks"}}text-foreground{{else}}text-foreground-muted{{end}}" aria-current="{{if eq $currentPath "/top-picks"}}page{{end}}">Top Picks</a>
