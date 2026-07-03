@@ -43,6 +43,100 @@ func TestStaticCacheMiddleware(t *testing.T) {
 }
 
 //nolint:unused
+type compressionTestCase struct {
+	name            string
+	method          string
+	path            string
+	acceptEncoding  string
+	rangeHeader     string
+	contentEncoding string
+	status          int
+	contentType     string
+	wantEncoding    string
+	wantVary        bool
+}
+
+//nolint:unused
+var compressionCases = []compressionTestCase{
+	{
+		name:           "gzip text",
+		method:         http.MethodGet,
+		path:           "/dist/static/app.js",
+		acceptEncoding: "gzip",
+		status:         http.StatusOK,
+		contentType:    "application/javascript",
+		wantEncoding:   "gzip",
+		wantVary:       true,
+	},
+	{
+		name:         "plain without negotiation",
+		method:       http.MethodGet,
+		path:         "/dist/static/app.js",
+		status:       http.StatusOK,
+		contentType:  "application/javascript",
+		wantEncoding: "",
+		wantVary:     true,
+	},
+	{
+		name:           "playback stream",
+		method:         http.MethodGet,
+		path:           "/watch/proxy/stream",
+		acceptEncoding: "gzip",
+		status:         http.StatusOK,
+		contentType:    "application/vnd.apple.mpegurl",
+		wantEncoding:   "",
+	},
+	{
+		name:           "playback subtitle",
+		method:         http.MethodGet,
+		path:           "/watch/proxy/subtitle",
+		acceptEncoding: "gzip",
+		status:         http.StatusOK,
+		contentType:    "text/vtt",
+		wantEncoding:   "",
+	},
+	{
+		name:           "range response",
+		method:         http.MethodGet,
+		path:           "/media",
+		acceptEncoding: "gzip",
+		rangeHeader:    "bytes=0-99",
+		status:         http.StatusPartialContent,
+		contentType:    "text/plain",
+		wantEncoding:   "",
+	},
+	{
+		name:           "compressed image",
+		method:         http.MethodGet,
+		path:           "/image",
+		acceptEncoding: "gzip",
+		status:         http.StatusOK,
+		contentType:    "image/png",
+		wantEncoding:   "",
+	},
+	{
+		name:            "already encoded",
+		method:          http.MethodGet,
+		path:            "/encoded",
+		acceptEncoding:  "gzip",
+		contentEncoding: "br",
+		status:          http.StatusOK,
+		contentType:     "text/plain",
+		wantEncoding:    "br",
+	},
+	{
+		name:           "gzip refused",
+		method:         http.MethodGet,
+		path:           "/text",
+		acceptEncoding: "br, gzip;q=0",
+		status:         http.StatusOK,
+		contentType:    "text/plain",
+		wantEncoding:   "",
+		wantVary:       true,
+	},
+}
+
+//nolint:unused
 func headerContains(header http.Header, name, want string) bool {
 	for _, line := range header.Values(name) {
 		for _, value := range strings.Split(line, ",") {
