@@ -22,7 +22,8 @@ func TestStaticCacheMiddleware(t *testing.T) {
 	}{
 		{name: "versioned dist", path: "/dist/static/app.js?v=test", want: "public, max-age=31536000, immutable"},
 		{name: "unversioned dist", path: "/dist/static/app.js", want: "public, max-age=0, must-revalidate"},
-		{name: "static image", path: "/static/assets/logo.png", want: "public, max-age=86400"},
+		{name: "versioned static asset", path: "/static/assets/logo-128.png?v=test", want: "public, max-age=31536000, immutable"},
+		{name: "unversioned static image", path: "/static/assets/logo-128.png", want: "public, max-age=86400"},
 		{name: "html", path: "/anime/1", want: ""},
 	}
 
