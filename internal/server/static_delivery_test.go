@@ -230,3 +230,61 @@ func responseBody(t *testing.T, rec *httptest.ResponseRecorder, encoding string)
 	}
 	return string(decompressed)
 }
+
+func TestCompressionMiddlewareSkipsSmallResponses(t *testing.T) {
+	router := gin.New()
+	router.Use(CompressionMiddleware())
+	router.GET("/text", func(c *gin.Context) {
+		c.String(http.StatusOK, "small response")
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/text", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if got := rec.Header().Get("Content-Encoding"); got != "" {
+		t.Fatalf("Content-Encoding = %q, want empty", got)
+	}
+	if got := rec.Body.String(); got != "small response" {
+		t.Fatalf("body = %q", got)
+	}
+}
+
+func TestCompressionMiddlewarePreservesNotModifiedAndHead(t *testing.T) {
+	tests := []struct {
+		name     string
+		method   string
+		path     string
+		status   int
+		wantVary bool
+	}{
+		{name: "not modified", method: http.MethodGet, path: "/not-modified", status: http.StatusNotModified, wantVary: true},
+		{name: "head", method: http.MethodHead, path: "/text", status: http.StatusOK},
+		{name: "no content", method: http.MethodGet, path: "/no-content", status: http.StatusNoContent},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			router := gin.New()
+			router.Use(CompressionMiddleware())
+			router.Handle(tt.method, tt.path, func(c *gin.Context) {
+				c.Status(tt.status)
+			})
+			req := httptest.NewRequestWithContext(context.Background(), tt.method, tt.path, nil)
+			req.Header.Set("Accept-Encoding", "gzip")
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != tt.status || rec.Body.Len() != 0 {
+				t.Fatalf("response = %d with %d body bytes", rec.Code, rec.Body.Len())
+			}
+			if got := rec.Header().Get("Content-Encoding"); got != "" {
+				t.Fatalf("Content-Encoding = %q, want empty", got)
+			}
+			if got := headerContains(rec.Header(), "Vary", "Accept-Encoding"); got != tt.wantVary {
+				t.Fatalf("Vary contains Accept-Encoding = %t, want %t", got, tt.wantVary)
+			}
+		})
+	}
+}
