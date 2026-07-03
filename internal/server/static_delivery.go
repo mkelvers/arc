@@ -47,12 +47,27 @@ func isCompressedPath(path string) bool {
 	}
 }
 
-//nolint:unused
 func isImagePath(path string) bool {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".avif", ".gif", ".ico", ".jpeg", ".jpg", ".png", ".svg", ".webp":
 		return true
 	default:
 		return false
+	}
+}
+
+//nolint:unused
+func staticCachePolicy(r *http.Request) string {
+	path := r.URL.Path
+	switch {
+	case strings.HasPrefix(path, "/dist/"):
+		if r.URL.Query().Get("v") != "" {
+			return "public, max-age=31536000, immutable"
+		}
+		return "public, max-age=0, must-revalidate"
+	case strings.HasPrefix(path, "/static/assets/") && isImagePath(path):
+		return "public, max-age=86400"
+	default:
+		return ""
 	}
 }
