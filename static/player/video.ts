@@ -43,14 +43,19 @@ const shouldUseHLS = (type: string | undefined, url: string): boolean => {
  * Some browsers can be flaky when switching between HLS URLs while playing. Clearing `src` first
  * ensures the media element fully resets before the new URL is set.
  */
-export const loadVideoSource = (url: string, type?: string, startTimeSeconds?: number): void => {
+export const loadVideoSource = (
+  url: string,
+  type?: string,
+  startTimeSeconds?: number,
+  preservePosition: boolean = true,
+): void => {
   if (!url) {
     return;
   }
 
   const wasPlaying = !state.elements.video.paused;
   const prevDisplayTime = displayTimeFromAbsolute(state.elements.video.currentTime);
-  const shouldPreservePosition = prevDisplayTime > 0;
+  const shouldPreservePosition = preservePosition && prevDisplayTime > 0;
 
   // Fully reset the element before setting a new source.
   destroyVideoSource();
