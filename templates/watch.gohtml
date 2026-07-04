@@ -279,7 +279,7 @@
             {{$isCurrent := eq (printf "%v" .Number) $currentEpID}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center justify-center py-2 text-xs transition-colors {{if or (lt .Number $rangeStart) (gt .Number $rangeEnd)}}hidden{{end}} {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/15 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.Number}}" data-episode-index="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}">
+            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center justify-center py-2 text-xs transition-colors {{if or (lt .Number $rangeStart) (gt .Number $rangeEnd)}}hidden{{end}} {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/15 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.Number}}" data-episode-index="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}"{{if $isCurrent}} aria-current="page"{{end}}>
               {{.Number}}
               {{if .SubOnly}}<span class="absolute right-0.5 top-0.5 text-[8px] font-semibold uppercase text-accent">Sub</span>{{end}}
             </a>
@@ -291,7 +291,7 @@
             {{$isCurrent := eq (printf "%v" .Number) $currentEpID}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}">
+            <a href="/anime/{{$anime.MalID}}/watch?ep={{.Number}}" class="relative flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.Number}}" data-episode-title="{{.Title}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}"{{if $isCurrent}} aria-current="page"{{end}}>
               {{if or $isFiller $isRecap}}
                 <span aria-hidden="true" class="absolute inset-y-1 left-0 w-0.5 {{if $isFiller}}bg-yellow-400{{else}}bg-blue-400{{end}}"></span>
               {{end}}
