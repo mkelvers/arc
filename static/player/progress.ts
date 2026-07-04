@@ -100,10 +100,7 @@ const scheduleProgressSave = (): void => {
   }, 30_000);
 };
 
-/**
- * Records episode transition (clicked external link to next episode). Uses beacon for reliability
- * on page unload.
- */
+/** Saves the current episode before an asynchronous or fallback episode transition. */
 export const markEpisodeTransition = (episodeNumber: number): void => {
   if (!state.episode.malID || !episodeNumber) {
     return;
@@ -112,8 +109,17 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
     window.clearTimeout(state.timers.progressSaveTimer);
     state.timers.progressSaveTimer = undefined;
   }
+  const alreadyTransitioning = state.episode.transitionEpisode !== null;
   state.episode.transitionEpisode = episodeNumber;
-  const payload = buildPayload(episodeNumber, 0);
+  if (alreadyTransitioning || state.episode.endedProgressSaved) {
+    return;
+  }
+  const currentEpisode = Number.parseInt(state.episode.current, 10);
+  const progressSeconds = snapToEnd(currentProgressTime());
+  if (!currentEpisode || progressSeconds < 1) {
+    return;
+  }
+  const payload = buildPayload(currentEpisode, progressSeconds);
   // beacon falls back to fetch with keepalive
   if (!sendBeacon(payload)) {
     fetch("/api/watch-progress", {
@@ -125,6 +131,7 @@ export const markEpisodeTransition = (episodeNumber: number): void => {
       console.debug("failed to save progress:", error);
     });
   }
+  state.episode.lastSavedProgress = { episode: state.episode.current, seconds: progressSeconds };
 };
 
 /** Sets up progress save on timeupdate, pause, mouseup (scrub end), and beforeunload. */
