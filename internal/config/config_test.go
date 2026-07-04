@@ -95,13 +95,16 @@ func TestLoadInvalidEpisodeAvailabilityMode(t *testing.T) {
 	}
 }
 
-func TestLoadEmptyPortIsError(t *testing.T) {
+func TestLoadEmptyPortDefaultsTo3000(t *testing.T) {
 	os.Setenv("PORT", "")
 	os.Setenv("DATABASE_FILE", "mal.db")
 	defer os.Unsetenv("PORT")
 
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error for empty PORT")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load(): %v", err)
+	}
+	if cfg.Port != "3000" {
+		t.Fatalf("Port = %q, want %q", cfg.Port, "3000")
 	}
 }
