@@ -2,7 +2,7 @@ import { onHtmxLoad, onReady } from "../utils";
 import { setupControls, showControls } from "./controls";
 import { formatTime } from "./controls";
 import { setupEpisodeMetadata } from "./episodes/metadata";
-import { goToNextEpisode } from "./episodes/nav";
+import { goToNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
 import {
@@ -11,7 +11,7 @@ import {
   setupMode,
   updateModeButtons,
 } from "./mode";
-import { markEpisodeTransition, saveEndedProgress, setupProgress } from "./progress";
+import { saveEndedProgress, setupProgress } from "./progress";
 import { setupQuality, updateQualityOptions } from "./quality";
 import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
 import { setupSegmentEditor } from "./skip/editor";
@@ -147,6 +147,7 @@ const initPlayer = async (): Promise<void> => {
   setupSubtitles();
   setupQuality();
   setupMode();
+  setupEpisodeNavigation(signal);
 
   updateSubtitleOptions();
   updateQualityOptions();
@@ -285,7 +286,7 @@ const initPlayer = async (): Promise<void> => {
   state.elements.video.addEventListener(
     "error",
     () => {
-      if (sourceRefreshInFlight) {
+      if (sourceRefreshInFlight || state.episode.transitionEpisode !== null) {
         return;
       }
       sourceRefreshInFlight = true;
@@ -387,38 +388,6 @@ const initPlayer = async (): Promise<void> => {
         return;
       }
       scrubToPointer(e.clientX, false);
-    },
-    { signal },
-  );
-
-  // track next-episode links outside the player so they start fresh after finishing an episode
-  document.addEventListener(
-    "click",
-    (e) => {
-      const { target } = e;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      const anchor = target.closest("a[href]");
-      if (!(anchor instanceof HTMLAnchorElement)) {
-        return;
-      }
-      const url = new URL(anchor.href, location.origin);
-      if (url.origin !== location.origin) {
-        return;
-      }
-      const parts = url.pathname.split("/").filter(Boolean);
-      if (parts[0] !== "anime" || parts[2] !== "watch") {
-        return;
-      }
-      if (Number.parseInt(parts[1], 10) !== state.episode.malID) {
-        return;
-      }
-      const nextEpisode = Number.parseInt(url.searchParams.get("ep") ?? "1", 10);
-      const currentEpisode = Number.parseInt(state.episode.current, 10);
-      if (nextEpisode === currentEpisode + 1) {
-        markEpisodeTransition(nextEpisode);
-      }
     },
     { signal },
   );
