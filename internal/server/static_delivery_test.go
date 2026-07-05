@@ -141,7 +141,7 @@ var compressionCases = []compressionTestCase{
 
 func headerContains(header http.Header, name, want string) bool {
 	for _, line := range header.Values(name) {
-		for _, value := range strings.Split(line, ",") {
+		for value := range strings.SplitSeq(line, ",") {
 			if strings.EqualFold(strings.TrimSpace(value), want) {
 				return true
 			}

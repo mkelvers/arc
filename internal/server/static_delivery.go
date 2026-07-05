@@ -17,7 +17,7 @@ import (
 
 func addVary(header http.Header, value string) {
 	for _, line := range header.Values("Vary") {
-		for _, existing := range strings.Split(line, ",") {
+		for existing := range strings.SplitSeq(line, ",") {
 			if strings.EqualFold(strings.TrimSpace(existing), value) {
 				return
 			}
@@ -154,7 +154,7 @@ const compressionMinLength = 1024
 
 func acceptsGzip(value string) bool {
 	wildcard := false
-	for _, part := range strings.Split(value, ",") {
+	for part := range strings.SplitSeq(value, ",") {
 		params := strings.Split(part, ";")
 		encoding := strings.TrimSpace(strings.ToLower(params[0]))
 		quality := 1.0
