@@ -69,7 +69,7 @@ func TestSeasonalShowsReturnsPlayableTVAnime(t *testing.T) {
 		edges := make([]map[string]any, 0)
 		switch request.Variables.Page {
 		case 1:
-			for i := 0; i < 40; i++ {
+			for range 40 {
 				edges = append(edges, map[string]any{"_id": "empty", "malId": "12", "type": "TV", "availableEpisodesDetail": map[string]any{"sub": []string{}, "dub": []string{}}})
 			}
 		case 2:
