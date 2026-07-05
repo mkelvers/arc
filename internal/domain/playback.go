@@ -5,6 +5,17 @@ import (
 	"mal/internal/db"
 )
 
+type playbackSourceRefreshKey struct{}
+
+func WithPlaybackSourceRefresh(ctx context.Context) context.Context {
+	return context.WithValue(ctx, playbackSourceRefreshKey{}, true)
+}
+
+func PlaybackSourceRefreshRequested(ctx context.Context) bool {
+	refresh, _ := ctx.Value(playbackSourceRefreshKey{}).(bool)
+	return refresh
+}
+
 type PlaybackService interface {
 	BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (WatchPageData, error)
 	SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error
