@@ -2,6 +2,7 @@ package playback
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -12,6 +13,16 @@ import (
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
+
+const sourceResolutionTimeout = 15 * time.Second
+
+type sourceResolutionResult struct {
+	result    *domain.StreamResult
+	err       error
+	duration  time.Duration
+	shared    bool
+	completed bool
+}
 
 const episodeAvailabilityUncertainWarning = "Episode availability may be incomplete or out of date. Continue only if you understand that the episode list and audio availability may be uncertain."
 
@@ -36,7 +47,15 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 
 	// mode fallback
 	mode, from := resolveMode(episode, mode, eps.Episodes)
-	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(ctx, animeID, searchTitles, episode, mode)
+	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(
+		ctx,
+		animeID,
+		searchTitles,
+		episode,
+		mode,
+		!anime.Airing,
+		domain.PlaybackSourceRefreshRequested(ctx),
+	)
 	if resolvedMode != "" {
 		mode = resolvedMode
 	}
@@ -62,7 +81,6 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 		return pageData, fmt.Errorf("no streams found for mode %s", mode)
 	}
 
-	go s.warmStreamURL(result.URL, result.Referer)
 	return pageData, nil
 }
 
@@ -165,15 +183,16 @@ func resolveMode(episode string, requestedMode string, episodes []domain.Canonic
 	return requestedMode, ""
 }
 
-func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, searchTitles []string, episode string, requestedMode string) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
-	if res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, requestedMode); res != nil {
+func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, searchTitles []string, episode string, requestedMode string, allowStale bool, forceRefresh bool) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
+	requestedMode = normalizeSourceMode(requestedMode)
+	if res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, requestedMode, allowStale, forceRefresh); res != nil {
 		return map[string]domain.ModeSource{
 			requestedMode: s.buildModeSource(res),
 		}, res, requestedMode, ""
 	}
 
 	for _, fallbackMode := range fallbackModes(requestedMode) {
-		res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, fallbackMode)
+		res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, fallbackMode, allowStale, forceRefresh)
 		if res == nil {
 			continue
 		}
@@ -185,15 +204,77 @@ func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, s
 	return map[string]domain.ModeSource{}, nil, requestedMode, ""
 }
 
-func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, searchTitles []string, episode string, mode string) *domain.StreamResult {
-	for _, p := range s.providers {
-		res, err := p.GetStreams(ctx, animeID, searchTitles, episode, mode)
-		if err == nil && res != nil {
-			return res
-		}
+func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, searchTitles []string, episode string, mode string, allowStale bool, forceRefresh bool) *domain.StreamResult {
+	key := newSourceCacheKey(animeID, episode, mode)
+	stale, state := s.sourceCache.get(key, time.Now())
+	if !forceRefresh && state == sourceCacheFresh {
+		observability.Info("playback_source_cache_hit", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode})
+		return stale
 	}
 
+	observability.Info("playback_source_cache_miss", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode, "forced": forceRefresh})
+	resolved := s.waitForSourceResult(ctx, key, animeID, searchTitles, forceRefresh)
+	if !resolved.completed {
+		return nil
+	}
+	observability.Info("playback_source_resolution", "playback", "", map[string]any{
+		"anime_id": animeID, "episode": episode, "mode": key.mode,
+		"duration_ms": resolved.duration.Milliseconds(), "shared": resolved.shared,
+	})
+	if resolved.err == nil {
+		return cloneStreamResult(resolved.result)
+	}
+	if allowStale && state == sourceCacheStale && stale != nil {
+		observability.Warn("playback_source_cache_stale_hit", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, errors.New("provider source refresh failed"))
+		return stale
+	}
+	observability.Warn("playback_source_resolution_failed", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, errors.New("provider source resolution failed"))
 	return nil
+}
+
+func (s *playbackService) waitForSourceResult(ctx context.Context, key sourceCacheKey, animeID int, searchTitles []string, forceRefresh bool) sourceResolutionResult {
+	startedAt := time.Now()
+	resultCh := s.sourceFlight.DoChan(key.flightKey(), func() (any, error) {
+		return s.resolveSource(key, animeID, searchTitles, forceRefresh)
+	})
+	select {
+	case <-ctx.Done():
+		return sourceResolutionResult{err: ctx.Err(), duration: time.Since(startedAt)}
+	case resolved := <-resultCh:
+		result, _ := resolved.Val.(*domain.StreamResult)
+		return sourceResolutionResult{
+			result: result, err: resolved.Err, shared: resolved.Shared,
+			duration: time.Since(startedAt), completed: true,
+		}
+	}
+}
+
+func (s *playbackService) resolveSource(key sourceCacheKey, animeID int, searchTitles []string, forceRefresh bool) (*domain.StreamResult, error) {
+	if !forceRefresh {
+		if cached, state := s.sourceCache.get(key, time.Now()); state == sourceCacheFresh {
+			return cached, nil
+		}
+	}
+	resolveCtx, cancel := context.WithTimeout(context.Background(), sourceResolutionTimeout)
+	defer cancel()
+
+	var lastErr error
+	for _, provider := range s.providers {
+		result, err := provider.GetStreams(resolveCtx, animeID, searchTitles, key.episode, key.mode)
+		if err == nil && result != nil {
+			if s.sourceCache.set(key, result, time.Now()) {
+				observability.Info("playback_source_cache_eviction", "playback", "", nil)
+			}
+			return cloneStreamResult(result), nil
+		}
+		if err != nil {
+			lastErr = err
+		}
+	}
+	if lastErr == nil {
+		lastErr = errors.New("no provider returned a stream")
+	}
+	return nil, lastErr
 }
 
 func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeSource {
@@ -201,7 +282,7 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 	for _, sub := range res.Subtitles {
 		token, err := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
 		if err != nil {
-			observability.LogJSON(observability.LogLevelWarn, "sign_subtitle_token_failed", "playback", err.Error(), map[string]any{"url": sub.URL}, nil)
+			observability.Warn("sign_subtitle_token_failed", "playback", "", nil, err)
 		}
 		subtitles = append(subtitles, domain.SubtitleItem{
 			Lang:  sub.Label,
@@ -211,7 +292,7 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 
 	streamToken, err := s.SignProxyToken(res.URL, res.Referer, "stream")
 	if err != nil {
-		observability.LogJSON(observability.LogLevelWarn, "sign_stream_token_failed", "playback", err.Error(), map[string]any{"url": res.URL}, nil)
+		observability.Warn("sign_stream_token_failed", "playback", "", nil, err)
 	}
 	return domain.ModeSource{
 		Token:     streamToken,

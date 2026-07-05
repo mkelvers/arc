@@ -2,16 +2,15 @@
 package playback
 
 import (
-	"context"
 	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"mal/internal/playback/proxytarget"
-	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
 
 type playbackService struct {
@@ -22,6 +21,8 @@ type playbackService struct {
 	httpClient    *http.Client
 	proxyTokenKey string
 	proxyTokens   *proxyTokenStore
+	sourceCache   *sourceCache
+	sourceFlight  singleflight.Group
 	auditSvc      domain.AuditService
 }
 
@@ -37,6 +38,7 @@ func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provi
 		httpClient:    netutil.NewClient(),
 		proxyTokenKey: string(proxyTokenKey),
 		proxyTokens:   newProxyTokenStore(),
+		sourceCache:   newSourceCache(defaultSourceCacheTTL, defaultSourceCacheStaleTTL, defaultSourceCacheMaxEntries),
 	}
 }
 
@@ -62,28 +64,4 @@ func (s *playbackService) ResolveProxyToken(token string, scope string) (string,
 		return "", "", fmt.Errorf("invalid proxy token scope")
 	}
 	return target.targetURL, target.referer, nil
-}
-
-func (s *playbackService) warmStreamURL(targetURL, referer string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
-	if err != nil {
-		return
-	}
-	if referer != "" {
-		req.Header.Set("Referer", referer)
-	}
-	req.Header.Set("User-Agent", netutil.Firefox121)
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		if resp != nil {
-			errlog.Close(resp.Body, "failed to close warm stream error response body")
-		}
-		observability.LogJSON(observability.LogLevelWarn, "warm_stream_failed", "playback", err.Error(), map[string]any{"url": targetURL}, nil)
-		return
-	}
-	errlog.Log("failed to close warm stream response body", resp.Body.Close())
 }

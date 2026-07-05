@@ -22,6 +22,7 @@ type PlaybackHandler struct {
 	proxyClient     *http.Client
 	streamingClient *http.Client
 	subtitleCache   *subtitleCache
+	manifestCache   *manifestCache
 }
 
 func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *PlaybackHandler {
@@ -31,6 +32,7 @@ func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybac
 		proxyClient:     proxytarget.NewClient(60 * time.Second),
 		streamingClient: proxytarget.NewStreamingClient(),
 		subtitleCache:   newSubtitleCache(10*time.Minute, 256),
+		manifestCache:   newManifestCache(manifestCacheMaxEntries),
 	}
 }
 
@@ -120,10 +122,14 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 	}
 
 	mode := c.DefaultQuery("mode", "sub")
+	ctx := c.Request.Context()
+	if c.Query("refresh") == "1" {
+		ctx = domain.WithPlaybackSourceRefresh(ctx)
+	}
 
 	userID := server.CurrentUserID(c)
 
-	data, err := h.svc.BuildWatchData(c.Request.Context(), animeID, []string{}, episode, mode, userID)
+	data, err := h.svc.BuildWatchData(ctx, animeID, []string{}, episode, mode, userID)
 	if err != nil {
 		server.RespondError(
 			c,
