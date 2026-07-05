@@ -115,6 +115,7 @@ type FakeVideoElement = FakeElement & {
 type PlayerModules = {
   completeAnime: (episodeNumber: number) => Promise<void>;
   handleEpisodeNavigationClick: (event: MouseEvent) => boolean;
+  prefetchNextEpisode: () => void;
   refreshCurrentModeSource: (signal?: AbortSignal) => Promise<boolean>;
   saveProgress: (force?: boolean, progressSeconds?: number) => Promise<void>;
   setupProgress: () => void;
@@ -331,6 +332,7 @@ const loadPlayerModules = async (): Promise<PlayerModules> => {
   return {
     completeAnime: completeModule.completeAnime,
     handleEpisodeNavigationClick: navModule.handleEpisodeNavigationClick,
+    prefetchNextEpisode: navModule.prefetchNextEpisode,
     refreshCurrentModeSource: sourceModule.refreshCurrentModeSource,
     saveProgress: progressModule.saveProgress,
     setupProgress: progressModule.setupProgress,
@@ -368,6 +370,7 @@ beforeEach(() => {
   };
   globalThis.setTimeout = windowStub.setTimeout.bind(windowStub) as typeof setTimeout;
   resetPlayerState();
+  delete (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
 });
 
 const episodePayload = (
@@ -433,7 +436,7 @@ describe("browser player flow", () => {
     assert.equal(refreshed, true);
     assert.deepEqual(
       fetchCalls.map((call) => call.url),
-      ["/api/watch/episode/42/3?mode=sub"],
+      ["/api/watch/episode/42/3?mode=sub&refresh=1"],
     );
     assert.equal(modules.state.playback.modeSources.sub?.token, "fresh-token");
     assert.equal(
@@ -522,6 +525,38 @@ describe("browser player flow", () => {
 
     modules.state.elements.video.dispatchEvent(new Event("loadedmetadata"));
     assert.equal(modules.state.episode.transitionEpisode, null);
+  });
+
+  test("uses a prefetched next-episode payload for the transition", async () => {
+    const controller = new AbortController();
+    modules.setupEpisodeNavigation(controller.signal);
+    globalThis.fetch = ((url: string) => {
+      fetchCalls.push({ url });
+      return Promise.resolve(episodeResponse(4));
+    }) as typeof fetch;
+
+    modules.prefetchNextEpisode();
+    await flushPromises();
+    assert.equal(await modules.transitionToEpisode(4), true);
+
+    assert.deepEqual(
+      fetchCalls.map((call) => call.url),
+      ["/api/watch/episode/42/4?mode=sub"],
+    );
+    controller.abort();
+  });
+
+  test("does not automatically prefetch when Save-Data is enabled", () => {
+    const controller = new AbortController();
+    modules.setupEpisodeNavigation(controller.signal);
+    (navigator as Navigator & { connection?: { saveData?: boolean } }).connection = {
+      saveData: true,
+    };
+
+    modules.prefetchNextEpisode();
+
+    assert.equal(fetchCalls.length, 0);
+    controller.abort();
   });
 
   test("uses the same async path for episode links and leaves modified clicks native", async () => {
@@ -646,6 +681,7 @@ describe("browser player flow", () => {
     modules.state.elements.video.dispatchEvent(new Event("error"));
     await flushPromises();
     assert.equal(modules.state.elements.video.src, "/watch/proxy/stream?mode=sub&token=sub-2");
+    assert.equal(fetchCalls[1]?.url, "/api/watch/episode/42/4?mode=sub&refresh=1");
 
     modules.state.elements.video.dispatchEvent(new Event("error"));
     assert.equal(windowStub.location.href, fallbackHref);

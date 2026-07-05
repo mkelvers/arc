@@ -23,7 +23,7 @@ export const streamUrlForMode = (mode: string, quality?: string): string => {
 export const refreshCurrentModeSource = async (signal?: AbortSignal): Promise<boolean> => {
   const mode = state.playback.currentMode;
   const res = await fetch(
-    `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(state.episode.current)}?mode=${encodeURIComponent(mode)}`,
+    `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(state.episode.current)}?mode=${encodeURIComponent(mode)}&refresh=1`,
     { signal },
   );
   if (!res.ok) {

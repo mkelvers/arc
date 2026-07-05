@@ -51,6 +51,11 @@ type EpisodeTransitionProfile = {
   lastTotalMs: number;
   stale: number;
   succeeded: number;
+  prefetchCancelled: number;
+  prefetchExpired: number;
+  prefetchFailed: number;
+  prefetchStarted: number;
+  prefetchUsed: number;
 };
 
 declare global {
@@ -68,6 +73,11 @@ const profile = (): EpisodeTransitionProfile => {
     lastTotalMs: 0,
     stale: 0,
     succeeded: 0,
+    prefetchCancelled: 0,
+    prefetchExpired: 0,
+    prefetchFailed: 0,
+    prefetchStarted: 0,
+    prefetchUsed: 0,
   };
   return window.__malEpisodeTransitionProfile;
 };
@@ -83,6 +93,25 @@ const measure = (name: string, startedAt: number, duration: number): void => {
 let activeTransition: ActiveTransition | null = null;
 let modeHydrationController: AbortController | null = null;
 let transitionID = 0;
+
+const prefetchTTL = 2 * 60 * 1000;
+const prefetchLimit = 2;
+
+type PrefetchReason = "next" | "hover";
+
+type PrefetchEntry = {
+  controller: AbortController;
+  episode: number;
+  expiresAt: number;
+  mode: string;
+  promise: Promise<EpisodePayload | null>;
+  reason: PrefetchReason;
+};
+
+const prefetchedEpisodes = new Map<string, PrefetchEntry>();
+let hoverPrefetchKey: string | null = null;
+let hoverTimer: ReturnType<typeof setTimeout> | undefined;
+let prefetchEnabled = false;
 
 const episodeHref = (episode: number): string => {
   const url = new URL(window.location.href);
@@ -115,6 +144,135 @@ const parseEpisodePayload = (value: unknown): EpisodePayload | null => {
     segments: parseSegments(value.segments),
     startTimeSeconds: Number.isFinite(parsedStartTime) && parsedStartTime > 0 ? parsedStartTime : 0,
   };
+};
+
+const episodePayloadURL = (episode: number, mode: string, forceRefresh = false): string =>
+  `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(String(episode))}?mode=${encodeURIComponent(mode)}${forceRefresh ? "&refresh=1" : ""}`;
+
+const fetchEpisodePayload = async (
+  episode: number,
+  mode: string,
+  signal: AbortSignal,
+  lowPriority = false,
+  forceRefresh = false,
+): Promise<EpisodePayload> => {
+  const init: RequestInit & { priority?: "low" } = { signal };
+  if (lowPriority) {
+    init.priority = "low";
+  }
+  const response = await fetch(episodePayloadURL(episode, mode, forceRefresh), init);
+  if (!response.ok) {
+    throw new Error(`episode payload failed with status ${response.status}`);
+  }
+  const payload = parseEpisodePayload(await response.json());
+  if (!payload) {
+    throw new Error("episode payload returned no playable source");
+  }
+  return payload;
+};
+
+const prefetchKey = (episode: number, mode: string): string =>
+  `${state.episode.malID}|${episode}|${mode}`;
+
+const removePrefetch = (key: string, cancel: boolean): void => {
+  const entry = prefetchedEpisodes.get(key);
+  if (!entry) {
+    return;
+  }
+  prefetchedEpisodes.delete(key);
+  if (cancel) {
+    entry.controller.abort();
+  }
+};
+
+const startEpisodePrefetch = (
+  episode: number,
+  mode: string,
+  reason: PrefetchReason,
+): PrefetchEntry | null => {
+  if (!Number.isInteger(episode) || episode < 1 || episode === Number(state.episode.current)) {
+    return null;
+  }
+  const key = prefetchKey(episode, mode);
+  const existing = prefetchedEpisodes.get(key);
+  if (existing && existing.expiresAt > Date.now()) {
+    return existing;
+  }
+  if (existing) {
+    removePrefetch(key, true);
+  }
+
+  const controller = new AbortController();
+  const promise = fetchEpisodePayload(episode, mode, controller.signal, true)
+    .catch((error: unknown) => {
+      if (!(error instanceof DOMException && error.name === "AbortError")) {
+        profile().prefetchFailed += 1;
+      }
+      return null;
+    })
+    .then((payload) => {
+      if (!payload && prefetchedEpisodes.get(key)?.controller === controller) {
+        prefetchedEpisodes.delete(key);
+      }
+      return payload;
+    });
+  const entry: PrefetchEntry = {
+    controller,
+    episode,
+    expiresAt: Date.now() + prefetchTTL,
+    mode,
+    promise,
+    reason,
+  };
+  prefetchedEpisodes.set(key, entry);
+  profile().prefetchStarted += 1;
+
+  while (prefetchedEpisodes.size > prefetchLimit) {
+    const oldest = prefetchedEpisodes.keys().next().value as string | undefined;
+    if (!oldest) {
+      break;
+    }
+    removePrefetch(oldest, true);
+  }
+  return entry;
+};
+
+const takePrefetchedEpisode = (
+  episode: number,
+  mode: string,
+): Promise<EpisodePayload | null> | null => {
+  const key = prefetchKey(episode, mode);
+  const entry = prefetchedEpisodes.get(key);
+  if (!entry) {
+    return null;
+  }
+  prefetchedEpisodes.delete(key);
+  if (entry.expiresAt <= Date.now()) {
+    entry.controller.abort();
+    profile().prefetchExpired += 1;
+    return null;
+  }
+  return entry.promise.then((payload) => {
+    if (payload) {
+      profile().prefetchUsed += 1;
+    }
+    return payload;
+  });
+};
+
+const saveDataEnabled = (): boolean =>
+  Boolean((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData);
+
+export const prefetchNextEpisode = (): void => {
+  if (!prefetchEnabled || saveDataEnabled()) {
+    return;
+  }
+  const current = Number.parseInt(state.episode.current, 10);
+  const next = current + 1;
+  if (!current || (state.episode.total > 0 && next > state.episode.total)) {
+    return;
+  }
+  startEpisodePrefetch(next, state.playback.currentMode, "next");
 };
 
 const selectedMode = (payload: EpisodePayload, requestedMode: string): string | null => {
@@ -178,23 +336,19 @@ const monitorMediaReady = (transition: ActiveTransition): void => {
       return;
     }
     retried = true;
-    fetch(
-      `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(state.episode.current)}?mode=${encodeURIComponent(state.playback.currentMode)}`,
-      { signal },
+    fetchEpisodePayload(
+      Number.parseInt(state.episode.current, 10),
+      state.playback.currentMode,
+      signal,
+      false,
+      true,
     )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`episode source refresh failed with status ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((value: unknown) => {
+      .then((payload) => {
         if (signal.aborted || activeTransition?.id !== transition.id) {
           return;
         }
-        const payload = parseEpisodePayload(value);
-        const mode = payload ? selectedMode(payload, state.playback.currentMode) : null;
-        if (!payload || !mode) {
+        const mode = selectedMode(payload, state.playback.currentMode);
+        if (!mode) {
           throw new Error("episode source refresh returned no playable source");
         }
         state.playback.modeSources = payload.modeSources;
@@ -324,17 +478,11 @@ export const transitionToEpisode = async (
 
   try {
     const requestedMode = state.playback.currentMode;
-    const response = await fetch(
-      `/api/watch/episode/${state.episode.malID}/${episode}?mode=${encodeURIComponent(requestedMode)}`,
-      { signal: transition.controller.signal },
-    );
-    if (!response.ok) {
-      throw new Error(`episode transition failed with status ${response.status}`);
-    }
-    const payload = parseEpisodePayload(await response.json());
-    if (!payload) {
-      throw new Error("episode transition returned no playable source");
-    }
+    const prefetched = takePrefetchedEpisode(episode, requestedMode);
+    const payload = prefetched
+      ? ((await prefetched) ??
+        (await fetchEpisodePayload(episode, requestedMode, transition.controller.signal)))
+      : await fetchEpisodePayload(episode, requestedMode, transition.controller.signal);
     if (activeTransition?.id !== transition.id) {
       profile().stale += 1;
       return false;
@@ -409,6 +557,7 @@ export const handleEpisodeNavigationClick = (event: MouseEvent): boolean => {
 
 export const setupEpisodeNavigation = (signal: AbortSignal): void => {
   const root = document.querySelector("[data-episode-navigation]");
+  prefetchEnabled = true;
   root?.addEventListener(
     "click",
     (event) => {
@@ -418,6 +567,59 @@ export const setupEpisodeNavigation = (signal: AbortSignal): void => {
     },
     { signal },
   );
+
+  const cancelHoverPrefetch = (): void => {
+    if (hoverTimer !== undefined) {
+      clearTimeout(hoverTimer);
+      hoverTimer = undefined;
+    }
+    if (hoverPrefetchKey) {
+      const entry = prefetchedEpisodes.get(hoverPrefetchKey);
+      if (entry?.reason === "hover") {
+        removePrefetch(hoverPrefetchKey, true);
+        profile().prefetchCancelled += 1;
+      }
+      hoverPrefetchKey = null;
+    }
+  };
+
+  const scheduleHoverPrefetch = (target: EventTarget | null): void => {
+    if (!(target instanceof Element)) {
+      return;
+    }
+    const anchor = target.closest("a[data-episode-id]");
+    if (!(anchor instanceof HTMLAnchorElement)) {
+      return;
+    }
+    const destination = episodeFromLink(anchor);
+    if (!destination || destination.episode === Number(state.episode.current)) {
+      return;
+    }
+    cancelHoverPrefetch();
+    const key = prefetchKey(destination.episode, state.playback.currentMode);
+    hoverTimer = setTimeout(() => {
+      hoverTimer = undefined;
+      const entry = startEpisodePrefetch(destination.episode, state.playback.currentMode, "hover");
+      hoverPrefetchKey = entry?.reason === "hover" ? key : null;
+    }, 120);
+  };
+
+  root?.addEventListener(
+    "pointerover",
+    (event) => {
+      scheduleHoverPrefetch(event.target);
+    },
+    { signal },
+  );
+  root?.addEventListener(
+    "focusin",
+    (event) => {
+      scheduleHoverPrefetch(event.target);
+    },
+    { signal },
+  );
+  root?.addEventListener("pointerleave", cancelHoverPrefetch, { signal });
+  root?.addEventListener("focusout", cancelHoverPrefetch, { signal });
 
   window.addEventListener(
     "popstate",
@@ -439,6 +641,11 @@ export const setupEpisodeNavigation = (signal: AbortSignal): void => {
       activeTransition = null;
       modeHydrationController?.abort();
       modeHydrationController = null;
+      prefetchEnabled = false;
+      cancelHoverPrefetch();
+      for (const key of prefetchedEpisodes.keys()) {
+        removePrefetch(key, true);
+      }
     },
     { once: true },
   );

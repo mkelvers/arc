@@ -2,7 +2,7 @@ import { onHtmxLoad, onReady } from "../utils";
 import { setupControls, showControls } from "./controls";
 import { formatTime } from "./controls";
 import { setupEpisodeMetadata } from "./episodes/metadata";
-import { goToNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
+import { goToNextEpisode, prefetchNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
 import {
@@ -134,6 +134,7 @@ const initPlayer = async (): Promise<void> => {
     );
     updateTimeline(state.elements.video.currentTime);
     updateSkipButton(state.elements.video.currentTime);
+    prefetchNextEpisode();
     if (shouldShowControls) {
       showControls();
     }
