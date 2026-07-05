@@ -46,7 +46,7 @@ func isHTTPSRequest(r *http.Request) bool {
 
 	forwarded := r.Header.Values("Forwarded")
 	for _, value := range forwarded {
-		for _, part := range strings.Split(value, ";") {
+		for part := range strings.SplitSeq(value, ";") {
 			key, val, ok := strings.Cut(strings.TrimSpace(part), "=")
 			if ok && strings.EqualFold(key, "proto") && strings.EqualFold(strings.Trim(val, `"`), "https") {
 				return true
