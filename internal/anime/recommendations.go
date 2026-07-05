@@ -32,7 +32,11 @@ type topPicksCache struct {
 const topPicksRefreshTimeout = 30 * time.Second
 
 func (s *animeService) GetTopPickForYou(_ context.Context, userID string) (domain.CatalogSectionData, error) {
-	return s.getCachedTopPicksForYou(userID, recommendations.TopPickLimit), nil
+	data := s.getCachedTopPicksForYou(userID, recommendations.TopPicksLimit)
+	if len(data.Animes) > recommendations.TopPickLimit {
+		data.Animes = data.Animes[:recommendations.TopPickLimit]
+	}
+	return data, nil
 }
 
 func (s *animeService) GetTopPicksForYou(_ context.Context, userID string) (domain.CatalogSectionData, error) {
