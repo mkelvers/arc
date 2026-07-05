@@ -10,7 +10,8 @@ import (
 )
 
 type rewritePlaybackService struct {
-	targets []string
+	targets   []string
+	targetURL string
 }
 
 func (s *rewritePlaybackService) BuildWatchData(context.Context, int, []string, string, string, string) (domain.WatchPageData, error) {
@@ -31,7 +32,7 @@ func (s *rewritePlaybackService) SignProxyToken(targetURL, _ string, _ string) (
 }
 
 func (s *rewritePlaybackService) ResolveProxyToken(string, string) (string, string, error) {
-	return "", "", nil
+	return s.targetURL, "", nil
 }
 
 func (s *rewritePlaybackService) UpsertSkipSegmentOverride(context.Context, string, int64, int, string, float64, float64) error {

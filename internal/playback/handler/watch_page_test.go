@@ -17,12 +17,37 @@ import (
 type watchPagePlaybackService struct {
 	domain.PlaybackService
 
-	data domain.WatchPageData
-	err  error
+	data             domain.WatchPageData
+	err              error
+	refreshRequested bool
 }
 
-func (s *watchPagePlaybackService) BuildWatchData(context.Context, int, []string, string, string, string) (domain.WatchPageData, error) {
+func (s *watchPagePlaybackService) BuildWatchData(ctx context.Context, _ int, _ []string, _ string, _ string, _ string) (domain.WatchPageData, error) {
+	s.refreshRequested = domain.PlaybackSourceRefreshRequested(ctx)
 	return s.data, s.err
+}
+
+func TestHandleEpisodeDataRequestsForcedSourceRefresh(t *testing.T) {
+	data := baseWatchPageData()
+	data.WatchData.ModeSources = map[string]domain.ModeSource{
+		"sub": {Token: "opaque", Type: "m3u8"},
+	}
+	svc := &watchPagePlaybackService{data: data}
+	h := &PlaybackHandler{svc: svc}
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/watch/episode/123/1?mode=sub&refresh=1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !svc.refreshRequested {
+		t.Fatal("episode handler did not request a forced source refresh")
+	}
 }
 
 type watchPageAnimeService struct {
