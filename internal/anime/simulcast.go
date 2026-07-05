@@ -4,6 +4,7 @@ import (
 	"context"
 	"mal/integrations/jikan"
 	"mal/internal/domain"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -92,13 +93,7 @@ func seasonNavigation(selected animeSeason, firstYear int, latest animeSeason) (
 
 func seasonSelection(rawSeason, rawYear string, current, latest animeSeason) animeSeason {
 	season := strings.ToLower(strings.TrimSpace(rawSeason))
-	validSeason := false
-	for _, candidate := range seasons {
-		if season == candidate {
-			validSeason = true
-			break
-		}
-	}
+	validSeason := slices.Contains(seasons, season)
 	year, err := strconv.Atoi(rawYear)
 	if !validSeason || err != nil || year < 2000 || year > latest.Year || year == latest.Year && seasonIndex(season) > seasonIndex(latest.Season) {
 		return current
