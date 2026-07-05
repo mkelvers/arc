@@ -13,6 +13,9 @@ func RequestLogger() gin.HandlerFunc {
 		start := time.Now()
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
+		if c.Request.URL.Path == "/watch/proxy/stream" || c.Request.URL.Path == "/watch/proxy/subtitle" {
+			query = ""
+		}
 
 		c.Next()
 

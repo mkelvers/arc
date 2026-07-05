@@ -13,12 +13,12 @@ import (
 
 func newProxyRequest(ctx context.Context, targetURL string, referer string) (*http.Request, error) {
 	if err := proxytarget.Validate(targetURL); err != nil {
-		return nil, fmt.Errorf("validate proxy target %q: %w", targetURL, err)
+		return nil, fmt.Errorf("validate proxy target: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("build proxy request for %q: %w", targetURL, err)
+		return nil, fmt.Errorf("build proxy request: %w", err)
 	}
 
 	if referer != "" {

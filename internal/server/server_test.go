@@ -149,7 +149,7 @@ func TestRequestLoggerLogsFailedStreamProxy(t *testing.T) {
 	}
 }
 
-func TestRequestLoggerLogsProxyTokenQuery(t *testing.T) {
+func TestRequestLoggerRedactsProxyTokenQuery(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	var logs bytes.Buffer
@@ -172,8 +172,8 @@ func TestRequestLoggerLogsProxyTokenQuery(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
 	}
 	got := logs.String()
-	if !strings.Contains(got, `query="lang=en&token=secret-token"`) {
-		t.Fatalf("log line missing raw query: %s", got)
+	if strings.Contains(got, "secret-token") || strings.Contains(got, "query=") {
+		t.Fatalf("log leaked proxy query: %s", got)
 	}
 }
 
