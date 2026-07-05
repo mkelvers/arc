@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"mal/integrations/jikan"
+	"mal/internal/anime/recommendations"
 	"mal/internal/domain"
 )
 
@@ -34,6 +35,46 @@ func TestGetTopPicksForYouReturnsEmptyOnCacheMissAndRefreshesInBackground(t *tes
 	}
 	if len(got.Animes) != 1 || got.Animes[0].MalID != 7 {
 		t.Fatalf("cache hit animes = %+v, want anime 7", got.Animes)
+	}
+}
+
+func TestTopPickAndTopPicksShareCache(t *testing.T) {
+	refreshed := make(chan struct{}, 1)
+	limits := make(chan int, 1)
+	svc := NewAnimeService(nil, nil)
+	svc.computeTopPicks = func(_ context.Context, _ string, limit int) (domain.CatalogSectionData, error) {
+		limits <- limit
+		animes := make([]domain.Anime, recommendations.TopPickLimit+1)
+		for i := range animes {
+			animes[i].MalID = i + 1
+		}
+		refreshed <- struct{}{}
+		return domain.CatalogSectionData{Animes: animes}, nil
+	}
+
+	if _, err := svc.GetTopPickForYou(context.Background(), "user-1"); err != nil {
+		t.Fatalf("GetTopPickForYou cache miss: %v", err)
+	}
+	waitForRefresh(t, refreshed)
+
+	carousel, err := svc.GetTopPickForYou(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("GetTopPickForYou cache hit: %v", err)
+	}
+	if len(carousel.Animes) != recommendations.TopPickLimit {
+		t.Fatalf("carousel animes = %d, want %d", len(carousel.Animes), recommendations.TopPickLimit)
+	}
+
+	all, err := svc.GetTopPicksForYou(context.Background(), "user-1")
+	if err != nil {
+		t.Fatalf("GetTopPicksForYou shared cache: %v", err)
+	}
+	if len(all.Animes) != recommendations.TopPickLimit+1 {
+		t.Fatalf("all animes = %d, want %d", len(all.Animes), recommendations.TopPickLimit+1)
+	}
+
+	if limit := <-limits; limit != recommendations.TopPicksLimit {
+		t.Fatalf("computed limit = %d, want %d", limit, recommendations.TopPicksLimit)
 	}
 }
 
