@@ -78,6 +78,11 @@ func TestRenderUsesPurposeSizedBrandAssets(t *testing.T) {
 		t.Fatalf("parse rendered html: %v", err)
 	}
 
+	assertBrandAssetLinks(t, doc)
+	assertNavigationLogo(t, doc)
+}
+
+func assertBrandAssetLinks(t *testing.T, doc *goquery.Document) {
 	assets := map[string]string{
 		`link[rel="manifest"]`:                          "/static/assets/manifest.json",
 		`link[rel="icon"][sizes="32x32"]`:               "/static/assets/favicon-32.png",
@@ -94,7 +99,9 @@ func TestRenderUsesPurposeSizedBrandAssets(t *testing.T) {
 			t.Fatalf("%s href = %q, want %q", selector, path, want)
 		}
 	}
+}
 
+func assertNavigationLogo(t *testing.T, doc *goquery.Document) {
 	logo := doc.Find(`a[title="Home"] img`)
 	if logo.Length() != 1 {
 		t.Fatalf("navigation logo count = %d, want 1", logo.Length())

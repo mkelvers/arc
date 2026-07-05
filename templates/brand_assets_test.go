@@ -33,30 +33,34 @@ func TestManifestIconDimensions(t *testing.T) {
 	}
 
 	for _, icon := range manifest.Icons {
-		t.Run(icon.Sizes, func(t *testing.T) {
-			width, height := parseIconSize(t, icon.Sizes)
-			assetURL, err := url.Parse(icon.Src)
-			if err != nil {
-				t.Fatalf("parse icon URL: %v", err)
-			}
-			if assetURL.Query().Get("v") == "" {
-				t.Fatalf("icon URL is not versioned: %q", icon.Src)
-			}
+		t.Run(icon.Sizes, checkManifestIcon(icon))
+	}
+}
 
-			file, err := os.Open(filepath.Join("..", strings.TrimPrefix(assetURL.Path, "/")))
-			if err != nil {
-				t.Fatalf("open icon: %v", err)
-			}
-			defer file.Close()
+func checkManifestIcon(icon manifestIcon) func(*testing.T) {
+	return func(t *testing.T) {
+		width, height := parseIconSize(t, icon.Sizes)
+		assetURL, err := url.Parse(icon.Src)
+		if err != nil {
+			t.Fatalf("parse icon URL: %v", err)
+		}
+		if assetURL.Query().Get("v") == "" {
+			t.Fatalf("icon URL is not versioned: %q", icon.Src)
+		}
 
-			config, err := png.DecodeConfig(file)
-			if err != nil {
-				t.Fatalf("decode icon: %v", err)
-			}
-			if config.Width != width || config.Height != height {
-				t.Fatalf("icon dimensions = %dx%d, manifest declares %s", config.Width, config.Height, icon.Sizes)
-			}
-		})
+		file, err := os.Open(filepath.Join("..", strings.TrimPrefix(assetURL.Path, "/")))
+		if err != nil {
+			t.Fatalf("open icon: %v", err)
+		}
+		defer file.Close()
+
+		config, err := png.DecodeConfig(file)
+		if err != nil {
+			t.Fatalf("decode icon: %v", err)
+		}
+		if config.Width != width || config.Height != height {
+			t.Fatalf("icon dimensions = %dx%d, manifest declares %s", config.Width, config.Height, icon.Sizes)
+		}
 	}
 }
 
