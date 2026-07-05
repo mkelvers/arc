@@ -69,11 +69,9 @@ func TestResolveStreamResultCollapsesConcurrentMisses(t *testing.T) {
 	results := make(chan *domain.StreamResult, requests)
 	var wg sync.WaitGroup
 	for range requests {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			results <- svc.resolveStreamResult(context.Background(), 42, nil, "3", "sub", false, false)
-		}()
+		})
 	}
 	<-started
 	close(release)
