@@ -5,6 +5,7 @@ import (
 	"mal/internal/anime/recommendations"
 	"mal/internal/domain"
 	"mal/internal/observability"
+	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -131,9 +132,7 @@ func cloneCatalogSectionData(data domain.CatalogSectionData) domain.CatalogSecti
 	data.ContinueWatching = append(data.ContinueWatching[:0:0], data.ContinueWatching...)
 	if data.WatchlistMap != nil {
 		watchlistMap := make(map[int64]bool, len(data.WatchlistMap))
-		for id, ok := range data.WatchlistMap {
-			watchlistMap[id] = ok
-		}
+		maps.Copy(watchlistMap, data.WatchlistMap)
 		data.WatchlistMap = watchlistMap
 	}
 	return data
