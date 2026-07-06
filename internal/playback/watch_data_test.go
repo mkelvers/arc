@@ -1,10 +1,42 @@
 package playback
 
 import (
+	"context"
 	"mal/internal/domain"
 	"testing"
 	"time"
 )
+
+func TestWatchModeSourcesDefersProviderResolution(t *testing.T) {
+	provider := &sourceCacheProvider{get: func(context.Context, int, []string, string, string) (*domain.StreamResult, error) {
+		t.Fatal("deferred watch page resolved a provider source")
+		return nil, nil
+	}}
+	svc := newSourceCacheService(provider)
+
+	sources, result, mode, from := svc.watchModeSources(
+		context.Background(), 42, nil, "1", "sub", "", false, true,
+	)
+
+	if len(sources) != 0 || result != nil || mode != "sub" || from != "" {
+		t.Fatalf("deferred result = (%v, %v, %q, %q)", sources, result, mode, from)
+	}
+	if provider.calls.Load() != 0 {
+		t.Fatalf("provider calls = %d, want 0", provider.calls.Load())
+	}
+}
+
+func TestWatchAnimeUsesLocalRow(t *testing.T) {
+	svc := &playbackService{repo: &fakePlaybackRepository{}}
+
+	anime, err := svc.watchAnime(context.Background(), 12)
+	if err != nil {
+		t.Fatalf("watchAnime() error = %v", err)
+	}
+	if anime.MalID != 12 || anime.Title != "Anime 12" {
+		t.Fatalf("watchAnime() = %+v", anime.Anime)
+	}
+}
 
 func TestFallbackModes(t *testing.T) {
 	t.Parallel()
