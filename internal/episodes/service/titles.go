@@ -35,12 +35,17 @@ func (s *EpisodeService) EnrichEpisodeTitles(ctx context.Context, anime domain.A
 }
 
 func (s *EpisodeService) loadEpisodeTitles(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, error) {
+	payload, _, ok := s.cachedEpisodePayload(ctx, anime)
+	if !ok {
+		return domain.CanonicalEpisodeList{}, errors.New("episode titles: episode availability cache disappeared")
+	}
+
 	providerID, err := s.providerID(ctx, anime, s.titles, titleCandidates(anime))
 	if err != nil {
 		return domain.CanonicalEpisodeList{}, err
 	}
 
-	titles, err := s.titles.GetEpisodeTitlesByProviderID(ctx, providerID)
+	titles, err := s.titles.GetEpisodeTitlesByProviderID(ctx, providerID, anime, len(payload.Episodes))
 	if err != nil {
 		return domain.CanonicalEpisodeList{}, err
 	}
