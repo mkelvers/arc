@@ -343,17 +343,19 @@ func TestGetAvailableEpisodes(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		body    string
-		wantSub int
-		wantDub int
-		wantErr bool
+		name      string
+		body      string
+		wantSub   int
+		wantDub   int
+		wantTitle string
+		wantErr   bool
 	}{
 		{
-			name:    "sub and dub available",
-			body:    `{"data":{"show":{"availableEpisodesDetail":{"sub":["1","2","3"],"dub":["1"]},"lastEpisodeInfo":{}}}}`,
-			wantSub: 3,
-			wantDub: 1,
+			name:      "sub and dub available",
+			body:      `{"data":{"show":{"availableEpisodesDetail":{"sub":["1","2","3"],"dub":["1"]}},"episodeInfos":[{"episodeIdNum":1,"notes":"The Beginning"}]}}`,
+			wantSub:   3,
+			wantDub:   1,
+			wantTitle: "The Beginning",
 		},
 		{
 			name:    "sub only",
@@ -394,7 +396,15 @@ func TestGetAvailableEpisodes(t *testing.T) {
 			if len(available.Dub) != tt.wantDub {
 				t.Errorf("Dub count = %d, want %d", len(available.Dub), tt.wantDub)
 			}
+			assertEpisodeTitle(t, available, tt.wantTitle)
 		})
+	}
+}
+
+func assertEpisodeTitle(t *testing.T, available AvailableEpisodes, want string) {
+	t.Helper()
+	if want != "" && available.Titles[1] != want {
+		t.Errorf("episode 1 title = %q, want %q", available.Titles[1], want)
 	}
 }
 

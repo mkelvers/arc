@@ -9,9 +9,10 @@ import (
 )
 
 type AvailableEpisodes struct {
-	Sub []string
-	Dub []string
-	Raw []string
+	Sub    []string
+	Dub    []string
+	Raw    []string
+	Titles map[int]string
 }
 
 func (c *AllAnimeProvider) GetEpisodeAvailability(ctx context.Context, animeID int, titleCandidates []string) (domain.EpisodeAvailability, error) {
@@ -30,18 +31,25 @@ func (c *AllAnimeProvider) GetEpisodeAvailabilityByProviderID(ctx context.Contex
 
 	sub := episodeNums(append(available.Sub, available.Raw...))
 	dub := episodeNums(available.Dub)
-	return domain.EpisodeAvailability{Sub: sub, Dub: dub}, nil
+	return domain.EpisodeAvailability{Sub: sub, Dub: dub, Titles: available.Titles}, nil
 }
 
 func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID string) (AvailableEpisodes, error) {
-	graphqlQuery := `query($showId: String!) {
+	graphqlQuery := `query($showId: String!, $start: Float!, $end: Float!) {
 		show(_id: $showId) {
 			availableEpisodesDetail
-			lastEpisodeInfo
+		}
+		episodeInfos(showId: $showId, episodeNumStart: $start, episodeNumEnd: $end) {
+			episodeIdNum
+			notes
 		}
 	}`
 
-	result, err := c.graphqlRequest(ctx, graphqlQuery, map[string]any{"showId": showID})
+	result, err := c.graphqlRequest(ctx, graphqlQuery, map[string]any{
+		"showId": showID,
+		"start":  1,
+		"end":    100000,
+	})
 	if err != nil {
 		return AvailableEpisodes{}, err
 	}
@@ -61,10 +69,25 @@ func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID stri
 		return AvailableEpisodes{}, errors.New("invalid detail")
 	}
 
+	titles := map[int]string{}
+	infos, _ := data["episodeInfos"].([]any)
+	for _, value := range infos {
+		info, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		number := numericInt(info["episodeIdNum"])
+		title := plainText(stringValue(info["notes"]))
+		if number > 0 && title != "" {
+			titles[number] = title
+		}
+	}
+
 	return AvailableEpisodes{
-		Sub: stringsFrom(detail["sub"]),
-		Dub: stringsFrom(detail["dub"]),
-		Raw: stringsFrom(detail["raw"]),
+		Sub:    stringsFrom(detail["sub"]),
+		Dub:    stringsFrom(detail["dub"]),
+		Raw:    stringsFrom(detail["raw"]),
+		Titles: titles,
 	}, nil
 }
 
