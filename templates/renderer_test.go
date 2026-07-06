@@ -307,6 +307,25 @@ func TestWatchTemplateEscapesJSONDataAttributes(t *testing.T) {
 	if got != label {
 		t.Fatalf("subtitle label mismatch\nwant: %q\ngot:  %q", label, got)
 	}
+	assertPlayerAccessibility(t, player)
+}
+
+func assertPlayerAccessibility(t *testing.T, player *goquery.Selection) {
+	t.Helper()
+	for selector, want := range map[string]string{
+		"[data-play-pause]": "Play",
+		"[data-mute]":       "Mute",
+		"[data-fullscreen]": "Enter fullscreen",
+		"[data-backward]":   "Seek backward 10 seconds",
+		"[data-forward]":    "Seek forward 10 seconds",
+	} {
+		if accessibleName, _ := player.Find(selector).Attr("aria-label"); accessibleName != want {
+			t.Fatalf("%s aria-label = %q, want %q", selector, accessibleName, want)
+		}
+	}
+	if got := player.Find(`[data-loading-context], [data-loading-message]`).Length(); got != 0 {
+		t.Fatalf("player loading copy count = %d, want 0", got)
+	}
 }
 
 func TestExecuteFragmentValid(t *testing.T) {
