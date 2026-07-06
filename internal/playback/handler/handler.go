@@ -40,10 +40,48 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	r.POST("/api/watch-progress", h.HandleSaveProgress)
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
 	r.GET("/api/watch/episodes/:animeId/titles", h.HandleEpisodeTitles)
+	r.GET("/api/watch/episodes/:animeId/classifications", h.HandleEpisodeClassifications)
 	r.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
 	r.POST("/api/watch/segments", h.HandleUpsertSkipSegment)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
 	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
+}
+
+func (h *PlaybackHandler) HandleEpisodeClassifications(c *gin.Context) {
+	animeID, err := strconv.Atoi(c.Param("animeId"))
+	if err != nil || animeID <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
+		return
+	}
+
+	enricher, ok := h.svc.(domain.PlaybackEpisodeClassificationService)
+	if !ok {
+		server.RespondHTMLOrJSONError(c, http.StatusServiceUnavailable, "episode classifications are unavailable")
+		return
+	}
+	episodes, err := enricher.EnrichEpisodeClassifications(c.Request.Context(), animeID)
+	if err != nil {
+		server.RespondError(
+			c,
+			http.StatusBadGateway,
+			"watch_episode_classifications_failed",
+			"playback",
+			"episode classifications are unavailable",
+			map[string]any{"anime_id": animeID},
+			err,
+		)
+		return
+	}
+
+	classifications := make([]gin.H, 0, len(episodes))
+	for _, episode := range episodes {
+		classifications = append(classifications, gin.H{
+			"number": episode.Number,
+			"filler": episode.Filler,
+			"recap":  episode.Recap,
+		})
+	}
+	c.JSON(http.StatusOK, classifications)
 }
 
 func (h *PlaybackHandler) HandleEpisodeTitles(c *gin.Context) {
