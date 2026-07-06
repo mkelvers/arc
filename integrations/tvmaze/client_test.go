@@ -64,6 +64,31 @@ func TestGetEpisodeTitlesUsesAiringOrder(t *testing.T) {
 	}
 }
 
+func TestGetEpisodeTitlesSelectsSplitCourWithinSeason(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"season":2,"number":1,"name":"Cour one A"},
+			{"season":2,"number":2,"name":"Cour one B"},
+			{"season":2,"number":3,"name":"Cour two A"},
+			{"season":2,"number":4,"name":"Cour two B"}
+		]`))
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "14459", domain.Anime{Anime: jikan.Anime{
+		Title: "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+	}}, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[int]string{1: "Cour two A", 2: "Cour two B"}
+	if !reflect.DeepEqual(titles, want) {
+		t.Fatalf("titles = %#v, want %#v", titles, want)
+	}
+}
+
 func newTestClient(server *httptest.Server) *Client {
 	return &Client{httpClient: server.Client(), baseURL: server.URL}
 }
