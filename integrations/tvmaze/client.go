@@ -32,7 +32,9 @@ type show struct {
 }
 
 type episode struct {
-	Name string `json:"name"`
+	Name    string `json:"name"`
+	Season  int    `json:"season"`
+	Airdate string `json:"airdate"`
 }
 
 func NewClient() *Client {
