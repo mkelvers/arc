@@ -22,6 +22,7 @@ type watchPagePlaybackService struct {
 	err              error
 	refreshRequested bool
 	titles           []domain.CanonicalEpisode
+	classifications  []domain.CanonicalEpisode
 }
 
 func (s *watchPagePlaybackService) BuildWatchData(ctx context.Context, _ int, _ []string, _ string, _ string, _ string) (domain.WatchPageData, error) {
@@ -32,6 +33,10 @@ func (s *watchPagePlaybackService) BuildWatchData(ctx context.Context, _ int, _ 
 
 func (s *watchPagePlaybackService) EnrichEpisodeTitles(context.Context, int) ([]domain.CanonicalEpisode, error) {
 	return s.titles, s.err
+}
+
+func (s *watchPagePlaybackService) EnrichEpisodeClassifications(context.Context, int) ([]domain.CanonicalEpisode, error) {
+	return s.classifications, s.err
 }
 
 func TestHandleEpisodeDataRequestsForcedSourceRefresh(t *testing.T) {
@@ -75,6 +80,29 @@ func TestHandleEpisodeTitlesReturnsMinimalEnrichedList(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
 	if got := strings.TrimSpace(rec.Body.String()); got != `[{"number":1,"title":"The First Title"},{"number":2,"title":"The Second Title"}]` {
+		t.Fatalf("body = %s", got)
+	}
+}
+
+func TestHandleEpisodeClassificationsReturnsMinimalList(t *testing.T) {
+	svc := &watchPagePlaybackService{classifications: []domain.CanonicalEpisode{
+		{Number: 1},
+		{Number: 2, Filler: true},
+		{Number: 3, Recap: true},
+	}}
+	h := &PlaybackHandler{svc: svc}
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/api/watch/episodes/:animeId/classifications", h.HandleEpisodeClassifications)
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/watch/episodes/123/classifications", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `[{"filler":false,"number":1,"recap":false},{"filler":true,"number":2,"recap":false},{"filler":false,"number":3,"recap":true}]` {
 		t.Fatalf("body = %s", got)
 	}
 }
