@@ -42,7 +42,6 @@ func (h *PlaybackHandler) Register(r *gin.Engine) {
 	r.POST("/api/watch-complete", h.HandleWatchComplete)
 	r.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
 	r.POST("/api/watch/segments", h.HandleUpsertSkipSegment)
-	r.GET("/api/watch/episodes/:animeId/metadata", h.HandleEpisodeMetadata)
 	r.GET("/watch/proxy/stream", h.HandleProxyStream)
 	r.GET("/watch/proxy/subtitle", h.HandleProxySubtitle)
 }
@@ -59,7 +58,8 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 	user := server.CurrentUser(c)
 	userID := server.CurrentUserID(c)
 
-	data, err := h.svc.BuildWatchData(c.Request.Context(), id, []string{}, ep, mode, userID)
+	ctx := domain.WithDeferredPlaybackData(c.Request.Context())
+	data, err := h.svc.BuildWatchData(ctx, id, []string{}, ep, mode, userID)
 	if err != nil {
 		if data.Anime.MalID == 0 && data.WatchData.MalID == 0 && len(data.Episodes) == 0 {
 			anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
@@ -273,64 +273,4 @@ func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (h *PlaybackHandler) HandleEpisodeMetadata(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("animeId"))
-	if err != nil {
-		c.Status(http.StatusBadRequest)
-		return
-	}
-
-	allEpisodes, err := h.animeSvc.GetAllEpisodes(c.Request.Context(), id)
-	if err != nil {
-		server.RespondError(
-			c,
-			http.StatusInternalServerError,
-			"episode_metadata_load_failed",
-			"playback",
-			"failed to load episode metadata",
-			map[string]any{"anime_id": id},
-			err,
-		)
-		return
-	}
-
-	anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
-	if fetchErr != nil {
-		fmt.Printf("error fetching anime for thumbnail fill: %v\n", fetchErr)
-	}
-	if anime.Episodes > 0 && anime.Episodes > len(allEpisodes) {
-		epMap := make(map[int]domain.EpisodeData)
-		for _, ep := range allEpisodes {
-			epMap[ep.MalID] = ep
-		}
-		var filled []domain.EpisodeData
-		for i := 1; i <= anime.Episodes; i++ {
-			if ep, ok := epMap[i]; ok {
-				filled = append(filled, ep)
-			} else {
-				filled = append(filled, domain.EpisodeData{
-					MalID: i,
-					Title: fmt.Sprintf("Episode %d", i),
-				})
-			}
-		}
-		allEpisodes = filled
-	}
-
-	type Result struct {
-		MalID int    `json:"mal_id"`
-		Title string `json:"title"`
-	}
-
-	results := make([]Result, len(allEpisodes))
-	for i, ep := range allEpisodes {
-		results[i] = Result{
-			MalID: ep.MalID,
-			Title: ep.Title,
-		}
-	}
-
-	c.JSON(http.StatusOK, results)
 }
