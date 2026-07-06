@@ -20,7 +20,7 @@ type EpisodeAvailabilityProvider interface {
 
 type EpisodeTitleProvider interface {
 	EpisodeProvider
-	GetEpisodeTitlesByProviderID(ctx context.Context, providerID string) (map[int]string, error)
+	GetEpisodeTitlesByProviderID(ctx context.Context, providerID string, anime Anime, episodeCount int) (map[int]string, error)
 }
 
 type CanonicalEpisode struct {
