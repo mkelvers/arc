@@ -1,6 +1,7 @@
 import { onHtmxLoad, onReady } from "../utils";
 import { setupControls, showControls } from "./controls";
 import { formatTime } from "./controls";
+import { hydrateEpisodeClassifications } from "./episodes/classifications";
 import { goToNextEpisode, prefetchNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
 import { hydrateEpisodeTitles } from "./episodes/titles";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
@@ -167,6 +168,12 @@ const initPlayer = async (): Promise<void> => {
       return;
     }
     console.debug("failed to enrich episode titles:", error);
+  });
+  hydrateEpisodeClassifications(signal).catch((error: unknown) => {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return;
+    }
+    console.debug("failed to enrich episode classifications:", error);
   });
 
   updateSubtitleOptions();
