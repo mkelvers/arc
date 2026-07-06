@@ -8,10 +8,12 @@ class FakeElement extends EventTarget {
   className = "";
   classList = fakeClassList();
   disabled = false;
+  focused = false;
   parentElement: FakeElement | null = null;
   style: Record<string, string> = {};
   textContent = "";
   tabIndex = 0;
+  private readonly attributes = new Map<string, string>();
   private readonly children: FakeElement[] = [];
   private readonly queries = new Map<string, FakeElement | null>();
 
@@ -26,6 +28,11 @@ class FakeElement extends EventTarget {
 
   focus(options?: FocusOptions): void {
     void options;
+    this.focused = true;
+  }
+
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
   }
 
   querySelector(selector: string): FakeElement | null {
@@ -37,7 +44,7 @@ class FakeElement extends EventTarget {
   }
 
   removeAttribute(name: string): void {
-    void name;
+    this.attributes.delete(name);
   }
 
   replaceChildren(...children: FakeElement[]): void {
@@ -52,8 +59,7 @@ class FakeElement extends EventTarget {
   }
 
   setAttribute(name: string, value: string): void {
-    void name;
-    void value;
+    this.attributes.set(name, value);
   }
 
   scrollIntoView(options?: ScrollIntoViewOptions): void {
@@ -117,7 +123,10 @@ type PlayerModules = {
   handleEpisodeNavigationClick: (event: MouseEvent) => boolean;
   prefetchNextEpisode: () => void;
   refreshCurrentModeSource: (signal?: AbortSignal) => Promise<boolean>;
+  resolveCurrentModeSource: (signal?: AbortSignal) => Promise<boolean>;
   saveProgress: (force?: boolean, progressSeconds?: number) => Promise<void>;
+  setPlayerLoadState: (loadState: import("./loading").PlayerLoadState) => void;
+  setupPlayerLoading: (retry: () => Promise<boolean>, signal: AbortSignal) => void;
   setupProgress: () => void;
   state: typeof import("./state").state;
   streamUrlForMode: (mode: string, quality?: string) => string;
@@ -126,6 +135,7 @@ type PlayerModules = {
     episode: number,
     options?: { fallbackHref?: string; history?: "none" | "push" | "replace" },
   ) => Promise<boolean>;
+  teardownPlayerLoading: () => void;
 };
 
 const emptyRanges = (): TimeRanges => ({ length: 0, end: () => 0, start: () => 0 });
@@ -152,6 +162,7 @@ const fakeClassList = (): DOMTokenList => {
       }
       return shouldAdd;
     },
+    contains: (token: string): boolean => values.has(token),
   } as DOMTokenList;
 };
 
@@ -241,6 +252,12 @@ let modules: PlayerModules;
 let beaconCalls: string[];
 let fetchCalls: Array<{ body?: string; url: string }>;
 let timeoutCallbacks: Array<() => void>;
+let loadingUI: {
+  back: FakeElement;
+  loading: FakeElement;
+  retry: FakeElement;
+  spinner: FakeElement;
+};
 const originalConsoleError = console.error;
 
 const installBrowserGlobals = (): void => {
@@ -286,9 +303,23 @@ const asHTMLElement = (element: FakeElement): HTMLElement => element as unknown 
 
 const resetPlayerState = (): void => {
   const { state } = modules;
+  modules.teardownPlayerLoading();
   const video = fakeVideoElement();
   video.duration = 120;
-  state.elements.container = asHTMLElement(new FakeElement());
+  const container = new FakeElement();
+  loadingUI = {
+    back: new FakeElement(),
+    loading: new FakeElement(),
+    retry: new FakeElement(),
+    spinner: new FakeElement(),
+  };
+  container.dataset.animeTitle = "Example Anime";
+  container.dataset.currentEpisode = "3";
+  container.setQuery("[data-loading]", loadingUI.loading);
+  container.setQuery("[data-loading-spinner]", loadingUI.spinner);
+  container.setQuery("[data-loading-retry]", loadingUI.retry);
+  container.setQuery("[data-loading-back]", loadingUI.back);
+  state.elements.container = asHTMLElement(container);
   state.elements.video = video as unknown as HTMLVideoElement;
   state.elements.progress = asHTMLElement(new FakeElement());
   state.elements.scrubber = asHTMLElement(new FakeElement());
@@ -328,17 +359,22 @@ const loadPlayerModules = async (): Promise<PlayerModules> => {
   const progressModule = await import("./progress");
   const stateModule = await import("./state");
   const sourceModule = await import("./source");
+  const loadingModule = await import("./loading");
 
   return {
     completeAnime: completeModule.completeAnime,
     handleEpisodeNavigationClick: navModule.handleEpisodeNavigationClick,
     prefetchNextEpisode: navModule.prefetchNextEpisode,
     refreshCurrentModeSource: sourceModule.refreshCurrentModeSource,
+    resolveCurrentModeSource: sourceModule.resolveCurrentModeSource,
     saveProgress: progressModule.saveProgress,
+    setPlayerLoadState: loadingModule.setPlayerLoadState,
+    setupPlayerLoading: loadingModule.setupPlayerLoading,
     setupProgress: progressModule.setupProgress,
     state: stateModule.state,
     streamUrlForMode: sourceModule.streamUrlForMode,
     setupEpisodeNavigation: navModule.setupEpisodeNavigation,
+    teardownPlayerLoading: loadingModule.teardownPlayerLoading,
     transitionToEpisode: navModule.transitionToEpisode,
   };
 };
@@ -395,6 +431,43 @@ const episodeResponse = (episode: number): Response =>
   ({ json: () => Promise.resolve(episodePayload(episode)), ok: true, status: 200 }) as Response;
 
 describe("browser player flow", () => {
+  test("keeps loading to a quiet spinner until ready", () => {
+    modules.setPlayerLoadState("loading_media");
+
+    assert.equal(loadingUI.loading.style.display, "flex");
+    assert.equal(loadingUI.spinner.classList.contains("hidden"), false);
+    assert.equal(modules.state.elements.container.getAttribute("aria-busy"), "true");
+    assert.equal(timeoutCallbacks.length, 0);
+    assert.equal(loadingUI.retry.classList.contains("hidden"), true);
+
+    modules.setPlayerLoadState("ready");
+    assert.equal(loadingUI.loading.style.display, "none");
+    assert.equal(modules.state.elements.container.getAttribute("aria-busy"), "false");
+  });
+
+  test("user retry runs only one forced refresh at a time", async () => {
+    const controller = new AbortController();
+    let retries = 0;
+    modules.setupPlayerLoading(() => {
+      retries += 1;
+      modules.setPlayerLoadState("loading_media");
+      return Promise.resolve(true);
+    }, controller.signal);
+    modules.setPlayerLoadState("unavailable");
+
+    assert.equal(loadingUI.back.classList.contains("hidden"), false);
+    assert.equal(loadingUI.retry.focused, true);
+
+    loadingUI.retry.dispatchEvent(new Event("click"));
+    loadingUI.retry.dispatchEvent(new Event("click"));
+    await flushPromises();
+
+    assert.equal(retries, 1);
+    assert.equal(modules.state.elements.container.dataset.loadState, "loading_media");
+    assert.equal(loadingUI.retry.disabled, false);
+    controller.abort();
+  });
+
   test("builds initial stream URLs from mode token, HLS type, and preferred quality", () => {
     modules.state.playback.modeSources = {
       sub: { token: "sub token", type: "m3u8", qualities: ["1080p"], subtitles: [] },
@@ -444,6 +517,23 @@ describe("browser player flow", () => {
       "/watch/proxy/stream?mode=sub&token=fresh-token&hls=1",
     );
     assert.equal(modules.state.playback.pendingSeekTime, 64);
+  });
+
+  test("resolves the initial stream without forcing a provider refresh", async () => {
+    globalThis.fetch = ((url: string) => {
+      fetchCalls.push({ url });
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(episodePayload(3)),
+      } as Response);
+    }) as typeof fetch;
+
+    const resolved = await modules.resolveCurrentModeSource();
+
+    assert.equal(resolved, true);
+    assert.equal(fetchCalls[0]?.url, "/api/watch/episode/42/3?mode=sub");
+    assert.equal(modules.state.elements.video.src, "/watch/proxy/stream?mode=sub&token=sub-3");
   });
 
   test("saves progress on pause and after scrub mouseup", async () => {
@@ -655,7 +745,7 @@ describe("browser player flow", () => {
     assert.equal(modules.state.episode.current, "3");
   });
 
-  test("retries one failed media source before falling back to navigation", async () => {
+  test("retries one failed media source before exposing recovery", async () => {
     console.error = (): void => {
       void 0;
     };
@@ -684,7 +774,10 @@ describe("browser player flow", () => {
     assert.equal(fetchCalls[1]?.url, "/api/watch/episode/42/4?mode=sub&refresh=1");
 
     modules.state.elements.video.dispatchEvent(new Event("error"));
-    assert.equal(windowStub.location.href, fallbackHref);
+    assert.equal(fetchCalls.length, 2);
+    assert.equal(modules.state.elements.container.dataset.loadState, "unavailable");
+    assert.equal(loadingUI.retry.classList.contains("hidden"), false);
+    assert.equal(historyCalls.length, 1);
   });
 
   test("uses the returned fallback mode and restores episodes on popstate", async () => {
