@@ -36,6 +36,9 @@ func titleCandidates(anime domain.Anime) []string {
 }
 
 func isCanonicalEpisodePayloadValid(payload domain.CanonicalEpisodeList, expectedCount int) bool {
+	if payload.Source != "" && payload.Source != "jikan_fallback" && payload.Source != "legacy_disabled" {
+		return providerBackedPayloadHasAvailability(payload)
+	}
 	if expectedCount <= 0 {
 		return providerBackedPayloadHasAvailability(payload)
 	}
@@ -66,8 +69,8 @@ func mergeEpisodes(jikanEpisodes []jikan.Episode, availability domain.EpisodeAva
 	return mergeEpisodeData(jikanEpisodes, availability, expectedCount, time.Now(), false, "", false)
 }
 
-func mergeEpisodesForAnime(anime domain.Anime, jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, now time.Time, providerVerified bool) []domain.CanonicalEpisode {
-	return mergeEpisodeData(jikanEpisodes, availability, anime.Episodes, now, providerVerified, anime.Aired.From, anime.Airing)
+func mergeEpisodesForAnime(anime domain.Anime, jikanEpisodes []jikan.Episode, now time.Time, providerVerified bool) []domain.CanonicalEpisode {
+	return mergeEpisodeData(jikanEpisodes, domain.EpisodeAvailability{}, anime.Episodes, now, providerVerified, anime.Aired.From, anime.Airing)
 }
 
 func mergeEpisodeData(jikanEpisodes []jikan.Episode, availability domain.EpisodeAvailability, expectedCount int, now time.Time, providerVerified bool, firstAired string, requireJikanAiredDates bool) []domain.CanonicalEpisode {
@@ -76,7 +79,9 @@ func mergeEpisodeData(jikanEpisodes []jikan.Episode, availability domain.Episode
 	providerBacked := providerVerified || len(providerNumbers) > 0
 
 	for number := range providerNumbers {
-		mergeEpisode(&byNumber, number, func(item *episodePartial) {})
+		mergeEpisode(&byNumber, number, func(item *episodePartial) {
+			item.title = availability.Titles[number]
+		})
 	}
 
 	mergeJikanEpisodes(&byNumber, jikanEpisodes, providerNumbers, providerBacked, expectedCount, now, firstAired, requireJikanAiredDates)
