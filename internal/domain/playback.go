@@ -6,6 +6,16 @@ import (
 )
 
 type playbackSourceRefreshKey struct{}
+type deferredPlaybackDataKey struct{}
+
+func WithDeferredPlaybackData(ctx context.Context) context.Context {
+	return context.WithValue(ctx, deferredPlaybackDataKey{}, true)
+}
+
+func PlaybackDataDeferred(ctx context.Context) bool {
+	deferred, _ := ctx.Value(deferredPlaybackDataKey{}).(bool)
+	return deferred
+}
 
 func WithPlaybackSourceRefresh(ctx context.Context) context.Context {
 	return context.WithValue(ctx, playbackSourceRefreshKey{}, true)
