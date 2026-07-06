@@ -6,6 +6,9 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"mal/integrations/jikan"
+	"mal/internal/domain"
 )
 
 func TestResolveEpisodeProviderIDRequiresExactAnimatedTitle(t *testing.T) {
@@ -39,15 +42,19 @@ func TestGetEpisodeTitlesUsesAiringOrder(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`[
-			{"season":1,"number":1,"name":" First title "},
-			{"season":2,"number":1,"name":"Second title"},
-			{"season":2,"number":2,"name":null}
+			{"season":1,"number":1,"name":"Wrong season"},
+			{"season":2,"number":1,"name":" First title "},
+			{"season":2,"number":2,"name":"Second title"},
+			{"season":2,"number":3,"name":"Future title"},
+			{"season":3,"number":1,"name":"Another wrong season"}
 		]`))
 	}))
 	defer server.Close()
 
 	client := newTestClient(server)
-	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "80712")
+	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "80712", domain.Anime{Anime: jikan.Anime{
+		Title: "Example 2nd Season",
+	}}, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
