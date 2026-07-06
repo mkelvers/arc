@@ -21,12 +21,17 @@ type watchPagePlaybackService struct {
 	deferred         bool
 	err              error
 	refreshRequested bool
+	titles           []domain.CanonicalEpisode
 }
 
 func (s *watchPagePlaybackService) BuildWatchData(ctx context.Context, _ int, _ []string, _ string, _ string, _ string) (domain.WatchPageData, error) {
 	s.deferred = domain.PlaybackDataDeferred(ctx)
 	s.refreshRequested = domain.PlaybackSourceRefreshRequested(ctx)
 	return s.data, s.err
+}
+
+func (s *watchPagePlaybackService) EnrichEpisodeTitles(context.Context, int) ([]domain.CanonicalEpisode, error) {
+	return s.titles, s.err
 }
 
 func TestHandleEpisodeDataRequestsForcedSourceRefresh(t *testing.T) {
@@ -49,6 +54,28 @@ func TestHandleEpisodeDataRequestsForcedSourceRefresh(t *testing.T) {
 	}
 	if !svc.refreshRequested {
 		t.Fatal("episode handler did not request a forced source refresh")
+	}
+}
+
+func TestHandleEpisodeTitlesReturnsMinimalEnrichedList(t *testing.T) {
+	svc := &watchPagePlaybackService{titles: []domain.CanonicalEpisode{
+		{Number: 1, Title: "The First Title", HasSub: true},
+		{Number: 2, Title: "The Second Title", HasDub: true},
+	}}
+	h := &PlaybackHandler{svc: svc}
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/api/watch/episodes/:animeId/titles", h.HandleEpisodeTitles)
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/watch/episodes/123/titles", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := strings.TrimSpace(rec.Body.String()); got != `[{"number":1,"title":"The First Title"},{"number":2,"title":"The Second Title"}]` {
+		t.Fatalf("body = %s", got)
 	}
 }
 
