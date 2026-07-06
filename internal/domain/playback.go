@@ -35,6 +35,10 @@ type PlaybackService interface {
 	UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error
 }
 
+type PlaybackEpisodeTitleService interface {
+	EnrichEpisodeTitles(ctx context.Context, animeID int) ([]CanonicalEpisode, error)
+}
+
 type WatchPageData struct {
 	WatchData                  WatchData
 	Anime                      Anime
