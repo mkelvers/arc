@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"mal/integrations/jikan"
@@ -23,13 +24,15 @@ type realClock struct{}
 func (realClock) Now() time.Time { return time.Now() }
 
 type EpisodeService struct {
-	queries   *db.Queries
-	jikan     *jikan.Client
-	providers []domain.EpisodeAvailabilityProvider
-	titles    domain.EpisodeTitleProvider
-	clock     Clock
-	enabled   bool
-	titleLoad singleflight.Group
+	queries            *db.Queries
+	jikan              *jikan.Client
+	providers          []domain.EpisodeAvailabilityProvider
+	titles             domain.EpisodeTitleProvider
+	clock              Clock
+	enabled            bool
+	titleLoad          singleflight.Group
+	classificationLoad singleflight.Group
+	cacheMu            sync.Mutex
 }
 
 func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool) domain.EpisodeService {
