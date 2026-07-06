@@ -175,15 +175,17 @@ const getControls = (): Controls => {
 };
 
 const updatePlayPauseIcons = (isPlaying: boolean): void => {
-  const { iconPlay, iconPause } = getControls();
+  const { iconPlay, iconPause, playPause } = getControls();
   iconPlay?.classList.toggle("hidden", isPlaying);
   iconPause?.classList.toggle("hidden", !isPlaying);
+  playPause?.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
 };
 
 const updateMuteIcons = (isMuted: boolean): void => {
-  const { iconVolume, iconMuted } = getControls();
+  const { iconVolume, iconMuted, muteBtn } = getControls();
   iconVolume?.classList.toggle("hidden", isMuted);
   iconMuted?.classList.toggle("hidden", !isMuted);
+  muteBtn?.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
 };
 
 /** Binds click handlers to player control buttons. Sets up video event listeners for icon sync. */
@@ -251,6 +253,10 @@ export const setupControls = (): void => {
   document.addEventListener("fullscreenchange", () => {
     state.ui.isFullscreen = Boolean(document.fullscreenElement);
     state.elements.container.classList.toggle("fullscreen", state.ui.isFullscreen);
+    fullscreenBtn?.setAttribute(
+      "aria-label",
+      state.ui.isFullscreen ? "Exit fullscreen" : "Enter fullscreen",
+    );
     if (state.ui.isFullscreen) {
       showControls();
     }
