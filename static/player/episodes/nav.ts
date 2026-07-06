@@ -1,3 +1,4 @@
+import { setPlayerLoadState } from "../loading";
 import { hydrateAlternateMode, updateModeButtons } from "../mode";
 import { markEpisodeTransition } from "../progress";
 import { updateQualityOptions } from "../quality";
@@ -36,7 +37,6 @@ type TransitionOptions = {
 };
 
 type ActiveTransition = {
-  autoplay: boolean;
   controller: AbortController;
   fallbackHref: string;
   id: number;
@@ -297,13 +297,6 @@ const updateHistory = (episode: number, mode: TransitionHistory): void => {
   history.pushState(null, "", href);
 };
 
-const showLoader = (): void => {
-  const loading = state.elements.container.querySelector("[data-loading]") as HTMLElement | null;
-  if (loading) {
-    loading.style.display = "flex";
-  }
-};
-
 const finishTransition = (transition: ActiveTransition): void => {
   if (activeTransition?.id !== transition.id) {
     return;
@@ -332,10 +325,11 @@ const monitorMediaReady = (transition: ActiveTransition): void => {
       return;
     }
     if (retried) {
-      fallbackToEpisodeNavigation(transition.fallbackHref, transition.autoplay);
+      setPlayerLoadState("unavailable");
       return;
     }
     retried = true;
+    setPlayerLoadState("retrying");
     fetchEpisodePayload(
       Number.parseInt(state.episode.current, 10),
       state.playback.currentMode,
@@ -367,7 +361,7 @@ const monitorMediaReady = (transition: ActiveTransition): void => {
           return;
         }
         console.error("failed to refresh episode source:", error);
-        fallbackToEpisodeNavigation(transition.fallbackHref, transition.autoplay);
+        setPlayerLoadState("unavailable");
       });
   };
 
@@ -466,7 +460,6 @@ export const transitionToEpisode = async (
   modeHydrationController?.abort();
   modeHydrationController = null;
   const transition: ActiveTransition = {
-    autoplay: options.autoplay ?? false,
     controller: new AbortController(),
     fallbackHref: options.fallbackHref ?? episodeHref(episode),
     id: ++transitionID,
@@ -474,7 +467,7 @@ export const transitionToEpisode = async (
   };
   activeTransition = transition;
   markEpisodeTransition(episode);
-  showLoader();
+  setPlayerLoadState("resolving_source");
 
   try {
     const requestedMode = state.playback.currentMode;
