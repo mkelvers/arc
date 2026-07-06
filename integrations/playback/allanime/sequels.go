@@ -89,10 +89,7 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 			raw, _ := edge.(map[string]any)
 			show := providerShowFrom(raw)
 			newestYear = max(newestYear, show.Year)
-			if show.Year != year {
-				continue
-			}
-			if show.MalID <= 0 || seen[show.MalID] || show.Type != "TV" || max(len(show.SubEpisodes), len(show.DubEpisodes)) == 0 {
+			if seen[show.MalID] || !isPlayableSeasonShow(show, year) {
 				continue
 			}
 			seen[show.MalID] = true
@@ -103,6 +100,10 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 		}
 	}
 	return out, nil
+}
+
+func isPlayableSeasonShow(show ProviderShow, year int) bool {
+	return show.Year == year && show.MalID > 0 && show.Type == "TV" && max(len(show.SubEpisodes), len(show.DubEpisodes)) > 0
 }
 
 func providerShowFrom(raw map[string]any) ProviderShow {
