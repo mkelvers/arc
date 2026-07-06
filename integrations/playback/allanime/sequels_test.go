@@ -60,11 +60,15 @@ func TestSeasonalShowsReturnsPlayableTVAnime(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		var request struct {
 			Variables struct {
-				Page int `json:"page"`
+				Page   int            `json:"page"`
+				Search map[string]any `json:"search"`
 			} `json:"variables"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatalf("decode request: %v", err)
+		}
+		if _, ok := request.Variables.Search["year"]; ok {
+			t.Fatal("seasonal request must filter normalized years locally")
 		}
 		edges := make([]map[string]any, 0)
 		switch request.Variables.Page {
@@ -73,7 +77,10 @@ func TestSeasonalShowsReturnsPlayableTVAnime(t *testing.T) {
 				edges = append(edges, map[string]any{"_id": "empty", "malId": "12", "type": "TV", "availableEpisodesDetail": map[string]any{"sub": []string{}, "dub": []string{}}})
 			}
 		case 2:
-			edges = append(edges, map[string]any{"_id": "tv", "name": "Summer Show", "malId": "10", "type": "TV", "season": map[string]any{"quarter": "Summer", "year": 2026}, "availableEpisodesDetail": map[string]any{"sub": []string{"1"}, "dub": []string{}}})
+			edges = append(edges,
+				map[string]any{"_id": "tv", "name": "Summer Show", "malId": "10", "type": "TV", "season": map[string]any{"quarter": "Summer", "year": "2026"}, "availableEpisodesDetail": map[string]any{"sub": []string{"1"}, "dub": []string{}}},
+				map[string]any{"_id": "old", "name": "Old Summer Show", "malId": "11", "type": "TV", "season": map[string]any{"quarter": "Summer", "year": 2025}, "availableEpisodesDetail": map[string]any{"sub": []string{"1"}, "dub": []string{}}},
+			)
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"shows": map[string]any{"edges": edges}}})
 	}))
@@ -87,7 +94,7 @@ func TestSeasonalShowsReturnsPlayableTVAnime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SeasonalShows: %v", err)
 	}
-	if len(got) != 1 || got[0].MalID != 10 {
+	if len(got) != 1 || got[0].MalID != 10 || got[0].Year != 2026 {
 		t.Fatalf("SeasonalShows = %+v", got)
 	}
 }
