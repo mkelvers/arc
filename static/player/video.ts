@@ -1,6 +1,7 @@
 import Hls from "hls.js";
 
 import { attachHLSProfile } from "./hls_profile";
+import { setPlayerLoadState } from "./loading";
 import { state } from "./state";
 import { absoluteTimeFromDisplay, displayTimeFromAbsolute, invalidateBounds } from "./timeline";
 
@@ -52,6 +53,8 @@ export const loadVideoSource = (
   if (!url) {
     return;
   }
+
+  setPlayerLoadState("loading_media");
 
   const wasPlaying = !state.elements.video.paused;
   const prevDisplayTime = displayTimeFromAbsolute(state.elements.video.currentTime);
