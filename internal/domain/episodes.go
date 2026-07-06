@@ -8,10 +8,19 @@ type EpisodeAvailability struct {
 	Titles map[int]string
 }
 
-type EpisodeAvailabilityProvider interface {
+type EpisodeProvider interface {
 	Name() string
 	ResolveEpisodeProviderID(ctx context.Context, animeID int, titleCandidates []string) (string, error)
+}
+
+type EpisodeAvailabilityProvider interface {
+	EpisodeProvider
 	GetEpisodeAvailabilityByProviderID(ctx context.Context, providerID string) (EpisodeAvailability, error)
+}
+
+type EpisodeTitleProvider interface {
+	EpisodeProvider
+	GetEpisodeTitlesByProviderID(ctx context.Context, providerID string) (map[int]string, error)
 }
 
 type CanonicalEpisode struct {
@@ -40,4 +49,8 @@ type CanonicalEpisodeList struct {
 type EpisodeService interface {
 	GetCanonicalEpisodes(ctx context.Context, anime Anime, forceRefresh bool) (CanonicalEpisodeList, error)
 	RefreshTrackedDue(ctx context.Context, limit int) error
+}
+
+type EpisodeTitleService interface {
+	EnrichEpisodeTitles(ctx context.Context, anime Anime) (CanonicalEpisodeList, error)
 }
