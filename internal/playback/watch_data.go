@@ -85,6 +85,22 @@ func (s *playbackService) EnrichEpisodeTitles(ctx context.Context, animeID int) 
 	return episodes.Episodes, nil
 }
 
+func (s *playbackService) EnrichEpisodeClassifications(ctx context.Context, animeID int) ([]domain.CanonicalEpisode, error) {
+	anime, err := s.watchAnime(ctx, animeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch anime for episode classifications: %w", err)
+	}
+	enricher, ok := s.episodes.(domain.EpisodeClassificationService)
+	if !ok {
+		return nil, errors.New("episode classification enrichment is unavailable")
+	}
+	episodes, err := enricher.EnrichEpisodeClassifications(ctx, anime)
+	if err != nil {
+		return nil, err
+	}
+	return episodes.Episodes, nil
+}
+
 func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.Anime, error) {
 	row, err := s.repo.GetAnime(ctx, int64(animeID))
 	if err == nil && row.ID > 0 && strings.TrimSpace(row.TitleOriginal) != "" {
