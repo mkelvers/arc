@@ -18,11 +18,13 @@ type watchPagePlaybackService struct {
 	domain.PlaybackService
 
 	data             domain.WatchPageData
+	deferred         bool
 	err              error
 	refreshRequested bool
 }
 
 func (s *watchPagePlaybackService) BuildWatchData(ctx context.Context, _ int, _ []string, _ string, _ string, _ string) (domain.WatchPageData, error) {
+	s.deferred = domain.PlaybackDataDeferred(ctx)
 	s.refreshRequested = domain.PlaybackSourceRefreshRequested(ctx)
 	return s.data, s.err
 }
@@ -132,6 +134,23 @@ func TestHandleWatchPagePreservesPartialDataOnPlaybackFailure(t *testing.T) {
 	}
 	if strings.Contains(body, "No episodes found") {
 		t.Fatalf("expected partial episode list instead of empty state, got:\n%s", body)
+	}
+}
+
+func TestHandleWatchPageDefersPlaybackData(t *testing.T) {
+	t.Parallel()
+
+	svc := &watchPagePlaybackService{data: baseWatchPageData()}
+	router := newWatchPageRouter(t, &PlaybackHandler{svc: svc})
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/anime/123/watch?ep=1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !svc.deferred {
+		t.Fatal("watch page did not defer playback data")
 	}
 }
 
