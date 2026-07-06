@@ -71,7 +71,6 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 		"allowAdult":   false,
 		"allowUnknown": false,
 		"season":       strings.ToUpper(season[:1]) + strings.ToLower(season[1:]),
-		"year":         year,
 		"types":        []string{"TV"},
 		"includeTypes": true,
 	}
@@ -85,16 +84,21 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 		data, _ := result["data"].(map[string]any)
 		shows, _ := data["shows"].(map[string]any)
 		edges, _ := shows["edges"].([]any)
+		newestYear := 0
 		for _, edge := range edges {
 			raw, _ := edge.(map[string]any)
 			show := providerShowFrom(raw)
+			newestYear = max(newestYear, show.Year)
+			if show.Year != year {
+				continue
+			}
 			if show.MalID <= 0 || seen[show.MalID] || show.Type != "TV" || max(len(show.SubEpisodes), len(show.DubEpisodes)) == 0 {
 				continue
 			}
 			seen[show.MalID] = true
 			out = append(out, show)
 		}
-		if len(edges) < pageSize {
+		if len(edges) < pageSize || (newestYear > 0 && newestYear < year) {
 			break
 		}
 	}
