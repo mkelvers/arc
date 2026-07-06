@@ -43,10 +43,6 @@ func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, 
 }
 
 func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.Anime, forceRefresh bool) (domain.CanonicalEpisodeList, error) {
-	if !s.enabled {
-		return s.jikanOnly(ctx, anime, "legacy_disabled")
-	}
-
 	if !forceRefresh {
 		if cached, ok := s.getFreshCached(ctx, anime); ok {
 			return cached, nil
@@ -125,19 +121,6 @@ func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domai
 		},
 	)
 
-	jikanEpisodes, jikanErr := s.jikan.GetAllEpisodes(ctx, anime.MalID)
-	if jikanErr != nil {
-		observability.Warn(
-			"episodes_jikan_metadata_failed",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id": anime.MalID,
-			},
-			jikanErr,
-		)
-	}
-
 	availability, source, providerErr := s.fetchProviderAvailability(ctx, anime)
 	if providerErr != nil {
 		s.markFailure(ctx, anime, providerErr)
@@ -153,19 +136,10 @@ func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domai
 			)
 			return cached, nil
 		}
-		if jikanErr == nil {
-			storeCtx := ctx
-			if ctx.Err() != nil {
-				var cancel context.CancelFunc
-				storeCtx, cancel = context.WithTimeout(context.Background(), 10*time.Second)
-				defer cancel()
-			}
-			return s.store(storeCtx, anime, jikanEpisodes, domain.EpisodeAvailability{}, "jikan_fallback", now, false)
-		}
 		return domain.CanonicalEpisodeList{}, providerErr
 	}
 
-	return s.store(ctx, anime, jikanEpisodes, availability, source, now, true)
+	return s.store(ctx, anime, availability, source, now)
 }
 
 func (s *EpisodeService) fetchProviderAvailability(ctx context.Context, anime domain.Anime) (domain.EpisodeAvailability, string, error) {
@@ -214,18 +188,4 @@ func (s *EpisodeService) fetchProviderAvailability(ctx context.Context, anime do
 		return available, provider.Name(), nil
 	}
 	return domain.EpisodeAvailability{}, "", fmt.Errorf("no episode availability provider matched anime_id=%d", anime.MalID)
-}
-
-func (s *EpisodeService) jikanOnly(ctx context.Context, anime domain.Anime, source string) (domain.CanonicalEpisodeList, error) {
-	episodes, err := s.jikan.GetAllEpisodes(ctx, anime.MalID)
-	if err != nil {
-		return domain.CanonicalEpisodeList{}, err
-	}
-	return domain.CanonicalEpisodeList{
-		AnimeID:             anime.MalID,
-		Episodes:            mergeEpisodesForAnime(anime, episodes, domain.EpisodeAvailability{}, s.clock.Now(), false),
-		Source:              source,
-		AvailabilityVersion: episodeAvailabilityPayloadVersion,
-		ReleaseChecked:      true,
-	}, nil
 }
