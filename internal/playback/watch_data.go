@@ -27,18 +27,18 @@ type sourceResolutionResult struct {
 const episodeAvailabilityUncertainWarning = "Episode availability may be incomplete or out of date. Continue only if you understand that the episode list and audio availability may be uncertain."
 
 func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
-	anime, err := s.jikan.GetAnimeByID(ctx, animeID)
+	animeData, err := s.watchAnime(ctx, animeID)
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch anime: %w", err)
 	}
 
-	animeData := domain.Anime{Anime: anime}
 	if err := s.ensureAnimeRow(ctx, animeData); err != nil {
 		observability.Warn("upsert_anime_failed", "playback", "",
 			map[string]any{"anime_id": animeID},
 			err,
 		)
 	}
+	anime := animeData.Anime
 	searchTitles := buildSearchTitles(animeData, titleCandidates)
 	eps, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
 	if err != nil {
@@ -47,33 +47,18 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 
 	// mode fallback
 	mode, from := resolveMode(episode, mode, eps.Episodes)
-	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(
-		ctx,
-		animeID,
-		searchTitles,
-		episode,
-		mode,
-		!anime.Airing,
-		domain.PlaybackSourceRefreshRequested(ctx),
+	deferred := domain.PlaybackDataDeferred(ctx)
+	modeSources, result, mode, from := s.watchModeSources(
+		ctx, animeID, searchTitles, episode, mode, from, !anime.Airing, deferred,
 	)
-	if resolvedMode != "" {
-		mode = resolvedMode
-	}
-	if switchedFrom != "" {
-		from = switchedFrom
-	}
 	startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(ctx, userID, animeID, anime.Episodes, episode)
-	seasons := s.loadSeasons(ctx, animeID)
-	segments, err := s.fetchSkipSegments(ctx, userID, animeID, episode)
-	if err != nil {
-		observability.Warn("fetch_skip_segments_failed", "playback", "",
-			map[string]any{"anime_id": animeID, "episode": episode},
-			err,
-		)
-	}
+	segments := s.watchSegments(ctx, userID, animeID, episode, deferred)
 	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, eps.Episodes, modeSources, mode, from, segments)
-	pageData := buildWatchPageData(animeData, eps.Episodes, episode, watchlistStatus, watchlistIDs, seasons, watchData)
+	pageData := buildWatchPageData(animeData, eps.Episodes, episode, watchlistStatus, watchlistIDs, nil, watchData)
 	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(eps, time.Now())
+	if deferred {
+		return pageData, nil
+	}
 	if len(modeSources) == 0 {
 		return pageData, fmt.Errorf("no streams found")
 	}
@@ -82,6 +67,64 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	}
 
 	return pageData, nil
+}
+
+func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.Anime, error) {
+	row, err := s.repo.GetAnime(ctx, int64(animeID))
+	if err == nil && row.ID > 0 && strings.TrimSpace(row.TitleOriginal) != "" {
+		anime := jikan.Anime{
+			MalID:         int(row.ID),
+			Title:         row.TitleOriginal,
+			TitleEnglish:  row.TitleEnglish.String,
+			TitleJapanese: row.TitleJapanese.String,
+			Airing:        row.Airing.Valid && row.Airing.Bool,
+			Status:        row.Status.String,
+		}
+		return domain.Anime{Anime: anime}, nil
+	}
+
+	anime, err := s.jikan.GetAnimeByID(ctx, animeID)
+	if err != nil {
+		return domain.Anime{}, err
+	}
+	return domain.Anime{Anime: anime}, nil
+}
+
+func (s *playbackService) watchModeSources(ctx context.Context, animeID int, searchTitles []string, episode, mode, from string, allowStale, deferred bool) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
+	if deferred {
+		return map[string]domain.ModeSource{}, nil, mode, from
+	}
+
+	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(
+		ctx,
+		animeID,
+		searchTitles,
+		episode,
+		mode,
+		allowStale,
+		domain.PlaybackSourceRefreshRequested(ctx),
+	)
+	if resolvedMode != "" {
+		mode = resolvedMode
+	}
+	if switchedFrom != "" {
+		from = switchedFrom
+	}
+	return modeSources, result, mode, from
+}
+
+func (s *playbackService) watchSegments(ctx context.Context, userID string, animeID int, episode string, deferred bool) []domain.SkipSegment {
+	if deferred {
+		return []domain.SkipSegment{}
+	}
+	segments, err := s.fetchSkipSegments(ctx, userID, animeID, episode)
+	if err != nil {
+		observability.Warn("fetch_skip_segments_failed", "playback", "",
+			map[string]any{"anime_id": animeID, "episode": episode},
+			err,
+		)
+	}
+	return segments
 }
 
 func buildWatchDataPayload(anime domain.Anime, animeID int, episode string, startTime float64, episodes []domain.CanonicalEpisode, modeSources map[string]domain.ModeSource, mode string, modeSwitchedFrom string, segments []domain.SkipSegment) domain.WatchData {
@@ -299,40 +342,6 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 		Type:      res.Type,
 		Subtitles: subtitles,
 	}
-}
-
-func (s *playbackService) loadSeasons(ctx context.Context, animeID int) []domain.SeasonEntry {
-	relations, err := s.jikan.GetFullRelations(ctx, animeID, jikan.WatchOrderModeMain)
-	if err != nil {
-		observability.Warn("fetch_relations_failed", "playback", "",
-			map[string]any{"anime_id": animeID},
-			err,
-		)
-	}
-	seasons := make([]domain.SeasonEntry, 0, len(relations))
-	tvCounter := 1
-
-	for _, rel := range relations {
-		animeType := strings.ToLower(rel.Anime.Type)
-		if animeType != "tv" && animeType != "movie" {
-			continue
-		}
-
-		season := domain.SeasonEntry{
-			MalID:     rel.Anime.MalID,
-			Title:     rel.Anime.DisplayTitle(),
-			Prefix:    rel.Relation,
-			IsCurrent: rel.IsCurrent,
-		}
-		if rel.Relation == "TV" {
-			season.Prefix = fmt.Sprintf("S%d", tvCounter)
-			tvCounter++
-		}
-
-		seasons = append(seasons, season)
-	}
-
-	return seasons
 }
 
 func availableModes(modeSources map[string]domain.ModeSource) []string {
