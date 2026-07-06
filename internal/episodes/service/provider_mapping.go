@@ -13,7 +13,7 @@ import (
 	"mal/internal/observability"
 )
 
-func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, provider domain.EpisodeAvailabilityProvider, titles []string) (string, error) {
+func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider, titles []string) (string, error) {
 	providerID, found, err := s.cachedProviderID(ctx, anime, provider)
 	if found || err != nil {
 		return providerID, err
@@ -39,7 +39,7 @@ func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, pro
 	return providerID, nil
 }
 
-func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anime, provider domain.EpisodeAvailabilityProvider) (string, bool, error) {
+func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
 	row, err := s.queries.GetEpisodeProviderMapping(ctx, db.GetEpisodeProviderMappingParams{
 		AnimeID:  int64(anime.MalID),
 		Provider: provider.Name(),
@@ -81,7 +81,7 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 	return row.ProviderShowID, true, nil
 }
 
-func (s *EpisodeService) cacheProviderIDFailure(ctx context.Context, anime domain.Anime, provider domain.EpisodeAvailabilityProvider, resolveErr error) {
+func (s *EpisodeService) cacheProviderIDFailure(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider, resolveErr error) {
 	err := s.queries.UpsertEpisodeProviderMapping(ctx, db.UpsertEpisodeProviderMappingParams{
 		AnimeID:        int64(anime.MalID),
 		Provider:       provider.Name(),
@@ -105,7 +105,7 @@ func (s *EpisodeService) cacheProviderIDFailure(ctx context.Context, anime domai
 	)
 }
 
-func (s *EpisodeService) cacheProviderIDSuccess(ctx context.Context, anime domain.Anime, provider domain.EpisodeAvailabilityProvider, providerID string) {
+func (s *EpisodeService) cacheProviderIDSuccess(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider, providerID string) {
 	err := s.queries.UpsertEpisodeProviderMapping(ctx, db.UpsertEpisodeProviderMappingParams{
 		AnimeID:        int64(anime.MalID),
 		Provider:       provider.Name(),
