@@ -4,6 +4,7 @@ import (
 	"mal/internal/observability"
 	"mal/internal/server"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -11,6 +12,14 @@ import (
 )
 
 func (h *AnimeHandler) HandleSimulcast(c *gin.Context) {
+	c.HTML(http.StatusOK, "simulcast.gohtml", gin.H{
+		"CurrentPath":  "/simulcast",
+		"User":         server.CurrentUser(c),
+		"SimulcastURL": simulcastURL(c),
+	})
+}
+
+func (h *AnimeHandler) HandleSimulcastContent(c *gin.Context) {
 	now := time.Now()
 	current := calendarSeason(now.Year(), int(now.Month()))
 	latest := h.discoverySvc.LatestAvailableSeason(c.Request.Context(), current)
@@ -24,6 +33,7 @@ func (h *AnimeHandler) HandleSimulcast(c *gin.Context) {
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), server.CurrentUserID(c), data.Animes)
 	previous, next := seasonNavigation(selected, 2018, latest)
 	c.HTML(http.StatusOK, "simulcast.gohtml", gin.H{
+		"_fragment":     "simulcast_content",
 		"CurrentPath":   "/simulcast",
 		"User":          server.CurrentUser(c),
 		"Animes":        data.Animes,
@@ -35,6 +45,21 @@ func (h *AnimeHandler) HandleSimulcast(c *gin.Context) {
 		"Next":          next,
 		"WatchlistMap":  watchlistMap,
 	})
+}
+
+func simulcastURL(c *gin.Context) string {
+	query := url.Values{}
+	if season := c.Query("season"); season != "" {
+		query.Set("season", season)
+	}
+	if year := c.Query("year"); year != "" {
+		query.Set("year", year)
+	}
+
+	if encoded := query.Encode(); encoded != "" {
+		return "/api/simulcast?" + encoded
+	}
+	return "/api/simulcast"
 }
 
 func (h *AnimeHandler) HandleSearch(c *gin.Context) {

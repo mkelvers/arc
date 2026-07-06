@@ -1,6 +1,18 @@
 {{define "title"}}Simulcast{{end}}
 {{define "content"}}
-<div class="mx-auto flex w-full max-w-[96rem] flex-col gap-6 pb-12">
+<div
+  id="simulcast-content"
+  class="mx-auto flex w-full max-w-[96rem] flex-col gap-6 pb-12"
+  hx-get="{{.SimulcastURL}}"
+  hx-trigger="load"
+  hx-swap="outerHTML"
+>
+  {{template "simulcast_skeleton"}}
+</div>
+{{end}}
+
+{{define "simulcast_content"}}
+<div id="simulcast-content" class="mx-auto flex w-full max-w-[96rem] flex-col gap-6 pb-12">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <h1 class="text-2xl font-medium text-foreground">Simulcast Season</h1>
     <ui-dropdown class="relative block" data-align="right" data-width="min-w-44">
@@ -55,4 +67,23 @@
     {{end}}
   </div>
 </div>
+{{end}}
+
+{{define "simulcast_skeleton"}}
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between" aria-hidden="true">
+    <h1 class="text-2xl font-medium text-foreground">Simulcast Season</h1>
+    <div class="skeleton h-10 w-44"></div>
+  </div>
+  <div class="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" aria-label="Loading simulcast releases" aria-busy="true">
+    {{range (seq 12)}}
+    <div class="flex flex-col gap-2">
+      <div class="skeleton aspect-2/3 w-full"></div>
+      <div class="skeleton h-4 w-3/4"></div>
+    </div>
+    {{end}}
+  </div>
+  <div class="flex items-center justify-between border-t-2 border-border-light pt-4" aria-hidden="true">
+    <div class="skeleton skeleton-subtle h-4 w-28"></div>
+    <div class="skeleton skeleton-subtle h-4 w-24"></div>
+  </div>
 {{end}}
