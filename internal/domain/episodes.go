@@ -3,8 +3,9 @@ package domain
 import "context"
 
 type EpisodeAvailability struct {
-	Sub []int
-	Dub []int
+	Sub    []int
+	Dub    []int
+	Titles map[int]string
 }
 
 type EpisodeAvailabilityProvider interface {
