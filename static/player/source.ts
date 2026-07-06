@@ -1,6 +1,6 @@
 import { state } from "./state";
 import { safeLocalStorage } from "./storage";
-import { isRecord, parseModeSources } from "./validate";
+import { isRecord, parseModeSources, parseSegments } from "./validate";
 import { loadVideoSource } from "./video";
 
 export const streamUrlForMode = (mode: string, quality?: string): string => {
@@ -20,10 +20,13 @@ export const streamUrlForMode = (mode: string, quality?: string): string => {
   return url;
 };
 
-export const refreshCurrentModeSource = async (signal?: AbortSignal): Promise<boolean> => {
+const loadCurrentModeSource = async (
+  signal: AbortSignal | undefined,
+  forceRefresh: boolean,
+): Promise<boolean> => {
   const mode = state.playback.currentMode;
   const res = await fetch(
-    `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(state.episode.current)}?mode=${encodeURIComponent(mode)}&refresh=1`,
+    `/api/watch/episode/${state.episode.malID}/${encodeURIComponent(state.episode.current)}?mode=${encodeURIComponent(mode)}${forceRefresh ? "&refresh=1" : ""}`,
     { signal },
   );
   if (!res.ok) {
@@ -35,14 +38,37 @@ export const refreshCurrentModeSource = async (signal?: AbortSignal): Promise<bo
     return false;
   }
 
-  const refreshedSource = parseModeSources(data.mode_sources)[mode];
-  if (!refreshedSource?.token) {
+  const sources = parseModeSources(data.mode_sources);
+  const initialMode = typeof data.initial_mode === "string" ? data.initial_mode : "";
+  let selectedMode = Object.keys(sources).find((candidate) => sources[candidate]?.token) ?? "";
+  if (sources[initialMode]?.token) {
+    selectedMode = initialMode;
+  }
+  if (sources[mode]?.token) {
+    selectedMode = mode;
+  }
+  const source = sources[selectedMode];
+  if (!source?.token) {
     return false;
   }
 
-  state.playback.modeSources = { ...state.playback.modeSources, [mode]: refreshedSource };
+  state.playback.modeSources = { ...state.playback.modeSources, ...sources };
+  state.playback.currentMode = selectedMode;
+  state.playback.modeSwitchedFrom =
+    typeof data.mode_switched_from === "string" ? data.mode_switched_from : "";
+  const startTime = Number(data.start_time_seconds);
+  if (Number.isFinite(startTime) && startTime > 0) {
+    state.playback.startTimeSeconds = startTime;
+  }
+  state.skip.parsedSegments = parseSegments(data.segments);
 
   const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
-  loadVideoSource(streamUrlForMode(mode, preferredQuality), refreshedSource.type);
+  loadVideoSource(streamUrlForMode(selectedMode, preferredQuality), source.type);
   return true;
 };
+
+export const resolveCurrentModeSource = (signal?: AbortSignal): Promise<boolean> =>
+  loadCurrentModeSource(signal, false);
+
+export const refreshCurrentModeSource = (signal?: AbortSignal): Promise<boolean> =>
+  loadCurrentModeSource(signal, true);
