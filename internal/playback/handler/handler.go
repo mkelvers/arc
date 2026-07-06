@@ -2,7 +2,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -98,7 +97,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 		if data.Anime.MalID == 0 && data.WatchData.MalID == 0 && len(data.Episodes) == 0 {
 			anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
 			if fetchErr != nil {
-				fmt.Printf("error fetching anime for error page: %v\n", fetchErr)
+				observability.Warn("error_page_anime_fetch_failed", "playback", "", map[string]any{"anime_id": id}, fetchErr)
 			}
 			data = domain.WatchPageData{
 				Anime:       anime,
