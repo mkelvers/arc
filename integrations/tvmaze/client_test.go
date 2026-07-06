@@ -89,6 +89,19 @@ func TestGetEpisodeTitlesSelectsSplitCourWithinSeason(t *testing.T) {
 	}
 }
 
+func TestTitleSearchCandidatesUseParentShowName(t *testing.T) {
+	got := titleSearchCandidates([]string{
+		"Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+	}, 6)
+	want := []string{
+		"Re:Zero kara Hajimeru Isekai Seikatsu",
+		"Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("candidates = %#v, want %#v", got, want)
+	}
+}
+
 func newTestClient(server *httptest.Server) *Client {
 	return &Client{httpClient: server.Client(), baseURL: server.URL}
 }
