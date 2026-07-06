@@ -25,7 +25,7 @@ func (p *titleProviderStub) ResolveEpisodeProviderID(context.Context, int, []str
 	return "80712", nil
 }
 
-func (p *titleProviderStub) GetEpisodeTitlesByProviderID(context.Context, string) (map[int]string, error) {
+func (p *titleProviderStub) GetEpisodeTitlesByProviderID(context.Context, string, domain.Anime, int) (map[int]string, error) {
 	p.loads++
 	return map[int]string{1: "TVmaze title one", 2: "TVmaze title two"}, nil
 }
