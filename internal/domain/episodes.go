@@ -34,16 +34,17 @@ type CanonicalEpisode struct {
 }
 
 type CanonicalEpisodeList struct {
-	AnimeID             int                `json:"anime_id"`
-	Episodes            []CanonicalEpisode `json:"episodes"`
-	Source              string             `json:"source"`
-	AvailabilityVersion int                `json:"availability_version,omitempty"`
-	ReleaseChecked      bool               `json:"release_checked,omitempty"`
-	NextRefreshAt       string             `json:"next_refresh_at,omitempty"`
-	RetryUntilAt        string             `json:"retry_until_at,omitempty"`
-	LastAttemptAt       string             `json:"last_attempt_at,omitempty"`
-	LastSuccessAt       string             `json:"last_success_at,omitempty"`
-	FailureCount        int64              `json:"failure_count,omitempty"`
+	AnimeID               int                `json:"anime_id"`
+	Episodes              []CanonicalEpisode `json:"episodes"`
+	Source                string             `json:"source"`
+	AvailabilityVersion   int                `json:"availability_version,omitempty"`
+	ClassificationChecked bool               `json:"classification_checked,omitempty"`
+	ReleaseChecked        bool               `json:"release_checked,omitempty"`
+	NextRefreshAt         string             `json:"next_refresh_at,omitempty"`
+	RetryUntilAt          string             `json:"retry_until_at,omitempty"`
+	LastAttemptAt         string             `json:"last_attempt_at,omitempty"`
+	LastSuccessAt         string             `json:"last_success_at,omitempty"`
+	FailureCount          int64              `json:"failure_count,omitempty"`
 }
 
 type EpisodeService interface {
@@ -53,4 +54,8 @@ type EpisodeService interface {
 
 type EpisodeTitleService interface {
 	EnrichEpisodeTitles(ctx context.Context, anime Anime) (CanonicalEpisodeList, error)
+}
+
+type EpisodeClassificationService interface {
+	EnrichEpisodeClassifications(ctx context.Context, anime Anime) (CanonicalEpisodeList, error)
 }

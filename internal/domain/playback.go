@@ -39,6 +39,10 @@ type PlaybackEpisodeTitleService interface {
 	EnrichEpisodeTitles(ctx context.Context, animeID int) ([]CanonicalEpisode, error)
 }
 
+type PlaybackEpisodeClassificationService interface {
+	EnrichEpisodeClassifications(ctx context.Context, animeID int) ([]CanonicalEpisode, error)
+}
+
 type WatchPageData struct {
 	WatchData                  WatchData
 	Anime                      Anime
