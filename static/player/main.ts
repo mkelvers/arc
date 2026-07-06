@@ -1,10 +1,10 @@
 import { onHtmxLoad, onReady } from "../utils";
 import { setupControls, showControls } from "./controls";
 import { formatTime } from "./controls";
-import { setupEpisodeMetadata } from "./episodes/metadata";
 import { goToNextEpisode, prefetchNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
+import { setPlayerLoadState, setupPlayerLoading, teardownPlayerLoading } from "./loading";
 import {
   ensurePreferredModeSource,
   hydrateAlternateMode,
@@ -16,7 +16,7 @@ import { setupQuality, updateQualityOptions } from "./quality";
 import { setupSkip, updateSkipButton, updateAutoSkipButton } from "./skip";
 import { setupSegmentEditor } from "./skip/editor";
 import { resolveActiveSegments, renderSegments } from "./skip/segments";
-import { refreshCurrentModeSource } from "./source";
+import { refreshCurrentModeSource, resolveCurrentModeSource } from "./source";
 import { state, initState, showEndState, hideEndState } from "./state";
 import { safeLocalStorage } from "./storage";
 import { setupSubtitles, updateSubtitleOptions, updateSubtitleRender } from "./subtitles";
@@ -64,9 +64,10 @@ const showPreviewPopover = (): void => {
 };
 
 const teardownPlayer = (): void => {
-  destroyVideoSource();
   cleanup?.();
   cleanup = null;
+  teardownPlayerLoading();
+  destroyVideoSource();
   currentContainer = null;
 };
 
@@ -119,10 +120,21 @@ const initPlayer = async (): Promise<void> => {
   currentContainer = container;
   const abortController = new AbortController();
   const { signal } = abortController;
-  cleanup = null;
+  let searchDebounce: number | undefined;
+  cleanup = () => {
+    clearTimeout(searchDebounce);
+    abortController.abort();
+  };
 
-  const loading = container.querySelector("[data-loading]") as HTMLElement | null;
   const progressWrap = container.querySelector("[data-progress-wrap]") as HTMLElement | null;
+  let sourceRefreshInFlight = false;
+  let automaticSourceRefreshAttempted = false;
+
+  setupPlayerLoading(() => {
+    automaticSourceRefreshAttempted = true;
+    return refreshCurrentModeSource(signal);
+  }, signal);
+  setPlayerLoadState("resolving_source");
 
   const scrubToPointer = (clientX: number, shouldShowControls: boolean): void => {
     if (!progressWrap) {
@@ -167,11 +179,36 @@ const initPlayer = async (): Promise<void> => {
         message: "Playback is unavailable for this episode.",
         variant: "destructive",
       });
+      setPlayerLoadState("unavailable");
+    } else {
+      resolveCurrentModeSource(signal)
+        .then((resolved) => {
+          if (!resolved) {
+            setPlayerLoadState("unavailable");
+            return;
+          }
+          updateSubtitleOptions();
+          updateQualityOptions();
+          updateModeButtons();
+          resolveActiveSegments();
+          renderSegments();
+          if (state.playback.modeSwitchedFrom === "dub" && state.playback.currentMode === "sub") {
+            window.showToast?.({
+              message: `Episode ${state.episode.current} is only available in sub, switched from dub.`,
+            });
+          }
+        })
+        .catch((error: unknown) => {
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+          console.error("failed to resolve initial video source:", error);
+          setPlayerLoadState("unavailable");
+        });
     }
-    return;
+  } else {
+    await ensurePreferredModeSource(signal);
   }
-
-  await ensurePreferredModeSource(signal);
 
   const resumeAfterModeSwitch = (() => {
     try {
@@ -190,12 +227,14 @@ const initPlayer = async (): Promise<void> => {
   const initialStartTime = resumeAfterModeSwitch ?? state.playback.startTimeSeconds;
 
   // build video src from mode, token, and saved quality preference
-  const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
-  const streamToken = state.playback.modeSources[state.playback.currentMode]?.token;
-  if (streamToken) {
+  if (hasPlayableSource) {
+    const preferredQuality = safeLocalStorage.getItem("mal:preferred-quality") || "best";
+    const streamToken = state.playback.modeSources[state.playback.currentMode]?.token;
     const source = state.playback.modeSources[state.playback.currentMode];
-    const url = `${state.playback.streamURL}?mode=${encodeURIComponent(state.playback.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
-    loadVideoSource(url, source?.type, initialStartTime);
+    if (streamToken) {
+      const url = `${state.playback.streamURL}?mode=${encodeURIComponent(state.playback.currentMode)}&token=${encodeURIComponent(streamToken)}${source?.type === "m3u8" ? "&hls=1" : ""}${preferredQuality !== "best" ? `&quality=${encodeURIComponent(preferredQuality)}` : ""}`;
+      loadVideoSource(url, source?.type, initialStartTime);
+    }
   }
 
   updateSubtitleOptions();
@@ -209,9 +248,7 @@ const initPlayer = async (): Promise<void> => {
   }
 
   const onLoadedMetadata = (): void => {
-    if (loading) {
-      loading.style.display = "none";
-    }
+    setPlayerLoadState("ready");
     invalidateBounds();
 
     resolveActiveSegments();
@@ -268,35 +305,46 @@ const initPlayer = async (): Promise<void> => {
   state.elements.video.addEventListener(
     "waiting",
     () => {
-      if (loading) {
-        loading.style.display = "flex";
-      }
+      setPlayerLoadState(
+        state.elements.video.readyState >= HTMLMediaElement.HAVE_METADATA
+          ? "buffering"
+          : "loading_media",
+      );
     },
     { signal },
   );
   state.elements.video.addEventListener(
     "playing",
     () => {
-      if (loading) {
-        loading.style.display = "none";
-      }
+      setPlayerLoadState("ready");
     },
     { signal },
   );
-  let sourceRefreshInFlight = false;
   state.elements.video.addEventListener(
     "error",
     () => {
       if (sourceRefreshInFlight || state.episode.transitionEpisode !== null) {
         return;
       }
+      if (automaticSourceRefreshAttempted) {
+        setPlayerLoadState("unavailable");
+        return;
+      }
+      automaticSourceRefreshAttempted = true;
       sourceRefreshInFlight = true;
+      setPlayerLoadState("retrying");
       refreshCurrentModeSource(signal)
+        .then((refreshed) => {
+          if (!refreshed) {
+            setPlayerLoadState("unavailable");
+          }
+        })
         .catch((error) => {
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
           console.error("failed to refresh video source:", error);
+          setPlayerLoadState("unavailable");
         })
         .finally(() => {
           sourceRefreshInFlight = false;
@@ -397,7 +445,6 @@ const initPlayer = async (): Promise<void> => {
 
   const searchInput = document.querySelector("[data-episode-search]") as HTMLInputElement | null;
   const dropdown = document.querySelector("[data-episode-dropdown]") as HTMLElement | null;
-  let searchDebounce: number | undefined;
 
   if (searchInput) {
     searchInput.addEventListener(
@@ -454,7 +501,6 @@ const initPlayer = async (): Promise<void> => {
     switchEpisodeRange(Math.floor((Number.parseInt(state.episode.current, 10) - 1) / 100));
   }
 
-  setupEpisodeMetadata();
   window.setTimeout(() => {
     if (!signal.aborted) {
       hydrateAlternateMode(signal).catch((error) => {
@@ -473,11 +519,6 @@ const initPlayer = async (): Promise<void> => {
     },
     { signal },
   );
-
-  cleanup = () => {
-    clearTimeout(searchDebounce);
-    abortController.abort();
-  };
 };
 
 onReady(() => {
