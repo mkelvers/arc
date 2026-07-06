@@ -2,7 +2,7 @@ import { state } from "../state";
 
 type EpisodeTitle = { number: number; title: string };
 
-const episodeElements = (): HTMLElement[] => {
+export const episodeElements = (): HTMLElement[] => {
   const elements: HTMLElement[] = [];
   for (const container of [state.elements.episodeGrid, state.elements.episodeList]) {
     container?.querySelectorAll<HTMLElement>("[data-episode-id]").forEach((element) => {
