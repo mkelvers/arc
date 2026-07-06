@@ -15,20 +15,26 @@
   data-stream-url="/watch/proxy/stream"
   data-anime-title-english="{{.WatchData.Title}}"
   data-anime-image="{{.WatchData.MalID}}"
+  data-load-state="loading_media"
+  aria-busy="true"
   class="group relative aspect-video w-full overflow-hidden bg-black [&.fullscreen]:h-full [&.fullscreen]:w-full [&.fullscreen]:aspect-auto [&.show-controls_[data-video-overlay]]:opacity-100 [&.fullscreen:not(.show-controls)_[data-video-overlay]]:opacity-0 [&.fullscreen:not(.show-controls)_[data-video-overlay]]:pointer-events-none [&.fullscreen:not(.show-controls)]:cursor-none [&.fullscreen:not(.show-controls)_video]:cursor-none [&.video-ended_video]:opacity-0">
 
   
   <video class="h-full w-full cursor-pointer" preload="metadata" playsinline></video>
   
-  <div data-loading class="absolute inset-0 flex items-center justify-center bg-black/60 z-50">
-    <div class="border-accent size-10 animate-spin rounded-full border-4 border-t-transparent"></div>
+  <div data-loading class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/60 px-6">
+    <div data-loading-spinner class="border-accent size-10 animate-spin rounded-full border-4 border-t-transparent" aria-hidden="true"></div>
+    <div class="flex items-center gap-3">
+      <button type="button" data-loading-retry class="hidden bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Retry</button>
+      <a href="/anime/{{.WatchData.MalID}}" data-loading-back class="hidden px-4 py-2 text-sm text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Back to details</a>
+    </div>
   </div>
 
   <div data-video-overlay class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/40 to-transparent p-4 transition-opacity duration-300 opacity-0 group-hover:opacity-100 z-40">
     <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-4">
-          <button data-play-pause data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70">
+          <button data-play-pause data-unstyled-button aria-label="Play" class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70">
             <svg data-icon-play class="size-6 transition-colors duration-200" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
             <svg data-icon-pause class="size-6 transition-colors duration-200 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="9" y1="6" x2="9" y2="18" /><line x1="15" y1="6" x2="15" y2="18" /></svg>
           </button>
@@ -37,12 +43,12 @@
             <div data-volume-panel class="pointer-events-none absolute bottom-full left-1/2 flex h-32 w-12 -translate-x-1/2 items-end justify-center opacity-0 group-hover/volume:pointer-events-auto group-hover/volume:opacity-100">
               <div class="relative flex h-24 w-8 items-center justify-center">
                 <div class="relative z-10 flex h-20 w-1.5 flex-col justify-end rounded-full bg-white/50 shadow-[0_0_6px_rgba(0,0,0,0.6)]">
-                  <input type="range" data-volume-range min="0" max="100" step="5" class="absolute -inset-x-4 inset-y-0 z-10 cursor-pointer opacity-0" style="writing-mode: vertical-lr; direction: rtl;">
+                  <input type="range" data-volume-range min="0" max="100" step="5" aria-label="Volume" class="absolute -inset-x-4 inset-y-0 z-10 cursor-pointer opacity-0" style="writing-mode: vertical-lr; direction: rtl;">
                   <div data-volume-underline class="bg-accent pointer-events-none w-full rounded-full shadow-[0_0_4px_rgba(0,0,0,0.4)]" style="height: 100%"></div>
                 </div>
               </div>
             </div>
-            <button data-mute data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70">
+            <button data-mute data-unstyled-button aria-label="Mute" class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70">
               <svg data-icon-volume class="size-6 transition-colors duration-200" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 10 9 10 13 6 13 18 9 14 5 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></polygon><path d="M16 9c1.3 1.3 1.3 4.7 0 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M18.8 6.5c3 2.9 3 8.1 0 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>
               <svg data-icon-muted class="size-6 transition-colors duration-200 hidden" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 10 9 10 13 6 13 18 9 14 5 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></polygon><line x1="16" y1="9" x2="21" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line><line x1="21" y1="9" x2="16" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></line></svg>
             </button>
@@ -96,7 +102,7 @@
             </div>
           </ui-dropdown>
           
-          <button data-fullscreen data-unstyled-button class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70">
+          <button data-fullscreen data-unstyled-button aria-label="Enter fullscreen" class="flex items-center justify-center text-white transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70">
             <svg class="size-6 transition-colors duration-200" viewBox="0 0 240 240" aria-hidden="true"><path d="M143.7,53.9c-1.9-1.9-1.3-4,1.4-4.4l50.6-8.4c1.8-0.5,3.7,0.6,4.2,2.4c0.2,0.6,0.2,1.2,0,1.7l-8.4,50.6c-0.4,2.7-2.4,3.4-4.4,1.4l-14.5-14.5l-28.2,28.2l-14.3-14.3l28.2-28.2L143.7,53.9z M44.2,200.9l50.6-8.4c2.7-0.4,3.4-2.4,1.4-4.4l-14.5-14.5l28.2-28.2l-14.3-14.3l-28.2,28.2l-14.5-14.5c-1.9-1.9-4-1.3-4.4,1.4l-8.4,50.6c-0.5,1.8,0.6,3.6,2.4,4.2C43,201,43.6,201,44.2,200.9L44.2,200.9z" fill="currentColor"></path></svg>
           </button>
         </div>
@@ -120,8 +126,8 @@
       </div>
 
       <button data-skip class="hidden absolute right-6 bottom-24 bg-white/95 text-black font-bold px-4 py-2 text-sm rounded shadow-lg shadow-black/30 ring-1 ring-black/10 hover:bg-white transition-colors">Skip</button>
-      <button data-backward data-unstyled-button class="hidden absolute left-1/4 top-1/2 -translate-y-1/2 -translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg></button>
-      <button data-forward data-unstyled-button class="hidden absolute right-1/4 top-1/2 -translate-y-1/2 translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg></button>
+      <button data-backward data-unstyled-button aria-label="Seek backward 10 seconds" class="hidden absolute left-1/4 top-1/2 -translate-y-1/2 -translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" /></svg></button>
+      <button data-forward data-unstyled-button aria-label="Seek forward 10 seconds" class="hidden absolute right-1/4 top-1/2 -translate-y-1/2 translate-x-1/2 p-4 bg-black/40 rounded-full text-white opacity-0 transition-opacity"><svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z" /></svg></button>
       
     </div>
   </div>
