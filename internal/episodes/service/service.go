@@ -10,6 +10,8 @@ import (
 	"mal/internal/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
+
+	"golang.org/x/sync/singleflight"
 )
 
 type Clock interface {
@@ -24,19 +26,22 @@ type EpisodeService struct {
 	queries   *db.Queries
 	jikan     *jikan.Client
 	providers []domain.EpisodeAvailabilityProvider
+	titles    domain.EpisodeTitleProvider
 	clock     Clock
 	enabled   bool
+	titleLoad singleflight.Group
 }
 
-func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool) domain.EpisodeService {
-	return NewEpisodeServiceWithClock(queries, jikanClient, providers, enabled, realClock{})
+func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool) domain.EpisodeService {
+	return NewEpisodeServiceWithClock(queries, jikanClient, providers, titles, enabled, realClock{})
 }
 
-func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, enabled bool, clock Clock) *EpisodeService {
+func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, clock Clock) *EpisodeService {
 	return &EpisodeService{
 		queries:   queries,
 		jikan:     jikanClient,
 		providers: providers,
+		titles:    titles,
 		clock:     clock,
 		enabled:   enabled,
 	}
