@@ -150,16 +150,16 @@ func TestGraphqlRequestWithHash_Plain(t *testing.T) {
 	t.Parallel()
 
 	provider := &AllAnimeProvider{
-		utlsClient: &http.Client{
+		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				if req.Method != http.MethodGet {
-					t.Errorf("method = %q, want GET", req.Method)
-				}
-				if !strings.Contains(req.URL.String(), episodeQueryHash) {
-					t.Errorf("url should contain hash, got %q", req.URL.String())
+				if req.Method != http.MethodPost {
+					t.Errorf("method = %q, want POST", req.Method)
 				}
 				if req.Header.Get("Referer") != allAnimeReferer {
 					t.Errorf("Referer = %q", req.Header.Get("Referer"))
+				}
+				if req.Header.Get("x-build-id") != "9" {
+					t.Errorf("x-build-id = %q", req.Header.Get("x-build-id"))
 				}
 				return mockStringResponse(http.StatusOK, `{"data":{"episode":{"sourceUrls":[{"sourceUrl":"https://example.test/v.mp4","sourceName":"default"}]}}}`), nil
 			}),
@@ -190,7 +190,7 @@ func TestGraphqlRequestWithHash_Encrypted(t *testing.T) {
 	encryptedPayload := buildEncryptedTobeparsedPayload(t, []byte(`{"sourceUrls":[{"sourceUrl":"https://e.test/v.mp4","sourceName":"default"}]}`))
 
 	provider := &AllAnimeProvider{
-		utlsClient: &http.Client{
+		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusOK, `{"data":{"tobeparsed":"`+encryptedPayload+`"}}`), nil
 			}),
@@ -205,7 +205,11 @@ func TestGraphqlRequestWithHash_Encrypted(t *testing.T) {
 		t.Fatalf("graphqlRequestWithHash: %v", err)
 	}
 
-	sources := nestedSlice(result, "episode", "sourceUrls")
+	ep, ok := result["episode"].(map[string]any)
+	if !ok {
+		t.Fatal("result missing episode key")
+	}
+	sources := nestedSlice(ep, "sourceUrls")
 	if len(sources) != 1 {
 		t.Fatalf("got %d sources, want 1", len(sources))
 	}
@@ -215,7 +219,7 @@ func TestGraphqlRequestWithHash_Non200(t *testing.T) {
 	t.Parallel()
 
 	provider := &AllAnimeProvider{
-		utlsClient: &http.Client{
+		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusNotFound, `not found`), nil
 			}),
@@ -235,7 +239,7 @@ func TestGraphqlRequestWithHash_EmptyData(t *testing.T) {
 	t.Parallel()
 
 	provider := &AllAnimeProvider{
-		utlsClient: &http.Client{
+		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusOK, `{"data":{}}`), nil
 			}),
@@ -258,12 +262,6 @@ func TestGetEpisodeSources_EncryptedHash(t *testing.T) {
 
 	provider := &AllAnimeProvider{
 		httpClient: &http.Client{
-			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				t.Error("fallback POST should not be called")
-				return nil, nil
-			}),
-		},
-		utlsClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusOK, `{"data":{"tobeparsed":"`+encrypted+`"}}`), nil
 			}),
@@ -292,13 +290,13 @@ func TestGetEpisodeSources_FallbackPost(t *testing.T) {
 	provider := &AllAnimeProvider{
 		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				req.Body.Close()
+				if strings.Contains(string(body), `"extensions":`) {
+					return mockStringResponse(http.StatusOK, `{"data":{}}`), nil
+				}
 				fallbackCalled = true
 				return mockStringResponse(http.StatusOK, sourceResponse), nil
-			}),
-		},
-		utlsClient: &http.Client{
-			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				return mockStringResponse(http.StatusNotFound, `not found`), nil
 			}),
 		},
 		extractor: newProviderExtractor(),
@@ -321,11 +319,6 @@ func TestGetEpisodeSources_BothFail(t *testing.T) {
 
 	provider := &AllAnimeProvider{
 		httpClient: &http.Client{
-			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				return mockStringResponse(http.StatusNotFound, `not found`), nil
-			}),
-		},
-		utlsClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 				return mockStringResponse(http.StatusNotFound, `not found`), nil
 			}),
@@ -464,11 +457,11 @@ func TestGetStreams_FullSuccess(t *testing.T) {
 	provider := &AllAnimeProvider{
 		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				return mockStringResponse(http.StatusOK, searchBody), nil
-			}),
-		},
-		utlsClient: &http.Client{
-			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				req.Body.Close()
+				if strings.Contains(string(body), `"search":`) {
+					return mockStringResponse(http.StatusOK, searchBody), nil
+				}
 				return mockStringResponse(http.StatusOK, `{"data":{"tobeparsed":"`+encrypted+`"}}`), nil
 			}),
 		},
@@ -499,12 +492,6 @@ func TestGetStreams_ShowNotFound(t *testing.T) {
 				return mockStringResponse(http.StatusOK, `{"data":{"shows":{"edges":[]}}}`), nil
 			}),
 		},
-		utlsClient: &http.Client{
-			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				t.Error("should not call episode sources when show not found")
-				return nil, nil
-			}),
-		},
 		extractor: newProviderExtractor(),
 	}
 
@@ -520,11 +507,11 @@ func TestGetStreams_NoSources(t *testing.T) {
 	provider := &AllAnimeProvider{
 		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				return mockStringResponse(http.StatusOK, `{"data":{"shows":{"edges":[{"_id":"showX","malId":"1","name":"Anime"}]}}}`), nil
-			}),
-		},
-		utlsClient: &http.Client{
-			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				body, _ := io.ReadAll(req.Body)
+				req.Body.Close()
+				if strings.Contains(string(body), `"search":`) {
+					return mockStringResponse(http.StatusOK, `{"data":{"shows":{"edges":[{"_id":"showX","malId":"1","name":"Anime"}]}}}`), nil
+				}
 				return mockStringResponse(http.StatusNotFound, `not found`), nil
 			}),
 		},

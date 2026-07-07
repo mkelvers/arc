@@ -1,11 +1,12 @@
 package allanime
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -172,11 +173,15 @@ func isHTTPURL(value string) bool {
 }
 
 func buildStreamSource(url, sourceType, provider string) StreamSource {
+	referer := allAnimeReferer
+	if strings.Contains(strings.ToLower(provider), "yt-mp4") {
+		referer = allAnimeSiteURL
+	}
 	return StreamSource{
 		URL:      url,
 		Provider: provider,
 		Type:     sourceType,
-		Referer:  allAnimeReferer,
+		Referer:  referer,
 	}
 }
 
@@ -240,28 +245,24 @@ func stringMapValue(item map[string]any, key string) (string, bool) {
 }
 
 func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, episode, mode string) (map[string]any, error) {
-	req, err := newHashRequest(ctx, showID, episode, mode)
+	req, err := c.newHashRequest(ctx, showID, episode, mode)
 	if err != nil {
-		return nil, fmt.Errorf("create GET request: %w", err)
+		return nil, fmt.Errorf("create POST request: %w", err)
 	}
 
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", defaultUserAgent)
-	req.Header.Set("Accept", "*/*")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Accept-Encoding", "identity")
 	req.Header.Set("Referer", allAnimeReferer)
 	req.Header.Set("Origin", allAnimeOrigin)
-	req.Header.Set("Sec-Fetch-Dest", "empty")
-	req.Header.Set("Sec-Fetch-Mode", "cors")
-	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	req.Header.Set("x-build-id", "9")
 
-	statusCode, respBody, err := executeAndReadResponse(c.utlsClient, req, "execute GET request", "read response")
+	statusCode, respBody, err := executeAndReadResponse(c.httpClient, req, "execute POST request (aaReq)", "read response")
 	if err != nil {
 		return nil, err
 	}
 
 	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET status %d: %s", statusCode, string(respBody))
+		return nil, fmt.Errorf("POST status %d: %s", statusCode, string(respBody))
 	}
 
 	parsed, err := parseGraphQLResponse(respBody, "decode response")
@@ -289,15 +290,33 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	return nil, errors.New("no usable data in response")
 }
 
-func newHashRequest(ctx context.Context, showID, episode, mode string) (*http.Request, error) {
-	varsJSON := fmt.Sprintf(`{"showId":"%s","translationType":"%s","episodeString":"%s"}`, showID, strings.ToLower(mode), episode)
-	extJSON := fmt.Sprintf(`{"persistedQuery":{"version":1,"sha256Hash":"%s"}}`, episodeQueryHash)
+func (c *AllAnimeProvider) newHashRequest(ctx context.Context, showID, episode, mode string) (*http.Request, error) {
+	aaReq, err := makeAALease(episodeQueryHash)
+	if err != nil {
+		return nil, fmt.Errorf("create aa lease: %w", err)
+	}
 
-	params := url.Values{}
-	params.Set("variables", varsJSON)
-	params.Set("extensions", extJSON)
+	payload := map[string]any{
+		"variables": map[string]any{
+			"showId":          showID,
+			"translationType": strings.ToLower(mode),
+			"episodeString":   episode,
+		},
+		"extensions": map[string]any{
+			"persistedQuery": map[string]any{
+				"version":    1,
+				"sha256Hash": episodeQueryHash,
+			},
+			"aaReq": aaReq,
+		},
+	}
 
-	return http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api?%s", allAnimeBaseURL, params.Encode()), nil)
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal payload: %w", err)
+	}
+
+	return http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/api", allAnimeBaseURL), bytes.NewReader(body))
 }
 
 func detectStreamType(sourceURL string) string {
