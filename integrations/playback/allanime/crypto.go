@@ -5,15 +5,79 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
+)
+
+const (
+	aaEpoch   = "4128"
+	aaBuildID = "9"
+	aaKeyAHex = "b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87"
+	aaKeyB64  = "k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU="
 )
 
 var (
-	aesKeys = []string{"Xot36i3lK3:v1", "SimtVuagFbGR2K7P"}
+	aesKeys              = []string{"Xot36i3lK3:v1", "SimtVuagFbGR2K7P"}
+	aaCryptoVersion byte = 1
 )
+
+func xorKey() ([]byte, error) {
+	keyA, err := hex.DecodeString(aaKeyAHex)
+	if err != nil {
+		return nil, fmt.Errorf("decode key_a: %w", err)
+	}
+
+	keyB, err := base64.StdEncoding.DecodeString(aaKeyB64)
+	if err != nil {
+		return nil, fmt.Errorf("decode key_b: %w", err)
+	}
+
+	key := make([]byte, 32)
+	for i := range key {
+		key[i] = keyA[i] ^ keyB[i]
+	}
+	return key, nil
+}
+
+func makeAALease(queryHash string) (string, error) {
+	aesKey, err := xorKey()
+	if err != nil {
+		return "", err
+	}
+
+	ts := (time.Now().UnixMilli() / 300_000) * 300_000
+
+	ivSeed := fmt.Sprintf("%s:%s:%s:%d", aaEpoch, aaBuildID, queryHash, ts)
+	ivHash := sha256.Sum256([]byte(ivSeed))
+	iv := ivHash[:12]
+
+	payload := fmt.Sprintf(`{"v":%d,"ts":%d,"epoch":%s,"buildId":"%s","qh":"%s"}`, aaCryptoVersion, ts, aaEpoch, aaBuildID, queryHash)
+
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return "", fmt.Errorf("create cipher: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("create gcm: %w", err)
+	}
+
+	ciphertext := gcm.Seal(nil, iv, []byte(payload), nil)
+
+	envelope := append([]byte{aaCryptoVersion}, iv...)
+	envelope = append(envelope, ciphertext...)
+
+	return base64.StdEncoding.EncodeToString(envelope), nil
+}
+
+type aesCandidate struct {
+	key []byte
+}
 
 func decryptTobeparsed(encoded string) ([]byte, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
@@ -29,27 +93,36 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 	iv := raw[1:13]
 	cipherText := raw[13 : len(raw)-16]
 
-	for _, keyStr := range aesKeys {
-		key := sha256.Sum256([]byte(keyStr))
+	candidates := make([]aesCandidate, 0, len(aesKeys)+1)
 
-		block, err := aes.NewCipher(key[:])
+	xorK, err := xorKey()
+	if err == nil {
+		candidates = append(candidates, aesCandidate{key: xorK})
+	}
+
+	for _, keyStr := range aesKeys {
+		k := sha256.Sum256([]byte(keyStr))
+		candidates = append(candidates, aesCandidate{key: k[:]})
+	}
+
+	for _, candidate := range candidates {
+		block, err := aes.NewCipher(candidate.key)
 		if err != nil {
 			continue
 		}
 
 		if version == 1 {
+			gcm, err := cipher.NewGCM(block)
+			if err == nil {
+				combined := append(append([]byte{}, cipherText...), raw[len(raw)-16:]...)
+				plainText, openErr := gcm.Open(nil, iv, combined, nil)
+				if openErr == nil && json.Valid(plainText) {
+					return plainText, nil
+				}
+			}
+
 			plainText := tryDecryptCTR(block, iv, cipherText)
 			if json.Valid(plainText) {
-				return plainText, nil
-			}
-		}
-
-		gcm, err := cipher.NewGCM(block)
-		if err == nil {
-			tag := raw[len(raw)-16:]
-			combined := append(append([]byte{}, cipherText...), tag...)
-			plainText, openErr := gcm.Open(nil, iv, combined, nil)
-			if openErr == nil && json.Valid(plainText) {
 				return plainText, nil
 			}
 		}
@@ -157,6 +230,10 @@ func parseGraphQLResponse(respBody []byte, decodeErrPrefix string) (map[string]a
 	var parsed map[string]any
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
 		return nil, fmt.Errorf("%s: %w", decodeErrPrefix, err)
+	}
+
+	if _, ok := parsed["data"]; ok {
+		return parsed, nil
 	}
 
 	if errs, ok := parsed["errors"].([]any); ok && len(errs) > 0 {
