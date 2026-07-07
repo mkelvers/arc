@@ -303,7 +303,7 @@ func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, 
 		observability.Warn("playback_source_cache_stale_hit", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, errors.New("provider source refresh failed"))
 		return stale
 	}
-	observability.Warn("playback_source_resolution_failed", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, errors.New("provider source resolution failed"))
+	observability.Warn("playback_source_resolution_failed", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, resolved.err)
 	return nil
 }
 
