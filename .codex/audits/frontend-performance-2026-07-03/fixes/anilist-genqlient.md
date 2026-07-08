@@ -1,0 +1,10 @@
+- install genqlient
+- define all .graphql queries for anime metadata (detail, search, characters, staff, studios, recommendations, reviews, relations, statistics, airing schedule, genres/tags)
+- run go generate
+- create integrations/anilist/ with generated client wrapper and caching
+- swap domain.Anime from embedding jikan.Anime to anilist types
+- update all service interfaces and callers
+- remove integrations/jikan/
+- delete jikan cache table and related db code
+- remove jikan config, retry worker, transport, rate limiter
+- remove pkg/graphql.go if genqlient brings its own client
