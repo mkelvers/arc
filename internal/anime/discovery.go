@@ -3,6 +3,7 @@ package anime
 import (
 	"context"
 	"mal/integrations/playback/allanime"
+	"time"
 )
 
 type seasonProvider interface {
@@ -10,7 +11,9 @@ type seasonProvider interface {
 }
 
 type SeasonDiscoveryService struct {
-	provider seasonProvider
+	provider      seasonProvider
+	seasonalCache *seasonalCache
+	now           func() time.Time
 }
 
 func NewSeasonDiscoveryService(provider *allanime.AllAnimeProvider) *SeasonDiscoveryService {
@@ -18,5 +21,16 @@ func NewSeasonDiscoveryService(provider *allanime.AllAnimeProvider) *SeasonDisco
 }
 
 func newSeasonDiscoveryService(provider seasonProvider) *SeasonDiscoveryService {
-	return &SeasonDiscoveryService{provider: provider}
+	return &SeasonDiscoveryService{
+		provider:      provider,
+		seasonalCache: newSeasonalCache(seasonalCacheMaxEntries),
+		now:           time.Now,
+	}
+}
+
+func (s *SeasonDiscoveryService) currentTime() time.Time {
+	if s.now == nil {
+		return time.Now()
+	}
+	return s.now()
 }

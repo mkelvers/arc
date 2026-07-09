@@ -103,7 +103,10 @@ func seasonSelection(rawSeason, rawYear string, current, latest animeSeason) ani
 
 func (s *SeasonDiscoveryService) LatestAvailableSeason(ctx context.Context, current animeSeason) animeSeason {
 	next := adjacentSeason(current.Season, current.Year, 1)
-	shows, err := s.provider.SeasonalShows(ctx, next.Season, next.Year)
+	shows, err := s.cachedSeasonalShows(ctx, next, seasonalFetchOptions{
+		source:        "latest",
+		emptyFreshTTL: seasonalCacheEmptyNextTTL,
+	})
 	if err == nil && len(shows) > 0 {
 		return next
 	}
@@ -117,7 +120,10 @@ type SimulcastData struct {
 }
 
 func (s *SeasonDiscoveryService) GetSimulcast(ctx context.Context, selected animeSeason) (SimulcastData, error) {
-	shows, err := s.provider.SeasonalShows(ctx, selected.Season, selected.Year)
+	shows, err := s.cachedSeasonalShows(ctx, selected, seasonalFetchOptions{
+		source:        "simulcast",
+		emptyFreshTTL: seasonalCacheFreshTTL,
+	})
 	if err != nil {
 		return SimulcastData{}, err
 	}
