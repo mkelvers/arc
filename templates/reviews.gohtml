@@ -53,9 +53,7 @@
         {{end}}
       </div>
     {{end}}
-    <div class="whitespace-pre-line text-sm leading-relaxed text-foreground-muted">
-      {{.Review}}
-    </div>
+    {{template "review_body" (dict "Review" . "AnimeID" $.AnimeID "Expanded" false)}}
     <div class="flex flex-wrap items-center gap-4 pt-4 text-xs text-foreground-muted">
       {{if .EpisodesSeen}}<span>{{.EpisodesSeen}} episodes seen</span>{{end}}
       <div class="flex items-center gap-3">
@@ -112,4 +110,34 @@
        hx-target="this"
        class="h-px"></div>
 {{end}}
+{{end}}
+
+{{define "review_body"}}
+{{$review := .Review}}
+{{$animeID := .AnimeID}}
+{{$expanded := .Expanded}}
+{{$frameID := printf "review-body-frame-%d-%d" $animeID $review.MalID}}
+{{$textID := printf "review-body-text-%d-%d" $animeID $review.MalID}}
+<div id="{{$frameID}}" class="flex flex-col items-start gap-3">
+  <div id="{{$textID}}" class="whitespace-pre-line text-sm leading-relaxed text-foreground-muted">{{if $expanded}}{{$review.Review}}{{else if $review.Preview}}{{$review.Preview}}{{else}}{{$review.Review}}{{end}}</div>
+  {{if $review.IsTruncated}}
+    {{if $expanded}}
+      <button type="button"
+              class="text-sm text-accent transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              aria-expanded="true"
+              aria-controls="{{$textID}}"
+              hx-get="/anime/{{$animeID}}/reviews/{{$review.MalID}}/body?source_page={{$review.SourcePage}}&amp;view=preview"
+              hx-target="#{{$frameID}}"
+              hx-swap="outerHTML">Collapse</button>
+    {{else}}
+      <button type="button"
+              class="text-sm text-accent transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+              aria-expanded="false"
+              aria-controls="{{$textID}}"
+              hx-get="/anime/{{$animeID}}/reviews/{{$review.MalID}}/body?source_page={{$review.SourcePage}}"
+              hx-target="#{{$frameID}}"
+              hx-swap="outerHTML">Read more</button>
+    {{end}}
+  {{end}}
+</div>
 {{end}}

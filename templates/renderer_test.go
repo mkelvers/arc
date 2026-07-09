@@ -223,6 +223,76 @@ func TestTopPicksTemplateStylesBackToHomeAsButton(t *testing.T) {
 	}
 }
 
+func TestReviewCardsRenderPreviewAndReadMore(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := renderTemplateFragment(t, r, "reviews.gohtml", "review_cards", map[string]any{
+		"AnimeID": 123,
+		"Reviews": []domain.ReviewEntry{
+			{
+				MalID:       456,
+				Review:      "full body should not render initially",
+				Preview:     "compact preview",
+				IsTruncated: true,
+				SourcePage:  2,
+			},
+		},
+	})
+
+	if !strings.Contains(body, "compact preview") {
+		t.Fatalf("review card should render preview:\n%s", body)
+	}
+	if strings.Contains(body, "full body should not render initially") {
+		t.Fatalf("review card rendered full body in initial payload:\n%s", body)
+	}
+	for _, want := range []string{
+		`hx-get="/anime/123/reviews/456/body?source_page=2"`,
+		`aria-expanded="false"`,
+		`aria-controls="review-body-text-123-456"`,
+		`Read more`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("review card missing %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestReviewBodyFragmentRendersEscapedFullText(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := renderTemplateFragment(t, r, "reviews.gohtml", "review_body", map[string]any{
+		"AnimeID":  123,
+		"Expanded": true,
+		"Review": domain.ReviewEntry{
+			MalID:       456,
+			Review:      `<script>alert("x")</script>`,
+			Preview:     "safe preview",
+			IsTruncated: true,
+			SourcePage:  2,
+		},
+	})
+
+	if strings.Contains(body, `<script>alert("x")</script>`) {
+		t.Fatalf("review fragment rendered unescaped script:\n%s", body)
+	}
+	for _, want := range []string{
+		`&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt;`,
+		`aria-expanded="true"`,
+		`hx-get="/anime/123/reviews/456/body?source_page=2&amp;view=preview"`,
+		`Collapse`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("review fragment missing %q:\n%s", want, body)
+		}
+	}
+}
+
 type fragmentPollWant struct {
 	text   string
 	absent string
