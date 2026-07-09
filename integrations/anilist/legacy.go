@@ -54,6 +54,7 @@ func (p *LegacyProvider) GetAnimeRecommendations(ctx context.Context, id int) ([
 		var mapped metadata.RecommendationEntry
 		mapped.Entry.MalID = item.Anime.MALID
 		mapped.Entry.Title = firstNonEmpty(item.Anime.Title.English, item.Anime.Title.Romaji)
+		mapped.Entry.Synopsis = plainText(item.Anime.Description)
 		mapped.Entry.Images.Webp.LargeImageURL = item.Anime.CoverImage
 		mapped.Votes = item.Votes
 		out = append(out, mapped)
