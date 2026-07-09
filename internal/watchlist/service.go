@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/anilist"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -16,7 +17,7 @@ import (
 )
 
 type animeMetadataProvider interface {
-	GetAnimeByID(ctx context.Context, id int) (jikan.Anime, error)
+	GetAnimeByID(ctx context.Context, id int) (metadata.Anime, error)
 }
 
 type watchlistService struct {
@@ -25,12 +26,36 @@ type watchlistService struct {
 	invalidator   domain.RecommendationInvalidator
 }
 
-func NewWatchlistService(repo domain.WatchlistRepository, jikan *jikan.Client, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
+func NewWatchlistService(repo domain.WatchlistRepository, _ any, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
+	return newWatchlistService(repo, nil, invalidator)
+}
+
+func NewWatchlistServiceWithMetadata(repo domain.WatchlistRepository, _ any, metadata *anilist.CachedClient, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
+	return newWatchlistService(repo, metadata, invalidator)
+}
+
+func NewWatchlistServiceWithAniList(repo domain.WatchlistRepository, metadata *anilist.CachedClient, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
+	return newWatchlistService(repo, metadata, invalidator)
+}
+
+func newWatchlistService(repo domain.WatchlistRepository, metadata *anilist.CachedClient, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
 	var provider animeMetadataProvider
-	if jikan != nil {
-		provider = jikan
+	if metadata != nil {
+		provider = metadataProvider{client: metadata}
 	}
 	return &watchlistService{repo: repo, animeProvider: provider, invalidator: invalidator}
+}
+
+type metadataProvider struct {
+	client *anilist.CachedClient
+}
+
+func (p metadataProvider) GetAnimeByID(ctx context.Context, id int) (metadata.Anime, error) {
+	anime, err := p.client.GetAnimeByMALID(ctx, id)
+	if err != nil {
+		return metadata.Anime{}, err
+	}
+	return anilist.ToMetadataAnime(anime), nil
 }
 
 func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, animeID int64, status string) error {
@@ -50,28 +75,28 @@ func (s *watchlistService) UpdateEntry(ctx context.Context, userID string, anime
 	return nil
 }
 
-func (s *watchlistService) animeForWatchlist(ctx context.Context, animeID int64) (jikan.Anime, bool, error) {
+func (s *watchlistService) animeForWatchlist(ctx context.Context, animeID int64) (metadata.Anime, bool, error) {
 	if _, err := s.repo.GetAnime(ctx, animeID); err == nil {
-		return jikan.Anime{}, false, nil
+		return metadata.Anime{}, false, nil
 	} else if !errors.Is(err, sql.ErrNoRows) {
-		return jikan.Anime{}, false, fmt.Errorf("get watchlist anime %d: %w", animeID, err)
+		return metadata.Anime{}, false, fmt.Errorf("get watchlist anime %d: %w", animeID, err)
 	}
 
 	if s.animeProvider == nil {
-		return jikan.Anime{}, false, fmt.Errorf("watchlist anime %d is missing and metadata provider is unavailable", animeID)
+		return metadata.Anime{}, false, fmt.Errorf("watchlist anime %d is missing and metadata provider is unavailable", animeID)
 	}
 
 	anime, err := s.animeProvider.GetAnimeByID(ctx, int(animeID))
 	if err != nil {
-		return jikan.Anime{}, false, fmt.Errorf("fetch watchlist anime metadata %d: %w", animeID, err)
+		return metadata.Anime{}, false, fmt.Errorf("fetch watchlist anime metadata %d: %w", animeID, err)
 	}
 	if int64(anime.MalID) != animeID {
-		return jikan.Anime{}, false, fmt.Errorf("fetch watchlist anime metadata %d: returned anime id %d", animeID, anime.MalID)
+		return metadata.Anime{}, false, fmt.Errorf("fetch watchlist anime metadata %d: returned anime id %d", animeID, anime.MalID)
 	}
 	return anime, true, nil
 }
 
-func (s *watchlistService) updateEntryInTx(ctx context.Context, repo domain.WatchlistRepository, userID string, animeID int64, status string, anime jikan.Anime, fetchedAnime bool) error {
+func (s *watchlistService) updateEntryInTx(ctx context.Context, repo domain.WatchlistRepository, userID string, animeID int64, status string, anime metadata.Anime, fetchedAnime bool) error {
 	if fetchedAnime {
 		if _, err := repo.UpsertAnime(ctx, watchlistAnimeParams(anime)); err != nil {
 			return fmt.Errorf("upsert watchlist anime %d: %w", animeID, err)
@@ -100,7 +125,7 @@ func (s *watchlistService) updateEntryInTx(ctx context.Context, repo domain.Watc
 	return nil
 }
 
-func watchlistAnimeParams(anime jikan.Anime) db.UpsertAnimeParams {
+func watchlistAnimeParams(anime metadata.Anime) db.UpsertAnimeParams {
 	durationSeconds := anime.DurationSeconds()
 	duration := sql.NullFloat64{Valid: durationSeconds > 0}
 	if duration.Valid {

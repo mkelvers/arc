@@ -2,7 +2,7 @@ package recommendations
 
 import (
 	"database/sql"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"slices"
@@ -56,15 +56,15 @@ func TestScoreRecommendationCandidateRewardsProfileOverlap(t *testing.T) {
 		demographics: map[int]float64{},
 	}
 
-	matching := scoreRecommendationCandidate(now, profile, jikan.Anime{
+	matching := scoreRecommendationCandidate(now, profile, metadata.Anime{
 		MalID:      10,
-		Genres:     []jikan.NamedEntity{{MalID: 1, Name: "Action"}},
+		Genres:     []metadata.NamedEntity{{MalID: 1, Name: "Action"}},
 		Popularity: 100,
 		Score:      8.0,
 	}, 5.0, 0)
-	nonMatching := scoreRecommendationCandidate(now, profile, jikan.Anime{
+	nonMatching := scoreRecommendationCandidate(now, profile, metadata.Anime{
 		MalID:      11,
-		Genres:     []jikan.NamedEntity{{MalID: 2, Name: "Drama"}},
+		Genres:     []metadata.NamedEntity{{MalID: 2, Name: "Drama"}},
 		Popularity: 100,
 		Score:      8.0,
 	}, 5.0, 0)
@@ -83,12 +83,12 @@ func TestScoreRecommendationCandidateBuildsRationaleFromProfileMatches(t *testin
 		demographics: map[int]float64{30: 1.0},
 	}
 
-	candidate := scoreRecommendationCandidate(now, profile, jikan.Anime{
+	candidate := scoreRecommendationCandidate(now, profile, metadata.Anime{
 		MalID:        10,
-		Genres:       []jikan.NamedEntity{{MalID: 1, Name: "Action"}},
-		Themes:       []jikan.NamedEntity{{MalID: 10, Name: "School"}},
-		Studios:      []jikan.NamedEntity{{MalID: 20, Name: "Production I.G"}},
-		Demographics: []jikan.NamedEntity{{MalID: 30, Name: "Shounen"}},
+		Genres:       []metadata.NamedEntity{{MalID: 1, Name: "Action"}},
+		Themes:       []metadata.NamedEntity{{MalID: 10, Name: "School"}},
+		Studios:      []metadata.NamedEntity{{MalID: 20, Name: "Production I.G"}},
+		Demographics: []metadata.NamedEntity{{MalID: 30, Name: "Shounen"}},
 	}, 5.0, 0)
 
 	want := []string{"Action", "School", "Production I.G", "Shounen"}
@@ -106,7 +106,7 @@ func TestScoreRecommendationCandidateOmitsRationaleWhenSignalsAreWeak(t *testing
 		demographics: map[int]float64{},
 	}
 
-	candidate := scoreRecommendationCandidate(now, profile, jikan.Anime{
+	candidate := scoreRecommendationCandidate(now, profile, metadata.Anime{
 		MalID: 10,
 	}, 5.0, 0)
 
@@ -124,23 +124,23 @@ func TestBuildTasteProfileUsesSeedWeights(t *testing.T) {
 			{animeID: 1, weight: 2.0},
 			{animeID: 2, weight: 0.5},
 		},
-		[]jikan.Anime{
+		[]metadata.Anime{
 			{
 				MalID:        1,
 				Airing:       true,
 				Year:         2026,
-				Genres:       []jikan.NamedEntity{{MalID: 1, Name: "Action"}},
-				Themes:       []jikan.NamedEntity{{MalID: 10, Name: "Team Sports"}},
-				Studios:      []jikan.NamedEntity{{MalID: 20, Name: "Production I.G"}},
-				Demographics: []jikan.NamedEntity{{MalID: 30, Name: "Shounen"}},
+				Genres:       []metadata.NamedEntity{{MalID: 1, Name: "Action"}},
+				Themes:       []metadata.NamedEntity{{MalID: 10, Name: "Team Sports"}},
+				Studios:      []metadata.NamedEntity{{MalID: 20, Name: "Production I.G"}},
+				Demographics: []metadata.NamedEntity{{MalID: 30, Name: "Shounen"}},
 			},
 			{
 				MalID:        2,
 				Year:         2001,
-				Genres:       []jikan.NamedEntity{{MalID: 2, Name: "Drama"}},
-				Themes:       []jikan.NamedEntity{{MalID: 11, Name: "School"}},
-				Studios:      []jikan.NamedEntity{{MalID: 21, Name: "Madhouse"}},
-				Demographics: []jikan.NamedEntity{{MalID: 31, Name: "Seinen"}},
+				Genres:       []metadata.NamedEntity{{MalID: 2, Name: "Drama"}},
+				Themes:       []metadata.NamedEntity{{MalID: 11, Name: "School"}},
+				Studios:      []metadata.NamedEntity{{MalID: 21, Name: "Madhouse"}},
+				Demographics: []metadata.NamedEntity{{MalID: 31, Name: "Seinen"}},
 			},
 		},
 	)
@@ -228,10 +228,10 @@ func TestCandidateScoreLimitTracksRequestedResultSize(t *testing.T) {
 	}
 }
 
-func testRecommendationAnime(id int, genreID int) jikan.Anime {
-	return jikan.Anime{
+func testRecommendationAnime(id int, genreID int) metadata.Anime {
+	return metadata.Anime{
 		MalID:  id,
-		Genres: []jikan.NamedEntity{{MalID: genreID, Name: "Genre"}},
+		Genres: []metadata.NamedEntity{{MalID: genreID, Name: "Genre"}},
 	}
 }
 

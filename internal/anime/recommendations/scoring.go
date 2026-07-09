@@ -1,7 +1,7 @@
 package recommendations
 
 import (
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"math"
 	"time"
 )
@@ -15,7 +15,7 @@ func rankedCandidateRetrievalScore(collaborativeScore float64, profileSearchScor
 		(profileSearchScore * profileSearchWeight)
 }
 
-func hasTasteMetadata(anime jikan.Anime) bool {
+func hasTasteMetadata(anime metadata.Anime) bool {
 	return len(anime.Genres) > 0 ||
 		len(anime.Themes) > 0 ||
 		len(anime.Studios) > 0 ||
@@ -25,7 +25,7 @@ func hasTasteMetadata(anime jikan.Anime) bool {
 func scoreRecommendationCandidate(
 	now time.Time,
 	profile userTasteProfile,
-	candidate jikan.Anime,
+	candidate metadata.Anime,
 	collaborativeScore float64,
 	profileSearchScore float64,
 ) recommendationCandidate {
@@ -52,7 +52,7 @@ func scoreRecommendationCandidate(
 	}
 }
 
-func buildRecommendationRationale(profile userTasteProfile, candidate jikan.Anime) []string {
+func buildRecommendationRationale(profile userTasteProfile, candidate metadata.Anime) []string {
 	rationale := make([]string, 0, 4)
 	rationale = append(rationale, matchedEntityNames(profile.genres, candidate.Genres)...)
 	rationale = append(rationale, matchedEntityNames(profile.themes, candidate.Themes)...)
@@ -65,7 +65,7 @@ func buildRecommendationRationale(profile userTasteProfile, candidate jikan.Anim
 	return rationale
 }
 
-func recommendationCandidateScoreAdjustments(now time.Time, profile userTasteProfile, candidate jikan.Anime) float64 {
+func recommendationCandidateScoreAdjustments(now time.Time, profile userTasteProfile, candidate metadata.Anime) float64 {
 	var score float64
 
 	if candidate.Score > 0 {
@@ -114,7 +114,7 @@ func isFreshRelease(now time.Time, airedFrom string) bool {
 	return now.Sub(airedAt) <= freshReleaseWindow
 }
 
-func weightedEntityMatch(weights map[int]float64, entities []jikan.NamedEntity) (int, float64) {
+func weightedEntityMatch(weights map[int]float64, entities []metadata.NamedEntity) (int, float64) {
 	var matches int
 	var score float64
 
@@ -130,7 +130,7 @@ func weightedEntityMatch(weights map[int]float64, entities []jikan.NamedEntity) 
 	return matches, score
 }
 
-func matchedEntityNames(weights map[int]float64, entities []jikan.NamedEntity) []string {
+func matchedEntityNames(weights map[int]float64, entities []metadata.NamedEntity) []string {
 	if len(weights) == 0 {
 		return []string{}
 	}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"net/http/httptest"
@@ -180,7 +180,7 @@ func TestTopPicksTemplateDoesNotRenderRecommendationRationale(t *testing.T) {
 	err = r.ExecuteFragment(&buf, "top_picks.gohtml", "content", map[string]any{
 		"Animes": []domain.Anime{
 			{
-				Anime: jikan.Anime{
+				Anime: metadata.Anime{
 					MalID: 1,
 					Title: "Haikyuu!!",
 				},
@@ -220,76 +220,6 @@ func TestTopPicksTemplateStylesBackToHomeAsButton(t *testing.T) {
 	want := `href="/" class="inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"`
 	if !strings.Contains(body, want) {
 		t.Fatalf("top picks back link should use button styling:\n%s", body)
-	}
-}
-
-func TestReviewCardsRenderPreviewAndReadMore(t *testing.T) {
-	r, err := ProvideRenderer()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	body := renderTemplateFragment(t, r, "reviews.gohtml", "review_cards", map[string]any{
-		"AnimeID": 123,
-		"Reviews": []domain.ReviewEntry{
-			{
-				MalID:       456,
-				Review:      "full body should not render initially",
-				Preview:     "compact preview",
-				IsTruncated: true,
-				SourcePage:  2,
-			},
-		},
-	})
-
-	if !strings.Contains(body, "compact preview") {
-		t.Fatalf("review card should render preview:\n%s", body)
-	}
-	if strings.Contains(body, "full body should not render initially") {
-		t.Fatalf("review card rendered full body in initial payload:\n%s", body)
-	}
-	for _, want := range []string{
-		`hx-get="/anime/123/reviews/456/body?source_page=2"`,
-		`aria-expanded="false"`,
-		`aria-controls="review-body-text-123-456"`,
-		`Read more`,
-	} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("review card missing %q:\n%s", want, body)
-		}
-	}
-}
-
-func TestReviewBodyFragmentRendersEscapedFullText(t *testing.T) {
-	r, err := ProvideRenderer()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	body := renderTemplateFragment(t, r, "reviews.gohtml", "review_body", map[string]any{
-		"AnimeID":  123,
-		"Expanded": true,
-		"Review": domain.ReviewEntry{
-			MalID:       456,
-			Review:      `<script>alert("x")</script>`,
-			Preview:     "safe preview",
-			IsTruncated: true,
-			SourcePage:  2,
-		},
-	})
-
-	if strings.Contains(body, `<script>alert("x")</script>`) {
-		t.Fatalf("review fragment rendered unescaped script:\n%s", body)
-	}
-	for _, want := range []string{
-		`&lt;script&gt;alert(&#34;x&#34;)&lt;/script&gt;`,
-		`aria-expanded="true"`,
-		`hx-get="/anime/123/reviews/456/body?source_page=2&amp;view=preview"`,
-		`Collapse`,
-	} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("review fragment missing %q:\n%s", want, body)
-		}
 	}
 }
 
@@ -347,7 +277,7 @@ func topPickSectionData(state domain.RecommendationRefreshState, animes ...domai
 }
 
 func rendererTestAnime() domain.Anime {
-	return domain.Anime{Anime: jikan.Anime{MalID: 1, Title: "Haikyuu!!"}}
+	return domain.Anime{Anime: metadata.Anime{MalID: 1, Title: "Haikyuu!!"}}
 }
 
 func renderTemplateFragment(t *testing.T, r *Renderer, name string, block string, data any) string {
@@ -464,7 +394,7 @@ func TestWatchTemplateEscapesJSONDataAttributes(t *testing.T) {
 	label := `English ' data-injected='yes' <b>&"`
 	var buf bytes.Buffer
 	err = r.ExecuteFragment(&buf, "watch.gohtml", "content", domain.WatchPageData{
-		Anime:       domain.Anime{Anime: jikan.Anime{MalID: 123, Title: "Example Anime"}},
+		Anime:       domain.Anime{Anime: metadata.Anime{MalID: 123, Title: "Example Anime"}},
 		CurrentEpID: "1",
 		Episodes: []domain.CanonicalEpisode{
 			{Number: 1, Title: "Episode 1", HasSub: true},

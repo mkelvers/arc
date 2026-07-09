@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 )
 
 func TestProfileSearchRankWeightHasFloor(t *testing.T) {
@@ -31,10 +31,10 @@ func TestRankedCandidateRetrievalScoreUsesLogForCollaborativeSignal(t *testing.T
 }
 
 func TestHasTasteMetadata(t *testing.T) {
-	if hasTasteMetadata(jikan.Anime{}) {
+	if hasTasteMetadata(metadata.Anime{}) {
 		t.Fatalf("empty anime should not have taste metadata")
 	}
-	if !hasTasteMetadata(jikan.Anime{Studios: []jikan.NamedEntity{{MalID: 1}}}) {
+	if !hasTasteMetadata(metadata.Anime{Studios: []metadata.NamedEntity{{MalID: 1}}}) {
 		t.Fatalf("studio metadata should count as taste metadata")
 	}
 }
@@ -43,14 +43,14 @@ func TestRecommendationCandidateScoreAdjustments(t *testing.T) {
 	now := time.Date(2026, time.June, 4, 12, 0, 0, 0, time.UTC)
 	profile := userTasteProfile{prefersAiring: true, prefersRecent: true}
 
-	preferred := recommendationCandidateScoreAdjustments(now, profile, jikan.Anime{
+	preferred := recommendationCandidateScoreAdjustments(now, profile, metadata.Anime{
 		Score:      9,
 		Popularity: 10,
 		Airing:     true,
 		Year:       2026,
-		Aired:      jikan.Aired{From: now.Add(-24 * time.Hour).Format(time.RFC3339)},
+		Aired:      metadata.Aired{From: now.Add(-24 * time.Hour).Format(time.RFC3339)},
 	})
-	penalized := recommendationCandidateScoreAdjustments(now, profile, jikan.Anime{
+	penalized := recommendationCandidateScoreAdjustments(now, profile, metadata.Anime{
 		Score:  9,
 		Year:   2000,
 		Status: "Not yet aired",
@@ -74,7 +74,7 @@ func TestRecommendationCandidateScoreAdjustments(t *testing.T) {
 }
 
 func TestWeightedEntityMatchCountsAndScoresMatches(t *testing.T) {
-	matches, score := weightedEntityMatch(map[int]float64{1: 2.5, 3: 1.0}, []jikan.NamedEntity{
+	matches, score := weightedEntityMatch(map[int]float64{1: 2.5, 3: 1.0}, []metadata.NamedEntity{
 		{MalID: 1, Name: "Action"},
 		{MalID: 2, Name: "Drama"},
 		{MalID: 3, Name: "Sports"},
@@ -87,7 +87,7 @@ func TestWeightedEntityMatchCountsAndScoresMatches(t *testing.T) {
 
 func TestAddEntityWeightsSkipsInvalidIDsAndAccumulates(t *testing.T) {
 	target := map[int]float64{1: 1.0}
-	addEntityWeights(target, []jikan.NamedEntity{{MalID: 0}, {MalID: 1}, {MalID: 2}}, 0.5)
+	addEntityWeights(target, []metadata.NamedEntity{{MalID: 0}, {MalID: 1}, {MalID: 2}}, 0.5)
 
 	if target[1] != 1.5 || target[2] != 0.5 {
 		t.Fatalf("entity weights = %#v, want accumulated valid ids", target)
@@ -120,11 +120,11 @@ func TestScoreRecommendationCandidateIncludesMatchCounts(t *testing.T) {
 		demographics: map[int]float64{30: 1},
 	}
 
-	candidate := scoreRecommendationCandidate(now, profile, jikan.Anime{
-		Genres:       []jikan.NamedEntity{{MalID: 1}, {MalID: 2}},
-		Themes:       []jikan.NamedEntity{{MalID: 10}},
-		Studios:      []jikan.NamedEntity{{MalID: 20}},
-		Demographics: []jikan.NamedEntity{{MalID: 30}},
+	candidate := scoreRecommendationCandidate(now, profile, metadata.Anime{
+		Genres:       []metadata.NamedEntity{{MalID: 1}, {MalID: 2}},
+		Themes:       []metadata.NamedEntity{{MalID: 10}},
+		Studios:      []metadata.NamedEntity{{MalID: 20}},
+		Demographics: []metadata.NamedEntity{{MalID: 30}},
 	}, 0, 0)
 
 	if candidate.genreMatches != 2 || candidate.themeMatches != 1 || candidate.studioMatches != 1 || candidate.demographicMatches != 1 {

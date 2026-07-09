@@ -1,7 +1,7 @@
 package recommendations
 
 import (
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"math"
 	"slices"
@@ -92,7 +92,7 @@ func bestDiverseCandidateIndex(candidates []recommendationCandidate, seen divers
 	return bestIndex
 }
 
-func diversityFeatures(anime jikan.Anime) diversityFeatureSet {
+func diversityFeatures(anime metadata.Anime) diversityFeatureSet {
 	return diversityFeatureSet{
 		genres:       entityIDSet(anime.Genres),
 		themes:       entityIDSet(anime.Themes),
@@ -101,7 +101,7 @@ func diversityFeatures(anime jikan.Anime) diversityFeatureSet {
 	}
 }
 
-func entityIDSet(entities []jikan.NamedEntity) map[int]struct{} {
+func entityIDSet(entities []metadata.NamedEntity) map[int]struct{} {
 	ids := make(map[int]struct{}, len(entities))
 	for _, entity := range entities {
 		if entity.MalID <= 0 {

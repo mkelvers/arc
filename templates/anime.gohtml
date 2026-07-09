@@ -69,7 +69,7 @@
                   <div>
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
                     <dd class="text-foreground">
-                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}<a href="/browse?studio={{$s.MalID}}&sfw=true" class="underline underline-offset-2 decoration-foreground-muted/60 text-foreground-muted transition-colors hover:text-foreground hover:decoration-foreground/70">{{$s.Name}}</a>{{end}}
+                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}{{$s.Name}}{{end}}
                     </dd>
                   </div>
                 {{end}}
@@ -167,11 +167,6 @@
             </section>
 
             <section>
-              <h3 class="mb-4 text-base font-normal text-foreground">Statistics</h3>
-              {{template "anime_statistics_loading" dict "AnimeID" $anime.MalID}}
-            </section>
-
-            <section>
               <h3 class="mb-4 text-base font-normal text-foreground">More</h3>
               <div class="flex flex-col gap-3">
                 {{if $anime.External}}
@@ -185,10 +180,6 @@
                     </div>
                   </div>
                 {{end}}
-                <button type="button" data-unstyled-button data-themes-open class="text-left text-sm text-foreground-muted transition-colors hover:text-foreground">
-                  Theme Songs
-                </button>
-                <a href="/anime/{{$anime.MalID}}/reviews" class="text-sm text-foreground-muted transition-colors hover:text-foreground">Reviews</a>
               </div>
             </section>
           </div>
@@ -204,7 +195,7 @@
                   <div>
                     <dt class="mb-1 text-xs font-normal text-foreground-muted">Studios</dt>
                     <dd class="text-foreground">
-                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}<a href="/browse?studio={{$s.MalID}}&sfw=true" class="underline underline-offset-2 decoration-foreground-muted/60 text-foreground-muted transition-colors hover:text-foreground hover:decoration-foreground/70">{{$s.Name}}</a>{{end}}
+                      {{range $i, $s := $anime.Studios}}{{if $i}}, {{end}}{{$s.Name}}{{end}}
                     </dd>
                   </div>
                 {{end}}
@@ -302,11 +293,6 @@
             </section>
 
             <section>
-              <h3 class="mb-4 text-base font-normal text-foreground">Statistics</h3>
-              {{template "anime_statistics_loading" dict "AnimeID" $anime.MalID}}
-            </section>
-
-            <section>
               <h3 class="mb-4 text-base font-normal text-foreground">More</h3>
               <div class="flex flex-col gap-3">
                 {{if $anime.External}}
@@ -320,10 +306,6 @@
                     </div>
                   </div>
                 {{end}}
-                <button type="button" data-unstyled-button data-themes-open class="text-left text-sm text-foreground-muted transition-colors hover:text-foreground">
-                  Theme Songs
-                </button>
-                <a href="/anime/{{$anime.MalID}}/reviews" class="text-sm text-foreground-muted transition-colors hover:text-foreground">Reviews</a>
               </div>
             </section>
           </div>
@@ -348,7 +330,5 @@
 
   {{template "anime_recommendations_initial_loading" dict "AnimeID" $anime.MalID}}
 </div>
-
-{{template "anime_themes_dialog" dict "AnimeID" $anime.MalID}}
 
 {{end}}

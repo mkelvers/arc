@@ -3,7 +3,7 @@ package anime
 import (
 	"context"
 	"errors"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"testing"
 	"time"
@@ -39,65 +39,65 @@ type releasedCountTest struct {
 var releasedCountTests = []releasedCountTest{
 	{
 		name: "weekly airing count",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing:   true,
 			Episodes: 24,
-			Aired:    jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+			Aired:    metadata.Aired{From: "2026-04-04T15:00:00+00:00"},
 		}},
 		now:  time.Date(2026, time.June, 13, 15, 0, 0, 0, time.UTC),
 		want: 11,
 	},
 	{
 		name: "before first release",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing: true,
-			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+			Aired:  metadata.Aired{From: "2026-04-04T15:00:00+00:00"},
 		}},
 		now:  time.Date(2026, time.April, 4, 14, 59, 0, 0, time.UTC),
 		want: 0,
 	},
 	{
 		name: "first release counts as one",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing: true,
-			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+			Aired:  metadata.Aired{From: "2026-04-04T15:00:00+00:00"},
 		}},
 		now:  time.Date(2026, time.April, 4, 15, 0, 0, 0, time.UTC),
 		want: 1,
 	},
 	{
 		name: "caps at total episode count",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing:   true,
 			Episodes: 12,
-			Aired:    jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+			Aired:    metadata.Aired{From: "2026-04-04T15:00:00+00:00"},
 		}},
 		now:  time.Date(2026, time.December, 1, 15, 0, 0, 0, time.UTC),
 		want: 12,
 	},
 	{
 		name: "unknown total still estimates current count",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing: true,
-			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+			Aired:  metadata.Aired{From: "2026-04-04T15:00:00+00:00"},
 		}},
 		now:  time.Date(2026, time.April, 18, 15, 0, 0, 0, time.UTC),
 		want: 3,
 	},
 	{
 		name: "non airing anime is not estimated",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing: false,
-			Aired:  jikan.Aired{From: "2026-04-04T15:00:00+00:00"},
+			Aired:  metadata.Aired{From: "2026-04-04T15:00:00+00:00"},
 		}},
 		now:  time.Date(2026, time.April, 18, 15, 0, 0, 0, time.UTC),
 		want: 0,
 	},
 	{
 		name: "invalid aired date is ignored",
-		anime: domain.Anime{Anime: jikan.Anime{
+		anime: domain.Anime{Anime: metadata.Anime{
 			Airing: true,
-			Aired:  jikan.Aired{From: "not-a-date"},
+			Aired:  metadata.Aired{From: "not-a-date"},
 		}},
 		now:  time.Date(2026, time.April, 18, 15, 0, 0, 0, time.UTC),
 		want: 0,
@@ -128,11 +128,11 @@ func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
 	}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
+	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Airing:   true,
 		Episodes: 12,
-		Aired:    jikan.Aired{From: "2026-04-03T00:00:00+00:00"},
+		Aired:    metadata.Aired{From: "2026-04-03T00:00:00+00:00"},
 	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
 
 	if got.Count != 3 || got.Label != "Available episodes" {
@@ -159,7 +159,7 @@ func TestAnimeReleaseInfoUsesCanonicalEpisodes(t *testing.T) {
 	}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: jikan.Anime{
+	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Status:   "Currently Airing",
 		Airing:   true,
@@ -174,44 +174,22 @@ func TestAnimeReleaseInfoUsesCanonicalEpisodes(t *testing.T) {
 	}
 }
 
-func TestAnimeReleaseInfoDoesNotCallJikanFallbackAvailable(t *testing.T) {
-	episodeSvc := &stubEpisodeService{
-		episodes: domain.CanonicalEpisodeList{
-			Source: "jikan_fallback",
-			Episodes: []domain.CanonicalEpisode{
-				{Number: 1},
-			},
-		},
-	}
-	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
-
-	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: jikan.Anime{
-		MalID:  62076,
-		Status: "Currently Airing",
-		Airing: true,
-	}}, time.Date(2026, time.July, 10, 12, 0, 0, 0, time.UTC))
-
-	if got.Count != 1 || got.Label != "Estimated aired episodes" {
-		t.Fatalf("animeReleaseInfo() = %+v, want estimated aired episode count", got)
-	}
-}
-
 func TestAnimeReleaseInfoMarksAiringAnimeWithoutCanonicalEpisodesAsNotYetAired(t *testing.T) {
 	episodeSvc := &stubEpisodeService{
 		episodes: domain.CanonicalEpisodeList{
-			Source:         "jikan_fallback",
+			Source:         "AllAnime",
 			ReleaseChecked: true,
 			Episodes:       []domain.CanonicalEpisode{},
 		},
 	}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: jikan.Anime{
+	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    62076,
 		Status:   "Currently Airing",
 		Airing:   true,
 		Episodes: 6,
-		Aired:    jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+		Aired:    metadata.Aired{From: "2026-06-03T00:00:00+00:00"},
 	}}, time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC))
 
 	if got.Count != 0 || got.Label != "" || got.Status != "Not yet aired" {
@@ -228,11 +206,11 @@ func TestAnimeEpisodeCountStopsWhenCanonicalEpisodesAreEmpty(t *testing.T) {
 	}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
+	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    62076,
 		Airing:   true,
 		Episodes: 12,
-		Aired:    jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+		Aired:    metadata.Aired{From: "2026-06-03T00:00:00+00:00"},
 	}}, time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC))
 
 	if got.Count != 0 || got.Label != "" {
@@ -244,12 +222,12 @@ func TestAnimeEpisodeCountStopsWhenCanonicalEpisodesAreEmpty(t *testing.T) {
 }
 
 func TestAnimeInitialReleaseInfoDoesNotTrustCurrentlyAiringMetadata(t *testing.T) {
-	got := animeInitialReleaseInfo(domain.Anime{Anime: jikan.Anime{
+	got := animeInitialReleaseInfo(domain.Anime{Anime: metadata.Anime{
 		MalID:    62076,
 		Status:   "Currently Airing",
 		Airing:   true,
 		Episodes: 6,
-		Aired:    jikan.Aired{From: "2026-06-03T00:00:00+00:00"},
+		Aired:    metadata.Aired{From: "2026-06-03T00:00:00+00:00"},
 	}}, time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC))
 
 	if got.Count != 0 || got.Label != "" || got.Status != "" {
@@ -261,7 +239,7 @@ func TestAnimeEpisodeCountFallsBackToMetadata(t *testing.T) {
 	episodeSvc := &stubEpisodeService{err: errors.New("provider unavailable")}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: jikan.Anime{
+	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Airing:   false,
 		Episodes: 12,
@@ -279,12 +257,12 @@ func TestAnimeInitialEpisodeCountDoesNotTrustCurrentlyAiringMetadata(t *testing.
 		},
 	}
 
-	got := animeInitialEpisodeCount(domain.Anime{Anime: jikan.Anime{
+	got := animeInitialEpisodeCount(domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Airing:   true,
 		Status:   "Currently Airing",
 		Episodes: 12,
-		Aired:    jikan.Aired{From: "2026-04-03T00:00:00+00:00"},
+		Aired:    metadata.Aired{From: "2026-04-03T00:00:00+00:00"},
 	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
 
 	if got.Count != 0 || got.Label != "" {
@@ -350,16 +328,6 @@ func TestAnimeAudioAvailabilityRequiresAllAnimeSource(t *testing.T) {
 			want:   "Dub available",
 		},
 		{
-			name:   "jikan fallback source",
-			source: "jikan_fallback",
-			want:   "",
-		},
-		{
-			name:   "legacy source",
-			source: "legacy_disabled",
-			want:   "",
-		},
-		{
 			name: "provider error",
 			err:  errors.New("provider unavailable"),
 			want: "",
@@ -380,7 +348,7 @@ func TestAnimeAudioAvailabilityRequiresAllAnimeSource(t *testing.T) {
 			handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
 			got := handler.animeAudioAvailability(context.Background(), domain.Anime{
-				Anime: jikan.Anime{MalID: 52991},
+				Anime: metadata.Anime{MalID: 52991},
 			})
 			if got != tt.want {
 				t.Fatalf("animeAudioAvailability() = %q, want %q", got, tt.want)

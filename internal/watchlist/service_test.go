@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 )
@@ -120,7 +120,7 @@ func TestWatchlistServiceUpdateEntryInvalidatesRecommendations(t *testing.T) {
 
 func TestWatchlistServiceUpdateEntryKnownAnimeSkipsProvider(t *testing.T) {
 	repo := &fakeWatchlistRepository{anime: db.Anime{ID: 9}}
-	provider := &fakeAnimeProvider{anime: testJikanAnime(9)}
+	provider := &fakeAnimeProvider{anime: testProviderAnime(9)}
 	svc := &watchlistService{repo: repo, animeProvider: provider}
 
 	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching"); err != nil {
@@ -139,7 +139,7 @@ func TestWatchlistServiceUpdateEntryKnownAnimeSkipsProvider(t *testing.T) {
 
 func TestWatchlistServiceUpdateEntryMissingAnimeFetchesAndInserts(t *testing.T) {
 	repo := &fakeWatchlistRepository{animeErr: sql.ErrNoRows}
-	provider := &fakeAnimeProvider{anime: testJikanAnime(9)}
+	provider := &fakeAnimeProvider{anime: testProviderAnime(9)}
 	svc := &watchlistService{repo: repo, animeProvider: provider}
 
 	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching"); err != nil {
@@ -164,7 +164,7 @@ func TestWatchlistServiceUpdateEntryMissingAnimeFetchesAndInserts(t *testing.T) 
 
 func TestWatchlistServiceUpdateEntryMissingAnimeProviderFailureWritesNothing(t *testing.T) {
 	repo := &fakeWatchlistRepository{animeErr: sql.ErrNoRows}
-	provider := &fakeAnimeProvider{err: errors.New("jikan unavailable")}
+	provider := &fakeAnimeProvider{err: errors.New("provider unavailable")}
 	invalidator := &fakeRecommendationInvalidator{}
 	svc := &watchlistService{repo: repo, animeProvider: provider, invalidator: invalidator}
 
@@ -315,23 +315,23 @@ func (r *fakeWatchlistRepository) SaveWatchProgress(_ context.Context, arg db.Sa
 }
 
 type fakeAnimeProvider struct {
-	anime jikan.Anime
+	anime metadata.Anime
 	err   error
 	calls int
 	ids   []int
 }
 
-func (p *fakeAnimeProvider) GetAnimeByID(_ context.Context, id int) (jikan.Anime, error) {
+func (p *fakeAnimeProvider) GetAnimeByID(_ context.Context, id int) (metadata.Anime, error) {
 	p.calls++
 	p.ids = append(p.ids, id)
 	if p.err != nil {
-		return jikan.Anime{}, p.err
+		return metadata.Anime{}, p.err
 	}
 	return p.anime, nil
 }
 
-func testJikanAnime(id int) jikan.Anime {
-	anime := jikan.Anime{
+func testProviderAnime(id int) metadata.Anime {
+	anime := metadata.Anime{
 		MalID:        id,
 		Title:        "Anime " + strconv.Itoa(id),
 		TitleEnglish: "English " + strconv.Itoa(id),

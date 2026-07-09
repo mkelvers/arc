@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 )
 
@@ -52,7 +52,7 @@ func TestGetEpisodeTitlesUsesAiringOrder(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server)
-	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "80712", domain.Anime{Anime: jikan.Anime{
+	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "80712", domain.Anime{Anime: metadata.Anime{
 		Title: "Example 2nd Season",
 	}}, 2)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestGetEpisodeTitlesSelectsSplitCourWithinSeason(t *testing.T) {
 	defer server.Close()
 
 	client := newTestClient(server)
-	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "14459", domain.Anime{Anime: jikan.Anime{
+	titles, err := client.GetEpisodeTitlesByProviderID(context.Background(), "14459", domain.Anime{Anime: metadata.Anime{
 		Title: "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
 	}}, 2)
 	if err != nil {

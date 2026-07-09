@@ -3,7 +3,7 @@ package recommendations
 import (
 	"context"
 	"fmt"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"sort"
@@ -15,18 +15,24 @@ import (
 )
 
 type engine struct {
-	jikan *jikan.Client
-	repo  domain.AnimeRepository
+	metadata metadataProvider
+	repo     domain.AnimeRepository
+}
+
+type metadataProvider interface {
+	GetAnimeByID(ctx context.Context, id int) (metadata.Anime, error)
+	GetAnimeRecommendations(ctx context.Context, id int) ([]metadata.RecommendationEntry, error)
+	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error)
 }
 
 func GetTopPicksForYou(
 	ctx context.Context,
-	jikanClient *jikan.Client,
+	metadata metadataProvider,
 	repo domain.AnimeRepository,
 	userID string,
 	resultLimit int,
 ) (domain.CatalogSectionData, error) {
-	return engine{jikan: jikanClient, repo: repo}.getTopPicksForYou(ctx, userID, resultLimit)
+	return engine{metadata: metadata, repo: repo}.getTopPicksForYou(ctx, userID, resultLimit)
 }
 
 func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimit int) (domain.CatalogSectionData, error) {
@@ -75,14 +81,14 @@ func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimi
 	}, nil
 }
 
-func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSeed) ([]jikan.Anime, error) {
-	seedAnimes := make([]jikan.Anime, len(seedPool))
+func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSeed) ([]metadata.Anime, error) {
+	seedAnimes := make([]metadata.Anime, len(seedPool))
 	var g errgroup.Group
 	g.SetLimit(4)
 
 	for i, seed := range seedPool {
 		g.Go(func() error {
-			anime, err := e.jikan.GetAnimeByID(ctx, seed.animeID)
+			anime, err := e.metadata.GetAnimeByID(ctx, seed.animeID)
 			if err != nil {
 				return fmt.Errorf("get seed anime %d: %w", seed.animeID, err)
 			}
@@ -104,7 +110,7 @@ func (e engine) collectCollaborativeCandidates(ctx context.Context, seedPool []r
 
 	for _, seed := range seedPool {
 		g.Go(func() error {
-			recs, err := e.jikan.GetAnimeRecommendations(ctx, seed.animeID)
+			recs, err := e.metadata.GetAnimeRecommendations(ctx, seed.animeID)
 			if err != nil {
 				observability.Warn(
 					"collaborative_recommendations_failed",
@@ -145,7 +151,7 @@ func (e engine) collectProfileSearchCandidates(ctx context.Context, profile user
 
 	for _, query := range queries {
 		g.Go(func() error {
-			res, err := e.jikan.SearchAdvanced(
+			res, err := e.metadata.SearchAdvanced(
 				ctx,
 				"",
 				"",
@@ -211,7 +217,7 @@ func (e engine) scoreRankedCandidates(
 		g.Go(func() error {
 			anime := item.anime
 			if !item.hasAnime || !hasTasteMetadata(anime) {
-				fetchedAnime, err := e.jikan.GetAnimeByID(ctx, item.id)
+				fetchedAnime, err := e.metadata.GetAnimeByID(ctx, item.id)
 				if err != nil {
 					observability.Warn(
 						"recommendation_anime_fetch_failed",

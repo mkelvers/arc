@@ -3,12 +3,12 @@ package domain
 
 import (
 	"context"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 )
 
 type Anime struct {
-	jikan.Anime
+	metadata.Anime
 	RecommendationRationale []string
 }
 
@@ -82,69 +82,6 @@ type StaffEntry struct {
 	Positions []string
 }
 
-type StatisticsScore struct {
-	Score      int
-	Votes      int
-	Percentage float64
-}
-
-type Statistics struct {
-	Watching    int
-	Completed   int
-	OnHold      int
-	Dropped     int
-	PlanToWatch int
-	Total       int
-	Scores      []StatisticsScore
-}
-
-type ThemesData struct {
-	Openings []string
-	Endings  []string
-}
-
-type ReviewReactions struct {
-	Overall     int
-	Nice        int
-	LoveIt      int
-	Funny       int
-	Confusing   int
-	Informative int
-	WellWritten int
-	Creative    int
-}
-
-type ReviewUser struct {
-	URL      string
-	Username string
-	Images   struct {
-		Jpg struct {
-			ImageURL string
-		}
-		Webp struct {
-			ImageURL string
-		}
-	}
-}
-
-type ReviewEntry struct {
-	MalID         int
-	URL           string
-	Type          string
-	Reactions     ReviewReactions
-	Date          string
-	Review        string
-	Preview       string
-	IsTruncated   bool
-	Score         int
-	Tags          []string
-	IsSpoiler     bool
-	IsPreliminary bool
-	EpisodesSeen  int
-	SourcePage    int
-	User          ReviewUser
-}
-
 type AnimeCatalogService interface {
 	GetCatalogSection(ctx context.Context, userID string, section string) (CatalogSectionData, error)
 	GetTopPickForYou(ctx context.Context, userID string) (CatalogSectionData, error)
@@ -156,9 +93,7 @@ type RecommendationInvalidator interface {
 }
 
 type AnimeSearchService interface {
-	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error)
-	GetProducerNameByID(ctx context.Context, id int) (string, error)
-	GetProducers(ctx context.Context, query string, page int, limit int) (jikan.ProducerListResult, error)
+	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error)
 	GetGenres(ctx context.Context) ([]Genre, error)
 }
 
@@ -166,15 +101,11 @@ type AnimeDetailsService interface {
 	GetAnimeByID(ctx context.Context, id int) (Anime, error)
 	GetCharacters(ctx context.Context, id int) ([]CharacterEntry, error)
 	GetRecommendations(ctx context.Context, id int) ([]RecommendationEntry, error)
-	GetRelations(ctx context.Context, id int, mode jikan.WatchOrderMode) ([]jikan.RelationEntry, error)
-	GetEpisodes(ctx context.Context, id int, page int) (jikan.EpisodesResponse, error)
+	GetRelations(ctx context.Context, id int, mode metadata.WatchOrderMode) ([]metadata.RelationEntry, error)
+	GetEpisodes(ctx context.Context, id int, page int) (metadata.EpisodesResponse, error)
 	GetAllEpisodes(ctx context.Context, id int) ([]EpisodeData, error)
 	GetRandomAnime(ctx context.Context) (Anime, error)
 	GetStaff(ctx context.Context, id int) ([]StaffEntry, error)
-	GetStatistics(ctx context.Context, id int) (Statistics, error)
-	GetThemes(ctx context.Context, id int) (ThemesData, error)
-	GetReviews(ctx context.Context, id int, page int) ([]ReviewEntry, bool, error)
-	GetReview(ctx context.Context, id int, page int, reviewID int) (ReviewEntry, error)
 }
 
 type AnimePlaybackService interface {

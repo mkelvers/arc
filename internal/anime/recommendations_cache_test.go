@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/anime/recommendations"
 	"mal/internal/domain"
 )
@@ -17,7 +17,7 @@ func TestGetTopPicksForYouReturnsRefreshingOnCacheMissAndRefreshesInBackground(t
 	svc := NewAnimeService(nil, nil)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
-		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: jikan.Anime{MalID: 7}}}}, nil
+		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: metadata.Anime{MalID: 7}}}}, nil
 	}
 
 	got, err := svc.GetTopPicksForYou(context.Background(), "user-1")
@@ -120,7 +120,7 @@ func TestGetTopPicksForYouJoinsColdRefresh(t *testing.T) {
 		started <- struct{}{}
 		<-release
 		completed <- struct{}{}
-		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: jikan.Anime{MalID: 7}}}}, nil
+		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: metadata.Anime{MalID: 7}}}}, nil
 	}
 
 	first, err := svc.GetTopPicksForYou(context.Background(), "user-1")
@@ -195,7 +195,7 @@ func TestGetTopPicksForYouReturnsStaleDataWhenRefreshFails(t *testing.T) {
 	refreshed := make(chan struct{}, 2)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
-		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: jikan.Anime{MalID: 11}}}}, nil
+		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: metadata.Anime{MalID: 11}}}}, nil
 	}
 
 	if _, err := svc.GetTopPicksForYou(context.Background(), "user-1"); err != nil {
@@ -237,7 +237,7 @@ func TestInvalidateTopPicksForUserPreservesStaleCardsAndRefreshes(t *testing.T) 
 			<-proceed
 		}
 		refreshed <- struct{}{}
-		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: jikan.Anime{MalID: int(call + 2)}}}}, nil
+		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: metadata.Anime{MalID: int(call + 2)}}}}, nil
 	}
 
 	primePickCache(t, svc, refreshed)

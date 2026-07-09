@@ -46,30 +46,6 @@
   {{end}}
 {{end}}
 
-{{define "studio_dropdown_items"}}
-  {{if eq .Page 1}}
-    <button type="button" data-studio-select="" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground">
-      Any Studio
-    </button>
-  {{end}}
-  {{range .StudioItems}}
-    <button type="button" data-studio-select="{{.ID}}" class="flex w-full items-center px-5 py-2.5 text-left transition-colors hover:bg-surface-hover text-sm text-foreground">
-      {{.Name}}
-    </button>
-  {{end}}
-  {{if and (eq (len .StudioItems) 0) (not .HasNextPage)}}
-    <div class="px-5 py-3 text-sm text-foreground-muted">No studios found.</div>
-  {{end}}
-  {{if .HasNextPage}}
-    <div hx-get="/api/jikan/producers?q={{urlquery .Query}}&page={{.NextPage}}&limit={{.Limit}}"
-         hx-trigger="intersect once"
-         hx-swap="beforeend"
-         hx-target="this"
-         hx-push-url="false"
-         class="h-px"></div>
-  {{end}}
-{{end}}
-
 {{define "browse_sentinel"}}
   <div hx-get='{{browseURL . (dict "page" .NextPage)}}'
        hx-trigger="intersect once"

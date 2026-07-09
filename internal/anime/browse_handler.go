@@ -3,7 +3,7 @@ package anime
 import (
 	"context"
 	"fmt"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"mal/internal/server"
@@ -16,11 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type producerItem struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
 type browseQuery struct {
 	q         string
 	animeType string
@@ -31,109 +26,6 @@ type browseQuery struct {
 	studioID  int
 	genres    []int
 	page      int
-}
-
-func producerQueryParams(c *gin.Context) (string, int, int, error) {
-	q := strings.TrimSpace(c.Query("q"))
-
-	rawPage := c.DefaultQuery("page", "1")
-	page, err := strconv.Atoi(rawPage)
-	if err != nil {
-		return "", 0, 0, fmt.Errorf("invalid page %q: %w", rawPage, err)
-	}
-	if page < 1 {
-		page = 1
-	}
-
-	rawLimit := c.DefaultQuery("limit", "50")
-	limit, err := strconv.Atoi(rawLimit)
-	if err != nil {
-		return "", 0, 0, fmt.Errorf("invalid limit %q: %w", rawLimit, err)
-	}
-	if limit < 1 || limit > 12 {
-		limit = 12
-	}
-
-	return q, page, limit, nil
-}
-
-func producerItems(entries []jikan.ProducerListEntry) []producerItem {
-	items := make([]producerItem, 0, len(entries))
-	for _, producer := range entries {
-		name := jikan.ProducerListEntryName(producer)
-		if producer.MalID <= 0 || name == "" {
-			continue
-		}
-		items = append(items, producerItem{ID: producer.MalID, Name: name})
-	}
-	return items
-}
-
-func producerHTMLPayload(items []producerItem, hasNextPage bool, page int, q string, limit int) gin.H {
-	return gin.H{
-		"_fragment":   "studio_dropdown_items",
-		"StudioItems": items,
-		"HasNextPage": hasNextPage,
-		"Page":        page,
-		"NextPage":    page + 1,
-		"Query":       q,
-		"Limit":       limit,
-	}
-}
-
-func requestWantsHTML(c *gin.Context) bool {
-	return strings.Contains(c.GetHeader("Accept"), "text/html")
-}
-
-func (h *AnimeHandler) HandleProducers(c *gin.Context) {
-	q, page, limit, err := producerQueryParams(c)
-	if err != nil {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	res, err := h.svc.GetProducers(c.Request.Context(), q, page, limit)
-	if err != nil {
-		observability.WarnContext(c.Request.Context(),
-			"producers_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"q":     q,
-				"page":  page,
-				"limit": limit,
-			},
-			err,
-		)
-		if requestWantsHTML(c) {
-			c.HTML(http.StatusOK, "browse.gohtml", producerHTMLPayload([]producerItem{}, false, page, q, limit))
-			return
-		}
-
-		server.RespondError(
-			c,
-			http.StatusInternalServerError,
-			"producers_fetch_failed",
-			"anime",
-			"failed to load producers",
-			map[string]any{"q": q, "page": page, "limit": limit},
-			err,
-		)
-		return
-	}
-
-	items := producerItems(res.Items)
-
-	if requestWantsHTML(c) {
-		c.HTML(http.StatusOK, "browse.gohtml", producerHTMLPayload(items, res.HasNextPage, page, q, limit))
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"items":       items,
-		"hasNextPage": res.HasNextPage,
-		"nextPage":    page + 1,
-	})
 }
 
 func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
@@ -201,19 +93,6 @@ func canonicalBrowseURL(rawURL *url.URL) (string, bool) {
 	return rawURL.Path + "?" + encoded, true
 }
 
-func browseStudioName(ctx context.Context, svc Service, studioID int) string {
-	if studioID <= 0 {
-		return ""
-	}
-
-	name, err := svc.GetProducerNameByID(ctx, studioID)
-	if err != nil {
-		return ""
-	}
-
-	return name
-}
-
 func browseTemplateData(
 	q browseQuery,
 	studioName string,
@@ -243,7 +122,7 @@ func browseTemplateData(
 	}
 }
 
-func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (jikan.SearchResult, error) {
+func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (metadata.SearchResult, error) {
 	return h.svc.SearchAdvanced(
 		ctx,
 		query.q,
@@ -327,10 +206,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
-	studioName := browseStudioName(c.Request.Context(), h.svc, query.studioID)
-
 	if c.GetHeader("HX-Request") == "true" && query.page > 1 {
-		c.HTML(http.StatusOK, "browse.gohtml", browseScrollData(query, studioName, animes, watchlistMap, res.HasNextPage))
+		c.HTML(http.StatusOK, "browse.gohtml", browseScrollData(query, "", animes, watchlistMap, res.HasNextPage))
 		return
 	}
 
@@ -344,7 +221,7 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 			err,
 		)
 	}
-	browseData := browseTemplateData(query, studioName, genresList, animes, user, watchlistMap, res.HasNextPage)
+	browseData := browseTemplateData(query, "", genresList, animes, user, watchlistMap, res.HasNextPage)
 
 	if c.GetHeader("HX-Request") == "true" {
 		browseData["_fragment"] = "browse_content"

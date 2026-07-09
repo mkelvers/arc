@@ -1,6 +1,6 @@
 package recommendations
 
-import "mal/integrations/jikan"
+import "mal/integrations/metadata"
 
 type recommendationSeed struct {
 	animeID int
@@ -19,7 +19,7 @@ type profileSearchQuery struct {
 }
 
 type recommendationCandidate struct {
-	anime              jikan.Anime
+	anime              metadata.Anime
 	score              float64
 	genreMatches       int
 	themeMatches       int
@@ -41,6 +41,6 @@ type rankedCandidate struct {
 	id                 int
 	collaborativeScore float64
 	profileSearchScore float64
-	anime              jikan.Anime
+	anime              metadata.Anime
 	hasAnime           bool
 }

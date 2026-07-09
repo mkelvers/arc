@@ -9,7 +9,7 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		NewWatchlistRepository,
-		NewWatchlistService,
+		NewWatchlistServiceWithAniList,
 		NewWatchlistHandler,
 	),
 	fx.Provide(

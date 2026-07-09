@@ -36,7 +36,6 @@
           class=" w-full bg-background-button px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none transition-colors hover:bg-background-button-hover focus:ring-1 focus:ring-accent"
         />
       </div>
-      <input id="studio-input" type="hidden" name="studio" value="{{if .Studio}}{{.Studio}}{{end}}">
       {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
       {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
       {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
@@ -46,35 +45,8 @@
     </form>
   </div>
 
-  <ui-dropdown id="studio-dropdown" class="relative block" data-align="left" data-width="w-72" hx-push-url="false">
-    <div data-trigger class="cursor-pointer">
-      <button class=" flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-        {{if .Studio}}{{if .StudioName}}{{.StudioName}}{{else}}Studio #{{.Studio}}{{end}}{{else}}Any Studio{{end}}
-        <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
-      </button>
-    </div>
-    <div data-content class="hidden absolute z-50 w-72 overflow-hidden bg-background-button rounded-none shadow-card left-0 top-full mt-2">
-      <div class="p-2">
-        <input id="studio-search" type="text" placeholder="Search studios..." class=" w-full bg-background-sidebar px-3 py-2 text-sm text-foreground placeholder-foreground-muted outline-none focus:ring-1 focus:ring-accent"
-          hx-get="/api/jikan/producers"
-          hx-vals='{"page":1,"limit":12}'
-          hx-trigger="input changed delay:250ms, search"
-          hx-include="#studio-search"
-          hx-target="#studio-results"
-          hx-swap="innerHTML"
-          hx-push-url="false"
-          hx-headers='{"Accept":"text/html"}'
-          name="q"
-        />
-      </div>
-      <div class="flex max-h-72 flex-col overflow-y-auto scrollbar-hidden" id="studio-results" hx-get="/api/jikan/producers?page=1&limit=12" hx-trigger="load" hx-target="this" hx-swap="innerHTML" hx-push-url="false" hx-headers='{"Accept":"text/html"}'>
-      </div>
-    </div>
-  </ui-dropdown>
-
   <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content" hx-select="#browse-content" hx-swap="outerHTML" class=" flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground">
     <input type="hidden" name="q" value="{{.Query}}">
-    {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
     {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
     {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
     {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}
@@ -100,7 +72,6 @@
     <div data-content class="hidden absolute z-50 w-48 max-h-80 overflow-y-auto bg-background-button shadow-card left-0 top-full mt-2 scrollbar-hidden">
       <form action="/browse" method="GET" hx-get="/browse" hx-trigger="change" hx-target="#browse-content" hx-select="#browse-content" hx-swap="outerHTML" class="flex flex-col">
         <input type="hidden" name="q" value="{{.Query}}">
-        {{if .Studio}}<input type="hidden" name="studio" value="{{.Studio}}">{{end}}
         {{if .Type}}<input type="hidden" name="type" value="{{.Type}}">{{end}}
         {{if .Status}}<input type="hidden" name="status" value="{{.Status}}">{{end}}
         {{if .OrderBy}}<input type="hidden" name="order_by" value="{{.OrderBy}}">{{end}}

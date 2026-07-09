@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"mal/internal/server"
@@ -89,10 +89,7 @@ func releaseInfoFromCanonical(anime domain.Anime, episodeList domain.CanonicalEp
 	return info
 }
 
-func canonicalEpisodeCountLabel(source string) string {
-	if source == "jikan_fallback" || source == "legacy_disabled" {
-		return "Estimated aired episodes"
-	}
+func canonicalEpisodeCountLabel(_ string) string {
 	return "Available episodes"
 }
 
@@ -278,9 +275,6 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 	case "recommendations":
 		data, err := h.svc.GetRecommendations(ctx, id)
 		return data, "anime_recommendations", err
-	case "statistics":
-		data, err := h.svc.GetStatistics(ctx, id)
-		return data, "anime_statistics", err
 	case "episode-count", "release-info":
 		anime, err := h.svc.GetAnimeByID(ctx, id)
 		if err != nil {
@@ -293,9 +287,6 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 			return nil, "", err
 		}
 		return h.animeAudioAvailability(ctx, anime), "anime_audio_availability", nil
-	case "themes":
-		data, err := h.svc.GetThemes(ctx, id)
-		return data, "anime_themes", err
 	default:
 		return nil, "", nil
 	}
@@ -309,7 +300,7 @@ func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
 	}
 
 	userID := server.CurrentUserID(c)
-	mode := jikan.NormalizeWatchOrderMode(c.Query("mode"))
+	mode := metadata.NormalizeWatchOrderMode(c.Query("mode"))
 
 	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), watchOrderTimeout)
 	defer cancel()

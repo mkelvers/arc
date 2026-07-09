@@ -12,7 +12,7 @@ var Module = fx.Options(
 		NewAnimeRepository,
 		NewSeasonDiscoveryService,
 		fx.Annotate(
-			NewAnimeService,
+			NewAnimeServiceWithMetadata,
 			fx.As(new(Service)),
 			fx.As(new(domain.AnimeCatalogService)),
 			fx.As(new(domain.AnimeSearchService)),

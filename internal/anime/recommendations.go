@@ -2,6 +2,7 @@ package anime
 
 import (
 	"context"
+	"mal/integrations/anilist"
 	"mal/internal/anime/recommendations"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -51,7 +52,10 @@ func (s *animeService) GetTopPicksForYou(_ context.Context, userID string) (doma
 }
 
 func (s *animeService) fetchTopPicksForYou(ctx context.Context, userID string, limit int) (domain.CatalogSectionData, error) {
-	return recommendations.GetTopPicksForYou(ctx, s.jikan, s.repo, userID, limit)
+	if s.metadata == nil {
+		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
+	}
+	return recommendations.GetTopPicksForYou(ctx, anilist.NewLegacyProvider(s.metadata), s.repo, userID, limit)
 }
 
 func (s *animeService) getCachedTopPicksForYou(userID string, limit int) domain.CatalogSectionData {
