@@ -29,7 +29,7 @@ const fetchModeSource = async (
     { signal },
   );
   if (!res.ok) {
-    throw new Error(`mode source request failed with status ${res.status}`);
+    return null;
   }
 
   const data: unknown = await res.json();
@@ -83,7 +83,7 @@ export const ensurePreferredModeSource = async (signal?: AbortSignal): Promise<s
     if (error instanceof DOMException && error.name === "AbortError") {
       return state.playback.currentMode;
     }
-    console.error("failed to load preferred mode source:", error);
+    void error;
   }
 
   return state.playback.currentMode;
@@ -116,7 +116,7 @@ export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> 
     if (error instanceof DOMException && error.name === "AbortError") {
       return;
     }
-    console.error("failed to hydrate alternate mode:", error);
+    void error;
   }
 };
 

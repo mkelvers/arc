@@ -30,7 +30,7 @@ const loadCurrentModeSource = async (
     { signal },
   );
   if (!res.ok) {
-    throw new Error(`mode source refresh failed with status ${res.status}`);
+    return false;
   }
 
   const data: unknown = await res.json();
