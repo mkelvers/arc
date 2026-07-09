@@ -52,11 +52,13 @@ type Anime struct {
 	} `json:"images"`
 	Synopsis     string        `json:"synopsis"`
 	Rank         int           `json:"rank"`
+	RankLabel    string        `json:"rank_label"`
 	Popularity   int           `json:"popularity"`
 	Status       string        `json:"status"`
 	Airing       bool          `json:"airing"`
 	Episodes     int           `json:"episodes"`
 	Score        float64       `json:"score"`
+	MeanScore    float64       `json:"mean_score"`
 	Season       string        `json:"season"`
 	Year         int           `json:"year"`
 	Type         string        `json:"type"`
@@ -67,6 +69,7 @@ type Anime struct {
 	Genres       []NamedEntity `json:"genres"`
 	Studios      []NamedEntity `json:"studios"`
 	Producers    []NamedEntity `json:"producers"`
+	Tags         []NamedEntity `json:"tags"`
 	Themes       []NamedEntity `json:"themes"`
 	Source       string        `json:"source"`
 	Background   string        `json:"background"`

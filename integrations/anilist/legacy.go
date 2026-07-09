@@ -73,15 +73,17 @@ func ToMetadataAnime(anime Anime) metadata.Anime {
 		Airing:        anime.NextAiring != nil || strings.EqualFold(anime.Status, "RELEASING"),
 		Episodes:      anime.Episodes,
 		Score:         float64(anime.AverageScore) / 10,
+		MeanScore:     float64(anime.MeanScore) / 10,
 		Season:        strings.ToLower(anime.Season),
 		Year:          anime.SeasonYear,
 		Type:          anime.Format,
-		Source:        anime.Source,
+		Source:        sourceLabel(anime.Source),
 		Popularity:    anime.Popularity,
 		Favorites:     anime.Favourites,
 		Members:       anime.Popularity,
 		ScoredBy:      anime.ScoreCount,
 		Rank:          anime.Rank,
+		RankLabel:     anime.RankLabel,
 		Duration:      durationLabel(anime.DurationMinutes),
 	}
 	result.Images.Webp.LargeImageURL = anime.CoverImage
@@ -89,10 +91,16 @@ func ToMetadataAnime(anime Anime) metadata.Anime {
 	result.Aired.From = animeDate(anime.StartDate)
 	result.Aired.To = animeDate(anime.EndDate)
 	for _, genre := range anime.Genres {
-		result.Genres = append(result.Genres, metadata.NamedEntity{Name: genre})
+		result.Genres = append(result.Genres, metadata.NamedEntity{MalID: metadata.GenreID(genre), Name: genre})
 	}
 	for _, studio := range anime.Studios {
 		result.Studios = append(result.Studios, metadata.NamedEntity{MalID: studio.ID, Name: studio.Name})
+	}
+	for _, producer := range anime.Producers {
+		result.Producers = append(result.Producers, metadata.NamedEntity{Name: producer.Name})
+	}
+	for _, tag := range topTags(anime.Tags, 5) {
+		result.Tags = append(result.Tags, metadata.NamedEntity{MalID: tag.ID, Name: tag.Name})
 	}
 	return result
 }
@@ -156,6 +164,14 @@ func durationLabel(minutes int) string {
 		return ""
 	}
 	return strconv.Itoa(minutes) + " min per ep"
+}
+
+func sourceLabel(value string) string {
+	value = strings.ReplaceAll(strings.ToLower(strings.TrimSpace(value)), "_", " ")
+	if value == "" {
+		return ""
+	}
+	return strings.ToUpper(value[:1]) + value[1:]
 }
 
 func animeDate(date Date) string {
