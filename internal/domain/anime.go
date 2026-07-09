@@ -67,6 +67,16 @@ type RecommendationEntry struct {
 	Votes int
 }
 
+type RecommendationRefreshState string
+
+const (
+	RecommendationStateEmpty      RecommendationRefreshState = "empty"
+	RecommendationStateRefreshing RecommendationRefreshState = "refreshing"
+	RecommendationStateReady      RecommendationRefreshState = "ready"
+	RecommendationStateStale      RecommendationRefreshState = "stale"
+	RecommendationStateFailed     RecommendationRefreshState = "failed"
+)
+
 type StaffEntry struct {
 	Person    CharacterPerson
 	Positions []string
@@ -169,11 +179,13 @@ type AnimePlaybackService interface {
 }
 
 type CatalogSectionData struct {
-	Animes           []Anime
-	ContinueWatching []db.GetContinueWatchingEntriesRow
-	Section          string
-	WatchlistMap     map[int64]bool
-	Fragment         string
+	Animes              []Anime
+	ContinueWatching    []db.GetContinueWatchingEntriesRow
+	RecommendationState RecommendationRefreshState
+	RetryAfterSeconds   int
+	Section             string
+	WatchlistMap        map[int64]bool
+	Fragment            string
 }
 
 func (d CatalogSectionData) TemplateFragment() string {
