@@ -72,13 +72,12 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 	out := make([]ProviderShow, 0)
 	seen := make(map[int]bool)
 	for page := 1; page <= 20; page++ {
-		result, err := allanimeql.AllAnimeSeasonalShows(ctx, c.graphqlClient(), search, page)
+		pageShows, err := c.fetchSeasonalShowsPage(ctx, search, page)
 		if err != nil {
 			return nil, err
 		}
 		newestYear := 0
-		for _, edge := range result.Shows.Edges {
-			show := providerShowFrom(edge.ProviderShowFields)
+		for _, show := range pageShows {
 			newestYear = max(newestYear, show.Year)
 			if seen[show.MalID] || !isPlayableSeasonShow(show, year) {
 				continue
@@ -86,7 +85,7 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 			seen[show.MalID] = true
 			out = append(out, show)
 		}
-		if len(result.Shows.Edges) < pageSize || (newestYear > 0 && newestYear < year) {
+		if len(pageShows) < pageSize || (newestYear > 0 && newestYear < year) {
 			break
 		}
 	}
