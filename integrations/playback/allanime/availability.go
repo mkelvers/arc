@@ -3,7 +3,7 @@ package allanime
 import (
 	"context"
 	"errors"
-	"mal/integrations/playback/allanime/allanimeql"
+	allanimeql "mal/integrations/ql/allanime"
 	"mal/internal/domain"
 	"strconv"
 	"strings"
@@ -54,12 +54,8 @@ func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID stri
 		}
 	}
 
-	return AvailableEpisodes{
-		Sub:    result.Show.AvailableEpisodesDetail.Sub,
-		Dub:    result.Show.AvailableEpisodesDetail.Dub,
-		Raw:    result.Show.AvailableEpisodesDetail.Raw,
-		Titles: titles,
-	}, nil
+	detail := providerEpisodeDetailFrom(result.Show.AvailableEpisodesDetail)
+	return AvailableEpisodes{Sub: detail.Sub, Dub: detail.Dub, Raw: detail.Raw, Titles: titles}, nil
 }
 
 // episode ids

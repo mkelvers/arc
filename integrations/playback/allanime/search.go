@@ -3,7 +3,7 @@ package allanime
 import (
 	"context"
 	"fmt"
-	"mal/integrations/playback/allanime/allanimeql"
+	allanimeql "mal/integrations/ql/allanime"
 	"strconv"
 	"strings"
 )

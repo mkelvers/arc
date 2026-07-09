@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"mal/integrations/playback/allanime/allanimeql"
+	allanimeql "mal/integrations/ql/allanime"
 	"net/http"
 	"strings"
 )
