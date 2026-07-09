@@ -130,7 +130,16 @@ func replaceQuestionMarks(query string) string {
 		}
 		if ch == '?' && !inSingle && !inDouble {
 			out.WriteByte('$')
-			out.WriteString(strings.TrimSpace(strconv.Itoa(index)))
+			if i+1 < len(query) && query[i+1] >= '1' && query[i+1] <= '9' {
+				start := i + 1
+				i = start
+				for i+1 < len(query) && query[i+1] >= '0' && query[i+1] <= '9' {
+					i++
+				}
+				out.WriteString(query[start : i+1])
+				continue
+			}
+			out.WriteString(strconv.Itoa(index))
 			index++
 			continue
 		}
