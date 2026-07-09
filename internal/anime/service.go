@@ -156,11 +156,19 @@ func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status,
 	return metadata.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")
 }
 
-func (s *animeService) GetGenres(_ context.Context) ([]domain.Genre, error) {
-	genres := metadata.Genres()
-	out := make([]domain.Genre, 0, len(genres))
-	for _, genre := range genres {
-		out = append(out, domain.Genre{MalID: genre.ID, Name: genre.Name})
+func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {
+	if s.metadata == nil {
+		return nil, fmt.Errorf("get genres: metadata provider is unavailable")
+	}
+	names, err := s.metadata.GetGenres(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("get genres from AniList: %w", err)
+	}
+	out := make([]domain.Genre, 0, len(names))
+	for _, name := range names {
+		if id := metadata.GenreID(name); id > 0 {
+			out = append(out, domain.Genre{MalID: id, Name: name})
+		}
 	}
 	return out, nil
 }
