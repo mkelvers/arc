@@ -4,6 +4,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -23,6 +24,15 @@ type realClock struct{}
 
 func (realClock) Now() time.Time { return time.Now() }
 
+const canonicalEpisodeRefreshTimeout = 45 * time.Second
+
+type canonicalRefreshPolicy string
+
+const (
+	canonicalRefreshRegular canonicalRefreshPolicy = "regular"
+	canonicalRefreshForced  canonicalRefreshPolicy = "forced"
+)
+
 type EpisodeService struct {
 	queries            *db.Queries
 	jikan              *jikan.Client
@@ -30,6 +40,7 @@ type EpisodeService struct {
 	titles             domain.EpisodeTitleProvider
 	clock              Clock
 	enabled            bool
+	canonicalRefresh   singleflight.Group
 	titleLoad          singleflight.Group
 	classificationLoad singleflight.Group
 	cacheMu            sync.Mutex
@@ -51,13 +62,97 @@ func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, 
 }
 
 func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.Anime, forceRefresh bool) (domain.CanonicalEpisodeList, error) {
+	if anime.MalID <= 0 {
+		return domain.CanonicalEpisodeList{}, fmt.Errorf("canonical episodes: invalid anime id %d", anime.MalID)
+	}
+
 	if !forceRefresh {
 		if cached, ok := s.getFreshCached(ctx, anime); ok {
-			return cached, nil
+			return cloneCanonicalEpisodeList(cached), nil
 		}
 	}
 
-	return s.refresh(ctx, anime)
+	return s.waitForCanonicalRefresh(ctx, anime, canonicalRefreshPolicyFor(forceRefresh))
+}
+
+func canonicalRefreshPolicyFor(forceRefresh bool) canonicalRefreshPolicy {
+	if forceRefresh {
+		return canonicalRefreshForced
+	}
+	return canonicalRefreshRegular
+}
+
+func (p canonicalRefreshPolicy) key(animeID int) string {
+	return strconv.Itoa(animeID) + "|" + string(p)
+}
+
+func (s *EpisodeService) waitForCanonicalRefresh(ctx context.Context, anime domain.Anime, policy canonicalRefreshPolicy) (domain.CanonicalEpisodeList, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.CanonicalEpisodeList{}, err
+	}
+
+	startedAt := time.Now()
+	resultCh := s.canonicalRefresh.DoChan(policy.key(anime.MalID), func() (any, error) {
+		return s.runCanonicalRefresh(ctx, anime, policy)
+	})
+
+	select {
+	case <-ctx.Done():
+		observability.Warn(
+			"episodes_refresh_wait_cancelled",
+			"episodes",
+			"",
+			map[string]any{
+				"anime_id":    anime.MalID,
+				"policy":      string(policy),
+				"duration_ms": time.Since(startedAt).Milliseconds(),
+			},
+			ctx.Err(),
+		)
+		return domain.CanonicalEpisodeList{}, ctx.Err()
+	case result := <-resultCh:
+		if result.Shared {
+			observability.Info(
+				"episodes_refresh_shared",
+				"episodes",
+				"",
+				map[string]any{
+					"anime_id":    anime.MalID,
+					"policy":      string(policy),
+					"duration_ms": time.Since(startedAt).Milliseconds(),
+				},
+			)
+		}
+		if result.Err != nil {
+			return domain.CanonicalEpisodeList{}, result.Err
+		}
+		payload, ok := result.Val.(domain.CanonicalEpisodeList)
+		if !ok {
+			return domain.CanonicalEpisodeList{}, fmt.Errorf("canonical episode refresh returned %T", result.Val)
+		}
+		return cloneCanonicalEpisodeList(payload), nil
+	}
+}
+
+func (s *EpisodeService) runCanonicalRefresh(ctx context.Context, anime domain.Anime, policy canonicalRefreshPolicy) (domain.CanonicalEpisodeList, error) {
+	refreshCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), canonicalEpisodeRefreshTimeout)
+	defer cancel()
+
+	if policy == canonicalRefreshRegular {
+		if cached, ok := s.getFreshCached(refreshCtx, anime); ok {
+			observability.Info(
+				"episodes_refresh_cache_hit_after_join",
+				"episodes",
+				"",
+				map[string]any{
+					"anime_id": anime.MalID,
+					"policy":   string(policy),
+				},
+			)
+			return cloneCanonicalEpisodeList(cached), nil
+		}
+	}
+	return s.refresh(refreshCtx, anime)
 }
 
 func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error {

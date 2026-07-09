@@ -196,6 +196,14 @@ func enrichCachedPayload(payload domain.CanonicalEpisodeList, row db.EpisodeAvai
 	return payload
 }
 
+func cloneCanonicalEpisodeList(payload domain.CanonicalEpisodeList) domain.CanonicalEpisodeList {
+	if len(payload.Episodes) == 0 {
+		return payload
+	}
+	payload.Episodes = append([]domain.CanonicalEpisode(nil), payload.Episodes...)
+	return payload
+}
+
 func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row db.EpisodeAvailabilityCache, now time.Time) bool {
 	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(now) {
 		observability.Info(
