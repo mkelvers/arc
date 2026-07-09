@@ -22,11 +22,21 @@
   
   <video class="h-full w-full cursor-pointer" preload="metadata" playsinline></video>
   
-  <div data-loading class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/60 px-6">
-    <div data-loading-spinner class="border-accent size-10 animate-spin rounded-full border-4 border-t-transparent" aria-hidden="true"></div>
-    <div class="flex items-center gap-3">
-      <button type="button" data-loading-retry class="hidden bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Retry</button>
-      <a href="/anime/{{.WatchData.MalID}}" data-loading-back class="hidden px-4 py-2 text-sm text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Back to details</a>
+  <div data-loading class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/75 px-6">
+    <div class="flex w-full max-w-xs flex-col items-center text-center">
+      <div data-loading-spinner class="size-10 animate-spin rounded-full border-4 border-accent border-t-transparent" aria-hidden="true"></div>
+      <div class="mt-4">
+        <p class="text-sm font-medium text-white">Looking for a playable source</p>
+        <p class="mt-1 text-xs leading-5 text-white/60">Try again or return to the title details.</p>
+      </div>
+      <div class="mt-5 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
+        <button type="button" data-loading-retry class="hidden inline-flex h-9 items-center justify-center bg-white px-4 text-sm font-normal text-black transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white disabled:cursor-wait disabled:opacity-70">
+          Retry
+        </button>
+        <a href="/anime/{{.WatchData.MalID}}" data-loading-back class="hidden inline-flex h-9 items-center justify-center px-3 text-sm font-normal text-white/72 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">
+          Details
+        </a>
+      </div>
     </div>
   </div>
 
