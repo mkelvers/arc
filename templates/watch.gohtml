@@ -15,8 +15,17 @@
 {{$currentEpNum := atoi $currentEpID}}
 {{$rangeStart := episodeRangeStart $currentEpNum 100}}
 {{$rangeEnd := min (add $rangeStart 99) $totalEpisodes}}
+{{$animeID := $anime.MalID}}
+{{if eq $animeID 0}}{{$animeID = .WatchData.MalID}}{{end}}
+{{$displayTitle := $anime.Title}}
+{{if eq $displayTitle ""}}{{$displayTitle = .WatchData.Title}}{{end}}
+{{if eq $displayTitle ""}}{{$displayTitle = "This title"}}{{end}}
+{{$playbackUnavailable := or .PlaybackUnavailable (eq $totalEpisodes 0)}}
+{{$unavailableMessage := .PlaybackUnavailableMessage}}
+{{if and (eq $unavailableMessage "") (eq $totalEpisodes 0)}}{{$unavailableMessage = "No episodes are available for this title yet."}}{{end}}
+{{if eq $unavailableMessage ""}}{{$unavailableMessage = "We couldn't find a playable source for this title right now."}}{{end}}
 
-{{if .EpisodeAvailabilityWarning}}
+{{if and .EpisodeAvailabilityWarning (not $playbackUnavailable)}}
 <div data-episode-availability-warning class="fixed inset-0 z-100 flex items-center justify-center bg-black/70 px-4" role="dialog" aria-modal="true" aria-labelledby="episode-availability-warning-title">
   <div class="w-full max-w-md bg-background shadow-card ring-1 ring-black/10">
     <div class="border-b border-border-light px-5 py-4">
@@ -33,6 +42,29 @@
 </div>
 {{end}}
 
+{{if $playbackUnavailable}}
+<div id="watch-layout" data-playback-unavailable data-mal-id="{{$animeID}}" class="h-full overflow-y-auto">
+  <div class="mx-auto flex min-h-full w-full max-w-3xl items-center px-1 py-10">
+    <section class="w-full pt-8" aria-labelledby="playback-unavailable-title">
+      <h1 id="playback-unavailable-title" class="max-w-2xl text-2xl font-normal leading-tight text-foreground sm:text-4xl">
+        {{$displayTitle}}
+      </h1>
+      <p class="mt-4 max-w-xl text-sm leading-6 text-foreground-muted sm:text-base">
+        {{$unavailableMessage}}
+      </p>
+
+      <div class="mt-7 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <a href="/anime/{{$animeID}}/watch?ep={{$currentEpID}}" class="inline-flex h-10 items-center justify-center bg-[#cccccc] px-5 text-sm font-normal text-black transition hover:bg-[#bfbfbf] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+          Try again
+        </a>
+        <a href="/anime/{{$animeID}}" class="inline-flex h-10 items-center justify-center px-4 text-sm font-normal text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+          Anime details
+        </a>
+      </div>
+    </section>
+  </div>
+</div>
+{{else}}
 <div id="watch-layout" data-episode-navigation class="flex h-full flex-col gap-6 overflow-y-auto lg:grid lg:grid-cols-[minmax(0,min(calc(100%_-_24rem_-_3rem),calc((100dvh-10.5rem)*16/9)))_24rem] lg:items-start lg:gap-x-12 lg:gap-y-0 lg:overflow-hidden">
   <div class="min-w-0">
     <div id="video-player-container">
@@ -304,4 +336,5 @@
 
   </div>
 </div>
+{{end}}
 {{end}}
