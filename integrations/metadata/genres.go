@@ -1,31 +1,83 @@
 package metadata
 
-import "sort"
+import (
+	"hash/fnv"
+	"sort"
+	"strings"
+	"sync"
+)
 
 type Genre struct {
 	ID   int
 	Name string
 }
 
-var genreNames = map[int]string{
-	1: "Action", 2: "Adventure", 3: "Cars", 4: "Comedy", 6: "Demons", 7: "Mystery",
-	8: "Drama", 9: "Ecchi", 10: "Fantasy", 11: "Game", 13: "Historical", 14: "Horror",
-	15: "Kids", 16: "Martial Arts", 17: "Mecha", 18: "Music", 19: "Parody", 20: "Samurai",
-	21: "Romance", 22: "School", 23: "Shoujo", 25: "Shounen", 27: "Space", 28: "Sports",
-	29: "Super Power", 30: "Vampire", 35: "Harem", 36: "Slice of Life", 37: "Supernatural",
-	38: "Military", 39: "Police", 40: "Psychological", 41: "Seinen", 42: "Josei",
+var genreRegistry = struct {
+	sync.RWMutex
+	byID   map[int]string
+	byName map[string]int
+}{
+	byID:   make(map[int]string),
+	byName: make(map[string]int),
+}
+
+// AniList exposes genres as names, so give them stable local filter IDs.
+func GenreID(name string) int {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return 0
+	}
+	normalized := strings.ToLower(name)
+
+	genreRegistry.RLock()
+	id, ok := genreRegistry.byName[normalized]
+	genreRegistry.RUnlock()
+	if ok {
+		return id
+	}
+
+	hash := fnv.New32a()
+	_, _ = hash.Write([]byte(normalized))
+	id = int(hash.Sum32() & 0x7fffffff)
+	if id == 0 {
+		id = 1
+	}
+
+	genreRegistry.Lock()
+	defer genreRegistry.Unlock()
+	if existing, ok := genreRegistry.byName[normalized]; ok {
+		return existing
+	}
+	for {
+		if existing, ok := genreRegistry.byID[id]; !ok {
+			genreRegistry.byID[id] = name
+			genreRegistry.byName[normalized] = id
+			return id
+		} else if strings.EqualFold(existing, name) {
+			genreRegistry.byName[normalized] = id
+			return id
+		}
+		id++
+		if id <= 0 {
+			id = 1
+		}
+	}
 }
 
 func Genres() []Genre {
-	genres := make([]Genre, 0, len(genreNames))
-	for id, name := range genreNames {
+	genreRegistry.RLock()
+	genres := make([]Genre, 0, len(genreRegistry.byID))
+	for id, name := range genreRegistry.byID {
 		genres = append(genres, Genre{ID: id, Name: name})
 	}
+	genreRegistry.RUnlock()
 	sort.Slice(genres, func(i, j int) bool { return genres[i].ID < genres[j].ID })
 	return genres
 }
 
 func GenreName(id int) (string, bool) {
-	name, ok := genreNames[id]
+	genreRegistry.RLock()
+	defer genreRegistry.RUnlock()
+	name, ok := genreRegistry.byID[id]
 	return name, ok
 }
