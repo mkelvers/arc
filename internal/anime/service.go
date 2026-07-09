@@ -220,7 +220,7 @@ func anilistFirstTitle(title anilist.Titles) string {
 	return ""
 }
 
-//nolint:cyclop // This preserves ChiaKi order while enriching only missing metadata in one batch.
+//nolint:cyclop,gocognit // This preserves ChiaKi order while enriching only missing metadata in one batch.
 func (s *animeService) getRelationsFromProviders(ctx context.Context, id int, mode metadata.WatchOrderMode) ([]metadata.RelationEntry, error) {
 	ordered, err := s.watchOrder.FetchByAnimeID(ctx, id)
 	if err != nil {
@@ -262,7 +262,7 @@ func (s *animeService) getRelationsFromProviders(ctx context.Context, id int, mo
 		seen[entry.ID] = true
 		anime, ok := byID[entry.ID]
 		if !ok {
-			anime = anilist.ToMetadataAnime(anilist.Anime{MALID: entry.ID, Title: anilist.Titles{Romaji: entry.Title, English: entry.Title}, Format: entry.Type, Episodes: entry.Episodes, DurationMinutes: entry.DurationSecs / 60})
+			continue
 		}
 		result = append(result, metadata.RelationEntry{Anime: anime, Relation: entry.Type, IsCurrent: entry.ID == id, IsExtra: entry.Secondary})
 	}
