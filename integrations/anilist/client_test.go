@@ -124,6 +124,59 @@ func TestGetPopularIncludesSynopsis(t *testing.T) {
 	}
 }
 
+func TestGetAnimeByMALIDRequestsSidebarFields(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sidebarTestResponse(t, &requests, w, r)
+	}))
+	defer server.Close()
+
+	anime, err := NewClientWithHTTPClient(server.URL, server.Client()).GetAnimeByMALID(context.Background(), 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requests != 2 || len(anime.Producers) != 1 || anime.Producers[0].Name != "Producer One" || len(anime.Studios) != 1 || anime.Studios[0].Name != "Studio KAI" || anime.Rank != 3 || anime.RankLabel != "Highest Rated All Time" {
+		t.Fatalf("mapped sidebar fields = %+v", anime)
+	}
+}
+
+func sidebarTestResponse(t *testing.T, requests *int, w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+	*requests++
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := string(body)
+	w.Header().Set("Content-Type", "application/json")
+	if strings.Contains(query, "studios(isMain: false)") {
+		_, _ = w.Write([]byte(`{"data":{"Media":{"studios":{"nodes":[{"name":"Producer One"}]}}}}`))
+		return
+	}
+	for _, field := range []string{"tags { id name rank isGeneralSpoiler isMediaSpoiler }", "staff(perPage: 50)", "meanScore", "popularity", "favourites", "rankings"} {
+		if !strings.Contains(query, field) {
+			t.Fatalf("sidebar query does not request %q: %s", field, query)
+		}
+	}
+	_, _ = w.Write([]byte(`{"data":{"Media":{"id":1,"idMal":20,"meanScore":86,"popularity":1234,"favourites":56,"rankings":[{"rank":3,"context":"highest rated all time"}],"studios":{"nodes":[{"id":4,"name":"Studio KAI"}]},"staff":{"edges":[{"role":"Animation Producer","node":{"id":5,"name":{"full":"Wrong Person"}}}]},"tags":[{"id":9,"name":"Tag","rank":80,"isGeneralSpoiler":false,"isMediaSpoiler":false}]}}}`))
+}
+
+func TestGetGenresReadsAniListCollection(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":{"GenreCollection":["Action","Drama"]}}`))
+	}))
+	defer server.Close()
+
+	genres, err := NewClientWithHTTPClient(server.URL, server.Client()).GetGenres(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(genres) != 2 || genres[0] != "Action" || genres[1] != "Drama" {
+		t.Fatalf("genres = %#v", genres)
+	}
+}
+
 func TestQueryReturnsRateLimitDetails(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
