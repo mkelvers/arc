@@ -25,7 +25,7 @@ type Querier interface {
 	GetAnime(ctx context.Context, id int64) (Anime, error)
 	GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNeedingRelationSyncRow, error)
 	GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error)
-	GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingEntriesRow, error)
+	GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingCarouselEntriesRow, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntry(ctx context.Context, arg GetContinueWatchingEntryParams) (ContinueWatchingEntry, error)
 	GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]AnimeFetchRetry, error)
@@ -40,7 +40,6 @@ type Querier interface {
 	GetUser(ctx context.Context, id string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUserWatchList(ctx context.Context, userID string) ([]GetUserWatchListRow, error)
-	GetUserWatchlistAnimeIDs(ctx context.Context, userID string, animeIDs []int64) ([]int64, error)
 	GetWatchListEntry(ctx context.Context, arg GetWatchListEntryParams) (WatchListEntry, error)
 	GetWatchingAnime(ctx context.Context, userID string) ([]GetWatchingAnimeRow, error)
 	MarkAnimeFetchRetryFailed(ctx context.Context, arg MarkAnimeFetchRetryFailedParams) error
@@ -50,8 +49,6 @@ type Querier interface {
 	RevokeAllAPITokensForUser(ctx context.Context, userID string) error
 	SaveWatchProgress(ctx context.Context, arg SaveWatchProgressParams) error
 	SetJikanCache(ctx context.Context, arg SetJikanCacheParams) error
-	HasSkipSegmentOverrideTable(ctx context.Context) (bool, error)
-	ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]SkipSegmentOverrideRow, error)
 	TouchAPITokenLastUsedAt(ctx context.Context, id string) error
 	UpdateAnimeStatus(ctx context.Context, arg UpdateAnimeStatusParams) error
 	UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime, error)
@@ -59,7 +56,6 @@ type Querier interface {
 	UpsertContinueWatchingEntry(ctx context.Context, arg UpsertContinueWatchingEntryParams) (ContinueWatchingEntry, error)
 	UpsertEpisodeAvailabilityCache(ctx context.Context, arg UpsertEpisodeAvailabilityCacheParams) error
 	UpsertEpisodeProviderMapping(ctx context.Context, arg UpsertEpisodeProviderMappingParams) error
-	UpsertSkipSegmentOverride(ctx context.Context, r SkipSegmentOverrideRow) error
 	UpsertWatchListEntry(ctx context.Context, arg UpsertWatchListEntryParams) (WatchListEntry, error)
 }
 

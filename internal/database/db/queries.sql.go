@@ -410,15 +410,31 @@ type GetContinueWatchingCarouselEntriesParams struct {
 	Limit  int64  `json:"limit"`
 }
 
-func (q *Queries) GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingEntriesRow, error) {
+type GetContinueWatchingCarouselEntriesRow struct {
+	ID                   string          `json:"id"`
+	UserID               string          `json:"user_id"`
+	AnimeID              int64           `json:"anime_id"`
+	CurrentEpisode       sql.NullInt64   `json:"current_episode"`
+	CurrentTimeSeconds   float64         `json:"current_time_seconds"`
+	DurationSeconds      sql.NullFloat64 `json:"duration_seconds"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
+	TitleOriginal        string          `json:"title_original"`
+	TitleEnglish         sql.NullString  `json:"title_english"`
+	TitleJapanese        sql.NullString  `json:"title_japanese"`
+	ImageUrl             string          `json:"image_url"`
+	AnimeDurationSeconds sql.NullFloat64 `json:"anime_duration_seconds"`
+}
+
+func (q *Queries) GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingCarouselEntriesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getContinueWatchingCarouselEntries, arg.UserID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetContinueWatchingEntriesRow
+	var items []GetContinueWatchingCarouselEntriesRow
 	for rows.Next() {
-		var i GetContinueWatchingEntriesRow
+		var i GetContinueWatchingCarouselEntriesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -666,9 +682,9 @@ FROM jikan_cache
 `
 
 type GetJikanCacheStatsRow struct {
-	TotalRows              int64 `json:"total_rows"`
-	ExpiredRows            int64 `json:"expired_rows"`
-	OldestExpiresAtSeconds int64 `json:"oldest_expires_at_seconds"`
+	TotalRows              int64       `json:"total_rows"`
+	ExpiredRows            int64       `json:"expired_rows"`
+	OldestExpiresAtSeconds interface{} `json:"oldest_expires_at_seconds"`
 }
 
 func (q *Queries) GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow, error) {
