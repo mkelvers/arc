@@ -291,6 +291,15 @@ func formatNumber(n int) string {
 	return strings.Join(parts, " ")
 }
 
+func capitalize(value string) string {
+	runes := []rune(strings.ToLower(value))
+	if len(runes) == 0 {
+		return ""
+	}
+	runes[0] = []rune(strings.ToUpper(string(runes[0])))[0]
+	return string(runes)
+}
+
 func formatDate(dateStr string) string {
 	t, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {

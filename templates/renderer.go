@@ -66,6 +66,7 @@ func rendererFuncs() template.FuncMap {
 		"int":               toInt,
 		"percent":           percent,
 		"formatNumber":      formatNumber,
+		"capitalize":        capitalize,
 		"formatDate":        formatDate,
 		"nextSort":          nextSort,
 		"urlquery":          url.QueryEscape,

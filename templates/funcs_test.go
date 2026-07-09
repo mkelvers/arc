@@ -519,6 +519,21 @@ func TestPosterURLWebp(t *testing.T) {
 	}
 }
 
+func TestCapitalize(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]string{
+		"MAIN":       "Main",
+		"SUPPORTING": "Supporting",
+		"":           "",
+	}
+	for input, want := range tests {
+		if got := capitalize(input); got != want {
+			t.Errorf("capitalize(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
 func TestPosterURLJpgFallback(t *testing.T) {
 	t.Parallel()
 
