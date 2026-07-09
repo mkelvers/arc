@@ -2,7 +2,7 @@ package anime
 
 import (
 	"context"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 )
 
@@ -27,8 +27,16 @@ func (r *animeRepository) GetContinueWatchingEntries(ctx context.Context, userID
 }
 
 func (r *animeRepository) GetContinueWatchingCarouselEntries(ctx context.Context, userID string, limit int64) ([]db.GetContinueWatchingEntriesRow, error) {
-	return r.queries.GetContinueWatchingCarouselEntries(ctx, db.GetContinueWatchingCarouselEntriesParams{
+	rows, err := r.queries.GetContinueWatchingCarouselEntries(ctx, db.GetContinueWatchingCarouselEntriesParams{
 		UserID: userID,
 		Limit:  limit,
 	})
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]db.GetContinueWatchingEntriesRow, 0, len(rows))
+	for _, row := range rows {
+		entries = append(entries, db.GetContinueWatchingEntriesRow(row))
+	}
+	return entries, nil
 }
