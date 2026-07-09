@@ -55,6 +55,8 @@ type WatchPageData struct {
 	CurrentPath                string
 	Error                      string
 	EpisodeAvailabilityWarning string
+	PlaybackUnavailable        bool
+	PlaybackUnavailableMessage string
 }
 
 type WatchData struct {
