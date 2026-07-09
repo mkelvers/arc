@@ -407,5 +407,5 @@ func mediaSort(orderBy, direction string) string {
 
 var _ = strconv.Itoa
 
-const summaryMediaFields = `id idMal title { romaji english native userPreferred } type format startDate { year } coverImage { extraLarge large }`
+const summaryMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format startDate { year } coverImage { extraLarge large }`
 const fullMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format status startDate { year month day } endDate { year month day } season seasonYear episodes duration countryOfOrigin source coverImage { extraLarge large } bannerImage genres tags { name rank } synonyms averageScore meanScore popularity favourites stats { scoreDistribution { amount } } rankings { rank type context season year } updatedAt isAdult nextAiringEpisode { airingAt episode } studios(isMain: true) { nodes { id name } } characters(perPage: 25) { edges { role node { id name { full } image { large } } } } staff(perPage: 25) { edges { role node { id name { full } } } } relations { edges { relationType node { id idMal type format title { romaji english native userPreferred } startDate { year } coverImage { extraLarge large } } } } externalLinks { site url }`

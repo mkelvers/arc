@@ -101,6 +101,29 @@ func TestSearchAdvancedOmitsUnsetFilters(t *testing.T) {
 	}
 }
 
+func TestGetPopularIncludesSynopsis(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(body), "description(asHtml: false)") {
+			t.Fatalf("popular query does not request description: %s", body)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":{"Page":{"pageInfo":{"hasNextPage":false},"media":[{"id":20,"idMal":20,"title":{"romaji":"NARUTO","english":"Naruto"},"description":"A ninja story.","type":"ANIME","format":"TV","startDate":{"year":2002},"coverImage":{"extraLarge":"cover"}}]}}}`))
+	}))
+	defer server.Close()
+
+	result, err := NewClientWithHTTPClient(server.URL, server.Client()).GetPopular(context.Background(), 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Items) != 1 || result.Items[0].Description != "A ninja story." {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
 func TestQueryReturnsRateLimitDetails(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

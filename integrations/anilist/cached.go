@@ -15,6 +15,7 @@ const (
 	searchFreshTTL    = 24 * time.Hour
 	catalogFreshTTL   = time.Hour
 	recommendFreshTTL = 7 * 24 * time.Hour
+	catalogCacheKeyV2 = "v2"
 )
 
 type CachedClient struct {
@@ -154,13 +155,13 @@ func (c *CachedClient) SearchAdvanced(ctx context.Context, search, animeType, st
 }
 
 func (c *CachedClient) GetPopular(ctx context.Context, page, perPage int) (CatalogResult, error) {
-	return c.getCatalog(ctx, fmt.Sprintf("anilist:catalog:popular:%d:%d", page, perPage), func() (CatalogResult, error) {
+	return c.getCatalog(ctx, fmt.Sprintf("anilist:catalog:%s:popular:%d:%d", catalogCacheKeyV2, page, perPage), func() (CatalogResult, error) {
 		return c.client.GetPopular(ctx, page, perPage)
 	})
 }
 
 func (c *CachedClient) GetSeason(ctx context.Context, season string, year, page, perPage int) (CatalogResult, error) {
-	return c.getCatalog(ctx, fmt.Sprintf("anilist:catalog:season:%s:%d:%d:%d", season, year, page, perPage), func() (CatalogResult, error) {
+	return c.getCatalog(ctx, fmt.Sprintf("anilist:catalog:%s:season:%s:%d:%d:%d", catalogCacheKeyV2, season, year, page, perPage), func() (CatalogResult, error) {
 		return c.client.GetSeason(ctx, season, year, page, perPage)
 	})
 }
