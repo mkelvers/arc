@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Go" src="https://img.shields.io/badge/go-1.25-00ADD8?style=flat-square&logo=go" />
-  <img alt="SQLite" src="https://img.shields.io/badge/database-sqlite-003B57?style=flat-square&logo=sqlite" />
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/database-postgresql-4169E1?style=flat-square&logo=postgresql" />
   <img alt="Bun" src="https://img.shields.io/badge/runtime-bun-000000?style=flat-square&logo=bun" />
   <img alt="Tailwind" src="https://img.shields.io/badge/tailwind-4-06D6D4?style=flat-square&logo=tailwindcss" />
   <img alt="HTMX" src="https://img.shields.io/badge/htmx-partial--updates-3366CC?style=flat-square" />
@@ -19,7 +19,8 @@
 
 MyAnimeList is a self-hosted media app for browsing anime, managing a watchlist, resuming episodes,
 and playing streams through a browser-based player. It collects the parts of an anime workflow that
-usually live across several products and keeps them in one small Go application backed by SQLite.
+usually live across several products and keeps them in one small Go application backed by PostgreSQL
+and Redis.
 
 I built it as a portfolio project, but the goal was never to make a disposable demo. The interesting
 part of the project is the product shape: server-rendered pages, a local database, provider
@@ -50,17 +51,17 @@ long-lived user state, external APIs, background refresh behavior, migrations, d
 boundaries, provider-specific code, and enough frontend complexity to justify TypeScript without
 turning the whole product into a single-page app.
 
-The project is also intentionally modest. It uses a single Go server and a SQLite database because
-those choices make the system easy to run, inspect, and reason about. The architecture is more about
-clear ownership than novelty: feature packages own their handlers and services, integrations stay at
-the edges, and the UI is mostly rendered by the server.
+The project is also intentionally modest. It uses a single Go server with PostgreSQL for durable
+application state and Redis for provider responses and stale-data windows. The architecture is more
+about clear ownership than novelty: feature packages own their handlers and services, integrations
+stay at the edges, and the UI is mostly rendered by the server.
 
 ### What It Includes
 
 | Area            | What it does                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
 | Catalog         | Browse, search, and inspect anime metadata from external catalog sources.                                    |
-| Details         | Render synopsis, reviews, characters, statistics, relations, themes, and watch-order data.                   |
+| Details         | Render synopsis, characters, relations, and watch-order data.                                                 |
 | Watchlist       | Store local user state for saved titles, statuses, and progress-driven flows.                                |
 | Playback        | Serve watch pages, proxy streams/subtitles, rewrite playlists, and track progress.                           |
 | Player          | Handle HLS playback, quality selection, subtitles, keyboard controls, episode navigation, and skip segments. |
@@ -70,10 +71,10 @@ the edges, and the UI is mostly rendered by the server.
 <details>
 <summary><strong>Implementation notes</strong></summary>
 
-The backend is written in Go with Gin for HTTP routing and Fx for module wiring. SQLite is used for
-local persistence, with migrations and data fixes committed alongside the application. Templates are
-rendered on the server, HTMX handles small partial updates, and TypeScript powers the interactive
-parts of the browser experience.
+The backend is written in Go with Gin for HTTP routing and Fx for module wiring. PostgreSQL stores
+durable application state and Redis owns provider-response caching, with migrations committed
+alongside the application. Templates are rendered on the server, HTMX handles small partial updates,
+and TypeScript powers the interactive parts of the browser experience.
 
 The most stateful frontend code lives under `static/player`, where the app handles playback mode,
 source loading, progress storage, subtitles, timelines, quality changes, keyboard shortcuts, skip
@@ -125,6 +126,16 @@ Create a local user with:
 go run ./cmd/user <username> <password>
 ```
 
+To migrate an existing SQLite database into PostgreSQL, set `DATABASE_FILE` to the SQLite source and
+`DATABASE_URL` to the PostgreSQL target, then run:
+
+```bash
+go run ./cmd/migrate-db
+```
+
+Durable account, watchlist, progress, and history data is imported. Provider caches are intentionally
+not copied; AniList, ChiaKi, AllAnime, and TVMaze responses are rebuilt in Redis as needed.
+
 #### Commands
 
 | Command                         | Use it for                                          |
@@ -147,12 +158,14 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | Variable                    | Default         | Purpose                                                                    |
 | --------------------------- | --------------- | -------------------------------------------------------------------------- |
 | `PORT`                      | `3000`          | HTTP port for the server.                                                  |
-| `DATABASE_FILE`             | `mal.db`        | SQLite database path.                                                      |
+| `DATABASE_FILE`             | `mal.db`        | SQLite source path used only by the one-time migration command.            |
+| `DATABASE_URL`              | required        | PostgreSQL connection URL for application persistence.                     |
+| `REDIS_URL`                 | `redis://localhost:6379/0` | Provider-response and stale-data cache.                        |
+| `ANILIST_URL`               | `https://graphql.anilist.co` | AniList GraphQL metadata endpoint.                         |
+| `CHIAKI_URL`                | `https://chiaki.site` | ChiaKi relation and watch-order endpoint.                         |
 | `GIN_MODE`                  | release default | Gin runtime mode.                                                          |
 | `MAL_CORS_ALLOW_ALL`        | disabled        | Allows any origin when set to `1`; intended for local/proxy setups.        |
 | `PLAYBACK_PROXY_SECRET`     | empty           | Secret used to mint playback proxy tokens; required for playback proxying. |
-| `EPISODE_AVAILABILITY_MODE` | `auto`          | Episode availability strategy: `auto`, `legacy`, or `jikan`.               |
-| `MAL_JIKAN_TRACE`           | disabled        | Enables optional Jikan client tracing when truthy.                         |
 
 </details>
 
@@ -185,13 +198,15 @@ playback data private must restrict access to `/api/public/` at the network or r
 | -------------------------------- | --------------------------------------------------------------- |
 | `cmd/server`                     | Web server entry point.                                         |
 | `cmd/user`                       | Local user and maintenance commands.                            |
-| `internal/anime`                 | Catalog, details, browse, search, reviews, and recommendations. |
+| `internal/anime`                 | Catalog, details, browse, search, and recommendations.           |
 | `internal/auth`                  | Authentication, middleware, and local user handling.            |
 | `internal/watchlist`             | Watchlist handlers, service logic, and persistence.             |
 | `internal/playback`              | Watch data, progress, proxy tokens, and skip segments.          |
 | `internal/episodes`              | Episode refresh and provider mapping.                           |
-| `internal/database`              | SQLite setup, migrations, and startup data fixes.               |
-| `integrations/jikan`             | Jikan API client and catalog types.                             |
+| `internal/database`              | PostgreSQL setup, migrations, and SQLite import tooling.        |
+| `integrations/anilist`           | AniList GraphQL metadata client and Redis-backed cache.         |
+| `integrations/metadata`          | Provider-neutral metadata contracts.                            |
+| `integrations/watchorder`        | ChiaKi relation and watch-order client.                         |
 | `integrations/playback/allanime` | Playback provider client and extraction logic.                  |
 | `templates`                      | Server-rendered pages and reusable components.                  |
 | `static`                         | TypeScript source for client-side behavior.                     |
