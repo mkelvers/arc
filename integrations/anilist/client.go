@@ -237,7 +237,7 @@ func (c *Client) GetSeason(ctx context.Context, season string, year, page, perPa
 }
 
 func (c *Client) GetRecommendations(ctx context.Context, id int) ([]Recommendation, error) {
-	response, err := c.query(ctx, `query ($idMal: Int) { Media(idMal: $idMal, type: ANIME) { recommendations(sort: RATING_DESC, perPage: 25) { nodes { rating mediaRecommendation { id idMal type format title { romaji english native userPreferred } startDate { year } coverImage { extraLarge large } } } } } }`, map[string]any{"idMal": id})
+	response, err := c.query(ctx, `query ($idMal: Int) { Media(idMal: $idMal, type: ANIME) { recommendations(sort: RATING_DESC, perPage: 25) { nodes { rating mediaRecommendation { id idMal type format title { romaji english native userPreferred } description(asHtml: false) startDate { year } coverImage { extraLarge large } } } } } }`, map[string]any{"idMal": id})
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +397,7 @@ func mapSummary(raw media) AnimeSummary {
 	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
 }
 func mapSummaryFromRelation(raw mediaSummary) AnimeSummary {
-	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
+	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Description: raw.Description, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
 }
 func uniquePositive(ids []int) []int {
 	seen := map[int]bool{}
