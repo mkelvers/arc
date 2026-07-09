@@ -41,6 +41,22 @@ const fetchModeSource = async (
   return sources[mode] ?? null;
 };
 
+const canVerifyLoadedSourceURL = (url: string, source?: ModeSource): boolean => {
+  if (source?.type === "m3u8") {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url, window.location.href);
+    return (
+      parsed.searchParams.get("hls") !== "1" && !parsed.pathname.toLowerCase().endsWith(".m3u8")
+    );
+  } catch (error) {
+    console.error("failed to parse stream url:", error);
+    return !url.toLowerCase().includes(".m3u8");
+  }
+};
+
 export const ensurePreferredModeSource = async (signal?: AbortSignal): Promise<string> => {
   const storedMode = safeLocalStorage.getItem("player-audio-mode");
   const preferredMode = storedMode === "sub" || storedMode === "dub" ? storedMode : null;
@@ -105,7 +121,7 @@ export const hydrateAlternateMode = async (signal?: AbortSignal): Promise<void> 
 };
 
 /** Switches between sub/dub mode. Saves preference to localStorage, reloads video src. */
-const switchMode = (mode: string): void => {
+export const switchMode = (mode: string): void => {
   if (!state.playback.availableModes.includes(mode) || mode === state.playback.currentMode) {
     return;
   }
@@ -115,12 +131,13 @@ const switchMode = (mode: string): void => {
     "[data-quality-select]",
   ) as HTMLSelectElement | null;
   const url = streamUrlForMode(mode, qualitySelect?.value);
-  loadVideoSource(url, state.playback.modeSources[mode]?.type);
+  const source = state.playback.modeSources[mode];
+  loadVideoSource(url, source?.type);
 
   // Fallback: if the media element doesn't actually switch sources (some browsers can get "stuck"),
   // reload the page with the desired mode and resume time via sessionStorage.
-  if (url) {
-    const expectedToken = state.playback.modeSources[mode]?.token;
+  if (url && canVerifyLoadedSourceURL(url, source)) {
+    const expectedToken = source?.token;
     const expectedMode = mode;
     const resumeSeconds = state.elements.video.currentTime;
     window.setTimeout(() => {
