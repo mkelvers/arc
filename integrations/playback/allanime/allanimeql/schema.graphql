@@ -1,0 +1,85 @@
+schema {
+  query: Query
+}
+
+scalar FlexibleInt
+
+enum VaildCountryOriginEnumType {
+  ALL
+}
+
+enum VaildTranslationTypeEnumType {
+  sub
+  dub
+  raw
+}
+
+input SearchInput {
+  allowAdult: Boolean
+  allowUnknown: Boolean
+  includeTypes: Boolean
+  query: String
+  season: String
+  types: [String!]
+}
+
+type Query {
+  episode(showId: String!, translationType: VaildTranslationTypeEnumType!, episodeString: String!): Episode
+  episodeInfos(showId: String!, episodeNumStart: Float!, episodeNumEnd: Float!): [EpisodeInfo!]
+  show(_id: String!): Show
+  shows(
+    search: SearchInput
+    limit: Int
+    page: Int
+    translationType: VaildTranslationTypeEnumType
+    countryOrigin: VaildCountryOriginEnumType
+  ): ShowConnection
+}
+
+type Episode {
+  sourceUrls: [SourceURL!]
+}
+
+type EpisodeInfo {
+  episodeIdNum: FlexibleInt
+  notes: String
+}
+
+type EpisodeDetail {
+  dub: [String!]
+  raw: [String!]
+  sub: [String!]
+}
+
+type RelatedShow {
+  relation: String
+  showId: String
+}
+
+type Season {
+  year: FlexibleInt
+}
+
+type Show {
+  _id: String
+  availableEpisodesDetail: EpisodeDetail
+  description: String
+  englishName: String
+  episodeCount: String
+  malId: String
+  name: String
+  relatedShows: [RelatedShow!]
+  season: Season
+  status: String
+  thumbnail: String
+  type: String
+}
+
+type ShowConnection {
+  edges: [Show!]
+}
+
+type SourceURL {
+  sourceName: String
+  sourceUrl: String
+}

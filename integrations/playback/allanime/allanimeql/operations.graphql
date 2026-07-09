@@ -1,0 +1,93 @@
+fragment ProviderShowFields on Show {
+  _id
+  name
+  englishName
+  description
+  malId
+  status
+  thumbnail
+  type
+  season {
+    year
+  }
+  episodeCount
+  availableEpisodesDetail {
+    sub
+    dub
+    raw
+  }
+}
+
+query AllAnimeSearch($search: SearchInput, $translationType: VaildTranslationTypeEnumType) {
+  shows(
+    search: $search
+    limit: 40
+    page: 1
+    translationType: $translationType
+    countryOrigin: ALL
+  ) {
+    edges {
+      _id
+      malId
+      name
+    }
+  }
+}
+
+query AllAnimeEpisodeSources(
+  $showId: String!
+  $translationType: VaildTranslationTypeEnumType!
+  $episodeString: String!
+) {
+  # @genqlient(pointer: true)
+  episode(
+    showId: $showId
+    translationType: $translationType
+    episodeString: $episodeString
+  ) {
+    sourceUrls {
+      sourceUrl
+      sourceName
+    }
+  }
+}
+
+query AllAnimeAvailableEpisodes($showId: String!, $start: Float!, $end: Float!) {
+  # @genqlient(pointer: true)
+  show(_id: $showId) {
+    availableEpisodesDetail {
+      sub
+      dub
+      raw
+    }
+  }
+  episodeInfos(showId: $showId, episodeNumStart: $start, episodeNumEnd: $end) {
+    episodeIdNum
+    notes
+  }
+}
+
+query AllAnimeDirectSequels($showId: String!) {
+  # @genqlient(pointer: true)
+  show(_id: $showId) {
+    relatedShows {
+      relation
+      showId
+    }
+  }
+}
+
+query AllAnimeProviderShow($showId: String!) {
+  # @genqlient(pointer: true)
+  show(_id: $showId) {
+    ...ProviderShowFields
+  }
+}
+
+query AllAnimeSeasonalShows($search: SearchInput, $page: Int!) {
+  shows(search: $search, limit: 40, page: $page, countryOrigin: ALL) {
+    edges {
+      ...ProviderShowFields
+    }
+  }
+}
