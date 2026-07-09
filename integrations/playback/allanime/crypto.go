@@ -92,7 +92,22 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 	version := raw[0]
 	iv := raw[1:13]
 	cipherText := raw[13 : len(raw)-16]
+	tag := raw[len(raw)-16:]
+	if version != 1 {
+		return nil, errors.New("decryption failed")
+	}
 
+	for _, candidate := range aesCandidates() {
+		plainText, ok := decryptCandidate(candidate, iv, cipherText, tag)
+		if ok {
+			return plainText, nil
+		}
+	}
+
+	return nil, errors.New("decryption failed")
+}
+
+func aesCandidates() []aesCandidate {
 	candidates := make([]aesCandidate, 0, len(aesKeys)+1)
 
 	xorK, err := xorKey()
@@ -105,30 +120,41 @@ func decryptTobeparsed(encoded string) ([]byte, error) {
 		candidates = append(candidates, aesCandidate{key: k[:]})
 	}
 
-	for _, candidate := range candidates {
-		block, err := aes.NewCipher(candidate.key)
-		if err != nil {
-			continue
-		}
+	return candidates
+}
 
-		if version == 1 {
-			gcm, err := cipher.NewGCM(block)
-			if err == nil {
-				combined := append(append([]byte{}, cipherText...), raw[len(raw)-16:]...)
-				plainText, openErr := gcm.Open(nil, iv, combined, nil)
-				if openErr == nil && json.Valid(plainText) {
-					return plainText, nil
-				}
-			}
-
-			plainText := tryDecryptCTR(block, iv, cipherText)
-			if json.Valid(plainText) {
-				return plainText, nil
-			}
-		}
+func decryptCandidate(candidate aesCandidate, iv []byte, cipherText []byte, tag []byte) ([]byte, bool) {
+	block, err := aes.NewCipher(candidate.key)
+	if err != nil {
+		return nil, false
 	}
 
-	return nil, errors.New("decryption failed")
+	if plainText, ok := tryDecryptGCM(block, iv, cipherText, tag); ok {
+		return plainText, true
+	}
+
+	plainText := tryDecryptCTR(block, iv, cipherText)
+	if json.Valid(plainText) {
+		return plainText, true
+	}
+	return nil, false
+}
+
+func tryDecryptGCM(block cipher.Block, iv []byte, cipherText []byte, tag []byte) ([]byte, bool) {
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, false
+	}
+
+	combined := append(append([]byte{}, cipherText...), tag...)
+	plainText, err := gcm.Open(nil, iv, combined, nil)
+	if err != nil {
+		return nil, false
+	}
+	if !json.Valid(plainText) {
+		return nil, false
+	}
+	return plainText, true
 }
 
 func tryDecryptCTR(block cipher.Block, iv []byte, cipherText []byte) []byte {
