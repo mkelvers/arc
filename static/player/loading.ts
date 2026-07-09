@@ -156,7 +156,7 @@ export const setupPlayerLoading = (retry: () => Promise<boolean>, signal: AbortS
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
-          console.error("failed to retry video source:", error);
+          void error;
           setPlayerLoadState("unavailable");
         })
         .finally(() => {

@@ -360,7 +360,7 @@ const monitorMediaReady = (transition: ActiveTransition): void => {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-        console.error("failed to refresh episode source:", error);
+        void error;
         setPlayerLoadState("unavailable");
       });
   };
@@ -378,7 +378,7 @@ const hydrateEpisodeModes = (): void => {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      console.error("failed to hydrate alternate mode after episode change:", error);
+      void error;
     })
     .finally(() => {
       if (modeHydrationController === controller) {
@@ -497,7 +497,7 @@ export const transitionToEpisode = async (
       profile().stale += 1;
       return false;
     }
-    console.error("failed to transition episode:", error);
+    void error;
     fallbackToEpisodeNavigation(transition.fallbackHref, options.autoplay ?? false);
     return false;
   }

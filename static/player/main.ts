@@ -216,7 +216,7 @@ const initPlayer = async (): Promise<void> => {
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
-          console.error("failed to resolve initial video source:", error);
+          void error;
           setPlayerLoadState("unavailable");
         });
     }
@@ -357,7 +357,7 @@ const initPlayer = async (): Promise<void> => {
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
-          console.error("failed to refresh video source:", error);
+          void error;
           setPlayerLoadState("unavailable");
         })
         .finally(() => {
@@ -518,7 +518,7 @@ const initPlayer = async (): Promise<void> => {
   window.setTimeout(() => {
     if (!signal.aborted) {
       hydrateAlternateMode(signal).catch((error) => {
-        console.error("delayed alternate mode hydration failed:", error);
+        void error;
       });
     }
   }, 3000);
