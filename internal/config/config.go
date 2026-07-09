@@ -3,17 +3,8 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"strings"
-)
-
-type EpisodeAvailabilityMode string
-
-const (
-	EpisodeAvailabilityModeAuto   EpisodeAvailabilityMode = "auto"
-	EpisodeAvailabilityModeLegacy EpisodeAvailabilityMode = "legacy"
-	EpisodeAvailabilityModeJikan  EpisodeAvailabilityMode = "jikan"
 )
 
 type Config struct {
@@ -23,37 +14,29 @@ type Config struct {
 	GinMode string
 
 	DatabaseFile string
+	DatabaseURL  string
+	RedisURL     string
+	AniListURL   string
+	ChiaKiURL    string
 
 	// Allow any Origin for CORS. Intended for local dev / reverse proxy setups only.
 	CORSAllowAll bool
 
-	EpisodeAvailabilityMode EpisodeAvailabilityMode
-
 	// Optional. When empty, proxy token signing is disabled.
 	PlaybackProxySecret string
-
-	// Optional debug toggle for Jikan client tracing.
-	JikanTrace bool
 }
 
 func Load() (Config, error) {
 	cfg := Config{
-		Port:                    firstNonEmpty(strings.TrimSpace(os.Getenv("PORT")), "3000"),
-		GinMode:                 strings.TrimSpace(os.Getenv("GIN_MODE")),
-		DatabaseFile:            firstNonEmpty(strings.TrimSpace(os.Getenv("DATABASE_FILE")), "mal.db"),
-		CORSAllowAll:            strings.TrimSpace(os.Getenv("MAL_CORS_ALLOW_ALL")) == "1",
-		PlaybackProxySecret:     strings.TrimSpace(os.Getenv("PLAYBACK_PROXY_SECRET")),
-		JikanTrace:              truthy(strings.TrimSpace(os.Getenv("MAL_JIKAN_TRACE"))),
-		EpisodeAvailabilityMode: EpisodeAvailabilityModeAuto,
-	}
-
-	if raw := strings.ToLower(strings.TrimSpace(os.Getenv("EPISODE_AVAILABILITY_MODE"))); raw != "" {
-		switch EpisodeAvailabilityMode(raw) {
-		case EpisodeAvailabilityModeAuto, EpisodeAvailabilityModeLegacy, EpisodeAvailabilityModeJikan:
-			cfg.EpisodeAvailabilityMode = EpisodeAvailabilityMode(raw)
-		default:
-			return Config{}, fmt.Errorf("invalid EPISODE_AVAILABILITY_MODE: %q (expected auto|legacy|jikan)", raw)
-		}
+		Port:                firstNonEmpty(strings.TrimSpace(os.Getenv("PORT")), "3000"),
+		GinMode:             strings.TrimSpace(os.Getenv("GIN_MODE")),
+		DatabaseFile:        firstNonEmpty(strings.TrimSpace(os.Getenv("DATABASE_FILE")), "mal.db"),
+		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		RedisURL:            firstNonEmpty(strings.TrimSpace(os.Getenv("REDIS_URL")), "redis://localhost:6379/0"),
+		AniListURL:          firstNonEmpty(strings.TrimSpace(os.Getenv("ANILIST_URL")), "https://graphql.anilist.co"),
+		ChiaKiURL:           firstNonEmpty(strings.TrimSpace(os.Getenv("CHIAKI_URL")), "https://chiaki.site"),
+		CORSAllowAll:        strings.TrimSpace(os.Getenv("MAL_CORS_ALLOW_ALL")) == "1",
+		PlaybackProxySecret: strings.TrimSpace(os.Getenv("PLAYBACK_PROXY_SECRET")),
 	}
 
 	if strings.TrimSpace(cfg.Port) == "" {
