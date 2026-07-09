@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"mal/integrations/jikan"
@@ -24,23 +25,47 @@ type sourceResolutionResult struct {
 	completed bool
 }
 
+type watchModeResult struct {
+	sources map[string]domain.ModeSource
+	stream  *domain.StreamResult
+	mode    string
+	from    string
+}
+
+type watchProgressResult struct {
+	startTime       float64
+	watchlistStatus string
+	watchlistIDs    []int64
+}
+
 const episodeAvailabilityUncertainWarning = "Episode availability may be incomplete or out of date. Continue only if you understand that the episode list and audio availability may be uncertain."
 
-func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (domain.WatchPageData, error) {
+func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (data domain.WatchPageData, err error) {
+	totalStartedAt := time.Now()
+	defer func() {
+		logWatchDataStage("total", animeID, episode, totalStartedAt, map[string]any{"failed": err != nil})
+	}()
+
+	animeStartedAt := time.Now()
 	animeData, err := s.watchAnime(ctx, animeID)
+	logWatchDataStage("anime_metadata", animeID, episode, animeStartedAt, nil)
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch anime: %w", err)
 	}
 
+	ensureStartedAt := time.Now()
 	if err := s.ensureAnimeRow(ctx, animeData); err != nil {
 		observability.Warn("upsert_anime_failed", "playback", "",
 			map[string]any{"anime_id": animeID},
 			err,
 		)
 	}
+	logWatchDataStage("anime_row", animeID, episode, ensureStartedAt, nil)
 	anime := animeData.Anime
 	searchTitles := buildSearchTitles(animeData, titleCandidates)
+	episodesStartedAt := time.Now()
 	eps, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
+	logWatchDataStage("canonical_episodes", animeID, episode, episodesStartedAt, map[string]any{"episodes": len(eps.Episodes)})
 	if err != nil {
 		return domain.WatchPageData{}, fmt.Errorf("failed to fetch episodes: %w", err)
 	}
@@ -48,25 +73,81 @@ func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, title
 	// mode fallback
 	mode, from := resolveMode(episode, mode, eps.Episodes)
 	deferred := domain.PlaybackDataDeferred(ctx)
-	modeSources, result, mode, from := s.watchModeSources(
-		ctx, animeID, searchTitles, episode, mode, from, !anime.Airing, deferred,
+	modeResult, progress, segments := s.loadWatchBranches(
+		ctx, animeID, searchTitles, episode, mode, from, userID, anime.Episodes, !anime.Airing, deferred,
 	)
-	startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(ctx, userID, animeID, anime.Episodes, episode)
-	segments := s.watchSegments(ctx, userID, animeID, episode, deferred)
-	watchData := buildWatchDataPayload(animeData, animeID, episode, startTime, eps.Episodes, modeSources, mode, from, segments)
-	pageData := buildWatchPageData(animeData, eps.Episodes, episode, watchlistStatus, watchlistIDs, nil, watchData)
+	watchData := buildWatchDataPayload(animeData, animeID, episode, progress.startTime, eps.Episodes, modeResult.sources, modeResult.mode, modeResult.from, segments)
+	pageData := buildWatchPageData(animeData, eps.Episodes, episode, progress.watchlistStatus, progress.watchlistIDs, nil, watchData)
 	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(eps, time.Now())
 	if deferred {
 		return pageData, nil
 	}
-	if len(modeSources) == 0 {
+	if len(modeResult.sources) == 0 {
 		return pageData, fmt.Errorf("no streams found")
 	}
-	if result == nil {
-		return pageData, fmt.Errorf("no streams found for mode %s", mode)
+	if modeResult.stream == nil {
+		return pageData, fmt.Errorf("no streams found for mode %s", modeResult.mode)
 	}
 
 	return pageData, nil
+}
+
+func (s *playbackService) loadWatchBranches(ctx context.Context, animeID int, searchTitles []string, episode, mode, from, userID string, totalEpisodes int, allowStale, deferred bool) (watchModeResult, watchProgressResult, []domain.SkipSegment) {
+	branchCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var (
+		wg         sync.WaitGroup
+		modeResult watchModeResult
+		progress   watchProgressResult
+		segments   []domain.SkipSegment
+	)
+
+	wg.Go(func() {
+		startedAt := time.Now()
+		modeSources, stream, resolvedMode, switchedFrom := s.watchModeSources(
+			branchCtx, animeID, searchTitles, episode, mode, from, allowStale, deferred,
+		)
+		modeResult = watchModeResult{
+			sources: modeSources,
+			stream:  stream,
+			mode:    resolvedMode,
+			from:    switchedFrom,
+		}
+		logWatchDataStage("stream_resolution", animeID, episode, startedAt, map[string]any{
+			"sources":       len(modeSources),
+			"mode":          resolvedMode,
+			"switched_from": switchedFrom,
+			"deferred":      deferred,
+		})
+	})
+
+	wg.Go(func() {
+		startedAt := time.Now()
+		startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(branchCtx, userID, animeID, totalEpisodes, episode)
+		progress = watchProgressResult{
+			startTime:       startTime,
+			watchlistStatus: watchlistStatus,
+			watchlistIDs:    watchlistIDs,
+		}
+		logWatchDataStage("progress_lookup", animeID, episode, startedAt, map[string]any{
+			"authenticated":    userID != "",
+			"resume":           startTime > 0,
+			"watchlist_status": watchlistStatus,
+		})
+	})
+
+	wg.Go(func() {
+		startedAt := time.Now()
+		segments = s.watchSegments(branchCtx, userID, animeID, episode, deferred)
+		logWatchDataStage("segment_lookup", animeID, episode, startedAt, map[string]any{
+			"segments": len(segments),
+			"deferred": deferred,
+		})
+	})
+
+	wg.Wait()
+	return modeResult, progress, segments
 }
 
 func (s *playbackService) EnrichEpisodeTitles(ctx context.Context, animeID int) ([]domain.CanonicalEpisode, error) {
@@ -191,6 +272,21 @@ func buildWatchPageData(anime domain.Anime, episodes []domain.CanonicalEpisode, 
 		WatchlistIDs:    watchlistIDs,
 		Seasons:         seasons,
 	}
+}
+
+func logWatchDataStage(stage string, animeID int, episode string, startedAt time.Time, fields map[string]any) {
+	logFields := map[string]any{
+		"anime_id":    animeID,
+		"duration_ms": time.Since(startedAt).Milliseconds(),
+		"stage":       stage,
+	}
+	if episode != "" {
+		logFields["episode"] = episode
+	}
+	for key, value := range fields {
+		logFields[key] = value
+	}
+	observability.Info("watch_data_stage", "playback", "", logFields)
 }
 
 func episodeAvailabilityWarning(episodeList domain.CanonicalEpisodeList, now time.Time) string {
