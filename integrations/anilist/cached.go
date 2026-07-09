@@ -10,14 +10,16 @@ import (
 )
 
 const (
-	metadataFreshTTL  = 30 * 24 * time.Hour
-	metadataStaleTTL  = 7 * 24 * time.Hour
-	genreFreshTTL     = 7 * 24 * time.Hour
-	searchFreshTTL    = 24 * time.Hour
-	catalogFreshTTL   = time.Hour
-	recommendFreshTTL = 7 * 24 * time.Hour
-	detailCacheKeyV3  = "v3"
-	catalogCacheKeyV2 = "v2"
+	metadataFreshTTL    = 30 * 24 * time.Hour
+	metadataStaleTTL    = 7 * 24 * time.Hour
+	genreFreshTTL       = 7 * 24 * time.Hour
+	searchFreshTTL      = 24 * time.Hour
+	catalogFreshTTL     = time.Hour
+	recommendFreshTTL   = 7 * 24 * time.Hour
+	detailCacheKeyV3    = "v3"
+	catalogCacheKeyV2   = "v2"
+	summaryCacheKeyV2   = "v2"
+	recommendCacheKeyV2 = "v2"
 )
 
 type CachedClient struct {
@@ -87,7 +89,7 @@ func (c *CachedClient) readBatchCache(ctx context.Context, ids []int) (map[int]A
 	missing := make([]int, 0, len(ids))
 	for _, id := range ids {
 		var cached Anime
-		result, _ := c.cache.Get(ctx, fmt.Sprintf("anilist:anime:mal:summary:%d", id), &cached)
+		result, _ := c.cache.Get(ctx, fmt.Sprintf("anilist:anime:mal:summary:%s:%d", summaryCacheKeyV2, id), &cached)
 		switch result.State {
 		case rediscache.StateFresh:
 			fresh[id] = cached
@@ -117,7 +119,7 @@ func (c *CachedClient) fetchBatch(ctx context.Context, missing []int, stale map[
 	}
 	for _, item := range items {
 		fetched[item.MALID] = item
-		_ = c.cache.Set(ctx, fmt.Sprintf("anilist:anime:mal:summary:%d", item.MALID), item, metadataFreshTTL, metadataStaleTTL)
+		_ = c.cache.Set(ctx, fmt.Sprintf("anilist:anime:mal:summary:%s:%d", summaryCacheKeyV2, item.MALID), item, metadataFreshTTL, metadataStaleTTL)
 	}
 	return fetched, nil
 }
@@ -188,7 +190,7 @@ func (c *CachedClient) GetSeason(ctx context.Context, season string, year, page,
 }
 
 func (c *CachedClient) GetRecommendations(ctx context.Context, id int) ([]Recommendation, error) {
-	key := fmt.Sprintf("anilist:recommendations:mal:%d", id)
+	key := fmt.Sprintf("anilist:recommendations:mal:%s:%d", recommendCacheKeyV2, id)
 	var cached []Recommendation
 	result, _ := c.cache.Get(ctx, key, &cached)
 	if result.State == rediscache.StateFresh {
