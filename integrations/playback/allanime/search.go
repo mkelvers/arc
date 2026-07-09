@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-type searchResult struct {
+type SearchResult struct {
 	ID    string
 	MalID string
 	Name  string
 }
 
-func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string) ([]searchResult, error) {
+func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string) ([]SearchResult, error) {
 	search := allanimeql.SearchInput{
 		AllowAdult:   false,
 		AllowUnknown: false,
@@ -25,7 +25,7 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 		return nil, err
 	}
 
-	out := make([]searchResult, 0, len(data.Shows.Edges))
+	out := make([]SearchResult, 0, len(data.Shows.Edges))
 	for _, edge := range data.Shows.Edges {
 		id := edge.Id
 		malID := edge.MalId
@@ -39,7 +39,7 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 			continue
 		}
 
-		out = append(out, searchResult{ID: id, MalID: malID, Name: name})
+		out = append(out, SearchResult{ID: id, MalID: malID, Name: name})
 	}
 
 	return out, nil
