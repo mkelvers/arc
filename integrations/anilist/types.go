@@ -100,13 +100,14 @@ type Relation struct {
 }
 
 type AnimeSummary struct {
-	ID         int
-	MALID      int
-	Title      Titles
-	Type       string
-	Format     string
-	StartYear  int
-	CoverImage string
+	ID          int
+	MALID       int
+	Title       Titles
+	Description string
+	Type        string
+	Format      string
+	StartYear   int
+	CoverImage  string
 }
 
 type ExternalLink struct {
@@ -281,13 +282,14 @@ type relationConnection struct {
 	} `json:"edges"`
 }
 type mediaSummary struct {
-	ID         int        `json:"id"`
-	IDMal      int        `json:"idMal"`
-	Title      Titles     `json:"title"`
-	Type       string     `json:"type"`
-	Format     string     `json:"format"`
-	StartDate  Date       `json:"startDate"`
-	CoverImage coverImage `json:"coverImage"`
+	ID          int        `json:"id"`
+	IDMal       int        `json:"idMal"`
+	Title       Titles     `json:"title"`
+	Description string     `json:"description"`
+	Type        string     `json:"type"`
+	Format      string     `json:"format"`
+	StartDate   Date       `json:"startDate"`
+	CoverImage  coverImage `json:"coverImage"`
 }
 type connection[T any] struct {
 	Nodes []T `json:"nodes"`
