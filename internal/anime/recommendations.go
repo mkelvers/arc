@@ -21,8 +21,11 @@ type topPicksCacheKey struct {
 type topPicksCacheEntry struct {
 	data       domain.CatalogSectionData
 	updatedAt  time.Time
-	hasData    bool
+	hasResult  bool
 	refreshing bool
+	stale      bool
+	failed     bool
+	retryAt    time.Time
 }
 
 type topPicksCache struct {
@@ -30,7 +33,10 @@ type topPicksCache struct {
 	entries map[topPicksCacheKey]*topPicksCacheEntry
 }
 
-const topPicksRefreshTimeout = 30 * time.Second
+const (
+	topPicksRefreshTimeout = 30 * time.Second
+	topPicksRetryDelay     = 15 * time.Second
+)
 
 func (s *animeService) GetTopPickForYou(_ context.Context, userID string) (domain.CatalogSectionData, error) {
 	data := s.getCachedTopPicksForYou(userID, recommendations.TopPicksLimit)
@@ -51,53 +57,74 @@ func (s *animeService) fetchTopPicksForYou(ctx context.Context, userID string, l
 func (s *animeService) getCachedTopPicksForYou(userID string, limit int) domain.CatalogSectionData {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
-		return domain.CatalogSectionData{Animes: []domain.Anime{}}
+		return domain.CatalogSectionData{
+			Animes:              []domain.Anime{},
+			RecommendationState: domain.RecommendationStateEmpty,
+		}
 	}
 
 	key := topPicksCacheKey{userID: userID, limit: limit}
 	now := time.Now()
+	var refresh bool
 
 	s.topPicksCache.mu.Lock()
 	entry := s.topPicksCache.entries[key]
-	if entry != nil && entry.hasData {
-		data := cloneCatalogSectionData(entry.data)
-		if now.Sub(entry.updatedAt) >= s.topPicksCacheTTL && !entry.refreshing {
-			entry.refreshing = true
-			go s.refreshTopPicksForYou(key)
-		}
-		s.topPicksCache.mu.Unlock()
-		return data
-	}
-
 	if entry == nil {
-		entry = &topPicksCacheEntry{}
+		entry = &topPicksCacheEntry{refreshing: true}
 		s.topPicksCache.entries[key] = entry
+		refresh = true
+	} else if !entry.refreshing {
+		switch {
+		case entry.failed && now.Before(entry.retryAt):
+		case entry.failed || entry.stale || entryExpired(entry, now, s.topPicksCacheTTL) || !entry.hasResult:
+			entry.refreshing = true
+			entry.failed = false
+			entry.retryAt = time.Time{}
+			entry.stale = entry.hasResult && len(entry.data.Animes) > 0
+			refresh = true
+		}
 	}
-	if !entry.refreshing {
-		entry.refreshing = true
-		go s.refreshTopPicksForYou(key)
-	}
+	data := topPicksSnapshot(entry, now)
 	s.topPicksCache.mu.Unlock()
 
-	return domain.CatalogSectionData{Animes: []domain.Anime{}}
+	if refresh {
+		go s.refreshTopPicksForYou(key)
+	}
+
+	return data
 }
 
 func (s *animeService) refreshTopPicksForYou(key topPicksCacheKey) {
 	ctx, cancel := context.WithTimeout(context.Background(), topPicksRefreshTimeout)
 	defer cancel()
 
+	startedAt := time.Now()
+	observability.Info("top_picks_refresh_started", "anime", "", map[string]any{
+		"user_id": key.userID,
+		"limit":   key.limit,
+	})
+
 	data, err := s.computeTopPicks(ctx, key.userID, key.limit)
+	now := time.Now()
 	if err != nil {
 		observability.WarnContext(ctx,
 			"top_picks_refresh_failed",
 			"anime",
 			"",
-			map[string]any{"user_id": key.userID, "limit": key.limit},
+			map[string]any{
+				"user_id":     key.userID,
+				"limit":       key.limit,
+				"duration_ms": time.Since(startedAt).Milliseconds(),
+				"retry_after": int(topPicksRetryDelay / time.Second),
+			},
 			err,
 		)
 		s.topPicksCache.mu.Lock()
 		if entry := s.topPicksCache.entries[key]; entry != nil {
 			entry.refreshing = false
+			entry.failed = true
+			entry.retryAt = now.Add(topPicksRetryDelay)
+			entry.stale = entry.hasResult && len(entry.data.Animes) > 0
 		}
 		s.topPicksCache.mu.Unlock()
 		return
@@ -106,10 +133,17 @@ func (s *animeService) refreshTopPicksForYou(key topPicksCacheKey) {
 	s.topPicksCache.mu.Lock()
 	s.topPicksCache.entries[key] = &topPicksCacheEntry{
 		data:      cloneCatalogSectionData(data),
-		updatedAt: time.Now(),
-		hasData:   true,
+		updatedAt: now,
+		hasResult: true,
 	}
 	s.topPicksCache.mu.Unlock()
+
+	observability.Info("top_picks_refresh_completed", "anime", "", map[string]any{
+		"user_id":     key.userID,
+		"limit":       key.limit,
+		"count":       len(data.Animes),
+		"duration_ms": time.Since(startedAt).Milliseconds(),
+	})
 }
 
 func (s *animeService) InvalidateTopPicksForUser(userID string) {
@@ -118,13 +152,81 @@ func (s *animeService) InvalidateTopPicksForUser(userID string) {
 		return
 	}
 
+	var refreshKeys []topPicksCacheKey
 	s.topPicksCache.mu.Lock()
-	defer s.topPicksCache.mu.Unlock()
-	for key := range s.topPicksCache.entries {
+	matched := false
+	for key, entry := range s.topPicksCache.entries {
 		if key.userID == userID {
-			delete(s.topPicksCache.entries, key)
+			matched = true
+			entry.failed = false
+			entry.retryAt = time.Time{}
+			entry.stale = entry.hasResult && len(entry.data.Animes) > 0
+			if !entry.refreshing {
+				entry.refreshing = true
+				refreshKeys = append(refreshKeys, key)
+			}
 		}
 	}
+	if !matched {
+		key := topPicksCacheKey{userID: userID, limit: recommendations.TopPicksLimit}
+		s.topPicksCache.entries[key] = &topPicksCacheEntry{refreshing: true}
+		refreshKeys = append(refreshKeys, key)
+	}
+	s.topPicksCache.mu.Unlock()
+
+	for _, key := range refreshKeys {
+		go s.refreshTopPicksForYou(key)
+	}
+}
+
+func entryExpired(entry *topPicksCacheEntry, now time.Time, ttl time.Duration) bool {
+	return entry.hasResult && !entry.updatedAt.IsZero() && now.Sub(entry.updatedAt) >= ttl
+}
+
+func topPicksSnapshot(entry *topPicksCacheEntry, now time.Time) domain.CatalogSectionData {
+	data := cloneCatalogSectionData(entry.data)
+	if !entry.hasResult {
+		data.Animes = []domain.Anime{}
+	}
+
+	data.RecommendationState = topPicksState(entry)
+	if entry.failed && now.Before(entry.retryAt) {
+		data.RetryAfterSeconds = retryAfterSeconds(now, entry.retryAt)
+	}
+	return data
+}
+
+func topPicksState(entry *topPicksCacheEntry) domain.RecommendationRefreshState {
+	hasCards := entry.hasResult && len(entry.data.Animes) > 0
+	switch {
+	case entry.refreshing && hasCards:
+		return domain.RecommendationStateStale
+	case entry.refreshing:
+		return domain.RecommendationStateRefreshing
+	case entry.failed && hasCards:
+		return domain.RecommendationStateStale
+	case entry.failed:
+		return domain.RecommendationStateFailed
+	case hasCards:
+		return domain.RecommendationStateReady
+	default:
+		return domain.RecommendationStateEmpty
+	}
+}
+
+func retryAfterSeconds(now time.Time, retryAt time.Time) int {
+	if !retryAt.After(now) {
+		return 0
+	}
+	remaining := retryAt.Sub(now)
+	seconds := int(remaining / time.Second)
+	if remaining%time.Second != 0 {
+		seconds++
+	}
+	if seconds < 1 {
+		return 1
+	}
+	return seconds
 }
 
 func cloneCatalogSectionData(data domain.CatalogSectionData) domain.CatalogSectionData {
