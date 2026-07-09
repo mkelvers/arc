@@ -264,36 +264,23 @@ func (s *animeService) GetReviews(ctx context.Context, id int, page int) ([]doma
 	}
 	out := make([]domain.ReviewEntry, 0, len(data))
 	for _, it := range data {
-		mapped := domain.ReviewEntry{
-			MalID:         it.MalID,
-			URL:           it.URL,
-			Type:          it.Type,
-			Date:          it.Date,
-			Review:        it.Review,
-			Score:         it.Score,
-			Tags:          append([]string(nil), it.Tags...),
-			IsSpoiler:     it.IsSpoiler,
-			IsPreliminary: it.IsPreliminary,
-			EpisodesSeen:  it.EpisodesSeen,
-			Reactions: domain.ReviewReactions{
-				Overall:     it.Reactions.Overall,
-				Nice:        it.Reactions.Nice,
-				LoveIt:      it.Reactions.LoveIt,
-				Funny:       it.Reactions.Funny,
-				Confusing:   it.Reactions.Confusing,
-				Informative: it.Reactions.Informative,
-				WellWritten: it.Reactions.WellWritten,
-				Creative:    it.Reactions.Creative,
-			},
-		}
-		mapped.User.URL = it.User.URL
-		mapped.User.Username = it.User.Username
-		mapped.User.Images.Jpg.ImageURL = it.User.Images.Jpg.ImageURL
-		mapped.User.Images.Webp.ImageURL = it.User.Images.Webp.ImageURL
-		out = append(out, mapped)
+		out = append(out, mapReviewEntry(it, page))
 	}
 
 	return out, pag.HasNextPage, nil
+}
+
+func (s *animeService) GetReview(ctx context.Context, id int, page int, reviewID int) (domain.ReviewEntry, error) {
+	reviews, _, err := s.GetReviews(ctx, id, page)
+	if err != nil {
+		return domain.ReviewEntry{}, err
+	}
+	for _, review := range reviews {
+		if review.MalID == reviewID {
+			return review, nil
+		}
+	}
+	return domain.ReviewEntry{}, errReviewNotFound
 }
 
 func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error) {

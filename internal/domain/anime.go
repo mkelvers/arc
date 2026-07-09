@@ -134,11 +134,14 @@ type ReviewEntry struct {
 	Reactions     ReviewReactions
 	Date          string
 	Review        string
+	Preview       string
+	IsTruncated   bool
 	Score         int
 	Tags          []string
 	IsSpoiler     bool
 	IsPreliminary bool
 	EpisodesSeen  int
+	SourcePage    int
 	User          ReviewUser
 }
 
@@ -171,6 +174,7 @@ type AnimeDetailsService interface {
 	GetStatistics(ctx context.Context, id int) (Statistics, error)
 	GetThemes(ctx context.Context, id int) (ThemesData, error)
 	GetReviews(ctx context.Context, id int, page int) ([]ReviewEntry, bool, error)
+	GetReview(ctx context.Context, id int, page int, reviewID int) (ReviewEntry, error)
 }
 
 type AnimePlaybackService interface {
