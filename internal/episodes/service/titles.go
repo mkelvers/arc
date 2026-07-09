@@ -80,8 +80,8 @@ func (s *EpisodeService) loadEpisodeTitles(ctx context.Context, anime domain.Ani
 }
 
 func (s *EpisodeService) cachedEpisodePayload(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, db.EpisodeAvailabilityCache, bool) {
-	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, int64(anime.MalID))
-	if err != nil {
+	row, _, ok := s.getEpisodeCache(ctx, int64(anime.MalID))
+	if !ok {
 		return domain.CanonicalEpisodeList{}, db.EpisodeAvailabilityCache{}, false
 	}
 	payload, ok := s.decodeCachedPayload(anime, row.Data)
@@ -96,16 +96,8 @@ func (s *EpisodeService) storeEnrichedPayload(ctx context.Context, row db.Episod
 	if err != nil {
 		return fmt.Errorf("episode metadata: encode cache: %w", err)
 	}
-	err = s.queries.UpsertEpisodeAvailabilityCache(ctx, db.UpsertEpisodeAvailabilityCacheParams{
-		AnimeID:       row.AnimeID,
-		Data:          string(body),
-		NextRefreshAt: row.NextRefreshAt,
-		RetryUntilAt:  row.RetryUntilAt,
-		LastAttemptAt: row.LastAttemptAt,
-		LastSuccessAt: row.LastSuccessAt,
-		FailureCount:  row.FailureCount,
-		LastError:     row.LastError,
-	})
+	row.Data = string(body)
+	err = s.setEpisodeCache(ctx, row)
 	if err != nil {
 		return fmt.Errorf("episode metadata: update cache: %w", err)
 	}

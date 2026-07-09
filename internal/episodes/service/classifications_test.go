@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 )
 
@@ -14,7 +14,7 @@ func TestMergeEpisodeClassificationsRestoresFillerAndRecap(t *testing.T) {
 		{Number: 3, Title: "Third", HasSub: true},
 	}
 
-	mergeEpisodeClassifications(episodes, []jikan.Episode{
+	mergeEpisodeClassifications(episodes, []metadata.Episode{
 		{Episode: "1"},
 		{Episode: "2", Filler: true},
 		{Episode: "3", Recap: true},

@@ -54,7 +54,7 @@ func nextBroadcastBeforeOrAt(anime domain.Anime, now time.Time) time.Time {
 }
 
 func nextBroadcastAfter(anime domain.Anime, after time.Time) time.Time {
-	day := weekdayFromJikan(anime.Broadcast.Day)
+	day := weekdayFromProvider(anime.Broadcast.Day)
 	if day < 0 || strings.TrimSpace(anime.Broadcast.Time) == "" {
 		return time.Time{}
 	}
@@ -101,7 +101,7 @@ func nextBroadcastAfter(anime domain.Anime, after time.Time) time.Time {
 	return candidate.UTC()
 }
 
-func weekdayFromJikan(day string) time.Weekday {
+func weekdayFromProvider(day string) time.Weekday {
 	switch strings.ToLower(strings.TrimSpace(day)) {
 	case "sundays":
 		return time.Sunday

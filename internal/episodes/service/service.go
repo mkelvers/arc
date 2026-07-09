@@ -8,7 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/anilist"
+	"mal/integrations/metadata"
+	rediscache "mal/internal/cache/redis"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -34,26 +36,29 @@ const (
 )
 
 type EpisodeService struct {
-	queries            *db.Queries
-	jikan              *jikan.Client
-	providers          []domain.EpisodeAvailabilityProvider
-	titles             domain.EpisodeTitleProvider
-	clock              Clock
-	enabled            bool
-	canonicalRefresh   singleflight.Group
-	titleLoad          singleflight.Group
-	classificationLoad singleflight.Group
-	cacheMu            sync.Mutex
+	queries          *db.Queries
+	metadata         *anilist.CachedClient
+	providers        []domain.EpisodeAvailabilityProvider
+	titles           domain.EpisodeTitleProvider
+	clock            Clock
+	enabled          bool
+	canonicalRefresh singleflight.Group
+	titleLoad        singleflight.Group
+	cacheMu          sync.Mutex
+	cache            *rediscache.Store
 }
 
-func NewEpisodeService(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool) domain.EpisodeService {
-	return NewEpisodeServiceWithClock(queries, jikanClient, providers, titles, enabled, realClock{})
+func NewEpisodeService(queries *db.Queries, _ any, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool) domain.EpisodeService {
+	return NewEpisodeServiceWithClock(queries, nil, providers, titles, enabled, realClock{})
 }
 
-func NewEpisodeServiceWithClock(queries *db.Queries, jikanClient *jikan.Client, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, clock Clock) *EpisodeService {
+func NewEpisodeServiceWithAniList(queries *db.Queries, metadata *anilist.CachedClient, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, cache *rediscache.Store) domain.EpisodeService {
+	return &EpisodeService{queries: queries, metadata: metadata, providers: providers, titles: titles, clock: realClock{}, enabled: enabled, cache: cache}
+}
+
+func NewEpisodeServiceWithClock(queries *db.Queries, _ any, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, clock Clock) *EpisodeService {
 	return &EpisodeService{
 		queries:   queries,
-		jikan:     jikanClient,
 		providers: providers,
 		titles:    titles,
 		clock:     clock,
@@ -155,6 +160,7 @@ func (s *EpisodeService) runCanonicalRefresh(ctx context.Context, anime domain.A
 	return s.refresh(refreshCtx, anime)
 }
 
+//nolint:cyclop,funlen // The worker intentionally handles cache policy, metadata fetch, and refresh errors together.
 func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error {
 	if !s.enabled {
 		return nil
@@ -163,7 +169,15 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 		limit = 25
 	}
 
-	ids, err := s.queries.GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx, int64(limit))
+	var (
+		ids []int64
+		err error
+	)
+	if s.cache != nil {
+		ids, err = s.queries.GetTrackedAiringAnimeIDs(ctx, int64(limit))
+	} else {
+		ids, err = s.queries.GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx, int64(limit))
+	}
 	if err != nil {
 		return fmt.Errorf("get due tracked anime: %w", err)
 	}
@@ -182,7 +196,25 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 			)
 			break
 		}
-		anime, err := s.jikan.GetAnimeByID(ctx, int(id))
+		if s.cache != nil {
+			animeID := int(id)
+			if row, state, ok := s.getEpisodeCache(ctx, id); ok && state == rediscache.StateFresh {
+				anime := domain.Anime{Anime: metadata.Anime{MalID: animeID, Airing: true}}
+				if s.isFreshEpisodeCache(anime, row, s.clock.Now()) {
+					continue
+				}
+			}
+		}
+		var anime domain.Anime
+		if s.metadata != nil {
+			item, fetchErr := s.metadata.GetAnimeByMALID(ctx, int(id))
+			err = fetchErr
+			if err == nil {
+				anime = domain.Anime{Anime: anilist.ToMetadataAnime(item)}
+			}
+		} else {
+			err = fmt.Errorf("metadata provider is not configured")
+		}
 		if err != nil {
 			observability.Warn(
 				"episodes_refresh_fetch_anime_failed",
@@ -195,7 +227,7 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 			)
 			continue
 		}
-		if _, err := s.refresh(ctx, domain.Anime{Anime: anime}); err != nil {
+		if _, err := s.refresh(ctx, anime); err != nil {
 			observability.Warn(
 				"episodes_refresh_failed",
 				"episodes",

@@ -9,50 +9,35 @@ import (
 )
 
 type Querier interface {
-	CountPendingAnimeFetchRetries(ctx context.Context) (int64, error)
 	CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error)
 	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
-	DeleteAnimeFetchRetry(ctx context.Context, animeID int64) error
 	DeleteContinueWatchingEntry(ctx context.Context, arg DeleteContinueWatchingEntryParams) error
 	DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error
-	DeleteExpiredJikanCache(ctx context.Context) error
 	DeleteSession(ctx context.Context, id string) error
 	DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListEntryParams) error
-	EnqueueAnimeFetchRetry(ctx context.Context, arg EnqueueAnimeFetchRetryParams) error
 	GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiToken, error)
-	GetAllCachedAnime(ctx context.Context) ([]string, error)
 	GetAnime(ctx context.Context, id int64) (Anime, error)
-	GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNeedingRelationSyncRow, error)
 	GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error)
 	GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingCarouselEntriesRow, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntry(ctx context.Context, arg GetContinueWatchingEntryParams) (ContinueWatchingEntry, error)
-	GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]AnimeFetchRetry, error)
 	GetEpisodeAvailabilityCache(ctx context.Context, animeID int64) (EpisodeAvailabilityCache, error)
 	GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeProviderMappingParams) (EpisodeProviderMapping, error)
-	GetJikanCache(ctx context.Context, key string) (string, error)
-	GetJikanCacheStale(ctx context.Context, key string) (string, error)
-	GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow, error)
 	GetSession(ctx context.Context, id string) (Session, error)
+	GetTrackedAiringAnimeIDs(ctx context.Context, limit int64) ([]int64, error)
 	GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Context, limit int64) ([]int64, error)
-	GetUpcomingSeasons(ctx context.Context, userID string) ([]GetUpcomingSeasonsRow, error)
 	GetUser(ctx context.Context, id string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUserWatchList(ctx context.Context, userID string) ([]GetUserWatchListRow, error)
 	GetWatchListEntry(ctx context.Context, arg GetWatchListEntryParams) (WatchListEntry, error)
 	GetWatchingAnime(ctx context.Context, userID string) ([]GetWatchingAnimeRow, error)
-	MarkAnimeFetchRetryFailed(ctx context.Context, arg MarkAnimeFetchRetryFailedParams) error
 	MarkEpisodeAvailabilityRefreshFailed(ctx context.Context, arg MarkEpisodeAvailabilityRefreshFailedParams) error
-	MarkRelationsSynced(ctx context.Context, id int64) error
 	RefreshSession(ctx context.Context, arg RefreshSessionParams) error
 	RevokeAllAPITokensForUser(ctx context.Context, userID string) error
 	SaveWatchProgress(ctx context.Context, arg SaveWatchProgressParams) error
-	SetJikanCache(ctx context.Context, arg SetJikanCacheParams) error
 	TouchAPITokenLastUsedAt(ctx context.Context, id string) error
-	UpdateAnimeStatus(ctx context.Context, arg UpdateAnimeStatusParams) error
 	UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime, error)
-	UpsertAnimeRelation(ctx context.Context, arg UpsertAnimeRelationParams) error
 	UpsertContinueWatchingEntry(ctx context.Context, arg UpsertContinueWatchingEntryParams) (ContinueWatchingEntry, error)
 	UpsertEpisodeAvailabilityCache(ctx context.Context, arg UpsertEpisodeAvailabilityCacheParams) error
 	UpsertEpisodeProviderMapping(ctx context.Context, arg UpsertEpisodeProviderMappingParams) error

@@ -17,7 +17,7 @@ func provideProxyTokenKey(cfg config.Config) ProxyTokenKey {
 var Module = fx.Options(
 	fx.Provide(
 		NewPlaybackRepository,
-		NewPlaybackService,
+		NewPlaybackServiceWithAniList,
 		handler.NewPlaybackHandler,
 	),
 	fx.Provide(

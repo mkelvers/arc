@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/templates"
 	"net/http"
@@ -152,7 +152,7 @@ func (s watchPageAnimeService) GetAnimeByID(context.Context, int) (domain.Anime,
 
 func baseWatchPageData() domain.WatchPageData {
 	return domain.WatchPageData{
-		Anime: domain.Anime{Anime: jikan.Anime{MalID: 123, Title: "Example Anime"}},
+		Anime: domain.Anime{Anime: metadata.Anime{MalID: 123, Title: "Example Anime"}},
 		Episodes: []domain.CanonicalEpisode{
 			{Number: 1, Title: "Episode 1", HasSub: true},
 			{Number: 2, Title: "Episode 2", HasSub: true},

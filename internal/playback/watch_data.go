@@ -10,7 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/anilist"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -183,9 +184,16 @@ func (s *playbackService) EnrichEpisodeClassifications(ctx context.Context, anim
 }
 
 func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.Anime, error) {
+	if s.metadata != nil {
+		anime, err := s.metadata.GetAnimeByMALID(ctx, animeID)
+		if err == nil {
+			return domain.Anime{Anime: anilist.ToMetadataAnime(anime)}, nil
+		}
+	}
+
 	row, err := s.repo.GetAnime(ctx, int64(animeID))
 	if err == nil && row.ID > 0 && strings.TrimSpace(row.TitleOriginal) != "" {
-		anime := jikan.Anime{
+		anime := metadata.Anime{
 			MalID:         int(row.ID),
 			Title:         row.TitleOriginal,
 			TitleEnglish:  row.TitleEnglish.String,
@@ -196,11 +204,7 @@ func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.A
 		return domain.Anime{Anime: anime}, nil
 	}
 
-	anime, err := s.jikan.GetAnimeByID(ctx, animeID)
-	if err != nil {
-		return domain.Anime{}, err
-	}
-	return domain.Anime{Anime: anime}, nil
+	return domain.Anime{}, errors.New("metadata provider unavailable")
 }
 
 func (s *playbackService) watchModeSources(ctx context.Context, animeID int, searchTitles []string, episode, mode, from string, allowStale, deferred bool) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {

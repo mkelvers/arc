@@ -3,7 +3,7 @@ package playback
 
 import (
 	"fmt"
-	"mal/integrations/jikan"
+	"mal/integrations/anilist"
 	"mal/internal/domain"
 	"mal/internal/playback/proxytarget"
 	netutil "mal/pkg/net"
@@ -16,7 +16,7 @@ import (
 type playbackService struct {
 	repo          domain.PlaybackRepository
 	providers     []domain.Provider
-	jikan         *jikan.Client
+	metadata      *anilist.CachedClient
 	episodes      domain.EpisodeService
 	httpClient    *http.Client
 	proxyTokenKey string
@@ -28,11 +28,23 @@ type playbackService struct {
 
 type ProxyTokenKey string
 
-func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, jikan *jikan.Client, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
+func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, _ any, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
+	return newPlaybackService(repo, providers, nil, episodes, auditSvc, proxyTokenKey)
+}
+
+func NewPlaybackServiceWithMetadata(repo domain.PlaybackRepository, providers []domain.Provider, _ any, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
+	return newPlaybackService(repo, providers, metadata, episodes, auditSvc, proxyTokenKey)
+}
+
+func NewPlaybackServiceWithAniList(repo domain.PlaybackRepository, providers []domain.Provider, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
+	return newPlaybackService(repo, providers, metadata, episodes, auditSvc, proxyTokenKey)
+}
+
+func newPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
 	return &playbackService{
 		repo:          repo,
 		providers:     providers,
-		jikan:         jikan,
+		metadata:      metadata,
 		episodes:      episodes,
 		auditSvc:      auditSvc,
 		httpClient:    netutil.NewClient(),

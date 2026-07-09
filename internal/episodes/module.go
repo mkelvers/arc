@@ -4,27 +4,23 @@ package episodes
 import (
 	"mal/integrations/playback/allanime"
 	"mal/integrations/tvmaze"
-	"mal/internal/config"
+	rediscache "mal/internal/cache/redis"
 	"mal/internal/domain"
 	episodeService "mal/internal/episodes/service"
 
 	"go.uber.org/fx"
 )
 
-func episodeAvailabilityEnabled(cfg config.Config) bool {
-	return cfg.EpisodeAvailabilityMode != config.EpisodeAvailabilityModeLegacy && cfg.EpisodeAvailabilityMode != config.EpisodeAvailabilityModeJikan
-}
-
 var Module = fx.Options(
 	fx.Provide(
-		episodeAvailabilityEnabled,
 		tvmaze.NewClient,
 		fx.Annotate(
-			episodeService.NewEpisodeService,
+			episodeService.NewEpisodeServiceWithAniList,
 		),
 	),
-	fx.Provide(func(p *allanime.AllAnimeProvider) []domain.EpisodeAvailabilityProvider {
-		return []domain.EpisodeAvailabilityProvider{p}
+	fx.Provide(func() bool { return true }),
+	fx.Provide(func(p *allanime.AllAnimeProvider, cache *rediscache.Store) []domain.EpisodeAvailabilityProvider {
+		return []domain.EpisodeAvailabilityProvider{newCachedAvailabilityProvider(p, cache)}
 	}),
 	fx.Provide(func(p *tvmaze.Client) domain.EpisodeTitleProvider {
 		return p

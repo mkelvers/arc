@@ -31,7 +31,6 @@ func TestRunMigrationsCreatesHotPathIndexes(t *testing.T) {
 		"idx_watch_list_entry_user_status_updated_at_desc",
 		"idx_watch_list_entry_status_updated_at_anime_id",
 		"idx_continue_watching_anime_id",
-		"idx_jikan_cache_expires_at_datetime",
 	} {
 		t.Run(indexName, func(t *testing.T) {
 			var count int
@@ -156,32 +155,6 @@ func assertHistoricalCompletion(ctx context.Context, t *testing.T, sqlDB *sql.DB
 	}
 }
 
-func TestCleanupExpiredJikanCache(t *testing.T) {
-	sqlDB := newMigratedTestDB(t)
-	defer closeTestDB(t, sqlDB)
-
-	ctx := context.Background()
-	for _, row := range []struct {
-		key       string
-		expiresAt string
-	}{
-		{key: "expired", expiresAt: "2000-01-01T00:00:00Z"},
-		{key: "fresh", expiresAt: "2999-01-01T00:00:00Z"},
-	} {
-		_, err := sqlDB.ExecContext(ctx, `INSERT INTO jikan_cache (key, data, expires_at) VALUES (?, ?, ?)`, row.key, "{}", row.expiresAt)
-		if err != nil {
-			t.Fatalf("insert %s cache row: %v", row.key, err)
-		}
-	}
-
-	cleanupExpiredJikanCache(ctx, db.New(sqlDB))
-
-	keys := jikanCacheKeys(ctx, t, sqlDB)
-	if len(keys) != 1 || keys[0] != "fresh" {
-		t.Fatalf("remaining cache keys = %v, want [fresh]", keys)
-	}
-}
-
 func newMigratedTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
@@ -205,31 +178,4 @@ func closeTestDB(t *testing.T, sqlDB *sql.DB) {
 	if err := sqlDB.Close(); err != nil {
 		t.Errorf("close sqlite: %v", err)
 	}
-}
-
-func jikanCacheKeys(ctx context.Context, t *testing.T, sqlDB *sql.DB) []string {
-	t.Helper()
-
-	var keys []string
-	rows, err := sqlDB.QueryContext(ctx, `SELECT key FROM jikan_cache ORDER BY key`)
-	if err != nil {
-		t.Fatalf("query cache keys: %v", err)
-	}
-	defer func() {
-		if err := rows.Close(); err != nil {
-			t.Errorf("close rows: %v", err)
-		}
-	}()
-	for rows.Next() {
-		var key string
-		if err := rows.Scan(&key); err != nil {
-			t.Fatalf("scan key: %v", err)
-		}
-		keys = append(keys, key)
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatalf("iterate keys: %v", err)
-	}
-
-	return keys
 }

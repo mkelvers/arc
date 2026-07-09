@@ -209,140 +209,6 @@ FROM watch_list_entry e
 JOIN anime a ON e.anime_id = a.id
 WHERE e.user_id = ? AND e.status IN ('watching', 'plan_to_watch') AND a.airing = 1
 ORDER BY e.updated_at DESC;
--- name: UpsertAnimeRelation :exec
-INSERT INTO anime_relation (anime_id, related_anime_id, relation_type)
-VALUES (?, ?, ?)
-ON CONFLICT (anime_id, related_anime_id) DO UPDATE SET
-    relation_type = excluded.relation_type;
-
--- name: UpdateAnimeStatus :exec
-UPDATE anime SET status = ? WHERE id = ?;
-
--- name: MarkRelationsSynced :exec
-UPDATE anime SET relations_synced_at = CURRENT_TIMESTAMP WHERE id = ?;
-
--- name: GetAnimeNeedingRelationSync :many
-WITH RECURSIVE sequel_chain AS (
-    SELECT a.id, a.title_original, a.relations_synced_at, w.updated_at as base_updated_at, 0 as depth
-    FROM watch_list_entry w
-    JOIN anime a ON w.anime_id = a.id
-    WHERE w.status IN ('completed', 'watching')
-    
-    UNION
-    
-    SELECT a.id, a.title_original, a.relations_synced_at, sc.base_updated_at, sc.depth + 1
-    FROM sequel_chain sc
-    JOIN anime_relation r ON sc.id = r.anime_id AND r.relation_type = 'Sequel'
-    JOIN anime a ON r.related_anime_id = a.id
-    WHERE sc.depth < 10
-)
-SELECT id, title_original
-FROM sequel_chain
-WHERE relations_synced_at IS NULL OR relations_synced_at < datetime('now', '-7 days')
-GROUP BY id, title_original
-ORDER BY MAX(base_updated_at) DESC, MIN(depth) ASC
-LIMIT 50;
-
--- name: GetUpcomingSeasons :many
-WITH RECURSIVE sequel_chain AS (
-    SELECT 
-        w.anime_id as root_id, 
-        a.title_original as root_title, 
-        r.related_anime_id as current_id, 
-        1 as depth,
-        w.user_id
-    FROM watch_list_entry w
-    JOIN anime a ON w.anime_id = a.id
-    JOIN anime_relation r ON w.anime_id = r.anime_id
-    WHERE w.user_id = ? 
-      AND w.status IN ('completed', 'watching') 
-      AND r.relation_type = 'Sequel'
-
-    UNION
-
-    SELECT 
-        sc.root_id, 
-        sc.root_title, 
-        r.related_anime_id, 
-        sc.depth + 1,
-        sc.user_id
-    FROM sequel_chain sc
-    JOIN anime_relation r ON sc.current_id = r.anime_id
-    WHERE r.relation_type = 'Sequel' AND sc.depth < 10
-)
-SELECT DISTINCT
-    related.*,
-    sc.root_title AS prequel_title
-FROM sequel_chain sc
-JOIN anime related ON sc.current_id = related.id
-WHERE related.status IN ('Not yet aired', 'Currently Airing')
-  AND NOT EXISTS (
-      SELECT 1 FROM watch_list_entry we 
-      WHERE we.user_id = sc.user_id AND we.anime_id = related.id
-  )
-ORDER BY related.id DESC;
-
--- name: GetJikanCache :one
-SELECT data FROM jikan_cache
-WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1;
-
--- name: GetJikanCacheStale :one
-SELECT data FROM jikan_cache
-WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1;
-
--- name: GetJikanCacheStats :one
-SELECT
-    COUNT(*) AS total_rows,
-    COUNT(*) FILTER (WHERE datetime(expires_at) <= CURRENT_TIMESTAMP) AS expired_rows,
-    COALESCE(unixepoch(MIN(expires_at)), 0) AS oldest_expires_at_seconds
-FROM jikan_cache;
-
--- name: SetJikanCache :exec
-INSERT INTO jikan_cache (key, data, expires_at)
-VALUES (?, ?, ?)
-ON CONFLICT (key) DO UPDATE SET
-    data = excluded.data,
-    expires_at = excluded.expires_at,
-    created_at = CURRENT_TIMESTAMP;
-
--- name: DeleteExpiredJikanCache :exec
-DELETE FROM jikan_cache WHERE datetime(expires_at) <= CURRENT_TIMESTAMP;
-
--- name: EnqueueAnimeFetchRetry :exec
-INSERT INTO anime_fetch_retry (anime_id, attempts, next_retry_at, last_error, updated_at)
-VALUES (?, 0, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
-ON CONFLICT (anime_id) DO UPDATE SET
-    next_retry_at = CASE
-        WHEN anime_fetch_retry.next_retry_at > CURRENT_TIMESTAMP THEN anime_fetch_retry.next_retry_at
-        ELSE CURRENT_TIMESTAMP
-    END,
-    last_error = excluded.last_error,
-    updated_at = CURRENT_TIMESTAMP;
-
--- name: GetDueAnimeFetchRetries :many
-SELECT anime_id, attempts, next_retry_at, last_error, created_at, updated_at
-FROM anime_fetch_retry
-WHERE next_retry_at <= CURRENT_TIMESTAMP
-ORDER BY next_retry_at ASC
-LIMIT ?;
-
--- name: MarkAnimeFetchRetryFailed :exec
-UPDATE anime_fetch_retry
-SET attempts = attempts + 1,
-    next_retry_at = datetime(CURRENT_TIMESTAMP, ?),
-    last_error = ?,
-    updated_at = CURRENT_TIMESTAMP
-WHERE anime_id = ?;
-
--- name: DeleteAnimeFetchRetry :exec
-DELETE FROM anime_fetch_retry
-WHERE anime_id = ?;
-
--- name: CountPendingAnimeFetchRetries :one
-SELECT COUNT(*)
-FROM anime_fetch_retry
-WHERE next_retry_at <= CURRENT_TIMESTAMP;
-
 -- name: GetEpisodeAvailabilityCache :one
 SELECT anime_id, data, next_refresh_at, retry_until_at, last_attempt_at, last_success_at, failure_count, last_error, updated_at
 FROM episode_availability_cache
@@ -422,6 +288,21 @@ WHERE e.anime_id IS NULL OR e.next_refresh_at IS NULL OR e.next_refresh_at <= CU
 ORDER BY tracked.anime_id
 LIMIT ?;
 
--- name: GetAllCachedAnime :many
-SELECT data FROM jikan_cache
-WHERE key LIKE 'anime:%' AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1000;
+-- name: GetTrackedAiringAnimeIDs :many
+SELECT tracked.anime_id
+FROM (
+    SELECT DISTINCT w.anime_id
+    FROM watch_list_entry w
+    JOIN anime a ON a.id = w.anime_id
+    WHERE a.airing = 1
+      AND w.status IN ('watching', 'plan_to_watch')
+
+    UNION
+
+    SELECT DISTINCT c.anime_id
+    FROM continue_watching_entry c
+    JOIN anime a ON a.id = c.anime_id
+    WHERE a.airing = 1
+) AS tracked
+ORDER BY tracked.anime_id
+LIMIT ?;

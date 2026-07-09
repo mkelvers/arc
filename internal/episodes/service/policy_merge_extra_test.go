@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/domain"
 )
 
-func TestMergeEpisodesFiltersProviderBackedJikanToAvailableNumbers(t *testing.T) {
-	episodes := mergeEpisodes([]jikan.Episode{
+func TestMergeEpisodesFiltersProviderBackedProviderToAvailableNumbers(t *testing.T) {
+	episodes := mergeEpisodes([]metadata.Episode{
 		{Episode: "1", Title: "Available"},
 		{Episode: "2", Title: "Unavailable"},
 		{Episode: "3", Title: "Dubbed"},
@@ -67,7 +67,7 @@ func TestIsCanonicalEpisodePayloadValidRejectsOutOfRangeEpisodeNumber(t *testing
 
 func TestNextRefreshAtForFinishedAnimeIsEmpty(t *testing.T) {
 	now := time.Date(2026, 5, 16, 13, 0, 0, 0, time.UTC)
-	got := nextRefreshAt(domain.Anime{Anime: jikan.Anime{Airing: false}}, now)
+	got := nextRefreshAt(domain.Anime{Anime: metadata.Anime{Airing: false}}, now)
 
 	if got.Valid {
 		t.Fatalf("nextRefreshAt finished anime = %s, want invalid", got.Time)
@@ -75,7 +75,7 @@ func TestNextRefreshAtForFinishedAnimeIsEmpty(t *testing.T) {
 }
 
 func TestNextRefreshAtRetriesSoonAfterRecentBroadcast(t *testing.T) {
-	anime := domain.Anime{Anime: jikan.Anime{Airing: true}}
+	anime := domain.Anime{Anime: metadata.Anime{Airing: true}}
 	anime.Broadcast.Day = "Saturdays"
 	anime.Broadcast.Time = "12:00"
 	anime.Broadcast.Timezone = "UTC"
@@ -89,7 +89,7 @@ func TestNextRefreshAtRetriesSoonAfterRecentBroadcast(t *testing.T) {
 }
 
 func TestNextRefreshAtFallsBackWhenBroadcastMetadataMissing(t *testing.T) {
-	anime := domain.Anime{Anime: jikan.Anime{Airing: true}}
+	anime := domain.Anime{Anime: metadata.Anime{Airing: true}}
 	now := time.Date(2026, 5, 16, 13, 0, 0, 0, time.UTC)
 
 	got := nextRefreshAt(anime, now)
@@ -100,14 +100,14 @@ func TestNextRefreshAtFallsBackWhenBroadcastMetadataMissing(t *testing.T) {
 }
 
 func TestBroadcastHelpersRejectInvalidValues(t *testing.T) {
-	if day := weekdayFromJikan("someday"); day != -1 {
-		t.Fatalf("weekdayFromJikan invalid = %d, want -1", day)
+	if day := weekdayFromProvider("someday"); day != -1 {
+		t.Fatalf("weekdayFromProvider invalid = %d, want -1", day)
 	}
 	if _, _, ok := parseBroadcastTime("25:99"); ok {
 		t.Fatalf("parseBroadcastTime should reject invalid time")
 	}
 
-	anime := domain.Anime{Anime: jikan.Anime{MalID: 1}}
+	anime := domain.Anime{Anime: metadata.Anime{MalID: 1}}
 	anime.Broadcast.Day = "Saturdays"
 	anime.Broadcast.Time = "bad"
 	if got := nextBroadcastAfter(anime, time.Date(2026, 5, 16, 13, 0, 0, 0, time.UTC)); !got.IsZero() {

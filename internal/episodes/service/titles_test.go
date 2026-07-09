@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 
@@ -61,7 +61,7 @@ func TestEnrichEpisodeTitlesCachesTVmazeTitles(t *testing.T) {
 	sqlDB := newTitleTestDB(ctx, t)
 	provider := &titleProviderStub{}
 	svc := &EpisodeService{queries: db.New(sqlDB), titles: provider, clock: realClock{}}
-	anime := domain.Anime{Anime: jikan.Anime{
+	anime := domain.Anime{Anime: metadata.Anime{
 		MalID:        59846,
 		Title:        "Saigo ni Hitotsu dake Onegai shitemo Yoroshii deshou ka",
 		TitleEnglish: "May I Ask for One Final Thing?",

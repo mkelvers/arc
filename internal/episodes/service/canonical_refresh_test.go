@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"mal/integrations/jikan"
+	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 
@@ -266,7 +266,7 @@ func newEpisodeRefreshService(sqlDB *sql.DB, provider *episodeRefreshProviderStu
 }
 
 func episodeRefreshAnime() domain.Anime {
-	anime := domain.Anime{Anime: jikan.Anime{
+	anime := domain.Anime{Anime: metadata.Anime{
 		MalID:    59846,
 		Title:    "Test Anime",
 		Airing:   true,

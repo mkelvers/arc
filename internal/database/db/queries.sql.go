@@ -11,19 +11,6 @@ import (
 	"time"
 )
 
-const countPendingAnimeFetchRetries = `-- name: CountPendingAnimeFetchRetries :one
-SELECT COUNT(*)
-FROM anime_fetch_retry
-WHERE next_retry_at <= CURRENT_TIMESTAMP
-`
-
-func (q *Queries) CountPendingAnimeFetchRetries(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countPendingAnimeFetchRetries)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createAPIToken = `-- name: CreateAPIToken :one
 INSERT INTO api_token (id, user_id, token_hash, name)
 VALUES (?, ?, ?, ?)
@@ -124,16 +111,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	return i, err
 }
 
-const deleteAnimeFetchRetry = `-- name: DeleteAnimeFetchRetry :exec
-DELETE FROM anime_fetch_retry
-WHERE anime_id = ?
-`
-
-func (q *Queries) DeleteAnimeFetchRetry(ctx context.Context, animeID int64) error {
-	_, err := q.db.ExecContext(ctx, deleteAnimeFetchRetry, animeID)
-	return err
-}
-
 const deleteContinueWatchingEntry = `-- name: DeleteContinueWatchingEntry :exec
 DELETE FROM continue_watching_entry
 WHERE user_id = ? AND anime_id = ?
@@ -157,15 +134,6 @@ WHERE provider_show_id = ''
 
 func (q *Queries) DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteExpiredFailedEpisodeProviderMappings)
-	return err
-}
-
-const deleteExpiredJikanCache = `-- name: DeleteExpiredJikanCache :exec
-DELETE FROM jikan_cache WHERE datetime(expires_at) <= CURRENT_TIMESTAMP
-`
-
-func (q *Queries) DeleteExpiredJikanCache(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, deleteExpiredJikanCache)
 	return err
 }
 
@@ -193,28 +161,6 @@ func (q *Queries) DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListE
 	return err
 }
 
-const enqueueAnimeFetchRetry = `-- name: EnqueueAnimeFetchRetry :exec
-INSERT INTO anime_fetch_retry (anime_id, attempts, next_retry_at, last_error, updated_at)
-VALUES (?, 0, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)
-ON CONFLICT (anime_id) DO UPDATE SET
-    next_retry_at = CASE
-        WHEN anime_fetch_retry.next_retry_at > CURRENT_TIMESTAMP THEN anime_fetch_retry.next_retry_at
-        ELSE CURRENT_TIMESTAMP
-    END,
-    last_error = excluded.last_error,
-    updated_at = CURRENT_TIMESTAMP
-`
-
-type EnqueueAnimeFetchRetryParams struct {
-	AnimeID   int64  `json:"anime_id"`
-	LastError string `json:"last_error"`
-}
-
-func (q *Queries) EnqueueAnimeFetchRetry(ctx context.Context, arg EnqueueAnimeFetchRetryParams) error {
-	_, err := q.db.ExecContext(ctx, enqueueAnimeFetchRetry, arg.AnimeID, arg.LastError)
-	return err
-}
-
 const getAPITokenByHash = `-- name: GetAPITokenByHash :one
 SELECT id, user_id, token_hash, name, created_at, last_used_at, revoked_at FROM api_token
 WHERE token_hash = ? AND revoked_at IS NULL
@@ -234,34 +180,6 @@ func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiT
 		&i.RevokedAt,
 	)
 	return i, err
-}
-
-const getAllCachedAnime = `-- name: GetAllCachedAnime :many
-SELECT data FROM jikan_cache
-WHERE key LIKE 'anime:%' AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1000
-`
-
-func (q *Queries) GetAllCachedAnime(ctx context.Context) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, getAllCachedAnime)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var data string
-		if err := rows.Scan(&data); err != nil {
-			return nil, err
-		}
-		items = append(items, data)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getAnime = `-- name: GetAnime :one
@@ -284,57 +202,6 @@ func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
 		&i.DurationSeconds,
 	)
 	return i, err
-}
-
-const getAnimeNeedingRelationSync = `-- name: GetAnimeNeedingRelationSync :many
-WITH RECURSIVE sequel_chain AS (
-    SELECT a.id, a.title_original, a.relations_synced_at, w.updated_at as base_updated_at, 0 as depth
-    FROM watch_list_entry w
-    JOIN anime a ON w.anime_id = a.id
-    WHERE w.status IN ('completed', 'watching')
-    
-    UNION
-    
-    SELECT a.id, a.title_original, a.relations_synced_at, sc.base_updated_at, sc.depth + 1
-    FROM sequel_chain sc
-    JOIN anime_relation r ON sc.id = r.anime_id AND r.relation_type = 'Sequel'
-    JOIN anime a ON r.related_anime_id = a.id
-    WHERE sc.depth < 10
-)
-SELECT id, title_original
-FROM sequel_chain
-WHERE relations_synced_at IS NULL OR relations_synced_at < datetime('now', '-7 days')
-GROUP BY id, title_original
-ORDER BY MAX(base_updated_at) DESC, MIN(depth) ASC
-LIMIT 50
-`
-
-type GetAnimeNeedingRelationSyncRow struct {
-	ID            int64  `json:"id"`
-	TitleOriginal string `json:"title_original"`
-}
-
-func (q *Queries) GetAnimeNeedingRelationSync(ctx context.Context) ([]GetAnimeNeedingRelationSyncRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAnimeNeedingRelationSync)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetAnimeNeedingRelationSyncRow
-	for rows.Next() {
-		var i GetAnimeNeedingRelationSyncRow
-		if err := rows.Scan(&i.ID, &i.TitleOriginal); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getAuditLogsForUser = `-- name: GetAuditLogsForUser :many
@@ -563,44 +430,6 @@ func (q *Queries) GetContinueWatchingEntry(ctx context.Context, arg GetContinueW
 	return i, err
 }
 
-const getDueAnimeFetchRetries = `-- name: GetDueAnimeFetchRetries :many
-SELECT anime_id, attempts, next_retry_at, last_error, created_at, updated_at
-FROM anime_fetch_retry
-WHERE next_retry_at <= CURRENT_TIMESTAMP
-ORDER BY next_retry_at ASC
-LIMIT ?
-`
-
-func (q *Queries) GetDueAnimeFetchRetries(ctx context.Context, limit int64) ([]AnimeFetchRetry, error) {
-	rows, err := q.db.QueryContext(ctx, getDueAnimeFetchRetries, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AnimeFetchRetry
-	for rows.Next() {
-		var i AnimeFetchRetry
-		if err := rows.Scan(
-			&i.AnimeID,
-			&i.Attempts,
-			&i.NextRetryAt,
-			&i.LastError,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getEpisodeAvailabilityCache = `-- name: GetEpisodeAvailabilityCache :one
 SELECT anime_id, data, next_refresh_at, retry_until_at, last_attempt_at, last_success_at, failure_count, last_error, updated_at
 FROM episode_availability_cache
@@ -649,51 +478,6 @@ func (q *Queries) GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeP
 	return i, err
 }
 
-const getJikanCache = `-- name: GetJikanCache :one
-SELECT data FROM jikan_cache
-WHERE key = ? AND datetime(expires_at) > CURRENT_TIMESTAMP LIMIT 1
-`
-
-func (q *Queries) GetJikanCache(ctx context.Context, key string) (string, error) {
-	row := q.db.QueryRowContext(ctx, getJikanCache, key)
-	var data string
-	err := row.Scan(&data)
-	return data, err
-}
-
-const getJikanCacheStale = `-- name: GetJikanCacheStale :one
-SELECT data FROM jikan_cache
-WHERE key = ? AND datetime(expires_at) > datetime(CURRENT_TIMESTAMP, '-14 days') LIMIT 1
-`
-
-func (q *Queries) GetJikanCacheStale(ctx context.Context, key string) (string, error) {
-	row := q.db.QueryRowContext(ctx, getJikanCacheStale, key)
-	var data string
-	err := row.Scan(&data)
-	return data, err
-}
-
-const getJikanCacheStats = `-- name: GetJikanCacheStats :one
-SELECT
-    COUNT(*) AS total_rows,
-    COUNT(*) FILTER (WHERE datetime(expires_at) <= CURRENT_TIMESTAMP) AS expired_rows,
-    COALESCE(unixepoch(MIN(expires_at)), 0) AS oldest_expires_at_seconds
-FROM jikan_cache
-`
-
-type GetJikanCacheStatsRow struct {
-	TotalRows              int64       `json:"total_rows"`
-	ExpiredRows            int64       `json:"expired_rows"`
-	OldestExpiresAtSeconds interface{} `json:"oldest_expires_at_seconds"`
-}
-
-func (q *Queries) GetJikanCacheStats(ctx context.Context) (GetJikanCacheStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getJikanCacheStats)
-	var i GetJikanCacheStatsRow
-	err := row.Scan(&i.TotalRows, &i.ExpiredRows, &i.OldestExpiresAtSeconds)
-	return i, err
-}
-
 const getSession = `-- name: GetSession :one
 SELECT id, user_id, expires_at, created_at FROM session WHERE id = ? LIMIT 1
 `
@@ -708,6 +492,49 @@ func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getTrackedAiringAnimeIDs = `-- name: GetTrackedAiringAnimeIDs :many
+SELECT tracked.anime_id
+FROM (
+    SELECT DISTINCT w.anime_id
+    FROM watch_list_entry w
+    JOIN anime a ON a.id = w.anime_id
+    WHERE a.airing = 1
+      AND w.status IN ('watching', 'plan_to_watch')
+
+    UNION
+
+    SELECT DISTINCT c.anime_id
+    FROM continue_watching_entry c
+    JOIN anime a ON a.id = c.anime_id
+    WHERE a.airing = 1
+) AS tracked
+ORDER BY tracked.anime_id
+LIMIT ?
+`
+
+func (q *Queries) GetTrackedAiringAnimeIDs(ctx context.Context, limit int64) ([]int64, error) {
+	rows, err := q.db.QueryContext(ctx, getTrackedAiringAnimeIDs, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var anime_id int64
+		if err := rows.Scan(&anime_id); err != nil {
+			return nil, err
+		}
+		items = append(items, anime_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getTrackedAiringAnimeIDsDueForEpisodeRefresh = `-- name: GetTrackedAiringAnimeIDsDueForEpisodeRefresh :many
@@ -746,95 +573,6 @@ func (q *Queries) GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Conte
 			return nil, err
 		}
 		items = append(items, anime_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getUpcomingSeasons = `-- name: GetUpcomingSeasons :many
-WITH RECURSIVE sequel_chain AS (
-    SELECT 
-        w.anime_id as root_id, 
-        a.title_original as root_title, 
-        r.related_anime_id as current_id, 
-        1 as depth,
-        w.user_id
-    FROM watch_list_entry w
-    JOIN anime a ON w.anime_id = a.id
-    JOIN anime_relation r ON w.anime_id = r.anime_id
-    WHERE w.user_id = ? 
-      AND w.status IN ('completed', 'watching') 
-      AND r.relation_type = 'Sequel'
-
-    UNION
-
-    SELECT 
-        sc.root_id, 
-        sc.root_title, 
-        r.related_anime_id, 
-        sc.depth + 1,
-        sc.user_id
-    FROM sequel_chain sc
-    JOIN anime_relation r ON sc.current_id = r.anime_id
-    WHERE r.relation_type = 'Sequel' AND sc.depth < 10
-)
-SELECT DISTINCT
-    related.id, related.title_original, related.image_url, related.created_at, related.title_english, related.title_japanese, related.airing, related.status, related.relations_synced_at, related.duration_seconds,
-    sc.root_title AS prequel_title
-FROM sequel_chain sc
-JOIN anime related ON sc.current_id = related.id
-WHERE related.status IN ('Not yet aired', 'Currently Airing')
-  AND NOT EXISTS (
-      SELECT 1 FROM watch_list_entry we 
-      WHERE we.user_id = sc.user_id AND we.anime_id = related.id
-  )
-ORDER BY related.id DESC
-`
-
-type GetUpcomingSeasonsRow struct {
-	ID                int64           `json:"id"`
-	TitleOriginal     string          `json:"title_original"`
-	ImageUrl          string          `json:"image_url"`
-	CreatedAt         time.Time       `json:"created_at"`
-	TitleEnglish      sql.NullString  `json:"title_english"`
-	TitleJapanese     sql.NullString  `json:"title_japanese"`
-	Airing            sql.NullBool    `json:"airing"`
-	Status            sql.NullString  `json:"status"`
-	RelationsSyncedAt sql.NullTime    `json:"relations_synced_at"`
-	DurationSeconds   sql.NullFloat64 `json:"duration_seconds"`
-	PrequelTitle      string          `json:"prequel_title"`
-}
-
-func (q *Queries) GetUpcomingSeasons(ctx context.Context, userID string) ([]GetUpcomingSeasonsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getUpcomingSeasons, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetUpcomingSeasonsRow
-	for rows.Next() {
-		var i GetUpcomingSeasonsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.TitleOriginal,
-			&i.ImageUrl,
-			&i.CreatedAt,
-			&i.TitleEnglish,
-			&i.TitleJapanese,
-			&i.Airing,
-			&i.Status,
-			&i.RelationsSyncedAt,
-			&i.DurationSeconds,
-			&i.PrequelTitle,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -1074,26 +812,6 @@ func (q *Queries) GetWatchingAnime(ctx context.Context, userID string) ([]GetWat
 	return items, nil
 }
 
-const markAnimeFetchRetryFailed = `-- name: MarkAnimeFetchRetryFailed :exec
-UPDATE anime_fetch_retry
-SET attempts = attempts + 1,
-    next_retry_at = datetime(CURRENT_TIMESTAMP, ?),
-    last_error = ?,
-    updated_at = CURRENT_TIMESTAMP
-WHERE anime_id = ?
-`
-
-type MarkAnimeFetchRetryFailedParams struct {
-	Datetime  interface{} `json:"datetime"`
-	LastError string      `json:"last_error"`
-	AnimeID   int64       `json:"anime_id"`
-}
-
-func (q *Queries) MarkAnimeFetchRetryFailed(ctx context.Context, arg MarkAnimeFetchRetryFailedParams) error {
-	_, err := q.db.ExecContext(ctx, markAnimeFetchRetryFailed, arg.Datetime, arg.LastError, arg.AnimeID)
-	return err
-}
-
 const markEpisodeAvailabilityRefreshFailed = `-- name: MarkEpisodeAvailabilityRefreshFailed :exec
 UPDATE episode_availability_cache
 SET last_attempt_at = ?,
@@ -1121,15 +839,6 @@ func (q *Queries) MarkEpisodeAvailabilityRefreshFailed(ctx context.Context, arg 
 		arg.RetryUntilAt,
 		arg.AnimeID,
 	)
-	return err
-}
-
-const markRelationsSynced = `-- name: MarkRelationsSynced :exec
-UPDATE anime SET relations_synced_at = CURRENT_TIMESTAMP WHERE id = ?
-`
-
-func (q *Queries) MarkRelationsSynced(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, markRelationsSynced, id)
 	return err
 }
 
@@ -1184,26 +893,6 @@ func (q *Queries) SaveWatchProgress(ctx context.Context, arg SaveWatchProgressPa
 	return err
 }
 
-const setJikanCache = `-- name: SetJikanCache :exec
-INSERT INTO jikan_cache (key, data, expires_at)
-VALUES (?, ?, ?)
-ON CONFLICT (key) DO UPDATE SET
-    data = excluded.data,
-    expires_at = excluded.expires_at,
-    created_at = CURRENT_TIMESTAMP
-`
-
-type SetJikanCacheParams struct {
-	Key       string    `json:"key"`
-	Data      string    `json:"data"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
-
-func (q *Queries) SetJikanCache(ctx context.Context, arg SetJikanCacheParams) error {
-	_, err := q.db.ExecContext(ctx, setJikanCache, arg.Key, arg.Data, arg.ExpiresAt)
-	return err
-}
-
 const touchAPITokenLastUsedAt = `-- name: TouchAPITokenLastUsedAt :exec
 UPDATE api_token
 SET last_used_at = CURRENT_TIMESTAMP
@@ -1212,20 +901,6 @@ WHERE id = ?
 
 func (q *Queries) TouchAPITokenLastUsedAt(ctx context.Context, id string) error {
 	_, err := q.db.ExecContext(ctx, touchAPITokenLastUsedAt, id)
-	return err
-}
-
-const updateAnimeStatus = `-- name: UpdateAnimeStatus :exec
-UPDATE anime SET status = ? WHERE id = ?
-`
-
-type UpdateAnimeStatusParams struct {
-	Status sql.NullString `json:"status"`
-	ID     int64          `json:"id"`
-}
-
-func (q *Queries) UpdateAnimeStatus(ctx context.Context, arg UpdateAnimeStatusParams) error {
-	_, err := q.db.ExecContext(ctx, updateAnimeStatus, arg.Status, arg.ID)
 	return err
 }
 
@@ -1276,24 +951,6 @@ func (q *Queries) UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime
 		&i.DurationSeconds,
 	)
 	return i, err
-}
-
-const upsertAnimeRelation = `-- name: UpsertAnimeRelation :exec
-INSERT INTO anime_relation (anime_id, related_anime_id, relation_type)
-VALUES (?, ?, ?)
-ON CONFLICT (anime_id, related_anime_id) DO UPDATE SET
-    relation_type = excluded.relation_type
-`
-
-type UpsertAnimeRelationParams struct {
-	AnimeID        int64  `json:"anime_id"`
-	RelatedAnimeID int64  `json:"related_anime_id"`
-	RelationType   string `json:"relation_type"`
-}
-
-func (q *Queries) UpsertAnimeRelation(ctx context.Context, arg UpsertAnimeRelationParams) error {
-	_, err := q.db.ExecContext(ctx, upsertAnimeRelation, arg.AnimeID, arg.RelatedAnimeID, arg.RelationType)
-	return err
 }
 
 const upsertContinueWatchingEntry = `-- name: UpsertContinueWatchingEntry :one
