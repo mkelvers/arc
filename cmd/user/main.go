@@ -10,6 +10,7 @@ import (
 	"io"
 	"mal/internal"
 	"mal/internal/config"
+	"mal/internal/database"
 	"mal/internal/database/db"
 	"mal/internal/observability"
 	"os"
@@ -57,7 +58,7 @@ func run(args []string) error {
 	}
 	defer sqlDB.Close()
 
-	if err := internal.RunMigrationsAndFixes(sqlDB); err != nil {
+	if err := database.RunPostgresMigrations(sqlDB); err != nil {
 		return fmt.Errorf("prepare database: %w", err)
 	}
 
@@ -71,7 +72,7 @@ func runFixes() error {
 	}
 	defer sqlDB.Close()
 
-	if err := internal.RunMigrationsAndFixes(sqlDB); err != nil {
+	if err := database.RunPostgresMigrations(sqlDB); err != nil {
 		return fmt.Errorf("run migrations and fixes: %w", err)
 	}
 	fmt.Println("Database migrations and fixes complete")
@@ -84,9 +85,12 @@ func openDatabase() (*sql.DB, error) {
 		return nil, fmt.Errorf("load config: %w", err)
 	}
 
-	sqlDB, err := db.Open(cfg.DatabaseFile)
+	if cfg.DatabaseURL == "" {
+		return nil, errors.New("DATABASE_URL must be configured")
+	}
+	sqlDB, err := db.OpenPostgres(cfg.DatabaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, fmt.Errorf("open PostgreSQL database: %w", err)
 	}
 	return sqlDB, nil
 }
