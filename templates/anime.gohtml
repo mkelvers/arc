@@ -150,13 +150,13 @@
                       <dd class="text-foreground">{{formatNumber $anime.Favorites}}</dd>
                     </div>
                   {{end}}
+                  {{if $anime.ScoredBy}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
+                      <dd class="text-foreground">{{formatNumber $anime.ScoredBy}} users</dd>
+                    </div>
+                  {{end}}
                 </div>
-                {{if $anime.ScoredBy}}
-                  <div>
-                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
-                    <dd class="text-foreground">{{formatNumber $anime.ScoredBy}} users</dd>
-                  </div>
-                {{end}}
               </dl>
             </section>
 
@@ -269,13 +269,13 @@
                       <dd class="text-foreground">{{formatNumber $anime.Favorites}}</dd>
                     </div>
                   {{end}}
+                  {{if $anime.ScoredBy}}
+                    <div>
+                      <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
+                      <dd class="text-foreground">{{formatNumber $anime.ScoredBy}} users</dd>
+                    </div>
+                  {{end}}
                 </div>
-                {{if $anime.ScoredBy}}
-                  <div>
-                    <dt class="mb-1 text-xs font-normal text-foreground-muted">Scored By</dt>
-                    <dd class="text-foreground">{{formatNumber $anime.ScoredBy}} users</dd>
-                  </div>
-                {{end}}
               </dl>
             </section>
 
