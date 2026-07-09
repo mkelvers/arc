@@ -3,6 +3,7 @@ package watchorder
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -50,10 +51,16 @@ func (e *HTTPStatusError) Error() string {
 }
 
 type WatchOrderEntry struct {
-	ID       int    `json:"id"`                  // MAL anime ID
-	Type     string `json:"type"`                // anime type label (e.g. "TV", "Movie")
-	Title    string `json:"title"`               // primary title
-	TitleAlt string `json:"title_alt,omitempty"` // alternative title
+	ID           int            `json:"id"`                   // MAL anime ID
+	AniListID    int            `json:"anilist_id,omitempty"` // AniList anime ID when available
+	Type         string         `json:"type"`                 // anime type label (e.g. "TV", "Movie")
+	Title        string         `json:"title"`                // primary title
+	TitleAlt     string         `json:"title_alt,omitempty"`  // alternative title
+	Episodes     int            `json:"episodes,omitempty"`
+	DurationSecs int            `json:"duration_seconds,omitempty"`
+	AirDate      string         `json:"air_date,omitempty"`
+	Secondary    bool           `json:"secondary,omitempty"`
+	Relations    map[int]string `json:"relations,omitempty"`
 }
 
 type WatchOrderResult struct {
@@ -63,9 +70,15 @@ type WatchOrderResult struct {
 
 type watchOrderRow struct {
 	id               int
+	aniListID        int
 	typeID           int
 	title            string
 	alternativeTitle string
+	episodes         int
+	durationSecs     int
+	airDate          string
+	secondary        bool
+	relations        map[int]string
 }
 
 func parseRootID(url string) (int, error) {
@@ -157,12 +170,35 @@ func extractRows(doc *goquery.Document) []watchOrderRow {
 
 		title := strings.TrimSpace(selection.Find(".wo_title").First().Text())
 		alt := strings.TrimSpace(selection.Find(".uk-text-small").First().Text())
+		aniListID, _ := parseAttrInt(selection, "data-anilist-id")
+		episodes, _ := parseAttrInt(selection, "data-eps")
+		durationSecs, _ := parseAttrInt(selection, "data-duration")
+		meta := strings.TrimSpace(selection.Find(".wo_meta").First().Text())
+		airDate := meta
+		if parts := strings.SplitN(meta, "|", 2); len(parts) > 0 {
+			airDate = strings.TrimSpace(parts[0])
+		}
+		var related map[string]string
+		_ = json.Unmarshal([]byte(selection.AttrOr("data-related", "{}")), &related)
+		relations := make(map[int]string, len(related))
+		for rawID, relation := range related {
+			relatedID, err := strconv.Atoi(rawID)
+			if err == nil && relatedID > 0 {
+				relations[relatedID] = relation
+			}
+		}
 
 		rows = append(rows, watchOrderRow{
 			id:               id,
+			aniListID:        aniListID,
 			typeID:           typeID,
 			title:            title,
 			alternativeTitle: alt,
+			episodes:         episodes,
+			durationSecs:     durationSecs,
+			airDate:          airDate,
+			secondary:        selection.HasClass("wo_row_secondary"),
+			relations:        relations,
 		})
 	})
 
@@ -370,10 +406,16 @@ func FetchWatchOrder(ctx context.Context, httpClient *http.Client, url string) (
 		typeName := strings.TrimSpace(typeByID[row.typeID])
 
 		entries = append(entries, WatchOrderEntry{
-			ID:       row.id,
-			Type:     typeName,
-			Title:    row.title,
-			TitleAlt: row.alternativeTitle,
+			ID:           row.id,
+			AniListID:    row.aniListID,
+			Type:         typeName,
+			Title:        row.title,
+			TitleAlt:     row.alternativeTitle,
+			Episodes:     row.episodes,
+			DurationSecs: row.durationSecs,
+			AirDate:      row.airDate,
+			Secondary:    row.secondary,
+			Relations:    row.relations,
 		})
 	}
 

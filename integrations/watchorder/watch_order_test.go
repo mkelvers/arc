@@ -32,10 +32,11 @@ func testHTMLWithMetadata() string {
       <label><input type="checkbox" value="3" checked> Movie</label>
     </div>
     <table id="wo_list">
-      <tr data-id="442" data-anilist-id="442" data-type="3">
+      <tr data-id="442" data-anilist-id="442" data-type="3" data-eps="1" data-duration="5100" data-related='{"1535":"Parent Story"}'>
         <td>
           <span class="wo_title">Naruto Movie 1</span>
           <span class="uk-text-small">Naruto the Movie 1</span>
+          <span class="wo_meta">Aug 21, 2004 | Movie | 1ep × 1hr. 25min.</span>
         </td>
       </tr>
     </table>
@@ -57,6 +58,7 @@ func testHTMLEmptyRows() string {
 </html>`
 }
 
+//nolint:cyclop // The fixture asserts the complete parser output shape.
 func TestFetchWatchOrder_OutputShape(t *testing.T) {
 	client := &http.Client{
 		Timeout: time.Second,
@@ -94,6 +96,12 @@ func TestFetchWatchOrder_OutputShape(t *testing.T) {
 	}
 	if entry.TitleAlt != "Naruto the Movie 1" {
 		t.Fatalf("expected title_alt Naruto the Movie 1, got %q", entry.TitleAlt)
+	}
+	if entry.AniListID != 442 || entry.Episodes != 1 || entry.DurationSecs != 5100 || entry.AirDate != "Aug 21, 2004" {
+		t.Fatalf("unexpected metadata: %+v", entry)
+	}
+	if entry.Relations[1535] != "Parent Story" {
+		t.Fatalf("unexpected relations: %+v", entry.Relations)
 	}
 }
 
