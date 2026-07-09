@@ -224,11 +224,16 @@ type fakePlaybackRepository struct {
 	watchlistErr          error
 	upsertWatchlistCalled bool
 
-	upsertedAnime     db.UpsertAnimeParams
-	upsertedContinue  db.UpsertContinueWatchingEntryParams
-	upsertedWatchlist db.UpsertWatchListEntryParams
-	watchlistEntry    db.WatchListEntry
-	continueEntry     db.ContinueWatchingEntry
+	upsertedAnime                db.UpsertAnimeParams
+	upsertedContinue             db.UpsertContinueWatchingEntryParams
+	upsertedWatchlist            db.UpsertWatchListEntryParams
+	watchlistEntry               db.WatchListEntry
+	continueEntry                db.ContinueWatchingEntry
+	getAnimeFunc                 func(context.Context, int64) (db.Anime, error)
+	getWatchListEntryFunc        func(context.Context, db.GetWatchListEntryParams) (db.WatchListEntry, error)
+	getContinueWatchingEntryFunc func(context.Context, db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
+	listSkipSegmentOverridesFunc func(context.Context, string, int64, int64) ([]db.SkipSegmentOverrideRow, error)
+	hasSkipSegmentOverrideFunc   func(context.Context) (bool, error)
 }
 
 func (r *fakePlaybackRepository) InTx(ctx context.Context, fn func(context.Context, domain.PlaybackRepository) error) error {
@@ -242,21 +247,30 @@ func (r *fakePlaybackRepository) UpsertAnime(_ context.Context, params db.Upsert
 	return db.Anime{ID: params.ID, TitleOriginal: params.TitleOriginal}, nil
 }
 
-func (r *fakePlaybackRepository) GetAnime(context.Context, int64) (db.Anime, error) {
+func (r *fakePlaybackRepository) GetAnime(ctx context.Context, id int64) (db.Anime, error) {
+	if r.getAnimeFunc != nil {
+		return r.getAnimeFunc(ctx, id)
+	}
 	if r.getAnimeErr != nil {
 		return db.Anime{}, r.getAnimeErr
 	}
 	return db.Anime{ID: 12, TitleOriginal: "Anime 12"}, nil
 }
 
-func (r *fakePlaybackRepository) GetWatchListEntry(context.Context, db.GetWatchListEntryParams) (db.WatchListEntry, error) {
+func (r *fakePlaybackRepository) GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error) {
+	if r.getWatchListEntryFunc != nil {
+		return r.getWatchListEntryFunc(ctx, params)
+	}
 	if r.watchlistErr != nil {
 		return db.WatchListEntry{}, r.watchlistErr
 	}
 	return r.watchlistEntry, nil
 }
 
-func (r *fakePlaybackRepository) GetContinueWatchingEntry(context.Context, db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error) {
+func (r *fakePlaybackRepository) GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error) {
+	if r.getContinueWatchingEntryFunc != nil {
+		return r.getContinueWatchingEntryFunc(ctx, params)
+	}
 	return r.continueEntry, nil
 }
 
@@ -282,7 +296,10 @@ func (r *fakePlaybackRepository) DeleteContinueWatchingEntry(context.Context, db
 	return nil
 }
 
-func (r *fakePlaybackRepository) ListSkipSegmentOverrides(context.Context, string, int64, int64) ([]db.SkipSegmentOverrideRow, error) {
+func (r *fakePlaybackRepository) ListSkipSegmentOverrides(ctx context.Context, userID string, animeID int64, episode int64) ([]db.SkipSegmentOverrideRow, error) {
+	if r.listSkipSegmentOverridesFunc != nil {
+		return r.listSkipSegmentOverridesFunc(ctx, userID, animeID, episode)
+	}
 	return nil, nil
 }
 
@@ -290,7 +307,10 @@ func (r *fakePlaybackRepository) UpsertSkipSegmentOverride(context.Context, db.S
 	return nil
 }
 
-func (r *fakePlaybackRepository) HasSkipSegmentOverrideTable(context.Context) (bool, error) {
+func (r *fakePlaybackRepository) HasSkipSegmentOverrideTable(ctx context.Context) (bool, error) {
+	if r.hasSkipSegmentOverrideFunc != nil {
+		return r.hasSkipSegmentOverrideFunc(ctx)
+	}
 	return true, nil
 }
 
