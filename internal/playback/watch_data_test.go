@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"net/http"
 	"strings"

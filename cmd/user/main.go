@@ -10,7 +10,7 @@ import (
 	"io"
 	"mal/internal"
 	"mal/internal/config"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/observability"
 	"os"
 	"strings"

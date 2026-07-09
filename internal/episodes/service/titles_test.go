@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"mal/integrations/jikan"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 
 	_ "github.com/mattn/go-sqlite3"

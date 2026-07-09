@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"mal/integrations/jikan"
 	"mal/internal/config"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	errlog "mal/pkg"
 )
 

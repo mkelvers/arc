@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/observability"
 	"time"
 

@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"strings"

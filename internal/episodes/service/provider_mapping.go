@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )

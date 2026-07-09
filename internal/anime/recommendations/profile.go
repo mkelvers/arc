@@ -2,7 +2,7 @@ package recommendations
 
 import (
 	"mal/integrations/jikan"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"math"
 	"sort"
 	"strings"

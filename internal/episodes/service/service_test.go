@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"mal/integrations/jikan"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"testing"
 	"time"

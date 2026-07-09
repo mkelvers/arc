@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"mal/internal/config"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"net/http"
 	"strings"
 	"testing"

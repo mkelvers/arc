@@ -9,7 +9,7 @@ import (
 
 	"mal/internal/audit"
 	"mal/internal/database"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 )
 

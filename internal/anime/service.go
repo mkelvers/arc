@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"mal/integrations/jikan"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"math/rand"
 	"strings"

@@ -1,7 +1,7 @@
 package recommendations
 
 import (
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"sort"
 	"sync"
 )

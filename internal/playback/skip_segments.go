@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	errlog "mal/pkg"
 	netutil "mal/pkg/net"

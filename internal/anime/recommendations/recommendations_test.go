@@ -3,7 +3,7 @@ package recommendations
 import (
 	"database/sql"
 	"mal/integrations/jikan"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"slices"
 	"testing"

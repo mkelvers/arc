@@ -2,7 +2,7 @@ package anime
 
 import (
 	"context"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"testing"
 )
 

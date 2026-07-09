@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 
 	"github.com/gin-gonic/gin"

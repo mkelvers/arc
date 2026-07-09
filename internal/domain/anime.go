@@ -4,7 +4,7 @@ package domain
 import (
 	"context"
 	"mal/integrations/jikan"
-	"mal/internal/db"
+	"mal/internal/database/db"
 )
 
 type Anime struct {

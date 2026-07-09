@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 
 	"golang.org/x/crypto/bcrypt"

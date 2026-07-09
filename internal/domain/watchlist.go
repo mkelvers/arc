@@ -2,7 +2,7 @@ package domain
 
 import (
 	"context"
-	"mal/internal/db"
+	"mal/internal/database/db"
 )
 
 type WatchlistEntry = db.WatchListEntry

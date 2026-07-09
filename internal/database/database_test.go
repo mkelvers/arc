@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"database/sql"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"

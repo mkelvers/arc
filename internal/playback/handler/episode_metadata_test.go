@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/domain"
 	"net/http"
 	"net/http/httptest"

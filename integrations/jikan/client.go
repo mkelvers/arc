@@ -13,7 +13,7 @@ import (
 	"mal/integrations/jikan/rate"
 	jtransport "mal/integrations/jikan/transport"
 	"mal/internal/config"
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/observability"
 
 	"golang.org/x/sync/singleflight"

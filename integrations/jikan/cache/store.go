@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"mal/internal/db"
+	"mal/internal/database/db"
 	"mal/internal/observability"
 )
 

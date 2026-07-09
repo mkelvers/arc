@@ -6,8 +6,8 @@ import (
 	"embed"
 	"fmt"
 	"mal/internal/config"
+	"mal/internal/database/db"
 	dbfixes "mal/internal/database/fixes"
-	"mal/internal/db"
 	"mal/internal/observability"
 
 	"github.com/pressly/goose/v3"
