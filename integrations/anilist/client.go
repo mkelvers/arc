@@ -10,6 +10,7 @@ import (
 	"io"
 	"mal/integrations/metadata"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -60,7 +61,37 @@ func (c *Client) GetAnimeByMALID(ctx context.Context, id int) (Anime, error) {
 	if response.Data.Media == nil {
 		return Anime{}, fmt.Errorf("anilist: anime with MAL ID %d not found", id)
 	}
-	return mapAnime(*response.Data.Media), nil
+	anime := mapAnime(*response.Data.Media)
+	producers, err := c.getProducerCompanies(ctx, id)
+	if err != nil {
+		return Anime{}, err
+	}
+	anime.Producers = producers
+	return anime, nil
+}
+
+func (c *Client) getProducerCompanies(ctx context.Context, id int) ([]Producer, error) {
+	response, err := c.query(ctx, `query ($idMal: Int) { Media(idMal: $idMal, type: ANIME) { studios(isMain: false) { nodes { name } } } }`, map[string]any{"idMal": id})
+	if err != nil {
+		return nil, err
+	}
+	if response.Data.Media == nil {
+		return nil, fmt.Errorf("anilist: anime with MAL ID %d not found while loading producers", id)
+	}
+
+	producers := make([]Producer, 0, len(response.Data.Media.Studios.Nodes))
+	for _, studio := range response.Data.Media.Studios.Nodes {
+		producers = appendUniqueProducer(producers, studio.Name)
+	}
+	return producers, nil
+}
+
+func (c *Client) GetGenres(ctx context.Context) ([]string, error) {
+	response, err := c.query(ctx, "query { GenreCollection }", nil)
+	if err != nil {
+		return nil, err
+	}
+	return response.Data.GenreCollection, nil
 }
 
 func (c *Client) GetAnimeBatchByMALID(ctx context.Context, ids []int) ([]Anime, error) {
@@ -310,6 +341,7 @@ func mapAnime(raw media) Anime {
 			result.PopularityRank = ranking.Rank
 		case "highest rated all time":
 			result.Rank = ranking.Rank
+			result.RankLabel = "Highest Rated All Time"
 		}
 	}
 	if result.CoverImage == "" {
@@ -322,12 +354,43 @@ func mapAnime(raw media) Anime {
 		result.Characters = append(result.Characters, Character{ID: item.Node.ID, Name: item.Node.Name.Full, Role: item.Role, Image: item.Node.Image.Large})
 	}
 	for _, item := range raw.Staff.Edges {
-		result.Staff = append(result.Staff, Staff{ID: item.Node.ID, Name: item.Node.Name.Full, Position: item.Role})
+		staff := Staff{ID: item.Node.ID, Name: item.Node.Name.Full, Position: item.Role}
+		result.Staff = append(result.Staff, staff)
 	}
 	for _, item := range raw.Relations.Edges {
 		result.Relations = append(result.Relations, Relation{Type: item.RelationType, Anime: mapSummaryFromRelation(item.Node)})
 	}
 	return result
+}
+
+func appendUniqueProducer(producers []Producer, name string) []Producer {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return producers
+	}
+	for _, producer := range producers {
+		if producer.Name == name {
+			return producers
+		}
+	}
+	return append(producers, Producer{Name: name})
+}
+
+func topTags(tags []Tag, limit int) []Tag {
+	filtered := make([]Tag, 0, len(tags))
+	for _, tag := range tags {
+		if tag.Name == "" || tag.IsGeneralSpoiler || tag.IsMediaSpoiler {
+			continue
+		}
+		filtered = append(filtered, tag)
+	}
+	sort.SliceStable(filtered, func(i, j int) bool {
+		return filtered[i].Rank > filtered[j].Rank
+	})
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+	return filtered
 }
 
 func mapSummary(raw media) AnimeSummary {
@@ -408,4 +471,4 @@ func mediaSort(orderBy, direction string) string {
 var _ = strconv.Itoa
 
 const summaryMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format startDate { year } coverImage { extraLarge large }`
-const fullMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format status startDate { year month day } endDate { year month day } season seasonYear episodes duration countryOfOrigin source coverImage { extraLarge large } bannerImage genres tags { name rank } synonyms averageScore meanScore popularity favourites stats { scoreDistribution { amount } } rankings { rank type context season year } updatedAt isAdult nextAiringEpisode { airingAt episode } studios(isMain: true) { nodes { id name } } characters(perPage: 25) { edges { role node { id name { full } image { large } } } } staff(perPage: 25) { edges { role node { id name { full } } } } relations { edges { relationType node { id idMal type format title { romaji english native userPreferred } startDate { year } coverImage { extraLarge large } } } } externalLinks { site url }`
+const fullMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format status startDate { year month day } endDate { year month day } season seasonYear episodes duration countryOfOrigin source coverImage { extraLarge large } bannerImage genres tags { id name rank isGeneralSpoiler isMediaSpoiler } synonyms averageScore meanScore popularity favourites stats { scoreDistribution { amount } } rankings { rank type context season year } updatedAt isAdult nextAiringEpisode { airingAt episode } studios(isMain: true) { nodes { id name } } characters(perPage: 25) { edges { role node { id name { full } image { large } } } } staff(perPage: 50) { edges { role node { id name { full } } } } relations { edges { relationType node { id idMal type format title { romaji english native userPreferred } startDate { year } coverImage { extraLarge large } } } } externalLinks { site url }`
