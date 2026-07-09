@@ -196,6 +196,17 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		return
 	}
 
+	genresList, err := h.svc.GetGenres(c.Request.Context())
+	if err != nil {
+		observability.WarnContext(c.Request.Context(),
+			"genres_fetch_failed",
+			"anime",
+			"",
+			map[string]any{"q": query.q, "type": query.animeType, "status": query.status},
+			err,
+		)
+	}
+
 	res, err := h.searchBrowse(c.Request.Context(), query)
 	if err != nil {
 		h.respondBrowseSearchError(c, query, err)
@@ -211,16 +222,6 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 		return
 	}
 
-	genresList, err := h.svc.GetGenres(c.Request.Context())
-	if err != nil {
-		observability.WarnContext(c.Request.Context(),
-			"genres_fetch_failed",
-			"anime",
-			"",
-			map[string]any{"q": query.q, "type": query.animeType, "status": query.status},
-			err,
-		)
-	}
 	browseData := browseTemplateData(query, "", genresList, animes, user, watchlistMap, res.HasNextPage)
 
 	if c.GetHeader("HX-Request") == "true" {
