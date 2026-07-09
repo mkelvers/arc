@@ -62,6 +62,39 @@ func TestHandleEpisodeDataRequestsForcedSourceRefresh(t *testing.T) {
 	}
 }
 
+func TestHandleEpisodeDataReturnsUnavailablePayloadOnBuildFailure(t *testing.T) {
+	svc := &watchPagePlaybackService{
+		data: baseWatchPageData(),
+		err:  errors.New("no episode availability provider matched anime_id=123"),
+	}
+	h := &PlaybackHandler{svc: svc}
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/api/watch/episode/:animeId/:episode", h.HandleEpisodeData)
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/watch/episode/123/1?mode=dub&refresh=1", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	for _, want := range []string{
+		`"unavailable":true`,
+		`"mode_sources":{}`,
+		`"initial_mode":"dub"`,
+		`We couldn't find a playable source for this title right now.`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("episode data response missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "no episode availability provider matched") {
+		t.Fatalf("private provider error leaked to response:\n%s", body)
+	}
+}
+
 func TestHandleEpisodeTitlesReturnsMinimalEnrichedList(t *testing.T) {
 	svc := &watchPagePlaybackService{titles: []domain.CanonicalEpisode{
 		{Number: 1, Title: "The First Title", HasSub: true},
@@ -152,7 +185,7 @@ func newWatchPageRouter(t *testing.T, h *PlaybackHandler) *gin.Engine {
 	return router
 }
 
-func TestHandleWatchPagePreservesPartialDataOnPlaybackFailure(t *testing.T) {
+func TestHandleWatchPageRendersUnavailableStateOnPlaybackFailure(t *testing.T) {
 	t.Parallel()
 
 	router := newWatchPageRouter(t, &PlaybackHandler{
@@ -172,23 +205,29 @@ func TestHandleWatchPagePreservesPartialDataOnPlaybackFailure(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	if !strings.Contains(body, `data-mal-id="123"`) {
-		t.Fatalf("expected player MAL id in body, got:\n%s", body)
+	for _, want := range []string{
+		`data-playback-unavailable`,
+		`data-mal-id="123"`,
+		`Try again`,
+		`Anime details`,
+		`We couldn&#39;t find a playable source for this title right now.`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("watch page missing %q in body:\n%s", want, body)
+		}
 	}
-	if !strings.Contains(body, `data-episode-id="1"`) {
-		t.Fatalf("expected episode list in body, got:\n%s", body)
-	}
-	if !strings.Contains(body, `data-playback-error="failed to load playback data"`) {
-		t.Fatalf("expected stable playback error data attribute in body, got:\n%s", body)
-	}
-	if strings.Contains(body, "no streams found") {
-		t.Fatalf("expected private playback error to stay out of body, got:\n%s", body)
-	}
-	if !strings.Contains(body, `/anime/123/watch?ep=2`) {
-		t.Fatalf("expected episode links to keep the anime id, got:\n%s", body)
-	}
-	if strings.Contains(body, "No episodes found") {
-		t.Fatalf("expected partial episode list instead of empty state, got:\n%s", body)
+	for _, unwanted := range []string{
+		`data-video-player`,
+		`data-playback-error`,
+		`data-episode-id=`,
+		`Playback unavailable`,
+		`Episode 1`,
+		`no streams found`,
+		`No episodes found`,
+	} {
+		if strings.Contains(body, unwanted) {
+			t.Fatalf("watch page should not contain %q:\n%s", unwanted, body)
+		}
 	}
 }
 
