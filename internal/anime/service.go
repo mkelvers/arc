@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"mal/integrations/jikan"
+	"mal/integrations/playback/allanime"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"math/rand"
@@ -16,6 +17,7 @@ import (
 
 type animeService struct {
 	jikan            *jikan.Client
+	allanime         *allanime.AllAnimeProvider
 	repo             domain.AnimeRepository
 	topPicksCache    *topPicksCache
 	topPicksCacheTTL time.Duration
@@ -32,9 +34,14 @@ func wrapAnimes(in []jikan.Anime) []domain.Anime {
 	return out
 }
 
-func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository) *animeService {
+func NewAnimeService(jikan *jikan.Client, repo domain.AnimeRepository, allanimeProviders ...*allanime.AllAnimeProvider) *animeService {
+	var allanimeProvider *allanime.AllAnimeProvider
+	if len(allanimeProviders) > 0 {
+		allanimeProvider = allanimeProviders[0]
+	}
 	svc := &animeService{
 		jikan:            jikan,
+		allanime:         allanimeProvider,
 		repo:             repo,
 		topPicksCache:    &topPicksCache{entries: map[topPicksCacheKey]*topPicksCacheEntry{}},
 		topPicksCacheTTL: 15 * time.Minute,
@@ -100,6 +107,25 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 }
 
 func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (jikan.SearchResult, error) {
+	if s.allanime != nil && page == 1 && animeType == "" && status == "" && orderBy == "" && sort == "" && len(genres) == 0 && studioID == 0 {
+		results, err := s.allanime.Search(ctx, q, "sub")
+		if err == nil && len(results) > 0 {
+			animes := make([]jikan.Anime, 0, len(results))
+			for _, result := range results {
+				var id int
+				if _, err := fmt.Sscan(result.MalID, &id); err != nil || id == 0 {
+					continue
+				}
+				animes = append(animes, jikan.Anime{MalID: id, Title: result.Name})
+				if len(animes) == limit {
+					break
+				}
+			}
+			if len(animes) > 0 {
+				return jikan.SearchResult{Animes: animes, HasNextPage: len(results) > limit}, nil
+			}
+		}
+	}
 	return s.jikan.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, studioID, sfw, page, limit)
 }
 
