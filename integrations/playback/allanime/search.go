@@ -3,33 +3,10 @@ package allanime
 import (
 	"context"
 	"fmt"
-	"mal/pkg"
-	netutil "mal/pkg/net"
+	"mal/integrations/playback/allanime/allanimeql"
 	"strconv"
 	"strings"
 )
-
-const searchQuery = `query(
-  $search: SearchInput
-  $translationType: VaildTranslationTypeEnumType
-  $limit: Int = 40
-  $page: Int = 1
-  $countryOrigin: VaildCountryOriginEnumType = ALL
-) {
-  shows(
-    search: $search
-    limit: $limit
-    page: $page
-    translationType: $translationType
-    countryOrigin: $countryOrigin
-  ) {
-    edges {
-      _id
-      malId
-      name
-    }
-  }
-}`
 
 type searchResult struct {
 	ID    string
@@ -38,51 +15,20 @@ type searchResult struct {
 }
 
 func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string) ([]searchResult, error) {
-	type searchData struct {
-		Shows struct {
-			Edges []struct {
-				ID    string `json:"_id"`
-				MalID string `json:"malId"`
-				Name  string `json:"name"`
-			} `json:"edges"`
-		} `json:"shows"`
+	search := allanimeql.SearchInput{
+		AllowAdult:   false,
+		AllowUnknown: false,
+		Query:        query,
 	}
-
-	type searchInput struct {
-		AllowAdult   bool   `json:"allowAdult"`
-		AllowUnknown bool   `json:"allowUnknown"`
-		Query        string `json:"query"`
-	}
-
-	type searchVariables struct {
-		Search          searchInput `json:"search"`
-		TranslationType string      `json:"translationType"`
-	}
-
-	vars := searchVariables{
-		Search: searchInput{
-			AllowAdult:   false,
-			AllowUnknown: false,
-			Query:        query,
-		},
-		TranslationType: mode,
-	}
-
-	data, err := graphql.Post[searchData](ctx, c.httpClient, c.apiBaseURL()+"/api", searchQuery, vars, graphql.PostOptions{
-		Headers: map[string]string{
-			"Referer":    allAnimeReferer,
-			"User-Agent": defaultUserAgent,
-		},
-		BodyMax: netutil.MiB2,
-	})
+	data, err := allanimeql.AllAnimeSearch(ctx, c.graphqlClient(), search, translationType(mode))
 	if err != nil {
 		return nil, err
 	}
 
 	out := make([]searchResult, 0, len(data.Shows.Edges))
 	for _, edge := range data.Shows.Edges {
-		id := edge.ID
-		malID := edge.MalID
+		id := edge.Id
+		malID := edge.MalId
 		name := edge.Name
 		if unquoted, err := strconv.Unquote("\"" + name + "\""); err == nil {
 			name = unquoted
@@ -97,6 +43,10 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 	}
 
 	return out, nil
+}
+
+func translationType(mode string) allanimeql.VaildTranslationTypeEnumType {
+	return allanimeql.VaildTranslationTypeEnumType(strings.ToLower(mode))
 }
 
 func (c *AllAnimeProvider) ResolveEpisodeProviderID(ctx context.Context, animeID int, titleCandidates []string) (string, error) {

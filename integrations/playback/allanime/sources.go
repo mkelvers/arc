@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mal/integrations/playback/allanime/allanimeql"
 	"net/http"
 	"strings"
 )
@@ -18,12 +19,6 @@ type sourceReference struct {
 }
 
 func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string, episode string, mode string) ([]StreamSource, error) {
-	episodeQuery := `query($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
-		episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
-			sourceUrls
-		}
-	}`
-
 	result, err := c.graphqlRequestWithHash(ctx, showID, episode, mode)
 	if err == nil {
 		sources := c.sourcesFrom(ctx, result)
@@ -32,31 +27,20 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 		}
 	}
 
-	result, err = c.graphqlRequest(ctx, episodeQuery, map[string]any{
-		"showId":          showID,
-		"translationType": mode,
-		"episodeString":   episode,
-	})
+	fallback, err := allanimeql.AllAnimeEpisodeSources(ctx, c.graphqlClient(), showID, translationType(mode), episode)
 	if err != nil {
 		return nil, err
 	}
 
-	data, ok := result["data"].(map[string]any)
-	if !ok {
-		return nil, errors.New("invalid source response")
-	}
-
-	rawSourceURLs, ok := data["episode"].(map[string]any)
-	if !ok {
+	if fallback.Episode == nil {
 		return nil, errors.New("invalid episode response")
 	}
 
-	sourceURLs, ok := rawSourceURLs["sourceUrls"].([]any)
-	if !ok || len(sourceURLs) == 0 {
+	if len(fallback.Episode.SourceUrls) == 0 {
 		return nil, errors.New("no source urls")
 	}
 
-	references := sourceRefs(sourceURLs)
+	references := generatedSourceRefs(fallback.Episode.SourceUrls)
 	if len(references) == 0 {
 		return nil, errors.New("no source references")
 	}
@@ -68,6 +52,15 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 	}
 
 	return out, nil
+}
+
+func generatedSourceRefs(rawSourceURLs []allanimeql.AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL) []sourceReference {
+	refs := make([]sourceReference, 0, len(rawSourceURLs))
+	seen := make(map[string]struct{})
+	for _, source := range rawSourceURLs {
+		appendSourceRef(&refs, seen, source.SourceUrl, source.SourceName)
+	}
+	return prioritizedSourceRefs(refs)
 }
 
 func (c *AllAnimeProvider) sourcesFrom(ctx context.Context, data map[string]any) []StreamSource {
@@ -187,11 +180,7 @@ func buildStreamSource(url, sourceType, provider string) StreamSource {
 
 // source priority
 func sourceRefs(rawSourceURLs []any) []sourceReference {
-	priorityOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
-	prioritySet := map[string]struct{}{"default": {}, "yt-mp4": {}, "s-mp4": {}, "luf-mp4": {}}
-
-	prioritized := make(map[string]sourceReference)
-	fallback := make([]sourceReference, 0, len(rawSourceURLs))
+	refs := make([]sourceReference, 0, len(rawSourceURLs))
 	seen := make(map[string]struct{})
 
 	for _, source := range rawSourceURLs {
@@ -205,19 +194,35 @@ func sourceRefs(rawSourceURLs []any) []sourceReference {
 			continue
 		}
 		sourceName, _ := stringMapValue(item, "sourceName")
-		sourceURL = strings.TrimSpace(sourceURL)
-		sourceName = strings.TrimSpace(sourceName)
-		if sourceURL == "" {
-			continue
-		}
+		appendSourceRef(&refs, seen, sourceURL, sourceName)
+	}
 
-		if _, exists := seen[sourceURL]; exists {
-			continue
-		}
-		seen[sourceURL] = struct{}{}
+	return prioritizedSourceRefs(refs)
+}
 
-		ref := sourceReference{URL: sourceURL, Name: sourceName}
-		normalized := strings.ToLower(sourceName)
+func appendSourceRef(refs *[]sourceReference, seen map[string]struct{}, sourceURL string, sourceName string) {
+	sourceURL = strings.TrimSpace(sourceURL)
+	sourceName = strings.TrimSpace(sourceName)
+	if sourceURL == "" {
+		return
+	}
+
+	if _, exists := seen[sourceURL]; exists {
+		return
+	}
+	seen[sourceURL] = struct{}{}
+
+	*refs = append(*refs, sourceReference{URL: sourceURL, Name: sourceName})
+}
+
+func prioritizedSourceRefs(refs []sourceReference) []sourceReference {
+	priorityOrder := []string{"default", "yt-mp4", "s-mp4", "luf-mp4"}
+	prioritySet := map[string]struct{}{"default": {}, "yt-mp4": {}, "s-mp4": {}, "luf-mp4": {}}
+
+	prioritized := make(map[string]sourceReference)
+	fallback := make([]sourceReference, 0, len(refs))
+	for _, ref := range refs {
+		normalized := strings.ToLower(ref.Name)
 		if _, priority := prioritySet[normalized]; priority {
 			if _, exists := prioritized[normalized]; !exists {
 				prioritized[normalized] = ref

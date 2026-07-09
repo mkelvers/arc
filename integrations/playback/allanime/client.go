@@ -1,17 +1,16 @@
 package allanime
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mal/internal/domain"
 	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
-	"strings"
 	"time"
+
+	genqlient "github.com/Khan/genqlient/graphql"
 )
 
 const (
@@ -83,49 +82,23 @@ func (c *AllAnimeProvider) GetStreams(ctx context.Context, animeID int, titleCan
 	return result, nil
 }
 
-func (c *AllAnimeProvider) graphqlRequest(ctx context.Context, query string, variables map[string]any) (map[string]any, error) {
-	if mode, ok := variables["translationType"].(string); ok {
-		variables["translationType"] = strings.ToLower(mode)
-	}
+func (c *AllAnimeProvider) graphqlClient() genqlient.Client {
+	return genqlient.NewClient(c.apiBaseURL()+"/api", allAnimeGraphQLDoer{client: c.httpClient})
+}
 
-	payload := map[string]any{
-		"query":     query,
-		"variables": variables,
-	}
+type allAnimeGraphQLDoer struct {
+	client *http.Client
+}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("marshal graphql payload: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.apiBaseURL()+"/api", bytes.NewReader(body))
-	if err != nil {
-		return nil, fmt.Errorf("create graphql request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
+func (d allAnimeGraphQLDoer) Do(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Referer", allAnimeReferer)
 	req.Header.Set("User-Agent", defaultUserAgent)
 
-	statusCode, respBody, err := executeAndReadResponse(c.httpClient, req, "execute graphql request", "read graphql response")
-	if err != nil {
-		return nil, err
+	client := d.client
+	if client == nil {
+		client = http.DefaultClient
 	}
-
-	if statusCode != http.StatusOK {
-		return nil, fmt.Errorf("graphql status %d", statusCode)
-	}
-
-	var parsed map[string]any
-	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return nil, fmt.Errorf("decode graphql response: %w", err)
-	}
-
-	if errs, ok := parsed["errors"].([]any); ok && len(errs) > 0 {
-		return nil, fmt.Errorf("graphql error: %v", errs[0])
-	}
-
-	return parsed, nil
+	return client.Do(req)
 }
 
 func executeAndReadResponse(client *http.Client, req *http.Request, executeErrPrefix string, readErrPrefix string) (int, []byte, error) {

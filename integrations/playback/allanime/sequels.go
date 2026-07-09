@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	stdhtml "html"
+	"mal/integrations/playback/allanime/allanimeql"
 	"strconv"
 	"strings"
 
@@ -28,66 +29,56 @@ type ProviderShow struct {
 }
 
 func (c *AllAnimeProvider) DirectSequels(ctx context.Context, show ProviderShow) ([]string, error) {
-	query := `query($showId: String!) { show(_id: $showId) { relatedShows } }`
-	result, err := c.graphqlRequest(ctx, query, map[string]any{"showId": show.ID})
+	result, err := allanimeql.AllAnimeDirectSequels(ctx, c.graphqlClient(), show.ID)
 	if err != nil {
 		return nil, err
 	}
-	data, _ := result["data"].(map[string]any)
-	rawShow, _ := data["show"].(map[string]any)
-	relations, _ := rawShow["relatedShows"].([]any)
-	ids := make([]string, 0, len(relations))
-	for _, raw := range relations {
-		relation, _ := raw.(map[string]any)
-		id, _ := relation["showId"].(string)
-		if relation["relation"] == "sequel" && id != "" {
-			ids = append(ids, id)
+	if result.Show == nil {
+		return nil, nil
+	}
+
+	ids := make([]string, 0, len(result.Show.RelatedShows))
+	for _, relation := range result.Show.RelatedShows {
+		if relation.Relation == "sequel" && relation.ShowId != "" {
+			ids = append(ids, relation.ShowId)
 		}
 	}
 	return ids, nil
 }
 
 func (c *AllAnimeProvider) GetProviderShow(ctx context.Context, showID string) (ProviderShow, error) {
-	query := `query($showId: String!) { show(_id: $showId) { _id name englishName description malId status thumbnail type season episodeCount availableEpisodesDetail } }`
-	result, err := c.graphqlRequest(ctx, query, map[string]any{"showId": showID})
+	result, err := allanimeql.AllAnimeProviderShow(ctx, c.graphqlClient(), showID)
 	if err != nil {
 		return ProviderShow{}, err
 	}
-	data, _ := result["data"].(map[string]any)
-	raw, _ := data["show"].(map[string]any)
-	if raw == nil {
+	if result.Show == nil {
 		return ProviderShow{}, fmt.Errorf("allanime: show %s not found", showID)
 	}
-	return providerShowFrom(raw), nil
+	return providerShowFrom(result.Show.ProviderShowFields), nil
 }
 
 func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, year int) ([]ProviderShow, error) {
 	const pageSize = 40
-	query := `query($search: SearchInput, $page: Int) { shows(search: $search, limit: 40, page: $page, countryOrigin: ALL) { edges { _id name englishName description malId status thumbnail type season episodeCount availableEpisodesDetail } } }`
 	if season == "" {
 		return nil, errors.New("allanime: season is required")
 	}
-	search := map[string]any{
-		"allowAdult":   false,
-		"allowUnknown": false,
-		"season":       strings.ToUpper(season[:1]) + strings.ToLower(season[1:]),
-		"types":        []string{"TV"},
-		"includeTypes": true,
+	search := allanimeql.SearchInput{
+		AllowAdult:   false,
+		AllowUnknown: false,
+		Season:       strings.ToUpper(season[:1]) + strings.ToLower(season[1:]),
+		Types:        []string{"TV"},
+		IncludeTypes: true,
 	}
 	out := make([]ProviderShow, 0)
 	seen := make(map[int]bool)
 	for page := 1; page <= 20; page++ {
-		result, err := c.graphqlRequest(ctx, query, map[string]any{"search": search, "page": page})
+		result, err := allanimeql.AllAnimeSeasonalShows(ctx, c.graphqlClient(), search, page)
 		if err != nil {
 			return nil, err
 		}
-		data, _ := result["data"].(map[string]any)
-		shows, _ := data["shows"].(map[string]any)
-		edges, _ := shows["edges"].([]any)
 		newestYear := 0
-		for _, edge := range edges {
-			raw, _ := edge.(map[string]any)
-			show := providerShowFrom(raw)
+		for _, edge := range result.Shows.Edges {
+			show := providerShowFrom(edge.ProviderShowFields)
 			newestYear = max(newestYear, show.Year)
 			if seen[show.MalID] || !isPlayableSeasonShow(show, year) {
 				continue
@@ -95,7 +86,7 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 			seen[show.MalID] = true
 			out = append(out, show)
 		}
-		if len(edges) < pageSize || (newestYear > 0 && newestYear < year) {
+		if len(result.Shows.Edges) < pageSize || (newestYear > 0 && newestYear < year) {
 			break
 		}
 	}
@@ -106,22 +97,20 @@ func isPlayableSeasonShow(show ProviderShow, year int) bool {
 	return show.Year == year && show.MalID > 0 && show.Type == "TV" && max(len(show.SubEpisodes), len(show.DubEpisodes)) > 0
 }
 
-func providerShowFrom(raw map[string]any) ProviderShow {
-	detail, _ := raw["availableEpisodesDetail"].(map[string]any)
-	season, _ := raw["season"].(map[string]any)
+func providerShowFrom(raw allanimeql.ProviderShowFields) ProviderShow {
 	return ProviderShow{
-		ID:           stringValue(raw["_id"]),
-		Name:         stringValue(raw["name"]),
-		EnglishName:  stringValue(raw["englishName"]),
-		Description:  plainText(stringValue(raw["description"])),
-		MalID:        intValue(raw["malId"]),
-		Status:       stringValue(raw["status"]),
-		Thumbnail:    stringValue(raw["thumbnail"]),
-		Type:         stringValue(raw["type"]),
-		Year:         numericInt(season["year"]),
-		EpisodeCount: intValue(raw["episodeCount"]),
-		SubEpisodes:  episodeNums(stringsFrom(detail["sub"])),
-		DubEpisodes:  episodeNums(stringsFrom(detail["dub"])),
+		ID:           raw.Id,
+		Name:         raw.Name,
+		EnglishName:  raw.EnglishName,
+		Description:  plainText(raw.Description),
+		MalID:        intValue(raw.MalId),
+		Status:       raw.Status,
+		Thumbnail:    raw.Thumbnail,
+		Type:         raw.Type,
+		Year:         raw.Season.Year.Int(),
+		EpisodeCount: intValue(raw.EpisodeCount),
+		SubEpisodes:  episodeNums(raw.AvailableEpisodesDetail.Sub),
+		DubEpisodes:  episodeNums(raw.AvailableEpisodesDetail.Dub),
 	}
 }
 
@@ -145,20 +134,7 @@ func plainText(value string) string {
 	}
 }
 
-func stringValue(value any) string {
-	valueString, _ := value.(string)
-	return valueString
-}
-
-func intValue(value any) int {
-	n, _ := strconv.Atoi(stringValue(value))
+func intValue(value string) int {
+	n, _ := strconv.Atoi(value)
 	return n
-}
-
-func numericInt(value any) int {
-	if n := intValue(value); n > 0 {
-		return n
-	}
-	n, _ := value.(float64)
-	return int(n)
 }
