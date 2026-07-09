@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 
+	"mal/integrations/jikan"
 	"mal/internal/db"
 	"mal/internal/domain"
 )
@@ -115,16 +118,124 @@ func TestWatchlistServiceUpdateEntryInvalidatesRecommendations(t *testing.T) {
 	}
 }
 
+func TestWatchlistServiceUpdateEntryKnownAnimeSkipsProvider(t *testing.T) {
+	repo := &fakeWatchlistRepository{anime: db.Anime{ID: 9}}
+	provider := &fakeAnimeProvider{anime: testJikanAnime(9)}
+	svc := &watchlistService{repo: repo, animeProvider: provider}
+
+	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching"); err != nil {
+		t.Fatalf("UpdateEntry: %v", err)
+	}
+	if provider.calls != 0 {
+		t.Fatalf("provider calls = %d, want 0", provider.calls)
+	}
+	if repo.upsertAnimeCalled {
+		t.Fatalf("UpsertAnime should not run for known anime")
+	}
+	if !repo.upsertWatchlistCalled {
+		t.Fatalf("UpsertWatchListEntry should run")
+	}
+}
+
+func TestWatchlistServiceUpdateEntryMissingAnimeFetchesAndInserts(t *testing.T) {
+	repo := &fakeWatchlistRepository{animeErr: sql.ErrNoRows}
+	provider := &fakeAnimeProvider{anime: testJikanAnime(9)}
+	svc := &watchlistService{repo: repo, animeProvider: provider}
+
+	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching"); err != nil {
+		t.Fatalf("UpdateEntry: %v", err)
+	}
+	if provider.calls != 1 {
+		t.Fatalf("provider calls = %d, want 1", provider.calls)
+	}
+	if len(provider.ids) != 1 || provider.ids[0] != 9 {
+		t.Fatalf("provider ids = %#v, want 9", provider.ids)
+	}
+	if !repo.upsertAnimeCalled {
+		t.Fatalf("UpsertAnime should run for missing anime")
+	}
+	if repo.upsertedAnime.ID != 9 || repo.upsertedAnime.TitleOriginal != "Anime 9" || repo.upsertedAnime.ImageUrl == "" {
+		t.Fatalf("upserted anime = %#v", repo.upsertedAnime)
+	}
+	if !repo.upsertWatchlistCalled {
+		t.Fatalf("UpsertWatchListEntry should run")
+	}
+}
+
+func TestWatchlistServiceUpdateEntryMissingAnimeProviderFailureWritesNothing(t *testing.T) {
+	repo := &fakeWatchlistRepository{animeErr: sql.ErrNoRows}
+	provider := &fakeAnimeProvider{err: errors.New("jikan unavailable")}
+	invalidator := &fakeRecommendationInvalidator{}
+	svc := &watchlistService{repo: repo, animeProvider: provider, invalidator: invalidator}
+
+	err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching")
+	if err == nil || !strings.Contains(err.Error(), "fetch watchlist anime metadata 9") {
+		t.Fatalf("UpdateEntry error = %v, want metadata fetch error", err)
+	}
+	if repo.inTxCalled {
+		t.Fatalf("transaction should not start after metadata fetch failure")
+	}
+	if repo.upsertAnimeCalled || repo.upsertWatchlistCalled {
+		t.Fatalf("writes should not run after metadata fetch failure")
+	}
+	if invalidator.userID != "" {
+		t.Fatalf("invalidated user = %q, want none", invalidator.userID)
+	}
+}
+
+func TestWatchlistServiceUpdateEntryPreservesProgress(t *testing.T) {
+	repo := &fakeWatchlistRepository{
+		existingEntry: db.WatchListEntry{
+			CurrentEpisode:     sql.NullInt64{Int64: 7, Valid: true},
+			CurrentTimeSeconds: 321.5,
+		},
+	}
+	svc := NewWatchlistService(repo, nil, nil)
+
+	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "completed"); err != nil {
+		t.Fatalf("UpdateEntry: %v", err)
+	}
+	if !repo.upsertedWatchlist.CurrentEpisode.Valid || repo.upsertedWatchlist.CurrentEpisode.Int64 != 7 {
+		t.Fatalf("current episode = %#v, want 7", repo.upsertedWatchlist.CurrentEpisode)
+	}
+	if repo.upsertedWatchlist.CurrentTimeSeconds != 321.5 {
+		t.Fatalf("current time = %f, want 321.5", repo.upsertedWatchlist.CurrentTimeSeconds)
+	}
+}
+
+func TestWatchlistServiceUpdateEntryTransactionFailureDoesNotInvalidateRecommendations(t *testing.T) {
+	repo := &fakeWatchlistRepository{inTxErr: errors.New("commit failed")}
+	invalidator := &fakeRecommendationInvalidator{}
+	svc := NewWatchlistService(repo, nil, invalidator)
+
+	if err := svc.UpdateEntry(context.Background(), "user-1", 9, "watching"); err == nil || err.Error() != "commit failed" {
+		t.Fatalf("UpdateEntry error = %v, want commit failed", err)
+	}
+	if invalidator.userID != "" {
+		t.Fatalf("invalidated user = %q, want none", invalidator.userID)
+	}
+}
+
 type fakeWatchlistRepository struct {
-	watchlistAnimeIDs  []int64
-	watchlistMapUserID string
-	watchlistMapCalled bool
-	inTxCalled         bool
-	saveProgressCalled bool
-	deleteContinueErr  error
-	deletedContinue    db.DeleteContinueWatchingEntryParams
-	savedProgress      db.SaveWatchProgressParams
-	deletedWatchlist   db.DeleteWatchListEntryParams
+	watchlistAnimeIDs     []int64
+	watchlistMapUserID    string
+	watchlistMapCalled    bool
+	inTxCalled            bool
+	saveProgressCalled    bool
+	deleteContinueErr     error
+	anime                 db.Anime
+	animeErr              error
+	getAnimeCalls         int
+	inTxErr               error
+	upsertAnimeCalled     bool
+	upsertedAnime         db.UpsertAnimeParams
+	upsertWatchlistCalled bool
+	upsertedWatchlist     db.UpsertWatchListEntryParams
+	existingEntry         db.WatchListEntry
+	existingEntryErr      error
+	deletedContinue       db.DeleteContinueWatchingEntryParams
+	savedProgress         db.SaveWatchProgressParams
+	deletedWatchlist      db.DeleteWatchListEntryParams
 }
 
 type fakeRecommendationInvalidator struct {
@@ -137,18 +248,29 @@ func (i *fakeRecommendationInvalidator) InvalidateTopPicksForUser(userID string)
 
 func (r *fakeWatchlistRepository) InTx(ctx context.Context, fn func(context.Context, domain.WatchlistRepository) error) error {
 	r.inTxCalled = true
+	if r.inTxErr != nil {
+		return r.inTxErr
+	}
 	return fn(ctx, r)
 }
 
-func (r *fakeWatchlistRepository) UpsertAnime(context.Context, db.UpsertAnimeParams) (db.Anime, error) {
+func (r *fakeWatchlistRepository) UpsertAnime(_ context.Context, arg db.UpsertAnimeParams) (db.Anime, error) {
+	r.upsertAnimeCalled = true
+	r.upsertedAnime = arg
 	return db.Anime{}, nil
 }
 
 func (r *fakeWatchlistRepository) GetAnime(context.Context, int64) (db.Anime, error) {
-	return db.Anime{}, sql.ErrNoRows
+	r.getAnimeCalls++
+	if r.animeErr != nil {
+		return db.Anime{}, r.animeErr
+	}
+	return r.anime, nil
 }
 
 func (r *fakeWatchlistRepository) UpsertWatchListEntry(_ context.Context, arg db.UpsertWatchListEntryParams) (db.WatchListEntry, error) {
+	r.upsertWatchlistCalled = true
+	r.upsertedWatchlist = arg
 	return db.WatchListEntry{ID: arg.ID, UserID: arg.UserID, AnimeID: arg.AnimeID, Status: arg.Status}, nil
 }
 
@@ -168,7 +290,13 @@ func (r *fakeWatchlistRepository) GetUserWatchlistAnimeIDs(_ context.Context, us
 }
 
 func (r *fakeWatchlistRepository) GetWatchListEntry(context.Context, db.GetWatchListEntryParams) (db.WatchListEntry, error) {
-	return db.WatchListEntry{}, sql.ErrNoRows
+	if r.existingEntryErr != nil {
+		return db.WatchListEntry{}, r.existingEntryErr
+	}
+	if r.existingEntry.ID == "" && !r.existingEntry.CurrentEpisode.Valid && r.existingEntry.CurrentTimeSeconds == 0 {
+		return db.WatchListEntry{}, sql.ErrNoRows
+	}
+	return r.existingEntry, nil
 }
 
 func (r *fakeWatchlistRepository) GetContinueWatchingEntry(context.Context, db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error) {
@@ -184,4 +312,30 @@ func (r *fakeWatchlistRepository) SaveWatchProgress(_ context.Context, arg db.Sa
 	r.saveProgressCalled = true
 	r.savedProgress = arg
 	return nil
+}
+
+type fakeAnimeProvider struct {
+	anime jikan.Anime
+	err   error
+	calls int
+	ids   []int
+}
+
+func (p *fakeAnimeProvider) GetAnimeByID(_ context.Context, id int) (jikan.Anime, error) {
+	p.calls++
+	p.ids = append(p.ids, id)
+	if p.err != nil {
+		return jikan.Anime{}, p.err
+	}
+	return p.anime, nil
+}
+
+func testJikanAnime(id int) jikan.Anime {
+	anime := jikan.Anime{
+		MalID:        id,
+		Title:        "Anime " + strconv.Itoa(id),
+		TitleEnglish: "English " + strconv.Itoa(id),
+	}
+	anime.Images.Webp.LargeImageURL = "https://cdn.example/anime.webp"
+	return anime
 }
