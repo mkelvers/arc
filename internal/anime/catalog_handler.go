@@ -93,6 +93,9 @@ func (h *AnimeHandler) HandleCatalogContinue(c *gin.Context) {
 
 func (h *AnimeHandler) HandleCatalogTopPickForYou(c *gin.Context) {
 	userID := server.CurrentUserID(c)
+	if c.Query("retry") == "1" {
+		h.svc.InvalidateTopPicksForUser(userID)
+	}
 
 	data, err := h.svc.GetTopPickForYou(c.Request.Context(), userID)
 	if err != nil {
@@ -136,6 +139,9 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 func (h *AnimeHandler) HandleTopPicks(c *gin.Context) {
 	user := server.CurrentUser(c)
 	userID := server.CurrentUserID(c)
+	if c.Query("retry") == "1" {
+		h.svc.InvalidateTopPicksForUser(userID)
+	}
 
 	data, err := h.svc.GetTopPicksForYou(c.Request.Context(), userID)
 	if err != nil {
@@ -154,12 +160,19 @@ func (h *AnimeHandler) HandleTopPicks(c *gin.Context) {
 
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
 
-	c.HTML(http.StatusOK, "top_picks.gohtml", gin.H{
-		"CurrentPath":  "/top-picks",
-		"User":         user,
-		"Animes":       data.Animes,
-		"WatchlistMap": watchlistMap,
-	})
+	viewData := gin.H{
+		"CurrentPath":         "/top-picks",
+		"User":                user,
+		"Animes":              data.Animes,
+		"RecommendationState": data.RecommendationState,
+		"RetryAfterSeconds":   data.RetryAfterSeconds,
+		"WatchlistMap":        watchlistMap,
+	}
+	if c.GetHeader("HX-Request") == "true" {
+		viewData["_fragment"] = "top_picks_content"
+	}
+
+	c.HTML(http.StatusOK, "top_picks.gohtml", viewData)
 }
 
 func (h *AnimeHandler) abortSectionFetch(c *gin.Context, event string, userID string, section string, err error) {

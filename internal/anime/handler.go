@@ -16,6 +16,7 @@ type AnimeHandler struct {
 
 type Service interface {
 	domain.AnimeCatalogService
+	domain.RecommendationInvalidator
 	domain.AnimeSearchService
 	domain.AnimeDetailsService
 	WarmDetailSections(id int)
