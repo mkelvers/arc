@@ -1,11 +1,13 @@
 package internal
 
 import (
-	"mal/integrations/jikan"
+	"mal/integrations/anilist"
 	"mal/integrations/playback/allanime"
+	"mal/integrations/watchorder"
 	"mal/internal/anime"
 	"mal/internal/audit"
 	"mal/internal/auth"
+	rediscache "mal/internal/cache/redis"
 	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/episodes"
@@ -24,9 +26,11 @@ func NewApp() *fx.App {
 	return fx.New(
 		fx.WithLogger(observability.NewFxLogger),
 		config.Module,
+		rediscache.Module,
 		database.Module,
 		audit.Module,
-		jikan.Module,
+		anilist.Module,
+		watchorder.Module,
 		allanime.Module,
 		episodes.Module,
 		auth.Module,
@@ -35,7 +39,7 @@ func NewApp() *fx.App {
 		playback.Module,
 		templates.Module,
 		server.Module,
-		fx.Invoke(RunMigrationsAndFixes),
+		fx.Invoke(database.RunPostgresMigrations),
 		fx.Provide(func(r *templates.Renderer) render.HTMLRender {
 			return r
 		}),
