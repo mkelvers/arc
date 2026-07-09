@@ -24,6 +24,8 @@ type PlaybackHandler struct {
 	manifestCache   *manifestCache
 }
 
+const playbackUnavailableMessage = "We couldn't find a playable source for this title right now."
+
 func NewPlaybackHandler(svc domain.PlaybackService, animeSvc domain.AnimePlaybackService) *PlaybackHandler {
 	return &PlaybackHandler{
 		svc:             svc,
@@ -163,7 +165,8 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 			err,
 		)
 
-		data.Error = "failed to load playback data"
+		data.PlaybackUnavailable = true
+		data.PlaybackUnavailableMessage = playbackUnavailableMessage
 		data.User = user
 		data.CurrentPath = c.Request.URL.Path
 
@@ -202,15 +205,7 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	data, err := h.svc.BuildWatchData(ctx, animeID, []string{}, episode, mode, userID)
 	if err != nil {
-		server.RespondError(
-			c,
-			http.StatusInternalServerError,
-			"watch_episode_data_build_failed",
-			"playback",
-			"failed to load episode data",
-			map[string]any{"anime_id": animeID, "episode": episode, "mode": mode, "user_id": userID},
-			err,
-		)
+		h.respondEpisodeUnavailable(c, animeID, episode, mode, userID, err)
 		return
 	}
 
@@ -238,6 +233,30 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 		"segments":           watchData.Segments,
 		"episode_title":      episodeTitle,
 		"mode_switched_from": watchData.ModeSwitchedFrom,
+	})
+}
+
+func (h *PlaybackHandler) respondEpisodeUnavailable(c *gin.Context, animeID int, episode string, mode string, userID string, err error) {
+	observability.LogContext(
+		c.Request.Context(),
+		observability.LogLevelWarn,
+		"watch_episode_data_unavailable",
+		"playback",
+		"",
+		map[string]any{"anime_id": animeID, "episode": episode, "mode": mode, "user_id": userID, "request_path": c.Request.URL.Path},
+		err,
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"unavailable":        true,
+		"message":            playbackUnavailableMessage,
+		"mode_sources":       map[string]domain.ModeSource{},
+		"available_modes":    []string{},
+		"initial_mode":       mode,
+		"start_time_seconds": 0,
+		"segments":           []domain.SkipSegment{},
+		"episode_title":      "",
+		"mode_switched_from": "",
 	})
 }
 
