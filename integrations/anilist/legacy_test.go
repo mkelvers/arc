@@ -25,3 +25,11 @@ func TestToMetadataAnimeMapsAniListMetadata(t *testing.T) {
 		t.Fatalf("mapped details = %+v", got)
 	}
 }
+
+func TestToMetadataAnimeNormalizesDescription(t *testing.T) {
+	got := ToMetadataAnime(Anime{Description: "A story.<br><br><i>Source:</i> Anime News Network &amp; friends."})
+
+	if got.Synopsis != "A story.\nSource: Anime News Network & friends." {
+		t.Fatalf("Synopsis = %q", got.Synopsis)
+	}
+}

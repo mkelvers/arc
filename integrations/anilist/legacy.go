@@ -1,12 +1,16 @@
 package anilist
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	stdhtml "html"
 	"strconv"
 	"strings"
 
 	"mal/integrations/metadata"
+
+	"golang.org/x/net/html"
 )
 
 type LegacyProvider struct {
@@ -64,7 +68,7 @@ func ToMetadataAnime(anime Anime) metadata.Anime {
 		TitleEnglish:  anime.Title.English,
 		TitleJapanese: anime.Title.Native,
 		TitleSynonyms: append([]string(nil), anime.Synonyms...),
-		Synopsis:      anime.Description,
+		Synopsis:      plainText(anime.Description),
 		Status:        statusLabel(anime.Status),
 		Airing:        anime.NextAiring != nil || strings.EqualFold(anime.Status, "RELEASING"),
 		Episodes:      anime.Episodes,
@@ -91,6 +95,36 @@ func ToMetadataAnime(anime Anime) metadata.Anime {
 		result.Studios = append(result.Studios, metadata.NamedEntity{MalID: studio.ID, Name: studio.Name})
 	}
 	return result
+}
+
+func plainText(value string) string {
+	tokenizer := html.NewTokenizer(bytes.NewBufferString(value))
+	var out strings.Builder
+	for {
+		switch tokenizer.Next() {
+		case html.ErrorToken:
+			return cleanDescription(out.String())
+		case html.TextToken:
+			out.WriteString(stdhtml.UnescapeString(string(tokenizer.Text())))
+		case html.StartTagToken, html.SelfClosingTagToken:
+			tag, _ := tokenizer.TagName()
+			if string(tag) == "br" {
+				out.WriteByte('\n')
+			}
+		}
+	}
+}
+
+func cleanDescription(value string) string {
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	lines := strings.Split(value, "\n")
+	cleaned := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if line = strings.TrimSpace(line); line != "" {
+			cleaned = append(cleaned, line)
+		}
+	}
+	return strings.Join(cleaned, "\n")
 }
 
 func firstNonEmpty(values ...string) string {
