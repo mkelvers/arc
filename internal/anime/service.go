@@ -203,6 +203,7 @@ func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain
 			var mapped domain.RecommendationEntry
 			mapped.Entry.MalID = item.Anime.MALID
 			mapped.Entry.Title = anilistFirstTitle(item.Anime.Title)
+			mapped.Entry.Synopsis = item.Anime.Description
 			mapped.Entry.Images.Webp.LargeImageURL = item.Anime.CoverImage
 			mapped.Votes = item.Votes
 			out = append(out, mapped)
