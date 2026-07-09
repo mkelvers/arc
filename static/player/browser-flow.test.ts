@@ -542,6 +542,30 @@ describe("browser player flow", () => {
     assert.equal(modules.state.playback.pendingSeekTime, 64);
   });
 
+  test("treats unavailable source payloads as quiet recovery states", async () => {
+    const errors: unknown[][] = [];
+    console.error = (...args: unknown[]): void => {
+      errors.push(args);
+    };
+    globalThis.fetch = ((url: string) => {
+      fetchCalls.push({ url });
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ unavailable: true, mode_sources: {}, available_modes: [] }),
+      } as Response);
+    }) as typeof fetch;
+
+    const refreshed = await modules.refreshCurrentModeSource();
+
+    assert.equal(refreshed, false);
+    assert.deepEqual(
+      fetchCalls.map((call) => call.url),
+      ["/api/watch/episode/42/3?mode=sub&refresh=1"],
+    );
+    assert.equal(errors.length, 0);
+  });
+
   test("resolves the initial stream without forcing a provider refresh", async () => {
     globalThis.fetch = ((url: string) => {
       fetchCalls.push({ url });
