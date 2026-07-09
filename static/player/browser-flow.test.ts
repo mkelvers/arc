@@ -130,6 +130,7 @@ type PlayerModules = {
   setupProgress: () => void;
   state: typeof import("./state").state;
   streamUrlForMode: (mode: string, quality?: string) => string;
+  switchMode: (mode: string) => void;
   setupEpisodeNavigation: (signal: AbortSignal) => void;
   transitionToEpisode: (
     episode: number,
@@ -360,6 +361,7 @@ const loadPlayerModules = async (): Promise<PlayerModules> => {
   const stateModule = await import("./state");
   const sourceModule = await import("./source");
   const loadingModule = await import("./loading");
+  const modeModule = await import("./mode");
 
   return {
     completeAnime: completeModule.completeAnime,
@@ -373,6 +375,7 @@ const loadPlayerModules = async (): Promise<PlayerModules> => {
     setupProgress: progressModule.setupProgress,
     state: stateModule.state,
     streamUrlForMode: sourceModule.streamUrlForMode,
+    switchMode: modeModule.switchMode,
     setupEpisodeNavigation: navModule.setupEpisodeNavigation,
     teardownPlayerLoading: loadingModule.teardownPlayerLoading,
     transitionToEpisode: navModule.transitionToEpisode,
@@ -483,6 +486,26 @@ describe("browser player flow", () => {
     modules.state.playback.modeSources = { sub: { token: "", subtitles: [] } };
 
     assert.equal(modules.streamUrlForMode("sub", "best"), "");
+  });
+
+  test("switches HLS audio modes without scheduling a fallback page reload", () => {
+    modules.state.playback.currentMode = "dub";
+    modules.state.playback.modeSources = {
+      dub: { token: "dub-token", type: "m3u8", subtitles: [] },
+      sub: { token: "sub-token", type: "m3u8", subtitles: [] },
+    };
+    modules.state.elements.video.currentTime = 37;
+
+    modules.switchMode("sub");
+
+    assert.equal(modules.state.playback.currentMode, "sub");
+    assert.equal(localStorageStub.getItem("player-audio-mode"), "sub");
+    assert.equal(
+      modules.state.elements.video.src,
+      "/watch/proxy/stream?mode=sub&token=sub-token&hls=1",
+    );
+    assert.equal(timeoutCallbacks.length, 0);
+    assert.equal(windowStub.location.href, "http://localhost/anime/42/watch?ep=3");
   });
 
   test("refreshes stale current stream token from episode data", async () => {
