@@ -65,33 +65,54 @@ func (s *animeService) getCachedTopPicksForYou(userID string, limit int) domain.
 
 	key := topPicksCacheKey{userID: userID, limit: limit}
 	now := time.Now()
-	var refresh bool
-
-	s.topPicksCache.mu.Lock()
-	entry := s.topPicksCache.entries[key]
-	if entry == nil {
-		entry = &topPicksCacheEntry{refreshing: true}
-		s.topPicksCache.entries[key] = entry
-		refresh = true
-	} else if !entry.refreshing {
-		switch {
-		case entry.failed && now.Before(entry.retryAt):
-		case entry.failed || entry.stale || entryExpired(entry, now, s.topPicksCacheTTL) || !entry.hasResult:
-			entry.refreshing = true
-			entry.failed = false
-			entry.retryAt = time.Time{}
-			entry.stale = entry.hasResult && len(entry.data.Animes) > 0
-			refresh = true
-		}
-	}
-	data := topPicksSnapshot(entry, now)
-	s.topPicksCache.mu.Unlock()
+	data, refresh := s.topPicksCacheSnapshot(key, now)
 
 	if refresh {
 		go s.refreshTopPicksForYou(key)
 	}
 
 	return data
+}
+
+func (s *animeService) topPicksCacheSnapshot(key topPicksCacheKey, now time.Time) (domain.CatalogSectionData, bool) {
+	s.topPicksCache.mu.Lock()
+	entry, refresh := s.topPicksCacheEntry(key, now)
+	data := topPicksSnapshot(entry, now)
+	s.topPicksCache.mu.Unlock()
+	return data, refresh
+}
+
+func (s *animeService) topPicksCacheEntry(key topPicksCacheKey, now time.Time) (*topPicksCacheEntry, bool) {
+	entry := s.topPicksCache.entries[key]
+	if entry == nil {
+		entry = &topPicksCacheEntry{refreshing: true}
+		s.topPicksCache.entries[key] = entry
+		return entry, true
+	}
+
+	if !shouldRefreshTopPicks(entry, now, s.topPicksCacheTTL) {
+		return entry, false
+	}
+
+	startTopPicksRefresh(entry)
+	return entry, true
+}
+
+func shouldRefreshTopPicks(entry *topPicksCacheEntry, now time.Time, ttl time.Duration) bool {
+	if entry.refreshing {
+		return false
+	}
+	if entry.failed && now.Before(entry.retryAt) {
+		return false
+	}
+	return entry.failed || entry.stale || entryExpired(entry, now, ttl) || !entry.hasResult
+}
+
+func startTopPicksRefresh(entry *topPicksCacheEntry) {
+	entry.refreshing = true
+	entry.failed = false
+	entry.retryAt = time.Time{}
+	entry.stale = entry.hasResult && len(entry.data.Animes) > 0
 }
 
 func (s *animeService) refreshTopPicksForYou(key topPicksCacheKey) {
