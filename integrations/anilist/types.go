@@ -25,6 +25,7 @@ type Anime struct {
 	BannerImage     string
 	Genres          []string
 	Tags            []Tag
+	Producers       []Producer
 	Synonyms        []string
 	AverageScore    int
 	MeanScore       int
@@ -32,6 +33,7 @@ type Anime struct {
 	Favourites      int
 	ScoreCount      int
 	Rank            int
+	RankLabel       string
 	PopularityRank  int
 	UpdatedAt       time.Time
 	IsAdult         bool
@@ -57,8 +59,15 @@ type Date struct {
 }
 
 type Tag struct {
-	Name string `json:"name"`
-	Rank int    `json:"rank"`
+	ID               int    `json:"id"`
+	Name             string `json:"name"`
+	Rank             int    `json:"rank"`
+	IsGeneralSpoiler bool   `json:"isGeneralSpoiler"`
+	IsMediaSpoiler   bool   `json:"isMediaSpoiler"`
+}
+
+type Producer struct {
+	Name string
 }
 
 type Airing struct {
@@ -134,11 +143,13 @@ type apiResponse struct {
 }
 
 type graphData struct {
-	Media *media
-	Page  *page
-	Batch map[string]media
+	Media           *media
+	Page            *page
+	GenreCollection []string
+	Batch           map[string]media
 }
 
+//nolint:cyclop // Explicitly decodes each supported AniList root field.
 func (g *graphData) UnmarshalJSON(data []byte) error {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
@@ -153,6 +164,10 @@ func (g *graphData) UnmarshalJSON(data []byte) error {
 			}
 		case "Page":
 			if err := json.Unmarshal(raw, &g.Page); err != nil {
+				return err
+			}
+		case "GenreCollection":
+			if err := json.Unmarshal(raw, &g.GenreCollection); err != nil {
 				return err
 			}
 		default:
