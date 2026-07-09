@@ -151,6 +151,31 @@ func TestRenderWithFragment(t *testing.T) {
 	}
 }
 
+func TestAnimeCharactersUsesCharacterWebpImage(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var entry domain.CharacterEntry
+	entry.Character.Name = "Arc"
+	entry.Character.Images.Webp.ImageURL = "https://example.com/arc.webp"
+	entry.Character.Images.Jpg.ImageURL = ""
+
+	body := renderTemplateFragment(t, r, "anime.gohtml", "anime_characters", map[string]any{
+		"Items": []domain.CharacterEntry{entry},
+	})
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("parse rendered html: %v", err)
+	}
+
+	src, ok := doc.Find(`img[alt="Arc"]`).Attr("src")
+	if !ok || src != "https://example.com/arc.webp" {
+		t.Fatalf("character image src = %q, want %q", src, "https://example.com/arc.webp")
+	}
+}
+
 func TestRenderWithNonStringFragment(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {

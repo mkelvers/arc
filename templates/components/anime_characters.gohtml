@@ -5,11 +5,11 @@
     {{range (slice .Items 0 (min (len .Items) 10))}}
       <div class="flex gap-3 bg-background-button p-3">
         <div class="h-16 w-12 shrink-0 overflow-hidden bg-background-button">
-          <img src="{{.Character.Images.Jpg.ImageURL}}" alt="{{.Character.Name}}" class="h-full w-full object-cover" loading="lazy" />
+          <img src="{{.Character.Images.Webp.ImageURL}}" alt="{{.Character.Name}}" class="h-full w-full object-cover" loading="lazy" />
         </div>
         <div class="flex flex-col justify-center overflow-hidden">
           <span class="truncate text-sm font-medium text-foreground">{{.Character.Name}}</span>
-          <span class="truncate text-xs text-foreground-muted">{{.Role}}</span>
+          <span class="truncate text-xs text-foreground-muted">{{capitalize .Role}}</span>
           {{if .VoiceActors}}
             <span class="mt-1 truncate text-[11px] text-foreground-muted">{{(index .VoiceActors 0).Person.Name}}</span>
           {{end}}
