@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestGraphqlRequest_SuccessAndHeaders(t *testing.T) {
+func TestGeneratedGraphqlClient_SuccessAndHeaders(t *testing.T) {
 	t.Parallel()
 
 	var method, url, ct, referer, ua string
@@ -27,24 +27,20 @@ func TestGraphqlRequest_SuccessAndHeaders(t *testing.T) {
 				if _, err := io.Copy(&bodyBuf, req.Body); err != nil {
 					t.Fatalf("copy request body: %v", err)
 				}
-				return mockStringResponse(http.StatusOK, `{"data":{"key":"val"}}`), nil
+				return mockStringResponse(http.StatusOK, `{"data":{"shows":{"edges":[{"_id":"id1","malId":"1","name":"Title One"}]}}}`), nil
 			}),
 		},
 	}
 
-	_, err := provider.graphqlRequest(
-		context.Background(),
-		"query($id:String!){show(_id:$id){name}}",
-		map[string]any{"id": "abc"},
-	)
+	_, err := provider.Search(context.Background(), "test", "SUB")
 	if err != nil {
-		t.Fatalf("graphqlRequest() error = %v", err)
+		t.Fatalf("Search() error = %v", err)
 	}
 
 	verifyGraphqlRequest(t, method, url, ct, referer, ua, bodyBuf.Bytes())
 }
 
-func TestGraphqlRequest_Errors(t *testing.T) {
+func TestGeneratedGraphqlClient_Errors(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -81,11 +77,7 @@ func TestGraphqlRequest_Errors(t *testing.T) {
 				},
 			}
 
-			_, err := provider.graphqlRequest(
-				context.Background(),
-				"query($id:String!){show(_id:$id){name}}",
-				map[string]any{"id": "abc"},
-			)
+			_, err := provider.Search(context.Background(), "test", "sub")
 			if err == nil {
 				t.Error("expected error, got nil")
 			}
@@ -94,6 +86,13 @@ func TestGraphqlRequest_Errors(t *testing.T) {
 }
 
 func verifyGraphqlRequest(t *testing.T, method, url, ct, referer, ua string, body []byte) {
+	t.Helper()
+
+	verifyGraphqlHeaders(t, method, url, ct, referer, ua)
+	verifyGraphqlBody(t, body)
+}
+
+func verifyGraphqlHeaders(t *testing.T, method, url, ct, referer, ua string) {
 	t.Helper()
 
 	if method != http.MethodPost {
@@ -111,38 +110,74 @@ func verifyGraphqlRequest(t *testing.T, method, url, ct, referer, ua string, bod
 	if ua != defaultUserAgent {
 		t.Errorf("User-Agent = %q", ua)
 	}
+}
 
-	var sent map[string]any
+func verifyGraphqlBody(t *testing.T, body []byte) {
+	t.Helper()
+
+	var sent struct {
+		OperationName string `json:"operationName"`
+		Query         string `json:"query"`
+		Variables     struct {
+			TranslationType string `json:"translationType"`
+			Search          struct {
+				AllowAdult   bool   `json:"allowAdult"`
+				AllowUnknown bool   `json:"allowUnknown"`
+				IncludeTypes *bool  `json:"includeTypes"`
+				Query        string `json:"query"`
+			} `json:"search"`
+		} `json:"variables"`
+	}
 	if err := json.Unmarshal(body, &sent); err != nil {
 		t.Fatalf("unmarshal sent body: %v", err)
 	}
-	if sent["query"] != "query($id:String!){show(_id:$id){name}}" {
-		t.Errorf("unexpected query in body")
+	if sent.OperationName != "AllAnimeSearch" {
+		t.Errorf("operationName = %q, want AllAnimeSearch", sent.OperationName)
 	}
-	vars, ok := sent["variables"].(map[string]any)
-	if !ok || vars["id"] != "abc" {
-		t.Errorf("unexpected variables in body")
+	if !strings.Contains(sent.Query, "query AllAnimeSearch") {
+		t.Errorf("unexpected query in body: %q", sent.Query)
+	}
+	if sent.Variables.TranslationType != "sub" {
+		t.Errorf("translationType = %q, want sub", sent.Variables.TranslationType)
+	}
+	if sent.Variables.Search.Query != "test" || sent.Variables.Search.AllowAdult || sent.Variables.Search.AllowUnknown {
+		t.Errorf("search = %#v", sent.Variables.Search)
+	}
+	if sent.Variables.Search.IncludeTypes != nil {
+		t.Errorf("includeTypes should be omitted for title search")
 	}
 }
 
-func TestGraphqlRequest_SetsTranslationTypeLower(t *testing.T) {
+func TestTranslationTypeLower(t *testing.T) {
 	t.Parallel()
 
+	var bodyBuf bytes.Buffer
 	provider := &AllAnimeProvider{
 		httpClient: &http.Client{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				return mockStringResponse(http.StatusOK, `{"data":{}}`), nil
+				if _, err := io.Copy(&bodyBuf, req.Body); err != nil {
+					t.Fatalf("copy request body: %v", err)
+				}
+				return mockStringResponse(http.StatusOK, `{"data":{"shows":{"edges":[]}}}`), nil
 			}),
 		},
 	}
 
-	_, err := provider.graphqlRequest(
-		context.Background(),
-		"query($t:VaildTranslationTypeEnumType!){x(translationType:$t){id}}",
-		map[string]any{"translationType": "SUB"},
-	)
+	_, err := provider.Search(context.Background(), "test", "SUB")
 	if err != nil {
-		t.Fatalf("graphqlRequest: %v", err)
+		t.Fatalf("Search: %v", err)
+	}
+
+	var sent struct {
+		Variables struct {
+			TranslationType string `json:"translationType"`
+		} `json:"variables"`
+	}
+	if err := json.Unmarshal(bodyBuf.Bytes(), &sent); err != nil {
+		t.Fatalf("unmarshal request: %v", err)
+	}
+	if sent.Variables.TranslationType != "sub" {
+		t.Fatalf("translationType = %q, want sub", sent.Variables.TranslationType)
 	}
 }
 
