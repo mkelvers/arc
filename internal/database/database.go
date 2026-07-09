@@ -2,6 +2,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"go.uber.org/fx"
 )
 
-//go:embed migrations/*.sql
+//go:embed migrations/*.sql postgres_schema.sql
 var migrationsFS embed.FS
 
 var Module = fx.Options(
@@ -22,13 +23,15 @@ var Module = fx.Options(
 		ProvideSQLDB,
 		ProvideQueries,
 	),
-	fx.Invoke(RegisterJikanCacheCleanupWorker),
 )
 
 func ProvideSQLDB(cfg config.Config) (*sql.DB, error) {
-	dbConn, err := db.Open(cfg.DatabaseFile)
+	if cfg.DatabaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL must be configured for the application database")
+	}
+	dbConn, err := db.OpenPostgres(cfg.DatabaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("failed to open PostgreSQL database: %w", err)
 	}
 	return dbConn, nil
 }
@@ -59,6 +62,19 @@ func RunMigrations(sqlDB *sql.DB) error {
 
 	return nil
 }
+
+// RunPostgresMigrations applies the durable PostgreSQL schema used by the application.
+func RunPostgresMigrations(sqlDB *sql.DB) error {
+	schema, err := migrationsFS.ReadFile("postgres_schema.sql")
+	if err != nil {
+		return fmt.Errorf("read PostgreSQL schema: %w", err)
+	}
+	if _, err := sqlDB.ExecContext(context.Background(), string(schema)); err != nil {
+		return fmt.Errorf("apply PostgreSQL schema: %w", err)
+	}
+	return nil
+}
+
 func RunMigrationsAndFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
 	if err := RunMigrations(sqlDB); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
