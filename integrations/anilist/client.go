@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mal/integrations/metadata"
@@ -76,6 +77,9 @@ func (c *Client) GetAnimeBatchByMALID(ctx context.Context, ids []int) ([]Anime, 
 	response, err := c.query(ctx, query.String(), nil)
 	if err != nil {
 		if !hasBatchData(response) {
+			if isNotFoundError(err) {
+				return c.getAnimeBatchIndividually(ctx, ids)
+			}
 			return nil, err
 		}
 	}
@@ -88,6 +92,28 @@ func (c *Client) GetAnimeBatchByMALID(ctx context.Context, ids []int) ([]Anime, 
 		items = append(items, mapAnime(item))
 	}
 	return items, nil
+}
+
+func (c *Client) getAnimeBatchIndividually(ctx context.Context, ids []int) ([]Anime, error) {
+	items := make([]Anime, 0, len(ids))
+	for _, id := range ids {
+		response, err := c.query(ctx, `query ($idMal: Int) { Media(idMal: $idMal, type: ANIME) { `+summaryMediaFields+` } }`, map[string]any{"idMal": id})
+		if err != nil {
+			if isNotFoundError(err) {
+				continue
+			}
+			return nil, err
+		}
+		if response.Data.Media != nil {
+			items = append(items, mapAnime(*response.Data.Media))
+		}
+	}
+	return items, nil
+}
+
+func isNotFoundError(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.Status == http.StatusNotFound
 }
 
 func (c *Client) Search(ctx context.Context, search string, page, perPage int) (SearchResult, error) {

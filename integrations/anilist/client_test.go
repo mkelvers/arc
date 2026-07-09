@@ -46,6 +46,37 @@ func TestGetAnimeBatchByMALIDKeepsValidItemsWhenSomeIDsAreMissing(t *testing.T) 
 	}
 }
 
+func TestGetAnimeBatchByMALIDRetriesNotFoundBatchesIndividually(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		if requests == 1 {
+			_, _ = w.Write([]byte(`{"errors":[{"message":"Not Found.","status":404}],"data":{"m0":null,"m1":null}}`))
+			return
+		}
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), `"idMal":20`) {
+			_, _ = w.Write([]byte(`{"data":{"Media":{"id":20,"idMal":20,"title":{"romaji":"NARUTO","english":"Naruto"},"type":"ANIME","format":"TV","startDate":{"year":2002},"coverImage":{"extraLarge":"cover"}}}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"errors":[{"message":"Not Found.","status":404}]}`))
+	}))
+	defer server.Close()
+
+	items, err := NewClientWithHTTPClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 999999})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].MALID != 20 {
+		t.Fatalf("items = %#v", items)
+	}
+	if requests != 3 {
+		t.Fatalf("requests = %d, want 3", requests)
+	}
+}
+
 func TestSearchAdvancedOmitsUnsetFilters(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
