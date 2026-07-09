@@ -54,10 +54,11 @@ type CharacterEntry struct {
 
 type RecommendationEntry struct {
 	Entry struct {
-		MalID  int
-		URL    string
-		Title  string
-		Images struct {
+		MalID    int
+		URL      string
+		Title    string
+		Synopsis string
+		Images   struct {
 			Webp struct {
 				LargeImageURL string
 			}

@@ -210,7 +210,8 @@ type RecommendationEntry struct {
 				LargeImageURL string `json:"large_image_url"`
 			} `json:"webp"`
 		} `json:"images"`
-		Title string `json:"title"`
+		Title    string `json:"title"`
+		Synopsis string `json:"synopsis"`
 	} `json:"entry"`
 	URL   string `json:"url"`
 	Votes int    `json:"votes"`
