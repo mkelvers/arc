@@ -1,6 +1,6 @@
 -- +goose Up
 ALTER TABLE watch_list_entry ADD COLUMN completed_at DATETIME;
-ALTER TABLE watch_list_entry ADD COLUMN completed_at_estimated BOOLEAN NOT NULL DEFAULT 0;
+ALTER TABLE watch_list_entry ADD COLUMN completed_at_estimated BOOLEAN NOT NULL DEFAULT FALSE;
 
 UPDATE watch_list_entry
 SET completed_at = COALESCE(
@@ -22,8 +22,8 @@ SET completed_at = COALESCE(
               AND a.action = 'watch_completed'
               AND a.resource_type = 'anime'
               AND a.resource_id = CAST(watch_list_entry.anime_id AS TEXT)
-        ) THEN 0
-        ELSE 1
+        ) THEN FALSE
+        ELSE TRUE
     END
 WHERE status = 'completed';
 

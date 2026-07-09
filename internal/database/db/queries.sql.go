@@ -1084,7 +1084,7 @@ VALUES (
     ?5,
     ?6,
     CASE WHEN ?4 = 'completed' THEN CURRENT_TIMESTAMP END,
-    0,
+    FALSE,
     CURRENT_TIMESTAMP
 )
 ON CONFLICT (user_id, anime_id) DO UPDATE SET
@@ -1099,7 +1099,7 @@ ON CONFLICT (user_id, anime_id) DO UPDATE SET
     completed_at_estimated = CASE
         WHEN excluded.status = 'completed' AND watch_list_entry.status = 'completed'
             THEN watch_list_entry.completed_at_estimated
-        ELSE 0
+        ELSE FALSE
     END,
     updated_at = CURRENT_TIMESTAMP
 RETURNING id, user_id, anime_id, status, created_at, updated_at, current_episode, last_episode_at, current_time_seconds, completed_at, completed_at_estimated

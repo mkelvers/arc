@@ -77,7 +77,7 @@ VALUES (
     sqlc.arg(current_episode),
     sqlc.arg(current_time_seconds),
     CASE WHEN sqlc.arg(status) = 'completed' THEN CURRENT_TIMESTAMP END,
-    0,
+    FALSE,
     CURRENT_TIMESTAMP
 )
 ON CONFLICT (user_id, anime_id) DO UPDATE SET
@@ -92,7 +92,7 @@ ON CONFLICT (user_id, anime_id) DO UPDATE SET
     completed_at_estimated = CASE
         WHEN excluded.status = 'completed' AND watch_list_entry.status = 'completed'
             THEN watch_list_entry.completed_at_estimated
-        ELSE 0
+        ELSE FALSE
     END,
     updated_at = CURRENT_TIMESTAMP
 RETURNING *;
