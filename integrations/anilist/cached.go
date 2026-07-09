@@ -12,9 +12,11 @@ import (
 const (
 	metadataFreshTTL  = 30 * 24 * time.Hour
 	metadataStaleTTL  = 7 * 24 * time.Hour
+	genreFreshTTL     = 7 * 24 * time.Hour
 	searchFreshTTL    = 24 * time.Hour
 	catalogFreshTTL   = time.Hour
 	recommendFreshTTL = 7 * 24 * time.Hour
+	detailCacheKeyV3  = "v3"
 	catalogCacheKeyV2 = "v2"
 )
 
@@ -28,7 +30,7 @@ func NewCachedClient(client *Client, cache *rediscache.Store) *CachedClient {
 }
 
 func (c *CachedClient) GetAnimeByMALID(ctx context.Context, id int) (Anime, error) {
-	key := fmt.Sprintf("anilist:anime:mal:detail:%d", id)
+	key := fmt.Sprintf("anilist:anime:mal:detail:%s:%d", detailCacheKeyV3, id)
 	var cached Anime
 	result, _ := c.cache.Get(ctx, key, &cached)
 	if result.State == rediscache.StateFresh {
@@ -44,6 +46,25 @@ func (c *CachedClient) GetAnimeByMALID(ctx context.Context, id int) (Anime, erro
 		return cached, nil
 	}
 	return Anime{}, fetchErr
+}
+
+func (c *CachedClient) GetGenres(ctx context.Context) ([]string, error) {
+	key := "anilist:genres"
+	var cached []string
+	result, _ := c.cache.Get(ctx, key, &cached)
+	if result.State == rediscache.StateFresh {
+		return cached, nil
+	}
+
+	fetched, err := c.client.GetGenres(ctx)
+	if err == nil {
+		_ = c.cache.Set(ctx, key, fetched, genreFreshTTL, metadataStaleTTL)
+		return fetched, nil
+	}
+	if result.State == rediscache.StateStale {
+		return cached, nil
+	}
+	return nil, err
 }
 
 func (c *CachedClient) GetAnimeBatchByMALID(ctx context.Context, ids []int) ([]Anime, error) {
