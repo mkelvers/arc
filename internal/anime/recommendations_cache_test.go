@@ -32,11 +32,9 @@ func TestGetTopPicksForYouReturnsRefreshingOnCacheMissAndRefreshesInBackground(t
 	}
 
 	waitForRefresh(t, refreshed)
-
-	got, err = svc.GetTopPicksForYou(context.Background(), "user-1")
-	if err != nil {
-		t.Fatalf("GetTopPicksForYou cache hit: %v", err)
-	}
+	got = waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateReady && len(data.Animes) == 1 && data.Animes[0].MalID == 7
+	})
 	if len(got.Animes) != 1 || got.Animes[0].MalID != 7 {
 		t.Fatalf("cache hit animes = %+v, want anime 7", got.Animes)
 	}
@@ -64,10 +62,9 @@ func TestGetTopPicksForYouCachesCompletedEmptyResult(t *testing.T) {
 	}
 	waitForRefresh(t, refreshed)
 
-	got, err = svc.GetTopPicksForYou(context.Background(), "user-1")
-	if err != nil {
-		t.Fatalf("GetTopPicksForYou completed empty: %v", err)
-	}
+	got = waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateEmpty
+	})
 	if got.RecommendationState != domain.RecommendationStateEmpty {
 		t.Fatalf("completed empty state = %q, want %q", got.RecommendationState, domain.RecommendationStateEmpty)
 	}
@@ -101,10 +98,9 @@ func TestGetTopPicksForYouReturnsFailedWhenRefreshFailsWithoutData(t *testing.T)
 	}
 	waitForRefresh(t, refreshed)
 
-	got, err = svc.GetTopPicksForYou(context.Background(), "user-1")
-	if err != nil {
-		t.Fatalf("GetTopPicksForYou failed result: %v", err)
-	}
+	got = waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateFailed
+	})
 	if got.RecommendationState != domain.RecommendationStateFailed {
 		t.Fatalf("failed state = %q, want %q", got.RecommendationState, domain.RecommendationStateFailed)
 	}
@@ -146,6 +142,9 @@ func TestGetTopPicksForYouJoinsColdRefresh(t *testing.T) {
 
 	close(release)
 	waitForRefresh(t, completed)
+	waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateReady && len(data.Animes) == 1 && data.Animes[0].MalID == 7
+	})
 }
 
 func TestTopPickAndTopPicksShareCache(t *testing.T) {
@@ -166,6 +165,9 @@ func TestTopPickAndTopPicksShareCache(t *testing.T) {
 		t.Fatalf("GetTopPickForYou cache miss: %v", err)
 	}
 	waitForRefresh(t, refreshed)
+	waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateReady && len(data.Animes) == recommendations.TopPickLimit+1
+	})
 
 	carousel, err := svc.GetTopPickForYou(context.Background(), "user-1")
 	if err != nil {
@@ -190,7 +192,6 @@ func TestTopPickAndTopPicksShareCache(t *testing.T) {
 
 func TestGetTopPicksForYouReturnsStaleDataWhenRefreshFails(t *testing.T) {
 	svc := NewAnimeService(nil, nil)
-	svc.topPicksCacheTTL = time.Nanosecond
 	refreshed := make(chan struct{}, 2)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
@@ -201,7 +202,11 @@ func TestGetTopPicksForYouReturnsStaleDataWhenRefreshFails(t *testing.T) {
 		t.Fatalf("prime cache: %v", err)
 	}
 	waitForRefresh(t, refreshed)
+	waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateReady && len(data.Animes) == 1 && data.Animes[0].MalID == 11
+	})
 
+	svc.topPicksCacheTTL = time.Nanosecond
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
 		return domain.CatalogSectionData{}, errors.New("provider unavailable")
@@ -242,26 +247,15 @@ func TestInvalidateTopPicksForUserPreservesStaleCardsAndRefreshes(t *testing.T) 
 	if err != nil {
 		t.Fatalf("GetTopPicksForYou after invalidation: %v", err)
 	}
-	if len(got.Animes) != 1 || got.Animes[0].MalID != 3 {
-		t.Fatalf("invalidated cache animes = %+v, want stale anime 3", got.Animes)
-	}
-	if got.RecommendationState != domain.RecommendationStateStale {
-		t.Fatalf("invalidated state = %q, want %q", got.RecommendationState, domain.RecommendationStateStale)
-	}
+	assertTopPicksAnimeState(t, got, 3, domain.RecommendationStateStale, "invalidated")
 
 	close(proceed)
 	waitForRefresh(t, refreshed)
 
-	got, err = svc.GetTopPicksForYou(context.Background(), "user-1")
-	if err != nil {
-		t.Fatalf("GetTopPicksForYou refreshed cache: %v", err)
-	}
-	if len(got.Animes) != 1 || got.Animes[0].MalID != 4 {
-		t.Fatalf("refreshed animes = %+v, want anime 4", got.Animes)
-	}
-	if got.RecommendationState != domain.RecommendationStateReady {
-		t.Fatalf("refreshed state = %q, want %q", got.RecommendationState, domain.RecommendationStateReady)
-	}
+	got = waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateReady && len(data.Animes) == 1 && data.Animes[0].MalID == 4
+	})
+	assertTopPicksAnimeState(t, got, 4, domain.RecommendationStateReady, "refreshed")
 }
 
 func primePickCache(t *testing.T, svc *animeService, refreshed chan struct{}) {
@@ -270,6 +264,9 @@ func primePickCache(t *testing.T, svc *animeService, refreshed chan struct{}) {
 		t.Fatalf("prime cache: %v", err)
 	}
 	waitForRefresh(t, refreshed)
+	waitForTopPicksState(t, svc, func(data domain.CatalogSectionData) bool {
+		return data.RecommendationState == domain.RecommendationStateReady && len(data.Animes) > 0
+	})
 }
 
 func waitForRefresh(t *testing.T, refreshed chan struct{}) {
@@ -278,5 +275,34 @@ func waitForRefresh(t *testing.T, refreshed chan struct{}) {
 	case <-refreshed:
 	case <-time.After(time.Second):
 		t.Fatal("background refresh did not run")
+	}
+}
+
+func waitForTopPicksState(t *testing.T, svc *animeService, ready func(domain.CatalogSectionData) bool) domain.CatalogSectionData {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	var last domain.CatalogSectionData
+	for time.Now().Before(deadline) {
+		got, err := svc.GetTopPicksForYou(context.Background(), "user-1")
+		if err != nil {
+			t.Fatalf("GetTopPicksForYou while waiting for cache state: %v", err)
+		}
+		last = got
+		if ready(got) {
+			return got
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("top picks cache did not reach expected state; last = %+v", last)
+	return last
+}
+
+func assertTopPicksAnimeState(t *testing.T, data domain.CatalogSectionData, malID int, state domain.RecommendationRefreshState, label string) {
+	t.Helper()
+	if len(data.Animes) != 1 || data.Animes[0].MalID != malID {
+		t.Fatalf("%s animes = %+v, want anime %d", label, data.Animes, malID)
+	}
+	if data.RecommendationState != state {
+		t.Fatalf("%s state = %q, want %q", label, data.RecommendationState, state)
 	}
 }
