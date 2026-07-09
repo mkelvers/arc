@@ -223,6 +223,144 @@ func TestTopPicksTemplateStylesBackToHomeAsButton(t *testing.T) {
 	}
 }
 
+type fragmentPollWant struct {
+	text   string
+	absent string
+	poll   bool
+	noPoll bool
+}
+
+type topPicksContentCase struct {
+	name string
+	data map[string]any
+	want fragmentPollWant
+}
+
+type topPickSectionCase struct {
+	name string
+	data domain.CatalogSectionData
+	want fragmentPollWant
+}
+
+func topPicksContentCases() []topPicksContentCase {
+	return []topPicksContentCase{
+		{"refreshing", topPicksContentData(domain.RecommendationStateRefreshing), fragmentPollWant{text: "skeleton", absent: "Preparing recommendations...", poll: true}},
+		{"ready", topPicksContentData(domain.RecommendationStateReady, rendererTestAnime()), fragmentPollWant{text: "Haikyuu!!", noPoll: true}},
+		{"stale", topPicksContentData(domain.RecommendationStateStale, rendererTestAnime()), fragmentPollWant{text: "Updating...", noPoll: true}},
+		{"empty", topPicksContentData(domain.RecommendationStateEmpty), fragmentPollWant{text: "No top picks yet", noPoll: true}},
+		{"failed", topPicksContentData(domain.RecommendationStateFailed), fragmentPollWant{text: "Recommendations could not be prepared.", noPoll: true}},
+	}
+}
+
+func topPicksContentData(state domain.RecommendationRefreshState, animes ...domain.Anime) map[string]any {
+	return map[string]any{
+		"RecommendationState": state,
+		"Animes":              animes,
+		"WatchlistMap":        map[int64]bool{},
+	}
+}
+
+func topPickSectionCases() []topPickSectionCase {
+	return []topPickSectionCase{
+		{"refreshing", topPickSectionData(domain.RecommendationStateRefreshing), fragmentPollWant{text: "skeleton", absent: "Preparing recommendations...", poll: true}},
+		{"ready", topPickSectionData(domain.RecommendationStateReady, rendererTestAnime()), fragmentPollWant{text: "View all", noPoll: true}},
+		{"failed", topPickSectionData(domain.RecommendationStateFailed), fragmentPollWant{text: "Recommendations could not be prepared.", noPoll: true}},
+	}
+}
+
+func topPickSectionData(state domain.RecommendationRefreshState, animes ...domain.Anime) domain.CatalogSectionData {
+	return domain.CatalogSectionData{
+		RecommendationState: state,
+		Animes:              animes,
+		WatchlistMap:        map[int64]bool{},
+	}
+}
+
+func rendererTestAnime() domain.Anime {
+	return domain.Anime{Anime: jikan.Anime{MalID: 1, Title: "Haikyuu!!"}}
+}
+
+func renderTemplateFragment(t *testing.T, r *Renderer, name string, block string, data any) string {
+	t.Helper()
+
+	var buf bytes.Buffer
+	if err := r.ExecuteFragment(&buf, name, block, data); err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+	return buf.String()
+}
+
+func assertFragmentPollState(t *testing.T, label string, body string, want fragmentPollWant) {
+	t.Helper()
+
+	if !strings.Contains(body, want.text) {
+		t.Fatalf("%s should contain %q:\n%s", label, want.text, body)
+	}
+	if want.absent != "" {
+		assertFragmentMissing(t, label, body, want.absent)
+	}
+
+	hasPoll := strings.Contains(body, `hx-trigger="every 2s"`)
+	if want.poll {
+		assertFragmentPolls(t, label, body, hasPoll)
+	}
+	if want.noPoll {
+		assertFragmentDoesNotPoll(t, label, body, hasPoll)
+	}
+}
+
+func assertFragmentMissing(t *testing.T, label string, body string, text string) {
+	t.Helper()
+
+	if strings.Contains(body, text) {
+		t.Fatalf("%s should not contain %q:\n%s", label, text, body)
+	}
+}
+
+func assertFragmentPolls(t *testing.T, label string, body string, hasPoll bool) {
+	t.Helper()
+
+	if !hasPoll {
+		t.Fatalf("%s should poll while refreshing:\n%s", label, body)
+	}
+}
+
+func assertFragmentDoesNotPoll(t *testing.T, label string, body string, hasPoll bool) {
+	t.Helper()
+
+	if hasPoll {
+		t.Fatalf("%s should not poll in terminal state:\n%s", label, body)
+	}
+}
+
+func TestTopPicksContentPollsOnlyWhileRefreshing(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tt := range topPicksContentCases() {
+		t.Run(tt.name, func(t *testing.T) {
+			body := renderTemplateFragment(t, r, "top_picks.gohtml", "top_picks_content", tt.data)
+			assertFragmentPollState(t, "top picks content", body, tt.want)
+		})
+	}
+}
+
+func TestHomeTopPickFragmentPollsOnlyWhileRefreshing(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tt := range topPickSectionCases() {
+		t.Run(tt.name, func(t *testing.T) {
+			body := renderTemplateFragment(t, r, "index.gohtml", "top_pick_for_you_section", tt.data)
+			assertFragmentPollState(t, "home top pick fragment", body, tt.want)
+		})
+	}
+}
+
 func TestAnimeEpisodeCountTemplateDoesNotRenderAvailabilityStatus(t *testing.T) {
 	r, err := ProvideRenderer()
 	if err != nil {

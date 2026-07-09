@@ -28,11 +28,34 @@
 {{end}}
 
 {{define "top_pick_for_you_section"}}
-  {{if gt (len .Animes) 0}}
+  {{if eq .RecommendationState "refreshing"}}
+    <section id="top-pick-for-you-section" class="w-full" hx-get="/api/catalog/top-pick" hx-trigger="every 2s" hx-swap="outerHTML" hx-sync="this:replace" aria-busy="true" aria-label="Preparing recommendations">
+      <div class="mb-4 flex items-end justify-between gap-3">
+        <h2 class="min-w-0 text-base font-normal text-foreground">Top Pick for You</h2>
+        <div class="skeleton skeleton-subtle h-4 w-24"></div>
+      </div>
+      {{template "top_pick_for_you_skeleton_cards"}}
+    </section>
+  {{else if eq .RecommendationState "failed"}}
+    <section id="top-pick-for-you-section" class="w-full">
+      <div class="mb-4 flex items-end justify-between gap-3">
+        <h2 class="min-w-0 text-base font-normal text-foreground">Top Pick for You</h2>
+      </div>
+      <div class="flex min-h-32 flex-col items-center justify-center gap-3 text-center text-sm text-foreground-muted">
+        <p class="text-foreground">Recommendations could not be prepared.</p>
+        <a href="/top-picks?retry=1" hx-get="/api/catalog/top-pick?retry=1" hx-target="#top-pick-for-you-section" hx-swap="outerHTML" class="inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-normal text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">Retry</a>
+      </div>
+    </section>
+  {{else if gt (len .Animes) 0}}
     <section id="top-pick-for-you-section" class="w-full" data-top-pick-carousel>
       <div class="mb-4 flex items-end justify-between gap-3">
         <h2 class="min-w-0 text-base font-normal text-foreground">Top Pick for You</h2>
-        {{template "section_action" dict "Href" "/top-picks" "Label" "View all"}}
+        <div class="flex shrink-0 items-center gap-3">
+          {{if eq .RecommendationState "stale"}}
+            <p class="text-xs text-foreground-muted" role="status">Updating...</p>
+          {{end}}
+          {{template "section_action" dict "Href" "/top-picks" "Label" "View all"}}
+        </div>
       </div>
       <div class="relative overflow-hidden">
         <div data-top-pick-track tabindex="0" class="grid min-w-0 grid-flow-col auto-cols-[calc((100%-0.75rem)/2.18)] gap-3 overflow-x-auto scroll-smooth pb-1 scrollbar-hidden md:auto-cols-[calc((100%-2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%-3rem)/4.35)] xl:auto-cols-[calc((100%-4rem)/5.35)] 2xl:auto-cols-[calc((100%-5rem)/6.35)]">
@@ -86,6 +109,11 @@
     <div class="skeleton h-5 w-36"></div>
     <div class="skeleton skeleton-subtle h-4 w-24"></div>
   </div>
+  {{template "top_pick_for_you_skeleton_cards"}}
+</section>
+{{end}}
+
+{{define "top_pick_for_you_skeleton_cards"}}
   <div class="relative overflow-hidden">
     <div class="grid min-w-0 grid-flow-col auto-cols-[calc((100%-0.75rem)/2.18)] gap-3 overflow-hidden pb-1 md:auto-cols-[calc((100%-2rem)/3.35)] md:gap-4 lg:auto-cols-[calc((100%-3rem)/4.35)] xl:auto-cols-[calc((100%-4rem)/5.35)] 2xl:auto-cols-[calc((100%-5rem)/6.35)]">
       {{range (seq 6)}}
@@ -97,7 +125,6 @@
       {{end}}
     </div>
   </div>
-</section>
 {{end}}
 
 {{define "continue_watching_skeleton"}}
