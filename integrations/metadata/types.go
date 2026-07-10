@@ -36,13 +36,14 @@ type TitleEntry struct {
 }
 
 type Anime struct {
-	MalID         int          `json:"mal_id"`
-	Title         string       `json:"title"`
-	TitleEnglish  string       `json:"title_english"`
-	TitleJapanese string       `json:"title_japanese"`
-	TitleSynonyms []string     `json:"title_synonyms"`
-	Titles        []TitleEntry `json:"titles"`
-	Images        struct {
+	MalID          int          `json:"mal_id"`
+	Title          string       `json:"title"`
+	TitleEnglish   string       `json:"title_english"`
+	TitleJapanese  string       `json:"title_japanese"`
+	TitleSynonyms  []string     `json:"title_synonyms"`
+	BannerImageURL string       `json:"banner_image_url"`
+	Titles         []TitleEntry `json:"titles"`
+	Images         struct {
 		Jpg struct {
 			LargeImageURL string `json:"large_image_url"`
 		} `json:"jpg"`
