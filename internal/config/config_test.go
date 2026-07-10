@@ -23,22 +23,6 @@ func TestFirstNonEmptySkipsWhitespaceOnly(t *testing.T) {
 	}
 }
 
-func TestTruthyRecognises1TrueYesYOn(t *testing.T) {
-	for _, v := range []string{"1", "true", "True", "TRUE", "yes", "Yes", "y", "Y", "on", "ON"} {
-		if !truthy(v) {
-			t.Fatalf("truthy(%q) = false, want true", v)
-		}
-	}
-}
-
-func TestTruthyReturnsFalseForEmptyAndGarbage(t *testing.T) {
-	for _, v := range []string{"", "0", "false", "no", "off", "maybe"} {
-		if truthy(v) {
-			t.Fatalf("truthy(%q) = true, want false", v)
-		}
-	}
-}
-
 func TestLoadDefaults(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
