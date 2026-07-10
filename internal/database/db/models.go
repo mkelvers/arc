@@ -20,6 +20,7 @@ type Anime struct {
 	Status            sql.NullString  `json:"status"`
 	RelationsSyncedAt sql.NullTime    `json:"relations_synced_at"`
 	DurationSeconds   sql.NullFloat64 `json:"duration_seconds"`
+	BannerImageUrl    string          `json:"banner_image_url"`
 }
 
 type ApiToken struct {
