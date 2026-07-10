@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strconv"
 	"strings"
@@ -287,9 +288,7 @@ func logWatchDataStage(stage string, animeID int, episode string, startedAt time
 	if episode != "" {
 		logFields["episode"] = episode
 	}
-	for key, value := range fields {
-		logFields[key] = value
-	}
+	maps.Copy(logFields, fields)
 	observability.Info("watch_data_stage", "playback", "", logFields)
 }
 
