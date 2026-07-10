@@ -137,6 +137,7 @@ func watchlistAnimeParams(anime metadata.Anime) db.UpsertAnimeParams {
 		TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
 		TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
 		ImageUrl:        anime.Images.Webp.LargeImageURL,
+		BannerImageUrl:  anime.BannerImageURL,
 		Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
 		DurationSeconds: duration,
 	}
