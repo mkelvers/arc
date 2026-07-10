@@ -53,13 +53,17 @@ SET revoked_at = CURRENT_TIMESTAMP
 WHERE user_id = ? AND revoked_at IS NULL;
 
 -- name: UpsertAnime :one
-INSERT INTO anime (id, title_original, title_english, title_japanese, image_url, airing, duration_seconds)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO anime (id, title_original, title_english, title_japanese, image_url, banner_image_url, airing, duration_seconds)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (id) DO UPDATE SET
     title_original = excluded.title_original,
     title_english = excluded.title_english,
     title_japanese = excluded.title_japanese,
     image_url = excluded.image_url,
+    banner_image_url = CASE
+        WHEN excluded.banner_image_url <> '' THEN excluded.banner_image_url
+        ELSE anime.banner_image_url
+    END,
     airing = excluded.airing,
     duration_seconds = excluded.duration_seconds
 RETURNING *;
@@ -131,6 +135,7 @@ SELECT
     a.title_english,
     a.title_japanese,
     a.image_url,
+    a.banner_image_url,
     a.duration_seconds as anime_duration_seconds
 FROM continue_watching_entry c
 JOIN anime a ON c.anime_id = a.id
@@ -151,6 +156,7 @@ SELECT
     a.title_english,
     a.title_japanese,
     a.image_url,
+    a.banner_image_url,
     a.duration_seconds as anime_duration_seconds
 FROM continue_watching_entry c
 JOIN anime a ON c.anime_id = a.id

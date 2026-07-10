@@ -183,7 +183,7 @@ func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiT
 }
 
 const getAnime = `-- name: GetAnime :one
-SELECT id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds FROM anime WHERE id = ? LIMIT 1
+SELECT id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds, banner_image_url FROM anime WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
@@ -200,6 +200,7 @@ func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
 		&i.Status,
 		&i.RelationsSyncedAt,
 		&i.DurationSeconds,
+		&i.BannerImageUrl,
 	)
 	return i, err
 }
@@ -264,6 +265,7 @@ SELECT
     a.title_english,
     a.title_japanese,
     a.image_url,
+    a.banner_image_url,
     a.duration_seconds as anime_duration_seconds
 FROM continue_watching_entry c
 JOIN anime a ON c.anime_id = a.id
@@ -290,6 +292,7 @@ type GetContinueWatchingCarouselEntriesRow struct {
 	TitleEnglish         sql.NullString  `json:"title_english"`
 	TitleJapanese        sql.NullString  `json:"title_japanese"`
 	ImageUrl             string          `json:"image_url"`
+	BannerImageUrl       string          `json:"banner_image_url"`
 	AnimeDurationSeconds sql.NullFloat64 `json:"anime_duration_seconds"`
 }
 
@@ -315,6 +318,7 @@ func (q *Queries) GetContinueWatchingCarouselEntries(ctx context.Context, arg Ge
 			&i.TitleEnglish,
 			&i.TitleJapanese,
 			&i.ImageUrl,
+			&i.BannerImageUrl,
 			&i.AnimeDurationSeconds,
 		); err != nil {
 			return nil, err
@@ -344,6 +348,7 @@ SELECT
     a.title_english,
     a.title_japanese,
     a.image_url,
+    a.banner_image_url,
     a.duration_seconds as anime_duration_seconds
 FROM continue_watching_entry c
 JOIN anime a ON c.anime_id = a.id
@@ -364,6 +369,7 @@ type GetContinueWatchingEntriesRow struct {
 	TitleEnglish         sql.NullString  `json:"title_english"`
 	TitleJapanese        sql.NullString  `json:"title_japanese"`
 	ImageUrl             string          `json:"image_url"`
+	BannerImageUrl       string          `json:"banner_image_url"`
 	AnimeDurationSeconds sql.NullFloat64 `json:"anime_duration_seconds"`
 }
 
@@ -389,6 +395,7 @@ func (q *Queries) GetContinueWatchingEntries(ctx context.Context, userID string)
 			&i.TitleEnglish,
 			&i.TitleJapanese,
 			&i.ImageUrl,
+			&i.BannerImageUrl,
 			&i.AnimeDurationSeconds,
 		); err != nil {
 			return nil, err
@@ -905,16 +912,20 @@ func (q *Queries) TouchAPITokenLastUsedAt(ctx context.Context, id string) error 
 }
 
 const upsertAnime = `-- name: UpsertAnime :one
-INSERT INTO anime (id, title_original, title_english, title_japanese, image_url, airing, duration_seconds)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+INSERT INTO anime (id, title_original, title_english, title_japanese, image_url, banner_image_url, airing, duration_seconds)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (id) DO UPDATE SET
     title_original = excluded.title_original,
     title_english = excluded.title_english,
     title_japanese = excluded.title_japanese,
     image_url = excluded.image_url,
+    banner_image_url = CASE
+        WHEN excluded.banner_image_url <> '' THEN excluded.banner_image_url
+        ELSE anime.banner_image_url
+    END,
     airing = excluded.airing,
     duration_seconds = excluded.duration_seconds
-RETURNING id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds
+RETURNING id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds, banner_image_url
 `
 
 type UpsertAnimeParams struct {
@@ -923,6 +934,7 @@ type UpsertAnimeParams struct {
 	TitleEnglish    sql.NullString  `json:"title_english"`
 	TitleJapanese   sql.NullString  `json:"title_japanese"`
 	ImageUrl        string          `json:"image_url"`
+	BannerImageUrl  string          `json:"banner_image_url"`
 	Airing          sql.NullBool    `json:"airing"`
 	DurationSeconds sql.NullFloat64 `json:"duration_seconds"`
 }
@@ -934,6 +946,7 @@ func (q *Queries) UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime
 		arg.TitleEnglish,
 		arg.TitleJapanese,
 		arg.ImageUrl,
+		arg.BannerImageUrl,
 		arg.Airing,
 		arg.DurationSeconds,
 	)
@@ -949,6 +962,7 @@ func (q *Queries) UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime
 		&i.Status,
 		&i.RelationsSyncedAt,
 		&i.DurationSeconds,
+		&i.BannerImageUrl,
 	)
 	return i, err
 }
