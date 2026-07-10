@@ -135,17 +135,18 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 }
 
 func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error) {
-	if s.metadata != nil {
-		result, err := s.metadata.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, studioID, sfw, page, limit)
-		if err == nil {
-			animes := make([]metadata.Anime, 0, len(result.Items))
-			for _, item := range result.Items {
-				animes = append(animes, anilist.ToMetadataAnime(anilist.Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage}))
-			}
-			return metadata.SearchResult{Animes: animes, HasNextPage: result.HasNextPage}, nil
-		}
+	if s.metadata == nil {
+		return metadata.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")
 	}
-	return metadata.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")
+	result, err := s.metadata.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, studioID, sfw, page, limit)
+	if err != nil {
+		return metadata.SearchResult{}, fmt.Errorf("search anime with AniList: %w", err)
+	}
+	animes := make([]metadata.Anime, 0, len(result.Items))
+	for _, item := range result.Items {
+		animes = append(animes, anilist.ToMetadataAnime(anilist.Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage}))
+	}
+	return metadata.SearchResult{Animes: animes, HasNextPage: result.HasNextPage}, nil
 }
 
 func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {

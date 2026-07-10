@@ -449,7 +449,7 @@ func mediaSort(orderBy, direction string) string {
 	case "score":
 		name = "SCORE"
 	case "title":
-		name = "TITLE"
+		name = "TITLE_ROMAJI"
 	case "start_date":
 		name = "START_DATE"
 	case "episodes":

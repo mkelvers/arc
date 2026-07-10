@@ -107,6 +107,20 @@ func TestSearchAdvancedOmitsUnsetFilters(t *testing.T) {
 	}
 }
 
+func TestMediaSortUsesAniListTitleEnum(t *testing.T) {
+	for _, test := range []struct {
+		direction string
+		want      string
+	}{
+		{direction: "asc", want: "TITLE_ROMAJI_ASC"},
+		{direction: "desc", want: "TITLE_ROMAJI_DESC"},
+	} {
+		if got := mediaSort("title", test.direction); got != test.want {
+			t.Errorf("mediaSort(title, %q) = %q, want %q", test.direction, got, test.want)
+		}
+	}
+}
+
 func TestGetPopularIncludesSynopsis(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
