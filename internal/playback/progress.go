@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -110,10 +111,12 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 
 func (s *playbackService) SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error {
 	err := s.repo.InTx(ctx, func(txCtx context.Context, repo domain.PlaybackRepository) error {
-		if _, err := repo.GetAnime(txCtx, animeID); err != nil {
+		if _, err := repo.GetAnime(txCtx, animeID); errors.Is(err, sql.ErrNoRows) {
 			if _, err := repo.UpsertAnime(txCtx, minimalAnimeParams(animeID)); err != nil {
 				return fmt.Errorf("upsert minimal anime %d: %w", animeID, err)
 			}
+		} else if err != nil {
+			return fmt.Errorf("get anime %d: %w", animeID, err)
 		}
 
 		_, err := repo.UpsertContinueWatchingEntry(txCtx, db.UpsertContinueWatchingEntryParams{

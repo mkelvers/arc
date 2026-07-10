@@ -34,6 +34,19 @@ func TestSaveProgressDoesNotUpsertAnimeWhenExistingRowFound(t *testing.T) {
 	}
 }
 
+func TestSaveProgressReturnsGetAnimeErrors(t *testing.T) {
+	repo := &fakePlaybackRepository{getAnimeErr: errors.New("query failed")}
+	svc := &playbackService{repo: repo, auditSvc: &fakePlaybackAuditService{}}
+
+	err := svc.SaveProgress(context.Background(), "user-1", 12, 3, 45.5)
+	if err == nil || !strings.Contains(err.Error(), "get anime 12: query failed") {
+		t.Fatalf("SaveProgress error = %v, want get anime error", err)
+	}
+	if repo.upsertAnimeCalled {
+		t.Fatal("did not expect anime upsert after get error")
+	}
+}
+
 func TestEnsureAnimeRowAddsMissingBanner(t *testing.T) {
 	repo := &fakePlaybackRepository{}
 	svc := &playbackService{repo: repo}
