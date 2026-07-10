@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mal/integrations/anilist"
 	"mal/internal"
 	"mal/internal/config"
 	"mal/internal/database"
@@ -72,7 +73,8 @@ func runFixes() error {
 	}
 	defer sqlDB.Close()
 
-	if err := database.RunPostgresMigrations(sqlDB); err != nil {
+	client := anilist.NewClient("")
+	if err := database.RunPostgresMigrationsAndFixes(sqlDB, internal.DataFixDependencies(client)); err != nil {
 		return fmt.Errorf("run migrations and fixes: %w", err)
 	}
 	fmt.Println("Database migrations and fixes complete")
