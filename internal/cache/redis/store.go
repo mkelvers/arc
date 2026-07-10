@@ -45,10 +45,6 @@ func New(url string) (*Store, error) {
 	return &Store{client: goRedis.NewClient(opts), now: time.Now}, nil
 }
 
-func NewWithClient(client *goRedis.Client) *Store {
-	return &Store{client: client, now: time.Now}
-}
-
 func (s *Store) Ping(ctx context.Context) error {
 	if s == nil || s.client == nil {
 		return errors.New("redis cache is not configured")

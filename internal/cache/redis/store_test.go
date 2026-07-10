@@ -10,7 +10,7 @@ import (
 
 func TestStoreReportsFreshStaleAndExpired(t *testing.T) {
 	client := goRedis.NewClient(&goRedis.Options{Addr: "localhost:0"})
-	store := NewWithClient(client)
+	store := &Store{client: client, now: time.Now}
 	now := time.Date(2026, 7, 9, 12, 0, 0, 0, time.UTC)
 	store.now = func() time.Time { return now }
 
