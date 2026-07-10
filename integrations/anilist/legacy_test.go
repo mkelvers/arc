@@ -19,6 +19,7 @@ func TestToMetadataAnimeMapsAniListMetadata(t *testing.T) {
 		Season:          "FALL",
 		SeasonYear:      2002,
 		StartDate:       Date{Year: 2002, Month: 10, Day: 3},
+		BannerImage:     "https://example.com/naruto-banner.jpg",
 	}
 	got := ToMetadataAnime(anime)
 	if got.MalID != 20 || got.DisplayTitle() != "Naruto" || got.Status != "Currently Airing" || !got.Airing {
@@ -26,6 +27,9 @@ func TestToMetadataAnimeMapsAniListMetadata(t *testing.T) {
 	}
 	if got.Score != 8 || got.Duration != "23 min per ep" || got.Aired.From != "2002-10-03T00:00:00Z" {
 		t.Fatalf("mapped details = %+v", got)
+	}
+	if got.BannerImageURL != anime.BannerImage {
+		t.Fatalf("BannerImageURL = %q, want %q", got.BannerImageURL, anime.BannerImage)
 	}
 }
 
