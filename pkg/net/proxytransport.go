@@ -47,10 +47,3 @@ func NewClient() *http.Client {
 		Timeout:   60 * time.Second,
 	}
 }
-
-func NewStreamingClient() *http.Client {
-	return &http.Client{
-		Transport: newTransport(10*time.Second, 10*time.Second, 15*time.Second),
-		// No client timeout: streaming responses may stay open indefinitely.
-	}
-}
