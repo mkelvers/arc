@@ -17,12 +17,6 @@ func DefaultAvatarURL(username string) string {
 	return "https://api.dicebear.com/9.x/dylan/svg?" + params.Encode()
 }
 
-func RunMigrationsAndFixes(sqlDB *sql.DB) error {
-	return database.RunMigrationsAndFixes(sqlDB, dbfixes.Dependencies{
-		DefaultAvatarURL: DefaultAvatarURL,
-	})
-}
-
 func RunPostgresMigrationsAndFixes(sqlDB *sql.DB, metadata *anilist.CachedClient) error {
 	return database.RunPostgresMigrationsAndFixes(sqlDB, DataFixDependencies(metadata))
 }
