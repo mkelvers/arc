@@ -2,15 +2,9 @@ package metadata
 
 import (
 	"hash/fnv"
-	"sort"
 	"strings"
 	"sync"
 )
-
-type Genre struct {
-	ID   int
-	Name string
-}
 
 var genreRegistry = struct {
 	sync.RWMutex
@@ -62,17 +56,6 @@ func GenreID(name string) int {
 			id = 1
 		}
 	}
-}
-
-func Genres() []Genre {
-	genreRegistry.RLock()
-	genres := make([]Genre, 0, len(genreRegistry.byID))
-	for id, name := range genreRegistry.byID {
-		genres = append(genres, Genre{ID: id, Name: name})
-	}
-	genreRegistry.RUnlock()
-	sort.Slice(genres, func(i, j int) bool { return genres[i].ID < genres[j].ID })
-	return genres
 }
 
 func GenreName(id int) (string, bool) {
