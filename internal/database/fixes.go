@@ -61,7 +61,7 @@ func ensureDataFixTable(ctx context.Context, sqlDB *sql.DB) error {
 	_, err := sqlDB.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS data_fixes (
     id TEXT PRIMARY KEY,
-    applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 `)
 	if err != nil {
@@ -92,7 +92,7 @@ func loadAppliedFixes(ctx context.Context, sqlDB *sql.DB) (map[string]bool, erro
 }
 
 func markFixApplied(ctx context.Context, sqlDB *sql.DB, id string) error {
-	_, err := sqlDB.ExecContext(ctx, `INSERT OR IGNORE INTO data_fixes (id) VALUES (?)`, id)
+	_, err := sqlDB.ExecContext(ctx, `INSERT INTO data_fixes (id) VALUES (?) ON CONFLICT (id) DO NOTHING`, id)
 	if err != nil {
 		return fmt.Errorf("mark data fix applied id=%s: %w", id, err)
 	}
