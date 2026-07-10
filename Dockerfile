@@ -34,6 +34,7 @@ RUN rm -rf dist/ && bun run build:assets && bun run build:ts
 # Build the server and CLI tools
 RUN go build -ldflags="-s -w" -o main_server ./cmd/server
 RUN go build -ldflags="-s -w" -o user_admin ./cmd/user
+RUN go build -ldflags="-s -w" -o migrate_db ./cmd/migrate-db
 
 FROM debian:bookworm-slim
 
@@ -50,6 +51,7 @@ ENV DATABASE_FILE=/app/data/mal.db
 
 COPY --from=builder /app/main_server .
 COPY --from=builder /app/user_admin .
+COPY --from=builder /app/migrate_db .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
