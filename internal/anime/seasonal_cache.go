@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mal/integrations/playback/allanime"
 	"mal/internal/observability"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -43,10 +44,8 @@ func newSeasonalCacheKey(season string, year int) (seasonalCacheKey, error) {
 
 func normalizeSeasonName(season string) string {
 	season = strings.ToLower(strings.TrimSpace(season))
-	for _, candidate := range seasons {
-		if season == candidate {
-			return season
-		}
+	if slices.Contains(seasons, season) {
+		return season
 	}
 	return ""
 }
