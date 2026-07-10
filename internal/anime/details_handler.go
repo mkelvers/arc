@@ -23,11 +23,6 @@ const (
 	episodeCountTimeout = 4 * time.Second
 )
 
-type animeEpisodeCountDisplay struct {
-	Count int
-	Label string
-}
-
 type animeReleaseInfoDisplay struct {
 	Count  int
 	Label  string
@@ -49,11 +44,6 @@ func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
 		return anime.Episodes
 	}
 	return count
-}
-
-func (h *AnimeHandler) animeEpisodeCount(ctx context.Context, anime domain.Anime, now time.Time) animeEpisodeCountDisplay {
-	info := h.animeReleaseInfo(ctx, anime, now)
-	return animeEpisodeCountDisplay{Count: info.Count, Label: info.Label}
 }
 
 func (h *AnimeHandler) animeReleaseInfo(ctx context.Context, anime domain.Anime, now time.Time) animeReleaseInfoDisplay {
@@ -109,11 +99,6 @@ func animeInitialReleaseInfo(anime domain.Anime, now time.Time) animeReleaseInfo
 		info.Label = "Estimated aired episodes"
 	}
 	return info
-}
-
-func animeInitialEpisodeCount(anime domain.Anime, now time.Time) animeEpisodeCountDisplay {
-	info := animeInitialReleaseInfo(anime, now)
-	return animeEpisodeCountDisplay{Count: info.Count, Label: info.Label}
 }
 
 func trustedAnimeStatus(anime domain.Anime, canonicalEpisodes int) string {

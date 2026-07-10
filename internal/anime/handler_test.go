@@ -115,7 +115,7 @@ func TestReleasedEpisodeCount(t *testing.T) {
 	}
 }
 
-func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
+func TestAnimeReleaseInfoUsesCanonicalEpisodeCount(t *testing.T) {
 	episodeSvc := &stubEpisodeService{
 		episodes: domain.CanonicalEpisodeList{
 			Source: "AllAnime",
@@ -128,7 +128,7 @@ func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
 	}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: metadata.Anime{
+	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Airing:   true,
 		Episodes: 12,
@@ -136,13 +136,13 @@ func TestAnimeEpisodeCountUsesCanonicalEpisodes(t *testing.T) {
 	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
 
 	if got.Count != 3 || got.Label != "Available episodes" {
-		t.Fatalf("animeEpisodeCount() = %+v, want count=3 label=%q", got, "Available episodes")
+		t.Fatalf("animeReleaseInfo() = %+v, want count=3 label=%q", got, "Available episodes")
 	}
 	if episodeSvc.called != 1 {
 		t.Fatalf("GetCanonicalEpisodes() calls = %d, want 1", episodeSvc.called)
 	}
 	if episodeSvc.forceRefresh {
-		t.Fatal("animeEpisodeCount() should use fresh cache when available")
+		t.Fatal("animeReleaseInfo() should use fresh cache when available")
 	}
 }
 
@@ -197,7 +197,7 @@ func TestAnimeReleaseInfoMarksAiringAnimeWithoutCanonicalEpisodesAsNotYetAired(t
 	}
 }
 
-func TestAnimeEpisodeCountStopsWhenCanonicalEpisodesAreEmpty(t *testing.T) {
+func TestAnimeReleaseInfoStopsWhenCanonicalEpisodesAreEmpty(t *testing.T) {
 	episodeSvc := &stubEpisodeService{
 		episodes: domain.CanonicalEpisodeList{
 			Source:   "AllAnime",
@@ -206,7 +206,7 @@ func TestAnimeEpisodeCountStopsWhenCanonicalEpisodesAreEmpty(t *testing.T) {
 	}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: metadata.Anime{
+	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    62076,
 		Airing:   true,
 		Episodes: 12,
@@ -214,7 +214,7 @@ func TestAnimeEpisodeCountStopsWhenCanonicalEpisodesAreEmpty(t *testing.T) {
 	}}, time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC))
 
 	if got.Count != 0 || got.Label != "" {
-		t.Fatalf("animeEpisodeCount() = %+v, want empty display", got)
+		t.Fatalf("animeReleaseInfo() = %+v, want empty display", got)
 	}
 	if episodeSvc.called != 1 {
 		t.Fatalf("GetCanonicalEpisodes() calls = %d, want 1", episodeSvc.called)
@@ -235,29 +235,29 @@ func TestAnimeInitialReleaseInfoDoesNotTrustCurrentlyAiringMetadata(t *testing.T
 	}
 }
 
-func TestAnimeEpisodeCountFallsBackToMetadata(t *testing.T) {
+func TestAnimeReleaseInfoFallsBackToMetadata(t *testing.T) {
 	episodeSvc := &stubEpisodeService{err: errors.New("provider unavailable")}
 	handler := NewAnimeHandler(nil, nil, episodeSvc, nil)
 
-	got := handler.animeEpisodeCount(context.Background(), domain.Anime{Anime: metadata.Anime{
+	got := handler.animeReleaseInfo(context.Background(), domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Airing:   false,
 		Episodes: 12,
 	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
 
 	if got.Count != 12 || got.Label != "Total episodes" {
-		t.Fatalf("animeEpisodeCount() = %+v, want count=12 label=%q", got, "Total episodes")
+		t.Fatalf("animeReleaseInfo() = %+v, want count=12 label=%q", got, "Total episodes")
 	}
 }
 
-func TestAnimeInitialEpisodeCountDoesNotTrustCurrentlyAiringMetadata(t *testing.T) {
+func TestAnimeInitialReleaseInfoDoesNotCallEpisodeService(t *testing.T) {
 	episodeSvc := &stubEpisodeService{
 		episodes: domain.CanonicalEpisodeList{
 			Episodes: []domain.CanonicalEpisode{{Number: 1}, {Number: 2}, {Number: 3}},
 		},
 	}
 
-	got := animeInitialEpisodeCount(domain.Anime{Anime: metadata.Anime{
+	got := animeInitialReleaseInfo(domain.Anime{Anime: metadata.Anime{
 		MalID:    59970,
 		Airing:   true,
 		Status:   "Currently Airing",
@@ -266,7 +266,7 @@ func TestAnimeInitialEpisodeCountDoesNotTrustCurrentlyAiringMetadata(t *testing.
 	}}, time.Date(2026, time.June, 21, 0, 0, 0, 0, time.UTC))
 
 	if got.Count != 0 || got.Label != "" {
-		t.Fatalf("animeInitialEpisodeCount() = %+v, want empty display", got)
+		t.Fatalf("animeInitialReleaseInfo() = %+v, want empty display", got)
 	}
 	if episodeSvc.called != 0 {
 		t.Fatalf("GetCanonicalEpisodes() calls = %d, want 0", episodeSvc.called)
