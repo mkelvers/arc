@@ -69,10 +69,6 @@ func mergeEpisodes(providerEpisodes []metadata.Episode, availability domain.Epis
 	return mergeEpisodeData(providerEpisodes, availability, expectedCount, time.Now(), false, "", false)
 }
 
-func mergeEpisodesForAnime(anime domain.Anime, providerEpisodes []metadata.Episode, now time.Time, providerVerified bool) []domain.CanonicalEpisode {
-	return mergeEpisodeData(providerEpisodes, domain.EpisodeAvailability{}, anime.Episodes, now, providerVerified, anime.Aired.From, anime.Airing)
-}
-
 func mergeEpisodeData(providerEpisodes []metadata.Episode, availability domain.EpisodeAvailability, expectedCount int, now time.Time, providerVerified bool, firstAired string, requireProviderAiredDates bool) []domain.CanonicalEpisode {
 	byNumber := map[int]episodePartial{}
 	providerNumbers := availableEpisodeNumbers(availability, expectedCount)

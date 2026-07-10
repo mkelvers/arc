@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+func mergeEpisodesForAnime(anime domain.Anime, providerEpisodes []metadata.Episode, now time.Time, providerVerified bool) []domain.CanonicalEpisode {
+	return mergeEpisodeData(providerEpisodes, domain.EpisodeAvailability{}, anime.Episodes, now, providerVerified, anime.Aired.From, anime.Airing)
+}
+
 func TestMergeEpisodesUsesProviderAvailabilityAsSourceOfTruth(t *testing.T) {
 	episodes := mergeEpisodes([]metadata.Episode{
 		{MalID: 101, Episode: "1", Title: "Start"},

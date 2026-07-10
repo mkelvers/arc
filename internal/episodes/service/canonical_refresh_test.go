@@ -262,7 +262,12 @@ func TestCanonicalRefreshFailureRecordsFailureOnceForJoinedCallers(t *testing.T)
 }
 
 func newEpisodeRefreshService(sqlDB *sql.DB, provider *episodeRefreshProviderStub, now time.Time) *EpisodeService {
-	return NewEpisodeServiceWithClock(db.New(sqlDB), nil, []domain.EpisodeAvailabilityProvider{provider}, nil, true, fixedClock{now: now})
+	return &EpisodeService{
+		queries:   db.New(sqlDB),
+		providers: []domain.EpisodeAvailabilityProvider{provider},
+		clock:     fixedClock{now: now},
+		enabled:   true,
+	}
 }
 
 func episodeRefreshAnime() domain.Anime {

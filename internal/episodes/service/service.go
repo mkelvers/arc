@@ -48,22 +48,8 @@ type EpisodeService struct {
 	cache            *rediscache.Store
 }
 
-func NewEpisodeService(queries *db.Queries, _ any, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool) domain.EpisodeService {
-	return NewEpisodeServiceWithClock(queries, nil, providers, titles, enabled, realClock{})
-}
-
 func NewEpisodeServiceWithAniList(queries *db.Queries, metadata *anilist.CachedClient, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, cache *rediscache.Store) domain.EpisodeService {
 	return &EpisodeService{queries: queries, metadata: metadata, providers: providers, titles: titles, clock: realClock{}, enabled: enabled, cache: cache}
-}
-
-func NewEpisodeServiceWithClock(queries *db.Queries, _ any, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, clock Clock) *EpisodeService {
-	return &EpisodeService{
-		queries:   queries,
-		providers: providers,
-		titles:    titles,
-		clock:     clock,
-		enabled:   enabled,
-	}
 }
 
 func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.Anime, forceRefresh bool) (domain.CanonicalEpisodeList, error) {
