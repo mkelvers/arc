@@ -35,14 +35,6 @@ func wrapAnimes(in []metadata.Anime) []domain.Anime {
 	return out
 }
 
-func NewAnimeService(_ any, repo domain.AnimeRepository) *animeService {
-	return newAnimeService(nil, nil, repo)
-}
-
-func NewAnimeServiceWithProviders(_ any, metadata *anilist.CachedClient, watchOrder *watchorder.CachedClient, repo domain.AnimeRepository) *animeService {
-	return newAnimeService(metadata, watchOrder, repo)
-}
-
 func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, watchOrder *watchorder.CachedClient, repo domain.AnimeRepository) *animeService {
 	return newAnimeService(metadata, watchOrder, repo)
 }

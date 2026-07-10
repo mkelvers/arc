@@ -3,8 +3,13 @@ package anime
 import (
 	"context"
 	"mal/internal/database/db"
+	"mal/internal/domain"
 	"testing"
 )
+
+func newTestAnimeService(repo domain.AnimeRepository) *animeService {
+	return newAnimeService(nil, nil, repo)
+}
 
 type catalogRepoStub struct {
 	watchlist            []db.GetUserWatchListRow
@@ -38,7 +43,7 @@ func TestGetCatalogSectionLimitsContinueWatchingCarousel(t *testing.T) {
 			{AnimeID: 29},
 		},
 	}
-	svc := NewAnimeService(nil, repo)
+	svc := newTestAnimeService(repo)
 
 	got, err := svc.GetCatalogSection(context.Background(), "user-1", "Continue")
 	if err != nil {

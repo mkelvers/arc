@@ -14,7 +14,7 @@ import (
 
 func TestGetTopPicksForYouReturnsRefreshingOnCacheMissAndRefreshesInBackground(t *testing.T) {
 	refreshed := make(chan struct{}, 1)
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
 		return domain.CatalogSectionData{Animes: []domain.Anime{{Anime: metadata.Anime{MalID: 7}}}}, nil
@@ -46,7 +46,7 @@ func TestGetTopPicksForYouReturnsRefreshingOnCacheMissAndRefreshesInBackground(t
 func TestGetTopPicksForYouCachesCompletedEmptyResult(t *testing.T) {
 	refreshed := make(chan struct{}, 1)
 	var calls int32
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		atomic.AddInt32(&calls, 1)
 		refreshed <- struct{}{}
@@ -83,7 +83,7 @@ func TestGetTopPicksForYouCachesCompletedEmptyResult(t *testing.T) {
 
 func TestGetTopPicksForYouReturnsFailedWhenRefreshFailsWithoutData(t *testing.T) {
 	refreshed := make(chan struct{}, 1)
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
 		return domain.CatalogSectionData{}, errors.New("provider unavailable")
@@ -114,7 +114,7 @@ func TestGetTopPicksForYouJoinsColdRefresh(t *testing.T) {
 	completed := make(chan struct{}, 1)
 	release := make(chan struct{})
 	var calls int32
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		atomic.AddInt32(&calls, 1)
 		started <- struct{}{}
@@ -150,7 +150,7 @@ func TestGetTopPicksForYouJoinsColdRefresh(t *testing.T) {
 func TestTopPickAndTopPicksShareCache(t *testing.T) {
 	refreshed := make(chan struct{}, 1)
 	limits := make(chan int, 1)
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	svc.computeTopPicks = func(_ context.Context, _ string, limit int) (domain.CatalogSectionData, error) {
 		limits <- limit
 		animes := make([]domain.Anime, recommendations.TopPickLimit+1)
@@ -191,7 +191,7 @@ func TestTopPickAndTopPicksShareCache(t *testing.T) {
 }
 
 func TestGetTopPicksForYouReturnsStaleDataWhenRefreshFails(t *testing.T) {
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	refreshed := make(chan struct{}, 2)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		refreshed <- struct{}{}
@@ -230,7 +230,7 @@ func TestInvalidateTopPicksForUserPreservesStaleCardsAndRefreshes(t *testing.T) 
 	refreshed := make(chan struct{}, 2)
 	proceed := make(chan struct{})
 	var calls int32
-	svc := NewAnimeService(nil, nil)
+	svc := newTestAnimeService(nil)
 	svc.computeTopPicks = func(context.Context, string, int) (domain.CatalogSectionData, error) {
 		call := atomic.AddInt32(&calls, 1)
 		if call == 2 {
