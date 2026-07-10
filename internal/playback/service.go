@@ -28,14 +28,6 @@ type playbackService struct {
 
 type ProxyTokenKey string
 
-func NewPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, _ any, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
-	return newPlaybackService(repo, providers, nil, episodes, auditSvc, proxyTokenKey)
-}
-
-func NewPlaybackServiceWithMetadata(repo domain.PlaybackRepository, providers []domain.Provider, _ any, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
-	return newPlaybackService(repo, providers, metadata, episodes, auditSvc, proxyTokenKey)
-}
-
 func NewPlaybackServiceWithAniList(repo domain.PlaybackRepository, providers []domain.Provider, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
 	return newPlaybackService(repo, providers, metadata, episodes, auditSvc, proxyTokenKey)
 }
