@@ -26,14 +26,6 @@ type watchlistService struct {
 	invalidator   domain.RecommendationInvalidator
 }
 
-func NewWatchlistService(repo domain.WatchlistRepository, _ any, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
-	return newWatchlistService(repo, nil, invalidator)
-}
-
-func NewWatchlistServiceWithMetadata(repo domain.WatchlistRepository, _ any, metadata *anilist.CachedClient, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
-	return newWatchlistService(repo, metadata, invalidator)
-}
-
 func NewWatchlistServiceWithAniList(repo domain.WatchlistRepository, metadata *anilist.CachedClient, invalidator domain.RecommendationInvalidator) domain.WatchlistService {
 	return newWatchlistService(repo, metadata, invalidator)
 }
