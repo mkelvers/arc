@@ -15,7 +15,7 @@ import (
 	"go.uber.org/fx"
 )
 
-//go:embed migrations/*.sql postgres_schema.sql
+//go:embed migrations/*.sql postgres_migrations/*.sql postgres_schema.sql
 var migrationsFS embed.FS
 
 var Module = fx.Options(
@@ -72,6 +72,15 @@ func RunPostgresMigrations(sqlDB *sql.DB) error {
 	if _, err := sqlDB.ExecContext(context.Background(), string(schema)); err != nil {
 		return fmt.Errorf("apply PostgreSQL schema: %w", err)
 	}
+
+	goose.SetBaseFS(migrationsFS)
+	goose.SetLogger(goose.NopLogger())
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("set PostgreSQL migration dialect: %w", err)
+	}
+	if err := goose.Up(sqlDB, "postgres_migrations"); err != nil {
+		return fmt.Errorf("apply PostgreSQL migrations: %w", err)
+	}
 	return nil
 }
 
@@ -81,6 +90,16 @@ func RunMigrationsAndFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
 	}
 	if err := RunDataFixes(sqlDB, deps); err != nil {
 		return fmt.Errorf("run data fixes: %w", err)
+	}
+	return nil
+}
+
+func RunPostgresMigrationsAndFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
+	if err := RunPostgresMigrations(sqlDB); err != nil {
+		return fmt.Errorf("run PostgreSQL migrations: %w", err)
+	}
+	if err := RunDataFixes(sqlDB, deps); err != nil {
+		return fmt.Errorf("run PostgreSQL data fixes: %w", err)
 	}
 	return nil
 }
