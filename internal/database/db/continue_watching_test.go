@@ -48,6 +48,7 @@ CREATE TABLE anime (
     title_english TEXT,
     title_japanese TEXT,
     image_url TEXT NOT NULL,
+    banner_image_url TEXT NOT NULL DEFAULT '',
     duration_seconds REAL
 );
 CREATE TABLE continue_watching_entry (

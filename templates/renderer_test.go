@@ -550,3 +550,54 @@ func TestContinueWatchingTemplateIncludesAnimeDetailsLink(t *testing.T) {
 		t.Fatalf("continue watching card should keep watch link:\n%s", body)
 	}
 }
+
+func TestContinueWatchingTemplateUsesBannerWhenAvailable(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "index.gohtml", "continue_watching", []db.GetContinueWatchingEntriesRow{{
+		AnimeID:        321,
+		TitleOriginal:  "Original Title",
+		ImageUrl:       "https://example.com/poster.webp",
+		BannerImageUrl: "https://example.com/banner.webp",
+	}})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+
+	body := buf.String()
+	if !strings.Contains(body, `src="https://example.com/banner.webp"`) {
+		t.Fatalf("continue watching card should use the banner:\n%s", body)
+	}
+	if strings.Contains(body, `src="https://example.com/poster.webp"`) {
+		t.Fatalf("continue watching card should not render the poster when a banner exists:\n%s", body)
+	}
+}
+
+func TestContinueWatchingTemplateUsesLayeredPosterFallback(t *testing.T) {
+	r, err := ProvideRenderer()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	err = r.ExecuteFragment(&buf, "index.gohtml", "continue_watching", []db.GetContinueWatchingEntriesRow{{
+		AnimeID:       321,
+		TitleOriginal: "Original Title",
+		ImageUrl:      "https://example.com/poster.webp",
+	}})
+	if err != nil {
+		t.Fatalf("ExecuteFragment error: %v", err)
+	}
+
+	body := buf.String()
+	if strings.Count(body, `src="https://example.com/poster.webp"`) != 2 {
+		t.Fatalf("continue watching fallback should render blurred and sharp poster layers:\n%s", body)
+	}
+	if !strings.Contains(body, "blur-xl brightness-50") || !strings.Contains(body, "aspect-2/3") {
+		t.Fatalf("continue watching fallback should blur the background and center the portrait:\n%s", body)
+	}
+}

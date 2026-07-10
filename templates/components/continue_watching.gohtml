@@ -11,7 +11,14 @@
       <div id="continue-watching-{{.AnimeID}}" data-continue-watching-item class="continue-watching-item group relative w-70 shrink-0 snap-start space-y-2 2xl:w-lg">
         <div class="bg-background/80 relative aspect-video w-full overflow-hidden">
           <a href="/anime/{{.AnimeID}}/watch{{if .CurrentEpisode.Valid}}?ep={{.CurrentEpisode.Int64}}{{end}}" class="block h-full w-full outline-none ring-0 transition focus-visible:ring-1 focus-visible:ring-accent">
-            <img src="{{if .ImageUrl}}{{.ImageUrl}}{{else}}https://placehold.co/500x500{{end}}" alt="{{$title}}" class="h-full w-full object-cover" />
+            {{if .BannerImageUrl}}
+              <img src="{{.BannerImageUrl}}" alt="{{$title}}" class="h-full w-full object-cover" />
+            {{else}}
+              <img src="{{.ImageUrl}}" alt="" class="absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-50" aria-hidden="true" />
+              <div class="relative mx-auto h-full aspect-2/3">
+                <img src="{{.ImageUrl}}" alt="{{$title}}" class="h-full w-full object-cover" />
+              </div>
+            {{end}}
           </a>
 
           <div class="absolute inset-0 z-10 flex flex-col p-3 opacity-0 transition-opacity duration-300 group-hover:opacity-100 bg-black/40 pointer-events-none">
