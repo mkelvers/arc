@@ -61,17 +61,29 @@ func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
 		page = 1
 	}
 
+	orderBy, sort := browseSort(c.Query("order_by"), c.Query("sort"))
+
 	return browseQuery{
 		q:         c.Query("q"),
 		animeType: c.Query("type"),
 		status:    c.Query("status"),
-		orderBy:   c.Query("order_by"),
-		sort:      c.Query("sort"),
+		orderBy:   orderBy,
+		sort:      sort,
 		sfw:       c.Query("sfw") != "false",
 		studioID:  studioID,
 		genres:    genres,
 		page:      page,
 	}, nil
+}
+
+func browseSort(orderBy, sort string) (string, string) {
+	if orderBy != "score" {
+		orderBy = "popularity"
+	}
+	if sort != "asc" {
+		sort = "desc"
+	}
+	return orderBy, sort
 }
 
 func canonicalBrowseURL(rawURL *url.URL) (string, bool) {

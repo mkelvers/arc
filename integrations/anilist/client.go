@@ -448,12 +448,6 @@ func mediaSort(orderBy, direction string) string {
 	switch strings.ToLower(strings.TrimSpace(orderBy)) {
 	case "score":
 		name = "SCORE"
-	case "title":
-		name = "TITLE_ROMAJI"
-	case "start_date":
-		name = "START_DATE"
-	case "episodes":
-		name = "EPISODES"
 	case "popularity":
 		name = "POPULARITY"
 	}

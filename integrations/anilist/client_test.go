@@ -117,10 +117,6 @@ func TestMediaSortUsesAniListEnums(t *testing.T) {
 		{orderBy: "popularity", direction: "desc", want: "POPULARITY_DESC"},
 		{orderBy: "score", direction: "asc", want: "SCORE"},
 		{orderBy: "score", direction: "desc", want: "SCORE_DESC"},
-		{orderBy: "title", direction: "asc", want: "TITLE_ROMAJI"},
-		{orderBy: "title", direction: "desc", want: "TITLE_ROMAJI_DESC"},
-		{orderBy: "start_date", direction: "asc", want: "START_DATE"},
-		{orderBy: "episodes", direction: "asc", want: "EPISODES"},
 	} {
 		if got := mediaSort(test.orderBy, test.direction); got != test.want {
 			t.Errorf("mediaSort(%q, %q) = %q, want %q", test.orderBy, test.direction, got, test.want)

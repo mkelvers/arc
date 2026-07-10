@@ -5,6 +5,24 @@ import (
 	"testing"
 )
 
+func TestParseBrowseQueryDefaultsToPopularityDescending(t *testing.T) {
+	t.Parallel()
+
+	orderBy, sort := browseSort("", "")
+	if orderBy != "popularity" || sort != "desc" {
+		t.Fatalf("sort = %s %s, want popularity desc", orderBy, sort)
+	}
+}
+
+func TestParseBrowseQueryRejectsRemovedSortOptions(t *testing.T) {
+	t.Parallel()
+
+	orderBy, sort := browseSort("episodes", "sideways")
+	if orderBy != "popularity" || sort != "desc" {
+		t.Fatalf("sort = %s %s, want popularity desc", orderBy, sort)
+	}
+}
+
 func TestCanonicalBrowseURLAddsSFWTrueWhenMissing(t *testing.T) {
 	t.Parallel()
 

@@ -16,7 +16,7 @@
       <div>
         <h2 class="text-base font-normal text-foreground">Airing & Popular</h2>
       </div>
-      {{template "section_action" dict "Href" "/browse?status=airing&order_by=popularity&sort=asc&sfw=true" "Label" "View all"}}
+      {{template "section_action" dict "Href" "/browse?status=airing&order_by=popularity&sort=desc&sfw=true" "Label" "View all"}}
     </div>
     <div hx-get="/api/catalog/airing" hx-trigger="load" hx-swap="outerHTML">
       {{template "catalog_skeleton"}}

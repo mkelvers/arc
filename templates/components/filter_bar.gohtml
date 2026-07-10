@@ -16,12 +16,8 @@
   (dict "Value" "ona" "Label" "ONA")
 }}
 {{$sortOptions := list
-  (dict "Value" "" "Label" "Default")
   (dict "Value" "popularity" "Label" "Popularity")
   (dict "Value" "score" "Label" "Score")
-  (dict "Value" "title" "Label" "Title")
-  (dict "Value" "start_date" "Label" "Start Date")
-  (dict "Value" "episodes" "Label" "Episodes")
 }}
 <div class="flex flex-wrap items-center gap-3" hx-boost="true" hx-target="#browse-content" hx-swap="outerHTML" hx-push-url="true">
   <div class="min-w-50 flex-1">
@@ -127,7 +123,7 @@
     <ui-dropdown class="relative block" data-align="left" data-width="w-48">
       <div data-trigger class="cursor-pointer">
         <button class=" flex items-center gap-2 bg-background-button px-3 py-2 text-sm text-foreground hover:bg-background-button-hover transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
-          Sort: {{if eq .OrderBy "popularity"}}Popularity{{else if eq .OrderBy "score"}}Score{{else if eq .OrderBy "title"}}Title{{else if eq .OrderBy "start_date"}}Start Date{{else if eq .OrderBy "episodes"}}Episodes{{else}}Default{{end}}
+          Sort: {{if eq .OrderBy "score"}}Score{{else}}Popularity{{end}}
           <svg class="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
         </button>
       </div>
@@ -140,7 +136,7 @@
       </div>
     </ui-dropdown>
 
-    <a href='{{browseURL . (dict "sort" (nextSort .Sort))}}' class=" flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+    <a href='{{browseURL . (dict "sort" (nextSort .Sort))}}' class=" flex h-9 w-9 items-center justify-center bg-background-button text-foreground-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label='Change sort direction to {{nextSortDirectionLabel .OrderBy .Sort}}'>
       {{if eq .Sort "asc"}}
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
       {{else}}
