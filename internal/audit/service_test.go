@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"mal/internal/audit"
-	"mal/internal/database"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 )
@@ -75,8 +74,24 @@ func openTestDB(t *testing.T) *sql.DB {
 		}
 	})
 
-	if err := database.RunMigrations(sqlDB); err != nil {
-		t.Fatalf("RunMigrations: %v", err)
+	if _, err := sqlDB.ExecContext(context.Background(), `
+CREATE TABLE user (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL
+);
+CREATE TABLE audit_log (
+    id TEXT PRIMARY KEY,
+    occurred_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id TEXT REFERENCES user(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    resource_type TEXT,
+    resource_id TEXT,
+    ip TEXT,
+    user_agent TEXT,
+    metadata_json TEXT
+);`); err != nil {
+		t.Fatalf("create audit test schema: %v", err)
 	}
 
 	return sqlDB
