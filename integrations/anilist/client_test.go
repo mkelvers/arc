@@ -9,6 +9,12 @@ import (
 	"testing"
 )
 
+func newTestClient(baseURL string, httpClient *http.Client) *Client {
+	client := NewClient(baseURL)
+	client.httpClient = httpClient
+	return client
+}
+
 func TestGetAnimeBatchByMALIDUsesOneGraphQLRequest(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +24,7 @@ func TestGetAnimeBatchByMALIDUsesOneGraphQLRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	items, err := NewClientWithHTTPClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 20, 0})
+	items, err := newTestClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 20, 0})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +43,7 @@ func TestGetAnimeBatchByMALIDKeepsValidItemsWhenSomeIDsAreMissing(t *testing.T) 
 	}))
 	defer server.Close()
 
-	items, err := NewClientWithHTTPClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 999999})
+	items, err := newTestClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 999999})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +71,7 @@ func TestGetAnimeBatchByMALIDRetriesNotFoundBatchesIndividually(t *testing.T) {
 	}))
 	defer server.Close()
 
-	items, err := NewClientWithHTTPClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 999999})
+	items, err := newTestClient(server.URL, server.Client()).GetAnimeBatchByMALID(context.Background(), []int{20, 999999})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +98,7 @@ func TestSearchAdvancedOmitsUnsetFilters(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := NewClientWithHTTPClient(server.URL, server.Client()).SearchAdvanced(context.Background(), "Naruto", "", "", "popularity", "desc", nil, 0, true, 1, 20)
+	result, err := newTestClient(server.URL, server.Client()).SearchAdvanced(context.Background(), "Naruto", "", "", "popularity", "desc", nil, 0, true, 1, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +121,7 @@ func TestGetPopularIncludesSynopsis(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := NewClientWithHTTPClient(server.URL, server.Client()).GetPopular(context.Background(), 1, 20)
+	result, err := newTestClient(server.URL, server.Client()).GetPopular(context.Background(), 1, 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +137,7 @@ func TestGetAnimeByMALIDRequestsSidebarFields(t *testing.T) {
 	}))
 	defer server.Close()
 
-	anime, err := NewClientWithHTTPClient(server.URL, server.Client()).GetAnimeByMALID(context.Background(), 20)
+	anime, err := newTestClient(server.URL, server.Client()).GetAnimeByMALID(context.Background(), 20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +174,7 @@ func TestGetGenresReadsAniListCollection(t *testing.T) {
 	}))
 	defer server.Close()
 
-	genres, err := NewClientWithHTTPClient(server.URL, server.Client()).GetGenres(context.Background())
+	genres, err := newTestClient(server.URL, server.Client()).GetGenres(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +193,7 @@ func TestQueryReturnsRateLimitDetails(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, err := NewClientWithHTTPClient(server.URL, server.Client()).Search(context.Background(), "Naruto", 1, 20)
+	_, err := newTestClient(server.URL, server.Client()).Search(context.Background(), "Naruto", 1, 20)
 	apiErr, ok := err.(*APIError)
 	if !ok || apiErr.Status != 429 || apiErr.RetryAfter != "42" {
 		t.Fatalf("err = %#v", err)

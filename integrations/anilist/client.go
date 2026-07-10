@@ -42,14 +42,6 @@ func NewClient(baseURL string) *Client {
 	return &Client{baseURL: strings.TrimRight(baseURL, "/"), httpClient: &http.Client{Timeout: 15 * time.Second}}
 }
 
-func NewClientWithHTTPClient(baseURL string, httpClient *http.Client) *Client {
-	client := NewClient(baseURL)
-	if httpClient != nil {
-		client.httpClient = httpClient
-	}
-	return client
-}
-
 func (c *Client) GetAnimeByMALID(ctx context.Context, id int) (Anime, error) {
 	if id <= 0 {
 		return Anime{}, fmt.Errorf("anilist: invalid MAL ID %d", id)
