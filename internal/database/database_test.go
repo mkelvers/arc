@@ -10,6 +10,15 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+func runSQLiteMigrations(sqlDB *sql.DB) error {
+	goose.SetBaseFS(migrationsFS)
+	goose.SetLogger(goose.NopLogger())
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
+	return goose.Up(sqlDB, "migrations")
+}
+
 func TestRunMigrationsCreatesHotPathIndexes(t *testing.T) {
 	sqlDB, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -22,7 +31,7 @@ func TestRunMigrationsCreatesHotPathIndexes(t *testing.T) {
 	}()
 	sqlDB.SetMaxOpenConns(1)
 
-	if err := RunMigrations(sqlDB); err != nil {
+	if err := runSQLiteMigrations(sqlDB); err != nil {
 		t.Fatalf("RunMigrations: %v", err)
 	}
 
@@ -164,7 +173,7 @@ func newMigratedTestDB(t *testing.T) *sql.DB {
 	}
 	sqlDB.SetMaxOpenConns(1)
 
-	if err := RunMigrations(sqlDB); err != nil {
+	if err := runSQLiteMigrations(sqlDB); err != nil {
 		closeTestDB(t, sqlDB)
 		t.Fatalf("RunMigrations: %v", err)
 	}

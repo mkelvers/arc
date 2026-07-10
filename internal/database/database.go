@@ -9,7 +9,6 @@ import (
 	"mal/internal/config"
 	"mal/internal/database/db"
 	dbfixes "mal/internal/database/fixes"
-	"mal/internal/observability"
 
 	"github.com/pressly/goose/v3"
 	"go.uber.org/fx"
@@ -40,29 +39,6 @@ func ProvideQueries(sqlDB *sql.DB) *db.Queries {
 	return db.New(sqlDB)
 }
 
-func RunMigrations(sqlDB *sql.DB) error {
-	goose.SetBaseFS(migrationsFS)
-	goose.SetLogger(goose.NopLogger())
-
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		return fmt.Errorf("failed to set goose dialect: %w", err)
-	}
-
-	observability.Info("db_migrations_start", "database", "", nil)
-	if err := goose.Up(sqlDB, "migrations"); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
-	version, err := goose.GetDBVersion(sqlDB)
-	if err != nil {
-		return fmt.Errorf("failed to get database migration version: %w", err)
-	}
-
-	observability.Info("db_migrations_complete", "database", "", map[string]any{"version": version})
-
-	return nil
-}
-
 // RunPostgresMigrations applies the durable PostgreSQL schema used by the application.
 func RunPostgresMigrations(sqlDB *sql.DB) error {
 	schema, err := migrationsFS.ReadFile("postgres_schema.sql")
@@ -80,16 +56,6 @@ func RunPostgresMigrations(sqlDB *sql.DB) error {
 	}
 	if err := goose.Up(sqlDB, "postgres_migrations"); err != nil {
 		return fmt.Errorf("apply PostgreSQL migrations: %w", err)
-	}
-	return nil
-}
-
-func RunMigrationsAndFixes(sqlDB *sql.DB, deps dbfixes.Dependencies) error {
-	if err := RunMigrations(sqlDB); err != nil {
-		return fmt.Errorf("run migrations: %w", err)
-	}
-	if err := RunDataFixes(sqlDB, deps); err != nil {
-		return fmt.Errorf("run data fixes: %w", err)
 	}
 	return nil
 }
