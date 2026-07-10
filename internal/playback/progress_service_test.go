@@ -34,6 +34,23 @@ func TestSaveProgressDoesNotUpsertAnimeWhenExistingRowFound(t *testing.T) {
 	}
 }
 
+func TestEnsureAnimeRowAddsMissingBanner(t *testing.T) {
+	repo := &fakePlaybackRepository{}
+	svc := &playbackService{repo: repo}
+	anime := domain.Anime{}
+	anime.MalID = 12
+	anime.Title = "Anime 12"
+	anime.Images.Webp.LargeImageURL = "https://example.com/poster.webp"
+	anime.BannerImageURL = "https://example.com/banner.webp"
+
+	if err := svc.ensureAnimeRow(context.Background(), anime); err != nil {
+		t.Fatalf("ensureAnimeRow: %v", err)
+	}
+	if repo.upsertedAnime.BannerImageUrl != anime.BannerImageURL {
+		t.Fatalf("BannerImageUrl = %q, want %q", repo.upsertedAnime.BannerImageUrl, anime.BannerImageURL)
+	}
+}
+
 func TestSaveProgressWrapsContinueWatchingErrors(t *testing.T) {
 	repo := &fakePlaybackRepository{upsertContinueErr: errors.New("insert failed")}
 	svc := &playbackService{repo: repo, auditSvc: &fakePlaybackAuditService{}}

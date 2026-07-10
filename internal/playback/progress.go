@@ -165,10 +165,11 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 }
 
 func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) error {
-	if _, err := s.repo.GetAnime(ctx, int64(anime.MalID)); err == nil {
+	existing, err := s.repo.GetAnime(ctx, int64(anime.MalID))
+	if err == nil && (existing.BannerImageUrl != "" || anime.BannerImageURL == "") {
 		return nil
 	}
-	_, err := s.repo.UpsertAnime(ctx, animeParams(anime))
+	_, err = s.repo.UpsertAnime(ctx, animeParams(anime))
 	if err != nil {
 		return fmt.Errorf("upsert anime %d: %w", anime.MalID, err)
 	}
@@ -188,6 +189,7 @@ func animeParams(anime domain.Anime) db.UpsertAnimeParams {
 		TitleEnglish:    sql.NullString{String: anime.TitleEnglish, Valid: anime.TitleEnglish != ""},
 		TitleJapanese:   sql.NullString{String: anime.TitleJapanese, Valid: anime.TitleJapanese != ""},
 		ImageUrl:        anime.Images.Webp.LargeImageURL,
+		BannerImageUrl:  anime.BannerImageURL,
 		Airing:          sql.NullBool{Bool: anime.Airing, Valid: true},
 		DurationSeconds: duration,
 	}
