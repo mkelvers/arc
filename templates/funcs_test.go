@@ -433,6 +433,43 @@ func TestNextSortDefault(t *testing.T) {
 	}
 }
 
+func TestSortDirectionLabel(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		orderBy string
+		sort    string
+		want    string
+	}{
+		{name: "popularity desc", orderBy: "popularity", sort: "desc", want: "Most popular"},
+		{name: "popularity asc", orderBy: "popularity", sort: "asc", want: "Least popular"},
+		{name: "score desc", orderBy: "score", sort: "desc", want: "Highest score"},
+		{name: "score asc", orderBy: "score", sort: "asc", want: "Lowest score"},
+		{name: "default desc", orderBy: "", sort: "", want: "Most popular"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := sortDirectionLabel(tt.orderBy, tt.sort)
+			if got != tt.want {
+				t.Errorf("sortDirectionLabel(%q, %q) = %q, want %q", tt.orderBy, tt.sort, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNextSortDirectionLabel(t *testing.T) {
+	t.Parallel()
+
+	got := nextSortDirectionLabel("score", "desc")
+	if got != "Lowest score" {
+		t.Errorf("expected Lowest score, got %q", got)
+	}
+}
+
 func TestGenresParams(t *testing.T) {
 	t.Parallel()
 

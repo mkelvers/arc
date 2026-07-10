@@ -318,6 +318,23 @@ func nextSort(sort string) string {
 	return "asc"
 }
 
+func sortDirectionLabel(orderBy, sort string) string {
+	if orderBy == "score" {
+		if sort == "asc" {
+			return "Lowest score"
+		}
+		return "Highest score"
+	}
+	if sort == "asc" {
+		return "Least popular"
+	}
+	return "Most popular"
+}
+
+func nextSortDirectionLabel(orderBy, sort string) string {
+	return sortDirectionLabel(orderBy, nextSort(sort))
+}
+
 func posterURL(webp, jpg any, width, height int) string {
 	if webp != nil {
 		if s, ok := webp.(string); ok && s != "" {
