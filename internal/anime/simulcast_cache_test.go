@@ -155,9 +155,7 @@ func TestConcurrentSimulcastMissesShareProviderCall(t *testing.T) {
 	errs := make(chan error, workers)
 	var wg sync.WaitGroup
 	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			ready <- struct{}{}
 			<-start
 			data, err := svc.GetSimulcast(context.Background(), animeSeason{Season: "winter", Year: 2024})
@@ -168,7 +166,7 @@ func TestConcurrentSimulcastMissesShareProviderCall(t *testing.T) {
 			if len(data.Animes) != 1 || data.Animes[0].MalID != 3 {
 				errs <- fmt.Errorf("animes = %+v, want anime 3", data.Animes)
 			}
-		}()
+		})
 	}
 	for range workers {
 		<-ready
