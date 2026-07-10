@@ -14,6 +14,7 @@ type Fix struct {
 
 type Dependencies struct {
 	DefaultAvatarURL func(username string) string
+	AnimeBannerURL   func(ctx context.Context, animeID int64) (string, error)
 }
 
 var registered []Fix
