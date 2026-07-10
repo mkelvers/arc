@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS anime (
     title_english TEXT,
     title_japanese TEXT,
     image_url TEXT NOT NULL,
+    banner_image_url TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     airing BOOLEAN DEFAULT FALSE,
     status TEXT DEFAULT '',
