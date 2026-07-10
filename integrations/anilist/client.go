@@ -442,7 +442,7 @@ func nullableMediaStatus(value string) any {
 func mediaSort(orderBy, direction string) string {
 	suffix := "_DESC"
 	if strings.EqualFold(strings.TrimSpace(direction), "asc") {
-		suffix = "_ASC"
+		suffix = ""
 	}
 	name := "POPULARITY"
 	switch strings.ToLower(strings.TrimSpace(orderBy)) {

@@ -107,16 +107,23 @@ func TestSearchAdvancedOmitsUnsetFilters(t *testing.T) {
 	}
 }
 
-func TestMediaSortUsesAniListTitleEnum(t *testing.T) {
+func TestMediaSortUsesAniListEnums(t *testing.T) {
 	for _, test := range []struct {
+		orderBy   string
 		direction string
 		want      string
 	}{
-		{direction: "asc", want: "TITLE_ROMAJI_ASC"},
-		{direction: "desc", want: "TITLE_ROMAJI_DESC"},
+		{orderBy: "", direction: "asc", want: "POPULARITY"},
+		{orderBy: "popularity", direction: "desc", want: "POPULARITY_DESC"},
+		{orderBy: "score", direction: "asc", want: "SCORE"},
+		{orderBy: "score", direction: "desc", want: "SCORE_DESC"},
+		{orderBy: "title", direction: "asc", want: "TITLE_ROMAJI"},
+		{orderBy: "title", direction: "desc", want: "TITLE_ROMAJI_DESC"},
+		{orderBy: "start_date", direction: "asc", want: "START_DATE"},
+		{orderBy: "episodes", direction: "asc", want: "EPISODES"},
 	} {
-		if got := mediaSort("title", test.direction); got != test.want {
-			t.Errorf("mediaSort(title, %q) = %q, want %q", test.direction, got, test.want)
+		if got := mediaSort(test.orderBy, test.direction); got != test.want {
+			t.Errorf("mediaSort(%q, %q) = %q, want %q", test.orderBy, test.direction, got, test.want)
 		}
 	}
 }
