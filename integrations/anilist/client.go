@@ -265,24 +265,43 @@ func (c *Client) catalog(ctx context.Context, page, perPage int, season string, 
 	return CatalogResult{Items: items, HasNextPage: response.Data.Page.PageInfo.HasNextPage}, nil
 }
 
-//nolint:cyclop // This is the single HTTP/JSON boundary for every AniList operation.
 func (c *Client) query(ctx context.Context, query string, variables map[string]any) (apiResponse, error) {
-	body, err := json.Marshal(map[string]any{"query": query, "variables": variables})
+	req, err := c.newQueryRequest(ctx, query, variables)
 	if err != nil {
-		return apiResponse{}, fmt.Errorf("anilist: encode request: %w", err)
+		return apiResponse{}, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL, bytes.NewReader(body))
-	if err != nil {
-		return apiResponse{}, fmt.Errorf("anilist: create request: %w", err)
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return apiResponse{}, fmt.Errorf("anilist: request: %w", err)
 	}
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+
+	parsed, err := decodeAPIResponse(resp.Body)
+	if err != nil {
+		return apiResponse{}, err
+	}
+	if err := responseAPIError(resp, parsed); err != nil {
+		return parsed, err
+	}
+	return parsed, nil
+}
+
+func (c *Client) newQueryRequest(ctx context.Context, query string, variables map[string]any) (*http.Request, error) {
+	body, err := json.Marshal(map[string]any{"query": query, "variables": variables})
+	if err != nil {
+		return nil, fmt.Errorf("anilist: encode request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("anilist: create request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	return req, nil
+}
+
+func decodeAPIResponse(body io.Reader) (apiResponse, error) {
+	raw, err := io.ReadAll(io.LimitReader(body, 8<<20))
 	if err != nil {
 		return apiResponse{}, fmt.Errorf("anilist: read response: %w", err)
 	}
@@ -290,18 +309,22 @@ func (c *Client) query(ctx context.Context, query string, variables map[string]a
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return apiResponse{}, fmt.Errorf("anilist: decode response: %w", err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 || len(parsed.Errors) > 0 {
-		message := "request failed"
-		status := resp.StatusCode
-		if len(parsed.Errors) > 0 {
-			message = parsed.Errors[0].Message
-			if parsed.Errors[0].Status > 0 {
-				status = parsed.Errors[0].Status
-			}
-		}
-		return parsed, &APIError{Status: status, Message: message, Remaining: resp.Header.Get("X-RateLimit-Remaining"), RetryAfter: resp.Header.Get("Retry-After")}
-	}
 	return parsed, nil
+}
+
+func responseAPIError(resp *http.Response, parsed apiResponse) error {
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 && len(parsed.Errors) == 0 {
+		return nil
+	}
+	message := "request failed"
+	status := resp.StatusCode
+	if len(parsed.Errors) > 0 {
+		message = parsed.Errors[0].Message
+		if parsed.Errors[0].Status > 0 {
+			status = parsed.Errors[0].Status
+		}
+	}
+	return &APIError{Status: status, Message: message, Remaining: resp.Header.Get("X-RateLimit-Remaining"), RetryAfter: resp.Header.Get("Retry-After")}
 }
 
 func hasBatchData(response apiResponse) bool {
@@ -313,7 +336,6 @@ func hasBatchData(response apiResponse) bool {
 	return false
 }
 
-//nolint:cyclop // Mapping the complete metadata payload is intentionally explicit.
 func mapAnime(raw media) Anime {
 	updated := time.Time{}
 	if raw.UpdatedAt > 0 {
@@ -327,7 +349,19 @@ func mapAnime(raw media) Anime {
 	for _, score := range raw.Stats.ScoreDistribution {
 		result.ScoreCount += score.Amount
 	}
-	for _, ranking := range raw.Rankings {
+	applyRankings(&result, raw.Rankings)
+	if result.CoverImage == "" {
+		result.CoverImage = raw.CoverImage.Large
+	}
+	result.Studios = mapStudios(raw.Studios.Nodes)
+	result.Characters = mapCharacters(raw.Characters.Edges)
+	result.Staff = mapStaff(raw.Staff.Edges)
+	result.Relations = mapRelations(raw.Relations.Edges)
+	return result
+}
+
+func applyRankings(result *Anime, rankings []Ranking) {
+	for _, ranking := range rankings {
 		switch ranking.Context {
 		case "most popular all time":
 			result.PopularityRank = ranking.Rank
@@ -336,23 +370,41 @@ func mapAnime(raw media) Anime {
 			result.RankLabel = "Highest Rated All Time"
 		}
 	}
-	if result.CoverImage == "" {
-		result.CoverImage = raw.CoverImage.Large
+}
+
+func mapStudios(nodes []studio) []Studio {
+	out := make([]Studio, 0, len(nodes))
+	for _, item := range nodes {
+		out = append(out, Studio{ID: item.ID, Name: item.Name, IsMain: true})
 	}
-	for _, item := range raw.Studios.Nodes {
-		result.Studios = append(result.Studios, Studio{ID: item.ID, Name: item.Name, IsMain: true})
+	return out
+}
+
+func mapCharacters(edges []characterEdge) []Character {
+	out := make([]Character, 0, len(edges))
+	for _, item := range edges {
+		out = append(out, Character{ID: item.Node.ID, Name: item.Node.Name.Full, Role: item.Role, Image: item.Node.Image.Large})
 	}
-	for _, item := range raw.Characters.Edges {
-		result.Characters = append(result.Characters, Character{ID: item.Node.ID, Name: item.Node.Name.Full, Role: item.Role, Image: item.Node.Image.Large})
+	return out
+}
+
+func mapStaff(edges []staffEdge) []Staff {
+	out := make([]Staff, 0, len(edges))
+	for _, item := range edges {
+		out = append(out, Staff{ID: item.Node.ID, Name: item.Node.Name.Full, Position: item.Role})
 	}
-	for _, item := range raw.Staff.Edges {
-		staff := Staff{ID: item.Node.ID, Name: item.Node.Name.Full, Position: item.Role}
-		result.Staff = append(result.Staff, staff)
+	return out
+}
+
+func mapRelations(edges []struct {
+	RelationType string       `json:"relationType"`
+	Node         mediaSummary `json:"node"`
+}) []Relation {
+	out := make([]Relation, 0, len(edges))
+	for _, item := range edges {
+		out = append(out, Relation{Type: item.RelationType, Anime: mapSummaryFromRelation(item.Node)})
 	}
-	for _, item := range raw.Relations.Edges {
-		result.Relations = append(result.Relations, Relation{Type: item.RelationType, Anime: mapSummaryFromRelation(item.Node)})
-	}
-	return result
+	return out
 }
 
 func appendUniqueProducer(producers []Producer, name string) []Producer {

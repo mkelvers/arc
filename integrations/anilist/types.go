@@ -150,7 +150,6 @@ type graphData struct {
 	Batch           map[string]media
 }
 
-//nolint:cyclop // Explicitly decodes each supported AniList root field.
 func (g *graphData) UnmarshalJSON(data []byte) error {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
@@ -158,30 +157,30 @@ func (g *graphData) UnmarshalJSON(data []byte) error {
 	}
 	g.Batch = make(map[string]media)
 	for key, raw := range fields {
-		switch key {
-		case "Media":
-			if err := json.Unmarshal(raw, &g.Media); err != nil {
-				return err
-			}
-		case "Page":
-			if err := json.Unmarshal(raw, &g.Page); err != nil {
-				return err
-			}
-		case "GenreCollection":
-			if err := json.Unmarshal(raw, &g.GenreCollection); err != nil {
-				return err
-			}
-		default:
-			if !strings.HasPrefix(key, "m") {
-				continue
-			}
-			var item media
-			if err := json.Unmarshal(raw, &item); err != nil {
-				return err
-			}
-			g.Batch[key] = item
+		if err := g.unmarshalField(key, raw); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func (g *graphData) unmarshalField(key string, raw json.RawMessage) error {
+	switch key {
+	case "Media":
+		return json.Unmarshal(raw, &g.Media)
+	case "Page":
+		return json.Unmarshal(raw, &g.Page)
+	case "GenreCollection":
+		return json.Unmarshal(raw, &g.GenreCollection)
+	}
+	if !strings.HasPrefix(key, "m") {
+		return nil
+	}
+	var item media
+	if err := json.Unmarshal(raw, &item); err != nil {
+		return err
+	}
+	g.Batch[key] = item
 	return nil
 }
 
