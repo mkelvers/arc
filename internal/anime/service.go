@@ -51,7 +51,6 @@ func newAnimeService(metadata *anilist.CachedClient, watchOrder *watchorder.Cach
 	return svc
 }
 
-//nolint:cyclop // Catalog and continue-watching data are coordinated as one request.
 func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (domain.CatalogSectionData, error) {
 	var (
 		res metadata.TopAnimeResult
@@ -62,22 +61,7 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 
 	g.Go(func() error {
 		var err error
-		if s.metadata != nil {
-			var result anilist.CatalogResult
-			switch section {
-			case "Airing":
-				now := time.Now()
-				result, err = s.metadata.GetSeason(gCtx, currentSeason(now), now.Year(), 1, 20)
-			case "Popular":
-				result, err = s.metadata.GetPopular(gCtx, 1, 20)
-			}
-			for _, item := range result.Items {
-				res.Animes = append(res.Animes, anilist.ToMetadataAnime(item))
-			}
-			res.HasNextPage = result.HasNextPage
-		} else if section != "Continue" {
-			err = fmt.Errorf("metadata provider is not configured")
-		}
+		res, err = s.catalogSectionMetadata(gCtx, section)
 		if err != nil {
 			return fmt.Errorf("get catalog section %q: %w", section, err)
 		}
@@ -108,6 +92,37 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 		Animes:           animes,
 		ContinueWatching: cw,
 	}, nil
+}
+
+func (s *animeService) catalogSectionMetadata(ctx context.Context, section string) (metadata.TopAnimeResult, error) {
+	if s.metadata == nil {
+		if section == "Continue" {
+			return metadata.TopAnimeResult{}, nil
+		}
+		return metadata.TopAnimeResult{}, fmt.Errorf("metadata provider is not configured")
+	}
+
+	result, err := s.fetchCatalogSection(ctx, section)
+	if err != nil {
+		return metadata.TopAnimeResult{}, err
+	}
+	res := metadata.TopAnimeResult{HasNextPage: result.HasNextPage}
+	for _, item := range result.Items {
+		res.Animes = append(res.Animes, anilist.ToMetadataAnime(item))
+	}
+	return res, nil
+}
+
+func (s *animeService) fetchCatalogSection(ctx context.Context, section string) (anilist.CatalogResult, error) {
+	switch section {
+	case "Airing":
+		now := time.Now()
+		return s.metadata.GetSeason(ctx, currentSeason(now), now.Year(), 1, 20)
+	case "Popular":
+		return s.metadata.GetPopular(ctx, 1, 20)
+	default:
+		return anilist.CatalogResult{}, nil
+	}
 }
 
 func currentSeason(now time.Time) string {
@@ -222,26 +237,45 @@ func anilistFirstTitle(title anilist.Titles) string {
 	return ""
 }
 
-//nolint:cyclop,gocognit // This preserves ChiaKi order while enriching only missing metadata in one batch.
 func (s *animeService) getRelationsFromProviders(ctx context.Context, id int, mode metadata.WatchOrderMode) ([]metadata.RelationEntry, error) {
 	ordered, err := s.watchOrder.FetchByAnimeID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	entries := ordered.WatchOrder
-	if mode != metadata.WatchOrderModeComplete {
-		main := make([]watchorder.WatchOrderEntry, 0, len(entries))
-		for _, entry := range entries {
-			switch strings.ToLower(strings.TrimSpace(entry.Type)) {
-			case "tv", "movie", "ova", "ona":
-				main = append(main, entry)
-			}
-		}
-		if len(main) > 0 {
-			entries = main
+	entries := filteredWatchOrderEntries(ordered.WatchOrder, mode)
+	byID, err := s.relationAnimeByID(ctx, entries)
+	if err != nil {
+		return nil, err
+	}
+	return relationEntries(entries, byID, id), nil
+}
+
+func filteredWatchOrderEntries(entries []watchorder.WatchOrderEntry, mode metadata.WatchOrderMode) []watchorder.WatchOrderEntry {
+	if mode == metadata.WatchOrderModeComplete {
+		return entries
+	}
+	main := make([]watchorder.WatchOrderEntry, 0, len(entries))
+	for _, entry := range entries {
+		if isMainWatchOrderType(entry.Type) {
+			main = append(main, entry)
 		}
 	}
+	if len(main) == 0 {
+		return entries
+	}
+	return main
+}
 
+func isMainWatchOrderType(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "tv", "movie", "ova", "ona":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *animeService) relationAnimeByID(ctx context.Context, entries []watchorder.WatchOrderEntry) (map[int]metadata.Anime, error) {
 	ids := make([]int, 0, len(entries))
 	for _, entry := range entries {
 		ids = append(ids, entry.ID)
@@ -254,7 +288,10 @@ func (s *animeService) getRelationsFromProviders(ctx context.Context, id int, mo
 	for _, item := range items {
 		byID[item.MALID] = anilist.ToMetadataAnime(item)
 	}
+	return byID, nil
+}
 
+func relationEntries(entries []watchorder.WatchOrderEntry, byID map[int]metadata.Anime, currentID int) []metadata.RelationEntry {
 	result := make([]metadata.RelationEntry, 0, len(entries))
 	seen := make(map[int]bool, len(entries))
 	for _, entry := range entries {
@@ -266,9 +303,9 @@ func (s *animeService) getRelationsFromProviders(ctx context.Context, id int, mo
 		if !ok {
 			continue
 		}
-		result = append(result, metadata.RelationEntry{Anime: anime, Relation: entry.Type, IsCurrent: entry.ID == id, IsExtra: entry.Secondary})
+		result = append(result, metadata.RelationEntry{Anime: anime, Relation: entry.Type, IsCurrent: entry.ID == currentID, IsExtra: entry.Secondary})
 	}
-	return result, nil
+	return result
 }
 
 func (s *animeService) WarmDetailSections(id int) {
