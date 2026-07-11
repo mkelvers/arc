@@ -104,7 +104,6 @@ func postgresQuery(query string) string {
 	return quoteUserIdentifier(query)
 }
 
-//nolint:cyclop // Placeholder conversion must scan SQL while respecting both quote forms.
 func replaceQuestionMarks(query string) string {
 	var out strings.Builder
 	out.Grow(len(query) + 8)
@@ -112,15 +111,8 @@ func replaceQuestionMarks(query string) string {
 	inSingle, inDouble := false, false
 	for i := 0; i < len(query); i++ {
 		ch := query[i]
-		if ch == '\'' && !inDouble {
-			if inSingle && i+1 < len(query) && query[i+1] == '\'' {
-				out.WriteByte(ch)
-				i++
-				out.WriteByte(query[i])
-				continue
-			}
-			inSingle = !inSingle
-			out.WriteByte(ch)
+		if handledSingleQuote(ch, inDouble) {
+			i, inSingle = writeSingleQuotedByte(&out, query, i, inSingle)
 			continue
 		}
 		if ch == '"' && !inSingle {
@@ -129,23 +121,51 @@ func replaceQuestionMarks(query string) string {
 			continue
 		}
 		if ch == '?' && !inSingle && !inDouble {
-			out.WriteByte('$')
-			if i+1 < len(query) && query[i+1] >= '1' && query[i+1] <= '9' {
-				start := i + 1
-				i = start
-				for i+1 < len(query) && query[i+1] >= '0' && query[i+1] <= '9' {
-					i++
-				}
-				out.WriteString(query[start : i+1])
-				continue
-			}
-			out.WriteString(strconv.Itoa(index))
-			index++
+			i, index = writePlaceholder(&out, query, i, index)
 			continue
 		}
 		out.WriteByte(ch)
 	}
 	return out.String()
+}
+
+func handledSingleQuote(ch byte, inDouble bool) bool {
+	return ch == '\'' && !inDouble
+}
+
+func writeSingleQuotedByte(out *strings.Builder, query string, i int, inSingle bool) (int, bool) {
+	ch := query[i]
+	if inSingle && i+1 < len(query) && query[i+1] == '\'' {
+		out.WriteByte(ch)
+		i++
+		out.WriteByte(query[i])
+		return i, inSingle
+	}
+	out.WriteByte(ch)
+	return i, !inSingle
+}
+
+func writePlaceholder(out *strings.Builder, query string, i int, index int) (int, int) {
+	out.WriteByte('$')
+	if i+1 < len(query) && isNonZeroDigit(query[i+1]) {
+		start := i + 1
+		i = start
+		for i+1 < len(query) && isDigit(query[i+1]) {
+			i++
+		}
+		out.WriteString(query[start : i+1])
+		return i, index
+	}
+	out.WriteString(strconv.Itoa(index))
+	return i, index + 1
+}
+
+func isNonZeroDigit(ch byte) bool {
+	return ch >= '1' && ch <= '9'
+}
+
+func isDigit(ch byte) bool {
+	return ch >= '0' && ch <= '9'
 }
 
 func normalizeSQLiteSQL(query string) string {
