@@ -49,10 +49,16 @@ setup:
     mise install
     bun install
 
+deps-up:
+    @docker compose up -d --wait postgres redis
+
+deps-down:
+    @docker compose down
+
 build-dev: build-css build-ts-dev
     @go build -o tmp/server ./cmd/server
 
-dev:
+dev: deps-up
     @mise exec -- air
 
 run: build

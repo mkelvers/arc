@@ -110,8 +110,9 @@ bun install
 just dev
 ```
 
-The development server runs on `http://localhost:3000` by default. `just dev` uses Air to rebuild
-the Go server and frontend assets when relevant files change.
+The development server runs on `http://localhost:3000` by default. `just dev` starts the local
+PostgreSQL and Redis services from `docker-compose.yml`, then uses Air to rebuild the Go server and
+frontend assets when relevant files change.
 
 Playback proxying requires a local `PLAYBACK_PROXY_SECRET` so the server can mint stream and
 subtitle proxy tokens. Generate a strong value and add it to `.env` before using playback:
@@ -141,6 +142,8 @@ not copied; AniList, ChiaKi, AllAnime, and TVMaze responses are rebuilt in Redis
 | Command                         | Use it for                                          |
 | ------------------------------- | --------------------------------------------------- |
 | `just setup`                    | Install pinned tools and Bun dependencies.          |
+| `just deps-up`                  | Start local PostgreSQL and Redis with Docker Compose. |
+| `just deps-down`                | Stop the local Docker Compose services.             |
 | `just dev`                      | Run the app locally with live rebuilds.             |
 | `just build`                    | Build the Go binary, CSS, and TypeScript assets.    |
 | `just test`                     | Run the Go test suite.                              |
