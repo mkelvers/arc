@@ -55,26 +55,26 @@ func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, pro
 	return providerID, nil
 }
 
-//nolint:cyclop // Redis and SQLite compatibility paths share one provider-ID policy.
 func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
 	if s.cache != nil {
-		var mapping cachedProviderMapping
-		result, err := s.cache.Get(ctx, providerMappingKey(int64(anime.MalID), provider.Name()), &mapping)
-		if err != nil || result.State == rediscache.StateMiss {
-			if err != nil {
-				observability.Warn("episodes_provider_id_cache_read_failed", "episodes", "", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, err)
-			}
-			return "", false, nil
-		}
-		if mapping.FailedUntil.Valid && mapping.FailedUntil.Time.After(s.clock.Now()) {
-			return "", true, fmt.Errorf("cached provider mapping failure active until %s: %s", mapping.FailedUntil.Time.Format(time.RFC3339), mapping.LastError)
-		}
-		if strings.TrimSpace(mapping.ProviderShowID) == "" {
-			return "", false, nil
-		}
-		return mapping.ProviderShowID, true, nil
+		return s.cachedProviderIDFromRedis(ctx, anime, provider)
 	}
+	return s.cachedProviderIDFromDB(ctx, anime, provider)
+}
 
+func (s *EpisodeService) cachedProviderIDFromRedis(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
+	var mapping cachedProviderMapping
+	result, err := s.cache.Get(ctx, providerMappingKey(int64(anime.MalID), provider.Name()), &mapping)
+	if err != nil || result.State == rediscache.StateMiss {
+		if err != nil {
+			observability.Warn("episodes_provider_id_cache_read_failed", "episodes", "", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, err)
+		}
+		return "", false, nil
+	}
+	return providerMappingCacheResult(mapping, s.clock.Now())
+}
+
+func (s *EpisodeService) cachedProviderIDFromDB(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
 	row, err := s.queries.GetEpisodeProviderMapping(ctx, db.GetEpisodeProviderMappingParams{
 		AnimeID:  int64(anime.MalID),
 		Provider: provider.Name(),
@@ -96,11 +96,13 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 		return "", false, nil
 	}
 
-	if row.FailedUntil.Valid && row.FailedUntil.Time.After(s.clock.Now()) {
-		return "", true, fmt.Errorf("cached provider mapping failure active until %s: %s", row.FailedUntil.Time.Format(time.RFC3339), row.LastError)
-	}
-	if strings.TrimSpace(row.ProviderShowID) == "" {
-		return "", false, nil
+	providerID, found, resultErr := providerMappingCacheResult(cachedProviderMapping{
+		ProviderShowID: row.ProviderShowID,
+		FailedUntil:    row.FailedUntil,
+		LastError:      row.LastError,
+	}, s.clock.Now())
+	if !found || resultErr != nil {
+		return providerID, found, resultErr
 	}
 
 	observability.Info(
@@ -113,7 +115,17 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 			"provider_id": row.ProviderShowID,
 		},
 	)
-	return row.ProviderShowID, true, nil
+	return providerID, true, nil
+}
+
+func providerMappingCacheResult(mapping cachedProviderMapping, now time.Time) (string, bool, error) {
+	if mapping.FailedUntil.Valid && mapping.FailedUntil.Time.After(now) {
+		return "", true, fmt.Errorf("cached provider mapping failure active until %s: %s", mapping.FailedUntil.Time.Format(time.RFC3339), mapping.LastError)
+	}
+	if strings.TrimSpace(mapping.ProviderShowID) == "" {
+		return "", false, nil
+	}
+	return mapping.ProviderShowID, true, nil
 }
 
 func (s *EpisodeService) cacheProviderIDFailure(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider, resolveErr error) {

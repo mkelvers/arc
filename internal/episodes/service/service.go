@@ -146,24 +146,11 @@ func (s *EpisodeService) runCanonicalRefresh(ctx context.Context, anime domain.A
 	return s.refresh(refreshCtx, anime)
 }
 
-//nolint:cyclop,funlen // The worker intentionally handles cache policy, metadata fetch, and refresh errors together.
 func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error {
 	if !s.enabled {
 		return nil
 	}
-	if limit <= 0 {
-		limit = 25
-	}
-
-	var (
-		ids []int64
-		err error
-	)
-	if s.cache != nil {
-		ids, err = s.queries.GetTrackedAiringAnimeIDs(ctx, int64(limit))
-	} else {
-		ids, err = s.queries.GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx, int64(limit))
-	}
+	ids, err := s.trackedAnimeIDsDueForRefresh(ctx, limit)
 	if err != nil {
 		return fmt.Errorf("get due tracked anime: %w", err)
 	}
@@ -182,25 +169,10 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 			)
 			break
 		}
-		if s.cache != nil {
-			animeID := int(id)
-			if row, state, ok := s.getEpisodeCache(ctx, id); ok && state == rediscache.StateFresh {
-				anime := domain.Anime{Anime: metadata.Anime{MalID: animeID, Airing: true}}
-				if s.isFreshEpisodeCache(anime, row, s.clock.Now()) {
-					continue
-				}
-			}
+		if s.hasFreshTrackedEpisodeCache(ctx, id) {
+			continue
 		}
-		var anime domain.Anime
-		if s.metadata != nil {
-			item, fetchErr := s.metadata.GetAnimeByMALID(ctx, int(id))
-			err = fetchErr
-			if err == nil {
-				anime = domain.Anime{Anime: anilist.ToMetadataAnime(item)}
-			}
-		} else {
-			err = fmt.Errorf("metadata provider is not configured")
-		}
+		anime, err := s.fetchTrackedAnime(ctx, id)
 		if err != nil {
 			observability.Warn(
 				"episodes_refresh_fetch_anime_failed",
@@ -227,6 +199,39 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 	}
 
 	return nil
+}
+
+func (s *EpisodeService) trackedAnimeIDsDueForRefresh(ctx context.Context, limit int) ([]int64, error) {
+	if limit <= 0 {
+		limit = 25
+	}
+	if s.cache != nil {
+		return s.queries.GetTrackedAiringAnimeIDs(ctx, int64(limit))
+	}
+	return s.queries.GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx, int64(limit))
+}
+
+func (s *EpisodeService) hasFreshTrackedEpisodeCache(ctx context.Context, id int64) bool {
+	if s.cache == nil {
+		return false
+	}
+	row, state, ok := s.getEpisodeCache(ctx, id)
+	if !ok || state != rediscache.StateFresh {
+		return false
+	}
+	anime := domain.Anime{Anime: metadata.Anime{MalID: int(id), Airing: true}}
+	return s.isFreshEpisodeCache(anime, row, s.clock.Now())
+}
+
+func (s *EpisodeService) fetchTrackedAnime(ctx context.Context, id int64) (domain.Anime, error) {
+	if s.metadata == nil {
+		return domain.Anime{}, fmt.Errorf("metadata provider is not configured")
+	}
+	item, err := s.metadata.GetAnimeByMALID(ctx, int(id))
+	if err != nil {
+		return domain.Anime{}, err
+	}
+	return domain.Anime{Anime: anilist.ToMetadataAnime(item)}, nil
 }
 
 func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, error) {
