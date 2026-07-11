@@ -58,7 +58,6 @@ func testHTMLEmptyRows() string {
 </html>`
 }
 
-//nolint:cyclop // The fixture asserts the complete parser output shape.
 func TestFetchWatchOrder_OutputShape(t *testing.T) {
 	client := &http.Client{
 		Timeout: time.Second,
@@ -84,7 +83,12 @@ func TestFetchWatchOrder_OutputShape(t *testing.T) {
 		t.Fatalf("expected 1 watch_order entry, got %d", len(result.WatchOrder))
 	}
 
-	entry := result.WatchOrder[0]
+	assertWatchOrderEntry(t, result.WatchOrder[0])
+}
+
+func assertWatchOrderEntry(t *testing.T, entry WatchOrderEntry) {
+	t.Helper()
+
 	if entry.ID != 442 {
 		t.Fatalf("expected entry id 442, got %d", entry.ID)
 	}

@@ -259,7 +259,6 @@ func (w *compressionWriter) flushBuffer() error {
 	if w.mode == compressionGzip {
 		_, err = w.gzip.Write(data)
 	} else {
-		//nolint:staticcheck
 		_, err = w.ResponseWriter.Write(data)
 	}
 	return err
@@ -270,7 +269,7 @@ func (w *compressionWriter) writePlain(data []byte) (int, error) {
 	if err := w.flushBuffer(); err != nil {
 		return 0, err
 	}
-	//nolint:staticcheck
+
 	return w.ResponseWriter.Write(data)
 }
 
@@ -327,7 +326,7 @@ func (w *compressionWriter) Write(data []byte) (int, error) {
 
 	switch w.mode {
 	case compressionPlain:
-		//nolint:staticcheck
+
 		return w.ResponseWriter.Write(data)
 	case compressionGzip:
 		return w.gzip.Write(data)
