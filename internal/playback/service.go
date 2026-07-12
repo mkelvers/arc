@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -28,19 +29,26 @@ type playbackService struct {
 
 type ProxyTokenKey string
 
-func NewPlaybackServiceWithAniList(repo domain.PlaybackRepository, providers []domain.Provider, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
-	return newPlaybackService(repo, providers, metadata, episodes, auditSvc, proxyTokenKey)
+type PlaybackServiceParams struct {
+	fx.In
+
+	Repository    domain.PlaybackRepository
+	Providers     []domain.Provider
+	Metadata      *anilist.CachedClient
+	Episodes      domain.EpisodeService
+	AuditService  domain.AuditService
+	ProxyTokenKey ProxyTokenKey
 }
 
-func newPlaybackService(repo domain.PlaybackRepository, providers []domain.Provider, metadata *anilist.CachedClient, episodes domain.EpisodeService, auditSvc domain.AuditService, proxyTokenKey ProxyTokenKey) domain.PlaybackService {
+func NewPlaybackServiceWithAniList(params PlaybackServiceParams) domain.PlaybackService {
 	return &playbackService{
-		repo:          repo,
-		providers:     providers,
-		metadata:      metadata,
-		episodes:      episodes,
-		auditSvc:      auditSvc,
+		repo:          params.Repository,
+		providers:     params.Providers,
+		metadata:      params.Metadata,
+		episodes:      params.Episodes,
+		auditSvc:      params.AuditService,
 		httpClient:    netutil.NewClient(),
-		proxyTokenKey: string(proxyTokenKey),
+		proxyTokenKey: string(params.ProxyTokenKey),
 		proxyTokens:   newProxyTokenStore(),
 		sourceCache:   newSourceCache(defaultSourceCacheTTL, defaultSourceCacheStaleTTL, defaultSourceCacheMaxEntries),
 	}
