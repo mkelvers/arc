@@ -191,7 +191,15 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
-	browseData := browsePageData{CurrentPath: "/browse", browseQuery: query, GenresList: genresList, Animes: animes, User: user, WatchlistMap: watchlistMap, HasNextPage: res.HasNextPage}
+	browseData := browsePageData{
+		CurrentPath:  "/browse",
+		browseQuery:  query,
+		GenresList:   genresList,
+		Animes:       animes,
+		User:         user,
+		WatchlistMap: watchlistMap,
+		HasNextPage:  res.HasNextPage,
+	}
 	if c.GetHeader("HX-Request") == "true" && query.Page > 1 {
 		browseData.fragment = "anime_card_scroll"
 		c.HTML(http.StatusOK, "browse.gohtml", browseData)
