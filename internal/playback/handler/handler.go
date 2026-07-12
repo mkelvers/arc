@@ -132,7 +132,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 
 	ctx := domain.WithDeferredPlaybackData(c.Request.Context())
-	data, err := h.svc.BuildWatchData(ctx, id, []string{}, ep, mode, userID)
+	data, err := h.svc.BuildWatchData(ctx, domain.WatchDataRequest{AnimeID: id, Episode: ep, Mode: mode, UserID: userID})
 	if err != nil {
 		if data.Anime.MalID == 0 && data.WatchData.MalID == 0 && len(data.Episodes) == 0 {
 			anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
@@ -203,7 +203,7 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	userID := server.CurrentUserID(c)
 
-	data, err := h.svc.BuildWatchData(ctx, animeID, []string{}, episode, mode, userID)
+	data, err := h.svc.BuildWatchData(ctx, domain.WatchDataRequest{AnimeID: animeID, Episode: episode, Mode: mode, UserID: userID})
 	if err != nil {
 		h.respondEpisodeUnavailable(c, animeID, episode, mode, userID, err)
 		return

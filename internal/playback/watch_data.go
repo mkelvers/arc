@@ -42,7 +42,8 @@ type watchProgressResult struct {
 
 const episodeAvailabilityUncertainWarning = "Episode availability may be incomplete or out of date. Continue only if you understand that the episode list and audio availability may be uncertain."
 
-func (s *playbackService) BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (data domain.WatchPageData, err error) {
+func (s *playbackService) BuildWatchData(ctx context.Context, request domain.WatchDataRequest) (data domain.WatchPageData, err error) {
+	animeID, titleCandidates, episode, mode, userID := request.AnimeID, request.TitleCandidates, request.Episode, request.Mode, request.UserID
 	totalStartedAt := time.Now()
 	defer func() {
 		logWatchDataStage("total", animeID, episode, totalStartedAt, map[string]any{"failed": err != nil})
