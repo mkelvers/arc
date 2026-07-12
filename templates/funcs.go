@@ -56,21 +56,24 @@ func genresParams(genres []int) string {
 	return b.String()
 }
 
-func browseURL(v map[string]any, overrides map[string]any) (string, error) {
+type browseURLData interface {
+	BrowseURLValues() (query, animeType, status, orderBy, sort string, studio int, sfw bool, genres []int, page int)
+}
+
+func browseURL(v browseURLData, overrides map[string]any) (string, error) {
+	query, animeType, status, orderBy, sort, studio, sfw, genres, page := v.BrowseURLValues()
 	values := url.Values{}
-	setQueryValue(values, "q", stringValue(v["Query"]))
-	setQueryValue(values, "type", stringValue(v["Type"]))
-	setQueryValue(values, "status", stringValue(v["Status"]))
-	setQueryValue(values, "order_by", stringValue(v["OrderBy"]))
-	setQueryValue(values, "sort", stringValue(v["Sort"]))
-	setQueryValue(values, "studio", stringValue(v["Studio"]))
-	if sfw, ok := v["SFW"]; ok {
-		values.Set("sfw", strconv.FormatBool(boolValue(sfw)))
-	}
-	for _, genre := range intSliceValue(v["Genres"]) {
+	setQueryValue(values, "q", query)
+	setQueryValue(values, "type", animeType)
+	setQueryValue(values, "status", status)
+	setQueryValue(values, "order_by", orderBy)
+	setQueryValue(values, "sort", sort)
+	setQueryValue(values, "studio", stringValue(studio))
+	values.Set("sfw", strconv.FormatBool(sfw))
+	for _, genre := range genres {
 		values.Add("genres", strconv.Itoa(genre))
 	}
-	setQueryValue(values, "page", stringValue(v["Page"]))
+	setQueryValue(values, "page", stringValue(page))
 
 	for key, raw := range overrides {
 		switch key {
