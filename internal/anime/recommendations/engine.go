@@ -22,7 +22,7 @@ type engine struct {
 type metadataProvider interface {
 	GetAnimeByID(ctx context.Context, id int) (metadata.Anime, error)
 	GetAnimeRecommendations(ctx context.Context, id int) ([]metadata.RecommendationEntry, error)
-	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error)
+	SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error)
 }
 
 func GetTopPicksForYou(
@@ -151,19 +151,7 @@ func (e engine) collectProfileSearchCandidates(ctx context.Context, profile user
 
 	for _, query := range queries {
 		g.Go(func() error {
-			res, err := e.metadata.SearchAdvanced(
-				ctx,
-				"",
-				"",
-				"",
-				"score",
-				"desc",
-				query.genreIDs,
-				query.studioID,
-				true,
-				1,
-				profileSearchLimit,
-			)
+			res, err := e.metadata.SearchAdvanced(ctx, metadata.SearchOptions{OrderBy: "score", Sort: "desc", Genres: query.genreIDs, StudioID: query.studioID, SFW: true, Page: 1, Limit: profileSearchLimit})
 			if err != nil {
 				observability.Warn(
 					"top_pick_profile_search_failed",
