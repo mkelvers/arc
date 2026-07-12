@@ -15,6 +15,7 @@ import (
 	"mal/internal/domain"
 	"mal/internal/observability"
 
+	"go.uber.org/fx"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -48,8 +49,19 @@ type EpisodeService struct {
 	cache            *rediscache.Store
 }
 
-func NewEpisodeServiceWithAniList(queries *db.Queries, metadata *anilist.CachedClient, providers []domain.EpisodeAvailabilityProvider, titles domain.EpisodeTitleProvider, enabled bool, cache *rediscache.Store) domain.EpisodeService {
-	return &EpisodeService{queries: queries, metadata: metadata, providers: providers, titles: titles, clock: realClock{}, enabled: enabled, cache: cache}
+type EpisodeServiceParams struct {
+	fx.In
+
+	Queries   *db.Queries
+	Metadata  *anilist.CachedClient
+	Providers []domain.EpisodeAvailabilityProvider
+	Titles    domain.EpisodeTitleProvider
+	Enabled   bool
+	Cache     *rediscache.Store
+}
+
+func NewEpisodeServiceWithAniList(params EpisodeServiceParams) domain.EpisodeService {
+	return &EpisodeService{queries: params.Queries, metadata: params.Metadata, providers: params.Providers, titles: params.Titles, clock: realClock{}, enabled: params.Enabled, cache: params.Cache}
 }
 
 func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.Anime, forceRefresh bool) (domain.CanonicalEpisodeList, error) {
