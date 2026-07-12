@@ -30,16 +30,22 @@ func (p *LegacyProvider) GetAnimeByID(ctx context.Context, id int) (metadata.Ani
 }
 
 func (p *LegacyProvider) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error) {
-	if strings.TrimSpace(opts.Query) == "" {
-		return metadata.SearchResult{}, nil
-	}
-	result, err := p.client.Search(ctx, opts.Query, opts.Page, opts.Limit)
+	result, err := p.client.SearchAdvanced(ctx, opts)
 	if err != nil {
 		return metadata.SearchResult{}, err
 	}
 	out := make([]metadata.Anime, 0, len(result.Items))
 	for _, item := range result.Items {
-		out = append(out, ToMetadataAnime(Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage}))
+		anime := ToMetadataAnime(Anime{
+			ID:          item.ID,
+			MALID:       item.MALID,
+			Title:       item.Title,
+			Description: item.Description,
+			Format:      item.Format,
+			SeasonYear:  item.StartYear,
+			CoverImage:  item.CoverImage,
+		})
+		out = append(out, anime)
 	}
 	return metadata.SearchResult{Animes: out, HasNextPage: result.HasNextPage}, nil
 }

@@ -477,11 +477,12 @@ func topTags(tags []Tag, limit int) []Tag {
 }
 
 func mapSummary(raw media) AnimeSummary {
-	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
+	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Description: raw.Description, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
 }
 func mapSummaryFromRelation(raw mediaSummary) AnimeSummary {
 	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Description: raw.Description, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
 }
+
 func uniquePositive(ids []int) []int {
 	seen := map[int]bool{}
 	out := make([]int, 0, len(ids))
