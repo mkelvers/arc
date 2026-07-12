@@ -105,15 +105,19 @@ func canonicalBrowseURL(rawURL *url.URL) (string, bool) {
 	return rawURL.Path + "?" + encoded, true
 }
 
-func browseTemplateData(
-	q browseQuery,
-	studioName string,
-	genresList []domain.Genre,
-	animes []domain.Anime,
-	user any,
-	watchlistMap map[int64]bool,
-	hasNextPage bool,
-) gin.H {
+type browsePageData struct {
+	query        browseQuery
+	studioName   string
+	genresList   []domain.Genre
+	animes       []domain.Anime
+	user         any
+	watchlistMap map[int64]bool
+	hasNextPage  bool
+}
+
+func browseTemplateData(data browsePageData) gin.H {
+	q, studioName, genresList := data.query, data.studioName, data.genresList
+	animes, user, watchlistMap, hasNextPage := data.animes, data.user, data.watchlistMap, data.hasNextPage
 	return gin.H{
 		"CurrentPath":  "/browse",
 		"Query":        q.q,
@@ -135,28 +139,24 @@ func browseTemplateData(
 }
 
 func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (metadata.SearchResult, error) {
-	return h.svc.SearchAdvanced(
-		ctx,
-		query.q,
-		query.animeType,
-		query.status,
-		query.orderBy,
-		query.sort,
-		query.genres,
-		query.studioID,
-		query.sfw,
-		query.page,
-		24,
-	)
+	return h.svc.SearchAdvanced(ctx, metadata.SearchOptions{
+		Query: query.q, AnimeType: query.animeType, Status: query.status,
+		OrderBy: query.orderBy, Sort: query.sort, Genres: query.genres,
+		StudioID: query.studioID, SFW: query.sfw, Page: query.page, Limit: 24,
+	})
 }
 
-func browseScrollData(
-	query browseQuery,
-	studioName string,
-	animes []domain.Anime,
-	watchlistMap map[int64]bool,
-	hasNextPage bool,
-) gin.H {
+type browseScrollInput struct {
+	query        browseQuery
+	studioName   string
+	animes       []domain.Anime
+	watchlistMap map[int64]bool
+	hasNextPage  bool
+}
+
+func browseScrollData(input browseScrollInput) gin.H {
+	query, studioName, animes := input.query, input.studioName, input.animes
+	watchlistMap, hasNextPage := input.watchlistMap, input.hasNextPage
 	return gin.H{
 		"_fragment":    "anime_card_scroll",
 		"Animes":       animes,
@@ -230,11 +230,11 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
 	if c.GetHeader("HX-Request") == "true" && query.page > 1 {
-		c.HTML(http.StatusOK, "browse.gohtml", browseScrollData(query, "", animes, watchlistMap, res.HasNextPage))
+		c.HTML(http.StatusOK, "browse.gohtml", browseScrollData(browseScrollInput{query: query, animes: animes, watchlistMap: watchlistMap, hasNextPage: res.HasNextPage}))
 		return
 	}
 
-	browseData := browseTemplateData(query, "", genresList, animes, user, watchlistMap, res.HasNextPage)
+	browseData := browseTemplateData(browsePageData{query: query, genresList: genresList, animes: animes, user: user, watchlistMap: watchlistMap, hasNextPage: res.HasNextPage})
 
 	if c.GetHeader("HX-Request") == "true" {
 		browseData["_fragment"] = "browse_content"
@@ -261,7 +261,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), query, "", "", "", "", nil, 0, true, 1, 5)
+	res, err := h.svc.SearchAdvanced(c.Request.Context(), metadata.SearchOptions{Query: query, SFW: true, Page: 1, Limit: 5})
 	if err != nil {
 		c.JSON(http.StatusOK, []any{})
 		return
