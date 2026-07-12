@@ -29,11 +29,11 @@ func (p *LegacyProvider) GetAnimeByID(ctx context.Context, id int) (metadata.Ani
 	return ToMetadataAnime(anime), nil
 }
 
-func (p *LegacyProvider) SearchAdvanced(ctx context.Context, query, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error) {
-	if strings.TrimSpace(query) == "" {
+func (p *LegacyProvider) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error) {
+	if strings.TrimSpace(opts.Query) == "" {
 		return metadata.SearchResult{}, nil
 	}
-	result, err := p.client.Search(ctx, query, page, limit)
+	result, err := p.client.Search(ctx, opts.Query, opts.Page, opts.Limit)
 	if err != nil {
 		return metadata.SearchResult{}, err
 	}

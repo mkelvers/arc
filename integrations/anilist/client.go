@@ -160,7 +160,10 @@ func (c *Client) Search(ctx context.Context, search string, page, perPage int) (
 	return SearchResult{Items: items, HasNextPage: response.Data.Page.PageInfo.HasNextPage}, nil
 }
 
-func (c *Client) SearchAdvanced(ctx context.Context, search, animeType, status, orderBy, direction string, genres []int, _ int, sfw bool, page, perPage int) (SearchResult, error) {
+func (c *Client) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (SearchResult, error) {
+	search, animeType, status := opts.Query, opts.AnimeType, opts.Status
+	orderBy, direction, genres := opts.OrderBy, opts.Sort, opts.Genres
+	sfw, page, perPage := opts.SFW, opts.Page, opts.Limit
 	if page <= 0 {
 		page = 1
 	}
@@ -221,11 +224,11 @@ func addGenreFilter(varDefs, args []string, variables map[string]any, genres []i
 }
 
 func (c *Client) GetPopular(ctx context.Context, page, perPage int) (CatalogResult, error) {
-	return c.catalog(ctx, page, perPage, "", 0)
+	return c.catalog(ctx, CatalogOptions{Page: page, PerPage: perPage})
 }
 
-func (c *Client) GetSeason(ctx context.Context, season string, year, page, perPage int) (CatalogResult, error) {
-	return c.catalog(ctx, page, perPage, strings.ToUpper(strings.TrimSpace(season)), year)
+func (c *Client) GetSeason(ctx context.Context, opts SeasonOptions) (CatalogResult, error) {
+	return c.catalog(ctx, CatalogOptions{Page: opts.Page, PerPage: opts.PerPage, Season: strings.ToUpper(strings.TrimSpace(opts.Season)), Year: opts.Year})
 }
 
 func (c *Client) GetRecommendations(ctx context.Context, id int) ([]Recommendation, error) {
@@ -246,7 +249,18 @@ func (c *Client) GetRecommendations(ctx context.Context, id int) ([]Recommendati
 	return items, nil
 }
 
-func (c *Client) catalog(ctx context.Context, page, perPage int, season string, year int) (CatalogResult, error) {
+type SeasonOptions struct {
+	Season              string
+	Year, Page, PerPage int
+}
+type CatalogOptions struct {
+	Page, PerPage int
+	Season        string
+	Year          int
+}
+
+func (c *Client) catalog(ctx context.Context, opts CatalogOptions) (CatalogResult, error) {
+	page, perPage, season, year := opts.Page, opts.PerPage, opts.Season, opts.Year
 	if page <= 0 {
 		page = 1
 	}

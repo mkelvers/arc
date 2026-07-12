@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"mal/integrations/metadata"
 	rediscache "mal/internal/cache/redis"
 )
 
@@ -159,14 +160,17 @@ func (c *CachedClient) Search(ctx context.Context, search string, page, perPage 
 	return SearchResult{}, err
 }
 
-func (c *CachedClient) SearchAdvanced(ctx context.Context, search, animeType, status, orderBy, direction string, genres []int, studioID int, sfw bool, page, perPage int) (SearchResult, error) {
+func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (SearchResult, error) {
+	search, animeType, status := opts.Query, opts.AnimeType, opts.Status
+	orderBy, direction, genres := opts.OrderBy, opts.Sort, opts.Genres
+	studioID, sfw, page, perPage := opts.StudioID, opts.SFW, opts.Page, opts.Limit
 	key := fmt.Sprintf("anilist:search-advanced:%s:%s:%s:%s:%s:%v:%d:%t:%d:%d", url.QueryEscape(search), animeType, status, orderBy, direction, genres, studioID, sfw, page, perPage)
 	var cached SearchResult
 	result, _ := c.cache.Get(ctx, key, &cached)
 	if result.State == rediscache.StateFresh {
 		return cached, nil
 	}
-	fetched, err := c.client.SearchAdvanced(ctx, search, animeType, status, orderBy, direction, genres, studioID, sfw, page, perPage)
+	fetched, err := c.client.SearchAdvanced(ctx, opts)
 	if err == nil {
 		_ = c.cache.Set(ctx, key, fetched, searchFreshTTL, metadataStaleTTL)
 		return fetched, nil
@@ -183,9 +187,9 @@ func (c *CachedClient) GetPopular(ctx context.Context, page, perPage int) (Catal
 	})
 }
 
-func (c *CachedClient) GetSeason(ctx context.Context, season string, year, page, perPage int) (CatalogResult, error) {
-	return c.getCatalog(ctx, fmt.Sprintf("anilist:catalog:%s:season:%s:%d:%d:%d", catalogCacheKeyV2, season, year, page, perPage), func() (CatalogResult, error) {
-		return c.client.GetSeason(ctx, season, year, page, perPage)
+func (c *CachedClient) GetSeason(ctx context.Context, opts SeasonOptions) (CatalogResult, error) {
+	return c.getCatalog(ctx, fmt.Sprintf("anilist:catalog:%s:season:%s:%d:%d:%d", catalogCacheKeyV2, opts.Season, opts.Year, opts.Page, opts.PerPage), func() (CatalogResult, error) {
+		return c.client.GetSeason(ctx, opts)
 	})
 }
 
