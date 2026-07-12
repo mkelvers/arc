@@ -116,25 +116,23 @@ type browsePageData struct {
 }
 
 func browseTemplateData(data browsePageData) gin.H {
-	q, studioName, genresList := data.query, data.studioName, data.genresList
-	animes, user, watchlistMap, hasNextPage := data.animes, data.user, data.watchlistMap, data.hasNextPage
 	return gin.H{
 		"CurrentPath":  "/browse",
-		"Query":        q.q,
-		"Type":         q.animeType,
-		"Status":       q.status,
-		"OrderBy":      q.orderBy,
-		"Sort":         q.sort,
-		"Genres":       q.genres,
-		"Studio":       q.studioID,
-		"StudioName":   studioName,
-		"SFW":          q.sfw,
-		"GenresList":   genresList,
-		"Animes":       animes,
-		"HasNextPage":  hasNextPage,
-		"NextPage":     q.page + 1,
-		"User":         user,
-		"WatchlistMap": watchlistMap,
+		"Query":        data.query.q,
+		"Type":         data.query.animeType,
+		"Status":       data.query.status,
+		"OrderBy":      data.query.orderBy,
+		"Sort":         data.query.sort,
+		"Genres":       data.query.genres,
+		"Studio":       data.query.studioID,
+		"StudioName":   data.studioName,
+		"SFW":          data.query.sfw,
+		"GenresList":   data.genresList,
+		"Animes":       data.animes,
+		"HasNextPage":  data.hasNextPage,
+		"NextPage":     data.query.page + 1,
+		"User":         data.user,
+		"WatchlistMap": data.watchlistMap,
 	}
 }
 
@@ -155,23 +153,21 @@ type browseScrollInput struct {
 }
 
 func browseScrollData(input browseScrollInput) gin.H {
-	query, studioName, animes := input.query, input.studioName, input.animes
-	watchlistMap, hasNextPage := input.watchlistMap, input.hasNextPage
 	return gin.H{
 		"_fragment":    "anime_card_scroll",
-		"Animes":       animes,
-		"NextPage":     query.page + 1,
-		"HasNextPage":  hasNextPage,
-		"Query":        query.q,
-		"Type":         query.animeType,
-		"Status":       query.status,
-		"OrderBy":      query.orderBy,
-		"Sort":         query.sort,
-		"Genres":       query.genres,
-		"Studio":       query.studioID,
-		"StudioName":   studioName,
-		"SFW":          query.sfw,
-		"WatchlistMap": watchlistMap,
+		"Animes":       input.animes,
+		"NextPage":     input.query.page + 1,
+		"HasNextPage":  input.hasNextPage,
+		"Query":        input.query.q,
+		"Type":         input.query.animeType,
+		"Status":       input.query.status,
+		"OrderBy":      input.query.orderBy,
+		"Sort":         input.query.sort,
+		"Genres":       input.query.genres,
+		"Studio":       input.query.studioID,
+		"StudioName":   input.studioName,
+		"SFW":          input.query.sfw,
+		"WatchlistMap": input.watchlistMap,
 	}
 }
 
