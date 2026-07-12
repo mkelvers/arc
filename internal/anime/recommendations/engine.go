@@ -204,7 +204,7 @@ func (e engine) scoreRankedCandidates(
 		item := ranked[i]
 		g.Go(func() error {
 			anime := item.anime
-			if !item.hasAnime || !hasTasteMetadata(anime) {
+			if !item.hasAnime {
 				fetchedAnime, err := e.metadata.GetAnimeByID(ctx, item.id)
 				if err != nil {
 					observability.Warn(

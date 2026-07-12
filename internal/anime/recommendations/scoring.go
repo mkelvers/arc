@@ -15,13 +15,6 @@ func rankedCandidateRetrievalScore(collaborativeScore float64, profileSearchScor
 		(profileSearchScore * profileSearchWeight)
 }
 
-func hasTasteMetadata(anime metadata.Anime) bool {
-	return len(anime.Genres) > 0 ||
-		len(anime.Themes) > 0 ||
-		len(anime.Studios) > 0 ||
-		len(anime.Demographics) > 0
-}
-
 func scoreRecommendationCandidate(
 	now time.Time,
 	profile userTasteProfile,

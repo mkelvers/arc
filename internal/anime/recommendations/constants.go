@@ -9,7 +9,7 @@ const (
 	candidateFetchBuffer   = 6
 	TopPickLimit           = 18
 	TopPicksLimit          = 60
-	profileSearchLimit     = 8
+	profileSearchLimit     = 24
 	profileGenreSearches   = 2
 	profileThemeSearches   = 2
 	collaborativeWeight    = 1.4
