@@ -17,15 +17,15 @@ import (
 )
 
 type browseQuery struct {
-	q         string
-	animeType string
-	status    string
-	orderBy   string
-	sort      string
-	sfw       bool
-	studioID  int
-	genres    []int
-	page      int
+	Query   string
+	Type    string
+	Status  string
+	OrderBy string
+	Sort    string
+	SFW     bool
+	Studio  int
+	Genres  []int
+	Page    int
 }
 
 func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
@@ -64,15 +64,15 @@ func parseBrowseQuery(c *gin.Context) (browseQuery, error) {
 	orderBy, sort := browseSort(c.Query("order_by"), c.Query("sort"))
 
 	return browseQuery{
-		q:         c.Query("q"),
-		animeType: c.Query("type"),
-		status:    c.Query("status"),
-		orderBy:   orderBy,
-		sort:      sort,
-		sfw:       c.Query("sfw") != "false",
-		studioID:  studioID,
-		genres:    genres,
-		page:      page,
+		Query:   c.Query("q"),
+		Type:    c.Query("type"),
+		Status:  c.Query("status"),
+		OrderBy: orderBy,
+		Sort:    sort,
+		SFW:     c.Query("sfw") != "false",
+		Studio:  studioID,
+		Genres:  genres,
+		Page:    page,
 	}, nil
 }
 
@@ -106,69 +106,35 @@ func canonicalBrowseURL(rawURL *url.URL) (string, bool) {
 }
 
 type browsePageData struct {
-	query        browseQuery
-	studioName   string
-	genresList   []domain.Genre
-	animes       []domain.Anime
-	user         any
-	watchlistMap map[int64]bool
-	hasNextPage  bool
+	CurrentPath string
+	browseQuery
+	StudioName   string
+	GenresList   []domain.Genre
+	Animes       []domain.Anime
+	User         any
+	WatchlistMap map[int64]bool
+	HasNextPage  bool
+	fragment     string
 }
 
-func browseTemplateData(data browsePageData) gin.H {
-	return gin.H{
-		"CurrentPath":  "/browse",
-		"Query":        data.query.q,
-		"Type":         data.query.animeType,
-		"Status":       data.query.status,
-		"OrderBy":      data.query.orderBy,
-		"Sort":         data.query.sort,
-		"Genres":       data.query.genres,
-		"Studio":       data.query.studioID,
-		"StudioName":   data.studioName,
-		"SFW":          data.query.sfw,
-		"GenresList":   data.genresList,
-		"Animes":       data.animes,
-		"HasNextPage":  data.hasNextPage,
-		"NextPage":     data.query.page + 1,
-		"User":         data.user,
-		"WatchlistMap": data.watchlistMap,
-	}
+func (data browsePageData) NextPage() int {
+	return data.Page + 1
+}
+
+func (data browsePageData) TemplateFragment() string {
+	return data.fragment
+}
+
+func (data browsePageData) BrowseURLValues() (query, animeType, status, orderBy, sort string, studio int, sfw bool, genres []int, page int) {
+	return data.Query, data.Type, data.Status, data.OrderBy, data.Sort, data.Studio, data.SFW, data.Genres, data.Page
 }
 
 func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (metadata.SearchResult, error) {
 	return h.svc.SearchAdvanced(ctx, metadata.SearchOptions{
-		Query: query.q, AnimeType: query.animeType, Status: query.status,
-		OrderBy: query.orderBy, Sort: query.sort, Genres: query.genres,
-		StudioID: query.studioID, SFW: query.sfw, Page: query.page, Limit: 24,
+		Query: query.Query, AnimeType: query.Type, Status: query.Status,
+		OrderBy: query.OrderBy, Sort: query.Sort, Genres: query.Genres,
+		StudioID: query.Studio, SFW: query.SFW, Page: query.Page, Limit: 24,
 	})
-}
-
-type browseScrollInput struct {
-	query        browseQuery
-	studioName   string
-	animes       []domain.Anime
-	watchlistMap map[int64]bool
-	hasNextPage  bool
-}
-
-func browseScrollData(input browseScrollInput) gin.H {
-	return gin.H{
-		"_fragment":    "anime_card_scroll",
-		"Animes":       input.animes,
-		"NextPage":     input.query.page + 1,
-		"HasNextPage":  input.hasNextPage,
-		"Query":        input.query.q,
-		"Type":         input.query.animeType,
-		"Status":       input.query.status,
-		"OrderBy":      input.query.orderBy,
-		"Sort":         input.query.sort,
-		"Genres":       input.query.genres,
-		"Studio":       input.query.studioID,
-		"StudioName":   input.studioName,
-		"SFW":          input.query.sfw,
-		"WatchlistMap": input.watchlistMap,
-	}
 }
 
 func (h *AnimeHandler) respondBrowseSearchError(c *gin.Context, query browseQuery, err error) {
@@ -179,14 +145,14 @@ func (h *AnimeHandler) respondBrowseSearchError(c *gin.Context, query browseQuer
 		"anime",
 		"failed to load browse results",
 		map[string]any{
-			"q":        query.q,
-			"type":     query.animeType,
-			"status":   query.status,
-			"order_by": query.orderBy,
-			"sort":     query.sort,
-			"studio":   query.studioID,
-			"sfw":      query.sfw,
-			"page":     query.page,
+			"q":        query.Query,
+			"type":     query.Type,
+			"status":   query.Status,
+			"order_by": query.OrderBy,
+			"sort":     query.Sort,
+			"studio":   query.Studio,
+			"sfw":      query.SFW,
+			"page":     query.Page,
 		},
 		err,
 	)
@@ -210,7 +176,7 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 			"genres_fetch_failed",
 			"anime",
 			"",
-			map[string]any{"q": query.q, "type": query.animeType, "status": query.status},
+			map[string]any{"q": query.Query, "type": query.Type, "status": query.Status},
 			err,
 		)
 	}
@@ -225,15 +191,15 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 	userID := server.CurrentUserID(c)
 	animes := wrapAnimes(res.Animes)
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, animes)
-	if c.GetHeader("HX-Request") == "true" && query.page > 1 {
-		c.HTML(http.StatusOK, "browse.gohtml", browseScrollData(browseScrollInput{query: query, animes: animes, watchlistMap: watchlistMap, hasNextPage: res.HasNextPage}))
+	browseData := browsePageData{CurrentPath: "/browse", browseQuery: query, GenresList: genresList, Animes: animes, User: user, WatchlistMap: watchlistMap, HasNextPage: res.HasNextPage}
+	if c.GetHeader("HX-Request") == "true" && query.Page > 1 {
+		browseData.fragment = "anime_card_scroll"
+		c.HTML(http.StatusOK, "browse.gohtml", browseData)
 		return
 	}
 
-	browseData := browseTemplateData(browsePageData{query: query, genresList: genresList, animes: animes, user: user, watchlistMap: watchlistMap, hasNextPage: res.HasNextPage})
-
 	if c.GetHeader("HX-Request") == "true" {
-		browseData["_fragment"] = "browse_content"
+		browseData.fragment = "browse_content"
 		c.HTML(http.StatusOK, "browse.gohtml", browseData)
 		return
 	}
