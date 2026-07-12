@@ -66,13 +66,25 @@ func providerBackedPayloadHasAvailability(payload domain.CanonicalEpisodeList) b
 }
 
 func mergeEpisodes(providerEpisodes []metadata.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
-	return mergeEpisodeData(providerEpisodes, availability, expectedCount, time.Now(), false, "", false)
+	return mergeEpisodeData(mergeEpisodeInput{providerEpisodes: providerEpisodes, availability: availability, expectedCount: expectedCount, now: time.Now()})
 }
 
-func mergeEpisodeData(providerEpisodes []metadata.Episode, availability domain.EpisodeAvailability, expectedCount int, now time.Time, providerVerified bool, firstAired string, requireProviderAiredDates bool) []domain.CanonicalEpisode {
+type mergeEpisodeInput struct {
+	providerEpisodes          []metadata.Episode
+	availability              domain.EpisodeAvailability
+	expectedCount             int
+	now                       time.Time
+	providerVerified          bool
+	firstAired                string
+	requireProviderAiredDates bool
+}
+
+func mergeEpisodeData(input mergeEpisodeInput) []domain.CanonicalEpisode {
+	providerEpisodes, availability := input.providerEpisodes, input.availability
+	expectedCount, now := input.expectedCount, input.now
 	byNumber := map[int]episodePartial{}
 	providerNumbers := availableEpisodeNumbers(availability, expectedCount)
-	providerBacked := providerVerified || len(providerNumbers) > 0
+	providerBacked := input.providerVerified || len(providerNumbers) > 0
 
 	for number := range providerNumbers {
 		mergeEpisode(&byNumber, number, func(item *episodePartial) {
@@ -80,7 +92,7 @@ func mergeEpisodeData(providerEpisodes []metadata.Episode, availability domain.E
 		})
 	}
 
-	mergeProviderEpisodes(&byNumber, providerEpisodes, providerNumbers, providerBacked, expectedCount, now, firstAired, requireProviderAiredDates)
+	mergeProviderEpisodes(providerMergeInput{byNumber: &byNumber, episodes: providerEpisodes, providerNumbers: providerNumbers, providerBacked: providerBacked, expectedCount: expectedCount, now: now, firstAired: input.firstAired, requireAiredDates: input.requireProviderAiredDates})
 	mergeAvailability(&byNumber, availability.Sub, expectedCount, func(item *episodePartial) { item.sub = true })
 	mergeAvailability(&byNumber, availability.Dub, expectedCount, func(item *episodePartial) { item.dub = true })
 
@@ -110,29 +122,40 @@ func mergeEpisodeData(providerEpisodes []metadata.Episode, availability domain.E
 	return episodes
 }
 
-func mergeProviderEpisodes(byNumber *map[int]episodePartial, episodes []metadata.Episode, providerNumbers map[int]bool, providerBacked bool, expectedCount int, now time.Time, firstAired string, requireAiredDates bool) {
-	if shouldSkipProviderMerge(providerBacked, firstAired, now) {
+type providerMergeInput struct {
+	byNumber          *map[int]episodePartial
+	episodes          []metadata.Episode
+	providerNumbers   map[int]bool
+	providerBacked    bool
+	expectedCount     int
+	now               time.Time
+	firstAired        string
+	requireAiredDates bool
+}
+
+func mergeProviderEpisodes(input providerMergeInput) {
+	if shouldSkipProviderMerge(input.providerBacked, input.firstAired, input.now) {
 		return
 	}
 
-	for i, ep := range episodes {
-		if exceedsExpectedCount(i+1, expectedCount) {
+	for i, ep := range input.episodes {
+		if exceedsExpectedCount(i+1, input.expectedCount) {
 			break
 		}
 		number, ok := providerEpisodeNumber(ep, i)
 		if !ok {
 			continue
 		}
-		if exceedsExpectedCount(number, expectedCount) {
+		if exceedsExpectedCount(number, input.expectedCount) {
 			continue
 		}
-		if providerBacked && !providerNumbers[number] {
+		if input.providerBacked && !input.providerNumbers[number] {
 			continue
 		}
-		if !providerBacked && !hasEpisodeAired(ep, now, requireAiredDates) {
+		if !input.providerBacked && !hasEpisodeAired(ep, input.now, input.requireAiredDates) {
 			continue
 		}
-		mergeEpisode(byNumber, number, func(item *episodePartial) {
+		mergeEpisode(input.byNumber, number, func(item *episodePartial) {
 			item.title = strings.TrimSpace(ep.Title)
 			item.filler = ep.Filler
 			item.recap = ep.Recap
