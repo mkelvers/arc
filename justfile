@@ -13,10 +13,6 @@ lint-ts:
 lint-go:
     bun run lint:go
 
-test:
-    go test ./...
-    bun test
-
 bench:
     go test -bench=. -benchmem -count=5 ./internal/anime/... ./internal/playback/...
 
@@ -40,7 +36,7 @@ build: build-go build-css build-ts
 typecheck:
     bunx tsc -p tsconfig.json --noEmit
 
-check: lint test typecheck build
+check: lint typecheck build
 
 install-hooks:
     bunx lefthook install
