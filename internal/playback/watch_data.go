@@ -76,11 +76,10 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 	// mode fallback
 	mode, from := resolveMode(episode, mode, eps.Episodes)
 	deferred := domain.PlaybackDataDeferred(ctx)
-	modeResult, progress, segments := s.loadWatchBranches(
-		ctx, animeID, searchTitles, episode, mode, from, userID, anime.Episodes, !anime.Airing, deferred,
-	)
-	watchData := buildWatchDataPayload(animeData, animeID, episode, progress.startTime, eps.Episodes, modeResult.sources, modeResult.mode, modeResult.from, segments)
-	pageData := buildWatchPageData(animeData, eps.Episodes, episode, progress.watchlistStatus, progress.watchlistIDs, nil, watchData)
+	branches := watchBranchInput{ctx: ctx, animeID: animeID, searchTitles: searchTitles, episode: episode, mode: mode, from: from, userID: userID, totalEpisodes: anime.Episodes, allowStale: !anime.Airing, deferred: deferred}
+	modeResult, progress, segments := s.loadWatchBranches(branches)
+	watchData := buildWatchDataPayload(watchDataPayloadInput{anime: animeData, animeID: animeID, episode: episode, startTime: progress.startTime, episodes: eps.Episodes, modeSources: modeResult.sources, mode: modeResult.mode, modeSwitchedFrom: modeResult.from, segments: segments})
+	pageData := buildWatchPageData(watchPageDataInput{anime: animeData, episodes: eps.Episodes, episode: episode, watchlistStatus: progress.watchlistStatus, watchlistIDs: progress.watchlistIDs, watchData: watchData})
 	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(eps, time.Now())
 	if deferred {
 		return pageData, nil
@@ -95,8 +94,17 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 	return pageData, nil
 }
 
-func (s *playbackService) loadWatchBranches(ctx context.Context, animeID int, searchTitles []string, episode, mode, from, userID string, totalEpisodes int, allowStale, deferred bool) (watchModeResult, watchProgressResult, []domain.SkipSegment) {
-	branchCtx, cancel := context.WithCancel(ctx)
+type watchBranchInput struct {
+	ctx                         context.Context
+	animeID                     int
+	searchTitles                []string
+	episode, mode, from, userID string
+	totalEpisodes               int
+	allowStale, deferred        bool
+}
+
+func (s *playbackService) loadWatchBranches(input watchBranchInput) (watchModeResult, watchProgressResult, []domain.SkipSegment) {
+	branchCtx, cancel := context.WithCancel(input.ctx)
 	defer cancel()
 
 	var (
@@ -108,33 +116,31 @@ func (s *playbackService) loadWatchBranches(ctx context.Context, animeID int, se
 
 	wg.Go(func() {
 		startedAt := time.Now()
-		modeSources, stream, resolvedMode, switchedFrom := s.watchModeSources(
-			branchCtx, animeID, searchTitles, episode, mode, from, allowStale, deferred,
-		)
+		modeSources, stream, resolvedMode, switchedFrom := s.watchModeSources(watchModeInput{ctx: branchCtx, animeID: input.animeID, searchTitles: input.searchTitles, episode: input.episode, mode: input.mode, from: input.from, allowStale: input.allowStale, deferred: input.deferred})
 		modeResult = watchModeResult{
 			sources: modeSources,
 			stream:  stream,
 			mode:    resolvedMode,
 			from:    switchedFrom,
 		}
-		logWatchDataStage("stream_resolution", animeID, episode, startedAt, map[string]any{
+		logWatchDataStage("stream_resolution", input.animeID, input.episode, startedAt, map[string]any{
 			"sources":       len(modeSources),
 			"mode":          resolvedMode,
 			"switched_from": switchedFrom,
-			"deferred":      deferred,
+			"deferred":      input.deferred,
 		})
 	})
 
 	wg.Go(func() {
 		startedAt := time.Now()
-		startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(branchCtx, userID, animeID, totalEpisodes, episode)
+		startTime, watchlistStatus, watchlistIDs := s.loadWatchProgress(branchCtx, input.userID, input.animeID, input.totalEpisodes, input.episode)
 		progress = watchProgressResult{
 			startTime:       startTime,
 			watchlistStatus: watchlistStatus,
 			watchlistIDs:    watchlistIDs,
 		}
-		logWatchDataStage("progress_lookup", animeID, episode, startedAt, map[string]any{
-			"authenticated":    userID != "",
+		logWatchDataStage("progress_lookup", input.animeID, input.episode, startedAt, map[string]any{
+			"authenticated":    input.userID != "",
 			"resume":           startTime > 0,
 			"watchlist_status": watchlistStatus,
 		})
@@ -142,10 +148,10 @@ func (s *playbackService) loadWatchBranches(ctx context.Context, animeID int, se
 
 	wg.Go(func() {
 		startedAt := time.Now()
-		segments = s.watchSegments(branchCtx, userID, animeID, episode, deferred)
-		logWatchDataStage("segment_lookup", animeID, episode, startedAt, map[string]any{
+		segments = s.watchSegments(branchCtx, input.userID, input.animeID, input.episode, input.deferred)
+		logWatchDataStage("segment_lookup", input.animeID, input.episode, startedAt, map[string]any{
 			"segments": len(segments),
-			"deferred": deferred,
+			"deferred": input.deferred,
 		})
 	})
 
@@ -209,27 +215,28 @@ func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.A
 	return domain.Anime{}, errors.New("metadata provider unavailable")
 }
 
-func (s *playbackService) watchModeSources(ctx context.Context, animeID int, searchTitles []string, episode, mode, from string, allowStale, deferred bool) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
-	if deferred {
-		return map[string]domain.ModeSource{}, nil, mode, from
+type watchModeInput struct {
+	ctx                  context.Context
+	animeID              int
+	searchTitles         []string
+	episode, mode, from  string
+	allowStale, deferred bool
+}
+
+func (s *playbackService) watchModeSources(input watchModeInput) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
+	if input.deferred {
+		return map[string]domain.ModeSource{}, nil, input.mode, input.from
 	}
 
-	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(
-		ctx,
-		animeID,
-		searchTitles,
-		episode,
-		mode,
-		allowStale,
-		domain.PlaybackSourceRefreshRequested(ctx),
-	)
+	request := sourceResolutionInput{ctx: input.ctx, animeID: input.animeID, searchTitles: input.searchTitles, episode: input.episode, mode: input.mode, allowStale: input.allowStale, forceRefresh: domain.PlaybackSourceRefreshRequested(input.ctx)}
+	modeSources, result, resolvedMode, switchedFrom := s.resolveModeSources(request)
 	if resolvedMode != "" {
-		mode = resolvedMode
+		input.mode = resolvedMode
 	}
 	if switchedFrom != "" {
-		from = switchedFrom
+		input.from = switchedFrom
 	}
-	return modeSources, result, mode, from
+	return modeSources, result, input.mode, input.from
 }
 
 func (s *playbackService) watchSegments(ctx context.Context, userID string, animeID int, episode string, deferred bool) []domain.SkipSegment {
@@ -246,37 +253,57 @@ func (s *playbackService) watchSegments(ctx context.Context, userID string, anim
 	return segments
 }
 
-func buildWatchDataPayload(anime domain.Anime, animeID int, episode string, startTime float64, episodes []domain.CanonicalEpisode, modeSources map[string]domain.ModeSource, mode string, modeSwitchedFrom string, segments []domain.SkipSegment) domain.WatchData {
+type watchDataPayloadInput struct {
+	anime                  domain.Anime
+	animeID                int
+	episode                string
+	startTime              float64
+	episodes               []domain.CanonicalEpisode
+	modeSources            map[string]domain.ModeSource
+	mode, modeSwitchedFrom string
+	segments               []domain.SkipSegment
+}
+
+func buildWatchDataPayload(input watchDataPayloadInput) domain.WatchData {
 	return domain.WatchData{
-		MalID:            animeID,
-		Title:            anime.DisplayTitle(),
-		CurrentEpisode:   episode,
-		StartTimeSeconds: startTime,
-		Episodes:         episodes,
+		MalID:            input.animeID,
+		Title:            input.anime.DisplayTitle(),
+		CurrentEpisode:   input.episode,
+		StartTimeSeconds: input.startTime,
+		Episodes:         input.episodes,
 		Providers: []domain.ProviderData{{Streams: []domain.ProviderStream{{
 			Name:      "Primary",
 			Quality:   "Auto",
-			MalID:     animeID,
+			MalID:     input.animeID,
 			IsCurrent: true,
 		}}}},
-		ModeSources:      modeSources,
-		InitialMode:      mode,
-		ModeSwitchedFrom: modeSwitchedFrom,
-		AvailableModes:   availableModes(modeSources),
-		Segments:         segments,
-		Airing:           anime.Airing,
+		ModeSources:      input.modeSources,
+		InitialMode:      input.mode,
+		ModeSwitchedFrom: input.modeSwitchedFrom,
+		AvailableModes:   availableModes(input.modeSources),
+		Segments:         input.segments,
+		Airing:           input.anime.Airing,
 	}
 }
 
-func buildWatchPageData(anime domain.Anime, episodes []domain.CanonicalEpisode, episode string, watchlistStatus string, watchlistIDs []int64, seasons []domain.SeasonEntry, watchData domain.WatchData) domain.WatchPageData {
+type watchPageDataInput struct {
+	anime                    domain.Anime
+	episodes                 []domain.CanonicalEpisode
+	episode, watchlistStatus string
+	watchlistIDs             []int64
+	seasons                  []domain.SeasonEntry
+	watchData                domain.WatchData
+}
+
+func buildWatchPageData(input watchPageDataInput) domain.WatchPageData {
 	return domain.WatchPageData{
-		WatchData:       watchData,
-		Anime:           anime,
-		Episodes:        episodes,
-		CurrentEpID:     episode,
-		WatchlistStatus: watchlistStatus,
-		WatchlistIDs:    watchlistIDs,
-		Seasons:         seasons,
+		WatchData:       input.watchData,
+		Anime:           input.anime,
+		Episodes:        input.episodes,
+		CurrentEpID:     input.episode,
+		WatchlistStatus: input.watchlistStatus,
+		WatchlistIDs:    input.watchlistIDs,
+		Seasons:         input.seasons,
 	}
 }
 
@@ -358,16 +385,26 @@ func resolveMode(episode string, requestedMode string, episodes []domain.Canonic
 	return requestedMode, ""
 }
 
-func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, searchTitles []string, episode string, requestedMode string, allowStale bool, forceRefresh bool) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
-	requestedMode = normalizeSourceMode(requestedMode)
-	if res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, requestedMode, allowStale, forceRefresh); res != nil {
+type sourceResolutionInput struct {
+	ctx                      context.Context
+	animeID                  int
+	searchTitles             []string
+	episode, mode            string
+	allowStale, forceRefresh bool
+}
+
+func (s *playbackService) resolveModeSources(input sourceResolutionInput) (map[string]domain.ModeSource, *domain.StreamResult, string, string) {
+	requestedMode := normalizeSourceMode(input.mode)
+	input.mode = requestedMode
+	if res := s.resolveStreamResult(input); res != nil {
 		return map[string]domain.ModeSource{
 			requestedMode: s.buildModeSource(res),
 		}, res, requestedMode, ""
 	}
 
 	for _, fallbackMode := range fallbackModes(requestedMode) {
-		res := s.resolveStreamResult(ctx, animeID, searchTitles, episode, fallbackMode, allowStale, forceRefresh)
+		input.mode = fallbackMode
+		res := s.resolveStreamResult(input)
 		if res == nil {
 			continue
 		}
@@ -379,42 +416,42 @@ func (s *playbackService) resolveModeSources(ctx context.Context, animeID int, s
 	return map[string]domain.ModeSource{}, nil, requestedMode, ""
 }
 
-func (s *playbackService) resolveStreamResult(ctx context.Context, animeID int, searchTitles []string, episode string, mode string, allowStale bool, forceRefresh bool) *domain.StreamResult {
-	key := newSourceCacheKey(animeID, episode, mode)
+func (s *playbackService) resolveStreamResult(input sourceResolutionInput) *domain.StreamResult {
+	key := newSourceCacheKey(input.animeID, input.episode, input.mode)
 	stale, state := s.sourceCache.get(key, time.Now())
-	if !forceRefresh && state == sourceCacheFresh {
-		observability.Info("playback_source_cache_hit", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode})
+	if !input.forceRefresh && state == sourceCacheFresh {
+		observability.Info("playback_source_cache_hit", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode})
 		return stale
 	}
 
-	observability.Info("playback_source_cache_miss", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode, "forced": forceRefresh})
-	resolved := s.waitForSourceResult(ctx, key, animeID, searchTitles, forceRefresh)
+	observability.Info("playback_source_cache_miss", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode, "forced": input.forceRefresh})
+	resolved := s.waitForSourceResult(input, key)
 	if !resolved.completed {
 		return nil
 	}
 	observability.Info("playback_source_resolution", "playback", "", map[string]any{
-		"anime_id": animeID, "episode": episode, "mode": key.mode,
+		"anime_id": input.animeID, "episode": input.episode, "mode": key.mode,
 		"duration_ms": resolved.duration.Milliseconds(), "shared": resolved.shared,
 	})
 	if resolved.err == nil {
 		return cloneStreamResult(resolved.result)
 	}
-	if allowStale && state == sourceCacheStale && stale != nil {
-		observability.Warn("playback_source_cache_stale_hit", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, errors.New("provider source refresh failed"))
+	if input.allowStale && state == sourceCacheStale && stale != nil {
+		observability.Warn("playback_source_cache_stale_hit", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode}, errors.New("provider source refresh failed"))
 		return stale
 	}
-	observability.Warn("playback_source_resolution_failed", "playback", "", map[string]any{"anime_id": animeID, "episode": episode, "mode": key.mode}, resolved.err)
+	observability.Warn("playback_source_resolution_failed", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode}, resolved.err)
 	return nil
 }
 
-func (s *playbackService) waitForSourceResult(ctx context.Context, key sourceCacheKey, animeID int, searchTitles []string, forceRefresh bool) sourceResolutionResult {
+func (s *playbackService) waitForSourceResult(input sourceResolutionInput, key sourceCacheKey) sourceResolutionResult {
 	startedAt := time.Now()
 	resultCh := s.sourceFlight.DoChan(key.flightKey(), func() (any, error) {
-		return s.resolveSource(key, animeID, searchTitles, forceRefresh)
+		return s.resolveSource(key, input.animeID, input.searchTitles, input.forceRefresh)
 	})
 	select {
-	case <-ctx.Done():
-		return sourceResolutionResult{err: ctx.Err(), duration: time.Since(startedAt)}
+	case <-input.ctx.Done():
+		return sourceResolutionResult{err: input.ctx.Err(), duration: time.Since(startedAt)}
 	case resolved := <-resultCh:
 		result, _ := resolved.Val.(*domain.StreamResult)
 		return sourceResolutionResult{
