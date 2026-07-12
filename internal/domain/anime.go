@@ -94,7 +94,7 @@ type RecommendationInvalidator interface {
 }
 
 type AnimeSearchService interface {
-	SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error)
+	SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error)
 	GetGenres(ctx context.Context) ([]Genre, error)
 }
 

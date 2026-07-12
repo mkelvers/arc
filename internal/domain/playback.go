@@ -27,12 +27,20 @@ func PlaybackSourceRefreshRequested(ctx context.Context) bool {
 }
 
 type PlaybackService interface {
-	BuildWatchData(ctx context.Context, animeID int, titleCandidates []string, episode string, mode string, userID string) (WatchPageData, error)
+	BuildWatchData(ctx context.Context, request WatchDataRequest) (WatchPageData, error)
 	SaveProgress(ctx context.Context, userID string, animeID int64, episode int, timeSeconds float64) error
 	CompleteAnime(ctx context.Context, userID string, animeID int64) error
 	SignProxyToken(targetURL, referer, scope string) (string, error)
 	ResolveProxyToken(token string, scope string) (string, string, error)
 	UpsertSkipSegmentOverride(ctx context.Context, userID string, animeID int64, episode int, skipType string, startTime, endTime float64) error
+}
+
+type WatchDataRequest struct {
+	AnimeID         int
+	TitleCandidates []string
+	Episode         string
+	Mode            string
+	UserID          string
 }
 
 type PlaybackEpisodeTitleService interface {
