@@ -161,10 +161,7 @@ func (c *CachedClient) Search(ctx context.Context, search string, page, perPage 
 }
 
 func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (SearchResult, error) {
-	search, animeType, status := opts.Query, opts.AnimeType, opts.Status
-	orderBy, direction, genres := opts.OrderBy, opts.Sort, opts.Genres
-	studioID, sfw, page, perPage := opts.StudioID, opts.SFW, opts.Page, opts.Limit
-	key := fmt.Sprintf("anilist:search-advanced:%s:%s:%s:%s:%s:%v:%d:%t:%d:%d", url.QueryEscape(search), animeType, status, orderBy, direction, genres, studioID, sfw, page, perPage)
+	key := advancedSearchCacheKey(opts)
 	var cached SearchResult
 	result, _ := c.cache.Get(ctx, key, &cached)
 	if result.State == rediscache.StateFresh {
@@ -179,6 +176,22 @@ func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchO
 		return cached, nil
 	}
 	return SearchResult{}, err
+}
+
+func advancedSearchCacheKey(opts metadata.SearchOptions) string {
+	return fmt.Sprintf(
+		"anilist:search-advanced:%s:%s:%s:%s:%s:%v:%d:%t:%d:%d",
+		url.QueryEscape(opts.Query),
+		opts.AnimeType,
+		opts.Status,
+		opts.OrderBy,
+		opts.Sort,
+		opts.Genres,
+		opts.StudioID,
+		opts.SFW,
+		opts.Page,
+		opts.Limit,
+	)
 }
 
 func (c *CachedClient) GetPopular(ctx context.Context, page, perPage int) (CatalogResult, error) {
