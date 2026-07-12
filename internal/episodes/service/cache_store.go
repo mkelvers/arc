@@ -83,7 +83,7 @@ func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, availabi
 		return domain.CanonicalEpisodeList{}, err
 	}
 
-	if !s.writeEpisodeAvailabilityCache(ctx, anime, source, body, now, true, nextRefreshSQL) {
+	if !s.writeEpisodeAvailabilityCache(episodeCacheWrite{ctx: ctx, anime: anime, source: source, body: body, now: now, providerSuccess: true, nextRefreshSQL: nextRefreshSQL}) {
 		return payload, nil
 	}
 
@@ -101,7 +101,19 @@ func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, availabi
 	return payload, nil
 }
 
-func (s *EpisodeService) writeEpisodeAvailabilityCache(ctx context.Context, anime domain.Anime, source string, body []byte, now time.Time, providerSuccess bool, nextRefreshSQL sql.NullTime) bool {
+type episodeCacheWrite struct {
+	ctx             context.Context
+	anime           domain.Anime
+	source          string
+	body            []byte
+	now             time.Time
+	providerSuccess bool
+	nextRefreshSQL  sql.NullTime
+}
+
+func (s *EpisodeService) writeEpisodeAvailabilityCache(input episodeCacheWrite) bool {
+	ctx, anime, source, body, now := input.ctx, input.anime, input.source, input.body, input.now
+	providerSuccess, nextRefreshSQL := input.providerSuccess, input.nextRefreshSQL
 	var retryUntil sql.NullTime
 	if anime.Airing && providerSuccess {
 		retryUntil = sql.NullTime{Time: nextRefreshSQL.Time.Add(retryWindow), Valid: nextRefreshSQL.Valid}
