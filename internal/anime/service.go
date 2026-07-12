@@ -117,7 +117,7 @@ func (s *animeService) fetchCatalogSection(ctx context.Context, section string) 
 	switch section {
 	case "Airing":
 		now := time.Now()
-		return s.metadata.GetSeason(ctx, currentSeason(now), now.Year(), 1, 20)
+		return s.metadata.GetSeason(ctx, anilist.SeasonOptions{Season: currentSeason(now), Year: now.Year(), Page: 1, PerPage: 20})
 	case "Popular":
 		return s.metadata.GetPopular(ctx, 1, 20)
 	default:
@@ -149,11 +149,11 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 	return domain.Anime{}, fmt.Errorf("get anime by id: metadata provider is unavailable")
 }
 
-func (s *animeService) SearchAdvanced(ctx context.Context, q, animeType, status, orderBy, sort string, genres []int, studioID int, sfw bool, page, limit int) (metadata.SearchResult, error) {
+func (s *animeService) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error) {
 	if s.metadata == nil {
 		return metadata.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")
 	}
-	result, err := s.metadata.SearchAdvanced(ctx, q, animeType, status, orderBy, sort, genres, studioID, sfw, page, limit)
+	result, err := s.metadata.SearchAdvanced(ctx, opts)
 	if err != nil {
 		return metadata.SearchResult{}, fmt.Errorf("search anime with AniList: %w", err)
 	}
