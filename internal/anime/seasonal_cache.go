@@ -31,6 +31,13 @@ type seasonalCacheKey struct {
 	year   int
 }
 
+type seasonalCacheLog struct {
+	ctx       context.Context
+	key       seasonalCacheKey
+	opts      seasonalFetchOptions
+	startedAt time.Time
+}
+
 func newSeasonalCacheKey(season string, year int) (seasonalCacheKey, error) {
 	normalized := normalizeSeasonName(season)
 	if normalized == "" {
@@ -195,12 +202,12 @@ func (s *SeasonDiscoveryService) cachedSeasonalShows(ctx context.Context, select
 	read := s.seasonalCache.read(key, s.currentTime())
 	switch read.state {
 	case seasonalCacheHit:
-		logSeasonalCache(ctx, "simulcast_season_cache_hit", key, opts, startedAt, map[string]any{
+		seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_hit", map[string]any{
 			"count": len(read.shows),
 		}, nil)
 		return read.shows, nil
 	case seasonalCacheStaleHit:
-		logSeasonalCache(ctx, "simulcast_season_cache_stale_hit", key, opts, startedAt, map[string]any{
+		seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_stale_hit", map[string]any{
 			"count": len(read.shows),
 		}, nil)
 		if read.refresh {
@@ -208,7 +215,7 @@ func (s *SeasonDiscoveryService) cachedSeasonalShows(ctx context.Context, select
 		}
 		return read.shows, nil
 	default:
-		logSeasonalCache(ctx, "simulcast_season_cache_miss", key, opts, startedAt, nil, nil)
+		seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_miss", nil, nil)
 		return s.fetchCachedSeason(ctx, key, opts)
 	}
 }
@@ -237,13 +244,13 @@ func (s *SeasonDiscoveryService) fetchCachedSeason(ctx context.Context, key seas
 		shows, err := s.provider.SeasonalShows(ctx, key.season, key.year)
 		if err != nil {
 			if stale, ok := s.seasonalCache.readStale(key, s.currentTime()); ok {
-				logSeasonalCache(ctx, "simulcast_season_cache_provider_error", key, opts, startedAt, map[string]any{
+				seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_provider_error", map[string]any{
 					"served_stale": true,
 					"count":        len(stale),
 				}, err)
 				return stale, nil
 			}
-			logSeasonalCache(ctx, "simulcast_season_cache_provider_error", key, opts, startedAt, map[string]any{
+			seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_provider_error", map[string]any{
 				"served_stale": false,
 			}, err)
 			return nil, err
@@ -255,18 +262,18 @@ func (s *SeasonDiscoveryService) fetchCachedSeason(ctx context.Context, key seas
 		}
 		s.seasonalCache.set(key, shows, s.currentTime(), freshTTL)
 		if len(shows) == 0 && opts.emptyFreshTTL == seasonalCacheEmptyNextTTL {
-			logSeasonalCache(ctx, "simulcast_season_cache_empty_next", key, opts, startedAt, map[string]any{
+			seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_empty_next", map[string]any{
 				"ttl_seconds": int(freshTTL / time.Second),
 			}, nil)
 		}
-		logSeasonalCache(ctx, "simulcast_season_cache_refresh_completed", key, opts, startedAt, map[string]any{
+		seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_refresh_completed", map[string]any{
 			"count":             len(shows),
 			"fresh_ttl_seconds": int(freshTTL / time.Second),
 		}, nil)
 		return cloneProviderShows(shows), nil
 	})
 	if shared {
-		logSeasonalCache(ctx, "simulcast_season_cache_shared_fetch", key, opts, startedAt, nil, nil)
+		seasonalCacheLog{ctx, key, opts, startedAt}.log("simulcast_season_cache_shared_fetch", nil, nil)
 	}
 	if err != nil {
 		return nil, err
@@ -279,20 +286,20 @@ func (s *SeasonDiscoveryService) fetchCachedSeason(ctx context.Context, key seas
 	return cloneProviderShows(shows), nil
 }
 
-func logSeasonalCache(ctx context.Context, event string, key seasonalCacheKey, opts seasonalFetchOptions, startedAt time.Time, fields map[string]any, err error) {
+func (l seasonalCacheLog) log(event string, fields map[string]any, err error) {
 	if fields == nil {
 		fields = map[string]any{}
 	}
-	fields["season"] = key.season
-	fields["year"] = key.year
-	fields["lookup"] = opts.source
-	fields["duration_ms"] = time.Since(startedAt).Milliseconds()
+	fields["season"] = l.key.season
+	fields["year"] = l.key.year
+	fields["lookup"] = l.opts.source
+	fields["duration_ms"] = time.Since(l.startedAt).Milliseconds()
 
 	level := observability.LogLevelInfo
 	if err != nil {
 		level = observability.LogLevelWarn
 	}
-	observability.LogContext(ctx, level, event, "anime", "", fields, err)
+	observability.LogContext(l.ctx, level, event, "anime", "", fields, err)
 }
 
 func cloneProviderShows(in []allanime.ProviderShow) []allanime.ProviderShow {
