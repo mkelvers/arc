@@ -28,6 +28,8 @@ type APIError struct {
 	RetryAfter string
 }
 
+const transientRetryDelay = 100 * time.Millisecond
+
 func (e *APIError) Error() string {
 	if e.Status > 0 {
 		return fmt.Sprintf("anilist: HTTP %d: %s", e.Status, e.Message)
@@ -277,24 +279,50 @@ func (c *Client) catalog(ctx context.Context, opts CatalogOptions) (CatalogResul
 }
 
 func (c *Client) query(ctx context.Context, query string, variables map[string]any) (apiResponse, error) {
-	req, err := c.newQueryRequest(ctx, query, variables)
-	if err != nil {
-		return apiResponse{}, err
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return apiResponse{}, fmt.Errorf("anilist: request: %w", err)
-	}
-	defer resp.Body.Close()
+	for attempt := range 2 {
+		req, err := c.newQueryRequest(ctx, query, variables)
+		if err != nil {
+			return apiResponse{}, err
+		}
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return apiResponse{}, fmt.Errorf("anilist: request: %w", err)
+		}
 
-	parsed, err := decodeAPIResponse(resp.Body)
-	if err != nil {
-		return apiResponse{}, err
+		parsed, decodeErr := decodeAPIResponse(resp.Body)
+		resp.Body.Close()
+		if decodeErr != nil {
+			return apiResponse{}, decodeErr
+		}
+		apiErr := responseAPIError(resp, parsed)
+		if apiErr == nil {
+			return parsed, nil
+		}
+		if attempt == 0 && isTransientAPIError(apiErr) {
+			if err := waitForRetry(ctx); err != nil {
+				return parsed, err
+			}
+			continue
+		}
+		return parsed, apiErr
 	}
-	if err := responseAPIError(resp, parsed); err != nil {
-		return parsed, err
+	return apiResponse{}, nil
+}
+
+func isTransientAPIError(err error) bool {
+	var apiErr *APIError
+	return errors.As(err, &apiErr) && apiErr.Status >= http.StatusInternalServerError
+}
+
+func waitForRetry(ctx context.Context) error {
+	timer := time.NewTimer(transientRetryDelay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("anilist: retry: %w", ctx.Err())
+	case <-timer.C:
+		return nil
 	}
-	return parsed, nil
 }
 
 func (c *Client) newQueryRequest(ctx context.Context, query string, variables map[string]any) (*http.Request, error) {
