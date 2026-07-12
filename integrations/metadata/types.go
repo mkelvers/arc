@@ -14,6 +14,20 @@ type SearchResult struct {
 	HasNextPage bool
 }
 
+// SearchOptions contains the filters and pagination for a metadata search.
+type SearchOptions struct {
+	Query     string
+	AnimeType string
+	Status    string
+	OrderBy   string
+	Sort      string
+	Genres    []int
+	StudioID  int
+	SFW       bool
+	Page      int
+	Limit     int
+}
+
 type TopAnimeResult struct {
 	Animes      []Anime
 	HasNextPage bool
