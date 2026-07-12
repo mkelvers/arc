@@ -8,7 +8,6 @@ import {
   setResultItems,
   getSelectedIndex,
   setSelectedIndex,
-  getLastQuery,
   resetSearchResultsState,
   iconPaths,
   typeLabels,
@@ -230,7 +229,7 @@ const buildSection = (title: string, items: SearchItem[], startIndex: number): H
   return section;
 };
 
-export const renderEmptyState = (query: string): void => {
+export const renderEmptyState = (): void => {
   if (!searchResults) {
     return;
   }
@@ -238,18 +237,6 @@ export const renderEmptyState = (query: string): void => {
   const empty = document.createElement("div");
   empty.className =
     "mx-auto flex min-h-80 w-full max-w-5xl flex-col justify-center px-5 py-14 text-center md:px-8";
-
-  const title = document.createElement("div");
-  title.className = "text-2xl font-semibold text-foreground";
-  title.textContent = query ? "No results found" : "Start typing to search your anime";
-  empty.append(title);
-
-  const subtitle = document.createElement("p");
-  subtitle.className = "mx-auto mt-3 max-w-lg text-sm leading-6 text-foreground-muted";
-  subtitle.textContent = query
-    ? "Try a shorter title, alternate spelling, or browse the full search results."
-    : "Search anime titles and open a result to view its details.";
-  empty.append(subtitle);
 
   searchResults.replaceChildren(empty);
 };
@@ -300,7 +287,7 @@ export const renderItems = (items: SearchItem[]): void => {
   setSelectedIndex(0);
 
   if (items.length === 0) {
-    renderEmptyState(getLastQuery());
+    renderEmptyState();
     return;
   }
 

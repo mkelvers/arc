@@ -80,7 +80,7 @@ export const fetchSearchItems = (query: string): void => {
 
   if (query === "") {
     clearResults();
-    renderEmptyState("");
+    renderEmptyState();
     return;
   }
 

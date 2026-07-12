@@ -79,7 +79,7 @@ export const initSearchPage = (): void => {
     searchInput.value = initialQuery;
     fetchSearchItems(initialQuery);
   } else {
-    renderEmptyState("");
+    renderEmptyState();
   }
   if (searchPage) {
     searchInput.focus();
