@@ -161,40 +161,37 @@ func (c *Client) Search(ctx context.Context, search string, page, perPage int) (
 }
 
 func (c *Client) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (SearchResult, error) {
-	search, animeType, status := opts.Query, opts.AnimeType, opts.Status
-	orderBy, direction, genres := opts.OrderBy, opts.Sort, opts.Genres
-	sfw, page, perPage := opts.SFW, opts.Page, opts.Limit
-	if page <= 0 {
-		page = 1
+	if opts.Page <= 0 {
+		opts.Page = 1
 	}
-	if perPage <= 0 || perPage > 50 {
-		perPage = 20
+	if opts.Limit <= 0 || opts.Limit > 50 {
+		opts.Limit = 20
 	}
 
 	varDefs := []string{"$page: Int!", "$perPage: Int!", "$sort: [MediaSort!]!"}
 	args := []string{"type: ANIME", "sort: $sort"}
 	variables := map[string]any{
-		"page":    page,
-		"perPage": perPage,
-		"sort":    []string{mediaSort(orderBy, direction)},
+		"page":    opts.Page,
+		"perPage": opts.Limit,
+		"sort":    []string{mediaSort(opts.OrderBy, opts.Sort)},
 	}
-	if search = strings.TrimSpace(search); search != "" {
+	if opts.Query = strings.TrimSpace(opts.Query); opts.Query != "" {
 		varDefs = append(varDefs, "$search: String!")
 		args = append(args, "search: $search")
-		variables["search"] = search
+		variables["search"] = opts.Query
 	}
-	if format := nullableMediaFormat(animeType); format != nil {
+	if format := nullableMediaFormat(opts.AnimeType); format != nil {
 		varDefs = append(varDefs, "$format: MediaFormat!")
 		args = append(args, "format: $format")
 		variables["format"] = format
 	}
-	if mediaStatus := nullableMediaStatus(status); mediaStatus != nil {
+	if mediaStatus := nullableMediaStatus(opts.Status); mediaStatus != nil {
 		varDefs = append(varDefs, "$status: MediaStatus!")
 		args = append(args, "status: $status")
 		variables["status"] = mediaStatus
 	}
-	varDefs, args = addGenreFilter(varDefs, args, variables, genres)
-	if sfw {
+	varDefs, args = addGenreFilter(varDefs, args, variables, opts.Genres)
+	if opts.SFW {
 		args = append(args, "isAdult: false")
 	}
 	query := fmt.Sprintf("query (%s) { Page(page: $page, perPage: $perPage) { pageInfo { hasNextPage } media(%s) { %s } } }", strings.Join(varDefs, ", "), strings.Join(args, ", "), summaryMediaFields)
