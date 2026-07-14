@@ -42,7 +42,6 @@ COPY --from=builder /app/user_admin .
 COPY --from=builder /app/templates ./templates
 COPY --from=builder /app/static ./static
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/internal/database/migrations ./migrations
 
 RUN printf '%s\n' '#!/bin/sh' 'set -e' 'exec /app/user_admin "$@"' > /app/create-user \
   && chmod +x /app/create-user
