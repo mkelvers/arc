@@ -13,11 +13,10 @@ type Config struct {
 	// GinMode maps to gin.SetMode. When empty, the server uses release mode by default.
 	GinMode string
 
-	DatabaseFile string
-	DatabaseURL  string
-	RedisURL     string
-	AniListURL   string
-	ChiaKiURL    string
+	DatabaseURL string
+	RedisURL    string
+	AniListURL  string
+	ChiaKiURL   string
 
 	// Allow any Origin for CORS. Intended for local dev / reverse proxy setups only.
 	CORSAllowAll bool
@@ -30,7 +29,6 @@ func Load() (Config, error) {
 	cfg := Config{
 		Port:                firstNonEmpty(strings.TrimSpace(os.Getenv("PORT")), "3000"),
 		GinMode:             strings.TrimSpace(os.Getenv("GIN_MODE")),
-		DatabaseFile:        firstNonEmpty(strings.TrimSpace(os.Getenv("DATABASE_FILE")), "mal.db"),
 		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
 		RedisURL:            firstNonEmpty(strings.TrimSpace(os.Getenv("REDIS_URL")), "redis://localhost:6379/0"),
 		AniListURL:          firstNonEmpty(strings.TrimSpace(os.Getenv("ANILIST_URL")), "https://graphql.anilist.co"),
@@ -42,10 +40,6 @@ func Load() (Config, error) {
 	if strings.TrimSpace(cfg.Port) == "" {
 		return Config{}, errors.New("PORT must not be empty")
 	}
-	if strings.TrimSpace(cfg.DatabaseFile) == "" {
-		return Config{}, errors.New("DATABASE_FILE must not be empty")
-	}
-
 	return cfg, nil
 }
 

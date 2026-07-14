@@ -1,6 +1,5 @@
 -- Provider responses, retry queues, relation snapshots, and episode availability
--- are Redis caches now. They are intentionally discarded during the one-time
--- PostgreSQL migration and rebuilt on demand.
+-- are Redis caches now and are rebuilt on demand.
 DROP TABLE IF EXISTS episode_provider_mapping;
 DROP TABLE IF EXISTS episode_availability_cache;
 DROP TABLE IF EXISTS anime_relation;

@@ -8,4 +8,4 @@ DROP TABLE IF EXISTS jikan_cache;
 
 -- +goose Down
 
--- Provider caches are rebuilt in Redis and are intentionally not restored.
+-- Provider caches are rebuilt in Redis.

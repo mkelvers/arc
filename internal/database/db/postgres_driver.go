@@ -100,7 +100,7 @@ var identifierUser = regexp.MustCompile(`(?i)\buser\b`)
 
 func postgresQuery(query string) string {
 	query = replaceQuestionMarks(query)
-	query = normalizeSQLiteSQL(query)
+	query = normalizeGeneratedSQL(query)
 	return quoteUserIdentifier(query)
 }
 
@@ -168,7 +168,7 @@ func isDigit(ch byte) bool {
 	return ch >= '0' && ch <= '9'
 }
 
-func normalizeSQLiteSQL(query string) string {
+func normalizeGeneratedSQL(query string) string {
 	replacements := []struct{ old, new string }{
 		{"INSERT OR IGNORE INTO", "INSERT INTO"},
 		{"INSERT OR REPLACE INTO", "INSERT INTO"},
