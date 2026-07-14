@@ -274,6 +274,7 @@ func (g *CardGrouper) Group(ctx context.Context, animes []domain.Anime) ([]domai
 		return nil, err
 	}
 	inferred := applyRelationFallbacks(animes, cardIdentities, resolved)
+	applyInferredCanonicals(inferred, canonical)
 	if saver, ok := g.mappings.(inferredMappingSaver); ok && len(inferred) > 0 {
 		if err := saver.SaveInferred(ctx, inferred); err != nil {
 			slog.WarnContext(ctx, "inferred_anime_mapping_save_failed", "component", "anime", "error", err)
@@ -312,6 +313,15 @@ func applyRelationFallbacks(animes []domain.Anime, identities []mappingIdentity,
 	return inferred
 }
 
+func applyInferredCanonicals(inferred []inferredAnimeMapping, canonical map[mappingGroup]animeMapping) {
+	for _, candidate := range inferred {
+		current, ok := canonical[candidate.Group]
+		if !ok || betterCanonical(candidate.animeMapping, current) {
+			canonical[candidate.Group] = candidate.animeMapping
+		}
+	}
+}
+
 func inferMappingFromRelations(anime domain.Anime, resolved map[mappingIdentity]animeMapping) (inferredAnimeMapping, bool) {
 	for _, relation := range anime.ProviderRelations {
 		if !allowedGroupingRelation(anime.Type, relation) {
@@ -321,10 +331,7 @@ func inferMappingFromRelations(anime domain.Anime, resolved map[mappingIdentity]
 		if !ok || related.Group.MediaType != "tv" {
 			continue
 		}
-		season := 0
-		if strings.EqualFold(relation.Type, "PREQUEL") && related.Season > 0 {
-			season = related.Season + 1
-		}
+		season := inferredSeason(relation.Type, related.Season)
 		return inferredAnimeMapping{
 			animeMapping: animeMapping{AniListID: anime.AniListID, MALID: anime.MalID, Group: related.Group, Season: season},
 			RelationType: relation.Type, RelatedAniListID: relation.AniListID,
@@ -333,9 +340,23 @@ func inferMappingFromRelations(anime domain.Anime, resolved map[mappingIdentity]
 	return inferredAnimeMapping{}, false
 }
 
+func inferredSeason(relationType string, relatedSeason int) int {
+	switch {
+	case strings.EqualFold(relationType, "PREQUEL") && relatedSeason > 0:
+		return relatedSeason + 1
+	case strings.EqualFold(relationType, "SEQUEL") && relatedSeason > 1:
+		return relatedSeason - 1
+	case strings.EqualFold(relationType, "SEQUEL"):
+		return 1
+	default:
+		return 0
+	}
+}
+
 func allowedGroupingRelation(format string, relation domain.AnimeProviderRelation) bool {
 	if strings.EqualFold(format, "TV") {
-		return strings.EqualFold(relation.Type, "PREQUEL") && strings.EqualFold(relation.Format, "TV")
+		isSeasonLink := strings.EqualFold(relation.Type, "PREQUEL") || strings.EqualFold(relation.Type, "SEQUEL")
+		return isSeasonLink && strings.EqualFold(relation.Format, "TV")
 	}
 	isSpecial := strings.EqualFold(format, "ONA") || strings.EqualFold(format, "OVA") || strings.EqualFold(format, "SPECIAL")
 	return isSpecial && strings.EqualFold(relation.Type, "PARENT") && strings.EqualFold(relation.Format, "TV")
