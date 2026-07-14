@@ -10,6 +10,9 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		NewAnimeRepository,
+		NewMappingStore,
+		NewMappingSyncer,
+		NewCardGrouper,
 		NewSeasonDiscoveryService,
 		fx.Annotate(
 			NewAnimeServiceWithMetadata,
@@ -22,6 +25,7 @@ var Module = fx.Options(
 		),
 		NewAnimeHandler,
 	),
+	fx.Invoke(RegisterMappingSync),
 	fx.Provide(
 		server.AsRouteRegister(func(h *AnimeHandler) server.RouteRegister {
 			return h
