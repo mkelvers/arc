@@ -138,6 +138,17 @@ CREATE TABLE IF NOT EXISTS anime_inferred_mapping (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS anime_media_selection (
+    anime_id BIGINT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('backdrop', 'logo')),
+    tmdb_media_type TEXT NOT NULL CHECK(tmdb_media_type IN ('tv', 'movie')),
+    tmdb_id BIGINT NOT NULL,
+    file_path TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (anime_id, kind)
+);
+
 CREATE OR REPLACE VIEW anime_effective_mapping AS
 SELECT
     base.anilist_id,
