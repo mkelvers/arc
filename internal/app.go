@@ -8,7 +8,6 @@ import (
 	"mal/internal/database"
 	"mal/internal/domain"
 	"mal/internal/episodes"
-	"mal/internal/observability"
 	"mal/internal/playback"
 	"mal/internal/server"
 	"mal/internal/watchlist"
@@ -20,8 +19,10 @@ import (
 )
 
 func NewApp() *fx.App {
+	ConfigureLogger()
+
 	return fx.New(
-		fx.WithLogger(observability.NewFxLogger),
+		fx.WithLogger(NewFxLogger),
 		fx.Provide(
 			LoadConfig,
 			func(cfg Config) database.Config { return database.Config{URL: cfg.DatabaseURL} },

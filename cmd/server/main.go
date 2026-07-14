@@ -2,15 +2,17 @@
 package main
 
 import (
+	"log/slog"
 	"mal/internal"
-	"mal/internal/observability"
 
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	internal.ConfigureLogger()
+
 	if err := godotenv.Load(); err != nil {
-		observability.Warn("env_file_load_failed", "server", "", nil, err)
+		slog.Warn("env_file_load_failed", "component", "server", "error", err)
 	}
 
 	application := internal.NewApp()

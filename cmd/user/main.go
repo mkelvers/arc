@@ -8,11 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"mal/integrations/anilist"
 	"mal/internal"
 	"mal/internal/database"
 	"mal/internal/database/db"
-	"mal/internal/observability"
 	"os"
 	"strings"
 	"time"
@@ -24,8 +24,10 @@ import (
 )
 
 func main() {
+	internal.ConfigureLogger()
+
 	if err := godotenv.Load(); err != nil {
-		observability.Warn("env_file_load_failed", "user", "", nil, err)
+		slog.Warn("env_file_load_failed", "component", "user", "error", err)
 	}
 
 	if err := run(os.Args[1:]); err != nil {
