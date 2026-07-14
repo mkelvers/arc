@@ -475,7 +475,7 @@ func topTags(tags []Tag, limit int) []Tag {
 }
 
 func mapSummary(raw media) AnimeSummary {
-	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Description: raw.Description, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
+	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Description: raw.Description, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge, Relations: mapRelations(raw.Relations.Edges)}
 }
 func mapSummaryFromRelation(raw mediaSummary) AnimeSummary {
 	return AnimeSummary{ID: raw.ID, MALID: raw.IDMal, Title: raw.Title, Description: raw.Description, Type: raw.Type, Format: raw.Format, StartYear: raw.StartDate.Year, CoverImage: raw.CoverImage.ExtraLarge}
@@ -546,5 +546,5 @@ func mediaSort(orderBy, direction string) string {
 
 var _ = strconv.Itoa
 
-const summaryMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format startDate { year } coverImage { extraLarge large }`
+const summaryMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format startDate { year } coverImage { extraLarge large } relations { edges { relationType node { id idMal type format title { romaji english native userPreferred } startDate { year } coverImage { extraLarge large } } } }`
 const fullMediaFields = `id idMal title { romaji english native userPreferred } description(asHtml: false) type format status startDate { year month day } endDate { year month day } season seasonYear episodes duration countryOfOrigin source coverImage { extraLarge large } bannerImage genres tags { id name rank isGeneralSpoiler isMediaSpoiler } synonyms averageScore meanScore popularity favourites stats { scoreDistribution { amount } } rankings { rank type context season year } updatedAt isAdult nextAiringEpisode { airingAt episode } studios(isMain: true) { nodes { id name } } characters(perPage: 25) { edges { role node { id name { full } image { large } } } } staff(perPage: 50) { edges { role node { id name { full } } } } relations { edges { relationType node { id idMal type format title { romaji english native userPreferred } startDate { year } coverImage { extraLarge large } } } } externalLinks { site url }`

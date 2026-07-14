@@ -108,6 +108,7 @@ type AnimeSummary struct {
 	Format      string
 	StartYear   int
 	CoverImage  string
+	Relations   []Relation
 }
 
 type ExternalLink struct {
