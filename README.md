@@ -151,11 +151,10 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | --------------------------- | --------------- | -------------------------------------------------------------------------- |
 | `PORT`                      | `3000`          | HTTP port for the server.                                                  |
 | `DATABASE_URL`              | required        | PostgreSQL connection URL for application persistence.                     |
-| `REDIS_URL`                 | `redis://localhost:6379/0` | Provider-response and stale-data cache.                        |
-| `ANILIST_URL`               | `https://graphql.anilist.co` | AniList GraphQL metadata endpoint.                         |
-| `CHIAKI_URL`                | `https://chiaki.site` | ChiaKi relation and watch-order endpoint.                         |
+| `REDIS_URL`                 | required        | Provider-response and stale-data cache.                                    |
+| `ANILIST_URL`               | required        | AniList GraphQL metadata endpoint.                                         |
+| `CHIAKI_URL`                | required        | ChiaKi relation and watch-order endpoint.                                  |
 | `GIN_MODE`                  | release default | Gin runtime mode.                                                          |
-| `MAL_CORS_ALLOW_ALL`        | disabled        | Allows any origin when set to `1`; intended for local/proxy setups.        |
 | `PLAYBACK_PROXY_SECRET`     | empty           | Secret used to mint playback proxy tokens; required for playback proxying. |
 
 </details>
