@@ -5,7 +5,6 @@ import (
 	"mal/integrations/playback/allanime"
 	"mal/integrations/watchorder"
 	"mal/internal/anime"
-	"mal/internal/audit"
 	"mal/internal/auth"
 	rediscache "mal/internal/cache/redis"
 	"mal/internal/config"
@@ -28,7 +27,6 @@ func NewApp() *fx.App {
 		config.Module,
 		rediscache.Module,
 		database.Module,
-		audit.Module,
 		anilist.Module,
 		watchorder.Module,
 		allanime.Module,

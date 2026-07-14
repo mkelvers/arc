@@ -24,7 +24,6 @@ type playbackService struct {
 	proxyTokens   *proxyTokenStore
 	sourceCache   *sourceCache
 	sourceFlight  singleflight.Group
-	auditSvc      domain.AuditService
 }
 
 type ProxyTokenKey string
@@ -36,7 +35,6 @@ type PlaybackServiceParams struct {
 	Providers     []domain.Provider
 	Metadata      *anilist.CachedClient
 	Episodes      domain.EpisodeService
-	AuditService  domain.AuditService
 	ProxyTokenKey ProxyTokenKey
 }
 
@@ -46,7 +44,6 @@ func NewPlaybackServiceWithAniList(params PlaybackServiceParams) domain.Playback
 		providers:     params.Providers,
 		metadata:      params.Metadata,
 		episodes:      params.Episodes,
-		auditSvc:      params.AuditService,
 		httpClient:    netutil.NewClient(),
 		proxyTokenKey: string(params.ProxyTokenKey),
 		proxyTokens:   newProxyTokenStore(),

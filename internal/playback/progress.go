@@ -3,7 +3,6 @@ package playback
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -92,20 +91,6 @@ func (s *playbackService) CompleteAnime(ctx context.Context, userID string, anim
 		return fmt.Errorf("complete anime transaction user_id=%s anime_id=%d: %w", userID, animeID, err)
 	}
 
-	if err := s.auditSvc.Record(ctx, domain.AuditEvent{
-		UserID:       userID,
-		Action:       "watch_completed",
-		ResourceType: "anime",
-		ResourceID:   strconv.FormatInt(animeID, 10),
-	}); err != nil {
-		observability.Warn(
-			"audit_record_failed",
-			"playback",
-			"",
-			map[string]any{"user_id": userID, "anime_id": animeID, "action": "watch_completed"},
-			err,
-		)
-	}
 	return nil
 }
 
@@ -136,28 +121,6 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 		return fmt.Errorf("save progress transaction user_id=%s anime_id=%d episode=%d: %w", userID, animeID, episode, err)
 	}
 
-	event := domain.AuditEvent{
-		UserID:       userID,
-		Action:       "watch_progress_saved",
-		ResourceType: "anime",
-		ResourceID:   strconv.FormatInt(animeID, 10),
-	}
-	metadataBytes, marshalErr := json.Marshal(struct {
-		Episode     int     `json:"episode"`
-		TimeSeconds float64 `json:"time_seconds"`
-	}{Episode: episode, TimeSeconds: timeSeconds})
-	if marshalErr == nil {
-		event.MetadataJSON = metadataBytes
-	}
-	if err := s.auditSvc.Record(ctx, event); err != nil {
-		observability.Warn(
-			"audit_record_failed",
-			"playback",
-			"",
-			map[string]any{"user_id": userID, "anime_id": animeID, "action": "watch_progress_saved"},
-			err,
-		)
-	}
 	observability.Info("watch_progress_saved", "playback", "", map[string]any{
 		"anime_id":     animeID,
 		"episode":      episode,

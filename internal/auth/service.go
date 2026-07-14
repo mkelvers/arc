@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"mal/internal/domain"
@@ -24,12 +23,11 @@ var (
 )
 
 type authService struct {
-	repo     domain.AuthRepository
-	auditSvc domain.AuditService
+	repo domain.AuthRepository
 }
 
-func NewAuthService(repo domain.AuthRepository, auditSvc domain.AuditService) domain.AuthService {
-	return &authService{repo: repo, auditSvc: auditSvc}
+func NewAuthService(repo domain.AuthRepository) domain.AuthService {
+	return &authService{repo: repo}
 }
 
 func (s *authService) Login(ctx context.Context, username, password string) (*domain.Session, error) {
@@ -73,27 +71,6 @@ func (s *authService) LoginForAPIToken(ctx context.Context, username, password, 
 	}
 	if _, err := s.repo.CreateAPIToken(ctx, user.ID, tokenHash, trimmedName); err != nil {
 		return "", nil, err
-	}
-
-	event := domain.AuditEvent{
-		UserID:       user.ID,
-		Action:       "api_token_created",
-		ResourceType: "api_token",
-	}
-	metadataBytes, marshalErr := json.Marshal(struct {
-		Name string `json:"name"`
-	}{Name: trimmedName})
-	if marshalErr == nil {
-		event.MetadataJSON = metadataBytes
-	}
-	if err := s.auditSvc.Record(ctx, event); err != nil {
-		observability.Warn(
-			"audit_record_failed",
-			"auth",
-			"",
-			map[string]any{"user_id": user.ID, "action": "api_token_created"},
-			err,
-		)
 	}
 
 	return rawToken, user, nil
@@ -169,23 +146,7 @@ func (s *authService) RevokeAllAPITokensForUser(ctx context.Context, userID stri
 	if strings.TrimSpace(userID) == "" {
 		return errors.New("user id missing")
 	}
-	if err := s.repo.RevokeAllAPITokensForUser(ctx, userID); err != nil {
-		return err
-	}
-	if err := s.auditSvc.Record(ctx, domain.AuditEvent{
-		UserID:       userID,
-		Action:       "api_token_revoked_all",
-		ResourceType: "api_token",
-	}); err != nil {
-		observability.Warn(
-			"audit_record_failed",
-			"auth",
-			"",
-			map[string]any{"user_id": userID, "action": "api_token_revoked_all"},
-			err,
-		)
-	}
-	return nil
+	return s.repo.RevokeAllAPITokensForUser(ctx, userID)
 }
 
 func newOpaqueToken() (token string, tokenHash string, err error) {
