@@ -18,9 +18,20 @@ const initSynopsisToggle = (): void => {
       return;
     }
 
+    if (container.dataset.synopsisMode === "fade") {
+      const isExpanded = container.dataset.synopsisExpanded === "true";
+      const nextExpanded = !isExpanded;
+      container.dataset.synopsisExpanded = String(nextExpanded);
+      container.classList.toggle("max-h-24", !nextExpanded);
+      container.classList.toggle("overflow-hidden", !nextExpanded);
+      container.classList.toggle("after:hidden", nextExpanded);
+      button.textContent = nextExpanded ? "Show Less" : "More Details";
+      return;
+    }
+
     const isClamped = container.classList.contains("line-clamp-6");
     container.classList.toggle("line-clamp-6", !isClamped);
-    button.textContent = isClamped ? "Read more" : "Show less";
+    button.textContent = isClamped ? "Show less" : "Read more";
   });
 };
 
