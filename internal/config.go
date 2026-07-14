@@ -11,8 +11,9 @@ type Config struct {
 	// GinMode maps to gin.SetMode. When empty, the server uses release mode by default.
 	GinMode string
 
-	DatabaseURL string
-	RedisURL    string
+	DatabaseURL     string
+	RedisURL        string
+	TMDBAccessToken string
 
 	// Optional. When empty, proxy token signing is disabled.
 	PlaybackProxySecret string
@@ -29,6 +30,7 @@ func LoadConfig() Config {
 		GinMode:             strings.TrimSpace(os.Getenv("GIN_MODE")),
 		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
 		RedisURL:            strings.TrimSpace(os.Getenv("REDIS_URL")),
+		TMDBAccessToken:     strings.TrimSpace(os.Getenv("TMDB_ACCESS_TOKEN")),
 		PlaybackProxySecret: strings.TrimSpace(os.Getenv("PLAYBACK_PROXY_SECRET")),
 	}
 }

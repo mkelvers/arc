@@ -3,6 +3,7 @@ package internal
 import (
 	"mal/integrations/anilist"
 	"mal/integrations/playback/allanime"
+	"mal/integrations/tmdb"
 	"mal/internal/anime"
 	"mal/internal/auth"
 	"mal/internal/database"
@@ -28,10 +29,12 @@ func NewApp() *fx.App {
 			func(cfg Config) database.Config { return database.Config{URL: cfg.DatabaseURL} },
 			func(cfg Config) server.Config { return server.Config{GinMode: cfg.GinMode, Port: cfg.Port} },
 			func(cfg Config) playback.ProxyTokenKey { return playback.ProxyTokenKey(cfg.PlaybackProxySecret) },
+			func(cfg Config) tmdb.Config { return tmdb.Config{AccessToken: cfg.TMDBAccessToken} },
 			func(cfg Config) (domain.CacheStore, error) { return NewRedisCache(cfg.RedisURL) },
 		),
 		database.Module,
 		anilist.Module,
+		tmdb.Module,
 		allanime.Module,
 		episodes.Module,
 		auth.Module,
