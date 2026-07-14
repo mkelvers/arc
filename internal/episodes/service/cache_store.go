@@ -244,6 +244,18 @@ func (s *EpisodeService) getDecodedCached(ctx context.Context, anime domain.Anim
 	return payload, true
 }
 
+func (s *EpisodeService) cachedEpisodePayload(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, episodeCacheRow, bool) {
+	row, _, ok := s.getEpisodeCache(ctx, int64(anime.MalID))
+	if !ok {
+		return domain.CanonicalEpisodeList{}, episodeCacheRow{}, false
+	}
+	payload, ok := s.decodeCachedPayload(anime, row.Data)
+	if !ok {
+		return domain.CanonicalEpisodeList{}, episodeCacheRow{}, false
+	}
+	return enrichCachedPayload(payload, row), row, true
+}
+
 func enrichCachedPayload(payload domain.CanonicalEpisodeList, row episodeCacheRow) domain.CanonicalEpisodeList {
 	if row.NextRefreshAt.Valid {
 		payload.NextRefreshAt = row.NextRefreshAt.Time.Format(time.RFC3339)

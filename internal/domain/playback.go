@@ -43,10 +43,6 @@ type WatchDataRequest struct {
 	UserID          string
 }
 
-type PlaybackEpisodeTitleService interface {
-	EnrichEpisodeTitles(ctx context.Context, animeID int) ([]CanonicalEpisode, error)
-}
-
 type PlaybackEpisodeClassificationService interface {
 	EnrichEpisodeClassifications(ctx context.Context, animeID int) ([]CanonicalEpisode, error)
 }

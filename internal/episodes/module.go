@@ -3,7 +3,6 @@ package episodes
 
 import (
 	"mal/integrations/playback/allanime"
-	"mal/integrations/tvmaze"
 	"mal/internal/domain"
 	episodeService "mal/internal/episodes/service"
 
@@ -12,7 +11,6 @@ import (
 
 var Module = fx.Options(
 	fx.Provide(
-		tvmaze.NewClient,
 		fx.Annotate(
 			episodeService.NewEpisodeServiceWithAniList,
 		),
@@ -20,9 +18,6 @@ var Module = fx.Options(
 	fx.Provide(func() bool { return true }),
 	fx.Provide(func(p *allanime.AllAnimeProvider, cache domain.CacheStore) []domain.EpisodeAvailabilityProvider {
 		return []domain.EpisodeAvailabilityProvider{newCachedAvailabilityProvider(p, cache)}
-	}),
-	fx.Provide(func(p *tvmaze.Client) domain.EpisodeTitleProvider {
-		return p
 	}),
 	fx.Invoke(RegisterWorker),
 )

@@ -1,7 +1,16 @@
 import { state } from "../state";
-import { episodeElements } from "./titles";
 
 type EpisodeClassification = { filler: boolean; number: number; recap: boolean };
+
+const episodeElements = (): HTMLElement[] => {
+  const elements: HTMLElement[] = [];
+  for (const container of [state.elements.episodeGrid, state.elements.episodeList]) {
+    container?.querySelectorAll<HTMLElement>("[data-episode-id]").forEach((element) => {
+      elements.push(element);
+    });
+  }
+  return elements;
+};
 
 export const parseEpisodeClassifications = (value: unknown): EpisodeClassification[] => {
   if (!Array.isArray(value)) {

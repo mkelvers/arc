@@ -3,7 +3,6 @@ import { setupControls, showControls } from "./controls";
 import { formatTime } from "./controls";
 import { hydrateEpisodeClassifications } from "./episodes/classifications";
 import { goToNextEpisode, prefetchNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
-import { hydrateEpisodeTitles } from "./episodes/titles";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
 import { setPlayerLoadState, setupPlayerLoading, teardownPlayerLoading } from "./loading";
@@ -163,12 +162,6 @@ const initPlayer = async (): Promise<void> => {
   setupQuality();
   setupMode();
   setupEpisodeNavigation(signal);
-  hydrateEpisodeTitles(signal).catch((error: unknown) => {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      return;
-    }
-    console.debug("failed to enrich episode titles:", error);
-  });
   hydrateEpisodeClassifications(signal).catch((error: unknown) => {
     if (error instanceof DOMException && error.name === "AbortError") {
       return;

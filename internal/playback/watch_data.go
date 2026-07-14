@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"mal/integrations/anilist"
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -64,7 +63,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 		)
 	}
 	logWatchDataStage("anime_row", animeID, episode, ensureStartedAt, nil)
-	anime := animeData.Anime
+	anime := animeData
 	searchTitles := buildSearchTitles(animeData, titleCandidates)
 	episodesStartedAt := time.Now()
 	eps, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
@@ -159,22 +158,6 @@ func (s *playbackService) loadWatchBranches(input watchBranchInput) (watchModeRe
 	return modeResult, progress, segments
 }
 
-func (s *playbackService) EnrichEpisodeTitles(ctx context.Context, animeID int) ([]domain.CanonicalEpisode, error) {
-	anime, err := s.watchAnime(ctx, animeID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch anime for episode titles: %w", err)
-	}
-	enricher, ok := s.episodes.(domain.EpisodeTitleService)
-	if !ok {
-		return nil, errors.New("episode title enrichment is unavailable")
-	}
-	episodes, err := enricher.EnrichEpisodeTitles(ctx, anime)
-	if err != nil {
-		return nil, err
-	}
-	return episodes.Episodes, nil
-}
-
 func (s *playbackService) EnrichEpisodeClassifications(ctx context.Context, animeID int) ([]domain.CanonicalEpisode, error) {
 	anime, err := s.watchAnime(ctx, animeID)
 	if err != nil {
@@ -195,13 +178,13 @@ func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.A
 	if s.metadata != nil {
 		anime, err := s.metadata.GetAnimeByMALID(ctx, animeID)
 		if err == nil {
-			return domain.Anime{Anime: anilist.ToMetadataAnime(anime)}, nil
+			return anilist.ToMetadataAnime(anime), nil
 		}
 	}
 
 	row, err := s.repo.GetAnime(ctx, int64(animeID))
 	if err == nil && row.ID > 0 && strings.TrimSpace(row.TitleOriginal) != "" {
-		anime := metadata.Anime{
+		anime := domain.Anime{
 			MalID:         int(row.ID),
 			Title:         row.TitleOriginal,
 			TitleEnglish:  row.TitleEnglish.String,
@@ -209,7 +192,7 @@ func (s *playbackService) watchAnime(ctx context.Context, animeID int) (domain.A
 			Airing:        row.Airing.Valid && row.Airing.Bool,
 			Status:        row.Status.String,
 		}
-		return domain.Anime{Anime: anime}, nil
+		return anime, nil
 	}
 
 	return domain.Anime{}, errors.New("metadata provider unavailable")

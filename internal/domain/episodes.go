@@ -18,11 +18,6 @@ type EpisodeAvailabilityProvider interface {
 	GetEpisodeAvailabilityByProviderID(ctx context.Context, providerID string) (EpisodeAvailability, error)
 }
 
-type EpisodeTitleProvider interface {
-	EpisodeProvider
-	GetEpisodeTitlesByProviderID(ctx context.Context, providerID string, anime Anime, episodeCount int) (map[int]string, error)
-}
-
 type CanonicalEpisode struct {
 	Number  int    `json:"number"`
 	Title   string `json:"title"`
@@ -50,10 +45,6 @@ type CanonicalEpisodeList struct {
 type EpisodeService interface {
 	GetCanonicalEpisodes(ctx context.Context, anime Anime, forceRefresh bool) (CanonicalEpisodeList, error)
 	RefreshTrackedDue(ctx context.Context, limit int) error
-}
-
-type EpisodeTitleService interface {
-	EnrichEpisodeTitles(ctx context.Context, anime Anime) (CanonicalEpisodeList, error)
 }
 
 type EpisodeClassificationService interface {

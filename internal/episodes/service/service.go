@@ -5,11 +5,9 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"mal/integrations/anilist"
-	"mal/integrations/metadata"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -39,12 +37,9 @@ type EpisodeService struct {
 	queries          *db.Queries
 	metadata         *anilist.CachedClient
 	providers        []domain.EpisodeAvailabilityProvider
-	titles           domain.EpisodeTitleProvider
 	clock            Clock
 	enabled          bool
 	canonicalRefresh singleflight.Group
-	titleLoad        singleflight.Group
-	cacheMu          sync.Mutex
 	cache            domain.CacheStore
 }
 
@@ -54,13 +49,12 @@ type EpisodeServiceParams struct {
 	Queries   *db.Queries
 	Metadata  *anilist.CachedClient
 	Providers []domain.EpisodeAvailabilityProvider
-	Titles    domain.EpisodeTitleProvider
 	Enabled   bool
 	Cache     domain.CacheStore
 }
 
 func NewEpisodeServiceWithAniList(params EpisodeServiceParams) domain.EpisodeService {
-	return &EpisodeService{queries: params.Queries, metadata: params.Metadata, providers: params.Providers, titles: params.Titles, clock: realClock{}, enabled: params.Enabled, cache: params.Cache}
+	return &EpisodeService{queries: params.Queries, metadata: params.Metadata, providers: params.Providers, clock: realClock{}, enabled: params.Enabled, cache: params.Cache}
 }
 
 func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.Anime, forceRefresh bool) (domain.CanonicalEpisodeList, error) {
@@ -227,7 +221,7 @@ func (s *EpisodeService) hasFreshTrackedEpisodeCache(ctx context.Context, id int
 	if !ok || state != domain.CacheFresh {
 		return false
 	}
-	anime := domain.Anime{Anime: metadata.Anime{MalID: int(id), Airing: true}}
+	anime := domain.Anime{MalID: int(id), Airing: true}
 	return s.isFreshEpisodeCache(anime, row, s.clock.Now())
 }
 
@@ -239,7 +233,7 @@ func (s *EpisodeService) fetchTrackedAnime(ctx context.Context, id int64) (domai
 	if err != nil {
 		return domain.Anime{}, err
 	}
-	return domain.Anime{Anime: anilist.ToMetadataAnime(item)}, nil
+	return anilist.ToMetadataAnime(item), nil
 }
 
 func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, error) {
