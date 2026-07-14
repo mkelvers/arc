@@ -13,7 +13,7 @@ import (
 
 const createAPIToken = `-- name: CreateAPIToken :one
 INSERT INTO api_token (id, user_id, token_hash, name)
-VALUES (?, ?, ?, ?)
+VALUES ($1, $2, $3, $4)
 RETURNING id, user_id, token_hash, name, created_at, last_used_at, revoked_at
 `
 
@@ -46,8 +46,8 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 
 const createAuditLog = `-- name: CreateAuditLog :one
 INSERT INTO audit_log (id, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-RETURNING id, occurred_at, user_id, "action", resource_type, resource_id, ip, user_agent, metadata_json
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, occurred_at, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json
 `
 
 type CreateAuditLogParams struct {
@@ -89,7 +89,7 @@ func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) 
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO session (id, user_id, expires_at)
-VALUES (?, ?, ?)
+VALUES ($1, $2, $3)
 RETURNING id, user_id, expires_at, created_at
 `
 
@@ -113,7 +113,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 
 const deleteContinueWatchingEntry = `-- name: DeleteContinueWatchingEntry :exec
 DELETE FROM continue_watching_entry
-WHERE user_id = ? AND anime_id = ?
+WHERE user_id = $1 AND anime_id = $2
 `
 
 type DeleteContinueWatchingEntryParams struct {
@@ -126,19 +126,8 @@ func (q *Queries) DeleteContinueWatchingEntry(ctx context.Context, arg DeleteCon
 	return err
 }
 
-const deleteExpiredFailedEpisodeProviderMappings = `-- name: DeleteExpiredFailedEpisodeProviderMappings :exec
-DELETE FROM episode_provider_mapping
-WHERE provider_show_id = ''
-  AND failed_until <= CURRENT_TIMESTAMP
-`
-
-func (q *Queries) DeleteExpiredFailedEpisodeProviderMappings(ctx context.Context) error {
-	_, err := q.db.ExecContext(ctx, deleteExpiredFailedEpisodeProviderMappings)
-	return err
-}
-
 const deleteSession = `-- name: DeleteSession :exec
-DELETE FROM session WHERE id = ?
+DELETE FROM session WHERE id = $1
 `
 
 func (q *Queries) DeleteSession(ctx context.Context, id string) error {
@@ -148,7 +137,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 
 const deleteWatchListEntry = `-- name: DeleteWatchListEntry :exec
 DELETE FROM watch_list_entry
-WHERE user_id = ? AND anime_id = ?
+WHERE user_id = $1 AND anime_id = $2
 `
 
 type DeleteWatchListEntryParams struct {
@@ -163,7 +152,7 @@ func (q *Queries) DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListE
 
 const getAPITokenByHash = `-- name: GetAPITokenByHash :one
 SELECT id, user_id, token_hash, name, created_at, last_used_at, revoked_at FROM api_token
-WHERE token_hash = ? AND revoked_at IS NULL
+WHERE token_hash = $1 AND revoked_at IS NULL
 LIMIT 1
 `
 
@@ -183,7 +172,7 @@ func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiT
 }
 
 const getAnime = `-- name: GetAnime :one
-SELECT id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds, banner_image_url FROM anime WHERE id = ? LIMIT 1
+SELECT id, title_original, title_english, title_japanese, image_url, banner_image_url, created_at, airing, status, relations_synced_at, duration_seconds FROM anime WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
@@ -192,30 +181,30 @@ func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.TitleOriginal,
-		&i.ImageUrl,
-		&i.CreatedAt,
 		&i.TitleEnglish,
 		&i.TitleJapanese,
+		&i.ImageUrl,
+		&i.BannerImageUrl,
+		&i.CreatedAt,
 		&i.Airing,
 		&i.Status,
 		&i.RelationsSyncedAt,
 		&i.DurationSeconds,
-		&i.BannerImageUrl,
 	)
 	return i, err
 }
 
 const getAuditLogsForUser = `-- name: GetAuditLogsForUser :many
-SELECT id, occurred_at, user_id, "action", resource_type, resource_id, ip, user_agent, metadata_json
+SELECT id, occurred_at, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json
 FROM audit_log
-WHERE user_id = ?
+WHERE user_id = $1
 ORDER BY occurred_at DESC
-LIMIT ?
+LIMIT $2
 `
 
 type GetAuditLogsForUserParams struct {
 	UserID sql.NullString `json:"user_id"`
-	Limit  int64          `json:"limit"`
+	Limit  int32          `json:"limit"`
 }
 
 func (q *Queries) GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error) {
@@ -269,14 +258,14 @@ SELECT
     a.duration_seconds as anime_duration_seconds
 FROM continue_watching_entry c
 JOIN anime a ON c.anime_id = a.id
-WHERE c.user_id = ?
+WHERE c.user_id = $1
 ORDER BY c.updated_at DESC
-LIMIT ?
+LIMIT $2
 `
 
 type GetContinueWatchingCarouselEntriesParams struct {
 	UserID string `json:"user_id"`
-	Limit  int64  `json:"limit"`
+	Limit  int32  `json:"limit"`
 }
 
 type GetContinueWatchingCarouselEntriesRow struct {
@@ -352,7 +341,7 @@ SELECT
     a.duration_seconds as anime_duration_seconds
 FROM continue_watching_entry c
 JOIN anime a ON c.anime_id = a.id
-WHERE c.user_id = ?
+WHERE c.user_id = $1
 ORDER BY c.updated_at DESC
 `
 
@@ -413,7 +402,7 @@ func (q *Queries) GetContinueWatchingEntries(ctx context.Context, userID string)
 
 const getContinueWatchingEntry = `-- name: GetContinueWatchingEntry :one
 SELECT id, user_id, anime_id, current_episode, current_time_seconds, created_at, updated_at, duration_seconds FROM continue_watching_entry
-WHERE user_id = ? AND anime_id = ? LIMIT 1
+WHERE user_id = $1 AND anime_id = $2 LIMIT 1
 `
 
 type GetContinueWatchingEntryParams struct {
@@ -437,56 +426,8 @@ func (q *Queries) GetContinueWatchingEntry(ctx context.Context, arg GetContinueW
 	return i, err
 }
 
-const getEpisodeAvailabilityCache = `-- name: GetEpisodeAvailabilityCache :one
-SELECT anime_id, data, next_refresh_at, retry_until_at, last_attempt_at, last_success_at, failure_count, last_error, updated_at
-FROM episode_availability_cache
-WHERE anime_id = ? LIMIT 1
-`
-
-func (q *Queries) GetEpisodeAvailabilityCache(ctx context.Context, animeID int64) (EpisodeAvailabilityCache, error) {
-	row := q.db.QueryRowContext(ctx, getEpisodeAvailabilityCache, animeID)
-	var i EpisodeAvailabilityCache
-	err := row.Scan(
-		&i.AnimeID,
-		&i.Data,
-		&i.NextRefreshAt,
-		&i.RetryUntilAt,
-		&i.LastAttemptAt,
-		&i.LastSuccessAt,
-		&i.FailureCount,
-		&i.LastError,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getEpisodeProviderMapping = `-- name: GetEpisodeProviderMapping :one
-SELECT anime_id, provider, provider_show_id, failed_until, last_error, updated_at
-FROM episode_provider_mapping
-WHERE anime_id = ? AND provider = ? LIMIT 1
-`
-
-type GetEpisodeProviderMappingParams struct {
-	AnimeID  int64  `json:"anime_id"`
-	Provider string `json:"provider"`
-}
-
-func (q *Queries) GetEpisodeProviderMapping(ctx context.Context, arg GetEpisodeProviderMappingParams) (EpisodeProviderMapping, error) {
-	row := q.db.QueryRowContext(ctx, getEpisodeProviderMapping, arg.AnimeID, arg.Provider)
-	var i EpisodeProviderMapping
-	err := row.Scan(
-		&i.AnimeID,
-		&i.Provider,
-		&i.ProviderShowID,
-		&i.FailedUntil,
-		&i.LastError,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getSession = `-- name: GetSession :one
-SELECT id, user_id, expires_at, created_at FROM session WHERE id = ? LIMIT 1
+SELECT id, user_id, expires_at, created_at FROM session WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetSession(ctx context.Context, id string) (Session, error) {
@@ -507,7 +448,7 @@ FROM (
     SELECT DISTINCT w.anime_id
     FROM watch_list_entry w
     JOIN anime a ON a.id = w.anime_id
-    WHERE a.airing = 1
+    WHERE a.airing = TRUE
       AND w.status IN ('watching', 'plan_to_watch')
 
     UNION
@@ -515,13 +456,13 @@ FROM (
     SELECT DISTINCT c.anime_id
     FROM continue_watching_entry c
     JOIN anime a ON a.id = c.anime_id
-    WHERE a.airing = 1
+    WHERE a.airing = TRUE
 ) AS tracked
 ORDER BY tracked.anime_id
-LIMIT ?
+LIMIT $1
 `
 
-func (q *Queries) GetTrackedAiringAnimeIDs(ctx context.Context, limit int64) ([]int64, error) {
+func (q *Queries) GetTrackedAiringAnimeIDs(ctx context.Context, limit int32) ([]int64, error) {
 	rows, err := q.db.QueryContext(ctx, getTrackedAiringAnimeIDs, limit)
 	if err != nil {
 		return nil, err
@@ -544,54 +485,8 @@ func (q *Queries) GetTrackedAiringAnimeIDs(ctx context.Context, limit int64) ([]
 	return items, nil
 }
 
-const getTrackedAiringAnimeIDsDueForEpisodeRefresh = `-- name: GetTrackedAiringAnimeIDsDueForEpisodeRefresh :many
-WITH tracked AS (
-    SELECT DISTINCT w.anime_id
-    FROM watch_list_entry w
-    JOIN anime a ON a.id = w.anime_id
-    WHERE a.airing = 1
-      AND w.status IN ('watching', 'plan_to_watch')
-
-    UNION
-
-    SELECT DISTINCT c.anime_id
-    FROM continue_watching_entry c
-    JOIN anime a ON a.id = c.anime_id
-    WHERE a.airing = 1
-)
-SELECT tracked.anime_id
-FROM tracked
-LEFT JOIN episode_availability_cache e ON e.anime_id = tracked.anime_id
-WHERE e.anime_id IS NULL OR e.next_refresh_at IS NULL OR e.next_refresh_at <= CURRENT_TIMESTAMP
-ORDER BY tracked.anime_id
-LIMIT ?
-`
-
-func (q *Queries) GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx context.Context, limit int64) ([]int64, error) {
-	rows, err := q.db.QueryContext(ctx, getTrackedAiringAnimeIDsDueForEpisodeRefresh, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []int64
-	for rows.Next() {
-		var anime_id int64
-		if err := rows.Scan(&anime_id); err != nil {
-			return nil, err
-		}
-		items = append(items, anime_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getUser = `-- name: GetUser :one
-SELECT id, username, password_hash, created_at, avatar_url FROM user WHERE id = ? LIMIT 1
+SELECT id, username, password_hash, created_at, avatar_url FROM "user" WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
@@ -608,7 +503,7 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, password_hash, created_at, avatar_url FROM user WHERE username = ? LIMIT 1
+SELECT id, username, password_hash, created_at, avatar_url FROM "user" WHERE username = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -648,7 +543,7 @@ SELECT
 FROM watch_list_entry e
 JOIN anime a ON e.anime_id = a.id
 LEFT JOIN continue_watching_entry c ON c.user_id = e.user_id AND c.anime_id = e.anime_id
-WHERE e.user_id = ?
+WHERE e.user_id = $1
 ORDER BY e.updated_at DESC
 `
 
@@ -719,7 +614,7 @@ func (q *Queries) GetUserWatchList(ctx context.Context, userID string) ([]GetUse
 
 const getWatchListEntry = `-- name: GetWatchListEntry :one
 SELECT id, user_id, anime_id, status, created_at, updated_at, current_episode, last_episode_at, current_time_seconds, completed_at, completed_at_estimated FROM watch_list_entry
-WHERE user_id = ? AND anime_id = ? LIMIT 1
+WHERE user_id = $1 AND anime_id = $2 LIMIT 1
 `
 
 type GetWatchListEntryParams struct {
@@ -756,7 +651,7 @@ SELECT
     a.airing
 FROM watch_list_entry e
 JOIN anime a ON e.anime_id = a.id
-WHERE e.user_id = ? AND e.status IN ('watching', 'plan_to_watch') AND a.airing = 1
+WHERE e.user_id = $1 AND e.status IN ('watching', 'plan_to_watch') AND a.airing = TRUE
 ORDER BY e.updated_at DESC
 `
 
@@ -819,40 +714,10 @@ func (q *Queries) GetWatchingAnime(ctx context.Context, userID string) ([]GetWat
 	return items, nil
 }
 
-const markEpisodeAvailabilityRefreshFailed = `-- name: MarkEpisodeAvailabilityRefreshFailed :exec
-UPDATE episode_availability_cache
-SET last_attempt_at = ?,
-    failure_count = failure_count + 1,
-    last_error = ?,
-    next_refresh_at = ?,
-    retry_until_at = ?,
-    updated_at = CURRENT_TIMESTAMP
-WHERE anime_id = ?
-`
-
-type MarkEpisodeAvailabilityRefreshFailedParams struct {
-	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
-	LastError     string       `json:"last_error"`
-	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
-	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
-	AnimeID       int64        `json:"anime_id"`
-}
-
-func (q *Queries) MarkEpisodeAvailabilityRefreshFailed(ctx context.Context, arg MarkEpisodeAvailabilityRefreshFailedParams) error {
-	_, err := q.db.ExecContext(ctx, markEpisodeAvailabilityRefreshFailed,
-		arg.LastAttemptAt,
-		arg.LastError,
-		arg.NextRefreshAt,
-		arg.RetryUntilAt,
-		arg.AnimeID,
-	)
-	return err
-}
-
 const refreshSession = `-- name: RefreshSession :exec
 UPDATE session
-SET expires_at = ?
-WHERE id = ?
+SET expires_at = $1
+WHERE id = $2
 `
 
 type RefreshSessionParams struct {
@@ -868,7 +733,7 @@ func (q *Queries) RefreshSession(ctx context.Context, arg RefreshSessionParams) 
 const revokeAllAPITokensForUser = `-- name: RevokeAllAPITokensForUser :exec
 UPDATE api_token
 SET revoked_at = CURRENT_TIMESTAMP
-WHERE user_id = ? AND revoked_at IS NULL
+WHERE user_id = $1 AND revoked_at IS NULL
 `
 
 func (q *Queries) RevokeAllAPITokensForUser(ctx context.Context, userID string) error {
@@ -878,9 +743,9 @@ func (q *Queries) RevokeAllAPITokensForUser(ctx context.Context, userID string) 
 
 const saveWatchProgress = `-- name: SaveWatchProgress :exec
 UPDATE watch_list_entry
-SET current_episode = ?,
-    current_time_seconds = ?
-WHERE user_id = ? AND anime_id = ?
+SET current_episode = $1,
+    current_time_seconds = $2
+WHERE user_id = $3 AND anime_id = $4
 `
 
 type SaveWatchProgressParams struct {
@@ -903,7 +768,7 @@ func (q *Queries) SaveWatchProgress(ctx context.Context, arg SaveWatchProgressPa
 const touchAPITokenLastUsedAt = `-- name: TouchAPITokenLastUsedAt :exec
 UPDATE api_token
 SET last_used_at = CURRENT_TIMESTAMP
-WHERE id = ?
+WHERE id = $1
 `
 
 func (q *Queries) TouchAPITokenLastUsedAt(ctx context.Context, id string) error {
@@ -913,7 +778,7 @@ func (q *Queries) TouchAPITokenLastUsedAt(ctx context.Context, id string) error 
 
 const upsertAnime = `-- name: UpsertAnime :one
 INSERT INTO anime (id, title_original, title_english, title_japanese, image_url, banner_image_url, airing, duration_seconds)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (id) DO UPDATE SET
     title_original = excluded.title_original,
     title_english = excluded.title_english,
@@ -925,7 +790,7 @@ ON CONFLICT (id) DO UPDATE SET
     END,
     airing = excluded.airing,
     duration_seconds = excluded.duration_seconds
-RETURNING id, title_original, image_url, created_at, title_english, title_japanese, airing, status, relations_synced_at, duration_seconds, banner_image_url
+RETURNING id, title_original, title_english, title_japanese, image_url, banner_image_url, created_at, airing, status, relations_synced_at, duration_seconds
 `
 
 type UpsertAnimeParams struct {
@@ -954,22 +819,22 @@ func (q *Queries) UpsertAnime(ctx context.Context, arg UpsertAnimeParams) (Anime
 	err := row.Scan(
 		&i.ID,
 		&i.TitleOriginal,
-		&i.ImageUrl,
-		&i.CreatedAt,
 		&i.TitleEnglish,
 		&i.TitleJapanese,
+		&i.ImageUrl,
+		&i.BannerImageUrl,
+		&i.CreatedAt,
 		&i.Airing,
 		&i.Status,
 		&i.RelationsSyncedAt,
 		&i.DurationSeconds,
-		&i.BannerImageUrl,
 	)
 	return i, err
 }
 
 const upsertContinueWatchingEntry = `-- name: UpsertContinueWatchingEntry :one
 INSERT INTO continue_watching_entry (id, user_id, anime_id, current_episode, current_time_seconds, duration_seconds, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
 ON CONFLICT (user_id, anime_id) DO UPDATE SET
     current_episode = excluded.current_episode,
     current_time_seconds = excluded.current_time_seconds,
@@ -1010,94 +875,16 @@ func (q *Queries) UpsertContinueWatchingEntry(ctx context.Context, arg UpsertCon
 	return i, err
 }
 
-const upsertEpisodeAvailabilityCache = `-- name: UpsertEpisodeAvailabilityCache :exec
-INSERT INTO episode_availability_cache (
-    anime_id,
-    data,
-    next_refresh_at,
-    retry_until_at,
-    last_attempt_at,
-    last_success_at,
-    failure_count,
-    last_error,
-    updated_at
-)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-ON CONFLICT (anime_id) DO UPDATE SET
-    data = excluded.data,
-    next_refresh_at = excluded.next_refresh_at,
-    retry_until_at = excluded.retry_until_at,
-    last_attempt_at = excluded.last_attempt_at,
-    last_success_at = excluded.last_success_at,
-    failure_count = excluded.failure_count,
-    last_error = excluded.last_error,
-    updated_at = CURRENT_TIMESTAMP
-`
-
-type UpsertEpisodeAvailabilityCacheParams struct {
-	AnimeID       int64        `json:"anime_id"`
-	Data          string       `json:"data"`
-	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
-	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
-	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
-	LastSuccessAt sql.NullTime `json:"last_success_at"`
-	FailureCount  int64        `json:"failure_count"`
-	LastError     string       `json:"last_error"`
-}
-
-func (q *Queries) UpsertEpisodeAvailabilityCache(ctx context.Context, arg UpsertEpisodeAvailabilityCacheParams) error {
-	_, err := q.db.ExecContext(ctx, upsertEpisodeAvailabilityCache,
-		arg.AnimeID,
-		arg.Data,
-		arg.NextRefreshAt,
-		arg.RetryUntilAt,
-		arg.LastAttemptAt,
-		arg.LastSuccessAt,
-		arg.FailureCount,
-		arg.LastError,
-	)
-	return err
-}
-
-const upsertEpisodeProviderMapping = `-- name: UpsertEpisodeProviderMapping :exec
-INSERT INTO episode_provider_mapping (anime_id, provider, provider_show_id, failed_until, last_error, updated_at)
-VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-ON CONFLICT (anime_id, provider) DO UPDATE SET
-    provider_show_id = excluded.provider_show_id,
-    failed_until = excluded.failed_until,
-    last_error = excluded.last_error,
-    updated_at = CURRENT_TIMESTAMP
-`
-
-type UpsertEpisodeProviderMappingParams struct {
-	AnimeID        int64        `json:"anime_id"`
-	Provider       string       `json:"provider"`
-	ProviderShowID string       `json:"provider_show_id"`
-	FailedUntil    sql.NullTime `json:"failed_until"`
-	LastError      string       `json:"last_error"`
-}
-
-func (q *Queries) UpsertEpisodeProviderMapping(ctx context.Context, arg UpsertEpisodeProviderMappingParams) error {
-	_, err := q.db.ExecContext(ctx, upsertEpisodeProviderMapping,
-		arg.AnimeID,
-		arg.Provider,
-		arg.ProviderShowID,
-		arg.FailedUntil,
-		arg.LastError,
-	)
-	return err
-}
-
 const upsertWatchListEntry = `-- name: UpsertWatchListEntry :one
 INSERT INTO watch_list_entry (id, user_id, anime_id, status, current_episode, current_time_seconds, completed_at, completed_at_estimated, updated_at)
 VALUES (
-    ?1,
-    ?2,
-    ?3,
-    ?4,
-    ?5,
-    ?6,
-    CASE WHEN ?4 = 'completed' THEN CURRENT_TIMESTAMP END,
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    CASE WHEN $4 = 'completed' THEN CURRENT_TIMESTAMP END,
     FALSE,
     CURRENT_TIMESTAMP
 )

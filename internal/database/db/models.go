@@ -12,15 +12,15 @@ import (
 type Anime struct {
 	ID                int64           `json:"id"`
 	TitleOriginal     string          `json:"title_original"`
-	ImageUrl          string          `json:"image_url"`
-	CreatedAt         time.Time       `json:"created_at"`
 	TitleEnglish      sql.NullString  `json:"title_english"`
 	TitleJapanese     sql.NullString  `json:"title_japanese"`
+	ImageUrl          string          `json:"image_url"`
+	BannerImageUrl    string          `json:"banner_image_url"`
+	CreatedAt         time.Time       `json:"created_at"`
 	Airing            sql.NullBool    `json:"airing"`
 	Status            sql.NullString  `json:"status"`
 	RelationsSyncedAt sql.NullTime    `json:"relations_synced_at"`
 	DurationSeconds   sql.NullFloat64 `json:"duration_seconds"`
-	BannerImageUrl    string          `json:"banner_image_url"`
 }
 
 type ApiToken struct {
@@ -61,25 +61,21 @@ type DataFix struct {
 	AppliedAt time.Time `json:"applied_at"`
 }
 
-type EpisodeAvailabilityCache struct {
-	AnimeID       int64        `json:"anime_id"`
-	Data          string       `json:"data"`
-	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
-	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
-	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
-	LastSuccessAt sql.NullTime `json:"last_success_at"`
-	FailureCount  int64        `json:"failure_count"`
-	LastError     string       `json:"last_error"`
-	UpdatedAt     time.Time    `json:"updated_at"`
+type GeneratedSubtitle struct {
+	AnimeID   int64     `json:"anime_id"`
+	Episode   int64     `json:"episode"`
+	Mode      string    `json:"mode"`
+	Model     string    `json:"model"`
+	Status    string    `json:"status"`
+	Vtt       string    `json:"vtt"`
+	Error     string    `json:"error"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type EpisodeProviderMapping struct {
-	AnimeID        int64        `json:"anime_id"`
-	Provider       string       `json:"provider"`
-	ProviderShowID string       `json:"provider_show_id"`
-	FailedUntil    sql.NullTime `json:"failed_until"`
-	LastError      string       `json:"last_error"`
-	UpdatedAt      time.Time    `json:"updated_at"`
+type NotificationPreference struct {
+	UserID  string `json:"user_id"`
+	Enabled bool   `json:"enabled"`
 }
 
 type RecommendationEvent struct {

@@ -29,7 +29,7 @@ func (r *animeRepository) GetContinueWatchingEntries(ctx context.Context, userID
 func (r *animeRepository) GetContinueWatchingCarouselEntries(ctx context.Context, userID string, limit int64) ([]db.GetContinueWatchingEntriesRow, error) {
 	rows, err := r.queries.GetContinueWatchingCarouselEntries(ctx, db.GetContinueWatchingCarouselEntriesParams{
 		UserID: userID,
-		Limit:  limit,
+		Limit:  int32(limit),
 	})
 	if err != nil {
 		return nil, err
