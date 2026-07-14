@@ -58,6 +58,7 @@ type Anime struct {
 	TitleJapanese  string       `json:"title_japanese"`
 	TitleSynonyms  []string     `json:"title_synonyms"`
 	BannerImageURL string       `json:"banner_image_url"`
+	LogoImageURL   string       `json:"logo_image_url"`
 	Titles         []TitleEntry `json:"titles"`
 	Images         struct {
 		Jpg struct {
