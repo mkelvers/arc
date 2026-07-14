@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
-	"mal/internal/observability"
+	"log/slog"
 	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
@@ -49,7 +49,7 @@ func (h *PlaybackHandler) writeCachedPlaylist(c *gin.Context, cacheKey string, t
 	if !found {
 		return false
 	}
-	observability.Info("playback_manifest_cache_hit", "playback", "", nil)
+	slog.Info("playback_manifest_cache_hit", "component", "playback")
 	h.writeProxyPlaylist(c, cached.status, cached.headers, cached.body, targetURL, referer)
 	return true
 }
@@ -66,7 +66,7 @@ func copyProxyRangeHeaders(req *http.Request, c *gin.Context) {
 func (h *PlaybackHandler) handleStreamRequestError(c *gin.Context, err error) {
 	if !errors.Is(err, context.Canceled) {
 		safeErr := errors.New("stream upstream request failed")
-		observability.ErrorContext(c.Request.Context(), "proxy_stream_upstream_failed", "playback", "", nil, safeErr)
+		slog.ErrorContext(c.Request.Context(), "proxy_stream_upstream_failed", "component", "playback", "error", safeErr)
 		recordPrivateGinError(c, safeErr)
 	}
 	c.Status(http.StatusBadGateway)
@@ -74,11 +74,11 @@ func (h *PlaybackHandler) handleStreamRequestError(c *gin.Context, err error) {
 
 func (h *PlaybackHandler) writeStreamResponse(c *gin.Context, resp *http.Response, cacheKey string, targetURL string, referer string) {
 	if isHLSPlaylistResponse(targetURL, resp.Header) {
-		observability.Info("playback_manifest_cache_miss", "playback", "", nil)
+		slog.Info("playback_manifest_cache_miss", "component", "playback")
 		body, readErr := readBoundedPlaylist(resp.Body)
 		if readErr != nil {
 			safeErr := errors.New("stream playlist read failed")
-			observability.ErrorContext(c.Request.Context(), "proxy_stream_playlist_read_failed", "playback", "", nil, safeErr)
+			slog.ErrorContext(c.Request.Context(), "proxy_stream_playlist_read_failed", "component", "playback", "error", safeErr)
 			recordPrivateGinError(c, safeErr)
 			c.Status(http.StatusBadGateway)
 			return
@@ -98,7 +98,7 @@ func copyProxyResponseBody(c *gin.Context, body io.Reader) {
 	if err == nil || errors.Is(err, context.Canceled) || c.Request.Context().Err() != nil {
 		return
 	}
-	observability.WarnContext(c.Request.Context(), "proxy_stream_copy_failed", "playback", "", map[string]any{"bytes_copied": n}, err)
+	slog.WarnContext(c.Request.Context(), "proxy_stream_copy_failed", "component", "playback", "fields", map[string]any{"bytes_copied": n}, "error", err)
 }
 
 func readBoundedPlaylist(body io.Reader) ([]byte, error) {
@@ -116,7 +116,7 @@ func (h *PlaybackHandler) writeProxyPlaylist(c *gin.Context, status int, headers
 	rewritten, err := h.rewriteHLSPlaylist(string(body), targetURL, referer)
 	if err != nil {
 		safeErr := errors.New("stream playlist rewrite failed")
-		observability.ErrorContext(c.Request.Context(), "proxy_stream_playlist_rewrite_failed", "playback", "", nil, safeErr)
+		slog.ErrorContext(c.Request.Context(), "proxy_stream_playlist_rewrite_failed", "component", "playback", "error", safeErr)
 		recordPrivateGinError(c, safeErr)
 		c.Status(http.StatusBadGateway)
 		return

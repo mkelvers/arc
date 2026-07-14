@@ -2,12 +2,12 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"mal/internal/playback/proxytarget"
 	"mal/internal/server"
 
@@ -103,7 +103,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 		if data.Anime.MalID == 0 && data.WatchData.MalID == 0 && len(data.Episodes) == 0 {
 			anime, fetchErr := h.animeSvc.GetAnimeByID(c.Request.Context(), id)
 			if fetchErr != nil {
-				observability.Warn("error_page_anime_fetch_failed", "playback", "", map[string]any{"anime_id": id}, fetchErr)
+				slog.Warn("error_page_anime_fetch_failed", "component", "playback", "fields", map[string]any{"anime_id": id}, "error", fetchErr)
 			}
 			data = domain.WatchPageData{
 				Anime:       anime,
@@ -120,16 +120,7 @@ func (h *PlaybackHandler) HandleWatchPage(c *gin.Context) {
 				},
 			}
 		}
-
-		observability.LogContext(
-			c.Request.Context(),
-			observability.LogLevelError,
-			"watch_page_build_failed",
-			"playback",
-			"",
-			map[string]any{"anime_id": id, "episode": ep, "mode": mode, "user_id": userID, "request_path": c.Request.URL.Path},
-			err,
-		)
+		slog.Log(c.Request.Context(), slog.LevelError, "watch_page_build_failed", "component", "playback", "fields", map[string]any{"anime_id": id, "episode": ep, "mode": mode, "user_id": userID, "request_path": c.Request.URL.Path}, "error", err)
 
 		data.PlaybackUnavailable = true
 		data.PlaybackUnavailableMessage = playbackUnavailableMessage
@@ -203,15 +194,7 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 }
 
 func (h *PlaybackHandler) respondEpisodeUnavailable(c *gin.Context, animeID int, episode string, mode string, userID string, err error) {
-	observability.LogContext(
-		c.Request.Context(),
-		observability.LogLevelWarn,
-		"watch_episode_data_unavailable",
-		"playback",
-		"",
-		map[string]any{"anime_id": animeID, "episode": episode, "mode": mode, "user_id": userID, "request_path": c.Request.URL.Path},
-		err,
-	)
+	slog.Log(c.Request.Context(), slog.LevelWarn, "watch_episode_data_unavailable", "component", "playback", "fields", map[string]any{"anime_id": animeID, "episode": episode, "mode": mode, "user_id": userID, "request_path": c.Request.URL.Path}, "error", err)
 
 	c.JSON(http.StatusOK, gin.H{
 		"unavailable":        true,

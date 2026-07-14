@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
-	"mal/internal/observability"
+	"log/slog"
 	errlog "mal/pkg"
 	netutil "mal/pkg/net"
 	"net/http"
@@ -35,7 +35,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	if err != nil {
 		if !errors.Is(err, context.Canceled) {
 			safeErr := errors.New("subtitle upstream request failed")
-			observability.ErrorContext(c.Request.Context(), "proxy_subtitle_upstream_failed", "playback", "", nil, safeErr)
+			slog.ErrorContext(c.Request.Context(), "proxy_subtitle_upstream_failed", "component", "playback", "error", safeErr)
 			recordPrivateGinError(c, safeErr)
 		}
 		c.Status(http.StatusBadGateway)
@@ -48,7 +48,7 @@ func (h *PlaybackHandler) HandleProxySubtitle(c *gin.Context) {
 	body, err := io.ReadAll(io.LimitReader(resp.Body, netutil.MiB2))
 	if err != nil {
 		safeErr := errors.New("subtitle response read failed")
-		observability.ErrorContext(c.Request.Context(), "proxy_subtitle_read_failed", "playback", "", nil, safeErr)
+		slog.ErrorContext(c.Request.Context(), "proxy_subtitle_read_failed", "component", "playback", "error", safeErr)
 		recordPrivateGinError(c, safeErr)
 		c.Status(http.StatusBadGateway)
 		return

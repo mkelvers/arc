@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
-	"mal/internal/observability"
+	"log/slog"
 	"mal/internal/playback/proxytarget"
 	netutil "mal/pkg/net"
 	"net/http"
@@ -31,6 +31,6 @@ func newProxyRequest(ctx context.Context, targetURL string, referer string) (*ht
 
 func recordPrivateGinError(c *gin.Context, err error) {
 	if recorded := c.Error(err).SetType(gin.ErrorTypePrivate); recorded == nil {
-		observability.WarnContext(c.Request.Context(), "gin_error_record_failed", "playback", "", nil, err)
+		slog.WarnContext(c.Request.Context(), "gin_error_record_failed", "component", "playback", "error", err)
 	}
 }
