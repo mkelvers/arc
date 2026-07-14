@@ -1,39 +1,33 @@
 {{define "title"}}Not Found{{end}}
 {{define "content"}}
-  <section class="flex min-h-[78dvh] items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-    <div class="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-      <div class="relative flex aspect-square w-full max-w-110 items-center justify-center overflow-hidden rounded-full bg-background-surface ring-1 ring-black/5">
-        <div class="absolute inset-8 rounded-full border border-foreground/10"></div>
-        <div class="absolute inset-16 rounded-full border border-foreground/8"></div>
-        <div class="absolute left-12 top-16 h-4 w-4 rounded-full bg-foreground/12"></div>
-        <div class="absolute right-14 top-18 h-3 w-3 rounded-full bg-foreground/18"></div>
-        <div class="absolute left-18 bottom-20 h-2.5 w-2.5 rounded-full bg-foreground/14"></div>
-        <div class="absolute right-18 bottom-16 h-20 w-20 rounded-full border border-foreground/10"></div>
-        <div class="absolute left-16 top-1/2 h-px w-18 -translate-y-1/2 rotate-[-12deg] bg-foreground/18"></div>
-        <div class="absolute right-16 top-1/2 h-px w-18 -translate-y-1/2 rotate-[12deg] bg-foreground/18"></div>
-        <div class="relative flex h-52 w-52 items-center justify-center rounded-full bg-background shadow-sm ring-1 ring-black/5 sm:h-64 sm:w-64">
-          <div class="absolute top-16 left-16 h-4 w-4 rounded-full bg-foreground"></div>
-          <div class="absolute top-16 right-16 h-4 w-4 rounded-full bg-foreground"></div>
-          <div class="absolute bottom-18 h-16 w-28 rounded-b-full border-b-[3px] border-foreground/80"></div>
-          <div class="absolute -left-8 top-1/2 h-px w-14 -translate-y-1/2 bg-foreground/20"></div>
-          <div class="absolute -right-8 top-1/2 h-px w-14 -translate-y-1/2 bg-foreground/20"></div>
-        </div>
+  <section class="flex min-h-[calc(100dvh-8.5rem)] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <div class="mx-auto flex w-full max-w-xl flex-col items-center text-center">
+      <div class="w-full max-w-64 opacity-90 sm:max-w-72" aria-hidden="true">
+        <svg viewBox="0 0 420 360" role="img" class="h-auto w-full">
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M166 278c-8 24-28 36-58 37-16 1-23-31-3-36 14-4 31-2 47-13" fill="#686f68" stroke="#6d1607" stroke-width="8"/>
+            <path d="M254 278c8 24 28 36 58 37 16 1 23-31 3-36-14-4-31-2-47-13" fill="#686f68" stroke="#6d1607" stroke-width="8"/>
+            <path d="M116 268c9-52 48-83 94-83s85 31 94 83c5 27-13 49-40 49H156c-27 0-45-22-40-49Z" fill="#717970" stroke="#6d1607" stroke-width="8"/>
+            <path d="M177 282v28M210 284v32M243 282v28" stroke="#6d1607" stroke-width="8"/>
+            <path d="M104 226c-40-2-58-23-57-46 0-13 7-21 17-29l7-79c8-44 31-58 139-58s131 14 139 58l7 79c10 8 17 16 17 29 1 23-17 44-57 46-20 22-58 34-106 34s-86-12-106-34Z" fill="#5d82bd" stroke="#6d1607" stroke-width="8"/>
+            <path d="M74 188c38 31 234 31 272 0" stroke="#4f63aa" stroke-width="7"/>
+            <path d="M97 58c46 17 181 17 226 0" stroke="#6d1607" stroke-width="8"/>
+            <path d="M99 59c10 9 37 17 67 20M321 59c-10 9-37 17-67 20" stroke="#6d1607" stroke-width="8"/>
+            <path d="M100 244c6 53 214 53 220 0" stroke="#f4f1ea" stroke-width="10"/>
+            <path d="M116 243c1-13 1-25 1-36M304 243c-1-13-1-25-1-36" stroke="#6d1607" stroke-width="11"/>
+            <path d="M85 260c-19 8-41-1-49-18-4-9-5-20-2-30" stroke="#6d1607" stroke-width="8"/>
+            <path d="M35 211c-11-13-21-17-31-10 3 12 12 21 27 27" fill="#f4f1ea" stroke="#6d1607" stroke-width="8"/>
+            <path d="M7 224l-17 12M17 238l-14 17" stroke="#7f8987" stroke-width="8"/>
+            <path d="M180 5v-16M220 5v-16M260 5v-16" stroke="#7f8987" stroke-width="10"/>
+          </g>
+        </svg>
       </div>
 
-      <h1 class="mt-8 max-w-3xl font-[Newsreader] text-5xl leading-none text-foreground sm:text-6xl lg:text-7xl">
-        You got a little lost.
-      </h1>
-      <p class="mt-5 max-w-xl text-lg text-foreground-muted sm:text-xl">
-        This page slipped off the map for a minute. Let&apos;s get you back to something worth watching.
-      </p>
-      <div class="mt-9 flex flex-col items-center gap-3 sm:flex-row">
-        <a href="/" class="inline-flex h-11 items-center justify-center rounded-xs bg-[#cccccc] px-6 text-base font-normal text-black transition hover:bg-[#bfbfbf] active:bg-[#b3b3b3]">
-          Head back home
-        </a>
-        <a href="/browse" class="inline-flex h-11 items-center justify-center px-3 text-base text-foreground-muted transition hover:text-foreground">
-          Browse something good
-        </a>
-      </div>
+      <h1 class="mt-6 text-2xl font-medium leading-tight text-foreground sm:text-3xl">Page not found</h1>
+      <p class="mt-3 max-w-md text-sm leading-6 text-foreground-muted sm:text-base">We could not find this page, so head back home.</p>
+      <a href="/" class="mt-7 inline-flex h-10 items-center justify-center bg-background-button px-4 text-sm font-medium text-foreground transition hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground-muted">
+        Take me home
+      </a>
     </div>
   </section>
 {{end}}

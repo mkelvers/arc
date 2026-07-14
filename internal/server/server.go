@@ -31,13 +31,7 @@ func ProvideRouter(cfg Config, htmlRender render.HTMLRender) *gin.Engine {
 	r := gin.New()
 	r.Use(CORSMiddleware(), RequestContextMiddleware(), RequestLogger(), CompressionMiddleware(), StaticCacheMiddleware(), gin.Recovery())
 	r.NoRoute(func(c *gin.Context) {
-		if acceptsHTML(c) {
-			c.HTML(http.StatusNotFound, "not_found.gohtml", gin.H{
-				"CurrentPath": c.Request.URL.Path,
-			})
-			return
-		}
-		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Not found"})
+		RespondNotFound(c)
 	})
 	r.GET("/robots.txt", func(c *gin.Context) {
 		c.String(http.StatusOK, "User-agent: *\nDisallow: /\n")

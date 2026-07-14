@@ -164,7 +164,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 
 	anime, err := h.svc.GetAnimeByID(c.Request.Context(), id)
 	if err != nil {
-		c.Status(http.StatusNotFound)
+		server.RespondNotFound(c)
 		return
 	}
 

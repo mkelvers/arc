@@ -13,6 +13,10 @@ type ErrorResponse struct {
 }
 
 func RespondHTMLOrJSONError(c *gin.Context, status int, message string) {
+	if status == http.StatusNotFound {
+		RespondNotFound(c)
+		return
+	}
 	if acceptsHTML(c) {
 		c.String(status, message)
 		c.Abort()
@@ -44,6 +48,19 @@ func RespondError(c *gin.Context, status int, event string, component string, me
 	}
 	slog.Log(c.Request.Context(), level, event, args...)
 	RespondHTMLOrJSONError(c, status, message)
+}
+
+func RespondNotFound(c *gin.Context) {
+	if acceptsHTML(c) {
+		c.HTML(http.StatusNotFound, "not_found.gohtml", gin.H{
+			"CurrentPath": c.Request.URL.Path,
+			"User":        CurrentUser(c),
+		})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusNotFound, ErrorResponse{Error: "Not found"})
+	c.Abort()
 }
 
 func acceptsHTML(c *gin.Context) bool {
