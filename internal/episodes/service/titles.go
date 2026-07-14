@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -79,19 +78,19 @@ func (s *EpisodeService) loadEpisodeTitles(ctx context.Context, anime domain.Ani
 	return payload, nil
 }
 
-func (s *EpisodeService) cachedEpisodePayload(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, db.EpisodeAvailabilityCache, bool) {
+func (s *EpisodeService) cachedEpisodePayload(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, episodeCacheRow, bool) {
 	row, _, ok := s.getEpisodeCache(ctx, int64(anime.MalID))
 	if !ok {
-		return domain.CanonicalEpisodeList{}, db.EpisodeAvailabilityCache{}, false
+		return domain.CanonicalEpisodeList{}, episodeCacheRow{}, false
 	}
 	payload, ok := s.decodeCachedPayload(anime, row.Data)
 	if !ok {
-		return domain.CanonicalEpisodeList{}, db.EpisodeAvailabilityCache{}, false
+		return domain.CanonicalEpisodeList{}, episodeCacheRow{}, false
 	}
 	return enrichCachedPayload(payload, row), row, true
 }
 
-func (s *EpisodeService) storeEnrichedPayload(ctx context.Context, row db.EpisodeAvailabilityCache, payload domain.CanonicalEpisodeList) error {
+func (s *EpisodeService) storeEnrichedPayload(ctx context.Context, row episodeCacheRow, payload domain.CanonicalEpisodeList) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("episode metadata: encode cache: %w", err)

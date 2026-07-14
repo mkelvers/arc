@@ -8,7 +8,6 @@ import (
 	"time"
 
 	rediscache "mal/internal/cache/redis"
-	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -25,40 +24,39 @@ func episodeCacheKey(animeID int64) string {
 	return fmt.Sprintf("episodes:canonical:%d", animeID)
 }
 
-func (s *EpisodeService) getEpisodeCache(ctx context.Context, animeID int64) (db.EpisodeAvailabilityCache, rediscache.State, bool) {
+type episodeCacheRow struct {
+	AnimeID       int64        `json:"anime_id"`
+	Data          string       `json:"data"`
+	NextRefreshAt sql.NullTime `json:"next_refresh_at"`
+	RetryUntilAt  sql.NullTime `json:"retry_until_at"`
+	LastAttemptAt sql.NullTime `json:"last_attempt_at"`
+	LastSuccessAt sql.NullTime `json:"last_success_at"`
+	FailureCount  int64        `json:"failure_count"`
+	LastError     string       `json:"last_error"`
+	UpdatedAt     time.Time    `json:"updated_at"`
+}
+
+func (s *EpisodeService) getEpisodeCache(ctx context.Context, animeID int64) (episodeCacheRow, rediscache.State, bool) {
 	if s.cache != nil {
-		var row db.EpisodeAvailabilityCache
+		var row episodeCacheRow
 		result, err := s.cache.Get(ctx, episodeCacheKey(animeID), &row)
 		if err != nil || result.State == rediscache.StateMiss {
 			if err != nil {
 				observability.Warn("episodes_cache_read_failed", "episodes", "", map[string]any{"anime_id": animeID}, err)
 			}
-			return db.EpisodeAvailabilityCache{}, result.State, false
+			return episodeCacheRow{}, result.State, false
 		}
 		return row, result.State, true
 	}
 
-	row, err := s.queries.GetEpisodeAvailabilityCache(ctx, animeID)
-	if err != nil {
-		return db.EpisodeAvailabilityCache{}, rediscache.StateMiss, false
-	}
-	return row, rediscache.StateFresh, true
+	return episodeCacheRow{}, rediscache.StateMiss, false
 }
 
-func (s *EpisodeService) setEpisodeCache(ctx context.Context, row db.EpisodeAvailabilityCache) error {
-	if s.cache != nil {
-		return s.cache.Set(ctx, episodeCacheKey(row.AnimeID), row, episodeCacheFreshTTL, episodeCacheStaleTTL)
+func (s *EpisodeService) setEpisodeCache(ctx context.Context, row episodeCacheRow) error {
+	if s.cache == nil {
+		return nil
 	}
-	return s.queries.UpsertEpisodeAvailabilityCache(ctx, db.UpsertEpisodeAvailabilityCacheParams{
-		AnimeID:       row.AnimeID,
-		Data:          row.Data,
-		NextRefreshAt: row.NextRefreshAt,
-		RetryUntilAt:  row.RetryUntilAt,
-		LastAttemptAt: row.LastAttemptAt,
-		LastSuccessAt: row.LastSuccessAt,
-		FailureCount:  row.FailureCount,
-		LastError:     row.LastError,
-	})
+	return s.cache.Set(ctx, episodeCacheKey(row.AnimeID), row, episodeCacheFreshTTL, episodeCacheStaleTTL)
 }
 
 func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, availability domain.EpisodeAvailability, source string, now time.Time) (domain.CanonicalEpisodeList, error) {
@@ -119,7 +117,7 @@ func (s *EpisodeService) writeEpisodeAvailabilityCache(input episodeCacheWrite) 
 		retryUntil = sql.NullTime{Time: nextRefreshSQL.Time.Add(retryWindow), Valid: nextRefreshSQL.Valid}
 	}
 
-	err := s.setEpisodeCache(ctx, db.EpisodeAvailabilityCache{
+	err := s.setEpisodeCache(ctx, episodeCacheRow{
 		AnimeID:       int64(anime.MalID),
 		Data:          string(body),
 		NextRefreshAt: nextRefreshSQL,
@@ -169,7 +167,7 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 	}
 	row, _, found := s.getEpisodeCache(writeCtx, int64(anime.MalID))
 	if !found {
-		row = db.EpisodeAvailabilityCache{AnimeID: int64(anime.MalID)}
+		row = episodeCacheRow{AnimeID: int64(anime.MalID)}
 	}
 	row.LastAttemptAt = sql.NullTime{Time: now, Valid: true}
 	row.LastError = truncate(cause.Error(), 400)
@@ -247,7 +245,7 @@ func (s *EpisodeService) getDecodedCached(ctx context.Context, anime domain.Anim
 	return payload, true
 }
 
-func enrichCachedPayload(payload domain.CanonicalEpisodeList, row db.EpisodeAvailabilityCache) domain.CanonicalEpisodeList {
+func enrichCachedPayload(payload domain.CanonicalEpisodeList, row episodeCacheRow) domain.CanonicalEpisodeList {
 	if row.NextRefreshAt.Valid {
 		payload.NextRefreshAt = row.NextRefreshAt.Time.Format(time.RFC3339)
 	}
@@ -272,7 +270,7 @@ func cloneCanonicalEpisodeList(payload domain.CanonicalEpisodeList) domain.Canon
 	return payload
 }
 
-func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row db.EpisodeAvailabilityCache, now time.Time) bool {
+func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row episodeCacheRow, now time.Time) bool {
 	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(now) {
 		observability.Info(
 			"episodes_cache_due_for_refresh",

@@ -3,13 +3,11 @@ package service
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	rediscache "mal/internal/cache/redis"
-	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -59,7 +57,7 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 	if s.cache != nil {
 		return s.cachedProviderIDFromRedis(ctx, anime, provider)
 	}
-	return s.cachedProviderIDFromDB(ctx, anime, provider)
+	return "", false, nil
 }
 
 func (s *EpisodeService) cachedProviderIDFromRedis(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
@@ -72,50 +70,6 @@ func (s *EpisodeService) cachedProviderIDFromRedis(ctx context.Context, anime do
 		return "", false, nil
 	}
 	return providerMappingCacheResult(mapping, s.clock.Now())
-}
-
-func (s *EpisodeService) cachedProviderIDFromDB(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
-	row, err := s.queries.GetEpisodeProviderMapping(ctx, db.GetEpisodeProviderMappingParams{
-		AnimeID:  int64(anime.MalID),
-		Provider: provider.Name(),
-	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", false, nil
-		}
-		observability.Warn(
-			"episodes_provider_id_cache_read_failed",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id": anime.MalID,
-				"provider": provider.Name(),
-			},
-			err,
-		)
-		return "", false, nil
-	}
-
-	providerID, found, resultErr := providerMappingCacheResult(cachedProviderMapping{
-		ProviderShowID: row.ProviderShowID,
-		FailedUntil:    row.FailedUntil,
-		LastError:      row.LastError,
-	}, s.clock.Now())
-	if !found || resultErr != nil {
-		return providerID, found, resultErr
-	}
-
-	observability.Info(
-		"episodes_provider_id_cache_hit",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id":    anime.MalID,
-			"provider":    provider.Name(),
-			"provider_id": row.ProviderShowID,
-		},
-	)
-	return providerID, true, nil
 }
 
 func providerMappingCacheResult(mapping cachedProviderMapping, now time.Time) (string, bool, error) {
@@ -139,28 +93,6 @@ func (s *EpisodeService) cacheProviderIDFailure(ctx context.Context, anime domai
 		}
 		return
 	}
-
-	err := s.queries.UpsertEpisodeProviderMapping(ctx, db.UpsertEpisodeProviderMappingParams{
-		AnimeID:        int64(anime.MalID),
-		Provider:       provider.Name(),
-		ProviderShowID: "",
-		FailedUntil:    sql.NullTime{Time: s.clock.Now().Add(time.Hour), Valid: true},
-		LastError:      truncate(resolveErr.Error(), 400),
-	})
-	if err == nil {
-		return
-	}
-
-	observability.Warn(
-		"episodes_provider_id_cache_write_failed",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id": anime.MalID,
-			"provider": provider.Name(),
-		},
-		err,
-	)
 }
 
 func (s *EpisodeService) cacheProviderIDSuccess(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider, providerID string) {
@@ -171,26 +103,4 @@ func (s *EpisodeService) cacheProviderIDSuccess(ctx context.Context, anime domai
 		}
 		return
 	}
-
-	err := s.queries.UpsertEpisodeProviderMapping(ctx, db.UpsertEpisodeProviderMappingParams{
-		AnimeID:        int64(anime.MalID),
-		Provider:       provider.Name(),
-		ProviderShowID: providerID,
-		FailedUntil:    sql.NullTime{},
-		LastError:      "",
-	})
-	if err == nil {
-		return
-	}
-
-	observability.Warn(
-		"episodes_provider_id_cache_write_failed",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id": anime.MalID,
-			"provider": provider.Name(),
-		},
-		err,
-	)
 }

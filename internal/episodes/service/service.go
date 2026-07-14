@@ -217,10 +217,7 @@ func (s *EpisodeService) trackedAnimeIDsDueForRefresh(ctx context.Context, limit
 	if limit <= 0 {
 		limit = 25
 	}
-	if s.cache != nil {
-		return s.queries.GetTrackedAiringAnimeIDs(ctx, int64(limit))
-	}
-	return s.queries.GetTrackedAiringAnimeIDsDueForEpisodeRefresh(ctx, int64(limit))
+	return s.queries.GetTrackedAiringAnimeIDs(ctx, int32(limit))
 }
 
 func (s *EpisodeService) hasFreshTrackedEpisodeCache(ctx context.Context, id int64) bool {
