@@ -1,7 +1,7 @@
 package server
 
 import (
-	"mal/internal/observability"
+	"context"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +9,14 @@ import (
 )
 
 const requestIDHeader = "X-Request-ID"
+
+type requestContextKey struct{}
+
+type RequestContext struct {
+	ID    string
+	Path  string
+	Route string
+}
 
 func RequestContextMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -24,7 +32,28 @@ func RequestContextMiddleware() gin.HandlerFunc {
 		}
 
 		c.Writer.Header().Set(requestIDHeader, requestID)
-		c.Request = c.Request.WithContext(observability.WithRequestContext(c.Request.Context(), requestID, path, route))
+		c.Request = c.Request.WithContext(WithRequestContext(c.Request.Context(), requestID, path, route))
 		c.Next()
 	}
+}
+
+func WithRequestContext(ctx context.Context, requestID string, path string, route string) context.Context {
+	if ctx == nil {
+		return nil
+	}
+
+	return context.WithValue(ctx, requestContextKey{}, RequestContext{
+		ID:    requestID,
+		Path:  path,
+		Route: route,
+	})
+}
+
+func RequestContextFromContext(ctx context.Context) (RequestContext, bool) {
+	if ctx == nil {
+		return RequestContext{}, false
+	}
+
+	requestContext, ok := ctx.Value(requestContextKey{}).(RequestContext)
+	return requestContext, ok
 }
