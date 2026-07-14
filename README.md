@@ -61,7 +61,7 @@ stay at the edges, and the UI is mostly rendered by the server.
 | Area            | What it does                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
 | Catalog         | Browse, search, and inspect anime metadata from external catalog sources.                                    |
-| Details         | Render synopsis, characters, relations, and watch-order data.                                                 |
+| Details         | Render synopsis, characters, release information, and recommendations.                                        |
 | Watchlist       | Store local user state for saved titles, statuses, and progress-driven flows.                                |
 | Playback        | Serve watch pages, proxy streams/subtitles, rewrite playlists, and track progress.                           |
 | Player          | Handle HLS playback, quality selection, subtitles, keyboard controls, episode navigation, and skip segments. |
@@ -153,7 +153,6 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | `DATABASE_URL`              | required        | PostgreSQL connection URL for application persistence.                     |
 | `REDIS_URL`                 | required        | Provider-response and stale-data cache.                                    |
 | `ANILIST_URL`               | required        | AniList GraphQL metadata endpoint.                                         |
-| `CHIAKI_URL`                | required        | ChiaKi relation and watch-order endpoint.                                  |
 | `GIN_MODE`                  | release default | Gin runtime mode.                                                          |
 | `PLAYBACK_PROXY_SECRET`     | empty           | Secret used to mint playback proxy tokens; required for playback proxying. |
 
@@ -195,8 +194,6 @@ playback data private must restrict access to `/api/public/` at the network or r
 | `internal/episodes`              | Episode refresh and provider mapping.                           |
 | `internal/database`              | PostgreSQL setup and data fixes.                                |
 | `integrations/anilist`           | AniList GraphQL metadata client and Redis-backed cache.         |
-| `integrations/metadata`          | Provider-neutral metadata contracts.                            |
-| `integrations/watchorder`        | ChiaKi relation and watch-order client.                         |
 | `integrations/playback/allanime` | Playback provider client and extraction logic.                  |
 | `templates`                      | Server-rendered pages and reusable components.                  |
 | `static`                         | TypeScript source for client-side behavior.                     |
