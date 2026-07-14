@@ -46,6 +46,22 @@ func (s *MappingStore) SaveMediaSelection(ctx context.Context, animeID int, kind
 	return nil
 }
 
+func (s *MappingStore) DeleteMediaSelection(ctx context.Context, animeID int, kind string) error {
+	if animeID <= 0 {
+		return fmt.Errorf("delete media selection: invalid anime id %d", animeID)
+	}
+	if !validMediaSelectionKind(kind) {
+		return fmt.Errorf("delete media selection: invalid kind %q", kind)
+	}
+
+	_, err := s.db.ExecContext(ctx, `DELETE FROM anime_media_selection
+		WHERE anime_id = ? AND kind = ?`, animeID, kind)
+	if err != nil {
+		return fmt.Errorf("delete media selection anime_id=%d kind=%s: %w", animeID, kind, err)
+	}
+	return nil
+}
+
 func (s *MappingStore) MediaSelections(ctx context.Context, animeID int) (map[string]mediaSelection, error) {
 	if animeID <= 0 {
 		return nil, fmt.Errorf("load media selections: invalid anime id %d", animeID)
