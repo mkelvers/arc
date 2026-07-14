@@ -57,7 +57,7 @@ func runDataFixList(sqlDB *sql.DB, deps dbfixes.Dependencies, fixes []dbfixes.Fi
 }
 
 func ensureDataFixTable(ctx context.Context, sqlDB *sql.DB) error {
-	// Safety for cases where migrations weren't run (or in tests). This is intentionally tiny and idempotent.
+	// Safety for cases where the schema was not prepared yet in tests.
 	_, err := sqlDB.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS data_fixes (
     id TEXT PRIMARY KEY,

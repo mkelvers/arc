@@ -24,7 +24,7 @@ and Redis.
 
 I built it as a portfolio project, but the goal was never to make a disposable demo. The interesting
 part of the project is the product shape: server-rendered pages, a local database, provider
-integrations, playback proxying, recommendations, migrations, tests, and a TypeScript player that
+integrations, playback proxying, recommendations, tests, and a TypeScript player that
 only appears where browser state actually earns its place.
 
 > [!NOTE]
@@ -47,7 +47,7 @@ title, inspect its metadata, add it to a watchlist, watch an episode, come back 
 from the right place without stitching that flow together manually.
 
 That makes the app a useful playground for real application concerns. It has authentication,
-long-lived user state, external APIs, background refresh behavior, migrations, data fixes, cache
+long-lived user state, external APIs, background refresh behavior, data fixes, cache
 boundaries, provider-specific code, and enough frontend complexity to justify TypeScript without
 turning the whole product into a single-page app.
 
@@ -66,14 +66,13 @@ stay at the edges, and the UI is mostly rendered by the server.
 | Playback        | Serve watch pages, proxy streams/subtitles, rewrite playlists, and track progress.                           |
 | Player          | Handle HLS playback, quality selection, subtitles, keyboard controls, episode navigation, and skip segments. |
 | Recommendations | Generate personal top picks from watchlist signals and recommendation data.                                  |
-| Maintenance     | Run migrations, startup fixes, local user commands, and data repair scripts.                                 |
+| Maintenance     | Run startup fixes, local user commands, and data repair scripts.                                             |
 
 <details>
 <summary><strong>Implementation notes</strong></summary>
 
 The backend is written in Go with Gin for HTTP routing and Fx for module wiring. PostgreSQL stores
-durable application state and Redis owns provider-response caching, with migrations committed
-alongside the application. Templates are rendered on the server, HTMX handles small partial updates,
+durable application state and Redis owns provider-response caching. Templates are rendered on the server, HTMX handles small partial updates,
 and TypeScript powers the interactive parts of the browser experience.
 
 The most stateful frontend code lives under `static/player`, where the app handles playback mode,
@@ -195,7 +194,7 @@ playback data private must restrict access to `/api/public/` at the network or r
 | `internal/watchlist`             | Watchlist handlers, service logic, and persistence.             |
 | `internal/playback`              | Watch data, progress, proxy tokens, and skip segments.          |
 | `internal/episodes`              | Episode refresh and provider mapping.                           |
-| `internal/database`              | PostgreSQL setup, migrations, and data fixes.                   |
+| `internal/database`              | PostgreSQL setup and data fixes.                                |
 | `integrations/anilist`           | AniList GraphQL metadata client and Redis-backed cache.         |
 | `integrations/metadata`          | Provider-neutral metadata contracts.                            |
 | `integrations/watchorder`        | ChiaKi relation and watch-order client.                         |

@@ -62,7 +62,7 @@ ON CONFLICT(user_id, anime_id, episode, skip_type) DO UPDATE SET
 }
 
 func (q *Queries) HasSkipSegmentOverrideTable(ctx context.Context) (bool, error) {
-	// Defensive: in case migrations haven’t run yet in some env.
+	// Defensive: in case the schema has not been prepared yet in some env.
 	const query = `SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = current_schema() AND tablename = 'skip_segment_override' LIMIT 1;`
 	var name sql.NullString
 	if err := q.db.QueryRowContext(ctx, query).Scan(&name); err != nil {
