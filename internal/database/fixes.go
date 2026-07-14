@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"time"
 
 	dbfixes "mal/internal/database/fixes"
-	"mal/internal/observability"
 	errlog "mal/pkg"
 )
 
@@ -36,15 +36,10 @@ func runDataFixList(sqlDB *sql.DB, deps dbfixes.Dependencies, fixes []dbfixes.Fi
 		if applied[fix.ID] {
 			continue
 		}
+		slog.Info("db_data_fix_start", "component", "database", "fields", map[string]any{
+			"id": fix.ID,
+		})
 
-		observability.Info(
-			"db_data_fix_start",
-			"database",
-			"",
-			map[string]any{
-				"id": fix.ID,
-			},
-		)
 		if err := fix.Apply(ctx, sqlDB, deps); err != nil {
 			return fmt.Errorf("data fix %s failed: %w", fix.ID, err)
 		}

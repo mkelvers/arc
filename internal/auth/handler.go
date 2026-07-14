@@ -2,8 +2,8 @@
 package auth
 
 import (
+	"log/slog"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -56,7 +56,7 @@ func (h *AuthHandler) HandleLogout(c *gin.Context) {
 	sessionID, err := c.Cookie("session_id")
 	if err == nil {
 		if err := h.svc.Logout(c.Request.Context(), sessionID); err != nil {
-			observability.WarnContext(c.Request.Context(), "logout_failed", "auth", "", nil, err)
+			slog.WarnContext(c.Request.Context(), "logout_failed", "component", "auth", "error", err)
 		}
 	}
 

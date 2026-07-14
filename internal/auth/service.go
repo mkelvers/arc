@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"strings"
 	"time"
 
@@ -87,13 +87,7 @@ func (s *authService) ValidateSession(ctx context.Context, sessionID string) (*d
 
 	if session.ExpiresAt.Before(time.Now()) {
 		if err := s.repo.DeleteSession(ctx, sessionID); err != nil {
-			observability.Warn(
-				"delete_expired_session_failed",
-				"auth",
-				"",
-				map[string]any{"session_id": sessionID},
-				err,
-			)
+			slog.Warn("delete_expired_session_failed", "component", "auth", "fields", map[string]any{"session_id": sessionID}, "error", err)
 		}
 		return nil, errors.New("session expired")
 	}
@@ -127,13 +121,7 @@ func (s *authService) ValidateAPIToken(ctx context.Context, token string) (*doma
 	}
 
 	if err := s.repo.TouchAPITokenLastUsedAt(ctx, t.ID); err != nil {
-		observability.Warn(
-			"touch_api_token_last_used_at_failed",
-			"auth",
-			"",
-			map[string]any{"token_id": t.ID},
-			err,
-		)
+		slog.Warn("touch_api_token_last_used_at_failed", "component", "auth", "fields", map[string]any{"token_id": t.ID}, "error", err)
 	}
 	return s.repo.GetUserByID(ctx, t.UserID)
 }

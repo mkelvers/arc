@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"mal/integrations/anilist"
 	"mal/internal/database/db"
 	"mal/internal/domain"
-	"mal/internal/observability"
 
 	"github.com/google/uuid"
 )
@@ -156,13 +156,13 @@ func (s *watchlistService) logUpdate(ctx context.Context, userID string, animeID
 	if fetchedAnime {
 		animeSource = "metadata_fetch"
 	}
-	observability.LogContext(ctx, observability.LogLevelInfo, "watchlist_update", "watchlist", "", map[string]any{
+	slog.Log(ctx, slog.LevelInfo, "watchlist_update", "component", "watchlist", "fields", map[string]any{
 		"user_id":      userID,
 		"anime_id":     animeID,
 		"status":       status,
 		"anime_source": animeSource,
 		"duration_ms":  time.Since(startedAt).Milliseconds(),
-	}, nil)
+	})
 }
 
 func (s *watchlistService) GetWatchlist(ctx context.Context, userID string) ([]domain.UserWatchListRow, error) {
