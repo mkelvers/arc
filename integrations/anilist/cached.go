@@ -14,6 +14,7 @@ const (
 	metadataStaleTTL    = 7 * 24 * time.Hour
 	genreFreshTTL       = 7 * 24 * time.Hour
 	searchFreshTTL      = 24 * time.Hour
+	searchCacheKeyV2    = "v2"
 	catalogFreshTTL     = time.Hour
 	recommendFreshTTL   = 7 * 24 * time.Hour
 	detailCacheKeyV3    = "v3"
@@ -142,7 +143,7 @@ func mergeBatchResults(ids []int, fresh, fetched, stale map[int]Anime) []Anime {
 }
 
 func (c *CachedClient) Search(ctx context.Context, search string, page, perPage int) (SearchResult, error) {
-	key := fmt.Sprintf("anilist:search:%s:%d:%d", url.QueryEscape(search), page, perPage)
+	key := fmt.Sprintf("anilist:search:%s:%s:%d:%d", searchCacheKeyV2, url.QueryEscape(search), page, perPage)
 	var cached SearchResult
 	result, _ := c.cache.Get(ctx, key, &cached)
 	if result.State == domain.CacheFresh {
@@ -179,7 +180,8 @@ func (c *CachedClient) SearchAdvanced(ctx context.Context, opts domain.SearchOpt
 
 func advancedSearchCacheKey(opts domain.SearchOptions) string {
 	return fmt.Sprintf(
-		"anilist:search-advanced:%s:%s:%s:%s:%s:%v:%d:%t:%d:%d",
+		"anilist:search-advanced:%s:%s:%s:%s:%s:%s:%v:%d:%t:%d:%d",
+		searchCacheKeyV2,
 		url.QueryEscape(opts.Query),
 		opts.AnimeType,
 		opts.Status,

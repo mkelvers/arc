@@ -70,6 +70,7 @@ func (p *LegacyProvider) GetAnimeRecommendations(ctx context.Context, id int) ([
 
 func ToMetadataAnime(anime Anime) domain.Anime {
 	result := domain.Anime{
+		AniListID:      anime.ID,
 		MalID:          anime.MALID,
 		Title:          firstNonEmpty(anime.Title.UserPreferred, anime.Title.Romaji, anime.Title.Native),
 		TitleEnglish:   anime.Title.English,
@@ -109,6 +110,12 @@ func ToMetadataAnime(anime Anime) domain.Anime {
 	}
 	for _, tag := range topTags(anime.Tags, 5) {
 		result.Tags = append(result.Tags, domain.NamedEntity{MalID: tag.ID, Name: tag.Name})
+	}
+	for _, relation := range anime.Relations {
+		result.ProviderRelations = append(result.ProviderRelations, domain.AnimeProviderRelation{
+			Type: relation.Type, Format: relation.Anime.Format,
+			AniListID: relation.Anime.ID, MALID: relation.Anime.MALID,
+		})
 	}
 	return result
 }
