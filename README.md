@@ -152,7 +152,6 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | `PORT`                      | `3000`          | HTTP port for the server.                                                  |
 | `DATABASE_URL`              | required        | PostgreSQL connection URL for application persistence.                     |
 | `REDIS_URL`                 | required        | Provider-response and stale-data cache.                                    |
-| `ANILIST_URL`               | required        | AniList GraphQL metadata endpoint.                                         |
 | `GIN_MODE`                  | release default | Gin runtime mode.                                                          |
 | `PLAYBACK_PROXY_SECRET`     | empty           | Secret used to mint playback proxy tokens; required for playback proxying. |
 
