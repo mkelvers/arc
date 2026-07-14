@@ -154,6 +154,7 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | `REDIS_URL`                 | required        | Provider-response and stale-data cache.                                    |
 | `GIN_MODE`                  | release default | Gin runtime mode.                                                          |
 | `PLAYBACK_PROXY_SECRET`     | empty           | Secret used to mint playback proxy tokens; required for playback proxying. |
+| `TMDB_ACCESS_TOKEN`         | empty           | TMDB API read access token used for artwork and episode metadata.          |
 
 </details>
 
