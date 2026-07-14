@@ -4,7 +4,7 @@
 @source "../**/*.ts";
 
 @theme {
-  --color-background: light-dark(#ffffff, #101113);
+  --color-background: #000000;
   --color-background-sidebar: light-dark(#f7f7f7, #161719);
   --color-background-header: light-dark(#f7f7f7, #161719);
   --color-background-surface: light-dark(#ffffff, #1b1c1f);
