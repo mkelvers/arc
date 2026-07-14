@@ -38,17 +38,9 @@ func (h *AnimeHandler) HandleAnimeMedia(c *gin.Context) {
 	}
 	h.applySelectedAnimeMedia(c.Request.Context(), &anime)
 
-	ref, ok, err := h.tmdbMediaRef(c.Request.Context(), anime.AniListID, anime.MalID)
-	if err != nil {
-		slog.Warn("anime_media_mapping_failed", "component", "anime", "fields", map[string]any{
-			"anime_id":   anime.MalID,
-			"anilist_id": anime.AniListID,
-		}, "error", err)
-		c.HTML(http.StatusOK, "anime_media.gohtml", animeMediaPageData(c, anime, "", nil, nil, nil, "Could not resolve media mapping."))
-		return
-	}
+	ref, ok := h.resolveAnimeTMDBMediaRef(c.Request.Context(), anime)
 	if !ok {
-		c.HTML(http.StatusOK, "anime_media.gohtml", animeMediaPageData(c, anime, "", nil, nil, nil, "No TMDB media mapping found."))
+		c.HTML(http.StatusOK, "anime_media.gohtml", animeMediaPageData(c, anime, "", nil, nil, nil, "No TMDB media found."))
 		return
 	}
 
@@ -82,8 +74,21 @@ func (h *AnimeHandler) HandleAnimeMedia(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleSelectAnimeMedia(c *gin.Context) {
-	anime, ref, kind, filePath, ok := h.selectedMediaRequest(c)
+	anime, ref, kind, filePath, unselect, ok := h.selectedMediaRequest(c)
 	if !ok {
+		return
+	}
+
+	if unselect {
+		if err := h.mappings.DeleteMediaSelection(c.Request.Context(), anime.MalID, kind); err != nil {
+			slog.Warn("anime_media_select_delete_failed", "component", "anime", "fields", map[string]any{
+				"anime_id": anime.MalID,
+				"kind":     kind,
+			}, "error", err)
+			server.RespondHTMLOrJSONError(c, http.StatusInternalServerError, "could not delete media selection")
+			return
+		}
+		c.Redirect(http.StatusSeeOther, fmt.Sprintf("/anime/%d/media?kind=%s", anime.MalID, mediaQueryKind(kind)))
 		return
 	}
 
@@ -99,33 +104,37 @@ func (h *AnimeHandler) HandleSelectAnimeMedia(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, fmt.Sprintf("/anime/%d/media?kind=%s", anime.MalID, mediaQueryKind(kind)))
 }
 
-func (h *AnimeHandler) selectedMediaRequest(c *gin.Context) (domain.Anime, tmdb.MediaRef, string, string, bool) {
+func (h *AnimeHandler) selectedMediaRequest(c *gin.Context) (domain.Anime, tmdb.MediaRef, string, string, bool, bool) {
 	id, ok := parsePositiveAnimeID(c)
 	if !ok {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
 	}
 
-	kind, filePath, ok := selectedMediaForm(c)
+	kind, filePath, unselect, ok := selectedMediaForm(c)
 	if !ok {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
 	}
 
 	anime, err := h.svc.GetAnimeByID(c.Request.Context(), id)
 	if err != nil {
 		server.RespondNotFound(c)
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
+	}
+
+	if unselect {
+		return anime, tmdb.MediaRef{}, kind, "", true, true
 	}
 
 	ref, ok := h.selectedMediaRef(c, anime)
 	if !ok {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
 	}
 
 	if !h.validSelectedMediaPath(c, anime, ref, kind, filePath) {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
 	}
 
-	return anime, ref, kind, filePath, true
+	return anime, ref, kind, filePath, false, true
 }
 
 func parsePositiveAnimeID(c *gin.Context) (int, bool) {
@@ -137,33 +146,26 @@ func parsePositiveAnimeID(c *gin.Context) (int, bool) {
 	return id, true
 }
 
-func selectedMediaForm(c *gin.Context) (string, string, bool) {
+func selectedMediaForm(c *gin.Context) (string, string, bool, bool) {
 	kind := normalizeMediaSelectionKind(c.PostForm("kind"))
 	if !validMediaSelectionKind(kind) {
 		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid media kind")
-		return "", "", false
+		return "", "", false, false
 	}
 
+	unselect := strings.EqualFold(strings.TrimSpace(c.PostForm("action")), "unselect")
 	filePath := strings.TrimSpace(c.PostForm("file_path"))
-	if filePath == "" {
+	if filePath == "" && !unselect {
 		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "missing media file path")
-		return "", "", false
+		return "", "", false, false
 	}
-	return kind, filePath, true
+	return kind, filePath, unselect, true
 }
 
 func (h *AnimeHandler) selectedMediaRef(c *gin.Context, anime domain.Anime) (tmdb.MediaRef, bool) {
-	ref, ok, err := h.tmdbMediaRef(c.Request.Context(), anime.AniListID, anime.MalID)
-	if err != nil {
-		slog.Warn("anime_media_select_mapping_failed", "component", "anime", "fields", map[string]any{
-			"anime_id":   anime.MalID,
-			"anilist_id": anime.AniListID,
-		}, "error", err)
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "could not resolve media mapping")
-		return tmdb.MediaRef{}, false
-	}
+	ref, ok := h.resolveAnimeTMDBMediaRef(c.Request.Context(), anime)
 	if !ok {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "no TMDB media mapping found")
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "no TMDB media found")
 		return tmdb.MediaRef{}, false
 	}
 	return ref, true
@@ -202,22 +204,113 @@ func (h *AnimeHandler) tmdbMediaRef(ctx context.Context, anilistID int, malID in
 	}, true, nil
 }
 
+func (h *AnimeHandler) resolveAnimeTMDBMediaRef(ctx context.Context, anime domain.Anime) (tmdb.MediaRef, bool) {
+	if h.mappings != nil {
+		ref, ok, err := h.tmdbMediaRef(ctx, anime.AniListID, anime.MalID)
+		if err != nil {
+			slog.Warn("anime_media_mapping_failed", "component", "anime", "fields", map[string]any{
+				"anime_id":   anime.MalID,
+				"anilist_id": anime.AniListID,
+			}, "error", err)
+		}
+		if ok {
+			return ref, true
+		}
+	}
+	return h.searchAnimeTMDBMediaRef(ctx, anime)
+}
+
+func (h *AnimeHandler) searchAnimeTMDBMediaRef(ctx context.Context, anime domain.Anime) (tmdb.MediaRef, bool) {
+	if h.tmdbClient == nil {
+		return tmdb.MediaRef{}, false
+	}
+	for _, mediaType := range tmdbSearchMediaTypes(anime.Type) {
+		for _, title := range tmdbSearchTitles(anime) {
+			for _, year := range tmdbSearchYears(anime.Year) {
+				results, err := h.tmdbClient.Search(ctx, mediaType, title, year)
+				if err != nil {
+					slog.Warn("anime_tmdb_media_search_failed", "component", "anime", "fields", map[string]any{
+						"anime_id":        anime.MalID,
+						"tmdb_media_type": mediaType,
+						"title":           title,
+						"year":            year,
+					}, "error", err)
+					continue
+				}
+				for _, result := range results {
+					if result.ID > 0 {
+						return tmdb.MediaRef{Type: result.Type, ID: result.ID}, true
+					}
+				}
+			}
+		}
+	}
+	return tmdb.MediaRef{}, false
+}
+
 func (h *AnimeHandler) applySelectedAnimeMedia(ctx context.Context, anime *domain.Anime) {
 	if anime == nil || anime.MalID <= 0 {
 		return
 	}
-	selections, err := h.mappings.MediaSelections(ctx, anime.MalID)
-	if err != nil {
-		slog.Warn("anime_selected_media_load_failed", "component", "anime", "fields", map[string]any{
-			"anime_id": anime.MalID,
-		}, "error", err)
-		return
+	var selections map[string]mediaSelection
+	if h.mappings != nil {
+		var err error
+		selections, err = h.mappings.MediaSelections(ctx, anime.MalID)
+		if err != nil {
+			slog.Warn("anime_selected_media_load_failed", "component", "anime", "fields", map[string]any{
+				"anime_id": anime.MalID,
+			}, "error", err)
+		}
 	}
 	if selection, ok := selections[mediaSelectionBackdrop]; ok {
 		if url := tmdb.ImageURL(selection.FilePath, "original"); url != "" {
 			anime.BannerImageURL = url
 		}
 	}
+	if selection, ok := selections[mediaSelectionLogo]; ok {
+		if url := tmdb.ImageURL(selection.FilePath, "original"); url != "" {
+			anime.LogoImageURL = url
+		}
+	}
+}
+
+func tmdbSearchMediaTypes(animeType string) []tmdb.MediaType {
+	switch strings.ToLower(strings.TrimSpace(animeType)) {
+	case "movie":
+		return []tmdb.MediaType{tmdb.MediaTypeMovie, tmdb.MediaTypeTV}
+	case "tv", "ova", "ona", "special":
+		return []tmdb.MediaType{tmdb.MediaTypeTV, tmdb.MediaTypeMovie}
+	default:
+		return []tmdb.MediaType{tmdb.MediaTypeTV, tmdb.MediaTypeMovie}
+	}
+}
+
+func tmdbSearchYears(year int) []int {
+	if year <= 0 {
+		return []int{0}
+	}
+	return []int{year, 0}
+}
+
+func tmdbSearchTitles(anime domain.Anime) []string {
+	candidates := make([]string, 0, 4+len(anime.TitleSynonyms))
+	candidates = append(candidates, anime.DisplayTitle(), anime.Title, anime.TitleEnglish, anime.TitleJapanese)
+	candidates = append(candidates, anime.TitleSynonyms...)
+	titles := make([]string, 0, len(candidates))
+	seen := make(map[string]struct{}, len(candidates))
+	for _, candidate := range candidates {
+		candidate = strings.TrimSpace(candidate)
+		key := strings.ToLower(candidate)
+		if candidate == "" {
+			continue
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		titles = append(titles, candidate)
+	}
+	return titles
 }
 
 func animeMediaPageData(c *gin.Context, anime any, tmdbLabel string, backdrops []animeMediaImage, logos []animeMediaImage, selections map[string]mediaSelection, loadError string) map[string]any {
