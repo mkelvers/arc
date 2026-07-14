@@ -3,7 +3,6 @@ package allanime
 import (
 	"context"
 	"fmt"
-	allanimeql "mal/integrations/ql/allanime"
 	"strconv"
 	"strings"
 )
@@ -15,12 +14,12 @@ type SearchResult struct {
 }
 
 func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string) ([]SearchResult, error) {
-	search := allanimeql.SearchInput{
+	search := SearchInput{
 		AllowAdult:   false,
 		AllowUnknown: false,
 		Query:        query,
 	}
-	data, err := allanimeql.AllAnimeSearch(ctx, c.graphqlClient(), search, translationType(mode))
+	data, err := AllAnimeSearch(ctx, c.graphqlClient(), search, translationType(mode))
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +44,8 @@ func (c *AllAnimeProvider) Search(ctx context.Context, query string, mode string
 	return out, nil
 }
 
-func translationType(mode string) allanimeql.VaildTranslationTypeEnumType {
-	return allanimeql.VaildTranslationTypeEnumType(strings.ToLower(mode))
+func translationType(mode string) VaildTranslationTypeEnumType {
+	return VaildTranslationTypeEnumType(strings.ToLower(mode))
 }
 
 func (c *AllAnimeProvider) ResolveEpisodeProviderID(ctx context.Context, animeID int, titleCandidates []string) (string, error) {

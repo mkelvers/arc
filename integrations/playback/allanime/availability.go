@@ -3,10 +3,10 @@ package allanime
 import (
 	"context"
 	"errors"
-	allanimeql "mal/integrations/ql/allanime"
-	"mal/internal/domain"
 	"strconv"
 	"strings"
+
+	"mal/internal/domain"
 )
 
 type AvailableEpisodes struct {
@@ -36,7 +36,7 @@ func (c *AllAnimeProvider) GetEpisodeAvailabilityByProviderID(ctx context.Contex
 }
 
 func (c *AllAnimeProvider) GetAvailableEpisodes(ctx context.Context, showID string) (AvailableEpisodes, error) {
-	result, err := allanimeql.AllAnimeAvailableEpisodes(ctx, c.graphqlClient(), showID, 1, 100000)
+	result, err := AllAnimeAvailableEpisodes(ctx, c.graphqlClient(), showID, 1, 100000)
 	if err != nil {
 		return AvailableEpisodes{}, err
 	}
