@@ -167,6 +167,7 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		server.RespondNotFound(c)
 		return
 	}
+	h.applySelectedAnimeMedia(c.Request.Context(), &anime)
 
 	h.svc.WarmDetailSections(id)
 
