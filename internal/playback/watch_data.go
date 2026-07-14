@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"sort"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 
 	"mal/integrations/anilist"
 	"mal/internal/domain"
-	"mal/internal/observability"
 )
 
 const sourceResolutionTimeout = 15 * time.Second
@@ -57,10 +57,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 
 	ensureStartedAt := time.Now()
 	if err := s.ensureAnimeRow(ctx, animeData); err != nil {
-		observability.Warn("upsert_anime_failed", "playback", "",
-			map[string]any{"anime_id": animeID},
-			err,
-		)
+		slog.Warn("upsert_anime_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID}, "error", err)
 	}
 	logWatchDataStage("anime_row", animeID, episode, ensureStartedAt, nil)
 	anime := animeData
@@ -228,10 +225,7 @@ func (s *playbackService) watchSegments(ctx context.Context, userID string, anim
 	}
 	segments, err := s.fetchSkipSegments(ctx, userID, animeID, episode)
 	if err != nil {
-		observability.Warn("fetch_skip_segments_failed", "playback", "",
-			map[string]any{"anime_id": animeID, "episode": episode},
-			err,
-		)
+		slog.Warn("fetch_skip_segments_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID, "episode": episode}, "error", err)
 	}
 	return segments
 }
@@ -300,7 +294,7 @@ func logWatchDataStage(stage string, animeID int, episode string, startedAt time
 		logFields["episode"] = episode
 	}
 	maps.Copy(logFields, fields)
-	observability.Info("watch_data_stage", "playback", "", logFields)
+	slog.Info("watch_data_stage", "component", "playback", "fields", logFields)
 }
 
 func episodeAvailabilityWarning(episodeList domain.CanonicalEpisodeList, now time.Time) string {
@@ -403,16 +397,15 @@ func (s *playbackService) resolveStreamResult(input sourceResolutionInput) *doma
 	key := newSourceCacheKey(input.animeID, input.episode, input.mode)
 	stale, state := s.sourceCache.get(key, time.Now())
 	if !input.forceRefresh && state == sourceCacheFresh {
-		observability.Info("playback_source_cache_hit", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode})
+		slog.Info("playback_source_cache_hit", "component", "playback", "fields", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode})
 		return stale
 	}
-
-	observability.Info("playback_source_cache_miss", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode, "forced": input.forceRefresh})
+	slog.Info("playback_source_cache_miss", "component", "playback", "fields", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode, "forced": input.forceRefresh})
 	resolved := s.waitForSourceResult(input, key)
 	if !resolved.completed {
 		return nil
 	}
-	observability.Info("playback_source_resolution", "playback", "", map[string]any{
+	slog.Info("playback_source_resolution", "component", "playback", "fields", map[string]any{
 		"anime_id": input.animeID, "episode": input.episode, "mode": key.mode,
 		"duration_ms": resolved.duration.Milliseconds(), "shared": resolved.shared,
 	})
@@ -420,10 +413,10 @@ func (s *playbackService) resolveStreamResult(input sourceResolutionInput) *doma
 		return cloneStreamResult(resolved.result)
 	}
 	if input.allowStale && state == sourceCacheStale && stale != nil {
-		observability.Warn("playback_source_cache_stale_hit", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode}, errors.New("provider source refresh failed"))
+		slog.Warn("playback_source_cache_stale_hit", "component", "playback", "fields", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode}, "error", errors.New("provider source refresh failed"))
 		return stale
 	}
-	observability.Warn("playback_source_resolution_failed", "playback", "", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode}, resolved.err)
+	slog.Warn("playback_source_resolution_failed", "component", "playback", "fields", map[string]any{"anime_id": input.animeID, "episode": input.episode, "mode": key.mode}, "error", resolved.err)
 	return nil
 }
 
@@ -458,7 +451,7 @@ func (s *playbackService) resolveSource(key sourceCacheKey, animeID int, searchT
 		result, err := provider.GetStreams(resolveCtx, animeID, searchTitles, key.episode, key.mode)
 		if err == nil && result != nil {
 			if s.sourceCache.set(key, result, time.Now()) {
-				observability.Info("playback_source_cache_eviction", "playback", "", nil)
+				slog.Info("playback_source_cache_eviction", "component", "playback")
 			}
 			return cloneStreamResult(result), nil
 		}
@@ -477,7 +470,7 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 	for _, sub := range res.Subtitles {
 		token, err := s.SignProxyToken(sub.URL, res.Referer, "subtitle")
 		if err != nil {
-			observability.Warn("sign_subtitle_token_failed", "playback", "", nil, err)
+			slog.Warn("sign_subtitle_token_failed", "component", "playback", "error", err)
 		}
 		subtitles = append(subtitles, domain.SubtitleItem{
 			Lang:  sub.Label,
@@ -487,7 +480,7 @@ func (s *playbackService) buildModeSource(res *domain.StreamResult) domain.ModeS
 
 	streamToken, err := s.SignProxyToken(res.URL, res.Referer, "stream")
 	if err != nil {
-		observability.Warn("sign_stream_token_failed", "playback", "", nil, err)
+		slog.Warn("sign_stream_token_failed", "component", "playback", "error", err)
 	}
 	return domain.ModeSource{
 		Token:     streamToken,

@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/google/uuid"
 
 	"mal/internal/database/db"
 	"mal/internal/domain"
-	"mal/internal/observability"
 )
 
 func (s *playbackService) loadWatchProgress(ctx context.Context, userID string, animeID int, totalEpisodes int, episode string) (float64, string, []int64) {
@@ -120,8 +120,7 @@ func (s *playbackService) SaveProgress(ctx context.Context, userID string, anime
 	if err != nil {
 		return fmt.Errorf("save progress transaction user_id=%s anime_id=%d episode=%d: %w", userID, animeID, episode, err)
 	}
-
-	observability.Info("watch_progress_saved", "playback", "", map[string]any{
+	slog.Info("watch_progress_saved", "component", "playback", "fields", map[string]any{
 		"anime_id":     animeID,
 		"episode":      episode,
 		"time_seconds": timeSeconds,
