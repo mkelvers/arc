@@ -2,7 +2,6 @@ package anime
 
 import (
 	"context"
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"slices"
 	"strconv"
@@ -129,7 +128,7 @@ func (s *SeasonDiscoveryService) GetSimulcast(ctx context.Context, selected anim
 	}
 	animes := make([]domain.Anime, 0, len(shows))
 	for _, show := range shows {
-		anime := metadata.Anime{
+		anime := domain.Anime{
 			MalID:        show.MalID,
 			Title:        show.Name,
 			TitleEnglish: show.EnglishName,
@@ -140,7 +139,7 @@ func (s *SeasonDiscoveryService) GetSimulcast(ctx context.Context, selected anim
 			Episodes:     show.EpisodeCount,
 		}
 		anime.Images.Webp.LargeImageURL = show.Thumbnail
-		animes = append(animes, domain.Anime{Anime: anime})
+		animes = append(animes, anime)
 	}
 	return SimulcastData{
 		Animes: animes,

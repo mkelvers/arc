@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 )
 
@@ -65,12 +64,12 @@ func providerBackedPayloadHasAvailability(payload domain.CanonicalEpisodeList) b
 	return true
 }
 
-func mergeEpisodes(providerEpisodes []metadata.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
+func mergeEpisodes(providerEpisodes []domain.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
 	return mergeEpisodeData(mergeEpisodeInput{providerEpisodes: providerEpisodes, availability: availability, expectedCount: expectedCount, now: time.Now()})
 }
 
 type mergeEpisodeInput struct {
-	providerEpisodes          []metadata.Episode
+	providerEpisodes          []domain.Episode
 	availability              domain.EpisodeAvailability
 	expectedCount             int
 	now                       time.Time
@@ -124,7 +123,7 @@ func mergeEpisodeData(input mergeEpisodeInput) []domain.CanonicalEpisode {
 
 type providerMergeInput struct {
 	byNumber          *map[int]episodePartial
-	episodes          []metadata.Episode
+	episodes          []domain.Episode
 	providerNumbers   map[int]bool
 	providerBacked    bool
 	expectedCount     int
@@ -197,7 +196,7 @@ func mergeAvailability(byNumber *map[int]episodePartial, numbers []int, expected
 	}
 }
 
-func providerEpisodeNumber(ep metadata.Episode, index int) (int, bool) {
+func providerEpisodeNumber(ep domain.Episode, index int) (int, bool) {
 	number, err := strconv.Atoi(strings.TrimSpace(ep.Episode))
 	if err == nil && number > 0 {
 		return number, true
@@ -219,7 +218,7 @@ func hasStartedAiring(firstAired string, now time.Time) bool {
 	return !now.Before(startedAt)
 }
 
-func hasEpisodeAired(ep metadata.Episode, now time.Time, requireAiredDate bool) bool {
+func hasEpisodeAired(ep domain.Episode, now time.Time, requireAiredDate bool) bool {
 	if strings.TrimSpace(ep.Aired) == "" {
 		return !requireAiredDate
 	}

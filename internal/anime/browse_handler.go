@@ -3,7 +3,6 @@ package anime
 import (
 	"context"
 	"fmt"
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"mal/internal/server"
@@ -129,8 +128,8 @@ func (data browsePageData) BrowseURLValues() (query, animeType, status, orderBy,
 	return data.Query, data.Type, data.Status, data.OrderBy, data.Sort, data.Studio, data.SFW, data.Genres, data.Page
 }
 
-func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (metadata.SearchResult, error) {
-	return h.svc.SearchAdvanced(ctx, metadata.SearchOptions{
+func (h *AnimeHandler) searchBrowse(ctx context.Context, query browseQuery) (domain.SearchResult, error) {
+	return h.svc.SearchAdvanced(ctx, domain.SearchOptions{
 		Query: query.Query, AnimeType: query.Type, Status: query.Status,
 		OrderBy: query.OrderBy, Sort: query.Sort, Genres: query.Genres,
 		StudioID: query.Studio, SFW: query.SFW, Page: query.Page, Limit: 24,
@@ -231,7 +230,7 @@ func (h *AnimeHandler) HandleQuickSearch(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), metadata.SearchOptions{Query: query, SFW: true, Page: 1, Limit: 5})
+	res, err := h.svc.SearchAdvanced(c.Request.Context(), domain.SearchOptions{Query: query, SFW: true, Page: 1, Limit: 5})
 	if err != nil {
 		c.JSON(http.StatusOK, []any{})
 		return

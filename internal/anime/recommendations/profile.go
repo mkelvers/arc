@@ -1,8 +1,8 @@
 package recommendations
 
 import (
-	"mal/integrations/metadata"
 	"mal/internal/database/db"
+	"mal/internal/domain"
 	"math"
 	"sort"
 	"strings"
@@ -61,7 +61,7 @@ func recommendationEntryWeight(now time.Time, entry db.GetUserWatchListRow) floa
 	return statusWeight * recencyWeight * progressWeight
 }
 
-func buildTasteProfile(now time.Time, seeds []recommendationSeed, seedAnimes []metadata.Anime) userTasteProfile {
+func buildTasteProfile(now time.Time, seeds []recommendationSeed, seedAnimes []domain.Anime) userTasteProfile {
 	profile := userTasteProfile{
 		genres:       make(map[int]float64),
 		themes:       make(map[int]float64),
@@ -101,7 +101,7 @@ func buildTasteProfile(now time.Time, seeds []recommendationSeed, seedAnimes []m
 	return profile
 }
 
-func addEntityWeights(target map[int]float64, entities []metadata.NamedEntity, weight float64) {
+func addEntityWeights(target map[int]float64, entities []domain.NamedEntity, weight float64) {
 	for _, entity := range entities {
 		if entity.MalID <= 0 {
 			continue

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mal/integrations/metadata"
+	"mal/internal/domain"
 	"net/http"
 	"sort"
 	"strconv"
@@ -159,7 +159,7 @@ func (c *Client) Search(ctx context.Context, search string, page, perPage int) (
 	return SearchResult{Items: items, HasNextPage: response.Data.Page.PageInfo.HasNextPage}, nil
 }
 
-func (c *Client) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (SearchResult, error) {
+func (c *Client) SearchAdvanced(ctx context.Context, opts domain.SearchOptions) (SearchResult, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -208,7 +208,7 @@ func (c *Client) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions
 func addGenreFilter(varDefs, args []string, variables map[string]any, genres []int) ([]string, []string) {
 	names := make([]string, 0, len(genres))
 	for _, id := range genres {
-		if name, ok := metadata.GenreName(id); ok {
+		if name, ok := domain.GenreName(id); ok {
 			names = append(names, name)
 		}
 	}

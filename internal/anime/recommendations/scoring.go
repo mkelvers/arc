@@ -1,7 +1,7 @@
 package recommendations
 
 import (
-	"mal/integrations/metadata"
+	"mal/internal/domain"
 	"math"
 	"time"
 )
@@ -18,7 +18,7 @@ func rankedCandidateRetrievalScore(collaborativeScore float64, profileSearchScor
 func scoreRecommendationCandidate(
 	now time.Time,
 	profile userTasteProfile,
-	candidate metadata.Anime,
+	candidate domain.Anime,
 	collaborativeScore float64,
 	profileSearchScore float64,
 ) recommendationCandidate {
@@ -45,7 +45,7 @@ func scoreRecommendationCandidate(
 	}
 }
 
-func buildRecommendationRationale(profile userTasteProfile, candidate metadata.Anime) []string {
+func buildRecommendationRationale(profile userTasteProfile, candidate domain.Anime) []string {
 	rationale := make([]string, 0, 4)
 	rationale = append(rationale, matchedEntityNames(profile.genres, candidate.Genres)...)
 	rationale = append(rationale, matchedEntityNames(profile.themes, candidate.Themes)...)
@@ -58,7 +58,7 @@ func buildRecommendationRationale(profile userTasteProfile, candidate metadata.A
 	return rationale
 }
 
-func recommendationCandidateScoreAdjustments(now time.Time, profile userTasteProfile, candidate metadata.Anime) float64 {
+func recommendationCandidateScoreAdjustments(now time.Time, profile userTasteProfile, candidate domain.Anime) float64 {
 	var score float64
 
 	if candidate.Score > 0 {
@@ -107,7 +107,7 @@ func isFreshRelease(now time.Time, airedFrom string) bool {
 	return now.Sub(airedAt) <= freshReleaseWindow
 }
 
-func weightedEntityMatch(weights map[int]float64, entities []metadata.NamedEntity) (int, float64) {
+func weightedEntityMatch(weights map[int]float64, entities []domain.NamedEntity) (int, float64) {
 	var matches int
 	var score float64
 
@@ -123,7 +123,7 @@ func weightedEntityMatch(weights map[int]float64, entities []metadata.NamedEntit
 	return matches, score
 }
 
-func matchedEntityNames(weights map[int]float64, entities []metadata.NamedEntity) []string {
+func matchedEntityNames(weights map[int]float64, entities []domain.NamedEntity) []string {
 	if len(weights) == 0 {
 		return []string{}
 	}

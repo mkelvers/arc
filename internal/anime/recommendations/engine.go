@@ -3,7 +3,6 @@ package recommendations
 import (
 	"context"
 	"fmt"
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"sort"
@@ -20,9 +19,9 @@ type engine struct {
 }
 
 type metadataProvider interface {
-	GetAnimeByID(ctx context.Context, id int) (metadata.Anime, error)
-	GetAnimeRecommendations(ctx context.Context, id int) ([]metadata.RecommendationEntry, error)
-	SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error)
+	GetAnimeByID(ctx context.Context, id int) (domain.Anime, error)
+	GetAnimeRecommendations(ctx context.Context, id int) ([]domain.RecommendationEntry, error)
+	SearchAdvanced(ctx context.Context, opts domain.SearchOptions) (domain.SearchResult, error)
 }
 
 func GetTopPicksForYou(
@@ -81,8 +80,8 @@ func (e engine) getTopPicksForYou(ctx context.Context, userID string, resultLimi
 	}, nil
 }
 
-func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSeed) ([]metadata.Anime, error) {
-	seedAnimes := make([]metadata.Anime, len(seedPool))
+func (e engine) fetchSeedAnimes(ctx context.Context, seedPool []recommendationSeed) ([]domain.Anime, error) {
+	seedAnimes := make([]domain.Anime, len(seedPool))
 	var g errgroup.Group
 	g.SetLimit(4)
 
@@ -151,7 +150,7 @@ func (e engine) collectProfileSearchCandidates(ctx context.Context, profile user
 
 	for _, query := range queries {
 		g.Go(func() error {
-			res, err := e.metadata.SearchAdvanced(ctx, metadata.SearchOptions{OrderBy: "score", Sort: "desc", Genres: query.genreIDs, StudioID: query.studioID, SFW: true, Page: 1, Limit: profileSearchLimit})
+			res, err := e.metadata.SearchAdvanced(ctx, domain.SearchOptions{OrderBy: "score", Sort: "desc", Genres: query.genreIDs, StudioID: query.studioID, SFW: true, Page: 1, Limit: profileSearchLimit})
 			if err != nil {
 				observability.Warn(
 					"top_pick_profile_search_failed",

@@ -2,7 +2,7 @@ package anime
 
 import (
 	"fmt"
-	"mal/integrations/metadata"
+	"mal/internal/domain"
 	"mal/internal/server"
 	"net/http"
 	"strconv"
@@ -58,7 +58,7 @@ func (h *AnimeHandler) HandleSearchAPI(c *gin.Context) {
 }
 
 func (h *AnimeHandler) searchAnimeResults(c *gin.Context, userID string, query string, page int) ([]searchItem, bool) {
-	res, err := h.svc.SearchAdvanced(c.Request.Context(), metadata.SearchOptions{Query: query, SFW: true, Page: page, Limit: searchAnimeLimit})
+	res, err := h.svc.SearchAdvanced(c.Request.Context(), domain.SearchOptions{Query: query, SFW: true, Page: page, Limit: searchAnimeLimit})
 	if err != nil {
 		return nil, false
 	}

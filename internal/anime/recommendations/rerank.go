@@ -1,7 +1,6 @@
 package recommendations
 
 import (
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"math"
 	"slices"
@@ -24,7 +23,9 @@ func rerankRecommendationCandidates(candidates []recommendationCandidate, limit 
 			continue
 		}
 
-		selected = append(selected, domain.Anime{Anime: candidate.anime, RecommendationRationale: candidate.rationale})
+		anime := candidate.anime
+		anime.RecommendationRationale = candidate.rationale
+		selected = append(selected, anime)
 		features := diversityFeatures(candidate.anime)
 		seen.add(features)
 		recent = append(recent, features)
@@ -92,7 +93,7 @@ func bestDiverseCandidateIndex(candidates []recommendationCandidate, seen divers
 	return bestIndex
 }
 
-func diversityFeatures(anime metadata.Anime) diversityFeatureSet {
+func diversityFeatures(anime domain.Anime) diversityFeatureSet {
 	return diversityFeatureSet{
 		genres:       entityIDSet(anime.Genres),
 		themes:       entityIDSet(anime.Themes),
@@ -101,7 +102,7 @@ func diversityFeatures(anime metadata.Anime) diversityFeatureSet {
 	}
 }
 
-func entityIDSet(entities []metadata.NamedEntity) map[int]struct{} {
+func entityIDSet(entities []domain.NamedEntity) map[int]struct{} {
 	ids := make(map[int]struct{}, len(entities))
 	for _, entity := range entities {
 		if entity.MalID <= 0 {

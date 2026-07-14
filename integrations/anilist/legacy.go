@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"mal/integrations/metadata"
+	"mal/internal/domain"
 
 	"golang.org/x/net/html"
 )
@@ -21,20 +21,20 @@ func NewLegacyProvider(client *CachedClient) *LegacyProvider {
 	return &LegacyProvider{client: client}
 }
 
-func (p *LegacyProvider) GetAnimeByID(ctx context.Context, id int) (metadata.Anime, error) {
+func (p *LegacyProvider) GetAnimeByID(ctx context.Context, id int) (domain.Anime, error) {
 	anime, err := p.client.GetAnimeByMALID(ctx, id)
 	if err != nil {
-		return metadata.Anime{}, err
+		return domain.Anime{}, err
 	}
 	return ToMetadataAnime(anime), nil
 }
 
-func (p *LegacyProvider) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error) {
+func (p *LegacyProvider) SearchAdvanced(ctx context.Context, opts domain.SearchOptions) (domain.SearchResult, error) {
 	result, err := p.client.SearchAdvanced(ctx, opts)
 	if err != nil {
-		return metadata.SearchResult{}, err
+		return domain.SearchResult{}, err
 	}
-	out := make([]metadata.Anime, 0, len(result.Items))
+	out := make([]domain.Anime, 0, len(result.Items))
 	for _, item := range result.Items {
 		anime := ToMetadataAnime(Anime{
 			ID:          item.ID,
@@ -47,17 +47,17 @@ func (p *LegacyProvider) SearchAdvanced(ctx context.Context, opts metadata.Searc
 		})
 		out = append(out, anime)
 	}
-	return metadata.SearchResult{Animes: out, HasNextPage: result.HasNextPage}, nil
+	return domain.SearchResult{Animes: out, HasNextPage: result.HasNextPage}, nil
 }
 
-func (p *LegacyProvider) GetAnimeRecommendations(ctx context.Context, id int) ([]metadata.RecommendationEntry, error) {
+func (p *LegacyProvider) GetAnimeRecommendations(ctx context.Context, id int) ([]domain.RecommendationEntry, error) {
 	items, err := p.client.GetRecommendations(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]metadata.RecommendationEntry, 0, len(items))
+	out := make([]domain.RecommendationEntry, 0, len(items))
 	for _, item := range items {
-		var mapped metadata.RecommendationEntry
+		var mapped domain.RecommendationEntry
 		mapped.Entry.MalID = item.Anime.MALID
 		mapped.Entry.Title = firstNonEmpty(item.Anime.Title.English, item.Anime.Title.Romaji)
 		mapped.Entry.Synopsis = plainText(item.Anime.Description)
@@ -68,8 +68,8 @@ func (p *LegacyProvider) GetAnimeRecommendations(ctx context.Context, id int) ([
 	return out, nil
 }
 
-func ToMetadataAnime(anime Anime) metadata.Anime {
-	result := metadata.Anime{
+func ToMetadataAnime(anime Anime) domain.Anime {
+	result := domain.Anime{
 		MalID:          anime.MALID,
 		Title:          firstNonEmpty(anime.Title.UserPreferred, anime.Title.Romaji, anime.Title.Native),
 		TitleEnglish:   anime.Title.English,
@@ -99,16 +99,16 @@ func ToMetadataAnime(anime Anime) metadata.Anime {
 	result.Aired.From = animeDate(anime.StartDate)
 	result.Aired.To = animeDate(anime.EndDate)
 	for _, genre := range anime.Genres {
-		result.Genres = append(result.Genres, metadata.NamedEntity{MalID: metadata.GenreID(genre), Name: genre})
+		result.Genres = append(result.Genres, domain.NamedEntity{MalID: domain.GenreID(genre), Name: genre})
 	}
 	for _, studio := range anime.Studios {
-		result.Studios = append(result.Studios, metadata.NamedEntity{MalID: studio.ID, Name: studio.Name})
+		result.Studios = append(result.Studios, domain.NamedEntity{MalID: studio.ID, Name: studio.Name})
 	}
 	for _, producer := range anime.Producers {
-		result.Producers = append(result.Producers, metadata.NamedEntity{Name: producer.Name})
+		result.Producers = append(result.Producers, domain.NamedEntity{Name: producer.Name})
 	}
 	for _, tag := range topTags(anime.Tags, 5) {
-		result.Tags = append(result.Tags, metadata.NamedEntity{MalID: tag.ID, Name: tag.Name})
+		result.Tags = append(result.Tags, domain.NamedEntity{MalID: tag.ID, Name: tag.Name})
 	}
 	return result
 }

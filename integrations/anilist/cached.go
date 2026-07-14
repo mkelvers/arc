@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"time"
 
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 )
 
@@ -160,7 +159,7 @@ func (c *CachedClient) Search(ctx context.Context, search string, page, perPage 
 	return SearchResult{}, err
 }
 
-func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (SearchResult, error) {
+func (c *CachedClient) SearchAdvanced(ctx context.Context, opts domain.SearchOptions) (SearchResult, error) {
 	key := advancedSearchCacheKey(opts)
 	var cached SearchResult
 	result, _ := c.cache.Get(ctx, key, &cached)
@@ -178,7 +177,7 @@ func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchO
 	return SearchResult{}, err
 }
 
-func advancedSearchCacheKey(opts metadata.SearchOptions) string {
+func advancedSearchCacheKey(opts domain.SearchOptions) string {
 	return fmt.Sprintf(
 		"anilist:search-advanced:%s:%s:%s:%s:%s:%v:%d:%t:%d:%d",
 		url.QueryEscape(opts.Query),
