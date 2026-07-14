@@ -55,7 +55,12 @@ func (s *animeService) fetchTopPicksForYou(ctx context.Context, userID string, l
 	if s.metadata == nil {
 		return domain.CatalogSectionData{Animes: []domain.Anime{}}, nil
 	}
-	return recommendations.GetTopPicksForYou(ctx, anilist.NewLegacyProvider(s.metadata), s.repo, userID, limit)
+	data, err := recommendations.GetTopPicksForYou(ctx, anilist.NewLegacyProvider(s.metadata), s.repo, userID, limit)
+	if err != nil {
+		return data, err
+	}
+	data.Animes = groupCardsOrOriginal(ctx, s.grouper, data.Animes)
+	return data, nil
 }
 
 func (s *animeService) getCachedTopPicksForYou(userID string, limit int) domain.CatalogSectionData {
