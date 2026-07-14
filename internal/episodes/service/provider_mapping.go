@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"mal/internal/domain"
-	"mal/internal/observability"
 )
 
 const (
@@ -39,16 +39,12 @@ func (s *EpisodeService) providerID(ctx context.Context, anime domain.Anime, pro
 	}
 
 	s.cacheProviderIDSuccess(ctx, anime, provider, providerID)
-	observability.Info(
-		"episodes_provider_id_resolved",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id":    anime.MalID,
-			"provider":    provider.Name(),
-			"provider_id": providerID,
-		},
-	)
+	slog.Info("episodes_provider_id_resolved", "component", "episodes", "fields", map[string]any{
+		"anime_id":    anime.MalID,
+		"provider":    provider.Name(),
+		"provider_id": providerID,
+	})
+
 	return providerID, nil
 }
 
@@ -64,7 +60,7 @@ func (s *EpisodeService) cachedProviderIDFromRedis(ctx context.Context, anime do
 	result, err := s.cache.Get(ctx, providerMappingKey(int64(anime.MalID), provider.Name()), &mapping)
 	if err != nil || result.State == domain.CacheMiss {
 		if err != nil {
-			observability.Warn("episodes_provider_id_cache_read_failed", "episodes", "", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, err)
+			slog.Warn("episodes_provider_id_cache_read_failed", "component", "episodes", "fields", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, "error", err)
 		}
 		return "", false, nil
 	}
@@ -88,7 +84,7 @@ func (s *EpisodeService) cacheProviderIDFailure(ctx context.Context, anime domai
 			LastError:   truncate(resolveErr.Error(), 400),
 		}, providerMappingFreshTTL, providerMappingStaleTTL)
 		if err != nil {
-			observability.Warn("episodes_provider_id_cache_write_failed", "episodes", "", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, err)
+			slog.Warn("episodes_provider_id_cache_write_failed", "component", "episodes", "fields", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, "error", err)
 		}
 		return
 	}
@@ -98,7 +94,7 @@ func (s *EpisodeService) cacheProviderIDSuccess(ctx context.Context, anime domai
 	if s.cache != nil {
 		err := s.cache.Set(ctx, providerMappingKey(int64(anime.MalID), provider.Name()), cachedProviderMapping{ProviderShowID: providerID}, providerMappingFreshTTL, providerMappingStaleTTL)
 		if err != nil {
-			observability.Warn("episodes_provider_id_cache_write_failed", "episodes", "", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, err)
+			slog.Warn("episodes_provider_id_cache_write_failed", "component", "episodes", "fields", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, "error", err)
 		}
 		return
 	}

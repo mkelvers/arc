@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"mal/internal/domain"
-	"mal/internal/observability"
 )
 
 const episodeAvailabilityPayloadVersion = 4
@@ -41,7 +41,7 @@ func (s *EpisodeService) getEpisodeCache(ctx context.Context, animeID int64) (ep
 		result, err := s.cache.Get(ctx, episodeCacheKey(animeID), &row)
 		if err != nil || result.State == domain.CacheMiss {
 			if err != nil {
-				observability.Warn("episodes_cache_read_failed", "episodes", "", map[string]any{"anime_id": animeID}, err)
+				slog.Warn("episodes_cache_read_failed", "component", "episodes", "fields", map[string]any{"anime_id": animeID}, "error", err)
 			}
 			return episodeCacheRow{}, result.State, false
 		}
@@ -83,18 +83,13 @@ func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, availabi
 	if !s.writeEpisodeAvailabilityCache(episodeCacheWrite{ctx: ctx, anime: anime, source: source, body: body, now: now, providerSuccess: true, nextRefreshSQL: nextRefreshSQL}) {
 		return payload, nil
 	}
+	slog.Info("episodes_refresh_success", "component", "episodes", "fields", map[string]any{
+		"anime_id":     anime.MalID,
+		"source":       source,
+		"episodes":     len(episodes),
+		"next_refresh": payload.NextRefreshAt,
+	})
 
-	observability.Info(
-		"episodes_refresh_success",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id":     anime.MalID,
-			"source":       source,
-			"episodes":     len(episodes),
-			"next_refresh": payload.NextRefreshAt,
-		},
-	)
 	return payload, nil
 }
 
@@ -130,17 +125,11 @@ func (s *EpisodeService) writeEpisodeAvailabilityCache(input episodeCacheWrite) 
 	if err == nil {
 		return true
 	}
+	slog.Warn("episodes_cache_write_failed", "component", "episodes", "fields", map[string]any{
+		"anime_id": anime.MalID,
+		"source":   source,
+	}, "error", err)
 
-	observability.Warn(
-		"episodes_cache_write_failed",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id": anime.MalID,
-			"source":   source,
-		},
-		err,
-	)
 	return false
 }
 
@@ -176,27 +165,16 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 	row.UpdatedAt = now
 	err := s.setEpisodeCache(writeCtx, row)
 	if err != nil {
-		observability.Warn(
-			"episodes_mark_failure_failed",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id": anime.MalID,
-			},
-			err,
-		)
+		slog.Warn("episodes_mark_failure_failed", "component", "episodes", "fields", map[string]any{
+			"anime_id": anime.MalID,
+		}, "error", err)
+
 		return
 	}
-	observability.Warn(
-		"episodes_refresh_failure_recorded",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id":   anime.MalID,
-			"next_retry": next.Format(time.RFC3339),
-		},
-		cause,
-	)
+	slog.Warn("episodes_refresh_failure_recorded", "component", "episodes", "fields", map[string]any{
+		"anime_id":   anime.MalID,
+		"next_retry": next.Format(time.RFC3339),
+	}, "error", cause)
 }
 
 func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
@@ -215,16 +193,12 @@ func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime)
 		return domain.CanonicalEpisodeList{}, false
 	}
 	payload = enrichCachedPayload(payload, row)
-	observability.Info(
-		"episodes_cache_served",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id":     anime.MalID,
-			"episodes":     len(payload.Episodes),
-			"next_refresh": payload.NextRefreshAt,
-		},
-	)
+	slog.Info("episodes_cache_served", "component", "episodes", "fields", map[string]any{
+		"anime_id":     anime.MalID,
+		"episodes":     len(payload.Episodes),
+		"next_refresh": payload.NextRefreshAt,
+	})
+
 	return payload, true
 }
 
@@ -283,27 +257,19 @@ func cloneCanonicalEpisodeList(payload domain.CanonicalEpisodeList) domain.Canon
 
 func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row episodeCacheRow, now time.Time) bool {
 	if row.NextRefreshAt.Valid && !row.NextRefreshAt.Time.After(now) {
-		observability.Info(
-			"episodes_cache_due_for_refresh",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id":     anime.MalID,
-				"next_refresh": row.NextRefreshAt.Time.Format(time.RFC3339),
-			},
-		)
+		slog.Info("episodes_cache_due_for_refresh", "component", "episodes", "fields", map[string]any{
+			"anime_id":     anime.MalID,
+			"next_refresh": row.NextRefreshAt.Time.Format(time.RFC3339),
+		})
+
 		return false
 	}
 	if anime.Airing && row.UpdatedAt.Before(now.Add(-airingFallbackRefreshInterval)) {
-		observability.Info(
-			"episodes_cache_too_old_for_airing",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id":   anime.MalID,
-				"updated_at": row.UpdatedAt.Format(time.RFC3339),
-			},
-		)
+		slog.Info("episodes_cache_too_old_for_airing", "component", "episodes", "fields", map[string]any{
+			"anime_id":   anime.MalID,
+			"updated_at": row.UpdatedAt.Format(time.RFC3339),
+		})
+
 		return false
 	}
 	return true
@@ -312,43 +278,30 @@ func (s *EpisodeService) isFreshEpisodeCache(anime domain.Anime, row episodeCach
 func (s *EpisodeService) decodeCachedPayload(anime domain.Anime, raw string) (domain.CanonicalEpisodeList, bool) {
 	var payload domain.CanonicalEpisodeList
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		observability.Warn(
-			"episodes_cached_payload_invalid",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id": anime.MalID,
-			},
-			err,
-		)
+		slog.Warn("episodes_cached_payload_invalid", "component", "episodes", "fields", map[string]any{
+			"anime_id": anime.MalID,
+		}, "error", err)
+
 		return domain.CanonicalEpisodeList{}, false
 	}
 	if isStaleProviderEpisodePayload(payload) {
-		observability.Info(
-			"episodes_cached_payload_rejected_stale_version",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id":             anime.MalID,
-				"cached_episodes":      len(payload.Episodes),
-				"source":               payload.Source,
-				"availability_version": payload.AvailabilityVersion,
-			},
-		)
+		slog.Info("episodes_cached_payload_rejected_stale_version", "component", "episodes", "fields", map[string]any{
+			"anime_id":             anime.MalID,
+			"cached_episodes":      len(payload.Episodes),
+			"source":               payload.Source,
+			"availability_version": payload.AvailabilityVersion,
+		})
+
 		return domain.CanonicalEpisodeList{}, false
 	}
 
 	if !isCanonicalEpisodePayloadValid(payload, anime.Episodes) {
-		observability.Info(
-			"episodes_cached_payload_rejected",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id":        anime.MalID,
-				"expected_count":  anime.Episodes,
-				"cached_episodes": len(payload.Episodes),
-			},
-		)
+		slog.Info("episodes_cached_payload_rejected", "component", "episodes", "fields", map[string]any{
+			"anime_id":        anime.MalID,
+			"expected_count":  anime.Episodes,
+			"cached_episodes": len(payload.Episodes),
+		})
+
 		return domain.CanonicalEpisodeList{}, false
 	}
 
