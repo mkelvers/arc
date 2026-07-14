@@ -294,6 +294,123 @@ func formatNumber(n int) string {
 	return strings.Join(parts, " ")
 }
 
+func formatCompactNumber(n int) string {
+	if n == 0 {
+		return ""
+	}
+	if n >= 1_000_000 {
+		value := strings.TrimSuffix(strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/1_000_000), "0"), ".")
+		return value + "M"
+	}
+	if n >= 1_000 {
+		value := strings.TrimSuffix(strings.TrimSuffix(fmt.Sprintf("%.1f", float64(n)/1_000), "0"), ".")
+		return value + "K"
+	}
+	return strconv.Itoa(n)
+}
+
+func animeScore(score float64) string {
+	if score == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%.1f", score)
+}
+
+func animeScorePercent(score float64) float64 {
+	if score <= 0 {
+		return 0
+	}
+	if score >= 10 {
+		return 100
+	}
+	return score * 10
+}
+
+func ageRatingLabel(anime domain.Anime) string {
+	rating := strings.TrimSpace(anime.ShortRating())
+	if rating == "" {
+		return ""
+	}
+	switch strings.ToUpper(rating) {
+	case "PG-13":
+		return "14+"
+	case "R", "R+":
+		return "17+"
+	case "RX":
+		return "18+"
+	default:
+		return rating
+	}
+}
+
+func namedEntityNames(entities []domain.NamedEntity, limit int) string {
+	if len(entities) == 0 || limit == 0 {
+		return ""
+	}
+	if limit < 0 || limit > len(entities) {
+		limit = len(entities)
+	}
+	names := make([]string, 0, limit)
+	for _, entity := range entities {
+		if strings.TrimSpace(entity.Name) == "" {
+			continue
+		}
+		names = append(names, entity.Name)
+		if len(names) == limit {
+			break
+		}
+	}
+	return strings.Join(names, ", ")
+}
+
+func synopsisParagraphs(value string) []string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+
+	blocks := strings.FieldsFunc(value, func(r rune) bool {
+		return r == '\n' || r == '\r'
+	})
+	paragraphs := make([]string, 0, len(blocks))
+	for _, block := range blocks {
+		sentences := splitSentences(strings.TrimSpace(block))
+		for i := 0; i < len(sentences); i += 2 {
+			end := min(i+2, len(sentences))
+			paragraphs = append(paragraphs, strings.Join(sentences[i:end], " "))
+		}
+	}
+	return paragraphs
+}
+
+func splitSentences(value string) []string {
+	if value == "" {
+		return nil
+	}
+	words := strings.Fields(value)
+	sentences := make([]string, 0, 4)
+	var sentence strings.Builder
+	for _, word := range words {
+		if sentence.Len() > 0 {
+			sentence.WriteByte(' ')
+		}
+		sentence.WriteString(word)
+		if sentenceBoundary(word) {
+			sentences = append(sentences, sentence.String())
+			sentence.Reset()
+		}
+	}
+	if sentence.Len() > 0 {
+		sentences = append(sentences, sentence.String())
+	}
+	return sentences
+}
+
+func sentenceBoundary(word string) bool {
+	trimmed := strings.TrimRight(word, `"'”’)]}`)
+	return strings.HasSuffix(trimmed, ".") || strings.HasSuffix(trimmed, "!") || strings.HasSuffix(trimmed, "?") || strings.HasSuffix(trimmed, "…")
+}
+
 func capitalize(value string) string {
 	runes := []rune(strings.ToLower(value))
 	if len(runes) == 0 {
