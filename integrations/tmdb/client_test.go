@@ -60,6 +60,30 @@ func TestEpisodeGroupMethods(t *testing.T) {
 	}
 }
 
+func TestSearch(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/search/tv", func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("query"); got != "Apothecary Diaries" {
+			t.Fatalf("unexpected query %q", got)
+		}
+		if got := r.URL.Query().Get("first_air_date_year"); got != "2023" {
+			t.Fatalf("unexpected first air date year %q", got)
+		}
+		writeJSON(t, w, `{"results":[{"id":136840,"name":"The Apothecary Diaries","backdrop_path":"/hero.jpg"}]}`)
+	})
+	client, server := testClient(t, mux)
+	defer server.Close()
+
+	results, err := client.Search(context.Background(), MediaTypeTV, "Apothecary Diaries", 2023)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 || results[0].ID != 136840 || results[0].Type != MediaTypeTV || results[0].BackdropPath != "/hero.jpg" {
+		t.Fatalf("unexpected search results: %+v", results)
+	}
+}
+
 func TestGetSeason(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
