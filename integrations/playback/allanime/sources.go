@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	allanimeql "mal/integrations/ql/allanime"
 	"net/http"
 	"strings"
 )
@@ -27,7 +26,7 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 		}
 	}
 
-	fallback, err := allanimeql.AllAnimeEpisodeSources(ctx, c.graphqlClient(), showID, translationType(mode), episode)
+	fallback, err := AllAnimeEpisodeSources(ctx, c.graphqlClient(), showID, translationType(mode), episode)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +53,7 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 	return out, nil
 }
 
-func generatedSourceRefs(rawSourceURLs []allanimeql.AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL) []sourceReference {
+func generatedSourceRefs(rawSourceURLs []AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL) []sourceReference {
 	refs := make([]sourceReference, 0, len(rawSourceURLs))
 	seen := make(map[string]struct{})
 	for _, source := range rawSourceURLs {

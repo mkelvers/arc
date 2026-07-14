@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	stdhtml "html"
-	allanimeql "mal/integrations/ql/allanime"
 	"strconv"
 	"strings"
 
@@ -29,7 +28,7 @@ type ProviderShow struct {
 }
 
 func (c *AllAnimeProvider) DirectSequels(ctx context.Context, show ProviderShow) ([]string, error) {
-	result, err := allanimeql.AllAnimeDirectSequels(ctx, c.graphqlClient(), show.ID)
+	result, err := AllAnimeDirectSequels(ctx, c.graphqlClient(), show.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +46,7 @@ func (c *AllAnimeProvider) DirectSequels(ctx context.Context, show ProviderShow)
 }
 
 func (c *AllAnimeProvider) GetProviderShow(ctx context.Context, showID string) (ProviderShow, error) {
-	result, err := allanimeql.AllAnimeProviderShow(ctx, c.graphqlClient(), showID)
+	result, err := AllAnimeProviderShow(ctx, c.graphqlClient(), showID)
 	if err != nil {
 		return ProviderShow{}, err
 	}
@@ -62,7 +61,7 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 	if season == "" {
 		return nil, errors.New("allanime: season is required")
 	}
-	search := allanimeql.SearchInput{
+	search := SearchInput{
 		AllowAdult:   false,
 		AllowUnknown: false,
 		Season:       strings.ToUpper(season[:1]) + strings.ToLower(season[1:]),
@@ -72,7 +71,7 @@ func (c *AllAnimeProvider) SeasonalShows(ctx context.Context, season string, yea
 	out := make([]ProviderShow, 0)
 	seen := make(map[int]bool)
 	for page := 1; page <= 20; page++ {
-		result, err := allanimeql.AllAnimeSeasonalShows(ctx, c.graphqlClient(), search, page)
+		result, err := AllAnimeSeasonalShows(ctx, c.graphqlClient(), search, page)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +96,7 @@ func isPlayableSeasonShow(show ProviderShow, year int) bool {
 	return show.Year == year && show.MalID > 0 && show.Type == "TV" && max(len(show.SubEpisodes), len(show.DubEpisodes)) > 0
 }
 
-func providerShowFrom(raw allanimeql.ProviderShowFields) ProviderShow {
+func providerShowFrom(raw ProviderShowFields) ProviderShow {
 	detail := providerEpisodeDetailFrom(raw.AvailableEpisodesDetail)
 	return ProviderShow{
 		ID:           raw.Id,
@@ -116,7 +115,7 @@ func providerShowFrom(raw allanimeql.ProviderShowFields) ProviderShow {
 }
 
 type providerSeason struct {
-	Year allanimeql.FlexibleInt `json:"year"`
+	Year FlexibleInt `json:"year"`
 }
 
 type providerEpisodeDetail struct {
@@ -125,13 +124,13 @@ type providerEpisodeDetail struct {
 	Raw []string `json:"raw"`
 }
 
-func providerSeasonYear(raw allanimeql.Object) int {
+func providerSeasonYear(raw Object) int {
 	var season providerSeason
 	_ = raw.Decode(&season)
 	return season.Year.Int()
 }
 
-func providerEpisodeDetailFrom(raw allanimeql.Object) providerEpisodeDetail {
+func providerEpisodeDetailFrom(raw Object) providerEpisodeDetail {
 	var detail providerEpisodeDetail
 	_ = raw.Decode(&detail)
 	return detail
