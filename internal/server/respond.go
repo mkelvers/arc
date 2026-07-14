@@ -1,7 +1,7 @@
 package server
 
 import (
-	"mal/internal/observability"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -23,9 +23,9 @@ func RespondHTMLOrJSONError(c *gin.Context, status int, message string) {
 }
 
 func RespondError(c *gin.Context, status int, event string, component string, message string, fields map[string]any, err error) {
-	level := observability.LogLevelWarn
+	level := slog.LevelWarn
 	if status >= http.StatusInternalServerError {
-		level = observability.LogLevelError
+		level = slog.LevelError
 	}
 	if fields == nil {
 		fields = make(map[string]any, 2)
@@ -38,7 +38,11 @@ func RespondError(c *gin.Context, status int, event string, component string, me
 			fields["request_route"] = route
 		}
 	}
-	observability.LogContext(c.Request.Context(), level, event, component, "", fields, err)
+	args := []any{"component", component, "fields", fields}
+	if err != nil {
+		args = append(args, "error", err)
+	}
+	slog.Log(c.Request.Context(), level, event, args...)
 	RespondHTMLOrJSONError(c, status, message)
 }
 

@@ -3,7 +3,7 @@ package server
 
 import (
 	"context"
-	"mal/internal/observability"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -61,32 +61,24 @@ func RunServer(cfg Config, lifecycle fx.Lifecycle, r *gin.Engine) {
 
 	lifecycle.Append(fx.Hook{
 		OnStart: func(context.Context) error {
-			observability.Info(
-				"server_start",
-				"server",
-				"",
-				map[string]any{
-					"port": port,
-				},
-			)
+			slog.Info("server_start", "component", "server", "fields", map[string]any{
+				"port": port,
+			})
+
 			go func() {
 				if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					// Avoid exiting the process from a goroutine; let the process supervisor handle restarts.
-					observability.Error(
-						"server_listen_error",
-						"server",
-						"",
-						map[string]any{
+					slog.Error(
+						// Avoid exiting the process from a goroutine; let the process supervisor handle restarts.
+
+						"server_listen_error", "component", "server", "fields", map[string]any{
 							"port": port,
-						},
-						err,
-					)
+						}, "error", err)
 				}
 			}()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			observability.Info("server_stop", "server", "", nil)
+			slog.Info("server_stop", "component", "server")
 			ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
 			return srv.Shutdown(ctx)
