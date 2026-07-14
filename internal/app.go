@@ -26,7 +26,6 @@ func NewApp() *fx.App {
 		fx.Provide(
 			LoadConfig,
 			func(cfg Config) database.Config { return database.Config{URL: cfg.DatabaseURL} },
-			func(cfg Config) anilist.Config { return anilist.Config{URL: cfg.AniListURL} },
 			func(cfg Config) server.Config { return server.Config{GinMode: cfg.GinMode, Port: cfg.Port} },
 			func(cfg Config) playback.ProxyTokenKey { return playback.ProxyTokenKey(cfg.PlaybackProxySecret) },
 			func(cfg Config) (domain.CacheStore, error) { return NewRedisCache(cfg.RedisURL) },

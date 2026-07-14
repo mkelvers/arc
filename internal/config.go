@@ -13,7 +13,6 @@ type Config struct {
 
 	DatabaseURL string
 	RedisURL    string
-	AniListURL  string
 
 	// Optional. When empty, proxy token signing is disabled.
 	PlaybackProxySecret string
@@ -30,7 +29,6 @@ func LoadConfig() Config {
 		GinMode:             strings.TrimSpace(os.Getenv("GIN_MODE")),
 		DatabaseURL:         strings.TrimSpace(os.Getenv("DATABASE_URL")),
 		RedisURL:            strings.TrimSpace(os.Getenv("REDIS_URL")),
-		AniListURL:          strings.TrimSpace(os.Getenv("ANILIST_URL")),
 		PlaybackProxySecret: strings.TrimSpace(os.Getenv("PLAYBACK_PROXY_SECRET")),
 	}
 }

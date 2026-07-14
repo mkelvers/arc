@@ -29,6 +29,7 @@ type APIError struct {
 }
 
 const transientRetryDelay = 100 * time.Millisecond
+const defaultBaseURL = "https://graphql.anilist.co"
 
 func (e *APIError) Error() string {
 	if e.Status > 0 {
@@ -37,8 +38,8 @@ func (e *APIError) Error() string {
 	return "anilist: " + e.Message
 }
 
-func NewClient(baseURL string) *Client {
-	return &Client{baseURL: strings.TrimRight(baseURL, "/"), httpClient: &http.Client{Timeout: 15 * time.Second}}
+func NewClient() *Client {
+	return &Client{baseURL: defaultBaseURL, httpClient: &http.Client{Timeout: 15 * time.Second}}
 }
 
 func (c *Client) GetAnimeByMALID(ctx context.Context, id int) (Anime, error) {

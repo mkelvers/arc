@@ -75,7 +75,7 @@ func runFixes() error {
 	}
 	defer sqlDB.Close()
 
-	client := anilist.NewClient(cfg.AniListURL)
+	client := anilist.NewClient()
 	if err := database.ApplyPostgresSchemaAndFixes(sqlDB, internal.DataFixDependencies(client)); err != nil {
 		return fmt.Errorf("run schema and fixes: %w", err)
 	}
