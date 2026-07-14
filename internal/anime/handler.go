@@ -2,6 +2,7 @@ package anime
 
 import (
 	"context"
+	"mal/integrations/tmdb"
 	"mal/internal/domain"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,8 @@ type AnimeHandler struct {
 	watchlistSvc domain.WatchlistService
 	episodeSvc   domain.EpisodeService
 	discoverySvc *SeasonDiscoveryService
+	mappings     *MappingStore
+	tmdbClient   *tmdb.Client
 }
 
 type Service interface {
@@ -22,12 +25,14 @@ type Service interface {
 	WarmDetailSections(id int)
 }
 
-func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService, episodeSvc domain.EpisodeService, discoverySvc *SeasonDiscoveryService) *AnimeHandler {
+func NewAnimeHandler(svc Service, watchlistSvc domain.WatchlistService, episodeSvc domain.EpisodeService, discoverySvc *SeasonDiscoveryService, mappings *MappingStore, tmdbClient *tmdb.Client) *AnimeHandler {
 	return &AnimeHandler{
 		svc:          svc,
 		watchlistSvc: watchlistSvc,
 		episodeSvc:   episodeSvc,
 		discoverySvc: discoverySvc,
+		mappings:     mappings,
+		tmdbClient:   tmdbClient,
 	}
 }
 
@@ -65,6 +70,8 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/simulcast", h.HandleSimulcast)
 	r.GET("/api/simulcast", h.HandleSimulcastContent)
 	r.GET("/anime/:id", h.HandleAnimeDetails)
+	r.GET("/anime/:id/media", h.HandleAnimeMedia)
+	r.POST("/anime/:id/media", h.HandleSelectAnimeMedia)
 	r.GET("/api/search-quick", h.HandleQuickSearch)
 	r.GET("/api/search", h.HandleSearchAPI)
 	r.GET("/api/random/anime", h.HandleRandomAnime)
