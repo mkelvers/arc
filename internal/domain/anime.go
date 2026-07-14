@@ -51,6 +51,7 @@ type TitleEntry struct {
 }
 
 type Anime struct {
+	AniListID      int          `json:"anilist_id"`
 	MalID          int          `json:"mal_id"`
 	Title          string       `json:"title"`
 	TitleEnglish   string       `json:"title_english"`
@@ -121,6 +122,14 @@ type Anime struct {
 	} `json:"external"`
 
 	RecommendationRationale []string
+	ProviderRelations       []AnimeProviderRelation `json:"-"`
+}
+
+type AnimeProviderRelation struct {
+	Type      string
+	Format    string
+	AniListID int
+	MALID     int
 }
 
 func (a Anime) DisplayTitle() string {
