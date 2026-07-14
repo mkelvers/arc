@@ -2,10 +2,10 @@ package anime
 
 import (
 	"context"
+	"log/slog"
 	"mal/integrations/anilist"
 	"mal/internal/anime/recommendations"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"maps"
 	"strings"
 	"sync"
@@ -124,7 +124,7 @@ func (s *animeService) refreshTopPicksForYou(key topPicksCacheKey) {
 	defer cancel()
 
 	startedAt := time.Now()
-	observability.Info("top_picks_refresh_started", "anime", "", map[string]any{
+	slog.Info("top_picks_refresh_started", "component", "anime", "fields", map[string]any{
 		"user_id": key.userID,
 		"limit":   key.limit,
 	})
@@ -132,18 +132,14 @@ func (s *animeService) refreshTopPicksForYou(key topPicksCacheKey) {
 	data, err := s.computeTopPicks(ctx, key.userID, key.limit)
 	now := time.Now()
 	if err != nil {
-		observability.WarnContext(ctx,
-			"top_picks_refresh_failed",
-			"anime",
-			"",
-			map[string]any{
+		slog.WarnContext(ctx,
+			"top_picks_refresh_failed", "component", "anime", "fields", map[string]any{
 				"user_id":     key.userID,
 				"limit":       key.limit,
 				"duration_ms": time.Since(startedAt).Milliseconds(),
 				"retry_after": int(topPicksRetryDelay / time.Second),
-			},
-			err,
-		)
+			}, "error", err)
+
 		s.topPicksCache.mu.Lock()
 		if entry := s.topPicksCache.entries[key]; entry != nil {
 			entry.refreshing = false
@@ -162,8 +158,7 @@ func (s *animeService) refreshTopPicksForYou(key topPicksCacheKey) {
 		hasResult: true,
 	}
 	s.topPicksCache.mu.Unlock()
-
-	observability.Info("top_picks_refresh_completed", "anime", "", map[string]any{
+	slog.Info("top_picks_refresh_completed", "component", "anime", "fields", map[string]any{
 		"user_id":     key.userID,
 		"limit":       key.limit,
 		"count":       len(data.Animes),

@@ -3,8 +3,8 @@ package recommendations
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"sort"
 	"strings"
 	"sync"
@@ -111,13 +111,8 @@ func (e engine) collectCollaborativeCandidates(ctx context.Context, seedPool []r
 		g.Go(func() error {
 			recs, err := e.metadata.GetAnimeRecommendations(ctx, seed.animeID)
 			if err != nil {
-				observability.Warn(
-					"collaborative_recommendations_failed",
-					"anime",
-					"",
-					map[string]any{"seed_id": seed.animeID},
-					err,
-				)
+				slog.Warn("collaborative_recommendations_failed", "component", "anime", "fields", map[string]any{"seed_id": seed.animeID}, "error", err)
+
 				return nil
 			}
 			for i, rec := range recs {
@@ -152,16 +147,11 @@ func (e engine) collectProfileSearchCandidates(ctx context.Context, profile user
 		g.Go(func() error {
 			res, err := e.metadata.SearchAdvanced(ctx, domain.SearchOptions{OrderBy: "score", Sort: "desc", Genres: query.genreIDs, StudioID: query.studioID, SFW: true, Page: 1, Limit: profileSearchLimit})
 			if err != nil {
-				observability.Warn(
-					"top_pick_profile_search_failed",
-					"anime",
-					"",
-					map[string]any{
-						"genres":    query.genreIDs,
-						"studio_id": query.studioID,
-					},
-					err,
-				)
+				slog.Warn("top_pick_profile_search_failed", "component", "anime", "fields", map[string]any{
+					"genres":    query.genreIDs,
+					"studio_id": query.studioID,
+				}, "error", err)
+
 				return nil
 			}
 
@@ -206,13 +196,8 @@ func (e engine) scoreRankedCandidates(
 			if !item.hasAnime {
 				fetchedAnime, err := e.metadata.GetAnimeByID(ctx, item.id)
 				if err != nil {
-					observability.Warn(
-						"recommendation_anime_fetch_failed",
-						"anime",
-						"",
-						map[string]any{"anime_id": item.id},
-						err,
-					)
+					slog.Warn("recommendation_anime_fetch_failed", "component", "anime", "fields", map[string]any{"anime_id": item.id}, "error", err)
+
 					return nil
 				}
 				anime = fetchedAnime

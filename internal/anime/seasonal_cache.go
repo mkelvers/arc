@@ -3,8 +3,8 @@ package anime
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"mal/integrations/playback/allanime"
-	"mal/internal/observability"
 	"slices"
 	"strings"
 	"sync"
@@ -295,11 +295,11 @@ func (l seasonalCacheLog) log(event string, fields map[string]any, err error) {
 	fields["lookup"] = l.opts.source
 	fields["duration_ms"] = time.Since(l.startedAt).Milliseconds()
 
-	level := observability.LogLevelInfo
+	level := slog.LevelInfo
 	if err != nil {
-		level = observability.LogLevelWarn
+		level = slog.LevelWarn
 	}
-	observability.LogContext(l.ctx, level, event, "anime", "", fields, err)
+	slog.Log(l.ctx, level, event, "component", "anime", "fields", fields, "error", err)
 }
 
 func cloneProviderShows(in []allanime.ProviderShow) []allanime.ProviderShow {
