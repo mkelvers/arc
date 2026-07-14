@@ -8,7 +8,6 @@ import (
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"math/rand"
-	"strings"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -17,6 +16,7 @@ import (
 type animeService struct {
 	metadata         *anilist.CachedClient
 	repo             domain.AnimeRepository
+	grouper          *CardGrouper
 	topPicksCache    *topPicksCache
 	topPicksCacheTTL time.Duration
 	computeTopPicks  recommendationComputeFunc
@@ -28,14 +28,15 @@ func wrapAnimes(in []domain.Anime) []domain.Anime {
 	return append([]domain.Anime(nil), in...)
 }
 
-func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, repo domain.AnimeRepository) *animeService {
-	return newAnimeService(metadata, repo)
+func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, repo domain.AnimeRepository, grouper *CardGrouper) *animeService {
+	return newAnimeService(metadata, repo, grouper)
 }
 
-func newAnimeService(metadata *anilist.CachedClient, repo domain.AnimeRepository) *animeService {
+func newAnimeService(metadata *anilist.CachedClient, repo domain.AnimeRepository, grouper *CardGrouper) *animeService {
 	svc := &animeService{
 		metadata:         metadata,
 		repo:             repo,
+		grouper:          grouper,
 		topPicksCache:    &topPicksCache{entries: map[topPicksCacheKey]*topPicksCacheEntry{}},
 		topPicksCacheTTL: 15 * time.Minute,
 	}
@@ -102,6 +103,7 @@ func (s *animeService) catalogSectionMetadata(ctx context.Context, section strin
 	for _, item := range result.Items {
 		res.Animes = append(res.Animes, anilist.ToMetadataAnime(item))
 	}
+	res.Animes = groupCardsOrOriginal(ctx, s.grouper, res.Animes)
 	return res, nil
 }
 
@@ -151,8 +153,9 @@ func (s *animeService) SearchAdvanced(ctx context.Context, opts domain.SearchOpt
 	}
 	animes := make([]domain.Anime, 0, len(result.Items))
 	for _, item := range result.Items {
-		animes = append(animes, anilist.ToMetadataAnime(anilist.Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage}))
+		animes = append(animes, anilist.ToMetadataAnime(anilist.Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage, Relations: item.Relations}))
 	}
+	animes = groupCardsOrOriginal(ctx, s.grouper, animes)
 	return domain.SearchResult{Animes: animes, HasNextPage: result.HasNextPage}, nil
 }
 
@@ -198,28 +201,27 @@ func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain
 		if err != nil {
 			return nil, fmt.Errorf("get recommendations: %w", err)
 		}
-		out := make([]domain.RecommendationEntry, 0, len(items))
+		animes := make([]domain.Anime, 0, len(items))
+		votes := make(map[int]int, len(items))
 		for _, item := range items {
+			anime := anilist.ToMetadataAnime(anilist.Anime{ID: item.Anime.ID, MALID: item.Anime.MALID, Title: item.Anime.Title, Description: item.Anime.Description, Format: item.Anime.Format, SeasonYear: item.Anime.StartYear, CoverImage: item.Anime.CoverImage, Relations: item.Anime.Relations})
+			animes = append(animes, anime)
+			votes[item.Anime.MALID] = item.Votes
+		}
+		animes = groupCardsOrOriginal(ctx, s.grouper, animes)
+		out := make([]domain.RecommendationEntry, 0, len(animes))
+		for _, anime := range animes {
 			var mapped domain.RecommendationEntry
-			mapped.Entry.MalID = item.Anime.MALID
-			mapped.Entry.Title = anilistFirstTitle(item.Anime.Title)
-			mapped.Entry.Synopsis = item.Anime.Description
-			mapped.Entry.Images.Webp.LargeImageURL = item.Anime.CoverImage
-			mapped.Votes = item.Votes
+			mapped.Entry.MalID = anime.MalID
+			mapped.Entry.Title = anime.DisplayTitle()
+			mapped.Entry.Synopsis = anime.Synopsis
+			mapped.Entry.Images.Webp.LargeImageURL = anime.Images.Webp.LargeImageURL
+			mapped.Votes = votes[anime.MalID]
 			out = append(out, mapped)
 		}
 		return out, nil
 	}
 	return nil, fmt.Errorf("get recommendations: AniList unavailable")
-}
-
-func anilistFirstTitle(title anilist.Titles) string {
-	for _, value := range []string{title.English, title.Romaji, title.Native, title.UserPreferred} {
-		if strings.TrimSpace(value) != "" {
-			return value
-		}
-	}
-	return ""
 }
 
 func (s *animeService) WarmDetailSections(id int) {
@@ -254,7 +256,12 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		result, err := s.metadata.GetPopular(randomCtx, 1, 50)
 		if err == nil && len(result.Items) > 0 {
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			return anilist.ToMetadataAnime(result.Items[r.Intn(len(result.Items))]), nil
+			picked := anilist.ToMetadataAnime(result.Items[r.Intn(len(result.Items))])
+			grouped := groupCardsOrOriginal(ctx, s.grouper, []domain.Anime{picked})
+			if len(grouped) > 0 {
+				return grouped[0], nil
+			}
+			return picked, nil
 		}
 		return domain.Anime{}, fmt.Errorf("get random anime: AniList unavailable: %w", err)
 	}
