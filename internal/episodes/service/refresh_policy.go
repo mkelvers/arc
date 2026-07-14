@@ -2,11 +2,11 @@ package service
 
 import (
 	"database/sql"
+	"log/slog"
 	"strings"
 	"time"
 
 	"mal/internal/domain"
-	"mal/internal/observability"
 )
 
 const (
@@ -64,31 +64,20 @@ func nextBroadcastAfter(anime domain.Anime, after time.Time) time.Time {
 		if loaded, err := time.LoadLocation(tz); err == nil {
 			loc = loaded
 		} else {
-			observability.Warn(
-				"episodes_broadcast_timezone_parse_failed",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-					"timezone": tz,
-				},
-				err,
-			)
+			slog.Warn("episodes_broadcast_timezone_parse_failed", "component", "episodes", "fields", map[string]any{
+				"anime_id": anime.MalID,
+				"timezone": tz,
+			}, "error", err)
 		}
 	}
 
 	hour, minute, ok := parseBroadcastTime(anime.Broadcast.Time)
 	if !ok {
-		observability.Warn(
-			"episodes_broadcast_time_parse_failed",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id": anime.MalID,
-				"time":     anime.Broadcast.Time,
-			},
-			nil,
-		)
+		slog.Warn("episodes_broadcast_time_parse_failed", "component", "episodes", "fields", map[string]any{
+			"anime_id": anime.MalID,
+			"time":     anime.Broadcast.Time,
+		})
+
 		return time.Time{}
 	}
 

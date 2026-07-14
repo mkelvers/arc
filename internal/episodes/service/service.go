@@ -4,13 +4,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
 	"mal/integrations/anilist"
 	"mal/internal/database/db"
 	"mal/internal/domain"
-	"mal/internal/observability"
 
 	"go.uber.org/fx"
 	"golang.org/x/sync/singleflight"
@@ -94,30 +94,20 @@ func (s *EpisodeService) waitForCanonicalRefresh(ctx context.Context, anime doma
 
 	select {
 	case <-ctx.Done():
-		observability.Warn(
-			"episodes_refresh_wait_cancelled",
-			"episodes",
-			"",
-			map[string]any{
-				"anime_id":    anime.MalID,
-				"policy":      string(policy),
-				"duration_ms": time.Since(startedAt).Milliseconds(),
-			},
-			ctx.Err(),
-		)
+		slog.Warn("episodes_refresh_wait_cancelled", "component", "episodes", "fields", map[string]any{
+			"anime_id":    anime.MalID,
+			"policy":      string(policy),
+			"duration_ms": time.Since(startedAt).Milliseconds(),
+		}, "error", ctx.Err())
+
 		return domain.CanonicalEpisodeList{}, ctx.Err()
 	case result := <-resultCh:
 		if result.Shared {
-			observability.Info(
-				"episodes_refresh_shared",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id":    anime.MalID,
-					"policy":      string(policy),
-					"duration_ms": time.Since(startedAt).Milliseconds(),
-				},
-			)
+			slog.Info("episodes_refresh_shared", "component", "episodes", "fields", map[string]any{
+				"anime_id":    anime.MalID,
+				"policy":      string(policy),
+				"duration_ms": time.Since(startedAt).Milliseconds(),
+			})
 		}
 		if result.Err != nil {
 			return domain.CanonicalEpisodeList{}, result.Err
@@ -136,15 +126,11 @@ func (s *EpisodeService) runCanonicalRefresh(ctx context.Context, anime domain.A
 
 	if policy == canonicalRefreshRegular {
 		if cached, ok := s.getFreshCached(refreshCtx, anime); ok {
-			observability.Info(
-				"episodes_refresh_cache_hit_after_join",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-					"policy":   string(policy),
-				},
-			)
+			slog.Info("episodes_refresh_cache_hit_after_join", "component", "episodes", "fields", map[string]any{
+				"anime_id": anime.MalID,
+				"policy":   string(policy),
+			})
+
 			return cloneCanonicalEpisodeList(cached), nil
 		}
 	}
@@ -162,16 +148,11 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 
 	for i, id := range ids {
 		if ctx.Err() != nil {
-			observability.Warn(
-				"episodes_worker_tick_interrupted",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id":  id,
-					"remaining": len(ids) - i,
-				},
-				ctx.Err(),
-			)
+			slog.Warn("episodes_worker_tick_interrupted", "component", "episodes", "fields", map[string]any{
+				"anime_id":  id,
+				"remaining": len(ids) - i,
+			}, "error", ctx.Err())
+
 			break
 		}
 		if s.hasFreshTrackedEpisodeCache(ctx, id) {
@@ -179,27 +160,16 @@ func (s *EpisodeService) RefreshTrackedDue(ctx context.Context, limit int) error
 		}
 		anime, err := s.fetchTrackedAnime(ctx, id)
 		if err != nil {
-			observability.Warn(
-				"episodes_refresh_fetch_anime_failed",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": id,
-				},
-				err,
-			)
+			slog.Warn("episodes_refresh_fetch_anime_failed", "component", "episodes", "fields", map[string]any{
+				"anime_id": id,
+			}, "error", err)
+
 			continue
 		}
 		if _, err := s.refresh(ctx, anime); err != nil {
-			observability.Warn(
-				"episodes_refresh_failed",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": id,
-				},
-				err,
-			)
+			slog.Warn("episodes_refresh_failed", "component", "episodes", "fields", map[string]any{
+				"anime_id": id,
+			}, "error", err)
 		}
 	}
 
@@ -238,30 +208,20 @@ func (s *EpisodeService) fetchTrackedAnime(ctx context.Context, id int64) (domai
 
 func (s *EpisodeService) refresh(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, error) {
 	now := s.clock.Now()
-	observability.Info(
-		"episodes_refresh_start",
-		"episodes",
-		"",
-		map[string]any{
-			"anime_id": anime.MalID,
-			"title":    anime.DisplayTitle(),
-			"airing":   anime.Airing,
-		},
-	)
+	slog.Info("episodes_refresh_start", "component", "episodes", "fields", map[string]any{
+		"anime_id": anime.MalID,
+		"title":    anime.DisplayTitle(),
+		"airing":   anime.Airing,
+	})
 
 	availability, source, providerErr := s.fetchProviderAvailability(ctx, anime)
 	if providerErr != nil {
 		s.markFailure(ctx, anime, providerErr)
 		if cached, ok := s.getDecodedCached(ctx, anime); ok {
-			observability.Warn(
-				"episodes_provider_failed_serving_stale_cache",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-				},
-				providerErr,
-			)
+			slog.Warn("episodes_provider_failed_serving_stale_cache", "component", "episodes", "fields", map[string]any{
+				"anime_id": anime.MalID,
+			}, "error", providerErr)
+
 			return cached, nil
 		}
 		return domain.CanonicalEpisodeList{}, providerErr
@@ -275,44 +235,30 @@ func (s *EpisodeService) fetchProviderAvailability(ctx context.Context, anime do
 	for _, provider := range s.providers {
 		providerID, err := s.providerID(ctx, anime, provider, titles)
 		if err != nil {
-			observability.Warn(
-				"episodes_provider_id_miss",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-					"provider": provider.Name(),
-				},
-				err,
-			)
+			slog.Warn("episodes_provider_id_miss", "component", "episodes", "fields", map[string]any{
+				"anime_id": anime.MalID,
+				"provider": provider.Name(),
+			}, "error", err)
+
 			continue
 		}
 
 		available, err := provider.GetEpisodeAvailabilityByProviderID(ctx, providerID)
 		if err != nil {
-			observability.Warn(
-				"episodes_provider_availability_miss",
-				"episodes",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-					"provider": provider.Name(),
-				},
-				err,
-			)
-			continue
-		}
-		observability.Info(
-			"episodes_provider_availability_hit",
-			"episodes",
-			"",
-			map[string]any{
+			slog.Warn("episodes_provider_availability_miss", "component", "episodes", "fields", map[string]any{
 				"anime_id": anime.MalID,
 				"provider": provider.Name(),
-				"sub":      len(available.Sub),
-				"dub":      len(available.Dub),
-			},
-		)
+			}, "error", err)
+
+			continue
+		}
+		slog.Info("episodes_provider_availability_hit", "component", "episodes", "fields", map[string]any{
+			"anime_id": anime.MalID,
+			"provider": provider.Name(),
+			"sub":      len(available.Sub),
+			"dub":      len(available.Dub),
+		})
+
 		return available, provider.Name(), nil
 	}
 	return domain.EpisodeAvailability{}, "", fmt.Errorf("no episode availability provider matched anime_id=%d", anime.MalID)

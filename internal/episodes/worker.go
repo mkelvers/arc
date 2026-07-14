@@ -2,8 +2,8 @@ package episodes
 
 import (
 	"context"
+	"log/slog"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"time"
 
 	"go.uber.org/fx"
@@ -22,7 +22,7 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService) {
 				cancel()
 			}()
 			go func() {
-				observability.Info("episodes_worker_start", "episodes", "", nil)
+				slog.Info("episodes_worker_start", "component", "episodes")
 				ticker := time.NewTicker(workerInterval)
 				defer ticker.Stop()
 
@@ -31,21 +31,15 @@ func RegisterWorker(lc fx.Lifecycle, svc domain.EpisodeService) {
 					err := svc.RefreshTrackedDue(tickCtx, 25)
 					tickCancel()
 					if err != nil {
-						observability.Warn(
-							"episodes_worker_tick_failed",
-							"episodes",
-							"",
-							map[string]any{
-								"worker": "episodes_availability",
-							},
-							err,
-						)
+						slog.Warn("episodes_worker_tick_failed", "component", "episodes", "fields", map[string]any{
+							"worker": "episodes_availability",
+						}, "error", err)
 					}
 
 					select {
 					case <-ticker.C:
 					case <-ctx.Done():
-						observability.Info("episodes_worker_stop", "episodes", "", nil)
+						slog.Info("episodes_worker_stop", "component", "episodes")
 						return
 					}
 				}
