@@ -44,49 +44,6 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 	return i, err
 }
 
-const createAuditLog = `-- name: CreateAuditLog :one
-INSERT INTO audit_log (id, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, occurred_at, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json
-`
-
-type CreateAuditLogParams struct {
-	ID           string         `json:"id"`
-	UserID       sql.NullString `json:"user_id"`
-	Action       string         `json:"action"`
-	ResourceType sql.NullString `json:"resource_type"`
-	ResourceID   sql.NullString `json:"resource_id"`
-	Ip           sql.NullString `json:"ip"`
-	UserAgent    sql.NullString `json:"user_agent"`
-	MetadataJson sql.NullString `json:"metadata_json"`
-}
-
-func (q *Queries) CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error) {
-	row := q.db.QueryRowContext(ctx, createAuditLog,
-		arg.ID,
-		arg.UserID,
-		arg.Action,
-		arg.ResourceType,
-		arg.ResourceID,
-		arg.Ip,
-		arg.UserAgent,
-		arg.MetadataJson,
-	)
-	var i AuditLog
-	err := row.Scan(
-		&i.ID,
-		&i.OccurredAt,
-		&i.UserID,
-		&i.Action,
-		&i.ResourceType,
-		&i.ResourceID,
-		&i.Ip,
-		&i.UserAgent,
-		&i.MetadataJson,
-	)
-	return i, err
-}
-
 const createSession = `-- name: CreateSession :one
 INSERT INTO session (id, user_id, expires_at)
 VALUES ($1, $2, $3)
@@ -192,52 +149,6 @@ func (q *Queries) GetAnime(ctx context.Context, id int64) (Anime, error) {
 		&i.DurationSeconds,
 	)
 	return i, err
-}
-
-const getAuditLogsForUser = `-- name: GetAuditLogsForUser :many
-SELECT id, occurred_at, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json
-FROM audit_log
-WHERE user_id = $1
-ORDER BY occurred_at DESC
-LIMIT $2
-`
-
-type GetAuditLogsForUserParams struct {
-	UserID sql.NullString `json:"user_id"`
-	Limit  int32          `json:"limit"`
-}
-
-func (q *Queries) GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error) {
-	rows, err := q.db.QueryContext(ctx, getAuditLogsForUser, arg.UserID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []AuditLog
-	for rows.Next() {
-		var i AuditLog
-		if err := rows.Scan(
-			&i.ID,
-			&i.OccurredAt,
-			&i.UserID,
-			&i.Action,
-			&i.ResourceType,
-			&i.ResourceID,
-			&i.Ip,
-			&i.UserAgent,
-			&i.MetadataJson,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const getContinueWatchingCarouselEntries = `-- name: GetContinueWatchingCarouselEntries :many

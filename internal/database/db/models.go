@@ -33,18 +33,6 @@ type ApiToken struct {
 	RevokedAt  sql.NullTime `json:"revoked_at"`
 }
 
-type AuditLog struct {
-	ID           string         `json:"id"`
-	OccurredAt   time.Time      `json:"occurred_at"`
-	UserID       sql.NullString `json:"user_id"`
-	Action       string         `json:"action"`
-	ResourceType sql.NullString `json:"resource_type"`
-	ResourceID   sql.NullString `json:"resource_id"`
-	Ip           sql.NullString `json:"ip"`
-	UserAgent    sql.NullString `json:"user_agent"`
-	MetadataJson sql.NullString `json:"metadata_json"`
-}
-
 type ContinueWatchingEntry struct {
 	ID                 string          `json:"id"`
 	UserID             string          `json:"user_id"`

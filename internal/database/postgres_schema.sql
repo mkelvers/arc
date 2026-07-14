@@ -95,18 +95,6 @@ CREATE TABLE IF NOT EXISTS data_fixes (
     applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS audit_log (
-    id TEXT PRIMARY KEY,
-    occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    user_id TEXT REFERENCES "user"(id) ON DELETE SET NULL,
-    action TEXT NOT NULL,
-    resource_type TEXT,
-    resource_id TEXT,
-    ip TEXT,
-    user_agent TEXT,
-    metadata_json TEXT
-);
-
 CREATE TABLE IF NOT EXISTS recommendation_event (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
@@ -159,8 +147,6 @@ CREATE INDEX IF NOT EXISTS idx_skip_segment_override_lookup ON skip_segment_over
 CREATE INDEX IF NOT EXISTS idx_watch_list_entry_user_updated_at ON watch_list_entry(user_id, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_watch_list_entry_user_status_updated_at_desc ON watch_list_entry(user_id, status, updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_watch_list_entry_status_updated_at_anime_id ON watch_list_entry(status, updated_at DESC, anime_id);
-CREATE INDEX IF NOT EXISTS idx_audit_log_user_id_occurred_at ON audit_log(user_id, occurred_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_log_action_occurred_at ON audit_log(action, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommendation_event_user_occurred_at ON recommendation_event(user_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommendation_event_user_event_type_occurred_at ON recommendation_event(user_id, event_type, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommendation_event_anime_occurred_at ON recommendation_event(anime_id, occurred_at DESC);

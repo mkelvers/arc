@@ -1,18 +1,6 @@
 -- name: GetUser :one
 SELECT * FROM "user" WHERE id = $1 LIMIT 1;
 
--- name: CreateAuditLog :one
-INSERT INTO audit_log (id, user_id, action, resource_type, resource_id, ip, user_agent, metadata_json)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING *;
-
--- name: GetAuditLogsForUser :many
-SELECT *
-FROM audit_log
-WHERE user_id = $1
-ORDER BY occurred_at DESC
-LIMIT $2;
-
 -- name: GetUserByUsername :one
 SELECT * FROM "user" WHERE username = $1 LIMIT 1;
 

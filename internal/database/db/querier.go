@@ -10,14 +10,12 @@ import (
 
 type Querier interface {
 	CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error)
-	CreateAuditLog(ctx context.Context, arg CreateAuditLogParams) (AuditLog, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	DeleteContinueWatchingEntry(ctx context.Context, arg DeleteContinueWatchingEntryParams) error
 	DeleteSession(ctx context.Context, id string) error
 	DeleteWatchListEntry(ctx context.Context, arg DeleteWatchListEntryParams) error
 	GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiToken, error)
 	GetAnime(ctx context.Context, id int64) (Anime, error)
-	GetAuditLogsForUser(ctx context.Context, arg GetAuditLogsForUserParams) ([]AuditLog, error)
 	GetContinueWatchingCarouselEntries(ctx context.Context, arg GetContinueWatchingCarouselEntriesParams) ([]GetContinueWatchingCarouselEntriesRow, error)
 	GetContinueWatchingEntries(ctx context.Context, userID string) ([]GetContinueWatchingEntriesRow, error)
 	GetContinueWatchingEntry(ctx context.Context, arg GetContinueWatchingEntryParams) (ContinueWatchingEntry, error)
