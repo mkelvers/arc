@@ -39,7 +39,7 @@ func NewApp() *fx.App {
 		playback.Module,
 		templates.Module,
 		server.Module,
-		fx.Invoke(RunPostgresMigrationsAndFixes),
+		fx.Invoke(ApplyPostgresSchemaAndFixes),
 		fx.Provide(func(r *templates.Renderer) render.HTMLRender {
 			return r
 		}),

@@ -17,8 +17,8 @@ func DefaultAvatarURL(username string) string {
 	return "https://api.dicebear.com/9.x/dylan/svg?" + params.Encode()
 }
 
-func RunPostgresMigrationsAndFixes(sqlDB *sql.DB, metadata *anilist.CachedClient) error {
-	return database.RunPostgresMigrationsAndFixes(sqlDB, DataFixDependencies(metadata))
+func ApplyPostgresSchemaAndFixes(sqlDB *sql.DB, metadata *anilist.CachedClient) error {
+	return database.ApplyPostgresSchemaAndFixes(sqlDB, DataFixDependencies(metadata))
 }
 
 type animeDataFixClient interface {

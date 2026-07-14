@@ -59,7 +59,7 @@ func run(args []string) error {
 	}
 	defer sqlDB.Close()
 
-	if err := database.RunPostgresMigrations(sqlDB); err != nil {
+	if err := database.ApplyPostgresSchema(sqlDB); err != nil {
 		return fmt.Errorf("prepare database: %w", err)
 	}
 
@@ -74,10 +74,10 @@ func runFixes() error {
 	defer sqlDB.Close()
 
 	client := anilist.NewClient("")
-	if err := database.RunPostgresMigrationsAndFixes(sqlDB, internal.DataFixDependencies(client)); err != nil {
-		return fmt.Errorf("run migrations and fixes: %w", err)
+	if err := database.ApplyPostgresSchemaAndFixes(sqlDB, internal.DataFixDependencies(client)); err != nil {
+		return fmt.Errorf("run schema and fixes: %w", err)
 	}
-	fmt.Println("Database migrations and fixes complete")
+	fmt.Println("Database schema and fixes complete")
 	return nil
 }
 
