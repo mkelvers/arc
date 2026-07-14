@@ -1,0 +1,13 @@
+schema: schema.graphql
+operations:
+  - operations.graphql
+generated: generated.go
+package: allanime
+
+bindings:
+  FlexibleInt:
+    type: mal/integrations/playback/allanime.FlexibleInt
+  Object:
+    type: mal/integrations/playback/allanime.Object
+  SearchInput:
+    type: mal/integrations/playback/allanime.SearchInput
