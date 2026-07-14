@@ -94,6 +94,31 @@ func (c *Client) GetImages(ctx context.Context, ref MediaRef, options ImageOptio
 	return result, err
 }
 
+func (c *Client) Search(ctx context.Context, mediaType MediaType, queryText string, year int) ([]SearchResult, error) {
+	if mediaType != MediaTypeTV && mediaType != MediaTypeMovie {
+		return nil, fmt.Errorf("tmdb: unsupported media type %q", mediaType)
+	}
+	queryText = strings.TrimSpace(queryText)
+	if queryText == "" {
+		return nil, errors.New("tmdb: search query is empty")
+	}
+	query := make(url.Values)
+	query.Set("query", queryText)
+	if year > 0 {
+		if mediaType == MediaTypeTV {
+			query.Set("first_air_date_year", strconv.Itoa(year))
+		} else {
+			query.Set("year", strconv.Itoa(year))
+		}
+	}
+	var result searchResponse
+	err := c.get(ctx, "/search/"+string(mediaType), query, &result)
+	for i := range result.Results {
+		result.Results[i].Type = mediaType
+	}
+	return result.Results, err
+}
+
 func (c *Client) GetEpisodeGroups(ctx context.Context, seriesID int64) (EpisodeGroups, error) {
 	if seriesID <= 0 {
 		return EpisodeGroups{}, fmt.Errorf("tmdb: invalid TV series ID %d", seriesID)
@@ -214,4 +239,8 @@ type mediaDetails struct {
 	BackdropPath  string          `json:"backdrop_path"`
 	PosterPath    string          `json:"poster_path"`
 	Seasons       []SeasonSummary `json:"seasons"`
+}
+
+type searchResponse struct {
+	Results []SearchResult `json:"results"`
 }

@@ -47,6 +47,20 @@ type Media struct {
 	Logos        []Image
 }
 
+type SearchResult struct {
+	ID            int64     `json:"id"`
+	Type          MediaType `json:"-"`
+	Name          string    `json:"name"`
+	OriginalName  string    `json:"original_name"`
+	Title         string    `json:"title"`
+	OriginalTitle string    `json:"original_title"`
+	Overview      string    `json:"overview"`
+	BackdropPath  string    `json:"backdrop_path"`
+	PosterPath    string    `json:"poster_path"`
+	ReleaseDate   string    `json:"release_date"`
+	FirstAirDate  string    `json:"first_air_date"`
+}
+
 type SeasonSummary struct {
 	AirDate      string `json:"air_date"`
 	EpisodeCount int    `json:"episode_count"`
