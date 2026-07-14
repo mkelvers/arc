@@ -3,7 +3,6 @@ package server
 
 import (
 	"context"
-	"mal/internal/config"
 	"mal/internal/observability"
 	"net/http"
 	"time"
@@ -13,19 +12,24 @@ import (
 	"go.uber.org/fx"
 )
 
+type Config struct {
+	GinMode string
+	Port    string
+}
+
 var Module = fx.Options(
 	fx.Provide(ProvideRouter),
 	fx.Invoke(RunServer),
 )
 
-func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender) *gin.Engine {
+func ProvideRouter(cfg Config, htmlRender render.HTMLRender) *gin.Engine {
 	if cfg.GinMode == "" {
 		gin.SetMode(gin.ReleaseMode)
 	} else {
 		gin.SetMode(cfg.GinMode)
 	}
 	r := gin.New()
-	r.Use(CORSMiddlewareWithConfig(cfg), RequestContextMiddleware(), RequestLogger(), CompressionMiddleware(), StaticCacheMiddleware(), gin.Recovery())
+	r.Use(CORSMiddleware(), RequestContextMiddleware(), RequestLogger(), CompressionMiddleware(), StaticCacheMiddleware(), gin.Recovery())
 	r.NoRoute(func(c *gin.Context) {
 		if acceptsHTML(c) {
 			c.HTML(http.StatusNotFound, "not_found.gohtml", gin.H{
@@ -50,7 +54,7 @@ func ProvideRouter(cfg config.Config, htmlRender render.HTMLRender) *gin.Engine 
 	return r
 }
 
-func RunServer(cfg config.Config, lifecycle fx.Lifecycle, r *gin.Engine) {
+func RunServer(cfg Config, lifecycle fx.Lifecycle, r *gin.Engine) {
 	port := cfg.Port
 
 	srv := newHTTPServer(":"+port, r)

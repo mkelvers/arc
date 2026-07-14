@@ -38,9 +38,6 @@ func (e *APIError) Error() string {
 }
 
 func NewClient(baseURL string) *Client {
-	if strings.TrimSpace(baseURL) == "" {
-		baseURL = "https://graphql.anilist.co"
-	}
 	return &Client{baseURL: strings.TrimRight(baseURL, "/"), httpClient: &http.Client{Timeout: 15 * time.Second}}
 }
 

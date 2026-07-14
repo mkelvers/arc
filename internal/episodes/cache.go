@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"time"
 
-	rediscache "mal/internal/cache/redis"
 	"mal/internal/domain"
 )
 
 type cachedAvailabilityProvider struct {
 	inner domain.EpisodeAvailabilityProvider
-	cache *rediscache.Store
+	cache domain.CacheStore
 }
 
-func newCachedAvailabilityProvider(inner domain.EpisodeAvailabilityProvider, cache *rediscache.Store) domain.EpisodeAvailabilityProvider {
+func newCachedAvailabilityProvider(inner domain.EpisodeAvailabilityProvider, cache domain.CacheStore) domain.EpisodeAvailabilityProvider {
 	return &cachedAvailabilityProvider{inner: inner, cache: cache}
 }
 
@@ -30,7 +29,7 @@ func (p *cachedAvailabilityProvider) GetEpisodeAvailabilityByProviderID(ctx cont
 	key := fmt.Sprintf("allanime:availability:%s", providerID)
 	var cached domain.EpisodeAvailability
 	result, _ := p.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 
@@ -39,7 +38,7 @@ func (p *cachedAvailabilityProvider) GetEpisodeAvailabilityByProviderID(ctx cont
 		_ = p.cache.Set(ctx, key, fetched, 7*24*time.Hour, 7*24*time.Hour)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return domain.EpisodeAvailability{}, err

@@ -2,17 +2,12 @@ package playback
 
 import (
 	"mal/integrations/playback/allanime"
-	"mal/internal/config"
 	"mal/internal/domain"
 	"mal/internal/playback/handler"
 	"mal/internal/server"
 
 	"go.uber.org/fx"
 )
-
-func provideProxyTokenKey(cfg config.Config) ProxyTokenKey {
-	return ProxyTokenKey(cfg.PlaybackProxySecret)
-}
 
 var Module = fx.Options(
 	fx.Provide(
@@ -28,5 +23,4 @@ var Module = fx.Options(
 	fx.Provide(func(p *allanime.AllAnimeProvider) []domain.Provider {
 		return []domain.Provider{p}
 	}),
-	fx.Provide(provideProxyTokenKey),
 )

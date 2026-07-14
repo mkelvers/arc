@@ -6,9 +6,8 @@ import (
 	"mal/integrations/watchorder"
 	"mal/internal/anime"
 	"mal/internal/auth"
-	rediscache "mal/internal/cache/redis"
-	"mal/internal/config"
 	"mal/internal/database"
+	"mal/internal/domain"
 	"mal/internal/episodes"
 	"mal/internal/observability"
 	"mal/internal/playback"
@@ -24,8 +23,15 @@ import (
 func NewApp() *fx.App {
 	return fx.New(
 		fx.WithLogger(observability.NewFxLogger),
-		config.Module,
-		rediscache.Module,
+		fx.Provide(
+			LoadConfig,
+			func(cfg Config) database.Config { return database.Config{URL: cfg.DatabaseURL} },
+			func(cfg Config) anilist.Config { return anilist.Config{URL: cfg.AniListURL} },
+			func(cfg Config) watchorder.Config { return watchorder.Config{URL: cfg.ChiaKiURL} },
+			func(cfg Config) server.Config { return server.Config{GinMode: cfg.GinMode, Port: cfg.Port} },
+			func(cfg Config) playback.ProxyTokenKey { return playback.ProxyTokenKey(cfg.PlaybackProxySecret) },
+			func(cfg Config) (domain.CacheStore, error) { return NewRedisCache(cfg.RedisURL) },
+		),
 		database.Module,
 		anilist.Module,
 		watchorder.Module,

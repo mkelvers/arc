@@ -1,18 +1,16 @@
 package server
 
 import (
-	"mal/internal/config"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-func CORSMiddlewareWithConfig(cfg config.Config) gin.HandlerFunc {
-	allowAll := cfg.CORSAllowAll
+func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if origin != "" && (allowAll || isAllowedOrigin(origin)) {
+		if origin != "" && isAllowedOrigin(origin) {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Vary", "Origin")
 			c.Header("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS")

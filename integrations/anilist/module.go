@@ -1,15 +1,18 @@
 package anilist
 
 import (
-	rediscache "mal/internal/cache/redis"
-	"mal/internal/config"
+	"mal/internal/domain"
 
 	"go.uber.org/fx"
 )
 
+type Config struct {
+	URL string
+}
+
 var Module = fx.Options(
-	fx.Provide(func(cfg config.Config) *Client { return NewClient(cfg.AniListURL) }),
-	fx.Provide(func(cfg config.Config, cache *rediscache.Store) *CachedClient {
-		return NewCachedClient(NewClient(cfg.AniListURL), cache)
+	fx.Provide(func(cfg Config) *Client { return NewClient(cfg.URL) }),
+	fx.Provide(func(cfg Config, cache domain.CacheStore) *CachedClient {
+		return NewCachedClient(NewClient(cfg.URL), cache)
 	}),
 )

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	rediscache "mal/internal/cache/redis"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -36,11 +35,11 @@ type episodeCacheRow struct {
 	UpdatedAt     time.Time    `json:"updated_at"`
 }
 
-func (s *EpisodeService) getEpisodeCache(ctx context.Context, animeID int64) (episodeCacheRow, rediscache.State, bool) {
+func (s *EpisodeService) getEpisodeCache(ctx context.Context, animeID int64) (episodeCacheRow, domain.CacheState, bool) {
 	if s.cache != nil {
 		var row episodeCacheRow
 		result, err := s.cache.Get(ctx, episodeCacheKey(animeID), &row)
-		if err != nil || result.State == rediscache.StateMiss {
+		if err != nil || result.State == domain.CacheMiss {
 			if err != nil {
 				observability.Warn("episodes_cache_read_failed", "episodes", "", map[string]any{"anime_id": animeID}, err)
 			}
@@ -49,7 +48,7 @@ func (s *EpisodeService) getEpisodeCache(ctx context.Context, animeID int64) (ep
 		return row, result.State, true
 	}
 
-	return episodeCacheRow{}, rediscache.StateMiss, false
+	return episodeCacheRow{}, domain.CacheMiss, false
 }
 
 func (s *EpisodeService) setEpisodeCache(ctx context.Context, row episodeCacheRow) error {
@@ -202,7 +201,7 @@ func (s *EpisodeService) markFailure(ctx context.Context, anime domain.Anime, ca
 
 func (s *EpisodeService) getFreshCached(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
 	row, state, ok := s.getEpisodeCache(ctx, int64(anime.MalID))
-	if !ok || (s.cache != nil && state != rediscache.StateFresh) {
+	if !ok || (s.cache != nil && state != domain.CacheFresh) {
 		return domain.CanonicalEpisodeList{}, false
 	}
 
@@ -234,7 +233,7 @@ func (s *EpisodeService) getDecodedCached(ctx context.Context, anime domain.Anim
 	if !ok {
 		return domain.CanonicalEpisodeList{}, false
 	}
-	if s.cache != nil && state == rediscache.StateStale && row.LastSuccessAt.Valid && s.clock.Now().Sub(row.LastSuccessAt.Time) >= maxEpisodeStaleAge {
+	if s.cache != nil && state == domain.CacheStale && row.LastSuccessAt.Valid && s.clock.Now().Sub(row.LastSuccessAt.Time) >= maxEpisodeStaleAge {
 		return domain.CanonicalEpisodeList{}, false
 	}
 	payload, ok := s.decodeCachedPayload(anime, row.Data)

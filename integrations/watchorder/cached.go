@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	rediscache "mal/internal/cache/redis"
+	"mal/internal/domain"
 )
 
 const (
@@ -17,13 +17,10 @@ const (
 type CachedClient struct {
 	baseURL    string
 	httpClient *http.Client
-	cache      *rediscache.Store
+	cache      domain.CacheStore
 }
 
-func NewCachedClient(baseURL string, httpClient *http.Client, cache *rediscache.Store) *CachedClient {
-	if baseURL == "" {
-		baseURL = "https://chiaki.site"
-	}
+func NewCachedClient(baseURL string, httpClient *http.Client, cache domain.CacheStore) *CachedClient {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 15 * time.Second}
 	}
@@ -34,7 +31,7 @@ func (c *CachedClient) FetchByAnimeID(ctx context.Context, malID int) (WatchOrde
 	key := fmt.Sprintf("chiaki:watch-order:mal:%d", malID)
 	var cached WatchOrderResult
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 
@@ -44,7 +41,7 @@ func (c *CachedClient) FetchByAnimeID(ctx context.Context, malID int) (WatchOrde
 		_ = c.cache.Set(ctx, key, fetched, watchOrderFreshTTL, watchOrderStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return WatchOrderResult{}, fetchErr

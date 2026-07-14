@@ -10,7 +10,6 @@ import (
 	"io"
 	"mal/integrations/anilist"
 	"mal/internal"
-	"mal/internal/config"
 	"mal/internal/database"
 	"mal/internal/database/db"
 	"mal/internal/observability"
@@ -53,7 +52,7 @@ func run(args []string) error {
 		return errors.New("username must not be empty")
 	}
 
-	sqlDB, err := openDatabase()
+	sqlDB, err := openDatabase(internal.LoadConfig())
 	if err != nil {
 		return err
 	}
@@ -67,13 +66,14 @@ func run(args []string) error {
 }
 
 func runFixes() error {
-	sqlDB, err := openDatabase()
+	cfg := internal.LoadConfig()
+	sqlDB, err := openDatabase(cfg)
 	if err != nil {
 		return err
 	}
 	defer sqlDB.Close()
 
-	client := anilist.NewClient("")
+	client := anilist.NewClient(cfg.AniListURL)
 	if err := database.ApplyPostgresSchemaAndFixes(sqlDB, internal.DataFixDependencies(client)); err != nil {
 		return fmt.Errorf("run schema and fixes: %w", err)
 	}
@@ -81,12 +81,7 @@ func runFixes() error {
 	return nil
 }
 
-func openDatabase() (*sql.DB, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, fmt.Errorf("load config: %w", err)
-	}
-
+func openDatabase(cfg internal.Config) (*sql.DB, error) {
 	if cfg.DatabaseURL == "" {
 		return nil, errors.New("DATABASE_URL must be configured")
 	}

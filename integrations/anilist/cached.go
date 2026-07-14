@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"mal/integrations/metadata"
-	rediscache "mal/internal/cache/redis"
+	"mal/internal/domain"
 )
 
 const (
@@ -25,10 +25,10 @@ const (
 
 type CachedClient struct {
 	client *Client
-	cache  *rediscache.Store
+	cache  domain.CacheStore
 }
 
-func NewCachedClient(client *Client, cache *rediscache.Store) *CachedClient {
+func NewCachedClient(client *Client, cache domain.CacheStore) *CachedClient {
 	return &CachedClient{client: client, cache: cache}
 }
 
@@ -36,7 +36,7 @@ func (c *CachedClient) GetAnimeByMALID(ctx context.Context, id int) (Anime, erro
 	key := fmt.Sprintf("anilist:anime:mal:detail:%s:%d", detailCacheKeyV3, id)
 	var cached Anime
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 
@@ -45,7 +45,7 @@ func (c *CachedClient) GetAnimeByMALID(ctx context.Context, id int) (Anime, erro
 		_ = c.cache.Set(ctx, key, fetched, metadataFreshTTL, metadataStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return Anime{}, fetchErr
@@ -55,7 +55,7 @@ func (c *CachedClient) GetGenres(ctx context.Context) ([]string, error) {
 	key := "anilist:genres"
 	var cached []string
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 
@@ -64,7 +64,7 @@ func (c *CachedClient) GetGenres(ctx context.Context) ([]string, error) {
 		_ = c.cache.Set(ctx, key, fetched, genreFreshTTL, metadataStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return nil, err
@@ -92,9 +92,9 @@ func (c *CachedClient) readBatchCache(ctx context.Context, ids []int) (map[int]A
 		var cached Anime
 		result, _ := c.cache.Get(ctx, fmt.Sprintf("anilist:anime:mal:summary:%s:%d", summaryCacheKeyV2, id), &cached)
 		switch result.State {
-		case rediscache.StateFresh:
+		case domain.CacheFresh:
 			fresh[id] = cached
-		case rediscache.StateStale:
+		case domain.CacheStale:
 			stale[id] = cached
 			missing = append(missing, id)
 		default:
@@ -146,7 +146,7 @@ func (c *CachedClient) Search(ctx context.Context, search string, page, perPage 
 	key := fmt.Sprintf("anilist:search:%s:%d:%d", url.QueryEscape(search), page, perPage)
 	var cached SearchResult
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 	fetched, err := c.client.Search(ctx, search, page, perPage)
@@ -154,7 +154,7 @@ func (c *CachedClient) Search(ctx context.Context, search string, page, perPage 
 		_ = c.cache.Set(ctx, key, fetched, searchFreshTTL, metadataStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return SearchResult{}, err
@@ -164,7 +164,7 @@ func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchO
 	key := advancedSearchCacheKey(opts)
 	var cached SearchResult
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 	fetched, err := c.client.SearchAdvanced(ctx, opts)
@@ -172,7 +172,7 @@ func (c *CachedClient) SearchAdvanced(ctx context.Context, opts metadata.SearchO
 		_ = c.cache.Set(ctx, key, fetched, searchFreshTTL, metadataStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return SearchResult{}, err
@@ -210,7 +210,7 @@ func (c *CachedClient) GetRecommendations(ctx context.Context, id int) ([]Recomm
 	key := fmt.Sprintf("anilist:recommendations:mal:%s:%d", recommendCacheKeyV2, id)
 	var cached []Recommendation
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 	fetched, err := c.client.GetRecommendations(ctx, id)
@@ -218,7 +218,7 @@ func (c *CachedClient) GetRecommendations(ctx context.Context, id int) ([]Recomm
 		_ = c.cache.Set(ctx, key, fetched, recommendFreshTTL, metadataStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return nil, err
@@ -227,7 +227,7 @@ func (c *CachedClient) GetRecommendations(ctx context.Context, id int) ([]Recomm
 func (c *CachedClient) getCatalog(ctx context.Context, key string, fetch func() (CatalogResult, error)) (CatalogResult, error) {
 	var cached CatalogResult
 	result, _ := c.cache.Get(ctx, key, &cached)
-	if result.State == rediscache.StateFresh {
+	if result.State == domain.CacheFresh {
 		return cached, nil
 	}
 	fetched, err := fetch()
@@ -235,7 +235,7 @@ func (c *CachedClient) getCatalog(ctx context.Context, key string, fetch func() 
 		_ = c.cache.Set(ctx, key, fetched, catalogFreshTTL, metadataStaleTTL)
 		return fetched, nil
 	}
-	if result.State == rediscache.StateStale {
+	if result.State == domain.CacheStale {
 		return cached, nil
 	}
 	return CatalogResult{}, err

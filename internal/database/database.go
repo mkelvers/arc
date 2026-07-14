@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
-	"mal/internal/config"
 	"mal/internal/database/db"
 	dbfixes "mal/internal/database/fixes"
 
@@ -16,6 +15,10 @@ import (
 //go:embed postgres_schema.sql
 var schemaFS embed.FS
 
+type Config struct {
+	URL string
+}
+
 var Module = fx.Options(
 	fx.Provide(
 		ProvideSQLDB,
@@ -23,11 +26,11 @@ var Module = fx.Options(
 	),
 )
 
-func ProvideSQLDB(cfg config.Config) (*sql.DB, error) {
-	if cfg.DatabaseURL == "" {
+func ProvideSQLDB(cfg Config) (*sql.DB, error) {
+	if cfg.URL == "" {
 		return nil, fmt.Errorf("DATABASE_URL must be configured for the application database")
 	}
-	dbConn, err := db.OpenPostgres(cfg.DatabaseURL)
+	dbConn, err := db.OpenPostgres(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open PostgreSQL database: %w", err)
 	}

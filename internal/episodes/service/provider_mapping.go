@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	rediscache "mal/internal/cache/redis"
 	"mal/internal/domain"
 	"mal/internal/observability"
 )
@@ -63,7 +62,7 @@ func (s *EpisodeService) cachedProviderID(ctx context.Context, anime domain.Anim
 func (s *EpisodeService) cachedProviderIDFromRedis(ctx context.Context, anime domain.Anime, provider domain.EpisodeProvider) (string, bool, error) {
 	var mapping cachedProviderMapping
 	result, err := s.cache.Get(ctx, providerMappingKey(int64(anime.MalID), provider.Name()), &mapping)
-	if err != nil || result.State == rediscache.StateMiss {
+	if err != nil || result.State == domain.CacheMiss {
 		if err != nil {
 			observability.Warn("episodes_provider_id_cache_read_failed", "episodes", "", map[string]any{"anime_id": anime.MalID, "provider": provider.Name()}, err)
 		}

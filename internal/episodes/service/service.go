@@ -10,7 +10,6 @@ import (
 
 	"mal/integrations/anilist"
 	"mal/integrations/metadata"
-	rediscache "mal/internal/cache/redis"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"mal/internal/observability"
@@ -46,7 +45,7 @@ type EpisodeService struct {
 	canonicalRefresh singleflight.Group
 	titleLoad        singleflight.Group
 	cacheMu          sync.Mutex
-	cache            *rediscache.Store
+	cache            domain.CacheStore
 }
 
 type EpisodeServiceParams struct {
@@ -57,7 +56,7 @@ type EpisodeServiceParams struct {
 	Providers []domain.EpisodeAvailabilityProvider
 	Titles    domain.EpisodeTitleProvider
 	Enabled   bool
-	Cache     *rediscache.Store
+	Cache     domain.CacheStore
 }
 
 func NewEpisodeServiceWithAniList(params EpisodeServiceParams) domain.EpisodeService {
@@ -225,7 +224,7 @@ func (s *EpisodeService) hasFreshTrackedEpisodeCache(ctx context.Context, id int
 		return false
 	}
 	row, state, ok := s.getEpisodeCache(ctx, id)
-	if !ok || state != rediscache.StateFresh {
+	if !ok || state != domain.CacheFresh {
 		return false
 	}
 	anime := domain.Anime{Anime: metadata.Anime{MalID: int(id), Airing: true}}
