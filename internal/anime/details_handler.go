@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"mal/internal/server"
 	"net/http"
 	"strconv"
@@ -53,15 +53,9 @@ func (h *AnimeHandler) animeReleaseInfo(ctx context.Context, anime domain.Anime,
 		if err == nil {
 			return releaseInfoFromCanonical(anime, episodeList)
 		} else {
-			observability.Warn(
-				"anime_episode_availability_count_fetch_failed",
-				"anime",
-				"",
-				map[string]any{
-					"anime_id": anime.MalID,
-				},
-				err,
-			)
+			slog.Warn("anime_episode_availability_count_fetch_failed", "component", "anime", "fields", map[string]any{
+				"anime_id": anime.MalID,
+			}, "error", err)
 		}
 	}
 
@@ -142,15 +136,10 @@ func (h *AnimeHandler) animeAudioAvailability(ctx context.Context, anime domain.
 
 	episodeList, err := h.episodeSvc.GetCanonicalEpisodes(audioCtx, anime, true)
 	if err != nil {
-		observability.Warn(
-			"anime_audio_availability_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"anime_id": anime.MalID,
-			},
-			err,
-		)
+		slog.Warn("anime_audio_availability_fetch_failed", "component", "anime", "fields", map[string]any{
+			"anime_id": anime.MalID,
+		}, "error", err)
+
 		return ""
 	}
 	if episodeList.Source != "AllAnime" {
@@ -223,16 +212,11 @@ func (h *AnimeHandler) handleAnimeDetailsSection(c *gin.Context, id int, section
 		if errors.Is(err, context.Canceled) {
 			return
 		}
-		observability.Warn(
-			"anime_section_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"section":  section,
-				"anime_id": id,
-			},
-			err,
-		)
+		slog.Warn("anime_section_fetch_failed", "component", "anime", "fields", map[string]any{
+			"section":  section,
+			"anime_id": id,
+		}, "error", err)
+
 		if section == "recommendations" {
 			c.HTML(http.StatusOK, "anime.gohtml", gin.H{
 				"_fragment": "anime_recommendations_loading",

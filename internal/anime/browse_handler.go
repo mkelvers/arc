@@ -3,8 +3,8 @@ package anime
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"mal/internal/domain"
-	"mal/internal/observability"
 	"mal/internal/server"
 	"net/http"
 	"net/url"
@@ -171,13 +171,8 @@ func (h *AnimeHandler) HandleBrowse(c *gin.Context) {
 
 	genresList, err := h.svc.GetGenres(c.Request.Context())
 	if err != nil {
-		observability.WarnContext(c.Request.Context(),
-			"genres_fetch_failed",
-			"anime",
-			"",
-			map[string]any{"q": query.Query, "type": query.Type, "status": query.Status},
-			err,
-		)
+		slog.WarnContext(c.Request.Context(),
+			"genres_fetch_failed", "component", "anime", "fields", map[string]any{"q": query.Query, "type": query.Type, "status": query.Status}, "error", err)
 	}
 
 	res, err := h.searchBrowse(c.Request.Context(), query)

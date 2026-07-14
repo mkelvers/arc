@@ -1,7 +1,7 @@
 package anime
 
 import (
-	"mal/internal/observability"
+	"log/slog"
 	"mal/internal/server"
 	"net/http"
 	"net/url"
@@ -26,7 +26,7 @@ func (h *AnimeHandler) HandleSimulcastContent(c *gin.Context) {
 	selected := seasonSelection(c.Query("season"), c.Query("year"), current, latest)
 	data, err := h.discoverySvc.GetSimulcast(c.Request.Context(), selected)
 	if err != nil {
-		observability.WarnContext(c.Request.Context(), "simulcast_fetch_failed", "anime", "", nil, err)
+		slog.WarnContext(c.Request.Context(), "simulcast_fetch_failed", "component", "anime", "error", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -99,15 +99,11 @@ func (h *AnimeHandler) HandleCatalogTopPickForYou(c *gin.Context) {
 
 	data, err := h.svc.GetTopPickForYou(c.Request.Context(), userID)
 	if err != nil {
-		observability.WarnContext(c.Request.Context(),
-			"top_pick_for_you_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
+		slog.WarnContext(c.Request.Context(),
+			"top_pick_for_you_fetch_failed", "component", "anime", "fields", map[string]any{
 				"user_id": userID,
-			},
-			err,
-		)
+			}, "error", err)
+
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -145,15 +141,11 @@ func (h *AnimeHandler) HandleTopPicks(c *gin.Context) {
 
 	data, err := h.svc.GetTopPicksForYou(c.Request.Context(), userID)
 	if err != nil {
-		observability.WarnContext(c.Request.Context(),
-			"top_picks_for_you_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
+		slog.WarnContext(c.Request.Context(),
+			"top_picks_for_you_fetch_failed", "component", "anime", "fields", map[string]any{
 				"user_id": userID,
-			},
-			err,
-		)
+			}, "error", err)
+
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -176,15 +168,11 @@ func (h *AnimeHandler) HandleTopPicks(c *gin.Context) {
 }
 
 func (h *AnimeHandler) abortSectionFetch(c *gin.Context, event string, userID string, section string, err error) {
-	observability.WarnContext(c.Request.Context(),
-		event,
-		"anime",
-		"",
-		map[string]any{
+	slog.WarnContext(c.Request.Context(),
+		event, "component", "anime", "fields", map[string]any{
 			"section": section,
 			"user_id": userID,
-		},
-		err,
-	)
+		}, "error", err)
+
 	c.AbortWithStatus(http.StatusInternalServerError)
 }
