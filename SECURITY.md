@@ -30,7 +30,7 @@ The most important security areas for this project are:
 - playback proxy tokens and signed stream access;
 - subtitle and playlist proxying;
 - external provider integration boundaries;
-- SQLite database access and migrations;
+- PostgreSQL database access and migrations;
 - configuration loaded from environment variables or `.env` files.
 
 Reports involving these areas are especially useful.

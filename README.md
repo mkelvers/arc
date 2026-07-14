@@ -127,16 +127,6 @@ Create a local user with:
 go run ./cmd/user <username> <password>
 ```
 
-To migrate an existing SQLite database into PostgreSQL, set `DATABASE_FILE` to the SQLite source and
-`DATABASE_URL` to the PostgreSQL target, then run:
-
-```bash
-go run ./cmd/migrate-db
-```
-
-Durable account, watchlist, progress, and history data is imported. Provider caches are intentionally
-not copied; AniList, ChiaKi, AllAnime, and TVMaze responses are rebuilt in Redis as needed.
-
 #### Commands
 
 | Command                         | Use it for                                          |
@@ -161,7 +151,6 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | Variable                    | Default         | Purpose                                                                    |
 | --------------------------- | --------------- | -------------------------------------------------------------------------- |
 | `PORT`                      | `3000`          | HTTP port for the server.                                                  |
-| `DATABASE_FILE`             | `mal.db`        | SQLite source path used only by the one-time migration command.            |
 | `DATABASE_URL`              | required        | PostgreSQL connection URL for application persistence.                     |
 | `REDIS_URL`                 | `redis://localhost:6379/0` | Provider-response and stale-data cache.                        |
 | `ANILIST_URL`               | `https://graphql.anilist.co` | AniList GraphQL metadata endpoint.                         |
@@ -206,7 +195,7 @@ playback data private must restrict access to `/api/public/` at the network or r
 | `internal/watchlist`             | Watchlist handlers, service logic, and persistence.             |
 | `internal/playback`              | Watch data, progress, proxy tokens, and skip segments.          |
 | `internal/episodes`              | Episode refresh and provider mapping.                           |
-| `internal/database`              | PostgreSQL setup, migrations, and SQLite import tooling.        |
+| `internal/database`              | PostgreSQL setup, migrations, and data fixes.                   |
 | `integrations/anilist`           | AniList GraphQL metadata client and Redis-backed cache.         |
 | `integrations/metadata`          | Provider-neutral metadata contracts.                            |
 | `integrations/watchorder`        | ChiaKi relation and watch-order client.                         |
