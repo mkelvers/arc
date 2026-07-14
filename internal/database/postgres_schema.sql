@@ -95,6 +95,93 @@ CREATE TABLE IF NOT EXISTS data_fixes (
     applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS anime_external_mapping (
+    anilist_id BIGINT PRIMARY KEY,
+    mal_id BIGINT,
+    tmdb_media_type TEXT NOT NULL CHECK(tmdb_media_type IN ('tv', 'movie')),
+    tmdb_id BIGINT NOT NULL,
+    tmdb_season INTEGER NOT NULL DEFAULT -1,
+    source TEXT NOT NULL,
+    imported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS anime_mapping_override (
+    anilist_id BIGINT PRIMARY KEY,
+    mal_id BIGINT,
+    tmdb_media_type TEXT CHECK(tmdb_media_type IN ('tv', 'movie')),
+    tmdb_id BIGINT,
+    tmdb_season INTEGER NOT NULL DEFAULT -1,
+    canonical BOOLEAN NOT NULL DEFAULT FALSE,
+    excluded BOOLEAN NOT NULL DEFAULT FALSE,
+    note TEXT NOT NULL DEFAULT '',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK(excluded OR (tmdb_media_type IS NOT NULL AND tmdb_id IS NOT NULL))
+);
+
+CREATE TABLE IF NOT EXISTS anime_mapping_import (
+    singleton BOOLEAN PRIMARY KEY DEFAULT TRUE CHECK(singleton),
+    source TEXT NOT NULL,
+    schema_version TEXT NOT NULL,
+    etag TEXT NOT NULL DEFAULT '',
+    entry_count BIGINT NOT NULL,
+    imported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS anime_inferred_mapping (
+    anilist_id BIGINT PRIMARY KEY,
+    mal_id BIGINT,
+    tmdb_media_type TEXT NOT NULL CHECK(tmdb_media_type IN ('tv', 'movie')),
+    tmdb_id BIGINT NOT NULL,
+    tmdb_season INTEGER NOT NULL DEFAULT -1,
+    relation_type TEXT NOT NULL,
+    related_anilist_id BIGINT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE OR REPLACE VIEW anime_effective_mapping AS
+SELECT
+    base.anilist_id,
+    base.mal_id,
+    base.tmdb_media_type,
+    base.tmdb_id,
+    base.tmdb_season,
+    FALSE AS canonical
+FROM anime_external_mapping AS base
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM anime_mapping_override AS override
+    WHERE override.anilist_id = base.anilist_id
+)
+UNION ALL
+SELECT
+    inferred.anilist_id,
+    inferred.mal_id,
+    inferred.tmdb_media_type,
+    inferred.tmdb_id,
+    inferred.tmdb_season,
+    FALSE AS canonical
+FROM anime_inferred_mapping AS inferred
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM anime_mapping_override AS override
+    WHERE override.anilist_id = inferred.anilist_id
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM anime_external_mapping AS base
+    WHERE base.anilist_id = inferred.anilist_id
+)
+UNION ALL
+SELECT
+    override.anilist_id,
+    override.mal_id,
+    override.tmdb_media_type,
+    override.tmdb_id,
+    override.tmdb_season,
+    override.canonical
+FROM anime_mapping_override AS override
+WHERE NOT override.excluded;
+
 CREATE TABLE IF NOT EXISTS recommendation_event (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
@@ -153,3 +240,8 @@ CREATE INDEX IF NOT EXISTS idx_recommendation_event_anime_occurred_at ON recomme
 CREATE INDEX IF NOT EXISTS idx_recommendation_impression_user_occurred_at ON recommendation_impression(user_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_recommendation_impression_request_id ON recommendation_impression(request_id);
 CREATE INDEX IF NOT EXISTS idx_generated_subtitle_status ON generated_subtitle(status, updated_at);
+CREATE INDEX IF NOT EXISTS idx_anime_external_mapping_mal_id ON anime_external_mapping(mal_id);
+CREATE INDEX IF NOT EXISTS idx_anime_external_mapping_tmdb ON anime_external_mapping(tmdb_media_type, tmdb_id);
+CREATE INDEX IF NOT EXISTS idx_anime_mapping_override_tmdb ON anime_mapping_override(tmdb_media_type, tmdb_id) WHERE NOT excluded;
+CREATE INDEX IF NOT EXISTS idx_anime_inferred_mapping_mal_id ON anime_inferred_mapping(mal_id);
+CREATE INDEX IF NOT EXISTS idx_anime_inferred_mapping_tmdb ON anime_inferred_mapping(tmdb_media_type, tmdb_id);

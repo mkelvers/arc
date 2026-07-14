@@ -23,6 +23,57 @@ type Anime struct {
 	DurationSeconds   sql.NullFloat64 `json:"duration_seconds"`
 }
 
+type AnimeEffectiveMapping struct {
+	AnilistID     int64         `json:"anilist_id"`
+	MalID         sql.NullInt64 `json:"mal_id"`
+	TmdbMediaType string        `json:"tmdb_media_type"`
+	TmdbID        int64         `json:"tmdb_id"`
+	TmdbSeason    int32         `json:"tmdb_season"`
+	Canonical     bool          `json:"canonical"`
+}
+
+type AnimeExternalMapping struct {
+	AnilistID     int64         `json:"anilist_id"`
+	MalID         sql.NullInt64 `json:"mal_id"`
+	TmdbMediaType string        `json:"tmdb_media_type"`
+	TmdbID        int64         `json:"tmdb_id"`
+	TmdbSeason    int32         `json:"tmdb_season"`
+	Source        string        `json:"source"`
+	ImportedAt    time.Time     `json:"imported_at"`
+}
+
+type AnimeInferredMapping struct {
+	AnilistID        int64         `json:"anilist_id"`
+	MalID            sql.NullInt64 `json:"mal_id"`
+	TmdbMediaType    string        `json:"tmdb_media_type"`
+	TmdbID           int64         `json:"tmdb_id"`
+	TmdbSeason       int32         `json:"tmdb_season"`
+	RelationType     string        `json:"relation_type"`
+	RelatedAnilistID int64         `json:"related_anilist_id"`
+	UpdatedAt        time.Time     `json:"updated_at"`
+}
+
+type AnimeMappingImport struct {
+	Singleton     bool      `json:"singleton"`
+	Source        string    `json:"source"`
+	SchemaVersion string    `json:"schema_version"`
+	Etag          string    `json:"etag"`
+	EntryCount    int64     `json:"entry_count"`
+	ImportedAt    time.Time `json:"imported_at"`
+}
+
+type AnimeMappingOverride struct {
+	AnilistID     int64          `json:"anilist_id"`
+	MalID         sql.NullInt64  `json:"mal_id"`
+	TmdbMediaType sql.NullString `json:"tmdb_media_type"`
+	TmdbID        sql.NullInt64  `json:"tmdb_id"`
+	TmdbSeason    int32          `json:"tmdb_season"`
+	Canonical     bool           `json:"canonical"`
+	Excluded      bool           `json:"excluded"`
+	Note          string         `json:"note"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+}
+
 type ApiToken struct {
 	ID         string       `json:"id"`
 	UserID     string       `json:"user_id"`
