@@ -12,7 +12,6 @@ Reusable Go template components.
 | Navigation        | `navigation.gohtml`        | Sidebar navigation            |
 | Video Player      | `video_player.gohtml`      | Episode video container       |
 | Watchlist Actions | `watchlist_actions.gohtml` | Add/remove watchlist button   |
-| Watch Order       | `watch_order.gohtml`       | Watch order queue             |
 
 ## Usage
 

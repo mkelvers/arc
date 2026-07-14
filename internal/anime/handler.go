@@ -65,7 +65,6 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/simulcast", h.HandleSimulcast)
 	r.GET("/api/simulcast", h.HandleSimulcastContent)
 	r.GET("/anime/:id", h.HandleAnimeDetails)
-	r.GET("/api/watch-order", h.HandleHTMLWatchOrder)
 	r.GET("/api/search-quick", h.HandleQuickSearch)
 	r.GET("/api/search", h.HandleSearchAPI)
 	r.GET("/api/random/anime", h.HandleRandomAnime)

@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"mal/integrations/anilist"
-	"mal/integrations/metadata"
-	"mal/integrations/watchorder"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"math/rand"
@@ -18,7 +16,6 @@ import (
 
 type animeService struct {
 	metadata         *anilist.CachedClient
-	watchOrder       *watchorder.CachedClient
 	repo             domain.AnimeRepository
 	topPicksCache    *topPicksCache
 	topPicksCacheTTL time.Duration
@@ -27,22 +24,17 @@ type animeService struct {
 
 const continueWatchingCarouselLimit int64 = 24
 
-func wrapAnimes(in []metadata.Anime) []domain.Anime {
-	out := make([]domain.Anime, 0, len(in))
-	for _, a := range in {
-		out = append(out, domain.Anime{Anime: a})
-	}
-	return out
+func wrapAnimes(in []domain.Anime) []domain.Anime {
+	return append([]domain.Anime(nil), in...)
 }
 
-func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, watchOrder *watchorder.CachedClient, repo domain.AnimeRepository) *animeService {
-	return newAnimeService(metadata, watchOrder, repo)
+func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, repo domain.AnimeRepository) *animeService {
+	return newAnimeService(metadata, repo)
 }
 
-func newAnimeService(metadata *anilist.CachedClient, watchOrder *watchorder.CachedClient, repo domain.AnimeRepository) *animeService {
+func newAnimeService(metadata *anilist.CachedClient, repo domain.AnimeRepository) *animeService {
 	svc := &animeService{
 		metadata:         metadata,
-		watchOrder:       watchOrder,
 		repo:             repo,
 		topPicksCache:    &topPicksCache{entries: map[topPicksCacheKey]*topPicksCacheEntry{}},
 		topPicksCacheTTL: 15 * time.Minute,
@@ -53,7 +45,7 @@ func newAnimeService(metadata *anilist.CachedClient, watchOrder *watchorder.Cach
 
 func (s *animeService) GetCatalogSection(ctx context.Context, userID string, section string) (domain.CatalogSectionData, error) {
 	var (
-		res metadata.TopAnimeResult
+		res domain.TopAnimeResult
 		cw  []db.GetContinueWatchingEntriesRow
 	)
 
@@ -94,19 +86,19 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 	}, nil
 }
 
-func (s *animeService) catalogSectionMetadata(ctx context.Context, section string) (metadata.TopAnimeResult, error) {
+func (s *animeService) catalogSectionMetadata(ctx context.Context, section string) (domain.TopAnimeResult, error) {
 	if s.metadata == nil {
 		if section == "Continue" {
-			return metadata.TopAnimeResult{}, nil
+			return domain.TopAnimeResult{}, nil
 		}
-		return metadata.TopAnimeResult{}, fmt.Errorf("metadata provider is not configured")
+		return domain.TopAnimeResult{}, fmt.Errorf("metadata provider is not configured")
 	}
 
 	result, err := s.fetchCatalogSection(ctx, section)
 	if err != nil {
-		return metadata.TopAnimeResult{}, err
+		return domain.TopAnimeResult{}, err
 	}
-	res := metadata.TopAnimeResult{HasNextPage: result.HasNextPage}
+	res := domain.TopAnimeResult{HasNextPage: result.HasNextPage}
 	for _, item := range result.Items {
 		res.Animes = append(res.Animes, anilist.ToMetadataAnime(item))
 	}
@@ -142,26 +134,26 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 	if s.metadata != nil {
 		anime, err := s.metadata.GetAnimeByMALID(ctx, id)
 		if err == nil {
-			return domain.Anime{Anime: anilist.ToMetadataAnime(anime)}, nil
+			return anilist.ToMetadataAnime(anime), nil
 		}
 		return domain.Anime{}, fmt.Errorf("get anime by id from AniList: %w", err)
 	}
 	return domain.Anime{}, fmt.Errorf("get anime by id: metadata provider is unavailable")
 }
 
-func (s *animeService) SearchAdvanced(ctx context.Context, opts metadata.SearchOptions) (metadata.SearchResult, error) {
+func (s *animeService) SearchAdvanced(ctx context.Context, opts domain.SearchOptions) (domain.SearchResult, error) {
 	if s.metadata == nil {
-		return metadata.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")
+		return domain.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")
 	}
 	result, err := s.metadata.SearchAdvanced(ctx, opts)
 	if err != nil {
-		return metadata.SearchResult{}, fmt.Errorf("search anime with AniList: %w", err)
+		return domain.SearchResult{}, fmt.Errorf("search anime with AniList: %w", err)
 	}
-	animes := make([]metadata.Anime, 0, len(result.Items))
+	animes := make([]domain.Anime, 0, len(result.Items))
 	for _, item := range result.Items {
 		animes = append(animes, anilist.ToMetadataAnime(anilist.Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage}))
 	}
-	return metadata.SearchResult{Animes: animes, HasNextPage: result.HasNextPage}, nil
+	return domain.SearchResult{Animes: animes, HasNextPage: result.HasNextPage}, nil
 }
 
 func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {
@@ -174,7 +166,7 @@ func (s *animeService) GetGenres(ctx context.Context) ([]domain.Genre, error) {
 	}
 	out := make([]domain.Genre, 0, len(names))
 	for _, name := range names {
-		if id := metadata.GenreID(name); id > 0 {
+		if id := domain.GenreID(name); id > 0 {
 			out = append(out, domain.Genre{MalID: id, Name: name})
 		}
 	}
@@ -221,13 +213,6 @@ func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain
 	return nil, fmt.Errorf("get recommendations: AniList unavailable")
 }
 
-func (s *animeService) GetRelations(ctx context.Context, id int, mode metadata.WatchOrderMode) ([]metadata.RelationEntry, error) {
-	if s.metadata != nil && s.watchOrder != nil {
-		return s.getRelationsFromProviders(ctx, id, mode)
-	}
-	return nil, fmt.Errorf("get relations: metadata provider is unavailable")
-}
-
 func anilistFirstTitle(title anilist.Titles) string {
 	for _, value := range []string{title.English, title.Romaji, title.Native, title.UserPreferred} {
 		if strings.TrimSpace(value) != "" {
@@ -237,82 +222,11 @@ func anilistFirstTitle(title anilist.Titles) string {
 	return ""
 }
 
-func (s *animeService) getRelationsFromProviders(ctx context.Context, id int, mode metadata.WatchOrderMode) ([]metadata.RelationEntry, error) {
-	ordered, err := s.watchOrder.FetchByAnimeID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	entries := filteredWatchOrderEntries(ordered.WatchOrder, mode)
-	byID, err := s.relationAnimeByID(ctx, entries)
-	if err != nil {
-		return nil, err
-	}
-	return relationEntries(entries, byID, id), nil
-}
-
-func filteredWatchOrderEntries(entries []watchorder.WatchOrderEntry, mode metadata.WatchOrderMode) []watchorder.WatchOrderEntry {
-	if mode == metadata.WatchOrderModeComplete {
-		return entries
-	}
-	main := make([]watchorder.WatchOrderEntry, 0, len(entries))
-	for _, entry := range entries {
-		if isMainWatchOrderType(entry.Type) {
-			main = append(main, entry)
-		}
-	}
-	if len(main) == 0 {
-		return entries
-	}
-	return main
-}
-
-func isMainWatchOrderType(value string) bool {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "tv", "movie", "ova", "ona":
-		return true
-	default:
-		return false
-	}
-}
-
-func (s *animeService) relationAnimeByID(ctx context.Context, entries []watchorder.WatchOrderEntry) (map[int]metadata.Anime, error) {
-	ids := make([]int, 0, len(entries))
-	for _, entry := range entries {
-		ids = append(ids, entry.ID)
-	}
-	items, err := s.metadata.GetAnimeBatchByMALID(ctx, ids)
-	if err != nil {
-		return nil, err
-	}
-	byID := make(map[int]metadata.Anime, len(items))
-	for _, item := range items {
-		byID[item.MALID] = anilist.ToMetadataAnime(item)
-	}
-	return byID, nil
-}
-
-func relationEntries(entries []watchorder.WatchOrderEntry, byID map[int]metadata.Anime, currentID int) []metadata.RelationEntry {
-	result := make([]metadata.RelationEntry, 0, len(entries))
-	seen := make(map[int]bool, len(entries))
-	for _, entry := range entries {
-		if seen[entry.ID] {
-			continue
-		}
-		seen[entry.ID] = true
-		anime, ok := byID[entry.ID]
-		if !ok {
-			continue
-		}
-		result = append(result, metadata.RelationEntry{Anime: anime, Relation: entry.Type, IsCurrent: entry.ID == currentID, IsExtra: entry.Secondary})
-	}
-	return result
-}
-
 func (s *animeService) WarmDetailSections(id int) {
 }
 
-func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (metadata.EpisodesResponse, error) {
-	return metadata.EpisodesResponse{}, fmt.Errorf("get episodes: episode metadata is provided by AllAnime")
+func (s *animeService) GetEpisodes(ctx context.Context, id int, page int) (domain.EpisodesResponse, error) {
+	return domain.EpisodesResponse{}, fmt.Errorf("get episodes: episode metadata is provided by AllAnime")
 }
 
 func (s *animeService) GetStaff(ctx context.Context, id int) ([]domain.StaffEntry, error) {
@@ -340,7 +254,7 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		result, err := s.metadata.GetPopular(randomCtx, 1, 50)
 		if err == nil && len(result.Items) > 0 {
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			return domain.Anime{Anime: anilist.ToMetadataAnime(result.Items[r.Intn(len(result.Items))])}, nil
+			return anilist.ToMetadataAnime(result.Items[r.Intn(len(result.Items))]), nil
 		}
 		return domain.Anime{}, fmt.Errorf("get random anime: AniList unavailable: %w", err)
 	}

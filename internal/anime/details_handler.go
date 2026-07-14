@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mal/integrations/metadata"
 	"mal/internal/domain"
 	"mal/internal/observability"
 	"mal/internal/server"
@@ -18,7 +17,6 @@ import (
 
 const (
 	animeSectionTimeout = 12 * time.Second
-	watchOrderTimeout   = 15 * time.Second
 	audioLookupTimeout  = 8 * time.Second
 	episodeCountTimeout = 4 * time.Second
 )
@@ -275,53 +273,4 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 	default:
 		return nil, "", nil
 	}
-}
-
-func (h *AnimeHandler) HandleHTMLWatchOrder(c *gin.Context) {
-	id, err := strconv.Atoi(c.Query("animeId"))
-	if err != nil || id <= 0 {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
-		return
-	}
-
-	userID := server.CurrentUserID(c)
-	mode := metadata.NormalizeWatchOrderMode(c.Query("mode"))
-
-	relationsCtx, cancel := context.WithTimeout(c.Request.Context(), watchOrderTimeout)
-	defer cancel()
-
-	relations, err := h.svc.GetRelations(relationsCtx, id, mode)
-	if err != nil {
-		observability.Warn(
-			"relations_fetch_failed",
-			"anime",
-			"",
-			map[string]any{
-				"anime_id": id,
-			},
-			err,
-		)
-		c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-			"_fragment": "watch_order_loading",
-			"AnimeID":   id,
-			"Mode":      string(mode),
-		})
-		return
-	}
-
-	ids := make([]int64, 0, len(relations))
-	for _, relation := range relations {
-		if relation.Anime.MalID > 0 {
-			ids = append(ids, int64(relation.Anime.MalID))
-		}
-	}
-	watchlistMap := h.watchlistMapForIDs(c.Request.Context(), userID, ids)
-
-	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-		"_fragment":    "watch_order",
-		"Relations":    relations,
-		"AnimeID":      id,
-		"Mode":         string(mode),
-		"WatchlistMap": watchlistMap,
-	})
 }
