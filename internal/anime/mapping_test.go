@@ -148,3 +148,36 @@ func TestCardGrouperInfersUnmappedSequelAndParentSpecial(t *testing.T) {
 		t.Fatalf("saved %d inferred mappings, want 2", len(resolver.saved))
 	}
 }
+
+func TestCardGrouperInfersUnmappedFirstSeasonFromMappedSequel(t *testing.T) {
+	group := mappingGroup{MediaType: "tv", TMDBID: 220542}
+	seasonOneIdentity := mappingIdentity{AniListID: 161645, MALID: 54492}
+	seasonTwo := animeMapping{AniListID: 176301, MALID: 58514, Group: group, Season: 2}
+	seasonTwoIdentity := mappingIdentity{AniListID: seasonTwo.AniListID, MALID: seasonTwo.MALID}
+	resolver := &fakeSavingResolver{fakeMappingResolver: fakeMappingResolver{
+		resolved:  map[mappingIdentity]animeMapping{seasonTwoIdentity: seasonTwo},
+		canonical: map[mappingGroup]animeMapping{group: seasonTwo},
+	}}
+	grouper := &CardGrouper{mappings: resolver}
+	input := []domain.Anime{
+		{
+			AniListID: seasonOneIdentity.AniListID, MalID: seasonOneIdentity.MALID,
+			Type: "TV", TitleEnglish: "The Apothecary Diaries",
+			ProviderRelations: []domain.AnimeProviderRelation{{
+				Type: "SEQUEL", Format: "TV", AniListID: seasonTwo.AniListID, MALID: seasonTwo.MALID,
+			}},
+		},
+		{AniListID: seasonTwo.AniListID, MalID: seasonTwo.MALID, Type: "TV", TitleEnglish: "The Apothecary Diaries Season 2"},
+	}
+
+	grouped, err := grouper.Group(context.Background(), input)
+	if err != nil {
+		t.Fatalf("group cards: %v", err)
+	}
+	if len(grouped) != 1 || grouped[0].MalID != seasonOneIdentity.MALID {
+		t.Fatalf("first season was not selected as canonical: %+v", grouped)
+	}
+	if len(resolver.saved) != 1 || resolver.saved[0].AniListID != seasonOneIdentity.AniListID {
+		t.Fatalf("first-season inference was not persisted: %+v", resolver.saved)
+	}
+}
