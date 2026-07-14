@@ -333,7 +333,7 @@ func (m *mappingTargets) addShow(rawID, scope string) {
 func preferredSeason(seasons []int) int {
 	best := -1
 	for _, season := range seasons {
-		if season > 0 && (best <= 0 || season < best) {
+		if season > 0 && season > best {
 			best = season
 		} else if best < 0 {
 			best = season
