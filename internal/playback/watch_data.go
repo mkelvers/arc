@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mal/integrations/tmdb"
+	"mal/internal/domain"
 	"maps"
 	"sort"
 	"strconv"
@@ -14,7 +16,6 @@ import (
 	"time"
 
 	"mal/integrations/anilist"
-	"mal/internal/domain"
 )
 
 const sourceResolutionTimeout = 15 * time.Second
@@ -223,8 +224,10 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	out.Episodes = nil
 	seen := map[int64]struct{}{}
 	nextNumber := s.progressEpisodeOffset(ctx, currentMapping) + 1
+	mediaNumber := 1
+	tmdbTitles := s.tmdbSeasonEpisodeTitles(ctx, currentMapping)
 	for _, mapping := range mappings {
-		nextNumber = s.appendDisplayMappingEpisodes(ctx, &out, mapping, currentMapping.Season, seen, nextNumber)
+		nextNumber, mediaNumber = s.appendDisplayMappingEpisodes(ctx, &out, mapping, currentMapping.Season, seen, nextNumber, mediaNumber, tmdbTitles)
 	}
 	if len(out.Episodes) == 0 {
 		offset := s.progressEpisodeOffset(ctx, currentMapping)
@@ -233,28 +236,53 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	return ensureDisplayEpisode(out, displayEpisode)
 }
 
-func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, selectedSeason int, seen map[int64]struct{}, nextNumber int) int {
+func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, selectedSeason int, seen map[int64]struct{}, nextNumber int, mediaNumber int, tmdbTitles map[int]string) (int, int) {
 	if !stackableProgressMapping(mapping) || mapping.Season != selectedSeason {
-		return nextNumber
+		return nextNumber, mediaNumber
 	}
 	if _, ok := seen[mapping.MALID]; ok {
-		return nextNumber
+		return nextNumber, mediaNumber
 	}
 	seen[mapping.MALID] = struct{}{}
 	source, err := s.watchAnime(ctx, int(mapping.MALID))
 	if err != nil {
-		return nextNumber
+		return nextNumber, mediaNumber
 	}
 	episodes, err := s.episodes.GetCanonicalEpisodes(ctx, source, false)
 	if err != nil {
-		return nextNumber
+		return nextNumber, mediaNumber
 	}
 	for _, episode := range episodes.Episodes {
+		if title := strings.TrimSpace(tmdbTitles[mediaNumber]); title != "" {
+			episode.Title = title
+		}
 		episode.Number = nextNumber
 		out.Episodes = append(out.Episodes, episode)
 		nextNumber++
+		mediaNumber++
 	}
-	return nextNumber
+	return nextNumber, mediaNumber
+}
+
+func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping) map[int]string {
+	if s.tmdbClient == nil || mapping.MediaType != string(tmdb.MediaTypeTV) || mapping.TMDBID <= 0 || mapping.Season < 0 {
+		return nil
+	}
+	season, err := s.tmdbClient.GetSeason(ctx, mapping.TMDBID, mapping.Season, "en-US")
+	if err != nil {
+		slog.Warn("watch_episode_tmdb_season_failed", "component", "playback", "fields", map[string]any{
+			"tmdb_id":     mapping.TMDBID,
+			"tmdb_season": mapping.Season,
+		}, "error", err)
+		return nil
+	}
+	titles := make(map[int]string, len(season.Episodes))
+	for _, episode := range season.Episodes {
+		if title := strings.TrimSpace(episode.Name); episode.EpisodeNumber > 0 && title != "" {
+			titles[episode.EpisodeNumber] = title
+		}
+	}
+	return titles
 }
 
 func offsetEpisodeList(input domain.CanonicalEpisodeList, offset int) domain.CanonicalEpisodeList {

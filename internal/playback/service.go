@@ -4,6 +4,7 @@ package playback
 import (
 	"fmt"
 	"mal/integrations/anilist"
+	"mal/integrations/tmdb"
 	"mal/internal/domain"
 	"mal/internal/playback/proxytarget"
 	netutil "mal/pkg/net"
@@ -18,6 +19,7 @@ type playbackService struct {
 	repo          domain.PlaybackRepository
 	providers     []domain.Provider
 	metadata      *anilist.CachedClient
+	tmdbClient    *tmdb.Client
 	episodes      domain.EpisodeService
 	httpClient    *http.Client
 	proxyTokenKey string
@@ -34,6 +36,7 @@ type PlaybackServiceParams struct {
 	Repository    domain.PlaybackRepository
 	Providers     []domain.Provider
 	Metadata      *anilist.CachedClient
+	TMDBClient    *tmdb.Client
 	Episodes      domain.EpisodeService
 	ProxyTokenKey ProxyTokenKey
 }
@@ -43,6 +46,7 @@ func NewPlaybackServiceWithAniList(params PlaybackServiceParams) domain.Playback
 		repo:          params.Repository,
 		providers:     params.Providers,
 		metadata:      params.Metadata,
+		tmdbClient:    params.TMDBClient,
 		episodes:      params.Episodes,
 		httpClient:    netutil.NewClient(),
 		proxyTokenKey: string(params.ProxyTokenKey),
