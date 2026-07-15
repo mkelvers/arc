@@ -186,3 +186,33 @@ func TestApplySelectedSeasonLabel(t *testing.T) {
 		t.Fatalf("SeasonLabel = %q, want %q", display.SeasonLabel, "Season 2")
 	}
 }
+
+func TestRegularSeasonLabelIncludesOrdinalAndTitle(t *testing.T) {
+	if got := regularSeasonLabel(2, "Mob Psycho 100 II"); got != "Season 2: Mob Psycho 100 II" {
+		t.Fatalf("regularSeasonLabel() = %q, want %q", got, "Season 2: Mob Psycho 100 II")
+	}
+	if got := regularSeasonLabel(3, ""); got != "Season 3" {
+		t.Fatalf("regularSeasonLabel() without title = %q, want %q", got, "Season 3")
+	}
+}
+
+func TestApplyPlaybackSeasonsIncludesCompleteMappedSeries(t *testing.T) {
+	display := animeEpisodeListDisplay{Selected: 1}
+	plan := []animeMapping{
+		{MALID: 32182, LogicalSeason: 1, AvailableCount: 12, SeasonLabel: "Season 1: Mob Psycho 100"},
+		{MALID: 37510, LogicalSeason: 2, AvailableCount: 13, SeasonLabel: "Season 2: Mob Psycho 100 II"},
+		{MALID: 50172, LogicalSeason: 3, AvailableCount: 12, SeasonLabel: "Season 3: Mob Psycho 100 III"},
+	}
+
+	applyPlaybackSeasons(plan, &display)
+
+	if len(display.Seasons) != 3 {
+		t.Fatalf("len(display.Seasons) = %d, want 3", len(display.Seasons))
+	}
+	if display.SeasonLabel != "Season 1: Mob Psycho 100" {
+		t.Fatalf("SeasonLabel = %q, want explicit first-season label", display.SeasonLabel)
+	}
+	if display.Seasons[1].Label != "Season 2: Mob Psycho 100 II" || display.Seasons[2].Label != "Season 3: Mob Psycho 100 III" {
+		t.Fatalf("unexpected mapped season labels: %+v", display.Seasons)
+	}
+}

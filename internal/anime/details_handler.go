@@ -20,6 +20,7 @@ import (
 
 const (
 	animeSectionTimeout = 12 * time.Second
+	tmdbMetadataTimeout = 2 * time.Second
 	audioLookupTimeout  = 8 * time.Second
 	episodeCountTimeout = 4 * time.Second
 	ovaSeasonBase       = 1000
@@ -231,7 +232,7 @@ func (h *AnimeHandler) animeEpisodeList(ctx context.Context, anime domain.Anime,
 		return episodeCtx.Display
 	}
 
-	tmdbEpisodes := h.tmdbSeasonEpisodes(ctx, episodeCtx.Anime, episodeCtx.Mapping, episodeCtx.HasMapping, episodeCtx.Season, &episodeCtx.Display)
+	tmdbEpisodes := h.tmdbSeasonEpisodes(ctx, episodeCtx.Anime, episodeCtx.Mapping, episodeCtx.HasMapping)
 	episodeCtx.Display.Episodes = episodeDisplays(sources, tmdbEpisodes)
 	return episodeCtx.Display
 }
@@ -282,7 +283,7 @@ func (h *AnimeHandler) applyEpisodeSeasonSelection(ctx context.Context, episodeC
 			episodeCtx.Display.Selected = selected
 		}
 	}
-	h.hydrateTMDBSeasons(ctx, episodeCtx.Mapping.Group, plan, &episodeCtx.Display)
+	applyPlaybackSeasons(plan, &episodeCtx.Display)
 	episodeCtx.Season = ensureSelectableEpisodeSeason(&episodeCtx.Display, episodeCtx.Season)
 	mappings := mappingsForLogicalSeason(plan, episodeCtx.Season)
 	if len(mappings) == 0 {
@@ -299,6 +300,16 @@ func (h *AnimeHandler) applyEpisodeSeasonSelection(ctx context.Context, episodeC
 	}
 	episodeCtx.Anime = selectedAnime
 	h.applySelectedAnimeMedia(ctx, &episodeCtx.Anime)
+}
+
+func applyPlaybackSeasons(plan []animeMapping, display *animeEpisodeListDisplay) {
+	if display == nil {
+		return
+	}
+	playbackCounts := playbackEpisodeCountsBySeason(plan)
+	display.Seasons = appendSyntheticSeasons(nil, playbackCounts, syntheticSeasonLabels(plan), display.Selected)
+	sort.Slice(display.Seasons, func(i, j int) bool { return display.Seasons[i].Number < display.Seasons[j].Number })
+	applySelectedSeasonLabel(display)
 }
 
 func (h *AnimeHandler) episodeSources(ctx context.Context, episodeCtx animeEpisodeListContext) []animeEpisodeSource {
@@ -502,24 +513,6 @@ func normalizedEpisodeTitle(title string) string {
 	return strings.ReplaceAll(out.String(), "part", "")
 }
 
-func (h *AnimeHandler) hydrateTMDBSeasons(ctx context.Context, group mappingGroup, plan []animeMapping, display *animeEpisodeListDisplay) {
-	if h.tmdbClient == nil || display == nil || group.MediaType != string(tmdb.MediaTypeTV) {
-		return
-	}
-	media, err := h.tmdbClient.GetMedia(ctx, tmdb.MediaRef{Type: tmdb.MediaTypeTV, ID: group.TMDBID}, tmdb.ImageOptions{})
-	if err != nil {
-		slog.Warn("anime_episode_list_tmdb_seasons_failed", "component", "anime", "fields", map[string]any{
-			"tmdb_id": group.TMDBID,
-		}, "error", err)
-		return
-	}
-	playbackCounts := playbackEpisodeCountsBySeason(plan)
-	display.Seasons = tmdbSeasonDisplays(media.Seasons, playbackCounts, display.Selected)
-	display.Seasons = appendSyntheticSeasons(display.Seasons, playbackCounts, syntheticSeasonLabels(plan), display.Selected)
-	sort.Slice(display.Seasons, func(i, j int) bool { return display.Seasons[i].Number < display.Seasons[j].Number })
-	applySelectedSeasonLabel(display)
-}
-
 func applySelectedSeasonLabel(display *animeEpisodeListDisplay) {
 	for _, season := range display.Seasons {
 		if season.Selected {
@@ -609,6 +602,7 @@ func appendSyntheticSeasons(displays []animeSeasonDisplay, playbackCounts map[in
 		}
 		displays = append(displays, animeSeasonDisplay{Number: season, Label: label, Count: count, Selected: season == selected})
 	}
+	sort.Slice(displays, func(i, j int) bool { return displays[i].Number < displays[j].Number })
 	return displays
 }
 
@@ -638,8 +632,8 @@ func (h *AnimeHandler) playbackEpisodeCounts(ctx context.Context, malID int) (in
 	if err != nil {
 		return 0, 0
 	}
-	episodeList, err := h.episodeSvc.GetCanonicalEpisodes(ctx, anime, false)
-	if err != nil {
+	episodeList, ok := h.episodeSvc.GetCachedCanonicalEpisodes(ctx, anime)
+	if !ok {
 		return 0, 0
 	}
 	return domain.RegularEpisodeCount(episodeList.Episodes), len(episodeList.Episodes)
@@ -712,14 +706,34 @@ func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeM
 	anime, animeErr := h.svc.GetAnimeByID(ctx, mapping.MALID)
 	if animeErr == nil {
 		mapping.LogicalSeason = anime.SeasonNumber(mapping.Season)
+		if mapping.Season > 0 {
+			mapping.SeasonLabel = regularSeasonLabel(mapping.LogicalSeason, anime.DisplayTitle())
+		}
 	}
 	mapping.MediaOffset = mediaOffsets[mapping.Season]
 	regularCount, totalCount := h.playbackEpisodeCounts(ctx, mapping.MALID)
+	if mapping.Season > 0 && animeErr == nil && anime.Episodes > 0 {
+		if regularCount <= 0 {
+			regularCount = anime.Episodes
+		}
+		if totalCount <= 0 {
+			totalCount = anime.Episodes
+		}
+	}
 	mapping.EpisodeCount = regularCount
 	mapping.AvailableCount = totalCount
 	classifySpecialMapping(&mapping, totalCount, anime.Type, counters)
 	mediaOffsets[mapping.Season] += mapping.EpisodeCount
 	return mapping, true
+}
+
+func regularSeasonLabel(season int, title string) string {
+	label := seasonLabelFromNumber(season)
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return label
+	}
+	return label + ": " + title
 }
 
 func classifySpecialMapping(mapping *animeMapping, totalCount int, format string, counters *specialSeasonCounters) {
@@ -763,16 +777,19 @@ func (h *AnimeHandler) attachInlineSpecialMappings(ctx context.Context, group ma
 	if h.tmdbClient == nil || group.MediaType != string(tmdb.MediaTypeTV) || group.TMDBID <= 0 {
 		return
 	}
-	specialSeason, err := h.tmdbClient.GetSeason(ctx, group.TMDBID, 0, "en-US")
+	tmdbCtx, cancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
+	defer cancel()
+
+	specialSeason, err := h.tmdbClient.GetSeason(tmdbCtx, group.TMDBID, 0, "en-US")
 	if err != nil {
 		return
 	}
-	regularEpisodes := h.tmdbRegularEpisodesForPlan(ctx, group, plan)
+	regularEpisodes := h.tmdbRegularEpisodesForPlan(tmdbCtx, group, plan)
 	for i := range plan {
 		if plan[i].Kind != episodeKindInline {
 			continue
 		}
-		special, ok := h.tmdbSpecialForMapping(ctx, plan[i], specialSeason.Episodes)
+		special, ok := h.tmdbSpecialForMapping(tmdbCtx, plan[i], specialSeason.Episodes)
 		if !ok {
 			continue
 		}
@@ -804,7 +821,7 @@ func (h *AnimeHandler) tmdbRegularEpisodesForPlan(ctx context.Context, group map
 func (h *AnimeHandler) tmdbSpecialForMapping(ctx context.Context, mapping animeMapping, specials []tmdb.Episode) (tmdb.Episode, bool) {
 	anime, err := h.svc.GetAnimeByID(ctx, mapping.MALID)
 	if err == nil {
-		if episodeList, episodeErr := h.episodeSvc.GetCanonicalEpisodes(ctx, anime, false); episodeErr == nil && len(episodeList.Episodes) == 1 {
+		if episodeList, ok := h.episodeSvc.GetCachedCanonicalEpisodes(ctx, anime); ok && len(episodeList.Episodes) == 1 {
 			if match := matchingTMDBEpisode(tmdbEpisodesByNumber(specials), episodeList.Episodes[0].Title); match.ID > 0 {
 				return match, true
 			}
@@ -897,15 +914,18 @@ func mappingsForLogicalSeason(plan []animeMapping, season int) []animeMapping {
 	return selected
 }
 
-func (h *AnimeHandler) tmdbSeasonEpisodes(ctx context.Context, anime domain.Anime, mapping animeMapping, hasMapping bool, selectedSeason int, display *animeEpisodeListDisplay) map[int]tmdb.Episode {
+func (h *AnimeHandler) tmdbSeasonEpisodes(ctx context.Context, anime domain.Anime, mapping animeMapping, hasMapping bool) map[int]tmdb.Episode {
 	if h.tmdbClient == nil || !hasMapping {
 		return nil
 	}
-	if mapping.Group.MediaType != string(tmdb.MediaTypeTV) || selectedSeason < 0 {
+	if mapping.Group.MediaType != string(tmdb.MediaTypeTV) || mapping.Season < 0 {
 		return nil
 	}
 
-	season, err := h.tmdbClient.GetSeasonMetadata(ctx, mapping.Group.TMDBID, mapping.Season, "en-US")
+	tmdbCtx, cancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
+	defer cancel()
+
+	season, err := h.tmdbClient.GetSeasonMetadata(tmdbCtx, mapping.Group.TMDBID, mapping.Season, "en-US")
 	if err != nil {
 		slog.Warn("anime_episode_list_tmdb_season_failed", "component", "anime", "fields", map[string]any{
 			"anime_id":    anime.MalID,
@@ -916,10 +936,9 @@ func (h *AnimeHandler) tmdbSeasonEpisodes(ctx context.Context, anime domain.Anim
 		return nil
 	}
 
-	applyTMDBSeasonLabel(display, mapping.Season, selectedSeason, season.Name)
 	episodes := tmdbEpisodesByNumber(season.Episodes)
 	if mapping.Season > 0 {
-		h.appendTMDBSpecialEpisodes(ctx, mapping.Group.TMDBID, episodes)
+		h.appendTMDBSpecialEpisodes(tmdbCtx, mapping.Group.TMDBID, episodes)
 	}
 	return episodes
 }
@@ -932,13 +951,6 @@ func (h *AnimeHandler) appendTMDBSpecialEpisodes(ctx context.Context, tmdbID int
 	for _, episode := range specials.Episodes {
 		episodes[-episode.EpisodeNumber] = episode
 	}
-}
-
-func applyTMDBSeasonLabel(display *animeEpisodeListDisplay, mediaSeason int, selectedSeason int, name string) {
-	if display == nil || mediaSeason != selectedSeason || strings.TrimSpace(name) == "" {
-		return
-	}
-	display.SeasonLabel = strings.TrimSpace(name)
 }
 
 func (h *AnimeHandler) resolveAnimeTMDBMapping(ctx context.Context, anime domain.Anime) (animeMapping, bool) {

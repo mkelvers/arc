@@ -102,7 +102,7 @@ func (h *AnimeHandler) continueWatchingCandidateEpisodeTitle(ctx context.Context
 		return "", count, false
 	}
 	mediaNumber := mediaOffset + remaining
-	media := h.tmdbSeasonEpisodes(ctx, sourceAnime, mapping, true, mapping.Season, nil)[mediaNumber]
+	media := h.tmdbSeasonEpisodes(ctx, sourceAnime, mapping, true)[mediaNumber]
 	return animeEpisodeTitle(episode, media), count, true
 }
 
