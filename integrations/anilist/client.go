@@ -117,6 +117,32 @@ func (c *Client) GetAnimeBatchByMALID(ctx context.Context, ids []int) ([]Anime, 
 	return items, nil
 }
 
+// GetMALIDsByAniListID resolves provider identities without fetching full anime
+// metadata. Missing MAL IDs are omitted from the result.
+func (c *Client) GetMALIDsByAniListID(ctx context.Context, ids []int) (map[int]int, error) {
+	ids = uniquePositive(ids)
+	result := make(map[int]int, len(ids))
+	for start := 0; start < len(ids); start += 50 {
+		end := min(start+50, len(ids))
+		var query strings.Builder
+		query.WriteString("query {")
+		for index, id := range ids[start:end] {
+			fmt.Fprintf(&query, "m%d: Media(id: %d, type: ANIME) { id idMal }", index, id)
+		}
+		query.WriteString("}")
+		response, err := c.query(ctx, query.String(), nil)
+		if err != nil && len(response.Data.Batch) == 0 {
+			return nil, err
+		}
+		for _, item := range response.Data.Batch {
+			if item.ID > 0 && item.IDMal > 0 {
+				result[item.ID] = item.IDMal
+			}
+		}
+	}
+	return result, nil
+}
+
 func (c *Client) getAnimeBatchIndividually(ctx context.Context, ids []int) ([]Anime, error) {
 	items := make([]Anime, 0, len(ids))
 	for _, id := range ids {
