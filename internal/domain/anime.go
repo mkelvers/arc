@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"mal/internal/database/db"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -131,6 +132,29 @@ type AnimeProviderRelation struct {
 	Format    string
 	AniListID int
 	MALID     int
+}
+
+var (
+	seasonNumberPattern        = regexp.MustCompile(`(?i)\bseason\s+(\d+)\b`)
+	ordinalSeasonNumberPattern = regexp.MustCompile(`(?i)\b(\d+)(?:st|nd|rd|th)\s+season\b`)
+)
+
+// SeasonNumber prefers an explicit anime season title over a provider's
+// season mapping. Some TV databases combine later anime seasons into one.
+func (a Anime) SeasonNumber(fallback int) int {
+	for _, title := range []string{a.TitleEnglish, a.Title, a.TitleJapanese} {
+		for _, pattern := range []*regexp.Regexp{seasonNumberPattern, ordinalSeasonNumberPattern} {
+			match := pattern.FindStringSubmatch(title)
+			if len(match) != 2 {
+				continue
+			}
+			season, err := strconv.Atoi(match[1])
+			if err == nil && season > 0 {
+				return season
+			}
+		}
+	}
+	return fallback
 }
 
 func (a Anime) DisplayTitle() string {
