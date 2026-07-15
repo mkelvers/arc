@@ -187,6 +187,16 @@ func (s *MappingStore) findCanonicalMappings(ctx context.Context, groups []mappi
 	return canonical, nil
 }
 
+func (s *MappingStore) GroupMappings(ctx context.Context, group mappingGroup) ([]animeMapping, error) {
+	if group.MediaType == "" || group.TMDBID <= 0 {
+		return nil, nil
+	}
+	query := `SELECT anilist_id, mal_id, tmdb_media_type, tmdb_id, tmdb_season, canonical
+		FROM anime_effective_mapping WHERE tmdb_media_type = ? AND tmdb_id = ?
+		ORDER BY tmdb_season, anilist_id, mal_id`
+	return scanMappings(ctx, s.db, query, group.MediaType, group.TMDBID)
+}
+
 type mappingQueryer interface {
 	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }
