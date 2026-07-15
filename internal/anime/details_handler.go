@@ -753,7 +753,7 @@ func (h *AnimeHandler) tmdbRegularEpisodesForPlan(ctx context.Context, group map
 			continue
 		}
 		seen[mapping.Season] = true
-		season, err := h.tmdbClient.GetSeason(ctx, group.TMDBID, mapping.Season, "en-US")
+		season, err := h.tmdbClient.GetSeasonMetadata(ctx, group.TMDBID, mapping.Season, "en-US")
 		if err == nil {
 			episodes = append(episodes, season.Episodes...)
 		}
@@ -865,7 +865,7 @@ func (h *AnimeHandler) tmdbSeasonEpisodes(ctx context.Context, anime domain.Anim
 		return nil
 	}
 
-	season, err := h.tmdbClient.GetSeason(ctx, mapping.Group.TMDBID, mapping.Season, "en-US")
+	season, err := h.tmdbClient.GetSeasonMetadata(ctx, mapping.Group.TMDBID, mapping.Season, "en-US")
 	if err != nil {
 		slog.Warn("anime_episode_list_tmdb_season_failed", "component", "anime", "fields", map[string]any{
 			"anime_id":    anime.MalID,

@@ -290,7 +290,7 @@ func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping d
 	if s.tmdbClient == nil || mapping.MediaType != string(tmdb.MediaTypeTV) || mapping.TMDBID <= 0 || mapping.Season < 0 {
 		return nil
 	}
-	season, err := s.tmdbClient.GetSeason(ctx, mapping.TMDBID, mapping.Season, "en-US")
+	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, mapping.Season, "en-US")
 	if err != nil {
 		slog.Warn("watch_episode_tmdb_season_failed", "component", "playback", "fields", map[string]any{
 			"tmdb_id":     mapping.TMDBID,
