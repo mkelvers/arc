@@ -160,7 +160,7 @@ const buildWatchlistButton = (item: SearchItem): HTMLButtonElement | null => {
   button.append(
     buildSvgIcon(
       iconPaths.bookmark,
-      "size-6 watchlist-icon fill-none group-data-[watchlist-state=in]:fill-current [&_path]:fill-none group-data-[watchlist-state=in]:[&_path]:fill-current",
+      "size-8 watchlist-icon fill-none group-data-[watchlist-state=in]:fill-current [&_path]:fill-none group-data-[watchlist-state=in]:[&_path]:fill-current",
     ),
   );
   return button;
