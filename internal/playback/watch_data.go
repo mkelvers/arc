@@ -2,6 +2,7 @@ package playback
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -43,40 +44,39 @@ const episodeAvailabilityUncertainWarning = "Episode availability may be incompl
 
 func (s *playbackService) BuildWatchData(ctx context.Context, request domain.WatchDataRequest) (data domain.WatchPageData, err error) {
 	animeID, titleCandidates, episode, mode, userID := request.AnimeID, request.TitleCandidates, request.Episode, request.Mode, request.UserID
+	displayAnimeID := animeID
+	displayEpisode := episode
 	totalStartedAt := time.Now()
 	defer func() {
 		logWatchDataStage("total", animeID, episode, totalStartedAt, map[string]any{"failed": err != nil})
 	}()
 
-	animeStartedAt := time.Now()
-	animeData, err := s.watchAnime(ctx, animeID)
-	logWatchDataStage("anime_metadata", animeID, episode, animeStartedAt, nil)
+	loaded, err := s.loadWatchAnimeEpisodes(ctx, animeID, episode, titleCandidates, "")
 	if err != nil {
-		return domain.WatchPageData{}, fmt.Errorf("failed to fetch anime: %w", err)
+		return domain.WatchPageData{}, err
 	}
-
-	ensureStartedAt := time.Now()
-	if err := s.ensureAnimeRow(ctx, animeData); err != nil {
-		slog.Warn("upsert_anime_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID}, "error", err)
+	if normalized, ok := s.normalizedWatchEpisode(ctx, int64(animeID), episode); ok {
+		displayAnimeID = int(normalized.AnimeID)
+		displayEpisode = strconv.Itoa(normalized.Episode)
 	}
-	logWatchDataStage("anime_row", animeID, episode, ensureStartedAt, nil)
-	anime := animeData
-	searchTitles := buildSearchTitles(animeData, titleCandidates)
-	episodesStartedAt := time.Now()
-	eps, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
-	logWatchDataStage("canonical_episodes", animeID, episode, episodesStartedAt, map[string]any{"episodes": len(eps.Episodes)})
-	if err != nil {
-		return domain.WatchPageData{}, fmt.Errorf("failed to fetch episodes: %w", err)
+	if mappedAnimeID, mappedEpisode, ok := s.resolveMappedWatchEpisode(ctx, animeID, episode, len(loaded.episodes.Episodes)); ok {
+		animeID = mappedAnimeID
+		episode = mappedEpisode
+		loaded, err = s.loadWatchAnimeEpisodes(ctx, animeID, episode, titleCandidates, "mapped_")
+		if err != nil {
+			return domain.WatchPageData{}, err
+		}
 	}
+	displayEpisodes := s.watchDisplayEpisodes(ctx, loaded, displayEpisode)
 
 	// mode fallback
-	mode, from := resolveMode(episode, mode, eps.Episodes)
+	mode, from := resolveMode(episode, mode, loaded.episodes.Episodes)
 	deferred := domain.PlaybackDataDeferred(ctx)
-	branches := watchBranchInput{ctx: ctx, animeID: animeID, searchTitles: searchTitles, episode: episode, mode: mode, from: from, userID: userID, totalEpisodes: anime.Episodes, allowStale: !anime.Airing, deferred: deferred}
+	branches := watchBranchInput{ctx: ctx, animeID: animeID, searchTitles: loaded.searchTitles, episode: episode, mode: mode, from: from, userID: userID, totalEpisodes: loaded.anime.Episodes, allowStale: !loaded.anime.Airing, deferred: deferred}
 	modeResult, progress, segments := s.loadWatchBranches(branches)
-	watchData := buildWatchDataPayload(watchDataPayloadInput{anime: animeData, animeID: animeID, episode: episode, startTime: progress.startTime, episodes: eps.Episodes, modeSources: modeResult.sources, mode: modeResult.mode, modeSwitchedFrom: modeResult.from, segments: segments})
-	pageData := buildWatchPageData(watchPageDataInput{anime: animeData, episodes: eps.Episodes, episode: episode, watchlistStatus: progress.watchlistStatus, watchlistIDs: progress.watchlistIDs, watchData: watchData})
-	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(eps, time.Now())
+	watchData := buildWatchDataPayload(watchDataPayloadInput{anime: loaded.anime, animeID: displayAnimeID, episode: displayEpisode, startTime: progress.startTime, episodes: displayEpisodes.Episodes, modeSources: modeResult.sources, mode: modeResult.mode, modeSwitchedFrom: modeResult.from, segments: segments})
+	pageData := buildWatchPageData(watchPageDataInput{anime: loaded.anime, animeID: displayAnimeID, episodes: displayEpisodes.Episodes, episode: displayEpisode, watchlistStatus: progress.watchlistStatus, watchlistIDs: progress.watchlistIDs, watchData: watchData})
+	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(loaded.episodes, time.Now())
 	if deferred {
 		return pageData, nil
 	}
@@ -88,6 +88,207 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 	}
 
 	return pageData, nil
+}
+
+type watchAnimeEpisodes struct {
+	anime        domain.Anime
+	episodes     domain.CanonicalEpisodeList
+	searchTitles []string
+}
+
+func (s *playbackService) normalizedWatchEpisode(ctx context.Context, animeID int64, episode string) (progressTarget, bool) {
+	n, err := strconv.Atoi(episode)
+	if err != nil || n <= 0 {
+		return progressTarget{}, false
+	}
+	target := s.resolveProgressTarget(ctx, animeID, n)
+	return target, target.AnimeID != animeID || target.Episode != n
+}
+
+func (s *playbackService) loadWatchAnimeEpisodes(ctx context.Context, animeID int, episode string, titleCandidates []string, stagePrefix string) (watchAnimeEpisodes, error) {
+	animeStartedAt := time.Now()
+	animeData, err := s.watchAnime(ctx, animeID)
+	logWatchDataStage(stagePrefix+"anime_metadata", animeID, episode, animeStartedAt, nil)
+	if err != nil {
+		return watchAnimeEpisodes{}, fmt.Errorf("failed to fetch anime: %w", err)
+	}
+
+	ensureStartedAt := time.Now()
+	if err := s.ensureAnimeRow(ctx, animeData); err != nil {
+		slog.Warn("upsert_anime_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID}, "error", err)
+	}
+	logWatchDataStage(stagePrefix+"anime_row", animeID, episode, ensureStartedAt, nil)
+
+	episodesStartedAt := time.Now()
+	episodes, err := s.episodes.GetCanonicalEpisodes(ctx, animeData, false)
+	logWatchDataStage(stagePrefix+"canonical_episodes", animeID, episode, episodesStartedAt, map[string]any{"episodes": len(episodes.Episodes)})
+	if err != nil {
+		return watchAnimeEpisodes{}, fmt.Errorf("failed to fetch episodes: %w", err)
+	}
+
+	return watchAnimeEpisodes{
+		anime:        animeData,
+		episodes:     episodes,
+		searchTitles: buildSearchTitles(animeData, titleCandidates),
+	}, nil
+}
+
+func (s *playbackService) resolveMappedWatchEpisode(ctx context.Context, animeID int, episode string, totalEpisodes int) (int, string, bool) {
+	requestedEpisode, err := strconv.Atoi(episode)
+	if err != nil || requestedEpisode <= totalEpisodes {
+		return 0, "", false
+	}
+
+	mapping, ok := s.watchEpisodeMapping(ctx, animeID)
+	if !ok {
+		return 0, "", false
+	}
+	return s.resolveEpisodeInMappingGroup(ctx, animeID, episode, requestedEpisode, mapping)
+}
+
+func (s *playbackService) watchEpisodeMapping(ctx context.Context, animeID int) (domain.AnimeMediaMapping, bool) {
+	mapping, err := s.repo.GetAnimeMappingByMALID(ctx, int64(animeID))
+	if err == nil && mapping.MediaType == "tv" && mapping.TMDBID > 0 && mapping.Season > 0 {
+		return mapping, true
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		slog.Warn("watch_episode_mapping_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID}, "error", err)
+	}
+	return domain.AnimeMediaMapping{}, false
+}
+
+func (s *playbackService) resolveEpisodeInMappingGroup(ctx context.Context, animeID int, episode string, requestedEpisode int, mapping domain.AnimeMediaMapping) (int, string, bool) {
+	mappings, ok := s.watchEpisodeGroupMappings(ctx, mapping)
+	if !ok {
+		return 0, "", false
+	}
+
+	remaining := requestedEpisode
+	seen := map[int64]struct{}{}
+	for _, candidate := range mappings {
+		targetAnimeID, targetEpisode, consumed, found := s.resolveEpisodeInMappingCandidate(ctx, candidate, animeID, episode, remaining, seen)
+		if found {
+			return targetAnimeID, targetEpisode, true
+		}
+		remaining -= consumed
+	}
+	return 0, "", false
+}
+
+func (s *playbackService) watchEpisodeGroupMappings(ctx context.Context, mapping domain.AnimeMediaMapping) ([]domain.AnimeMediaMapping, bool) {
+	mappings, err := s.repo.GetAnimeMappingsForGroup(ctx, mapping.MediaType, mapping.TMDBID)
+	if err != nil {
+		slog.Warn("watch_episode_group_mappings_failed", "component", "playback", "fields", map[string]any{
+			"tmdb_media_type": mapping.MediaType,
+			"tmdb_id":         mapping.TMDBID,
+		}, "error", err)
+		return nil, false
+	}
+	return mappings, true
+}
+
+func (s *playbackService) resolveEpisodeInMappingCandidate(ctx context.Context, candidate domain.AnimeMediaMapping, animeID int, episode string, remaining int, seen map[int64]struct{}) (int, string, int, bool) {
+	if candidate.MALID <= 0 || candidate.Season <= 0 {
+		return 0, "", 0, false
+	}
+	if _, ok := seen[candidate.MALID]; ok {
+		return 0, "", 0, false
+	}
+	seen[candidate.MALID] = struct{}{}
+	count := s.playbackEpisodeCount(ctx, candidate.MALID)
+	if count <= 0 || remaining > count {
+		return 0, "", count, false
+	}
+	if candidate.MALID == int64(animeID) && strconv.Itoa(remaining) == episode {
+		return 0, "", count, false
+	}
+	return int(candidate.MALID), strconv.Itoa(remaining), count, true
+}
+
+func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watchAnimeEpisodes, displayEpisode string) domain.CanonicalEpisodeList {
+	currentMapping, ok := s.watchEpisodeMapping(ctx, loaded.anime.MalID)
+	if !ok {
+		return loaded.episodes
+	}
+	if currentMapping.Season <= 0 {
+		return loaded.episodes
+	}
+	mappings, ok := s.watchEpisodeGroupMappings(ctx, currentMapping)
+	if !ok {
+		offset := s.progressEpisodeOffset(ctx, currentMapping)
+		return offsetEpisodeList(loaded.episodes, offset)
+	}
+
+	out := loaded.episodes
+	out.Episodes = nil
+	seen := map[int64]struct{}{}
+	nextNumber := s.progressEpisodeOffset(ctx, currentMapping) + 1
+	for _, mapping := range mappings {
+		nextNumber = s.appendDisplayMappingEpisodes(ctx, &out, mapping, currentMapping.Season, seen, nextNumber)
+	}
+	if len(out.Episodes) == 0 {
+		offset := s.progressEpisodeOffset(ctx, currentMapping)
+		return offsetEpisodeList(loaded.episodes, offset)
+	}
+	return ensureDisplayEpisode(out, displayEpisode)
+}
+
+func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, selectedSeason int, seen map[int64]struct{}, nextNumber int) int {
+	if !stackableProgressMapping(mapping) || mapping.Season != selectedSeason {
+		return nextNumber
+	}
+	if _, ok := seen[mapping.MALID]; ok {
+		return nextNumber
+	}
+	seen[mapping.MALID] = struct{}{}
+	source, err := s.watchAnime(ctx, int(mapping.MALID))
+	if err != nil {
+		return nextNumber
+	}
+	episodes, err := s.episodes.GetCanonicalEpisodes(ctx, source, false)
+	if err != nil {
+		return nextNumber
+	}
+	for _, episode := range episodes.Episodes {
+		episode.Number = nextNumber
+		out.Episodes = append(out.Episodes, episode)
+		nextNumber++
+	}
+	return nextNumber
+}
+
+func offsetEpisodeList(input domain.CanonicalEpisodeList, offset int) domain.CanonicalEpisodeList {
+	if offset <= 0 {
+		return input
+	}
+	out := input
+	out.Episodes = append([]domain.CanonicalEpisode(nil), input.Episodes...)
+	for i := range out.Episodes {
+		out.Episodes[i].Number += offset
+	}
+	return out
+}
+
+func ensureDisplayEpisode(input domain.CanonicalEpisodeList, displayEpisode string) domain.CanonicalEpisodeList {
+	n, err := strconv.Atoi(displayEpisode)
+	if err != nil || n <= 0 {
+		return input
+	}
+	for _, episode := range input.Episodes {
+		if episode.Number == n {
+			return input
+		}
+	}
+	out := input
+	out.Episodes = append(append([]domain.CanonicalEpisode(nil), input.Episodes...), domain.CanonicalEpisode{
+		Number: n,
+		Title:  fmt.Sprintf("Episode %d", n),
+		HasSub: true,
+	})
+	sort.Slice(out.Episodes, func(i, j int) bool {
+		return out.Episodes[i].Number < out.Episodes[j].Number
+	})
+	return out
 }
 
 type watchBranchInput struct {
@@ -265,6 +466,7 @@ func buildWatchDataPayload(input watchDataPayloadInput) domain.WatchData {
 
 type watchPageDataInput struct {
 	anime                    domain.Anime
+	animeID                  int
 	episodes                 []domain.CanonicalEpisode
 	episode, watchlistStatus string
 	watchlistIDs             []int64
@@ -276,12 +478,24 @@ func buildWatchPageData(input watchPageDataInput) domain.WatchPageData {
 	return domain.WatchPageData{
 		WatchData:       input.watchData,
 		Anime:           input.anime,
+		AnimeID:         input.animeID,
 		Episodes:        input.episodes,
+		EpisodeTotal:    maxEpisodeNumber(input.episodes),
 		CurrentEpID:     input.episode,
 		WatchlistStatus: input.watchlistStatus,
 		WatchlistIDs:    input.watchlistIDs,
 		Seasons:         input.seasons,
 	}
+}
+
+func maxEpisodeNumber(episodes []domain.CanonicalEpisode) int {
+	maxNumber := 0
+	for _, episode := range episodes {
+		if episode.Number > maxNumber {
+			maxNumber = episode.Number
+		}
+	}
+	return maxNumber
 }
 
 func logWatchDataStage(stage string, animeID int, episode string, startedAt time.Time, fields map[string]any) {
