@@ -68,8 +68,9 @@ type animeEpisodeSource struct {
 }
 
 type animeSeasonLink struct {
-	Label string
-	URL   string
+	Label       string
+	URL         string
+	FragmentURL string
 }
 
 type animeSeasonDisplay struct {
@@ -311,6 +312,36 @@ func applyPlaybackSeasons(plan []animeMapping, display *animeEpisodeListDisplay)
 	display.Seasons = appendSyntheticSeasons(nil, playbackCounts, syntheticSeasonLabels(plan), display.Selected)
 	sort.Slice(display.Seasons, func(i, j int) bool { return display.Seasons[i].Number < display.Seasons[j].Number })
 	applySelectedSeasonLabel(display)
+	applyAdjacentSeasonLinks(display)
+}
+
+func applyAdjacentSeasonLinks(display *animeEpisodeListDisplay) {
+	if display == nil || len(display.Seasons) == 0 || display.AnimeID <= 0 {
+		return
+	}
+	display.Previous = nil
+	display.Next = nil
+	for index, season := range display.Seasons {
+		if !season.Selected {
+			continue
+		}
+		if index > 0 {
+			display.Previous = seasonSelectionLink(display.AnimeID, display.Seasons[index-1], "Previous Season")
+		}
+		if index+1 < len(display.Seasons) {
+			display.Next = seasonSelectionLink(display.AnimeID, display.Seasons[index+1], "Next Season")
+		}
+		return
+	}
+}
+
+func seasonSelectionLink(animeID int, season animeSeasonDisplay, label string) *animeSeasonLink {
+	pageURL := fmt.Sprintf("/anime/%d?season=%d", animeID, season.Number)
+	return &animeSeasonLink{
+		Label:       label,
+		URL:         pageURL,
+		FragmentURL: fmt.Sprintf("/anime/%d?section=episode-list&season=%d", animeID, season.Number),
+	}
 }
 
 func (h *AnimeHandler) episodeSources(ctx context.Context, episodeCtx animeEpisodeListContext) []animeEpisodeSource {
@@ -660,6 +691,7 @@ func markSelectedEpisodeSeason(display *animeEpisodeListDisplay, selected int) {
 		display.Seasons[i].Selected = display.Seasons[i].Number == selected
 	}
 	applySelectedSeasonLabel(display)
+	applyAdjacentSeasonLinks(display)
 }
 
 func tmdbSeasonDisplays(seasons []tmdb.SeasonSummary, playbackCounts map[int]int, selected int) []animeSeasonDisplay {
@@ -1295,15 +1327,18 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		return
 	}
 
-	section := c.Query("section")
-	if section != "" && c.GetHeader("HX-Request") == "true" {
-		h.handleAnimeDetailsSection(c, id, section)
-		return
-	}
-
 	anime, err := h.svc.GetAnimeByID(c.Request.Context(), id)
 	if err != nil {
 		server.RespondNotFound(c)
+		return
+	}
+
+	section := c.Query("section")
+	selectedSeason := parseSelectedSeason(c.Query("season"))
+	if h.handleCanonicalAnimeRequest(c, anime, section, selectedSeason) {
+		return
+	}
+	if h.handleRequestedAnimeSection(c, id, section, selectedSeason) {
 		return
 	}
 	h.applySelectedAnimeMedia(c.Request.Context(), &anime)
@@ -1340,14 +1375,58 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		"ContinueWatchingEp":   ep,
 		"ContinueWatchingTime": cwSeconds,
 		"ReleaseInfo":          releaseInfo,
+		"SelectedSeason":       selectedSeason,
 	})
 }
 
-func (h *AnimeHandler) handleAnimeDetailsSection(c *gin.Context, id int, section string) {
+func (h *AnimeHandler) handleRequestedAnimeSection(c *gin.Context, id int, section string, selectedSeason int) bool {
+	if section == "" || c.GetHeader("HX-Request") != "true" {
+		return false
+	}
+	h.handleAnimeDetailsSectionForSeason(c, id, section, selectedSeason)
+	return true
+}
+
+func (h *AnimeHandler) handleCanonicalAnimeRequest(c *gin.Context, anime domain.Anime, section string, selectedSeason int) bool {
+	canonicalID, mappedSeason := h.canonicalAnimePage(c.Request.Context(), anime)
+	if canonicalID == anime.MalID {
+		return false
+	}
+	if selectedSeason < 0 {
+		selectedSeason = mappedSeason
+	}
+	if section != "" && c.GetHeader("HX-Request") == "true" {
+		h.handleAnimeDetailsSectionForSeason(c, canonicalID, section, selectedSeason)
+		return true
+	}
+	c.Redirect(http.StatusFound, animeSeasonPageURL(canonicalID, selectedSeason))
+	return true
+}
+
+func (h *AnimeHandler) canonicalAnimePage(ctx context.Context, anime domain.Anime) (int, int) {
+	mapping, ok := h.resolveAnimeTMDBMapping(ctx, anime)
+	if !ok || mapping.Group.MediaType != string(tmdb.MediaTypeTV) {
+		return anime.MalID, -1
+	}
+	canonicalID := h.canonicalWatchAnimeID(ctx, mapping.Group, anime.MalID)
+	if canonicalID == anime.MalID {
+		return canonicalID, -1
+	}
+	return canonicalID, anime.SeasonNumber(mapping.Season)
+}
+
+func animeSeasonPageURL(animeID int, season int) string {
+	if season < 0 {
+		return fmt.Sprintf("/anime/%d", animeID)
+	}
+	return fmt.Sprintf("/anime/%d?season=%d", animeID, season)
+}
+
+func (h *AnimeHandler) handleAnimeDetailsSectionForSeason(c *gin.Context, id int, section string, selectedSeason int) {
 	sectionCtx, cancel := context.WithTimeout(c.Request.Context(), animeSectionTimeout)
 	defer cancel()
 
-	data, tplName, err := h.loadAnimeDetailsSection(sectionCtx, id, section, parseSelectedSeason(c.Query("season")))
+	data, tplName, err := h.loadAnimeDetailsSection(sectionCtx, id, section, selectedSeason)
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return

@@ -43,6 +43,36 @@ func TestSelectableEpisodeSeasonFallsBackFromUnavailableSeason(t *testing.T) {
 	}
 }
 
+func TestApplyAdjacentSeasonLinksKeepsCanonicalAnimeRoute(t *testing.T) {
+	display := animeEpisodeListDisplay{
+		AnimeID:  52347,
+		Selected: 2,
+		Seasons: []animeSeasonDisplay{
+			{Number: 1, Label: "Season 1"},
+			{Number: 2, Label: "Season 2", Selected: true},
+			{Number: 3, Label: "Season 3"},
+		},
+	}
+
+	applyAdjacentSeasonLinks(&display)
+
+	if display.Previous == nil || display.Previous.URL != "/anime/52347?season=1" || display.Previous.FragmentURL != "/anime/52347?section=episode-list&season=1" {
+		t.Fatalf("Previous = %+v, want canonical season 1 route", display.Previous)
+	}
+	if display.Next == nil || display.Next.URL != "/anime/52347?season=3" || display.Next.FragmentURL != "/anime/52347?section=episode-list&season=3" {
+		t.Fatalf("Next = %+v, want canonical season 3 route", display.Next)
+	}
+}
+
+func TestAnimeSeasonPageURL(t *testing.T) {
+	if got := animeSeasonPageURL(52347, 2); got != "/anime/52347?season=2" {
+		t.Fatalf("animeSeasonPageURL() = %q, want canonical season URL", got)
+	}
+	if got := animeSeasonPageURL(52347, -1); got != "/anime/52347" {
+		t.Fatalf("animeSeasonPageURL() without season = %q", got)
+	}
+}
+
 func TestSourceEpisodeDisplaysPreservesInlineSpecialPlaybackID(t *testing.T) {
 	displays := sourceEpisodeDisplays(animeEpisodeSource{
 		Anime:         domain.Anime{MalID: 53580, Title: "Slime Season 3"},
