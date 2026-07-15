@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-type FlexibleInt int
+type FlexibleInt string
 
 type Object []byte
 
@@ -22,39 +22,45 @@ type SearchInput struct {
 }
 
 func (n FlexibleInt) Int() int {
-	return int(n)
+	value, _ := strconv.ParseFloat(string(n), 64)
+	return int(value)
+}
+
+func (n FlexibleInt) String() string {
+	return string(n)
 }
 
 func (n FlexibleInt) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Itoa(int(n))), nil
+	if n == "" {
+		return []byte("0"), nil
+	}
+	return []byte(n), nil
 }
 
 func (n *FlexibleInt) UnmarshalJSON(data []byte) error {
 	data = bytes.TrimSpace(data)
 	if bytes.Equal(data, []byte("null")) || len(data) == 0 {
-		*n = 0
+		*n = ""
 		return nil
 	}
 
 	var text string
 	if err := json.Unmarshal(data, &text); err == nil {
 		if text == "" {
-			*n = 0
+			*n = ""
 			return nil
 		}
-		value, err := strconv.ParseFloat(text, 64)
-		if err != nil {
+		if _, err := strconv.ParseFloat(text, 64); err != nil {
 			return err
 		}
-		*n = FlexibleInt(value)
+		*n = FlexibleInt(text)
 		return nil
 	}
 
-	value, err := strconv.ParseFloat(string(data), 64)
-	if err != nil {
+	if _, err := strconv.ParseFloat(string(data), 64); err != nil {
 		return err
 	}
-	*n = FlexibleInt(value)
+	*n = FlexibleInt(data)
 	return nil
 }
 
