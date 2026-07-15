@@ -1,0 +1,122 @@
+{{define "anime_episode_list"}}
+{{$items := .Items}}
+<section id="anime-episode-list" class="-mx-4 bg-background px-6 pb-10 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20">
+  <div class="flex items-center justify-between gap-4">
+    {{if $items.Seasons}}
+      <ui-dropdown class="relative block" data-align="left" data-width="w-80">
+        <div data-trigger>
+          <button type="button" class="inline-flex items-center gap-2 text-base font-bold text-foreground transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent aria-expanded:text-accent">
+            <svg class="size-4 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M5 7l5 5 5-5H5z" />
+            </svg>
+            {{$items.SeasonLabel}}
+          </button>
+        </div>
+        <div data-content class="absolute left-0 top-full z-50 mt-3 hidden max-h-80 w-80 overflow-y-auto bg-neutral-900 py-3 shadow-card scrollbar-hidden">
+          {{range $items.Seasons}}
+            <button
+              type="button"
+              hx-get="/anime/{{$items.AnimeID}}?section=episode-list&season={{.Number}}"
+              hx-target="#anime-episode-list"
+              hx-swap="outerHTML"
+              class="flex w-full items-center justify-between gap-6 px-5 py-2.5 text-left transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent {{if .Selected}}text-foreground{{else}}text-foreground-muted{{end}}"
+            >
+              <span class="min-w-0 truncate text-base">{{.Label}}</span>
+              <span class="shrink-0 text-xs font-semibold {{if .Selected}}text-foreground{{else}}text-foreground-muted{{end}}">{{.Count}} Episodes</span>
+            </button>
+          {{end}}
+        </div>
+      </ui-dropdown>
+    {{else}}
+      <h2 class="inline-flex items-center gap-2 text-base font-bold text-foreground">
+        <svg class="size-4 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M5 7l5 5 5-5H5z" />
+        </svg>
+        {{$items.SeasonLabel}}
+      </h2>
+    {{end}}
+    {{if $items.Episodes}}
+      <span class="text-xs font-bold uppercase text-foreground-muted">{{len $items.Episodes}} Episodes</span>
+    {{end}}
+  </div>
+
+  {{if $items.Episodes}}
+    <div class="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+      {{range $items.Episodes}}
+        <a href="{{.WatchURL}}" class="group block min-w-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+          <div class="relative aspect-video overflow-hidden bg-neutral-900">
+            {{if .ImageURL}}
+              <img src="{{.ImageURL}}" alt="" class="size-full object-cover transition duration-200 group-hover:scale-105" loading="lazy" />
+              <div class="absolute inset-0 bg-black/25 transition-colors group-hover:bg-black/10"></div>
+            {{else}}
+              <div class="size-full bg-neutral-900"></div>
+            {{end}}
+            {{if .Duration}}
+              <span class="absolute bottom-2 right-2 bg-black/75 px-1.5 py-0.5 text-xs font-bold text-white">{{.Duration}}</span>
+            {{end}}
+          </div>
+          <div class="mt-3 min-w-0">
+            <p class="text-[0.65rem] font-bold uppercase text-foreground-muted/80">{{$items.SeasonLabel}}</p>
+            <h3 class="mt-1 line-clamp-2 text-sm font-bold leading-snug text-foreground">
+              E{{.Number}} - {{.Title}}
+            </h3>
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-foreground-muted">
+              {{if .AudioLabel}}<span>{{.AudioLabel}}</span>{{end}}
+              {{if .Filler}}<span class="border border-white/15 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase text-foreground-muted">Filler</span>{{end}}
+              {{if .Recap}}<span class="border border-white/15 px-1.5 py-0.5 text-[0.65rem] font-bold uppercase text-foreground-muted">Recap</span>{{end}}
+            </div>
+          </div>
+        </a>
+      {{end}}
+    </div>
+  {{else}}
+    <p class="mt-5 text-sm text-foreground-muted">{{$items.EmptyMessage}}</p>
+  {{end}}
+
+  {{if or $items.Previous $items.Next}}
+    <div class="mt-10 border-t border-white/15 pt-5">
+      <div class="flex items-center justify-between gap-4 text-xs font-bold uppercase text-foreground-muted">
+        {{if $items.Previous}}
+          <a href="{{$items.Previous.URL}}" class="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+            <svg class="size-4 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M12.8 4.4 7.2 10l5.6 5.6-1.4 1.4L4.4 10l7-7 1.4 1.4z" />
+            </svg>
+            {{$items.Previous.Label}}
+          </a>
+        {{else}}
+          <span></span>
+        {{end}}
+        {{if $items.Next}}
+          <a href="{{$items.Next.URL}}" class="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+            {{$items.Next.Label}}
+            <svg class="size-4 fill-current" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="m7.2 15.6 5.6-5.6-5.6-5.6L8.6 3l7 7-7 7-1.4-1.4z" />
+            </svg>
+          </a>
+        {{end}}
+      </div>
+    </div>
+  {{end}}
+</section>
+{{end}}
+
+{{define "anime_episode_list_loading"}}
+<section
+  id="anime-episode-list"
+  hx-get="/anime/{{.AnimeID}}?section=episode-list"
+  hx-trigger="load"
+  hx-swap="outerHTML"
+  class="-mx-4 bg-background px-6 pb-10 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20"
+>
+  <div class="h-5 w-28 animate-pulse bg-white/10"></div>
+  <div class="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+    {{range seq 5}}
+      <div>
+        <div class="aspect-video animate-pulse bg-white/10"></div>
+        <div class="mt-3 h-3 w-24 animate-pulse bg-white/10"></div>
+        <div class="mt-2 h-4 w-4/5 animate-pulse bg-white/10"></div>
+      </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
