@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mal/integrations/tmdb"
 	"mal/internal/domain"
 	"mal/internal/server"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -21,10 +23,65 @@ const (
 	episodeCountTimeout = 4 * time.Second
 )
 
+var seasonNumberPattern = regexp.MustCompile(`(?i)\bseason\s+(\d+)`)
+
 type animeReleaseInfoDisplay struct {
 	Count  int
 	Label  string
 	Status string
+}
+
+type animeEpisodeDisplay struct {
+	Number     int
+	Title      string
+	WatchURL   string
+	AudioLabel string
+	ImageURL   string
+	Duration   string
+	AirDate    string
+	Overview   string
+	Filler     bool
+	Recap      bool
+}
+
+type animeEpisodeSource struct {
+	Anime         domain.Anime
+	Episodes      []domain.CanonicalEpisode
+	DisplayOffset int
+	MediaOffset   int
+	WatchAnimeID  int
+}
+
+type animeSeasonLink struct {
+	Label string
+	URL   string
+}
+
+type animeSeasonDisplay struct {
+	Number   int
+	Label    string
+	Count    int
+	Selected bool
+}
+
+type animeEpisodeListDisplay struct {
+	AnimeID      int
+	Selected     int
+	SeasonLabel  string
+	Seasons      []animeSeasonDisplay
+	Episodes     []animeEpisodeDisplay
+	Previous     *animeSeasonLink
+	Next         *animeSeasonLink
+	EmptyMessage string
+}
+
+type animeEpisodeListContext struct {
+	Anime      domain.Anime
+	Display    animeEpisodeListDisplay
+	Mapping    animeMapping
+	HasMapping bool
+	Season     int
+	Mappings   []animeMapping
 }
 
 func releasedEpisodeCount(anime domain.Anime, now time.Time) int {
@@ -149,6 +206,461 @@ func (h *AnimeHandler) animeAudioAvailability(ctx context.Context, anime domain.
 	return animeAudioAvailabilityLabel(episodeList.Episodes)
 }
 
+func (h *AnimeHandler) animeEpisodeList(ctx context.Context, anime domain.Anime, requestedSeason int) animeEpisodeListDisplay {
+	episodeCtx := h.prepareAnimeEpisodeList(ctx, anime, requestedSeason)
+	if h.episodeSvc == nil {
+		return episodeCtx.Display
+	}
+
+	sources := h.episodeSources(ctx, episodeCtx)
+	if len(sources) == 0 {
+		return episodeCtx.Display
+	}
+
+	tmdbEpisodes := h.tmdbSeasonEpisodes(ctx, episodeCtx.Anime, episodeCtx.Mapping, episodeCtx.HasMapping, episodeCtx.Season, &episodeCtx.Display)
+	episodeCtx.Display.Episodes = episodeDisplays(sources, tmdbEpisodes)
+	return episodeCtx.Display
+}
+
+func (h *AnimeHandler) prepareAnimeEpisodeList(ctx context.Context, anime domain.Anime, requestedSeason int) animeEpisodeListContext {
+	mapping, hasMapping := h.resolveAnimeTMDBMapping(ctx, anime)
+	animeID := anime.MalID
+	if hasMapping {
+		animeID = h.canonicalWatchAnimeID(ctx, mapping.Group, animeID)
+	}
+	season := selectedEpisodeSeason(anime, mapping, hasMapping, requestedSeason)
+	episodeCtx := animeEpisodeListContext{
+		Anime:      anime,
+		Mapping:    mapping,
+		HasMapping: hasMapping,
+		Season:     season,
+		Display: animeEpisodeListDisplay{
+			AnimeID:      animeID,
+			Selected:     season,
+			SeasonLabel:  animeSeasonLabel(anime),
+			Previous:     animeRelationLink(anime, "PREQUEL", "Previous Season"),
+			Next:         animeRelationLink(anime, "SEQUEL", "Next Season"),
+			EmptyMessage: "No available episodes found yet.",
+		},
+	}
+	h.applyEpisodeSeasonSelection(ctx, &episodeCtx)
+	return episodeCtx
+}
+
+func selectedEpisodeSeason(anime domain.Anime, mapping animeMapping, hasMapping bool, requestedSeason int) int {
+	if hasMapping && requestedSeason < 0 {
+		return mapping.Season
+	}
+	if requestedSeason >= 0 {
+		return requestedSeason
+	}
+	return fallbackTMDBSeason(anime)
+}
+
+func (h *AnimeHandler) applyEpisodeSeasonSelection(ctx context.Context, episodeCtx *animeEpisodeListContext) {
+	if episodeCtx == nil || !episodeCtx.HasMapping || episodeCtx.Mapping.Group.MediaType != string(tmdb.MediaTypeTV) {
+		return
+	}
+	h.hydrateTMDBSeasons(ctx, episodeCtx.Mapping.Group, &episodeCtx.Display)
+	mappings := h.mappedAnimeForSeason(ctx, episodeCtx.Mapping.Group, episodeCtx.Season)
+	if len(mappings) == 0 {
+		return
+	}
+	episodeCtx.Mappings = mappings
+	episodeCtx.Mapping = mappings[0]
+	if mappings[0].MALID <= 0 || mappings[0].MALID == episodeCtx.Anime.MalID {
+		return
+	}
+	selectedAnime, err := h.svc.GetAnimeByID(ctx, mappings[0].MALID)
+	if err != nil {
+		return
+	}
+	episodeCtx.Anime = selectedAnime
+	h.applySelectedAnimeMedia(ctx, &episodeCtx.Anime)
+}
+
+func (h *AnimeHandler) episodeSources(ctx context.Context, episodeCtx animeEpisodeListContext) []animeEpisodeSource {
+	mappings := episodeCtx.Mappings
+	if len(mappings) == 0 {
+		mappings = []animeMapping{{MALID: episodeCtx.Anime.MalID}}
+	}
+	sources := make([]animeEpisodeSource, 0, len(mappings))
+	displayOffset := h.episodeDisplayOffset(ctx, episodeCtx.Mapping.Group, episodeCtx.Season)
+	mediaOffset := 0
+	for _, mapping := range mappings {
+		sourceAnime, ok := h.episodeSourceAnime(ctx, episodeCtx.Anime, mapping.MALID)
+		if !ok {
+			continue
+		}
+		episodeList, err := h.episodeSvc.GetCanonicalEpisodes(ctx, sourceAnime, false)
+		if err != nil {
+			slog.Warn("anime_episode_list_fetch_failed", "component", "anime", "fields", map[string]any{
+				"anime_id": sourceAnime.MalID,
+			}, "error", err)
+			continue
+		}
+		watchAnimeID := episodeCtx.Display.AnimeID
+		if watchAnimeID <= 0 {
+			watchAnimeID = sourceAnime.MalID
+		}
+		sources = append(sources, animeEpisodeSource{
+			Anime:         sourceAnime,
+			Episodes:      episodeList.Episodes,
+			DisplayOffset: displayOffset + mediaOffset,
+			MediaOffset:   mediaOffset,
+			WatchAnimeID:  watchAnimeID,
+		})
+		mediaOffset += len(episodeList.Episodes)
+	}
+	return sources
+}
+
+func (h *AnimeHandler) episodeSourceAnime(ctx context.Context, fallback domain.Anime, malID int) (domain.Anime, bool) {
+	if malID <= 0 || malID == fallback.MalID {
+		return fallback, true
+	}
+	anime, err := h.svc.GetAnimeByID(ctx, malID)
+	if err != nil {
+		return domain.Anime{}, false
+	}
+	h.applySelectedAnimeMedia(ctx, &anime)
+	return anime, true
+}
+
+func episodeDisplays(sources []animeEpisodeSource, tmdbEpisodes map[int]tmdb.Episode) []animeEpisodeDisplay {
+	total := 0
+	for _, source := range sources {
+		total += len(source.Episodes)
+	}
+	episodes := make([]animeEpisodeDisplay, 0, total)
+	for _, source := range sources {
+		episodes = append(episodes, sourceEpisodeDisplays(source, tmdbEpisodes)...)
+	}
+	return episodes
+}
+
+func sourceEpisodeDisplays(source animeEpisodeSource, tmdbEpisodes map[int]tmdb.Episode) []animeEpisodeDisplay {
+	episodes := make([]animeEpisodeDisplay, 0, len(source.Episodes))
+	for _, episode := range source.Episodes {
+		displayNumber := source.DisplayOffset + episode.Number
+		mediaNumber := source.MediaOffset + episode.Number
+		media := tmdbEpisodes[mediaNumber]
+		episodes = append(episodes, animeEpisodeDisplay{
+			Number:     displayNumber,
+			Title:      animeEpisodeTitle(episode, media),
+			WatchURL:   fmt.Sprintf("/anime/%d/watch?ep=%d", source.WatchAnimeID, displayNumber),
+			AudioLabel: animeEpisodeAudioLabel(episode),
+			ImageURL:   animeEpisodeStillURL(media, source.Anime),
+			Duration:   animeEpisodeDuration(media, source.Anime),
+			AirDate:    media.AirDate,
+			Overview:   media.Overview,
+			Filler:     episode.Filler,
+			Recap:      episode.Recap,
+		})
+	}
+	return episodes
+}
+
+func (h *AnimeHandler) hydrateTMDBSeasons(ctx context.Context, group mappingGroup, display *animeEpisodeListDisplay) {
+	if h.tmdbClient == nil || display == nil || group.MediaType != string(tmdb.MediaTypeTV) {
+		return
+	}
+	media, err := h.tmdbClient.GetMedia(ctx, tmdb.MediaRef{Type: tmdb.MediaTypeTV, ID: group.TMDBID}, tmdb.ImageOptions{})
+	if err != nil {
+		slog.Warn("anime_episode_list_tmdb_seasons_failed", "component", "anime", "fields", map[string]any{
+			"tmdb_id": group.TMDBID,
+		}, "error", err)
+		return
+	}
+	seasons := media.Seasons
+	display.Seasons = make([]animeSeasonDisplay, 0, len(seasons))
+	playbackCounts := h.playbackEpisodeCountsBySeason(ctx, group)
+	for _, season := range seasons {
+		if season.EpisodeCount <= 0 || season.SeasonNumber < 0 {
+			continue
+		}
+		label := strings.TrimSpace(season.Name)
+		if label == "" {
+			label = seasonLabelFromNumber(season.SeasonNumber)
+		}
+		display.Seasons = append(display.Seasons, animeSeasonDisplay{
+			Number:   season.SeasonNumber,
+			Label:    label,
+			Count:    playbackCounts[season.SeasonNumber],
+			Selected: season.SeasonNumber == display.Selected,
+		})
+	}
+}
+
+func (h *AnimeHandler) playbackEpisodeCountsBySeason(ctx context.Context, group mappingGroup) map[int]int {
+	counts := map[int]int{}
+	if h.episodeSvc == nil || h.mappings == nil || group.MediaType == "" || group.TMDBID <= 0 {
+		return counts
+	}
+	mappings, err := h.mappings.GroupMappings(ctx, group)
+	if err != nil {
+		slog.Warn("anime_episode_list_count_mappings_failed", "component", "anime", "fields", map[string]any{
+			"tmdb_media_type": group.MediaType,
+			"tmdb_id":         group.TMDBID,
+		}, "error", err)
+		return counts
+	}
+	for _, mapping := range mappings {
+		if mapping.MALID <= 0 || mapping.Season < 0 {
+			continue
+		}
+		counts[mapping.Season] += h.playbackEpisodeCount(ctx, mapping.MALID)
+	}
+	return counts
+}
+
+func (h *AnimeHandler) playbackEpisodeCount(ctx context.Context, malID int) int {
+	anime, err := h.svc.GetAnimeByID(ctx, malID)
+	if err != nil {
+		return 0
+	}
+	episodeList, err := h.episodeSvc.GetCanonicalEpisodes(ctx, anime, false)
+	if err != nil {
+		return 0
+	}
+	return len(episodeList.Episodes)
+}
+
+func (h *AnimeHandler) canonicalWatchAnimeID(ctx context.Context, group mappingGroup, fallback int) int {
+	if h.mappings == nil || group.MediaType == "" || group.TMDBID <= 0 {
+		return fallback
+	}
+	mappings, err := h.mappings.GroupMappings(ctx, group)
+	if err != nil {
+		return fallback
+	}
+	canonical := animeMapping{}
+	for _, mapping := range mappings {
+		if mapping.MALID <= 0 {
+			continue
+		}
+		if canonical.MALID <= 0 || betterCanonical(mapping, canonical) {
+			canonical = mapping
+		}
+	}
+	if canonical.MALID > 0 {
+		return canonical.MALID
+	}
+	return fallback
+}
+
+func (h *AnimeHandler) episodeDisplayOffset(ctx context.Context, group mappingGroup, season int) int {
+	if h.mappings == nil || group.MediaType == "" || group.TMDBID <= 0 || season <= 1 {
+		return 0
+	}
+	mappings, err := h.mappings.GroupMappings(ctx, group)
+	if err != nil {
+		return 0
+	}
+	offset := 0
+	seen := map[int]struct{}{}
+	for _, mapping := range mappings {
+		if !precedingSeasonMapping(mapping, season) {
+			continue
+		}
+		if _, ok := seen[mapping.MALID]; ok {
+			continue
+		}
+		seen[mapping.MALID] = struct{}{}
+		offset += h.playbackEpisodeCount(ctx, mapping.MALID)
+	}
+	return offset
+}
+
+func precedingSeasonMapping(mapping animeMapping, selectedSeason int) bool {
+	return mapping.MALID > 0 && mapping.Season > 0 && mapping.Season < selectedSeason
+}
+
+func (h *AnimeHandler) mappedAnimeForSeason(ctx context.Context, group mappingGroup, season int) []animeMapping {
+	if h.mappings == nil || group.MediaType == "" || group.TMDBID <= 0 || season < 0 {
+		return nil
+	}
+	mappings, err := h.mappings.GroupMappings(ctx, group)
+	if err != nil {
+		slog.Warn("anime_episode_list_group_mappings_failed", "component", "anime", "fields", map[string]any{
+			"tmdb_media_type": group.MediaType,
+			"tmdb_id":         group.TMDBID,
+		}, "error", err)
+		return nil
+	}
+	selected := make([]animeMapping, 0, len(mappings))
+	for _, mapping := range mappings {
+		if mapping.Season == season && mapping.MALID > 0 {
+			selected = append(selected, mapping)
+		}
+	}
+	return selected
+}
+
+func (h *AnimeHandler) tmdbSeasonEpisodes(ctx context.Context, anime domain.Anime, mapping animeMapping, hasMapping bool, selectedSeason int, display *animeEpisodeListDisplay) map[int]tmdb.Episode {
+	if h.tmdbClient == nil || !hasMapping {
+		return nil
+	}
+	if mapping.Group.MediaType != string(tmdb.MediaTypeTV) || selectedSeason < 0 {
+		return nil
+	}
+
+	season, err := h.tmdbClient.GetSeason(ctx, mapping.Group.TMDBID, selectedSeason, "en-US")
+	if err != nil {
+		slog.Warn("anime_episode_list_tmdb_season_failed", "component", "anime", "fields", map[string]any{
+			"anime_id":    anime.MalID,
+			"tmdb_id":     mapping.Group.TMDBID,
+			"tmdb_season": selectedSeason,
+		}, "error", err)
+
+		return nil
+	}
+
+	if display != nil && strings.TrimSpace(season.Name) != "" {
+		display.SeasonLabel = strings.TrimSpace(season.Name)
+	}
+
+	episodes := make(map[int]tmdb.Episode, len(season.Episodes))
+	for _, episode := range season.Episodes {
+		if episode.EpisodeNumber > 0 {
+			episodes[episode.EpisodeNumber] = episode
+		}
+	}
+	return episodes
+}
+
+func (h *AnimeHandler) resolveAnimeTMDBMapping(ctx context.Context, anime domain.Anime) (animeMapping, bool) {
+	if h.mappings != nil {
+		resolved, _, err := h.mappings.Resolve(ctx, []mappingIdentity{{AniListID: anime.AniListID, MALID: anime.MalID}})
+		if err != nil {
+			slog.Warn("anime_episode_list_mapping_failed", "component", "anime", "fields", map[string]any{
+				"anime_id":   anime.MalID,
+				"anilist_id": anime.AniListID,
+			}, "error", err)
+		}
+		if mapping, ok := resolved[mappingIdentity{AniListID: anime.AniListID, MALID: anime.MalID}]; ok {
+			return mapping, true
+		}
+	}
+
+	ref, ok := h.searchAnimeTMDBMediaRef(ctx, anime)
+	if !ok {
+		return animeMapping{}, false
+	}
+	return animeMapping{
+		AniListID: anime.AniListID,
+		MALID:     anime.MalID,
+		Group:     mappingGroup{MediaType: string(ref.Type), TMDBID: ref.ID},
+		Season:    fallbackTMDBSeason(anime),
+	}, true
+}
+
+func fallbackTMDBSeason(anime domain.Anime) int {
+	if strings.EqualFold(strings.TrimSpace(anime.Type), "MOVIE") {
+		return -1
+	}
+	for _, title := range []string{anime.TitleEnglish, anime.Title, anime.TitleJapanese} {
+		match := seasonNumberPattern.FindStringSubmatch(title)
+		if len(match) != 2 {
+			continue
+		}
+		n, err := strconv.Atoi(match[1])
+		if err == nil && n >= 0 {
+			return n
+		}
+	}
+	return 1
+}
+
+func seasonLabelFromNumber(number int) string {
+	if number == 0 {
+		return "Specials"
+	}
+	return "Season " + strconv.Itoa(number)
+}
+
+func animeEpisodeTitle(episode domain.CanonicalEpisode, media tmdb.Episode) string {
+	if strings.TrimSpace(media.Name) != "" {
+		return strings.TrimSpace(media.Name)
+	}
+	if strings.TrimSpace(episode.Title) != "" {
+		return strings.TrimSpace(episode.Title)
+	}
+	return fmt.Sprintf("Episode %d", episode.Number)
+}
+
+func animeEpisodeStillURL(media tmdb.Episode, anime domain.Anime) string {
+	if url := tmdb.ImageURL(media.StillPath, "w500"); url != "" {
+		return url
+	}
+	return animeEpisodeImageURL(anime)
+}
+
+func animeEpisodeDuration(media tmdb.Episode, anime domain.Anime) string {
+	if media.Runtime > 0 {
+		return strconv.Itoa(media.Runtime) + "m"
+	}
+	return anime.ShortDuration()
+}
+
+func animeEpisodeImageURL(anime domain.Anime) string {
+	if anime.BannerImageURL != "" {
+		return anime.BannerImageURL
+	}
+	if anime.Images.Webp.LargeImageURL != "" {
+		return anime.Images.Webp.LargeImageURL
+	}
+	return anime.Images.Jpg.LargeImageURL
+}
+
+func animeEpisodeAudioLabel(episode domain.CanonicalEpisode) string {
+	if episode.Number <= 0 {
+		return ""
+	}
+	switch {
+	case episode.HasDub && (episode.HasSub || episode.SubOnly):
+		return "Dub | Sub"
+	case episode.HasDub:
+		return "Dub"
+	case episode.HasSub || episode.SubOnly:
+		return "Subtitled"
+	default:
+		return "Available"
+	}
+}
+
+func animeSeasonLabel(anime domain.Anime) string {
+	for _, title := range []string{anime.TitleEnglish, anime.Title, anime.TitleJapanese} {
+		match := seasonNumberPattern.FindStringSubmatch(title)
+		if len(match) == 2 {
+			return "Season " + match[1]
+		}
+	}
+
+	switch strings.ToUpper(strings.TrimSpace(anime.Type)) {
+	case "OVA", "ONA":
+		return anime.Type + " Season 1"
+	case "SPECIAL":
+		return "Specials"
+	case "MOVIE":
+		return "Movie"
+	case "TV", "TV_SHORT":
+		return "Season"
+	default:
+		return "Episodes"
+	}
+}
+
+func animeRelationLink(anime domain.Anime, relationType string, label string) *animeSeasonLink {
+	for _, relation := range anime.ProviderRelations {
+		if relation.MALID <= 0 || !strings.EqualFold(relation.Type, relationType) {
+			continue
+		}
+		return &animeSeasonLink{Label: label, URL: fmt.Sprintf("/anime/%d", relation.MALID)}
+	}
+	return nil
+}
+
 func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
@@ -208,7 +720,7 @@ func (h *AnimeHandler) handleAnimeDetailsSection(c *gin.Context, id int, section
 	sectionCtx, cancel := context.WithTimeout(c.Request.Context(), animeSectionTimeout)
 	defer cancel()
 
-	data, tplName, err := h.loadAnimeDetailsSection(sectionCtx, id, section)
+	data, tplName, err := h.loadAnimeDetailsSection(sectionCtx, id, section, parseSelectedSeason(c.Query("season")))
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
@@ -235,7 +747,7 @@ func (h *AnimeHandler) handleAnimeDetailsSection(c *gin.Context, id int, section
 	})
 }
 
-func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, section string) (any, string, error) {
+func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, section string, selectedSeason int) (any, string, error) {
 	switch section {
 	case "characters":
 		data, err := h.svc.GetCharacters(ctx, id)
@@ -255,7 +767,25 @@ func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, sect
 			return nil, "", err
 		}
 		return h.animeAudioAvailability(ctx, anime), "anime_audio_availability", nil
+	case "episode-list":
+		anime, err := h.svc.GetAnimeByID(ctx, id)
+		if err != nil {
+			return nil, "", err
+		}
+		h.applySelectedAnimeMedia(ctx, &anime)
+		return h.animeEpisodeList(ctx, anime, selectedSeason), "anime_episode_list", nil
 	default:
 		return nil, "", nil
 	}
+}
+
+func parseSelectedSeason(raw string) int {
+	if strings.TrimSpace(raw) == "" {
+		return -1
+	}
+	season, err := strconv.Atoi(strings.TrimSpace(raw))
+	if err != nil {
+		return -1
+	}
+	return season
 }
