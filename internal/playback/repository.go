@@ -46,6 +46,57 @@ func (r *playbackRepository) GetAnime(ctx context.Context, id int64) (db.Anime, 
 	return r.queries.GetAnime(ctx, id)
 }
 
+func (r *playbackRepository) GetAnimeMappingByMALID(ctx context.Context, malID int64) (domain.AnimeMediaMapping, error) {
+	const query = `SELECT anilist_id, mal_id, tmdb_media_type, tmdb_id, tmdb_season, canonical
+		FROM anime_effective_mapping
+		WHERE mal_id = ?
+		ORDER BY canonical DESC, tmdb_season, anilist_id
+		LIMIT 1`
+	return scanAnimeMediaMapping(ctx, r.sqlDB, query, malID)
+}
+
+func (r *playbackRepository) GetCanonicalAnimeMapping(ctx context.Context, mediaType string, tmdbID int64) (domain.AnimeMediaMapping, error) {
+	const query = `SELECT anilist_id, mal_id, tmdb_media_type, tmdb_id, tmdb_season, canonical
+		FROM anime_effective_mapping
+		WHERE tmdb_media_type = ? AND tmdb_id = ? AND mal_id IS NOT NULL
+		ORDER BY canonical DESC,
+			CASE
+				WHEN tmdb_media_type = 'movie' THEN 0
+				WHEN tmdb_season = 1 THEN 0
+				WHEN tmdb_season > 1 THEN 100 + tmdb_season
+				WHEN tmdb_season = 0 THEN 1000
+				ELSE 2000
+			END,
+			anilist_id
+		LIMIT 1`
+	return scanAnimeMediaMapping(ctx, r.sqlDB, query, mediaType, tmdbID)
+}
+
+func (r *playbackRepository) GetAnimeMappingsForGroup(ctx context.Context, mediaType string, tmdbID int64) ([]domain.AnimeMediaMapping, error) {
+	const query = `SELECT anilist_id, mal_id, tmdb_media_type, tmdb_id, tmdb_season, canonical
+		FROM anime_effective_mapping
+		WHERE tmdb_media_type = ? AND tmdb_id = ? AND mal_id IS NOT NULL
+		ORDER BY tmdb_season, anilist_id, mal_id`
+	rows, err := r.sqlDB.QueryContext(ctx, query, mediaType, tmdbID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mappings []domain.AnimeMediaMapping
+	for rows.Next() {
+		mapping, err := scanAnimeMediaMappingRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		mappings = append(mappings, mapping)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return mappings, nil
+}
+
 func (r *playbackRepository) GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error) {
 	return r.queries.GetWatchListEntry(ctx, params)
 }
@@ -80,4 +131,25 @@ func (r *playbackRepository) UpsertSkipSegmentOverride(ctx context.Context, s db
 
 func (r *playbackRepository) HasSkipSegmentOverrideTable(ctx context.Context) (bool, error) {
 	return r.queries.HasSkipSegmentOverrideTable(ctx)
+}
+
+type animeMediaMappingScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanAnimeMediaMapping(ctx context.Context, db *sql.DB, query string, args ...any) (domain.AnimeMediaMapping, error) {
+	row := db.QueryRowContext(ctx, query, args...)
+	return scanAnimeMediaMappingRow(row)
+}
+
+func scanAnimeMediaMappingRow(row animeMediaMappingScanner) (domain.AnimeMediaMapping, error) {
+	var mapping domain.AnimeMediaMapping
+	var malID sql.NullInt64
+	if err := row.Scan(&mapping.AniListID, &malID, &mapping.MediaType, &mapping.TMDBID, &mapping.Season, &mapping.Canonical); err != nil {
+		return domain.AnimeMediaMapping{}, err
+	}
+	if malID.Valid {
+		mapping.MALID = malID.Int64
+	}
+	return mapping, nil
 }
