@@ -59,7 +59,7 @@
             <div class="mt-3 min-w-0">
               <p class="text-[0.65rem] font-bold uppercase text-foreground-muted/80">{{$items.SeasonLabel}}</p>
               <h3 class="mt-1 line-clamp-2 text-sm font-bold leading-snug text-foreground">
-                E{{.Number}} - {{.Title}}
+                {{.Label}} - {{.Title}}
               </h3>
               <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-foreground-muted">
                 {{if .AudioLabel}}<span>{{.AudioLabel}}</span>{{end}}
@@ -71,7 +71,7 @@
 
           <div class="pointer-events-none absolute inset-0 z-10 flex flex-col bg-neutral-900 p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
             {{if .SeriesTitle}}<p class="line-clamp-1 text-[0.6rem] font-medium uppercase text-foreground-muted">{{.SeriesTitle}}</p>{{end}}
-            <h3 class="mt-3 line-clamp-2 text-base font-bold leading-snug text-foreground">E{{.Number}} - {{.Title}}</h3>
+            <h3 class="mt-3 line-clamp-2 text-base font-bold leading-snug text-foreground">{{.Label}} - {{.Title}}</h3>
             {{if .AirDate}}
               <div class="mt-1 flex items-center gap-1.5 text-sm text-foreground-muted">
                 <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -86,7 +86,7 @@
               <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 3.5 19 12 5 20.5Z"></path>
               </svg>
-              Play E{{.Number}}
+              Play {{.Label}}
             </span>
           </div>
         </a>

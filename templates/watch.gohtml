@@ -10,7 +10,7 @@
 {{$anime := .Anime}}
 {{$episodes := .Episodes}}
 {{$currentEpID := .CurrentEpID}}
-{{if or (not $currentEpID) (eq (printf "%v" $currentEpID) "0") (eq (printf "%v" $currentEpID) "")}}{{$currentEpID = "1"}}{{end}}
+{{if or (not $currentEpID) (eq (printf "%v" $currentEpID) "")}}{{$currentEpID = "1"}}{{end}}
 {{$totalEpisodes := .EpisodeTotal}}
 {{if eq $totalEpisodes 0}}{{$totalEpisodes = len $episodes}}{{end}}
 {{$currentEpNum := atoi $currentEpID}}
@@ -310,11 +310,11 @@
       {{if gt $totalEpisodes 100}}
         <div class="grid grid-cols-5 gap-1 mt-2" data-episode-grid>
           {{range $episodes}}
-            {{$isCurrent := eq (printf "%v" .Number) $currentEpID}}
+            {{$isCurrent := .Current}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$animeID}}/watch?ep={{.Number}}" class="relative flex items-center justify-center py-2 text-xs transition-colors {{if or (lt .Number $rangeStart) (gt .Number $rangeEnd)}}hidden{{end}} {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/15 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.Number}}" data-episode-index="{{.Number}}" data-episode-title="{{.Title}}" data-filler="{{.Filler}}" data-recap="{{.Recap}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}"{{if $isCurrent}} aria-current="page"{{end}}>
-              {{.Number}}
+            <a href="/anime/{{.AnimeID}}/watch?ep={{.PlaybackID}}" class="relative flex items-center justify-center py-2 text-xs transition-colors {{if or (lt .Number $rangeStart) (gt .Number $rangeEnd)}}hidden{{end}} {{if $isFiller}}bg-yellow-500/20 text-yellow-400{{else if $isRecap}}bg-blue-500/20 text-blue-400{{else}}text-foreground-muted hover:bg-foreground/5{{end}} {{if $isCurrent}}bg-accent/15 text-accent ring-1 ring-accent{{end}}" data-episode-id="{{.PlaybackID}}" data-episode-index="{{.Number}}" data-episode-title="{{.Title}}" data-filler="{{.Filler}}" data-recap="{{.Recap}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}"{{if $isCurrent}} aria-current="page"{{end}}>
+              {{.DisplayLabel}}
               {{if .SubOnly}}<span class="absolute right-0.5 top-0.5 text-[8px] font-semibold uppercase text-accent">Sub</span>{{end}}
             </a>
           {{end}}
@@ -322,12 +322,12 @@
       {{else}}
         <div class="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain pb-4 scrollbar-hidden" data-episode-list>
           {{range $episodes}}
-            {{$isCurrent := eq (printf "%v" .Number) $currentEpID}}
+            {{$isCurrent := .Current}}
             {{$isFiller := .Filler}}
             {{$isRecap := .Recap}}
-            <a href="/anime/{{$animeID}}/watch?ep={{.Number}}" class="relative flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.Number}}" data-episode-title="{{.Title}}" data-filler="{{.Filler}}" data-recap="{{.Recap}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}"{{if $isCurrent}} aria-current="page"{{end}}>
+            <a href="/anime/{{.AnimeID}}/watch?ep={{.PlaybackID}}" class="relative flex items-center gap-3 px-3 py-2 transition-colors hover:bg-foreground/5 text-left {{if $isCurrent}}bg-accent/20{{end}}" data-episode-id="{{.PlaybackID}}" data-episode-title="{{.Title}}" data-filler="{{.Filler}}" data-recap="{{.Recap}}" data-has-sub="{{.HasSub}}" data-has-dub="{{.HasDub}}" data-sub-only="{{.SubOnly}}"{{if $isCurrent}} aria-current="page"{{end}}>
               <span data-episode-kind-marker aria-hidden="true" class="absolute inset-y-1 left-0 w-0.5 {{if $isFiller}}bg-yellow-400{{else if $isRecap}}bg-blue-400{{else}}hidden{{end}}"></span>
-              <span class="w-10 shrink-0 text-xs font-normal text-foreground-muted tabular-nums">EP{{.Number}}</span>
+              <span class="w-10 shrink-0 text-xs font-normal text-foreground-muted tabular-nums">EP{{.DisplayLabel}}</span>
               <span class="truncate text-sm {{if $isFiller}}text-yellow-400{{else if $isRecap}}text-blue-400{{else}}text-foreground-muted{{end}}" data-episode-title>{{.Title}}</span>
               {{if .SubOnly}}<span class="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-accent">Sub only</span>{{end}}
             </a>
