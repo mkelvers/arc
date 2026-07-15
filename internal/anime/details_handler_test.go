@@ -11,16 +11,34 @@ func TestTMDBSeasonDisplaysHidesUnavailableSpecials(t *testing.T) {
 	seasons := []tmdb.SeasonSummary{
 		{SeasonNumber: 0, Name: "Specials", EpisodeCount: 26},
 		{SeasonNumber: 1, Name: "Season 1", EpisodeCount: 38},
+		{SeasonNumber: 2, Name: "Season 2", EpisodeCount: 12},
 	}
 
 	displays := tmdbSeasonDisplays(seasons, map[int]int{1: 28, 2: 10}, 1)
-	if len(displays) != 1 || displays[0].Number != 1 {
+	if len(displays) != 2 || displays[0].Number != 1 || displays[1].Number != 2 {
 		t.Fatalf("unexpected seasons without playable specials: %+v", displays)
 	}
 
 	displays = tmdbSeasonDisplays(seasons, map[int]int{0: 3, 1: 28}, 0)
 	if len(displays) != 1 || displays[0].Number != 1 {
-		t.Fatalf("specials should not be exposed as a season selector entry: %+v", displays)
+		t.Fatalf("specials and unavailable seasons should not be exposed as selector entries: %+v", displays)
+	}
+}
+
+func TestSelectableEpisodeSeasonFallsBackFromUnavailableSeason(t *testing.T) {
+	seasons := []animeSeasonDisplay{
+		{Number: 1, Label: "Season 1", Count: 12},
+		{Number: 3, Label: "Season 3", Count: 8},
+	}
+
+	selected, ok := selectableEpisodeSeason(seasons, 2)
+	if !ok || selected != 1 {
+		t.Fatalf("selectableEpisodeSeason() = %d, %v; want 1, true", selected, ok)
+	}
+
+	selected, ok = selectableEpisodeSeason(seasons, 3)
+	if !ok || selected != 3 {
+		t.Fatalf("selectableEpisodeSeason() = %d, %v; want 3, true", selected, ok)
 	}
 }
 

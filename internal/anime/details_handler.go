@@ -283,6 +283,7 @@ func (h *AnimeHandler) applyEpisodeSeasonSelection(ctx context.Context, episodeC
 		}
 	}
 	h.hydrateTMDBSeasons(ctx, episodeCtx.Mapping.Group, plan, &episodeCtx.Display)
+	episodeCtx.Season = ensureSelectableEpisodeSeason(&episodeCtx.Display, episodeCtx.Season)
 	mappings := mappingsForLogicalSeason(plan, episodeCtx.Season)
 	if len(mappings) == 0 {
 		return
@@ -528,6 +529,41 @@ func applySelectedSeasonLabel(display *animeEpisodeListDisplay) {
 	}
 }
 
+func selectableEpisodeSeason(seasons []animeSeasonDisplay, selected int) (int, bool) {
+	if len(seasons) == 0 {
+		return selected, false
+	}
+	for _, season := range seasons {
+		if season.Number == selected {
+			return selected, true
+		}
+	}
+	return seasons[0].Number, true
+}
+
+func ensureSelectableEpisodeSeason(display *animeEpisodeListDisplay, selected int) int {
+	if display == nil {
+		return selected
+	}
+	selectable, ok := selectableEpisodeSeason(display.Seasons, selected)
+	if !ok || selectable == selected {
+		return selected
+	}
+	display.Selected = selectable
+	markSelectedEpisodeSeason(display, selectable)
+	return selectable
+}
+
+func markSelectedEpisodeSeason(display *animeEpisodeListDisplay, selected int) {
+	if display == nil {
+		return
+	}
+	for i := range display.Seasons {
+		display.Seasons[i].Selected = display.Seasons[i].Number == selected
+	}
+	applySelectedSeasonLabel(display)
+}
+
 func tmdbSeasonDisplays(seasons []tmdb.SeasonSummary, playbackCounts map[int]int, selected int) []animeSeasonDisplay {
 	displays := make([]animeSeasonDisplay, 0, len(seasons))
 	for _, season := range seasons {
@@ -537,6 +573,10 @@ func tmdbSeasonDisplays(seasons []tmdb.SeasonSummary, playbackCounts map[int]int
 		if season.SeasonNumber == 0 {
 			continue
 		}
+		playbackCount := playbackCounts[season.SeasonNumber]
+		if playbackCount <= 0 {
+			continue
+		}
 		label := strings.TrimSpace(season.Name)
 		if label == "" {
 			label = seasonLabelFromNumber(season.SeasonNumber)
@@ -544,7 +584,7 @@ func tmdbSeasonDisplays(seasons []tmdb.SeasonSummary, playbackCounts map[int]int
 		displays = append(displays, animeSeasonDisplay{
 			Number:   season.SeasonNumber,
 			Label:    label,
-			Count:    playbackCounts[season.SeasonNumber],
+			Count:    playbackCount,
 			Selected: season.SeasonNumber == selected,
 		})
 	}
