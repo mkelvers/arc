@@ -60,7 +60,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 		displayAnimeID = int(normalized.AnimeID)
 		displayEpisode = strconv.Itoa(normalized.Episode)
 	}
-	if mappedAnimeID, mappedEpisode, ok := s.resolveMappedWatchEpisode(ctx, animeID, episode, len(loaded.episodes.Episodes)); ok {
+	if mappedAnimeID, mappedEpisode, ok := s.resolveMappedWatchEpisode(ctx, animeID, episode, domain.RegularEpisodeCount(loaded.episodes.Episodes)); ok {
 		animeID = mappedAnimeID
 		episode = mappedEpisode
 		loaded, err = s.loadWatchAnimeEpisodes(ctx, animeID, episode, titleCandidates, "mapped_")
@@ -68,7 +68,7 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 			return domain.WatchPageData{}, err
 		}
 	}
-	displayEpisodes := s.watchDisplayEpisodes(ctx, loaded, displayEpisode)
+	displayEpisodes := s.watchDisplayEpisodes(ctx, loaded, displayEpisode, episode)
 
 	// mode fallback
 	mode, from := resolveMode(episode, mode, loaded.episodes.Episodes)
@@ -206,18 +206,18 @@ func (s *playbackService) resolveEpisodeInMappingCandidate(ctx context.Context, 
 	return int(candidate.MALID), strconv.Itoa(remaining), count, true
 }
 
-func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watchAnimeEpisodes, displayEpisode string) domain.CanonicalEpisodeList {
+func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watchAnimeEpisodes, displayEpisode string, providerEpisode string) domain.CanonicalEpisodeList {
 	currentMapping, ok := s.watchEpisodeMapping(ctx, loaded.anime.MalID)
 	if !ok {
-		return loaded.episodes
+		return markWatchEpisodeContext(loaded.episodes, loaded.anime.MalID, providerEpisode)
 	}
 	if currentMapping.Season <= 0 {
-		return loaded.episodes
+		return markWatchEpisodeContext(loaded.episodes, loaded.anime.MalID, providerEpisode)
 	}
 	mappings, ok := s.watchEpisodeGroupMappings(ctx, currentMapping)
 	if !ok {
 		offset := s.progressEpisodeOffset(ctx, currentMapping)
-		return offsetEpisodeList(loaded.episodes, offset)
+		return markWatchEpisodeContext(offsetEpisodeList(loaded.episodes, offset), loaded.anime.MalID, providerEpisode)
 	}
 
 	out := loaded.episodes
@@ -232,9 +232,9 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	}
 	if len(out.Episodes) == 0 {
 		offset := s.progressEpisodeOffset(ctx, currentMapping)
-		return offsetEpisodeList(loaded.episodes, offset)
+		return markWatchEpisodeContext(offsetEpisodeList(loaded.episodes, offset), loaded.anime.MalID, providerEpisode)
 	}
-	return ensureDisplayEpisode(out, displayEpisode)
+	return markWatchEpisodeContext(ensureDisplayEpisode(out, displayEpisode), loaded.anime.MalID, providerEpisode)
 }
 
 func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, mediaSeason int, selectedSeason int, seen map[int64]struct{}, nextNumber int, mediaNumber int, tmdbTitles map[int]string) (int, int) {
@@ -254,18 +254,36 @@ func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out 
 		return nextNumber, mediaNumber
 	}
 	if source.SeasonNumber(mapping.Season) != selectedSeason {
-		return nextNumber, mediaNumber + len(episodes.Episodes)
+		return nextNumber, mediaNumber + domain.RegularEpisodeCount(episodes.Episodes)
 	}
+	baseOffset := nextNumber - 1
 	for _, episode := range episodes.Episodes {
+		episode.AnimeID = source.MalID
+		if episode.Special {
+			episode.Order = baseOffset*10 + episode.SortOrder()
+			episode.Number = episode.Order / 10
+			episode.Label = playbackEpisodeOrderLabel(episode.Order)
+			out.Episodes = append(out.Episodes, episode)
+			continue
+		}
 		if title := strings.TrimSpace(tmdbTitles[mediaNumber]); title != "" {
 			episode.Title = title
 		}
 		episode.Number = nextNumber
+		episode.Label = strconv.Itoa(nextNumber)
+		episode.Order = nextNumber * 10
 		out.Episodes = append(out.Episodes, episode)
 		nextNumber++
 		mediaNumber++
 	}
 	return nextNumber, mediaNumber
+}
+
+func playbackEpisodeOrderLabel(order int) string {
+	if order%10 == 0 {
+		return strconv.Itoa(order / 10)
+	}
+	return fmt.Sprintf("%d.%d", order/10, order%10)
 }
 
 func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping) map[int]string {
@@ -296,7 +314,27 @@ func offsetEpisodeList(input domain.CanonicalEpisodeList, offset int) domain.Can
 	out := input
 	out.Episodes = append([]domain.CanonicalEpisode(nil), input.Episodes...)
 	for i := range out.Episodes {
+		if out.Episodes[i].Special {
+			out.Episodes[i].Order = offset*10 + out.Episodes[i].SortOrder()
+			out.Episodes[i].Number = out.Episodes[i].Order / 10
+			out.Episodes[i].Label = playbackEpisodeOrderLabel(out.Episodes[i].Order)
+			continue
+		}
 		out.Episodes[i].Number += offset
+		out.Episodes[i].Order = out.Episodes[i].Number * 10
+		out.Episodes[i].Label = strconv.Itoa(out.Episodes[i].Number)
+	}
+	return out
+}
+
+func markWatchEpisodeContext(input domain.CanonicalEpisodeList, animeID int, providerEpisode string) domain.CanonicalEpisodeList {
+	out := input
+	out.Episodes = append([]domain.CanonicalEpisode(nil), input.Episodes...)
+	for i := range out.Episodes {
+		if out.Episodes[i].AnimeID == 0 {
+			out.Episodes[i].AnimeID = animeID
+		}
+		out.Episodes[i].Current = out.Episodes[i].AnimeID == animeID && out.Episodes[i].PlaybackID() == providerEpisode
 	}
 	return out
 }
@@ -317,9 +355,7 @@ func ensureDisplayEpisode(input domain.CanonicalEpisodeList, displayEpisode stri
 		Title:  fmt.Sprintf("Episode %d", n),
 		HasSub: true,
 	})
-	sort.Slice(out.Episodes, func(i, j int) bool {
-		return out.Episodes[i].Number < out.Episodes[j].Number
-	})
+	sort.Slice(out.Episodes, func(i, j int) bool { return out.Episodes[i].SortOrder() < out.Episodes[j].SortOrder() })
 	return out
 }
 
@@ -594,13 +630,8 @@ func resolveMode(episode string, requestedMode string, episodes []domain.Canonic
 		return requestedMode, ""
 	}
 
-	epNum, err := strconv.Atoi(episode)
-	if err != nil {
-		return requestedMode, ""
-	}
-
 	for _, ep := range episodes {
-		if ep.Number == epNum && !ep.HasDub && ep.HasSub {
+		if ep.PlaybackID() == episode && !ep.HasDub && ep.HasSub {
 			return "sub", requestedMode
 		}
 	}

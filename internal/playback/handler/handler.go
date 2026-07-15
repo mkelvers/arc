@@ -170,13 +170,8 @@ func (h *PlaybackHandler) HandleEpisodeData(c *gin.Context) {
 
 	// Try to resolve a title for this episode from the episode list.
 	episodeTitle := ""
-	epNum, err := strconv.Atoi(episode)
-	if err != nil {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid episode")
-		return
-	}
 	for _, e := range watchData.Episodes {
-		if e.Number == epNum {
+		if e.PlaybackID() == episode {
 			episodeTitle = e.Title
 			break
 		}

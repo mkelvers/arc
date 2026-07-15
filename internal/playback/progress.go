@@ -361,7 +361,7 @@ func (s *playbackService) playbackEpisodeCount(ctx context.Context, animeID int6
 		slog.Warn("watch_progress_episode_count_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID}, "error", err)
 		return 0
 	}
-	return len(episodes.Episodes)
+	return domain.RegularEpisodeCount(episodes.Episodes)
 }
 
 func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) error {
