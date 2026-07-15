@@ -93,7 +93,7 @@ func (h *AnimeHandler) continueWatchingCandidateEpisodeTitle(ctx context.Context
 		}, "error", err)
 		return "", 0, false
 	}
-	count := len(episodes.Episodes)
+	count := domain.RegularEpisodeCount(episodes.Episodes)
 	if count == 0 || remaining > count {
 		return "", count, false
 	}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"mal/integrations/tmdb"
+	"mal/internal/domain"
 )
 
 func TestTMDBSeasonDisplaysHidesUnavailableSpecials(t *testing.T) {
@@ -18,8 +19,132 @@ func TestTMDBSeasonDisplaysHidesUnavailableSpecials(t *testing.T) {
 	}
 
 	displays = tmdbSeasonDisplays(seasons, map[int]int{0: 3, 1: 28}, 0)
-	if len(displays) != 2 || displays[0].Number != 0 || displays[0].Count != 3 {
-		t.Fatalf("playable specials were not included: %+v", displays)
+	if len(displays) != 1 || displays[0].Number != 1 {
+		t.Fatalf("specials should not be exposed as a season selector entry: %+v", displays)
+	}
+}
+
+func TestSourceEpisodeDisplaysPreservesInlineSpecialPlaybackID(t *testing.T) {
+	displays := sourceEpisodeDisplays(animeEpisodeSource{
+		Anime:         domain.Anime{MalID: 53580, Title: "Slime Season 3"},
+		Episodes:      []domain.CanonicalEpisode{{Number: 0, ID: "0", Label: "0.5", Order: 5, Special: true, Title: "Diablo's Journal", HasSub: true}},
+		DisplayOffset: 48,
+		WatchAnimeID:  37430,
+		Kind:          episodeKindRegular,
+	}, nil)
+
+	if len(displays) != 1 || displays[0].Label != "E48.5" {
+		t.Fatalf("inline special display = %+v, want E48.5", displays)
+	}
+	if displays[0].WatchURL != "/anime/53580/watch?ep=0" {
+		t.Fatalf("WatchURL = %q, want direct provider special URL", displays[0].WatchURL)
+	}
+}
+
+func TestAppendSyntheticSeasonsLabelsOVAs(t *testing.T) {
+	displays := appendSyntheticSeasons(nil, map[int]int{ovaSeasonBase + 1: 5, ovaSeasonBase + 2: 3}, map[int]string{
+		ovaSeasonBase + 1: "OVA Season 1",
+		ovaSeasonBase + 2: "OVA Season 2",
+	}, ovaSeasonBase+2)
+	if len(displays) != 2 {
+		t.Fatalf("len(displays) = %d, want 2", len(displays))
+	}
+	if displays[0].Label != "OVA Season 1" || displays[1].Label != "OVA Season 2" || !displays[1].Selected {
+		t.Fatalf("unexpected OVA seasons: %+v", displays)
+	}
+}
+
+func TestClassifySpecialMappingKeepsShortsBetweenOVASeasons(t *testing.T) {
+	counters := specialSeasonCounters{}
+	mappings := []animeMapping{{Season: 0}, {Season: 0}, {Season: 0}}
+	classifySpecialMapping(&mappings[0], 5, "OVA", &counters)
+	classifySpecialMapping(&mappings[1], 2, "ONA", &counters)
+	classifySpecialMapping(&mappings[2], 3, "OVA", &counters)
+
+	if mappings[0].SeasonLabel != "OVA Season 1" || mappings[1].SeasonLabel != "Shorts" || mappings[2].SeasonLabel != "OVA Season 2" {
+		t.Fatalf("unexpected special labels: %+v", mappings)
+	}
+	if mappings[0].LogicalSeason >= mappings[1].LogicalSeason || mappings[1].LogicalSeason >= mappings[2].LogicalSeason {
+		t.Fatalf("special seasons are not chronological: %+v", mappings)
+	}
+}
+
+func TestInlineSpecialAnchorAfterSeasonFinale(t *testing.T) {
+	plan := []animeMapping{{
+		Season: 1, LogicalSeason: 1, MediaOffset: 0, DisplayOffset: 0, EpisodeCount: 12, Kind: episodeKindRegular,
+	}}
+	anchor, season, ok := inlineSpecialAnchor(plan, tmdb.Episode{AirDate: "2016-03-04"}, []tmdb.Episode{
+		{ID: 1, SeasonNumber: 1, EpisodeNumber: 1, AirDate: "2015-07-11"},
+		{ID: 12, SeasonNumber: 1, EpisodeNumber: 12, AirDate: "2015-09-26"},
+	})
+	if !ok || anchor != 12 || season != 1 {
+		t.Fatalf("placement = anchor %d season %d ok %v, want 12, 1, true", anchor, season, ok)
+	}
+}
+
+func TestAssignRegularDisplayOffsetsIgnoresSpecialInventory(t *testing.T) {
+	plan := []animeMapping{
+		{Kind: episodeKindRegular, EpisodeCount: 24},
+		{Kind: episodeKindInline, EpisodeCount: 1},
+		{Kind: episodeKindRegular, EpisodeCount: 24},
+		{Kind: episodeKindOVA, EpisodeCount: 5},
+	}
+	assignRegularDisplayOffsets(plan)
+	if plan[2].DisplayOffset != 24 {
+		t.Fatalf("second TV season offset = %d, want 24", plan[2].DisplayOffset)
+	}
+	if plan[1].DisplayOffset != 0 || plan[3].DisplayOffset != 0 {
+		t.Fatalf("special inventory changed display offsets: %+v", plan)
+	}
+}
+
+func TestOVATMDBEpisodeMatchesUsesUniqueSequence(t *testing.T) {
+	source := animeEpisodeSource{Kind: episodeKindOVA, Episodes: []domain.CanonicalEpisode{
+		{Number: 1, ID: "1", Order: 10, Title: "The Tragedy of M?"},
+		{Number: 2, ID: "2", Order: 20, Title: "The Tragedy of M?"},
+		{Number: 3, ID: "3", Order: 30, Title: "Extra: Rimuru's Glamorous Life as a Teacher, Part 1"},
+		{Number: 4, ID: "4", Order: 40, Title: "Episode 4"},
+		{Number: 5, ID: "5", Order: 50, Title: "Episode 5"},
+	}}
+	media := map[int]tmdb.Episode{
+		2: {ID: 2, SeasonNumber: 0, EpisodeNumber: 2, Name: "Extra: The Tragedy of M?"},
+		3: {ID: 3, SeasonNumber: 0, EpisodeNumber: 3, Name: "Extra: Hey! Butts!"},
+		4: {ID: 4, SeasonNumber: 0, EpisodeNumber: 4, Name: "Extra: Rimuru's Glamorous Life as a Teacher (1)"},
+		5: {ID: 5, SeasonNumber: 0, EpisodeNumber: 5, Name: "Extra: Rimuru's Glamorous Life as a Teacher (2)"},
+		6: {ID: 6, SeasonNumber: 0, EpisodeNumber: 6, Name: "Extra: Rimuru's Glamorous Life as a Teacher (3)"},
+	}
+
+	matches := ovaTMDBEpisodeMatches(source, media)
+	if matches["1"].Name != "Extra: Hey! Butts!" || matches["2"].Name != "Extra: The Tragedy of M?" {
+		t.Fatalf("duplicate provider title was not repaired: %+v", matches)
+	}
+	if matches["4"].EpisodeNumber != 5 || matches["5"].EpisodeNumber != 6 {
+		t.Fatalf("OVA sequence did not retain unique later metadata: %+v", matches)
+	}
+}
+
+func TestOVATMDBEpisodeMatchesUsesDatesForUntitledShorts(t *testing.T) {
+	source := animeEpisodeSource{
+		Kind: episodeKindShorts,
+		Anime: domain.Anime{Aired: domain.Aired{
+			From: "2022-03-19T00:00:00Z",
+			To:   "2022-07-29T00:00:00Z",
+		}},
+		Episodes: []domain.CanonicalEpisode{
+			{Number: 1, ID: "1", Order: 10, Title: "Episode 1"},
+			{Number: 2, ID: "2", Order: 20, Title: "Episode 2"},
+		},
+	}
+	media := map[int]tmdb.Episode{
+		8:  {ID: 8, SeasonNumber: 0, EpisodeNumber: 8, Name: "Veldora 2", AirDate: "2021-06-29"},
+		9:  {ID: 9, SeasonNumber: 0, EpisodeNumber: 9, Name: "Sukuwareru Ramiris - 01", AirDate: "2022-03-19"},
+		10: {ID: 10, SeasonNumber: 0, EpisodeNumber: 10, Name: "Sukuwareru Ramiris - 02", AirDate: "2022-07-21"},
+		11: {ID: 11, SeasonNumber: 0, EpisodeNumber: 11, Name: "To Coleus", AirDate: "2023-11-01"},
+	}
+
+	matches := ovaTMDBEpisodeMatches(source, media)
+	if matches["1"].EpisodeNumber != 9 || matches["2"].EpisodeNumber != 10 {
+		t.Fatalf("short sequence = %+v, want TMDB specials 9-10", matches)
 	}
 }
 
