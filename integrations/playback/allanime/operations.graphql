@@ -34,11 +34,7 @@ query AllAnimeEpisodeSources(
   $episodeString: String!
 ) {
   # @genqlient(pointer: true)
-  episode(
-    showId: $showId
-    translationType: $translationType
-    episodeString: $episodeString
-  ) {
+  episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
     sourceUrls {
       sourceUrl
       sourceName

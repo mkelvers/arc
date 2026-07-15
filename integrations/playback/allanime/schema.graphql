@@ -25,7 +25,11 @@ input SearchInput {
 }
 
 type Query {
-  episode(showId: String!, translationType: VaildTranslationTypeEnumType!, episodeString: String!): Episode
+  episode(
+    showId: String!
+    translationType: VaildTranslationTypeEnumType!
+    episodeString: String!
+  ): Episode
   episodeInfos(showId: String!, episodeNumStart: Float!, episodeNumEnd: Float!): [EpisodeInfo!]
   show(_id: String!): Show
   shows(
