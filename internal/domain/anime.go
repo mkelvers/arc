@@ -408,12 +408,17 @@ type AnimePlaybackService interface {
 
 type CatalogSectionData struct {
 	Animes              []Anime
-	ContinueWatching    []db.GetContinueWatchingEntriesRow
+	ContinueWatching    []ContinueWatchingEntryDisplay
 	RecommendationState RecommendationRefreshState
 	RetryAfterSeconds   int
 	Section             string
 	WatchlistMap        map[int64]bool
 	Fragment            string
+}
+
+type ContinueWatchingEntryDisplay struct {
+	db.GetContinueWatchingEntriesRow
+	EpisodeTitle string
 }
 
 func (d CatalogSectionData) TemplateFragment() string {

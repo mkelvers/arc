@@ -125,6 +125,9 @@ func (h *AnimeHandler) renderCatalogSection(c *gin.Context, section string) {
 	}
 
 	watchlistMap := h.watchlistMapForAnimes(c.Request.Context(), userID, data.Animes)
+	if section == "Continue" {
+		h.enrichContinueWatchingEntries(c.Request.Context(), data.ContinueWatching)
+	}
 
 	data.Section = section
 	data.Fragment = "catalog_section"

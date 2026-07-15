@@ -42,7 +42,7 @@
               {{$title}}
             </h3>
             <p class="text-foreground-muted mt-0.5 text-xs">
-              {{if .CurrentEpisode.Valid}}Episode {{.CurrentEpisode.Int64}}{{end}}
+              {{if .CurrentEpisode.Valid}}E{{.CurrentEpisode.Int64}}{{if .EpisodeTitle}} - {{.EpisodeTitle}}{{end}}{{end}}
             </p>
           </a>
         </div>

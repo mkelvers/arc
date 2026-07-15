@@ -83,8 +83,16 @@ func (s *animeService) GetCatalogSection(ctx context.Context, userID string, sec
 
 	return domain.CatalogSectionData{
 		Animes:           animes,
-		ContinueWatching: cw,
+		ContinueWatching: continueWatchingDisplays(cw),
 	}, nil
+}
+
+func continueWatchingDisplays(rows []db.GetContinueWatchingEntriesRow) []domain.ContinueWatchingEntryDisplay {
+	out := make([]domain.ContinueWatchingEntryDisplay, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, domain.ContinueWatchingEntryDisplay{GetContinueWatchingEntriesRow: row})
+	}
+	return out
 }
 
 func (s *animeService) catalogSectionMetadata(ctx context.Context, section string) (domain.TopAnimeResult, error) {
