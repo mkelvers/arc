@@ -5,7 +5,7 @@ import { hydrateEpisodeClassifications } from "./episodes/classifications";
 import { goToNextEpisode, prefetchNextEpisode, setupEpisodeNavigation } from "./episodes/nav";
 import { setupAutoplayButton, updateEpisodeHighlight, switchEpisodeRange } from "./episodes/ui";
 import { setupKeyboard } from "./keyboard";
-import { setPlayerLoadState, setupPlayerLoading, teardownPlayerLoading } from "./loading";
+import { setPlayerLoadState, teardownPlayerLoading } from "./loading";
 import {
   ensurePreferredModeSource,
   hydrateAlternateMode,
@@ -131,10 +131,6 @@ const initPlayer = async (): Promise<void> => {
   let sourceRefreshInFlight = false;
   let automaticSourceRefreshAttempted = false;
 
-  setupPlayerLoading(() => {
-    automaticSourceRefreshAttempted = true;
-    return refreshCurrentModeSource(signal);
-  }, signal);
   setPlayerLoadState("resolving_source");
 
   const scrubToPointer = (clientX: number, shouldShowControls: boolean): void => {

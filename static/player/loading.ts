@@ -27,8 +27,6 @@ declare global {
 
 let currentState: PlayerLoadState = "idle";
 let phaseStartedAt = 0;
-let retryController: AbortController | null = null;
-let retryInFlight = false;
 
 const profile = (): PlayerLoadProfile => {
   window.__malPlayerLoadProfile ??= {
@@ -76,23 +74,9 @@ const isBusy = (loadState: PlayerLoadState): boolean =>
   loadState === "buffering" ||
   loadState === "retrying";
 
-const elements = (): {
-  back: HTMLElement | null;
-  loading: HTMLElement | null;
-  retry: HTMLButtonElement | null;
-  spinner: HTMLElement | null;
-} => ({
-  back: state.elements.container.querySelector("[data-loading-back]"),
+const elements = (): { loading: HTMLElement | null } => ({
   loading: state.elements.container.querySelector("[data-loading]"),
-  retry: state.elements.container.querySelector("[data-loading-retry]"),
-  spinner: state.elements.container.querySelector("[data-loading-spinner]"),
 });
-
-const showRecovery = (): void => {
-  const { back, retry } = elements();
-  retry?.classList.remove("hidden");
-  back?.classList.remove("hidden");
-};
 
 export const setPlayerLoadState = (nextState: PlayerLoadState): void => {
   if (nextState === currentState) {
@@ -103,7 +87,7 @@ export const setPlayerLoadState = (nextState: PlayerLoadState): void => {
   currentState = nextState;
   phaseStartedAt = isBusy(nextState) ? performance.now() : 0;
 
-  const { back, loading, retry, spinner } = elements();
+  const { loading } = elements();
   state.elements.container.dataset.loadState = nextState;
   state.elements.container.setAttribute("aria-busy", String(isBusy(nextState)));
 
@@ -111,9 +95,6 @@ export const setPlayerLoadState = (nextState: PlayerLoadState): void => {
   if (loading) {
     loading.style.display = visible ? "flex" : "none";
   }
-  spinner?.classList.toggle("hidden", nextState === "unavailable");
-  retry?.classList.add("hidden");
-  back?.classList.add("hidden");
 
   if (nextState === "buffering") {
     profile().bufferingCount += 1;
@@ -123,57 +104,13 @@ export const setPlayerLoadState = (nextState: PlayerLoadState): void => {
     profile().unavailableCount += 1;
   }
 
-  if (nextState === "unavailable") {
-    showRecovery();
-    retry?.focus({ preventScroll: true });
-    return;
-  }
   if (!isBusy(nextState)) {
     return;
   }
 };
 
-export const setupPlayerLoading = (retry: () => Promise<boolean>, signal: AbortSignal): void => {
-  retryController?.abort();
-  retryController = new AbortController();
-  const retryButton = elements().retry;
-  retryButton?.addEventListener(
-    "click",
-    () => {
-      if (retryInFlight) {
-        return;
-      }
-      retryInFlight = true;
-      retryButton.disabled = true;
-      setPlayerLoadState("retrying");
-      retry()
-        .then((refreshed) => {
-          if (!refreshed) {
-            setPlayerLoadState("unavailable");
-          }
-        })
-        .catch((error: unknown) => {
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          void error;
-          setPlayerLoadState("unavailable");
-        })
-        .finally(() => {
-          retryInFlight = false;
-          retryButton.disabled = false;
-        });
-    },
-    { signal: retryController.signal },
-  );
-  signal.addEventListener("abort", () => retryController?.abort(), { once: true });
-};
-
 export const teardownPlayerLoading = (): void => {
   finishPhase();
-  retryController?.abort();
-  retryController = null;
-  retryInFlight = false;
   currentState = "idle";
   phaseStartedAt = 0;
 };
