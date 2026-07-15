@@ -238,7 +238,7 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 }
 
 func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, mediaSeason int, selectedSeason int, seen map[int64]struct{}, nextNumber int, mediaNumber int, tmdbTitles map[int]string) (int, int) {
-	if !stackableProgressMapping(mapping) || mapping.Season != mediaSeason {
+	if !mappingBelongsInDisplaySeason(mapping, mediaSeason) {
 		return nextNumber, mediaNumber
 	}
 	if _, ok := seen[mapping.MALID]; ok {
@@ -257,6 +257,7 @@ func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out 
 		return nextNumber, mediaNumber + domain.RegularEpisodeCount(episodes.Episodes)
 	}
 	baseOffset := nextNumber - 1
+	regularMediaCount := highestTMDBEpisodeNumber(tmdbTitles)
 	for _, episode := range episodes.Episodes {
 		episode.AnimeID = source.MalID
 		if episode.Special {
@@ -264,6 +265,9 @@ func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out 
 			episode.Number = episode.Order / 10
 			episode.Label = playbackEpisodeOrderLabel(episode.Order)
 			out.Episodes = append(out.Episodes, episode)
+			continue
+		}
+		if beyondRegularMediaInventory(regularMediaCount, mediaNumber) {
 			continue
 		}
 		if title := strings.TrimSpace(tmdbTitles[mediaNumber]); title != "" {
@@ -277,6 +281,24 @@ func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out 
 		mediaNumber++
 	}
 	return nextNumber, mediaNumber
+}
+
+func mappingBelongsInDisplaySeason(mapping domain.AnimeMediaMapping, mediaSeason int) bool {
+	return stackableProgressMapping(mapping) && mapping.Season == mediaSeason
+}
+
+func beyondRegularMediaInventory(regularMediaCount int, mediaNumber int) bool {
+	return regularMediaCount > 0 && mediaNumber > regularMediaCount
+}
+
+func highestTMDBEpisodeNumber(titles map[int]string) int {
+	highest := 0
+	for number := range titles {
+		if number > highest {
+			highest = number
+		}
+	}
+	return highest
 }
 
 func playbackEpisodeOrderLabel(order int) string {

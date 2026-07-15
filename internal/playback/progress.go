@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"strconv"
 
+	"mal/integrations/tmdb"
+
 	"github.com/google/uuid"
 
 	"mal/internal/database/db"
@@ -361,7 +363,16 @@ func (s *playbackService) playbackEpisodeCount(ctx context.Context, animeID int6
 		slog.Warn("watch_progress_episode_count_failed", "component", "playback", "fields", map[string]any{"anime_id": animeID}, "error", err)
 		return 0
 	}
-	return domain.RegularEpisodeCount(episodes.Episodes)
+	count := domain.RegularEpisodeCount(episodes.Episodes)
+	mapping, err := s.repo.GetAnimeMappingByMALID(ctx, animeID)
+	if err != nil || s.tmdbClient == nil || mapping.MediaType != string(tmdb.MediaTypeTV) || mapping.TMDBID <= 0 || mapping.Season <= 0 {
+		return count
+	}
+	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, mapping.Season, "en-US")
+	if err != nil || len(season.Episodes) <= 0 {
+		return count
+	}
+	return min(count, len(season.Episodes))
 }
 
 func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) error {
