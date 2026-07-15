@@ -71,6 +71,17 @@ func (s *EpisodeService) GetCanonicalEpisodes(ctx context.Context, anime domain.
 	return s.waitForCanonicalRefresh(ctx, anime, canonicalRefreshPolicyFor(forceRefresh))
 }
 
+func (s *EpisodeService) GetCachedCanonicalEpisodes(ctx context.Context, anime domain.Anime) (domain.CanonicalEpisodeList, bool) {
+	if anime.MalID <= 0 {
+		return domain.CanonicalEpisodeList{}, false
+	}
+	cached, ok := s.getDecodedCached(ctx, anime)
+	if !ok {
+		return domain.CanonicalEpisodeList{}, false
+	}
+	return cloneCanonicalEpisodeList(cached), true
+}
+
 func canonicalRefreshPolicyFor(forceRefresh bool) canonicalRefreshPolicy {
 	if forceRefresh {
 		return canonicalRefreshForced

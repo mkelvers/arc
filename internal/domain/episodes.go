@@ -84,6 +84,7 @@ type CanonicalEpisodeList struct {
 
 type EpisodeService interface {
 	GetCanonicalEpisodes(ctx context.Context, anime Anime, forceRefresh bool) (CanonicalEpisodeList, error)
+	GetCachedCanonicalEpisodes(ctx context.Context, anime Anime) (CanonicalEpisodeList, bool)
 	RefreshTrackedDue(ctx context.Context, limit int) error
 }
 
