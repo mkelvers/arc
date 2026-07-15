@@ -22,7 +22,7 @@
               class="flex w-full items-center justify-between gap-6 px-5 py-2.5 text-left transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent {{if .Selected}}text-foreground{{else}}text-foreground-muted{{end}}"
             >
               <span class="min-w-0 truncate text-base">{{.Label}}</span>
-              <span class="shrink-0 text-xs font-semibold {{if .Selected}}text-foreground{{else}}text-foreground-muted{{end}}">{{.Count}} Episodes</span>
+			  {{if .Count}}<span class="shrink-0 text-xs font-semibold {{if .Selected}}text-foreground{{else}}text-foreground-muted{{end}}">{{.Count}} Episodes</span>{{end}}
             </button>
           {{end}}
         </div>
