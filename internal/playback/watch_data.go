@@ -225,9 +225,10 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	seen := map[int64]struct{}{}
 	nextNumber := s.progressEpisodeOffset(ctx, currentMapping) + 1
 	mediaNumber := 1
+	selectedSeason := loaded.anime.SeasonNumber(currentMapping.Season)
 	tmdbTitles := s.tmdbSeasonEpisodeTitles(ctx, currentMapping)
 	for _, mapping := range mappings {
-		nextNumber, mediaNumber = s.appendDisplayMappingEpisodes(ctx, &out, mapping, currentMapping.Season, seen, nextNumber, mediaNumber, tmdbTitles)
+		nextNumber, mediaNumber = s.appendDisplayMappingEpisodes(ctx, &out, mapping, currentMapping.Season, selectedSeason, seen, nextNumber, mediaNumber, tmdbTitles)
 	}
 	if len(out.Episodes) == 0 {
 		offset := s.progressEpisodeOffset(ctx, currentMapping)
@@ -236,8 +237,8 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	return ensureDisplayEpisode(out, displayEpisode)
 }
 
-func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, selectedSeason int, seen map[int64]struct{}, nextNumber int, mediaNumber int, tmdbTitles map[int]string) (int, int) {
-	if !stackableProgressMapping(mapping) || mapping.Season != selectedSeason {
+func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, mediaSeason int, selectedSeason int, seen map[int64]struct{}, nextNumber int, mediaNumber int, tmdbTitles map[int]string) (int, int) {
+	if !stackableProgressMapping(mapping) || mapping.Season != mediaSeason {
 		return nextNumber, mediaNumber
 	}
 	if _, ok := seen[mapping.MALID]; ok {
@@ -251,6 +252,9 @@ func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out 
 	episodes, err := s.episodes.GetCanonicalEpisodes(ctx, source, false)
 	if err != nil {
 		return nextNumber, mediaNumber
+	}
+	if source.SeasonNumber(mapping.Season) != selectedSeason {
+		return nextNumber, mediaNumber + len(episodes.Episodes)
 	}
 	for _, episode := range episodes.Episodes {
 		if title := strings.TrimSpace(tmdbTitles[mediaNumber]); title != "" {
