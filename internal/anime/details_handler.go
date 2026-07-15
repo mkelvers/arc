@@ -717,7 +717,7 @@ func (h *AnimeHandler) episodePlanMetadata(ctx context.Context, mappings []anime
 }
 
 func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeMapping, anime domain.Anime, hasMetadata bool, mediaOffsets map[int]int, counters *specialSeasonCounters) (animeMapping, bool) {
-	if mapping.MALID <= 0 || mapping.Season < 0 {
+	if !selectableEpisodeMapping(mapping, anime, hasMetadata, time.Now()) {
 		return animeMapping{}, false
 	}
 	mapping.LogicalSeason = mapping.Season
@@ -745,6 +745,27 @@ func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeM
 	classifySpecialMapping(&mapping, totalCount, anime.Type, counters)
 	mediaOffsets[mapping.Season] += mapping.EpisodeCount
 	return mapping, true
+}
+
+func selectableEpisodeMapping(mapping animeMapping, anime domain.Anime, hasMetadata bool, now time.Time) bool {
+	if mapping.MALID <= 0 || mapping.Season < 0 {
+		return false
+	}
+	if !hasMetadata {
+		return true
+	}
+	status := strings.ToLower(strings.TrimSpace(anime.Status))
+	if status == "not yet aired" || status == "not_yet_released" {
+		return false
+	}
+	if anime.Aired.From == "" {
+		return true
+	}
+	firstAired, err := time.Parse(time.RFC3339, anime.Aired.From)
+	if err != nil {
+		return true
+	}
+	return !now.Before(firstAired)
 }
 
 func regularSeasonLabel(season int, title string) string {

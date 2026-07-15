@@ -2,6 +2,7 @@ package anime
 
 import (
 	"testing"
+	"time"
 
 	"mal/integrations/tmdb"
 	"mal/internal/domain"
@@ -232,5 +233,55 @@ func TestApplyPlaybackSeasonsIncludesMappedSeasonWithoutCachedCount(t *testing.T
 	}
 	if display.Seasons[1].Count != 0 || display.Seasons[2].Count != 0 {
 		t.Fatalf("uncached season counts should remain unknown: %+v", display.Seasons)
+	}
+}
+
+func TestSelectableEpisodeMappingFiltersUnreleasedSeasons(t *testing.T) {
+	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name        string
+		anime       domain.Anime
+		hasMetadata bool
+		want        bool
+	}{
+		{
+			name:        "missing metadata keeps imported mapping selectable",
+			hasMetadata: false,
+			want:        true,
+		},
+		{
+			name:        "finished season without cached count remains selectable",
+			anime:       domain.Anime{Status: "Finished Airing"},
+			hasMetadata: true,
+			want:        true,
+		},
+		{
+			name:        "currently airing season remains selectable",
+			anime:       domain.Anime{Status: "Currently Airing", Airing: true},
+			hasMetadata: true,
+			want:        true,
+		},
+		{
+			name:        "not yet aired status is hidden",
+			anime:       domain.Anime{Status: "Not yet aired"},
+			hasMetadata: true,
+			want:        false,
+		},
+		{
+			name: "future start date is hidden",
+			anime: domain.Anime{Status: "Currently Airing", Aired: domain.Aired{
+				From: "2026-10-01T00:00:00Z",
+			}},
+			hasMetadata: true,
+			want:        false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := selectableEpisodeMapping(animeMapping{MALID: 30831, Season: 1}, test.anime, test.hasMetadata, now); got != test.want {
+				t.Fatalf("selectableEpisodeMapping() = %v, want %v", got, test.want)
+			}
+		})
 	}
 }
