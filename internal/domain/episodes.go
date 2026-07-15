@@ -1,11 +1,14 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"strconv"
+)
 
 type EpisodeAvailability struct {
-	Sub    []int
-	Dub    []int
-	Titles map[int]string
+	Sub    []string
+	Dub    []string
+	Titles map[string]string
 }
 
 type EpisodeProvider interface {
@@ -20,12 +23,49 @@ type EpisodeAvailabilityProvider interface {
 
 type CanonicalEpisode struct {
 	Number  int    `json:"number"`
+	ID      string `json:"id,omitempty"`
+	Label   string `json:"label,omitempty"`
+	Order   int    `json:"order,omitempty"`
+	Special bool   `json:"special,omitempty"`
+	AnimeID int    `json:"-"`
+	Current bool   `json:"-"`
 	Title   string `json:"title"`
 	HasSub  bool   `json:"has_sub"`
 	HasDub  bool   `json:"has_dub"`
 	SubOnly bool   `json:"sub_only"`
 	Filler  bool   `json:"filler"`
 	Recap   bool   `json:"recap"`
+}
+
+func (e CanonicalEpisode) PlaybackID() string {
+	if e.ID != "" {
+		return e.ID
+	}
+	return strconv.Itoa(e.Number)
+}
+
+func (e CanonicalEpisode) DisplayLabel() string {
+	if e.Label != "" {
+		return e.Label
+	}
+	return strconv.Itoa(e.Number)
+}
+
+func (e CanonicalEpisode) SortOrder() int {
+	if e.Order > 0 {
+		return e.Order
+	}
+	return e.Number * 10
+}
+
+func RegularEpisodeCount(episodes []CanonicalEpisode) int {
+	count := 0
+	for _, episode := range episodes {
+		if !episode.Special {
+			count++
+		}
+	}
+	return count
 }
 
 type CanonicalEpisodeList struct {
