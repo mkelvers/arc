@@ -15,9 +15,9 @@
 {{$scoreCount := formatCompactNumber $anime.ScoredBy}}
 {{$posterImage := posterURL $anime.Images.Webp.LargeImageURL $anime.Images.Jpg.LargeImageURL 400 600}}
 {{if or $anime.BannerImageURL $posterImage}}
-  <div class="relative -mx-4 -mt-6 h-[700px] overflow-hidden before:pointer-events-none before:absolute before:inset-0 before:z-1 before:bg-[radial-gradient(ellipse_at_top_right,rgba(0,0,0,0.16)_0%,rgba(0,0,0,0.08)_28%,transparent_58%),radial-gradient(ellipse_at_top_left,rgba(0,0,0,0.08)_0%,transparent_45%)] after:pointer-events-none after:absolute after:inset-0 after:z-1 after:bg-[linear-gradient(to_top,rgba(0,0,0,0.68)_0%,rgba(0,0,0,0.42)_24%,rgba(0,0,0,0.12)_52%,transparent_72%),radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.3)_0%,rgba(0,0,0,0.12)_32%,transparent_62%),radial-gradient(ellipse_at_bottom_right,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.1)_34%,transparent_64%),linear-gradient(to_right,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0.2)_18%,transparent_38%,transparent_70%,rgba(0,0,0,0.32)_100%)] md:-mx-6 lg:-mx-8">
+  <div class="relative -mx-4 -mt-6 h-[900px] overflow-hidden before:pointer-events-none before:absolute before:inset-0 before:z-1 before:bg-[radial-gradient(ellipse_at_top_right,rgba(0,0,0,0.16)_0%,rgba(0,0,0,0.08)_28%,transparent_58%),radial-gradient(ellipse_at_top_left,rgba(0,0,0,0.08)_0%,transparent_45%)] after:pointer-events-none after:absolute after:inset-0 after:z-1 after:bg-[linear-gradient(to_top,rgba(0,0,0,0.68)_0%,rgba(0,0,0,0.42)_24%,rgba(0,0,0,0.12)_52%,transparent_72%),radial-gradient(ellipse_at_bottom_left,rgba(0,0,0,0.3)_0%,rgba(0,0,0,0.12)_32%,transparent_62%),radial-gradient(ellipse_at_bottom_right,rgba(0,0,0,0.28)_0%,rgba(0,0,0,0.1)_34%,transparent_64%),linear-gradient(to_right,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0.2)_18%,transparent_38%,transparent_70%,rgba(0,0,0,0.32)_100%)] md:-mx-6 lg:-mx-8">
     {{if $anime.BannerImageURL}}
-      <img src="{{$anime.BannerImageURL}}" alt="{{$anime.DisplayTitle}}" class="absolute size-full object-cover object-[center_35%]" />
+      <img src="{{$anime.BannerImageURL}}" alt="{{$anime.DisplayTitle}}" class="absolute size-full object-cover object-[center_42%]" />
     {{else}}
       <img src="{{$posterImage}}" alt="{{$anime.DisplayTitle}}" class="absolute -inset-8 h-[calc(100%+4rem)] w-[calc(100%+4rem)] scale-110 object-cover blur-3xl" />
     {{end}}
