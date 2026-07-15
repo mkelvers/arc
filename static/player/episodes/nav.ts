@@ -11,7 +11,6 @@ import { isRecord, parseModeSources, parseSegments } from "../validate";
 import { loadVideoSource } from "../video";
 import { completeAnime } from "./complete";
 import {
-  isAutoplayEnabled,
   switchEpisodeRange,
   updateEpisodeHighlight,
   updateEpisodeNavigation,
@@ -498,6 +497,10 @@ export const transitionToEpisode = async (
       return false;
     }
     void error;
+    if (options.autoplay) {
+      setPlayerLoadState("idle");
+      return false;
+    }
     fallbackToEpisodeNavigation(transition.fallbackHref, options.autoplay ?? false);
     return false;
   }
@@ -652,21 +655,28 @@ export const goToNextEpisode = async (): Promise<void> => {
   }
   if (state.episode.total > 0 && currentEpisode >= state.episode.total) {
     if (!state.episode.isAiring) {
-      completeAnime(currentEpisode).catch((error: unknown) => {
-        console.error("failed to complete final episode:", error);
-      });
+      const advancing = await completeAnime(currentEpisode);
+      if (advancing) {
+        return;
+      }
     }
     showEndState();
     return;
   }
-  if (!isAutoplayEnabled()) {
-    showEndState();
-    return;
-  }
   const nextEpisode = currentEpisode + 1;
-  await transitionToEpisode(nextEpisode, {
+  const advanced = await transitionToEpisode(nextEpisode, {
     autoplay: true,
     fallbackHref: episodeHref(nextEpisode),
     history: "push",
   });
+  if (advanced) {
+    return;
+  }
+  if (!state.episode.isAiring) {
+    const advancing = await completeAnime(currentEpisode);
+    if (advancing) {
+      return;
+    }
+  }
+  showEndState();
 };

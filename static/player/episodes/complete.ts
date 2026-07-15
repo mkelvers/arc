@@ -1,8 +1,9 @@
 import { state } from "../state";
+import { isRecord } from "../validate";
 
-export const completeAnime = async (episodeNumber: number): Promise<void> => {
+export const completeAnime = async (episodeNumber: number): Promise<boolean> => {
   if (state.episode.completionSent || !state.episode.malID || !episodeNumber) {
-    return;
+    return false;
   }
   state.episode.completionSent = true;
 
@@ -25,7 +26,15 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
           });
         }, 1000);
       }
-      return;
+      return false;
+    }
+
+    const payload: unknown = await res.json().catch(() => null);
+    const nextURL =
+      isRecord(payload) && typeof payload.next_url === "string" ? payload.next_url : "";
+    if (nextURL) {
+      window.location.assign(nextURL);
+      return true;
     }
 
     const trigger = document.querySelector("[data-dropdown-trigger]") as HTMLButtonElement | null;
@@ -36,6 +45,7 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
       caret.textContent = "▾";
       trigger.append(caret);
     }
+    return false;
   } catch (error) {
     state.episode.completionSent = false;
     console.error("failed to complete anime:", error);
@@ -47,5 +57,6 @@ export const completeAnime = async (episodeNumber: number): Promise<void> => {
         });
       }, 1000);
     }
+    return false;
   }
 };
