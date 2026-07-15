@@ -417,6 +417,7 @@ type AnimeSearchService interface {
 
 type AnimeDetailsService interface {
 	GetAnimeByID(ctx context.Context, id int) (Anime, error)
+	GetAnimeBatchByID(ctx context.Context, ids []int) ([]Anime, error)
 	GetCharacters(ctx context.Context, id int) ([]CharacterEntry, error)
 	GetRecommendations(ctx context.Context, id int) ([]RecommendationEntry, error)
 	GetEpisodes(ctx context.Context, id int, page int) (EpisodesResponse, error)

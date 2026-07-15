@@ -216,3 +216,21 @@ func TestApplyPlaybackSeasonsIncludesCompleteMappedSeries(t *testing.T) {
 		t.Fatalf("unexpected mapped season labels: %+v", display.Seasons)
 	}
 }
+
+func TestApplyPlaybackSeasonsIncludesMappedSeasonWithoutCachedCount(t *testing.T) {
+	display := animeEpisodeListDisplay{Selected: 1}
+	plan := []animeMapping{
+		{MALID: 30831, LogicalSeason: 1, AvailableCount: 10, SeasonLabel: "Season 1: KonoSuba"},
+		{MALID: 32937, LogicalSeason: 2, SeasonLabel: "Season 2"},
+		{MALID: 49458, LogicalSeason: 3, SeasonLabel: "Season 3"},
+	}
+
+	applyPlaybackSeasons(plan, &display)
+
+	if len(display.Seasons) != 3 {
+		t.Fatalf("len(display.Seasons) = %d, want all 3 mapped seasons", len(display.Seasons))
+	}
+	if display.Seasons[1].Count != 0 || display.Seasons[2].Count != 0 {
+		t.Fatalf("uncached season counts should remain unknown: %+v", display.Seasons)
+	}
+}

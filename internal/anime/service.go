@@ -151,6 +151,21 @@ func (s *animeService) GetAnimeByID(ctx context.Context, id int) (domain.Anime, 
 	return domain.Anime{}, fmt.Errorf("get anime by id: metadata provider is unavailable")
 }
 
+func (s *animeService) GetAnimeBatchByID(ctx context.Context, ids []int) ([]domain.Anime, error) {
+	if s.metadata == nil {
+		return nil, fmt.Errorf("get anime batch: metadata provider is unavailable")
+	}
+	items, err := s.metadata.GetAnimeBatchByMALID(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("get anime batch from AniList: %w", err)
+	}
+	animes := make([]domain.Anime, 0, len(items))
+	for _, item := range items {
+		animes = append(animes, anilist.ToMetadataAnime(item))
+	}
+	return animes, nil
+}
+
 func (s *animeService) SearchAdvanced(ctx context.Context, opts domain.SearchOptions) (domain.SearchResult, error) {
 	if s.metadata == nil {
 		return domain.SearchResult{}, fmt.Errorf("search anime: metadata provider is unavailable")

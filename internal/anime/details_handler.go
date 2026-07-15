@@ -21,6 +21,7 @@ import (
 const (
 	animeSectionTimeout = 12 * time.Second
 	tmdbMetadataTimeout = 2 * time.Second
+	episodePlanTimeout  = 2 * time.Second
 	audioLookupTimeout  = 8 * time.Second
 	episodeCountTimeout = 4 * time.Second
 	ovaSeasonBase       = 1000
@@ -590,7 +591,7 @@ func appendSyntheticSeasons(displays []animeSeasonDisplay, playbackCounts map[in
 		seen[season.Number] = struct{}{}
 	}
 	for season, count := range playbackCounts {
-		if season <= 0 || count <= 0 {
+		if season <= 0 {
 			continue
 		}
 		if _, ok := seen[season]; ok {
@@ -627,11 +628,7 @@ func playbackEpisodeCountsBySeason(plan []animeMapping) map[int]int {
 	return counts
 }
 
-func (h *AnimeHandler) playbackEpisodeCounts(ctx context.Context, malID int) (int, int) {
-	anime, err := h.svc.GetAnimeByID(ctx, malID)
-	if err != nil {
-		return 0, 0
-	}
+func (h *AnimeHandler) playbackEpisodeCounts(ctx context.Context, anime domain.Anime) (int, int) {
 	episodeList, ok := h.episodeSvc.GetCachedCanonicalEpisodes(ctx, anime)
 	if !ok {
 		return 0, 0
@@ -674,11 +671,13 @@ func (h *AnimeHandler) episodeMappingPlan(ctx context.Context, group mappingGrou
 		}, "error", err)
 		return nil
 	}
+	metadata := h.episodePlanMetadata(ctx, mappings)
 	mediaOffsets := map[int]int{}
 	plan := make([]animeMapping, 0, len(mappings))
 	counters := specialSeasonCounters{}
 	for _, mapping := range mappings {
-		prepared, ok := h.prepareEpisodeMapping(ctx, mapping, mediaOffsets, &counters)
+		anime, hasMetadata := metadata[mapping.MALID]
+		prepared, ok := h.prepareEpisodeMapping(ctx, mapping, anime, hasMetadata, mediaOffsets, &counters)
 		if ok {
 			plan = append(plan, prepared)
 		}
@@ -697,22 +696,43 @@ func (h *AnimeHandler) episodeMappingPlan(ctx context.Context, group mappingGrou
 	return plan
 }
 
-func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeMapping, mediaOffsets map[int]int, counters *specialSeasonCounters) (animeMapping, bool) {
+func (h *AnimeHandler) episodePlanMetadata(ctx context.Context, mappings []animeMapping) map[int]domain.Anime {
+	ids := make([]int, 0, len(mappings))
+	for _, mapping := range mappings {
+		if mapping.MALID > 0 {
+			ids = append(ids, mapping.MALID)
+		}
+	}
+	batchCtx, cancel := context.WithTimeout(ctx, episodePlanTimeout)
+	defer cancel()
+	items, err := h.svc.GetAnimeBatchByID(batchCtx, ids)
+	if err != nil {
+		return nil
+	}
+	metadata := make(map[int]domain.Anime, len(items))
+	for _, anime := range items {
+		metadata[anime.MalID] = anime
+	}
+	return metadata
+}
+
+func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeMapping, anime domain.Anime, hasMetadata bool, mediaOffsets map[int]int, counters *specialSeasonCounters) (animeMapping, bool) {
 	if mapping.MALID <= 0 || mapping.Season < 0 {
 		return animeMapping{}, false
 	}
 	mapping.LogicalSeason = mapping.Season
 	mapping.Kind = episodeKindRegular
-	anime, animeErr := h.svc.GetAnimeByID(ctx, mapping.MALID)
-	if animeErr == nil {
+	if hasMetadata {
 		mapping.LogicalSeason = anime.SeasonNumber(mapping.Season)
-		if mapping.Season > 0 {
-			mapping.SeasonLabel = regularSeasonLabel(mapping.LogicalSeason, anime.DisplayTitle())
-		}
+	}
+	if mapping.Season > 0 {
+		mapping.SeasonLabel = regularSeasonLabel(mapping.LogicalSeason, anime.DisplayTitle())
 	}
 	mapping.MediaOffset = mediaOffsets[mapping.Season]
-	regularCount, totalCount := h.playbackEpisodeCounts(ctx, mapping.MALID)
-	if mapping.Season > 0 && animeErr == nil && anime.Episodes > 0 {
+	cacheAnime := anime
+	cacheAnime.MalID = mapping.MALID
+	regularCount, totalCount := h.playbackEpisodeCounts(ctx, cacheAnime)
+	if mapping.Season > 0 && hasMetadata && anime.Episodes > 0 {
 		if regularCount <= 0 {
 			regularCount = anime.Episodes
 		}
@@ -819,12 +839,10 @@ func (h *AnimeHandler) tmdbRegularEpisodesForPlan(ctx context.Context, group map
 }
 
 func (h *AnimeHandler) tmdbSpecialForMapping(ctx context.Context, mapping animeMapping, specials []tmdb.Episode) (tmdb.Episode, bool) {
-	anime, err := h.svc.GetAnimeByID(ctx, mapping.MALID)
-	if err == nil {
-		if episodeList, ok := h.episodeSvc.GetCachedCanonicalEpisodes(ctx, anime); ok && len(episodeList.Episodes) == 1 {
-			if match := matchingTMDBEpisode(tmdbEpisodesByNumber(specials), episodeList.Episodes[0].Title); match.ID > 0 {
-				return match, true
-			}
+	anime := domain.Anime{MalID: mapping.MALID}
+	if episodeList, ok := h.episodeSvc.GetCachedCanonicalEpisodes(ctx, anime); ok && len(episodeList.Episodes) == 1 {
+		if match := matchingTMDBEpisode(tmdbEpisodesByNumber(specials), episodeList.Episodes[0].Title); match.ID > 0 {
+			return match, true
 		}
 	}
 	if len(specials) == 1 {
