@@ -262,7 +262,7 @@ func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
 		return
 	}
 
-	err := h.svc.CompleteAnime(c.Request.Context(), userID, req.MalID)
+	completion, err := h.svc.CompleteAnime(c.Request.Context(), userID, req.MalID, req.Episode)
 	if err != nil {
 		server.RespondError(
 			c,
@@ -276,7 +276,10 @@ func (h *PlaybackHandler) HandleWatchComplete(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, gin.H{
+		"completed": completion.Completed,
+		"next_url":  completion.NextURL,
+	})
 }
 
 func (h *PlaybackHandler) HandleUpsertSkipSegment(c *gin.Context) {
