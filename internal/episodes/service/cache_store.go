@@ -11,7 +11,7 @@ import (
 	"mal/internal/domain"
 )
 
-const episodeAvailabilityPayloadVersion = 4
+const episodeAvailabilityPayloadVersion = 6
 
 const (
 	episodeCacheFreshTTL = 30 * 24 * time.Hour
@@ -60,7 +60,7 @@ func (s *EpisodeService) setEpisodeCache(ctx context.Context, row episodeCacheRo
 
 func (s *EpisodeService) store(ctx context.Context, anime domain.Anime, availability domain.EpisodeAvailability, source string, now time.Time) (domain.CanonicalEpisodeList, error) {
 	nextRefreshSQL := nextRefreshAt(anime, now)
-	episodes := mergeEpisodes(nil, availability, 0)
+	episodes := mergeEpisodes(availability, 0)
 	payload := domain.CanonicalEpisodeList{
 		AnimeID:             anime.MalID,
 		Episodes:            episodes,

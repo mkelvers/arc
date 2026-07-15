@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -64,8 +65,8 @@ func providerBackedPayloadHasAvailability(payload domain.CanonicalEpisodeList) b
 	return true
 }
 
-func mergeEpisodes(providerEpisodes []domain.Episode, availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
-	return mergeEpisodeData(mergeEpisodeInput{providerEpisodes: providerEpisodes, availability: availability, expectedCount: expectedCount, now: time.Now()})
+func mergeEpisodes(availability domain.EpisodeAvailability, expectedCount int) []domain.CanonicalEpisode {
+	return mergeEpisodeData(mergeEpisodeInput{availability: availability, expectedCount: expectedCount, now: time.Now()})
 }
 
 type mergeEpisodeInput struct {
@@ -81,35 +82,47 @@ type mergeEpisodeInput struct {
 func mergeEpisodeData(input mergeEpisodeInput) []domain.CanonicalEpisode {
 	providerEpisodes, availability := input.providerEpisodes, input.availability
 	expectedCount, now := input.expectedCount, input.now
-	byNumber := map[int]episodePartial{}
-	providerNumbers := availableEpisodeNumbers(availability, expectedCount)
-	providerBacked := input.providerVerified || len(providerNumbers) > 0
+	byID := map[string]episodePartial{}
+	providerIDs := availableEpisodeIDs(availability, expectedCount)
+	providerBacked := input.providerVerified || len(providerIDs) > 0
 
-	for number := range providerNumbers {
-		mergeEpisode(&byNumber, number, func(item *episodePartial) {
-			item.title = availability.Titles[number]
+	for id := range providerIDs {
+		mergeEpisode(&byID, id, func(item *episodePartial) {
+			item.title = availability.Titles[id]
 		})
 	}
 
-	mergeProviderEpisodes(providerMergeInput{byNumber: &byNumber, episodes: providerEpisodes, providerNumbers: providerNumbers, providerBacked: providerBacked, expectedCount: expectedCount, now: now, firstAired: input.firstAired, requireAiredDates: input.requireProviderAiredDates})
-	mergeAvailability(&byNumber, availability.Sub, expectedCount, func(item *episodePartial) { item.sub = true })
-	mergeAvailability(&byNumber, availability.Dub, expectedCount, func(item *episodePartial) { item.dub = true })
+	mergeProviderEpisodes(providerMergeInput{byID: &byID, episodes: providerEpisodes, providerIDs: providerIDs, providerBacked: providerBacked, expectedCount: expectedCount, now: now, firstAired: input.firstAired, requireAiredDates: input.requireProviderAiredDates})
+	mergeAvailability(&byID, availability.Sub, providerIDs, func(item *episodePartial) { item.sub = true })
+	mergeAvailability(&byID, availability.Dub, providerIDs, func(item *episodePartial) { item.dub = true })
 
-	numbers := make([]int, 0, len(byNumber))
-	for number := range byNumber {
-		numbers = append(numbers, number)
+	identities := make([]episodeIdentity, 0, len(byID))
+	for id := range byID {
+		identity, ok := parseEpisodeIdentity(id, expectedCount)
+		if ok {
+			identities = append(identities, identity)
+		}
 	}
-	sort.Ints(numbers)
+	sort.Slice(identities, func(i, j int) bool {
+		if identities[i].Order != identities[j].Order {
+			return identities[i].Order < identities[j].Order
+		}
+		return identities[i].ID < identities[j].ID
+	})
 
-	episodes := make([]domain.CanonicalEpisode, 0, len(numbers))
-	for _, number := range numbers {
-		item := byNumber[number]
+	episodes := make([]domain.CanonicalEpisode, 0, len(identities))
+	for _, identity := range identities {
+		item := byID[identity.ID]
 		title := item.title
 		if title == "" {
-			title = fmt.Sprintf("Episode %d", number)
+			title = "Episode " + identity.Label
 		}
 		episodes = append(episodes, domain.CanonicalEpisode{
-			Number:  number,
+			Number:  identity.Number,
+			ID:      identity.ID,
+			Label:   identity.Label,
+			Order:   identity.Order,
+			Special: identity.Special,
 			Title:   title,
 			HasSub:  item.sub,
 			HasDub:  item.dub,
@@ -122,9 +135,9 @@ func mergeEpisodeData(input mergeEpisodeInput) []domain.CanonicalEpisode {
 }
 
 type providerMergeInput struct {
-	byNumber          *map[int]episodePartial
+	byID              *map[string]episodePartial
 	episodes          []domain.Episode
-	providerNumbers   map[int]bool
+	providerIDs       map[string]bool
 	providerBacked    bool
 	expectedCount     int
 	now               time.Time
@@ -148,13 +161,14 @@ func mergeProviderEpisodes(input providerMergeInput) {
 		if exceedsExpectedCount(number, input.expectedCount) {
 			continue
 		}
-		if input.providerBacked && !input.providerNumbers[number] {
+		id := strconv.Itoa(number)
+		if input.providerBacked && !input.providerIDs[id] {
 			continue
 		}
 		if !input.providerBacked && !hasEpisodeAired(ep, input.now, input.requireAiredDates) {
 			continue
 		}
-		mergeEpisode(input.byNumber, number, func(item *episodePartial) {
+		mergeEpisode(input.byID, id, func(item *episodePartial) {
 			item.title = strings.TrimSpace(ep.Title)
 			item.filler = ep.Filler
 			item.recap = ep.Recap
@@ -166,34 +180,99 @@ func shouldSkipProviderMerge(providerBacked bool, firstAired string, now time.Ti
 	return !providerBacked && !hasStartedAiring(firstAired, now)
 }
 
-func availableEpisodeNumbers(availability domain.EpisodeAvailability, expectedCount int) map[int]bool {
-	numbers := map[int]bool{}
-	for _, number := range availability.Sub {
-		if number > 0 && !exceedsExpectedCount(number, expectedCount) {
-			numbers[number] = true
+func availableEpisodeIDs(availability domain.EpisodeAvailability, expectedCount int) map[string]bool {
+	ids := map[string]bool{}
+	for _, id := range availability.Sub {
+		if _, ok := parseEpisodeIdentity(id, expectedCount); ok {
+			ids[id] = true
 		}
 	}
-	for _, number := range availability.Dub {
-		if number > 0 && !exceedsExpectedCount(number, expectedCount) {
-			numbers[number] = true
+	for _, id := range availability.Dub {
+		if _, ok := parseEpisodeIdentity(id, expectedCount); ok {
+			ids[id] = true
 		}
 	}
-	return numbers
+	removeEpisodeInventoryOutliers(ids)
+	return ids
 }
 
-func mergeEpisode(byNumber *map[int]episodePartial, number int, update func(*episodePartial)) {
-	item := (*byNumber)[number]
+func removeEpisodeInventoryOutliers(ids map[string]bool) {
+	regular := map[int]bool{}
+	for id := range ids {
+		identity, ok := parseEpisodeIdentity(id, 0)
+		if ok && !identity.Special {
+			regular[identity.Number] = true
+		}
+	}
+	contiguous := 0
+	for regular[contiguous+1] {
+		contiguous++
+	}
+	if contiguous < 3 {
+		return
+	}
+	for id := range ids {
+		identity, ok := parseEpisodeIdentity(id, 0)
+		if !ok || identity.Number > contiguous {
+			delete(ids, id)
+		}
+	}
+}
+
+func mergeEpisode(byID *map[string]episodePartial, id string, update func(*episodePartial)) {
+	item := (*byID)[id]
 	update(&item)
-	(*byNumber)[number] = item
+	(*byID)[id] = item
 }
 
-func mergeAvailability(byNumber *map[int]episodePartial, numbers []int, expectedCount int, update func(*episodePartial)) {
-	for _, number := range numbers {
-		if number <= 0 || exceedsExpectedCount(number, expectedCount) {
+func mergeAvailability(byID *map[string]episodePartial, ids []string, allowed map[string]bool, update func(*episodePartial)) {
+	for _, id := range ids {
+		if !allowed[id] {
 			continue
 		}
-		mergeEpisode(byNumber, number, update)
+		mergeEpisode(byID, id, update)
 	}
+}
+
+type episodeIdentity struct {
+	ID      string
+	Label   string
+	Number  int
+	Order   int
+	Special bool
+}
+
+func parseEpisodeIdentity(raw string, expectedCount int) (episodeIdentity, bool) {
+	id := strings.TrimSpace(raw)
+	value, err := strconv.ParseFloat(id, 64)
+	if err != nil || value < 0 {
+		return episodeIdentity{}, false
+	}
+	order := int(math.Round(value * 10))
+	if order == 0 {
+		order = 5
+	}
+	special := order%10 != 0
+	number := order / 10
+	if !validEpisodeIdentity(number, special, expectedCount) {
+		return episodeIdentity{}, false
+	}
+	label := episodeIdentityLabel(number, order, special)
+	return episodeIdentity{ID: id, Label: label, Number: number, Order: order, Special: special}, true
+}
+
+func validEpisodeIdentity(number int, special bool, expectedCount int) bool {
+	if special {
+		return expectedCount <= 0 || number <= expectedCount
+	}
+	return number > 0 && !exceedsExpectedCount(number, expectedCount)
+}
+
+func episodeIdentityLabel(number int, order int, special bool) string {
+	if special {
+		return fmt.Sprintf("%d.%d", number, order%10)
+	}
+	return strconv.Itoa(number)
 }
 
 func providerEpisodeNumber(ep domain.Episode, index int) (int, bool) {
