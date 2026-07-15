@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -25,17 +26,13 @@ const (
 	audioLookupTimeout  = 8 * time.Second
 	episodeCountTimeout = 4 * time.Second
 	ovaSeasonBase       = 1000
+	bonusSeason         = 2000
 	episodeKindRegular  = "regular"
 	episodeKindInline   = "inline-special"
 	episodeKindOVA      = "ova"
 	episodeKindShorts   = "shorts"
+	episodeKindBonus    = "bonus"
 )
-
-type specialSeasonCounters struct {
-	group  int
-	ova    int
-	shorts int
-}
 
 type animeReleaseInfoDisplay struct {
 	Count  int
@@ -65,6 +62,8 @@ type animeEpisodeSource struct {
 	DisplayOffset int
 	MediaOffset   int
 	WatchAnimeID  int
+	EpisodeMin    int
+	EpisodeMax    int
 	Kind          string
 }
 
@@ -235,6 +234,7 @@ func (h *AnimeHandler) animeEpisodeList(ctx context.Context, anime domain.Anime,
 
 	tmdbEpisodes := h.tmdbSeasonEpisodes(ctx, episodeCtx.Anime, episodeCtx.Mapping, episodeCtx.HasMapping)
 	episodeCtx.Display.Episodes = episodeDisplays(sources, tmdbEpisodes)
+	syncSelectedEpisodeCount(&episodeCtx.Display)
 	return episodeCtx.Display
 }
 
@@ -318,33 +318,67 @@ func (h *AnimeHandler) episodeSources(ctx context.Context, episodeCtx animeEpiso
 	if len(mappings) == 0 {
 		mappings = []animeMapping{{MALID: episodeCtx.Anime.MalID}}
 	}
-	sources := make([]animeEpisodeSource, 0, len(mappings))
-	for _, mapping := range mappings {
-		sourceAnime, ok := h.episodeSourceAnime(ctx, episodeCtx.Anime, mapping.MALID)
-		if !ok {
-			continue
-		}
-		episodeList, err := h.episodeSvc.GetCanonicalEpisodes(ctx, sourceAnime, false)
-		if err != nil {
-			slog.Warn("anime_episode_list_fetch_failed", "component", "anime", "fields", map[string]any{
-				"anime_id": sourceAnime.MalID,
-			}, "error", err)
-			continue
-		}
-		watchAnimeID := episodeCtx.Display.AnimeID
-		if watchAnimeID <= 0 {
-			watchAnimeID = sourceAnime.MalID
-		}
-		sources = append(sources, animeEpisodeSource{
-			Anime:         sourceAnime,
-			Episodes:      episodeList.Episodes,
-			DisplayOffset: mapping.DisplayOffset,
-			MediaOffset:   mapping.MediaOffset,
-			WatchAnimeID:  watchAnimeID,
-			Kind:          mapping.Kind,
+	sources := make([]animeEpisodeSource, len(mappings))
+	available := make([]bool, len(mappings))
+	var group errgroup.Group
+	for index, mapping := range mappings {
+		group.Go(func() error {
+			source, ok := h.episodeSource(ctx, episodeCtx, mapping)
+			if ok {
+				sources[index] = source
+				available[index] = true
+			}
+			return nil
 		})
 	}
-	return sources
+	_ = group.Wait()
+	playable := make([]animeEpisodeSource, 0, len(sources))
+	for index, source := range sources {
+		if available[index] {
+			playable = append(playable, source)
+		}
+	}
+	return playable
+}
+
+func (h *AnimeHandler) episodeSource(ctx context.Context, episodeCtx animeEpisodeListContext, mapping animeMapping) (animeEpisodeSource, bool) {
+	sourceAnime, ok := h.episodeSourceAnime(ctx, episodeCtx.Anime, mapping.MALID)
+	if !ok {
+		return animeEpisodeSource{}, false
+	}
+	episodeList, err := h.episodeSvc.GetCanonicalEpisodes(ctx, sourceAnime, false)
+	if err != nil {
+		slog.Warn("anime_episode_list_fetch_failed", "component", "anime", "fields", map[string]any{
+			"anime_id": sourceAnime.MalID,
+		}, "error", err)
+		return animeEpisodeSource{}, false
+	}
+	watchAnimeID := episodeCtx.Display.AnimeID
+	if watchAnimeID <= 0 {
+		watchAnimeID = sourceAnime.MalID
+	}
+	return animeEpisodeSource{
+		Anime:         sourceAnime,
+		Episodes:      episodeList.Episodes,
+		DisplayOffset: mapping.DisplayOffset,
+		MediaOffset:   mapping.MediaOffset,
+		WatchAnimeID:  watchAnimeID,
+		EpisodeMin:    mapping.EpisodeMin,
+		EpisodeMax:    mapping.EpisodeMax,
+		Kind:          mapping.Kind,
+	}, true
+}
+
+func syncSelectedEpisodeCount(display *animeEpisodeListDisplay) {
+	if display == nil {
+		return
+	}
+	for index := range display.Seasons {
+		if display.Seasons[index].Selected {
+			display.Seasons[index].Count = len(display.Episodes)
+			return
+		}
+	}
 }
 
 func (h *AnimeHandler) episodeSourceAnime(ctx context.Context, fallback domain.Anime, malID int) (domain.Anime, bool) {
@@ -373,6 +407,10 @@ func episodeDisplays(sources []animeEpisodeSource, tmdbEpisodes map[int]tmdb.Epi
 }
 
 func sourceEpisodeDisplays(source animeEpisodeSource, tmdbEpisodes map[int]tmdb.Episode) []animeEpisodeDisplay {
+	source.Episodes = episodesWithinSourceBounds(source.Episodes, source.EpisodeMin, source.EpisodeMax)
+	if source.Kind == episodeKindBonus {
+		return bonusEpisodeDisplays(source, tmdbEpisodes)
+	}
 	episodes := make([]animeEpisodeDisplay, 0, len(source.Episodes))
 	specialMedia := ovaTMDBEpisodeMatches(source, tmdbEpisodes)
 	for _, episode := range source.Episodes {
@@ -412,6 +450,72 @@ func sourceEpisodeDisplays(source animeEpisodeSource, tmdbEpisodes map[int]tmdb.
 		})
 	}
 	return episodes
+}
+
+func episodesWithinSourceBounds(episodes []domain.CanonicalEpisode, minEpisode int, maxEpisode int) []domain.CanonicalEpisode {
+	if minEpisode <= 0 && maxEpisode <= 0 {
+		return episodes
+	}
+	filtered := make([]domain.CanonicalEpisode, 0, len(episodes))
+	for _, episode := range episodes {
+		if minEpisode > 0 && episode.Number < minEpisode || maxEpisode > 0 && episode.Number > maxEpisode {
+			continue
+		}
+		filtered = append(filtered, episode)
+	}
+	return filtered
+}
+
+func bonusEpisodeDisplays(source animeEpisodeSource, tmdbEpisodes map[int]tmdb.Episode) []animeEpisodeDisplay {
+	episodes := make([]animeEpisodeDisplay, 0, len(source.Episodes))
+	seenMedia := map[int64]int{}
+	sequenceMedia := ovaTMDBEpisodeMatches(source, tmdbEpisodes)
+	for index, episode := range source.Episodes {
+		media := matchingTMDBEpisode(tmdbEpisodes, episode.Title)
+		if media.ID <= 0 {
+			media = sequenceMedia[episode.PlaybackID()]
+		}
+		if media.SeasonNumber != 0 {
+			media = tmdb.Episode{}
+		}
+		if existing, duplicate := seenMedia[media.ID]; media.ID > 0 && duplicate {
+			mergeBonusAudio(&episodes[existing], episode)
+			continue
+		}
+		displayNumber := index + 1
+		if media.EpisodeNumber > 0 {
+			displayNumber = media.EpisodeNumber
+		}
+		episodes = append(episodes, animeEpisodeDisplay{
+			Number:      displayNumber,
+			Label:       "E" + strconv.Itoa(displayNumber),
+			Order:       displayNumber * 10,
+			Title:       animeEpisodeTitle(episode, media),
+			SeriesTitle: source.Anime.DisplayTitle(),
+			WatchURL:    fmt.Sprintf("/anime/%d/watch?ep=%s", source.Anime.MalID, url.QueryEscape(episode.PlaybackID())),
+			AudioLabel:  animeEpisodeAudioLabel(episode),
+			ImageURL:    animeEpisodeStillURL(media, source.Anime),
+			Duration:    animeEpisodeDuration(media, source.Anime),
+			AirDate:     animeEpisodeAirDate(media.AirDate),
+			Overview:    media.Overview,
+			Filler:      episode.Filler,
+			Recap:       episode.Recap,
+		})
+		if media.ID > 0 {
+			seenMedia[media.ID] = len(episodes) - 1
+		}
+	}
+	return episodes
+}
+
+func mergeBonusAudio(display *animeEpisodeDisplay, episode domain.CanonicalEpisode) {
+	if display == nil {
+		return
+	}
+	current := domain.CanonicalEpisode{HasDub: strings.Contains(display.AudioLabel, "Dub"), HasSub: strings.Contains(display.AudioLabel, "Sub")}
+	current.HasDub = current.HasDub || episode.HasDub
+	current.HasSub = current.HasSub || episode.HasSub || episode.SubOnly
+	display.AudioLabel = animeEpisodeAudioLabel(current)
 }
 
 func episodeOrderLabel(order int) string {
@@ -672,14 +776,17 @@ func (h *AnimeHandler) episodeMappingPlan(ctx context.Context, group mappingGrou
 		return nil
 	}
 	metadata := h.episodePlanMetadata(ctx, mappings)
+	regularSeasonCounts := h.tmdbRegularSeasonCounts(ctx, group, mappings)
 	mediaOffsets := map[int]int{}
-	plan := make([]animeMapping, 0, len(mappings))
-	counters := specialSeasonCounters{}
+	plan := make([]animeMapping, 0, len(mappings)+1)
 	for _, mapping := range mappings {
 		anime, hasMetadata := metadata[mapping.MALID]
-		prepared, ok := h.prepareEpisodeMapping(ctx, mapping, anime, hasMetadata, mediaOffsets, &counters)
+		prepared, bonus, ok := h.prepareEpisodeMapping(ctx, mapping, anime, hasMetadata, regularSeasonCounts, mediaOffsets)
 		if ok {
 			plan = append(plan, prepared)
+			if bonus != nil {
+				plan = append(plan, *bonus)
+			}
 		}
 	}
 	sort.SliceStable(plan, func(i, j int) bool {
@@ -694,6 +801,28 @@ func (h *AnimeHandler) episodeMappingPlan(ctx context.Context, group mappingGrou
 		return plan[i].DisplayOffset < plan[j].DisplayOffset
 	})
 	return plan
+}
+
+func (h *AnimeHandler) tmdbRegularSeasonCounts(ctx context.Context, group mappingGroup, mappings []animeMapping) map[int]int {
+	if h.tmdbClient == nil || group.MediaType != string(tmdb.MediaTypeTV) || group.TMDBID <= 0 {
+		return nil
+	}
+	counts := map[int]int{}
+	for _, mapping := range mappings {
+		if mapping.Season <= 0 {
+			continue
+		}
+		if _, ok := counts[mapping.Season]; ok {
+			continue
+		}
+		seasonCtx, cancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
+		season, err := h.tmdbClient.GetSeasonMetadata(seasonCtx, group.TMDBID, mapping.Season, "en-US")
+		cancel()
+		if err == nil && len(season.Episodes) > 0 {
+			counts[mapping.Season] = len(season.Episodes)
+		}
+	}
+	return counts
 }
 
 func (h *AnimeHandler) episodePlanMetadata(ctx context.Context, mappings []animeMapping) map[int]domain.Anime {
@@ -716,9 +845,9 @@ func (h *AnimeHandler) episodePlanMetadata(ctx context.Context, mappings []anime
 	return metadata
 }
 
-func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeMapping, anime domain.Anime, hasMetadata bool, mediaOffsets map[int]int, counters *specialSeasonCounters) (animeMapping, bool) {
+func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeMapping, anime domain.Anime, hasMetadata bool, regularSeasonCounts map[int]int, mediaOffsets map[int]int) (animeMapping, *animeMapping, bool) {
 	if !selectableEpisodeMapping(mapping, anime, hasMetadata, time.Now()) {
-		return animeMapping{}, false
+		return animeMapping{}, nil, false
 	}
 	mapping.LogicalSeason = mapping.Season
 	mapping.Kind = episodeKindRegular
@@ -731,20 +860,78 @@ func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeM
 	mapping.MediaOffset = mediaOffsets[mapping.Season]
 	cacheAnime := anime
 	cacheAnime.MalID = mapping.MALID
-	regularCount, totalCount := h.playbackEpisodeCounts(ctx, cacheAnime)
-	if mapping.Season > 0 && hasMetadata && anime.Episodes > 0 {
-		if regularCount <= 0 {
-			regularCount = anime.Episodes
-		}
-		if totalCount <= 0 {
-			totalCount = anime.Episodes
-		}
-	}
+	providerRegularCount, totalCount := h.mappingEpisodeCounts(ctx, cacheAnime, anime, hasMetadata && mapping.Season > 0)
+	regularCount := cappedRegularMappingCount(mapping, providerRegularCount, regularSeasonCounts)
 	mapping.EpisodeCount = regularCount
-	mapping.AvailableCount = totalCount
-	classifySpecialMapping(&mapping, totalCount, anime.Type, counters)
+	mapping.AvailableCount = totalCount - max(0, providerRegularCount-regularCount)
+	if mapping.Season > 0 && regularCount > 0 {
+		mapping.EpisodeMax = regularCount
+	}
+	classifySpecialMapping(&mapping, totalCount)
 	mediaOffsets[mapping.Season] += mapping.EpisodeCount
-	return mapping, true
+	bonusCount := providerRegularCount - regularCount
+	if mapping.Season <= 0 || bonusCount <= 0 {
+		return mapping, nil, true
+	}
+	bonus := mapping
+	bonus.LogicalSeason = bonusSeason
+	bonus.MediaOffset = 0
+	bonus.DisplayOffset = 0
+	bonus.EpisodeCount = bonusCount
+	bonus.AvailableCount = bonusCount
+	bonus.EpisodeMin = regularCount + 1
+	bonus.EpisodeMax = providerRegularCount
+	bonus.Kind = episodeKindBonus
+	bonus.SeasonLabel = "Specials"
+	bonus.AvailableCount = h.playableBonusEpisodeCount(ctx, cacheAnime, bonus)
+	if bonus.AvailableCount <= 0 {
+		bonus.AvailableCount = bonusCount
+	}
+	return mapping, &bonus, true
+}
+
+func (h *AnimeHandler) mappingEpisodeCounts(ctx context.Context, cacheAnime domain.Anime, metadata domain.Anime, hasMetadata bool) (int, int) {
+	regularCount, totalCount := h.playbackEpisodeCounts(ctx, cacheAnime)
+	if !hasMetadata || metadata.Episodes <= 0 {
+		return regularCount, totalCount
+	}
+	if regularCount <= 0 {
+		regularCount = metadata.Episodes
+	}
+	if totalCount <= 0 {
+		totalCount = metadata.Episodes
+	}
+	return regularCount, totalCount
+}
+
+func cappedRegularMappingCount(mapping animeMapping, providerCount int, seasonCounts map[int]int) int {
+	seasonCount := seasonCounts[mapping.Season]
+	if mapping.Season <= 0 || seasonCount <= mapping.MediaOffset {
+		return providerCount
+	}
+	return min(providerCount, seasonCount-mapping.MediaOffset)
+}
+
+func (h *AnimeHandler) playableBonusEpisodeCount(ctx context.Context, anime domain.Anime, mapping animeMapping) int {
+	episodeList, ok := h.episodeSvc.GetCachedCanonicalEpisodes(ctx, anime)
+	if !ok {
+		return 0
+	}
+	episodes := episodesWithinSourceBounds(episodeList.Episodes, mapping.EpisodeMin, mapping.EpisodeMax)
+	media := h.tmdbSeasonEpisodes(ctx, anime, mapping, true)
+	seen := map[int64]bool{}
+	count := 0
+	for _, episode := range episodes {
+		match := matchingTMDBEpisode(media, episode.Title)
+		if match.ID > 0 && match.SeasonNumber == 0 {
+			if seen[match.ID] {
+				continue
+			}
+			seen[match.ID] = true
+		}
+		count++
+	}
+	return count
 }
 
 func selectableEpisodeMapping(mapping animeMapping, anime domain.Anime, hasMetadata bool, now time.Time) bool {
@@ -777,30 +964,15 @@ func regularSeasonLabel(season int, title string) string {
 	return label + ": " + title
 }
 
-func classifySpecialMapping(mapping *animeMapping, totalCount int, format string, counters *specialSeasonCounters) {
+func classifySpecialMapping(mapping *animeMapping, totalCount int) {
 	if mapping == nil || mapping.Season != 0 {
 		return
 	}
-	if totalCount <= 1 {
-		mapping.Kind = episodeKindInline
-		mapping.EpisodeCount = totalCount
-		return
-	}
-	counters.group++
-	mapping.LogicalSeason = ovaSeasonBase + counters.group
+	mapping.LogicalSeason = bonusSeason
 	mapping.EpisodeCount = totalCount
-	if strings.EqualFold(format, "ONA") {
-		counters.shorts++
-		mapping.Kind = episodeKindShorts
-		mapping.SeasonLabel = "Shorts"
-		if counters.shorts > 1 {
-			mapping.SeasonLabel = fmt.Sprintf("Shorts %d", counters.shorts)
-		}
-		return
-	}
-	counters.ova++
-	mapping.Kind = episodeKindOVA
-	mapping.SeasonLabel = fmt.Sprintf("OVA Season %d", counters.ova)
+	mapping.AvailableCount = totalCount
+	mapping.Kind = episodeKindBonus
+	mapping.SeasonLabel = "Specials"
 }
 
 func assignRegularDisplayOffsets(plan []animeMapping) {

@@ -10,7 +10,7 @@ import (
 )
 
 func ovaTMDBEpisodeMatches(source animeEpisodeSource, episodes map[int]tmdb.Episode) map[string]tmdb.Episode {
-	if source.Kind != episodeKindOVA && source.Kind != episodeKindShorts || len(source.Episodes) == 0 {
+	if source.Kind != episodeKindOVA && source.Kind != episodeKindShorts && source.Kind != episodeKindBonus || len(source.Episodes) == 0 {
 		return nil
 	}
 	providerEpisodes := append([]domain.CanonicalEpisode(nil), source.Episodes...)

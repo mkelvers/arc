@@ -60,6 +60,83 @@ func TestSourceEpisodeDisplaysPreservesInlineSpecialPlaybackID(t *testing.T) {
 	}
 }
 
+func TestSourceEpisodeDisplaysSeparatesAndDeduplicatesTrailingSpecials(t *testing.T) {
+	displays := sourceEpisodeDisplays(animeEpisodeSource{
+		Anime: domain.Anime{MalID: 4181, Title: "CLANNAD: After Story"},
+		Episodes: []domain.CanonicalEpisode{
+			{Number: 22, ID: "22", Order: 220, Title: "Small Palms", HasSub: true, HasDub: true},
+			{Number: 23, ID: "23", Order: 230, Title: "The Event from One Year Before", HasSub: true, HasDub: true},
+			{Number: 24, ID: "24", Order: 240, Title: "Under the Green Tree Recap", HasSub: true},
+			{Number: 25, ID: "25", Order: 250, Title: "Under the Green Tree", HasDub: true},
+		},
+		EpisodeMin: 23,
+		EpisodeMax: 25,
+		Kind:       episodeKindBonus,
+	}, map[int]tmdb.Episode{
+		-3: {ID: 3, SeasonNumber: 0, EpisodeNumber: 3, Name: "The Event from One Year Before"},
+		-4: {ID: 4, SeasonNumber: 0, EpisodeNumber: 4, Name: "Under the Green Tree"},
+	})
+
+	if len(displays) != 2 {
+		t.Fatalf("len(displays) = %d, want 2: %+v", len(displays), displays)
+	}
+	if displays[0].Label != "E3" || displays[0].WatchURL != "/anime/4181/watch?ep=23" {
+		t.Fatalf("first special = %+v", displays[0])
+	}
+	if displays[1].Label != "E4" || displays[1].WatchURL != "/anime/4181/watch?ep=24" || displays[1].AudioLabel != "Dub | Sub" {
+		t.Fatalf("deduplicated special = %+v", displays[1])
+	}
+}
+
+func TestEpisodeDisplaysCombinesMappedAndTrailingSpecialsInTMDBOrder(t *testing.T) {
+	media := map[int]tmdb.Episode{
+		-1: {ID: 1, SeasonNumber: 0, EpisodeNumber: 1, Name: "The Events of Summer Holidays"},
+		-2: {ID: 2, SeasonNumber: 0, EpisodeNumber: 2, Name: "Another World: Tomoyo Chapter"},
+		-3: {ID: 3, SeasonNumber: 0, EpisodeNumber: 3, Name: "The Event from One Year Before"},
+		-4: {ID: 4, SeasonNumber: 0, EpisodeNumber: 4, Name: "Under the Green Tree"},
+		-5: {ID: 5, SeasonNumber: 0, EpisodeNumber: 5, Name: "Another World: Kyou Chapter"},
+	}
+	sources := []animeEpisodeSource{
+		{Anime: domain.Anime{MalID: 2167}, Episodes: []domain.CanonicalEpisode{{Number: 23, ID: "23", Title: "The Events of Summer Holidays"}}, Kind: episodeKindBonus},
+		{Anime: domain.Anime{MalID: 4059}, Episodes: []domain.CanonicalEpisode{{Number: 1, ID: "1", Title: "Another World: Tomoyo Chapter"}}, Kind: episodeKindBonus},
+		{Anime: domain.Anime{MalID: 4181}, Episodes: []domain.CanonicalEpisode{{Number: 23, ID: "23", Title: "The Event from One Year Before"}, {Number: 24, ID: "24", Title: "Under the Green Tree"}}, Kind: episodeKindBonus},
+		{Anime: domain.Anime{MalID: 6351}, Episodes: []domain.CanonicalEpisode{{Number: 1, ID: "1", Title: "Another World: Kyou Chapter"}}, Kind: episodeKindBonus},
+	}
+
+	displays := episodeDisplays(sources, media)
+	if len(displays) != 5 {
+		t.Fatalf("len(displays) = %d, want 5: %+v", len(displays), displays)
+	}
+	for index, display := range displays {
+		want := index + 1
+		if display.Number != want || display.Order != want*10 {
+			t.Fatalf("display %d = %+v, want TMDB special %d", index, display, want)
+		}
+	}
+}
+
+func TestBonusEpisodeDisplaysUsesAirDateForGenericStandaloneTitle(t *testing.T) {
+	displays := sourceEpisodeDisplays(animeEpisodeSource{
+		Anime: domain.Anime{
+			MalID: 6351,
+			Title: "CLANNAD: Another World, Kyou Chapter",
+			Aired: domain.Aired{From: "2009-07-01T00:00:00Z", To: "2009-07-01T00:00:00Z"},
+		},
+		Episodes: []domain.CanonicalEpisode{{Number: 1, ID: "1", Title: "Episode 1", HasSub: true, HasDub: true}},
+		Kind:     episodeKindBonus,
+	}, map[int]tmdb.Episode{
+		-4: {ID: 4, SeasonNumber: 0, EpisodeNumber: 4, Name: "Under the Green Tree", AirDate: "2009-03-26"},
+		-5: {ID: 5, SeasonNumber: 0, EpisodeNumber: 5, Name: "Another World: Kyou Chapter", AirDate: "2009-07-01", StillPath: "/kyou.jpg", Runtime: 24},
+	})
+
+	if len(displays) != 1 {
+		t.Fatalf("len(displays) = %d, want 1", len(displays))
+	}
+	if displays[0].Label != "E5" || displays[0].Title != "Another World: Kyou Chapter" || displays[0].Duration != "24m" {
+		t.Fatalf("Kyou display = %+v", displays[0])
+	}
+}
+
 func TestAppendSyntheticSeasonsLabelsOVAs(t *testing.T) {
 	displays := appendSyntheticSeasons(nil, map[int]int{ovaSeasonBase + 1: 5, ovaSeasonBase + 2: 3}, map[int]string{
 		ovaSeasonBase + 1: "OVA Season 1",
@@ -73,18 +150,17 @@ func TestAppendSyntheticSeasonsLabelsOVAs(t *testing.T) {
 	}
 }
 
-func TestClassifySpecialMappingKeepsShortsBetweenOVASeasons(t *testing.T) {
-	counters := specialSeasonCounters{}
+func TestClassifySpecialMappingsUsesSharedSpecialsSeason(t *testing.T) {
 	mappings := []animeMapping{{Season: 0}, {Season: 0}, {Season: 0}}
-	classifySpecialMapping(&mappings[0], 5, "OVA", &counters)
-	classifySpecialMapping(&mappings[1], 2, "ONA", &counters)
-	classifySpecialMapping(&mappings[2], 3, "OVA", &counters)
+	classifySpecialMapping(&mappings[0], 5)
+	classifySpecialMapping(&mappings[1], 2)
+	classifySpecialMapping(&mappings[2], 3)
 
-	if mappings[0].SeasonLabel != "OVA Season 1" || mappings[1].SeasonLabel != "Shorts" || mappings[2].SeasonLabel != "OVA Season 2" {
+	if mappings[0].SeasonLabel != "Specials" || mappings[1].SeasonLabel != "Specials" || mappings[2].SeasonLabel != "Specials" {
 		t.Fatalf("unexpected special labels: %+v", mappings)
 	}
-	if mappings[0].LogicalSeason >= mappings[1].LogicalSeason || mappings[1].LogicalSeason >= mappings[2].LogicalSeason {
-		t.Fatalf("special seasons are not chronological: %+v", mappings)
+	if mappings[0].LogicalSeason != bonusSeason || mappings[1].LogicalSeason != bonusSeason || mappings[2].LogicalSeason != bonusSeason {
+		t.Fatalf("special mappings were not grouped together: %+v", mappings)
 	}
 }
 
@@ -185,6 +261,22 @@ func TestApplySelectedSeasonLabel(t *testing.T) {
 	applySelectedSeasonLabel(&display)
 	if display.SeasonLabel != "Season 2" {
 		t.Fatalf("SeasonLabel = %q, want %q", display.SeasonLabel, "Season 2")
+	}
+}
+
+func TestSyncSelectedEpisodeCountUsesRenderedInventory(t *testing.T) {
+	display := animeEpisodeListDisplay{
+		Selected: 2000,
+		Seasons: []animeSeasonDisplay{
+			{Number: 1, Count: 22},
+			{Number: 2000, Count: 5, Selected: true},
+		},
+		Episodes: make([]animeEpisodeDisplay, 4),
+	}
+
+	syncSelectedEpisodeCount(&display)
+	if display.Seasons[1].Count != 4 {
+		t.Fatalf("special count = %d, want rendered count 4", display.Seasons[1].Count)
 	}
 }
 

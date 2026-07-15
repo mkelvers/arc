@@ -33,6 +33,8 @@ type animeMapping struct {
 	DisplayOffset  int
 	EpisodeCount   int
 	AvailableCount int
+	EpisodeMin     int
+	EpisodeMax     int
 	Kind           string
 	SeasonLabel    string
 }
