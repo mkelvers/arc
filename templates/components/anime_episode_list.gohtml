@@ -19,6 +19,7 @@
               hx-get="/anime/{{$items.AnimeID}}?section=episode-list&season={{.Number}}"
               hx-target="#anime-episode-list"
               hx-swap="outerHTML"
+              hx-push-url="/anime/{{$items.AnimeID}}?season={{.Number}}"
               class="flex w-full items-center justify-between gap-6 px-5 py-2.5 text-left transition-colors hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent {{if .Selected}}text-foreground{{else}}text-foreground-muted{{end}}"
             >
               <span class="min-w-0 truncate text-base">{{.Label}}</span>
@@ -41,7 +42,7 @@
   </div>
 
   {{if $items.Episodes}}
-    <div class="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+    <div class="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
       {{range $items.Episodes}}
         <a href="{{.WatchURL}}" class="group relative block min-h-56 min-w-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
           <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
@@ -100,7 +101,7 @@
     <div class="mt-10 border-t border-white/15 pt-5">
       <div class="flex items-center justify-between gap-4 text-xs font-bold uppercase text-foreground-muted">
         {{if $items.Previous}}
-          <a href="{{$items.Previous.URL}}" class="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+          <a href="{{$items.Previous.URL}}" {{if $items.Previous.FragmentURL}}hx-get="{{$items.Previous.FragmentURL}}" hx-target="#anime-episode-list" hx-swap="outerHTML" hx-push-url="{{$items.Previous.URL}}"{{end}} class="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
             <svg class="size-4 fill-current" viewBox="0 0 20 20" aria-hidden="true">
               <path d="M12.8 4.4 7.2 10l5.6 5.6-1.4 1.4L4.4 10l7-7 1.4 1.4z" />
             </svg>
@@ -110,7 +111,7 @@
           <span></span>
         {{end}}
         {{if $items.Next}}
-          <a href="{{$items.Next.URL}}" class="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
+          <a href="{{$items.Next.URL}}" {{if $items.Next.FragmentURL}}hx-get="{{$items.Next.FragmentURL}}" hx-target="#anime-episode-list" hx-swap="outerHTML" hx-push-url="{{$items.Next.URL}}"{{end}} class="inline-flex items-center gap-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
             {{$items.Next.Label}}
             <svg class="size-4 fill-current" viewBox="0 0 20 20" aria-hidden="true">
               <path d="m7.2 15.6 5.6-5.6-5.6-5.6L8.6 3l7 7-7 7-1.4-1.4z" />
@@ -126,13 +127,13 @@
 {{define "anime_episode_list_loading"}}
 <section
   id="anime-episode-list"
-  hx-get="/anime/{{.AnimeID}}?section=episode-list"
+  hx-get="/anime/{{.AnimeID}}?section=episode-list{{if ge .SelectedSeason 0}}&season={{.SelectedSeason}}{{end}}"
   hx-trigger="load"
   hx-swap="outerHTML"
   class="-mx-4 bg-background px-6 pb-10 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20"
 >
   <div class="h-5 w-28 animate-pulse bg-white/10"></div>
-  <div class="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8">
+  <div class="mt-5 grid gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7">
     {{range seq 5}}
       <div>
         <div class="aspect-video animate-pulse bg-white/10"></div>
