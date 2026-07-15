@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mal/integrations/anilist"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,11 +29,12 @@ const (
 )
 
 type importedMapping struct {
-	AniListID int64
-	MALID     *int64
-	MediaType string
-	TMDBID    int64
-	Season    int
+	AniListID   int64
+	MALID       *int64
+	MALVerified bool
+	MediaType   string
+	TMDBID      int64
+	Season      int
 }
 
 type mappingImportStatus struct {
@@ -42,19 +44,25 @@ type mappingImportStatus struct {
 }
 
 type MappingSyncer struct {
-	db         *sql.DB
-	httpClient *http.Client
-	sourceURL  string
-	now        func() time.Time
-	mu         sync.Mutex
+	db               *sql.DB
+	httpClient       *http.Client
+	identityProvider mappingIdentityProvider
+	sourceURL        string
+	now              func() time.Time
+	mu               sync.Mutex
 }
 
-func NewMappingSyncer(db *sql.DB) *MappingSyncer {
+type mappingIdentityProvider interface {
+	GetMALIDsByAniListID(context.Context, []int) (map[int]int, error)
+}
+
+func NewMappingSyncer(db *sql.DB, identityProvider *anilist.Client) *MappingSyncer {
 	return &MappingSyncer{
-		db:         db,
-		httpClient: &http.Client{Timeout: 2 * time.Minute},
-		sourceURL:  aniBridgeMappingsURL,
-		now:        time.Now,
+		db:               db,
+		httpClient:       &http.Client{Timeout: 2 * time.Minute},
+		identityProvider: identityProvider,
+		sourceURL:        aniBridgeMappingsURL,
+		now:              time.Now,
 	}
 }
 
@@ -138,6 +146,27 @@ func (s *MappingSyncer) Sync(ctx context.Context) error {
 	return nil
 }
 
+// ForceSync downloads and replaces the mapping snapshot even when its ETag has
+// not changed. It is intended for explicit maintenance after identity resolver
+// changes, where the source payload is unchanged but derived IDs must be rebuilt.
+func (s *MappingSyncer) ForceSync(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	mappings, etag, _, err := s.download(ctx, "")
+	if err != nil {
+		return err
+	}
+	if len(mappings) == 0 {
+		return errors.New("AniBridge mapping payload contained no usable mappings")
+	}
+	if err := s.replace(ctx, mappings, etag); err != nil {
+		return err
+	}
+	slog.Info("anime_mapping_force_refresh_completed", "component", "anime", "fields", map[string]any{"entries": len(mappings), "source": mappingSource})
+	return nil
+}
+
 func (s *MappingSyncer) download(ctx context.Context, etag string) ([]importedMapping, string, bool, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.sourceURL, nil)
 	if err != nil {
@@ -161,7 +190,38 @@ func (s *MappingSyncer) download(ctx context.Context, etag string) ([]importedMa
 	if err != nil {
 		return nil, "", false, err
 	}
+	if err := s.hydrateMissingMALIDs(ctx, mappings); err != nil {
+		slog.WarnContext(ctx, "anime_mapping_identity_hydration_failed", "component", "anime", "error", err)
+	}
 	return mappings, response.Header.Get("ETag"), false, nil
+}
+
+func (s *MappingSyncer) hydrateMissingMALIDs(ctx context.Context, mappings []importedMapping) error {
+	if s.identityProvider == nil {
+		return nil
+	}
+	ids := make([]int, 0)
+	for _, mapping := range mappings {
+		if mapping.MALID == nil && mapping.AniListID > 0 {
+			ids = append(ids, int(mapping.AniListID))
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	resolved, err := s.identityProvider.GetMALIDsByAniListID(ctx, ids)
+	if err != nil {
+		return fmt.Errorf("resolve %d missing MAL identities through AniList: %w", len(ids), err)
+	}
+	for index := range mappings {
+		malID := resolved[int(mappings[index].AniListID)]
+		if mappings[index].MALID == nil && malID > 0 {
+			value := int64(malID)
+			mappings[index].MALID = &value
+			mappings[index].MALVerified = true
+		}
+	}
+	return nil
 }
 
 func (s *MappingSyncer) markChecked(ctx context.Context) error {
@@ -208,6 +268,9 @@ func (s *MappingSyncer) replace(ctx context.Context, mappings []importedMapping,
 			return err
 		}
 	}
+	if err := syncImportedIdentityRegistry(ctx, tx, mappings); err != nil {
+		return err
+	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO anime_mapping_import (singleton, source, schema_version, etag, entry_count, imported_at)
 		VALUES (TRUE, ?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT (singleton) DO UPDATE SET source = excluded.source, schema_version = excluded.schema_version,
@@ -220,6 +283,116 @@ func (s *MappingSyncer) replace(ctx context.Context, mappings []importedMapping,
 		return fmt.Errorf("commit anime mapping import: %w", err)
 	}
 	return nil
+}
+
+func syncImportedIdentityRegistry(ctx context.Context, tx *sql.Tx, mappings []importedMapping) error {
+	registry, err := loadIdentityRegistry(ctx, tx)
+	if err != nil {
+		return err
+	}
+	for _, mapping := range mappings {
+		if err := registry.syncVerifiedMapping(ctx, tx, mapping); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type loadedIdentityRegistry struct {
+	byProvider map[string]map[string]int64
+	byIdentity map[int64]map[string]string
+}
+
+func loadIdentityRegistry(ctx context.Context, tx *sql.Tx) (*loadedIdentityRegistry, error) {
+	registry := &loadedIdentityRegistry{byProvider: map[string]map[string]int64{
+		"anilist": {},
+		"mal":     {},
+	}, byIdentity: map[int64]map[string]string{}}
+	rows, err := tx.QueryContext(ctx, `SELECT anime_identity_id, provider, external_id
+		FROM anime_external_id WHERE provider IN ('anilist', 'mal')`)
+	if err != nil {
+		return nil, fmt.Errorf("load anime identity registry: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var identityID int64
+		var provider, externalID string
+		if err := rows.Scan(&identityID, &provider, &externalID); err != nil {
+			return nil, fmt.Errorf("scan anime identity registry: %w", err)
+		}
+		registry.byProvider[provider][externalID] = identityID
+		if registry.byIdentity[identityID] == nil {
+			registry.byIdentity[identityID] = map[string]string{}
+		}
+		registry.byIdentity[identityID][provider] = externalID
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate anime identity registry: %w", err)
+	}
+	return registry, nil
+}
+
+func (registry *loadedIdentityRegistry) syncVerifiedMapping(ctx context.Context, tx *sql.Tx, mapping importedMapping) error {
+	if !mapping.MALVerified || mapping.AniListID <= 0 || mapping.MALID == nil || *mapping.MALID <= 0 {
+		return nil
+	}
+	anilistID := strconv.FormatInt(mapping.AniListID, 10)
+	malID := strconv.FormatInt(*mapping.MALID, 10)
+	identityID, err := registry.resolveIdentity(ctx, tx, anilistID, malID)
+	if err != nil {
+		return err
+	}
+	return registry.saveLinks(ctx, tx, identityID, []externalAnimeID{{Provider: "anilist", ExternalID: anilistID}, {Provider: "mal", ExternalID: malID}})
+}
+
+func (registry *loadedIdentityRegistry) resolveIdentity(ctx context.Context, tx *sql.Tx, anilistID, malID string) (int64, error) {
+	anilistIdentity, hasAniList := registry.byProvider["anilist"][anilistID]
+	malIdentity, hasMAL := registry.byProvider["mal"][malID]
+	if hasAniList && hasMAL && anilistIdentity != malIdentity {
+		if err := mergeAnimeIdentities(ctx, tx, anilistIdentity, []int64{malIdentity}); err != nil {
+			return 0, fmt.Errorf("merge imported identity anilist=%s mal=%s: %w", anilistID, malID, err)
+		}
+		registry.mergeMaps(anilistIdentity, malIdentity)
+		return anilistIdentity, nil
+	}
+	if hasAniList {
+		return anilistIdentity, nil
+	}
+	if hasMAL {
+		return malIdentity, nil
+	}
+	var identityID int64
+	if err := tx.QueryRowContext(ctx, `INSERT INTO anime_identity DEFAULT VALUES RETURNING id`).Scan(&identityID); err != nil {
+		return 0, fmt.Errorf("create imported anime identity: %w", err)
+	}
+	registry.byIdentity[identityID] = map[string]string{}
+	return identityID, nil
+}
+
+func (registry *loadedIdentityRegistry) saveLinks(ctx context.Context, tx *sql.Tx, identityID int64, links []externalAnimeID) error {
+	for _, link := range links {
+		if existing := registry.byIdentity[identityID][link.Provider]; existing != "" && existing != link.ExternalID {
+			return fmt.Errorf("conflicting imported %s identity %q and %q", link.Provider, existing, link.ExternalID)
+		}
+		if _, exists := registry.byProvider[link.Provider][link.ExternalID]; exists {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO anime_external_id (anime_identity_id, provider, external_id)
+			VALUES (?, ?, ?)`, identityID, link.Provider, link.ExternalID); err != nil {
+			return fmt.Errorf("save imported %s identity: %w", link.Provider, err)
+		}
+		registry.byProvider[link.Provider][link.ExternalID] = identityID
+		registry.byIdentity[identityID][link.Provider] = link.ExternalID
+	}
+	return nil
+}
+
+func (registry *loadedIdentityRegistry) mergeMaps(targetID, duplicateID int64) {
+	for provider, externalID := range registry.byIdentity[duplicateID] {
+		registry.byProvider[provider][externalID] = targetID
+		registry.byIdentity[targetID][provider] = externalID
+	}
+	delete(registry.byIdentity, duplicateID)
 }
 
 func insertMappingBatch(ctx context.Context, tx *sql.Tx, mappings []importedMapping) error {

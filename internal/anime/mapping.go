@@ -3,6 +3,7 @@ package anime
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"mal/integrations/anilist"
@@ -10,6 +11,8 @@ import (
 	"slices"
 	"strings"
 )
+
+const animeIdentityAdvisoryLock = int64(0x4d414c4944454e54)
 
 type mappingIdentity struct {
 	AniListID int
@@ -66,6 +69,9 @@ func NewMappingStore(db *sql.DB) *MappingStore {
 }
 
 func (s *MappingStore) Resolve(ctx context.Context, identities []mappingIdentity) (map[mappingIdentity]animeMapping, map[mappingGroup]animeMapping, error) {
+	if err := s.rememberIdentities(ctx, identities); err != nil {
+		return nil, nil, err
+	}
 	mappings, err := s.findMappings(ctx, identities)
 	if err != nil {
 		return nil, nil, err
@@ -84,7 +90,6 @@ func (s *MappingStore) Resolve(ctx context.Context, identities []mappingIdentity
 		return nil, nil, err
 	}
 
-	byIdentity := make(map[mappingIdentity]animeMapping, len(identities))
 	byAniList := make(map[int]animeMapping, len(mappings))
 	byMAL := make(map[int]animeMapping, len(mappings))
 	for _, mapping := range mappings {
@@ -93,16 +98,183 @@ func (s *MappingStore) Resolve(ctx context.Context, identities []mappingIdentity
 			byMAL[mapping.MALID] = mapping
 		}
 	}
+	byIdentity := mappingsForIdentities(identities, byAniList, byMAL)
+	return byIdentity, canonical, nil
+}
+
+func mappingsForIdentities(identities []mappingIdentity, byAniList map[int]animeMapping, byMAL map[int]animeMapping) map[mappingIdentity]animeMapping {
+	resolved := make(map[mappingIdentity]animeMapping, len(identities))
 	for _, identity := range identities {
 		mapping, ok := byAniList[identity.AniListID]
 		if !ok {
 			mapping, ok = byMAL[identity.MALID]
 		}
 		if ok {
-			byIdentity[identity] = mapping
+			resolved[identity] = completeMappingIdentity(mapping, identity)
 		}
 	}
-	return byIdentity, canonical, nil
+	return resolved
+}
+
+func completeMappingIdentity(mapping animeMapping, identity mappingIdentity) animeMapping {
+	if mapping.AniListID <= 0 {
+		mapping.AniListID = identity.AniListID
+	}
+	if mapping.MALID <= 0 {
+		mapping.MALID = identity.MALID
+	}
+	return mapping
+}
+
+func (s *MappingStore) rememberIdentities(ctx context.Context, identities []mappingIdentity) error {
+	if s == nil || s.db == nil {
+		return nil
+	}
+	seen := make(map[mappingIdentity]struct{}, len(identities))
+	for _, identity := range identities {
+		if identity.AniListID <= 0 || identity.MALID <= 0 {
+			continue
+		}
+		if _, ok := seen[identity]; ok {
+			continue
+		}
+		seen[identity] = struct{}{}
+		if err := s.rememberIdentity(ctx, identity); err != nil {
+			return fmt.Errorf("remember anime identity anilist=%d mal=%d: %w", identity.AniListID, identity.MALID, err)
+		}
+	}
+	return nil
+}
+
+func (s *MappingStore) rememberIdentity(ctx context.Context, identity mappingIdentity) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin identity transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `SELECT pg_advisory_xact_lock(?)`, animeIdentityAdvisoryLock); err != nil {
+		return fmt.Errorf("lock identity registry: %w", err)
+	}
+
+	links := []externalAnimeID{
+		{Provider: "anilist", ExternalID: fmt.Sprintf("%d", identity.AniListID)},
+		{Provider: "mal", ExternalID: fmt.Sprintf("%d", identity.MALID)},
+	}
+	identityIDs, err := existingAnimeIdentityIDs(ctx, tx, links)
+	if err != nil {
+		return err
+	}
+
+	identityID, err := resolveAnimeIdentityID(ctx, tx, identityIDs)
+	if err != nil {
+		return err
+	}
+
+	if err := saveExternalAnimeIDs(ctx, tx, identityID, links); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit anime identity: %w", err)
+	}
+	return nil
+}
+
+func resolveAnimeIdentityID(ctx context.Context, tx *sql.Tx, identityIDs []int64) (int64, error) {
+	if len(identityIDs) == 0 {
+		var identityID int64
+		if err := tx.QueryRowContext(ctx, `INSERT INTO anime_identity DEFAULT VALUES RETURNING id`).Scan(&identityID); err != nil {
+			return 0, fmt.Errorf("create anime identity: %w", err)
+		}
+		return identityID, nil
+	}
+	identityID := identityIDs[0]
+	if err := mergeAnimeIdentities(ctx, tx, identityID, identityIDs[1:]); err != nil {
+		return 0, err
+	}
+	return identityID, nil
+}
+
+func saveExternalAnimeIDs(ctx context.Context, tx *sql.Tx, identityID int64, links []externalAnimeID) error {
+	for _, link := range links {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO anime_external_id (anime_identity_id, provider, external_id)
+			VALUES (?, ?, ?)
+			ON CONFLICT (provider, external_id) DO NOTHING`, identityID, link.Provider, link.ExternalID); err != nil {
+			return fmt.Errorf("save %s anime identity: %w", link.Provider, err)
+		}
+	}
+	return nil
+}
+
+type externalAnimeID struct {
+	Provider   string
+	ExternalID string
+}
+
+func existingAnimeIdentityIDs(ctx context.Context, tx *sql.Tx, links []externalAnimeID) ([]int64, error) {
+	ids := make([]int64, 0, len(links))
+	seen := make(map[int64]struct{}, len(links))
+	for _, link := range links {
+		var id int64
+		err := tx.QueryRowContext(ctx, `SELECT anime_identity_id FROM anime_external_id
+			WHERE provider = ? AND external_id = ? FOR UPDATE`, link.Provider, link.ExternalID).Scan(&id)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("find %s anime identity: %w", link.Provider, err)
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+	return ids, nil
+}
+
+func mergeAnimeIdentities(ctx context.Context, tx *sql.Tx, targetID int64, duplicateIDs []int64) error {
+	for _, duplicateID := range duplicateIDs {
+		conflict, err := identityMergeConflict(ctx, tx, targetID, duplicateID)
+		if err != nil {
+			return err
+		}
+		if conflict {
+			return fmt.Errorf("refusing to merge conflicting anime identities %d and %d", targetID, duplicateID)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE anime_external_id SET anime_identity_id = ? WHERE anime_identity_id = ?`, targetID, duplicateID); err != nil {
+			return fmt.Errorf("merge anime identity %d into %d: %w", duplicateID, targetID, err)
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM anime_identity WHERE id = ?`, duplicateID); err != nil {
+			return fmt.Errorf("delete merged anime identity %d: %w", duplicateID, err)
+		}
+	}
+	return nil
+}
+
+func identityMergeConflict(ctx context.Context, tx *sql.Tx, leftID int64, rightID int64) (bool, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT provider, external_id FROM anime_external_id
+		WHERE anime_identity_id IN (?, ?) ORDER BY provider, external_id`, leftID, rightID)
+	if err != nil {
+		return false, fmt.Errorf("query identity merge candidates: %w", err)
+	}
+	defer rows.Close()
+	providers := map[string]string{}
+	for rows.Next() {
+		var provider, externalID string
+		if err := rows.Scan(&provider, &externalID); err != nil {
+			return false, fmt.Errorf("scan identity merge candidate: %w", err)
+		}
+		if existing, ok := providers[provider]; ok && existing != externalID {
+			return true, nil
+		}
+		providers[provider] = externalID
+	}
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("iterate identity merge candidates: %w", err)
+	}
+	return false, nil
 }
 
 func (s *MappingStore) SaveInferred(ctx context.Context, mappings []inferredAnimeMapping) error {

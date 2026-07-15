@@ -1,9 +1,16 @@
 package anime
 
 import (
+	"context"
 	"strings"
 	"testing"
 )
+
+type staticIdentityProvider map[int]int
+
+func (provider staticIdentityProvider) GetMALIDsByAniListID(_ context.Context, _ []int) (map[int]int, error) {
+	return provider, nil
+}
 
 func TestParseAniBridgeMappings(t *testing.T) {
 	payload := `{
@@ -27,6 +34,38 @@ func TestParseAniBridgeMappings(t *testing.T) {
 	assertImportedMapping(t, byAniList[5], "movie", 11299, -1)
 	if _, ok := byAniList[31]; ok {
 		t.Fatal("ambiguous multi-movie mapping should be omitted")
+	}
+}
+
+func TestHydrateMissingMALIDs(t *testing.T) {
+	existing := int64(37430)
+	mappings := []importedMapping{
+		{AniListID: 101280, MALID: &existing},
+		{AniListID: 207674},
+		{AniListID: 999999},
+	}
+	syncer := &MappingSyncer{identityProvider: staticIdentityProvider{207674: 63468}}
+	if err := syncer.hydrateMissingMALIDs(context.Background(), mappings); err != nil {
+		t.Fatalf("hydrate missing MAL IDs: %v", err)
+	}
+	if mappings[0].MALID == nil || *mappings[0].MALID != existing {
+		t.Fatalf("existing MAL ID changed: %+v", mappings[0])
+	}
+	if mappings[1].MALID == nil || *mappings[1].MALID != 63468 {
+		t.Fatalf("missing MAL ID was not hydrated: %+v", mappings[1])
+	}
+	if mappings[2].MALID != nil {
+		t.Fatalf("unresolved MAL ID should remain empty: %+v", mappings[2])
+	}
+}
+
+func TestCompleteMappingIdentityUsesKnownExternalIDs(t *testing.T) {
+	mapping := completeMappingIdentity(
+		animeMapping{AniListID: 207674, Group: mappingGroup{MediaType: "tv", TMDBID: 325052}, Season: 1},
+		mappingIdentity{AniListID: 207674, MALID: 63468},
+	)
+	if mapping.AniListID != 207674 || mapping.MALID != 63468 {
+		t.Fatalf("mapping identity was not completed: %+v", mapping)
 	}
 }
 
