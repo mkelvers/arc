@@ -165,10 +165,23 @@ Configuration is loaded from environment variables, and a local `.env` file is r
 | ------------------------ | ---------------------------------------------------------- |
 | `just new-data-fix name` | Scaffold a new data-fix file.                              |
 | `just run-fixes`         | Run registered data fixes through `cmd/user`.              |
+| `just sync-anime-mappings` | Rebuild AniBridge mappings and resolve missing provider IDs. |
 | `just fix-all`           | Run the Bun maintenance script for data fixes.             |
 | `bun run format`         | Format TypeScript and related frontend files with `oxfmt`. |
 
 </details>
+
+### Anime identity
+
+Anime records are matched through a provider-neutral identity registry. AniList, MAL, TMDB,
+and playback-provider IDs are external identifiers attached to that identity; none of those
+provider IDs is treated as globally unique outside its own namespace. Existing MAL-based URLs
+remain supported as a compatibility boundary because AllAnime exposes MAL IDs for exact playback
+matching.
+
+AniBridge mappings are enriched through AniList when their MAL ID is missing. Entries that truly
+have no MAL ID can still retain AniList and TMDB mappings, but they are not assigned a fabricated
+MAL ID.
 
 ### Public Watchlist JSON
 

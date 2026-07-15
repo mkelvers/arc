@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"mal/integrations/anilist"
 	"mal/internal"
+	"mal/internal/anime"
 	"mal/internal/database"
 	"mal/internal/database/db"
 	"os"
@@ -37,10 +38,18 @@ func main() {
 }
 
 func run(args []string) error {
-	if len(args) == 1 && args[0] == "run-fixes" {
-		return runFixes()
+	if len(args) == 1 {
+		switch args[0] {
+		case "run-fixes":
+			return runFixes()
+		case "sync-anime-mappings":
+			return syncAnimeMappings()
+		}
 	}
+	return runCreateUser(args)
+}
 
+func runCreateUser(args []string) error {
 	if len(args) != 1 && len(args) != 2 {
 		return errors.New("usage: create-user <username> [password]")
 	}
@@ -65,6 +74,27 @@ func run(args []string) error {
 	}
 
 	return createOrUpdateUser(sqlDB, username, password)
+}
+
+func syncAnimeMappings() error {
+	cfg := internal.LoadConfig()
+	sqlDB, err := openDatabase(cfg)
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+
+	client := anilist.NewClient()
+	if err := database.ApplyPostgresSchemaAndFixes(sqlDB, internal.DataFixDependencies(client)); err != nil {
+		return fmt.Errorf("prepare mapping database: %w", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	if err := anime.NewMappingSyncer(sqlDB, client).ForceSync(ctx); err != nil {
+		return fmt.Errorf("sync anime mappings: %w", err)
+	}
+	fmt.Println("Anime mappings and external identities synchronized")
+	return nil
 }
 
 func runFixes() error {

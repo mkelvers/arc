@@ -71,5 +71,8 @@ new-data-fix name:
 run-fixes:
     go run ./cmd/user run-fixes
 
+sync-anime-mappings:
+    go run ./cmd/user sync-anime-mappings
+
 fix-all:
     bun run ./scripts/fix-all.ts
