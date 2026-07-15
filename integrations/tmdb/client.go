@@ -155,6 +155,87 @@ func (c *Client) GetSeason(ctx context.Context, seriesID int64, seasonNumber int
 	return result, err
 }
 
+func (c *Client) GetSeasonMetadata(ctx context.Context, seriesID int64, seasonNumber int, language string) (Season, error) {
+	season, err := c.GetSeason(ctx, seriesID, seasonNumber, language)
+	if err == nil && len(season.Episodes) > 0 {
+		return season, nil
+	}
+	groupSeason, groupErr := c.getEpisodeGroupSeason(ctx, seriesID, seasonNumber)
+	if groupErr == nil && len(groupSeason.Episodes) > 0 {
+		return groupSeason, nil
+	}
+	if err != nil {
+		return Season{}, err
+	}
+	return season, nil
+}
+
+func (c *Client) getEpisodeGroupSeason(ctx context.Context, seriesID int64, seasonNumber int) (Season, error) {
+	if seasonNumber < 0 {
+		return Season{}, fmt.Errorf("tmdb: invalid season number %d", seasonNumber)
+	}
+	groups, err := c.GetEpisodeGroups(ctx, seriesID)
+	if err != nil {
+		return Season{}, err
+	}
+	summary, ok := seasonsEpisodeGroup(groups.Results)
+	if !ok {
+		return Season{}, errors.New("tmdb: seasons episode group not found")
+	}
+	group, err := c.GetEpisodeGroup(ctx, summary.ID)
+	if err != nil {
+		return Season{}, err
+	}
+	block, ok := episodeGroupBlockForSeason(group.Groups, seasonNumber)
+	if !ok {
+		return Season{}, fmt.Errorf("tmdb: season %d episode group block not found", seasonNumber)
+	}
+	return seasonFromEpisodeBlock(block, seasonNumber), nil
+}
+
+func seasonsEpisodeGroup(groups []EpisodeGroupSummary) (EpisodeGroupSummary, bool) {
+	for _, group := range groups {
+		if strings.EqualFold(strings.TrimSpace(group.Name), "Seasons") {
+			return group, true
+		}
+	}
+	for _, group := range groups {
+		if group.Type == 1 {
+			return group, true
+		}
+	}
+	return EpisodeGroupSummary{}, false
+}
+
+func episodeGroupBlockForSeason(blocks []EpisodeBlock, seasonNumber int) (EpisodeBlock, bool) {
+	for _, block := range blocks {
+		if block.Order == seasonNumber {
+			return block, true
+		}
+	}
+	label := "season " + strconv.Itoa(seasonNumber)
+	for _, block := range blocks {
+		if strings.EqualFold(strings.TrimSpace(block.Name), label) {
+			return block, true
+		}
+	}
+	return EpisodeBlock{}, false
+}
+
+func seasonFromEpisodeBlock(block EpisodeBlock, seasonNumber int) Season {
+	episodes := make([]Episode, 0, len(block.Episodes))
+	for index, episode := range block.Episodes {
+		episode.SeasonNumber = seasonNumber
+		episode.EpisodeNumber = index + 1
+		episodes = append(episodes, episode)
+	}
+	return Season{
+		Episodes:     episodes,
+		Name:         strings.TrimSpace(block.Name),
+		SeasonNumber: seasonNumber,
+	}
+}
+
 // ImageURL turns a TMDB file_path into a deliverable image URL. Size can be
 // "original" or a supported TMDB image size such as "w780".
 func ImageURL(filePath, size string) string {

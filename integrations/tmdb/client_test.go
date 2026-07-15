@@ -102,6 +102,34 @@ func TestGetSeason(t *testing.T) {
 	}
 }
 
+func TestGetSeasonMetadataFallsBackToEpisodeGroupSeason(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/tv/278043/season/2", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		writeJSON(t, w, `{"success":false,"status_code":34,"status_message":"The resource you requested could not be found."}`)
+	})
+	mux.HandleFunc("/tv/278043/episode_groups", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":278043,"results":[{"id":"seasons","name":"Seasons","episode_count":16,"group_count":2,"type":1}]}`)
+	})
+	mux.HandleFunc("/tv/episode_group/seasons", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":"seasons","name":"Seasons","group_count":2,"groups":[{"id":"season-1","name":"Season 1","order":1,"episodes":[{"id":1,"name":"You, My Polar Opposite","episode_number":1,"season_number":1,"order":0}]},{"id":"season-2","name":"Season 2","order":2,"episodes":[{"id":13,"name":"Christmas Eve","episode_number":13,"season_number":1,"order":0},{"id":14,"name":"Dilemma of a Winter's Night","episode_number":14,"season_number":1,"order":1}]}]}`)
+	})
+	client, server := testClient(t, mux)
+	defer server.Close()
+
+	season, err := client.GetSeasonMetadata(context.Background(), 278043, 2, "en-US")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if season.Name != "Season 2" || season.SeasonNumber != 2 || len(season.Episodes) != 2 {
+		t.Fatalf("unexpected fallback season: %+v", season)
+	}
+	if season.Episodes[0].Name != "Christmas Eve" || season.Episodes[0].EpisodeNumber != 1 || season.Episodes[0].SeasonNumber != 2 {
+		t.Fatalf("fallback episode was not normalized: %+v", season.Episodes[0])
+	}
+}
+
 func TestAPIErrorAndMissingToken(t *testing.T) {
 	t.Parallel()
 	client, server := testClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
