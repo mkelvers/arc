@@ -27,6 +27,11 @@ type animeMapping struct {
 	Group     mappingGroup
 	Season    int
 	Canonical bool
+
+	LogicalSeason int
+	MediaOffset   int
+	DisplayOffset int
+	EpisodeCount  int
 }
 
 type mappingResolver interface {
