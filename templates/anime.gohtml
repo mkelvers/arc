@@ -1,5 +1,5 @@
 {{define "title"}}{{.Anime.DisplayTitle}}{{end}}
-{{define "scripts"}}{{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}{{end}}
+{{define "scripts"}}{{if .CanonicalPath}}<meta name="canonical-anime-path" content="{{.CanonicalPath}}">{{end}}{{if .WatchlistIDs}}<script type="application/json" id="watchlist-ids-json">{{.WatchlistIDs}}</script>{{end}}{{end}}
 {{define "content"}}
 {{$anime := .Anime}}
 {{$ageRating := ageRatingLabel $anime}}

@@ -1,5 +1,14 @@
 import { onReady } from "./utils";
 
+const canonicalizeAnimePath = (): void => {
+  const canonical = document.querySelector<HTMLMetaElement>('meta[name="canonical-anime-path"]');
+  const path = canonical?.content.trim();
+  if (!path || `${window.location.pathname}${window.location.search}` === path) {
+    return;
+  }
+  window.history.replaceState(window.history.state, "", path);
+};
+
 const initSynopsisToggle = (): void => {
   document.addEventListener("click", (event) => {
     const { target } = event;
@@ -146,3 +155,4 @@ const initAnimeSidebarDrawer = (): void => {
 
 initSynopsisToggle();
 initAnimeSidebarDrawer();
+onReady(canonicalizeAnimePath);
