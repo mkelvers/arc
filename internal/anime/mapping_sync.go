@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"mal/integrations/anilist"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,6 +36,15 @@ type importedMapping struct {
 	MediaType   string
 	TMDBID      int64
 	Season      int
+	Segments    []importedMappingSegment
+}
+
+type importedMappingSegment struct {
+	Season           int
+	SourceEpisodeMin int
+	SourceEpisodeMax int
+	TMDBEpisodeMin   int
+	TMDBEpisodeMax   int
 }
 
 type mappingImportStatus struct {
@@ -258,15 +268,8 @@ func (s *MappingSyncer) replace(ctx context.Context, mappings []importedMapping,
 	if !locked {
 		return nil
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM anime_external_mapping`); err != nil {
-		return fmt.Errorf("clear anime mappings: %w", err)
-	}
-	const batchSize = 500
-	for start := 0; start < len(mappings); start += batchSize {
-		end := min(start+batchSize, len(mappings))
-		if err := insertMappingBatch(ctx, tx, mappings[start:end]); err != nil {
-			return err
-		}
+	if err := replaceImportedMappingRows(ctx, tx, mappings); err != nil {
+		return err
 	}
 	if err := syncImportedIdentityRegistry(ctx, tx, mappings); err != nil {
 		return err
@@ -283,6 +286,20 @@ func (s *MappingSyncer) replace(ctx context.Context, mappings []importedMapping,
 		return fmt.Errorf("commit anime mapping import: %w", err)
 	}
 	return nil
+}
+
+func replaceImportedMappingRows(ctx context.Context, tx *sql.Tx, mappings []importedMapping) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM anime_external_mapping`); err != nil {
+		return fmt.Errorf("clear anime mappings: %w", err)
+	}
+	const batchSize = 500
+	for start := 0; start < len(mappings); start += batchSize {
+		end := min(start+batchSize, len(mappings))
+		if err := insertMappingBatch(ctx, tx, mappings[start:end]); err != nil {
+			return err
+		}
+	}
+	return insertMappingSegments(ctx, tx, mappings)
 }
 
 func syncImportedIdentityRegistry(ctx context.Context, tx *sql.Tx, mappings []importedMapping) error {
@@ -412,6 +429,45 @@ func insertMappingBatch(ctx context.Context, tx *sql.Tx, mappings []importedMapp
 	return nil
 }
 
+func insertMappingSegments(ctx context.Context, tx *sql.Tx, mappings []importedMapping) error {
+	const batchSize = 500
+	segments := make([]struct {
+		AniListID int64
+		MediaType string
+		TMDBID    int64
+		importedMappingSegment
+	}, 0)
+	for _, mapping := range mappings {
+		for _, segment := range mapping.Segments {
+			segments = append(segments, struct {
+				AniListID int64
+				MediaType string
+				TMDBID    int64
+				importedMappingSegment
+			}{mapping.AniListID, mapping.MediaType, mapping.TMDBID, segment})
+		}
+	}
+	for start := 0; start < len(segments); start += batchSize {
+		end := min(start+batchSize, len(segments))
+		var query strings.Builder
+		query.WriteString(`INSERT INTO anime_external_mapping_segment
+			(anilist_id, tmdb_media_type, tmdb_id, tmdb_season, source_episode_min, source_episode_max, tmdb_episode_min, tmdb_episode_max) VALUES `)
+		args := make([]any, 0, (end-start)*8)
+		for index, segment := range segments[start:end] {
+			if index > 0 {
+				query.WriteByte(',')
+			}
+			query.WriteString("(?, ?, ?, ?, ?, ?, ?, ?)")
+			args = append(args, segment.AniListID, segment.MediaType, segment.TMDBID, segment.Season,
+				segment.SourceEpisodeMin, segment.SourceEpisodeMax, segment.TMDBEpisodeMin, segment.TMDBEpisodeMax)
+		}
+		if _, err := tx.ExecContext(ctx, query.String(), args...); err != nil {
+			return fmt.Errorf("insert anime mapping segments: %w", err)
+		}
+	}
+	return nil
+}
+
 func parseAniBridgeMappings(reader io.Reader) ([]importedMapping, error) {
 	decoder := json.NewDecoder(reader)
 	token, err := decoder.Token()
@@ -447,13 +503,14 @@ func parseAniBridgeMappings(reader io.Reader) ([]importedMapping, error) {
 }
 
 func importedMappingFor(anilistID int64, targets map[string]json.RawMessage) (importedMapping, bool) {
-	collected := mappingTargets{shows: make(map[int64][]int), movies: make(map[int64]struct{})}
-	for descriptor := range targets {
-		collected.add(descriptor)
+	collected := mappingTargets{shows: make(map[int64][]importedMappingSegment), movies: make(map[int64]struct{})}
+	for descriptor, ranges := range targets {
+		collected.add(descriptor, ranges)
 	}
 	if len(collected.shows) == 1 {
-		for id, seasons := range collected.shows {
-			return importedMapping{AniListID: anilistID, MALID: collected.malID, MediaType: "tv", TMDBID: id, Season: preferredSeason(seasons)}, true
+		for id, segments := range collected.shows {
+			slices.SortFunc(segments, func(left, right importedMappingSegment) int { return left.Season - right.Season })
+			return importedMapping{AniListID: anilistID, MALID: collected.malID, MediaType: "tv", TMDBID: id, Season: preferredSeason(segments), Segments: segments}, true
 		}
 	}
 	if len(collected.shows) == 0 && len(collected.movies) == 1 {
@@ -466,18 +523,18 @@ func importedMappingFor(anilistID int64, targets map[string]json.RawMessage) (im
 
 type mappingTargets struct {
 	malID  *int64
-	shows  map[int64][]int
+	shows  map[int64][]importedMappingSegment
 	movies map[int64]struct{}
 }
 
-func (m *mappingTargets) add(descriptor string) {
+func (m *mappingTargets) add(descriptor string, ranges json.RawMessage) {
 	parts := strings.Split(descriptor, ":")
 	if len(parts) == 2 {
 		m.addUnscoped(parts[0], parts[1])
 		return
 	}
 	if len(parts) == 3 && parts[0] == "tmdb_show" {
-		m.addShow(parts[1], parts[2])
+		m.addShow(parts[1], parts[2], ranges)
 	}
 }
 
@@ -494,25 +551,62 @@ func (m *mappingTargets) addUnscoped(provider, rawID string) {
 	}
 }
 
-func (m *mappingTargets) addShow(rawID, scope string) {
+func (m *mappingTargets) addShow(rawID, scope string, ranges json.RawMessage) {
 	id, idErr := strconv.ParseInt(rawID, 10, 64)
 	season, seasonErr := strconv.Atoi(strings.TrimPrefix(scope, "s"))
 	if idErr != nil || seasonErr != nil || !strings.HasPrefix(scope, "s") || id <= 0 || season < 0 {
 		return
 	}
-	m.shows[id] = append(m.shows[id], season)
+	segment := importedMappingSegment{Season: season}
+	segment.SourceEpisodeMin, segment.SourceEpisodeMax, segment.TMDBEpisodeMin, segment.TMDBEpisodeMax = mappingEpisodeRanges(ranges)
+	m.shows[id] = append(m.shows[id], segment)
 }
 
-func preferredSeason(seasons []int) int {
+func preferredSeason(segments []importedMappingSegment) int {
 	best := -1
-	for _, season := range seasons {
-		if season > 0 && season > best {
-			best = season
+	for _, segment := range segments {
+		if segment.Season > 0 && (best <= 0 || segment.Season < best) {
+			best = segment.Season
 		} else if best < 0 {
-			best = season
+			best = segment.Season
 		}
 	}
 	return best
+}
+
+func mappingEpisodeRanges(raw json.RawMessage) (int, int, int, int) {
+	var ranges map[string]string
+	if err := json.Unmarshal(raw, &ranges); err != nil || len(ranges) != 1 {
+		return 0, 0, 0, 0
+	}
+	for source, target := range ranges {
+		sourceMin, sourceMax, sourceOK := episodeRange(source)
+		tmdbMin, tmdbMax, tmdbOK := episodeRange(target)
+		if sourceOK && tmdbOK {
+			return sourceMin, sourceMax, tmdbMin, tmdbMax
+		}
+	}
+	return 0, 0, 0, 0
+}
+
+func episodeRange(value string) (int, int, bool) {
+	parts := strings.Split(strings.TrimSpace(value), "-")
+	if len(parts) > 2 || len(parts) == 0 {
+		return 0, 0, false
+	}
+	minimum, err := strconv.Atoi(parts[0])
+	if err != nil || minimum <= 0 {
+		return 0, 0, false
+	}
+	maximum := minimum
+	if len(parts) == 2 {
+		if parts[1] == "" {
+			maximum = 0
+		} else if maximum, err = strconv.Atoi(parts[1]); err != nil || maximum < minimum {
+			return 0, 0, false
+		}
+	}
+	return minimum, maximum, true
 }
 
 func descriptorID(descriptor, provider string) (int64, bool) {
