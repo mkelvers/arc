@@ -97,6 +97,30 @@ func (r *playbackRepository) GetAnimeMappingsForGroup(ctx context.Context, media
 	return mappings, nil
 }
 
+func (r *playbackRepository) GetAnimeMappingSegments(ctx context.Context, mapping domain.AnimeMediaMapping) ([]domain.AnimeMediaSegment, error) {
+	const query = `SELECT tmdb_season, source_episode_min, source_episode_max, tmdb_episode_min, tmdb_episode_max
+		FROM anime_external_mapping_segment
+		WHERE anilist_id = ? AND tmdb_media_type = ? AND tmdb_id = ?
+		ORDER BY tmdb_season, source_episode_min`
+	rows, err := r.sqlDB.QueryContext(ctx, query, mapping.AniListID, mapping.MediaType, mapping.TMDBID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var segments []domain.AnimeMediaSegment
+	for rows.Next() {
+		var segment domain.AnimeMediaSegment
+		if err := rows.Scan(&segment.Season, &segment.SourceEpisodeMin, &segment.SourceEpisodeMax, &segment.TMDBEpisodeMin, &segment.TMDBEpisodeMax); err != nil {
+			return nil, err
+		}
+		segments = append(segments, segment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return segments, nil
+}
+
 func (r *playbackRepository) GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error) {
 	return r.queries.GetWatchListEntry(ctx, params)
 }

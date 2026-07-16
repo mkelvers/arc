@@ -122,6 +122,18 @@ CREATE TABLE IF NOT EXISTS anime_external_mapping (
     imported_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS anime_external_mapping_segment (
+    anilist_id BIGINT NOT NULL REFERENCES anime_external_mapping(anilist_id) ON DELETE CASCADE,
+    tmdb_media_type TEXT NOT NULL CHECK(tmdb_media_type IN ('tv', 'movie')),
+    tmdb_id BIGINT NOT NULL,
+    tmdb_season INTEGER NOT NULL,
+    source_episode_min INTEGER NOT NULL DEFAULT 0,
+    source_episode_max INTEGER NOT NULL DEFAULT 0,
+    tmdb_episode_min INTEGER NOT NULL DEFAULT 0,
+    tmdb_episode_max INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (anilist_id, tmdb_media_type, tmdb_id, tmdb_season, source_episode_min, tmdb_episode_min)
+);
+
 CREATE TABLE IF NOT EXISTS anime_mapping_override (
     anilist_id BIGINT PRIMARY KEY,
     mal_id BIGINT,

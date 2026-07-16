@@ -137,6 +137,7 @@ type PlaybackRepository interface {
 	GetAnimeMappingByMALID(ctx context.Context, malID int64) (AnimeMediaMapping, error)
 	GetCanonicalAnimeMapping(ctx context.Context, mediaType string, tmdbID int64) (AnimeMediaMapping, error)
 	GetAnimeMappingsForGroup(ctx context.Context, mediaType string, tmdbID int64) ([]AnimeMediaMapping, error)
+	GetAnimeMappingSegments(ctx context.Context, mapping AnimeMediaMapping) ([]AnimeMediaSegment, error)
 	GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error)
 	GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)
 	SaveWatchProgress(ctx context.Context, params db.SaveWatchProgressParams) error
@@ -155,4 +156,12 @@ type AnimeMediaMapping struct {
 	TMDBID    int64
 	Season    int
 	Canonical bool
+}
+
+type AnimeMediaSegment struct {
+	Season           int
+	SourceEpisodeMin int
+	SourceEpisodeMax int
+	TMDBEpisodeMin   int
+	TMDBEpisodeMax   int
 }
