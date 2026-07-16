@@ -365,14 +365,36 @@ func (s *playbackService) playbackEpisodeCount(ctx context.Context, animeID int6
 	}
 	count := domain.RegularEpisodeCount(episodes.Episodes)
 	mapping, err := s.repo.GetAnimeMappingByMALID(ctx, animeID)
-	if err != nil || s.tmdbClient == nil || mapping.MediaType != string(tmdb.MediaTypeTV) || mapping.TMDBID <= 0 || mapping.Season <= 0 {
+	if !tmdbEpisodeCountReady(err, s.tmdbClient, mapping) {
 		return count
+	}
+	if segmentCount, ok := s.mappingSegmentEpisodeCount(ctx, mapping, count); ok {
+		return segmentCount
 	}
 	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, mapping.Season, "en-US")
 	if err != nil || len(season.Episodes) <= 0 {
 		return count
 	}
 	return min(count, len(season.Episodes))
+}
+
+func tmdbEpisodeCountReady(err error, client *tmdb.Client, mapping domain.AnimeMediaMapping) bool {
+	return err == nil && client != nil && mapping.MediaType == string(tmdb.MediaTypeTV) && mapping.TMDBID > 0 && mapping.Season > 0
+}
+
+func (s *playbackService) mappingSegmentEpisodeCount(ctx context.Context, mapping domain.AnimeMediaMapping, available int) (int, bool) {
+	segments, err := s.repo.GetAnimeMappingSegments(ctx, mapping)
+	if err != nil || len(segments) == 0 {
+		return 0, false
+	}
+	highest := 0
+	for _, segment := range segments {
+		highest = max(highest, segment.SourceEpisodeMax)
+	}
+	if highest <= 0 {
+		return available, true
+	}
+	return min(available, highest), true
 }
 
 func (s *playbackService) ensureAnimeRow(ctx context.Context, anime domain.Anime) error {

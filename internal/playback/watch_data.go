@@ -312,6 +312,14 @@ func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping d
 	if s.tmdbClient == nil || mapping.MediaType != string(tmdb.MediaTypeTV) || mapping.TMDBID <= 0 || mapping.Season < 0 {
 		return nil
 	}
+	segments, segmentErr := s.repo.GetAnimeMappingSegments(ctx, mapping)
+	if segmentErr == nil && len(segments) > 0 {
+		return s.tmdbSegmentEpisodeTitles(ctx, mapping, segments)
+	}
+	return s.singleTMDBSeasonEpisodeTitles(ctx, mapping)
+}
+
+func (s *playbackService) singleTMDBSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping) map[int]string {
 	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, mapping.Season, "en-US")
 	if err != nil {
 		slog.Warn("watch_episode_tmdb_season_failed", "component", "playback", "fields", map[string]any{
@@ -327,6 +335,48 @@ func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping d
 		}
 	}
 	return titles
+}
+
+func (s *playbackService) tmdbSegmentEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping, segments []domain.AnimeMediaSegment) map[int]string {
+	titles := make(map[int]string)
+	for _, segment := range segments {
+		for number, title := range s.tmdbSegmentTitles(ctx, mapping, segment) {
+			titles[number] = title
+		}
+	}
+	return titles
+}
+
+func (s *playbackService) tmdbSegmentTitles(ctx context.Context, mapping domain.AnimeMediaMapping, segment domain.AnimeMediaSegment) map[int]string {
+	titles := make(map[int]string)
+	if segment.Season <= 0 {
+		return titles
+	}
+	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, segment.Season, "en-US")
+	if err != nil {
+		slog.Warn("watch_episode_tmdb_segment_failed", "component", "playback", "fields", map[string]any{
+			"tmdb_id": mapping.TMDBID, "tmdb_season": segment.Season,
+		}, "error", err)
+		return titles
+	}
+	for _, episode := range season.Episodes {
+		if number, title, ok := mappedSegmentEpisode(segment, episode); ok {
+			titles[number] = title
+		}
+	}
+	return titles
+}
+
+func mappedSegmentEpisode(segment domain.AnimeMediaSegment, episode tmdb.Episode) (int, string, bool) {
+	if segment.TMDBEpisodeMin > 0 && episode.EpisodeNumber < segment.TMDBEpisodeMin || segment.TMDBEpisodeMax > 0 && episode.EpisodeNumber > segment.TMDBEpisodeMax {
+		return 0, "", false
+	}
+	number := episode.EpisodeNumber
+	if segment.SourceEpisodeMin > 0 && segment.TMDBEpisodeMin > 0 {
+		number = segment.SourceEpisodeMin + episode.EpisodeNumber - segment.TMDBEpisodeMin
+	}
+	title := strings.TrimSpace(episode.Name)
+	return number, title, number > 0 && title != ""
 }
 
 func offsetEpisodeList(input domain.CanonicalEpisodeList, offset int) domain.CanonicalEpisodeList {
