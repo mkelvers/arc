@@ -336,12 +336,17 @@ func applyAdjacentSeasonLinks(display *animeEpisodeListDisplay) {
 }
 
 func seasonSelectionLink(animeID int, season animeSeasonDisplay, label string) *animeSeasonLink {
-	pageURL := fmt.Sprintf("/anime/%d?season=%d", animeID, season.Number)
 	return &animeSeasonLink{
 		Label:       label,
-		URL:         pageURL,
-		FragmentURL: fmt.Sprintf("/anime/%d?section=episode-list&season=%d", animeID, season.Number),
+		FragmentURL: animeEpisodeListURL(animeID, season.Number),
 	}
+}
+
+func animeEpisodeListURL(animeID int, season int) string {
+	if season < 0 {
+		return fmt.Sprintf("/anime/%d/episodes", animeID)
+	}
+	return fmt.Sprintf("/anime/%d/episodes/%d", animeID, season)
 }
 
 func (h *AnimeHandler) episodeSources(ctx context.Context, episodeCtx animeEpisodeListContext) []animeEpisodeSource {
@@ -445,7 +450,11 @@ func sourceEpisodeDisplays(source animeEpisodeSource, tmdbEpisodes map[int]tmdb.
 	episodes := make([]animeEpisodeDisplay, 0, len(source.Episodes))
 	specialMedia := ovaTMDBEpisodeMatches(source, tmdbEpisodes)
 	for _, episode := range source.Episodes {
-		displayOrder := source.DisplayOffset*10 + episode.SortOrder()
+		sourceOrder := episode.SortOrder()
+		if source.EpisodeMin > 1 {
+			sourceOrder -= (source.EpisodeMin - 1) * 10
+		}
+		displayOrder := source.DisplayOffset*10 + sourceOrder
 		displayNumber := displayOrder / 10
 		mediaNumber := source.MediaOffset + episode.Number
 		media := tmdbEpisodes[mediaNumber]
@@ -807,6 +816,7 @@ func (h *AnimeHandler) episodeMappingPlan(ctx context.Context, group mappingGrou
 		}, "error", err)
 		return nil
 	}
+	mappings = h.expandEpisodeMappingSegments(ctx, group, mappings)
 	metadata := h.episodePlanMetadata(ctx, mappings)
 	regularSeasonCounts := h.tmdbRegularSeasonCounts(ctx, group, mappings)
 	mediaOffsets := map[int]int{}
@@ -835,13 +845,48 @@ func (h *AnimeHandler) episodeMappingPlan(ctx context.Context, group mappingGrou
 	return plan
 }
 
+func (h *AnimeHandler) expandEpisodeMappingSegments(ctx context.Context, group mappingGroup, mappings []animeMapping) []animeMapping {
+	ids := make([]int, 0, len(mappings))
+	for _, mapping := range mappings {
+		if mapping.AniListID > 0 {
+			ids = append(ids, mapping.AniListID)
+		}
+	}
+	segments, err := h.mappings.MappingSegments(ctx, group, ids)
+	if err != nil {
+		slog.Warn("anime_episode_list_mapping_segments_failed", "component", "anime", "fields", map[string]any{
+			"tmdb_media_type": group.MediaType,
+			"tmdb_id":         group.TMDBID,
+		}, "error", err)
+		return mappings
+	}
+	expanded := make([]animeMapping, 0, len(mappings))
+	for _, mapping := range mappings {
+		mappedSegments := segments[mapping.AniListID]
+		if len(mappedSegments) == 0 {
+			expanded = append(expanded, mapping)
+			continue
+		}
+		for _, segment := range mappedSegments {
+			part := mapping
+			part.Season = segment.Season
+			part.EpisodeMin = segment.SourceEpisodeMin
+			part.EpisodeMax = segment.SourceEpisodeMax
+			part.TMDBEpisodeMin = segment.TMDBEpisodeMin
+			part.TMDBEpisodeMax = segment.TMDBEpisodeMax
+			expanded = append(expanded, part)
+		}
+	}
+	return expanded
+}
+
 func (h *AnimeHandler) tmdbRegularSeasonCounts(ctx context.Context, group mappingGroup, mappings []animeMapping) map[int]int {
 	if h.tmdbClient == nil || group.MediaType != string(tmdb.MediaTypeTV) || group.TMDBID <= 0 {
 		return nil
 	}
 	counts := map[int]int{}
 	for _, mapping := range mappings {
-		if mapping.Season <= 0 {
+		if mapping.Season <= 0 || mapping.EpisodeMin > 0 {
 			continue
 		}
 		if _, ok := counts[mapping.Season]; ok {
@@ -883,26 +928,22 @@ func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeM
 	}
 	mapping.LogicalSeason = mapping.Season
 	mapping.Kind = episodeKindRegular
-	if hasMetadata {
-		mapping.LogicalSeason = anime.SeasonNumber(mapping.Season)
-	}
-	if mapping.Season > 0 {
-		mapping.SeasonLabel = regularSeasonLabel(mapping.LogicalSeason, anime.DisplayTitle())
-	}
-	mapping.MediaOffset = mediaOffsets[mapping.Season]
+	applyEpisodeMappingLabels(&mapping, anime, hasMetadata)
+	mapping.MediaOffset = episodeMappingMediaOffset(mapping, mediaOffsets)
 	cacheAnime := anime
 	cacheAnime.MalID = mapping.MALID
 	providerRegularCount, totalCount := h.mappingEpisodeCounts(ctx, cacheAnime, anime, hasMetadata && mapping.Season > 0)
+	providerRegularCount, totalCount = boundedMappingEpisodeCounts(mapping, providerRegularCount, totalCount)
 	regularCount := cappedRegularMappingCount(mapping, providerRegularCount, regularSeasonCounts)
 	mapping.EpisodeCount = regularCount
 	mapping.AvailableCount = totalCount - max(0, providerRegularCount-regularCount)
-	if mapping.Season > 0 && regularCount > 0 {
+	if mapping.Season > 0 && regularCount > 0 && mapping.EpisodeMax <= 0 {
 		mapping.EpisodeMax = regularCount
 	}
 	classifySpecialMapping(&mapping, totalCount)
-	mediaOffsets[mapping.Season] += mapping.EpisodeCount
+	advanceMappingMediaOffset(mapping, mediaOffsets)
 	bonusCount := providerRegularCount - regularCount
-	if mapping.Season <= 0 || bonusCount <= 0 {
+	if mapping.Season <= 0 || bonusCount <= 0 || mapping.EpisodeMin > 0 {
 		return mapping, nil, true
 	}
 	bonus := mapping
@@ -922,6 +963,48 @@ func (h *AnimeHandler) prepareEpisodeMapping(ctx context.Context, mapping animeM
 	return mapping, &bonus, true
 }
 
+func applyEpisodeMappingLabels(mapping *animeMapping, anime domain.Anime, hasMetadata bool) {
+	if hasMetadata {
+		mapping.LogicalSeason = anime.SeasonNumber(mapping.Season)
+	}
+	if mapping.Season > 0 {
+		mapping.SeasonLabel = regularSeasonLabel(mapping.LogicalSeason, anime.DisplayTitle())
+	}
+}
+
+func episodeMappingMediaOffset(mapping animeMapping, mediaOffsets map[int]int) int {
+	if mapping.EpisodeMin > 0 && mapping.TMDBEpisodeMin > 0 {
+		return mapping.TMDBEpisodeMin - mapping.EpisodeMin
+	}
+	return mediaOffsets[mapping.Season]
+}
+
+func boundedMappingEpisodeCounts(mapping animeMapping, regular int, total int) (int, int) {
+	if mapping.EpisodeMin <= 0 {
+		return regular, total
+	}
+	return episodeCountWithinBounds(regular, mapping.EpisodeMin, mapping.EpisodeMax), episodeCountWithinBounds(total, mapping.EpisodeMin, mapping.EpisodeMax)
+}
+
+func advanceMappingMediaOffset(mapping animeMapping, mediaOffsets map[int]int) {
+	if mapping.EpisodeMin > 0 && mapping.TMDBEpisodeMin > 0 {
+		mediaOffsets[mapping.Season] = max(mediaOffsets[mapping.Season], mapping.TMDBEpisodeMin+mapping.EpisodeCount-1)
+		return
+	}
+	mediaOffsets[mapping.Season] += mapping.EpisodeCount
+}
+
+func episodeCountWithinBounds(total int, minimum int, maximum int) int {
+	if total <= 0 || minimum <= 0 || total < minimum {
+		return 0
+	}
+	end := total
+	if maximum > 0 {
+		end = min(end, maximum)
+	}
+	return max(0, end-minimum+1)
+}
+
 func (h *AnimeHandler) mappingEpisodeCounts(ctx context.Context, cacheAnime domain.Anime, metadata domain.Anime, hasMetadata bool) (int, int) {
 	regularCount, totalCount := h.playbackEpisodeCounts(ctx, cacheAnime)
 	if !hasMetadata || metadata.Episodes <= 0 {
@@ -937,6 +1020,13 @@ func (h *AnimeHandler) mappingEpisodeCounts(ctx context.Context, cacheAnime doma
 }
 
 func cappedRegularMappingCount(mapping animeMapping, providerCount int, seasonCounts map[int]int) int {
+	if mapping.EpisodeMin > 0 {
+		segmentCount := providerCount
+		if mapping.EpisodeMax >= mapping.EpisodeMin {
+			segmentCount = min(segmentCount, mapping.EpisodeMax-mapping.EpisodeMin+1)
+		}
+		return segmentCount
+	}
 	seasonCount := seasonCounts[mapping.Season]
 	if mapping.Season <= 0 || seasonCount <= mapping.MediaOffset {
 		return providerCount
@@ -1019,7 +1109,7 @@ func assignRegularDisplayOffsets(plan []animeMapping) {
 }
 
 func (h *AnimeHandler) attachInlineSpecialMappings(ctx context.Context, group mappingGroup, plan []animeMapping) {
-	if h.tmdbClient == nil || group.MediaType != string(tmdb.MediaTypeTV) || group.TMDBID <= 0 {
+	if h.tmdbClient == nil || group.MediaType != string(tmdb.MediaTypeTV) || group.TMDBID <= 0 || !episodePlanHasKind(plan, episodeKindInline) {
 		return
 	}
 	tmdbCtx, cancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
@@ -1045,6 +1135,15 @@ func (h *AnimeHandler) attachInlineSpecialMappings(ctx context.Context, group ma
 		plan[i].LogicalSeason = logicalSeason
 		plan[i].DisplayOffset = anchor
 	}
+}
+
+func episodePlanHasKind(plan []animeMapping, kind string) bool {
+	for _, mapping := range plan {
+		if mapping.Kind == kind {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *AnimeHandler) tmdbRegularEpisodesForPlan(ctx context.Context, group mappingGroup, plan []animeMapping) []tmdb.Episode {
@@ -1335,10 +1434,12 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 
 	section := c.Query("section")
 	selectedSeason := parseSelectedSeason(c.Query("season"))
-	if h.handleCanonicalAnimeRequest(c, anime, section, selectedSeason) {
+	if h.handleRequestedAnimeSection(c, anime, section, selectedSeason) {
 		return
 	}
-	if h.handleRequestedAnimeSection(c, id, section, selectedSeason) {
+	anime, id, selectedSeason, canonicalPath, err := h.canonicalAnimeDetails(c.Request.Context(), anime)
+	if err != nil {
+		server.RespondNotFound(c)
 		return
 	}
 	h.applySelectedAnimeMedia(c.Request.Context(), &anime)
@@ -1376,31 +1477,32 @@ func (h *AnimeHandler) HandleAnimeDetails(c *gin.Context) {
 		"ContinueWatchingTime": cwSeconds,
 		"ReleaseInfo":          releaseInfo,
 		"SelectedSeason":       selectedSeason,
+		"CanonicalPath":        canonicalPath,
 	})
 }
 
-func (h *AnimeHandler) handleRequestedAnimeSection(c *gin.Context, id int, section string, selectedSeason int) bool {
+func (h *AnimeHandler) handleRequestedAnimeSection(c *gin.Context, anime domain.Anime, section string, selectedSeason int) bool {
 	if section == "" || c.GetHeader("HX-Request") != "true" {
 		return false
 	}
-	h.handleAnimeDetailsSectionForSeason(c, id, section, selectedSeason)
-	return true
-}
-
-func (h *AnimeHandler) handleCanonicalAnimeRequest(c *gin.Context, anime domain.Anime, section string, selectedSeason int) bool {
 	canonicalID, mappedSeason := h.canonicalAnimePage(c.Request.Context(), anime)
-	if canonicalID == anime.MalID {
-		return false
-	}
 	if selectedSeason < 0 {
 		selectedSeason = mappedSeason
 	}
-	if section != "" && c.GetHeader("HX-Request") == "true" {
-		h.handleAnimeDetailsSectionForSeason(c, canonicalID, section, selectedSeason)
-		return true
-	}
-	c.Redirect(http.StatusFound, animeSeasonPageURL(canonicalID, selectedSeason))
+	h.handleAnimeDetailsSectionForSeason(c, canonicalID, section, selectedSeason)
 	return true
+}
+
+func (h *AnimeHandler) canonicalAnimeDetails(ctx context.Context, anime domain.Anime) (domain.Anime, int, int, string, error) {
+	canonicalID, selectedSeason := h.canonicalAnimePage(ctx, anime)
+	if canonicalID == anime.MalID {
+		return anime, anime.MalID, -1, "", nil
+	}
+	canonicalAnime, err := h.svc.GetAnimeByID(ctx, canonicalID)
+	if err != nil {
+		return domain.Anime{}, 0, -1, "", err
+	}
+	return canonicalAnime, canonicalID, selectedSeason, fmt.Sprintf("/anime/%d", canonicalID), nil
 }
 
 func (h *AnimeHandler) canonicalAnimePage(ctx context.Context, anime domain.Anime) (int, int) {
@@ -1413,13 +1515,6 @@ func (h *AnimeHandler) canonicalAnimePage(ctx context.Context, anime domain.Anim
 		return canonicalID, -1
 	}
 	return canonicalID, anime.SeasonNumber(mapping.Season)
-}
-
-func animeSeasonPageURL(animeID int, season int) string {
-	if season < 0 {
-		return fmt.Sprintf("/anime/%d", animeID)
-	}
-	return fmt.Sprintf("/anime/%d?season=%d", animeID, season)
 }
 
 func (h *AnimeHandler) handleAnimeDetailsSectionForSeason(c *gin.Context, id int, section string, selectedSeason int) {
@@ -1451,6 +1546,15 @@ func (h *AnimeHandler) handleAnimeDetailsSectionForSeason(c *gin.Context, id int
 		"_fragment": tplName,
 		"Items":     data,
 	})
+}
+
+func (h *AnimeHandler) HandleAnimeEpisodeList(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid anime id")
+		return
+	}
+	h.handleAnimeDetailsSectionForSeason(c, id, "episode-list", parseSelectedSeason(c.Param("season")))
 }
 
 func (h *AnimeHandler) loadAnimeDetailsSection(ctx context.Context, id int, section string, selectedSeason int) (any, string, error) {

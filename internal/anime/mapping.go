@@ -38,8 +38,18 @@ type animeMapping struct {
 	AvailableCount int
 	EpisodeMin     int
 	EpisodeMax     int
+	TMDBEpisodeMin int
+	TMDBEpisodeMax int
 	Kind           string
 	SeasonLabel    string
+}
+
+type animeMappingSegment struct {
+	Season           int
+	SourceEpisodeMin int
+	SourceEpisodeMax int
+	TMDBEpisodeMin   int
+	TMDBEpisodeMax   int
 }
 
 type mappingResolver interface {
@@ -377,6 +387,43 @@ func (s *MappingStore) GroupMappings(ctx context.Context, group mappingGroup) ([
 		FROM anime_effective_mapping WHERE tmdb_media_type = ? AND tmdb_id = ?
 		ORDER BY tmdb_season, anilist_id, mal_id`
 	return scanMappings(ctx, s.db, query, group.MediaType, group.TMDBID)
+}
+
+func (s *MappingStore) MappingSegments(ctx context.Context, group mappingGroup, anilistIDs []int) (map[int][]animeMappingSegment, error) {
+	segments := make(map[int][]animeMappingSegment)
+	if !mappingSegmentQueryReady(s, group, anilistIDs) {
+		return segments, nil
+	}
+	args := make([]any, 0, len(anilistIDs)+2)
+	args = append(args, group.MediaType, group.TMDBID)
+	for _, id := range anilistIDs {
+		args = append(args, id)
+	}
+	query := `SELECT anilist_id, tmdb_season, source_episode_min, source_episode_max, tmdb_episode_min, tmdb_episode_max
+		FROM anime_external_mapping_segment
+		WHERE tmdb_media_type = ? AND tmdb_id = ? AND anilist_id IN (` + questionMarks(len(anilistIDs)) + `)
+		ORDER BY anilist_id, tmdb_season, source_episode_min`
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query anime mapping segments: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var anilistID int
+		var segment animeMappingSegment
+		if err := rows.Scan(&anilistID, &segment.Season, &segment.SourceEpisodeMin, &segment.SourceEpisodeMax, &segment.TMDBEpisodeMin, &segment.TMDBEpisodeMax); err != nil {
+			return nil, fmt.Errorf("scan anime mapping segment: %w", err)
+		}
+		segments[anilistID] = append(segments[anilistID], segment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate anime mapping segments: %w", err)
+	}
+	return segments, nil
+}
+
+func mappingSegmentQueryReady(store *MappingStore, group mappingGroup, anilistIDs []int) bool {
+	return store != nil && store.db != nil && group.MediaType != "" && group.TMDBID > 0 && len(anilistIDs) > 0
 }
 
 type mappingQueryer interface {

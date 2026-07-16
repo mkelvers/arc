@@ -56,20 +56,20 @@ func TestApplyAdjacentSeasonLinksKeepsCanonicalAnimeRoute(t *testing.T) {
 
 	applyAdjacentSeasonLinks(&display)
 
-	if display.Previous == nil || display.Previous.URL != "/anime/52347?season=1" || display.Previous.FragmentURL != "/anime/52347?section=episode-list&season=1" {
+	if display.Previous == nil || display.Previous.FragmentURL != "/anime/52347/episodes/1" {
 		t.Fatalf("Previous = %+v, want canonical season 1 route", display.Previous)
 	}
-	if display.Next == nil || display.Next.URL != "/anime/52347?season=3" || display.Next.FragmentURL != "/anime/52347?section=episode-list&season=3" {
+	if display.Next == nil || display.Next.FragmentURL != "/anime/52347/episodes/3" {
 		t.Fatalf("Next = %+v, want canonical season 3 route", display.Next)
 	}
 }
 
-func TestAnimeSeasonPageURL(t *testing.T) {
-	if got := animeSeasonPageURL(52347, 2); got != "/anime/52347?season=2" {
-		t.Fatalf("animeSeasonPageURL() = %q, want canonical season URL", got)
+func TestAnimeEpisodeListURL(t *testing.T) {
+	if got := animeEpisodeListURL(52347, 2); got != "/anime/52347/episodes/2" {
+		t.Fatalf("animeEpisodeListURL() = %q, want season fragment URL", got)
 	}
-	if got := animeSeasonPageURL(52347, -1); got != "/anime/52347" {
-		t.Fatalf("animeSeasonPageURL() without season = %q", got)
+	if got := animeEpisodeListURL(52347, -1); got != "/anime/52347/episodes" {
+		t.Fatalf("animeEpisodeListURL() without season = %q", got)
 	}
 }
 
@@ -220,6 +220,25 @@ func TestAssignRegularDisplayOffsetsIgnoresSpecialInventory(t *testing.T) {
 	}
 	if plan[1].DisplayOffset != 0 || plan[3].DisplayOffset != 0 {
 		t.Fatalf("special inventory changed display offsets: %+v", plan)
+	}
+}
+
+func TestSourceEpisodeDisplaysPreservesGlobalNumbersAcrossOneAnimeTMDBSeasons(t *testing.T) {
+	source := animeEpisodeSource{
+		Anime:         domain.Anime{MalID: 20, TitleEnglish: "Naruto"},
+		Episodes:      []domain.CanonicalEpisode{{Number: 53, Order: 530, Title: "Provider title"}},
+		DisplayOffset: 52,
+		MediaOffset:   0,
+		WatchAnimeID:  20,
+		EpisodeMin:    53,
+		EpisodeMax:    104,
+		Kind:          episodeKindRegular,
+	}
+	displays := sourceEpisodeDisplays(source, map[int]tmdb.Episode{
+		53: {EpisodeNumber: 53, Name: "Long Time No See: Jiraiya Returns!"},
+	})
+	if len(displays) != 1 || displays[0].Label != "E53" || displays[0].WatchURL != "/anime/20/watch?ep=53" || displays[0].Title != "Long Time No See: Jiraiya Returns!" {
+		t.Fatalf("segmented Naruto episode = %+v", displays)
 	}
 }
 
