@@ -862,7 +862,7 @@ func (h *AnimeHandler) expandEpisodeMappingSegments(ctx context.Context, group m
 	}
 	expanded := make([]animeMapping, 0, len(mappings))
 	for _, mapping := range mappings {
-		mappedSegments := segments[mapping.AniListID]
+		mappedSegments := deduplicateAnimeMappingSegments(segments[mapping.AniListID])
 		if len(mappedSegments) == 0 {
 			expanded = append(expanded, mapping)
 			continue
@@ -878,6 +878,55 @@ func (h *AnimeHandler) expandEpisodeMappingSegments(ctx context.Context, group m
 		}
 	}
 	return expanded
+}
+
+func deduplicateAnimeMappingSegments(segments []animeMappingSegment) []animeMappingSegment {
+	if len(segments) < 2 {
+		return segments
+	}
+	selected := make(map[animeSegmentSourceKey]animeMappingSegment, len(segments))
+	for _, segment := range segments {
+		key := animeSegmentSourceKey{
+			SourceEpisodeMin: segment.SourceEpisodeMin,
+			SourceEpisodeMax: segment.SourceEpisodeMax,
+		}
+		current, ok := selected[key]
+		if !ok || betterAnimeMappingSegment(segment, current) {
+			selected[key] = segment
+		}
+	}
+	out := make([]animeMappingSegment, 0, len(selected))
+	for _, segment := range selected {
+		out = append(out, segment)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Season != out[j].Season {
+			return out[i].Season < out[j].Season
+		}
+		return out[i].SourceEpisodeMin < out[j].SourceEpisodeMin
+	})
+	return out
+}
+
+type animeSegmentSourceKey struct {
+	SourceEpisodeMin int
+	SourceEpisodeMax int
+}
+
+func betterAnimeMappingSegment(candidate animeMappingSegment, current animeMappingSegment) bool {
+	candidateAligned := alignedAnimeMappingSegment(candidate)
+	currentAligned := alignedAnimeMappingSegment(current)
+	if candidateAligned != currentAligned {
+		return candidateAligned
+	}
+	return candidate.Season > current.Season
+}
+
+func alignedAnimeMappingSegment(segment animeMappingSegment) bool {
+	return segment.SourceEpisodeMin > 0 &&
+		segment.SourceEpisodeMax > 0 &&
+		segment.SourceEpisodeMin == segment.TMDBEpisodeMin &&
+		segment.SourceEpisodeMax == segment.TMDBEpisodeMax
 }
 
 func (h *AnimeHandler) tmdbRegularSeasonCounts(ctx context.Context, group mappingGroup, mappings []animeMapping) map[int]int {

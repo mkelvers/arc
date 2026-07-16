@@ -509,6 +509,7 @@ func importedMappingFor(anilistID int64, targets map[string]json.RawMessage) (im
 	}
 	if len(collected.shows) == 1 {
 		for id, segments := range collected.shows {
+			segments = deduplicateImportedMappingSegments(segments)
 			slices.SortFunc(segments, func(left, right importedMappingSegment) int { return left.Season - right.Season })
 			return importedMapping{AniListID: anilistID, MALID: collected.malID, MediaType: "tv", TMDBID: id, Season: preferredSeason(segments), Segments: segments}, true
 		}
@@ -519,6 +520,49 @@ func importedMappingFor(anilistID int64, targets map[string]json.RawMessage) (im
 		}
 	}
 	return importedMapping{}, false
+}
+
+func deduplicateImportedMappingSegments(segments []importedMappingSegment) []importedMappingSegment {
+	if len(segments) < 2 {
+		return segments
+	}
+	selected := make(map[importedSegmentSourceKey]importedMappingSegment, len(segments))
+	for _, segment := range segments {
+		key := importedSegmentSourceKey{
+			SourceEpisodeMin: segment.SourceEpisodeMin,
+			SourceEpisodeMax: segment.SourceEpisodeMax,
+		}
+		current, ok := selected[key]
+		if !ok || betterImportedMappingSegment(segment, current) {
+			selected[key] = segment
+		}
+	}
+	out := make([]importedMappingSegment, 0, len(selected))
+	for _, segment := range selected {
+		out = append(out, segment)
+	}
+	return out
+}
+
+type importedSegmentSourceKey struct {
+	SourceEpisodeMin int
+	SourceEpisodeMax int
+}
+
+func betterImportedMappingSegment(candidate importedMappingSegment, current importedMappingSegment) bool {
+	candidateAligned := alignedImportedMappingSegment(candidate)
+	currentAligned := alignedImportedMappingSegment(current)
+	if candidateAligned != currentAligned {
+		return candidateAligned
+	}
+	return candidate.Season > current.Season
+}
+
+func alignedImportedMappingSegment(segment importedMappingSegment) bool {
+	return segment.SourceEpisodeMin > 0 &&
+		segment.SourceEpisodeMax > 0 &&
+		segment.SourceEpisodeMin == segment.TMDBEpisodeMin &&
+		segment.SourceEpisodeMax == segment.TMDBEpisodeMax
 }
 
 type mappingTargets struct {

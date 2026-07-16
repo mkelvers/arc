@@ -73,6 +73,17 @@ func TestAnimeEpisodeListURL(t *testing.T) {
 	}
 }
 
+func TestDeduplicateAnimeMappingSegmentsPrefersNormalizedSeasonSplit(t *testing.T) {
+	segments := deduplicateAnimeMappingSegments([]animeMappingSegment{
+		{Season: 1, SourceEpisodeMin: 1, SourceEpisodeMax: 24, TMDBEpisodeMin: 25, TMDBEpisodeMax: 48},
+		{Season: 2, SourceEpisodeMin: 1, SourceEpisodeMax: 24, TMDBEpisodeMin: 1, TMDBEpisodeMax: 24},
+	})
+
+	if len(segments) != 1 || segments[0].Season != 2 {
+		t.Fatalf("segments = %+v, want only normalized season 2", segments)
+	}
+}
+
 func TestSourceEpisodeDisplaysPreservesInlineSpecialPlaybackID(t *testing.T) {
 	displays := sourceEpisodeDisplays(animeEpisodeSource{
 		Anime:         domain.Anime{MalID: 53580, Title: "Slime Season 3"},

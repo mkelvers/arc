@@ -14,12 +14,12 @@ func (provider staticIdentityProvider) GetMALIDsByAniListID(_ context.Context, _
 
 func TestParseAniBridgeMappings(t *testing.T) {
 	payload := `{
-		"anilist:20":{"mal:20":{},"tmdb_show:46260:s1":{"1-52":"1-52"},"tmdb_show:46260:s2":{"53-104":"53-104"},"tmdb_show:46260:s3":{"105-158":"105-158"},"tmdb_show:46260:s4":{"159-220":"159-220"}},
-		"anilist:101280":{"mal:37430":{},"tmdb_show:82684:s1":{}},
-		"anilist:108511":{"mal:39551":{},"tmdb_show:82684:s0":{},"tmdb_show:82684:s2":{}},
-		"anilist:5":{"mal:5":{},"tmdb_movie:11299":{}},
-		"anilist:31":{"mal:31":{},"tmdb_movie:21832":{},"tmdb_movie:54270":{}},
-		"mal:37430":{"anilist:101280":{}}
+			"anilist:20":{"mal:20":{},"tmdb_show:46260:s1":{"1-52":"1-52"},"tmdb_show:46260:s2":{"53-104":"53-104"},"tmdb_show:46260:s3":{"105-158":"105-158"},"tmdb_show:46260:s4":{"159-220":"159-220"}},
+			"anilist:101280":{"mal:37430":{},"tmdb_show:82684:s1":{}},
+			"anilist:108511":{"mal:39551":{},"tmdb_show:82684:s0":{},"tmdb_show:82684:s2":{}},
+			"anilist:5":{"mal:5":{},"tmdb_movie:11299":{}},
+			"anilist:31":{"mal:31":{},"tmdb_movie:21832":{},"tmdb_movie:54270":{}},
+			"mal:37430":{"anilist:101280":{}}
 	}`
 
 	mappings, err := parseAniBridgeMappings(strings.NewReader(payload))
@@ -43,6 +43,26 @@ func TestParseAniBridgeMappings(t *testing.T) {
 	assertImportedMapping(t, byAniList[5], "movie", 11299, -1)
 	if _, ok := byAniList[31]; ok {
 		t.Fatal("ambiguous multi-movie mapping should be omitted")
+	}
+}
+
+func TestParseAniBridgeMappingsPrefersNormalizedSeasonSplit(t *testing.T) {
+	payload := `{
+			"anilist:176301":{"mal:58514":{},"tmdb_show:220542:s1":{"1-24":"25-48"},"tmdb_show:220542:s2":{"1-24":"1-24"}}
+		}`
+
+	mappings, err := parseAniBridgeMappings(strings.NewReader(payload))
+	if err != nil {
+		t.Fatalf("parse mappings: %v", err)
+	}
+	if len(mappings) != 1 {
+		t.Fatalf("got %d mappings, want 1", len(mappings))
+	}
+
+	mapping := mappings[0]
+	assertImportedMapping(t, mapping, "tv", 220542, 2)
+	if len(mapping.Segments) != 1 || mapping.Segments[0].Season != 2 {
+		t.Fatalf("segments = %+v, want only normalized season 2", mapping.Segments)
 	}
 }
 
