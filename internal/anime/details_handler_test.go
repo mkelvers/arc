@@ -253,6 +253,19 @@ func TestSourceEpisodeDisplaysPreservesGlobalNumbersAcrossOneAnimeTMDBSeasons(t 
 	}
 }
 
+func TestSourceEpisodeDisplaysTreatsEmptyKindAsRegular(t *testing.T) {
+	displays := sourceEpisodeDisplays(animeEpisodeSource{
+		Anime:    domain.Anime{MalID: 63802, TitleEnglish: "Mebius Dust"},
+		Episodes: []domain.CanonicalEpisode{{Number: 1, ID: "1", Order: 10, Title: "Episode 1"}},
+	}, map[int]tmdb.Episode{
+		1: {ID: 1, EpisodeNumber: 1, SeasonNumber: 1, Name: "First Light", StillPath: "/first.jpg", Runtime: 24},
+	})
+
+	if len(displays) != 1 || displays[0].Title != "First Light" || displays[0].ImageURL != tmdb.ImageURL("/first.jpg", "w500") || displays[0].Duration != "24m" {
+		t.Fatalf("fallback regular episode display = %+v", displays)
+	}
+}
+
 func TestOVATMDBEpisodeMatchesUsesUniqueSequence(t *testing.T) {
 	source := animeEpisodeSource{Kind: episodeKindOVA, Episodes: []domain.CanonicalEpisode{
 		{Number: 1, ID: "1", Order: 10, Title: "The Tragedy of M?"},

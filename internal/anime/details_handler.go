@@ -393,6 +393,10 @@ func (h *AnimeHandler) episodeSource(ctx context.Context, episodeCtx animeEpisod
 	if watchAnimeID <= 0 {
 		watchAnimeID = sourceAnime.MalID
 	}
+	kind := mapping.Kind
+	if kind == "" {
+		kind = episodeKindRegular
+	}
 	return animeEpisodeSource{
 		Anime:         sourceAnime,
 		Episodes:      episodeList.Episodes,
@@ -401,7 +405,7 @@ func (h *AnimeHandler) episodeSource(ctx context.Context, episodeCtx animeEpisod
 		WatchAnimeID:  watchAnimeID,
 		EpisodeMin:    mapping.EpisodeMin,
 		EpisodeMax:    mapping.EpisodeMax,
-		Kind:          mapping.Kind,
+		Kind:          kind,
 	}, true
 }
 
@@ -443,6 +447,9 @@ func episodeDisplays(sources []animeEpisodeSource, tmdbEpisodes map[int]tmdb.Epi
 }
 
 func sourceEpisodeDisplays(source animeEpisodeSource, tmdbEpisodes map[int]tmdb.Episode) []animeEpisodeDisplay {
+	if source.Kind == "" {
+		source.Kind = episodeKindRegular
+	}
 	source.Episodes = episodesWithinSourceBounds(source.Episodes, source.EpisodeMin, source.EpisodeMax)
 	if source.Kind == episodeKindBonus {
 		return bonusEpisodeDisplays(source, tmdbEpisodes)
@@ -1356,6 +1363,14 @@ func (h *AnimeHandler) resolveAnimeTMDBMapping(ctx context.Context, anime domain
 		if mapping, ok := resolved[mappingIdentity{AniListID: anime.AniListID, MALID: anime.MalID}]; ok {
 			return mapping, true
 		}
+		if ref, ok := h.selectedAnimeTMDBMediaRef(ctx, anime.MalID); ok {
+			return animeMapping{
+				AniListID: anime.AniListID,
+				MALID:     anime.MalID,
+				Group:     mappingGroup{MediaType: string(ref.Type), TMDBID: ref.ID},
+				Season:    fallbackTMDBSeason(anime),
+			}, true
+		}
 	}
 
 	ref, ok := h.searchAnimeTMDBMediaRef(ctx, anime)
@@ -1368,6 +1383,24 @@ func (h *AnimeHandler) resolveAnimeTMDBMapping(ctx context.Context, anime domain
 		Group:     mappingGroup{MediaType: string(ref.Type), TMDBID: ref.ID},
 		Season:    fallbackTMDBSeason(anime),
 	}, true
+}
+
+func (h *AnimeHandler) selectedAnimeTMDBMediaRef(ctx context.Context, animeID int) (tmdb.MediaRef, bool) {
+	selections, err := h.mappings.MediaSelections(ctx, animeID)
+	if err != nil {
+		return tmdb.MediaRef{}, false
+	}
+	for _, kind := range []string{mediaSelectionBackdrop, mediaSelectionLogo} {
+		selection, ok := selections[kind]
+		if ok && validateEpisodeMetadataMediaRef(selection.MediaRef) {
+			return selection.MediaRef, true
+		}
+	}
+	return tmdb.MediaRef{}, false
+}
+
+func validateEpisodeMetadataMediaRef(ref tmdb.MediaRef) bool {
+	return ref.ID > 0 && (ref.Type == tmdb.MediaTypeTV || ref.Type == tmdb.MediaTypeMovie)
 }
 
 func fallbackTMDBSeason(anime domain.Anime) int {
