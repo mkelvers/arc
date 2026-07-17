@@ -3,14 +3,43 @@
 <section id="anime-franchise" data-top-pick-carousel class="-mx-4 overflow-hidden bg-background px-6 pb-12 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20">
   <div class="mb-5 flex items-center justify-between gap-4">
     <h2 class="text-base font-bold text-foreground">Franchise Order</h2>
-    {{if .HasExtras}}
-      <button
-        type="button"
-        hx-get="/anime/{{.AnimeID}}/franchise{{if not .IncludeExtras}}?extras=1{{end}}"
-        hx-target="#anime-franchise"
-        hx-swap="outerHTML"
-        class="text-xs font-medium text-foreground-muted transition-colors hover:text-foreground"
-      >{{if .IncludeExtras}}TV &amp; Movies{{else}}Show extras{{end}}</button>
+    {{if .ExtraOptions}}
+      <ui-dropdown class="relative z-90 block" data-align="right" data-width="w-64">
+        <div data-trigger class="cursor-pointer">
+          <button class="flex items-center gap-2 bg-background-button px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-background-button-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Choose franchise entry types">
+            <span>TV &amp; movies</span>
+            <svg class="size-4 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div data-content class="hidden absolute right-0 top-full mt-2 w-64 bg-background-button p-3 shadow-card">
+          <form
+            hx-get="/anime/{{.AnimeID}}/franchise"
+            hx-trigger="change"
+            hx-target="#anime-franchise"
+            hx-swap="outerHTML"
+            class="flex flex-col"
+          >
+            <label class="flex cursor-default items-center gap-3 px-2.5 py-2 text-sm font-medium text-foreground">
+              <input type="checkbox" checked disabled class="sr-only">
+              <div class="flex h-5 w-5 items-center justify-center border-2 border-accent bg-foreground-muted/12">
+                <svg class="h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
+              </div>
+              <span>TV &amp; movies</span>
+            </label>
+            {{range .ExtraOptions}}
+              <label class="flex cursor-pointer items-center gap-3 px-2.5 py-2 text-sm font-medium text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground">
+                <input type="checkbox" name="types" value="{{.Type}}" class="sr-only" data-checkbox-visual {{if .Selected}}checked{{end}}>
+                <div class="flex h-5 w-5 items-center justify-center border-2 transition-colors {{if .Selected}}border-accent bg-foreground-muted/12{{else}}border-white/45 bg-transparent{{end}}">
+                  <svg class="{{if not .Selected}}hidden {{end}}h-3.5 w-3.5 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5" /></svg>
+                </div>
+                <span>{{.Label}}</span>
+              </label>
+            {{end}}
+          </form>
+        </div>
+      </ui-dropdown>
     {{end}}
   </div>
   <div class="relative min-w-0 overflow-hidden">
@@ -22,11 +51,11 @@
       {{end}}
     </div>
     <div data-top-pick-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-70 hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
-    <div data-top-pick-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-70 w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <div data-top-pick-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-70 hidden w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
     <button type="button" data-unstyled-button data-top-pick-prev class="pointer-events-auto absolute left-0 top-[42%] z-80 hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll franchise order left" aria-hidden="true" tabindex="-1">
       <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
-    <button type="button" data-unstyled-button data-top-pick-next class="pointer-events-auto absolute right-0 top-[42%] z-80 inline-flex h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll franchise order right" aria-hidden="false">
+    <button type="button" data-unstyled-button data-top-pick-next class="pointer-events-auto absolute right-0 top-[42%] z-80 hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll franchise order right" aria-hidden="true" tabindex="-1">
       <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
   </div>
