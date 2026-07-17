@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"mal/integrations/watchorder"
 	"mal/internal/domain"
@@ -14,6 +15,7 @@ type animeFranchiseEntry struct {
 	Type    string
 	Current bool
 	Primary bool
+	Badge   string
 }
 
 type franchiseExtraOption struct {
@@ -54,6 +56,7 @@ func franchiseEntriesFromAnimes(ordered []watchorder.WatchOrderEntry, animes []d
 	}
 	entries := make([]animeFranchiseEntry, 0, len(ordered))
 	seen := make(map[int]bool, len(ordered))
+	now := time.Now()
 	for _, item := range ordered {
 		anime, ok := byID[item.ID]
 		if !ok || seen[item.ID] {
@@ -69,9 +72,28 @@ func franchiseEntriesFromAnimes(ordered []watchorder.WatchOrderEntry, animes []d
 			Type:    entryType,
 			Current: item.ID == currentID,
 			Primary: entryType == "TV" || entryType == "MOVIE",
+			Badge:   franchiseReleaseBadge(anime, now),
 		})
 	}
 	return entries
+}
+
+func franchiseReleaseBadge(anime domain.Anime, now time.Time) string {
+	if strings.EqualFold(strings.TrimSpace(anime.Status), "Not yet aired") {
+		return "Not yet aired"
+	}
+	if startsAfter(anime.Aired.From, now) {
+		return "Not yet aired"
+	}
+	return ""
+}
+
+func startsAfter(value string, now time.Time) bool {
+	if strings.TrimSpace(value) == "" {
+		return false
+	}
+	startedAt, err := time.Parse(time.RFC3339, value)
+	return err == nil && now.Before(startedAt)
 }
 
 func normalizedFranchiseType(providerType, animeType string) string {
