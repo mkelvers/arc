@@ -155,10 +155,14 @@ func (s *playbackService) singleTMDBSeasonEpisodeTitles(ctx context.Context, map
 		}, "error", err)
 		return nil
 	}
-	titles := make(map[int]string, len(season.Episodes))
-	for _, episode := range season.Episodes {
-		if title := strings.TrimSpace(episode.Name); episode.EpisodeNumber > 0 && title != "" {
-			titles[episode.EpisodeNumber] = title
+	return localTMDBSeasonEpisodeTitles(season.Episodes)
+}
+
+func localTMDBSeasonEpisodeTitles(episodes []tmdb.Episode) map[int]string {
+	titles := make(map[int]string, len(episodes))
+	for index, episode := range episodes {
+		if title := strings.TrimSpace(episode.Name); title != "" {
+			titles[index+1] = title
 		}
 	}
 	return titles
