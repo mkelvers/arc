@@ -24,7 +24,7 @@
     <div class="absolute inset-x-6 bottom-12 z-5 flex max-w-2xl flex-col items-start gap-5 text-white md:left-12 md:right-auto lg:left-20">
       {{if $anime.LogoImageURL}}
         <img src="{{$anime.LogoImageURL}}" alt="{{$anime.DisplayTitle}}" class="max-h-60 max-w-[min(680px,86vw)] object-contain object-left drop-shadow-[0_12px_18px_rgba(0,0,0,0.65)]" />
-      {{else}}
+      {{else if not $anime.HideLogoTitle}}
         <h1 class="max-w-xl text-5xl font-bold leading-none text-white drop-shadow-[0_8px_14px_rgba(0,0,0,0.7)]">{{$anime.DisplayTitle}}</h1>
       {{end}}
 
