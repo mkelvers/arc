@@ -31,6 +31,11 @@ func (s *MappingStore) SaveMediaSelection(ctx context.Context, animeID int, kind
 		return fmt.Errorf("save media selection: file path is empty")
 	}
 
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM anime_media_selection
+		WHERE kind = ? AND tmdb_media_type = ? AND tmdb_id = ?`, kind, ref.Type, ref.ID); err != nil {
+		return fmt.Errorf("replace shared media selection kind=%s tmdb=%s:%d: %w", kind, ref.Type, ref.ID, err)
+	}
+
 	_, err := s.db.ExecContext(ctx, `INSERT INTO anime_media_selection
 		(anime_id, kind, tmdb_media_type, tmdb_id, file_path, updated_at)
 		VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -42,6 +47,21 @@ func (s *MappingStore) SaveMediaSelection(ctx context.Context, animeID int, kind
 		animeID, kind, ref.Type, ref.ID, filePath)
 	if err != nil {
 		return fmt.Errorf("save media selection anime_id=%d kind=%s: %w", animeID, kind, err)
+	}
+	return nil
+}
+
+func (s *MappingStore) DeleteMediaSelectionForRef(ctx context.Context, ref tmdb.MediaRef, kind string) error {
+	if !validMediaSelectionKind(kind) {
+		return fmt.Errorf("delete media selection: invalid kind %q", kind)
+	}
+	if err := validateMediaSelectionRef(ref); err != nil {
+		return fmt.Errorf("delete media selection: %w", err)
+	}
+	_, err := s.db.ExecContext(ctx, `DELETE FROM anime_media_selection
+		WHERE kind = ? AND tmdb_media_type = ? AND tmdb_id = ?`, kind, ref.Type, ref.ID)
+	if err != nil {
+		return fmt.Errorf("delete shared media selection kind=%s tmdb=%s:%d: %w", kind, ref.Type, ref.ID, err)
 	}
 	return nil
 }
@@ -87,6 +107,38 @@ func (s *MappingStore) MediaSelections(ctx context.Context, animeID int) (map[st
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate media selections anime_id=%d: %w", animeID, err)
+	}
+	return selections, nil
+}
+
+func (s *MappingStore) MediaSelectionsForRef(ctx context.Context, ref tmdb.MediaRef) (map[string]mediaSelection, error) {
+	if err := validateMediaSelectionRef(ref); err != nil {
+		return nil, fmt.Errorf("load shared media selections: %w", err)
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT kind, tmdb_media_type, tmdb_id, file_path
+		FROM anime_media_selection
+		WHERE tmdb_media_type = ? AND tmdb_id = ?
+		ORDER BY updated_at DESC`, ref.Type, ref.ID)
+	if err != nil {
+		return nil, fmt.Errorf("query shared media selections tmdb=%s:%d: %w", ref.Type, ref.ID, err)
+	}
+	defer rows.Close()
+
+	selections := make(map[string]mediaSelection)
+	for rows.Next() {
+		var selection mediaSelection
+		var mediaType string
+		if err := rows.Scan(&selection.Kind, &mediaType, &selection.MediaRef.ID, &selection.FilePath); err != nil {
+			return nil, fmt.Errorf("scan shared media selection: %w", err)
+		}
+		if _, exists := selections[selection.Kind]; exists {
+			continue
+		}
+		selection.MediaRef.Type = tmdb.MediaType(mediaType)
+		selections[selection.Kind] = selection
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate shared media selections: %w", err)
 	}
 	return selections, nil
 }

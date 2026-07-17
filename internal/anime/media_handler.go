@@ -55,7 +55,7 @@ func (h *AnimeHandler) HandleAnimeMedia(c *gin.Context) {
 		return
 	}
 
-	selections, err := h.mappings.MediaSelections(c.Request.Context(), anime.MalID)
+	selections, err := h.mappings.MediaSelectionsForRef(c.Request.Context(), ref)
 	if err != nil {
 		slog.Warn("anime_media_selection_load_failed", "component", "anime", "fields", map[string]any{
 			"anime_id": anime.MalID,
@@ -80,7 +80,12 @@ func (h *AnimeHandler) HandleSelectAnimeMedia(c *gin.Context) {
 	}
 
 	if unselect {
-		if err := h.mappings.DeleteMediaSelection(c.Request.Context(), anime.MalID, kind); err != nil {
+		ref, mapped := h.resolveAnimeTMDBMediaRef(c.Request.Context(), anime)
+		if !mapped {
+			server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "no TMDB media found")
+			return
+		}
+		if err := h.mappings.DeleteMediaSelectionForRef(c.Request.Context(), ref, kind); err != nil {
 			slog.Warn("anime_media_select_delete_failed", "component", "anime", "fields", map[string]any{
 				"anime_id": anime.MalID,
 				"kind":     kind,
@@ -190,7 +195,7 @@ func (h *AnimeHandler) validSelectedMediaPath(c *gin.Context, anime domain.Anime
 }
 
 func (h *AnimeHandler) tmdbMediaRef(ctx context.Context, anilistID int, malID int) (tmdb.MediaRef, bool, error) {
-	resolved, _, err := h.mappings.Resolve(ctx, []mappingIdentity{{AniListID: anilistID, MALID: malID}})
+	resolved, err := h.mappings.Resolve(ctx, []mappingIdentity{{AniListID: anilistID, MALID: malID}})
 	if err != nil {
 		return tmdb.MediaRef{}, false, err
 	}
@@ -255,7 +260,11 @@ func (h *AnimeHandler) applySelectedAnimeMedia(ctx context.Context, anime *domai
 	var selections map[string]mediaSelection
 	if h.mappings != nil {
 		var err error
-		selections, err = h.mappings.MediaSelections(ctx, anime.MalID)
+		if ref, ok := h.resolveAnimeTMDBMediaRef(ctx, *anime); ok {
+			selections, err = h.mappings.MediaSelectionsForRef(ctx, ref)
+		} else {
+			selections, err = h.mappings.MediaSelections(ctx, anime.MalID)
+		}
 		if err != nil {
 			slog.Warn("anime_selected_media_load_failed", "component", "anime", "fields", map[string]any{
 				"anime_id": anime.MalID,
