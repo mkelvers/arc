@@ -785,6 +785,18 @@ func (h *AnimeHandler) tmdbContinuationMappings(ctx context.Context, mappings []
 
 	var extensions []animeMapping
 	previous := latest
+	if previous.EpisodeMax <= 0 || previous.TMDBEpisodeMin <= 0 || previous.TMDBEpisodeMax <= 0 {
+		seasonCtx, cancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
+		season, err := h.tmdbClient.GetSeasonMetadata(seasonCtx, previous.Group.TMDBID, previous.Season, "en-US")
+		cancel()
+		if err != nil {
+			return nil
+		}
+		previous, ok = tmdbContinuationSeedMapping(previous, season)
+		if !ok {
+			return nil
+		}
+	}
 	for previous.EpisodeMax < maxAvailableEpisode {
 		next, ok := h.nextTMDBContinuationMapping(ctx, previous)
 		if !ok {
@@ -800,8 +812,8 @@ func (h *AnimeHandler) latestContinuationMapping(mappings []animeMapping, maxAva
 	if h.tmdbClient == nil || maxAvailableEpisode <= 0 {
 		return animeMapping{}, false
 	}
-	latest, ok := latestTVMappingSegment(mappings)
-	if !ok || latest.EpisodeMax <= 0 || latest.EpisodeMax >= maxAvailableEpisode {
+	latest, ok := latestTVReleaseMapping(mappings)
+	if !ok || latest.EpisodeMax > 0 && latest.EpisodeMax >= maxAvailableEpisode {
 		return animeMapping{}, false
 	}
 	return latest, true
@@ -819,20 +831,35 @@ func (h *AnimeHandler) nextTMDBContinuationMapping(ctx context.Context, previous
 	return next, ok && next.EpisodeMax > previous.EpisodeMax
 }
 
-func latestTVMappingSegment(mappings []animeMapping) (animeMapping, bool) {
+func latestTVReleaseMapping(mappings []animeMapping) (animeMapping, bool) {
 	var latest animeMapping
+	found := false
 	for _, mapping := range mappings {
 		if mapping.Group.MediaType != string(tmdb.MediaTypeTV) || mapping.Group.TMDBID <= 0 || mapping.Season <= 0 || mapping.Kind != episodeKindRegular {
 			continue
 		}
-		if mapping.EpisodeMax <= 0 || mapping.TMDBEpisodeMax <= 0 {
-			continue
-		}
-		if latest.EpisodeMax == 0 || mapping.EpisodeMax > latest.EpisodeMax {
+		if !found || mapping.EpisodeMax > latest.EpisodeMax || mapping.EpisodeMax == latest.EpisodeMax && mapping.Season > latest.Season {
 			latest = mapping
+			found = true
 		}
 	}
-	return latest, latest.EpisodeMax > 0
+	return latest, found
+}
+
+func tmdbContinuationSeedMapping(mapping animeMapping, season tmdb.Season) (animeMapping, bool) {
+	tmdbMin, tmdbMax, ok := tmdbSeasonEpisodeRange(season.Episodes)
+	if !ok {
+		return animeMapping{}, false
+	}
+	if mapping.EpisodeMin <= 0 {
+		mapping.EpisodeMin = 1
+	}
+	if mapping.EpisodeMax <= 0 {
+		mapping.EpisodeMax = mapping.EpisodeMin + tmdbMax - tmdbMin
+	}
+	mapping.TMDBEpisodeMin = tmdbMin
+	mapping.TMDBEpisodeMax = tmdbMax
+	return mapping, true
 }
 
 func tmdbContinuationMapping(previous animeMapping, season tmdb.Season) (animeMapping, bool) {
