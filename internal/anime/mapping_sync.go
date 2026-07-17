@@ -607,12 +607,42 @@ func deduplicateImportedMappingSegments(segments []importedMappingSegment) []imp
 	for _, segment := range selected {
 		out = append(out, segment)
 	}
-	return out
+	return pruneContainedImportedMappingSegments(out)
 }
 
 type importedSegmentSourceKey struct {
 	SourceEpisodeMin int
 	SourceEpisodeMax int
+}
+
+func pruneContainedImportedMappingSegments(segments []importedMappingSegment) []importedMappingSegment {
+	if len(segments) < 2 {
+		return segments
+	}
+	out := make([]importedMappingSegment, 0, len(segments))
+	for index, segment := range segments {
+		contained := false
+		for otherIndex, other := range segments {
+			if index != otherIndex && importedSegmentSourceContains(other, segment) {
+				contained = true
+				break
+			}
+		}
+		if !contained {
+			out = append(out, segment)
+		}
+	}
+	return out
+}
+
+func importedSegmentSourceContains(container importedMappingSegment, segment importedMappingSegment) bool {
+	if container.SourceEpisodeMin <= 0 || container.SourceEpisodeMax <= 0 || segment.SourceEpisodeMin <= 0 || segment.SourceEpisodeMax <= 0 {
+		return false
+	}
+	if container.SourceEpisodeMin > segment.SourceEpisodeMin || container.SourceEpisodeMax < segment.SourceEpisodeMax {
+		return false
+	}
+	return container.SourceEpisodeMin < segment.SourceEpisodeMin || container.SourceEpisodeMax > segment.SourceEpisodeMax
 }
 
 func betterImportedMappingSegment(candidate importedMappingSegment, current importedMappingSegment) bool {
