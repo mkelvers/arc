@@ -157,6 +157,31 @@ func TestGetSeasonMetadataPrefersEpisodeGroupSeason(t *testing.T) {
 	}
 }
 
+func TestGetSeasonMetadataPreservesEpisodeNumbersForMatchingSeason(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/tv/46260/episode_groups", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":46260,"results":[{"id":"seasons","name":"Seasons","episode_count":220,"group_count":4,"type":1}]}`)
+	})
+	mux.HandleFunc("/tv/episode_group/seasons", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":"seasons","name":"Seasons","group_count":4,"groups":[{"id":"season-2","name":"Season 2","order":2,"episodes":[{"id":53,"name":"Long Time No See: Jiraiya Returns!","episode_number":53,"season_number":2,"still_path":"/episode-53.jpg","runtime":24}]}]}`)
+	})
+	client, server := testClient(t, mux)
+	defer server.Close()
+
+	season, err := client.GetSeasonMetadata(context.Background(), 46260, 2, "en-US")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(season.Episodes) != 1 {
+		t.Fatalf("expected one episode, got %+v", season)
+	}
+	episode := season.Episodes[0]
+	if episode.EpisodeNumber != 53 || episode.SeasonNumber != 2 || episode.StillPath != "/episode-53.jpg" || episode.Runtime != 24 {
+		t.Fatalf("matching-season episode metadata was renumbered: %+v", episode)
+	}
+}
+
 func TestGetSeasonMetadataPrefersNoSpecialsBeforeTVDBArcGroups(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()

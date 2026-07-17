@@ -230,8 +230,11 @@ func episodeGroupBlockForSeason(blocks []EpisodeBlock, seasonNumber int) (Episod
 func seasonFromEpisodeBlock(block EpisodeBlock, seasonNumber int) Season {
 	episodes := make([]Episode, 0, len(block.Episodes))
 	for index, episode := range block.Episodes {
+		originalSeason := episode.SeasonNumber
 		episode.SeasonNumber = seasonNumber
-		episode.EpisodeNumber = index + 1
+		if originalSeason != seasonNumber || episode.EpisodeNumber <= 0 {
+			episode.EpisodeNumber = index + 1
+		}
 		episodes = append(episodes, episode)
 	}
 	return Season{
