@@ -16,6 +16,12 @@ type animeFranchiseEntry struct {
 	Primary bool
 }
 
+type franchiseExtraOption struct {
+	Type     string
+	Label    string
+	Selected bool
+}
+
 func (s *animeService) GetFranchise(ctx context.Context, id int) ([]animeFranchiseEntry, error) {
 	if s.metadata == nil || s.watchOrder == nil {
 		return nil, fmt.Errorf("get franchise: providers are unavailable")
@@ -78,24 +84,54 @@ func normalizedFranchiseType(providerType, animeType string) string {
 
 func isVisibleFranchiseType(entryType string) bool {
 	switch entryType {
-	case "TV", "MOVIE", "OVA", "ONA", "SPECIAL", "TV SPECIAL":
+	case "TV", "MOVIE", "OVA", "ONA", "SPECIAL", "TV SPECIAL", "MUSIC":
 		return true
 	default:
 		return false
 	}
 }
 
-func franchiseEntriesForDisplay(entries []animeFranchiseEntry, includeExtras bool) ([]animeFranchiseEntry, bool) {
+func franchiseEntriesForDisplay(entries []animeFranchiseEntry, selectedExtras map[string]bool) ([]animeFranchiseEntry, []franchiseExtraOption) {
 	visible := make([]animeFranchiseEntry, 0, len(entries))
-	hasExtras := false
 	for _, entry := range entries {
 		if !entry.Primary {
-			hasExtras = true
-			if !includeExtras {
+			if !selectedExtras[entry.Type] {
 				continue
 			}
 		}
 		visible = append(visible, entry)
 	}
-	return visible, hasExtras
+	return visible, franchiseExtraOptions(entries, selectedExtras)
+}
+
+func franchiseExtraOptions(entries []animeFranchiseEntry, selectedExtras map[string]bool) []franchiseExtraOption {
+	seen := make(map[string]bool)
+	options := make([]franchiseExtraOption, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Primary || seen[entry.Type] {
+			continue
+		}
+		seen[entry.Type] = true
+		options = append(options, franchiseExtraOption{
+			Type:     entry.Type,
+			Label:    franchiseTypeLabel(entry.Type),
+			Selected: selectedExtras[entry.Type],
+		})
+	}
+	return options
+}
+
+func franchiseTypeLabel(entryType string) string {
+	switch entryType {
+	case "TV SPECIAL":
+		return "TV specials"
+	case "SPECIAL":
+		return "Specials"
+	case "MOVIE":
+		return "Movies"
+	case "MUSIC":
+		return "Music"
+	default:
+		return entryType
+	}
 }
