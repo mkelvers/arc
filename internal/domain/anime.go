@@ -60,6 +60,7 @@ type Anime struct {
 	TitleSynonyms  []string     `json:"title_synonyms"`
 	BannerImageURL string       `json:"banner_image_url"`
 	LogoImageURL   string       `json:"logo_image_url"`
+	HideLogoTitle  bool         `json:"hide_logo_title"`
 	Titles         []TitleEntry `json:"titles"`
 	Images         struct {
 		Jpg struct {
