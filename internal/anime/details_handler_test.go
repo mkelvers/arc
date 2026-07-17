@@ -17,6 +17,16 @@ func TestDeduplicateAnimeMappingSegmentsPrefersNormalizedSeasonSplit(t *testing.
 	}
 }
 
+func TestDeduplicateAnimeMappingSegmentsPrunesContainedSpecialAlternative(t *testing.T) {
+	segments := deduplicateAnimeMappingSegments([]animeMappingSegment{
+		{Season: 0, SourceEpisodeMin: 1, SourceEpisodeMax: 9, TMDBEpisodeMin: 1, TMDBEpisodeMax: 9},
+		{Season: 1, SourceEpisodeMin: 1, SourceEpisodeMax: 12, TMDBEpisodeMin: 48, TMDBEpisodeMax: 59},
+	})
+	if len(segments) != 1 || segments[0].Season != 1 {
+		t.Fatalf("segments = %+v, want only containing regular season", segments)
+	}
+}
+
 func TestReleaseEpisodeKindUsesTVFormatWhenMappingSeasonIsZero(t *testing.T) {
 	kind := releaseEpisodeKind(domain.Anime{Type: "TV"}, animeMapping{Season: 0})
 	if kind != episodeKindRegular {
