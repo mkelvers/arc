@@ -28,14 +28,18 @@ func (h *AnimeHandler) HandleAnimeFranchise(c *gin.Context) {
 		slog.Warn("anime_franchise_fetch_failed", "component", "anime", "fields", map[string]any{"anime_id": id}, "error", err)
 	}
 
-	animes := make([]int64, 0, len(entries))
-	for _, entry := range entries {
+	includeExtras := c.Query("extras") == "1"
+	visibleEntries, hasExtras := franchiseEntriesForDisplay(entries, includeExtras)
+	animes := make([]int64, 0, len(visibleEntries))
+	for _, entry := range visibleEntries {
 		animes = append(animes, int64(entry.Anime.MalID))
 	}
 	c.HTML(http.StatusOK, "anime.gohtml", gin.H{
-		"_fragment":    "anime_franchise",
-		"AnimeID":      id,
-		"Entries":      entries,
-		"WatchlistMap": h.watchlistMapForIDs(c.Request.Context(), server.CurrentUserID(c), animes),
+		"_fragment":     "anime_franchise",
+		"AnimeID":       id,
+		"Entries":       visibleEntries,
+		"HasExtras":     hasExtras,
+		"IncludeExtras": includeExtras,
+		"WatchlistMap":  h.watchlistMapForIDs(c.Request.Context(), server.CurrentUserID(c), animes),
 	})
 }
