@@ -3,6 +3,7 @@ package anime
 import (
 	"slices"
 	"testing"
+	"time"
 
 	"mal/integrations/watchorder"
 	"mal/internal/domain"
@@ -63,5 +64,28 @@ func TestFranchiseEntriesForDisplayDefaultsToTVAndMovies(t *testing.T) {
 	}
 	if !options[0].Selected || options[1].Selected {
 		t.Fatalf("option selection = %+v", options)
+	}
+}
+
+func TestFranchiseReleaseBadgeMarksNotYetAiredStatus(t *testing.T) {
+	badge := franchiseReleaseBadge(domain.Anime{Status: "Not yet aired"}, time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC))
+	if badge != "Not yet aired" {
+		t.Fatalf("badge = %q", badge)
+	}
+}
+
+func TestFranchiseReleaseBadgeMarksFutureStartDate(t *testing.T) {
+	anime := domain.Anime{Aired: domain.Aired{From: "2027-01-01T00:00:00+00:00"}}
+	badge := franchiseReleaseBadge(anime, time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC))
+	if badge != "Not yet aired" {
+		t.Fatalf("badge = %q", badge)
+	}
+}
+
+func TestFranchiseReleaseBadgeIgnoresStartedAnime(t *testing.T) {
+	anime := domain.Anime{Status: "Currently Airing", Aired: domain.Aired{From: "2026-01-01T00:00:00+00:00"}}
+	badge := franchiseReleaseBadge(anime, time.Date(2026, 7, 17, 0, 0, 0, 0, time.UTC))
+	if badge != "" {
+		t.Fatalf("badge = %q", badge)
 	}
 }
