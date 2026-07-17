@@ -130,6 +130,57 @@ func TestGetSeasonMetadataFallsBackToEpisodeGroupSeason(t *testing.T) {
 	}
 }
 
+func TestGetSeasonMetadataPrefersEpisodeGroupSeason(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/tv/207468/episode_groups", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":207468,"results":[{"id":"seasons","name":"Seasons","episode_count":24,"group_count":3,"type":6}]}`)
+	})
+	mux.HandleFunc("/tv/episode_group/seasons", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":"seasons","name":"Seasons","group_count":3,"groups":[{"id":"season-1","name":"Season 1","order":1,"episodes":[{"id":1,"name":"The Man Who Became a Kaiju","episode_number":1,"season_number":1}]},{"id":"season-2","name":"Season 2","order":2,"episodes":[{"id":13,"name":"Kaiju Weapon","episode_number":13,"season_number":1},{"id":14,"name":"The Next Generation's Trial","episode_number":14,"season_number":1}]}]}`)
+	})
+	mux.HandleFunc("/tv/207468/season/2", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":2,"name":"Season 2","season_number":2,"episodes":[{"id":1,"name":"Wrong local season episode","episode_number":1,"season_number":2}]}`)
+	})
+	client, server := testClient(t, mux)
+	defer server.Close()
+
+	season, err := client.GetSeasonMetadata(context.Background(), 207468, 2, "en-US")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(season.Episodes) != 2 || season.Episodes[0].Name != "Kaiju Weapon" {
+		t.Fatalf("expected episode-group slice, got %+v", season)
+	}
+	if season.Episodes[0].EpisodeNumber != 1 || season.Episodes[0].SeasonNumber != 2 {
+		t.Fatalf("episode group slice was not normalized: %+v", season.Episodes[0])
+	}
+}
+
+func TestGetSeasonMetadataPrefersNoSpecialsBeforeTVDBArcGroups(t *testing.T) {
+	t.Parallel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/tv/30984/episode_groups", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":30984,"results":[{"id":"tvdb","name":"TVDB Order","episode_count":410,"group_count":18,"type":1},{"id":"no-specials","name":"No Specials","episode_count":406,"group_count":2,"type":1}]}`)
+	})
+	mux.HandleFunc("/tv/episode_group/tvdb", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":"tvdb","name":"TVDB Order","groups":[{"id":"arc-1","name":"Substitute Shinigami","order":1,"episodes":[{"id":1,"name":"The Day I Became a Shinigami","episode_number":1,"season_number":1}]}]}`)
+	})
+	mux.HandleFunc("/tv/episode_group/no-specials", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, `{"id":"no-specials","name":"No Specials","groups":[{"id":"bleach","name":"Bleach","order":1,"episodes":[{"id":1,"name":"The Day I Became a Shinigami","episode_number":1,"season_number":1},{"id":21,"name":"Enter! The World of the Shinigami","episode_number":21,"season_number":1}]}]}`)
+	})
+	client, server := testClient(t, mux)
+	defer server.Close()
+
+	season, err := client.GetSeasonMetadata(context.Background(), 30984, 1, "en-US")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(season.Episodes) != 2 || season.Episodes[1].Name != "Enter! The World of the Shinigami" {
+		t.Fatalf("expected no-specials group, got %+v", season)
+	}
+}
+
 func TestAPIErrorAndMissingToken(t *testing.T) {
 	t.Parallel()
 	client, server := testClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

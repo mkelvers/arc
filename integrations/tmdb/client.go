@@ -156,13 +156,13 @@ func (c *Client) GetSeason(ctx context.Context, seriesID int64, seasonNumber int
 }
 
 func (c *Client) GetSeasonMetadata(ctx context.Context, seriesID int64, seasonNumber int, language string) (Season, error) {
-	season, err := c.GetSeason(ctx, seriesID, seasonNumber, language)
-	if err == nil && len(season.Episodes) > 0 {
-		return season, nil
-	}
 	groupSeason, groupErr := c.getEpisodeGroupSeason(ctx, seriesID, seasonNumber)
 	if groupErr == nil && len(groupSeason.Episodes) > 0 {
 		return groupSeason, nil
+	}
+	season, err := c.GetSeason(ctx, seriesID, seasonNumber, language)
+	if err == nil && len(season.Episodes) > 0 {
+		return season, nil
 	}
 	if err != nil {
 		return Season{}, err
@@ -196,6 +196,11 @@ func (c *Client) getEpisodeGroupSeason(ctx context.Context, seriesID int64, seas
 func seasonsEpisodeGroup(groups []EpisodeGroupSummary) (EpisodeGroupSummary, bool) {
 	for _, group := range groups {
 		if strings.EqualFold(strings.TrimSpace(group.Name), "Seasons") {
+			return group, true
+		}
+	}
+	for _, group := range groups {
+		if strings.EqualFold(strings.TrimSpace(group.Name), "No Specials") {
 			return group, true
 		}
 	}
