@@ -8,6 +8,11 @@ import (
 	"mal/internal/domain"
 )
 
+const (
+	allAnimeAvailabilityFreshTTL = 10 * time.Minute
+	allAnimeAvailabilityStaleTTL = 7 * 24 * time.Hour
+)
+
 type cachedAvailabilityProvider struct {
 	inner domain.EpisodeAvailabilityProvider
 	cache domain.CacheStore
@@ -35,7 +40,7 @@ func (p *cachedAvailabilityProvider) GetEpisodeAvailabilityByProviderID(ctx cont
 
 	fetched, err := p.inner.GetEpisodeAvailabilityByProviderID(ctx, providerID)
 	if err == nil {
-		_ = p.cache.Set(ctx, key, fetched, 7*24*time.Hour, 7*24*time.Hour)
+		_ = p.cache.Set(ctx, key, fetched, allAnimeAvailabilityFreshTTL, allAnimeAvailabilityStaleTTL)
 		return fetched, nil
 	}
 	if result.State == domain.CacheStale {
