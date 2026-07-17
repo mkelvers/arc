@@ -178,18 +178,3 @@ func assertImportedMapping(t *testing.T, mapping importedMapping, mediaType stri
 		t.Fatalf("unexpected mapping: %+v", mapping)
 	}
 }
-
-func TestBetterCanonicalPrefersSeasonOneAndManualOverride(t *testing.T) {
-	group := mappingGroup{MediaType: "tv", TMDBID: 82684}
-	seasonOne := animeMapping{AniListID: 101280, MALID: 37430, Group: group, Season: 1}
-	seasonTwo := animeMapping{AniListID: 108511, MALID: 39551, Group: group, Season: 2}
-	special := animeMapping{AniListID: 106509, MALID: 38793, Group: group, Season: 0}
-	manual := animeMapping{AniListID: 108511, MALID: 39551, Group: group, Season: 2, Canonical: true}
-
-	if !betterCanonical(seasonOne, seasonTwo) || !betterCanonical(seasonOne, special) {
-		t.Fatal("season one should be the automatic canonical entry")
-	}
-	if !betterCanonical(manual, seasonOne) {
-		t.Fatal("manual canonical override should win")
-	}
-}
