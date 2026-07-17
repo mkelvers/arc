@@ -112,7 +112,7 @@ func (s *playbackService) loadWatchAnimeEpisodes(ctx context.Context, animeID in
 
 func (s *playbackService) watchEpisodeMapping(ctx context.Context, animeID int) (domain.AnimeMediaMapping, bool) {
 	mapping, err := s.repo.GetAnimeMappingByMALID(ctx, int64(animeID))
-	if err == nil && mapping.MediaType == "tv" && mapping.TMDBID > 0 && mapping.Season > 0 {
+	if err == nil && mapping.MediaType == "tv" && mapping.TMDBID > 0 && mapping.Season >= 0 {
 		return mapping, true
 	}
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -125,7 +125,7 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	out := loaded.episodes
 	out.Episodes = append([]domain.CanonicalEpisode(nil), loaded.episodes.Episodes...)
 	if mapping, ok := s.watchEpisodeMapping(ctx, loaded.anime.MalID); ok {
-		titles := s.tmdbSeasonEpisodeTitles(ctx, mapping)
+		titles := s.tmdbSeasonEpisodeTitles(ctx, mapping, loaded.anime, loaded.episodes.Episodes)
 		for index := range out.Episodes {
 			if title := strings.TrimSpace(titles[out.Episodes[index].Number]); title != "" {
 				out.Episodes[index].Title = title
@@ -135,19 +135,20 @@ func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watch
 	return markWatchEpisodeContext(out, loaded.anime.MalID, providerEpisode)
 }
 
-func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping) map[int]string {
+func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping, anime domain.Anime, episodes []domain.CanonicalEpisode) map[int]string {
 	if s.tmdbClient == nil || mapping.MediaType != string(tmdb.MediaTypeTV) || mapping.TMDBID <= 0 || mapping.Season < 0 {
 		return nil
 	}
 	segments, segmentErr := s.repo.GetAnimeMappingSegments(ctx, mapping)
 	if segmentErr == nil && len(segments) > 0 {
-		return s.tmdbSegmentEpisodeTitles(ctx, mapping, segments)
+		return s.tmdbSegmentEpisodeTitles(ctx, mapping, segments, anime, episodes)
 	}
-	return s.singleTMDBSeasonEpisodeTitles(ctx, mapping)
+	return s.singleTMDBSeasonEpisodeTitles(ctx, mapping, anime, episodes)
 }
 
-func (s *playbackService) singleTMDBSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping) map[int]string {
-	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, mapping.Season, "en-US")
+func (s *playbackService) singleTMDBSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping, anime domain.Anime, episodes []domain.CanonicalEpisode) map[int]string {
+	match := playbackTMDBReleaseMatch(anime, episodes, mapping.Season, 0, 0, 0, 0)
+	season, err := s.tmdbClient.GetSeasonMetadataForRelease(ctx, mapping.TMDBID, match, "en-US")
 	if err != nil {
 		slog.Warn("watch_episode_tmdb_season_failed", "component", "playback", "fields", map[string]any{
 			"tmdb_id":     mapping.TMDBID,
@@ -168,46 +169,101 @@ func localTMDBSeasonEpisodeTitles(episodes []tmdb.Episode) map[int]string {
 	return titles
 }
 
-func (s *playbackService) tmdbSegmentEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping, segments []domain.AnimeMediaSegment) map[int]string {
+func (s *playbackService) tmdbSegmentEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping, segments []domain.AnimeMediaSegment, anime domain.Anime, episodes []domain.CanonicalEpisode) map[int]string {
 	titles := make(map[int]string)
 	for _, segment := range segments {
-		for number, title := range s.tmdbSegmentTitles(ctx, mapping, segment) {
+		for number, title := range s.tmdbSegmentTitles(ctx, mapping, segment, anime, episodes) {
 			titles[number] = title
 		}
 	}
 	return titles
 }
 
-func (s *playbackService) tmdbSegmentTitles(ctx context.Context, mapping domain.AnimeMediaMapping, segment domain.AnimeMediaSegment) map[int]string {
+func (s *playbackService) tmdbSegmentTitles(ctx context.Context, mapping domain.AnimeMediaMapping, segment domain.AnimeMediaSegment, anime domain.Anime, episodes []domain.CanonicalEpisode) map[int]string {
 	titles := make(map[int]string)
-	if segment.Season <= 0 {
+	if segment.Season < 0 {
 		return titles
 	}
-	season, err := s.tmdbClient.GetSeasonMetadata(ctx, mapping.TMDBID, segment.Season, "en-US")
+	match := playbackTMDBReleaseMatch(anime, episodes, segment.Season, segment.SourceEpisodeMin, segment.SourceEpisodeMax, segment.TMDBEpisodeMin, segment.TMDBEpisodeMax)
+	season, err := s.tmdbClient.GetSeasonMetadataForRelease(ctx, mapping.TMDBID, match, "en-US")
 	if err != nil {
 		slog.Warn("watch_episode_tmdb_segment_failed", "component", "playback", "fields", map[string]any{
 			"tmdb_id": mapping.TMDBID, "tmdb_season": segment.Season,
 		}, "error", err)
 		return titles
 	}
-	for _, episode := range season.Episodes {
-		if number, title, ok := mappedSegmentEpisode(segment, episode); ok {
+	for index, episode := range season.Episodes {
+		if number, title, ok := mappedSegmentEpisode(segment, episode, index, len(season.Episodes)); ok {
 			titles[number] = title
 		}
 	}
 	return titles
 }
 
-func mappedSegmentEpisode(segment domain.AnimeMediaSegment, episode tmdb.Episode) (int, string, bool) {
-	if segment.TMDBEpisodeMin > 0 && episode.EpisodeNumber < segment.TMDBEpisodeMin || segment.TMDBEpisodeMax > 0 && episode.EpisodeNumber > segment.TMDBEpisodeMax {
-		return 0, "", false
-	}
-	number := episode.EpisodeNumber
-	if segment.SourceEpisodeMin > 0 && segment.TMDBEpisodeMin > 0 {
-		number = segment.SourceEpisodeMin + episode.EpisodeNumber - segment.TMDBEpisodeMin
-	}
+func mappedSegmentEpisode(segment domain.AnimeMediaSegment, episode tmdb.Episode, index, seasonLength int) (int, string, bool) {
+	number := mappedSegmentEpisodeNumber(segment, episode.EpisodeNumber, index, seasonLength)
 	title := strings.TrimSpace(episode.Name)
 	return number, title, number > 0 && title != ""
+}
+
+func mappedSegmentEpisodeNumber(segment domain.AnimeMediaSegment, episodeNumber, index, seasonLength int) int {
+	if episodeWithinTMDBSegment(segment, episodeNumber) {
+		number := episodeNumber
+		if segment.SourceEpisodeMin > 0 && segment.TMDBEpisodeMin > 0 {
+			number = segment.SourceEpisodeMin + episodeNumber - segment.TMDBEpisodeMin
+		}
+		return number
+	}
+	segmentLength := segment.TMDBEpisodeMax - segment.TMDBEpisodeMin + 1
+	if segmentIndexMatchesInventory(segment, segmentLength, index, seasonLength) {
+		return segment.SourceEpisodeMin + index
+	}
+	return 0
+}
+
+func episodeWithinTMDBSegment(segment domain.AnimeMediaSegment, episodeNumber int) bool {
+	afterStart := segment.TMDBEpisodeMin <= 0 || episodeNumber >= segment.TMDBEpisodeMin
+	beforeEnd := segment.TMDBEpisodeMax <= 0 || episodeNumber <= segment.TMDBEpisodeMax
+	return afterStart && beforeEnd
+}
+
+func segmentIndexMatchesInventory(segment domain.AnimeMediaSegment, segmentLength, index, seasonLength int) bool {
+	validSegment := segment.SourceEpisodeMin > 0 && segmentLength > 0
+	validIndex := index >= 0 && index < segmentLength
+	return validSegment && validIndex && seasonLength == segmentLength
+}
+
+func playbackTMDBReleaseMatch(anime domain.Anime, episodes []domain.CanonicalEpisode, season, sourceMin, sourceMax, tmdbMin, tmdbMax int) tmdb.SeasonMetadataMatch {
+	match := tmdb.SeasonMetadataMatch{
+		SeasonNumber: season,
+		EpisodeMin:   tmdbMin,
+		EpisodeMax:   tmdbMax,
+	}
+	if sourceMin > 0 && sourceMax >= sourceMin {
+		match.EpisodeCount = sourceMax - sourceMin + 1
+	}
+	match.EpisodeTitles = playbackReleaseTitles(episodes, sourceMin, sourceMax)
+	if match.EpisodeCount == 0 {
+		match.EpisodeCount = len(match.EpisodeTitles)
+		if match.EpisodeCount == 0 {
+			match.EpisodeCount = anime.Episodes
+		}
+	}
+	if sourceMin <= 1 {
+		match.FirstAirDate = anime.Aired.From
+	}
+	return match
+}
+
+func playbackReleaseTitles(episodes []domain.CanonicalEpisode, sourceMin, sourceMax int) []string {
+	titles := make([]string, 0, len(episodes))
+	for _, episode := range episodes {
+		if episode.Special || sourceMin > 0 && episode.Number < sourceMin || sourceMax > 0 && episode.Number > sourceMax {
+			continue
+		}
+		titles = append(titles, episode.Title)
+	}
+	return titles
 }
 
 func markWatchEpisodeContext(input domain.CanonicalEpisodeList, animeID int, providerEpisode string) domain.CanonicalEpisodeList {
