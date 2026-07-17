@@ -17,6 +17,13 @@ func ovaTMDBEpisodeMatches(source animeEpisodeSource, episodes map[int]tmdb.Epis
 	sort.SliceStable(providerEpisodes, func(i, j int) bool {
 		return providerEpisodes[i].SortOrder() < providerEpisodes[j].SortOrder()
 	})
+	if source.MediaOffset > 0 {
+		start := source.MediaOffset + providerEpisodes[0].Number
+		candidates := ovaTMDBSequence(episodes, start, len(providerEpisodes))
+		if len(candidates) == len(providerEpisodes) {
+			return assignOVASequenceByPosition(providerEpisodes, candidates)
+		}
+	}
 	start, ok := ovaTMDBSequenceStart(providerEpisodes, episodes)
 	if !ok {
 		start, ok = tmdbSequenceStartByAirDates(source.Anime, episodes, len(providerEpisodes))
@@ -29,6 +36,14 @@ func ovaTMDBEpisodeMatches(source animeEpisodeSource, episodes map[int]tmdb.Epis
 		return nil
 	}
 	return assignOVASequence(providerEpisodes, candidates)
+}
+
+func assignOVASequenceByPosition(providerEpisodes []domain.CanonicalEpisode, candidates []tmdb.Episode) map[string]tmdb.Episode {
+	assigned := make(map[string]tmdb.Episode, len(providerEpisodes))
+	for i := range providerEpisodes {
+		assigned[providerEpisodes[i].PlaybackID()] = candidates[i]
+	}
+	return assigned
 }
 
 func tmdbSequenceStartByAirDates(anime domain.Anime, episodes map[int]tmdb.Episode, count int) (int, bool) {
