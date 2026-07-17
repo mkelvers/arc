@@ -1,15 +1,8 @@
 {{define "anime_episode_list"}}
 {{$items := .Items}}
 <section id="anime-episode-list" class="-mx-4 bg-background px-6 pb-10 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20">
-  <div class="flex items-center justify-between gap-4">
-    <h2 class="text-base font-bold text-foreground">{{$items.SeasonLabel}}</h2>
-    {{if $items.Episodes}}
-      <span class="text-xs font-bold uppercase text-foreground-muted">{{len $items.Episodes}} Episodes</span>
-    {{end}}
-  </div>
-
   {{if $items.Episodes}}
-    <div class="mt-5 grid gap-x-5 gap-y-8 grid-cols-1 md:grid-cols-5 2xl:grid-cols-7">
+    <div class="grid gap-x-5 gap-y-8 grid-cols-1 md:grid-cols-5 2xl:grid-cols-7">
       {{range $items.Episodes}}
         <a href="{{.WatchURL}}" class="group relative block min-h-56 min-w-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent">
           <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
@@ -75,8 +68,7 @@
   hx-swap="outerHTML"
   class="-mx-4 bg-background px-6 pb-10 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20"
 >
-  <div class="h-5 w-28 animate-pulse bg-white/10"></div>
-  <div class="mt-5 grid gap-x-5 gap-y-8 grid-cols-1 md:grid-cols-5 2xl:grid-cols-7">
+  <div class="grid gap-x-5 gap-y-8 grid-cols-1 md:grid-cols-5 2xl:grid-cols-7">
     {{range seq 5}}
       <div>
         <div class="aspect-video animate-pulse bg-white/10"></div>
