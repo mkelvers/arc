@@ -61,6 +61,13 @@ const updateTopPickCarousels = (root: ParentNode = document): void => {
   topPickCarousels(root).forEach(updateTopPickCarousel);
 };
 
+const scheduleTopPickCarouselUpdate = (root: ParentNode = document): void => {
+  updateTopPickCarousels(root);
+  window.requestAnimationFrame(() => {
+    updateTopPickCarousels(root);
+  });
+};
+
 const carouselScrollAmount = (track: HTMLElement): number => {
   const firstItem = track.querySelector<HTMLElement>("[data-top-pick-item]");
   if (!firstItem) {
@@ -146,12 +153,12 @@ document.addEventListener(
 );
 
 onReady(() => {
-  updateTopPickCarousels();
+  scheduleTopPickCarouselUpdate();
 });
 onHtmxLoad((root) => {
-  updateTopPickCarousels(root);
+  scheduleTopPickCarouselUpdate(root);
 });
 window.addEventListener("resize", () => {
-  updateTopPickCarousels();
+  scheduleTopPickCarouselUpdate();
 });
 import { onHtmxLoad, onReady } from "./utils";
