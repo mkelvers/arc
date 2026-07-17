@@ -193,15 +193,83 @@ func TestAppendSyntheticSeasonsLabelsOVAs(t *testing.T) {
 
 func TestClassifySpecialMappingsUsesSharedSpecialsSeason(t *testing.T) {
 	mappings := []animeMapping{{Season: 0}, {Season: 0}, {Season: 0}}
-	classifySpecialMapping(&mappings[0], 5)
-	classifySpecialMapping(&mappings[1], 2)
-	classifySpecialMapping(&mappings[2], 3)
+	classifySpecialMapping(&mappings[0], 5, domain.Anime{}, false)
+	classifySpecialMapping(&mappings[1], 2, domain.Anime{}, false)
+	classifySpecialMapping(&mappings[2], 3, domain.Anime{}, false)
 
 	if mappings[0].SeasonLabel != "Specials" || mappings[1].SeasonLabel != "Specials" || mappings[2].SeasonLabel != "Specials" {
 		t.Fatalf("unexpected special labels: %+v", mappings)
 	}
 	if mappings[0].LogicalSeason != bonusSeason || mappings[1].LogicalSeason != bonusSeason || mappings[2].LogicalSeason != bonusSeason {
 		t.Fatalf("special mappings were not grouped together: %+v", mappings)
+	}
+}
+
+func TestAssignSpecialGroupSeasonsKeepsTitlesSeparate(t *testing.T) {
+	plan := []animeMapping{
+		{AniListID: 161802, Kind: episodeKindOVA, ReleaseDate: "2023-11-01T00:00:00Z", TMDBEpisodeMin: 11, SeasonLabel: "Visions of Coleus"},
+		{AniListID: 99999, Kind: episodeKindOVA, ReleaseDate: "2022-03-19T00:00:00Z", SeasonLabel: "Sukuwareru Ramiris"},
+		{AniListID: 106509, Kind: episodeKindOVA, ReleaseDate: "2019-07-09T00:00:00Z", TMDBEpisodeMin: 2, SeasonLabel: "That Time I Got Reincarnated as a Slime OAD"},
+		{AniListID: 999, Kind: episodeKindBonus, SeasonLabel: "Specials"},
+	}
+
+	assignSpecialGroupSeasons(plan)
+	if plan[2].LogicalSeason != ovaSeasonBase+1 || plan[1].LogicalSeason != ovaSeasonBase+2 || plan[0].LogicalSeason != ovaSeasonBase+3 {
+		t.Fatalf("special groups were not ordered by release date: %+v", plan)
+	}
+	if plan[3].LogicalSeason != 0 {
+		t.Fatalf("generic specials group was changed: %+v", plan[3])
+	}
+}
+
+func TestAssignSpecialGroupLabelsRemovesSharedFranchiseTitle(t *testing.T) {
+	plan := []animeMapping{
+		{MALID: 1, Kind: episodeKindRegular, LogicalSeason: 1},
+		{MALID: 2, Kind: episodeKindOVA, SeasonLabel: "That Time I Got Reincarnated as a Slime OAD"},
+		{MALID: 3, Kind: episodeKindOVA, SeasonLabel: "Tensei Shitara Slime Datta Ken: Sukuwareru Ramiris"},
+		{MALID: 4, Kind: episodeKindOVA, SeasonLabel: "That Time I Got Reincarnated as a Slime: Visions of Coleus"},
+	}
+	metadata := map[int]domain.Anime{
+		1: {TitleEnglish: "That Time I Got Reincarnated as a Slime", Title: "Tensei Shitara Slime Datta Ken"},
+		2: {TitleEnglish: "That Time I Got Reincarnated as a Slime OAD"},
+		3: {Title: "Tensei Shitara Slime Datta Ken: Sukuwareru Ramiris"},
+		4: {TitleEnglish: "That Time I Got Reincarnated as a Slime: Visions of Coleus"},
+	}
+
+	assignSpecialGroupLabels(plan, metadata)
+	want := []string{"", "OAD", "Sukuwareru Ramiris", "Visions of Coleus"}
+	for i := range plan {
+		if plan[i].SeasonLabel != want[i] {
+			t.Fatalf("plan[%d].SeasonLabel = %q, want %q", i, plan[i].SeasonLabel, want[i])
+		}
+	}
+}
+
+func TestSeasonZeroMappingDoesNotInheritPreviousSpecialOffset(t *testing.T) {
+	offsets := map[int]int{0: 6, 2: 12}
+	if got := episodeMappingMediaOffset(animeMapping{Season: 0}, offsets); got != 0 {
+		t.Fatalf("season-zero media offset = %d, want 0", got)
+	}
+	if got := episodeMappingMediaOffset(animeMapping{Season: 0, EpisodeMin: 1, TMDBEpisodeMin: 9}, offsets); got != 8 {
+		t.Fatalf("explicit season-zero media offset = %d, want 8", got)
+	}
+	if got := episodeMappingMediaOffset(animeMapping{Season: 2}, offsets); got != 12 {
+		t.Fatalf("regular media offset = %d, want 12", got)
+	}
+
+	advanceMappingMediaOffset(animeMapping{Season: 0, EpisodeCount: 2}, offsets)
+	if offsets[0] != 6 {
+		t.Fatalf("inferred season-zero offset advanced to %d, want 6", offsets[0])
+	}
+}
+
+func TestDisambiguateSpecialEpisodeOrdersReservesEarlierInlineSpecial(t *testing.T) {
+	episodes := []animeEpisodeDisplay{{Number: 23, Label: "E23.5", Order: 235}}
+	plan := []animeMapping{{Kind: episodeKindInline, LogicalSeason: 1, DisplayOffset: 23}}
+
+	disambiguateSpecialEpisodeOrders(episodes, plan, 2)
+	if episodes[0].Order != 236 || episodes[0].Label != "E23.6" {
+		t.Fatalf("special episode = %+v, want the next free fractional position", episodes[0])
 	}
 }
 
@@ -267,7 +335,7 @@ func TestSourceEpisodeDisplaysTreatsEmptyKindAsRegular(t *testing.T) {
 }
 
 func TestOVATMDBEpisodeMatchesUsesUniqueSequence(t *testing.T) {
-	source := animeEpisodeSource{Kind: episodeKindOVA, Episodes: []domain.CanonicalEpisode{
+	source := animeEpisodeSource{Kind: episodeKindOVA, MediaOffset: 1, Episodes: []domain.CanonicalEpisode{
 		{Number: 1, ID: "1", Order: 10, Title: "The Tragedy of M?"},
 		{Number: 2, ID: "2", Order: 20, Title: "The Tragedy of M?"},
 		{Number: 3, ID: "3", Order: 30, Title: "Extra: Rimuru's Glamorous Life as a Teacher, Part 1"},
@@ -283,7 +351,7 @@ func TestOVATMDBEpisodeMatchesUsesUniqueSequence(t *testing.T) {
 	}
 
 	matches := ovaTMDBEpisodeMatches(source, media)
-	if matches["1"].Name != "Extra: Hey! Butts!" || matches["2"].Name != "Extra: The Tragedy of M?" {
+	if matches["1"].Name != "Extra: The Tragedy of M?" || matches["2"].Name != "Extra: Hey! Butts!" {
 		t.Fatalf("duplicate provider title was not repaired: %+v", matches)
 	}
 	if matches["4"].EpisodeNumber != 5 || matches["5"].EpisodeNumber != 6 {
@@ -362,7 +430,7 @@ func TestRegularSeasonLabelIncludesOrdinalAndTitle(t *testing.T) {
 	}
 }
 
-func TestApplyPlaybackSeasonsIncludesCompleteMappedSeries(t *testing.T) {
+func TestApplyPlaybackSeasonsUsesStableSeasonLabels(t *testing.T) {
 	display := animeEpisodeListDisplay{Selected: 1}
 	plan := []animeMapping{
 		{MALID: 32182, LogicalSeason: 1, AvailableCount: 12, SeasonLabel: "Season 1: Mob Psycho 100"},
@@ -375,11 +443,39 @@ func TestApplyPlaybackSeasonsIncludesCompleteMappedSeries(t *testing.T) {
 	if len(display.Seasons) != 3 {
 		t.Fatalf("len(display.Seasons) = %d, want 3", len(display.Seasons))
 	}
-	if display.SeasonLabel != "Season 1: Mob Psycho 100" {
-		t.Fatalf("SeasonLabel = %q, want explicit first-season label", display.SeasonLabel)
+	if display.SeasonLabel != "Season 1" {
+		t.Fatalf("SeasonLabel = %q, want stable first-season label", display.SeasonLabel)
 	}
-	if display.Seasons[1].Label != "Season 2: Mob Psycho 100 II" || display.Seasons[2].Label != "Season 3: Mob Psycho 100 III" {
+	if display.Seasons[1].Label != "Season 2" || display.Seasons[2].Label != "Season 3" {
 		t.Fatalf("unexpected mapped season labels: %+v", display.Seasons)
+	}
+}
+
+func TestEpisodesWithinSourceBoundsKeepsLeadingSpecial(t *testing.T) {
+	episodes := []domain.CanonicalEpisode{
+		{ID: "0", Number: 0, Order: 5, Special: true},
+		{ID: "1", Number: 1, Order: 10},
+		{ID: "12", Number: 12, Order: 120},
+		{ID: "13", Number: 13, Order: 130},
+	}
+
+	bounded := episodesWithinSourceBounds(episodes, 1, 12)
+	if len(bounded) != 3 || bounded[0].ID != "0" || bounded[2].ID != "12" {
+		t.Fatalf("bounded episodes = %+v, want leading special and episodes 1-12", bounded)
+	}
+}
+
+func TestMatchingTMDBEpisodeForSourceUsesDateForDuplicateSpecialTitle(t *testing.T) {
+	episodes := map[int]tmdb.Episode{
+		24: {ID: 24, SeasonNumber: 1, EpisodeNumber: 24, Name: "Black and the Mask", AirDate: "2019-03-19"},
+		1:  {ID: 101, SeasonNumber: 0, EpisodeNumber: 1, Name: "Veldora's Journal", AirDate: "2019-03-26"},
+		8:  {ID: 108, SeasonNumber: 0, EpisodeNumber: 8, Name: "Tales: Veldora's Journal 2", AirDate: "2021-06-29"},
+	}
+	episode := domain.CanonicalEpisode{Number: 24, ID: "24.5", Order: 245, Special: true, Title: "Veldora's Journal"}
+
+	match := matchingTMDBEpisodeForSource(episodes, 0, episode)
+	if match.ID != 101 {
+		t.Fatalf("matched special = %+v, want the first journal after season 1", match)
 	}
 }
 
@@ -398,6 +494,31 @@ func TestApplyPlaybackSeasonsIncludesMappedSeasonWithoutCachedCount(t *testing.T
 	}
 	if display.Seasons[1].Count != 0 || display.Seasons[2].Count != 0 {
 		t.Fatalf("uncached season counts should remain unknown: %+v", display.Seasons)
+	}
+}
+
+func TestApplyPlaybackSeasonsCollapsesSplitCourLabels(t *testing.T) {
+	display := animeEpisodeListDisplay{Selected: 1}
+	plan := []animeMapping{
+		{MALID: 39535, LogicalSeason: 1, AvailableCount: 11, SeasonLabel: "Season 1: Mushoku Tensei: Jobless Reincarnation"},
+		{MALID: 45576, LogicalSeason: 1, AvailableCount: 13, SeasonLabel: "Season 1: Mushoku Tensei: Jobless Reincarnation Part 2"},
+		{MALID: 51179, LogicalSeason: 2, AvailableCount: 12, SeasonLabel: "Season 2: Mushoku Tensei: Jobless Reincarnation Season 2"},
+		{MALID: 55888, LogicalSeason: 2, AvailableCount: 13, SeasonLabel: "Season 2: Mushoku Tensei: Jobless Reincarnation Season 2 Part 2"},
+	}
+
+	applyPlaybackSeasons(plan, &display)
+
+	if len(display.Seasons) != 2 {
+		t.Fatalf("len(display.Seasons) = %d, want 2", len(display.Seasons))
+	}
+	if display.SeasonLabel != "Season 1" {
+		t.Fatalf("SeasonLabel = %q, want collapsed season label", display.SeasonLabel)
+	}
+	if display.Seasons[0].Label != "Season 1" || display.Seasons[0].Count != 24 {
+		t.Fatalf("season 1 was not collapsed cleanly: %+v", display.Seasons[0])
+	}
+	if display.Seasons[1].Label != "Season 2" || display.Seasons[1].Count != 25 {
+		t.Fatalf("season 2 was not collapsed cleanly: %+v", display.Seasons[1])
 	}
 }
 
