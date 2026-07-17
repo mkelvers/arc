@@ -10,10 +10,10 @@ import (
 )
 
 type animeFranchiseEntry struct {
-	Anime     domain.Anime
-	Type      string
-	Current   bool
-	Secondary bool
+	Anime   domain.Anime
+	Type    string
+	Current bool
+	Primary bool
 }
 
 func (s *animeService) GetFranchise(ctx context.Context, id int) ([]animeFranchiseEntry, error) {
@@ -53,13 +53,49 @@ func franchiseEntriesFromAnimes(ordered []watchorder.WatchOrderEntry, animes []d
 		if !ok || seen[item.ID] {
 			continue
 		}
+		entryType := normalizedFranchiseType(item.Type, anime.Type)
+		if !isVisibleFranchiseType(entryType) {
+			continue
+		}
 		seen[item.ID] = true
 		entries = append(entries, animeFranchiseEntry{
-			Anime:     anime,
-			Type:      strings.ToUpper(strings.TrimSpace(item.Type)),
-			Current:   item.ID == currentID,
-			Secondary: item.Secondary,
+			Anime:   anime,
+			Type:    entryType,
+			Current: item.ID == currentID,
+			Primary: entryType == "TV" || entryType == "MOVIE",
 		})
 	}
 	return entries
+}
+
+func normalizedFranchiseType(providerType, animeType string) string {
+	entryType := strings.ToUpper(strings.TrimSpace(providerType))
+	if entryType == "" {
+		entryType = strings.ToUpper(strings.TrimSpace(animeType))
+	}
+	return entryType
+}
+
+func isVisibleFranchiseType(entryType string) bool {
+	switch entryType {
+	case "TV", "MOVIE", "OVA", "ONA", "SPECIAL", "TV SPECIAL":
+		return true
+	default:
+		return false
+	}
+}
+
+func franchiseEntriesForDisplay(entries []animeFranchiseEntry, includeExtras bool) ([]animeFranchiseEntry, bool) {
+	visible := make([]animeFranchiseEntry, 0, len(entries))
+	hasExtras := false
+	for _, entry := range entries {
+		if !entry.Primary {
+			hasExtras = true
+			if !includeExtras {
+				continue
+			}
+		}
+		visible = append(visible, entry)
+	}
+	return visible, hasExtras
 }
