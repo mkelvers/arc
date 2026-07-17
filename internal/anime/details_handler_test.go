@@ -36,6 +36,58 @@ func TestSourceEpisodeNumberForTMDBPreservesLongRunningNumbers(t *testing.T) {
 	}
 }
 
+func TestTMDBContinuationMappingPreservesAbsoluteEpisodeNumbers(t *testing.T) {
+	previous := animeMapping{
+		MALID:          21,
+		Group:          mappingGroup{MediaType: "tv", TMDBID: 37854},
+		Season:         21,
+		EpisodeMin:     892,
+		EpisodeMax:     1088,
+		TMDBEpisodeMin: 892,
+		TMDBEpisodeMax: 1088,
+		Kind:           episodeKindRegular,
+	}
+	next, ok := tmdbContinuationMapping(previous, tmdb.Season{
+		SeasonNumber: 22,
+		Episodes: []tmdb.Episode{
+			{EpisodeNumber: 1089},
+			{EpisodeNumber: 1155},
+		},
+	})
+	if !ok {
+		t.Fatal("expected continuation mapping")
+	}
+	if next.Season != 22 || next.EpisodeMin != 1089 || next.EpisodeMax != 1155 || next.TMDBEpisodeMin != 1089 || next.TMDBEpisodeMax != 1155 {
+		t.Fatalf("continuation mapping = %+v", next)
+	}
+}
+
+func TestTMDBContinuationMappingContinuesResetSeasonNumbers(t *testing.T) {
+	previous := animeMapping{
+		MALID:          123,
+		Group:          mappingGroup{MediaType: "tv", TMDBID: 456},
+		Season:         1,
+		EpisodeMin:     1,
+		EpisodeMax:     12,
+		TMDBEpisodeMin: 1,
+		TMDBEpisodeMax: 12,
+		Kind:           episodeKindRegular,
+	}
+	next, ok := tmdbContinuationMapping(previous, tmdb.Season{
+		SeasonNumber: 2,
+		Episodes: []tmdb.Episode{
+			{EpisodeNumber: 1},
+			{EpisodeNumber: 12},
+		},
+	})
+	if !ok {
+		t.Fatal("expected continuation mapping")
+	}
+	if next.Season != 2 || next.EpisodeMin != 13 || next.EpisodeMax != 24 || next.TMDBEpisodeMin != 1 || next.TMDBEpisodeMax != 12 {
+		t.Fatalf("reset continuation mapping = %+v", next)
+	}
+}
+
 func TestSourceEpisodeDisplaysKeepsReleaseLocalNumbers(t *testing.T) {
 	displays := sourceEpisodeDisplays(animeEpisodeSource{
 		Anime:        domain.Anime{MalID: 20, TitleEnglish: "Naruto"},
