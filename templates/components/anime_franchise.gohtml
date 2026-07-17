@@ -1,21 +1,34 @@
 {{define "anime_franchise"}}
 {{if gt (len .Entries) 1}}
-<section id="anime-franchise" class="-mx-4 bg-background px-6 pb-12 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20">
+<section id="anime-franchise" data-top-pick-carousel class="-mx-4 overflow-hidden bg-background px-6 pb-12 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20">
   <div class="mb-5 flex items-center justify-between gap-4">
     <h2 class="text-base font-bold text-foreground">Franchise Order</h2>
-    <span class="text-xs font-bold uppercase text-foreground-muted">{{len .Entries}} Titles</span>
+    {{if .HasExtras}}
+      <button
+        type="button"
+        hx-get="/anime/{{.AnimeID}}/franchise{{if not .IncludeExtras}}?extras=1{{end}}"
+        hx-target="#anime-franchise"
+        hx-swap="outerHTML"
+        class="text-xs font-medium text-foreground-muted transition-colors hover:text-foreground"
+      >{{if .IncludeExtras}}TV &amp; Movies{{else}}Show extras{{end}}</button>
+    {{end}}
   </div>
-  <div class="-mx-6 overflow-x-auto px-6 scrollbar-hidden md:-mx-12 md:px-12 lg:-mx-20 lg:px-20">
-    <div class="grid grid-flow-col auto-cols-[42%] gap-4 md:auto-cols-[calc((100%-4rem)/5)] 2xl:auto-cols-[calc((100%-7.5rem)/7)] 2xl:gap-5">
+  <div class="relative min-w-0 overflow-hidden">
+    <div data-top-pick-track tabindex="0" class="grid min-w-0 grid-flow-col auto-cols-[42%] gap-4 overflow-x-auto scroll-smooth scrollbar-hidden md:auto-cols-[calc((100%-4rem)/5)] 2xl:auto-cols-[calc((100%-7.5rem)/7)] 2xl:gap-5">
       {{range .Entries}}
-        <div class="relative min-w-0 {{if .Current}}ring-2 ring-white ring-offset-2 ring-offset-background{{end}}">
+        <div data-top-pick-item class="relative min-w-0 border-b-[3px] pb-3 {{if .Current}}border-white{{else}}border-transparent{{end}}">
           {{template "anime_card" dict "Anime" .Anime "WithActions" true "Compact" true "IsWatchlist" (index $.WatchlistMap .Anime.MalID) "SmallHoverTitle" true}}
-          {{if .Type}}
-            <span class="pointer-events-none absolute left-2 top-2 z-20 bg-black/75 px-2 py-1 text-[0.6rem] font-bold uppercase text-white">{{.Type}}</span>
-          {{end}}
         </div>
       {{end}}
     </div>
+    <div data-top-pick-prev-fade class="pointer-events-none absolute inset-y-0 left-0 z-70 hidden w-20 bg-linear-to-r from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <div data-top-pick-next-fade class="pointer-events-none absolute inset-y-0 right-0 z-70 w-20 bg-linear-to-l from-background via-background/80 to-transparent" aria-hidden="true"></div>
+    <button type="button" data-unstyled-button data-top-pick-prev class="pointer-events-auto absolute left-0 top-[42%] z-80 hidden h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll franchise order left" aria-hidden="true" tabindex="-1">
+      <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button type="button" data-unstyled-button data-top-pick-next class="pointer-events-auto absolute right-0 top-[42%] z-80 inline-flex h-16 w-14 -translate-y-1/2 cursor-pointer items-center justify-center text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent" aria-label="Scroll franchise order right" aria-hidden="false">
+      <svg class="pointer-events-auto size-10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
   </div>
 </section>
 {{else}}
