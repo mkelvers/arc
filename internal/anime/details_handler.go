@@ -256,7 +256,7 @@ func (h *AnimeHandler) releaseEpisodeMappings(ctx context.Context, anime domain.
 
 func releaseEpisodeKind(anime domain.Anime, mapping animeMapping) string {
 	switch strings.ToUpper(strings.TrimSpace(anime.Type)) {
-	case "OVA", "ONA", "SPECIAL":
+	case "OVA", "SPECIAL":
 		return episodeKindOVA
 	}
 	if mapping.Season == 0 {
