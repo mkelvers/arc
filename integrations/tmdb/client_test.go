@@ -130,7 +130,7 @@ func TestGetSeasonMetadataFallsBackToEpisodeGroupSeason(t *testing.T) {
 	}
 }
 
-func TestGetSeasonMetadataPrefersEpisodeGroupSeason(t *testing.T) {
+func TestGetSeasonMetadataPrefersRegularSeasonWhenAvailable(t *testing.T) {
 	t.Parallel()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/tv/207468/episode_groups", func(w http.ResponseWriter, _ *http.Request) {
@@ -140,7 +140,7 @@ func TestGetSeasonMetadataPrefersEpisodeGroupSeason(t *testing.T) {
 		writeJSON(t, w, `{"id":"seasons","name":"Seasons","group_count":3,"groups":[{"id":"season-1","name":"Season 1","order":1,"episodes":[{"id":1,"name":"The Man Who Became a Kaiju","episode_number":1,"season_number":1}]},{"id":"season-2","name":"Season 2","order":2,"episodes":[{"id":13,"name":"Kaiju Weapon","episode_number":13,"season_number":1},{"id":14,"name":"The Next Generation's Trial","episode_number":14,"season_number":1}]}]}`)
 	})
 	mux.HandleFunc("/tv/207468/season/2", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(t, w, `{"id":2,"name":"Season 2","season_number":2,"episodes":[{"id":1,"name":"Wrong local season episode","episode_number":1,"season_number":2}]}`)
+		writeJSON(t, w, `{"id":2,"name":"Season 2","season_number":2,"episodes":[{"id":1,"name":"Regular season metadata","overview":"Richer metadata from the canonical season endpoint.","still_path":"/regular.jpg","episode_number":1,"season_number":2}]}`)
 	})
 	client, server := testClient(t, mux)
 	defer server.Close()
@@ -149,11 +149,11 @@ func TestGetSeasonMetadataPrefersEpisodeGroupSeason(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(season.Episodes) != 2 || season.Episodes[0].Name != "Kaiju Weapon" {
-		t.Fatalf("expected episode-group slice, got %+v", season)
+	if len(season.Episodes) != 1 || season.Episodes[0].Name != "Regular season metadata" {
+		t.Fatalf("expected regular season metadata, got %+v", season)
 	}
-	if season.Episodes[0].EpisodeNumber != 1 || season.Episodes[0].SeasonNumber != 2 {
-		t.Fatalf("episode group slice was not normalized: %+v", season.Episodes[0])
+	if season.Episodes[0].StillPath != "/regular.jpg" || season.Episodes[0].Overview == "" {
+		t.Fatalf("regular season details were not preserved: %+v", season.Episodes[0])
 	}
 }
 
