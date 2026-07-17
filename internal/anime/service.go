@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"mal/integrations/anilist"
+	"mal/integrations/watchorder"
 	"mal/internal/database/db"
 	"mal/internal/domain"
 	"math/rand"
@@ -15,8 +16,8 @@ import (
 
 type animeService struct {
 	metadata         *anilist.CachedClient
+	watchOrder       *watchorder.CachedClient
 	repo             domain.AnimeRepository
-	grouper          *CardGrouper
 	topPicksCache    *topPicksCache
 	topPicksCacheTTL time.Duration
 	computeTopPicks  recommendationComputeFunc
@@ -28,15 +29,15 @@ func wrapAnimes(in []domain.Anime) []domain.Anime {
 	return append([]domain.Anime(nil), in...)
 }
 
-func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, repo domain.AnimeRepository, grouper *CardGrouper) *animeService {
-	return newAnimeService(metadata, repo, grouper)
+func NewAnimeServiceWithMetadata(metadata *anilist.CachedClient, watchOrder *watchorder.CachedClient, repo domain.AnimeRepository) *animeService {
+	return newAnimeService(metadata, watchOrder, repo)
 }
 
-func newAnimeService(metadata *anilist.CachedClient, repo domain.AnimeRepository, grouper *CardGrouper) *animeService {
+func newAnimeService(metadata *anilist.CachedClient, watchOrder *watchorder.CachedClient, repo domain.AnimeRepository) *animeService {
 	svc := &animeService{
 		metadata:         metadata,
+		watchOrder:       watchOrder,
 		repo:             repo,
-		grouper:          grouper,
 		topPicksCache:    &topPicksCache{entries: map[topPicksCacheKey]*topPicksCacheEntry{}},
 		topPicksCacheTTL: 15 * time.Minute,
 	}
@@ -111,7 +112,6 @@ func (s *animeService) catalogSectionMetadata(ctx context.Context, section strin
 	for _, item := range result.Items {
 		res.Animes = append(res.Animes, anilist.ToMetadataAnime(item))
 	}
-	res.Animes = groupCardsOrOriginal(ctx, s.grouper, res.Animes)
 	return res, nil
 }
 
@@ -178,7 +178,6 @@ func (s *animeService) SearchAdvanced(ctx context.Context, opts domain.SearchOpt
 	for _, item := range result.Items {
 		animes = append(animes, anilist.ToMetadataAnime(anilist.Anime{ID: item.ID, MALID: item.MALID, Title: item.Title, Format: item.Format, SeasonYear: item.StartYear, CoverImage: item.CoverImage, Relations: item.Relations}))
 	}
-	animes = groupCardsOrOriginal(ctx, s.grouper, animes)
 	return domain.SearchResult{Animes: animes, HasNextPage: result.HasNextPage}, nil
 }
 
@@ -231,7 +230,6 @@ func (s *animeService) GetRecommendations(ctx context.Context, id int) ([]domain
 			animes = append(animes, anime)
 			votes[item.Anime.MALID] = item.Votes
 		}
-		animes = groupCardsOrOriginal(ctx, s.grouper, animes)
 		out := make([]domain.RecommendationEntry, 0, len(animes))
 		for _, anime := range animes {
 			var mapped domain.RecommendationEntry
@@ -280,10 +278,6 @@ func (s *animeService) GetRandomAnime(ctx context.Context) (domain.Anime, error)
 		if err == nil && len(result.Items) > 0 {
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
 			picked := anilist.ToMetadataAnime(result.Items[r.Intn(len(result.Items))])
-			grouped := groupCardsOrOriginal(ctx, s.grouper, []domain.Anime{picked})
-			if len(grouped) > 0 {
-				return grouped[0], nil
-			}
 			return picked, nil
 		}
 		return domain.Anime{}, fmt.Errorf("get random anime: AniList unavailable: %w", err)

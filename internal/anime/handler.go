@@ -22,6 +22,7 @@ type Service interface {
 	domain.RecommendationInvalidator
 	domain.AnimeSearchService
 	domain.AnimeDetailsService
+	GetFranchise(ctx context.Context, id int) ([]animeFranchiseEntry, error)
 	WarmDetailSections(id int)
 }
 
@@ -72,6 +73,7 @@ func (h *AnimeHandler) Register(r *gin.Engine) {
 	r.GET("/anime/:id", h.HandleAnimeDetails)
 	r.GET("/anime/:id/episodes", h.HandleAnimeEpisodeList)
 	r.GET("/anime/:id/episodes/:season", h.HandleAnimeEpisodeList)
+	r.GET("/anime/:id/franchise", h.HandleAnimeFranchise)
 	r.GET("/anime/:id/media", h.HandleAnimeMedia)
 	r.POST("/anime/:id/media", h.HandleSelectAnimeMedia)
 	r.GET("/api/search-quick", h.HandleQuickSearch)

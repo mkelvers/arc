@@ -1,0 +1,44 @@
+{{define "anime_franchise"}}
+{{if gt (len .Entries) 1}}
+<section id="anime-franchise" class="-mx-4 bg-background px-6 pb-12 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20">
+  <div class="mb-5 flex items-center justify-between gap-4">
+    <h2 class="text-base font-bold text-foreground">Franchise Order</h2>
+    <span class="text-xs font-bold uppercase text-foreground-muted">{{len .Entries}} Titles</span>
+  </div>
+  <div class="-mx-6 overflow-x-auto px-6 scrollbar-hidden md:-mx-12 md:px-12 lg:-mx-20 lg:px-20">
+    <div class="grid grid-flow-col auto-cols-[42%] gap-4 md:auto-cols-[calc((100%-4rem)/5)] 2xl:auto-cols-[calc((100%-7.5rem)/7)] 2xl:gap-5">
+      {{range .Entries}}
+        <div class="relative min-w-0 {{if .Current}}ring-2 ring-white ring-offset-2 ring-offset-background{{end}}">
+          {{template "anime_card" dict "Anime" .Anime "WithActions" true "Compact" true "IsWatchlist" (index $.WatchlistMap .Anime.MalID) "SmallHoverTitle" true}}
+          {{if .Type}}
+            <span class="pointer-events-none absolute left-2 top-2 z-20 bg-black/75 px-2 py-1 text-[0.6rem] font-bold uppercase text-white">{{.Type}}</span>
+          {{end}}
+        </div>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{else}}
+<div id="anime-franchise"></div>
+{{end}}
+{{end}}
+
+{{define "anime_franchise_loading"}}
+<section
+  id="anime-franchise"
+  hx-get="/anime/{{.AnimeID}}/franchise"
+  hx-trigger="load delay:250ms"
+  hx-swap="outerHTML"
+  class="-mx-4 bg-background px-6 pb-12 pt-7 md:-mx-6 md:px-12 lg:-mx-8 lg:px-20"
+>
+  <div class="h-5 w-32 animate-pulse bg-white/10"></div>
+  <div class="mt-5 grid grid-cols-2 gap-4 md:grid-cols-5 2xl:grid-cols-7 2xl:gap-5">
+    {{range seq 5}}
+      <div>
+        <div class="aspect-2/3 animate-pulse bg-white/10"></div>
+        <div class="mt-2 h-4 w-4/5 animate-pulse bg-white/10"></div>
+      </div>
+    {{end}}
+  </div>
+</section>
+{{end}}
