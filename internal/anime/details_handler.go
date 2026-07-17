@@ -21,7 +21,8 @@ import (
 
 const (
 	animeSectionTimeout = 12 * time.Second
-	tmdbMetadataTimeout = 2 * time.Second
+	tmdbMetadataTimeout = 6 * time.Second
+	tmdbMetadataWorkers = 6
 	episodePlanTimeout  = 2 * time.Second
 	audioLookupTimeout  = 8 * time.Second
 	episodeCountTimeout = 4 * time.Second
@@ -744,14 +745,28 @@ func (h *AnimeHandler) tmdbReleaseEpisodes(ctx context.Context, anime domain.Ani
 	if h.tmdbClient == nil || len(mappings) == 0 {
 		return nil
 	}
+	type seasonResult struct {
+		episodes []tmdb.Episode
+		ok       bool
+	}
+	results := make([]seasonResult, len(mappings))
+	var group errgroup.Group
+	group.SetLimit(tmdbMetadataWorkers)
+	for index, mapping := range mappings {
+		group.Go(func() error {
+			results[index].episodes, results[index].ok = h.tmdbReleaseSeason(ctx, anime.MalID, mapping)
+			return nil
+		})
+	}
+	_ = group.Wait()
+
 	episodes := map[int]tmdb.Episode{}
 	seenSpecials := map[int64]bool{}
-	for _, mapping := range mappings {
-		season, ok := h.tmdbReleaseSeason(ctx, anime.MalID, mapping)
-		if !ok {
+	for index, mapping := range mappings {
+		if !results[index].ok {
 			continue
 		}
-		appendTMDBReleaseSeason(episodes, mapping, season)
+		appendTMDBReleaseSeason(episodes, mapping, results[index].episodes)
 		if mapping.Season > 0 && !seenSpecials[mapping.Group.TMDBID] {
 			specialCtx, specialCancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
 			h.appendTMDBSpecialEpisodes(specialCtx, mapping.Group.TMDBID, episodes)
