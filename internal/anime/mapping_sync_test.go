@@ -66,6 +66,26 @@ func TestParseAniBridgeMappingsPrefersNormalizedSeasonSplit(t *testing.T) {
 	}
 }
 
+func TestParseAniBridgeMappingsPrunesContainedSpecialAlternative(t *testing.T) {
+	payload := `{
+			"anilist:172463":{"mal:57658":{},"tmdb_show:95479:s0":{"1-9":"1-9"},"tmdb_show:95479:s1":{"1-12":"48-59"}}
+		}`
+
+	mappings, err := parseAniBridgeMappings(strings.NewReader(payload))
+	if err != nil {
+		t.Fatalf("parse mappings: %v", err)
+	}
+	if len(mappings) != 1 {
+		t.Fatalf("got %d mappings, want 1", len(mappings))
+	}
+
+	mapping := mappings[0]
+	assertImportedMapping(t, mapping, "tv", 95479, 1)
+	if len(mapping.Segments) != 1 || mapping.Segments[0].Season != 1 {
+		t.Fatalf("segments = %+v, want only containing regular season", mapping.Segments)
+	}
+}
+
 func TestEpisodeRangeSupportsOpenEndedRanges(t *testing.T) {
 	minimum, maximum, ok := episodeRange("1089-")
 	if !ok || minimum != 1089 || maximum != 0 {
