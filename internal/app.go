@@ -4,6 +4,7 @@ import (
 	"mal/integrations/anilist"
 	"mal/integrations/playback/allanime"
 	"mal/integrations/tmdb"
+	"mal/integrations/watchorder"
 	"mal/internal/anime"
 	"mal/internal/auth"
 	"mal/internal/database"
@@ -30,11 +31,13 @@ func NewApp() *fx.App {
 			func(cfg Config) server.Config { return server.Config{GinMode: cfg.GinMode, Port: cfg.Port} },
 			func(cfg Config) playback.ProxyTokenKey { return playback.ProxyTokenKey(cfg.PlaybackProxySecret) },
 			func(cfg Config) tmdb.Config { return tmdb.Config{AccessToken: cfg.TMDBAccessToken} },
+			func(cfg Config) watchorder.Config { return watchorder.Config{URL: cfg.ChiakiURL} },
 			func(cfg Config) (domain.CacheStore, error) { return NewRedisCache(cfg.RedisURL) },
 		),
 		database.Module,
 		anilist.Module,
 		tmdb.Module,
+		watchorder.Module,
 		allanime.Module,
 		episodes.Module,
 		auth.Module,
