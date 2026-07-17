@@ -32,24 +32,36 @@
     {{else if $backdropActive}}
       {{template "anime_media_grid" dict "Items" .Backdrops "Kind" "backdrops" "AnimeID" $anime.MalID "SelectedPath" .SelectedBackdropPath}}
     {{else}}
-      {{template "anime_media_grid" dict "Items" .Logos "Kind" "logos" "AnimeID" $anime.MalID "SelectedPath" .SelectedLogoPath}}
+      {{template "anime_media_grid" dict "Items" .Logos "Kind" "logos" "AnimeID" $anime.MalID "SelectedPath" .SelectedLogoPath "NoLogoPath" .NoLogoPath}}
     {{end}}
   </div>
 </div>
 {{end}}
 
 {{define "anime_media_grid"}}
-{{if .Items}}
+{{if or .Items (eq .Kind "logos")}}
   <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+    {{if eq .Kind "logos"}}
+      {{$noLogoSelected := eq $.SelectedPath $.NoLogoPath}}
+      <form method="POST" action="/anime/{{$.AnimeID}}/media" class="contents">
+        <input type="hidden" name="kind" value="{{$.Kind}}" />
+        <input type="hidden" name="action" value="no_logo" />
+        <button type="submit" class="group block w-full bg-background-surface text-left shadow-card ring-1 transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent {{if $noLogoSelected}}ring-accent{{else}}ring-black/10 hover:ring-foreground-muted/40{{end}}">
+          <div class="flex aspect-video items-center justify-center bg-neutral-950 p-8">
+            <span class="text-sm font-medium text-neutral-500">No logo</span>
+          </div>
+          <div class="flex items-center justify-between px-3 py-2 text-xs text-foreground-muted">
+            <span>Logo hidden</span>
+            {{if $noLogoSelected}}<span class="text-accent">Selected</span>{{else}}<span>No logo</span>{{end}}
+          </div>
+        </button>
+      </form>
+    {{end}}
     {{range .Items}}
       {{$selected := eq .FilePath $.SelectedPath}}
       <form method="POST" action="/anime/{{$.AnimeID}}/media" class="contents">
         <input type="hidden" name="kind" value="{{$.Kind}}" />
-        {{if $selected}}
-          <input type="hidden" name="action" value="unselect" />
-        {{else}}
-          <input type="hidden" name="file_path" value="{{.FilePath}}" />
-        {{end}}
+        <input type="hidden" name="file_path" value="{{.FilePath}}" />
         <button type="submit" class="group block w-full bg-background-surface text-left shadow-card ring-1 transition focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent {{if $selected}}ring-accent{{else}}ring-black/10 hover:ring-foreground-muted/40{{end}}">
           {{if eq $.Kind "logos"}}
             <div class="flex aspect-video items-center justify-center bg-neutral-950 p-8">
@@ -62,7 +74,7 @@
           {{end}}
           <div class="flex items-center justify-between px-3 py-2 text-xs text-foreground-muted">
             <span>{{.Width}}x{{.Height}}</span>
-            {{if $selected}}<span class="text-accent">Unselect</span>{{else if .Language}}<span>{{.Language}}</span>{{else}}<span>No language</span>{{end}}
+            {{if $selected}}<span class="text-accent">Selected</span>{{else if .Language}}<span>{{.Language}}</span>{{else}}<span>No language</span>{{end}}
           </div>
         </button>
       </form>
