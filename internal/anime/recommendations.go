@@ -59,7 +59,6 @@ func (s *animeService) fetchTopPicksForYou(ctx context.Context, userID string, l
 	if err != nil {
 		return data, err
 	}
-	data.Animes = groupCardsOrOriginal(ctx, s.grouper, data.Animes)
 	return data, nil
 }
 

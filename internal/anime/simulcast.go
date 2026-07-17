@@ -141,7 +141,6 @@ func (s *SeasonDiscoveryService) GetSimulcast(ctx context.Context, selected anim
 		anime.Images.Webp.LargeImageURL = show.Thumbnail
 		animes = append(animes, anime)
 	}
-	animes = groupCardsOrOriginal(ctx, s.grouper, animes)
 	return SimulcastData{
 		Animes: animes,
 		Season: selected.Season,

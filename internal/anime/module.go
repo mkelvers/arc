@@ -12,7 +12,6 @@ var Module = fx.Options(
 		NewAnimeRepository,
 		NewMappingStore,
 		NewMappingSyncer,
-		NewCardGrouper,
 		NewSeasonDiscoveryService,
 		fx.Annotate(
 			NewAnimeServiceWithMetadata,

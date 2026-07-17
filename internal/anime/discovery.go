@@ -12,23 +12,17 @@ type seasonProvider interface {
 
 type SeasonDiscoveryService struct {
 	provider      seasonProvider
-	grouper       *CardGrouper
 	seasonalCache *seasonalCache
 	now           func() time.Time
 }
 
-func NewSeasonDiscoveryService(provider *allanime.AllAnimeProvider, grouper *CardGrouper) *SeasonDiscoveryService {
-	return newSeasonDiscoveryService(provider, grouper)
+func NewSeasonDiscoveryService(provider *allanime.AllAnimeProvider) *SeasonDiscoveryService {
+	return newSeasonDiscoveryService(provider)
 }
 
-func newSeasonDiscoveryService(provider seasonProvider, groupers ...*CardGrouper) *SeasonDiscoveryService {
-	var grouper *CardGrouper
-	if len(groupers) > 0 {
-		grouper = groupers[0]
-	}
+func newSeasonDiscoveryService(provider seasonProvider) *SeasonDiscoveryService {
 	return &SeasonDiscoveryService{
 		provider:      provider,
-		grouper:       grouper,
 		seasonalCache: newSeasonalCache(seasonalCacheMaxEntries),
 		now:           time.Now,
 	}
