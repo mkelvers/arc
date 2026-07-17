@@ -54,7 +54,8 @@ func (h *AnimeHandler) continueWatchingMappedEpisodeTitle(ctx context.Context, a
 		return "", false
 	}
 	mappings := h.releaseEpisodeMappings(ctx, anime, mapping, true)
-	media := h.tmdbReleaseEpisodes(ctx, anime, mappings)[episodeNumber]
+	sources := []animeEpisodeSource{{Anime: anime, Episodes: episodes.Episodes}}
+	media := h.tmdbReleaseEpisodes(ctx, anime, mappings, sources)[episodeNumber]
 	return animeEpisodeTitle(episode, media), true
 }
 
