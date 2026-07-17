@@ -38,7 +38,7 @@ type Query {
 }
 
 type Episode {
-  sourceUrls: [SourceURL!]
+  sourceUrls: Object
 }
 
 type EpisodeInfo {

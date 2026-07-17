@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	aaEpoch   = "4128"
-	aaBuildID = "9"
-	aaKeyAHex = "b1a9a4d051988f1b1b12dbb747439d9bd64b09ea17835600a7eaa4de87c1ad87"
-	aaKeyB64  = "k7DLdv5SGiuEyGUtcncl5wQOR7r4aenLfDV3AOBKlAU="
+	aaEpoch   = "4130"
+	aaBuildID = "1"
+	aaKeyAHex = "955b760823fc0dbfd0356bd81e132c1ef4141dbf33297e117352a8d8e1cf05d2"
+	aaKeyB64  = "WhwBvVR252NEfIr/d/l4Q/TQIWfMTKqTRRcuFQPL9os="
 )
 
 var (

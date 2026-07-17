@@ -39,10 +39,7 @@ query AllAnimeEpisodeSources(
     translationType: $translationType
     episodeString: $episodeString
   ) {
-    sourceUrls {
-      sourceUrl
-      sourceName
-    }
+    sourceUrls
   }
 }
 

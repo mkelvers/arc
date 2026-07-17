@@ -79,27 +79,11 @@ func (v *AllAnimeDirectSequelsShowRelatedShowsRelatedShow) GetShowId() string { 
 
 // AllAnimeEpisodeSourcesEpisode includes the requested fields of the GraphQL type Episode.
 type AllAnimeEpisodeSourcesEpisode struct {
-	SourceUrls []AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL `json:"sourceUrls"`
+	SourceUrls Object `json:"sourceUrls"`
 }
 
 // GetSourceUrls returns AllAnimeEpisodeSourcesEpisode.SourceUrls, and is useful for accessing the field via an interface.
-func (v *AllAnimeEpisodeSourcesEpisode) GetSourceUrls() []AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL {
-	return v.SourceUrls
-}
-
-// AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL includes the requested fields of the GraphQL type SourceURL.
-type AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL struct {
-	SourceUrl  string `json:"sourceUrl"`
-	SourceName string `json:"sourceName"`
-}
-
-// GetSourceUrl returns AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL.SourceUrl, and is useful for accessing the field via an interface.
-func (v *AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL) GetSourceUrl() string { return v.SourceUrl }
-
-// GetSourceName returns AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL.SourceName, and is useful for accessing the field via an interface.
-func (v *AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL) GetSourceName() string {
-	return v.SourceName
-}
+func (v *AllAnimeEpisodeSourcesEpisode) GetSourceUrls() Object { return v.SourceUrls }
 
 // AllAnimeEpisodeSourcesResponse is returned by AllAnimeEpisodeSources on success.
 type AllAnimeEpisodeSourcesResponse struct {
@@ -642,10 +626,7 @@ func AllAnimeDirectSequels(
 const AllAnimeEpisodeSources_Operation = `
 query AllAnimeEpisodeSources ($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
 	episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
-		sourceUrls {
-			sourceUrl
-			sourceName
-		}
+		sourceUrls
 	}
 }
 `
