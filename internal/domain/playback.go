@@ -135,8 +135,6 @@ type PlaybackRepository interface {
 	UpsertAnime(ctx context.Context, params db.UpsertAnimeParams) (db.Anime, error)
 	GetAnime(ctx context.Context, id int64) (db.Anime, error)
 	GetAnimeMappingByMALID(ctx context.Context, malID int64) (AnimeMediaMapping, error)
-	GetCanonicalAnimeMapping(ctx context.Context, mediaType string, tmdbID int64) (AnimeMediaMapping, error)
-	GetAnimeMappingsForGroup(ctx context.Context, mediaType string, tmdbID int64) ([]AnimeMediaMapping, error)
 	GetAnimeMappingSegments(ctx context.Context, mapping AnimeMediaMapping) ([]AnimeMediaSegment, error)
 	GetWatchListEntry(ctx context.Context, params db.GetWatchListEntryParams) (db.WatchListEntry, error)
 	GetContinueWatchingEntry(ctx context.Context, params db.GetContinueWatchingEntryParams) (db.ContinueWatchingEntry, error)

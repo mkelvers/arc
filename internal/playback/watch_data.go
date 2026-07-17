@@ -10,7 +10,6 @@ import (
 	"mal/internal/domain"
 	"maps"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -45,8 +44,6 @@ const episodeAvailabilityUncertainWarning = "Episode availability may be incompl
 
 func (s *playbackService) BuildWatchData(ctx context.Context, request domain.WatchDataRequest) (data domain.WatchPageData, err error) {
 	animeID, titleCandidates, episode, mode, userID := request.AnimeID, request.TitleCandidates, request.Episode, request.Mode, request.UserID
-	displayAnimeID := animeID
-	displayEpisode := episode
 	totalStartedAt := time.Now()
 	defer func() {
 		logWatchDataStage("total", animeID, episode, totalStartedAt, map[string]any{"failed": err != nil})
@@ -56,27 +53,15 @@ func (s *playbackService) BuildWatchData(ctx context.Context, request domain.Wat
 	if err != nil {
 		return domain.WatchPageData{}, err
 	}
-	if normalized, ok := s.normalizedWatchEpisode(ctx, int64(animeID), episode); ok {
-		displayAnimeID = int(normalized.AnimeID)
-		displayEpisode = strconv.Itoa(normalized.Episode)
-	}
-	if mappedAnimeID, mappedEpisode, ok := s.resolveMappedWatchEpisode(ctx, animeID, episode, domain.RegularEpisodeCount(loaded.episodes.Episodes)); ok {
-		animeID = mappedAnimeID
-		episode = mappedEpisode
-		loaded, err = s.loadWatchAnimeEpisodes(ctx, animeID, episode, titleCandidates, "mapped_")
-		if err != nil {
-			return domain.WatchPageData{}, err
-		}
-	}
-	displayEpisodes := s.watchDisplayEpisodes(ctx, loaded, displayEpisode, episode)
+	displayEpisodes := s.watchDisplayEpisodes(ctx, loaded, episode)
 
 	// mode fallback
 	mode, from := resolveMode(episode, mode, loaded.episodes.Episodes)
 	deferred := domain.PlaybackDataDeferred(ctx)
 	branches := watchBranchInput{ctx: ctx, animeID: animeID, searchTitles: loaded.searchTitles, episode: episode, mode: mode, from: from, userID: userID, totalEpisodes: loaded.anime.Episodes, allowStale: !loaded.anime.Airing, deferred: deferred}
 	modeResult, progress, segments := s.loadWatchBranches(branches)
-	watchData := buildWatchDataPayload(watchDataPayloadInput{anime: loaded.anime, animeID: displayAnimeID, episode: displayEpisode, startTime: progress.startTime, episodes: displayEpisodes.Episodes, modeSources: modeResult.sources, mode: modeResult.mode, modeSwitchedFrom: modeResult.from, segments: segments})
-	pageData := buildWatchPageData(watchPageDataInput{anime: loaded.anime, animeID: displayAnimeID, episodes: displayEpisodes.Episodes, episode: displayEpisode, watchlistStatus: progress.watchlistStatus, watchlistIDs: progress.watchlistIDs, watchData: watchData})
+	watchData := buildWatchDataPayload(watchDataPayloadInput{anime: loaded.anime, animeID: animeID, episode: episode, startTime: progress.startTime, episodes: displayEpisodes.Episodes, modeSources: modeResult.sources, mode: modeResult.mode, modeSwitchedFrom: modeResult.from, segments: segments})
+	pageData := buildWatchPageData(watchPageDataInput{anime: loaded.anime, animeID: animeID, episodes: displayEpisodes.Episodes, episode: episode, watchlistStatus: progress.watchlistStatus, watchlistIDs: progress.watchlistIDs, watchData: watchData})
 	pageData.EpisodeAvailabilityWarning = episodeAvailabilityWarning(loaded.episodes, time.Now())
 	if deferred {
 		return pageData, nil
@@ -95,15 +80,6 @@ type watchAnimeEpisodes struct {
 	anime        domain.Anime
 	episodes     domain.CanonicalEpisodeList
 	searchTitles []string
-}
-
-func (s *playbackService) normalizedWatchEpisode(ctx context.Context, animeID int64, episode string) (progressTarget, bool) {
-	n, err := strconv.Atoi(episode)
-	if err != nil || n <= 0 {
-		return progressTarget{}, false
-	}
-	target := s.resolveProgressTarget(ctx, animeID, n)
-	return target, target.AnimeID != animeID || target.Episode != n
 }
 
 func (s *playbackService) loadWatchAnimeEpisodes(ctx context.Context, animeID int, episode string, titleCandidates []string, stagePrefix string) (watchAnimeEpisodes, error) {
@@ -134,19 +110,6 @@ func (s *playbackService) loadWatchAnimeEpisodes(ctx context.Context, animeID in
 	}, nil
 }
 
-func (s *playbackService) resolveMappedWatchEpisode(ctx context.Context, animeID int, episode string, totalEpisodes int) (int, string, bool) {
-	requestedEpisode, err := strconv.Atoi(episode)
-	if err != nil || requestedEpisode <= totalEpisodes {
-		return 0, "", false
-	}
-
-	mapping, ok := s.watchEpisodeMapping(ctx, animeID)
-	if !ok {
-		return 0, "", false
-	}
-	return s.resolveEpisodeInMappingGroup(ctx, animeID, episode, requestedEpisode, mapping)
-}
-
 func (s *playbackService) watchEpisodeMapping(ctx context.Context, animeID int) (domain.AnimeMediaMapping, bool) {
 	mapping, err := s.repo.GetAnimeMappingByMALID(ctx, int64(animeID))
 	if err == nil && mapping.MediaType == "tv" && mapping.TMDBID > 0 && mapping.Season > 0 {
@@ -158,154 +121,18 @@ func (s *playbackService) watchEpisodeMapping(ctx context.Context, animeID int) 
 	return domain.AnimeMediaMapping{}, false
 }
 
-func (s *playbackService) resolveEpisodeInMappingGroup(ctx context.Context, animeID int, episode string, requestedEpisode int, mapping domain.AnimeMediaMapping) (int, string, bool) {
-	mappings, ok := s.watchEpisodeGroupMappings(ctx, mapping)
-	if !ok {
-		return 0, "", false
-	}
-
-	remaining := requestedEpisode
-	seen := map[int64]struct{}{}
-	for _, candidate := range mappings {
-		targetAnimeID, targetEpisode, consumed, found := s.resolveEpisodeInMappingCandidate(ctx, candidate, animeID, episode, remaining, seen)
-		if found {
-			return targetAnimeID, targetEpisode, true
-		}
-		remaining -= consumed
-	}
-	return 0, "", false
-}
-
-func (s *playbackService) watchEpisodeGroupMappings(ctx context.Context, mapping domain.AnimeMediaMapping) ([]domain.AnimeMediaMapping, bool) {
-	mappings, err := s.repo.GetAnimeMappingsForGroup(ctx, mapping.MediaType, mapping.TMDBID)
-	if err != nil {
-		slog.Warn("watch_episode_group_mappings_failed", "component", "playback", "fields", map[string]any{
-			"tmdb_media_type": mapping.MediaType,
-			"tmdb_id":         mapping.TMDBID,
-		}, "error", err)
-		return nil, false
-	}
-	return mappings, true
-}
-
-func (s *playbackService) resolveEpisodeInMappingCandidate(ctx context.Context, candidate domain.AnimeMediaMapping, animeID int, episode string, remaining int, seen map[int64]struct{}) (int, string, int, bool) {
-	if candidate.MALID <= 0 || candidate.Season <= 0 {
-		return 0, "", 0, false
-	}
-	if _, ok := seen[candidate.MALID]; ok {
-		return 0, "", 0, false
-	}
-	seen[candidate.MALID] = struct{}{}
-	count := s.playbackEpisodeCount(ctx, candidate.MALID)
-	if count <= 0 || remaining > count {
-		return 0, "", count, false
-	}
-	if candidate.MALID == int64(animeID) && strconv.Itoa(remaining) == episode {
-		return 0, "", count, false
-	}
-	return int(candidate.MALID), strconv.Itoa(remaining), count, true
-}
-
-func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watchAnimeEpisodes, displayEpisode string, providerEpisode string) domain.CanonicalEpisodeList {
-	currentMapping, ok := s.watchEpisodeMapping(ctx, loaded.anime.MalID)
-	if !ok {
-		return markWatchEpisodeContext(loaded.episodes, loaded.anime.MalID, providerEpisode)
-	}
-	if currentMapping.Season <= 0 {
-		return markWatchEpisodeContext(loaded.episodes, loaded.anime.MalID, providerEpisode)
-	}
-	mappings, ok := s.watchEpisodeGroupMappings(ctx, currentMapping)
-	if !ok {
-		offset := s.progressEpisodeOffset(ctx, currentMapping)
-		return markWatchEpisodeContext(offsetEpisodeList(loaded.episodes, offset), loaded.anime.MalID, providerEpisode)
-	}
-
+func (s *playbackService) watchDisplayEpisodes(ctx context.Context, loaded watchAnimeEpisodes, providerEpisode string) domain.CanonicalEpisodeList {
 	out := loaded.episodes
-	out.Episodes = nil
-	seen := map[int64]struct{}{}
-	nextNumber := s.progressEpisodeOffset(ctx, currentMapping) + 1
-	mediaNumber := 1
-	selectedSeason := loaded.anime.SeasonNumber(currentMapping.Season)
-	tmdbTitles := s.tmdbSeasonEpisodeTitles(ctx, currentMapping)
-	for _, mapping := range mappings {
-		nextNumber, mediaNumber = s.appendDisplayMappingEpisodes(ctx, &out, mapping, currentMapping.Season, selectedSeason, seen, nextNumber, mediaNumber, tmdbTitles)
-	}
-	if len(out.Episodes) == 0 {
-		offset := s.progressEpisodeOffset(ctx, currentMapping)
-		return markWatchEpisodeContext(offsetEpisodeList(loaded.episodes, offset), loaded.anime.MalID, providerEpisode)
-	}
-	return markWatchEpisodeContext(ensureDisplayEpisode(out, displayEpisode), loaded.anime.MalID, providerEpisode)
-}
-
-func (s *playbackService) appendDisplayMappingEpisodes(ctx context.Context, out *domain.CanonicalEpisodeList, mapping domain.AnimeMediaMapping, mediaSeason int, selectedSeason int, seen map[int64]struct{}, nextNumber int, mediaNumber int, tmdbTitles map[int]string) (int, int) {
-	if !mappingBelongsInDisplaySeason(mapping, mediaSeason) {
-		return nextNumber, mediaNumber
-	}
-	if _, ok := seen[mapping.MALID]; ok {
-		return nextNumber, mediaNumber
-	}
-	seen[mapping.MALID] = struct{}{}
-	source, err := s.watchAnime(ctx, int(mapping.MALID))
-	if err != nil {
-		return nextNumber, mediaNumber
-	}
-	episodes, err := s.episodes.GetCanonicalEpisodes(ctx, source, false)
-	if err != nil {
-		return nextNumber, mediaNumber
-	}
-	if source.SeasonNumber(mapping.Season) != selectedSeason {
-		return nextNumber, mediaNumber + domain.RegularEpisodeCount(episodes.Episodes)
-	}
-	baseOffset := nextNumber - 1
-	regularMediaCount := highestTMDBEpisodeNumber(tmdbTitles)
-	for _, episode := range episodes.Episodes {
-		episode.AnimeID = source.MalID
-		if episode.Special {
-			episode.Order = baseOffset*10 + episode.SortOrder()
-			episode.Number = episode.Order / 10
-			episode.Label = playbackEpisodeOrderLabel(episode.Order)
-			out.Episodes = append(out.Episodes, episode)
-			continue
-		}
-		if beyondRegularMediaInventory(regularMediaCount, mediaNumber) {
-			continue
-		}
-		if title := strings.TrimSpace(tmdbTitles[mediaNumber]); title != "" {
-			episode.Title = title
-		}
-		episode.Number = nextNumber
-		episode.Label = strconv.Itoa(nextNumber)
-		episode.Order = nextNumber * 10
-		out.Episodes = append(out.Episodes, episode)
-		nextNumber++
-		mediaNumber++
-	}
-	return nextNumber, mediaNumber
-}
-
-func mappingBelongsInDisplaySeason(mapping domain.AnimeMediaMapping, mediaSeason int) bool {
-	return stackableProgressMapping(mapping) && mapping.Season == mediaSeason
-}
-
-func beyondRegularMediaInventory(regularMediaCount int, mediaNumber int) bool {
-	return regularMediaCount > 0 && mediaNumber > regularMediaCount
-}
-
-func highestTMDBEpisodeNumber(titles map[int]string) int {
-	highest := 0
-	for number := range titles {
-		if number > highest {
-			highest = number
+	out.Episodes = append([]domain.CanonicalEpisode(nil), loaded.episodes.Episodes...)
+	if mapping, ok := s.watchEpisodeMapping(ctx, loaded.anime.MalID); ok {
+		titles := s.tmdbSeasonEpisodeTitles(ctx, mapping)
+		for index := range out.Episodes {
+			if title := strings.TrimSpace(titles[out.Episodes[index].Number]); title != "" {
+				out.Episodes[index].Title = title
+			}
 		}
 	}
-	return highest
-}
-
-func playbackEpisodeOrderLabel(order int) string {
-	if order%10 == 0 {
-		return strconv.Itoa(order / 10)
-	}
-	return fmt.Sprintf("%d.%d", order/10, order%10)
+	return markWatchEpisodeContext(out, loaded.anime.MalID, providerEpisode)
 }
 
 func (s *playbackService) tmdbSeasonEpisodeTitles(ctx context.Context, mapping domain.AnimeMediaMapping) map[int]string {
@@ -379,26 +206,6 @@ func mappedSegmentEpisode(segment domain.AnimeMediaSegment, episode tmdb.Episode
 	return number, title, number > 0 && title != ""
 }
 
-func offsetEpisodeList(input domain.CanonicalEpisodeList, offset int) domain.CanonicalEpisodeList {
-	if offset <= 0 {
-		return input
-	}
-	out := input
-	out.Episodes = append([]domain.CanonicalEpisode(nil), input.Episodes...)
-	for i := range out.Episodes {
-		if out.Episodes[i].Special {
-			out.Episodes[i].Order = offset*10 + out.Episodes[i].SortOrder()
-			out.Episodes[i].Number = out.Episodes[i].Order / 10
-			out.Episodes[i].Label = playbackEpisodeOrderLabel(out.Episodes[i].Order)
-			continue
-		}
-		out.Episodes[i].Number += offset
-		out.Episodes[i].Order = out.Episodes[i].Number * 10
-		out.Episodes[i].Label = strconv.Itoa(out.Episodes[i].Number)
-	}
-	return out
-}
-
 func markWatchEpisodeContext(input domain.CanonicalEpisodeList, animeID int, providerEpisode string) domain.CanonicalEpisodeList {
 	out := input
 	out.Episodes = append([]domain.CanonicalEpisode(nil), input.Episodes...)
@@ -408,26 +215,6 @@ func markWatchEpisodeContext(input domain.CanonicalEpisodeList, animeID int, pro
 		}
 		out.Episodes[i].Current = out.Episodes[i].AnimeID == animeID && out.Episodes[i].PlaybackID() == providerEpisode
 	}
-	return out
-}
-
-func ensureDisplayEpisode(input domain.CanonicalEpisodeList, displayEpisode string) domain.CanonicalEpisodeList {
-	n, err := strconv.Atoi(displayEpisode)
-	if err != nil || n <= 0 {
-		return input
-	}
-	for _, episode := range input.Episodes {
-		if episode.Number == n {
-			return input
-		}
-	}
-	out := input
-	out.Episodes = append(append([]domain.CanonicalEpisode(nil), input.Episodes...), domain.CanonicalEpisode{
-		Number: n,
-		Title:  fmt.Sprintf("Episode %d", n),
-		HasSub: true,
-	})
-	sort.Slice(out.Episodes, func(i, j int) bool { return out.Episodes[i].SortOrder() < out.Episodes[j].SortOrder() })
 	return out
 }
 

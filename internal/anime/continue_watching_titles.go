@@ -42,68 +42,20 @@ func (h *AnimeHandler) continueWatchingMappedEpisodeTitle(ctx context.Context, a
 	if h.episodeSvc == nil {
 		return "", false
 	}
-
-	remaining := episodeNumber
-	seasonMediaOffsets := map[int]int{}
-	for _, candidate := range h.continueWatchingGroupMappings(ctx, mapping) {
-		title, count, ok := h.continueWatchingCandidateEpisodeTitle(ctx, anime, candidate, remaining, seasonMediaOffsets[candidate.Season])
-		if count <= 0 {
-			continue
-		}
-		if ok {
-			return title, true
-		}
-		remaining -= count
-		seasonMediaOffsets[candidate.Season] += count
-	}
-
-	return "", false
-}
-
-func (h *AnimeHandler) continueWatchingGroupMappings(ctx context.Context, mapping animeMapping) []animeMapping {
-	if h.mappings == nil {
-		return []animeMapping{mapping}
-	}
-	mappings, err := h.mappings.GroupMappings(ctx, mapping.Group)
-	if err != nil {
-		slog.Warn("continue_watching_group_mappings_failed", "component", "anime", "fields", map[string]any{
-			"tmdb_media_type": mapping.Group.MediaType,
-			"tmdb_id":         mapping.Group.TMDBID,
-		}, "error", err)
-		return []animeMapping{mapping}
-	}
-	if len(mappings) == 0 {
-		return []animeMapping{mapping}
-	}
-	return mappings
-}
-
-func (h *AnimeHandler) continueWatchingCandidateEpisodeTitle(ctx context.Context, anime domain.Anime, mapping animeMapping, remaining int, mediaOffset int) (string, int, bool) {
-	if mapping.MALID <= 0 || mapping.Season <= 0 {
-		return "", 0, false
-	}
-	sourceAnime, ok := h.episodeSourceAnime(ctx, anime, mapping.MALID)
-	if !ok {
-		return "", 0, false
-	}
-	episodes, err := h.episodeSvc.GetCanonicalEpisodes(ctx, sourceAnime, false)
+	episodes, err := h.episodeSvc.GetCanonicalEpisodes(ctx, anime, false)
 	if err != nil {
 		slog.Warn("continue_watching_episode_fetch_failed", "component", "anime", "fields", map[string]any{
-			"anime_id": sourceAnime.MalID,
+			"anime_id": anime.MalID,
 		}, "error", err)
-		return "", 0, false
+		return "", false
 	}
-	count := domain.RegularEpisodeCount(episodes.Episodes)
-	if count == 0 || remaining > count {
-		return "", count, false
-	}
-	episode, ok := canonicalEpisodeByNumber(episodes.Episodes, remaining)
+	episode, ok := canonicalEpisodeByNumber(episodes.Episodes, episodeNumber)
 	if !ok {
-		return "", count, false
+		return "", false
 	}
-	mediaNumber := mediaOffset + remaining
-	media := h.tmdbSeasonEpisodes(ctx, sourceAnime, mapping, true)[mediaNumber]
-	return animeEpisodeTitle(episode, media), count, true
+	mappings := h.releaseEpisodeMappings(ctx, anime, mapping, true)
+	media := h.tmdbReleaseEpisodes(ctx, anime, mappings)[episodeNumber]
+	return animeEpisodeTitle(episode, media), true
 }
 
 func (h *AnimeHandler) continueWatchingLocalEpisodeTitle(ctx context.Context, anime domain.Anime, episodeNumber int) (string, bool) {
