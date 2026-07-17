@@ -98,6 +98,18 @@ type Season struct {
 	SeasonNumber int       `json:"season_number"`
 }
 
+// SeasonMetadataMatch describes the known shape of one independently released
+// anime season. The season and episode range are mapping hints; count, date, and
+// titles describe the release itself.
+type SeasonMetadataMatch struct {
+	SeasonNumber  int
+	EpisodeMin    int
+	EpisodeMax    int
+	EpisodeCount  int
+	FirstAirDate  string
+	EpisodeTitles []string
+}
+
 type EpisodeGroupSummary struct {
 	Description  string  `json:"description"`
 	EpisodeCount int     `json:"episode_count"`
