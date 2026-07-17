@@ -928,7 +928,7 @@ func appendTMDBReleaseSeason(out map[int]tmdb.Episode, mapping animeMapping, epi
 
 func sourceEpisodeNumberForTMDB(mapping animeMapping, episode tmdb.Episode, index int, seasonLength int) (int, bool) {
 	if mapping.EpisodeMin <= 0 || mapping.TMDBEpisodeMin <= 0 {
-		return episode.EpisodeNumber, episode.EpisodeNumber > 0
+		return index + 1, index >= 0
 	}
 	if episode.EpisodeNumber >= mapping.TMDBEpisodeMin &&
 		(mapping.TMDBEpisodeMax <= 0 || episode.EpisodeNumber <= mapping.TMDBEpisodeMax) {
