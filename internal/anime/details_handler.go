@@ -717,6 +717,7 @@ func deduplicateAnimeMappingSegments(segments []animeMappingSegment) []animeMapp
 	for _, segment := range selected {
 		out = append(out, segment)
 	}
+	out = pruneContainedAnimeMappingSegments(out)
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Season != out[j].Season {
 			return out[i].Season < out[j].Season
@@ -724,6 +725,36 @@ func deduplicateAnimeMappingSegments(segments []animeMappingSegment) []animeMapp
 		return out[i].SourceEpisodeMin < out[j].SourceEpisodeMin
 	})
 	return out
+}
+
+func pruneContainedAnimeMappingSegments(segments []animeMappingSegment) []animeMappingSegment {
+	if len(segments) < 2 {
+		return segments
+	}
+	out := make([]animeMappingSegment, 0, len(segments))
+	for index, segment := range segments {
+		contained := false
+		for otherIndex, other := range segments {
+			if index != otherIndex && animeSegmentSourceContains(other, segment) {
+				contained = true
+				break
+			}
+		}
+		if !contained {
+			out = append(out, segment)
+		}
+	}
+	return out
+}
+
+func animeSegmentSourceContains(container animeMappingSegment, segment animeMappingSegment) bool {
+	if container.SourceEpisodeMin <= 0 || container.SourceEpisodeMax <= 0 || segment.SourceEpisodeMin <= 0 || segment.SourceEpisodeMax <= 0 {
+		return false
+	}
+	if container.SourceEpisodeMin > segment.SourceEpisodeMin || container.SourceEpisodeMax < segment.SourceEpisodeMax {
+		return false
+	}
+	return container.SourceEpisodeMin < segment.SourceEpisodeMin || container.SourceEpisodeMax > segment.SourceEpisodeMax
 }
 
 type animeSegmentSourceKey struct {
