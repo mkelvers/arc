@@ -33,10 +33,18 @@ type importedMapping struct {
 	AniListID   int64
 	MALID       *int64
 	MALVerified bool
+	MALRanges   map[int64][]importedEpisodeRange
 	MediaType   string
 	TMDBID      int64
 	Season      int
 	Segments    []importedMappingSegment
+}
+
+type importedEpisodeRange struct {
+	SourceEpisodeMin int
+	SourceEpisodeMax int
+	TargetEpisodeMin int
+	TargetEpisodeMax int
 }
 
 type importedMappingSegment struct {
@@ -229,6 +237,7 @@ func (s *MappingSyncer) hydrateMissingMALIDs(ctx context.Context, mappings []imp
 			value := int64(malID)
 			mappings[index].MALID = &value
 			mappings[index].MALVerified = true
+			normalizeImportedMappingSegments(&mappings[index])
 		}
 	}
 	return nil
@@ -503,23 +512,80 @@ func parseAniBridgeMappings(reader io.Reader) ([]importedMapping, error) {
 }
 
 func importedMappingFor(anilistID int64, targets map[string]json.RawMessage) (importedMapping, bool) {
-	collected := mappingTargets{shows: make(map[int64][]importedMappingSegment), movies: make(map[int64]struct{})}
+	collected := mappingTargets{
+		malRanges: make(map[int64][]importedEpisodeRange),
+		shows:     make(map[int64][]importedMappingSegment),
+		movies:    make(map[int64]struct{}),
+	}
 	for descriptor, ranges := range targets {
 		collected.add(descriptor, ranges)
 	}
+	malID := collected.unambiguousMALID()
 	if len(collected.shows) == 1 {
 		for id, segments := range collected.shows {
 			segments = deduplicateImportedMappingSegments(segments)
 			slices.SortFunc(segments, func(left, right importedMappingSegment) int { return left.Season - right.Season })
-			return importedMapping{AniListID: anilistID, MALID: collected.malID, MediaType: "tv", TMDBID: id, Season: preferredSeason(segments), Segments: segments}, true
+			mapping := importedMapping{AniListID: anilistID, MALID: malID, MALRanges: collected.malRanges, MediaType: "tv", TMDBID: id, Season: preferredSeason(segments), Segments: segments}
+			if malID != nil {
+				normalizeImportedMappingSegments(&mapping)
+			}
+			return mapping, true
 		}
 	}
 	if len(collected.shows) == 0 && len(collected.movies) == 1 {
 		for id := range collected.movies {
-			return importedMapping{AniListID: anilistID, MALID: collected.malID, MediaType: "movie", TMDBID: id, Season: -1}, true
+			return importedMapping{AniListID: anilistID, MALID: malID, MALRanges: collected.malRanges, MediaType: "movie", TMDBID: id, Season: -1}, true
 		}
 	}
 	return importedMapping{}, false
+}
+
+func normalizeImportedMappingSegments(mapping *importedMapping) {
+	if mapping == nil || mapping.MALID == nil || len(mapping.MALRanges) == 0 {
+		return
+	}
+	ranges := mapping.MALRanges[*mapping.MALID]
+	if len(ranges) == 0 || !hasBoundedImportedEpisodeRange(ranges) {
+		return
+	}
+	normalized := make([]importedMappingSegment, 0, len(mapping.Segments))
+	for _, segment := range mapping.Segments {
+		for _, episodeRange := range ranges {
+			if remapped, ok := remapImportedMappingSegment(segment, episodeRange); ok {
+				normalized = append(normalized, remapped)
+			}
+		}
+	}
+	if len(normalized) > 0 {
+		mapping.Segments = deduplicateImportedMappingSegments(normalized)
+		mapping.Season = preferredSeason(mapping.Segments)
+	}
+}
+
+func hasBoundedImportedEpisodeRange(ranges []importedEpisodeRange) bool {
+	for _, episodeRange := range ranges {
+		if episodeRange.SourceEpisodeMin > 0 && episodeRange.SourceEpisodeMax > 0 && episodeRange.TargetEpisodeMin > 0 && episodeRange.TargetEpisodeMax > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func remapImportedMappingSegment(segment importedMappingSegment, episodeRange importedEpisodeRange) (importedMappingSegment, bool) {
+	if segment.SourceEpisodeMin <= 0 || segment.SourceEpisodeMax <= 0 || episodeRange.SourceEpisodeMin <= 0 || episodeRange.SourceEpisodeMax <= 0 {
+		return importedMappingSegment{}, false
+	}
+	segmentSourceMin := segment.SourceEpisodeMin
+	overlapMin := max(segmentSourceMin, episodeRange.SourceEpisodeMin)
+	overlapMax := min(segment.SourceEpisodeMax, episodeRange.SourceEpisodeMax)
+	if overlapMin > overlapMax {
+		return importedMappingSegment{}, false
+	}
+	segment.SourceEpisodeMin = episodeRange.TargetEpisodeMin + overlapMin - episodeRange.SourceEpisodeMin
+	segment.SourceEpisodeMax = episodeRange.TargetEpisodeMin + overlapMax - episodeRange.SourceEpisodeMin
+	segment.TMDBEpisodeMin += overlapMin - segmentSourceMin
+	segment.TMDBEpisodeMax = segment.TMDBEpisodeMin + overlapMax - overlapMin
+	return segment, true
 }
 
 func deduplicateImportedMappingSegments(segments []importedMappingSegment) []importedMappingSegment {
@@ -566,15 +632,15 @@ func alignedImportedMappingSegment(segment importedMappingSegment) bool {
 }
 
 type mappingTargets struct {
-	malID  *int64
-	shows  map[int64][]importedMappingSegment
-	movies map[int64]struct{}
+	malRanges map[int64][]importedEpisodeRange
+	shows     map[int64][]importedMappingSegment
+	movies    map[int64]struct{}
 }
 
 func (m *mappingTargets) add(descriptor string, ranges json.RawMessage) {
 	parts := strings.Split(descriptor, ":")
 	if len(parts) == 2 {
-		m.addUnscoped(parts[0], parts[1])
+		m.addUnscoped(parts[0], parts[1], ranges)
 		return
 	}
 	if len(parts) == 3 && parts[0] == "tmdb_show" {
@@ -582,17 +648,33 @@ func (m *mappingTargets) add(descriptor string, ranges json.RawMessage) {
 	}
 }
 
-func (m *mappingTargets) addUnscoped(provider, rawID string) {
+func (m *mappingTargets) addUnscoped(provider, rawID string, ranges json.RawMessage) {
 	id, err := strconv.ParseInt(rawID, 10, 64)
 	if err != nil || id <= 0 {
 		return
 	}
 	switch provider {
 	case "mal":
-		m.malID = &id
+		sourceMin, sourceMax, targetMin, targetMax := mappingEpisodeRanges(ranges)
+		m.malRanges[id] = append(m.malRanges[id], importedEpisodeRange{
+			SourceEpisodeMin: sourceMin,
+			SourceEpisodeMax: sourceMax,
+			TargetEpisodeMin: targetMin,
+			TargetEpisodeMax: targetMax,
+		})
 	case "tmdb_movie":
 		m.movies[id] = struct{}{}
 	}
+}
+
+func (m *mappingTargets) unambiguousMALID() *int64 {
+	if len(m.malRanges) != 1 {
+		return nil
+	}
+	for id := range m.malRanges {
+		return &id
+	}
+	return nil
 }
 
 func (m *mappingTargets) addShow(rawID, scope string, ranges json.RawMessage) {

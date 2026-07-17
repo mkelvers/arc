@@ -95,6 +95,65 @@ func TestHydrateMissingMALIDs(t *testing.T) {
 	}
 }
 
+func TestHydrateAmbiguousMALIDNormalizesSegments(t *testing.T) {
+	payload := `{
+		"anilist:146065":{
+			"mal:51179":{"2-13":"1-12"},
+			"mal:55818":{"1":"1"},
+			"tmdb_show:94664:s0":{"1":"2"},
+			"tmdb_show:94664:s2":{"2-13":"1-12"}
+		}
+	}`
+	mappings, err := parseAniBridgeMappings(strings.NewReader(payload))
+	if err != nil {
+		t.Fatalf("parse mappings: %v", err)
+	}
+	if len(mappings) != 1 || mappings[0].MALID != nil {
+		t.Fatalf("ambiguous MAL identity should require hydration: %+v", mappings)
+	}
+
+	syncer := &MappingSyncer{identityProvider: staticIdentityProvider{146065: 51179}}
+	if err := syncer.hydrateMissingMALIDs(context.Background(), mappings); err != nil {
+		t.Fatalf("hydrate ambiguous mapping: %v", err)
+	}
+	assertNormalizedMushokuSeasonTwoMapping(t, mappings[0])
+}
+
+func TestHydrateDoesNotRenormalizeKnownMALID(t *testing.T) {
+	malID := int64(51179)
+	mappings := []importedMapping{{
+		AniListID: 146065,
+		MALID:     &malID,
+		MALRanges: map[int64][]importedEpisodeRange{51179: {{
+			SourceEpisodeMin: 2,
+			SourceEpisodeMax: 13,
+			TargetEpisodeMin: 1,
+			TargetEpisodeMax: 12,
+		}}},
+		Segments: []importedMappingSegment{{Season: 2, SourceEpisodeMin: 1, SourceEpisodeMax: 12, TMDBEpisodeMin: 1, TMDBEpisodeMax: 12}},
+	}}
+
+	syncer := &MappingSyncer{identityProvider: staticIdentityProvider{146065: 51179}}
+	if err := syncer.hydrateMissingMALIDs(context.Background(), mappings); err != nil {
+		t.Fatalf("hydrate known mapping: %v", err)
+	}
+	assertNormalizedMushokuSeasonTwoMapping(t, mappings[0])
+}
+
+func assertNormalizedMushokuSeasonTwoMapping(t *testing.T, mapping importedMapping) {
+	t.Helper()
+	if mapping.MALID == nil || *mapping.MALID != 51179 {
+		t.Fatalf("MAL ID = %v, want 51179", mapping.MALID)
+	}
+	if len(mapping.Segments) != 1 {
+		t.Fatalf("segments = %+v, want only the selected MAL inventory", mapping.Segments)
+	}
+	segment := mapping.Segments[0]
+	if segment.Season != 2 || segment.SourceEpisodeMin != 1 || segment.SourceEpisodeMax != 12 || segment.TMDBEpisodeMin != 1 || segment.TMDBEpisodeMax != 12 {
+		t.Fatalf("normalized segment = %+v, want MAL 1-12 mapped to TMDB season 2 episodes 1-12", segment)
+	}
+}
+
 func TestCompleteMappingIdentityUsesKnownExternalIDs(t *testing.T) {
 	mapping := completeMappingIdentity(
 		animeMapping{AniListID: 207674, Group: mappingGroup{MediaType: "tv", TMDBID: 325052}, Season: 1},

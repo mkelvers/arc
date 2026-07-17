@@ -42,6 +42,7 @@ type animeMapping struct {
 	TMDBEpisodeMax int
 	Kind           string
 	SeasonLabel    string
+	ReleaseDate    string
 }
 
 type animeMappingSegment struct {
