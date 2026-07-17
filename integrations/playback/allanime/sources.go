@@ -17,6 +17,11 @@ type sourceReference struct {
 	Name string
 }
 
+type sourceURLPayload struct {
+	SourceURL  string `json:"sourceUrl"`
+	SourceName string `json:"sourceName"`
+}
+
 func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string, episode string, mode string) ([]StreamSource, error) {
 	result, err := c.graphqlRequestWithHash(ctx, showID, episode, mode)
 	if err == nil {
@@ -53,11 +58,16 @@ func (c *AllAnimeProvider) GetEpisodeSources(ctx context.Context, showID string,
 	return out, nil
 }
 
-func generatedSourceRefs(rawSourceURLs []AllAnimeEpisodeSourcesEpisodeSourceUrlsSourceURL) []sourceReference {
-	refs := make([]sourceReference, 0, len(rawSourceURLs))
+func generatedSourceRefs(rawSourceURLs Object) []sourceReference {
+	var payload []sourceURLPayload
+	if err := rawSourceURLs.Decode(&payload); err != nil {
+		return nil
+	}
+
+	refs := make([]sourceReference, 0, len(payload))
 	seen := make(map[string]struct{})
-	for _, source := range rawSourceURLs {
-		appendSourceRef(&refs, seen, source.SourceUrl, source.SourceName)
+	for _, source := range payload {
+		appendSourceRef(&refs, seen, source.SourceURL, source.SourceName)
 	}
 	return prioritizedSourceRefs(refs)
 }
@@ -258,7 +268,7 @@ func (c *AllAnimeProvider) graphqlRequestWithHash(ctx context.Context, showID, e
 	req.Header.Set("User-Agent", defaultUserAgent)
 	req.Header.Set("Referer", allAnimeReferer)
 	req.Header.Set("Origin", allAnimeOrigin)
-	req.Header.Set("x-build-id", "9")
+	req.Header.Set("x-build-id", aaBuildID)
 
 	statusCode, respBody, err := executeAndReadResponse(c.httpClient, req, "execute POST request (aaReq)", "read response")
 	if err != nil {
