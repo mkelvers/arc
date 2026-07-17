@@ -9,6 +9,7 @@ import (
 const (
 	mediaSelectionBackdrop = "backdrop"
 	mediaSelectionLogo     = "logo"
+	mediaSelectionNoLogo   = "__no_logo__"
 )
 
 type mediaSelection struct {
