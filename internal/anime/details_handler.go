@@ -217,7 +217,7 @@ func (h *AnimeHandler) animeEpisodeList(ctx context.Context, anime domain.Anime)
 	}
 
 	mappings, sources := h.extendReleaseMappings(ctx, episodeCtx.Mappings, sources)
-	tmdbEpisodes := h.tmdbReleaseEpisodes(ctx, episodeCtx.Anime, mappings)
+	tmdbEpisodes := h.tmdbReleaseEpisodes(ctx, episodeCtx.Anime, mappings, sources)
 	episodeCtx.Display.Episodes = episodeDisplays(sources, tmdbEpisodes)
 	disambiguateSpecialEpisodeOrders(episodeCtx.Display.Episodes, mappings, 0)
 	return episodeCtx.Display
@@ -258,6 +258,12 @@ func releaseEpisodeKind(anime domain.Anime, mapping animeMapping) string {
 	switch strings.ToUpper(strings.TrimSpace(anime.Type)) {
 	case "OVA", "SPECIAL":
 		return episodeKindOVA
+	case "TV":
+		return episodeKindRegular
+	case "ONA":
+		if mapping.Season > 0 {
+			return episodeKindRegular
+		}
 	}
 	if mapping.Season == 0 {
 		return episodeKindOVA
@@ -741,7 +747,7 @@ func alignedAnimeMappingSegment(segment animeMappingSegment) bool {
 		segment.SourceEpisodeMax == segment.TMDBEpisodeMax
 }
 
-func (h *AnimeHandler) tmdbReleaseEpisodes(ctx context.Context, anime domain.Anime, mappings []animeMapping) map[int]tmdb.Episode {
+func (h *AnimeHandler) tmdbReleaseEpisodes(ctx context.Context, anime domain.Anime, mappings []animeMapping, sources []animeEpisodeSource) map[int]tmdb.Episode {
 	if h.tmdbClient == nil || len(mappings) == 0 {
 		return nil
 	}
@@ -754,7 +760,8 @@ func (h *AnimeHandler) tmdbReleaseEpisodes(ctx context.Context, anime domain.Ani
 	group.SetLimit(tmdbMetadataWorkers)
 	for index, mapping := range mappings {
 		group.Go(func() error {
-			results[index].episodes, results[index].ok = h.tmdbReleaseSeason(ctx, anime.MalID, mapping)
+			match := tmdbReleaseMetadataMatch(anime, mapping, sources)
+			results[index].episodes, results[index].ok = h.tmdbReleaseSeason(ctx, anime.MalID, mapping, match)
 			return nil
 		})
 	}
@@ -901,13 +908,13 @@ func tmdbSeasonEpisodeRange(episodes []tmdb.Episode) (int, int, bool) {
 	return minEpisode, maxEpisode, minEpisode > 0 && maxEpisode >= minEpisode
 }
 
-func (h *AnimeHandler) tmdbReleaseSeason(ctx context.Context, animeID int, mapping animeMapping) ([]tmdb.Episode, bool) {
+func (h *AnimeHandler) tmdbReleaseSeason(ctx context.Context, animeID int, mapping animeMapping, match tmdb.SeasonMetadataMatch) ([]tmdb.Episode, bool) {
 	if mapping.Group.MediaType != string(tmdb.MediaTypeTV) || mapping.Group.TMDBID <= 0 || mapping.Season < 0 {
 		return nil, false
 	}
 	tmdbCtx, cancel := context.WithTimeout(ctx, tmdbMetadataTimeout)
 	defer cancel()
-	season, err := h.tmdbClient.GetSeasonMetadata(tmdbCtx, mapping.Group.TMDBID, mapping.Season, "en-US")
+	season, err := h.tmdbClient.GetSeasonMetadataForRelease(tmdbCtx, mapping.Group.TMDBID, match, "en-US")
 	if err != nil {
 		slog.Warn("anime_episode_list_tmdb_season_failed", "component", "anime", "fields", map[string]any{
 			"anime_id": animeID, "tmdb_id": mapping.Group.TMDBID, "tmdb_season": mapping.Season,
@@ -915,6 +922,54 @@ func (h *AnimeHandler) tmdbReleaseSeason(ctx context.Context, animeID int, mappi
 		return nil, false
 	}
 	return season.Episodes, true
+}
+
+func tmdbReleaseMetadataMatch(anime domain.Anime, mapping animeMapping, sources []animeEpisodeSource) tmdb.SeasonMetadataMatch {
+	match := tmdb.SeasonMetadataMatch{
+		SeasonNumber: mapping.Season,
+		EpisodeMin:   mapping.TMDBEpisodeMin,
+		EpisodeMax:   mapping.TMDBEpisodeMax,
+	}
+	if mapping.EpisodeMin > 0 && mapping.EpisodeMax >= mapping.EpisodeMin {
+		match.EpisodeCount = mapping.EpisodeMax - mapping.EpisodeMin + 1
+	}
+	if source, ok := tmdbReleaseSource(mapping, sources); ok {
+		match.EpisodeTitles = canonicalReleaseTitles(source.Episodes, mapping.EpisodeMin, mapping.EpisodeMax)
+		if match.EpisodeCount == 0 {
+			match.EpisodeCount = len(match.EpisodeTitles)
+		}
+		if mapping.EpisodeMin <= 1 {
+			match.FirstAirDate = source.Anime.Aired.From
+		}
+		return match
+	}
+	if match.EpisodeCount == 0 {
+		match.EpisodeCount = anime.Episodes
+	}
+	if mapping.EpisodeMin <= 1 {
+		match.FirstAirDate = anime.Aired.From
+	}
+	return match
+}
+
+func tmdbReleaseSource(mapping animeMapping, sources []animeEpisodeSource) (animeEpisodeSource, bool) {
+	for _, source := range sources {
+		if mapping.MALID <= 0 || source.Anime.MalID == mapping.MALID {
+			return source, true
+		}
+	}
+	return animeEpisodeSource{}, false
+}
+
+func canonicalReleaseTitles(episodes []domain.CanonicalEpisode, episodeMin, episodeMax int) []string {
+	titles := make([]string, 0, len(episodes))
+	for _, episode := range episodes {
+		if episode.Special || episodeMin > 0 && episode.Number < episodeMin || episodeMax > 0 && episode.Number > episodeMax {
+			continue
+		}
+		titles = append(titles, episode.Title)
+	}
+	return titles
 }
 
 func appendTMDBReleaseSeason(out map[int]tmdb.Episode, mapping animeMapping, episodes []tmdb.Episode) {
