@@ -74,8 +74,21 @@ func (h *AnimeHandler) HandleAnimeMedia(c *gin.Context) {
 }
 
 func (h *AnimeHandler) HandleSelectAnimeMedia(c *gin.Context) {
-	anime, ref, kind, filePath, unselect, ok := h.selectedMediaRequest(c)
+	anime, ref, kind, filePath, noLogo, unselect, ok := h.selectedMediaRequest(c)
 	if !ok {
+		return
+	}
+
+	if noLogo {
+		if err := h.mappings.SaveMediaSelection(c.Request.Context(), anime.MalID, kind, ref, mediaSelectionNoLogo); err != nil {
+			slog.Warn("anime_media_select_no_logo_failed", "component", "anime", "fields", map[string]any{
+				"anime_id": anime.MalID,
+				"kind":     kind,
+			}, "error", err)
+			server.RespondHTMLOrJSONError(c, http.StatusInternalServerError, "could not save media selection")
+			return
+		}
+		c.Redirect(http.StatusSeeOther, fmt.Sprintf("/anime/%d/media?kind=%s", anime.MalID, mediaQueryKind(kind)))
 		return
 	}
 
@@ -109,37 +122,40 @@ func (h *AnimeHandler) HandleSelectAnimeMedia(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, fmt.Sprintf("/anime/%d/media?kind=%s", anime.MalID, mediaQueryKind(kind)))
 }
 
-func (h *AnimeHandler) selectedMediaRequest(c *gin.Context) (domain.Anime, tmdb.MediaRef, string, string, bool, bool) {
+func (h *AnimeHandler) selectedMediaRequest(c *gin.Context) (domain.Anime, tmdb.MediaRef, string, string, bool, bool, bool) {
 	id, ok := parsePositiveAnimeID(c)
 	if !ok {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false, false
 	}
 
-	kind, filePath, unselect, ok := selectedMediaForm(c)
+	kind, filePath, noLogo, unselect, ok := selectedMediaForm(c)
 	if !ok {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false, false
 	}
 
 	anime, err := h.svc.GetAnimeByID(c.Request.Context(), id)
 	if err != nil {
 		server.RespondNotFound(c)
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
-	}
-
-	if unselect {
-		return anime, tmdb.MediaRef{}, kind, "", true, true
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false, false
 	}
 
 	ref, ok := h.selectedMediaRef(c, anime)
 	if !ok {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false, false
 	}
 
+	if unselect {
+		return anime, ref, kind, "", false, true, true
+	}
+
+	if noLogo {
+		return anime, ref, kind, mediaSelectionNoLogo, true, false, true
+	}
 	if !h.validSelectedMediaPath(c, anime, ref, kind, filePath) {
-		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false
+		return domain.Anime{}, tmdb.MediaRef{}, "", "", false, false, false
 	}
 
-	return anime, ref, kind, filePath, false, true
+	return anime, ref, kind, filePath, false, false, true
 }
 
 func parsePositiveAnimeID(c *gin.Context) (int, bool) {
@@ -151,20 +167,26 @@ func parsePositiveAnimeID(c *gin.Context) (int, bool) {
 	return id, true
 }
 
-func selectedMediaForm(c *gin.Context) (string, string, bool, bool) {
+func selectedMediaForm(c *gin.Context) (string, string, bool, bool, bool) {
 	kind := normalizeMediaSelectionKind(c.PostForm("kind"))
 	if !validMediaSelectionKind(kind) {
 		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid media kind")
-		return "", "", false, false
+		return "", "", false, false, false
 	}
 
-	unselect := strings.EqualFold(strings.TrimSpace(c.PostForm("action")), "unselect")
-	filePath := strings.TrimSpace(c.PostForm("file_path"))
-	if filePath == "" && !unselect {
-		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "missing media file path")
-		return "", "", false, false
+	action := strings.ToLower(strings.TrimSpace(c.PostForm("action")))
+	noLogo := action == "no_logo"
+	unselect := action == "unselect"
+	if noLogo && kind != mediaSelectionLogo {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "invalid media action")
+		return "", "", false, false, false
 	}
-	return kind, filePath, unselect, true
+	filePath := strings.TrimSpace(c.PostForm("file_path"))
+	if filePath == "" && !noLogo && !unselect {
+		server.RespondHTMLOrJSONError(c, http.StatusBadRequest, "missing media file path")
+		return "", "", false, false, false
+	}
+	return kind, filePath, noLogo, unselect, true
 }
 
 func (h *AnimeHandler) selectedMediaRef(c *gin.Context, anime domain.Anime) (tmdb.MediaRef, bool) {
@@ -277,9 +299,19 @@ func (h *AnimeHandler) applySelectedAnimeMedia(ctx context.Context, anime *domai
 		}
 	}
 	if selection, ok := selections[mediaSelectionLogo]; ok {
-		if url := tmdb.ImageURL(selection.FilePath, "original"); url != "" {
-			anime.LogoImageURL = url
-		}
+		applySelectedLogoMedia(anime, selection)
+	}
+}
+
+func applySelectedLogoMedia(anime *domain.Anime, selection mediaSelection) {
+	if selection.FilePath == mediaSelectionNoLogo {
+		anime.LogoImageURL = ""
+		anime.HideLogoTitle = true
+		return
+	}
+	if url := tmdb.ImageURL(selection.FilePath, "original"); url != "" {
+		anime.LogoImageURL = url
+		anime.HideLogoTitle = false
 	}
 }
 
@@ -333,6 +365,7 @@ func animeMediaPageData(c *gin.Context, anime any, tmdbLabel string, backdrops [
 		"ActiveKind":           activeMediaKind(c.Query("kind")),
 		"SelectedBackdropPath": selectedMediaPath(selections, mediaSelectionBackdrop),
 		"SelectedLogoPath":     selectedMediaPath(selections, mediaSelectionLogo),
+		"NoLogoPath":           mediaSelectionNoLogo,
 		"LoadError":            loadError,
 	}
 }
