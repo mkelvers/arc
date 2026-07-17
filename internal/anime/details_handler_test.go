@@ -36,6 +36,47 @@ func TestSourceEpisodeNumberForTMDBPreservesLongRunningNumbers(t *testing.T) {
 	}
 }
 
+func TestSourceEpisodeNumberForTMDBIndexesSeasonWithoutSegments(t *testing.T) {
+	number, ok := sourceEpisodeNumberForTMDB(animeMapping{}, tmdb.Episode{EpisodeNumber: 13}, 0, 12)
+	if !ok || number != 1 {
+		t.Fatalf("source episode = %d, %v; want 1, true", number, ok)
+	}
+}
+
+func TestTMDBContinuationSeedMappingDoesNotRequireStoredSegments(t *testing.T) {
+	seed, ok := tmdbContinuationSeedMapping(animeMapping{
+		MALID:  123,
+		Group:  mappingGroup{MediaType: "tv", TMDBID: 456},
+		Season: 2,
+		Kind:   episodeKindRegular,
+	}, tmdb.Season{
+		SeasonNumber: 2,
+		Episodes: []tmdb.Episode{
+			{EpisodeNumber: 13},
+			{EpisodeNumber: 14},
+		},
+	})
+	if !ok {
+		t.Fatal("expected continuation seed")
+	}
+	if seed.EpisodeMin != 1 || seed.EpisodeMax != 2 || seed.TMDBEpisodeMin != 13 || seed.TMDBEpisodeMax != 14 {
+		t.Fatalf("continuation seed = %+v", seed)
+	}
+}
+
+func TestLatestContinuationMappingAcceptsMappingWithoutSegments(t *testing.T) {
+	handler := AnimeHandler{tmdbClient: &tmdb.Client{}}
+	mapping, ok := handler.latestContinuationMapping([]animeMapping{{
+		MALID:  123,
+		Group:  mappingGroup{MediaType: "tv", TMDBID: 456},
+		Season: 1,
+		Kind:   episodeKindRegular,
+	}}, 24)
+	if !ok || mapping.Season != 1 {
+		t.Fatalf("continuation mapping = %+v, %v", mapping, ok)
+	}
+}
+
 func TestTMDBContinuationMappingPreservesAbsoluteEpisodeNumbers(t *testing.T) {
 	previous := animeMapping{
 		MALID:          21,
@@ -141,6 +182,56 @@ func TestSourceEpisodeDisplaysDeduplicatesTrailingSpecials(t *testing.T) {
 	})
 	if len(displays) != 2 || displays[1].AudioLabel != "Dub | Sub" {
 		t.Fatalf("deduplicated specials = %+v", displays)
+	}
+}
+
+func TestReleaseEpisodeKindTreatsONASeasonAsRegular(t *testing.T) {
+	kind := releaseEpisodeKind(domain.Anime{Type: "ONA"}, animeMapping{Season: 1})
+	if kind != episodeKindRegular {
+		t.Fatalf("release kind = %q, want %q", kind, episodeKindRegular)
+	}
+}
+
+func TestReleaseEpisodeKindKeepsSeasonZeroONAAsOVA(t *testing.T) {
+	kind := releaseEpisodeKind(domain.Anime{Type: "ONA"}, animeMapping{Season: 0})
+	if kind != episodeKindOVA {
+		t.Fatalf("release kind = %q, want %q", kind, episodeKindOVA)
+	}
+}
+
+func TestMAL62322UsesTMDBSeasonStillPaths(t *testing.T) {
+	anime := domain.Anime{MalID: 62322, Type: "ONA"}
+	kind := releaseEpisodeKind(anime, animeMapping{Season: 1})
+	providerEpisodes := []domain.CanonicalEpisode{
+		{Number: 1, ID: "1", Title: "Episode 1"},
+		{Number: 2, ID: "2", Title: "Episode 2"},
+		{Number: 3, ID: "3", Title: "Episode 3"},
+		{Number: 4, ID: "4", Title: "Episode 4"},
+	}
+	displays := sourceEpisodeDisplays(animeEpisodeSource{
+		Anime:        anime,
+		Episodes:     providerEpisodes,
+		WatchAnimeID: anime.MalID,
+		Kind:         kind,
+	}, map[int]tmdb.Episode{
+		1: {EpisodeNumber: 1, SeasonNumber: 1, Name: "How the World Works", StillPath: "/wkbdOZ9YapmbphFEZzc2Gcrl28P.jpg"},
+		2: {EpisodeNumber: 2, SeasonNumber: 1, Name: "The Ultimate Idiot", StillPath: "/k3wFvvu7uLRYPlIvljqAhOEUhIE.jpg"},
+		3: {EpisodeNumber: 3, SeasonNumber: 1, Name: "Demon and Human Coexistence", StillPath: "/jXLgZAI9ddAfnwX2i4lT7PZUtyz.jpg"},
+		4: {EpisodeNumber: 4, SeasonNumber: 1, Name: "I Have Questions for You", StillPath: "/8GOBcam8C9uUgN6T4IYJ6gwb9sN.jpg"},
+	})
+	if len(displays) != 4 {
+		t.Fatalf("displays = %+v", displays)
+	}
+	expectedPaths := []string{
+		"https://image.tmdb.org/t/p/w500/wkbdOZ9YapmbphFEZzc2Gcrl28P.jpg",
+		"https://image.tmdb.org/t/p/w500/k3wFvvu7uLRYPlIvljqAhOEUhIE.jpg",
+		"https://image.tmdb.org/t/p/w500/jXLgZAI9ddAfnwX2i4lT7PZUtyz.jpg",
+		"https://image.tmdb.org/t/p/w500/8GOBcam8C9uUgN6T4IYJ6gwb9sN.jpg",
+	}
+	for index, expected := range expectedPaths {
+		if displays[index].ImageURL != expected {
+			t.Fatalf("episode %d image = %q, want %q", index+1, displays[index].ImageURL, expected)
+		}
 	}
 }
 
