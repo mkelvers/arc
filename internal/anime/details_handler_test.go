@@ -17,6 +17,13 @@ func TestDeduplicateAnimeMappingSegmentsPrefersNormalizedSeasonSplit(t *testing.
 	}
 }
 
+func TestReleaseEpisodeKindUsesTVFormatWhenMappingSeasonIsZero(t *testing.T) {
+	kind := releaseEpisodeKind(domain.Anime{Type: "TV"}, animeMapping{Season: 0})
+	if kind != episodeKindRegular {
+		t.Fatalf("TV release kind = %q, want regular", kind)
+	}
+}
+
 func TestSourceEpisodeNumberForTMDBMapsSplitCourLocally(t *testing.T) {
 	mapping := animeMapping{EpisodeMin: 1, EpisodeMax: 12, TMDBEpisodeMin: 13, TMDBEpisodeMax: 24}
 	number, ok := sourceEpisodeNumberForTMDB(mapping, tmdb.Episode{EpisodeNumber: 13}, 12, 24)
@@ -231,6 +238,43 @@ func TestMAL62322UsesTMDBSeasonStillPaths(t *testing.T) {
 	for index, expected := range expectedPaths {
 		if displays[index].ImageURL != expected {
 			t.Fatalf("episode %d image = %q, want %q", index+1, displays[index].ImageURL, expected)
+		}
+	}
+}
+
+func TestMAL54898MapsEveryBungoSeasonFiveEpisode(t *testing.T) {
+	mapping := animeMapping{
+		Season:         3,
+		EpisodeMin:     1,
+		EpisodeMax:     11,
+		TMDBEpisodeMin: 14,
+		TMDBEpisodeMax: 24,
+	}
+	paths := []string{
+		"/apQVAEmUliaxmMplh9s78ecyQ7C.jpg",
+		"/6d548fqukgVsdlPyHZvjtEjJFOQ.jpg",
+		"/qIrHrNHhMzYmXg7HITGbayTqthC.jpg",
+		"/w7XXDkLNkLThp9sR0ojyGMc7gg5.jpg",
+		"/dqKJ2TGK1aiH1pmPX1vWMyAomco.jpg",
+		"/oHnRnaXMaFPU9QxIP3FfCMFzaBI.jpg",
+		"/nSAoKeBVqmGojoUHLYhDZ1pDeA0.jpg",
+		"/eepDSRnPjaLB44xVUhkqCBlKBVR.jpg",
+		"/8nruofPbnanbJ7y01HalfRjfZfN.jpg",
+		"/1w77uturnnwKHxRLhrZPOCSioOu.jpg",
+		"/801r0TUiP2HcEILVIOo9FqOtrxn.jpg",
+	}
+	season := make([]tmdb.Episode, len(paths))
+	for index, path := range paths {
+		season[index] = tmdb.Episode{EpisodeNumber: 50 + index, SeasonNumber: 1, StillPath: path}
+	}
+	mapped := map[int]tmdb.Episode{}
+	appendTMDBReleaseSeason(mapped, mapping, season)
+	if len(mapped) != 11 {
+		t.Fatalf("mapped episodes = %d, want 11", len(mapped))
+	}
+	for number, expectedPath := range paths {
+		if mapped[number+1].StillPath != expectedPath {
+			t.Fatalf("episode %d path = %q, want %q", number+1, mapped[number+1].StillPath, expectedPath)
 		}
 	}
 }
