@@ -25,6 +25,7 @@ export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 
 export const anime = pgTable('anime', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    logoSize: integer('logo_size').notNull().default(100),
     createdAt: timestamp('created_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
