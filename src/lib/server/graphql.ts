@@ -6,6 +6,10 @@ interface Document<TResult, TVariables>
     toString(): string;
 }
 
+interface GraphQLOptions {
+    headers?: Record<string, string>;
+}
+
 const Payload = Schema.Struct({
     data: Schema.optional(Schema.Unknown),
     errors: Schema.optional(
@@ -28,6 +32,7 @@ export function graphql<TResult, TVariables>(
     endpoint: string,
     document: Document<TResult, TVariables>,
     variables: TVariables,
+    options: GraphQLOptions = {},
 ) {
     return Effect.tryPromise({
         try: async (signal) => {
@@ -36,6 +41,7 @@ export function graphql<TResult, TVariables>(
                 headers: {
                     Accept: 'application/graphql-response+json, application/json',
                     'Content-Type': 'application/json',
+                    ...options.headers,
                 },
                 body: JSON.stringify({
                     query: document.toString(),
