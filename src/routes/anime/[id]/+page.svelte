@@ -40,7 +40,8 @@
                 <img
                     src={logo.url}
                     alt={data.anime.title}
-                    class="h-[clamp(5rem,5.7vw,7.5rem)] w-auto"
+                    style:height={`clamp(${5 * data.artwork.logoSize / 100}rem, ${5.7 * data.artwork.logoSize / 100}vw, ${7.5 * data.artwork.logoSize / 100}rem)`}
+                    class="w-auto"
                 />
             {:else if !data.artwork.logoHidden}
                 <h1 class="max-w-3xl text-[clamp(3rem,5.7vw,7.5rem)] leading-none font-bold">

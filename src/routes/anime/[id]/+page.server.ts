@@ -32,6 +32,7 @@ export const load: PageServerLoad = async ({ params }) => {
                 selectedBackdrop: null,
                 selectedLogo: null,
                 logoHidden: false,
+                logoSize: 100,
             },
         };
     }
