@@ -72,7 +72,7 @@
 
         &::after {
             background-image:
-                linear-gradient(to top, var(--theme-hero-scrim-bottom) 0%, var(--theme-hero-scrim-bottom-soft) 34%, transparent 64%),
+                linear-gradient(to top, var(--theme-hero-scrim-bottom) 0%, var(--theme-hero-scrim-bottom-soft) 18%, transparent 78%),
                 linear-gradient(to top right, var(--theme-hero-scrim-corner), transparent 58%),
                 linear-gradient(to top left, var(--theme-hero-scrim-corner-alt), transparent 58%);
         }
