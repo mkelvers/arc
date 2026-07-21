@@ -53,7 +53,7 @@ export interface TmdbArtwork extends TmdbMapping {
 function normalizeTitle(title: string) {
     return title
         .normalize('NFKD')
-        .replace(/[^p{L}\p{N}]+/gu, ' ')
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
         .trim()
         .toLocaleLowerCase('en');
 }
@@ -140,7 +140,9 @@ async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
         String(anime.id) as keyof typeof mappingData.mappings
     ];
 
-    if (mapped) return mapped;
+    if (mapped?.mediaType === 'movie' || mapped?.mediaType === 'tv') {
+        return { id: mapped.id, mediaType: mapped.mediaType };
+    }
 
     const titles = titlesFor(anime).slice(0, 3);
 
