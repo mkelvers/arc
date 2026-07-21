@@ -124,7 +124,7 @@
         </section>
     {/key}
 
-    <div class="mx-auto grid w-full max-w-[64rem] gap-12 px-6 py-11 sm:px-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-12 lg:px-0 lg:py-12">
+    <div class="mx-auto grid w-full max-w-5xl gap-12 px-6 py-11 sm:px-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-12 lg:px-0 lg:py-12">
         <article class="min-w-0">
             <div class="flex items-start gap-6">
                 <div class="min-w-0 flex-1">
