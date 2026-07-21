@@ -1,5 +1,5 @@
 import createClient from 'openapi-fetch';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
@@ -8,7 +8,7 @@ import {
     anime as animeTable,
     animeArtwork,
     animeArtworkCache,
-    animeArtworkSelection,
+    animeArtworkPreference,
     animeExternalId,
     animeExternalIdLink,
 } from '$lib/server/db/schema';
@@ -175,8 +175,8 @@ async function searchMovies(query: string): Promise<Candidate[]> {
     );
 }
 
-async function findStoredMapping(
-    anime: AniListAnime,
+async function findStoredMappingByAniListId(
+    anilistId: number,
 ): Promise<StoredTmdbMapping | null> {
     const targetExternalId = alias(animeExternalId, 'target_external_id');
     const targetLink = alias(animeExternalIdLink, 'target_external_id_link');
@@ -207,7 +207,7 @@ async function findStoredMapping(
             and(
                 eq(animeExternalId.provider, 'anilist'),
                 eq(animeExternalId.mediaType, 'anime'),
-                eq(animeExternalId.externalId, anime.id),
+                eq(animeExternalId.externalId, anilistId),
                 eq(targetExternalId.provider, 'tmdb'),
             ),
         )
@@ -227,10 +227,14 @@ async function findStoredMapping(
     }
 
     if (mapped.length > 1) {
-        throw new Error(`Ambiguous TMDB mapping for AniList ${anime.id}`);
+        throw new Error(`Ambiguous TMDB mapping for AniList ${anilistId}`);
     }
 
     return null;
+}
+
+function findStoredMapping(anime: AniListAnime) {
+    return findStoredMappingByAniListId(anime.id);
 }
 
 async function persistMapping(
@@ -269,7 +273,7 @@ async function persistMapping(
         if (!link) {
             const [created] = await tx
                 .insert(animeTable)
-                .values({})
+                .values({ title: titlesFor(anime)[0] ?? null })
                 .returning({ animeId: animeTable.id });
 
             if (!created) throw new Error('Failed to store anime');
@@ -279,6 +283,11 @@ async function persistMapping(
                 externalIdId: anilistId.id,
             });
         }
+
+        await tx
+            .update(animeTable)
+            .set({ title: titlesFor(anime)[0] ?? null, updatedAt: new Date() })
+            .where(eq(animeTable.id, link.animeId));
 
         await tx
             .insert(animeExternalId)
@@ -318,7 +327,13 @@ async function persistMapping(
 async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
     const stored = await findStoredMapping(anime);
 
-    if (stored) return stored;
+    if (stored) {
+        await db
+            .update(animeTable)
+            .set({ title: titlesFor(anime)[0] ?? null, updatedAt: new Date() })
+            .where(eq(animeTable.id, stored.animeId));
+        return stored;
+    }
 
     const titles = titlesFor(anime).slice(0, 3);
 
@@ -402,25 +417,17 @@ async function withSelections(
     match: StoredTmdbMapping,
     artwork: Pick<TmdbArtwork, 'backdrops' | 'logos'>,
 ): Promise<TmdbArtwork> {
-    const selections = await db
+    const [preference] = await db
         .select({
-            type: animeArtworkSelection.type,
-            filePath: animeArtworkSelection.filePath,
+            backdropFilePath: animeArtworkPreference.backdropFilePath,
+            logoFilePath: animeArtworkPreference.logoFilePath,
+            logoHidden: animeArtworkPreference.logoHidden,
+            logoSize: animeArtworkPreference.logoSize,
         })
-        .from(animeArtworkSelection)
-        .where(eq(animeArtworkSelection.animeId, match.animeId));
-    const [settings] = await db
-        .select({ logoSize: animeTable.logoSize })
-        .from(animeTable)
-        .where(eq(animeTable.id, match.animeId))
+        .from(animeArtworkPreference)
+        .where(eq(animeArtworkPreference.externalIdId, match.externalIdId))
         .limit(1);
-    const backdropSelection = selections.find(
-        (selection) => selection.type === 'backdrop',
-    );
-    const logoSelection = selections.find(
-        (selection) => selection.type === 'logo',
-    );
-    const logoHidden = Boolean(logoSelection && !logoSelection.filePath);
+    const logoHidden = preference?.logoHidden ?? false;
 
     return {
         id: match.id,
