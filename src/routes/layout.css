@@ -38,11 +38,18 @@
 @layer base {
     html,
     body {
-        @apply bg-canvas text-foreground;
+        @apply min-w-0 bg-canvas text-foreground;
     }
 
     html {
         font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    button,
+    a,
+    input {
+        touch-action: manipulation;
     }
 }
 
@@ -60,6 +67,25 @@
                 linear-gradient(to top, var(--theme-hero-scrim-bottom) 0%, var(--theme-hero-scrim-bottom-soft) 34%, transparent 64%),
                 linear-gradient(to top right, var(--theme-hero-scrim-corner), transparent 58%),
                 linear-gradient(to top left, var(--theme-hero-scrim-corner-alt), transparent 58%);
+        }
+    }
+
+    @media (width < 40rem) {
+        .anime-hero {
+            &::before {
+                background-image:
+                    linear-gradient(to bottom, var(--theme-hero-scrim-top), transparent 24%),
+                    linear-gradient(to right, var(--theme-hero-scrim-inline-start), transparent 70%);
+            }
+
+            &::after {
+                background-image: linear-gradient(
+                    to top,
+                    var(--theme-hero-scrim-bottom) 0%,
+                    var(--theme-hero-scrim-bottom-soft) 55%,
+                    transparent 88%
+                );
+            }
         }
     }
 }
