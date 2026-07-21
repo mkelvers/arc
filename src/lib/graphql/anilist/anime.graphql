@@ -15,6 +15,15 @@ query Anime($id: Int!) {
         startDate {
             year
         }
+        relations {
+            edges {
+                relationType
+                node {
+                    id
+                    type
+                }
+            }
+        }
         averageScore
         popularity
         favourites

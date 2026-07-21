@@ -34,6 +34,35 @@ export type MediaRankType =
   /** Ranking is based on the media's ratings/score */
   | 'RATED';
 
+/** Type of relation media has to its parent. */
+export type MediaRelation =
+  /** An adaption of this media into a different format */
+  | 'ADAPTATION'
+  /** An alternative version of the same media */
+  | 'ALTERNATIVE'
+  /** Shares at least 1 character */
+  | 'CHARACTER'
+  /** Version 2 only. */
+  | 'COMPILATION'
+  /** Version 2 only. */
+  | 'CONTAINS'
+  /** Other */
+  | 'OTHER'
+  /** The media a side story is from */
+  | 'PARENT'
+  /** Released before the relation */
+  | 'PREQUEL'
+  /** Released after the relation */
+  | 'SEQUEL'
+  /** A side story of the parent media */
+  | 'SIDE_STORY'
+  /** Version 2 only. The source material the media was adapted from */
+  | 'SOURCE'
+  /** An alternative version of the media with a different primary focus */
+  | 'SPIN_OFF'
+  /** A shortened and summarized version */
+  | 'SUMMARY';
+
 export type MediaSeason =
   /** Predominantly started airing between October and November */
   | 'FALL'
@@ -44,12 +73,19 @@ export type MediaSeason =
   /** Predominantly started airing between January and March */
   | 'WINTER';
 
+/** Media type enum, anime or manga. */
+export type MediaType =
+  /** Japanese Anime */
+  | 'ANIME'
+  /** Asian comic */
+  | 'MANGA';
+
 export type AnimeQueryVariables = Exact<{
   id: number;
 }>;
 
 
-export type AnimeQuery = { Media: { id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, season: MediaSeason | null, seasonYear: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
+export type AnimeQuery = { Media: { id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, season: MediaSeason | null, seasonYear: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -87,6 +123,15 @@ export const AnimeDocument = new TypedDocumentString(`
     seasonYear
     startDate {
       year
+    }
+    relations {
+      edges {
+        relationType
+        node {
+          id
+          type
+        }
+      }
     }
     averageScore
     popularity
