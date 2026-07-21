@@ -18,7 +18,7 @@
 <svelte:head><title>{data.anime.title} — Arc</title></svelte:head>
 
 <figure
-    class="anime-hero grid min-h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas text-foreground before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10"
+    class="anime-hero grid min-h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas text-foreground before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-120 after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-120 sm:before:h-150 sm:after:h-150 lg:before:h-175 lg:after:h-175"
 >
     {#if backdrop}
         <img
