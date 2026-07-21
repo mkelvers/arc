@@ -63,6 +63,9 @@ export interface TmdbArtworkImage {
 export interface TmdbArtwork extends TmdbMapping {
     backdrops: TmdbArtworkImage[];
     logos: TmdbArtworkImage[];
+    selectedBackdrop: TmdbArtworkImage | null;
+    selectedLogo: TmdbArtworkImage | null;
+    logoHidden: boolean;
 }
 
 function normalizeTitle(title: string) {
@@ -354,8 +357,91 @@ function toArtworkImage(image: {
     };
 }
 
-async function getArtwork(anime: AniListAnime, mapping?: TmdbMapping) {
-    const match = mapping ?? (await resolve(anime));
+function storedArtworkImage(
+    image: typeof animeArtwork.$inferSelect,
+): TmdbArtworkImage {
+    return {
+        aspectRatio: image.aspectRatio,
+        filePath: image.filePath,
+        height: image.height,
+        language: image.language,
+        url: `${imageBaseUrl}${image.filePath}`,
+        voteAverage: image.voteAverage,
+        width: image.width,
+    };
+}
+
+async function withSelections(
+    match: StoredTmdbMapping,
+    artwork: Pick<TmdbArtwork, 'backdrops' | 'logos'>,
+): Promise<TmdbArtwork> {
+    const selections = await db
+        .select({
+            type: animeArtworkSelection.type,
+            filePath: animeArtworkSelection.filePath,
+        })
+        .from(animeArtworkSelection)
+        .where(eq(animeArtworkSelection.animeId, match.animeId));
+    const backdropSelection = selections.find(
+        (selection) => selection.type === 'backdrop',
+    );
+    const logoSelection = selections.find(
+        (selection) => selection.type === 'logo',
+    );
+    const logoHidden = Boolean(logoSelection && !logoSelection.filePath);
+
+    return {
+        id: match.id,
+        mediaType: match.mediaType,
+        ...artwork,
+        selectedBackdrop:
+            artwork.backdrops.find(
+                (image) => image.filePath === backdropSelection?.filePath,
+            ) ??
+            artwork.backdrops[0] ??
+            null,
+        selectedLogo: logoHidden
+            ? null
+            : (artwork.logos.find(
+                  (image) => image.filePath === logoSelection?.filePath,
+              ) ??
+              artwork.logos[0] ??
+              null),
+        logoHidden,
+    };
+}
+
+async function readArtwork(match: StoredTmdbMapping): Promise<TmdbArtwork | null> {
+    const [cached] = await db
+        .select({ externalIdId: animeArtworkCache.externalIdId })
+        .from(animeArtworkCache)
+        .where(eq(animeArtworkCache.externalIdId, match.externalIdId))
+        .limit(1);
+
+    if (!cached) return null;
+
+    const images = await db
+        .select()
+        .from(animeArtwork)
+        .where(eq(animeArtwork.externalIdId, match.externalIdId));
+    const forType = (type: 'backdrop' | 'logo') =>
+        images
+            .filter((image) => image.type === type)
+            .map(storedArtworkImage)
+            .sort((left, right) => right.voteAverage - left.voteAverage);
+
+    return withSelections(match, {
+        backdrops: forType('backdrop'),
+        logos: forType('logo'),
+    });
+}
+
+async function getArtwork(anime: AniListAnime) {
+    const match = await resolveStored(anime);
+    const cached = await readArtwork(match);
+
+    if (cached) return cached;
+
     const client = create();
     const response =
         match.mediaType === 'movie'
@@ -388,11 +474,73 @@ async function getArtwork(anime: AniListAnime, mapping?: TmdbMapping) {
         .filter((image): image is TmdbArtworkImage => image !== null)
         .sort((left, right) => right.voteAverage - left.voteAverage);
 
-    return { ...match, backdrops, logos } satisfies TmdbArtwork;
+    await db.transaction(async (tx) => {
+        const rows = [
+            ...backdrops.map((image) => ({
+                externalIdId: match.externalIdId,
+                type: 'backdrop' as const,
+                filePath: image.filePath,
+                aspectRatio: image.aspectRatio,
+                height: image.height,
+                language: image.language,
+                voteAverage: image.voteAverage,
+                width: image.width,
+            })),
+            ...logos.map((image) => ({
+                externalIdId: match.externalIdId,
+                type: 'logo' as const,
+                filePath: image.filePath,
+                aspectRatio: image.aspectRatio,
+                height: image.height,
+                language: image.language,
+                voteAverage: image.voteAverage,
+                width: image.width,
+            })),
+        ];
+
+        if (rows.length) {
+            await tx.insert(animeArtwork).values(rows).onConflictDoNothing();
+        }
+        await tx
+            .insert(animeArtworkCache)
+            .values({ externalIdId: match.externalIdId })
+            .onConflictDoNothing();
+    });
+
+    return withSelections(match, {
+        backdrops,
+        logos,
+    });
+}
+
+async function selectArtwork(
+    anime: AniListAnime,
+    type: 'backdrop' | 'logo',
+    filePath: string | null,
+) {
+    const artwork = await getArtwork(anime);
+    const images = type === 'backdrop' ? artwork.backdrops : artwork.logos;
+
+    if (filePath === null && type !== 'logo') {
+        throw new Error('Only a logo can be hidden');
+    }
+    if (filePath !== null && !images.some((image) => image.filePath === filePath)) {
+        throw new Error('Artwork does not belong to this anime');
+    }
+
+    const match = await resolveStored(anime);
+    await db
+        .insert(animeArtworkSelection)
+        .values({ animeId: match.animeId, type, filePath })
+        .onConflictDoUpdate({
+            target: [animeArtworkSelection.animeId, animeArtworkSelection.type],
+            set: { filePath, updatedAt: new Date() },
+        });
 }
 
 export const tmdb = {
     create,
     getArtwork,
     resolve,
+    selectArtwork,
 };
