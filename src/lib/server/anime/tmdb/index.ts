@@ -5,6 +5,10 @@ import { alias } from 'drizzle-orm/pg-core';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import {
+    anime as animeTable,
+    animeArtwork,
+    animeArtworkCache,
+    animeArtworkSelection,
     animeExternalId,
     animeExternalIdLink,
 } from '$lib/server/db/schema';
@@ -39,6 +43,11 @@ interface Candidate extends TmdbMapping {
     name: string;
     originalName: string;
     popularity: number;
+}
+
+interface StoredTmdbMapping extends TmdbMapping {
+    animeId: number;
+    externalIdId: number;
 }
 
 export interface TmdbArtworkImage {
@@ -141,11 +150,15 @@ async function searchMovies(query: string): Promise<Candidate[]> {
     );
 }
 
-async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
+async function findStoredMapping(
+    anime: AniListAnime,
+): Promise<StoredTmdbMapping | null> {
     const targetExternalId = alias(animeExternalId, 'target_external_id');
     const targetLink = alias(animeExternalIdLink, 'target_external_id_link');
     const mapped = await db
         .select({
+            animeId: animeExternalIdLink.animeId,
+            externalIdId: targetExternalId.id,
             id: targetExternalId.externalId,
             mediaType: targetExternalId.mediaType,
         })
@@ -179,13 +192,108 @@ async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
         const [match] = mapped;
 
         if (match.mediaType === 'movie' || match.mediaType === 'tv') {
-            return { id: match.id, mediaType: match.mediaType };
+            return {
+                animeId: match.animeId,
+                externalIdId: match.externalIdId,
+                id: match.id,
+                mediaType: match.mediaType,
+            };
         }
     }
 
     if (mapped.length > 1) {
         throw new Error(`Ambiguous TMDB mapping for AniList ${anime.id}`);
     }
+
+    return null;
+}
+
+async function persistMapping(
+    anime: AniListAnime,
+    mapping: TmdbMapping,
+): Promise<StoredTmdbMapping> {
+    return db.transaction(async (tx) => {
+        await tx
+            .insert(animeExternalId)
+            .values({
+                provider: 'anilist',
+                mediaType: 'anime',
+                externalId: anime.id,
+            })
+            .onConflictDoNothing();
+        const [anilistId] = await tx
+            .select({ id: animeExternalId.id })
+            .from(animeExternalId)
+            .where(
+                and(
+                    eq(animeExternalId.provider, 'anilist'),
+                    eq(animeExternalId.mediaType, 'anime'),
+                    eq(animeExternalId.externalId, anime.id),
+                ),
+            )
+            .limit(1);
+
+        if (!anilistId) throw new Error('Failed to store AniList identity');
+
+        let [link] = await tx
+            .select({ animeId: animeExternalIdLink.animeId })
+            .from(animeExternalIdLink)
+            .where(eq(animeExternalIdLink.externalIdId, anilistId.id))
+            .limit(1);
+
+        if (!link) {
+            const [created] = await tx
+                .insert(animeTable)
+                .values({})
+                .returning({ animeId: animeTable.id });
+
+            if (!created) throw new Error('Failed to store anime');
+            link = created;
+            await tx.insert(animeExternalIdLink).values({
+                animeId: link.animeId,
+                externalIdId: anilistId.id,
+            });
+        }
+
+        await tx
+            .insert(animeExternalId)
+            .values({
+                provider: 'tmdb',
+                mediaType: mapping.mediaType,
+                externalId: mapping.id,
+            })
+            .onConflictDoNothing();
+        const [tmdbId] = await tx
+            .select({ id: animeExternalId.id })
+            .from(animeExternalId)
+            .where(
+                and(
+                    eq(animeExternalId.provider, 'tmdb'),
+                    eq(animeExternalId.mediaType, mapping.mediaType),
+                    eq(animeExternalId.externalId, mapping.id),
+                ),
+            )
+            .limit(1);
+
+        if (!tmdbId) throw new Error('Failed to store TMDB identity');
+
+        await tx
+            .insert(animeExternalIdLink)
+            .values({ animeId: link.animeId, externalIdId: tmdbId.id })
+            .onConflictDoNothing();
+
+        return {
+            ...mapping,
+            animeId: link.animeId,
+            externalIdId: tmdbId.id,
+        };
+    });
+}
+
+async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
+    const stored = await findStoredMapping(anime);
+
+    if (stored) return stored;
 
     const titles = titlesFor(anime).slice(0, 3);
 
@@ -212,7 +320,16 @@ async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
         throw new Error(`No confident TMDB match for AniList ${anime.id}`);
     }
 
-    return { id: match.id, mediaType: match.mediaType };
+    return persistMapping(anime, {
+        id: match.id,
+        mediaType: match.mediaType,
+    });
+}
+
+async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
+    const { id, mediaType } = await resolveStored(anime);
+
+    return { id, mediaType };
 }
 
 function toArtworkImage(image: {
