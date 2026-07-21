@@ -9,6 +9,7 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"graphql:generate": "graphql-codegen --config codegen.ts",
+		"openapi:generate": "openapi-typescript https://developer.themoviedb.org/openapi/tmdb-api.json -o src/lib/server/anime/tmdb/generated.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
@@ -20,6 +21,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/vite": "^4.3.0",
 		"graphql": "^16",
+		"openapi-typescript": "^7.13.0",
 		"phosphor-svelte": "^3.1.0",
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
@@ -29,6 +31,7 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.3.0",
-		"effect": "^3.22.0"
+		"effect": "^3.22.0",
+		"openapi-fetch": "^0.17.0"
 	}
 }
