@@ -27,6 +27,7 @@ export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 export const anime = pgTable('anime', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     title: text('title'),
+    tmdbMappingVersion: integer('tmdb_mapping_version').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
