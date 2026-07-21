@@ -1,0 +1,40 @@
+query Anime($id: Int!) {
+    Media(id: $id, type: ANIME) {
+        description(asHtml: false)
+        genres
+        format
+        season
+        seasonYear
+        averageScore
+        popularity
+        favourites
+        rankings {
+            rank
+            type
+            year
+            season
+            allTime
+        }
+        tags {
+            name
+            rank
+            isGeneralSpoiler
+            isMediaSpoiler
+        }
+        studios(isMain: true) {
+            nodes {
+                name
+            }
+        }
+        staff(page: 1, perPage: 30, sort: RELEVANCE) {
+            edges {
+                role
+                node {
+                    name {
+                        full
+                    }
+                }
+            }
+        }
+    }
+}
