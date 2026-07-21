@@ -336,6 +336,33 @@ async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
         return stored;
     }
 
+    const relatedMappings = (
+        await Promise.all(
+            (anime.relations?.edges ?? []).flatMap((edge) =>
+                edge?.node?.type === 'ANIME' &&
+                (edge.relationType === 'PREQUEL' ||
+                    edge.relationType === 'SEQUEL')
+                    ? [findStoredMappingByAniListId(edge.node.id)]
+                    : [],
+            ),
+        )
+    ).filter((mapping): mapping is StoredTmdbMapping => mapping !== null);
+    const related = [
+        ...new Map(
+            relatedMappings.map((mapping) => [
+                `${mapping.mediaType}:${mapping.id}`,
+                mapping,
+            ]),
+        ).values(),
+    ];
+
+    if (related.length === 1) {
+        return persistMapping(anime, {
+            id: related[0].id,
+            mediaType: related[0].mediaType,
+        });
+    }
+
     const titles = titlesFor(anime).slice(0, 3);
 
     if (!titles.length) throw new Error('AniList returned no searchable title');
