@@ -6,18 +6,18 @@
 
 <svelte:head><title>{data.anime.title} media — Arc</title></svelte:head>
 
-<main class="min-h-screen bg-canvas px-6 py-10 text-foreground sm:px-10 lg:px-16">
-    <header class="mb-12 flex items-end justify-between gap-6">
-        <div>
+<main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
+    <header class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+        <div class="min-w-0">
             <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">← Back to anime</a>
-            <h1 class="mt-3 text-4xl font-bold">{data.anime.title} media</h1>
+            <h1 class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">{data.anime.title} media</h1>
             <p class="mt-2 text-muted">TMDB {data.artwork.mediaType} #{data.artwork.id}</p>
         </div>
-        <form method="POST">
+        <form method="POST" class="shrink-0">
             <input type="hidden" name="intent" value="refresh" />
             <button
                 type="submit"
-                class="border border-border px-4 py-2 text-sm font-semibold hover:border-accent"
+                class="min-h-11 border border-border px-4 py-2 text-sm font-semibold hover:border-accent"
             >
                 Refetch
             </button>
@@ -25,9 +25,9 @@
     </header>
 
     <section>
-        <div class="mb-5 flex items-center justify-between gap-8">
-            <h2 class="text-2xl font-semibold">Logos ({data.artwork.logos.length})</h2>
-            <form method="POST" class="flex w-full max-w-xs items-center gap-4">
+        <div class="mb-5 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+            <h2 class="text-xl font-semibold sm:text-2xl">Logos ({data.artwork.logos.length})</h2>
+            <form method="POST" class="flex w-full items-center gap-4 sm:max-w-xs">
                 <input type="hidden" name="intent" value="logoSize" />
                 <label for="logo-size" class="shrink-0 text-sm text-muted">Logo size</label>
                 <input
@@ -44,7 +44,7 @@
                 />
             </form>
         </div>
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <form method="POST">
                 <input type="hidden" name="type" value="logo" />
                 <input type="hidden" name="filePath" value="" />
@@ -53,7 +53,7 @@
                     aria-pressed={data.artwork.logoHidden}
                     class:border-accent={data.artwork.logoHidden}
                     class:border-border={!data.artwork.logoHidden}
-                    class="grid min-h-48 w-full place-items-center border bg-surface p-6 text-xl font-semibold"
+                    class="grid min-h-40 w-full place-items-center border bg-surface p-5 text-xl font-semibold sm:min-h-48 sm:p-6"
                 >
                     No logo
                 </button>
@@ -67,7 +67,7 @@
                         aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
                         class:border-accent={data.artwork.selectedLogo?.filePath === image.filePath}
                         class:border-border={data.artwork.selectedLogo?.filePath !== image.filePath}
-                        class="grid min-h-48 w-full place-items-center border bg-surface p-6"
+                        class="grid min-h-40 w-full place-items-center border bg-surface p-5 sm:min-h-48 sm:p-6"
                     >
                         <img src={image.url} alt={`${data.anime.title} logo`} class="max-h-40 max-w-full" />
                         <span class="sr-only">{image.width} × {image.height}, {image.language ?? 'no language'}</span>
@@ -78,8 +78,8 @@
     </section>
 
     <section class="mt-14">
-        <h2 class="mb-5 text-2xl font-semibold">Backdrops ({data.artwork.backdrops.length})</h2>
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <h2 class="mb-5 text-xl font-semibold sm:text-2xl">Backdrops ({data.artwork.backdrops.length})</h2>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {#each data.artwork.backdrops as image}
                 <form method="POST">
                     <input type="hidden" name="type" value="backdrop" />
