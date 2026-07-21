@@ -46,7 +46,7 @@
     <div
         class={`z-20 col-start-1 row-start-1 min-w-0 self-start px-5 pb-10 sm:px-10 lg:px-16 ${logo
             ? 'pt-32 sm:pt-44 lg:pt-[clamp(11.25rem,11.72vw,15rem)]'
-            : 'pt-[19rem] sm:pt-[23rem] lg:pt-[26rem]'}`}
+            : 'pt-76 sm:pt-92 lg:pt-104'}`}
     >
         <div class="w-fit">
             {#if logo}
