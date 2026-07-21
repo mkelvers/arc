@@ -8,6 +8,7 @@ import {
     text,
     timestamp,
     unique,
+    uuid,
     varchar,
 } from 'drizzle-orm/pg-core';
 
@@ -23,6 +24,20 @@ export const externalMediaType = pgEnum('external_media_type', [
 ]);
 
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
+
+export const watchlistState = pgEnum('watchlist_state', [
+    'watching',
+    'plan_to_watch',
+    'completed',
+    'dropped',
+]);
+
+export const users = pgTable('users', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
 
 export const anime = pgTable('anime', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
@@ -117,6 +132,28 @@ export const animeArtworkPreference = pgTable('anime_artwork_preference', {
         .$onUpdate(() => new Date()),
 });
 
+export const watchlist = pgTable(
+    'watchlist',
+    {
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        animeId: integer('anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        state: watchlistState('state').notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [primaryKey({ columns: [table.userId, table.animeId] })],
+);
+
 export type Anime = typeof anime.$inferSelect;
 export type AnimeExternalId = typeof animeExternalId.$inferSelect;
 export type AnimeArtwork = typeof animeArtwork.$inferSelect;
+export type WatchlistState = (typeof watchlistState.enumValues)[number];
