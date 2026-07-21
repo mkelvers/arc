@@ -1,8 +1,14 @@
 import createClient from 'openapi-fetch';
+import { and, eq, ne } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
+import { db } from '$lib/server/db';
+import {
+    animeExternalId,
+    animeExternalIdLink,
+} from '$lib/server/db/schema';
 import type { paths } from './generated';
-import mappingData from './mappings.json';
 import { env } from '$env/dynamic/private';
 
 const baseUrl = 'https://api.themoviedb.org';
@@ -136,12 +142,49 @@ async function searchMovies(query: string): Promise<Candidate[]> {
 }
 
 async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
-    const mapped = mappingData.mappings[
-        String(anime.id) as keyof typeof mappingData.mappings
-    ];
+    const targetExternalId = alias(animeExternalId, 'target_external_id');
+    const targetLink = alias(animeExternalIdLink, 'target_external_id_link');
+    const mapped = await db
+        .select({
+            id: targetExternalId.externalId,
+            mediaType: targetExternalId.mediaType,
+        })
+        .from(animeExternalId)
+        .innerJoin(
+            animeExternalIdLink,
+            eq(animeExternalIdLink.externalIdId, animeExternalId.id),
+        )
+        .innerJoin(
+            targetLink,
+            and(
+                eq(targetLink.animeId, animeExternalIdLink.animeId),
+                ne(targetLink.externalIdId, animeExternalId.id),
+            ),
+        )
+        .innerJoin(
+            targetExternalId,
+            eq(targetExternalId.id, targetLink.externalIdId),
+        )
+        .where(
+            and(
+                eq(animeExternalId.provider, 'anilist'),
+                eq(animeExternalId.mediaType, 'anime'),
+                eq(animeExternalId.externalId, anime.id),
+                eq(targetExternalId.provider, 'tmdb'),
+            ),
+        )
+        .limit(2);
 
-    if (mapped?.mediaType === 'movie' || mapped?.mediaType === 'tv') {
-        return { id: mapped.id, mediaType: mapped.mediaType };
+    if (mapped.length === 1) {
+        const [match] = mapped;
+
+        if (match.mediaType === 'movie' || match.mediaType === 'tv') {
+            return { id: match.id, mediaType: match.mediaType };
+        }
+    }
+
+    if (mapped.length > 1) {
+        throw new Error(`Ambiguous TMDB mapping for AniList ${anime.id}`);
     }
 
     const titles = titlesFor(anime).slice(0, 3);
