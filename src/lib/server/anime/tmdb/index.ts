@@ -66,6 +66,7 @@ export interface TmdbArtwork extends TmdbMapping {
     selectedBackdrop: TmdbArtworkImage | null;
     selectedLogo: TmdbArtworkImage | null;
     logoHidden: boolean;
+    logoSize: number;
 }
 
 function normalizeTitle(title: string) {
@@ -403,6 +404,11 @@ async function withSelections(
         })
         .from(animeArtworkSelection)
         .where(eq(animeArtworkSelection.animeId, match.animeId));
+    const [settings] = await db
+        .select({ logoSize: animeTable.logoSize })
+        .from(animeTable)
+        .where(eq(animeTable.id, match.animeId))
+        .limit(1);
     const backdropSelection = selections.find(
         (selection) => selection.type === 'backdrop',
     );
@@ -429,6 +435,7 @@ async function withSelections(
               artwork.logos[0] ??
               null),
         logoHidden,
+        logoSize: settings?.logoSize ?? 100,
     };
 }
 
@@ -559,9 +566,22 @@ async function selectArtwork(
         });
 }
 
+async function setLogoSize(anime: AniListAnime, logoSize: number) {
+    if (!Number.isInteger(logoSize) || logoSize < 50 || logoSize > 300) {
+        throw new Error('Logo size must be between 50 and 300');
+    }
+
+    const match = await resolveStored(anime);
+    await db
+        .update(animeTable)
+        .set({ logoSize, updatedAt: new Date() })
+        .where(eq(animeTable.id, match.animeId));
+}
+
 export const tmdb = {
     create,
     getArtwork,
     resolve,
     selectArtwork,
+    setLogoSize,
 };
