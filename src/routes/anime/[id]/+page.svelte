@@ -97,7 +97,7 @@
         <div class="relative mt-12 lg:mt-[clamp(3.75rem,3.9vw,5rem)]">
             <section
                 id="anime-details"
-                class={`grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-sm leading-6 text-muted md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-12 lg:gap-[clamp(4rem,10.75vw,13.75rem)] lg:text-[clamp(0.9375rem,0.88vw,1.125rem)] lg:leading-[clamp(1.4rem,1.56vw,2rem)] ${detailsExpanded ? 'max-h-[80rem]' : 'max-h-24'}`}
+                class={`grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-sm leading-6 text-muted md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-12 lg:gap-[clamp(4rem,10.75vw,13.75rem)] lg:text-[clamp(0.9375rem,0.88vw,1.125rem)] lg:leading-[clamp(1.4rem,1.56vw,2rem)] ${detailsExpanded ? 'max-h-320' : 'max-h-24'}`}
             >
                 <p class="max-w-prose text-[1.03em] text-foreground md:max-w-[96%]">{data.anime.description}</p>
                 <div class="space-y-[clamp(0.5rem,0.58vw,0.75rem)]">
