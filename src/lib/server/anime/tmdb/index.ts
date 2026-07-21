@@ -51,7 +51,7 @@ interface StoredTmdbMapping extends TmdbMapping {
     mappingVersion: number;
 }
 
-const mappingVersion = 4;
+const mappingVersion = 5;
 
 export interface TmdbArtworkImage {
     aspectRatio: number;
@@ -144,6 +144,9 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const exactSeriesTitle = names.some((name) =>
         seriesTitles.includes(seriesTitle(name)),
     );
+    const seasonQualifiedTitle = primaryTitles.some(
+        (title) => seriesTitle(title) !== normalizeTitle(title),
+    );
     const partialTitle = names.some((name) =>
         titles.some((title) => name.includes(title) || title.includes(name)),
     );
@@ -161,8 +164,13 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
             : partialTitle
               ? 55
               : 0;
+    const aggregatedTvSeason =
+        candidate.mediaType === 'tv' &&
+        exactSeriesTitle &&
+        seasonQualifiedTitle &&
+        Boolean(animeYear && candidateYear && candidateYear <= animeYear);
     const yearScore = animeYear && candidateYear
-        ? animeYear === candidateYear
+        ? animeYear === candidateYear || aggregatedTvSeason
             ? 15
             : -Math.min(yearDistance * 8, 40)
         : 0;
