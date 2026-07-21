@@ -36,6 +36,14 @@
 }
 
 @layer base {
+    * {
+        scrollbar-width: none;
+    }
+
+    *::-webkit-scrollbar {
+        display: none;
+    }
+
     html,
     body {
         @apply min-w-0 bg-canvas text-foreground;
