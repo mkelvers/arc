@@ -24,7 +24,12 @@ async function getAnime(id: number) {
 }
 
 export const load: PageServerLoad = async ({ params }) => {
-    const result = await getAnime(animeId(params.id));
+    const id = animeId(params.id);
+    const stored = await anime.tmdb.getStoredMedia(id);
+
+    if (stored) return stored;
+
+    const result = await getAnime(id);
 
     try {
         return {
@@ -43,13 +48,27 @@ export const actions: Actions = {
     default: async ({ params, request }) => {
         const data = await request.formData();
         const intent = data.get('intent');
+        const id = animeId(params.id);
+
+        if (intent === 'refresh') {
+            try {
+                await anime.tmdb.refreshArtwork(id);
+                return { success: true };
+            } catch (cause) {
+                return fail(502, {
+                    message:
+                        cause instanceof Error
+                            ? cause.message
+                            : 'Artwork refresh failed',
+                });
+            }
+        }
 
         if (intent === 'logoSize') {
             const logoSize = Number(data.get('logoSize'));
-            const result = await getAnime(animeId(params.id));
 
             try {
-                await anime.tmdb.setLogoSize(result, logoSize);
+                await anime.tmdb.setLogoSize(id, logoSize);
                 return { success: true };
             } catch (cause) {
                 return fail(400, {
@@ -71,11 +90,9 @@ export const actions: Actions = {
             return fail(400, { message: 'Invalid artwork selection' });
         }
 
-        const result = await getAnime(animeId(params.id));
-
         try {
             await anime.tmdb.selectArtwork(
-                result,
+                id,
                 type,
                 value === '' ? null : value,
             );

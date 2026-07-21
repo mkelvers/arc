@@ -13,6 +13,15 @@
             <h1 class="mt-3 text-4xl font-bold">{data.anime.title} media</h1>
             <p class="mt-2 text-zinc-400">TMDB {data.artwork.mediaType} #{data.artwork.id}</p>
         </div>
+        <form method="POST">
+            <input type="hidden" name="intent" value="refresh" />
+            <button
+                type="submit"
+                class="border border-zinc-700 px-4 py-2 text-sm font-semibold hover:border-orange-500"
+            >
+                Refetch
+            </button>
+        </form>
     </header>
 
     <section>
