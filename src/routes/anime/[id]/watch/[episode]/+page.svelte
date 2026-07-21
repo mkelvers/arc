@@ -5,13 +5,9 @@
     import {
         ArchiveIcon,
         BookmarkSimpleIcon,
-        CaretDownIcon,
-        CrownSimpleIcon,
-        MagnifyingGlassIcon,
         ShareNetworkIcon,
         ThumbsDownIcon,
         ThumbsUpIcon,
-        UserCircleIcon,
     } from 'phosphor-svelte';
 
     let { data }: PageProps = $props();
