@@ -1,5 +1,5 @@
 import createClient from 'openapi-fetch';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, ne, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
@@ -48,7 +48,10 @@ interface Candidate extends TmdbMapping {
 interface StoredTmdbMapping extends TmdbMapping {
     animeId: number;
     externalIdId: number;
+    mappingVersion: number;
 }
+
+const mappingVersion = 3;
 
 export interface TmdbArtworkImage {
     aspectRatio: number;
@@ -130,8 +133,11 @@ function mappingTitlesFor(anime: AniListAnime) {
 
 function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const mappingTitles = mappingTitlesFor(anime);
+    const primaryTitles = titlesFor(anime);
     const titles = mappingTitles.map(normalizeTitle);
+    const primary = primaryTitles.map(normalizeTitle);
     const names = [candidate.name, candidate.originalName].map(normalizeTitle);
+    const exactPrimaryTitle = names.some((name) => primary.includes(name));
     const exactTitle = names.some((name) => titles.includes(name));
     const seriesTitles = mappingTitles.map(seriesTitle);
     const exactSeriesTitle = names.some((name) => seriesTitles.includes(name));
@@ -244,6 +250,7 @@ async function findStoredMappingByAniListId(
             targetExternalId,
             eq(targetExternalId.id, targetLink.externalIdId),
         )
+        .innerJoin(animeTable, eq(animeTable.id, animeExternalIdLink.animeId))
         .where(
             and(
                 eq(animeExternalId.provider, 'anilist'),
@@ -263,6 +270,7 @@ async function findStoredMappingByAniListId(
                 externalIdId: match.externalIdId,
                 id: match.id,
                 mediaType: match.mediaType,
+                mappingVersion: match.mappingVersion,
             };
         }
     }
@@ -327,8 +335,38 @@ async function persistMapping(
 
         await tx
             .update(animeTable)
-            .set({ title: titlesFor(anime)[0] ?? null, updatedAt: new Date() })
+            .set({
+                title: titlesFor(anime)[0] ?? null,
+                tmdbMappingVersion: mappingVersion,
+                updatedAt: new Date(),
+            })
             .where(eq(animeTable.id, link.animeId));
+
+        const oldTmdbIds = await tx
+            .select({ id: animeExternalIdLink.externalIdId })
+            .from(animeExternalIdLink)
+            .innerJoin(
+                animeExternalId,
+                eq(animeExternalId.id, animeExternalIdLink.externalIdId),
+            )
+            .where(
+                and(
+                    eq(animeExternalIdLink.animeId, link.animeId),
+                    eq(animeExternalId.provider, 'tmdb'),
+                ),
+            );
+
+        if (oldTmdbIds.length) {
+            await tx.delete(animeExternalIdLink).where(
+                and(
+                    eq(animeExternalIdLink.animeId, link.animeId),
+                    inArray(
+                        animeExternalIdLink.externalIdId,
+                        oldTmdbIds.map(({ id }) => id),
+                    ),
+                ),
+            );
+        }
 
         await tx
             .insert(animeExternalId)
@@ -361,6 +399,7 @@ async function persistMapping(
             ...mapping,
             animeId: link.animeId,
             externalIdId: tmdbId.id,
+            mappingVersion,
         };
     });
 }
@@ -368,7 +407,7 @@ async function persistMapping(
 async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
     const stored = await findStoredMapping(anime);
 
-    if (stored) {
+    if (stored?.mappingVersion === mappingVersion) {
         await db
             .update(animeTable)
             .set({ title: titlesFor(anime)[0] ?? null, updatedAt: new Date() })
@@ -396,13 +435,6 @@ async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
         ).values(),
     ];
 
-    if (related.length === 1) {
-        return persistMapping(anime, {
-            id: related[0].id,
-            mediaType: related[0].mediaType,
-        });
-    }
-
     const titles = mappingTitlesFor(anime);
 
     if (!titles.length) throw new Error('AniList returned no searchable title');
@@ -429,14 +461,21 @@ async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
             candidateScore(right, anime) - candidateScore(left, anime),
     )[0];
 
-    if (!match || candidateScore(match, anime) < 85) {
-        throw new Error(`No confident TMDB match for AniList ${anime.id}`);
+    if (match && candidateScore(match, anime) >= 85) {
+        return persistMapping(anime, {
+            id: match.id,
+            mediaType: match.mediaType,
+        });
     }
 
-    return persistMapping(anime, {
-        id: match.id,
-        mediaType: match.mediaType,
-    });
+    if (related.length === 1) {
+        return persistMapping(anime, {
+            id: related[0].id,
+            mediaType: related[0].mediaType,
+        });
+    }
+
+    throw new Error(`No confident TMDB match for AniList ${anime.id}`);
 }
 
 async function resolve(anime: AniListAnime): Promise<TmdbMapping> {
@@ -656,7 +695,7 @@ async function getArtwork(anime: AniListAnime) {
 async function getStoredMedia(anilistId: number) {
     const match = await findStoredMappingByAniListId(anilistId);
 
-    if (!match) return null;
+    if (!match || match.mappingVersion !== mappingVersion) return null;
 
     const [[stored], artwork] = await Promise.all([
         db
