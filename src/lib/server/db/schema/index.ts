@@ -69,5 +69,35 @@ export const animeExternalIdLink = pgTable(
     ],
 );
 
+export const animeArtwork = pgTable(
+    'anime_artwork',
+    {
+        externalIdId: integer('external_id_id')
+            .notNull()
+            .references(() => animeExternalId.id, { onDelete: 'cascade' }),
+        type: artworkType('type').notNull(),
+        filePath: text('file_path').notNull(),
+        aspectRatio: doublePrecision('aspect_ratio').notNull(),
+        height: integer('height').notNull(),
+        language: varchar('language', { length: 16 }),
+        voteAverage: doublePrecision('vote_average').notNull(),
+        width: integer('width').notNull(),
+    },
+    (table) => [
+        primaryKey({
+            columns: [table.externalIdId, table.type, table.filePath],
+        }),
+    ],
+);
+
+export const animeArtworkCache = pgTable('anime_artwork_cache', {
+    externalIdId: integer('external_id_id')
+        .primaryKey()
+        .references(() => animeExternalId.id, { onDelete: 'cascade' }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
 export type Anime = typeof anime.$inferSelect;
 export type AnimeExternalId = typeof animeExternalId.$inferSelect;
