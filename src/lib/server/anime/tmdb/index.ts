@@ -325,8 +325,13 @@ async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
     if (!titles.length) throw new Error('AniList returned no searchable title');
 
     const search = anime.format === 'MOVIE' ? searchMovies : searchTv;
+    const queries = [
+        ...new Set(
+            titles.flatMap((title) => [title, seriesTitle(title)]),
+        ),
+    ];
     const candidates = (
-        await Promise.all(titles.map((title) => search(title)))
+        await Promise.all(queries.map((title) => search(title)))
     ).flat();
     const unique = [
         ...new Map(
