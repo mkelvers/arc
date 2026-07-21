@@ -21,6 +21,11 @@ query Anime($id: Int!) {
                 node {
                     id
                     type
+                    title {
+                        english
+                        romaji
+                        native
+                    }
                 }
             }
         }
