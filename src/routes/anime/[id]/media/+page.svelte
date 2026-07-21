@@ -6,18 +6,18 @@
 
 <svelte:head><title>{data.anime.title} media — Arc</title></svelte:head>
 
-<main class="min-h-screen bg-black px-6 py-10 text-white sm:px-10 lg:px-16">
+<main class="min-h-screen bg-canvas px-6 py-10 text-foreground sm:px-10 lg:px-16">
     <header class="mb-12 flex items-end justify-between gap-6">
         <div>
-            <a href={`/anime/${data.anime.id}`} class="text-sm text-orange-500">← Back to anime</a>
+            <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">← Back to anime</a>
             <h1 class="mt-3 text-4xl font-bold">{data.anime.title} media</h1>
-            <p class="mt-2 text-zinc-400">TMDB {data.artwork.mediaType} #{data.artwork.id}</p>
+            <p class="mt-2 text-muted">TMDB {data.artwork.mediaType} #{data.artwork.id}</p>
         </div>
         <form method="POST">
             <input type="hidden" name="intent" value="refresh" />
             <button
                 type="submit"
-                class="border border-zinc-700 px-4 py-2 text-sm font-semibold hover:border-orange-500"
+                class="border border-border px-4 py-2 text-sm font-semibold hover:border-accent"
             >
                 Refetch
             </button>
@@ -29,7 +29,7 @@
             <h2 class="text-2xl font-semibold">Logos ({data.artwork.logos.length})</h2>
             <form method="POST" class="flex w-full max-w-xs items-center gap-4">
                 <input type="hidden" name="intent" value="logoSize" />
-                <label for="logo-size" class="shrink-0 text-sm text-zinc-400">Logo size</label>
+                <label for="logo-size" class="shrink-0 text-sm text-muted">Logo size</label>
                 <input
                     id="logo-size"
                     name="logoSize"
@@ -40,7 +40,7 @@
                     value={data.artwork.logoSize}
                     aria-label="Logo size"
                     onchange={(event) => event.currentTarget.form?.requestSubmit()}
-                    class="w-full accent-orange-500"
+                    class="w-full accent-accent"
                 />
             </form>
         </div>
@@ -51,9 +51,9 @@
                 <button
                     type="submit"
                     aria-pressed={data.artwork.logoHidden}
-                    class:border-orange-500={data.artwork.logoHidden}
-                    class:border-zinc-800={!data.artwork.logoHidden}
-                    class="grid min-h-48 w-full place-items-center border bg-zinc-950 p-6 text-xl font-semibold"
+                    class:border-accent={data.artwork.logoHidden}
+                    class:border-border={!data.artwork.logoHidden}
+                    class="grid min-h-48 w-full place-items-center border bg-surface p-6 text-xl font-semibold"
                 >
                     No logo
                 </button>
@@ -65,9 +65,9 @@
                     <button
                         type="submit"
                         aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
-                        class:border-orange-500={data.artwork.selectedLogo?.filePath === image.filePath}
-                        class:border-zinc-800={data.artwork.selectedLogo?.filePath !== image.filePath}
-                        class="grid min-h-48 w-full place-items-center border bg-zinc-950 p-6"
+                        class:border-accent={data.artwork.selectedLogo?.filePath === image.filePath}
+                        class:border-border={data.artwork.selectedLogo?.filePath !== image.filePath}
+                        class="grid min-h-48 w-full place-items-center border bg-surface p-6"
                     >
                         <img src={image.url} alt={`${data.anime.title} logo`} class="max-h-40 max-w-full" />
                         <span class="sr-only">{image.width} × {image.height}, {image.language ?? 'no language'}</span>
@@ -87,12 +87,12 @@
                     <button
                         type="submit"
                         aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
-                        class:border-orange-500={data.artwork.selectedBackdrop?.filePath === image.filePath}
-                        class:border-zinc-800={data.artwork.selectedBackdrop?.filePath !== image.filePath}
-                        class="w-full overflow-hidden border bg-zinc-950 text-left"
+                        class:border-accent={data.artwork.selectedBackdrop?.filePath === image.filePath}
+                        class:border-border={data.artwork.selectedBackdrop?.filePath !== image.filePath}
+                        class="w-full overflow-hidden border bg-surface text-left"
                     >
                         <img src={image.url} alt={`${data.anime.title} backdrop`} class="aspect-video w-full object-cover" />
-                        <span class="block px-3 py-2 text-xs text-zinc-500">
+                        <span class="block px-3 py-2 text-xs text-subtle">
                             {image.width} × {image.height} · {image.language ?? 'no language'} · {image.voteAverage.toFixed(1)}
                         </span>
                     </button>
