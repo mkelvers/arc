@@ -50,6 +50,13 @@
       "when": 1784658483298,
       "tag": "0006_great_maximus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784659421843,
+      "tag": "0007_ancient_blade",
+      "breakpoints": true
     }
   ]
 }
