@@ -44,7 +44,7 @@
     </div>
 
     <div class="z-20 col-start-1 row-start-1 min-w-0 self-start px-5 pt-32 pb-10 sm:px-10 sm:pt-44 lg:px-16 lg:pt-[clamp(11.25rem,11.72vw,15rem)]">
-        <a href={`/anime/${data.anime.id}/media`} class="block w-fit">
+        <div class="w-fit">
             {#if logo}
                 <img
                     src={logo.url}
@@ -57,7 +57,7 @@
                     {data.anime.title}
                 </h1>
             {/if}
-        </a>
+        </div>
 
         <p class="mt-8 text-sm text-muted sm:mt-10 lg:mt-[clamp(2rem,2.54vw,3.25rem)] lg:text-[clamp(0.875rem,0.88vw,1.125rem)]">
             <span class="font-normal after:mx-1 after:content-['•']">{data.anime.format}</span>
