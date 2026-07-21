@@ -16,7 +16,25 @@
     </header>
 
     <section>
-        <h2 class="mb-5 text-2xl font-semibold">Logos ({data.artwork.logos.length})</h2>
+        <div class="mb-5 flex items-center justify-between gap-8">
+            <h2 class="text-2xl font-semibold">Logos ({data.artwork.logos.length})</h2>
+            <form method="POST" class="flex w-full max-w-xs items-center gap-4">
+                <input type="hidden" name="intent" value="logoSize" />
+                <label for="logo-size" class="shrink-0 text-sm text-zinc-400">Logo size</label>
+                <input
+                    id="logo-size"
+                    name="logoSize"
+                    type="range"
+                    min="50"
+                    max="300"
+                    step="5"
+                    value={data.artwork.logoSize}
+                    aria-label="Logo size"
+                    onchange={(event) => event.currentTarget.form?.requestSubmit()}
+                    class="w-full accent-orange-500"
+                />
+            </form>
+        </div>
         <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
             <form method="POST">
                 <input type="hidden" name="type" value="logo" />

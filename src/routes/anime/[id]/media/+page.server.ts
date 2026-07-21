@@ -42,6 +42,25 @@ export const load: PageServerLoad = async ({ params }) => {
 export const actions: Actions = {
     default: async ({ params, request }) => {
         const data = await request.formData();
+        const intent = data.get('intent');
+
+        if (intent === 'logoSize') {
+            const logoSize = Number(data.get('logoSize'));
+            const result = await getAnime(animeId(params.id));
+
+            try {
+                await anime.tmdb.setLogoSize(result, logoSize);
+                return { success: true };
+            } catch (cause) {
+                return fail(400, {
+                    message:
+                        cause instanceof Error
+                            ? cause.message
+                            : 'Logo size update failed',
+                });
+            }
+        }
+
         const type = data.get('type');
         const value = data.get('filePath');
 
