@@ -76,6 +76,24 @@ function normalizeTitle(title: string) {
         .toLocaleLowerCase('en');
 }
 
+function seriesTitle(title: string) {
+    let value = normalizeTitle(title);
+    let previous = '';
+
+    while (value !== previous) {
+        previous = value;
+        value = value
+            .replace(
+                /\s+(?:(?:season|part|cour)\s+\d+|\d+(?:st|nd|rd|th)\s+season)$/,
+                '',
+            )
+            .replace(/\s+第\s*\d+\s*期$/u, '')
+            .trim();
+    }
+
+    return value;
+}
+
 function titlesFor(anime: AniListAnime) {
     return [
         anime.title?.english,
@@ -92,6 +110,8 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const titles = titlesFor(anime).map(normalizeTitle);
     const names = [candidate.name, candidate.originalName].map(normalizeTitle);
     const exactTitle = names.some((name) => titles.includes(name));
+    const seriesTitles = titlesFor(anime).map(seriesTitle);
+    const exactSeriesTitle = names.some((name) => seriesTitles.includes(name));
     const partialTitle = names.some((name) =>
         titles.some((title) => name.includes(title) || title.includes(name)),
     );
@@ -100,11 +120,12 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const yearDistance =
         animeYear && candidateYear ? Math.abs(animeYear - candidateYear) : 0;
 
-    return (
-        (exactTitle ? 100 : partialTitle ? 55 : 0) -
-        Math.min(yearDistance * 8, 40) +
-        Math.log10(candidate.popularity + 1)
-    );
+    const titleScore = exactTitle ? 100 : exactSeriesTitle ? 95 : partialTitle ? 55 : 0;
+    const yearPenalty = exactSeriesTitle
+        ? 0
+        : Math.min(yearDistance * 8, 40);
+
+    return titleScore - yearPenalty + Math.log10(candidate.popularity + 1);
 }
 
 async function searchTv(query: string): Promise<Candidate[]> {
