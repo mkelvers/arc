@@ -513,7 +513,12 @@ async function readArtwork(match: StoredTmdbMapping): Promise<TmdbArtwork | null
     const [cached] = await db
         .select({ externalIdId: animeArtworkCache.externalIdId })
         .from(animeArtworkCache)
-        .where(eq(animeArtworkCache.externalIdId, match.externalIdId))
+        .where(
+            and(
+                eq(animeArtworkCache.externalIdId, match.externalIdId),
+                eq(animeArtworkCache.allLanguages, true),
+            ),
+        )
         .limit(1);
 
     if (!cached) return null;
@@ -541,13 +546,11 @@ async function fetchArtwork(match: StoredTmdbMapping) {
             ? await client.GET('/3/movie/{movie_id}/images', {
                   params: {
                       path: { movie_id: match.id },
-                      query: { include_image_language: 'en,null' },
                   },
               })
             : await client.GET('/3/tv/{series_id}/images', {
                   params: {
                       path: { series_id: match.id },
-                      query: { include_image_language: 'en,null' },
                   },
               });
 
@@ -618,10 +621,13 @@ async function fetchArtwork(match: StoredTmdbMapping) {
         }
         await tx
             .insert(animeArtworkCache)
-            .values({ externalIdId: match.externalIdId })
+            .values({
+                externalIdId: match.externalIdId,
+                allLanguages: true,
+            })
             .onConflictDoUpdate({
                 target: animeArtworkCache.externalIdId,
-                set: { fetchedAt: new Date() },
+                set: { fetchedAt: new Date(), allLanguages: true },
             });
     });
 
