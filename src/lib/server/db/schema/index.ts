@@ -1,10 +1,13 @@
 import {
+    doublePrecision,
     integer,
     pgEnum,
     pgTable,
     primaryKey,
+    text,
     timestamp,
     unique,
+    varchar,
 } from 'drizzle-orm/pg-core';
 
 export const externalProvider = pgEnum('external_provider', [
@@ -17,6 +20,8 @@ export const externalMediaType = pgEnum('external_media_type', [
     'movie',
     'tv',
 ]);
+
+export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 
 export const anime = pgTable('anime', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
