@@ -1,8 +1,10 @@
 <script lang="ts">
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import { enhance } from '$app/forms';
     import type { PageProps } from './$types';
     import {
         CaretDownIcon,
+        BookmarkSimpleIcon,
         DotsThreeVerticalIcon,
         PlayIcon,
         ShareNetworkIcon,
@@ -13,6 +15,16 @@
     const backdrop = $derived(data.artwork.selectedBackdrop);
     const logo = $derived(data.artwork.selectedLogo);
     let detailsExpanded = $state(false);
+
+    async function share() {
+        const shareData = { title: data.anime.title, url: window.location.href };
+
+        if (navigator.share) {
+            await navigator.share(shareData);
+        } else {
+            await navigator.clipboard.writeText(shareData.url);
+        }
+    }
 </script>
 
 <svelte:head><title>{data.anime.title} — Arc</title></svelte:head>
@@ -89,7 +101,30 @@
                 <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                 START WATCHING E1
             </button>
-            <button class="grid size-11 shrink-0 place-items-center lg:size-[clamp(2.625rem,2.73vw,3.5rem)]" aria-label="Share">
+            <form method="POST" action="?/watchlist" use:enhance>
+                <button
+                    type="submit"
+                    class:bg-accent={data.watchlistState === 'plan_to_watch'}
+                    class:text-on-accent={data.watchlistState === 'plan_to_watch'}
+                    class="grid size-11 shrink-0 place-items-center border border-accent transition-colors hover:bg-accent hover:text-on-accent lg:size-[clamp(2.625rem,2.73vw,3.5rem)]"
+                    aria-label={data.watchlistState === 'plan_to_watch' ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
+                    aria-pressed={data.watchlistState === 'plan_to_watch'}
+                    title={data.watchlistState === 'plan_to_watch' ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
+                >
+                    <BookmarkSimpleIcon
+                        size="1.65em"
+                        weight={data.watchlistState === 'plan_to_watch' ? 'fill' : 'regular'}
+                        aria-hidden="true"
+                    />
+                </button>
+            </form>
+            <button
+                type="button"
+                class="grid size-11 shrink-0 place-items-center transition-colors hover:bg-accent hover:text-on-accent lg:size-[clamp(2.625rem,2.73vw,3.5rem)]"
+                aria-label="Share"
+                title="Share"
+                onclick={share}
+            >
                 <ShareNetworkIcon size="1.65em" weight="regular" aria-hidden="true" />
             </button>
         </div>
