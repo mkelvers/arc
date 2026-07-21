@@ -169,11 +169,13 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
             : partialTitle
               ? 55
               : 0;
-    const yearPenalty = exactSeriesTitle && !yearQualifiedSeriesTitle
-        ? 0
-        : Math.min(yearDistance * 8, 40);
+    const yearScore = animeYear && candidateYear
+        ? animeYear === candidateYear
+            ? 15
+            : -Math.min(yearDistance * 8, 40)
+        : 0;
 
-    return titleScore - yearPenalty + Math.log10(candidate.popularity + 1);
+    return titleScore + yearScore + Math.log10(candidate.popularity + 1);
 }
 
 async function searchTv(query: string): Promise<Candidate[]> {
