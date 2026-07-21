@@ -72,6 +72,7 @@ export interface TmdbArtwork extends TmdbMapping {
 function normalizeTitle(title: string) {
     return title
         .normalize('NFKD')
+        .replace(/\p{M}+/gu, '')
         .replace(/[^\p{L}\p{N}]+/gu, ' ')
         .trim()
         .toLocaleLowerCase('en');
