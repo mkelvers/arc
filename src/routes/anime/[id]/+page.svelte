@@ -16,72 +16,72 @@
 <svelte:head><title>{data.anime.title} — Arc</title></svelte:head>
 
 <figure
-    class="anime-hero grid min-h-screen grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas text-foreground before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10"
+    class="anime-hero grid min-h-dvh grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas text-foreground before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10"
 >
     {#if backdrop}
         <img
             src={backdrop.url}
             alt={data.anime.title}
-            class="col-start-1 row-start-1 h-175 w-full object-cover object-[center_0%]"
+            class="col-start-1 row-start-1 h-120 w-full object-cover object-center sm:h-150 sm:object-[center_0%] lg:h-175"
         />
     {/if}
 
     <a
         href={`/anime/${data.anime.id}/media`}
-        class="z-20 col-start-1 row-start-1 mt-7 mr-16 flex h-fit items-center justify-self-end text-[clamp(0.875rem,0.88vw,1.125rem)] font-bold"
+        class="z-20 col-start-1 row-start-1 mt-5 mr-5 flex min-h-11 self-start justify-self-end items-center text-sm font-bold sm:mt-7 sm:mr-10 lg:mr-16 lg:text-[clamp(0.875rem,0.88vw,1.125rem)]"
     >
         <DotsThreeVerticalIcon size="1.5em" weight="bold" aria-hidden="true" />
-        <span class="ml-3">MORE</span>
+        <span class="ml-2 sm:ml-3">MORE</span>
     </a>
 
-    <div class="z-20 col-start-1 row-start-1 mx-16 self-start pt-[clamp(11.25rem,11.72vw,15rem)]">
+    <div class="z-20 col-start-1 row-start-1 min-w-0 self-start px-5 pt-32 pb-10 sm:px-10 sm:pt-44 lg:px-16 lg:pt-[clamp(11.25rem,11.72vw,15rem)]">
         <a href={`/anime/${data.anime.id}/media`} class="block w-fit">
             {#if logo}
                 <img
                     src={logo.url}
                     alt={data.anime.title}
                     style:height={`clamp(${5 * data.artwork.logoSize / 100}rem, ${5.7 * data.artwork.logoSize / 100}vw, ${7.5 * data.artwork.logoSize / 100}rem)`}
-                    class="w-auto"
+                    class="max-h-24 max-w-[min(100%,28rem)] object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
                 />
             {:else if !data.artwork.logoHidden}
-                <h1 class="max-w-3xl text-[clamp(3rem,5.7vw,7.5rem)] leading-none font-bold">
+                <h1 class="max-w-3xl text-4xl leading-none font-bold sm:text-6xl lg:text-[clamp(3rem,5.7vw,7.5rem)]">
                     {data.anime.title}
                 </h1>
             {/if}
         </a>
 
-        <p class="mt-[clamp(2rem,2.54vw,3.25rem)] text-[clamp(0.875rem,0.88vw,1.125rem)] text-muted">
+        <p class="mt-8 text-sm text-muted sm:mt-10 lg:mt-[clamp(2rem,2.54vw,3.25rem)] lg:text-[clamp(0.875rem,0.88vw,1.125rem)]">
             <span class="font-normal after:mx-1 after:content-['•']">{data.anime.format}</span>
             {#each data.anime.genres as genre, index}
                 <a class="underline underline-offset-2" href="/">{genre}</a>{index < data.anime.genres.length - 1 ? ', ' : ''}
             {/each}
         </p>
 
-        <div class="mt-[clamp(0.625rem,0.78vw,1rem)] flex items-center gap-[clamp(0.5rem,0.58vw,0.75rem)] text-[clamp(0.875rem,0.98vw,1.25rem)]">
+        <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-[clamp(0.625rem,0.78vw,1rem)] lg:gap-[clamp(0.5rem,0.58vw,0.75rem)] lg:text-[clamp(0.875rem,0.98vw,1.25rem)]">
             <span class="flex items-center gap-0.5 text-muted" aria-label="5 out of 5 stars">
                 {#each Array(5) as _}
-                    <svg class="size-[1.85em] fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg class="size-[1.55em] fill-current sm:size-[1.85em]" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z" />
                     </svg>
                 {/each}
             </span>
-            <span class="h-[1.7em] border-l border-border-strong"></span>
+            <span class="h-[1.7em] border-l border-border-strong max-[22rem]:hidden"></span>
             <strong>AniList score: {data.anime.score}%</strong>
             <CaretDownIcon size="0.9em" weight="fill" aria-hidden="true" />
         </div>
 
-        <div class="mt-[clamp(1.875rem,1.95vw,2.5rem)] flex items-center gap-[clamp(0.5rem,0.58vw,0.75rem)] text-[clamp(0.75rem,0.78vw,1rem)] font-bold text-accent">
-            <button class="flex h-[clamp(2.625rem,2.73vw,3.5rem)] items-center gap-2.5 bg-accent px-[clamp(1rem,1.36vw,1.75rem)] text-on-accent">
+        <div class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-[clamp(1.875rem,1.95vw,2.5rem)] lg:gap-[clamp(0.5rem,0.58vw,0.75rem)] lg:text-[clamp(0.75rem,0.78vw,1rem)]">
+            <button class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-[clamp(2.625rem,2.73vw,3.5rem)] lg:px-[clamp(1rem,1.36vw,1.75rem)]">
                 <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                 START WATCHING E1
             </button>
-            <button class="grid size-[clamp(2.625rem,2.73vw,3.5rem)] place-items-center" aria-label="Share">
+            <button class="grid size-11 shrink-0 place-items-center lg:size-[clamp(2.625rem,2.73vw,3.5rem)]" aria-label="Share">
                 <ShareNetworkIcon size="1.65em" weight="regular" aria-hidden="true" />
             </button>
         </div>
 
-        <section class="mt-[clamp(3.75rem,3.9vw,5rem)] grid grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-[clamp(8.5rem,10.75vw,13.75rem)] text-[clamp(0.9375rem,0.88vw,1.125rem)] leading-[clamp(1.4rem,1.56vw,2rem)] text-muted">
-            <p class="max-w-[96%] text-[1.03em] text-foreground">{data.anime.description}</p>
+        <section class="mt-12 grid min-w-0 grid-cols-1 gap-8 text-sm leading-6 text-muted md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-12 lg:mt-[clamp(3.75rem,3.9vw,5rem)] lg:gap-[clamp(4rem,10.75vw,13.75rem)] lg:text-[clamp(0.9375rem,0.88vw,1.125rem)] lg:leading-[clamp(1.4rem,1.56vw,2rem)]">
+            <p class="max-w-prose text-[1.03em] text-foreground md:max-w-[96%]">{data.anime.description}</p>
             <div class="space-y-[clamp(0.5rem,0.58vw,0.75rem)]">
                 <p><strong class="font-normal text-foreground">Production:</strong> {data.anime.studios.join(', ')}</p>
                 <p><strong class="font-normal text-foreground">Key staff:</strong> {data.anime.staff}</p>
