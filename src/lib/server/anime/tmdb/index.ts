@@ -109,14 +109,33 @@ function titlesFor(anime: AniListAnime) {
     );
 }
 
+function mappingTitlesFor(anime: AniListAnime) {
+    return [
+        ...titlesFor(anime).slice(0, 3),
+        ...(anime.relations?.edges ?? []).flatMap((edge) =>
+            edge?.relationType === 'ADAPTATION'
+                ? [
+                      edge.node?.title?.english,
+                      edge.node?.title?.romaji,
+                      edge.node?.title?.native,
+                  ]
+                : [],
+        ),
+    ].filter(
+        (title, index, titles): title is string =>
+            Boolean(title?.trim()) && titles.indexOf(title) === index,
+    );
+}
+
 function candidateScore(candidate: Candidate, anime: AniListAnime) {
-    const titles = titlesFor(anime).map(normalizeTitle);
+    const mappingTitles = mappingTitlesFor(anime);
+    const titles = mappingTitles.map(normalizeTitle);
     const names = [candidate.name, candidate.originalName].map(normalizeTitle);
     const exactTitle = names.some((name) => titles.includes(name));
-    const seriesTitles = titlesFor(anime).map(seriesTitle);
+    const seriesTitles = mappingTitles.map(seriesTitle);
     const exactSeriesTitle = names.some((name) => seriesTitles.includes(name));
     const yearQualifiedSeriesTitle = names.some((name) =>
-        titlesFor(anime).some((title) => {
+        mappingTitles.some((title) => {
             const normalized = normalizeTitle(title);
 
             return (
@@ -374,7 +393,7 @@ async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
         });
     }
 
-    const titles = titlesFor(anime).slice(0, 3);
+    const titles = mappingTitlesFor(anime);
 
     if (!titles.length) throw new Error('AniList returned no searchable title');
 
