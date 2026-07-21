@@ -1,4 +1,5 @@
 import {
+    boolean,
     doublePrecision,
     integer,
     pgEnum,
@@ -100,21 +101,19 @@ export const animeArtworkCache = pgTable('anime_artwork_cache', {
         .defaultNow(),
 });
 
-export const animeArtworkSelection = pgTable(
-    'anime_artwork_selection',
-    {
-        animeId: integer('anime_id')
-            .notNull()
-            .references(() => anime.id, { onDelete: 'cascade' }),
-        type: artworkType('type').notNull(),
-        filePath: text('file_path'),
-        updatedAt: timestamp('updated_at', { withTimezone: true })
-            .notNull()
-            .defaultNow()
-            .$onUpdate(() => new Date()),
-    },
-    (table) => [primaryKey({ columns: [table.animeId, table.type] })],
-);
+export const animeArtworkPreference = pgTable('anime_artwork_preference', {
+    externalIdId: integer('external_id_id')
+        .primaryKey()
+        .references(() => animeExternalId.id, { onDelete: 'cascade' }),
+    backdropFilePath: text('backdrop_file_path'),
+    logoFilePath: text('logo_file_path'),
+    logoHidden: boolean('logo_hidden').notNull().default(false),
+    logoSize: integer('logo_size').notNull().default(100),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
 
 export type Anime = typeof anime.$inferSelect;
 export type AnimeExternalId = typeof animeExternalId.$inferSelect;
