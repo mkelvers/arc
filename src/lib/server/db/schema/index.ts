@@ -99,5 +99,22 @@ export const animeArtworkCache = pgTable('anime_artwork_cache', {
         .defaultNow(),
 });
 
+export const animeArtworkSelection = pgTable(
+    'anime_artwork_selection',
+    {
+        animeId: integer('anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        type: artworkType('type').notNull(),
+        filePath: text('file_path'),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [primaryKey({ columns: [table.animeId, table.type] })],
+);
+
 export type Anime = typeof anime.$inferSelect;
 export type AnimeExternalId = typeof animeExternalId.$inferSelect;
+export type AnimeArtwork = typeof animeArtwork.$inferSelect;
