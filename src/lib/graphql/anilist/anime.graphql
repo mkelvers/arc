@@ -1,6 +1,7 @@
 query Anime($id: Int!) {
     Media(id: $id, type: ANIME) {
         id
+        idMal
         title {
             english
             romaji
@@ -14,7 +15,11 @@ query Anime($id: Int!) {
         seasonYear
         startDate {
             year
+            month
+            day
         }
+        episodes
+        duration
         relations {
             edges {
                 relationType
