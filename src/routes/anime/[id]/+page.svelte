@@ -12,6 +12,7 @@
 
     const backdrop = $derived(data.artwork.selectedBackdrop);
     const logo = $derived(data.artwork.selectedLogo);
+    let detailsExpanded = $state(false);
 </script>
 
 <svelte:head><title>{data.anime.title} — Arc</title></svelte:head>
@@ -93,21 +94,41 @@
             </button>
         </div>
 
-        <section class="mt-12 grid min-w-0 grid-cols-1 gap-8 text-sm leading-6 text-muted md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-12 lg:mt-[clamp(3.75rem,3.9vw,5rem)] lg:gap-[clamp(4rem,10.75vw,13.75rem)] lg:text-[clamp(0.9375rem,0.88vw,1.125rem)] lg:leading-[clamp(1.4rem,1.56vw,2rem)]">
-            <p class="max-w-prose text-[1.03em] text-foreground md:max-w-[96%]">{data.anime.description}</p>
-            <div class="space-y-[clamp(0.5rem,0.58vw,0.75rem)]">
-                <p><strong class="font-normal text-foreground">Production:</strong> {data.anime.studios.join(', ')}</p>
-                <p><strong class="font-normal text-foreground">Key staff:</strong> {data.anime.staff}</p>
-                <p><strong class="font-normal text-foreground">Rankings:</strong> {data.anime.rankings.join(', ')}</p>
-                <p><strong class="font-normal text-foreground">Audience:</strong> {data.anime.members} members, {data.anime.favourites} favorites</p>
-                <p><strong class="font-normal text-foreground">Themes:</strong> {data.anime.themes.join(', ')}</p>
-                <p>
-                    <strong class="font-normal text-foreground">Genres:</strong>
-                    {#each data.anime.genres as genre, index}
-                        <a class="underline underline-offset-2" href="/">{genre}</a>{index < data.anime.genres.length - 1 ? ', ' : ''}
-                    {/each}
-                </p>
-            </div>
-        </section>
+        <div class="relative mt-12 lg:mt-[clamp(3.75rem,3.9vw,5rem)]">
+            <section
+                id="anime-details"
+                class={`grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-sm leading-6 text-muted md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-12 lg:gap-[clamp(4rem,10.75vw,13.75rem)] lg:text-[clamp(0.9375rem,0.88vw,1.125rem)] lg:leading-[clamp(1.4rem,1.56vw,2rem)] ${detailsExpanded ? 'max-h-[80rem]' : 'max-h-24'}`}
+            >
+                <p class="max-w-prose text-[1.03em] text-foreground md:max-w-[96%]">{data.anime.description}</p>
+                <div class="space-y-[clamp(0.5rem,0.58vw,0.75rem)]">
+                    <p><strong class="font-normal text-foreground">Production:</strong> {data.anime.studios.join(', ')}</p>
+                    <p><strong class="font-normal text-foreground">Key staff:</strong> {data.anime.staff}</p>
+                    <p><strong class="font-normal text-foreground">Rankings:</strong> {data.anime.rankings.join(', ')}</p>
+                    <p><strong class="font-normal text-foreground">Audience:</strong> {data.anime.members} members, {data.anime.favourites} favorites</p>
+                    <p><strong class="font-normal text-foreground">Themes:</strong> {data.anime.themes.join(', ')}</p>
+                    <p>
+                        <strong class="font-normal text-foreground">Genres:</strong>
+                        {#each data.anime.genres as genre, index}
+                            <a class="underline underline-offset-2" href="/">{genre}</a>{index < data.anime.genres.length - 1 ? ', ' : ''}
+                        {/each}
+                    </p>
+                </div>
+            </section>
+
+            {#if !detailsExpanded}
+                <div class="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-b from-transparent to-canvas" aria-hidden="true"></div>
+            {/if}
+        </div>
+
+        <button
+            type="button"
+            class="mt-5 min-h-11 text-[0.6875rem] font-semibold text-accent sm:text-xs"
+            aria-expanded={detailsExpanded}
+            aria-controls="anime-details"
+            onclick={() => (detailsExpanded = !detailsExpanded)}
+        >
+            {detailsExpanded ? 'FEWER DETAILS' : 'MORE DETAILS'}
+        </button>
+        <div class="border-b border-border"></div>
     </div>
 </figure>
