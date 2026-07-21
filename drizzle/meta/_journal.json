@@ -8,6 +8,20 @@
       "when": 1784651988607,
       "tag": "0000_simple_zzzax",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784652460434,
+      "tag": "0001_known_mandroid",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784652825963,
+      "tag": "0002_familiar_maelstrom",
+      "breakpoints": true
     }
   ]
 }
