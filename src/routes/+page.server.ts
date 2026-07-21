@@ -1,23 +1,23 @@
 import { error } from '@sveltejs/kit';
 import { Effect, Either } from 'effect';
 
-import { anilist } from '$lib/server/anime';
+import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
-    const anime = await Effect.runPromise(
-        anilist.getAnime(20464).pipe(
+    const result = await Effect.runPromise(
+        anime.anilist.getAnime(20464).pipe(
             Effect.map(toAnimeDetails),
             Effect.either,
         ),
     );
 
-    if (Either.isLeft(anime)) {
-        error(502, anime.left.message);
+    if (Either.isLeft(result)) {
+        error(502, result.left.message);
     }
 
     return {
-        anime: anime.right
+        anime: result.right
     };
 };
