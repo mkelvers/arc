@@ -1,5 +1,6 @@
 <script lang="ts">
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import EpisodeList from '$lib/components/EpisodeList.svelte';
     import { enhance } from '$app/forms';
     import type { PageProps } from './$types';
     import {
@@ -97,10 +98,13 @@
         </div>
 
         <div class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-[clamp(1.875rem,1.95vw,2.5rem)] lg:gap-[clamp(0.5rem,0.58vw,0.75rem)] lg:text-[clamp(0.75rem,0.78vw,1rem)]">
-            <button class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-[clamp(2.625rem,2.73vw,3.5rem)] lg:px-[clamp(1rem,1.36vw,1.75rem)]">
+            <a
+                href={data.episodes[0]?.href ?? '#anime-episode-list'}
+                class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-[clamp(2.625rem,2.73vw,3.5rem)] lg:px-[clamp(1rem,1.36vw,1.75rem)]"
+            >
                 <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                 START WATCHING E1
-            </button>
+            </a>
             <form method="POST" action="?/watchlist" use:enhance>
                 <button
                     type="submit"
@@ -162,5 +166,10 @@
             {detailsExpanded ? 'FEWER DETAILS' : 'MORE DETAILS'}
         </button>
         <div class="border-b border-border"></div>
+        <EpisodeList
+            episodes={data.episodes}
+            animeTitle={data.anime.title}
+            fallbackImage={backdrop?.url}
+        />
     </div>
 </figure>

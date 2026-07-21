@@ -31,34 +31,27 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 
     if (Either.isLeft(result)) error(502, result.left.message);
 
-    try {
-        const artwork = await anime.tmdb.getArtwork(result.right);
+    const [artwork, episodes, watchlistState] = await Promise.all([
+        anime.tmdb.getArtwork(result.right).catch(() => ({
+            backdrops: [],
+            logos: [],
+            selectedBackdrop: null,
+            selectedLogo: null,
+            logoHidden: false,
+            logoSize: 100,
+            id: 0,
+            mediaType: 'tv' as const,
+        })),
+        anime.episodes.getEpisodes(result.right).catch(() => []),
+        getWatchlistState(cookieUserId(cookies.get(userCookie)), id),
+    ]);
 
-        return {
-            anime: toAnimeDetails(result.right),
-            artwork,
-            watchlistState: await getWatchlistState(
-                cookieUserId(cookies.get(userCookie)),
-                id,
-            ),
-        };
-    } catch {
-        return {
-            anime: toAnimeDetails(result.right),
-            artwork: {
-                backdrops: [],
-                logos: [],
-                selectedBackdrop: null,
-                selectedLogo: null,
-                logoHidden: false,
-                logoSize: 100,
-            },
-            watchlistState: await getWatchlistState(
-                cookieUserId(cookies.get(userCookie)),
-                id,
-            ),
-        };
-    }
+    return {
+        anime: toAnimeDetails(result.right),
+        artwork,
+        episodes,
+        watchlistState,
+    };
 };
 
 export const actions: Actions = {
