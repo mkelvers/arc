@@ -88,6 +88,7 @@ function seriesTitle(title: string) {
                 /\s+(?:(?:season|part|cour)\s+\d+|\d+(?:st|nd|rd|th)\s+season)$/,
                 '',
             )
+            .replace(/\s+final\s+season$/, '')
             .replace(/\s+第\s*\d+\s*期$/u, '')
             .trim();
     }
