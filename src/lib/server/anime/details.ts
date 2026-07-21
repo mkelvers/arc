@@ -38,12 +38,15 @@ function formatEnum(value: string | null | undefined) {
 function formatDescription(value: string | null) {
     if (!value) return '';
 
-    const paragraphs = value
+    const description = value
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<[^>]+>/g, '')
+        .split(/^\s*Notes:\s*$/im, 1)[0];
+
+    const paragraphs = description
         .split(/\n{2,}/)
         .map((paragraph) => paragraph.trim())
-        .filter((paragraph) => paragraph && !paragraph.startsWith('(Source:'));
+        .filter((paragraph) => paragraph && !/^\(Source:/i.test(paragraph));
     const summary = (
         paragraphs.length >= 5 ? paragraphs.slice(-3, -1) : paragraphs
     ).join(' ');
