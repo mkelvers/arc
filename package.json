@@ -10,6 +10,7 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"graphql:generate": "graphql-codegen --config codegen.ts",
 		"openapi:generate": "openapi-typescript https://developer.themoviedb.org/openapi/tmdb-api.json -o src/lib/server/anime/tmdb/generated.ts",
+		"tmdb:mappings": "bun scripts/sync-tmdb-mappings.ts",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
