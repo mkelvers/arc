@@ -573,12 +573,55 @@ async function fetchArtwork(match: StoredTmdbMapping) {
     });
 }
 
+async function getArtwork(anime: AniListAnime) {
+    const match = await resolveStored(anime);
+
+    return (await readArtwork(match)) ?? fetchArtwork(match);
+}
+
+async function getStoredMedia(anilistId: number) {
+    const match = await findStoredMappingByAniListId(anilistId);
+
+    if (!match) return null;
+
+    const [[stored], artwork] = await Promise.all([
+        db
+            .select({ title: animeTable.title })
+            .from(animeTable)
+            .where(eq(animeTable.id, match.animeId))
+            .limit(1),
+        readArtwork(match),
+    ]);
+
+    if (!stored?.title || !artwork) return null;
+
+    return {
+        anime: { id: anilistId, title: stored.title },
+        artwork,
+    };
+}
+
+async function refreshArtwork(anilistId: number) {
+    const match = await findStoredMappingByAniListId(anilistId);
+
+    if (!match) throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
+
+    return fetchArtwork(match);
+}
+
 async function selectArtwork(
-    anime: AniListAnime,
+    anilistId: number,
     type: 'backdrop' | 'logo',
     filePath: string | null,
 ) {
-    const artwork = await getArtwork(anime);
+    const match = await findStoredMappingByAniListId(anilistId);
+
+    if (!match) throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
+
+    const artwork = await readArtwork(match);
+
+    if (!artwork) throw new Error('Artwork has not been cached yet');
+
     const images = type === 'backdrop' ? artwork.backdrops : artwork.logos;
 
     if (filePath === null && type !== 'logo') {
@@ -588,31 +631,58 @@ async function selectArtwork(
         throw new Error('Artwork does not belong to this anime');
     }
 
-    const match = await resolveStored(anime);
-    await db
-        .insert(animeArtworkSelection)
-        .values({ animeId: match.animeId, type, filePath })
-        .onConflictDoUpdate({
-            target: [animeArtworkSelection.animeId, animeArtworkSelection.type],
-            set: { filePath, updatedAt: new Date() },
-        });
+    const updatedAt = new Date();
+
+    if (type === 'backdrop') {
+        await db
+            .insert(animeArtworkPreference)
+            .values({ externalIdId: match.externalIdId, backdropFilePath: filePath })
+            .onConflictDoUpdate({
+                target: animeArtworkPreference.externalIdId,
+                set: { backdropFilePath: filePath, updatedAt },
+            });
+    } else {
+        await db
+            .insert(animeArtworkPreference)
+            .values({
+                externalIdId: match.externalIdId,
+                logoFilePath: filePath,
+                logoHidden: filePath === null,
+            })
+            .onConflictDoUpdate({
+                target: animeArtworkPreference.externalIdId,
+                set: {
+                    logoFilePath: filePath,
+                    logoHidden: filePath === null,
+                    updatedAt,
+                },
+            });
+    }
 }
 
-async function setLogoSize(anime: AniListAnime, logoSize: number) {
+async function setLogoSize(anilistId: number, logoSize: number) {
     if (!Number.isInteger(logoSize) || logoSize < 50 || logoSize > 300) {
         throw new Error('Logo size must be between 50 and 300');
     }
 
-    const match = await resolveStored(anime);
+    const match = await findStoredMappingByAniListId(anilistId);
+
+    if (!match) throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
+
     await db
-        .update(animeTable)
-        .set({ logoSize, updatedAt: new Date() })
-        .where(eq(animeTable.id, match.animeId));
+        .insert(animeArtworkPreference)
+        .values({ externalIdId: match.externalIdId, logoSize })
+        .onConflictDoUpdate({
+            target: animeArtworkPreference.externalIdId,
+            set: { logoSize, updatedAt: new Date() },
+        });
 }
 
 export const tmdb = {
     create,
     getArtwork,
+    getStoredMedia,
+    refreshArtwork,
     resolve,
     selectArtwork,
     setLogoSize,
