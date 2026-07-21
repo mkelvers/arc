@@ -153,7 +153,15 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const yearDistance =
         animeYear && candidateYear ? Math.abs(animeYear - candidateYear) : 0;
 
-    const titleScore = exactTitle ? 100 : exactSeriesTitle ? 95 : partialTitle ? 55 : 0;
+    const titleScore = exactPrimaryTitle
+        ? 110
+        : exactTitle
+          ? 100
+          : exactSeriesTitle
+            ? 95
+            : partialTitle
+              ? 55
+              : 0;
     const yearPenalty = exactSeriesTitle && !yearQualifiedSeriesTitle
         ? 0
         : Math.min(yearDistance * 8, 40);
@@ -218,6 +226,7 @@ async function findStoredMappingByAniListId(
             externalIdId: targetExternalId.id,
             id: targetExternalId.externalId,
             mediaType: targetExternalId.mediaType,
+            mappingVersion: animeTable.tmdbMappingVersion,
         })
         .from(animeExternalId)
         .innerJoin(
