@@ -10,7 +10,6 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"graphql:generate": "graphql-codegen --config codegen.ts",
 		"openapi:generate": "openapi-typescript https://developer.themoviedb.org/openapi/tmdb-api.json -o src/lib/server/anime/tmdb/generated.ts",
-		"tmdb:mappings": "bun scripts/sync-tmdb-mappings.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:check": "drizzle-kit check",
