@@ -1,0 +1,50 @@
+query AllAnimeSearch(
+    $search: SearchInput
+    $translationType: VaildTranslationTypeEnumType
+) {
+    shows(
+        search: $search
+        limit: 40
+        page: 1
+        translationType: $translationType
+        countryOrigin: ALL
+    ) {
+        edges {
+            _id
+            malId
+            name
+        }
+    }
+}
+
+query AllAnimeAvailableEpisodes(
+    $showId: String!
+    $start: Float!
+    $end: Float!
+) {
+    show(_id: $showId) {
+        availableEpisodesDetail
+    }
+    episodeInfos(
+        showId: $showId
+        episodeNumStart: $start
+        episodeNumEnd: $end
+    ) {
+        episodeIdNum
+        notes
+    }
+}
+
+query AllAnimeEpisodeSources(
+    $showId: String!
+    $translationType: VaildTranslationTypeEnumType!
+    $episodeString: String!
+) {
+    episode(
+        showId: $showId
+        translationType: $translationType
+        episodeString: $episodeString
+    ) {
+        sourceUrls
+    }
+}
