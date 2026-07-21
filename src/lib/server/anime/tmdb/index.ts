@@ -115,6 +115,16 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const exactTitle = names.some((name) => titles.includes(name));
     const seriesTitles = titlesFor(anime).map(seriesTitle);
     const exactSeriesTitle = names.some((name) => seriesTitles.includes(name));
+    const yearQualifiedSeriesTitle = names.some((name) =>
+        titlesFor(anime).some((title) => {
+            const normalized = normalizeTitle(title);
+
+            return (
+                /\s(?:19|20)\d{2}$/.test(normalized) &&
+                seriesTitle(title) === name
+            );
+        }),
+    );
     const partialTitle = names.some((name) =>
         titles.some((title) => name.includes(title) || title.includes(name)),
     );
@@ -124,7 +134,7 @@ function candidateScore(candidate: Candidate, anime: AniListAnime) {
         animeYear && candidateYear ? Math.abs(animeYear - candidateYear) : 0;
 
     const titleScore = exactTitle ? 100 : exactSeriesTitle ? 95 : partialTitle ? 55 : 0;
-    const yearPenalty = exactSeriesTitle
+    const yearPenalty = exactSeriesTitle && !yearQualifiedSeriesTitle
         ? 0
         : Math.min(yearDistance * 8, 40);
 
