@@ -476,12 +476,7 @@ async function readArtwork(match: StoredTmdbMapping): Promise<TmdbArtwork | null
     });
 }
 
-async function getArtwork(anime: AniListAnime) {
-    const match = await resolveStored(anime);
-    const cached = await readArtwork(match);
-
-    if (cached) return cached;
-
+async function fetchArtwork(match: StoredTmdbMapping) {
     const client = create();
     const response =
         match.mediaType === 'movie'
@@ -539,12 +534,37 @@ async function getArtwork(anime: AniListAnime) {
         ];
 
         if (rows.length) {
-            await tx.insert(animeArtwork).values(rows).onConflictDoNothing();
+            await tx
+                .insert(animeArtwork)
+                .values(rows)
+                .onConflictDoUpdate({
+                    target: [
+                        animeArtwork.externalIdId,
+                        animeArtwork.type,
+                        animeArtwork.filePath,
+                    ],
+                    set: {
+                        aspectRatio: sql.raw(
+                            `excluded.${animeArtwork.aspectRatio.name}`,
+                        ),
+                        height: sql.raw(`excluded.${animeArtwork.height.name}`),
+                        language: sql.raw(
+                            `excluded.${animeArtwork.language.name}`,
+                        ),
+                        voteAverage: sql.raw(
+                            `excluded.${animeArtwork.voteAverage.name}`,
+                        ),
+                        width: sql.raw(`excluded.${animeArtwork.width.name}`),
+                    },
+                });
         }
         await tx
             .insert(animeArtworkCache)
             .values({ externalIdId: match.externalIdId })
-            .onConflictDoNothing();
+            .onConflictDoUpdate({
+                target: animeArtworkCache.externalIdId,
+                set: { fetchedAt: new Date() },
+            });
     });
 
     return withSelections(match, {
