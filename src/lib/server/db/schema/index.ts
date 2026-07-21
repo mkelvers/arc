@@ -99,6 +99,7 @@ export const animeArtworkCache = pgTable('anime_artwork_cache', {
     fetchedAt: timestamp('fetched_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
+    allLanguages: boolean('all_languages').notNull().default(false),
 });
 
 export const animeArtworkPreference = pgTable('anime_artwork_preference', {
