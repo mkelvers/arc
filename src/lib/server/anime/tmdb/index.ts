@@ -435,19 +435,19 @@ async function withSelections(
         ...artwork,
         selectedBackdrop:
             artwork.backdrops.find(
-                (image) => image.filePath === backdropSelection?.filePath,
+                (image) => image.filePath === preference?.backdropFilePath,
             ) ??
             artwork.backdrops[0] ??
             null,
         selectedLogo: logoHidden
             ? null
             : (artwork.logos.find(
-                  (image) => image.filePath === logoSelection?.filePath,
+                  (image) => image.filePath === preference?.logoFilePath,
               ) ??
               artwork.logos[0] ??
               null),
         logoHidden,
-        logoSize: settings?.logoSize ?? 100,
+        logoSize: preference?.logoSize ?? 100,
     };
 }
 
