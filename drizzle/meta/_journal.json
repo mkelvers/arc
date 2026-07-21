@@ -57,6 +57,13 @@
       "when": 1784659421843,
       "tag": "0007_ancient_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784668067672,
+      "tag": "0008_lean_sue_storm",
+      "breakpoints": true
     }
   ]
 }
