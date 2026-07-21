@@ -1,10 +1,20 @@
 query Anime($id: Int!) {
     Media(id: $id, type: ANIME) {
+        id
+        title {
+            english
+            romaji
+            native
+        }
+        synonyms
         description(asHtml: false)
         genres
         format
         season
         seasonYear
+        startDate {
+            year
+        }
         averageScore
         popularity
         favourites
