@@ -100,6 +100,12 @@ function formatRankings(media: Anime) {
 
 export function toAnimeDetails(media: Anime) {
     return {
+        id: media.id,
+        title:
+            media.title?.english ??
+            media.title?.romaji ??
+            media.title?.native ??
+            `Anime ${media.id}`,
         description: formatDescription(media.description),
         genres: present(media.genres),
         format: formatEnum(media.format),
