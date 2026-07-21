@@ -1,4 +1,5 @@
 <script lang="ts">
+    import Dropdown from '$lib/components/Dropdown.svelte';
     import type { PageProps } from './$types';
     import {
         CaretDownIcon,
@@ -26,13 +27,21 @@
         />
     {/if}
 
-    <a
-        href={`/anime/${data.anime.id}/media`}
-        class="z-20 col-start-1 row-start-1 mt-5 mr-5 flex min-h-11 self-start justify-self-end items-center text-sm font-bold sm:mt-7 sm:mr-10 lg:mr-16 lg:text-[clamp(0.875rem,0.88vw,1.125rem)]"
-    >
-        <DotsThreeVerticalIcon size="1.5em" weight="bold" aria-hidden="true" />
-        <span class="ml-2 sm:ml-3">MORE</span>
-    </a>
+    <div class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12">
+        <Dropdown
+            id="more-options"
+            items={[
+                { label: 'View Media Options', href: `/anime/${data.anime.id}/media` }
+            ]}
+        >
+            {#snippet trigger()}
+                <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
+                    <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                    <span>MORE</span>
+                </span>
+            {/snippet}
+        </Dropdown>
+    </div>
 
     <div class="z-20 col-start-1 row-start-1 min-w-0 self-start px-5 pt-32 pb-10 sm:px-10 sm:pt-44 lg:px-16 lg:pt-[clamp(11.25rem,11.72vw,15rem)]">
         <a href={`/anime/${data.anime.id}/media`} class="block w-fit">
