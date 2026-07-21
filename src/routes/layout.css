@@ -1,13 +1,65 @@
 @import '@fontsource-variable/inter/wght.css';
 @import 'tailwindcss';
 
+:root {
+    color-scheme: light dark;
+
+    --theme-canvas: light-dark(oklch(0.985 0.002 75), oklch(0.115 0.004 285));
+    --theme-foreground: light-dark(oklch(0.16 0.006 285), oklch(0.97 0.002 75));
+    --theme-surface: light-dark(oklch(0.955 0.004 75), oklch(0.17 0.006 285));
+    --theme-muted: light-dark(oklch(0.43 0.008 285), oklch(0.71 0.008 285));
+    --theme-subtle: light-dark(oklch(0.55 0.008 285), oklch(0.57 0.008 285));
+    --theme-border: light-dark(oklch(0.78 0.006 285), oklch(0.35 0.008 285));
+    --theme-border-strong: light-dark(oklch(0.54 0.008 285), oklch(0.5 0.008 285));
+    --theme-accent: oklch(0.7 0.18 50);
+    --theme-on-accent: oklch(0.13 0.01 48);
+
+    --theme-hero-scrim-inline-start: light-dark(rgb(255 255 255 / 0.82), rgb(0 0 0 / 0.72));
+    --theme-hero-scrim-inline-end: light-dark(rgb(255 255 255 / 0.56), rgb(0 0 0 / 0.44));
+    --theme-hero-scrim-top: light-dark(rgb(255 255 255 / 0.28), rgb(0 0 0 / 0.18));
+    --theme-hero-scrim-bottom: light-dark(rgb(255 255 255 / 1), rgb(0 0 0 / 1));
+    --theme-hero-scrim-bottom-soft: light-dark(rgb(255 255 255 / 0.96), rgb(0 0 0 / 0.96));
+    --theme-hero-scrim-corner: light-dark(rgb(255 255 255 / 0.72), rgb(0 0 0 / 0.62));
+    --theme-hero-scrim-corner-alt: light-dark(rgb(255 255 255 / 0.68), rgb(0 0 0 / 0.6));
+}
+
+@theme inline {
+    --color-canvas: var(--theme-canvas);
+    --color-foreground: var(--theme-foreground);
+    --color-surface: var(--theme-surface);
+    --color-muted: var(--theme-muted);
+    --color-subtle: var(--theme-subtle);
+    --color-border: var(--theme-border);
+    --color-border-strong: var(--theme-border-strong);
+    --color-accent: var(--theme-accent);
+    --color-on-accent: var(--theme-on-accent);
+}
+
 @layer base {
     html,
     body {
-        @apply bg-black text-neutral-100;
+        @apply bg-canvas text-foreground;
     }
 
     html {
         font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    }
+}
+
+@layer components {
+    .anime-hero {
+        &::before {
+            background-image:
+                linear-gradient(to right, var(--theme-hero-scrim-inline-start), transparent 34%),
+                linear-gradient(to left, var(--theme-hero-scrim-inline-end), transparent 26%),
+                linear-gradient(to bottom, var(--theme-hero-scrim-top), transparent 16%);
+        }
+
+        &::after {
+            background-image:
+                linear-gradient(to top, var(--theme-hero-scrim-bottom) 0%, var(--theme-hero-scrim-bottom-soft) 34%, transparent 64%),
+                linear-gradient(to top right, var(--theme-hero-scrim-corner), transparent 58%),
+                linear-gradient(to top left, var(--theme-hero-scrim-corner-alt), transparent 58%);
+        }
     }
 }
