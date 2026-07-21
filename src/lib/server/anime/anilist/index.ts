@@ -5,7 +5,7 @@ import { graphql, GraphQLRequestError } from '$lib/server/graphql';
 
 const endpoint = 'https://graphql.anilist.co';
 
-export function getAnime(id: number) {
+function getAnime(id: number) {
     return graphql(endpoint, AnimeDocument, { id }).pipe(
         Effect.flatMap(({ Media }) =>
             Media
@@ -18,3 +18,7 @@ export function getAnime(id: number) {
         ),
     );
 }
+
+export const anilist = {
+    getAnime,
+};

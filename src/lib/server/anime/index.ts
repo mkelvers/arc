@@ -1,0 +1,1 @@
+export { anilist } from './anilist';
