@@ -160,10 +160,10 @@
             togglePlayback();
         } else if (event.code === 'ArrowLeft' || event.code === 'KeyJ') {
             event.preventDefault();
-            video.currentTime = Math.max(0, video.currentTime - 10);
+            seekBy(-10);
         } else if (event.code === 'ArrowRight' || event.code === 'KeyL') {
             event.preventDefault();
-            video.currentTime = Math.min(duration, video.currentTime + 10);
+            seekBy(10);
         } else if (event.code === 'KeyM') {
             event.preventDefault();
             toggleMute();
