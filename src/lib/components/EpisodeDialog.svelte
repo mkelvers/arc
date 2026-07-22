@@ -1,22 +1,22 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime/episodes';
+    import type { AnimeEpisode } from '$lib/anime';
     import { XIcon } from 'phosphor-svelte';
 
     interface Props {
         open: boolean;
-        animeTitle: string;
+        title: string;
         episodes: AnimeEpisode[];
-        currentEpisodeId: string;
-        fallbackImage?: string | null;
+        currentId: string;
+        image?: string | null;
         onclose: () => void;
     }
 
     let {
         open,
-        animeTitle,
+        title,
         episodes,
-        currentEpisodeId,
-        fallbackImage = null,
+        currentId,
+        image = null,
         onclose,
     }: Props = $props();
     let dialog: HTMLDialogElement;
@@ -44,7 +44,7 @@
     <div class="flex h-full flex-col">
         <header class="flex min-h-20 shrink-0 items-center border-b border-black/15 bg-[#2d2d2d] px-5 sm:px-8">
             <h2 id="episode-dialog-title" class="line-clamp-1 text-lg font-bold sm:text-xl">
-                {animeTitle}
+                {title}
             </h2>
             <button
                 type="button"
@@ -61,20 +61,20 @@
                 {#each episodes as episode}
                     <a
                         href={episode.href}
-                        aria-current={episode.id === currentEpisodeId ? 'page' : undefined}
-                        class:bg-[#191919]={episode.id === currentEpisodeId}
+                        aria-current={episode.id === currentId ? 'page' : undefined}
+                        class:bg-[#191919]={episode.id === currentId}
                         class="group block min-w-0 p-3 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
                         <div class="relative aspect-video overflow-hidden bg-[#171717]">
-                            {#if episode.imageUrl || fallbackImage}
+                            {#if episode.imageUrl || image}
                                 <img
-                                    src={episode.imageUrl ?? fallbackImage ?? ''}
+                                    src={episode.imageUrl ?? image ?? ''}
                                     alt=""
                                     class="size-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                                     loading="lazy"
                                 />
                             {/if}
-                            {#if episode.id === currentEpisodeId}
+                            {#if episode.id === currentId}
                                 <span class="absolute top-2 left-2 bg-accent px-2 py-1 text-[0.65rem] font-bold text-black uppercase">
                                     Now playing
                                 </span>
@@ -86,7 +86,7 @@
                             {/if}
                         </div>
                         <p class="mt-3 line-clamp-1 text-[0.65rem] font-semibold text-[#8e8e8e] uppercase">
-                            {animeTitle}
+                            {title}
                         </p>
                         <h3 class="mt-2 line-clamp-2 text-base leading-snug font-bold text-white">
                             {episode.label} – {episode.title}
