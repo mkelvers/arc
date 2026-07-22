@@ -164,6 +164,12 @@
         } else if (event.code === 'ArrowRight' || event.code === 'KeyL') {
             event.preventDefault();
             seekBy(10);
+        } else if (event.code === 'Home') {
+            event.preventDefault();
+            seekTo(0);
+        } else if (event.code === 'End') {
+            event.preventDefault();
+            seekTo(duration);
         } else if (event.code === 'KeyM') {
             event.preventDefault();
             toggleMute();
