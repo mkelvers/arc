@@ -1,15 +1,18 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
+
+    type AudioMode = 'sub' | 'dub';
 
     interface Props {
-        src: string;
+        sources: Partial<Record<AudioMode, string>>;
         label: string;
         poster?: string | null;
     }
 
-    let { src, label, poster = null }: Props = $props();
+    let { sources, label, poster = null }: Props = $props();
     let container: HTMLElement;
     let video: HTMLVideoElement;
+    let mode = $state<AudioMode>('sub');
     let playing = $state(false);
     let muted = $state(false);
     let loading = $state(true);
@@ -22,9 +25,14 @@
     let previewTime = $state<number | null>(null);
     let previewPosition = $state(0);
     let volume = $state(1);
+    let settingsOpen = $state(false);
     let lastVolume = 1;
+    let resumeAt: number | null = null;
+    let resumePlayback = false;
     let hideControlsTimer: ReturnType<typeof setTimeout>;
 
+    const src = $derived(sources[mode] ?? sources.sub ?? sources.dub ?? '');
+    const hasAudioChoice = $derived(Boolean(sources.sub && sources.dub));
     const progress = $derived(duration ? (currentTime / duration) * 100 : 0);
     const bufferedProgress = $derived(duration ? (buffered / duration) * 100 : 0);
     const volumeProgress = $derived((muted ? 0 : volume) * 100);
@@ -48,7 +56,7 @@
         controlsVisible = true;
         clearTimeout(hideControlsTimer);
 
-        if (playing && !scrubbing) {
+        if (playing && !scrubbing && !settingsOpen) {
             hideControlsTimer = setTimeout(() => {
                 controlsVisible = false;
             }, 2_000);
@@ -75,6 +83,27 @@
         video.volume = value;
         video.muted = value === 0;
         if (value > 0) lastVolume = value;
+    }
+
+    async function switchMode(next: AudioMode) {
+        if (!sources[next] || next === mode) {
+            settingsOpen = false;
+            showControls();
+            return;
+        }
+
+        resumeAt = video.currentTime;
+        resumePlayback = !video.paused;
+        mode = next;
+        settingsOpen = false;
+        loading = true;
+        buffered = 0;
+        previewTime = null;
+        localStorage.setItem('arc:audio-mode', next);
+
+        await tick();
+        video.load();
+        showControls();
     }
 
     function seek(event: Event) {
@@ -142,6 +171,12 @@
     }
 
     function handleKeydown(event: KeyboardEvent) {
+        if (event.code === 'Escape' && settingsOpen) {
+            settingsOpen = false;
+            showControls();
+            return;
+        }
+
         const target = event.target;
         if (
             target instanceof HTMLInputElement ||
@@ -209,6 +244,8 @@
     }
 
     onMount(() => {
+        if (!sources.sub && sources.dub) mode = 'dub';
+
         const stored = localStorage.getItem('arc:volume');
         const savedVolume = stored === null ? null : Number(stored);
         if (
@@ -219,6 +256,14 @@
         ) {
             video.volume = savedVolume;
             if (savedVolume > 0) lastVolume = savedVolume;
+        }
+
+        const savedMode = localStorage.getItem('arc:audio-mode');
+        if (
+            (savedMode === 'sub' || savedMode === 'dub') &&
+            sources[savedMode]
+        ) {
+            void switchMode(savedMode);
         }
 
         return () => clearTimeout(hideControlsTimer);
@@ -254,6 +299,15 @@
         onloadedmetadata={() => {
             duration = video.duration;
             loading = false;
+
+            if (resumeAt !== null) {
+                currentTime = Math.min(resumeAt, duration);
+                video.currentTime = currentTime;
+                resumeAt = null;
+
+                if (resumePlayback) video.play().catch(() => undefined);
+                resumePlayback = false;
+            }
         }}
         ondurationchange={() => (duration = video.duration)}
         ontimeupdate={() => (currentTime = video.currentTime)}
@@ -404,22 +458,87 @@
                 </div>
             </div>
 
-            <button
-                type="button"
-                aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
-                onclick={() => {
-                    toggleFullscreen();
-                    showControls();
-                }}
-            >
-                <svg class="size-6" viewBox="0 0 240 240" aria-hidden="true">
-                    <path
-                        d="M143.7,53.9c-1.9-1.9-1.3-4,1.4-4.4l50.6-8.4c1.8-0.5,3.7,0.6,4.2,2.4c0.2,0.6,0.2,1.2,0,1.7l-8.4,50.6c-0.4,2.7-2.4,3.4-4.4,1.4l-14.5-14.5l-28.2,28.2l-14.3-14.3l28.2-28.2L143.7,53.9z M44.2,200.9l50.6-8.4c2.7-0.4,3.4-2.4,1.4-4.4l-14.5-14.5l28.2-28.2l-14.3-14.3l-28.2,28.2l-14.5-14.5c-1.9-1.9-4-1.3-4.4,1.4l-8.4,50.6c-0.5,1.8,0.6,3.6,2.4,4.2C43,201,43.6,201,44.2,200.9L44.2,200.9z"
-                        fill="currentColor"
-                    ></path>
-                </svg>
-            </button>
+            <div class="flex items-center gap-4">
+                {#if hasAudioChoice}
+                    <div class="relative">
+                        <button
+                            type="button"
+                            aria-label="Audio settings"
+                            aria-expanded={settingsOpen}
+                            aria-controls="player-audio-settings"
+                            class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                            onclick={() => {
+                                settingsOpen = !settingsOpen;
+                                showControls();
+                            }}
+                        >
+                            <svg
+                                class="size-6"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                aria-hidden="true"
+                            >
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.18V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0-1.18-2.82H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.08A1.65 1.65 0 0 0 10.09 3V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.08A1.65 1.65 0 0 0 21 10.09H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
+                            </svg>
+                        </button>
+
+                        {#if settingsOpen}
+                            <div
+                                id="player-audio-settings"
+                                class="absolute right-0 bottom-full z-40 mb-2 w-64 bg-[#262626] py-2 text-left shadow-xl ring-1 ring-black/20"
+                            >
+                                <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
+                                    Audio / Subtitles
+                                </p>
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                    aria-pressed={mode === 'dub'}
+                                    onclick={() => switchMode('dub')}
+                                >
+                                    English (Dub)
+                                    {#if mode === 'dub'}
+                                        <span class="text-accent" aria-hidden="true">✓</span>
+                                    {/if}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                    aria-pressed={mode === 'sub'}
+                                    onclick={() => switchMode('sub')}
+                                >
+                                    Japanese (Sub)
+                                    {#if mode === 'sub'}
+                                        <span class="text-accent" aria-hidden="true">✓</span>
+                                    {/if}
+                                </button>
+                            </div>
+                        {/if}
+                    </div>
+                {/if}
+
+                <button
+                    type="button"
+                    aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                    onclick={() => {
+                        toggleFullscreen();
+                        showControls();
+                    }}
+                >
+                    <svg class="size-6" viewBox="0 0 240 240" aria-hidden="true">
+                        <path
+                            d="M143.7,53.9c-1.9-1.9-1.3-4,1.4-4.4l50.6-8.4c1.8-0.5,3.7,0.6,4.2,2.4c0.2,0.6,0.2,1.2,0,1.7l-8.4,50.6c-0.4,2.7-2.4,3.4-4.4,1.4l-14.5-14.5l-28.2,28.2l-14.3-14.3l28.2-28.2L143.7,53.9z M44.2,200.9l50.6-8.4c2.7-0.4,3.4-2.4,1.4-4.4l-14.5-14.5l28.2-28.2l-14.3-14.3l-28.2,28.2l-14.5-14.5c-1.9-1.9-4-1.3-4.4,1.4l-8.4,50.6c-0.5,1.8,0.6,3.6,2.4,4.2C43,201,43.6,201,44.2,200.9L44.2,200.9z"
+                            fill="currentColor"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <div class="mt-2 flex items-center gap-3 px-1 text-xs font-medium sm:mt-3 sm:gap-4">
