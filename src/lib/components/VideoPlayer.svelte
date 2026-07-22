@@ -83,6 +83,25 @@
         video.currentTime = value;
     }
 
+    function seekTo(seconds: number) {
+        if (!Number.isFinite(duration)) return;
+
+        const nextTime = Math.max(0, Math.min(duration, seconds));
+        currentTime = nextTime;
+        video.currentTime = nextTime;
+    }
+
+    function seekBy(seconds: number) {
+        seekTo(video.currentTime + seconds);
+    }
+
+    function changeVolumeBy(delta: number) {
+        const nextVolume = Math.max(0, Math.min(1, video.volume + delta));
+        video.volume = nextVolume;
+        video.muted = nextVolume === 0;
+        if (nextVolume > 0) lastVolume = nextVolume;
+    }
+
     function updateTimeline(event: PointerEvent, shouldSeek = scrubbing) {
         const input = event.currentTarget as HTMLInputElement;
         const bounds = input.getBoundingClientRect();
