@@ -66,10 +66,10 @@
 </svelte:head>
 
 <main class="min-h-dvh">
-    {#key `${data.currentEpisode.id}:${data.streamUrl ?? ''}`}
-        {#if data.streamUrl}
+    {#key `${data.currentEpisode.id}:${JSON.stringify(data.streams)}`}
+        {#if data.streams.sub || data.streams.dub}
             <VideoPlayer
-                src={data.streamUrl}
+                sources={data.streams}
                 label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
                 {poster}
             />

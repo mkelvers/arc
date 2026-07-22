@@ -33,20 +33,27 @@ export const load: PageServerLoad = async ({ params }) => {
 
     if (currentIndex < 0) error(404, 'Episode not found');
 
-    const remoteStreamUrl = await anime.allanime
-        .getStream(result.right, episodes[currentIndex].id)
-        .catch(() => null);
-    const streamUrl = remoteStreamUrl
-        ? `/api/watch/stream?${new URLSearchParams({ url: remoteStreamUrl })}`
-        : null;
+    const currentEpisode = episodes[currentIndex];
+    const modes: ('sub' | 'dub')[] = [];
+    if (currentEpisode.hasSub) modes.push('sub');
+    if (currentEpisode.hasDub) modes.push('dub');
+    const remoteStreams = await anime.allanime
+        .getStreams(result.right, currentEpisode.id, modes)
+        .catch(() => ({}));
+    const streams = Object.fromEntries(
+        Object.entries(remoteStreams).map(([mode, url]) => [
+            mode,
+            `/api/watch/stream?${new URLSearchParams({ url })}`,
+        ]),
+    );
 
     return {
         anime: toAnimeDetails(result.right),
         episodes,
-        currentEpisode: episodes[currentIndex],
+        currentEpisode,
         previousEpisode: episodes[currentIndex - 1] ?? null,
         nextEpisode: episodes[currentIndex + 1] ?? null,
         fallbackImage: artwork.selectedBackdrop?.url ?? null,
-        streamUrl,
+        streams,
     };
 };
