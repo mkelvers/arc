@@ -11,10 +11,7 @@
     } from 'phosphor-svelte';
 
     let { data }: PageProps = $props();
-    let descriptionExpanded = $state(false);
     let episodeDialogOpen = $state(false);
-    let player = $state<HTMLVideoElement>();
-    let playing = $state(false);
     let renderedEpisodeId = $state<string>();
 
     const poster = $derived(
@@ -29,8 +26,6 @@
         if (renderedEpisodeId === data.currentEpisode.id) return;
 
         renderedEpisodeId = data.currentEpisode.id;
-        playing = false;
-        descriptionExpanded = false;
         episodeDialogOpen = false;
     });
 
@@ -63,23 +58,6 @@
             await navigator.clipboard.writeText(shareData.url);
         }
     }
-
-    async function startPlayback() {
-        if (!player) return;
-
-        try {
-            await player.play();
-        } catch {
-            playing = false;
-        }
-    }
-
-    async function togglePlayback() {
-        if (!player) return;
-
-        if (player.paused) await startPlayback();
-        else player.pause();
-    }
 </script>
 
 <svelte:head>
@@ -90,33 +68,19 @@
     {#key `${data.currentEpisode.id}:${data.streamUrl ?? ''}`}
         <section
             aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
-            class="relative h-[min(41.6vw,38rem)] min-h-56 w-full overflow-hidden bg-black"
+            class="relative aspect-video w-full overflow-hidden bg-black"
         >
             {#if data.streamUrl}
-                <div class="absolute top-1/2 left-1/2 aspect-video w-full -translate-x-1/2 -translate-y-1/2">
-                    <video
-                        bind:this={player}
-                        class="size-full bg-black object-contain"
-                        controls
-                        playsinline
-                        preload="metadata"
-                        poster={poster ?? undefined}
-                        onclick={togglePlayback}
-                        onplay={() => (playing = true)}
-                        onpause={() => (playing = false)}
-                    >
-                        <source src={data.streamUrl} />
-                        <track kind="captions" />
-                    </video>
-                </div>
-                {#if !playing}
-                    <button
-                        type="button"
-                        class="absolute inset-0 z-10 bg-black/50"
-                        aria-label="Play episode"
-                        onclick={startPlayback}
-                    ></button>
-                {/if}
+                <video
+                    class="size-full bg-black object-contain"
+                    controls
+                    playsinline
+                    preload="metadata"
+                    poster={poster ?? undefined}
+                >
+                    <source src={data.streamUrl} />
+                    <track kind="captions" />
+                </video>
             {:else if poster}
                 <img src={poster} alt="" class="size-full object-cover object-center" />
                 <div class="pointer-events-none absolute inset-0 bg-black/50"></div>
@@ -178,24 +142,9 @@
             </div>
 
             {#if data.currentEpisode.overview}
-                <div class="mt-5 max-w-4xl">
-                    <p
-                        id="episode-description"
-                        class:line-clamp-3={!descriptionExpanded}
-                        class="text-base leading-6 text-[#e1e1e1]"
-                    >
-                        {data.currentEpisode.overview}
-                    </p>
-                    <button
-                        type="button"
-                        class="mt-5 min-h-11 text-xs font-bold text-accent uppercase"
-                        aria-expanded={descriptionExpanded}
-                        aria-controls="episode-description"
-                        onclick={() => (descriptionExpanded = !descriptionExpanded)}
-                    >
-                        {descriptionExpanded ? 'Show less' : 'Show more'}
-                    </button>
-                </div>
+                <p class="mt-5 max-w-4xl text-base leading-6 text-[#e1e1e1]">
+                    {data.currentEpisode.overview}
+                </p>
             {/if}
         </article>
 
