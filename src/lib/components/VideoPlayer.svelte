@@ -170,6 +170,34 @@
         }
     }
 
+    function handlePlayerClick(event: MouseEvent) {
+        container.focus({ preventScroll: true });
+
+        const target = event.target;
+        if (
+            target instanceof Element &&
+            target.closest('button, input, select, textarea, a, [role="menu"]')
+        ) {
+            return;
+        }
+
+        togglePlayback();
+        showControls();
+    }
+
+    function handlePlayerDoubleClick(event: MouseEvent) {
+        const target = event.target;
+        if (
+            target instanceof Element &&
+            target.closest('button, input, select, textarea, a, [role="menu"]')
+        ) {
+            return;
+        }
+
+        toggleFullscreen();
+        showControls();
+    }
+
     function handleKeydown(event: KeyboardEvent) {
         if (event.code === 'Escape' && settingsOpen) {
             settingsOpen = false;
@@ -282,10 +310,13 @@
 <section
     bind:this={container}
     aria-label={`${label} player`}
+    tabindex="-1"
     class:aspect-video={!fullscreen}
     class:cursor-none={playing && !controlsVisible}
     class:h-full={fullscreen}
-    class="group relative w-full overflow-hidden bg-black"
+    class="group relative w-full overflow-hidden bg-black focus:outline-none"
+    onclick={handlePlayerClick}
+    ondblclick={handlePlayerDoubleClick}
 >
     <video
         bind:this={video}
@@ -293,8 +324,6 @@
         playsinline
         preload="metadata"
         {poster}
-        onclick={togglePlayback}
-        ondblclick={toggleFullscreen}
         onloadstart={() => (loading = true)}
         onloadedmetadata={() => {
             duration = video.duration;
@@ -490,6 +519,7 @@
                         {#if settingsOpen}
                             <div
                                 id="player-audio-settings"
+                                role="menu"
                                 class="absolute right-0 bottom-full z-40 mb-2 w-64 bg-[#262626] py-2 text-left shadow-xl ring-1 ring-black/20"
                             >
                                 <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
@@ -596,6 +626,7 @@
                         updateTimeline(event, true);
                         scrubbing = false;
                         event.currentTarget.releasePointerCapture(event.pointerId);
+                        container.focus({ preventScroll: true });
                         showControls();
                     }}
                     onpointercancel={() => {
