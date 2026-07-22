@@ -1,12 +1,12 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime/episodes';
+    import type { AnimeEpisode } from '$lib/anime';
 
     interface Props {
         episode: AnimeEpisode;
-        fallbackImage?: string | null;
+        image?: string | null;
     }
 
-    let { episode, fallbackImage = null }: Props = $props();
+    let { episode, image = null }: Props = $props();
 </script>
 
 <a
@@ -14,9 +14,9 @@
     class="group grid grid-cols-[minmax(8.5rem,9.25rem)_minmax(0,1fr)] gap-3 focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
 >
     <div class="relative aspect-video overflow-hidden bg-[#171717]">
-        {#if episode.imageUrl || fallbackImage}
+        {#if episode.imageUrl || image}
             <img
-                src={episode.imageUrl ?? fallbackImage ?? ''}
+                src={episode.imageUrl ?? image ?? ''}
                 alt=""
                 class="size-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
             />
