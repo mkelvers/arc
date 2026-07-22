@@ -1,14 +1,14 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime/episodes';
+    import type { AnimeEpisode } from '$lib/anime';
     import { CalendarBlankIcon, PlayIcon } from 'phosphor-svelte';
 
     interface Props {
         episodes: AnimeEpisode[];
-        animeTitle: string;
-        fallbackImage?: string | null;
+        title: string;
+        image?: string | null;
     }
 
-    let { episodes, animeTitle, fallbackImage = null }: Props = $props();
+    let { episodes, title, image = null }: Props = $props();
 </script>
 
 <section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16">
@@ -21,9 +21,9 @@
                 >
                     <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
                         <div class="relative aspect-video overflow-hidden bg-surface">
-                            {#if episode.imageUrl || fallbackImage}
+                            {#if episode.imageUrl || image}
                                 <img
-                                    src={episode.imageUrl ?? fallbackImage ?? ''}
+                                    src={episode.imageUrl ?? image ?? ''}
                                     alt=""
                                     class="size-full object-cover"
                                     loading="lazy"
@@ -39,7 +39,7 @@
 
                         <div class="mt-3 min-w-0">
                             <p class="line-clamp-1 text-[0.65rem] font-medium text-subtle uppercase">
-                                {animeTitle}
+                                {title}
                             </p>
                             <h3 class="mt-1 line-clamp-2 text-sm leading-snug font-bold text-foreground">
                                 {episode.label} - {episode.title}
@@ -50,7 +50,7 @@
 
                     <div class="pointer-events-none absolute inset-0 z-10 flex flex-col bg-surface p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
                         <p class="line-clamp-1 text-[0.6rem] font-medium text-subtle uppercase">
-                            {animeTitle}
+                            {title}
                         </p>
                         <h3 class="mt-2 line-clamp-2 text-sm leading-snug font-bold text-foreground">
                             {episode.label} - {episode.title}
