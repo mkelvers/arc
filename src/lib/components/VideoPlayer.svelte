@@ -170,6 +170,12 @@
         } else if (event.code === 'End') {
             event.preventDefault();
             seekTo(duration);
+        } else if (event.code === 'ArrowUp') {
+            event.preventDefault();
+            changeVolumeBy(0.05);
+        } else if (event.code === 'ArrowDown') {
+            event.preventDefault();
+            changeVolumeBy(-0.05);
         } else if (event.code === 'KeyM') {
             event.preventDefault();
             toggleMute();
