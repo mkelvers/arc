@@ -474,13 +474,18 @@ async function encryptedSources(
     );
 }
 
-async function getStream(anime: AniListAnime, episode: string) {
+async function getStreams(
+    anime: AniListAnime,
+    episode: string,
+    translationTypes: ('sub' | 'dub')[],
+) {
     const showId = await findShowId(anime);
     let crypto = await getStreamCrypto();
     let refreshed = false;
     const errors: unknown[] = [];
+    const streams: Partial<Record<'sub' | 'dub', string>> = {};
 
-    for (const translationType of ['sub', 'dub'] as const) {
+    for (const translationType of translationTypes) {
         let sources: Source[];
 
         try {
@@ -532,8 +537,13 @@ async function getStream(anime: AniListAnime, episode: string) {
                 ? decoded
                 : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
             const url = await resolveTarget(target).catch(() => null);
-            if (url) return url;
+            if (url) {
+                streams[translationType] = url;
+                break;
+            }
         }
+
+        if (streams[translationType]) continue;
 
         errors.push(
             new Error(
@@ -544,10 +554,12 @@ async function getStream(anime: AniListAnime, episode: string) {
         );
     }
 
+    if (Object.keys(streams).length) return streams;
+
     throw new AggregateError(
         errors,
         `AllAnime returned no playable source for episode ${episode}`,
     );
 }
 
-export const allanime = { getEpisodes, getStream };
+export const allanime = { getEpisodes, getStreams };
