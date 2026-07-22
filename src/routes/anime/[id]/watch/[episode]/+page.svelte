@@ -205,7 +205,7 @@
                     <h2 class="mb-3 text-xs font-bold uppercase">Next episode</h2>
                     <WatchEpisodeCard
                         episode={data.nextEpisode}
-                        fallbackImage={data.fallbackImage}
+                        image={data.fallbackImage}
                     />
                 </section>
             {/if}
@@ -215,7 +215,7 @@
                     <h2 class="mb-3 text-xs font-bold uppercase">Previous episode</h2>
                     <WatchEpisodeCard
                         episode={data.previousEpisode}
-                        fallbackImage={data.fallbackImage}
+                        image={data.fallbackImage}
                     />
                 </section>
             {/if}
@@ -235,9 +235,9 @@
 
 <EpisodeDialog
     open={episodeDialogOpen}
-    animeTitle={data.anime.title}
+    title={data.anime.title}
     episodes={data.episodes}
-    currentEpisodeId={data.currentEpisode.id}
-    fallbackImage={data.fallbackImage}
+    currentId={data.currentEpisode.id}
+    image={data.fallbackImage}
     onclose={() => (episodeDialogOpen = false)}
 />
