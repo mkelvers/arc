@@ -209,7 +209,7 @@
     }
 
     onMount(() => {
-        const stored = localStorage.getItem('player-volume');
+        const stored = localStorage.getItem('arc:volume');
         const savedVolume = stored === null ? null : Number(stored);
         if (
             savedVolume !== null &&
@@ -276,7 +276,7 @@
         onvolumechange={() => {
             muted = video.muted || video.volume === 0;
             volume = video.volume;
-            localStorage.setItem('player-volume', String(video.volume));
+            localStorage.setItem('arc:volume', String(video.volume));
         }}
     >
         <source {src} />
