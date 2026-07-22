@@ -155,6 +155,8 @@
 
         if (event.metaKey || event.ctrlKey || event.altKey) return;
 
+        const digitMatch = /^(Digit|Numpad)(\d)$/.exec(event.code);
+
         if (event.code === 'Space' || event.code === 'KeyK') {
             event.preventDefault();
             togglePlayback();
@@ -176,6 +178,9 @@
         } else if (event.code === 'ArrowDown') {
             event.preventDefault();
             changeVolumeBy(-0.05);
+        } else if (digitMatch) {
+            event.preventDefault();
+            seekTo((duration * Number(digitMatch[2])) / 10);
         } else if (event.code === 'KeyM') {
             event.preventDefault();
             toggleMute();
