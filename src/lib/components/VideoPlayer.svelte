@@ -153,6 +153,8 @@
             return;
         }
 
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+
         if (event.code === 'Space' || event.code === 'KeyK') {
             event.preventDefault();
             togglePlayback();
