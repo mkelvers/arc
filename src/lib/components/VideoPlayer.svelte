@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { onMount, tick } from 'svelte';
 
     type AudioMode = 'sub' | 'dub';
@@ -7,9 +8,10 @@
         sources: Partial<Record<AudioMode, string>>;
         label: string;
         poster?: string | null;
+        next?: string | null;
     }
 
-    let { sources, label, poster = null }: Props = $props();
+    let { sources, label, poster = null, next = null }: Props = $props();
     let container: HTMLElement;
     let video: HTMLVideoElement;
     let mode = $state<AudioMode>('sub');
@@ -29,6 +31,7 @@
     let lastVolume = 1;
     let resumeAt: number | null = null;
     let resumePlayback = false;
+    let autoplayAttempted = false;
     let hideControlsTimer: ReturnType<typeof setTimeout>;
 
     const src = $derived(sources[mode] ?? sources.sub ?? sources.dub ?? '');
@@ -299,7 +302,6 @@
 </script>
 
 <svelte:window
-    onkeydown={handleKeydown}
     onpointermove={handlePointerMove}
     onfullscreenchange={() => {
         fullscreen = document.fullscreenElement === container;
@@ -307,6 +309,7 @@
     }}
 />
 
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <section
     bind:this={container}
     aria-label={`${label} player`}
@@ -317,6 +320,7 @@
     class="group relative w-full overflow-hidden bg-black focus:outline-none"
     onclick={handlePlayerClick}
     ondblclick={handlePlayerDoubleClick}
+    onkeydown={handleKeydown}
 >
     <video
         bind:this={video}
@@ -328,6 +332,14 @@
         onloadedmetadata={() => {
             duration = video.duration;
             loading = false;
+
+            if (!autoplayAttempted) {
+                autoplayAttempted = true;
+                video.play().catch(() => {
+                    video.muted = true;
+                    video.play().catch(() => undefined);
+                });
+            }
 
             if (resumeAt !== null) {
                 currentTime = Math.min(resumeAt, duration);
@@ -355,6 +367,7 @@
         onended={() => {
             playing = false;
             showControls();
+            if (next) void goto(next);
         }}
         onvolumechange={() => {
             muted = video.muted || video.volume === 0;
