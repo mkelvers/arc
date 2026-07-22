@@ -5,6 +5,8 @@ export interface AnimeEpisode {
     title: string;
     slug: string;
     href: string;
+    hasSub: boolean;
+    hasDub: boolean;
     audioLabel: string;
     imageUrl: string | null;
     duration: string;
