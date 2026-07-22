@@ -8,11 +8,7 @@ import {
 } from '$lib/graphql/allanime/generated/graphql';
 import { graphql } from '$lib/server/graphql';
 import { Effect } from 'effect';
-import {
-    createCipheriv,
-    createDecipheriv,
-    createHash,
-} from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
 
@@ -49,29 +45,22 @@ function request<TResult, TVariables>(
     return Effect.runPromise(
         graphql(endpoint, document, variables, {
             headers: {
-                Referer: 'https://youtu-chan.com',
+                Referer: referer,
                 'User-Agent': userAgent,
             },
         }),
     );
 }
 
-function episodeDetail(value: unknown) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        return { sub: [], dub: [], raw: [] };
-    }
-
-    const record = value as Record<string, unknown>;
-    const strings = (key: string) =>
-        Array.isArray(record[key])
-            ? record[key].filter((item): item is string => typeof item === 'string')
-            : [];
-
-    return { sub: strings('sub'), dub: strings('dub'), raw: strings('raw') };
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
 }
 
-function titlesFor(anime: AniListAnime) {
-    return [
+async function findShowId(anime: AniListAnime) {
+    if (!anime.idMal) throw new Error(`AniList ${anime.id} has no MAL ID`);
+
+    const titles = [
         anime.title?.english,
         anime.title?.romaji,
         anime.title?.native,
@@ -80,13 +69,9 @@ function titlesFor(anime: AniListAnime) {
         (title, index, titles): title is string =>
             Boolean(title?.trim()) && titles.indexOf(title) === index,
     );
-}
-
-async function findShowId(anime: AniListAnime) {
-    if (!anime.idMal) throw new Error(`AniList ${anime.id} has no MAL ID`);
 
     for (const translationType of ['sub', 'dub'] as const) {
-        for (const query of titlesFor(anime)) {
+        for (const query of titles) {
             const data = await request<AllAnimeSearchQuery, {
                 search: {
                     allowAdult: boolean;
@@ -113,25 +98,6 @@ async function findShowId(anime: AniListAnime) {
     throw new Error(`AllAnime has no exact MAL match for ${anime.idMal}`);
 }
 
-function plainText(value: string | null | undefined) {
-    return (value ?? '')
-        .replace(/<br\s*\/?>/gi, ' ')
-        .replace(/<[^>]+>/g, '')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-function episodeLabel(id: string) {
-    const value = Number(id);
-
-    return Number.isInteger(value) ? `E${value}` : `E${id}`;
-}
-
 async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
     const showId = await findShowId(anime);
     const data = await request<
@@ -145,13 +111,29 @@ async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
 
     if (!data.show) throw new Error(`AllAnime show ${showId} was not found`);
 
-    const detail = episodeDetail(data.show.availableEpisodesDetail);
-    const sub = new Set([...(detail.sub ?? []), ...(detail.raw ?? [])]);
-    const dub = new Set(detail.dub ?? []);
+    const detail = asRecord(data.show.availableEpisodesDetail) ?? {};
+    const strings = (key: 'sub' | 'dub' | 'raw') => {
+        const values = detail[key];
+        if (!Array.isArray(values)) return [];
+        return values.filter(
+            (value): value is string => typeof value === 'string',
+        );
+    };
+    const sub = new Set([...strings('sub'), ...strings('raw')]);
+    const dub = new Set(strings('dub'));
     const titles = new Map(
         (data.episodeInfos ?? []).flatMap((episode) => {
             const id = String(episode.episodeIdNum ?? '').trim();
-            const title = plainText(episode.notes);
+            const title = (episode.notes ?? '')
+                .replace(/<br\s*\/?>/gi, ' ')
+                .replace(/<[^>]+>/g, '')
+                .replaceAll('&amp;', '&')
+                .replaceAll('&quot;', '"')
+                .replaceAll('&#39;', "'")
+                .replaceAll('&lt;', '<')
+                .replaceAll('&gt;', '>')
+                .replace(/\s+/g, ' ')
+                .trim();
 
             return id && title ? [[id, title] as const] : [];
         }),
@@ -175,7 +157,7 @@ async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
                 {
                     id,
                     number,
-                    label: episodeLabel(id),
+                    label: `E${regular ? number : id}`,
                     title: titles.get(id) ?? '',
                     hasSub: sub.has(id),
                     hasDub: dub.has(id),
@@ -214,12 +196,6 @@ function aaLease() {
     ]).toString('base64');
 }
 
-function record(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
 function decryptedPayload(value: string) {
     const encrypted = Buffer.from(value, 'base64');
 
@@ -240,38 +216,37 @@ function decryptedPayload(value: string) {
     ) as unknown;
 }
 
-interface SourceReference {
-    sourceName: string;
-    sourceUrl: string;
+interface Source {
+    name: string;
+    url: string;
 }
 
-function sourceReferences(value: unknown): SourceReference[] {
-    const root = record(value);
-    const data = record(root?.data) ?? root;
-    const episode = record(data?.episode) ?? data;
+function sourceReferences(value: unknown): Source[] {
+    const root = asRecord(value);
+    const data = asRecord(root?.data) ?? root;
+    const episode = asRecord(data?.episode) ?? data;
     const urls = episode?.sourceUrls;
 
     if (!Array.isArray(urls)) return [];
 
     return urls.flatMap((value) => {
-        const source = record(value);
-        const sourceName = source?.sourceName;
-        const sourceUrl = source?.sourceUrl;
+        const source = asRecord(value);
+        const name = source?.sourceName;
+        const url = source?.sourceUrl;
 
-        return typeof sourceName === 'string' && typeof sourceUrl === 'string'
-            ? [{ sourceName, sourceUrl }]
-            : [];
+        if (typeof name !== 'string' || typeof url !== 'string') return [];
+        return [{ name, url }];
     });
 }
 
-const substitutions: Record<string, string> = {
-    '79': 'A', '7a': 'B', '7b': 'C', '7c': 'D', '7d': 'E', '7e': 'F', '7f': 'G', '70': 'H', '71': 'I', '72': 'J', '73': 'K', '74': 'L', '75': 'M', '76': 'N', '77': 'O',
-    '68': 'P', '69': 'Q', '6a': 'R', '6b': 'S', '6c': 'T', '6d': 'U', '6e': 'V', '6f': 'W', '60': 'X', '61': 'Y', '62': 'Z',
-    '59': 'a', '5a': 'b', '5b': 'c', '5c': 'd', '5d': 'e', '5e': 'f', '5f': 'g', '50': 'h', '51': 'i', '52': 'j', '53': 'k', '54': 'l', '55': 'm', '56': 'n', '57': 'o',
-    '48': 'p', '49': 'q', '4a': 'r', '4b': 's', '4c': 't', '4d': 'u', '4e': 'v', '4f': 'w', '40': 'x', '41': 'y', '42': 'z',
-    '08': '0', '09': '1', '0a': '2', '0b': '3', '0c': '4', '0d': '5', '0e': '6', '0f': '7', '00': '8', '01': '9',
-    '15': '-', '16': '.', '67': '_', '46': '~', '02': ':', '17': '/', '07': '?', '1b': '#', '63': '[', '65': ']', '78': '@', '19': '!', '1c': '$', '1e': '&', '10': '(', '11': ')', '12': '*', '13': '+', '14': ',', '03': ';', '05': '=', '1d': '%',
-};
+const substitutions = new Map(
+    [
+        ...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&()*+,;=%',
+    ].map((character) => [
+        (character.charCodeAt(0) ^ 0x38).toString(16).padStart(2, '0'),
+        character,
+    ]),
+);
 
 function decodeSourceUrl(value: string) {
     if (!value.startsWith('--')) return value;
@@ -281,7 +256,7 @@ function decodeSourceUrl(value: string) {
 
     for (let index = 0; index < encoded.length; index += 2) {
         const pair = encoded.slice(index, index + 2);
-        decoded += substitutions[pair] ?? pair;
+        decoded += substitutions.get(pair) ?? pair;
     }
 
     return decoded.replace('/clock', '/clock.json');
@@ -293,16 +268,16 @@ function mediaUrls(value: unknown): string[] {
     }
     if (Array.isArray(value)) return value.flatMap(mediaUrls);
 
-    const object = record(value);
+    const object = asRecord(value);
     if (!object) return [];
 
-    return Object.entries(object).flatMap(([key, child]) =>
-        ['link', 'url', 'file', 'src'].includes(key.toLowerCase())
-            ? mediaUrls(child)
-            : typeof child === 'object'
-              ? mediaUrls(child)
-              : [],
-    );
+    return Object.entries(object).flatMap(([key, child]) => {
+        if (['link', 'url', 'file', 'src'].includes(key.toLowerCase())) {
+            return mediaUrls(child);
+        }
+
+        return typeof child === 'object' ? mediaUrls(child) : [];
+    });
 }
 
 async function resolveTarget(target: string, depth = 0): Promise<string | null> {
@@ -331,14 +306,12 @@ async function resolveTarget(target: string, depth = 0): Promise<string | null> 
             (candidate) => candidate !== target,
         );
         const ordered = urls.toSorted((left, right) => {
-            const rank = (candidate: string) =>
-                /\.mp4(?:[?#]|$)/i.test(candidate)
-                    ? 0
-                    : candidate.includes('tools.fast4speed.rsvp')
-                      ? 1
-                      : /\.m3u8(?:[?#]|$)/i.test(candidate)
-                        ? 2
-                        : 3;
+            const rank = (candidate: string) => {
+                if (/\.mp4(?:[?#]|$)/i.test(candidate)) return 0;
+                if (candidate.includes('tools.fast4speed.rsvp')) return 1;
+                if (/\.m3u8(?:[?#]|$)/i.test(candidate)) return 2;
+                return 3;
+            };
 
             return rank(left) - rank(right);
         });
@@ -357,15 +330,6 @@ async function resolveTarget(target: string, depth = 0): Promise<string | null> 
             ? resolveTarget(new URL(embedded, target).toString(), depth + 1)
             : null;
     }
-}
-
-async function resolveSource(source: SourceReference) {
-    const decoded = decodeSourceUrl(source.sourceUrl);
-    const target = /^https?:\/\//.test(decoded)
-        ? decoded
-        : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
-
-    return resolveTarget(target);
 }
 
 async function encryptedSources(
@@ -402,9 +366,9 @@ async function encryptedSources(
         },
     });
     const payload = (await response.json()) as unknown;
-    const root = record(payload);
-    const data = record(root?.data);
-    const episodeData = record(data?.episode);
+    const root = asRecord(payload);
+    const data = asRecord(root?.data);
+    const episodeData = asRecord(data?.episode);
     const encrypted = data?.tobeparsed ?? episodeData?.tobeparsed;
 
     if (typeof encrypted === 'string') {
@@ -415,7 +379,7 @@ async function encryptedSources(
     if (sources.length) return sources;
 
     const message = Array.isArray(root?.errors)
-        ? record(root.errors[0])?.message
+        ? asRecord(root.errors[0])?.message
         : null;
     throw new Error(
         typeof message === 'string'
@@ -436,8 +400,8 @@ async function getStream(anime: AniListAnime, episode: string) {
             );
             const ordered = sources.toSorted((left, right) => {
                 const priority = ['yt-mp4', 's-mp4', 'default', 'mp4'];
-                const rank = (source: SourceReference) => {
-                    const index = priority.indexOf(source.sourceName.toLowerCase());
+                const rank = (source: Source) => {
+                    const index = priority.indexOf(source.name.toLowerCase());
                     return index < 0 ? priority.length : index;
                 };
 
@@ -445,7 +409,11 @@ async function getStream(anime: AniListAnime, episode: string) {
             });
 
             for (const source of ordered) {
-                const url = await resolveSource(source).catch(() => null);
+                const decoded = decodeSourceUrl(source.url);
+                const target = /^https?:\/\//.test(decoded)
+                    ? decoded
+                    : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
+                const url = await resolveTarget(target).catch(() => null);
                 if (url) return url;
             }
         } catch {
