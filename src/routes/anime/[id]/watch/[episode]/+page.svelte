@@ -1,5 +1,6 @@
 <script lang="ts">
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
+    import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
     import type { PageProps } from './$types';
     import {
@@ -66,26 +67,23 @@
 
 <main class="min-h-dvh">
     {#key `${data.currentEpisode.id}:${data.streamUrl ?? ''}`}
-        <section
-            aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
-            class="relative aspect-video w-full overflow-hidden bg-black"
-        >
-            {#if data.streamUrl}
-                <video
-                    class="size-full bg-black object-contain"
-                    controls
-                    playsinline
-                    preload="metadata"
-                    poster={poster ?? undefined}
-                >
-                    <source src={data.streamUrl} />
-                    <track kind="captions" />
-                </video>
-            {:else if poster}
-                <img src={poster} alt="" class="size-full object-cover object-center" />
-                <div class="pointer-events-none absolute inset-0 bg-black/50"></div>
-            {/if}
-        </section>
+        {#if data.streamUrl}
+            <VideoPlayer
+                src={data.streamUrl}
+                label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
+                {poster}
+            />
+        {:else}
+            <section
+                aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
+                class="relative aspect-video w-full overflow-hidden bg-black"
+            >
+                {#if poster}
+                    <img src={poster} alt="" class="size-full object-cover object-center" />
+                    <div class="pointer-events-none absolute inset-0 bg-black/50"></div>
+                {/if}
+            </section>
+        {/if}
     {/key}
 
     <div class="mx-auto grid w-full max-w-5xl gap-12 px-6 py-11 sm:px-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-12 lg:px-0 lg:py-12">
