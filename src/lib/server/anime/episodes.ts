@@ -46,6 +46,8 @@ async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> {
             title,
             slug,
             href: `/anime/${anime.id}/watch/${encodeURIComponent(slug)}`,
+            hasSub: episode.hasSub,
+            hasDub: episode.hasDub,
             audioLabel: audioLabel(episode.hasSub, episode.hasDub),
             imageUrl: media?.imageUrl ?? null,
             duration: duration(media?.runtime ?? anime.duration),
