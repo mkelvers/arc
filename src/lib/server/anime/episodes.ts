@@ -1,4 +1,4 @@
-import { episodeSlug, type AnimeEpisode } from '$lib/anime/episodes';
+import type { AnimeEpisode } from '$lib/anime';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 import { allanime } from './allanime';
 import { tmdb } from './tmdb';
@@ -31,7 +31,13 @@ async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> {
     return source.map((episode) => {
         const media = metadata.get(episode.id);
         const title = media?.title || episode.title || `Episode ${episode.id}`;
-        const slug = episodeSlug(title, episode.id);
+        const slug =
+            title
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '') || `episode-${episode.id}`;
 
         return {
             id: episode.id,
