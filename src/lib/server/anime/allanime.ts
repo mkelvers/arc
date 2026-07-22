@@ -12,22 +12,23 @@ import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
 
-const endpoint = 'https://api.allanime.day/api';
+const endpoint = 'https://api.mkissa.net/api';
 const site = 'https://allanime.day';
 const referer = 'https://youtu-chan.com';
 const origin = 'https://mkissa.to';
-const streamCrypto = {
-    buildId: '63',
-    epoch: 6884,
-    key: Buffer.from(
-        'f34fa715e2958b8c1ebc6efa4d089acd8f196d8b83d4b6201586c00c8a52e4a8',
-        'hex',
-    ),
-    queryHash:
-        'f4662f4b7510b26795dd53ef824a0bf1740fbbc5d1273fab18222ac831bca8d0',
-};
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
+const episodeSourcesQueryHash =
+    'f4662f4b7510b26795dd53ef824a0bf1740fbbc5d1273fab18222ac831bca8d0';
+
+interface StreamCrypto {
+    buildId: string;
+    epoch: number;
+    key: Buffer;
+    refreshAt: number;
+}
+
+let cachedStreamCrypto: StreamCrypto | null = null;
 
 export interface AllAnimeEpisode {
     id: string;
@@ -167,22 +168,101 @@ async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
         .sort((left, right) => left.number - right.number);
 }
 
-function aaLease() {
+async function getStreamCrypto(refresh = false) {
+    if (
+        !refresh &&
+        cachedStreamCrypto &&
+        Date.now() < cachedStreamCrypto.refreshAt
+    ) {
+        return cachedStreamCrypto;
+    }
+
+    const pageResponse = await fetch(origin, {
+        headers: { 'User-Agent': userAgent },
+    });
+    if (!pageResponse.ok) {
+        throw new Error(`AllAnime bootstrap failed (${pageResponse.status})`);
+    }
+
+    const page = await pageResponse.text();
+    const rawBootstrap = page.match(/window\.__aaCrypto=(\{[^;]+\})/)?.[1];
+    const appUrl = page.match(
+        /https:\/\/[^"' ]+\/immutable\/entry\/app\.[^"' ]+\.js/,
+    )?.[0];
+    if (!rawBootstrap || !appUrl) {
+        throw new Error('AllAnime bootstrap data was not found');
+    }
+
+    const bootstrap = asRecord(JSON.parse(rawBootstrap));
+    const epoch = Number(bootstrap?.epoch);
+    const part = Buffer.from(String(bootstrap?.partB ?? ''), 'base64');
+    if (!Number.isSafeInteger(epoch) || part.length !== 32) {
+        throw new Error('AllAnime bootstrap data was invalid');
+    }
+
+    const appResponse = await fetch(appUrl);
+    if (!appResponse.ok) {
+        throw new Error(`AllAnime app manifest failed (${appResponse.status})`);
+    }
+
+    const app = await appResponse.text();
+    const chunks = [
+        ...new Set(
+            [...app.matchAll(/["'](\.\.\/chunks\/[^"']+\.js)["']/g)].map(
+                (match) => new URL(match[1], appUrl).toString(),
+            ),
+        ),
+    ];
+    let mask: Buffer | null = null;
+    let buildId = '';
+
+    for (const chunkUrl of chunks) {
+        const response = await fetch(chunkUrl);
+        if (!response.ok) continue;
+
+        const chunk = await response.text();
+        const match = chunk.match(
+            /\?["']([0-9a-f]{64})["']:["']["'],\w+=["'](\d+)["']/,
+        );
+        if (!match) continue;
+
+        mask = Buffer.from(match[1], 'hex');
+        buildId = match[2];
+        break;
+    }
+
+    if (!mask || !buildId) {
+        throw new Error('AllAnime client encryption data was not found');
+    }
+
+    const key = Buffer.alloc(32);
+    for (let index = 0; index < key.length; index++) {
+        key[index] = part[index] ^ mask[index];
+    }
+
+    cachedStreamCrypto = {
+        buildId,
+        epoch,
+        key,
+        refreshAt: Date.now() + 300_000,
+    };
+    return cachedStreamCrypto;
+}
+
+function aaLease(crypto: StreamCrypto, queryHash: string) {
     const timestamp = Math.floor(Date.now() / 300_000) * 300_000;
     const iv = createHash('sha256')
-        .update(
-            `${streamCrypto.epoch}:${streamCrypto.buildId}:${streamCrypto.queryHash}:${timestamp}`,
-        )
+        .update(`${crypto.epoch}:${crypto.buildId}:${queryHash}:${timestamp}`)
         .digest()
         .subarray(0, 12);
     const payload = JSON.stringify({
         v: 1,
         ts: timestamp,
-        epoch: streamCrypto.epoch,
-        buildId: streamCrypto.buildId,
-        qh: streamCrypto.queryHash,
+        epoch: crypto.epoch,
+        buildId: crypto.buildId,
+        qh: queryHash,
     });
-    const cipher = createCipheriv('aes-256-gcm', streamCrypto.key, iv);
+    const cipher = createCipheriv('aes-256-gcm', crypto.key, iv);
     const encrypted = Buffer.concat([
         cipher.update(payload, 'utf8'),
         cipher.final(),
@@ -196,7 +276,7 @@ function aaLease() {
     ]).toString('base64');
 }
 
-function decryptedPayload(value: string) {
+function decryptedPayload(value: string, key: Buffer) {
     const encrypted = Buffer.from(value, 'base64');
 
     if (encrypted.length < 30 || encrypted[0] !== 1) {
@@ -205,7 +285,7 @@ function decryptedPayload(value: string) {
 
     const iv = encrypted.subarray(1, 13);
     const tag = encrypted.subarray(-16);
-    const decipher = createDecipheriv('aes-256-gcm', streamCrypto.key, iv);
+    const decipher = createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
 
     return JSON.parse(
@@ -336,6 +416,7 @@ async function encryptedSources(
     showId: string,
     episode: string,
     translationType: 'sub' | 'dub',
+    crypto: StreamCrypto,
 ) {
     const url = new URL(endpoint);
     url.searchParams.set(
@@ -351,9 +432,9 @@ async function encryptedSources(
         JSON.stringify({
             persistedQuery: {
                 version: 1,
-                sha256Hash: streamCrypto.queryHash,
+                sha256Hash: episodeSourcesQueryHash,
             },
-            aaReq: aaLease(),
+            aaReq: aaLease(crypto, episodeSourcesQueryHash),
         }),
     );
 
@@ -362,7 +443,7 @@ async function encryptedSources(
             Origin: origin,
             Referer: referer,
             'User-Agent': userAgent,
-            'x-build-id': streamCrypto.buildId,
+            'x-build-id': crypto.buildId,
         },
     });
     const payload = (await response.json()) as unknown;
@@ -372,7 +453,12 @@ async function encryptedSources(
     const encrypted = data?.tobeparsed ?? episodeData?.tobeparsed;
 
     if (typeof encrypted === 'string') {
-        return sourceReferences(decryptedPayload(encrypted));
+        const decrypted = decryptedPayload(encrypted, crypto.key);
+        const sources = sourceReferences(decrypted);
+        if (!sources.length) {
+            throw new Error('AllAnime decrypted no episode sources');
+        }
+        return sources;
     }
 
     const sources = sourceReferences(payload);
@@ -390,38 +476,78 @@ async function encryptedSources(
 
 async function getStream(anime: AniListAnime, episode: string) {
     const showId = await findShowId(anime);
+    let crypto = await getStreamCrypto();
+    let refreshed = false;
+    const errors: unknown[] = [];
 
     for (const translationType of ['sub', 'dub'] as const) {
+        let sources: Source[];
+
         try {
-            const sources = await encryptedSources(
+            sources = await encryptedSources(
                 showId,
                 episode,
                 translationType,
+                crypto,
             );
-            const ordered = sources.toSorted((left, right) => {
-                const priority = ['yt-mp4', 's-mp4', 'default', 'mp4'];
-                const rank = (source: Source) => {
-                    const index = priority.indexOf(source.name.toLowerCase());
-                    return index < 0 ? priority.length : index;
-                };
+        } catch (error) {
+            if (
+                !refreshed &&
+                error instanceof Error &&
+                error.message.includes('AA_CRYPTO')
+            ) {
+                refreshed = true;
+                crypto = await getStreamCrypto(true);
 
-                return rank(left) - rank(right);
-            });
-
-            for (const source of ordered) {
-                const decoded = decodeSourceUrl(source.url);
-                const target = /^https?:\/\//.test(decoded)
-                    ? decoded
-                    : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
-                const url = await resolveTarget(target).catch(() => null);
-                if (url) return url;
+                try {
+                    sources = await encryptedSources(
+                        showId,
+                        episode,
+                        translationType,
+                        crypto,
+                    );
+                } catch (retryError) {
+                    errors.push(retryError);
+                    continue;
+                }
+            } else {
+                errors.push(error);
+                continue;
             }
-        } catch {
-            // Try the other translation before reporting no stream.
         }
+
+        const ordered = sources.toSorted((left, right) => {
+            const priority = ['yt-mp4', 's-mp4', 'default', 'mp4'];
+            const rank = (source: Source) => {
+                const index = priority.indexOf(source.name.toLowerCase());
+                return index < 0 ? priority.length : index;
+            };
+
+            return rank(left) - rank(right);
+        });
+
+        for (const source of ordered) {
+            const decoded = decodeSourceUrl(source.url);
+            const target = /^https?:\/\//.test(decoded)
+                ? decoded
+                : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
+            const url = await resolveTarget(target).catch(() => null);
+            if (url) return url;
+        }
+
+        errors.push(
+            new Error(
+                `AllAnime ${translationType} sources could not be resolved: ${ordered
+                    .map(({ name, url }) => `${name} (${url})`)
+                    .join(', ')}`,
+            ),
+        );
     }
 
-    throw new Error(`AllAnime returned no playable source for episode ${episode}`);
+    throw new AggregateError(
+        errors,
+        `AllAnime returned no playable source for episode ${episode}`,
+    );
 }
 
 export const allanime = { getEpisodes, getStream };
