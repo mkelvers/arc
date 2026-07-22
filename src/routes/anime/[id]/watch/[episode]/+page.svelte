@@ -72,6 +72,7 @@
                 sources={data.streams}
                 label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
                 {poster}
+                next={data.nextEpisode?.href}
             />
         {:else}
             <section
