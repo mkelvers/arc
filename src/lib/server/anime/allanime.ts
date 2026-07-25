@@ -39,6 +39,21 @@ export interface AllAnimeEpisode {
     hasDub: boolean;
 }
 
+export interface AllAnimeStream {
+    url: string;
+    quality: string | null;
+}
+
+type AllAnimeStreams = Partial<
+    Record<'sub' | 'dub', AllAnimeStream[]>
+>;
+
+const streamCache = new Map<
+    string,
+    { streams: AllAnimeStreams; expiresAt: number }
+>();
+const streamRequests = new Map<string, Promise<AllAnimeStreams>>();
+
 function request<TResult, TVariables>(
     document: Parameters<typeof graphql<TResult, TVariables>>[1],
     variables: TVariables,
@@ -179,6 +194,7 @@ async function getStreamCrypto(refresh = false) {
 
     const pageResponse = await fetch(origin, {
         headers: { 'User-Agent': userAgent },
+        signal: AbortSignal.timeout(10_000),
     });
     if (!pageResponse.ok) {
         throw new Error(`AllAnime bootstrap failed (${pageResponse.status})`);
@@ -200,7 +216,9 @@ async function getStreamCrypto(refresh = false) {
         throw new Error('AllAnime bootstrap data was invalid');
     }
 
-    const appResponse = await fetch(appUrl);
+    const appResponse = await fetch(appUrl, {
+        signal: AbortSignal.timeout(10_000),
+    });
     if (!appResponse.ok) {
         throw new Error(`AllAnime app manifest failed (${appResponse.status})`);
     }
@@ -217,12 +235,14 @@ async function getStreamCrypto(refresh = false) {
     let buildId = '';
 
     for (const chunkUrl of chunks) {
-        const response = await fetch(chunkUrl);
+        const response = await fetch(chunkUrl, {
+            signal: AbortSignal.timeout(10_000),
+        });
         if (!response.ok) continue;
 
         const chunk = await response.text();
         const match = chunk.match(
-            /\?["']([0-9a-f]{64})["']:["']["'],\w+=["'](\d+)["']/,
+            /\?["']([0-9a-f]{64})["']:["']["'],\w+=[^;]{0,100}\?["']([A-Za-z0-9._-]+)["']:["']["']/,
         );
         if (!match) continue;
 
@@ -342,73 +362,129 @@ function decodeSourceUrl(value: string) {
     return decoded.replace('/clock', '/clock.json');
 }
 
-function mediaUrls(value: unknown): string[] {
+interface MediaReference {
+    url: string;
+    quality: string | null;
+}
+
+function streamQuality(value: unknown) {
+    const match = String(value ?? '').match(/^(\d{3,4})p?$/i);
+    return match ? `${Number(match[1])}p` : null;
+}
+
+function mediaReferences(
+    value: unknown,
+    inheritedQuality: string | null = null,
+): MediaReference[] {
     if (typeof value === 'string') {
-        return /^https?:\/\//.test(value) ? [value] : [];
+        return /^https?:\/\//.test(value)
+            ? [{ url: value, quality: inheritedQuality }]
+            : [];
     }
-    if (Array.isArray(value)) return value.flatMap(mediaUrls);
+    if (Array.isArray(value)) {
+        return value.flatMap((child) =>
+            mediaReferences(child, inheritedQuality),
+        );
+    }
 
     const object = asRecord(value);
     if (!object) return [];
 
+    const quality =
+        streamQuality(object.resolutionStr) ??
+        streamQuality(object.resolution) ??
+        streamQuality(object.quality) ??
+        inheritedQuality;
+
     return Object.entries(object).flatMap(([key, child]) => {
         if (['link', 'url', 'file', 'src'].includes(key.toLowerCase())) {
-            return mediaUrls(child);
+            return mediaReferences(child, quality);
         }
 
-        return typeof child === 'object' ? mediaUrls(child) : [];
+        return typeof child === 'object'
+            ? mediaReferences(child, quality)
+            : [];
     });
 }
 
-async function resolveTarget(target: string, depth = 0): Promise<string | null> {
-    if (depth > 4) return null;
+function wixStreams(target: string): AllAnimeStream[] {
+    const match = target.match(
+        /^https:\/\/repackager\.wixmp\.com\/(video\.wixstatic\.com\/.+?)\/,([^/]+),\/(.+?)\.urlset(?:\/.*)?$/,
+    );
+    if (!match) return [];
+
+    return match[2].split(',').flatMap((value) => {
+        const quality = streamQuality(value);
+        return quality
+            ? [
+                  {
+                      url: `https://${match[1]}/${quality}/${match[3]}`,
+                      quality,
+                  },
+              ]
+            : [];
+    });
+}
+
+async function resolveTargets(
+    target: string,
+    quality: string | null = null,
+    depth = 0,
+): Promise<AllAnimeStream[]> {
+    if (depth > 4) return [];
+
+    const wix = wixStreams(target);
+    if (wix.length) return wix;
 
     const url = new URL(target);
     const host = url.hostname.toLowerCase();
     const directHost =
         host === 'tools.fast4speed.rsvp' ||
-        host === 'repackager.wixmp.com' ||
         host.endsWith('.sharepoint.com');
 
-    if (directHost || /\.(?:mp4|m3u8)(?:[?#]|$)/i.test(url.pathname)) {
-        return url.toString();
+    if (directHost || /\.mp4(?:[?#]|$)/i.test(url.pathname)) {
+        const pathQuality = url.pathname.match(
+            /(?:^|\/)(\d{3,4})p(?:\/|$)/i,
+        )?.[1];
+        return [
+            {
+                url: url.toString(),
+                quality: quality ?? streamQuality(pathQuality),
+            },
+        ];
     }
 
     const response = await fetch(target, {
         headers: { Referer: referer, 'User-Agent': userAgent },
+        signal: AbortSignal.timeout(8_000),
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) return [];
 
     const text = await response.text();
     try {
-        const urls = [...new Set(mediaUrls(JSON.parse(text)))].filter(
-            (candidate) => candidate !== target,
+        const references = mediaReferences(JSON.parse(text), quality).filter(
+            ({ url }) => url !== target,
         );
-        const ordered = urls.toSorted((left, right) => {
-            const rank = (candidate: string) => {
-                if (/\.mp4(?:[?#]|$)/i.test(candidate)) return 0;
-                if (candidate.includes('tools.fast4speed.rsvp')) return 1;
-                if (/\.m3u8(?:[?#]|$)/i.test(candidate)) return 2;
-                return 3;
-            };
-
-            return rank(left) - rank(right);
-        });
-
-        for (const candidate of ordered) {
-            const resolved = await resolveTarget(candidate, depth + 1).catch(
-                () => null,
-            );
-            if (resolved) return resolved;
-        }
-
-        return null;
+        const streams = await Promise.all(
+            references.map((reference) =>
+                resolveTargets(
+                    reference.url,
+                    reference.quality,
+                    depth + 1,
+                ).catch(() => []),
+            ),
+        );
+        return streams.flat();
     } catch {
         const embedded = text.match(/src:\s*["']([^"']+)["']/)?.[1];
         return embedded
-            ? resolveTarget(new URL(embedded, target).toString(), depth + 1)
-            : null;
+            ? resolveTargets(
+                  new URL(embedded, target).toString(),
+                  quality,
+                  depth + 1,
+              )
+            : [];
     }
 }
 
@@ -445,6 +521,7 @@ async function encryptedSources(
             'User-Agent': userAgent,
             'x-build-id': crypto.buildId,
         },
+        signal: AbortSignal.timeout(6_000),
     });
     const payload = (await response.json()) as unknown;
     const root = asRecord(payload);
@@ -474,85 +551,101 @@ async function encryptedSources(
     );
 }
 
-async function getStreams(
+async function resolveStreams(
     anime: AniListAnime,
     episode: string,
     translationTypes: ('sub' | 'dub')[],
 ) {
     const showId = await findShowId(anime);
     let crypto = await getStreamCrypto();
-    let refreshed = false;
     const errors: unknown[] = [];
-    const streams: Partial<Record<'sub' | 'dub', string>> = {};
-
-    for (const translationType of translationTypes) {
-        let sources: Source[];
-
-        try {
-            sources = await encryptedSources(
-                showId,
-                episode,
+    const streams: AllAnimeStreams = {};
+    const loadSources = (translationType: 'sub' | 'dub') =>
+        encryptedSources(showId, episode, translationType, crypto).then(
+            (sources) => ({ translationType, sources, error: null }),
+            (error: unknown) => ({
                 translationType,
-                crypto,
-            );
-        } catch (error) {
-            if (
-                !refreshed &&
+                sources: null,
+                error,
+            }),
+        );
+    let sourceResults = await Promise.all(translationTypes.map(loadSources));
+
+    if (
+        sourceResults.some(
+            ({ error }) =>
                 error instanceof Error &&
-                error.message.includes('AA_CRYPTO')
-            ) {
-                refreshed = true;
-                crypto = await getStreamCrypto(true);
-
-                try {
-                    sources = await encryptedSources(
-                        showId,
-                        episode,
-                        translationType,
-                        crypto,
-                    );
-                } catch (retryError) {
-                    errors.push(retryError);
-                    continue;
-                }
-            } else {
-                errors.push(error);
-                continue;
-            }
-        }
-
-        const ordered = sources.toSorted((left, right) => {
-            const priority = ['yt-mp4', 's-mp4', 'default', 'mp4'];
-            const rank = (source: Source) => {
-                const index = priority.indexOf(source.name.toLowerCase());
-                return index < 0 ? priority.length : index;
-            };
-
-            return rank(left) - rank(right);
-        });
-
-        for (const source of ordered) {
-            const decoded = decodeSourceUrl(source.url);
-            const target = /^https?:\/\//.test(decoded)
-                ? decoded
-                : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
-            const url = await resolveTarget(target).catch(() => null);
-            if (url) {
-                streams[translationType] = url;
-                break;
-            }
-        }
-
-        if (streams[translationType]) continue;
-
-        errors.push(
-            new Error(
-                `AllAnime ${translationType} sources could not be resolved: ${ordered
-                    .map(({ name, url }) => `${name} (${url})`)
-                    .join(', ')}`,
+                error.message.includes('AA_CRYPTO'),
+        )
+    ) {
+        crypto = await getStreamCrypto(true);
+        sourceResults = await Promise.all(
+            sourceResults.map((result) =>
+                result.error instanceof Error &&
+                result.error.message.includes('AA_CRYPTO')
+                    ? loadSources(result.translationType)
+                    : result,
             ),
         );
     }
+
+    await Promise.all(
+        sourceResults.map(async ({ translationType, sources, error }) => {
+            if (!sources) {
+                errors.push(error);
+                return;
+            }
+
+            const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
+            const ordered = sources.toSorted((left, right) => {
+                const rank = (source: Source) => {
+                    const index = priority.indexOf(
+                        source.name.toLowerCase(),
+                    );
+                    return index < 0 ? priority.length : index;
+                };
+
+                return rank(left) - rank(right);
+            });
+            const supported = ordered.filter((source) =>
+                priority.includes(source.name.toLowerCase()),
+            );
+            const resolved = (
+                await Promise.all(
+                    (supported.length ? supported : ordered).map((source) => {
+                        const decoded = decodeSourceUrl(source.url);
+                        const target = /^https?:\/\//.test(decoded)
+                            ? decoded
+                            : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
+                        return resolveTargets(target).catch(() => []);
+                    }),
+                )
+            )
+                .flat()
+                .filter(
+                    (stream, index, values) =>
+                        values.findIndex(({ url }) => url === stream.url) ===
+                        index,
+                )
+                .toSorted(
+                    (left, right) =>
+                        Number.parseInt(right.quality ?? '0') -
+                        Number.parseInt(left.quality ?? '0'),
+                );
+
+            if (resolved.length) streams[translationType] = resolved;
+
+            if (streams[translationType]) return;
+
+            errors.push(
+                new Error(
+                    `AllAnime ${translationType} sources could not be resolved: ${ordered
+                        .map(({ name, url }) => `${name} (${url})`)
+                        .join(', ')}`,
+                ),
+            );
+        }),
+    );
 
     if (Object.keys(streams).length) return streams;
 
@@ -560,6 +653,33 @@ async function getStreams(
         errors,
         `AllAnime returned no playable source for episode ${episode}`,
     );
+}
+
+async function getStreams(
+    anime: AniListAnime,
+    episode: string,
+    translationTypes: ('sub' | 'dub')[],
+) {
+    const key = `${anime.id}:${episode}:${translationTypes.toSorted().join(',')}`;
+    const cached = streamCache.get(key);
+    if (cached && Date.now() < cached.expiresAt) return cached.streams;
+
+    const pending = streamRequests.get(key);
+    if (pending) return pending;
+
+    const request = resolveStreams(anime, episode, translationTypes);
+    streamRequests.set(key, request);
+
+    try {
+        const streams = await request;
+        streamCache.set(key, {
+            streams,
+            expiresAt: Date.now() + 300_000,
+        });
+        return streams;
+    } finally {
+        streamRequests.delete(key);
+    }
 }
 
 export const allanime = { getEpisodes, getStreams };
