@@ -585,13 +585,13 @@
                         class="pointer-events-none absolute bottom-full left-1/2 flex h-40 w-12 -translate-x-1/2 items-end justify-center pb-3 opacity-0 transition-opacity group-hover/volume:pointer-events-auto group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:opacity-100"
                     >
                         <div class="relative h-28 w-8 py-1.5">
-                            <div class="relative mx-auto h-full w-1.5 rounded-full bg-white/35 shadow-[0_1px_3px_rgba(0,0,0,0.35)]">
+                            <div class="relative mx-auto h-full w-1.5 rounded-full bg-white/35 shadow-sm">
                                 <div
                                     class="absolute inset-x-0 bottom-0 rounded-full bg-accent"
                                     style={`height: ${volumeProgress}%`}
                                 ></div>
                                 <div
-                                    class="absolute left-1/2 size-3 -translate-x-1/2 translate-y-1/2 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.45)] ring-1 ring-black/10"
+                                    class="absolute left-1/2 size-3 -translate-x-1/2 translate-y-1/2 rounded-full bg-white shadow-sm ring-1 ring-black/10"
                                     style={`bottom: ${volumeProgress}%`}
                                 ></div>
                             </div>
@@ -602,8 +602,7 @@
                                 step="0.05"
                                 value={muted ? 0 : volume}
                                 aria-label="Volume"
-                                class="absolute inset-0 size-full cursor-pointer opacity-0"
-                                style="writing-mode: vertical-lr; direction: rtl;"
+                                class="volume-input absolute inset-0 size-full cursor-pointer opacity-0"
                                 oninput={changeVolume}
                             />
                         </div>
@@ -686,7 +685,7 @@
                             id="player-settings"
                             role="menu"
                             aria-label="Playback settings"
-                            class="absolute right-0 bottom-full z-40 mb-2 w-60 overflow-hidden bg-[#121316] py-2 text-left text-xs shadow-xl ring-1 ring-white/8"
+                            class="absolute right-0 bottom-full z-40 mb-2 w-60 overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8"
                         >
                             {#if settingsView === 'main'}
                                 <button
@@ -701,14 +700,14 @@
                                         aria-hidden="true"
                                         class={`relative h-3.5 w-7 rounded-full border transition-colors ${
                                             autoplay
-                                                ? 'border-[#18b8bf] bg-[#18b8bf]/20'
+                                                ? 'border-player-accent bg-player-accent/20'
                                                 : 'border-white/55 bg-white/12'
                                         }`}
                                     >
                                         <span
                                             class={`absolute top-0.5 left-0.5 size-2 rounded-full transition-all ${
                                                 autoplay
-                                                    ? 'translate-x-4 bg-[#18b8bf]'
+                                                    ? 'translate-x-4 bg-player-accent'
                                                     : 'bg-white'
                                             }`}
                                         ></span>
@@ -779,12 +778,12 @@
                                             aria-hidden="true"
                                             class={`grid size-4 place-items-center rounded-full border ${
                                                 quality === 'best'
-                                                    ? 'border-[#18b8bf]'
+                                                    ? 'border-player-accent'
                                                     : 'border-white/55'
                                             }`}
                                         >
                                             {#if quality === 'best'}
-                                                <span class="size-2 rounded-full bg-[#18b8bf]"></span>
+                                                <span class="size-2 rounded-full bg-player-accent"></span>
                                             {/if}
                                         </span>
                                         Auto
@@ -801,12 +800,12 @@
                                                 aria-hidden="true"
                                                 class={`grid size-4 place-items-center rounded-full border ${
                                                     quality === option
-                                                        ? 'border-[#18b8bf]'
+                                                        ? 'border-player-accent'
                                                         : 'border-white/55'
                                                 }`}
                                             >
                                                 {#if quality === option}
-                                                    <span class="size-2 rounded-full bg-[#18b8bf]"></span>
+                                                    <span class="size-2 rounded-full bg-player-accent"></span>
                                                 {/if}
                                             </span>
                                             <span>
@@ -830,12 +829,12 @@
                                                 aria-hidden="true"
                                                 class={`grid size-4 place-items-center rounded-full border ${
                                                     mode === option
-                                                        ? 'border-[#18b8bf]'
+                                                        ? 'border-player-accent'
                                                         : 'border-white/55'
                                                 }`}
                                             >
                                                 {#if mode === option}
-                                                    <span class="size-2 rounded-full bg-[#18b8bf]"></span>
+                                                    <span class="size-2 rounded-full bg-player-accent"></span>
                                                 {/if}
                                             </span>
                                             {option === 'dub' ? 'English' : 'Japanese'}

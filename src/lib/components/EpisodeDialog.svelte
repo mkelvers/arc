@@ -36,13 +36,13 @@
 <dialog
     bind:this={dialog}
     aria-labelledby="episode-dialog-title"
-    class="m-auto h-[min(88dvh,68rem)] w-[min(61rem,calc(100%-2rem))] max-w-none overflow-hidden bg-[#282828] p-0 text-white backdrop:bg-black/75"
+    class="m-auto h-11/12 max-h-screen w-11/12 max-w-5xl overflow-hidden bg-panel p-0 text-white backdrop:bg-black/75"
     onclick={backdropClick}
     oncancel={onclose}
     onclose={onclose}
 >
     <div class="flex h-full flex-col">
-        <header class="flex min-h-20 shrink-0 items-center border-b border-black/15 bg-[#2d2d2d] px-5 sm:px-8">
+        <header class="flex min-h-20 shrink-0 items-center border-b border-black/15 bg-panel-strong px-5 sm:px-8">
             <h2 id="episode-dialog-title" class="line-clamp-1 text-lg font-bold sm:text-xl">
                 {title}
             </h2>
@@ -62,20 +62,20 @@
                     <a
                         href={episode.href}
                         aria-current={episode.id === currentId ? 'page' : undefined}
-                        class:bg-[#191919]={episode.id === currentId}
+                        class:bg-panel-selected={episode.id === currentId}
                         class="group block min-w-0 p-3 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
-                        <div class="relative aspect-video overflow-hidden bg-[#171717]">
+                        <div class="relative aspect-video overflow-hidden bg-media-tile">
                             {#if episode.imageUrl || image}
                                 <img
                                     src={episode.imageUrl ?? image ?? ''}
                                     alt=""
-                                    class="size-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                                    class="size-full object-cover transition-transform duration-200 group-hover:scale-105"
                                     loading="lazy"
                                 />
                             {/if}
                             {#if episode.id === currentId}
-                                <span class="absolute top-2 left-2 bg-accent px-2 py-1 text-[0.65rem] font-bold text-black uppercase">
+                                <span class="absolute top-2 left-2 bg-accent px-2 py-1 text-xs font-bold text-black uppercase">
                                     Now playing
                                 </span>
                             {/if}
@@ -85,13 +85,13 @@
                                 </span>
                             {/if}
                         </div>
-                        <p class="mt-3 line-clamp-1 text-[0.65rem] font-semibold text-[#8e8e8e] uppercase">
+                        <p class="mt-3 line-clamp-1 text-xs font-semibold text-watch-muted uppercase">
                             {title}
                         </p>
                         <h3 class="mt-2 line-clamp-2 text-base leading-snug font-bold text-white">
                             {episode.label} – {episode.title}
                         </h3>
-                        <p class="mt-3 text-sm text-[#949494]">{episode.audioLabel}</p>
+                        <p class="mt-3 text-sm text-watch-muted">{episode.audioLabel}</p>
                     </a>
                 {/each}
             </div>

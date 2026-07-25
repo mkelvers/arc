@@ -11,14 +11,14 @@
 
 <a
     href={episode.href}
-    class="group grid grid-cols-[minmax(8.5rem,9.25rem)_minmax(0,1fr)] gap-3 focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
+    class="group flex gap-3 focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
 >
-    <div class="relative aspect-video overflow-hidden bg-[#171717]">
+    <div class="relative aspect-video w-36 shrink-0 overflow-hidden bg-media-tile">
         {#if episode.imageUrl || image}
             <img
                 src={episode.imageUrl ?? image ?? ''}
                 alt=""
-                class="size-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                class="size-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
         {/if}
         {#if episode.duration}
@@ -31,6 +31,6 @@
         <h3 class="line-clamp-3 text-sm leading-snug font-bold text-white">
             {episode.label} – {episode.title}
         </h3>
-        <p class="mt-1.5 text-sm text-[#969696]">{episode.audioLabel}</p>
+        <p class="mt-1.5 text-sm text-watch-muted">{episode.audioLabel}</p>
     </div>
 </a>

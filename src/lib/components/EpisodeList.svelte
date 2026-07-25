@@ -38,7 +38,7 @@
                         </div>
 
                         <div class="mt-3 min-w-0">
-                            <p class="line-clamp-1 text-[0.65rem] font-medium text-subtle uppercase">
+                            <p class="line-clamp-1 text-xs font-medium text-subtle uppercase">
                                 {title}
                             </p>
                             <h3 class="mt-1 line-clamp-2 text-sm leading-snug font-bold text-foreground">
@@ -49,7 +49,7 @@
                     </div>
 
                     <div class="pointer-events-none absolute inset-0 z-10 flex flex-col bg-surface p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
-                        <p class="line-clamp-1 text-[0.6rem] font-medium text-subtle uppercase">
+                        <p class="line-clamp-1 text-xs font-medium text-subtle uppercase">
                             {title}
                         </p>
                         <h3 class="mt-2 line-clamp-2 text-sm leading-snug font-bold text-foreground">
