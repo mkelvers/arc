@@ -13,9 +13,6 @@
 
     let { data }: PageProps = $props();
 
-    const backdrop = $derived(data.artwork.selectedBackdrop);
-    const logo = $derived(data.artwork.selectedLogo);
-
     let detailsExpanded = $state(false);
 </script>
 
@@ -24,15 +21,17 @@
 <main class="bg-canvas text-foreground">
     <section class="min-h-dvh">
         <figure
-            class="anime-hero grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-canvas before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-240"
+            class="anime-hero grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-240"
         >
-            {#if backdrop}
-                <img
-                    src={backdrop.url}
-                    alt={data.anime.title}
-                    class="col-start-1 row-start-1 size-full object-cover object-center sm:object-top lg:object-center"
-                />
-            {/if}
+            {#await data.artwork then artwork}
+                {#if artwork.selectedBackdrop}
+                    <img
+                        src={artwork.selectedBackdrop.url}
+                        alt={data.anime.title}
+                        class="z-0 col-start-1 row-start-1 size-full object-cover object-center sm:object-top lg:object-center"
+                    />
+                {/if}
+            {/await}
 
             <div class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12">
                 <Dropdown
@@ -50,24 +49,26 @@
                 </Dropdown>
             </div>
 
-            <div
-                class={`z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20 ${logo
-                    ? ''
-                    : 'pt-76 sm:pt-92 lg:pt-104'}`}
-            >
+            <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
                 <div class="w-fit">
-                    {#if logo}
-                        <img
-                            src={logo.url}
-                            alt={data.anime.title}
-                            style:height={`clamp(${5 * data.artwork.logoSize / 100}rem, ${5.7 * data.artwork.logoSize / 100}vw, ${6.25 * data.artwork.logoSize / 100}rem)`}
-                            class="max-h-24 max-w-md object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
-                        />
-                    {:else if !data.artwork.logoHidden}
+                    {#await data.artwork}
                         <h1 class="max-w-3xl text-4xl leading-none font-bold sm:text-6xl lg:text-8xl">
                             {data.anime.title}
                         </h1>
-                    {/if}
+                    {:then artwork}
+                        {#if artwork.selectedLogo}
+                            <img
+                                src={artwork.selectedLogo.url}
+                                alt={data.anime.title}
+                                style:height={`clamp(${5 * artwork.logoSize / 100}rem, ${5.7 * artwork.logoSize / 100}vw, ${6.25 * artwork.logoSize / 100}rem)`}
+                                class="max-h-24 max-w-md object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
+                            />
+                        {:else if !artwork.logoHidden}
+                            <h1 class="max-w-3xl text-4xl leading-none font-bold sm:text-6xl lg:text-8xl">
+                                {data.anime.title}
+                            </h1>
+                        {/if}
+                    {/await}
                 </div>
 
                 <p class="mt-8 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base">
@@ -91,13 +92,23 @@
                 </div>
 
                 <div class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5">
-                    <a
-                        href={data.episodes[0]?.href ?? '#anime-episode-list'}
-                        class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
-                    >
-                        <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                        START WATCHING E1
-                    </a>
+                    {#await data.episodes}
+                        <a
+                            href="#anime-episode-list"
+                            class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
+                        >
+                            <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
+                            VIEW EPISODES
+                        </a>
+                    {:then episodes}
+                        <a
+                            href={episodes[0]?.href ?? '#anime-episode-list'}
+                            class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
+                        >
+                            <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
+                            START WATCHING E1
+                        </a>
+                    {/await}
                     <form method="POST" action="?/watchlist" use:enhance>
                         <button
                             type="submit"
@@ -161,10 +172,10 @@
     </section>
 
     <div class="px-5 sm:px-10 lg:px-16">
-        <EpisodeList
-            episodes={data.episodes}
-            title={data.anime.title}
-            image={backdrop?.url}
-        />
+        {#await data.episodes}
+            <EpisodeList loading title={data.anime.title} image={data.anime.bannerImage} />
+        {:then episodes}
+            <EpisodeList {episodes} title={data.anime.title} image={data.anime.bannerImage} />
+        {/await}
     </div>
 </main>

@@ -68,48 +68,65 @@
 </svelte:head>
 
 <main class="min-h-dvh">
-    {#key `${data.currentEpisode.id}:${JSON.stringify(data.streams)}`}
-        {#if data.streams.sub?.length || data.streams.dub?.length}
-            <VideoPlayer
-                sources={data.streams}
-                label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
-                {poster}
-                next={data.nextEpisode?.href}
-            />
-        {:else}
-            <section
-                aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
-                role="alert"
-                class="grid aspect-video w-full place-items-center bg-black px-6 text-center"
-            >
-                <div>
-                    <p class="text-base font-bold">
-                        {data.streamError
-                            ? 'AllAnime could not load this video.'
-                            : 'No video source is available.'}
-                    </p>
-                    <p class="mt-2 text-sm text-white/65">
-                        Arc tried every available source for this episode.
-                    </p>
-                    <button
-                        type="button"
-                        disabled={retryingStreams}
-                        class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
-                        onclick={async () => {
-                            retryingStreams = true;
-                            try {
-                                await invalidateAll();
-                            } finally {
-                                retryingStreams = false;
-                            }
-                        }}
-                    >
-                        {retryingStreams ? 'Trying again…' : 'Try again'}
-                    </button>
-                </div>
-            </section>
-        {/if}
-    {/key}
+    {#await data.playback}
+        <section
+            aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
+            aria-busy="true"
+            class="relative grid aspect-video w-full place-items-center overflow-hidden bg-black px-6 text-center"
+        >
+            {#if poster}
+                <img
+                    src={poster}
+                    alt=""
+                    class="absolute inset-0 size-full scale-105 object-cover opacity-35 blur-xl"
+                />
+            {/if}
+            <p class="relative text-sm font-bold text-white/80">Loading video…</p>
+        </section>
+    {:then playback}
+        {#key `${data.currentEpisode.id}:${JSON.stringify(playback.streams)}`}
+            {#if playback.streams.sub?.length || playback.streams.dub?.length}
+                <VideoPlayer
+                    sources={playback.streams}
+                    label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
+                    {poster}
+                    next={data.nextEpisode?.href}
+                />
+            {:else}
+                <section
+                    aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
+                    role="alert"
+                    class="grid aspect-video w-full place-items-center bg-black px-6 text-center"
+                >
+                    <div>
+                        <p class="text-base font-bold">
+                            {playback.streamError
+                                ? 'AllAnime could not load this video.'
+                                : 'No video source is available.'}
+                        </p>
+                        <p class="mt-2 text-sm text-white/65">
+                            Arc tried every available source for this episode.
+                        </p>
+                        <button
+                            type="button"
+                            disabled={retryingStreams}
+                            class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
+                            onclick={async () => {
+                                retryingStreams = true;
+                                try {
+                                    await invalidateAll();
+                                } finally {
+                                    retryingStreams = false;
+                                }
+                            }}
+                        >
+                            {retryingStreams ? 'Trying again…' : 'Try again'}
+                        </button>
+                    </div>
+                </section>
+            {/if}
+        {/key}
+    {/await}
 
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12">
         <article class="min-w-0 flex-1">
