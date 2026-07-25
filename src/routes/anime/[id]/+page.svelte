@@ -15,17 +15,8 @@
 
     const backdrop = $derived(data.artwork.selectedBackdrop);
     const logo = $derived(data.artwork.selectedLogo);
+
     let detailsExpanded = $state(false);
-
-    async function share() {
-        const shareData = { title: data.anime.title, url: window.location.href };
-
-        if (navigator.share) {
-            await navigator.share(shareData);
-        } else {
-            await navigator.clipboard.writeText(shareData.url);
-        }
-    }
 </script>
 
 <svelte:head><title>{data.anime.title} — Arc</title></svelte:head>
@@ -129,7 +120,6 @@
                         class="grid size-11 shrink-0 place-items-center transition-colors hover:bg-accent hover:text-on-accent lg:size-[clamp(2.625rem,2.73vw,3rem)]"
                         aria-label="Share"
                         title="Share"
-                        onclick={share}
                     >
                         <ShareNetworkIcon size="1.65em" weight="regular" aria-hidden="true" />
                     </button>
