@@ -4,8 +4,13 @@
 
     type AudioMode = 'sub' | 'dub';
 
+    interface Stream {
+        url: string;
+        quality: string | null;
+    }
+
     interface Props {
-        sources: Partial<Record<AudioMode, string>>;
+        sources: Partial<Record<AudioMode, Stream[]>>;
         label: string;
         poster?: string | null;
         next?: string | null;
@@ -28,14 +33,45 @@
     let previewPosition = $state(0);
     let volume = $state(1);
     let settingsOpen = $state(false);
+    let quality = $state('best');
+    let sourceIndex = $state(0);
+    let playbackError = $state(false);
     let lastVolume = 1;
     let resumeAt: number | null = null;
     let resumePlayback = false;
     let autoplayAttempted = false;
     let hideControlsTimer: ReturnType<typeof setTimeout>;
 
-    const src = $derived(sources[mode] ?? sources.sub ?? sources.dub ?? '');
-    const hasAudioChoice = $derived(Boolean(sources.sub && sources.dub));
+    const modeSources = $derived(
+        sources[mode] ?? sources.sub ?? sources.dub ?? [],
+    );
+    const qualities = $derived(
+        modeSources
+            .map((source) => source.quality)
+            .filter(
+                (value, index, values): value is string =>
+                    Boolean(value) && values.indexOf(value) === index,
+            ),
+    );
+    const orderedSources = $derived.by(() => {
+        if (quality === 'best') return modeSources;
+
+        const selected = modeSources.find(
+            (source) => source.quality === quality,
+        );
+        return selected
+            ? [
+                  selected,
+                  ...modeSources.filter((source) => source !== selected),
+              ]
+            : modeSources;
+    });
+    const src = $derived(orderedSources[sourceIndex]?.url ?? '');
+    const bestQuality = $derived(modeSources[0]?.quality ?? null);
+    const hasAudioChoice = $derived(
+        Boolean(sources.sub?.length && sources.dub?.length),
+    );
+    const hasSettings = $derived(hasAudioChoice || qualities.length > 1);
     const progress = $derived(duration ? (currentTime / duration) * 100 : 0);
     const bufferedProgress = $derived(duration ? (buffered / duration) * 100 : 0);
     const volumeProgress = $derived((muted ? 0 : volume) * 100);
@@ -98,6 +134,8 @@
         resumeAt = video.currentTime;
         resumePlayback = !video.paused;
         mode = next;
+        sourceIndex = 0;
+        playbackError = false;
         settingsOpen = false;
         loading = true;
         buffered = 0;
@@ -107,6 +145,48 @@
         await tick();
         video.load();
         showControls();
+    }
+
+    async function switchQuality(next: string) {
+        if (next === quality) {
+            settingsOpen = false;
+            showControls();
+            return;
+        }
+
+        resumeAt = video.currentTime;
+        resumePlayback = !video.paused;
+        quality = next;
+        sourceIndex = 0;
+        playbackError = false;
+        settingsOpen = false;
+        loading = true;
+        buffered = 0;
+        previewTime = null;
+        localStorage.setItem('arc:quality', next);
+
+        await tick();
+        video.load();
+        showControls();
+    }
+
+    async function tryNextSource() {
+        if (sourceIndex + 1 >= orderedSources.length) {
+            loading = false;
+            playbackError = true;
+            playing = false;
+            showControls();
+            return;
+        }
+
+        resumeAt = video.currentTime || currentTime;
+        resumePlayback = playing || autoplayAttempted;
+        sourceIndex += 1;
+        loading = true;
+        buffered = 0;
+
+        await tick();
+        video.load();
     }
 
     function seek(event: Event) {
@@ -275,7 +355,7 @@
     }
 
     onMount(() => {
-        if (!sources.sub && sources.dub) mode = 'dub';
+        if (!sources.sub?.length && sources.dub?.length) mode = 'dub';
 
         const stored = localStorage.getItem('arc:volume');
         const savedVolume = stored === null ? null : Number(stored);
@@ -292,9 +372,17 @@
         const savedMode = localStorage.getItem('arc:audio-mode');
         if (
             (savedMode === 'sub' || savedMode === 'dub') &&
-            sources[savedMode]
+            sources[savedMode]?.length
         ) {
             void switchMode(savedMode);
+        }
+
+        const savedQuality = localStorage.getItem('arc:quality');
+        if (
+            savedQuality === 'best' ||
+            qualities.includes(savedQuality ?? '')
+        ) {
+            quality = savedQuality ?? 'best';
         }
 
         return () => clearTimeout(hideControlsTimer);
@@ -332,6 +420,7 @@
         onloadedmetadata={() => {
             duration = video.duration;
             loading = false;
+            playbackError = false;
 
             if (!autoplayAttempted) {
                 autoplayAttempted = true;
@@ -355,6 +444,7 @@
         onprogress={updateBuffered}
         onwaiting={() => (loading = true)}
         oncanplay={() => (loading = false)}
+        onerror={() => void tryNextSource()}
         onplaying={() => {
             playing = true;
             loading = false;
@@ -389,6 +479,34 @@
                 class="size-10 animate-spin rounded-full border-4 border-accent border-t-transparent"
                 aria-hidden="true"
             ></div>
+        </div>
+    {/if}
+
+    {#if playbackError}
+        <div
+            role="alert"
+            class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center"
+        >
+            <div>
+                <p class="text-base font-bold">This video could not be loaded.</p>
+                <p class="mt-2 text-sm text-white/65">
+                    Every available AllAnime source was tried.
+                </p>
+                <button
+                    type="button"
+                    class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    onclick={async () => {
+                        sourceIndex = 0;
+                        playbackError = false;
+                        loading = true;
+                        autoplayAttempted = false;
+                        await tick();
+                        video.load();
+                    }}
+                >
+                    Try again
+                </button>
+            </div>
         </div>
     {/if}
 
@@ -501,13 +619,13 @@
             </div>
 
             <div class="flex items-center gap-4">
-                {#if hasAudioChoice}
+                {#if hasSettings}
                     <div class="relative">
                         <button
                             type="button"
-                            aria-label="Audio settings"
+                            aria-label="Playback settings"
                             aria-expanded={settingsOpen}
-                            aria-controls="player-audio-settings"
+                            aria-controls="player-settings"
                             class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
                             onclick={() => {
                                 settingsOpen = !settingsOpen;
@@ -531,35 +649,67 @@
 
                         {#if settingsOpen}
                             <div
-                                id="player-audio-settings"
+                                id="player-settings"
                                 role="menu"
                                 class="absolute right-0 bottom-full z-40 mb-2 w-64 bg-[#262626] py-2 text-left shadow-xl ring-1 ring-black/20"
                             >
-                                <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
-                                    Audio / Subtitles
-                                </p>
-                                <button
-                                    type="button"
-                                    class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                                    aria-pressed={mode === 'dub'}
-                                    onclick={() => switchMode('dub')}
-                                >
-                                    English (Dub)
-                                    {#if mode === 'dub'}
-                                        <span class="text-accent" aria-hidden="true">✓</span>
-                                    {/if}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                                    aria-pressed={mode === 'sub'}
-                                    onclick={() => switchMode('sub')}
-                                >
-                                    Japanese (Sub)
-                                    {#if mode === 'sub'}
-                                        <span class="text-accent" aria-hidden="true">✓</span>
-                                    {/if}
-                                </button>
+                                {#if qualities.length > 1}
+                                    <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
+                                        Quality
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                        aria-pressed={quality === 'best'}
+                                        onclick={() => switchQuality('best')}
+                                    >
+                                        Best{bestQuality ? ` (${bestQuality})` : ''}
+                                        {#if quality === 'best'}
+                                            <span class="text-accent" aria-hidden="true">✓</span>
+                                        {/if}
+                                    </button>
+                                    {#each qualities as option}
+                                        <button
+                                            type="button"
+                                            class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                            aria-pressed={quality === option}
+                                            onclick={() => switchQuality(option)}
+                                        >
+                                            {option}
+                                            {#if quality === option}
+                                                <span class="text-accent" aria-hidden="true">✓</span>
+                                            {/if}
+                                        </button>
+                                    {/each}
+                                {/if}
+
+                                {#if hasAudioChoice}
+                                    <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
+                                        Audio / Subtitles
+                                    </p>
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                        aria-pressed={mode === 'dub'}
+                                        onclick={() => switchMode('dub')}
+                                    >
+                                        English (Dub)
+                                        {#if mode === 'dub'}
+                                            <span class="text-accent" aria-hidden="true">✓</span>
+                                        {/if}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                        aria-pressed={mode === 'sub'}
+                                        onclick={() => switchMode('sub')}
+                                    >
+                                        Japanese (Sub)
+                                        {#if mode === 'sub'}
+                                            <span class="text-accent" aria-hidden="true">✓</span>
+                                        {/if}
+                                    </button>
+                                {/if}
                             </div>
                         {/if}
                     </div>
