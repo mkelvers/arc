@@ -3,16 +3,38 @@
     import { CalendarBlankIcon, PlayIcon } from 'phosphor-svelte';
 
     interface Props {
-        episodes: AnimeEpisode[];
+        episodes?: AnimeEpisode[];
         title: string;
         image?: string | null;
+        loading?: boolean;
     }
 
-    let { episodes, title, image = null }: Props = $props();
+    let {
+        episodes = [],
+        title,
+        image = null,
+        loading = false,
+    }: Props = $props();
 </script>
 
 <section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16">
-    {#if episodes.length}
+    {#if loading}
+        <div
+            class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7"
+            aria-label="Loading episodes"
+            aria-busy="true"
+        >
+            {#each Array(14) as _}
+                <div class="min-h-56 min-w-0 animate-pulse" aria-hidden="true">
+                    <div class="aspect-video bg-surface"></div>
+                    <div class="mt-3 h-3 w-2/3 bg-surface"></div>
+                    <div class="mt-3 h-4 w-full bg-surface"></div>
+                    <div class="mt-2 h-4 w-4/5 bg-surface"></div>
+                    <div class="mt-4 h-3 w-1/2 bg-surface"></div>
+                </div>
+            {/each}
+        </div>
+    {:else if episodes.length}
         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
             {#each episodes as episode}
                 <a
