@@ -164,10 +164,14 @@
     </section>
 
     <div class="px-5 sm:px-10 lg:px-16">
-        {#await data.episodes}
-            <EpisodeList loading title={data.anime.title} image={data.anime.bannerImage} />
-        {:then episodes}
-            <EpisodeList {episodes} title={data.anime.title} image={data.anime.bannerImage} />
+        {#await data.episodes then episodes}
+            {#await data.artwork then artwork}
+                <EpisodeList
+                    {episodes}
+                    title={data.anime.title}
+                    image={artwork.selectedBackdrop?.url ?? null}
+                />
+            {/await}
         {/await}
     </div>
 </main>
