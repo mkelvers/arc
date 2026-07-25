@@ -85,7 +85,7 @@
                             </svg>
                         {/each}
                     </span>
-                    <span class="hidden h-7 border-l border-border-strong sm:block"></span>
+                    <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
                     <strong>AniList score: {data.anime.score}%</strong>
                     <CaretDownIcon size="0.9em" weight="fill" aria-hidden="true" />
                 </div>
@@ -127,7 +127,7 @@
             </div>
         </figure>
 
-        <div class="px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
+        <div class="border-b border-border px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
             <section
                 id="anime-details"
                 class={`grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6 ${detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'}`}
@@ -157,7 +157,6 @@
             >
                 {detailsExpanded ? 'FEWER DETAILS' : 'MORE DETAILS'}
             </button>
-            <div class="border-b border-border"></div>
         </div>
     </section>
 
