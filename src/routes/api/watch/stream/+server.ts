@@ -3,6 +3,7 @@ import { error, type RequestHandler } from '@sveltejs/kit';
 const allowedHosts = [
     'tools.fast4speed.rsvp',
     'repackager.wixmp.com',
+    'video.wixstatic.com',
     'mp4upload.com',
     'sharepoint.com',
 ];
@@ -36,7 +37,9 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
     const range = request.headers.get('range');
     const response = await fetch(target, {
         headers: {
-            Referer: 'https://youtu-chan.com',
+            Referer: target.hostname.endsWith('.mp4upload.com')
+                ? 'https://www.mp4upload.com'
+                : 'https://youtu-chan.com',
             'User-Agent': userAgent,
             ...(range ? { Range: range } : {}),
         },
