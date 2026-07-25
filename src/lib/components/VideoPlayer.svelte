@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { onMount, tick } from 'svelte';
-    import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
+    import { CaretLeftIcon, CaretRightIcon, SpinnerGapIcon } from 'phosphor-svelte';
 
     type AudioMode = 'sub' | 'dub';
     type SettingsView = 'main' | 'audio' | 'quality';
@@ -509,10 +509,12 @@
             aria-label="Loading video"
             class="pointer-events-none absolute inset-0 grid place-items-center bg-black/40"
         >
-            <div
-                class="size-10 animate-spin rounded-full border-4 border-accent border-t-transparent"
+            <SpinnerGapIcon
+                size="2.5rem"
+                weight="bold"
+                class="animate-spin text-accent"
                 aria-hidden="true"
-            ></div>
+            />
         </div>
     {/if}
 
