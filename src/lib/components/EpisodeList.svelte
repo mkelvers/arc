@@ -25,10 +25,9 @@
                                 <img
                                     src={episode.imageUrl ?? image ?? ''}
                                     alt=""
-                                    class="size-full object-cover"
+                                    class="size-full object-cover brightness-75"
                                     loading="lazy"
                                 />
-                                <div class="absolute inset-0 bg-black/25"></div>
                             {/if}
                             {#if episode.duration}
                                 <span class="absolute right-2 bottom-2 bg-black/75 px-1.5 py-0.5 text-xs font-bold text-white">
