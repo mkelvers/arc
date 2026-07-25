@@ -4,7 +4,7 @@
 :root {
     color-scheme: light dark;
 
-    --theme-canvas: light-dark(oklch(0.985 0.002 75), oklch(0.115 0.004 285));
+    --theme-canvas: light-dark(oklch(0.985 0.002 75), #000);
     --theme-foreground: light-dark(oklch(0.16 0.006 285), oklch(0.97 0.002 75));
     --theme-surface: light-dark(oklch(0.955 0.004 75), oklch(0.17 0.006 285));
     --theme-muted: light-dark(oklch(0.43 0.008 285), oklch(0.71 0.008 285));
