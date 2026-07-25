@@ -33,7 +33,7 @@
 <main class="bg-canvas text-foreground">
     <section class="min-h-dvh">
         <figure
-            class="anime-hero grid h-[68dvh] min-h-120 max-h-[48rem] grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:h-[72dvh] 2xl:max-h-[50rem]"
+            class="anime-hero grid h-[68dvh] min-h-120 max-h-192 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:h-[72dvh] 2xl:max-h-200"
         >
             {#if backdrop}
                 <img
