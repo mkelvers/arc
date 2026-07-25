@@ -37,13 +37,61 @@ export const load: PageServerLoad = async ({ params }) => {
     const modes: ('sub' | 'dub')[] = [];
     if (currentEpisode.hasSub) modes.push('sub');
     if (currentEpisode.hasDub) modes.push('dub');
-    const remoteStreams = await anime.allanime
-        .getStreams(result.right, currentEpisode.id, modes)
-        .catch(() => ({}));
+    let remoteStreams: Awaited<
+        ReturnType<typeof anime.allanime.getStreams>
+    > = {};
+    let streamError = false;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            remoteStreams = await anime.allanime.getStreams(
+                result.right,
+                currentEpisode.id,
+                modes,
+            );
+            streamError = false;
+            break;
+        } catch (cause) {
+            streamError = true;
+            console.error(
+                `AllAnime stream attempt ${attempt + 1} failed`,
+                cause,
+            );
+
+            if (attempt === 0) {
+                const errors =
+                    cause instanceof AggregateError ? cause.errors : [cause];
+                const retryAfter = Math.max(
+                    0,
+                    ...errors.map((error) =>
+                        error instanceof Error
+                            ? Number(
+                                  error.message.match(
+                                      /try again in (\d+) seconds?/i,
+                                  )?.[1] ?? 0,
+                              )
+                            : 0,
+                    ),
+                );
+
+                if (retryAfter) {
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, Math.min(retryAfter, 5) * 1_000),
+                    );
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
     const streams = Object.fromEntries(
-        Object.entries(remoteStreams).map(([mode, url]) => [
+        Object.entries(remoteStreams).map(([mode, sources]) => [
             mode,
-            `/api/watch/stream?${new URLSearchParams({ url })}`,
+            sources.map(({ url, quality }) => ({
+                url: `/api/watch/stream?${new URLSearchParams({ url })}`,
+                quality,
+            })),
         ]),
     );
 
@@ -55,5 +103,6 @@ export const load: PageServerLoad = async ({ params }) => {
         nextEpisode: episodes[currentIndex + 1] ?? null,
         fallbackImage: artwork.selectedBackdrop?.url ?? null,
         streams,
+        streamError,
     };
 };

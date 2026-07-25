@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { invalidateAll } from '$app/navigation';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
@@ -14,6 +15,7 @@
     let { data }: PageProps = $props();
     let episodeDialogOpen = $state(false);
     let renderedEpisodeId = $state<string>();
+    let retryingStreams = $state(false);
 
     const poster = $derived(
         data.currentEpisode.imageUrl ?? data.fallbackImage,
@@ -67,7 +69,7 @@
 
 <main class="min-h-dvh">
     {#key `${data.currentEpisode.id}:${JSON.stringify(data.streams)}`}
-        {#if data.streams.sub || data.streams.dub}
+        {#if data.streams.sub?.length || data.streams.dub?.length}
             <VideoPlayer
                 sources={data.streams}
                 label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
@@ -77,12 +79,34 @@
         {:else}
             <section
                 aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
-                class="relative aspect-video w-full overflow-hidden bg-black"
+                role="alert"
+                class="grid aspect-video w-full place-items-center bg-black px-6 text-center"
             >
-                {#if poster}
-                    <img src={poster} alt="" class="size-full object-cover object-center" />
-                    <div class="pointer-events-none absolute inset-0 bg-black/50"></div>
-                {/if}
+                <div>
+                    <p class="text-base font-bold">
+                        {data.streamError
+                            ? 'AllAnime could not load this video.'
+                            : 'No video source is available.'}
+                    </p>
+                    <p class="mt-2 text-sm text-white/65">
+                        Arc tried every available source for this episode.
+                    </p>
+                    <button
+                        type="button"
+                        disabled={retryingStreams}
+                        class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
+                        onclick={async () => {
+                            retryingStreams = true;
+                            try {
+                                await invalidateAll();
+                            } finally {
+                                retryingStreams = false;
+                            }
+                        }}
+                    >
+                        {retryingStreams ? 'Trying again…' : 'Try again'}
+                    </button>
+                </div>
             </section>
         {/if}
     {/key}
