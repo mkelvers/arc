@@ -13,30 +13,11 @@ function animeId(value: string) {
     return id;
 }
 
-export const load: PageServerLoad = async ({ params }) => {
-    const id = animeId(params.id);
-    const result = await Effect.runPromise(
-        anime.anilist.getAnime(id).pipe(Effect.either),
-    );
-
-    if (Either.isLeft(result)) error(502, result.left.message);
-
-    const [artwork, episodes] = await Promise.all([
-        anime.tmdb.getArtwork(result.right).catch(() => ({
-            selectedBackdrop: null,
-        })),
-        anime.episodes.getEpisodes(result.right).catch(() => []),
-    ]);
-    const currentIndex = episodes.findIndex(
-        (episode) => episode.slug === params.episode,
-    );
-
-    if (currentIndex < 0) error(404, 'Episode not found');
-
-    const currentEpisode = episodes[currentIndex];
-    const modes: ('sub' | 'dub')[] = [];
-    if (currentEpisode.hasSub) modes.push('sub');
-    if (currentEpisode.hasDub) modes.push('dub');
+async function getPlayback(
+    animeData: Parameters<typeof anime.allanime.getStreams>[0],
+    episode: string,
+    modes: ('sub' | 'dub')[],
+) {
     let remoteStreams: Awaited<
         ReturnType<typeof anime.allanime.getStreams>
     > = {};
@@ -45,8 +26,8 @@ export const load: PageServerLoad = async ({ params }) => {
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
             remoteStreams = await anime.allanime.getStreams(
-                result.right,
-                currentEpisode.id,
+                animeData,
+                episode,
                 modes,
             );
             streamError = false;
@@ -85,24 +66,52 @@ export const load: PageServerLoad = async ({ params }) => {
         }
     }
 
-    const streams = Object.fromEntries(
-        Object.entries(remoteStreams).map(([mode, sources]) => [
-            mode,
-            sources.map(({ url, quality }) => ({
-                url: `/api/watch/stream?${new URLSearchParams({ url })}`,
-                quality,
-            })),
-        ]),
+    return {
+        streams: Object.fromEntries(
+            Object.entries(remoteStreams).map(([mode, sources]) => [
+                mode,
+                sources.map(({ url, quality }) => ({
+                    url: `/api/watch/stream?${new URLSearchParams({ url })}`,
+                    quality,
+                })),
+            ]),
+        ),
+        streamError,
+    };
+}
+
+export const load: PageServerLoad = async ({ params }) => {
+    const id = animeId(params.id);
+    const result = await Effect.runPromise(
+        anime.anilist.getAnime(id).pipe(Effect.either),
     );
 
+    if (Either.isLeft(result)) error(502, result.left.message);
+
+    const [storedMedia, episodes] = await Promise.all([
+        anime.tmdb.getStoredMedia(id).catch(() => null),
+        anime.episodes.getEpisodes(result.right).catch(() => []),
+    ]);
+    const currentIndex = episodes.findIndex(
+        (episode) => episode.slug === params.episode,
+    );
+
+    if (currentIndex < 0) error(404, 'Episode not found');
+
+    const currentEpisode = episodes[currentIndex];
+    const modes: ('sub' | 'dub')[] = [];
+    if (currentEpisode.hasSub) modes.push('sub');
+    if (currentEpisode.hasDub) modes.push('dub');
     return {
         anime: toAnimeDetails(result.right),
         episodes,
         currentEpisode,
         previousEpisode: episodes[currentIndex - 1] ?? null,
         nextEpisode: episodes[currentIndex + 1] ?? null,
-        fallbackImage: artwork.selectedBackdrop?.url ?? null,
-        streams,
-        streamError,
+        fallbackImage:
+            storedMedia?.artwork.selectedBackdrop?.url ??
+            result.right.bannerImage ??
+            null,
+        playback: getPlayback(result.right, currentEpisode.id, modes),
     };
 };

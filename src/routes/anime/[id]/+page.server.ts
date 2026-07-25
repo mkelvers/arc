@@ -31,20 +31,21 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 
     if (Either.isLeft(result)) error(502, result.left.message);
 
-    const [artwork, episodes, watchlistState] = await Promise.all([
-        anime.tmdb.getArtwork(result.right).catch(() => ({
-            backdrops: [],
-            logos: [],
-            selectedBackdrop: null,
-            selectedLogo: null,
-            logoHidden: false,
-            logoSize: 100,
-            id: 0,
-            mediaType: 'tv' as const,
-        })),
-        anime.episodes.getEpisodes(result.right).catch(() => []),
-        getWatchlistState(cookieUserId(cookies.get(userCookie)), id),
-    ]);
+    const artwork = anime.tmdb.getArtwork(result.right).catch(() => ({
+        backdrops: [],
+        logos: [],
+        selectedBackdrop: null,
+        selectedLogo: null,
+        logoHidden: false,
+        logoSize: 100,
+        id: 0,
+        mediaType: 'tv' as const,
+    }));
+    const episodes = anime.episodes.getEpisodes(result.right).catch(() => []);
+    const watchlistState = await getWatchlistState(
+        cookieUserId(cookies.get(userCookie)),
+        id,
+    );
 
     return {
         anime: toAnimeDetails(result.right),
