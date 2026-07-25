@@ -14,13 +14,13 @@
     --theme-accent: oklch(69.181% 0.18362 47.764);
     --theme-on-accent: oklch(0.13 0.01 48);
 
-    --theme-hero-scrim-inline-start: light-dark(rgb(255 255 255 / 0.82), rgb(0 0 0 / 0.72));
-    --theme-hero-scrim-inline-end: light-dark(rgb(255 255 255 / 0.56), rgb(0 0 0 / 0.44));
-    --theme-hero-scrim-top: light-dark(rgb(255 255 255 / 0.28), rgb(0 0 0 / 0.18));
+    --theme-hero-scrim-inline-start: light-dark(rgb(255 255 255 / 0.68), rgb(0 0 0 / 0.52));
+    --theme-hero-scrim-inline-end: light-dark(rgb(255 255 255 / 0.42), rgb(0 0 0 / 0.28));
+    --theme-hero-scrim-top: light-dark(rgb(255 255 255 / 0.2), rgb(0 0 0 / 0.12));
     --theme-hero-scrim-bottom: light-dark(rgb(255 255 255 / 1), rgb(0 0 0 / 1));
-    --theme-hero-scrim-bottom-soft: light-dark(rgb(255 255 255 / 0.96), rgb(0 0 0 / 0.96));
-    --theme-hero-scrim-corner: light-dark(rgb(255 255 255 / 0.72), rgb(0 0 0 / 0.62));
-    --theme-hero-scrim-corner-alt: light-dark(rgb(255 255 255 / 0.68), rgb(0 0 0 / 0.6));
+    --theme-hero-scrim-bottom-soft: light-dark(rgb(255 255 255 / 0.78), rgb(0 0 0 / 0.72));
+    --theme-hero-scrim-corner: light-dark(rgb(255 255 255 / 0.58), rgb(0 0 0 / 0.42));
+    --theme-hero-scrim-corner-alt: light-dark(rgb(255 255 255 / 0.52), rgb(0 0 0 / 0.38));
 }
 
 @theme inline {
@@ -65,16 +65,16 @@
     .anime-hero {
         &::before {
             background-image:
-                linear-gradient(to right, var(--theme-hero-scrim-inline-start), transparent 34%),
-                linear-gradient(to left, var(--theme-hero-scrim-inline-end), transparent 26%),
-                linear-gradient(to bottom, var(--theme-hero-scrim-top), transparent 16%);
+                linear-gradient(to right, var(--theme-hero-scrim-inline-start), transparent 26%),
+                linear-gradient(to left, var(--theme-hero-scrim-inline-end), transparent 18%),
+                linear-gradient(to bottom, var(--theme-hero-scrim-top), transparent 12%);
         }
 
         &::after {
             background-image:
-                linear-gradient(to top, var(--theme-hero-scrim-bottom) 0%, var(--theme-hero-scrim-bottom-soft) 18%, transparent 78%),
-                linear-gradient(to top right, var(--theme-hero-scrim-corner), transparent 58%),
-                linear-gradient(to top left, var(--theme-hero-scrim-corner-alt), transparent 58%);
+                linear-gradient(to top, var(--theme-hero-scrim-bottom) 0%, var(--theme-hero-scrim-bottom-soft) 12%, transparent 54%),
+                linear-gradient(to top right, var(--theme-hero-scrim-corner), transparent 42%),
+                linear-gradient(to top left, var(--theme-hero-scrim-corner-alt), transparent 40%);
         }
     }
 
