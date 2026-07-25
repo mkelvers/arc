@@ -586,14 +586,16 @@
                     >
                         <div class="relative h-28 w-8 py-1.5">
                             <div class="relative mx-auto h-full w-1.5 rounded-full bg-white/35 shadow-sm">
-                                <div
+                                <span
+                                    aria-hidden="true"
                                     class="absolute inset-x-0 bottom-0 rounded-full bg-accent"
                                     style={`height: ${volumeProgress}%`}
-                                ></div>
-                                <div
+                                ></span>
+                                <span
+                                    aria-hidden="true"
                                     class="absolute left-1/2 size-3 -translate-x-1/2 translate-y-1/2 rounded-full bg-white shadow-sm ring-1 ring-black/10"
                                     style={`bottom: ${volumeProgress}%`}
-                                ></div>
+                                ></span>
                             </div>
                             <input
                                 type="range"
@@ -783,7 +785,7 @@
                                             }`}
                                         >
                                             {#if quality === 'best'}
-                                                <span class="size-2 rounded-full bg-player-accent"></span>
+                                                <span class="leading-none text-player-accent" aria-hidden="true">•</span>
                                             {/if}
                                         </span>
                                         Auto
@@ -805,7 +807,7 @@
                                                 }`}
                                             >
                                                 {#if quality === option}
-                                                    <span class="size-2 rounded-full bg-player-accent"></span>
+                                                    <span class="leading-none text-player-accent" aria-hidden="true">•</span>
                                                 {/if}
                                             </span>
                                             <span>
@@ -834,7 +836,7 @@
                                                 }`}
                                             >
                                                 {#if mode === option}
-                                                    <span class="size-2 rounded-full bg-player-accent"></span>
+                                                    <span class="leading-none text-player-accent" aria-hidden="true">•</span>
                                                 {/if}
                                             </span>
                                             {option === 'dub' ? 'English' : 'Japanese'}
@@ -883,18 +885,21 @@
                     </div>
                 {/if}
                 <div class="relative h-1 w-full bg-white/25 transition-all group-hover/timeline:h-1.5">
-                    <div
+                    <span
                         class="absolute inset-y-0 left-0 bg-white/60"
                         style={`width: ${bufferedProgress}%`}
-                    ></div>
-                    <div
+                        aria-hidden="true"
+                    ></span>
+                    <span
                         class="absolute inset-y-0 left-0 bg-accent"
                         style={`width: ${progress}%`}
-                    ></div>
-                    <div
+                        aria-hidden="true"
+                    ></span>
+                    <span
                         class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white opacity-0 shadow-sm ring-1 ring-white/30 transition-opacity group-hover/timeline:opacity-100"
                         style={`left: ${progress}%`}
-                    ></div>
+                        aria-hidden="true"
+                    ></span>
                 </div>
                 <input
                     type="range"
