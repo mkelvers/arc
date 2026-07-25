@@ -42,6 +42,17 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         mediaType: 'tv' as const,
     }));
     const episodes = anime.episodes.getEpisodes(result.right).catch(() => []);
+    const franchise = result.right.idMal
+        ? anime.franchise
+              .getFranchiseOrder(result.right.idMal)
+              .catch((cause) => {
+                  console.error(
+                      `Franchise order failed for MAL ${result.right.idMal}`,
+                      cause,
+                  );
+                  return null;
+              })
+        : Promise.resolve(null);
     const watchlistState = await getWatchlistState(
         cookieUserId(cookies.get(userCookie)),
         id,
@@ -51,6 +62,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         anime: toAnimeDetails(result.right),
         artwork,
         episodes,
+        franchise,
         watchlistState,
     };
 };

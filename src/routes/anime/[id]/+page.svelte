@@ -1,6 +1,7 @@
 <script lang="ts">
     import Dropdown from '$lib/components/Dropdown.svelte';
     import EpisodeList from '$lib/components/EpisodeList.svelte';
+    import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
     import { enhance } from '$app/forms';
     import type { PageProps } from './$types';
     import {
@@ -172,6 +173,15 @@
                     image={artwork.selectedBackdrop?.url ?? null}
                 />
             {/await}
+        {/await}
+
+        {#await data.franchise then franchise}
+            {#if franchise?.entries.length}
+                <FranchiseOrder
+                    order={franchise}
+                    currentAnimeId={data.anime.id}
+                />
+            {/if}
         {/await}
     </div>
 </main>
