@@ -2,6 +2,7 @@ import {
     boolean,
     doublePrecision,
     integer,
+    jsonb,
     pgEnum,
     pgTable,
     primaryKey,
@@ -11,6 +12,11 @@ import {
     uuid,
     varchar,
 } from 'drizzle-orm/pg-core';
+
+import type { AnimeEpisode } from '$lib/anime';
+import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
+
+type AniListAnime = NonNullable<AnimeQuery['Media']>;
 
 export const externalProvider = pgEnum('external_provider', [
     'anilist',
@@ -130,6 +136,24 @@ export const animeArtworkPreference = pgTable('anime_artwork_preference', {
         .notNull()
         .defaultNow()
         .$onUpdate(() => new Date()),
+});
+
+export const animeDetailsCache = pgTable('anime_details_cache', {
+    anilistId: integer('anilist_id').primaryKey(),
+    data: jsonb('data').$type<AniListAnime>().notNull(),
+    version: integer('version').notNull().default(1),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const animeEpisodeCache = pgTable('anime_episode_cache', {
+    anilistId: integer('anilist_id').primaryKey(),
+    episodes: jsonb('episodes').$type<AnimeEpisode[]>().notNull(),
+    version: integer('version').notNull().default(1),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
 });
 
 export const watchlist = pgTable(
