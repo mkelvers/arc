@@ -686,7 +686,7 @@
                             id="player-settings"
                             role="menu"
                             aria-label="Playback settings"
-                            class="absolute right-0 bottom-full z-40 mb-2 w-[15rem] overflow-hidden bg-[#121316] py-2 text-left text-xs shadow-xl ring-1 ring-white/8"
+                            class="absolute right-0 bottom-full z-40 mb-2 w-60 overflow-hidden bg-[#121316] py-2 text-left text-xs shadow-xl ring-1 ring-white/8"
                         >
                             {#if settingsView === 'main'}
                                 <button
