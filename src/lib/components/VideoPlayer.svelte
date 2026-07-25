@@ -1,8 +1,10 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { onMount, tick } from 'svelte';
+    import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     type AudioMode = 'sub' | 'dub';
+    type SettingsView = 'main' | 'audio' | 'quality';
 
     interface Stream {
         url: string;
@@ -33,6 +35,8 @@
     let previewPosition = $state(0);
     let volume = $state(1);
     let settingsOpen = $state(false);
+    let settingsView = $state<SettingsView>('main');
+    let autoplay = $state(true);
     let quality = $state('best');
     let sourceIndex = $state(0);
     let playbackError = $state(false);
@@ -68,10 +72,19 @@
     });
     const src = $derived(orderedSources[sourceIndex]?.url ?? '');
     const bestQuality = $derived(modeSources[0]?.quality ?? null);
-    const hasAudioChoice = $derived(
-        Boolean(sources.sub?.length && sources.dub?.length),
+    const availableAudioModes = $derived(
+        (['sub', 'dub'] as const).filter(
+            (audioMode) => Boolean(sources[audioMode]?.length),
+        ),
     );
-    const hasSettings = $derived(hasAudioChoice || qualities.length > 1);
+    const audioLabel = $derived(mode === 'dub' ? 'English' : 'Japanese');
+    const qualityLabel = $derived(
+        quality === 'best'
+            ? bestQuality
+                ? `Auto ${bestQuality}`
+                : 'Auto'
+            : quality,
+    );
     const progress = $derived(duration ? (currentTime / duration) * 100 : 0);
     const bufferedProgress = $derived(duration ? (buffered / duration) * 100 : 0);
     const volumeProgress = $derived((muted ? 0 : volume) * 100);
@@ -124,9 +137,19 @@
         if (value > 0) lastVolume = value;
     }
 
+    function isHdQuality(value: string | null) {
+        const resolution = Number(value?.match(/\d+/)?.[0] ?? 0);
+        return resolution >= 720;
+    }
+
+    function toggleAutoplay() {
+        autoplay = !autoplay;
+        localStorage.setItem('arc:autoplay', String(autoplay));
+        showControls();
+    }
+
     async function switchMode(next: AudioMode) {
         if (!sources[next] || next === mode) {
-            settingsOpen = false;
             showControls();
             return;
         }
@@ -134,9 +157,15 @@
         resumeAt = video.currentTime;
         resumePlayback = !video.paused;
         mode = next;
+        if (
+            quality !== 'best' &&
+            !sources[next]?.some((source) => source.quality === quality)
+        ) {
+            quality = 'best';
+            localStorage.setItem('arc:quality', quality);
+        }
         sourceIndex = 0;
         playbackError = false;
-        settingsOpen = false;
         loading = true;
         buffered = 0;
         previewTime = null;
@@ -149,7 +178,6 @@
 
     async function switchQuality(next: string) {
         if (next === quality) {
-            settingsOpen = false;
             showControls();
             return;
         }
@@ -159,7 +187,6 @@
         quality = next;
         sourceIndex = 0;
         playbackError = false;
-        settingsOpen = false;
         loading = true;
         buffered = 0;
         previewTime = null;
@@ -180,7 +207,7 @@
         }
 
         resumeAt = video.currentTime || currentTime;
-        resumePlayback = playing || autoplayAttempted;
+        resumePlayback = playing || (autoplay && autoplayAttempted);
         sourceIndex += 1;
         loading = true;
         buffered = 0;
@@ -283,7 +310,9 @@
 
     function handleKeydown(event: KeyboardEvent) {
         if (event.code === 'Escape' && settingsOpen) {
-            settingsOpen = false;
+            event.preventDefault();
+            if (settingsView === 'main') settingsOpen = false;
+            else settingsView = 'main';
             showControls();
             return;
         }
@@ -377,6 +406,11 @@
             void switchMode(savedMode);
         }
 
+        const savedAutoplay = localStorage.getItem('arc:autoplay');
+        if (savedAutoplay === 'true' || savedAutoplay === 'false') {
+            autoplay = savedAutoplay === 'true';
+        }
+
         const savedQuality = localStorage.getItem('arc:quality');
         if (
             savedQuality === 'best' ||
@@ -422,14 +456,6 @@
             loading = false;
             playbackError = false;
 
-            if (!autoplayAttempted) {
-                autoplayAttempted = true;
-                video.play().catch(() => {
-                    video.muted = true;
-                    video.play().catch(() => undefined);
-                });
-            }
-
             if (resumeAt !== null) {
                 currentTime = Math.min(resumeAt, duration);
                 video.currentTime = currentTime;
@@ -437,6 +463,14 @@
 
                 if (resumePlayback) video.play().catch(() => undefined);
                 resumePlayback = false;
+            } else if (!autoplayAttempted) {
+                autoplayAttempted = true;
+                if (autoplay) {
+                    video.play().catch(() => {
+                        video.muted = true;
+                        video.play().catch(() => undefined);
+                    });
+                }
             }
         }}
         ondurationchange={() => (duration = video.duration)}
@@ -457,7 +491,7 @@
         onended={() => {
             playing = false;
             showControls();
-            if (next) void goto(next);
+            if (autoplay && next) void goto(next);
         }}
         onvolumechange={() => {
             muted = video.muted || video.volume === 0;
@@ -619,101 +653,199 @@
             </div>
 
             <div class="flex items-center gap-4">
-                {#if hasSettings}
-                    <div class="relative">
-                        <button
-                            type="button"
-                            aria-label="Playback settings"
-                            aria-expanded={settingsOpen}
-                            aria-controls="player-settings"
-                            class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
-                            onclick={() => {
-                                settingsOpen = !settingsOpen;
-                                showControls();
-                            }}
+                <div class="relative">
+                    <button
+                        type="button"
+                        aria-label="Playback settings"
+                        aria-expanded={settingsOpen}
+                        aria-controls="player-settings"
+                        class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                        onclick={() => {
+                            if (!settingsOpen) settingsView = 'main';
+                            settingsOpen = !settingsOpen;
+                            showControls();
+                        }}
+                    >
+                        <svg
+                            class="size-6"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
                         >
-                            <svg
-                                class="size-6"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                aria-hidden="true"
-                            >
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.18V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0-1.18-2.82H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.08A1.65 1.65 0 0 0 10.09 3V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.08A1.65 1.65 0 0 0 21 10.09H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
-                            </svg>
-                        </button>
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.18V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0-1.18-2.82H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.08A1.65 1.65 0 0 0 10.09 3V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9v.08A1.65 1.65 0 0 0 21 10.09H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
+                        </svg>
+                    </button>
 
-                        {#if settingsOpen}
-                            <div
-                                id="player-settings"
-                                role="menu"
-                                class="absolute right-0 bottom-full z-40 mb-2 w-64 bg-[#262626] py-2 text-left shadow-xl ring-1 ring-black/20"
-                            >
-                                {#if qualities.length > 1}
-                                    <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
-                                        Quality
-                                    </p>
+                    {#if settingsOpen}
+                        <div
+                            id="player-settings"
+                            role="menu"
+                            aria-label="Playback settings"
+                            class="absolute right-0 bottom-full z-40 mb-2 w-[15rem] overflow-hidden bg-[#121316] py-2 text-left text-xs shadow-xl ring-1 ring-white/8"
+                        >
+                            {#if settingsView === 'main'}
+                                <button
+                                    type="button"
+                                    role="menuitemcheckbox"
+                                    aria-checked={autoplay}
+                                    class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                    onclick={toggleAutoplay}
+                                >
+                                    <span>Autoplay</span>
+                                    <span
+                                        aria-hidden="true"
+                                        class={`relative h-3.5 w-7 rounded-full border transition-colors ${
+                                            autoplay
+                                                ? 'border-[#18b8bf] bg-[#18b8bf]/20'
+                                                : 'border-white/55 bg-white/12'
+                                        }`}
+                                    >
+                                        <span
+                                            class={`absolute top-0.5 left-0.5 size-2 rounded-full transition-all ${
+                                                autoplay
+                                                    ? 'translate-x-4 bg-[#18b8bf]'
+                                                    : 'bg-white'
+                                            }`}
+                                        ></span>
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                    onclick={() => (settingsView = 'audio')}
+                                >
+                                    <span>Audio</span>
+                                    <span class="flex items-center gap-1 text-white/85">
+                                        {audioLabel}
+                                        <CaretRightIcon
+                                            size="0.85rem"
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                    onclick={() => (settingsView = 'quality')}
+                                >
+                                    <span>Quality</span>
+                                    <span class="flex items-center gap-1 text-white/85">
+                                        <span>{qualityLabel}</span>
+                                        {#if isHdQuality(quality === 'best' ? bestQuality : quality)}
+                                            <span class="font-bold text-accent">HD</span>
+                                        {/if}
+                                        <CaretRightIcon
+                                            size="0.85rem"
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                </button>
+                            {:else}
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    aria-label="Back to playback settings"
+                                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                    onclick={() => (settingsView = 'main')}
+                                >
+                                    <CaretLeftIcon
+                                        size="0.95rem"
+                                        weight="bold"
+                                        aria-hidden="true"
+                                    />
+                                    {settingsView === 'quality' ? 'Quality' : 'Audio'}
+                                </button>
+
+                                {#if settingsView === 'quality'}
                                     <button
                                         type="button"
-                                        class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                                        aria-pressed={quality === 'best'}
+                                        role="menuitemradio"
+                                        aria-checked={quality === 'best'}
+                                        class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                                         onclick={() => switchQuality('best')}
                                     >
-                                        Best{bestQuality ? ` (${bestQuality})` : ''}
-                                        {#if quality === 'best'}
-                                            <span class="text-accent" aria-hidden="true">✓</span>
-                                        {/if}
+                                        <span
+                                            aria-hidden="true"
+                                            class={`grid size-4 place-items-center rounded-full border ${
+                                                quality === 'best'
+                                                    ? 'border-[#18b8bf]'
+                                                    : 'border-white/55'
+                                            }`}
+                                        >
+                                            {#if quality === 'best'}
+                                                <span class="size-2 rounded-full bg-[#18b8bf]"></span>
+                                            {/if}
+                                        </span>
+                                        Auto
                                     </button>
                                     {#each qualities as option}
                                         <button
                                             type="button"
-                                            class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                                            aria-pressed={quality === option}
+                                            role="menuitemradio"
+                                            aria-checked={quality === option}
+                                            class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                                             onclick={() => switchQuality(option)}
                                         >
-                                            {option}
-                                            {#if quality === option}
-                                                <span class="text-accent" aria-hidden="true">✓</span>
-                                            {/if}
+                                            <span
+                                                aria-hidden="true"
+                                                class={`grid size-4 place-items-center rounded-full border ${
+                                                    quality === option
+                                                        ? 'border-[#18b8bf]'
+                                                        : 'border-white/55'
+                                                }`}
+                                            >
+                                                {#if quality === option}
+                                                    <span class="size-2 rounded-full bg-[#18b8bf]"></span>
+                                                {/if}
+                                            </span>
+                                            <span>
+                                                {option}
+                                                {#if isHdQuality(option)}
+                                                    <span class="font-bold text-accent">HD</span>
+                                                {/if}
+                                            </span>
+                                        </button>
+                                    {/each}
+                                {:else}
+                                    {#each availableAudioModes as option}
+                                        <button
+                                            type="button"
+                                            role="menuitemradio"
+                                            aria-checked={mode === option}
+                                            class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                                            onclick={() => switchMode(option)}
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                class={`grid size-4 place-items-center rounded-full border ${
+                                                    mode === option
+                                                        ? 'border-[#18b8bf]'
+                                                        : 'border-white/55'
+                                                }`}
+                                            >
+                                                {#if mode === option}
+                                                    <span class="size-2 rounded-full bg-[#18b8bf]"></span>
+                                                {/if}
+                                            </span>
+                                            {option === 'dub' ? 'English' : 'Japanese'}
                                         </button>
                                     {/each}
                                 {/if}
-
-                                {#if hasAudioChoice}
-                                    <p class="px-5 py-2 text-sm tracking-wide text-[#aaa]">
-                                        Audio / Subtitles
-                                    </p>
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                                        aria-pressed={mode === 'dub'}
-                                        onclick={() => switchMode('dub')}
-                                    >
-                                        English (Dub)
-                                        {#if mode === 'dub'}
-                                            <span class="text-accent" aria-hidden="true">✓</span>
-                                        {/if}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center justify-between px-5 py-3 text-[0.9375rem] hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                                        aria-pressed={mode === 'sub'}
-                                        onclick={() => switchMode('sub')}
-                                    >
-                                        Japanese (Sub)
-                                        {#if mode === 'sub'}
-                                            <span class="text-accent" aria-hidden="true">✓</span>
-                                        {/if}
-                                    </button>
-                                {/if}
-                            </div>
-                        {/if}
-                    </div>
-                {/if}
+                            {/if}
+                        </div>
+                    {/if}
+                </div>
 
                 <button
                     type="button"
