@@ -8,6 +8,7 @@ query Anime($id: Int!) {
             native
         }
         synonyms
+        bannerImage
         description(asHtml: false)
         genres
         format

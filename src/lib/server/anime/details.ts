@@ -109,6 +109,7 @@ export function toAnimeDetails(media: Anime) {
             media.title?.romaji ??
             media.title?.native ??
             `Anime ${media.id}`,
+        bannerImage: media.bannerImage ?? null,
         description: formatDescription(media.description),
         genres: present(media.genres),
         format: formatEnum(media.format),
