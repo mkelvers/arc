@@ -24,13 +24,13 @@
 <main class="bg-canvas text-foreground">
     <section class="min-h-dvh">
         <figure
-            class="anime-hero grid h-[68dvh] min-h-120 max-h-192 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:h-[72dvh] 2xl:max-h-200"
+            class="anime-hero grid h-[68dvh] min-h-120 max-h-192 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden bg-canvas before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:h-[82dvh] lg:min-h-175 lg:max-h-240 2xl:max-h-240"
         >
             {#if backdrop}
                 <img
                     src={backdrop.url}
                     alt={data.anime.title}
-                    class="col-start-1 row-start-1 size-full object-cover object-center sm:object-[center_0%]"
+                    class="col-start-1 row-start-1 size-full object-cover object-center sm:object-[center_0%] lg:object-center"
                 />
             {/if}
 
