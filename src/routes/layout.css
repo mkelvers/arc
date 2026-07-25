@@ -55,6 +55,18 @@
     --color-player-accent: var(--theme-player-accent);
 }
 
+@utility auto-cols-franchise {
+    grid-auto-columns: 100%;
+}
+
+@utility auto-cols-franchise-md {
+    grid-auto-columns: calc((100% - 5rem) / 5);
+}
+
+@utility auto-cols-franchise-2xl {
+    grid-auto-columns: calc((100% - 7.5rem) / 7);
+}
+
 @layer base {
     * {
         scrollbar-width: none;
