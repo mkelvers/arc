@@ -8,6 +8,7 @@
         ArchiveIcon,
         BookmarkSimpleIcon,
         ShareNetworkIcon,
+        SpinnerGapIcon,
         ThumbsDownIcon,
         ThumbsUpIcon,
     } from 'phosphor-svelte';
@@ -81,7 +82,13 @@
                     class="absolute inset-0 size-full scale-105 object-cover opacity-35 blur-xl"
                 />
             {/if}
-            <p class="relative text-sm font-bold text-white/80">Loading video…</p>
+            <SpinnerGapIcon
+                role="status"
+                aria-label="Loading video"
+                size="2.5rem"
+                weight="bold"
+                class="relative animate-spin text-accent"
+            />
         </section>
     {:then playback}
         {#key `${data.currentEpisode.id}:${JSON.stringify(playback.streams)}`}
