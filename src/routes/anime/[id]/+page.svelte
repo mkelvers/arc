@@ -51,11 +51,7 @@
 
             <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
                 <div class="w-fit">
-                    {#await data.artwork}
-                        <h1 class="max-w-3xl text-4xl leading-none font-bold sm:text-6xl lg:text-8xl">
-                            {data.anime.title}
-                        </h1>
-                    {:then artwork}
+                    {#await data.artwork then artwork}
                         {#if artwork.selectedLogo}
                             <img
                                 src={artwork.selectedLogo.url}
@@ -63,10 +59,6 @@
                                 style:height={`clamp(${5 * artwork.logoSize / 100}rem, ${5.7 * artwork.logoSize / 100}vw, ${6.25 * artwork.logoSize / 100}rem)`}
                                 class="max-h-24 max-w-md object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
                             />
-                        {:else if !artwork.logoHidden}
-                            <h1 class="max-w-3xl text-4xl leading-none font-bold sm:text-6xl lg:text-8xl">
-                                {data.anime.title}
-                            </h1>
                         {/if}
                     {/await}
                 </div>
