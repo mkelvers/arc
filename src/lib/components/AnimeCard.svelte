@@ -86,7 +86,7 @@
         <div class="mt-auto flex items-center gap-2 pt-3 text-accent">
             <a
                 href={anime.playHref}
-                class="grid size-9 place-items-center transition-colors hover:bg-accent hover:text-on-accent focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+                class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
                 aria-label={`Start watching ${anime.title}`}
                 title="Start watching"
             >
@@ -98,7 +98,7 @@
                     type="submit"
                     class:bg-accent={watchlisted}
                     class:text-on-accent={watchlisted}
-                    class="grid size-9 place-items-center transition-colors hover:bg-accent hover:text-on-accent focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+                    class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
                     aria-label={watchlisted
                         ? `Remove ${anime.title} from watch list`
                         : `Add ${anime.title} to watch list`}
