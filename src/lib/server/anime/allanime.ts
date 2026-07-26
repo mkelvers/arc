@@ -3,6 +3,7 @@ import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 import type { AudioMode } from '$lib/anime';
 import {
     AllAnimeAvailableEpisodesDocument,
+    AllAnimePopularAudioDocument,
     AllAnimeSearchDocument,
     type AllAnimeAvailableEpisodesQuery,
     type AllAnimeSearchQuery,
@@ -54,6 +55,12 @@ const streamCache = new Map<
     { streams: AllAnimeStreams; expiresAt: number }
 >();
 const streamRequests = new Map<string, Promise<AllAnimeStreams>>();
+const popularAudioCacheLifetime = 30 * 60 * 1_000;
+let popularAudioCache: {
+    labels: Map<number, AudioMode[]>;
+    fetchedAt: number;
+} | null = null;
+let popularAudioRequest: Promise<Map<number, AudioMode[]>> | null = null;
 
 function request<TResult, TVariables>(
     document: Parameters<typeof graphql<TResult, TVariables>>[1],
@@ -72,6 +79,58 @@ function request<TResult, TVariables>(
 function asRecord(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     return value as Record<string, unknown>;
+}
+
+function audioModes(value: unknown) {
+    const detail = asRecord(value);
+    if (!detail) return [];
+
+    return (['sub', 'dub', 'raw'] as const).filter((mode) => {
+        const episodes = detail[mode];
+        return Array.isArray(episodes) && episodes.length > 0;
+    });
+}
+
+async function getPopularAudioLabels() {
+    if (
+        popularAudioCache &&
+        Date.now() - popularAudioCache.fetchedAt < popularAudioCacheLifetime
+    ) {
+        return popularAudioCache.labels;
+    }
+    if (popularAudioRequest) return popularAudioRequest;
+
+    popularAudioRequest = request(AllAnimePopularAudioDocument, {}).then(
+        (data) => {
+            const labels = new Map<number, AudioMode[]>();
+
+            for (
+                const recommendation of
+                    data.queryPopular?.recommendations ?? []
+            ) {
+                const card = recommendation.anyCard;
+                const anilistId = Number(card?.aniListId);
+                const audio = audioModes(card?.availableEpisodesDetail);
+
+                if (
+                    Number.isSafeInteger(anilistId) &&
+                    anilistId > 0 &&
+                    audio.length
+                ) {
+                    labels.set(anilistId, audio);
+                }
+            }
+
+            popularAudioCache = { labels, fetchedAt: Date.now() };
+            return labels;
+        },
+    );
+
+    try {
+        return await popularAudioRequest;
+    } finally {
+        popularAudioRequest = null;
+    }
 }
 
 async function findShowId(anime: AniListAnime, refresh = false) {
@@ -721,4 +780,4 @@ async function getStreams(
     }
 }
 
-export const allanime = { getEpisodes, getStreams };
+export const allanime = { getEpisodes, getPopularAudioLabels, getStreams };
