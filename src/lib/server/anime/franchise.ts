@@ -5,10 +5,11 @@ import { Effect } from 'effect';
 import {
     formatEpisodesAudioLabel,
     type AnimeCardData,
+    type AudioMode,
 } from '$lib/anime';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
-import { animeEpisodeCache } from '$lib/server/db/schema';
+import { animeEpisode } from '$lib/server/db/schema';
 import { graphql } from '$lib/server/graphql';
 
 const anilistEndpoint = 'https://graphql.anilist.co';
@@ -155,19 +156,38 @@ async function cachedPlayback(anilistIds: number[]) {
 
     const cached = await db
         .select({
-            anilistId: animeEpisodeCache.anilistId,
-            episodes: animeEpisodeCache.episodes,
+            anilistId: animeEpisode.anilistId,
+            episodeId: animeEpisode.episodeId,
+            number: animeEpisode.number,
+            audio: animeEpisode.audio,
         })
-        .from(animeEpisodeCache)
-        .where(inArray(animeEpisodeCache.anilistId, anilistIds));
+        .from(animeEpisode)
+        .where(inArray(animeEpisode.anilistId, anilistIds));
+    const grouped = new Map<
+        number,
+        Array<{ episodeId: string; number: number; audio: AudioMode[] }>
+    >();
+
+    for (const episode of cached) {
+        grouped.set(episode.anilistId, [
+            ...(grouped.get(episode.anilistId) ?? []),
+            episode,
+        ]);
+    }
 
     return new Map(
-        cached.map(({ anilistId, episodes }) => {
+        [...grouped].map(([anilistId, episodes]) => {
+            const first = episodes.toSorted(
+                (left, right) => left.number - right.number,
+            )[0];
+
             return [
                 anilistId,
                 {
                     audioLabel: formatEpisodesAudioLabel(episodes),
-                    playHref: episodes[0]?.href ?? null,
+                    playHref: first
+                        ? `/anime/${anilistId}/watch/${encodeURIComponent(first.episodeId)}`
+                        : null,
                 },
             ] as const;
         }),
@@ -206,8 +226,8 @@ async function refresh(malId: number) {
                         media?.coverImage?.extraLarge ??
                         media?.coverImage?.large ??
                         entry.imageUrl,
-                    audioLabel:
-                        playback.get(anilistId)?.audioLabel ?? 'Subtitled',
+                    secondaryLabel:
+                        playback.get(anilistId)?.audioLabel ?? '',
                     score: media?.averageScore ?? 0,
                     genres: (media?.genres ?? []).flatMap((genre) =>
                         genre ? [genre] : [],
