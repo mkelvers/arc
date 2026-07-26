@@ -42,7 +42,9 @@
             <h3 class="mt-3 line-clamp-2 min-h-10 text-sm leading-snug font-semibold">
                 {anime.title}
             </h3>
-            <p class="mt-1.5 text-sm text-muted">{anime.audioLabel}</p>
+            {#if anime.secondaryLabel}
+                <p class="mt-1.5 text-sm text-muted">{anime.secondaryLabel}</p>
+            {/if}
         </a>
     </div>
 
