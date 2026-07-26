@@ -35,6 +35,11 @@ export type AllAnimeAvailableEpisodesQueryVariables = Exact<{
 
 export type AllAnimeAvailableEpisodesQuery = { show: { availableEpisodesDetail: unknown } | null, episodeInfos: Array<{ episodeIdNum: number | string | null, notes: string | null }> | null };
 
+export type AllAnimePopularAudioQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AllAnimePopularAudioQuery = { queryPopular: { recommendations: Array<{ anyCard: { aniListId: number | string | null, availableEpisodesDetail: unknown } | null }> | null } | null };
+
 export type AllAnimeEpisodeSourcesQueryVariables = Exact<{
   showId: string;
   translationType: VaildTranslationTypeEnumType;
@@ -91,6 +96,26 @@ export const AllAnimeAvailableEpisodesDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AllAnimeAvailableEpisodesQuery, AllAnimeAvailableEpisodesQueryVariables>;
+export const AllAnimePopularAudioDocument = new TypedDocumentString(`
+    query AllAnimePopularAudio {
+  queryPopular(
+    type: anime
+    size: 100
+    dateRange: 7
+    page: 1
+    allowAdult: false
+    allowUnknown: false
+    denyEcchi: false
+  ) {
+    recommendations {
+      anyCard {
+        aniListId
+        availableEpisodesDetail
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AllAnimePopularAudioQuery, AllAnimePopularAudioQueryVariables>;
 export const AllAnimeEpisodeSourcesDocument = new TypedDocumentString(`
     query AllAnimeEpisodeSources($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
   episode(

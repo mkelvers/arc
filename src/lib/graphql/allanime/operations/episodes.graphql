@@ -35,6 +35,25 @@ query AllAnimeAvailableEpisodes(
     }
 }
 
+query AllAnimePopularAudio {
+    queryPopular(
+        type: anime
+        size: 100
+        dateRange: 7
+        page: 1
+        allowAdult: false
+        allowUnknown: false
+        denyEcchi: false
+    ) {
+        recommendations {
+            anyCard {
+                aniListId
+                availableEpisodesDetail
+            }
+        }
+    }
+}
+
 query AllAnimeEpisodeSources(
     $showId: String!
     $translationType: VaildTranslationTypeEnumType!
