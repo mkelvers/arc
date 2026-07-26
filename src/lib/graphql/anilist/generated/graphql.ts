@@ -94,7 +94,7 @@ export type FranchiseMediaQueryVariables = Exact<{
 }>;
 
 
-export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
+export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: number | null, averageScore: number | null, description: string | null, genres: Array<string | null> | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -202,6 +202,9 @@ export const FranchiseMediaDocument = new TypedDocumentString(`
         extraLarge
         large
       }
+      averageScore
+      description(asHtml: false)
+      genres
     }
   }
 }

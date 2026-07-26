@@ -12,6 +12,9 @@ query FranchiseMedia($malIds: [Int]) {
                 extraLarge
                 large
             }
+            averageScore
+            description(asHtml: false)
+            genres
         }
     }
 }
