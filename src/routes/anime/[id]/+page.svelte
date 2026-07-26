@@ -67,7 +67,14 @@
                 </div>
 
                 <p class="mt-8 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base">
-                    <span class="font-normal">{data.anime.format}</span><span class="mx-1" aria-hidden="true">•</span>
+                    <span class="font-normal">{data.anime.format}</span>
+                    {#await data.audioLabel then audioLabel}
+                        {#if audioLabel}
+                            <span class="mx-1" aria-hidden="true">•</span>
+                            <span>{audioLabel}</span>
+                        {/if}
+                    {/await}
+                    <span class="mx-1" aria-hidden="true">•</span>
                     {#each data.anime.genres as genre, index}
                         <a class="underline underline-offset-2" href="/">{genre}</a>{index < data.anime.genres.length - 1 ? ', ' : ''}
                     {/each}
