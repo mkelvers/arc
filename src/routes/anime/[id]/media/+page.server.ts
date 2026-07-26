@@ -18,14 +18,24 @@ async function getAnime(id: number) {
         anime.anilist.getAnime(id).pipe(Effect.either),
     );
 
-    if (Either.isLeft(result)) error(502, result.left.message);
+    if (Either.isLeft(result)) {
+        error(
+            result.left.status === 404 ? 404 : 502,
+            result.left.status === 404
+                ? 'This anime is no longer available on AniList'
+                : result.left.message,
+        );
+    }
 
     return result.right;
 }
 
 export const load: PageServerLoad = async ({ params }) => {
     const id = animeId(params.id);
-    const stored = await anime.tmdb.getStoredMedia(id);
+    const stored = await anime.tmdb.getStoredMedia(id).catch((cause) => {
+        console.error(`Stored TMDB media read failed for AniList ${id}`, cause);
+        return null;
+    });
 
     if (stored) return stored;
 
@@ -37,10 +47,14 @@ export const load: PageServerLoad = async ({ params }) => {
             artwork: await anime.tmdb.getArtwork(result),
         };
     } catch (cause) {
-        error(
-            502,
-            cause instanceof Error ? cause.message : 'TMDB artwork request failed',
+        console.error(
+            `TMDB artwork enrichment failed for AniList ${id}`,
+            cause,
         );
+        return {
+            anime: toAnimeDetails(result),
+            artwork: null,
+        };
     }
 };
 

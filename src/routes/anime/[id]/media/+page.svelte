@@ -13,19 +13,38 @@
         <div class="min-w-0">
             <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">← Back to anime</a>
             <h1 class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">{data.anime.title} media</h1>
-            <p class="mt-2 text-muted">TMDB {data.artwork.mediaType} #{data.artwork.id}</p>
+            {#if data.artwork}
+                <p class="mt-2 text-muted">TMDB {data.artwork.mediaType} #{data.artwork.id}</p>
+            {/if}
         </div>
-        <form method="POST" class="shrink-0">
-            <input type="hidden" name="intent" value="refresh" />
-            <button
-                type="submit"
-                class="min-h-11 border border-border px-4 py-2 text-sm font-semibold hover:border-accent"
-            >
-                Refetch
-            </button>
-        </form>
+        {#if data.artwork}
+            <form method="POST" class="shrink-0">
+                <input type="hidden" name="intent" value="refresh" />
+                <button
+                    type="submit"
+                    class="min-h-11 border border-border px-4 py-2 text-sm font-semibold hover:border-accent"
+                >
+                    Refetch
+                </button>
+            </form>
+        {/if}
     </header>
 
+    {#if !data.artwork}
+        <section class="max-w-2xl border border-border bg-surface p-6 sm:p-8">
+            <h2 class="text-xl font-semibold sm:text-2xl">No TMDB media available</h2>
+            <p class="mt-3 leading-7 text-muted">
+                This release is still available on Arc, but no reliable TMDB match was found.
+                Its media options will appear automatically when a confident match becomes available.
+            </p>
+            <a
+                href={`/anime/${data.anime.id}`}
+                class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-sm font-semibold text-on-accent"
+            >
+                Back to anime
+            </a>
+        </section>
+    {:else}
     <section>
         <div class="mb-5 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
             <h2 class="text-xl font-semibold sm:text-2xl">Logos ({data.artwork.logos.length})</h2>
@@ -102,4 +121,5 @@
             {/each}
         </div>
     </section>
+    {/if}
 </main>
