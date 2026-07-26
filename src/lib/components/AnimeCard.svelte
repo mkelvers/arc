@@ -22,7 +22,7 @@
 <article
     class:border-foreground={current}
     class:border-transparent={!current}
-    class="group relative isolate min-w-0 overflow-hidden border-b-2 bg-canvas p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10 hover:bg-surface/88"
+    class="group relative isolate min-w-0 overflow-hidden bg-canvas p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10 hover:bg-surface/88"
 >
     <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
         <a
