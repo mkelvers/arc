@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import {
@@ -102,10 +102,46 @@ export async function getWatchlistState(userId: string | undefined, anilistId: n
     return item?.state ?? null;
 }
 
+export async function getWatchlistedAnimeIds(
+    userId: string | undefined,
+    anilistIds: number[],
+) {
+    if (!userId || !anilistIds.length) return new Set<number>();
+
+    const items = await db
+        .select({ anilistId: animeExternalId.externalId })
+        .from(watchlist)
+        .innerJoin(
+            animeExternalIdLink,
+            eq(animeExternalIdLink.animeId, watchlist.animeId),
+        )
+        .innerJoin(
+            animeExternalId,
+            eq(animeExternalId.id, animeExternalIdLink.externalIdId),
+        )
+        .where(
+            and(
+                eq(watchlist.userId, userId),
+                eq(animeExternalId.provider, 'anilist'),
+                eq(animeExternalId.mediaType, 'anime'),
+                inArray(animeExternalId.externalId, anilistIds),
+            ),
+        );
+
+    return new Set(items.map(({ anilistId }) => anilistId));
+}
+
 export async function togglePlanToWatch(userId: string, anilistId: number) {
     const animeId = await ensureAnimeId(anilistId);
 
-    await db.insert(users).values({ id: userId }).onConflictDoNothing();
+    await db
+        .insert(users)
+        .values({
+            id: userId,
+            name: 'Arc user',
+            email: `${userId}@legacy.invalid`,
+        })
+        .onConflictDoNothing();
 
     const [item] = await db
         .select({ state: watchlist.state })
