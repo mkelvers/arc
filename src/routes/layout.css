@@ -56,15 +56,15 @@
 }
 
 @utility auto-cols-franchise {
-    grid-auto-columns: 100%;
+    grid-auto-columns: calc((100% - 1.25rem) / 1.08);
 }
 
 @utility auto-cols-franchise-md {
-    grid-auto-columns: calc((100% - 5rem) / 5);
+    grid-auto-columns: calc((100% - 6.25rem) / 5.2);
 }
 
 @utility auto-cols-franchise-2xl {
-    grid-auto-columns: calc((100% - 7.5rem) / 7);
+    grid-auto-columns: calc((100% - 8.75rem) / 7.2);
 }
 
 @layer base {
