@@ -8,12 +8,14 @@
         anime: AnimeCardData;
         current?: boolean;
         watchlisted?: boolean;
+        onselect?: (anime: AnimeCardData) => void;
     }
 
     let {
         anime,
         current = false,
         watchlisted = false,
+        onselect,
     }: Props = $props();
 </script>
 
@@ -27,6 +29,7 @@
             href={anime.href}
             class="block focus-visible:outline-none"
             aria-current={current ? 'page' : undefined}
+            onclick={() => onselect?.(anime)}
         >
             <div class="aspect-2/3 overflow-hidden bg-surface">
                 <img
@@ -62,6 +65,7 @@
             class="absolute inset-0 z-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-current={current ? 'page' : undefined}
             aria-label={`View ${anime.title}`}
+            onclick={() => onselect?.(anime)}
         >
             <span class="sr-only">View {anime.title}</span>
         </a>
@@ -96,6 +100,7 @@
                 class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
                 aria-label={`Start watching ${anime.title}`}
                 title="Start watching"
+                onclick={() => onselect?.(anime)}
             >
                 <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
             </a>
