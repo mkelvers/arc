@@ -1,6 +1,7 @@
 import {
     boolean,
     doublePrecision,
+    index,
     integer,
     jsonb,
     pgEnum,
@@ -13,7 +14,6 @@ import {
     varchar,
 } from 'drizzle-orm/pg-core';
 
-import type { AnimeEpisode } from '$lib/anime';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
@@ -30,6 +30,7 @@ export const externalMediaType = pgEnum('external_media_type', [
 ]);
 
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
+export const episodeAudio = pgEnum('episode_audio', ['sub', 'dub', 'raw']);
 
 export const watchlistState = pgEnum('watchlist_state', [
     'watching',
@@ -38,14 +39,97 @@ export const watchlistState = pgEnum('watchlist_state', [
     'dropped',
 ]);
 
-export const users = pgTable('users', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    name: text('name').notNull(),
-    email: text('email').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-        .notNull()
-        .defaultNow(),
-});
+export const users = pgTable(
+    'users',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        name: text('name').notNull(),
+        email: text('email').notNull(),
+        emailVerified: boolean('email_verified').notNull().default(false),
+        image: text('image'),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [unique('users_email_unique').on(table.email)],
+);
+
+export const accounts = pgTable(
+    'accounts',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        accountId: text('account_id').notNull(),
+        providerId: text('provider_id').notNull(),
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        accessToken: text('access_token'),
+        refreshToken: text('refresh_token'),
+        idToken: text('id_token'),
+        accessTokenExpiresAt: timestamp('access_token_expires_at', {
+            withTimezone: true,
+        }),
+        refreshTokenExpiresAt: timestamp('refresh_token_expires_at', {
+            withTimezone: true,
+        }),
+        scope: text('scope'),
+        password: text('password'),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [index('accounts_user_id_idx').on(table.userId)],
+);
+
+export const sessions = pgTable(
+    'sessions',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+        token: text('token').notNull().unique('sessions_token_unique'),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+        ipAddress: text('ip_address'),
+        userAgent: text('user_agent'),
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+    },
+    (table) => [index('sessions_user_id_idx').on(table.userId)],
+);
+
+export const verifications = pgTable(
+    'verifications',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        identifier: text('identifier').notNull(),
+        value: text('value').notNull(),
+        expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        index('verifications_identifier_idx').on(table.identifier),
+    ],
+);
 
 export const anime = pgTable('anime', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
@@ -149,13 +233,62 @@ export const animeDetailsCache = pgTable('anime_details_cache', {
         .defaultNow(),
 });
 
-export const animeEpisodeCache = pgTable('anime_episode_cache', {
+export const animePlaybackProvider = pgTable('anime_playback_provider', {
     anilistId: integer('anilist_id').primaryKey(),
-    episodes: jsonb('episodes').$type<AnimeEpisode[]>().notNull(),
-    version: integer('version').notNull().default(1),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+    allanimeShowId: text('allanime_show_id').notNull(),
+    discoveredAt: timestamp('discovered_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const animeEpisode = pgTable(
+    'anime_episode',
+    {
+        anilistId: integer('anilist_id').notNull(),
+        episodeId: text('episode_id').notNull(),
+        number: doublePrecision('number').notNull(),
+        providerTitle: text('provider_title'),
+        metadataTitle: text('metadata_title'),
+        audio: episodeAudio('audio').array().notNull(),
+        imageUrl: text('image_url'),
+        runtimeMinutes: integer('runtime_minutes'),
+        airDate: text('air_date'),
+        overview: text('overview'),
+        firstSeenAt: timestamp('first_seen_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        lastSeenAt: timestamp('last_seen_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        lastVerifiedAt: timestamp('last_verified_at', {
+            withTimezone: true,
+        })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => [
+        primaryKey({ columns: [table.anilistId, table.episodeId] }),
+        index('anime_episode_anilist_number_idx').on(
+            table.anilistId,
+            table.number,
+        ),
+    ],
+);
+
+export const animeEpisodeSync = pgTable('anime_episode_sync', {
+    anilistId: integer('anilist_id').primaryKey(),
+    mediaStatus: varchar('media_status', { length: 32 }),
+    expectedEpisodes: integer('expected_episodes'),
+    sourceRevision: text('source_revision'),
+    stableSince: timestamp('stable_since', { withTimezone: true }),
+    lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+    nextRefreshAt: timestamp('next_refresh_at', { withTimezone: true }),
+    failureCount: integer('failure_count').notNull().default(0),
+    lastError: text('last_error'),
+    version: integer('version').notNull().default(1),
 });
 
 export const watchlist = pgTable(
