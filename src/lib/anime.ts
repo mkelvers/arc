@@ -1,33 +1,39 @@
+export type AudioMode = 'sub' | 'dub' | 'raw';
+const audioOrder: AudioMode[] = ['sub', 'dub', 'raw'];
+
 export interface AnimeEpisode {
     id: string;
     number: number;
     label: string;
     title: string;
-    slug: string;
     href: string;
-    hasSub: boolean;
-    hasDub: boolean;
-    audioLabel: string;
+    audio: AudioMode[];
     imageUrl: string | null;
     duration: string;
     airDate: string;
     overview: string;
 }
 
-export function formatAudioLabel(hasSub: boolean, hasDub: boolean) {
-    if (hasSub && hasDub) return 'Sub | Dub';
-    if (hasDub) return 'Dub';
-    if (hasSub) return 'Subtitled';
+export function formatAudioLabel(audio: readonly AudioMode[]) {
+    if (audio.includes('sub') && audio.includes('dub')) return 'Sub | Dub';
+    if (audio.includes('dub')) return 'Dub';
+    if (audio.includes('sub')) return 'Subtitled';
+    if (audio.includes('raw')) return 'Raw';
     return '';
 }
 
-export function formatEpisodesAudioLabel(
-    episodes: Pick<AnimeEpisode, 'hasSub' | 'hasDub'>[],
+export function mergeAudio(
+    stored: readonly AudioMode[] = [],
+    observed: readonly AudioMode[] = [],
 ) {
-    return formatAudioLabel(
-        episodes.some((episode) => episode.hasSub),
-        episodes.some((episode) => episode.hasDub),
-    );
+    const audio = new Set([...stored, ...observed]);
+    return audioOrder.filter((mode) => audio.has(mode));
+}
+
+export function formatEpisodesAudioLabel(
+    episodes: Pick<AnimeEpisode, 'audio'>[],
+) {
+    return formatAudioLabel(episodes.flatMap((episode) => episode.audio));
 }
 
 export interface AnimeCardData {
@@ -36,7 +42,7 @@ export interface AnimeCardData {
     playHref: string;
     title: string;
     imageUrl: string;
-    audioLabel: string;
+    secondaryLabel: string;
     score: number;
     genres: string[];
     synopsis: string;
