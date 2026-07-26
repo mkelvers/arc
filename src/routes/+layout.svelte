@@ -13,7 +13,10 @@
 	];
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head>
+	<title>Arc</title>
+	<link rel="icon" href={favicon} />
+</svelte:head>
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header/95 backdrop-blur">
 	<nav class="flex h-full items-center justify-between pl-3 md:pl-6" aria-label="Primary navigation">
