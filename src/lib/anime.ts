@@ -14,6 +14,22 @@ export interface AnimeEpisode {
     overview: string;
 }
 
+export function formatAudioLabel(hasSub: boolean, hasDub: boolean) {
+    if (hasSub && hasDub) return 'Sub | Dub';
+    if (hasDub) return 'Dub';
+    if (hasSub) return 'Subtitled';
+    return '';
+}
+
+export function formatEpisodesAudioLabel(
+    episodes: Pick<AnimeEpisode, 'hasSub' | 'hasDub'>[],
+) {
+    return formatAudioLabel(
+        episodes.some((episode) => episode.hasSub),
+        episodes.some((episode) => episode.hasDub),
+    );
+}
+
 export interface AnimeCardData {
     id: number;
     href: string;
