@@ -82,9 +82,10 @@ async function getPlayback(
         streams: Object.fromEntries(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
-                sources.map(({ url, quality }) => ({
+                sources.map(({ url, quality, audioDelay }) => ({
                     url: `/api/watch/stream?${new URLSearchParams({ url })}`,
                     quality,
+                    audioDelay,
                 })),
             ]),
         ),
