@@ -13,3 +13,15 @@ export interface AnimeEpisode {
     airDate: string;
     overview: string;
 }
+
+export interface AnimeCardData {
+    id: number;
+    href: string;
+    playHref: string;
+    title: string;
+    imageUrl: string;
+    audioLabel: string;
+    score: number;
+    genres: string[];
+    synopsis: string;
+}
