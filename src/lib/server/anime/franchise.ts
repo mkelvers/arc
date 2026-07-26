@@ -1,7 +1,11 @@
 import * as cheerio from 'cheerio';
+import { inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
 
+import type { AnimeCardData } from '$lib/anime';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
+import { db } from '$lib/server/db';
+import { animeEpisodeCache } from '$lib/server/db/schema';
 import { graphql } from '$lib/server/graphql';
 
 const anilistEndpoint = 'https://graphql.anilist.co';
@@ -14,14 +18,12 @@ export interface FranchiseOrder {
         id: string;
         label: string;
     }>;
-    entries: Array<{
+    entries: Array<AnimeCardData & {
         malId: number;
         anilistId: number;
         type: string;
-        title: string;
-        imageUrl: string;
         secondary: boolean;
-        href: string;
+        watchlisted?: boolean;
     }>;
 }
 
@@ -132,10 +134,58 @@ async function fetchMetadata(entries: ChiakiEntry[]) {
     );
 }
 
+function synopsis(value: string | null | undefined) {
+    return (value ?? '')
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*\(Source:[\s\S]*$/i, '')
+        .replace(/\s*Note:[\s\S]*$/i, '')
+        .trim();
+}
+
+async function cachedPlayback(anilistIds: number[]) {
+    if (!anilistIds.length) return new Map<number, {
+        audioLabel: string;
+        playHref: string | null;
+    }>();
+
+    const cached = await db
+        .select({
+            anilistId: animeEpisodeCache.anilistId,
+            episodes: animeEpisodeCache.episodes,
+        })
+        .from(animeEpisodeCache)
+        .where(inArray(animeEpisodeCache.anilistId, anilistIds));
+
+    return new Map(
+        cached.map(({ anilistId, episodes }) => {
+            const hasSub = episodes.some((episode) => episode.hasSub);
+            const hasDub = episodes.some((episode) => episode.hasDub);
+            const audioLabel = hasDub
+                ? hasSub
+                    ? 'Sub | Dub'
+                    : 'Dub'
+                : 'Sub';
+
+            return [
+                anilistId,
+                {
+                    audioLabel,
+                    playHref: episodes[0]?.href ?? null,
+                },
+            ] as const;
+        }),
+    );
+}
+
 async function refresh(malId: number) {
     const { types, entries } = await fetchChiaki(malId);
     const typeLabels = new Map(types.map(({ id, label }) => [id, label]));
     const metadata = await fetchMetadata(entries);
+    const playback = await cachedPlayback(
+        [...metadata.values()].map(({ id }) => id),
+    );
     const data: FranchiseOrder = {
         types,
         entries: entries.flatMap((entry) => {
@@ -149,6 +199,7 @@ async function refresh(malId: number) {
                 {
                     malId: entry.malId,
                     anilistId,
+                    id: anilistId,
                     type,
                     title:
                         media?.title?.english ||
@@ -160,8 +211,18 @@ async function refresh(malId: number) {
                         media?.coverImage?.extraLarge ??
                         media?.coverImage?.large ??
                         entry.imageUrl,
+                    audioLabel:
+                        playback.get(anilistId)?.audioLabel ?? 'Sub',
+                    score: media?.averageScore ?? 0,
+                    genres: (media?.genres ?? []).flatMap((genre) =>
+                        genre ? [genre] : [],
+                    ),
+                    synopsis: synopsis(media?.description),
                     secondary: entry.secondary,
                     href: `/anime/${anilistId}`,
+                    playHref:
+                        playback.get(anilistId)?.playHref ??
+                        `/anime/${anilistId}`,
                 },
             ];
         }),
