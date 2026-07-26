@@ -7,6 +7,7 @@
     interface Props {
         anime: AnimeCardData;
         current?: boolean;
+        compact?: boolean;
         watchlisted?: boolean;
         onselect?: (anime: AnimeCardData) => void;
     }
@@ -14,6 +15,7 @@
     let {
         anime,
         current = false,
+        compact = false,
         watchlisted = false,
         onselect,
     }: Props = $props();
@@ -22,7 +24,7 @@
 <article
     class:border-foreground={current}
     class:border-transparent={!current}
-    class="group relative isolate min-w-0 overflow-hidden bg-canvas p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10 hover:bg-surface/88"
+    class="group relative isolate min-w-0 overflow-hidden p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10 hover:bg-surface/88"
 >
     <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
         <a
@@ -39,7 +41,10 @@
                     loading="lazy"
                 />
             </div>
-            <h3 class="mt-3 line-clamp-2 min-h-10 text-sm leading-snug font-semibold">
+            <h3
+                class:min-h-10={!compact}
+                class="mt-3 line-clamp-2 text-sm leading-snug font-semibold"
+            >
                 {anime.title}
             </h3>
             {#if anime.secondaryLabel}
