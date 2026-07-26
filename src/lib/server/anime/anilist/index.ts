@@ -15,7 +15,7 @@ import { animeDetailsCache } from '$lib/server/db/schema';
 import { graphql, GraphQLRequestError } from '$lib/server/graphql';
 
 const endpoint = 'https://graphql.anilist.co';
-const cacheVersion = 1;
+const cacheVersion = 2;
 const cacheLifetime = 6 * 60 * 60 * 1_000;
 const requests = new Map<number, Promise<AniListAnime>>();
 const searchCacheLifetime = 5 * 60 * 1_000;
@@ -68,7 +68,7 @@ function toAnimeCard(media: SearchMedia): AnimeCardData | null {
             media.title?.native ??
             `Anime ${media.id}`,
         imageUrl,
-        audioLabel: formatEnum(media.format),
+        secondaryLabel: formatEnum(media.format),
         score: media.averageScore ?? 0,
         genres: present(media.genres),
         synopsis: synopsis(media.description),
