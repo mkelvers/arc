@@ -7,6 +7,7 @@
         CheckIcon,
     } from 'phosphor-svelte';
 
+    import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
     import type { FranchiseOrder as FranchiseOrderData } from '$lib/server/anime/franchise';
 
@@ -159,28 +160,11 @@
                 onscroll={updateScrollState}
             >
                 {#each visibleEntries as entry}
-                    <a
-                        href={entry.href}
-                        class="group min-w-0 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none"
-                        aria-current={entry.anilistId === currentAnimeId
-                            ? 'page'
-                            : undefined}
-                    >
-                        <div class="aspect-2/3 overflow-hidden bg-surface">
-                            <img
-                                src={entry.imageUrl}
-                                alt=""
-                                class="size-full object-cover transition-opacity duration-150 group-hover:opacity-80"
-                                loading="lazy"
-                            />
-                        </div>
-                        <h3 class="mt-3 line-clamp-2 text-sm leading-snug font-normal text-foreground">
-                            {entry.title}
-                        </h3>
-                        {#if entry.anilistId === currentAnimeId}
-                            <span class="mt-3 block h-0.5 w-full bg-foreground" aria-hidden="true"></span>
-                        {/if}
-                    </a>
+                    <AnimeCard
+                        anime={entry}
+                        current={entry.anilistId === currentAnimeId}
+                        watchlisted={entry.watchlisted}
+                    />
                 {/each}
             </div>
 
