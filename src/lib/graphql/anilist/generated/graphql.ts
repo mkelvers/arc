@@ -75,6 +75,19 @@ export type MediaSeason =
   /** Predominantly started airing between January and March */
   | 'WINTER';
 
+/** The current releasing status of the media */
+export type MediaStatus =
+  /** Ended before the work could be finished */
+  | 'CANCELLED'
+  /** Has completed and is no longer being released */
+  | 'FINISHED'
+  /** Version 2 only. Is currently paused from releasing and will resume at a later date */
+  | 'HIATUS'
+  /** To be released at a later date */
+  | 'NOT_YET_RELEASED'
+  /** Currently releasing */
+  | 'RELEASING';
+
 /** Media type enum, anime or manga. */
 export type MediaType =
   /** Japanese Anime */
@@ -87,7 +100,7 @@ export type AnimeQueryVariables = Exact<{
 }>;
 
 
-export type AnimeQuery = { Media: { id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
+export type AnimeQuery = { Media: { id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, endDate: { year: number | null, month: number | null, day: number | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
 
 export type FranchiseMediaQueryVariables = Exact<{
   malIds?: Array<number | null | undefined> | number | null | undefined;
@@ -139,6 +152,7 @@ export const AnimeDocument = new TypedDocumentString(`
     description(asHtml: false)
     genres
     format
+    status
     season
     seasonYear
     startDate {
@@ -146,8 +160,17 @@ export const AnimeDocument = new TypedDocumentString(`
       month
       day
     }
+    endDate {
+      year
+      month
+      day
+    }
     episodes
     duration
+    nextAiringEpisode {
+      airingAt
+      episode
+    }
     relations {
       edges {
         relationType

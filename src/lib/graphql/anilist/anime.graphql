@@ -12,6 +12,7 @@ query Anime($id: Int!) {
         description(asHtml: false)
         genres
         format
+        status
         season
         seasonYear
         startDate {
@@ -19,8 +20,17 @@ query Anime($id: Int!) {
             month
             day
         }
+        endDate {
+            year
+            month
+            day
+        }
         episodes
         duration
+        nextAiringEpisode {
+            airingAt
+            episode
+        }
         relations {
             edges {
                 relationType
