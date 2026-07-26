@@ -35,18 +35,22 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         anime.anilist.getAnime(id).pipe(Effect.either),
     );
 
-    if (Either.isLeft(result)) error(502, result.left.message);
+    if (Either.isLeft(result)) {
+        error(
+            result.left.status === 404 ? 404 : 502,
+            result.left.status === 404
+                ? 'This anime is no longer available on AniList'
+                : result.left.message,
+        );
+    }
 
-    const artwork = anime.tmdb.getArtwork(result.right).catch(() => ({
-        backdrops: [],
-        logos: [],
-        selectedBackdrop: null,
-        selectedLogo: null,
-        logoHidden: false,
-        logoSize: 100,
-        id: 0,
-        mediaType: 'tv' as const,
-    }));
+    const artwork = anime.tmdb.getArtwork(result.right).catch((cause) => {
+        console.error(
+            `TMDB artwork enrichment failed for AniList ${id}`,
+            cause,
+        );
+        return null;
+    });
     const episodes = anime.episodes.getEpisodes(result.right).catch(() => []);
     const audioLabel = episodes.then(formatEpisodesAudioLabel);
     const franchise = result.right.idMal

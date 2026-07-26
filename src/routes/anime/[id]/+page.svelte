@@ -27,7 +27,7 @@
             class="anime-hero grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
             {#await data.artwork then artwork}
-                {#if artwork.selectedBackdrop}
+                {#if artwork?.selectedBackdrop}
                     <img
                         src={artwork.selectedBackdrop.url}
                         alt={data.anime.title}
@@ -55,13 +55,17 @@
             <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
                 <div class="w-fit">
                     {#await data.artwork then artwork}
-                        {#if artwork.selectedLogo}
+                        {#if artwork?.selectedLogo}
                             <img
                                 src={artwork.selectedLogo.url}
                                 alt={data.anime.title}
                                 style:height={`clamp(${5 * artwork.logoSize / 100}rem, ${5.7 * artwork.logoSize / 100}vw, ${6.25 * artwork.logoSize / 100}rem)`}
                                 class="max-h-24 max-w-md object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
                             />
+                        {:else if !artwork}
+                            <h1 class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl">
+                                {data.anime.title}
+                            </h1>
                         {/if}
                     {/await}
                 </div>
@@ -179,7 +183,7 @@
                 <EpisodeList
                     {episodes}
                     title={data.anime.title}
-                    image={artwork.selectedBackdrop?.url ?? null}
+                    image={artwork?.selectedBackdrop?.url ?? null}
                 />
             {/await}
         {/await}
