@@ -52,7 +52,7 @@ interface StoredTmdbMapping extends TmdbMapping {
     mappingVersion: number;
 }
 
-const mappingVersion = 5;
+const mappingVersion = 6;
 
 export interface TmdbArtworkImage {
     aspectRatio: number;
@@ -129,11 +129,16 @@ function titlesFor(anime: AniListAnime) {
     );
 }
 
+function isSpecialRelease(anime: AniListAnime) {
+    return anime.format === 'OVA' || anime.format === 'SPECIAL';
+}
+
 function mappingTitlesFor(anime: AniListAnime) {
     return [
         ...titlesFor(anime).slice(0, 3),
         ...(anime.relations?.edges ?? []).flatMap((edge) =>
-            edge?.relationType === 'ADAPTATION'
+            edge?.relationType === 'ADAPTATION' ||
+            (isSpecialRelease(anime) && edge?.relationType === 'PARENT')
                 ? [
                       edge.node?.title?.english,
                       edge.node?.title?.romaji,
@@ -438,7 +443,8 @@ async function resolveStored(anime: AniListAnime): Promise<StoredTmdbMapping> {
             (anime.relations?.edges ?? []).flatMap((edge) =>
                 edge?.node?.type === 'ANIME' &&
                 (edge.relationType === 'PREQUEL' ||
-                    edge.relationType === 'SEQUEL')
+                    edge.relationType === 'SEQUEL' ||
+                    (isSpecialRelease(anime) && edge.relationType === 'PARENT'))
                     ? [findStoredMappingByAniListId(edge.node.id)]
                     : [],
             ),
