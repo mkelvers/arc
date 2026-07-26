@@ -9,6 +9,7 @@
     interface Stream {
         url: string;
         quality: string | null;
+        audioDelay: number;
     }
 
     interface Props {
@@ -45,6 +46,9 @@
     let resumePlayback = false;
     let autoplayAttempted = false;
     let hideControlsTimer: ReturnType<typeof setTimeout>;
+    let audioContext: AudioContext | null = null;
+    let audioSource: MediaElementAudioSourceNode | null = null;
+    let audioDelayNode: DelayNode | null = null;
 
     const modeSources = $derived(
         sources[mode] ?? sources.sub ?? sources.dub ?? sources.raw ?? [],
@@ -71,6 +75,9 @@
             : modeSources;
     });
     const src = $derived(orderedSources[sourceIndex]?.url ?? '');
+    const audioDelay = $derived(
+        orderedSources[sourceIndex]?.audioDelay ?? 0,
+    );
     const bestQuality = $derived(modeSources[0]?.quality ?? null);
     const availableAudioModes = $derived(
         (['sub', 'dub', 'raw'] as const).filter(
@@ -121,12 +128,45 @@
         }
     }
 
+    function configureAudioDelay(reset = false) {
+        if (!audioDelay && !audioContext) return;
+
+        audioContext ??= new AudioContext();
+        audioSource ??= audioContext.createMediaElementSource(video);
+
+        if (reset) {
+            audioSource.disconnect();
+            audioDelayNode?.disconnect();
+            audioDelayNode = null;
+        }
+
+        if (!audioDelayNode) {
+            audioDelayNode = audioContext.createDelay(10);
+            audioSource.connect(audioDelayNode);
+            audioDelayNode.connect(audioContext.destination);
+        }
+        audioDelayNode.delayTime.setValueAtTime(
+            audioDelay,
+            audioContext.currentTime,
+        );
+    }
+
+    function resumeAudio() {
+        configureAudioDelay();
+        if (audioContext?.state === 'suspended') {
+            void audioContext.resume();
+        }
+    }
+
     function togglePlayback() {
-        if (video.paused) video.play().catch(() => undefined);
-        else video.pause();
+        if (video.paused) {
+            resumeAudio();
+            video.play().catch(() => undefined);
+        } else video.pause();
     }
 
     function toggleMute() {
+        resumeAudio();
         if (video.muted || video.volume === 0) {
             video.muted = false;
             video.volume = lastVolume;
@@ -137,6 +177,7 @@
     }
 
     function changeVolume(event: Event) {
+        resumeAudio();
         const value = Number((event.currentTarget as HTMLInputElement).value);
         video.volume = value;
         video.muted = value === 0;
@@ -178,6 +219,8 @@
         localStorage.setItem('arc:audio-mode', next);
 
         await tick();
+        configureAudioDelay(true);
+        resumeAudio();
         video.load();
         showControls();
     }
@@ -199,6 +242,8 @@
         localStorage.setItem('arc:quality', next);
 
         await tick();
+        configureAudioDelay(true);
+        resumeAudio();
         video.load();
         showControls();
     }
@@ -219,12 +264,15 @@
         buffered = 0;
 
         await tick();
+        configureAudioDelay(true);
+        resumeAudio();
         video.load();
     }
 
     function seek(event: Event) {
         const value = Number((event.currentTarget as HTMLInputElement).value);
         currentTime = value;
+        if (!scrubbing) configureAudioDelay(true);
         video.currentTime = value;
     }
 
@@ -233,6 +281,7 @@
 
         const nextTime = Math.max(0, Math.min(duration, seconds));
         currentTime = nextTime;
+        configureAudioDelay(true);
         video.currentTime = nextTime;
     }
 
@@ -241,6 +290,7 @@
     }
 
     function changeVolumeBy(delta: number) {
+        resumeAudio();
         const nextVolume = Math.max(0, Math.min(1, video.volume + delta));
         video.volume = nextVolume;
         video.muted = nextVolume === 0;
@@ -429,7 +479,12 @@
             quality = savedQuality ?? 'best';
         }
 
-        return () => clearTimeout(hideControlsTimer);
+        return () => {
+            clearTimeout(hideControlsTimer);
+            audioSource?.disconnect();
+            audioDelayNode?.disconnect();
+            void audioContext?.close();
+        };
     });
 </script>
 
@@ -465,17 +520,22 @@
             duration = video.duration;
             loading = false;
             playbackError = false;
+            configureAudioDelay(true);
 
             if (resumeAt !== null) {
                 currentTime = Math.min(resumeAt, duration);
                 video.currentTime = currentTime;
                 resumeAt = null;
 
-                if (resumePlayback) video.play().catch(() => undefined);
+                if (resumePlayback) {
+                    resumeAudio();
+                    video.play().catch(() => undefined);
+                }
                 resumePlayback = false;
             } else if (!autoplayAttempted) {
                 autoplayAttempted = true;
                 if (autoplay) {
+                    resumeAudio();
                     video.play().catch(() => {
                         video.muted = true;
                         video.play().catch(() => undefined);
@@ -929,6 +989,7 @@
                     onpointerdown={(event) => {
                         if (event.button !== 0) return;
                         scrubbing = true;
+                        configureAudioDelay(true);
                         event.currentTarget.setPointerCapture(event.pointerId);
                         updateTimeline(event, true);
                         showControls();
