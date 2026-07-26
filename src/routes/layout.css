@@ -60,7 +60,7 @@
 }
 
 @utility auto-cols-franchise {
-    grid-auto-columns: calc((100% - 1.25rem) / 1.08);
+    grid-auto-columns: 46%;
 }
 
 @utility auto-cols-franchise-md {
