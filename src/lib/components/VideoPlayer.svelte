@@ -1,9 +1,9 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import type { AudioMode } from '$lib/anime';
     import { onMount, tick } from 'svelte';
     import { CaretLeftIcon, CaretRightIcon, SpinnerGapIcon } from 'phosphor-svelte';
 
-    type AudioMode = 'sub' | 'dub';
     type SettingsView = 'main' | 'audio' | 'quality';
 
     interface Stream {
@@ -47,7 +47,7 @@
     let hideControlsTimer: ReturnType<typeof setTimeout>;
 
     const modeSources = $derived(
-        sources[mode] ?? sources.sub ?? sources.dub ?? [],
+        sources[mode] ?? sources.sub ?? sources.dub ?? sources.raw ?? [],
     );
     const qualities = $derived(
         modeSources
@@ -73,11 +73,17 @@
     const src = $derived(orderedSources[sourceIndex]?.url ?? '');
     const bestQuality = $derived(modeSources[0]?.quality ?? null);
     const availableAudioModes = $derived(
-        (['sub', 'dub'] as const).filter(
+        (['sub', 'dub', 'raw'] as const).filter(
             (audioMode) => Boolean(sources[audioMode]?.length),
         ),
     );
-    const audioLabel = $derived(mode === 'dub' ? 'English' : 'Japanese');
+    const audioLabel = $derived(
+        mode === 'dub'
+            ? 'English'
+            : mode === 'raw'
+              ? 'Japanese (Raw)'
+              : 'Japanese',
+    );
     const qualityLabel = $derived(
         quality === 'best'
             ? bestQuality
@@ -384,7 +390,9 @@
     }
 
     onMount(() => {
-        if (!sources.sub?.length && sources.dub?.length) mode = 'dub';
+        if (!sources[mode]?.length) {
+            mode = availableAudioModes[0] ?? 'sub';
+        }
 
         const stored = localStorage.getItem('arc:volume');
         const savedVolume = stored === null ? null : Number(stored);
@@ -400,7 +408,9 @@
 
         const savedMode = localStorage.getItem('arc:audio-mode');
         if (
-            (savedMode === 'sub' || savedMode === 'dub') &&
+            (savedMode === 'sub' ||
+                savedMode === 'dub' ||
+                savedMode === 'raw') &&
             sources[savedMode]?.length
         ) {
             void switchMode(savedMode);
@@ -841,7 +851,11 @@
                                                     <span class="leading-none text-player-accent" aria-hidden="true">•</span>
                                                 {/if}
                                             </span>
-                                            {option === 'dub' ? 'English' : 'Japanese'}
+                                            {option === 'dub'
+                                                ? 'English'
+                                                : option === 'raw'
+                                                  ? 'Japanese (Raw)'
+                                                  : 'Japanese'}
                                         </button>
                                     {/each}
                                 {/if}
