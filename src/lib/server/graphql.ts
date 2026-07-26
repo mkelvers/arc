@@ -16,6 +16,7 @@ const Payload = Schema.Struct({
         Schema.Array(
             Schema.Struct({
                 message: Schema.String,
+                status: Schema.optional(Schema.Number),
             }),
         ),
     ),
@@ -26,6 +27,7 @@ export class GraphQLRequestError extends Data.TaggedError(
 )<{
     readonly message: string;
     readonly cause?: unknown;
+    readonly status?: number;
 }> {}
 
 export function graphql<TResult, TVariables>(
@@ -66,6 +68,7 @@ export function graphql<TResult, TVariables>(
                 return Effect.fail(
                     new GraphQLRequestError({
                         message: `The GraphQL endpoint returned ${response.status}`,
+                        status: response.status,
                     }),
                 );
             }
@@ -84,7 +87,12 @@ export function graphql<TResult, TVariables>(
             const message = payload.errors?.[0]?.message;
 
             if (message) {
-                return Effect.fail(new GraphQLRequestError({ message }));
+                return Effect.fail(
+                    new GraphQLRequestError({
+                        message,
+                        status: payload.errors?.[0]?.status,
+                    }),
+                );
             }
 
             if (payload.data == null) {
