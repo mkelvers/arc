@@ -96,6 +96,15 @@ export type FranchiseMediaQueryVariables = Exact<{
 
 export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: number | null, averageScore: number | null, description: string | null, genres: Array<string | null> | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
 
+export type SearchAnimePageQueryVariables = Exact<{
+  search: string;
+  page: number;
+  perPage: number;
+}>;
+
+
+export type SearchAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -209,3 +218,28 @@ export const FranchiseMediaDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<FranchiseMediaQuery, FranchiseMediaQueryVariables>;
+export const SearchAnimePageDocument = new TypedDocumentString(`
+    query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      hasNextPage
+    }
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      format
+      averageScore
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<SearchAnimePageQuery, SearchAnimePageQueryVariables>;
