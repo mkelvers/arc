@@ -3,10 +3,13 @@ import { eq } from 'drizzle-orm';
 
 import {
     AnimeDocument,
+    HomeAnimeDocument,
     SearchAnimePageDocument,
 } from '$lib/graphql/anilist/generated/graphql';
 import type {
     AnimeQuery,
+    HomeAnimeQuery,
+    MediaSeason,
     SearchAnimePageQuery,
 } from '$lib/graphql/anilist/generated/graphql';
 import type { AnimeCardData } from '$lib/anime';
@@ -24,10 +27,34 @@ const searchCache = new Map<
     { data: AnimeCardData[]; fetchedAt: number }
 >();
 const searchRequests = new Map<string, Promise<AnimeCardData[]>>();
+const homepageCacheLifetime = 30 * 60 * 1_000;
+const homepageCache = new Map<
+    string,
+    { data: HomepageAnime; fetchedAt: number }
+>();
+const homepageRequests = new Map<string, Promise<HomepageAnime>>();
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
 type SearchMedia = NonNullable<
     NonNullable<NonNullable<SearchAnimePageQuery['Page']>['media']>[number]
 >;
+type HomeHighlight = NonNullable<
+    NonNullable<NonNullable<HomeAnimeQuery['highlights']>['media']>[number]
+>;
+
+export interface HomepageHighlight {
+    id: number;
+    title: string;
+    imageUrl: string;
+    description: string;
+    genres: string[];
+    format: string;
+    score: number;
+}
+
+export interface HomepageAnime {
+    highlights: HomepageHighlight[];
+    season: AnimeCardData[];
+}
 
 function present<T>(values: ReadonlyArray<T | null> | null | undefined): T[] {
     return values?.filter((value): value is T => value !== null) ?? [];
@@ -43,6 +70,10 @@ function formatEnum(value: string | null | undefined) {
         .replace(/^./, (character) => character.toUpperCase())}`;
 }
 
+function formatHomepageEnum(value: string | null | undefined) {
+    return formatEnum(value).replace(/^Anime\s+/, '');
+}
+
 function synopsis(value: string | null | undefined) {
     return value
         ? value
@@ -51,6 +82,22 @@ function synopsis(value: string | null | undefined) {
               .replace(/\s+/g, ' ')
               .trim()
         : '';
+}
+
+function title(media: {
+    id: number;
+    title?: {
+        english?: string | null;
+        romaji?: string | null;
+        native?: string | null;
+    } | null;
+}) {
+    return (
+        media.title?.english ??
+        media.title?.romaji ??
+        media.title?.native ??
+        `Anime ${media.id}`
+    );
 }
 
 function toAnimeCard(media: SearchMedia): AnimeCardData | null {
@@ -62,16 +109,31 @@ function toAnimeCard(media: SearchMedia): AnimeCardData | null {
         id: media.id,
         href: `/anime/${media.id}`,
         playHref: `/anime/${media.id}`,
-        title:
-            media.title?.english ??
-            media.title?.romaji ??
-            media.title?.native ??
-            `Anime ${media.id}`,
+        title: title(media),
         imageUrl,
         secondaryLabel: formatEnum(media.format),
         score: media.averageScore ?? 0,
         genres: present(media.genres),
         synopsis: synopsis(media.description),
+    };
+}
+
+function toHomepageHighlight(
+    media: HomeHighlight,
+): HomepageHighlight | null {
+    const fallbackImageUrl =
+        media.coverImage?.extraLarge ?? media.coverImage?.large ?? null;
+    const imageUrl = media.bannerImage ?? fallbackImageUrl;
+    if (!imageUrl || !fallbackImageUrl) return null;
+
+    return {
+        id: media.id,
+        title: title(media),
+        imageUrl,
+        description: synopsis(media.description),
+        genres: present(media.genres),
+        format: formatHomepageEnum(media.format),
+        score: media.averageScore ?? 0,
     };
 }
 
@@ -226,7 +288,67 @@ function searchAnime(search: string) {
     });
 }
 
+async function requestHomepage(season: MediaSeason, seasonYear: number) {
+    const response = await Effect.runPromise(
+        graphql(endpoint, HomeAnimeDocument, { season, seasonYear }),
+    );
+
+    return {
+        highlights: present(response.highlights?.media)
+            .flatMap((entry) => {
+                const highlight = toHomepageHighlight(entry);
+                return highlight ? [highlight] : [];
+            })
+            .slice(0, 5),
+        season: present(response.season?.media).flatMap((entry) => {
+            const card = toAnimeCard(entry);
+            return card ? [card] : [];
+        }),
+    };
+}
+
+async function cachedHomepage(season: MediaSeason, seasonYear: number) {
+    const key = `${season}:${seasonYear}`;
+    const cached = homepageCache.get(key);
+
+    if (
+        cached &&
+        Date.now() - cached.fetchedAt < homepageCacheLifetime
+    ) {
+        return cached.data;
+    }
+
+    const pending = homepageRequests.get(key);
+    if (pending) return pending;
+
+    const request = requestHomepage(season, seasonYear).then((data) => {
+        homepageCache.set(key, { data, fetchedAt: Date.now() });
+        return data;
+    });
+    homepageRequests.set(key, request);
+
+    try {
+        return await request;
+    } finally {
+        homepageRequests.delete(key);
+    }
+}
+
+function getHomepage(season: MediaSeason, seasonYear: number) {
+    return Effect.tryPromise({
+        try: () => cachedHomepage(season, seasonYear),
+        catch: (cause) =>
+            cause instanceof GraphQLRequestError
+                ? cause
+                : new GraphQLRequestError({
+                      message: 'The home page could not be loaded',
+                      cause,
+                  }),
+    });
+}
+
 export const anilist = {
     getAnime,
+    getHomepage,
     searchAnime,
 };
