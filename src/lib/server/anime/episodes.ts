@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import type { AnimeEpisode } from '$lib/anime';
+import { formatAudioLabel, type AnimeEpisode } from '$lib/anime';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisodeCache } from '$lib/server/db/schema';
@@ -8,15 +8,9 @@ import { allanime } from './allanime';
 import { tmdb } from './tmdb';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
-const cacheVersion = 1;
+const cacheVersion = 2;
 const cacheLifetime = 30 * 60 * 1_000;
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
-
-function audioLabel(hasSub: boolean, hasDub: boolean) {
-    if (hasSub && hasDub) return 'Dub | Sub';
-    if (hasDub) return 'Dub';
-    return 'Subtitled';
-}
 
 function duration(minutes: number | null | undefined) {
     if (!minutes || minutes <= 0) return '';
@@ -55,7 +49,7 @@ async function fetchEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> {
             href: `/anime/${anime.id}/watch/${encodeURIComponent(slug)}`,
             hasSub: episode.hasSub,
             hasDub: episode.hasDub,
-            audioLabel: audioLabel(episode.hasSub, episode.hasDub),
+            audioLabel: formatAudioLabel(episode.hasSub, episode.hasDub),
             imageUrl: media?.imageUrl ?? null,
             duration: duration(media?.runtime ?? anime.duration),
             airDate: media?.airDate ?? '',

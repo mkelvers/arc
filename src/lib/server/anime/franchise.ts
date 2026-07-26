@@ -2,7 +2,10 @@ import * as cheerio from 'cheerio';
 import { inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
 
-import type { AnimeCardData } from '$lib/anime';
+import {
+    formatEpisodesAudioLabel,
+    type AnimeCardData,
+} from '$lib/anime';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisodeCache } from '$lib/server/db/schema';
@@ -160,18 +163,10 @@ async function cachedPlayback(anilistIds: number[]) {
 
     return new Map(
         cached.map(({ anilistId, episodes }) => {
-            const hasSub = episodes.some((episode) => episode.hasSub);
-            const hasDub = episodes.some((episode) => episode.hasDub);
-            const audioLabel = hasDub
-                ? hasSub
-                    ? 'Sub | Dub'
-                    : 'Dub'
-                : 'Sub';
-
             return [
                 anilistId,
                 {
-                    audioLabel,
+                    audioLabel: formatEpisodesAudioLabel(episodes),
                     playHref: episodes[0]?.href ?? null,
                 },
             ] as const;
@@ -212,7 +207,7 @@ async function refresh(malId: number) {
                         media?.coverImage?.large ??
                         entry.imageUrl,
                     audioLabel:
-                        playback.get(anilistId)?.audioLabel ?? 'Sub',
+                        playback.get(anilistId)?.audioLabel ?? 'Subtitled',
                     score: media?.averageScore ?? 0,
                     genres: (media?.genres ?? []).flatMap((genre) =>
                         genre ? [genre] : [],
