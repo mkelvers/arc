@@ -71,6 +71,13 @@
       "when": 1785016450028,
       "tag": "0009_sparkling_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1785056392816,
+      "tag": "0010_amusing_lady_deathstrike",
+      "breakpoints": true
     }
   ]
 }

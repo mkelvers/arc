@@ -40,6 +40,8 @@ export const watchlistState = pgEnum('watchlist_state', [
 
 export const users = pgTable('users', {
     id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
