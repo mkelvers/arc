@@ -52,7 +52,7 @@ interface StoredTmdbMapping extends TmdbMapping {
     mappingVersion: number;
 }
 
-const mappingVersion = 6;
+const mappingVersion = 7;
 
 export interface TmdbArtworkImage {
     aspectRatio: number;
@@ -134,7 +134,10 @@ function isSpecialRelease(anime: AniListAnime) {
         anime.format === 'OVA' ||
         anime.format === 'SPECIAL' ||
         (anime.format === 'ONA' &&
-            Boolean(anime.episodes && anime.episodes <= 3) &&
+            Boolean(
+                (anime.episodes && anime.episodes <= 3) ||
+                    (anime.duration && anime.duration <= 5),
+            ) &&
             (anime.relations?.edges ?? []).some(
                 (edge) =>
                     edge?.relationType === 'PARENT' &&
