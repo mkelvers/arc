@@ -62,7 +62,7 @@
         <div class="relative">
             <div
                 bind:this={track}
-                class="grid auto-cols-franchise grid-flow-col gap-x-5 gap-y-8 overflow-x-auto scroll-smooth md:auto-cols-franchise-md 2xl:auto-cols-franchise-2xl"
+                class="-mx-2 grid auto-cols-franchise grid-flow-col gap-x-5 gap-y-8 overflow-x-auto scroll-smooth md:auto-cols-franchise-md 2xl:auto-cols-franchise-2xl"
                 onscroll={updateScrollState}
             >
                 {#each visibleEntries as entry}
