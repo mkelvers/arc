@@ -1,5 +1,6 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
+    import { formatAudioLabel } from '$lib/anime';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
@@ -159,7 +160,7 @@
             </div>
 
             <p class="mt-3 text-sm text-watch-muted">
-                {data.currentEpisode.audioLabel}
+                {formatAudioLabel(data.currentEpisode.audio)}
                 {#if data.currentEpisode.duration}
                     <span aria-hidden="true"> · </span>
                     {data.currentEpisode.duration}

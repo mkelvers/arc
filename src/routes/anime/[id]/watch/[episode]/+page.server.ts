@@ -1,6 +1,7 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { Effect, Either } from 'effect';
 
+import type { AudioMode } from '$lib/anime';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import type { PageServerLoad } from './$types';
@@ -13,10 +14,21 @@ function animeId(value: string) {
     return id;
 }
 
+function legacySlug(title: string, episodeId: string) {
+    return (
+        title
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || `episode-${episodeId}`
+    );
+}
+
 async function getPlayback(
     animeData: Parameters<typeof anime.allanime.getStreams>[0],
     episode: string,
-    modes: ('sub' | 'dub')[],
+    modes: AudioMode[],
 ) {
     let remoteStreams: Awaited<
         ReturnType<typeof anime.allanime.getStreams>
@@ -92,16 +104,20 @@ export const load: PageServerLoad = async ({ params }) => {
         anime.tmdb.getStoredMedia(id).catch(() => null),
         anime.episodes.getEpisodes(result.right).catch(() => []),
     ]);
-    const currentIndex = episodes.findIndex(
-        (episode) => episode.slug === params.episode,
+    let currentIndex = episodes.findIndex(
+        (episode) => episode.id === params.episode,
     );
 
+    if (currentIndex < 0) {
+        currentIndex = episodes.findIndex(
+            (episode) =>
+                legacySlug(episode.title, episode.id) === params.episode,
+        );
+        if (currentIndex >= 0) redirect(308, episodes[currentIndex].href);
+    }
     if (currentIndex < 0) error(404, 'Episode not found');
 
     const currentEpisode = episodes[currentIndex];
-    const modes: ('sub' | 'dub')[] = [];
-    if (currentEpisode.hasSub) modes.push('sub');
-    if (currentEpisode.hasDub) modes.push('dub');
     return {
         anime: toAnimeDetails(result.right),
         episodes,
@@ -112,6 +128,10 @@ export const load: PageServerLoad = async ({ params }) => {
             storedMedia?.artwork.selectedBackdrop?.url ??
             result.right.bannerImage ??
             null,
-        playback: getPlayback(result.right, currentEpisode.id, modes),
+        playback: getPlayback(
+            result.right,
+            currentEpisode.id,
+            currentEpisode.audio,
+        ),
     };
 };
