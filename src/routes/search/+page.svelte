@@ -14,8 +14,10 @@
     let { data }: PageProps = $props();
     let searchDraft = $state<string | null>(null);
     let requestedQuery = $state<string | null>(null);
+    let currentRouteQuery = $state<string | null>(null);
     let recentResults = $state<RecentResult[]>([]);
-    const searchValue = $derived(searchDraft ?? data.query);
+    const routeQuery = $derived(data.query);
+    const searchValue = $derived(searchDraft ?? routeQuery);
 
     function isRecentResult(value: unknown): value is RecentResult {
         if (!value || typeof value !== 'object') return false;
@@ -68,19 +70,29 @@
     });
 
     $effect(() => {
-        if (requestedQuery === null) return;
+        if (currentRouteQuery === null) {
+            currentRouteQuery = routeQuery;
+            requestedQuery = routeQuery;
+            return;
+        }
 
-        if (data.query !== requestedQuery) {
-            requestedQuery = data.query;
-            searchDraft = null;
-        } else if (searchDraft?.trim() === data.query) {
+        if (routeQuery === currentRouteQuery) return;
+
+        const previousRouteQuery = currentRouteQuery;
+        currentRouteQuery = routeQuery;
+
+        if (
+            searchDraft === null ||
+            searchDraft.trim() === previousRouteQuery ||
+            searchDraft.trim() === routeQuery
+        ) {
             searchDraft = null;
         }
     });
 
     $effect(() => {
         const query = searchValue.trim();
-        if (query === data.query || query === requestedQuery) return;
+        if (query === routeQuery || query === requestedQuery) return;
 
         const timeout = setTimeout(() => {
             requestedQuery = query;
