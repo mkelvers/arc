@@ -4,7 +4,9 @@
     let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>{data.anime.title} media — Arc</title></svelte:head>
+<svelte:head>
+    <title>{data.anime.title} - Watch on Arc</title>
+</svelte:head>
 
 <main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
     <header class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">

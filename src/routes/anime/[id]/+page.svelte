@@ -17,7 +17,9 @@
     let detailsExpanded = $state(false);
 </script>
 
-<svelte:head><title>{data.anime.title} — Arc</title></svelte:head>
+<svelte:head>
+    <title>Watch {data.anime.title} - Arc</title>
+</svelte:head>
 
 <main class="bg-canvas text-foreground">
     <section class="min-h-dvh">
