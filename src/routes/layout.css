@@ -98,6 +98,33 @@
 }
 
 @layer components {
+    .home-hero-slide {
+        &::before {
+            content: '';
+            z-index: 10;
+            grid-column: 1;
+            grid-row: 1;
+            pointer-events: none;
+            background-image:
+                linear-gradient(to right, rgb(0 0 0 / 0.88) 0%, rgb(0 0 0 / 0.5) 34%, transparent 68%),
+                linear-gradient(to left, rgb(0 0 0 / 0.18), transparent 28%);
+        }
+
+        &::after {
+            content: '';
+            z-index: 10;
+            grid-column: 1;
+            grid-row: 1;
+            pointer-events: none;
+            background-image: linear-gradient(
+                to top,
+                var(--theme-canvas) 0%,
+                rgb(0 0 0 / 0.62) 15%,
+                transparent 54%
+            );
+        }
+    }
+
     .anime-hero {
         &::before {
             background-image:
@@ -124,6 +151,25 @@
     }
 
     @media (width < 40rem) {
+        .home-hero-slide {
+            &::before {
+                background-image: linear-gradient(
+                    to right,
+                    rgb(0 0 0 / 0.74),
+                    transparent 88%
+                );
+            }
+
+            &::after {
+                background-image: linear-gradient(
+                    to top,
+                    var(--theme-canvas) 0%,
+                    rgb(0 0 0 / 0.76) 38%,
+                    transparent 82%
+                );
+            }
+        }
+
         .anime-hero {
             &::before {
                 background-image:
