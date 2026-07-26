@@ -1,4 +1,4 @@
-import { Effect } from 'effect';
+import { Effect, Either } from 'effect';
 import { eq } from 'drizzle-orm';
 
 import {
@@ -155,23 +155,33 @@ async function refreshAnime(id: number) {
     const pending = requests.get(id);
     if (pending) return pending;
 
-    const request = Effect.runPromise(requestAnime(id)).then(async (data) => {
-        await db
-            .insert(animeDetailsCache)
-            .values({
-                anilistId: id,
-                data,
-                version: cacheVersion,
-                fetchedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-                target: animeDetailsCache.anilistId,
-                set: {
+    const request = Effect.runPromise(
+        requestAnime(id).pipe(Effect.either),
+    ).then(async (result) => {
+        if (Either.isLeft(result)) throw result.left;
+
+        const data = result.right;
+
+        try {
+            await db
+                .insert(animeDetailsCache)
+                .values({
+                    anilistId: id,
                     data,
                     version: cacheVersion,
                     fetchedAt: new Date(),
-                },
-            });
+                })
+                .onConflictDoUpdate({
+                    target: animeDetailsCache.anilistId,
+                    set: {
+                        data,
+                        version: cacheVersion,
+                        fetchedAt: new Date(),
+                    },
+                });
+        } catch (cause) {
+            console.error(`AniList cache write failed for ${id}`, cause);
+        }
 
         return data;
     });
@@ -185,15 +195,27 @@ async function refreshAnime(id: number) {
 }
 
 async function cachedAnime(id: number) {
-    const [cached] = await db
-        .select({
-            data: animeDetailsCache.data,
-            version: animeDetailsCache.version,
-            fetchedAt: animeDetailsCache.fetchedAt,
-        })
-        .from(animeDetailsCache)
-        .where(eq(animeDetailsCache.anilistId, id))
-        .limit(1);
+    let cached:
+        | {
+              data: AniListAnime;
+              version: number;
+              fetchedAt: Date;
+          }
+        | undefined;
+
+    try {
+        [cached] = await db
+            .select({
+                data: animeDetailsCache.data,
+                version: animeDetailsCache.version,
+                fetchedAt: animeDetailsCache.fetchedAt,
+            })
+            .from(animeDetailsCache)
+            .where(eq(animeDetailsCache.anilistId, id))
+            .limit(1);
+    } catch (cause) {
+        console.error(`AniList cache read failed for ${id}`, cause);
+    }
 
     if (cached?.version === cacheVersion) {
         if (Date.now() - cached.fetchedAt.getTime() > cacheLifetime) {
@@ -205,7 +227,19 @@ async function cachedAnime(id: number) {
         return cached.data;
     }
 
-    return refreshAnime(id);
+    try {
+        return await refreshAnime(id);
+    } catch (cause) {
+        if (cached) {
+            console.error(
+                `AniList refresh failed for ${id}; using stale cache`,
+                cause,
+            );
+            return cached.data;
+        }
+
+        throw cause;
+    }
 }
 
 function getAnime(id: number) {
