@@ -3,7 +3,11 @@ import { Effect, Either } from 'effect';
 
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
-import { getWatchlistState, togglePlanToWatch } from '$lib/server/watchlist';
+import {
+    getWatchlistedAnimeIds,
+    getWatchlistState,
+    togglePlanToWatch,
+} from '$lib/server/watchlist';
 import type { Actions, PageServerLoad } from './$types';
 
 const userCookie = 'arc_user';
@@ -24,6 +28,7 @@ function cookieUserId(value: string | undefined) {
 
 export const load: PageServerLoad = async ({ params, cookies }) => {
     const id = animeId(params.id);
+    const userId = cookieUserId(cookies.get(userCookie));
 
     const result = await Effect.runPromise(
         anime.anilist.getAnime(id).pipe(Effect.either),
@@ -45,6 +50,20 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     const franchise = result.right.idMal
         ? anime.franchise
               .getFranchiseOrder(result.right.idMal)
+              .then(async (order) => {
+                  const watched = await getWatchlistedAnimeIds(
+                      userId,
+                      order.entries.map(({ anilistId }) => anilistId),
+                  );
+
+                  return {
+                      ...order,
+                      entries: order.entries.map((entry) => ({
+                          ...entry,
+                          watchlisted: watched.has(entry.anilistId),
+                      })),
+                  };
+              })
               .catch((cause) => {
                   console.error(
                       `Franchise order failed for MAL ${result.right.idMal}`,
@@ -54,7 +73,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
               })
         : Promise.resolve(null);
     const watchlistState = await getWatchlistState(
-        cookieUserId(cookies.get(userCookie)),
+        userId,
         id,
     );
 
@@ -68,8 +87,9 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 };
 
 export const actions: Actions = {
-    watchlist: async ({ params, cookies }) => {
-        const id = animeId(params.id);
+    watchlist: async ({ params, cookies, request }) => {
+        const form = await request.formData();
+        const id = animeId(String(form.get('animeId') ?? params.id));
         const currentUserId = cookieUserId(cookies.get(userCookie));
         const userId = currentUserId ?? crypto.randomUUID();
 
