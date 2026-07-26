@@ -1,4 +1,6 @@
+import { eq } from 'drizzle-orm';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
+import type { AudioMode } from '$lib/anime';
 import {
     AllAnimeAvailableEpisodesDocument,
     AllAnimeSearchDocument,
@@ -7,6 +9,8 @@ import {
     type VaildTranslationTypeEnumType,
 } from '$lib/graphql/allanime/generated/graphql';
 import { graphql } from '$lib/server/graphql';
+import { db } from '$lib/server/db';
+import { animePlaybackProvider } from '$lib/server/db/schema';
 import { Effect } from 'effect';
 import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 
@@ -35,8 +39,7 @@ export interface AllAnimeEpisode {
     number: number;
     label: string;
     title: string;
-    hasSub: boolean;
-    hasDub: boolean;
+    audio: AudioMode[];
 }
 
 export interface AllAnimeStream {
@@ -44,9 +47,7 @@ export interface AllAnimeStream {
     quality: string | null;
 }
 
-type AllAnimeStreams = Partial<
-    Record<'sub' | 'dub', AllAnimeStream[]>
->;
+type AllAnimeStreams = Partial<Record<AudioMode, AllAnimeStream[]>>;
 
 const streamCache = new Map<
     string,
@@ -73,8 +74,18 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     return value as Record<string, unknown>;
 }
 
-async function findShowId(anime: AniListAnime) {
+async function findShowId(anime: AniListAnime, refresh = false) {
     if (!anime.idMal) throw new Error(`AniList ${anime.id} has no MAL ID`);
+
+    if (!refresh) {
+        const [stored] = await db
+            .select({ showId: animePlaybackProvider.allanimeShowId })
+            .from(animePlaybackProvider)
+            .where(eq(animePlaybackProvider.anilistId, anime.id))
+            .limit(1);
+
+        if (stored) return stored.showId;
+    }
 
     const titles = [
         anime.title?.english,
@@ -86,7 +97,7 @@ async function findShowId(anime: AniListAnime) {
             Boolean(title?.trim()) && titles.indexOf(title) === index,
     );
 
-    for (const translationType of ['sub', 'dub'] as const) {
+    for (const translationType of ['sub', 'dub', 'raw'] as const) {
         for (const query of titles) {
             const data = await request<AllAnimeSearchQuery, {
                 search: {
@@ -107,7 +118,26 @@ async function findShowId(anime: AniListAnime) {
                 (show) => Number(show.malId) === anime.idMal && show._id,
             );
 
-            if (match?._id) return match._id;
+            if (match?._id) {
+                const now = new Date();
+                await db
+                    .insert(animePlaybackProvider)
+                    .values({
+                        anilistId: anime.id,
+                        allanimeShowId: match._id,
+                        discoveredAt: now,
+                        verifiedAt: now,
+                    })
+                    .onConflictDoUpdate({
+                        target: animePlaybackProvider.anilistId,
+                        set: {
+                            allanimeShowId: match._id,
+                            verifiedAt: now,
+                        },
+                    });
+
+                return match._id;
+            }
         }
     }
 
@@ -115,17 +145,28 @@ async function findShowId(anime: AniListAnime) {
 }
 
 async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
-    const showId = await findShowId(anime);
-    const data = await request<
-        AllAnimeAvailableEpisodesQuery,
-        { showId: string; start: number; end: number }
-    >(AllAnimeAvailableEpisodesDocument, {
-        showId,
-        start: 0,
-        end: 100_000,
-    });
+    let showId = await findShowId(anime);
+    const load = (id: string) =>
+        request<
+            AllAnimeAvailableEpisodesQuery,
+            { showId: string; start: number; end: number }
+        >(AllAnimeAvailableEpisodesDocument, {
+            showId: id,
+            start: 0,
+            end: 100_000,
+        });
+    let data = await load(showId);
+
+    if (!data.show) {
+        showId = await findShowId(anime, true);
+        data = await load(showId);
+    }
 
     if (!data.show) throw new Error(`AllAnime show ${showId} was not found`);
+    await db
+        .update(animePlaybackProvider)
+        .set({ verifiedAt: new Date() })
+        .where(eq(animePlaybackProvider.anilistId, anime.id));
 
     const detail = asRecord(data.show.availableEpisodesDetail) ?? {};
     const strings = (key: 'sub' | 'dub' | 'raw') => {
@@ -135,8 +176,9 @@ async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
             (value): value is string => typeof value === 'string',
         );
     };
-    const sub = new Set([...strings('sub'), ...strings('raw')]);
+    const sub = new Set(strings('sub'));
     const dub = new Set(strings('dub'));
+    const raw = new Set(strings('raw'));
     const titles = new Map(
         (data.episodeInfos ?? []).flatMap((episode) => {
             const id = String(episode.episodeIdNum ?? '').trim();
@@ -154,18 +196,12 @@ async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
             return id && title ? [[id, title] as const] : [];
         }),
     );
-    const expectedCount = anime.episodes ?? 0;
-
-    return [...new Set([...sub, ...dub])]
+    return [...new Set([...sub, ...dub, ...raw])]
         .flatMap((id) => {
             const number = Number(id);
             const regular = Number.isInteger(number);
 
-            if (
-                !Number.isFinite(number) ||
-                number < 0 ||
-                (regular && expectedCount > 0 && number > expectedCount)
-            ) {
+            if (!Number.isFinite(number) || number < 0) {
                 return [];
             }
 
@@ -175,8 +211,11 @@ async function getEpisodes(anime: AniListAnime): Promise<AllAnimeEpisode[]> {
                     number,
                     label: `E${regular ? number : id}`,
                     title: titles.get(id) ?? '',
-                    hasSub: sub.has(id),
-                    hasDub: dub.has(id),
+                    audio: [
+                        ...(sub.has(id) ? ['sub' as const] : []),
+                        ...(dub.has(id) ? ['dub' as const] : []),
+                        ...(raw.has(id) ? ['raw' as const] : []),
+                    ],
                 },
             ];
         })
@@ -491,7 +530,7 @@ async function resolveTargets(
 async function encryptedSources(
     showId: string,
     episode: string,
-    translationType: 'sub' | 'dub',
+    translationType: AudioMode,
     crypto: StreamCrypto,
 ) {
     const url = new URL(endpoint);
@@ -554,13 +593,13 @@ async function encryptedSources(
 async function resolveStreams(
     anime: AniListAnime,
     episode: string,
-    translationTypes: ('sub' | 'dub')[],
+    translationTypes: AudioMode[],
 ) {
     const showId = await findShowId(anime);
     let crypto = await getStreamCrypto();
     const errors: unknown[] = [];
     const streams: AllAnimeStreams = {};
-    const loadSources = (translationType: 'sub' | 'dub') =>
+    const loadSources = (translationType: AudioMode) =>
         encryptedSources(showId, episode, translationType, crypto).then(
             (sources) => ({ translationType, sources, error: null }),
             (error: unknown) => ({
@@ -658,7 +697,7 @@ async function resolveStreams(
 async function getStreams(
     anime: AniListAnime,
     episode: string,
-    translationTypes: ('sub' | 'dub')[],
+    translationTypes: AudioMode[],
 ) {
     const key = `${anime.id}:${episode}:${translationTypes.toSorted().join(',')}`;
     const cached = streamCache.get(key);
