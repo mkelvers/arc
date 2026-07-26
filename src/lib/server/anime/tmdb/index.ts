@@ -130,7 +130,17 @@ function titlesFor(anime: AniListAnime) {
 }
 
 function isSpecialRelease(anime: AniListAnime) {
-    return anime.format === 'OVA' || anime.format === 'SPECIAL';
+    return (
+        anime.format === 'OVA' ||
+        anime.format === 'SPECIAL' ||
+        (anime.format === 'ONA' &&
+            Boolean(anime.episodes && anime.episodes <= 3) &&
+            (anime.relations?.edges ?? []).some(
+                (edge) =>
+                    edge?.relationType === 'PARENT' &&
+                    edge.node?.type === 'ANIME',
+            ))
+    );
 }
 
 function mappingTitlesFor(anime: AniListAnime) {
