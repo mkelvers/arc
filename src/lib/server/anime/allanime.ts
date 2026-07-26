@@ -12,6 +12,7 @@ import {
 import { graphql } from '$lib/server/graphql';
 import { db } from '$lib/server/db';
 import { animePlaybackProvider } from '$lib/server/db/schema';
+import { audioDelayFromMp4 } from '$lib/server/anime/mp4';
 import { Effect } from 'effect';
 import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 
@@ -46,6 +47,7 @@ export interface AllAnimeEpisode {
 export interface AllAnimeStream {
     url: string;
     quality: string | null;
+    audioDelay: number;
 }
 
 type AllAnimeStreams = Partial<Record<AudioMode, AllAnimeStream[]>>;
@@ -465,6 +467,57 @@ interface MediaReference {
     quality: string | null;
 }
 
+async function responsePrefix(response: Response, limit: number) {
+    const reader = response.body?.getReader();
+    if (!reader) return new Uint8Array();
+
+    const chunks: Uint8Array[] = [];
+    let length = 0;
+
+    try {
+        while (length < limit) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const remaining = limit - length;
+            const chunk =
+                value.length > remaining
+                    ? value.subarray(0, remaining)
+                    : value;
+            chunks.push(chunk);
+            length += chunk.length;
+        }
+    } finally {
+        await reader.cancel().catch(() => undefined);
+    }
+
+    const result = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    return result;
+}
+
+async function streamAudioDelay(target: string) {
+    const host = new URL(target).hostname;
+    const response = await fetch(target, {
+        headers: {
+            Range: 'bytes=0-2097151',
+            Referer: host.endsWith('.mp4upload.com')
+                ? 'https://www.mp4upload.com'
+                : referer,
+            'User-Agent': userAgent,
+        },
+        signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok && response.status !== 206) return 0;
+
+    return audioDelayFromMp4(await responsePrefix(response, 2_097_152));
+}
+
 function streamQuality(value: unknown) {
     const match = String(value ?? '').match(/^(\d{3,4})p?$/i);
     return match ? `${Number(match[1])}p` : null;
@@ -518,6 +571,7 @@ function wixStreams(target: string): AllAnimeStream[] {
                   {
                       url: `https://${match[1]}/${quality}/${match[3]}`,
                       quality,
+                      audioDelay: 0,
                   },
               ]
             : [];
@@ -548,6 +602,7 @@ async function resolveTargets(
             {
                 url: url.toString(),
                 quality: quality ?? streamQuality(pathQuality),
+                audioDelay: 0,
             },
         ];
     }
@@ -731,7 +786,16 @@ async function resolveStreams(
                         Number.parseInt(left.quality ?? '0'),
                 );
 
-            if (resolved.length) streams[translationType] = resolved;
+            if (resolved.length) {
+                const audioDelay =
+                    translationType === 'dub'
+                        ? await streamAudioDelay(resolved[0].url).catch(() => 0)
+                        : 0;
+                streams[translationType] = resolved.map((stream) => ({
+                    ...stream,
+                    audioDelay,
+                }));
+            }
 
             if (streams[translationType]) return;
 
