@@ -98,7 +98,14 @@ export const load: PageServerLoad = async ({ params }) => {
         anime.anilist.getAnime(id).pipe(Effect.either),
     );
 
-    if (Either.isLeft(result)) error(502, result.left.message);
+    if (Either.isLeft(result)) {
+        error(
+            result.left.status === 404 ? 404 : 502,
+            result.left.status === 404
+                ? 'This anime is no longer available on AniList'
+                : result.left.message,
+        );
+    }
 
     const [storedMedia, episodes] = await Promise.all([
         anime.tmdb.getStoredMedia(id).catch(() => null),
