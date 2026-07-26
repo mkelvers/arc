@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime';
+    import { formatAudioLabel, type AnimeEpisode } from '$lib/anime';
 
     interface Props {
         episode: AnimeEpisode;
@@ -31,6 +31,6 @@
         <h3 class="line-clamp-3 text-sm leading-snug font-bold text-white">
             {episode.label} – {episode.title}
         </h3>
-        <p class="mt-1.5 text-sm text-watch-muted">{episode.audioLabel}</p>
+        <p class="mt-1.5 text-sm text-watch-muted">{formatAudioLabel(episode.audio)}</p>
     </div>
 </a>

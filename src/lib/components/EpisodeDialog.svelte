@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime';
+    import { formatAudioLabel, type AnimeEpisode } from '$lib/anime';
     import { XIcon } from 'phosphor-svelte';
 
     interface Props {
@@ -91,7 +91,7 @@
                         <h3 class="mt-2 line-clamp-2 text-base leading-snug font-bold text-white">
                             {episode.label} – {episode.title}
                         </h3>
-                        <p class="mt-3 text-sm text-watch-muted">{episode.audioLabel}</p>
+                        <p class="mt-3 text-sm text-watch-muted">{formatAudioLabel(episode.audio)}</p>
                     </a>
                 {/each}
             </div>
