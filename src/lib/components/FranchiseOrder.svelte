@@ -62,33 +62,24 @@
         <div class="relative">
             <div
                 bind:this={track}
-                class="-mx-2 grid auto-cols-franchise grid-flow-col gap-x-5 gap-y-8 overflow-x-auto scroll-smooth md:auto-cols-franchise-md 2xl:auto-cols-franchise-2xl"
+                class="-mx-2 grid snap-x snap-mandatory auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-5 2xl:auto-cols-franchise-2xl"
                 onscroll={updateScrollState}
             >
                 {#each visibleEntries as entry}
-                    <AnimeCard
-                        anime={entry}
-                        current={entry.anilistId === currentAnimeId}
-                        watchlisted={entry.watchlisted}
-                    />
+                    <div class="min-w-0 snap-start">
+                        <AnimeCard
+                            anime={entry}
+                            current={entry.anilistId === currentAnimeId}
+                            watchlisted={entry.watchlisted}
+                        />
+                    </div>
                 {/each}
             </div>
-
-            <div
-                class="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-linear-to-r from-canvas via-canvas/70 to-transparent opacity-0 transition-opacity md:w-28"
-                class:opacity-100={canScrollBack}
-                aria-hidden="true"
-            ></div>
-            <div
-                class="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-linear-to-l from-canvas via-canvas/70 to-transparent opacity-0 transition-opacity md:w-28"
-                class:opacity-100={canScrollForward}
-                aria-hidden="true"
-            ></div>
 
             {#if canScrollBack}
                 <button
                     type="button"
-                    class="absolute top-1/2 left-5 z-20 grid size-10 -translate-y-1/2 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:left-10 2xl:left-12"
+                    class="absolute top-1/2 left-10 z-20 hidden size-10 -translate-y-1/2 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:left-12"
                     aria-label="Previous franchise titles"
                     onclick={() => scrollByPage(-1)}
                 >
@@ -99,7 +90,7 @@
             {#if canScrollForward}
                 <button
                     type="button"
-                    class="absolute top-1/2 right-5 z-20 grid size-10 -translate-y-1/2 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:right-10 2xl:right-12"
+                    class="absolute top-1/2 right-10 z-20 hidden size-10 -translate-y-1/2 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:right-12"
                     aria-label="Next franchise titles"
                     onclick={() => scrollByPage(1)}
                 >
