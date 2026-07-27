@@ -66,6 +66,7 @@
     <section class="border-b border-border bg-header px-5 py-8 sm:px-10 sm:py-10 lg:px-16">
         <form action="/search" class="mx-auto max-w-6xl" role="search">
             <label for="anime-search" class="sr-only">Search anime</label>
+            <!-- svelte-ignore a11y_autofocus -->
             <input
                 id="anime-search"
                 name="q"
@@ -75,6 +76,7 @@
                 autocomplete="off"
                 oninput={(event) => (searchDraft = event.currentTarget.value)}
                 class="h-14 w-full border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
+                autofocus
             />
         </form>
     </section>
