@@ -1,9 +1,11 @@
 import { goto } from '$app/navigation';
 import type { AudioMode } from '$lib/anime/audio';
+import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { AudioDelay } from './audio';
 import {
     availableModes,
+    isHlsSource,
     orderStreams,
     qualitiesFor,
     qualityLabel,
@@ -31,6 +33,8 @@ export class Playback {
     private resumeAt: number | null = null;
     private resumePlayback = false;
     private autoplayAttempted = false;
+    private changingSource = false;
+    private hls: HlsType | null = null;
     private readonly audio = new AudioDelay();
 
     constructor(
@@ -62,6 +66,12 @@ export class Playback {
 
     get audioDelay() {
         return this.orderedSources[this.sourceIndex]?.audioDelay ?? 0;
+    }
+
+    get subtitleUrl() {
+        return (
+            this.orderedSources[this.sourceIndex]?.subtitleUrl ?? null
+        );
     }
 
     get bestQuality() {
@@ -145,11 +155,72 @@ export class Playback {
         this.buffered = 0;
     }
 
+    private destroyHls() {
+        this.hls?.destroy();
+        this.hls = null;
+    }
+
     private async reloadSource() {
+        const source = this.src;
         await tick();
+        const video = this.video;
+        if (!video || source !== this.src) {
+            return;
+        }
+
+        this.destroyHls();
         this.syncAudio(true);
         this.resumeAudio();
-        this.video.load();
+        video.removeAttribute('src');
+        video.load();
+
+        if (!source) {
+            return;
+        }
+
+        if (!isHlsSource(source)) {
+            video.src = source;
+            video.load();
+            return;
+        }
+
+        const { default: Hls } = await import('hls.js');
+        if (video !== this.video || source !== this.src) {
+            return;
+        }
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            let recoveredMediaError = false;
+            this.hls = hls;
+            hls.on(Hls.Events.ERROR, (_event, data) => {
+                if (this.hls !== hls || !data.fatal) {
+                    return;
+                }
+
+                if (
+                    data.type === Hls.ErrorTypes.MEDIA_ERROR &&
+                    !recoveredMediaError
+                ) {
+                    recoveredMediaError = true;
+                    hls.recoverMediaError();
+                    return;
+                }
+
+                void this.tryNextSource();
+            });
+            hls.loadSource(source);
+            hls.attachMedia(video);
+            return;
+        }
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = source;
+            video.load();
+            return;
+        }
+
+        this.changingSource = false;
+        await this.tryNextSource();
     }
 
     async switchMode(mode: AudioMode) {
@@ -192,10 +263,16 @@ export class Playback {
     }
 
     async tryNextSource() {
+        if (this.changingSource) {
+            return;
+        }
+        this.changingSource = true;
+
         if (this.sourceIndex + 1 >= this.orderedSources.length) {
             this.loading = false;
             this.error = true;
             this.playing = false;
+            this.changingSource = false;
             this.onActivity();
             return;
         }
@@ -206,7 +283,11 @@ export class Playback {
         this.sourceIndex += 1;
         this.loading = true;
         this.buffered = 0;
-        await this.reloadSource();
+        try {
+            await this.reloadSource();
+        } finally {
+            this.changingSource = false;
+        }
     }
 
     seek(seconds: number) {
@@ -225,19 +306,21 @@ export class Playback {
     }
 
     handleMetadata() {
-        this.duration = this.video.duration;
+        const video = this.video;
+        this.changingSource = false;
+        this.duration = video.duration;
         this.loading = false;
         this.error = false;
         this.syncAudio(true);
 
         if (this.resumeAt !== null) {
             this.currentTime = Math.min(this.resumeAt, this.duration);
-            this.video.currentTime = this.currentTime;
+            video.currentTime = this.currentTime;
             this.resumeAt = null;
 
             if (this.resumePlayback) {
                 this.resumeAudio();
-                this.video.play().catch(() => undefined);
+                video.play().catch(() => undefined);
             }
 
             this.resumePlayback = false;
@@ -254,9 +337,13 @@ export class Playback {
         }
 
         this.resumeAudio();
-        this.video.play().catch(() => {
-            this.video.muted = true;
-            this.video.play().catch(() => undefined);
+        video.play().catch(() => {
+            if (this.video !== video) {
+                return;
+            }
+
+            video.muted = true;
+            video.play().catch(() => undefined);
         });
     }
 
@@ -274,8 +361,7 @@ export class Playback {
     async retry() {
         this.resetSource();
         this.autoplayAttempted = false;
-        await tick();
-        this.video.load();
+        await this.reloadSource();
     }
 
     ended() {
@@ -300,8 +386,6 @@ export class Playback {
         }
 
         const saved = preferences.load(this.sources, this.qualities);
-        let reload = false;
-
         if (saved.volume !== null) {
             this.video.volume = saved.volume;
 
@@ -312,7 +396,6 @@ export class Playback {
 
         if (saved.mode && saved.mode !== this.mode) {
             this.mode = saved.mode;
-            reload = true;
         }
 
         if (saved.autoplay !== null) {
@@ -321,13 +404,13 @@ export class Playback {
 
         if (saved.quality && saved.quality !== this.quality) {
             this.quality = saved.quality;
-            reload = true;
         }
 
-        if (reload) {
-            void tick().then(() => this.video.load());
-        }
+        void this.reloadSource();
 
-        return () => this.audio.close();
+        return () => {
+            this.destroyHls();
+            this.audio.close();
+        };
     }
 }
