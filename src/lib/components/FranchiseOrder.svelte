@@ -2,8 +2,8 @@
     import { onMount, tick } from 'svelte';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
+    import type { FranchiseOrder as FranchiseOrderData } from '$lib/anime/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import type { FranchiseOrder as FranchiseOrderData } from '$lib/server/anime/franchise';
 
     interface Props {
         order: FranchiseOrderData;
@@ -15,10 +15,11 @@
     let track = $state<HTMLDivElement>();
     let canScrollBack = $state(false);
     let canScrollForward = $state(false);
-    const visibleEntries = $derived(order.entries);
 
     function updateScrollState() {
-        if (!track) return;
+        if (!track) {
+            return;
+        }
 
         const maxScroll = track.scrollWidth - track.clientWidth;
         canScrollBack = track.scrollLeft > 1;
@@ -26,7 +27,9 @@
     }
 
     function scrollByPage(direction: -1 | 1) {
-        if (!track) return;
+        if (!track) {
+            return;
+        }
 
         track.scrollBy({
             left: direction * track.clientWidth,
@@ -35,15 +38,19 @@
     }
 
     $effect(() => {
-        visibleEntries.length;
+        order.entries.length;
         void tick().then(() => {
-            if (track) track.scrollLeft = 0;
+            if (track) {
+                track.scrollLeft = 0;
+            }
             updateScrollState();
         });
     });
 
     onMount(() => {
-        if (!track) return;
+        if (!track) {
+            return;
+        }
 
         const observer = new ResizeObserver(updateScrollState);
         observer.observe(track);
@@ -58,14 +65,14 @@
         Franchise Order
     </h2>
 
-    {#if visibleEntries.length}
+    {#if order.entries.length}
         <div class="relative">
             <div
                 bind:this={track}
                 class="-mx-2 grid snap-x snap-mandatory auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-5 2xl:auto-cols-franchise-2xl"
                 onscroll={updateScrollState}
             >
-                {#each visibleEntries as entry}
+                {#each order.entries as entry}
                     <div class="min-w-0 snap-start">
                         <AnimeCard
                             anime={entry}
