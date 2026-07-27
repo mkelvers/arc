@@ -1,5 +1,3 @@
-import { eq } from 'drizzle-orm';
-
 import type { AudioMode } from '$lib/anime/audio';
 import {
     AllAnimeAvailableEpisodesDocument,
@@ -9,12 +7,16 @@ import {
     type AllAnimeSearchQuery,
     type VaildTranslationTypeEnumType,
 } from '$lib/graphql/allanime/generated/graphql';
-import { db } from '$lib/server/db';
-import { animePlaybackProvider } from '$lib/server/db/schema';
+import {
+    providerMediaId,
+    saveProviderMediaId,
+    verifyProviderMediaId,
+} from '../providers/mapping';
 import { record, request } from './client';
 import type { AniListAnime, Episode } from './types';
 
 const audioCacheLifetime = 30 * 60 * 1_000;
+const providerName = 'allanime';
 
 let audioCache: {
     labels: Map<number, AudioMode[]>;
@@ -80,14 +82,9 @@ export async function findShowId(anime: AniListAnime, refresh = false) {
     }
 
     if (!refresh) {
-        const [stored] = await db
-            .select({ showId: animePlaybackProvider.allanimeShowId })
-            .from(animePlaybackProvider)
-            .where(eq(animePlaybackProvider.anilistId, anime.id))
-            .limit(1);
-
+        const stored = await providerMediaId(anime.id, providerName);
         if (stored) {
-            return stored.showId;
+            return stored;
         }
     }
 
@@ -131,22 +128,11 @@ export async function findShowId(anime: AniListAnime, refresh = false) {
                 continue;
             }
 
-            const now = new Date();
-            await db
-                .insert(animePlaybackProvider)
-                .values({
-                    anilistId: anime.id,
-                    allanimeShowId: match._id,
-                    discoveredAt: now,
-                    verifiedAt: now,
-                })
-                .onConflictDoUpdate({
-                    target: animePlaybackProvider.anilistId,
-                    set: {
-                        allanimeShowId: match._id,
-                        verifiedAt: now,
-                    },
-                });
+            await saveProviderMediaId(
+                anime.id,
+                providerName,
+                match._id,
+            );
 
             return match._id;
         }
@@ -179,10 +165,7 @@ export async function getEpisodes(
         throw new Error(`AllAnime show ${showId} was not found`);
     }
 
-    await db
-        .update(animePlaybackProvider)
-        .set({ verifiedAt: new Date() })
-        .where(eq(animePlaybackProvider.anilistId, anime.id));
+    await verifyProviderMediaId(anime.id, providerName);
 
     const detail = record(data.show.availableEpisodesDetail) ?? {};
     const strings = (key: AudioMode) => {
