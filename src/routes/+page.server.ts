@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { inArray } from 'drizzle-orm';
+import { asc, inArray } from 'drizzle-orm';
 import { Effect, Either } from 'effect';
 
 import { formatAudioLabel } from '$lib/anime';
@@ -57,7 +57,8 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
     const highlightIds = result.right.highlights.map(({ id }) => id);
     const seasonIds = result.right.season.map(({ id }) => id);
-    const audioIds = [...new Set([...highlightIds, ...seasonIds])];
+    const animeIds = [...new Set([...highlightIds, ...seasonIds])];
+    const audioIds = animeIds;
     const [storedMedia, episodeRows, popularAudio, watchlisted] =
         await Promise.all([
             Promise.all(
@@ -69,15 +70,17 @@ export const load: PageServerLoad = async ({ cookies }) => {
                 ? db
                       .select({
                           anilistId: animeEpisode.anilistId,
+                          episodeId: animeEpisode.episodeId,
                           audio: animeEpisode.audio,
                       })
                       .from(animeEpisode)
                       .where(inArray(animeEpisode.anilistId, audioIds))
+                      .orderBy(asc(animeEpisode.number))
                 : [],
             anime.allanime.getPopularAudioLabels().catch(() => new Map()),
             getWatchlistedAnimeIds(
                 cookieUserId(cookies.get(userCookie)),
-                seasonIds,
+                animeIds,
             ),
         ]);
     const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
@@ -88,6 +91,16 @@ export const load: PageServerLoad = async ({ cookies }) => {
             new Set<'sub' | 'dub' | 'raw'>();
         episode.audio.forEach((mode) => audio.add(mode));
         audioByAnime.set(episode.anilistId, audio);
+    }
+
+    const firstEpisodeHrefByAnime = new Map<number, string>();
+    for (const episode of episodeRows) {
+        if (firstEpisodeHrefByAnime.has(episode.anilistId)) continue;
+
+        firstEpisodeHrefByAnime.set(
+            episode.anilistId,
+            `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
+        );
     }
 
     return {
@@ -104,6 +117,9 @@ export const load: PageServerLoad = async ({ cookies }) => {
                     ...(audioByAnime.get(highlight.id) ?? []),
                 ]),
                 href: `/anime/${highlight.id}`,
+                playHref:
+                    firstEpisodeHrefByAnime.get(highlight.id) ??
+                    `/anime/${highlight.id}`,
             };
         }),
         season: result.right.season.map((card) => ({

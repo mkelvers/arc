@@ -1,6 +1,8 @@
 <script lang="ts">
+    import { enhance } from '$app/forms';
     import { onMount } from 'svelte';
     import {
+        BookmarkSimpleIcon,
         CaretLeftIcon,
         CaretRightIcon,
         PauseIcon,
@@ -95,22 +97,34 @@
                     <article
                         class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden"
                     >
-                        <img
-                            src={anime.imageUrl}
-                            alt=""
-                            class="col-start-1 row-start-1 size-full object-cover object-center"
-                            loading={index === 0 ? 'eager' : 'lazy'}
-                            fetchpriority={index === 0 ? 'high' : 'auto'}
-                        />
+                        <a
+                            href={anime.href}
+                            class="col-start-1 row-start-1 block focus-visible:outline-2 focus-visible:outline-white"
+                            aria-label={`View ${anime.title}`}
+                        >
+                            <img
+                                src={anime.imageUrl}
+                                alt=""
+                                class="size-full object-cover object-center"
+                                loading={index === 0 ? 'eager' : 'lazy'}
+                                fetchpriority={index === 0 ? 'high' : 'auto'}
+                            />
+                        </a>
 
                         <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-72 sm:px-10 lg:px-16 2xl:self-start 2xl:pt-[calc((100svh-3.5rem)/2+2rem)] 2xl:pb-0">
                             {#if anime.logoUrl}
-                                <img
-                                    src={anime.logoUrl}
-                                    alt={anime.title}
-                                    style:height={`clamp(${5 * anime.logoSize / 100}rem, ${6.4 * anime.logoSize / 100}vw, ${8 * anime.logoSize / 100}rem)`}
-                                    class="max-h-28 max-w-[75vw] object-contain object-left sm:max-w-md lg:max-w-xl 2xl:max-h-40 2xl:max-w-2xl"
-                                />
+                                <a
+                                    href={anime.href}
+                                    class="block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                                    aria-label={`View ${anime.title}`}
+                                >
+                                    <img
+                                        src={anime.logoUrl}
+                                        alt={anime.title}
+                                        style:height={`clamp(${5 * anime.logoSize / 100}rem, ${6.4 * anime.logoSize / 100}vw, ${8 * anime.logoSize / 100}rem)`}
+                                        class="max-h-28 max-w-[75vw] object-contain object-left sm:max-w-md lg:max-w-xl 2xl:max-h-40 2xl:max-w-2xl"
+                                    />
+                                </a>
                             {:else}
                                 <h1 class="sr-only">
                                     {anime.title}
@@ -143,13 +157,35 @@
                                 </p>
                             {/if}
 
-                            <a
-                                href={anime.href}
-                                class="mt-7 inline-flex min-h-12 items-center gap-2.5 bg-accent px-5 text-sm font-bold text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-14 2xl:px-7 2xl:text-base"
-                            >
-                                <PlayIcon size="1.45rem" weight="fill" aria-hidden="true" />
-                                VIEW SERIES
-                            </a>
+                            <div class="mt-7 flex flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm">
+                                <a
+                                    href={anime.playHref}
+                                    class="inline-flex min-h-12 items-center gap-2.5 bg-accent px-5 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-14 2xl:px-7 2xl:text-base"
+                                >
+                                    <PlayIcon size="1.45rem" weight="fill" aria-hidden="true" />
+                                    START WATCHING
+                                </a>
+                                <form method="POST" action="?/watchlist" use:enhance>
+                                    <input type="hidden" name="animeId" value={anime.id} />
+                                    <button
+                                        type="submit"
+                                        class:bg-accent={data.watchlistedIds.includes(anime.id)}
+                                        class:text-on-accent={data.watchlistedIds.includes(anime.id)}
+                                        class="grid size-12 shrink-0 place-items-center border border-accent transition-colors hover:bg-accent hover:text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:size-14"
+                                        aria-label={data.watchlistedIds.includes(anime.id)
+                                            ? `Remove ${anime.title} from Plan to Watch`
+                                            : `Add ${anime.title} to Plan to Watch`}
+                                        aria-pressed={data.watchlistedIds.includes(anime.id)}
+                                        title={data.watchlistedIds.includes(anime.id) ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
+                                    >
+                                        <BookmarkSimpleIcon
+                                            size="1.65rem"
+                                            weight={data.watchlistedIds.includes(anime.id) ? 'fill' : 'regular'}
+                                            aria-hidden="true"
+                                        />
+                                    </button>
+                                </form>
+                            </div>
 
                             {#if data.highlights.length > 1}
                                 <div class="mt-4 flex items-center gap-2 2xl:mt-5">
@@ -219,7 +255,7 @@
                 <div
                     bind:this={seasonRail}
                     onscroll={updateSeasonRail}
-                    class="-mx-2 grid snap-x snap-mandatory grid-flow-col auto-cols-[46%] gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
+                    class="-mx-2 grid snap-x snap-mandatory grid-flow-col auto-cols-franchise gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
                 >
                     {#each data.season as anime (anime.id)}
                         <div class="min-w-0 snap-start">
