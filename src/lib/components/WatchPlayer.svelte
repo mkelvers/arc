@@ -76,7 +76,7 @@
                 <div>
                     <p class="text-base font-bold">
                         {result.streamError
-                            ? 'AllAnime could not load this video.'
+                            ? 'The streaming providers could not load this video.'
                             : 'No video source is available.'}
                     </p>
                     <p class="mt-2 text-sm text-white/65">
