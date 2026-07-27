@@ -3,71 +3,19 @@
     import { onMount } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import type { AnimeCard as AnimeCardModel } from '$lib/anime/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import { RecentSearches } from '$lib/search/recent.svelte';
     import type { PageProps } from './$types';
 
-    type RecentResult = Pick<AnimeCardModel, 'id' | 'href' | 'title'>;
-
-    const recentStorageKey = 'arc:recent-search-results';
-
     let { data }: PageProps = $props();
+    const recent = new RecentSearches();
     let searchDraft = $state<string | null>(null);
     let requestedQuery = $state<string | null>(null);
     let currentRouteQuery = $state<string | null>(null);
-    let recentResults = $state<RecentResult[]>([]);
     const routeQuery = $derived(data.query);
     const searchValue = $derived(searchDraft ?? routeQuery);
 
-    function isRecentResult(value: unknown): value is RecentResult {
-        if (!value || typeof value !== 'object') return false;
-
-        const result = value as Partial<RecentResult>;
-
-        return (
-            Number.isSafeInteger(result.id) &&
-            typeof result.href === 'string' &&
-            result.href.startsWith('/anime/') &&
-            typeof result.title === 'string' &&
-            result.title.length > 0
-        );
-    }
-
-    function saveRecentResults(results: RecentResult[]) {
-        recentResults = results;
-        localStorage.setItem(recentStorageKey, JSON.stringify(results));
-    }
-
-    function rememberResult(anime: AnimeCardModel) {
-        const recent = {
-            id: anime.id,
-            href: anime.href,
-            title: anime.title,
-        };
-
-        saveRecentResults([
-            recent,
-            ...recentResults.filter(({ id }) => id !== anime.id),
-        ]);
-    }
-
-    function removeRecentResult(id: number) {
-        saveRecentResults(recentResults.filter((result) => result.id !== id));
-    }
-
-    onMount(() => {
-        try {
-            const stored = JSON.parse(
-                localStorage.getItem(recentStorageKey) ?? '[]',
-            );
-
-            if (Array.isArray(stored)) {
-                recentResults = stored.filter(isRecentResult);
-            }
-        } catch {
-            localStorage.removeItem(recentStorageKey);
-        }
-    });
+    onMount(() => recent.load());
 
     $effect(() => {
         if (currentRouteQuery === null) {
@@ -76,7 +24,9 @@
             return;
         }
 
-        if (routeQuery === currentRouteQuery) return;
+        if (routeQuery === currentRouteQuery) {
+            return;
+        }
 
         const previousRouteQuery = currentRouteQuery;
         currentRouteQuery = routeQuery;
@@ -92,7 +42,9 @@
 
     $effect(() => {
         const query = searchValue.trim();
-        if (query === routeQuery || query === requestedQuery) return;
+        if (query === routeQuery || query === requestedQuery) {
+            return;
+        }
 
         const timeout = setTimeout(() => {
             requestedQuery = query;
@@ -140,7 +92,7 @@
                             <AnimeCard
                                 anime={result}
                                 watchlisted={data.watchlistedIds.includes(result.id)}
-                                onselect={rememberResult}
+                                onselect={(anime) => recent.remember(anime)}
                             />
                         {/each}
                     </div>
@@ -150,7 +102,7 @@
                     </p>
                 {/if}
             </section>
-        {:else if recentResults.length}
+        {:else if recent.results.length}
             <section aria-labelledby="recent-results-title">
                 <div class="mb-4 flex items-center justify-between gap-6">
                     <h1 id="recent-results-title" class="text-lg font-semibold">
@@ -159,14 +111,14 @@
                     <button
                         type="button"
                         class="min-h-11 shrink-0 text-xs font-bold uppercase text-muted hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                        onclick={() => saveRecentResults([])}
+                        onclick={() => recent.clear()}
                     >
                         Clear Recent
                     </button>
                 </div>
 
                 <ul class="flex flex-wrap gap-2">
-                    {#each recentResults as result (result.id)}
+                    {#each recent.results as result (result.id)}
                         <li class="flex min-w-0 max-w-full items-stretch bg-player-accent/30 text-xs font-semibold uppercase">
                             <a
                                 href={result.href}
@@ -179,7 +131,7 @@
                                 class="grid size-11 shrink-0 place-items-center border-l border-black/40 text-muted hover:bg-player-accent/20 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
                                 aria-label={`Remove ${result.title} from recent search results`}
                                 title="Remove"
-                                onclick={() => removeRecentResult(result.id)}
+                                onclick={() => recent.remove(result.id)}
                             >
                                 <XIcon size="1.15rem" weight="bold" aria-hidden="true" />
                             </button>

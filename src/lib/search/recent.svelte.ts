@@ -1,0 +1,67 @@
+import type { AnimeCard } from '$lib/anime/types';
+
+interface RecentResult {
+    id: number;
+    href: string;
+    title: string;
+}
+
+const key = 'arc:recent-search-results';
+
+function isRecent(value: unknown): value is RecentResult {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const result = value as Partial<RecentResult>;
+
+    return (
+        Number.isSafeInteger(result.id) &&
+        typeof result.href === 'string' &&
+        result.href.startsWith('/anime/') &&
+        typeof result.title === 'string' &&
+        result.title.length > 0
+    );
+}
+
+export class RecentSearches {
+    results = $state<RecentResult[]>([]);
+
+    private save(results: RecentResult[]) {
+        this.results = results;
+        localStorage.setItem(key, JSON.stringify(results));
+    }
+
+    load() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(key) ?? '[]');
+
+            if (Array.isArray(stored)) {
+                this.results = stored.filter(isRecent);
+            }
+        } catch {
+            localStorage.removeItem(key);
+        }
+    }
+
+    remember(anime: AnimeCard) {
+        const result = {
+            id: anime.id,
+            href: anime.href,
+            title: anime.title,
+        };
+
+        this.save([
+            result,
+            ...this.results.filter(({ id }) => id !== anime.id),
+        ]);
+    }
+
+    remove(id: number) {
+        this.save(this.results.filter((result) => result.id !== id));
+    }
+
+    clear() {
+        this.save([]);
+    }
+}
