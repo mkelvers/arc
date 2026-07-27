@@ -103,7 +103,7 @@
                             aria-label={`View ${anime.title}`}
                         >
                             <img
-                                src={anime.imageUrl}
+                                src={anime.image}
                                 alt=""
                                 class="size-full object-cover object-center"
                                 loading={index === 0 ? 'eager' : 'lazy'}
@@ -159,7 +159,7 @@
 
                             <div class="mt-7 flex flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm">
                                 <a
-                                    href={anime.playHref}
+                                    href={anime.watchHref}
                                     class="inline-flex min-h-12 items-center gap-2.5 bg-accent px-5 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-14 2xl:px-7 2xl:text-base"
                                 >
                                     <PlayIcon size="1.45rem" weight="fill" aria-hidden="true" />

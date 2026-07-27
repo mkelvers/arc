@@ -1,6 +1,6 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import { formatAudioLabel } from '$lib/anime';
+    import { audioAvailabilityLabel } from '$lib/anime/audio';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
@@ -20,7 +20,7 @@
     let retryingStreams = $state(false);
 
     const poster = $derived(
-        data.currentEpisode.imageUrl ?? data.fallbackImage,
+        data.currentEpisode.image ?? data.fallbackImage,
     );
 
     $effect(() => {
@@ -160,15 +160,15 @@
             </div>
 
             <p class="mt-3 text-sm text-watch-muted">
-                {formatAudioLabel(data.currentEpisode.audio)}
+                {audioAvailabilityLabel(data.currentEpisode.audio)}
                 {#if data.currentEpisode.duration}
                     <span aria-hidden="true"> · </span>
                     {data.currentEpisode.duration}
                 {/if}
             </p>
-            {#if data.currentEpisode.airDate}
+            {#if data.currentEpisode.releaseDate}
                 <p class="mt-2 text-sm text-watch-secondary">
-                    Released on {releaseDate(data.currentEpisode.airDate)}
+                    Released on {releaseDate(data.currentEpisode.releaseDate)}
                 </p>
             {/if}
 

@@ -1,7 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { Effect, Either } from 'effect';
 
-import { formatEpisodesAudioLabel } from '$lib/anime';
+import { episodeAudioAvailabilityLabel } from '$lib/anime/audio';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import {
@@ -52,7 +52,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         return null;
     });
     const episodes = anime.episodes.getEpisodes(result.right).catch(() => []);
-    const audioLabel = episodes.then(formatEpisodesAudioLabel);
+    const audioLabel = episodes.then(episodeAudioAvailabilityLabel);
     const franchise = result.right.idMal
         ? anime.franchise
               .getFranchiseOrder(result.right.idMal)

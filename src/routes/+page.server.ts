@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { asc, inArray } from 'drizzle-orm';
 import { Effect, Either } from 'effect';
 
-import { formatAudioLabel } from '$lib/anime';
+import { audioAvailabilityLabel } from '$lib/anime/audio';
 import type { MediaSeason } from '$lib/graphql/anilist/generated/graphql';
 import { anime } from '$lib/server/anime';
 import { db } from '$lib/server/db';
@@ -109,22 +109,22 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
             return {
                 ...highlight,
-                imageUrl:
-                    artwork?.selectedBackdrop?.url ?? highlight.imageUrl,
+                image:
+                    artwork?.selectedBackdrop?.url ?? highlight.image,
                 logoUrl: artwork?.selectedLogo?.url ?? null,
                 logoSize: artwork?.logoSize ?? 100,
-                audioLabel: formatAudioLabel([
+                audioLabel: audioAvailabilityLabel([
                     ...(audioByAnime.get(highlight.id) ?? []),
                 ]),
                 href: `/anime/${highlight.id}`,
-                playHref:
+                watchHref:
                     firstEpisodeHrefByAnime.get(highlight.id) ??
                     `/anime/${highlight.id}`,
             };
         }),
         season: result.right.season.map((card) => ({
             ...card,
-            secondaryLabel: formatAudioLabel([
+            caption: audioAvailabilityLabel([
                 ...(audioByAnime.get(card.id) ?? []),
                 ...(popularAudio.get(card.id) ?? []),
             ]),

@@ -3,11 +3,11 @@
     import { onMount } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import type { AnimeCardData } from '$lib/anime';
+    import type { AnimeCard as AnimeCardModel } from '$lib/anime/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import type { PageProps } from './$types';
 
-    type RecentResult = Pick<AnimeCardData, 'id' | 'href' | 'title'>;
+    type RecentResult = Pick<AnimeCardModel, 'id' | 'href' | 'title'>;
 
     const recentStorageKey = 'arc:recent-search-results';
 
@@ -38,7 +38,7 @@
         localStorage.setItem(recentStorageKey, JSON.stringify(results));
     }
 
-    function rememberResult(anime: AnimeCardData) {
+    function rememberResult(anime: AnimeCardModel) {
         const recent = {
             id: anime.id,
             href: anime.href,
