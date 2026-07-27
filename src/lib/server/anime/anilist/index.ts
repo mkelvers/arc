@@ -12,7 +12,7 @@ import type {
     MediaSeason,
     SearchAnimePageQuery,
 } from '$lib/graphql/anilist/generated/graphql';
-import type { AnimeCardData } from '$lib/anime';
+import type { AnimeCard } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeDetailsCache } from '$lib/server/db/schema';
 import { graphql, GraphQLRequestError } from '$lib/server/graphql';
@@ -24,9 +24,9 @@ const requests = new Map<number, Promise<AniListAnime>>();
 const searchCacheLifetime = 5 * 60 * 1_000;
 const searchCache = new Map<
     string,
-    { data: AnimeCardData[]; fetchedAt: number }
+    { data: AnimeCard[]; fetchedAt: number }
 >();
-const searchRequests = new Map<string, Promise<AnimeCardData[]>>();
+const searchRequests = new Map<string, Promise<AnimeCard[]>>();
 const homepageCacheLifetime = 30 * 60 * 1_000;
 const homepageCache = new Map<
     string,
@@ -44,7 +44,7 @@ type HomeHighlight = NonNullable<
 export interface HomepageHighlight {
     id: number;
     title: string;
-    imageUrl: string;
+    image: string;
     description: string;
     genres: string[];
     format: string;
@@ -53,7 +53,7 @@ export interface HomepageHighlight {
 
 export interface HomepageAnime {
     highlights: HomepageHighlight[];
-    season: AnimeCardData[];
+    season: AnimeCard[];
 }
 
 function present<T>(values: ReadonlyArray<T | null> | null | undefined): T[] {
@@ -100,18 +100,18 @@ function title(media: {
     );
 }
 
-function toAnimeCard(media: SearchMedia): AnimeCardData | null {
-    const imageUrl =
+function toAnimeCard(media: SearchMedia): AnimeCard | null {
+    const image =
         media.coverImage?.extraLarge ?? media.coverImage?.large ?? null;
-    if (!imageUrl) return null;
+    if (!image) return null;
 
     return {
         id: media.id,
         href: `/anime/${media.id}`,
-        playHref: `/anime/${media.id}`,
+        watchHref: `/anime/${media.id}`,
         title: title(media),
-        imageUrl,
-        secondaryLabel: formatEnum(media.format),
+        image,
+        caption: formatEnum(media.format),
         score: media.averageScore ?? 0,
         genres: present(media.genres),
         synopsis: synopsis(media.description),
@@ -121,15 +121,15 @@ function toAnimeCard(media: SearchMedia): AnimeCardData | null {
 function toHomepageHighlight(
     media: HomeHighlight,
 ): HomepageHighlight | null {
-    const fallbackImageUrl =
+    const fallbackImage =
         media.coverImage?.extraLarge ?? media.coverImage?.large ?? null;
-    const imageUrl = media.bannerImage ?? fallbackImageUrl;
-    if (!imageUrl || !fallbackImageUrl) return null;
+    const image = media.bannerImage ?? fallbackImage;
+    if (!image || !fallbackImage) return null;
 
     return {
         id: media.id,
         title: title(media),
-        imageUrl,
+        image,
         description: synopsis(media.description),
         genres: present(media.genres),
         format: formatHomepageEnum(media.format),
@@ -256,7 +256,7 @@ function getAnime(id: number) {
 }
 
 async function requestSearch(search: string) {
-    const results: AnimeCardData[] = [];
+    const results: AnimeCard[] = [];
     let page = 1;
     let hasNextPage = true;
 

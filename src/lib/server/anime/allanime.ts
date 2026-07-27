@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
-import type { AudioMode } from '$lib/anime';
+import type { AudioMode } from '$lib/anime/audio';
 import {
     AllAnimeAvailableEpisodesDocument,
     AllAnimePopularAudioDocument,

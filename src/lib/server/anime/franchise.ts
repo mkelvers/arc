@@ -3,10 +3,10 @@ import { inArray } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import {
-    formatEpisodesAudioLabel,
-    type AnimeCardData,
+    episodeAudioAvailabilityLabel,
     type AudioMode,
-} from '$lib/anime';
+} from '$lib/anime/audio';
+import type { AnimeCard } from '$lib/anime/types';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
@@ -22,7 +22,7 @@ export interface FranchiseOrder {
         id: string;
         label: string;
     }>;
-    entries: Array<AnimeCardData & {
+    entries: Array<AnimeCard & {
         malId: number;
         anilistId: number;
         type: string;
@@ -37,7 +37,7 @@ interface ChiakiEntry {
     typeId: string;
     title: string;
     alternativeTitle: string;
-    imageUrl: string;
+    image: string;
     secondary: boolean;
 }
 
@@ -50,7 +50,7 @@ function positiveInteger(value: string | undefined) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
-function imageUrl(style: string | undefined) {
+function imageFromStyle(style: string | undefined) {
     const path = style?.match(/url\((['"]?)(.*?)\1\)/i)?.[2]?.trim();
 
     return path ? new URL(path, `${chiakiBaseUrl}/`).href : '';
@@ -104,13 +104,13 @@ async function fetchChiaki(malId: number) {
                     .first()
                     .text()
                     .trim(),
-                imageUrl: imageUrl(
+                image: imageFromStyle(
                     element.find('.wo_avatar_big').first().attr('style'),
                 ),
                 secondary: element.hasClass('wo_row_secondary'),
             };
 
-            return entry.malId && entry.typeId && entry.title && entry.imageUrl
+            return entry.malId && entry.typeId && entry.title && entry.image
                 ? entry
                 : null;
         })
@@ -151,7 +151,7 @@ function synopsis(value: string | null | undefined) {
 async function cachedPlayback(anilistIds: number[]) {
     if (!anilistIds.length) return new Map<number, {
         audioLabel: string;
-        playHref: string | null;
+        watchHref: string | null;
     }>();
 
     const cached = await db
@@ -184,8 +184,8 @@ async function cachedPlayback(anilistIds: number[]) {
             return [
                 anilistId,
                 {
-                    audioLabel: formatEpisodesAudioLabel(episodes),
-                    playHref: first
+                    audioLabel: episodeAudioAvailabilityLabel(episodes),
+                    watchHref: first
                         ? `/anime/${anilistId}/watch/${encodeURIComponent(first.episodeId)}`
                         : null,
                 },
@@ -222,11 +222,11 @@ async function refresh(malId: number) {
                         media?.title?.romaji ||
                         media?.title?.native ||
                         entry.title,
-                    imageUrl:
+                    image:
                         media?.coverImage?.extraLarge ??
                         media?.coverImage?.large ??
-                        entry.imageUrl,
-                    secondaryLabel:
+                        entry.image,
+                    caption:
                         playback.get(anilistId)?.audioLabel ?? '',
                     score: media?.averageScore ?? 0,
                     genres: (media?.genres ?? []).flatMap((genre) =>
@@ -235,8 +235,8 @@ async function refresh(malId: number) {
                     synopsis: synopsis(media?.description),
                     secondary: entry.secondary,
                     href: `/anime/${anilistId}`,
-                    playHref:
-                        playback.get(anilistId)?.playHref ??
+                    watchHref:
+                        playback.get(anilistId)?.watchHref ??
                         `/anime/${anilistId}`,
                 },
             ];

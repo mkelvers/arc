@@ -2,7 +2,8 @@ import { and, asc, eq, lte, ne, or, sql } from 'drizzle-orm';
 import { Effect } from 'effect';
 import { createHash } from 'node:crypto';
 
-import { mergeAudio, type AnimeEpisode } from '$lib/anime';
+import { mergeAudioModes } from '$lib/anime/audio';
+import type { AnimeEpisode } from '$lib/anime/types';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import {
@@ -46,9 +47,9 @@ function episodeModel(
         title,
         href: `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
         audio: episode.audio,
-        imageUrl: episode.imageUrl,
+        image: episode.imageUrl,
         duration: duration(episode.runtimeMinutes ?? fallbackDuration),
-        airDate: episode.airDate ?? '',
+        releaseDate: episode.airDate ?? '',
         overview: episode.overview ?? '',
     };
 }
@@ -189,7 +190,7 @@ async function fetchAndStore(anime: AniListAnime) {
                 metadataTitle:
                     media?.title || previous?.metadataTitle || null,
                 audio: sync?.sourceRevision
-                    ? mergeAudio(previous?.audio, episode.audio)
+                    ? mergeAudioModes(previous?.audio, episode.audio)
                     : episode.audio,
                 imageUrl: media?.imageUrl ?? previous?.imageUrl ?? null,
                 runtimeMinutes:
