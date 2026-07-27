@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { asc, inArray } from 'drizzle-orm';
 import { Effect, Either } from 'effect';
 
@@ -8,12 +8,13 @@ import { anime } from '$lib/server/anime';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import {
+    updateWatchlist,
+    watchlistUser,
+} from '$lib/server/watchlist/action';
+import {
     getWatchlistedAnimeIds,
-    togglePlanToWatch,
-} from '$lib/server/watchlist';
+} from '$lib/server/watchlist/store';
 import type { Actions, PageServerLoad } from './$types';
-
-const userCookie = 'arc_user';
 
 function currentSeason(now = new Date()) {
     const month = now.getUTCMonth() + 1;
@@ -32,33 +33,19 @@ function currentSeason(now = new Date()) {
     };
 }
 
-function cookieUserId(value: string | undefined) {
-    return value &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-            value,
-        )
-        ? value
-        : undefined;
-}
-
-function animeId(value: FormDataEntryValue | null) {
-    const id = Number(value);
-
-    return Number.isSafeInteger(id) && id > 0 ? id : null;
-}
-
 export const load: PageServerLoad = async ({ cookies }) => {
     const { season, year } = currentSeason();
     const result = await Effect.runPromise(
         anime.anilist.getHomepage(season, year).pipe(Effect.either),
     );
 
-    if (Either.isLeft(result)) error(502, result.left.message);
+    if (Either.isLeft(result)) {
+        error(502, result.left.message);
+    }
 
     const highlightIds = result.right.highlights.map(({ id }) => id);
     const seasonIds = result.right.season.map(({ id }) => id);
     const animeIds = [...new Set([...highlightIds, ...seasonIds])];
-    const audioIds = animeIds;
     const [storedMedia, episodeRows, popularAudio, watchlisted] =
         await Promise.all([
             Promise.all(
@@ -66,7 +53,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
                     anime.tmdb.getStoredMedia(id).catch(() => null),
                 ),
             ),
-            audioIds.length
+            animeIds.length
                 ? db
                       .select({
                           anilistId: animeEpisode.anilistId,
@@ -74,14 +61,11 @@ export const load: PageServerLoad = async ({ cookies }) => {
                           audio: animeEpisode.audio,
                       })
                       .from(animeEpisode)
-                      .where(inArray(animeEpisode.anilistId, audioIds))
+                      .where(inArray(animeEpisode.anilistId, animeIds))
                       .orderBy(asc(animeEpisode.number))
                 : [],
             anime.allanime.getPopularAudioLabels().catch(() => new Map()),
-            getWatchlistedAnimeIds(
-                cookieUserId(cookies.get(userCookie)),
-                animeIds,
-            ),
+            getWatchlistedAnimeIds(watchlistUser(cookies), animeIds),
         ]);
     const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
 
@@ -95,7 +79,9 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
     const firstEpisodeHrefByAnime = new Map<number, string>();
     for (const episode of episodeRows) {
-        if (firstEpisodeHrefByAnime.has(episode.anilistId)) continue;
+        if (firstEpisodeHrefByAnime.has(episode.anilistId)) {
+            continue;
+        }
 
         firstEpisodeHrefByAnime.set(
             episode.anilistId,
@@ -134,35 +120,5 @@ export const load: PageServerLoad = async ({ cookies }) => {
 };
 
 export const actions: Actions = {
-    watchlist: async ({ cookies, request }) => {
-        const form = await request.formData();
-        const id = animeId(form.get('animeId'));
-        if (!id) return fail(400, { message: 'Invalid anime ID' });
-
-        const currentUserId = cookieUserId(cookies.get(userCookie));
-        const userId = currentUserId ?? crypto.randomUUID();
-
-        try {
-            const state = await togglePlanToWatch(userId, id);
-
-            if (!currentUserId) {
-                cookies.set(userCookie, userId, {
-                    path: '/',
-                    httpOnly: true,
-                    sameSite: 'lax',
-                    secure: !import.meta.env.DEV,
-                    maxAge: 60 * 60 * 24 * 365,
-                });
-            }
-
-            return { success: true, state };
-        } catch (cause) {
-            return fail(500, {
-                message:
-                    cause instanceof Error
-                        ? cause.message
-                        : 'Watchlist update failed',
-            });
-        }
-    },
+    watchlist: updateWatchlist,
 };

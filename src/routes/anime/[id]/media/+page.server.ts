@@ -1,45 +1,26 @@
 import { error, fail } from '@sveltejs/kit';
-import { Effect, Either } from 'effect';
 
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
+import { animeId, loadAnime } from '$lib/server/anime/route';
 import type { Actions, PageServerLoad } from './$types';
-
-function animeId(value: string) {
-    const id = Number(value);
-
-    if (!Number.isSafeInteger(id) || id <= 0) error(400, 'Invalid anime ID');
-
-    return id;
-}
-
-async function getAnime(id: number) {
-    const result = await Effect.runPromise(
-        anime.anilist.getAnime(id).pipe(Effect.either),
-    );
-
-    if (Either.isLeft(result)) {
-        error(
-            result.left.status === 404 ? 404 : 502,
-            result.left.status === 404
-                ? 'This anime is no longer available on AniList'
-                : result.left.message,
-        );
-    }
-
-    return result.right;
-}
 
 export const load: PageServerLoad = async ({ params }) => {
     const id = animeId(params.id);
+    if (!id) {
+        error(400, 'Invalid anime ID');
+    }
+
     const stored = await anime.tmdb.getStoredMedia(id).catch((cause) => {
         console.error(`Stored TMDB media read failed for AniList ${id}`, cause);
         return null;
     });
 
-    if (stored) return stored;
+    if (stored) {
+        return stored;
+    }
 
-    const result = await getAnime(id);
+    const result = await loadAnime(id);
 
     try {
         return {
@@ -63,6 +44,9 @@ export const actions: Actions = {
         const data = await request.formData();
         const intent = data.get('intent');
         const id = animeId(params.id);
+        if (!id) {
+            error(400, 'Invalid anime ID');
+        }
 
         if (intent === 'refresh') {
             try {

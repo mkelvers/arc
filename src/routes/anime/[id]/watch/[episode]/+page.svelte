@@ -1,15 +1,13 @@
 <script lang="ts">
-    import { invalidateAll } from '$app/navigation';
     import { audioAvailabilityLabel } from '$lib/anime/audio';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
-    import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
+    import WatchPlayer from '$lib/components/WatchPlayer.svelte';
     import type { PageProps } from './$types';
     import {
         ArchiveIcon,
         BookmarkSimpleIcon,
         ShareNetworkIcon,
-        SpinnerGapIcon,
         ThumbsDownIcon,
         ThumbsUpIcon,
     } from 'phosphor-svelte';
@@ -17,7 +15,6 @@
     let { data }: PageProps = $props();
     let episodeDialogOpen = $state(false);
     let renderedEpisodeId = $state<string>();
-    let retryingStreams = $state(false);
 
     const poster = $derived(
         data.currentEpisode.image ?? data.fallbackImage,
@@ -28,20 +25,26 @@
             renderedEpisodeId = data.currentEpisode.id;
             return;
         }
-        if (renderedEpisodeId === data.currentEpisode.id) return;
+        if (renderedEpisodeId === data.currentEpisode.id) {
+            return;
+        }
 
         renderedEpisodeId = data.currentEpisode.id;
         episodeDialogOpen = false;
     });
 
     function releaseDate(value: string) {
-        if (!value) return '';
+        if (!value) {
+            return '';
+        }
 
         const parts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         const date = parts
             ? new Date(Date.UTC(Number(parts[3]), Number(parts[1]) - 1, Number(parts[2])))
             : new Date(`${value}T00:00:00Z`);
-        if (Number.isNaN(date.valueOf())) return value;
+        if (Number.isNaN(date.valueOf())) {
+            return value;
+        }
 
         return new Intl.DateTimeFormat('en', {
             day: 'numeric',
@@ -70,71 +73,13 @@
 </svelte:head>
 
 <main class="min-h-dvh">
-    {#await data.playback}
-        <section
-            aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
-            aria-busy="true"
-            class="relative grid aspect-video w-full place-items-center overflow-hidden bg-black px-6 text-center"
-        >
-            {#if poster}
-                <img
-                    src={poster}
-                    alt=""
-                    class="absolute inset-0 size-full scale-105 object-cover opacity-35 blur-xl"
-                />
-            {/if}
-            <SpinnerGapIcon
-                role="status"
-                aria-label="Loading video"
-                size="2.5rem"
-                weight="bold"
-                class="relative animate-spin text-accent"
-            />
-        </section>
-    {:then playback}
-        {#key `${data.currentEpisode.id}:${JSON.stringify(playback.streams)}`}
-            {#if playback.streams.sub?.length || playback.streams.dub?.length}
-                <VideoPlayer
-                    sources={playback.streams}
-                    label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
-                    {poster}
-                    next={data.nextEpisode?.href}
-                />
-            {:else}
-                <section
-                    aria-label={`${data.currentEpisode.label} – ${data.currentEpisode.title} player`}
-                    role="alert"
-                    class="grid aspect-video w-full place-items-center bg-black px-6 text-center"
-                >
-                    <div>
-                        <p class="text-base font-bold">
-                            {playback.streamError
-                                ? 'AllAnime could not load this video.'
-                                : 'No video source is available.'}
-                        </p>
-                        <p class="mt-2 text-sm text-white/65">
-                            Arc tried every available source for this episode.
-                        </p>
-                        <button
-                            type="button"
-                            disabled={retryingStreams}
-                            class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
-                            onclick={async () => {
-                                retryingStreams = true;
-                                try {
-                                    await invalidateAll();
-                                } finally {
-                                    retryingStreams = false;
-                                }
-                            }}
-                        >
-                            {retryingStreams ? 'Trying again…' : 'Try again'}
-                        </button>
-                    </div>
-                </section>
-            {/if}
-        {/key}
-    {/await}
+    <WatchPlayer
+        playback={data.playback}
+        episodeId={data.currentEpisode.id}
+        label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
+        {poster}
+        next={data.nextEpisode?.href}
+    />
 
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12">
         <article class="min-w-0 flex-1">

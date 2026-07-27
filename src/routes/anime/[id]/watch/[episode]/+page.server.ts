@@ -1,18 +1,10 @@
 import { error, redirect } from '@sveltejs/kit';
-import { Effect, Either } from 'effect';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
+import { animeId, loadAnime } from '$lib/server/anime/route';
 import type { PageServerLoad } from './$types';
-
-function animeId(value: string) {
-    const id = Number(value);
-
-    if (!Number.isSafeInteger(id) || id <= 0) error(400, 'Invalid anime ID');
-
-    return id;
-}
 
 function legacySlug(title: string, episodeId: string) {
     return (
@@ -95,22 +87,14 @@ async function getPlayback(
 
 export const load: PageServerLoad = async ({ params }) => {
     const id = animeId(params.id);
-    const result = await Effect.runPromise(
-        anime.anilist.getAnime(id).pipe(Effect.either),
-    );
-
-    if (Either.isLeft(result)) {
-        error(
-            result.left.status === 404 ? 404 : 502,
-            result.left.status === 404
-                ? 'This anime is no longer available on AniList'
-                : result.left.message,
-        );
+    if (!id) {
+        error(400, 'Invalid anime ID');
     }
+    const result = await loadAnime(id);
 
     const [storedMedia, episodes] = await Promise.all([
         anime.tmdb.getStoredMedia(id).catch(() => null),
-        anime.episodes.getEpisodes(result.right).catch(() => []),
+        anime.episodes.getEpisodes(result).catch(() => []),
     ]);
     let currentIndex = episodes.findIndex(
         (episode) => episode.id === params.episode,
@@ -121,23 +105,28 @@ export const load: PageServerLoad = async ({ params }) => {
             (episode) =>
                 legacySlug(episode.title, episode.id) === params.episode,
         );
-        if (currentIndex >= 0) redirect(308, episodes[currentIndex].href);
+        if (currentIndex >= 0) {
+            redirect(308, episodes[currentIndex].href);
+        }
     }
-    if (currentIndex < 0) error(404, 'Episode not found');
+
+    if (currentIndex < 0) {
+        error(404, 'Episode not found');
+    }
 
     const currentEpisode = episodes[currentIndex];
     return {
-        anime: toAnimeDetails(result.right),
+        anime: toAnimeDetails(result),
         episodes,
         currentEpisode,
         previousEpisode: episodes[currentIndex - 1] ?? null,
         nextEpisode: episodes[currentIndex + 1] ?? null,
         fallbackImage:
             storedMedia?.artwork.selectedBackdrop?.url ??
-            result.right.bannerImage ??
+            result.bannerImage ??
             null,
         playback: getPlayback(
-            result.right,
+            result,
             currentEpisode.id,
             currentEpisode.audio,
         ),
