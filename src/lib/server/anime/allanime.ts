@@ -14,7 +14,12 @@ import { db } from '$lib/server/db';
 import { animePlaybackProvider } from '$lib/server/db/schema';
 import { audioDelayFromMp4 } from '$lib/server/anime/mp4';
 import { Effect } from 'effect';
-import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
+import {
+    createCipheriv,
+    createDecipheriv,
+    createHash,
+    createHmac,
+} from 'node:crypto';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
 
@@ -26,6 +31,9 @@ const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
 const episodeSourcesQueryHash =
     'f4662f4b7510b26795dd53ef824a0bf1740fbbc5d1273fab18222ac831bca8d0';
+const streamContentLane = 'k7';
+const bootstrapEpochLength = 259_200_000;
+const bootstrapGraceLength = 86_400_000;
 
 interface StreamCrypto {
     buildId: string;
@@ -305,16 +313,7 @@ async function getStreamCrypto(refresh = false) {
     const appUrl = page.match(
         /https:\/\/[^"' ]+\/immutable\/entry\/app\.[^"' ]+\.js/,
     )?.[0];
-    if (!rawBootstrap || !appUrl) {
-        throw new Error('AllAnime bootstrap data was not found');
-    }
-
-    const bootstrap = asRecord(JSON.parse(rawBootstrap));
-    const epoch = Number(bootstrap?.epoch);
-    const part = Buffer.from(String(bootstrap?.partB ?? ''), 'base64');
-    if (!Number.isSafeInteger(epoch) || part.length !== 32) {
-        throw new Error('AllAnime bootstrap data was invalid');
-    }
+    if (!appUrl) throw new Error('AllAnime app manifest was not found');
 
     const appResponse = await fetch(appUrl, {
         signal: AbortSignal.timeout(10_000),
@@ -341,18 +340,240 @@ async function getStreamCrypto(refresh = false) {
         if (!response.ok) continue;
 
         const chunk = await response.text();
-        const match = chunk.match(
+        const legacy = chunk.match(
             /\?["']([0-9a-f]{64})["']:["']["'],\w+=[^;]{0,100}\?["']([A-Za-z0-9._-]+)["']:["']["']/,
         );
-        if (!match) continue;
+        if (legacy) {
+            mask = Buffer.from(legacy[1], 'hex');
+            buildId = legacy[2];
+            break;
+        }
 
-        mask = Buffer.from(match[1], 'hex');
-        buildId = match[2];
+        if (
+            !chunk.includes('/client-crypto/v1/bootstrap?buildId=') ||
+            !chunk.includes('aa-boo') ||
+            !chunk.includes('partB')
+        ) {
+            continue;
+        }
+
+        const table = [
+            ...chunk.matchAll(
+                /function (\w+)\(\)\{const \w+=\[(.*?)\];return \1=function/g,
+            ),
+        ].find(
+            (match) =>
+                match[2].includes('"aa-boo"') &&
+                match[2].includes('"web_cr"'),
+        );
+        const base = table
+            ? chunk.match(
+                  new RegExp(
+                      `function (\\w+)\\((\\w+),\\w+\\)\\{return \\2=\\2-\\(([-+*/\\d ]+)\\),${table[1]}\\(\\)\\[\\2\\]\\}`,
+                  ),
+              )
+            : null;
+        if (!table || !base) continue;
+
+        const calculate = (expression: string) => {
+            const tokens = expression.match(/\d+|[-+*/]/g) ?? [];
+            if (tokens.join('') !== expression.replaceAll(' ', '')) return NaN;
+
+            let position = 0;
+            const factor = (): number => {
+                const operator = tokens[position];
+                if (operator === '+' || operator === '-') {
+                    position++;
+                    const value = factor();
+                    return operator === '-' ? -value : value;
+                }
+
+                const value = Number(tokens[position++]);
+                return Number.isFinite(value) ? value : NaN;
+            };
+            const term = () => {
+                let value = factor();
+                while (
+                    tokens[position] === '*' ||
+                    tokens[position] === '/'
+                ) {
+                    const operator = tokens[position++];
+                    const right = factor();
+                    value =
+                        operator === '*' ? value * right : value / right;
+                }
+                return value;
+            };
+            let value = term();
+            while (tokens[position] === '+' || tokens[position] === '-') {
+                const operator = tokens[position++];
+                const right = term();
+                value = operator === '+' ? value + right : value - right;
+            }
+
+            return position === tokens.length ? value : NaN;
+        };
+        const baseOffset = calculate(base[3]);
+        if (!Number.isSafeInteger(baseOffset)) continue;
+
+        const wrappers = new Map<
+            string,
+            { argument: number; offset: number }
+        >();
+        const wrapperPattern = new RegExp(
+            `function (\\w+)\\((\\w+),(\\w+)\\)\\{return ${base[1]}\\((\\2|\\3)-\\s*([-+*/\\d ]+)\\)\\}`,
+            'g',
+        );
+        for (const wrapper of chunk.matchAll(wrapperPattern)) {
+            const offset = calculate(wrapper[5]);
+            if (!Number.isSafeInteger(offset)) continue;
+            wrappers.set(wrapper[1], {
+                argument: wrapper[4] === wrapper[2] ? 0 : 1,
+                offset: baseOffset + offset,
+            });
+        }
+
+        const client = chunk.match(
+            /const \w+=(\w+)\((\d+)\)\+\1\((\d+)\)!=="string"\?"([A-Za-z0-9._-]+)":"",\w+=\[([^\]]+)\]/,
+        );
+        const buildResolver = client ? wrappers.get(client[1]) : null;
+        if (!client || !buildResolver) continue;
+
+        const strings = [
+            ...table[2].matchAll(/"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'/g),
+        ].map((match) => (match[1] ?? match[2]).replace(/\\(["'\\])/g, '$1'));
+        const valueAt = (
+            values: string[],
+            resolver: { argument: number; offset: number },
+            args: number[],
+        ) => values[args[resolver.argument] - resolver.offset];
+        let values: string[] | null = null;
+
+        for (let rotation = 0; rotation < strings.length; rotation++) {
+            const rotated = [
+                ...strings.slice(rotation),
+                ...strings.slice(0, rotation),
+            ];
+            if (
+                valueAt(rotated, buildResolver, [Number(client[2])]) +
+                    valueAt(rotated, buildResolver, [Number(client[3])]) ===
+                'undefined'
+            ) {
+                values = rotated;
+                break;
+            }
+        }
+        if (!values) continue;
+
+        const encodedParts = [
+            ...client[5].matchAll(
+                /\w+\(\d+(?:,\d+)?\)\+\w+\(\d+(?:,\d+)?\)/g,
+            ),
+        ].flatMap(([expression]) => {
+            const calls = [
+                ...expression.matchAll(/(\w+)\((\d+)(?:,(\d+))?\)/g),
+            ];
+            if (calls.length !== 2) return [];
+
+            const part = calls
+                .map((call) => {
+                    const resolver = wrappers.get(call[1]);
+                    const args = call
+                        .slice(2)
+                        .filter((value): value is string => Boolean(value))
+                        .map(Number);
+                    return resolver ? valueAt(values!, resolver, args) : '';
+                })
+                .join('');
+            return part ? [Buffer.from(part, 'base64')] : [];
+        });
+        if (
+            encodedParts.length !== 4 ||
+            encodedParts.some((part) => part.length !== 8)
+        ) {
+            continue;
+        }
+
+        buildId = client[4];
+        const seed = Buffer.alloc(32);
+        for (let index = 0; index < seed.length; index++) {
+            seed[index] =
+                buildId.charCodeAt(index % buildId.length) ^
+                ((index * 17 + 31) & 0xff);
+        }
+
+        mask = Buffer.alloc(32);
+        encodedParts.forEach((part, group) => {
+            for (let index = 0; index < part.length; index++) {
+                const offset = group * part.length + index;
+                mask![offset] =
+                    part[index] ^
+                    seed[offset] ^
+                    ((group * 41 + index * 7) & 0xff);
+            }
+        });
         break;
     }
 
     if (!mask || !buildId) {
         throw new Error('AllAnime client encryption data was not found');
+    }
+
+    let bootstrap = rawBootstrap ? asRecord(JSON.parse(rawBootstrap)) : null;
+    if (!bootstrap) {
+        const now = Date.now();
+        const epoch = Math.floor(now / bootstrapEpochLength);
+        const epochs =
+            now - epoch * bootstrapEpochLength < bootstrapGraceLength
+                ? [epoch - 1, epoch]
+                : [epoch];
+        let status = 0;
+
+        for (const candidate of epochs) {
+            const secret = createHmac('sha256', mask)
+                .update(`aa-boot:${buildId}`)
+                .digest();
+            const token = createHmac('sha256', secret)
+                .update(
+                    `${buildId}:mkissa:mkissa.to:${candidate}:${streamContentLane}`,
+                )
+                .digest('hex');
+            const response = await fetch(
+                new URL(
+                    `/client-crypto/v1/bootstrap?buildId=${encodeURIComponent(buildId)}&k=${streamContentLane}`,
+                    endpoint,
+                ),
+                {
+                    headers: {
+                        Origin: origin,
+                        Referer: `${origin}/`,
+                        'User-Agent': userAgent,
+                        'x-aa-boot': token,
+                        'x-build-id': buildId,
+                    },
+                    signal: AbortSignal.timeout(10_000),
+                },
+            );
+            status = response.status;
+            if (!response.ok) continue;
+
+            bootstrap = asRecord(await response.json());
+            if (bootstrap) break;
+        }
+
+        if (!bootstrap) {
+            throw new Error(`AllAnime bootstrap failed (${status})`);
+        }
+    }
+
+    const epoch = Number(bootstrap.epoch);
+    const part = Buffer.from(String(bootstrap.partB ?? ''), 'base64');
+    if (
+        !Number.isSafeInteger(epoch) ||
+        part.length !== 32 ||
+        (bootstrap.k && bootstrap.k !== streamContentLane)
+    ) {
+        throw new Error('AllAnime bootstrap data was invalid');
     }
 
     const key = Buffer.alloc(32);
@@ -364,7 +585,10 @@ async function getStreamCrypto(refresh = false) {
         buildId,
         epoch,
         key,
-        refreshAt: Date.now() + 300_000,
+        refreshAt: Math.min(
+            Date.now() + 300_000,
+            Number(bootstrap.switchAt) || Number.POSITIVE_INFINITY,
+        ),
     };
     return cachedStreamCrypto;
 }
@@ -372,7 +596,9 @@ async function getStreamCrypto(refresh = false) {
 function aaLease(crypto: StreamCrypto, queryHash: string) {
     const timestamp = Math.floor(Date.now() / 300_000) * 300_000;
     const iv = createHash('sha256')
-        .update(`${crypto.epoch}:${crypto.buildId}:${queryHash}:${timestamp}`)
+        .update(
+            `${crypto.epoch}:${crypto.buildId}:${queryHash}:${timestamp}:${streamContentLane}`,
+        )
         .digest()
         .subarray(0, 12);
     const payload = JSON.stringify({
@@ -381,6 +607,7 @@ function aaLease(crypto: StreamCrypto, queryHash: string) {
         epoch: crypto.epoch,
         buildId: crypto.buildId,
         qh: queryHash,
+        k: streamContentLane,
     });
     const cipher = createCipheriv('aes-256-gcm', crypto.key, iv);
     const encrypted = Buffer.concat([
@@ -663,6 +890,7 @@ async function encryptedSources(
                 version: 1,
                 sha256Hash: episodeSourcesQueryHash,
             },
+            k: streamContentLane,
             aaReq: aaLease(crypto, episodeSourcesQueryHash),
         }),
     );
