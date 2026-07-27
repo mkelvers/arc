@@ -1,4 +1,4 @@
-export const audioModes = ['sub', 'dub', 'raw'] as const;
+const audioModes = ['sub', 'dub', 'raw'] as const;
 
 export type AudioMode = (typeof audioModes)[number];
 

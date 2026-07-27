@@ -24,3 +24,19 @@ export type AnimeEpisode = {
     releaseDate: string;
     overview: string;
 };
+
+export type FranchiseOrder = {
+    types: Array<{
+        id: string;
+        label: string;
+    }>;
+    entries: Array<
+        AnimeCard & {
+            malId: number;
+            anilistId: number;
+            type: string;
+            secondary: boolean;
+            watchlisted?: boolean;
+        }
+    >;
+};
