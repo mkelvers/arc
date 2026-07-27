@@ -244,6 +244,24 @@ export const animePlaybackProvider = pgTable('anime_playback_provider', {
         .defaultNow(),
 });
 
+export const animeProviderMapping = pgTable(
+    'anime_provider_mapping',
+    {
+        anilistId: integer('anilist_id').notNull(),
+        provider: varchar('provider', { length: 32 }).notNull(),
+        providerMediaId: text('provider_media_id').notNull(),
+        discoveredAt: timestamp('discovered_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        verifiedAt: timestamp('verified_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => [
+        primaryKey({ columns: [table.anilistId, table.provider] }),
+    ],
+);
+
 export const animeEpisode = pgTable(
     'anime_episode',
     {
