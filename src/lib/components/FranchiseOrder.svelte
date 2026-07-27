@@ -38,7 +38,13 @@
     }
 
     $effect(() => {
-        order.entries.length;
+        const entries = order.entries;
+        if (!entries.length) {
+            canScrollBack = false;
+            canScrollForward = false;
+            return;
+        }
+
         void tick().then(() => {
             if (track) {
                 track.scrollLeft = 0;
