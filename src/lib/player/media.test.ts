@@ -5,6 +5,7 @@ import {
     formatTime,
     hasStreams,
     isHd,
+    isHlsSource,
     orderStreams,
     qualityLabel,
     type Stream,
@@ -40,5 +41,19 @@ describe('player media helpers', () => {
     test('accepts every audio mode supported by the player', () => {
         expect(hasStreams({ raw: streams })).toBe(true);
         expect(hasStreams({})).toBe(false);
+    });
+
+    test('recognizes direct and proxied HLS sources', () => {
+        expect(
+            isHlsSource('https://media.example/master.m3u8?token=1'),
+        ).toBe(true);
+        expect(
+            isHlsSource(
+                '/api/watch/stream?url=https%3A%2F%2Fmedia.example%2Fmaster.m3u8',
+            ),
+        ).toBe(true);
+        expect(isHlsSource('/api/watch/stream?url=video.mp4')).toBe(
+            false,
+        );
     });
 });
