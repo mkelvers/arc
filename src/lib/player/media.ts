@@ -4,6 +4,7 @@ export interface Stream {
     url: string;
     quality: string | null;
     audioDelay: number;
+    subtitleUrl?: string | null;
 }
 
 export type Sources = Partial<Record<AudioMode, Stream[]>>;
@@ -73,6 +74,19 @@ export function qualityLabel(quality: string, best: string | null) {
 
 export function isHd(quality: string | null) {
     return Number(quality?.match(/\d+/)?.[0] ?? 0) >= 720;
+}
+
+export function isHlsSource(value: string) {
+    try {
+        const url = new URL(value, 'http://arc.local');
+        const nested = url.searchParams.get('url');
+        const source = nested
+            ? new URL(nested)
+            : url;
+        return source.pathname.toLowerCase().endsWith('.m3u8');
+    } catch {
+        return /\.m3u8(?:$|[?#])/i.test(value);
+    }
 }
 
 export function formatTime(seconds: number) {
