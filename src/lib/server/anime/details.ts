@@ -1,4 +1,5 @@
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
+import { enumLabel, present } from './anilist/text';
 
 type Anime = NonNullable<AnimeQuery['Media']>;
 
@@ -15,28 +16,10 @@ const staffRoles = {
     Music: 'Music',
 } as const;
 
-type StaffRole = keyof typeof staffRoles;
-
-function isStaffRole(role: string | null): role is StaffRole {
-    return role !== null && role in staffRoles;
-}
-
-function present<T>(values: ReadonlyArray<T | null> | null | undefined): T[] {
-    return values?.filter((value): value is T => value !== null) ?? [];
-}
-
-function formatEnum(value: string | null | undefined) {
-    if (!value) return 'Unknown';
-    if (['TV', 'OVA', 'ONA'].includes(value)) return value;
-
-    return value
-        .toLowerCase()
-        .replaceAll('_', ' ')
-        .replace(/^./, (character) => character.toUpperCase());
-}
-
 function formatDescription(value: string | null) {
-    if (!value) return '';
+    if (!value) {
+        return '';
+    }
 
     const description = value
         .replace(/<br\s*\/?>/gi, '\n')
@@ -51,7 +34,9 @@ function formatDescription(value: string | null) {
         paragraphs.length >= 5 ? paragraphs.slice(-3, -1) : paragraphs
     ).join(' ');
 
-    if (summary.length <= 520) return summary;
+    if (summary.length <= 520) {
+        return summary;
+    }
 
     const fragment = summary.slice(0, 520);
     const ending = [...fragment.matchAll(/[.!?]["']?(?=\s|$)/g)].at(-1);
@@ -65,11 +50,14 @@ function formatStaff(media: Anime) {
 
     for (const edge of present(media.staff?.edges)) {
         const name = edge.node?.name?.full?.trim();
+        const role = edge.role
+            ? staffRoles[edge.role as keyof typeof staffRoles]
+            : undefined;
 
-        if (name && isStaffRole(edge.role)) {
+        if (name && role) {
             credits.set(name, [
                 ...(credits.get(name) ?? []),
-                staffRoles[edge.role],
+                role,
             ]);
         }
     }
@@ -95,7 +83,7 @@ function formatRankings(media: Anime) {
 
     return [
         seasonal &&
-            `#${seasonal.rank} most popular of ${formatEnum(seasonal.season)} ${seasonal.year}`,
+            `#${seasonal.rank} most popular of ${enumLabel(seasonal.season)} ${seasonal.year}`,
         yearly && `#${yearly.rank} most popular of ${yearly.year}`,
         allTime && `#${allTime.rank} most popular all time`,
     ].filter((ranking): ranking is string => Boolean(ranking));
@@ -112,7 +100,7 @@ export function toAnimeDetails(media: Anime) {
         bannerImage: media.bannerImage ?? null,
         description: formatDescription(media.description),
         genres: present(media.genres),
-        format: formatEnum(media.format),
+        format: enumLabel(media.format),
         score: media.averageScore ?? 0,
         members: count.format(media.popularity ?? 0),
         favourites: count.format(media.favourites ?? 0),
