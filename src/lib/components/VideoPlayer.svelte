@@ -77,8 +77,15 @@
         onended={() => media.ended()}
         onvolumechange={() => media.volumeChanged()}
     >
-        <source src={media.src} />
-        <track kind="captions" />
+        {#key media.subtitleUrl}
+            <track
+                kind="captions"
+                src={media.subtitleUrl ?? undefined}
+                srclang="en"
+                label="English"
+                default={Boolean(media.subtitleUrl)}
+            />
+        {/key}
     </video>
 
     {#if media.loading}
@@ -104,7 +111,7 @@
             <div>
                 <p class="text-base font-bold">This video could not be loaded.</p>
                 <p class="mt-2 text-sm text-white/65">
-                    Every available AllAnime source was tried.
+                    Every available provider source was tried.
                 </p>
                 <button
                     type="button"
