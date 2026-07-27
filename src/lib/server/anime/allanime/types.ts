@@ -1,14 +1,10 @@
 import type { AudioMode } from '$lib/anime/audio';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
+import type { ProviderEpisode } from '../providers/types';
 
 export type AniListAnime = NonNullable<AnimeQuery['Media']>;
 
-export interface Episode {
-    id: string;
-    number: number;
-    title: string;
-    audio: AudioMode[];
-}
+export type Episode = ProviderEpisode;
 
 export interface Stream {
     url: string;
