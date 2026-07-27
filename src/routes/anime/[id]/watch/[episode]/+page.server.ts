@@ -18,18 +18,18 @@ function legacySlug(title: string, episodeId: string) {
 }
 
 async function getPlayback(
-    animeData: Parameters<typeof anime.allanime.getStreams>[0],
-    episode: string,
+    animeData: Parameters<typeof anime.playback.getStreams>[0],
+    episode: Parameters<typeof anime.playback.getStreams>[1],
     modes: AudioMode[],
 ) {
     let remoteStreams: Awaited<
-        ReturnType<typeof anime.allanime.getStreams>
+        ReturnType<typeof anime.playback.getStreams>
     > = {};
     let streamError = false;
 
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
-            remoteStreams = await anime.allanime.getStreams(
+            remoteStreams = await anime.playback.getStreams(
                 animeData,
                 episode,
                 modes,
@@ -39,7 +39,7 @@ async function getPlayback(
         } catch (cause) {
             streamError = true;
             console.error(
-                `AllAnime stream attempt ${attempt + 1} failed`,
+                `Playback provider attempt ${attempt + 1} failed`,
                 cause,
             );
 
@@ -74,11 +74,22 @@ async function getPlayback(
         streams: Object.fromEntries(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
-                (sources ?? []).map(({ url, quality, audioDelay }) => ({
-                    url: `/api/watch/stream?${new URLSearchParams({ url })}`,
-                    quality,
-                    audioDelay,
-                })),
+                (sources ?? []).map(
+                    ({ url, quality, audioDelay, subtitleUrl }) => ({
+                        url: `/api/watch/stream?${new URLSearchParams({
+                            url,
+                            v: '2',
+                        })}`,
+                        quality,
+                        audioDelay,
+                        subtitleUrl: subtitleUrl
+                            ? `/api/watch/stream?${new URLSearchParams({
+                                  url: subtitleUrl,
+                                  v: '2',
+                              })}`
+                            : null,
+                    }),
+                ),
             ]),
         ),
         streamError,
@@ -127,8 +138,14 @@ export const load: PageServerLoad = async ({ params }) => {
             null,
         playback: getPlayback(
             result,
-            currentEpisode.id,
-            currentEpisode.audio,
+            currentEpisode,
+            [
+                'sub',
+                'dub',
+                ...(currentEpisode.audio.includes('raw')
+                    ? (['raw'] as const)
+                    : []),
+            ],
         ),
     };
 };
