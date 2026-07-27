@@ -1,4 +1,4 @@
-import type { Episode as AllAnimeEpisode } from '../allanime/types';
+import type { ProviderEpisode } from '../providers/types';
 import { create, imageUrl } from './client';
 import { resolveStored } from './mapping';
 import { normalizeTitle } from './title';
@@ -40,7 +40,7 @@ function titleScore(left: string, right: string) {
     return a.includes(b) || b.includes(a) ? 12 : -8;
 }
 
-function largestNumber(source: AllAnimeEpisode[]) {
+function largestNumber(source: ProviderEpisode[]) {
     return Math.max(
         0,
         ...source
@@ -85,7 +85,7 @@ function seasonScore(
 function sequenceScore(
     sequence: EpisodeCandidate[],
     start: number,
-    source: AllAnimeEpisode[],
+    source: ProviderEpisode[],
     expectedCount: number,
     startDate: string | null,
     startYear: number | null,
@@ -126,7 +126,7 @@ function sequenceScore(
 
 function candidateStarts(
     sequence: EpisodeCandidate[],
-    source: AllAnimeEpisode[],
+    source: ProviderEpisode[],
     startDate: string | null,
 ) {
     const starts = new Set([0]);
@@ -149,7 +149,7 @@ function candidateStarts(
 
 export async function getEpisodeMetadata(
     anime: AniListAnime,
-    source: AllAnimeEpisode[],
+    source: ProviderEpisode[],
 ): Promise<Map<string, EpisodeMetadata>> {
     const match = await resolveStored(anime);
 
