@@ -2,9 +2,9 @@ import { asc, eq } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
 import type { AnimeEpisode } from '$lib/anime/types';
-import type { Episode as AllAnimeEpisode } from '../allanime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
+import type { ProviderEpisode } from '../providers/types';
 import type { AniListAnime, StoredEpisode } from './types';
 
 function duration(minutes: number | null | undefined) {
@@ -59,7 +59,7 @@ export async function storedEpisodes(anime: AniListAnime) {
     return rows.map((episode) => episodeModel(episode, anime.duration));
 }
 
-export function sourceRevision(episodes: AllAnimeEpisode[]) {
+export function sourceRevision(episodes: ProviderEpisode[]) {
     return createHash('sha256')
         .update(
             JSON.stringify(
