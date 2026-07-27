@@ -22,6 +22,7 @@ export function request<TResult, TVariables>(
                 Referer: referer,
                 'User-Agent': userAgent,
             },
+            timeoutMs: 8_000,
         }),
     );
 }
