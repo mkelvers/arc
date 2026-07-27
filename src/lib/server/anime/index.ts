@@ -11,5 +11,3 @@ export const anime = {
     franchise,
     tmdb,
 };
-
-export { allanime, anilist, episodes, franchise, tmdb };

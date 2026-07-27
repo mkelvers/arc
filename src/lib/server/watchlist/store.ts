@@ -32,7 +32,9 @@ async function findAnimeId(anilistId: number) {
 async function ensureAnimeId(anilistId: number) {
     const stored = await findAnimeId(anilistId);
 
-    if (stored) return stored;
+    if (stored) {
+        return stored;
+    }
 
     return db.transaction(async (tx) => {
         await tx
@@ -56,7 +58,9 @@ async function ensureAnimeId(anilistId: number) {
             )
             .limit(1);
 
-        if (!externalId) throw new Error('Failed to store anime identity');
+        if (!externalId) {
+            throw new Error('Failed to store anime identity');
+        }
 
         const [existingLink] = await tx
             .select({ animeId: animeExternalIdLink.animeId })
@@ -64,14 +68,18 @@ async function ensureAnimeId(anilistId: number) {
             .where(eq(animeExternalIdLink.externalIdId, externalId.id))
             .limit(1);
 
-        if (existingLink) return existingLink.animeId;
+        if (existingLink) {
+            return existingLink.animeId;
+        }
 
         const [created] = await tx
             .insert(anime)
             .values({})
             .returning({ id: anime.id });
 
-        if (!created) throw new Error('Failed to store anime');
+        if (!created) {
+            throw new Error('Failed to store anime');
+        }
 
         await tx.insert(animeExternalIdLink).values({
             animeId: created.id,
@@ -83,10 +91,14 @@ async function ensureAnimeId(anilistId: number) {
 }
 
 export async function getWatchlistState(userId: string | undefined, anilistId: number) {
-    if (!userId) return null;
+    if (!userId) {
+        return null;
+    }
 
     const animeId = await findAnimeId(anilistId);
-    if (!animeId) return null;
+    if (!animeId) {
+        return null;
+    }
 
     const [item] = await db
         .select({ state: watchlist.state })
@@ -106,7 +118,9 @@ export async function getWatchlistedAnimeIds(
     userId: string | undefined,
     anilistIds: number[],
 ) {
-    if (!userId || !anilistIds.length) return new Set<number>();
+    if (!userId || !anilistIds.length) {
+        return new Set<number>();
+    }
 
     const items = await db
         .select({ anilistId: animeExternalId.externalId })
