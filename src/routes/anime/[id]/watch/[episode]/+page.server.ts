@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { Effect, Either } from 'effect';
 
-import type { AudioMode } from '$lib/anime';
+import type { AudioMode } from '$lib/anime/audio';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import type { PageServerLoad } from './$types';
@@ -82,7 +82,7 @@ async function getPlayback(
         streams: Object.fromEntries(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
-                sources.map(({ url, quality, audioDelay }) => ({
+                (sources ?? []).map(({ url, quality, audioDelay }) => ({
                     url: `/api/watch/stream?${new URLSearchParams({ url })}`,
                     quality,
                     audioDelay,
