@@ -1,6 +1,6 @@
 import type { AniListAnime } from './types';
 
-export const syncVersion = 1;
+export const syncVersion = 2;
 
 export function nextRefreshAt(
     anime: AniListAnime,
