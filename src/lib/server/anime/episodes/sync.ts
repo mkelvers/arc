@@ -7,7 +7,7 @@ import {
     animeEpisode,
     animeEpisodeSync,
 } from '$lib/server/db/schema';
-import { allanime } from '../allanime';
+import { playback } from '../providers';
 import { tmdb } from '../tmdb';
 import { sourceRevision, storedEpisodes } from './model';
 import { nextRefreshAt, syncVersion } from './policy';
@@ -40,10 +40,10 @@ async function recordFailure(anilistId: number, cause: unknown) {
 }
 
 async function fetchAndStore(anime: AniListAnime) {
-    const source = await allanime.getEpisodes(anime);
+    const source = await playback.getEpisodes(anime);
     if (!source.length) {
         throw new Error(
-            `AllAnime returned an empty episode inventory for AniList ${anime.id}`,
+            `No playback provider returned episodes for AniList ${anime.id}`,
         );
     }
 
