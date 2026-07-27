@@ -34,7 +34,9 @@
     class="dropdown relative"
     role="group"
     onmouseenter={() => {
-        if (openOnHover) open = true;
+        if (openOnHover) {
+            open = true;
+        }
     }}
     onmouseleave={() => (open = false)}
 >

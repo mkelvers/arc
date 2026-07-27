@@ -11,7 +11,9 @@ const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
 
 function source(value: string | null) {
-    if (!value) error(400, 'Missing stream URL');
+    if (!value) {
+        error(400, 'Missing stream URL');
+    }
 
     let target: URL;
     try {
@@ -59,7 +61,9 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
         'last-modified',
     ]) {
         const value = response.headers.get(name);
-        if (value) headers.set(name, value);
+        if (value) {
+            headers.set(name, value);
+        }
     }
     const contentType = response.headers.get('content-type');
     headers.set(

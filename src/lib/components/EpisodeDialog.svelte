@@ -23,14 +23,23 @@
     let dialog: HTMLDialogElement;
 
     $effect(() => {
-        if (!dialog) return;
+        if (!dialog) {
+            return;
+        }
 
-        if (open && !dialog.open) dialog.showModal();
-        if (!open && dialog.open) dialog.close();
+        if (open && !dialog.open) {
+            dialog.showModal();
+        }
+
+        if (!open && dialog.open) {
+            dialog.close();
+        }
     });
 
     function backdropClick(event: MouseEvent) {
-        if (event.target === dialog) onclose();
+        if (event.target === dialog) {
+            onclose();
+        }
     }
 </script>
 

@@ -6,7 +6,9 @@ import { anime } from '$lib/server/anime';
 
 function authorized(header: string | null) {
     const token = env.EPISODE_SYNC_TOKEN;
-    if (!token || !header) return false;
+    if (!token || !header) {
+        return false;
+    }
 
     const supplied = Buffer.from(header);
     const expected = Buffer.from(`Bearer ${token}`);
