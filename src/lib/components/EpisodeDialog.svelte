@@ -20,7 +20,7 @@
         image = null,
         onclose,
     }: Props = $props();
-    let dialog: HTMLDialogElement;
+    let dialog = $state<HTMLDialogElement>();
 
     $effect(() => {
         if (!dialog) {
