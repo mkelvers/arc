@@ -8,6 +8,7 @@ interface Document<TResult, TVariables>
 
 interface GraphQLOptions {
     headers?: Record<string, string>;
+    timeoutMs?: number;
 }
 
 const Payload = Schema.Struct({
@@ -38,6 +39,12 @@ export function graphql<TResult, TVariables>(
 ) {
     return Effect.tryPromise({
         try: async (signal) => {
+            const requestSignal = options.timeoutMs
+                ? AbortSignal.any([
+                      signal,
+                      AbortSignal.timeout(options.timeoutMs),
+                  ])
+                : signal;
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -49,7 +56,7 @@ export function graphql<TResult, TVariables>(
                     query: document.toString(),
                     variables,
                 }),
-                signal,
+                signal: requestSignal,
             });
 
             return {
