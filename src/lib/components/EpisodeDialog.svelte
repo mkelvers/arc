@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { formatAudioLabel, type AnimeEpisode } from '$lib/anime';
+    import { audioAvailabilityLabel } from '$lib/anime/audio';
+    import type { AnimeEpisode } from '$lib/anime/types';
     import { XIcon } from 'phosphor-svelte';
 
     interface Props {
@@ -66,9 +67,9 @@
                         class="group block min-w-0 p-3 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
                         <div class="relative aspect-video overflow-hidden bg-media-tile">
-                            {#if episode.imageUrl || image}
+                            {#if episode.image || image}
                                 <img
-                                    src={episode.imageUrl ?? image ?? ''}
+                                    src={episode.image ?? image ?? ''}
                                     alt=""
                                     class="size-full object-cover transition-transform duration-200 group-hover:scale-105"
                                     loading="lazy"
@@ -91,7 +92,7 @@
                         <h3 class="mt-2 line-clamp-2 text-base leading-snug font-bold text-white">
                             {episode.label} – {episode.title}
                         </h3>
-                        <p class="mt-3 text-sm text-watch-muted">{formatAudioLabel(episode.audio)}</p>
+                        <p class="mt-3 text-sm text-watch-muted">{audioAvailabilityLabel(episode.audio)}</p>
                     </a>
                 {/each}
             </div>

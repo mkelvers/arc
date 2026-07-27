@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { formatAudioLabel, type AnimeEpisode } from '$lib/anime';
+    import { audioAvailabilityLabel } from '$lib/anime/audio';
+    import type { AnimeEpisode } from '$lib/anime/types';
     import { CalendarBlankIcon, PlayIcon } from 'phosphor-svelte';
 
     interface Props {
@@ -25,9 +26,9 @@
                 >
                     <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
                         <div class="relative aspect-video overflow-hidden bg-surface">
-                            {#if episode.imageUrl || image}
+                            {#if episode.image || image}
                                 <img
-                                    src={episode.imageUrl ?? image ?? ''}
+                                    src={episode.image ?? image ?? ''}
                                     alt=""
                                     class="size-full object-cover brightness-75"
                                     loading="lazy"
@@ -47,7 +48,7 @@
                             <h3 class="mt-1 line-clamp-2 text-sm leading-snug font-bold text-foreground">
                                 {episode.label} - {episode.title}
                             </h3>
-                            <p class="mt-3 text-sm text-muted">{formatAudioLabel(episode.audio)}</p>
+                            <p class="mt-3 text-sm text-muted">{audioAvailabilityLabel(episode.audio)}</p>
                         </div>
                     </div>
 
@@ -58,10 +59,10 @@
                         <h3 class="mt-2 line-clamp-2 text-sm leading-snug font-bold text-foreground">
                             {episode.label} - {episode.title}
                         </h3>
-                        {#if episode.airDate}
+                        {#if episode.releaseDate}
                             <div class="mt-1 flex items-center gap-1.5 text-xs text-muted">
                                 <CalendarBlankIcon size="0.875rem" aria-hidden="true" />
-                                <span>{episode.airDate}</span>
+                                <span>{episode.releaseDate}</span>
                             </div>
                         {/if}
                         {#if episode.overview}

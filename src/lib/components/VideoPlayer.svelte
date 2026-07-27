@@ -1,6 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import type { AudioMode } from '$lib/anime';
+    import type { AudioMode } from '$lib/anime/audio';
     import { onMount, tick } from 'svelte';
     import { CaretLeftIcon, CaretRightIcon, SpinnerGapIcon } from 'phosphor-svelte';
 

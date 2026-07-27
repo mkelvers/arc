@@ -2,14 +2,14 @@
     import { enhance } from '$app/forms';
     import { BookmarkSimpleIcon, PlayIcon, StarIcon } from 'phosphor-svelte';
 
-    import type { AnimeCardData } from '$lib/anime';
+    import type { AnimeCard } from '$lib/anime/types';
 
     interface Props {
-        anime: AnimeCardData;
+        anime: AnimeCard;
         current?: boolean;
         compact?: boolean;
         watchlisted?: boolean;
-        onselect?: (anime: AnimeCardData) => void;
+        onselect?: (anime: AnimeCard) => void;
     }
 
     let {
@@ -35,7 +35,7 @@
         >
             <div class="aspect-2/3 overflow-hidden bg-surface">
                 <img
-                    src={anime.imageUrl}
+                    src={anime.image}
                     alt=""
                     class="size-full object-cover"
                     loading="lazy"
@@ -47,14 +47,14 @@
             >
                 {anime.title}
             </h3>
-            {#if anime.secondaryLabel}
-                <p class="mt-1.5 text-sm text-muted">{anime.secondaryLabel}</p>
+            {#if anime.caption}
+                <p class="mt-1.5 text-sm text-muted">{anime.caption}</p>
             {/if}
         </a>
     </div>
 
     <img
-        src={anime.imageUrl}
+        src={anime.image}
         alt=""
         class="pointer-events-none absolute inset-0 -z-20 size-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
         loading="lazy"
@@ -103,7 +103,7 @@
 
         <div class="relative z-10 mt-auto flex items-center gap-2 pt-3 text-accent">
             <a
-                href={anime.playHref}
+                href={anime.watchHref}
                 class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
                 aria-label={`Start watching ${anime.title}`}
                 title="Start watching"
