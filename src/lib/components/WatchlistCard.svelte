@@ -26,7 +26,7 @@
                 loading="lazy"
             />
         </div>
-        <h2 class="mt-3 line-clamp-2 text-sm leading-snug font-semibold transition-colors group-hover:text-accent">
+        <h2 class="mt-3 line-clamp-2 text-sm leading-snug font-semibold">
             {title}
         </h2>
     </a>
