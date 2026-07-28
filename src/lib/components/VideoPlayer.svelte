@@ -78,7 +78,7 @@
     {#if media.subtitles.length}
         <div
             aria-live="off"
-            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center text-lg leading-snug font-semibold text-white sm:text-xl"
+            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center text-lg leading-snug font-semibold text-white sm:text-4xl"
         >
             {#each media.subtitles as subtitle}
                 <span class="whitespace-pre-line bg-black/80 px-2 py-0.5">
