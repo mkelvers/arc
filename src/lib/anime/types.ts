@@ -25,6 +25,18 @@ export type AnimeEpisode = {
     overview: string;
 };
 
+export type ContinueWatchingCard = {
+    animeId: number;
+    title: string;
+    watchHref: string;
+    backdrop: string;
+    episodeImage: string;
+    episodeLabel: string;
+    audioLabel: string;
+    duration: string;
+    resumeAtSeconds: number;
+};
+
 export type FranchiseOrder = {
     types: Array<{
         id: string;
