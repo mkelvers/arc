@@ -468,7 +468,7 @@ export class Playback {
         this.video.currentTime = time;
     }
 
-    handleMetadata() {
+    handleMetadata(startAt = 0) {
         const video = this.video;
         this.duration = video.duration;
         this.error = false;
@@ -486,6 +486,15 @@ export class Playback {
 
             this.resumePlayback = false;
             return;
+        }
+
+        if (
+            !this.autoplayAttempted &&
+            Number.isFinite(startAt) &&
+            startAt > 0
+        ) {
+            this.currentTime = Math.min(startAt, this.duration);
+            video.currentTime = this.currentTime;
         }
 
         if (this.autoplayAttempted) {
