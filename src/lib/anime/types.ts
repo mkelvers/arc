@@ -36,6 +36,7 @@ export type FranchiseOrder = {
             anilistId: number;
             type: string;
             secondary: boolean;
+            primary: boolean;
             watchlisted?: boolean;
         }
     >;
