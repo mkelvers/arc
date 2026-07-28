@@ -83,6 +83,25 @@ export async function getPlaybackProgress(
     return progress ?? null;
 }
 
+export async function deletePlaybackProgress(
+    userId: string,
+    anilistId: number,
+) {
+    const animeId = await findInternalAnimeId(anilistId);
+    if (!animeId) {
+        return;
+    }
+
+    await db
+        .delete(playbackProgress)
+        .where(
+            and(
+                eq(playbackProgress.userId, userId),
+                eq(playbackProgress.animeId, animeId),
+            ),
+        );
+}
+
 export async function getRecentPlaybackProgress(
     userId: string | undefined,
     limit = 24,

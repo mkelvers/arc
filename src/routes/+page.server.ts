@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { asc, inArray } from 'drizzle-orm';
 import { Effect, Either } from 'effect';
 
@@ -8,6 +8,7 @@ import { anime } from '$lib/server/anime';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
+import { deletePlaybackProgress } from '$lib/server/playback-progress/store';
 import { updateWatchlist } from '$lib/server/watchlist/action';
 import {
     getWatchlistedAnimeIds,
@@ -126,4 +127,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
     watchlist: updateWatchlist,
+    removeContinueWatching: async ({ locals, request }) => {
+        if (!locals.user) {
+            redirect(303, '/login');
+        }
+
+        const form = await request.formData();
+        const animeId = Number(form.get('animeId'));
+
+        if (!Number.isFinite(animeId)) {
+            return fail(400, { message: 'Invalid anime ID' });
+        }
+
+        try {
+            await deletePlaybackProgress(locals.user.id, animeId);
+            return { success: true };
+        } catch (cause) {
+            console.error('Failed to remove continue watching', cause);
+            return fail(500, {
+                message: 'Failed to remove continue watching',
+            });
+        }
+    },
 };

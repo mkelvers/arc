@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { enhance } from '$app/forms';
+    import { XIcon } from 'phosphor-svelte';
     import type { ContinueWatchingCard } from '$lib/anime/types';
 
     interface Props {
@@ -23,7 +25,7 @@
         <div class="-mx-2 grid grid-cols-1 gap-x-2 gap-y-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
             {#each anime as entry (entry.animeId)}
                 <article
-                    class="group min-w-0 p-2 transition-colors hover:bg-surface focus-within:bg-surface"
+                    class="group relative min-w-0 p-2 transition-colors hover:bg-surface focus-within:bg-surface"
                 >
                     <a
                         href={entry.watchHref}
@@ -66,6 +68,23 @@
                             {/if}
                         </div>
                     </a>
+
+                    <form
+                        method="POST"
+                        action="?/removeContinueWatching"
+                        use:enhance
+                        class="absolute top-2 right-2 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                    >
+                        <input type="hidden" name="animeId" value={entry.animeId} />
+                        <button
+                            type="submit"
+                            class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-label={`Remove ${entry.title} from continue watching`}
+                            title="Remove from continue watching"
+                        >
+                            <XIcon size="1rem" weight="bold" aria-hidden="true" />
+                        </button>
+                    </form>
                 </article>
             {/each}
         </div>
