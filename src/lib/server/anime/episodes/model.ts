@@ -29,16 +29,25 @@ function duration(minutes: number | null | undefined) {
 function episodeModel(
     episode: StoredEpisode,
     fallbackDuration: number | null | undefined,
+    displayNumber: number,
 ): AnimeEpisode {
+    const genericMetadataTitle =
+        episode.metadataTitle &&
+        /^(?:episode|movie)(?:\s+\d+)?$/i.test(
+            episode.metadataTitle,
+        );
     const title =
-        episode.metadataTitle ||
+        (genericMetadataTitle
+            ? episode.providerTitle
+            : episode.metadataTitle) ||
         episode.providerTitle ||
+        episode.metadataTitle ||
         `Episode ${episode.episodeId}`;
 
     return {
         id: episode.episodeId,
         number: episode.number,
-        label: `E${Number.isInteger(episode.number) ? episode.number : episode.episodeId}`,
+        label: `E${displayNumber}`,
         title,
         href: `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
         audio: episode.audio,
@@ -55,8 +64,17 @@ export async function storedEpisodes(anime: AniListAnime) {
         .from(animeEpisode)
         .where(eq(animeEpisode.anilistId, anime.id))
         .orderBy(asc(animeEpisode.number));
+    const sequentialLabels = rows.some(
+        ({ number }, index) => number !== index + 1,
+    );
 
-    return rows.map((episode) => episodeModel(episode, anime.duration));
+    return rows.map((episode, index) =>
+        episodeModel(
+            episode,
+            anime.duration,
+            sequentialLabels ? index + 1 : episode.number,
+        ),
+    );
 }
 
 export function sourceRevision(episodes: ProviderEpisode[]) {
