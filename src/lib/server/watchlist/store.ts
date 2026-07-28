@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import {
@@ -142,6 +142,50 @@ export async function getWatchlistedAnimeIds(
         );
 
     return new Set(items.map(({ anilistId }) => anilistId));
+}
+
+export async function getWatchlistEntries(userId: string) {
+    return db
+        .select({
+            anilistId: animeExternalId.externalId,
+            state: watchlist.state,
+        })
+        .from(watchlist)
+        .innerJoin(
+            animeExternalIdLink,
+            eq(animeExternalIdLink.animeId, watchlist.animeId),
+        )
+        .innerJoin(
+            animeExternalId,
+            eq(animeExternalId.id, animeExternalIdLink.externalIdId),
+        )
+        .where(
+            and(
+                eq(watchlist.userId, userId),
+                eq(animeExternalId.provider, 'anilist'),
+                eq(animeExternalId.mediaType, 'anime'),
+            ),
+        )
+        .orderBy(desc(watchlist.updatedAt));
+}
+
+export async function removeFromWatchlist(
+    userId: string,
+    anilistId: number,
+) {
+    const animeId = await findAnimeId(anilistId);
+    if (!animeId) {
+        return;
+    }
+
+    await db
+        .delete(watchlist)
+        .where(
+            and(
+                eq(watchlist.userId, userId),
+                eq(watchlist.animeId, animeId),
+            ),
+        );
 }
 
 export async function togglePlanToWatch(userId: string, anilistId: number) {
