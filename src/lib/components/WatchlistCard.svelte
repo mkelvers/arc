@@ -44,7 +44,7 @@
             aria-label={`Remove ${title} from watchlist`}
             title="Remove from watchlist"
         >
-            <XIcon size="1.15rem" weight="regular" aria-hidden="true" />
+            <XIcon size="1rem" weight="bold" aria-hidden="true" />
         </button>
     </form>
 </article>
