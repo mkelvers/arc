@@ -133,6 +133,21 @@ export const load: PageServerLoad = async ({ params }) => {
     }
 
     const currentEpisode = episodes[currentIndex];
+    const specials = episodes.filter(
+        ({ number }) => number <= 0 || !Number.isInteger(number),
+    );
+    const specialIndex = specials.findIndex(
+        ({ id: episodeId }) => episodeId === currentEpisode.id,
+    );
+    const playbackEpisode =
+        specialIndex < 0
+            ? currentEpisode
+            : {
+                  ...currentEpisode,
+                  specialIndex: specialIndex + 1,
+                  specialCount: specials.length,
+              };
+
     return {
         anime: toAnimeDetails(result),
         episodes,
@@ -145,7 +160,7 @@ export const load: PageServerLoad = async ({ params }) => {
             null,
         playback: getPlayback(
             result,
-            currentEpisode,
+            playbackEpisode,
             [
                 'sub',
                 'dub',
