@@ -12,6 +12,7 @@
         items?: Item[];
         content?: Snippet;
         ariaLabel?: string;
+        menuAlign?: 'start' | 'end';
         menuClass?: string;
         openOnHover?: boolean;
         triggerClass?: string;
@@ -23,6 +24,7 @@
         items = [],
         content,
         ariaLabel = 'More options',
+        menuAlign = 'end',
         menuClass = 'w-48',
         openOnHover = false,
         triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel peer-checked:bg-panel',
@@ -56,22 +58,27 @@
     </label>
 
     <div
-        role={content ? 'group' : 'menu'}
-        aria-label={content ? ariaLabel : undefined}
-        class={`absolute top-full right-0 z-30 hidden bg-panel py-2 peer-checked:block ${menuClass}`}
+        class={`absolute top-full z-50 hidden peer-checked:block ${menuAlign === 'start' ? 'left-0' : 'right-0'} ${menuClass}`}
     >
-        {#if content}
-            {@render content()}
-        {:else}
-            {#each items as item}
-                <a
-                    role="menuitem"
-                    href={item.href}
-                    class="block whitespace-nowrap px-5 py-3 text-sm leading-tight font-normal text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                >
-                    {item.label}
-                </a>
-            {/each}
-        {/if}
+        <div
+            role={content ? 'group' : 'menu'}
+            aria-label={content ? ariaLabel : undefined}
+            class="bg-panel"
+            onclick={() => (open = false)}
+        >
+            {#if content}
+                {@render content()}
+            {:else}
+                {#each items as item}
+                    <a
+                        role="menuitem"
+                        href={item.href}
+                        class="block whitespace-nowrap px-5 py-3 text-sm leading-tight font-normal text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                    >
+                        {item.label}
+                    </a>
+                {/each}
+            {/if}
+        </div>
     </div>
 </div>
