@@ -7,10 +7,7 @@ import type { MediaSeason } from '$lib/graphql/anilist/generated/graphql';
 import { anime } from '$lib/server/anime';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
-import {
-    updateWatchlist,
-    watchlistUser,
-} from '$lib/server/watchlist/action';
+import { updateWatchlist } from '$lib/server/watchlist/action';
 import {
     getWatchlistedAnimeIds,
 } from '$lib/server/watchlist/store';
@@ -33,7 +30,7 @@ function currentSeason(now = new Date()) {
     };
 }
 
-export const load: PageServerLoad = async ({ cookies }) => {
+export const load: PageServerLoad = async ({ locals }) => {
     const { season, year } = currentSeason();
     const result = await Effect.runPromise(
         anime.anilist.getHomepage(season, year).pipe(Effect.either),
@@ -65,7 +62,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
                       .orderBy(asc(animeEpisode.number))
                 : [],
             anime.allanime.getPopularAudioLabels().catch(() => new Map()),
-            getWatchlistedAnimeIds(watchlistUser(cookies), animeIds),
+            getWatchlistedAnimeIds(locals.user?.id, animeIds),
         ]);
     const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
 
