@@ -65,6 +65,7 @@ async function fetchAndStore(anime: AniListAnime) {
                 .select({
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
+                    version: animeEpisodeSync.version,
                 })
                 .from(animeEpisodeSync)
                 .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -90,7 +91,7 @@ async function fetchAndStore(anime: AniListAnime) {
                     episode.title || previous?.providerTitle || null,
                 metadataTitle:
                     media?.title || previous?.metadataTitle || null,
-                audio: sync?.sourceRevision
+                audio: sync?.version === syncVersion
                     ? mergeAudioModes(previous?.audio, episode.audio)
                     : episode.audio,
                 imageUrl: media?.imageUrl ?? previous?.imageUrl ?? null,
