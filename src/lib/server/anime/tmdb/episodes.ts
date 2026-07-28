@@ -1,7 +1,11 @@
 import type { ProviderEpisode } from '../providers/types';
 import { create, imageUrl } from './client';
+import {
+    completeEpisodeDetails,
+    episodeDetailsNeeded,
+} from './episode-details';
+import { matchEpisodeMetadata } from './episode-match';
 import { resolveStored } from './mapping';
-import { normalizeTitle } from './title';
 import type {
     AniListAnime,
     EpisodeCandidate,
@@ -21,23 +25,43 @@ function displayAirDate(value: string | undefined) {
     return year && month && day ? `${month}/${day}/${year}` : '';
 }
 
-function episodeTitle(value: string) {
-    return normalizeTitle(value).replace(/^episode\s+\d+\s*/, '');
-}
-
-function titleScore(left: string, right: string) {
-    const a = episodeTitle(left);
-    const b = episodeTitle(right);
-
-    if (!a || !b) {
-        return 0;
+function featuredEpisode(value: unknown) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return null;
     }
 
-    if (a === b) {
-        return 25;
+    const episode = value as Record<string, unknown>;
+    const seasonNumber = Number(episode.season_number);
+    const episodeNumber = Number(episode.episode_number);
+    if (
+        !Number.isSafeInteger(seasonNumber) ||
+        !Number.isSafeInteger(episodeNumber)
+    ) {
+        return null;
     }
 
-    return a.includes(b) || b.includes(a) ? 12 : -8;
+    return {
+        seasonNumber,
+        episodeNumber,
+        details: {
+            name:
+                typeof episode.name === 'string'
+                    ? episode.name
+                    : undefined,
+            overview:
+                typeof episode.overview === 'string'
+                    ? episode.overview
+                    : undefined,
+            runtime:
+                typeof episode.runtime === 'number'
+                    ? episode.runtime
+                    : undefined,
+            stillPath:
+                typeof episode.still_path === 'string'
+                    ? episode.still_path
+                    : undefined,
+        },
+    };
 }
 
 function largestNumber(source: ProviderEpisode[]) {
@@ -82,82 +106,56 @@ function seasonScore(
     return score;
 }
 
-function sequenceScore(
-    sequence: EpisodeCandidate[],
-    start: number,
-    source: ProviderEpisode[],
-    expectedCount: number,
-    startDate: string | null,
-    startYear: number | null,
-    baseScore: number,
-) {
-    const largestSourceNumber = largestNumber(source);
-    if (sequence.length - start < largestSourceNumber) {
-        return -Infinity;
-    }
-
-    let score = baseScore + 20;
-    const first = sequence[start];
-    const firstYear = Number(first?.rawAirDate.slice(0, 4)) || null;
-
-    if (startDate && first?.rawAirDate === startDate) {
-        score += 120;
-    } else if (startYear && firstYear === startYear) {
-        score += 35;
-    }
-
-    if (expectedCount > 0 && sequence.length - start === expectedCount) {
-        score += 30;
-    }
-
-    for (const episode of source.slice(0, 4)) {
-        if (!Number.isInteger(episode.number) || episode.number < 1) {
-            continue;
-        }
-
-        const media = sequence[start + episode.number - 1];
-        if (media) {
-            score += titleScore(episode.title, media.title);
-        }
-    }
-
-    return score;
-}
-
-function candidateStarts(
-    sequence: EpisodeCandidate[],
-    source: ProviderEpisode[],
-    startDate: string | null,
-) {
-    const starts = new Set([0]);
-
-    sequence.forEach((episode, index) => {
-        if (startDate && episode.rawAirDate === startDate) {
-            starts.add(index);
-        }
-
-        if (
-            source[0]?.title &&
-            titleScore(source[0].title, episode.title) >= 25
-        ) {
-            starts.add(index);
-        }
-    });
-
-    return [...starts];
-}
-
 export async function getEpisodeMetadata(
     anime: AniListAnime,
     source: ProviderEpisode[],
 ): Promise<Map<string, EpisodeMetadata>> {
-    const match = await resolveStored(anime);
-
-    if (match.mediaType !== 'tv' || !source.length) {
+    if (!source.length) {
         return new Map();
     }
 
+    const match = await resolveStored(anime);
     const client = create();
+
+    if (match.mediaType === 'movie') {
+        if (source.length !== 1) {
+            return new Map();
+        }
+
+        const { data: movie, error } = await client.GET(
+            '/3/movie/{movie_id}',
+            {
+                params: {
+                    path: { movie_id: match.id },
+                    query: { language: 'en-US' },
+                },
+            },
+        );
+
+        if (!movie) {
+            throw new Error('TMDB movie request failed', {
+                cause: error,
+            });
+        }
+
+        const image = movie.backdrop_path ?? movie.poster_path;
+        return new Map([
+            [
+                source[0].id,
+                {
+                    title:
+                        movie.title?.trim() ||
+                        source[0].title ||
+                        'Movie',
+                    overview: movie.overview?.trim() ?? '',
+                    imageUrl: image ? imageUrl(image, 'w500') : null,
+                    runtime: movie.runtime || null,
+                    airDate: displayAirDate(movie.release_date),
+                },
+            ],
+        ]);
+    }
+
     const { data: series, error } = await client.GET(
         '/3/tv/{series_id}',
         {
@@ -172,9 +170,12 @@ export async function getEpisodeMetadata(
         throw new Error('TMDB series request failed', { cause: error });
     }
 
-    const special = anime.format === 'OVA' || anime.format === 'SPECIAL';
-    const seasons = (series.seasons ?? []).filter(({ season_number }) =>
-        special ? season_number === 0 : season_number > 0,
+    const seasons = series.seasons ?? [];
+    const regularSeasons = seasons.filter(
+        ({ season_number }) => season_number > 0,
+    );
+    const specialSeasons = seasons.filter(
+        ({ season_number }) => season_number === 0,
     );
     const largestSourceNumber = largestNumber(source);
     const expectedCount = anime.episodes ?? largestSourceNumber;
@@ -182,9 +183,9 @@ export async function getEpisodeMetadata(
     const startYear = anime.startDate?.year ?? anime.seasonYear ?? null;
     const largestSeason = Math.max(
         0,
-        ...seasons.map(({ episode_count }) => episode_count),
+        ...regularSeasons.map(({ episode_count }) => episode_count),
     );
-    const ranked = seasons
+    const ranked = regularSeasons
         .map((season) => ({
             season,
             score: seasonScore(
@@ -196,10 +197,21 @@ export async function getEpisodeMetadata(
             ),
         }))
         .sort((left, right) => right.score - left.score);
-    const selected =
+    const selectedRegular =
         expectedCount > largestSeason ? ranked : ranked.slice(0, 4);
+    const selected = [
+        ...new Map(
+            [...selectedRegular, ...specialSeasons.map((season) => ({
+                season,
+                score: 0,
+            }))].map((rankedSeason) => [
+                rankedSeason.season.season_number,
+                rankedSeason,
+            ]),
+        ).values(),
+    ];
     const fetched = await Promise.all(
-        selected.map(async ({ season, score }) => {
+        selected.map(async ({ season }) => {
             const response = await client.GET(
                 '/3/tv/{series_id}/season/{season_number}',
                 {
@@ -214,88 +226,130 @@ export async function getEpisodeMetadata(
             );
 
             if (!response.data) {
-                return { episodes: [], score };
+                return [] as EpisodeCandidate[];
             }
 
-            return {
-                score,
-                episodes: (response.data.episodes ?? []).map(
-                    (episode) => ({
-                        episodeNumber: episode.episode_number,
-                        seasonNumber: episode.season_number,
-                        title: episode.name?.trim() ?? '',
-                        overview: episode.overview?.trim() ?? '',
-                        imageUrl: episode.still_path
-                            ? imageUrl(episode.still_path, 'w500')
-                            : null,
-                        runtime: episode.runtime || null,
-                        rawAirDate: episode.air_date ?? '',
-                        airDate: displayAirDate(episode.air_date),
-                    }),
-                ),
+            return (response.data.episodes ?? []).map(
+                (episode): EpisodeCandidate => ({
+                    episodeNumber: episode.episode_number,
+                    seasonNumber: episode.season_number,
+                    title: episode.name?.trim() ?? '',
+                    overview: episode.overview?.trim() ?? '',
+                    imageUrl: episode.still_path
+                        ? imageUrl(episode.still_path, 'w500')
+                        : null,
+                    runtime: episode.runtime || null,
+                    rawAirDate: episode.air_date ?? '',
+                    airDate: displayAirDate(episode.air_date),
+                }),
+            );
+        }),
+    );
+
+    const matched = matchEpisodeMetadata(anime, source, fetched.flat());
+    const completed = await Promise.all(
+        [...matched.entries()].map(async ([sourceId, candidate]) => {
+            const needed = episodeDetailsNeeded(candidate);
+            if (
+                !needed.details &&
+                !needed.translations &&
+                !needed.images
+            ) {
+                return [sourceId, candidate] as const;
+            }
+
+            const path = {
+                series_id: match.id,
+                season_number: candidate.seasonNumber,
+                episode_number: candidate.episodeNumber,
             };
+            const detailsRequest = needed.details
+                ? client
+                      .GET(
+                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}',
+                          {
+                              params: {
+                                  path,
+                                  query: { language: 'en-US' },
+                              },
+                          },
+                      )
+                      .then(({ data }) => data)
+                      .catch(() => undefined)
+                : Promise.resolve(undefined);
+            const translationsRequest = needed.translations
+                ? client
+                      .GET(
+                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
+                          { params: { path } },
+                      )
+                      .then(({ data }) => data?.translations)
+                      .catch(() => undefined)
+                : Promise.resolve(undefined);
+            const imagesRequest = needed.images
+                ? client
+                      .GET(
+                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/images',
+                          {
+                              params: {
+                                  path,
+                                  query: {
+                                      include_image_language: 'en,null',
+                                  },
+                              },
+                          },
+                      )
+                      .then(({ data }) => data?.stills)
+                      .catch(() => undefined)
+                : Promise.resolve(undefined);
+            const [details, translations, stills] =
+                await Promise.all([
+                    detailsRequest,
+                    translationsRequest,
+                    imagesRequest,
+                ]);
+            const featured = [
+                series.last_episode_to_air,
+                series.next_episode_to_air,
+            ]
+                .map(featuredEpisode)
+                .find(
+                    (episode) =>
+                        episode?.seasonNumber ===
+                            candidate.seasonNumber &&
+                        episode.episodeNumber ===
+                            candidate.episodeNumber,
+                );
+
+            return [
+                sourceId,
+                completeEpisodeDetails(candidate, {
+                    details: details
+                        ? {
+                              name: details.name,
+                              overview: details.overview,
+                              runtime: details.runtime,
+                              stillPath: details.still_path,
+                          }
+                        : undefined,
+                    translations: translations?.map((translation) => ({
+                        country: translation.iso_3166_1,
+                        language: translation.iso_639_1,
+                        name: translation.data?.name,
+                        overview: translation.data?.overview,
+                    })),
+                    stills: stills?.map((still) => ({
+                        filePath: still.file_path,
+                        voteAverage: still.vote_average,
+                        voteCount: still.vote_count,
+                        width: still.width,
+                    })),
+                    featured: featured?.details,
+                    image: (path) => imageUrl(path, 'w500'),
+                }),
+            ] as const;
         }),
     );
-    const sequences = fetched.flatMap(({ episodes, score }) =>
-        episodes.length ? [{ episodes, score }] : [],
-    );
 
-    if (fetched.length > 1) {
-        const combined = fetched
-            .flatMap(({ episodes }) => episodes)
-            .sort(
-                (left, right) =>
-                    left.rawAirDate.localeCompare(right.rawAirDate) ||
-                    left.seasonNumber - right.seasonNumber ||
-                    left.episodeNumber - right.episodeNumber,
-            );
-        sequences.push({ episodes: combined, score: 0 });
-    }
-
-    let best:
-        | { sequence: EpisodeCandidate[]; start: number; score: number }
-        | undefined;
-
-    for (const candidate of sequences) {
-        for (const start of candidateStarts(
-            candidate.episodes,
-            source,
-            startDate,
-        )) {
-            const score = sequenceScore(
-                candidate.episodes,
-                start,
-                source,
-                expectedCount,
-                startDate,
-                startYear,
-                candidate.score,
-            );
-
-            if (!best || score > best.score) {
-                best = {
-                    sequence: candidate.episodes,
-                    start,
-                    score,
-                };
-            }
-        }
-    }
-
-    if (!best || best.score < 60) {
-        return new Map();
-    }
-
-    return new Map(
-        source.flatMap((episode) => {
-            if (!Number.isInteger(episode.number) || episode.number < 1) {
-                return [];
-            }
-
-            const media =
-                best.sequence[best.start + episode.number - 1];
-
-            return media ? [[episode.id, media] as const] : [];
-        }),
-    );
+    return new Map(completed);
 }
