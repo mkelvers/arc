@@ -5,6 +5,7 @@ import type {
     ProviderStream,
     ProviderStreams,
 } from './types';
+import { matchProviderEpisode } from './match';
 
 export class ProviderAttemptError extends Error {
     constructor(
@@ -193,27 +194,103 @@ export function createProviderFallback(
             error ? [error] : [],
         );
 
-        const episodes = new Map<number, ProviderEpisode>();
-        for (const { episodes: inventory } of results) {
-            for (const episode of inventory) {
-                const stored = episodes.get(episode.number);
-                if (!stored) {
-                    episodes.set(episode.number, {
-                        ...episode,
-                        audio: mergeAudioModes([], episode.audio),
-                    });
-                    continue;
-                }
+        const successful = results.filter(
+            (
+                result,
+            ): result is {
+                episodes: ProviderEpisode[];
+                error: null;
+            } => Boolean(result.episodes.length),
+        );
+        const expected = anime.episodes;
+        const inventoryPenalty = (
+            inventory: ProviderEpisode[],
+        ) => {
+            if (!expected || expected <= 0) {
+                return 0;
+            }
 
-                stored.audio = mergeAudioModes(stored.audio, episode.audio);
-                if (!stored.title && episode.title) {
-                    stored.title = episode.title;
+            const covered = new Set(
+                inventory.flatMap(({ number }) =>
+                    Number.isInteger(number) &&
+                    number > 0 &&
+                    number <= expected
+                        ? [number]
+                        : [],
+                ),
+            );
+            const missing = expected - covered.size;
+
+            return (
+                missing * 10_000 +
+                Math.abs(inventory.length - expected)
+            );
+        };
+        const canonicalIndex = successful.reduce(
+            (best, result, index) =>
+                inventoryPenalty(result.episodes) <
+                inventoryPenalty(successful[best].episodes)
+                    ? index
+                    : best,
+            0,
+        );
+        const canonical = successful[canonicalIndex];
+        const alternates = successful.filter(
+            (_, index) => index !== canonicalIndex,
+        );
+
+        if (canonical) {
+            const episodes = canonical.episodes.map((episode) => ({
+                ...episode,
+                audio: mergeAudioModes([], episode.audio),
+            }));
+
+            for (const { episodes: inventory } of alternates) {
+                for (const alternate of inventory) {
+                    const episode = matchProviderEpisode(
+                        episodes,
+                        alternate,
+                    );
+                    if (episode) {
+                        episode.audio = mergeAudioModes(
+                            episode.audio,
+                            alternate.audio,
+                        );
+                        if (!episode.title && alternate.title) {
+                            episode.title = alternate.title;
+                        }
+                        continue;
+                    }
+
+                    if (
+                        episodes.some(
+                            ({ number }) =>
+                                number === alternate.number,
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    const fillsExpectedGap =
+                        Number.isInteger(alternate.number) &&
+                        alternate.number > 0 &&
+                        alternate.number <= (anime.episodes ?? 0);
+                    const possibleSpecial =
+                        alternate.number <= 0 ||
+                        !Number.isInteger(alternate.number);
+                    if (!fillsExpectedGap && !possibleSpecial) {
+                        continue;
+                    }
+
+                    episodes.push({
+                        ...alternate,
+                        audio: mergeAudioModes([], alternate.audio),
+                        supplemental: true,
+                    });
                 }
             }
-        }
 
-        if (episodes.size) {
-            return [...episodes.values()].sort(
+            return episodes.toSorted(
                 (left, right) => left.number - right.number,
             );
         }
