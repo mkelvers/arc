@@ -1,7 +1,7 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 
 import { animeId } from '$lib/server/anime/route';
-import { togglePlanToWatch } from './store';
+import { removeFromWatchlist, togglePlanToWatch } from './store';
 
 export async function updateWatchlist({
     locals,
@@ -28,6 +28,34 @@ export async function updateWatchlist({
 
         return fail(500, {
             message: 'Watchlist update failed',
+        });
+    }
+}
+
+export async function removeWatchlist({
+    locals,
+    request,
+}: RequestEvent) {
+    if (!locals.user) {
+        redirect(303, '/login');
+    }
+
+    const form = await request.formData();
+    const id = animeId(form.get('animeId'));
+
+    if (!id) {
+        return fail(400, { message: 'Invalid anime ID' });
+    }
+
+    try {
+        await removeFromWatchlist(locals.user.id, id);
+
+        return { success: true };
+    } catch (cause) {
+        console.error('Watchlist removal failed', cause);
+
+        return fail(500, {
+            message: 'Watchlist removal failed',
         });
     }
 }
