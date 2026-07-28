@@ -7,6 +7,9 @@
 
 	let { children } = $props();
 
+	const authRoute = $derived(
+		page.route.id?.startsWith('/(auth)/') ?? false
+	);
 	const navItems = [
 		{ href: '/browse', label: 'Browse' },
 		{ href: '/top-picks', label: 'Top Picks' },
@@ -19,7 +22,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{#if page.status >= 400}
+{#if page.status >= 400 || authRoute}
 	{@render children()}
 {:else}
 	<header class="fixed inset-x-0 top-0 z-50 h-14 bg-header/95 backdrop-blur">
