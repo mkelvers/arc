@@ -40,7 +40,7 @@
         <input type="hidden" name="animeId" value={animeId} />
         <button
             type="submit"
-            class="grid size-8 place-items-center text-white transition-colors hover:bg-status-error hover:text-on-status focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-colors hover:bg-status-error hover:text-on-status focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-label={`Remove ${title} from watchlist`}
             title="Remove from watchlist"
         >
