@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import { TrashIcon } from 'phosphor-svelte';
+    import { XIcon } from 'phosphor-svelte';
 
     interface Props {
         animeId: number;
