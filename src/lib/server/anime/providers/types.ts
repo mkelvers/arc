@@ -20,6 +20,7 @@ export interface ProviderStream {
     quality: string | null;
     audioDelay: number;
     subtitleUrl?: string | null;
+    provider?: string;
 }
 
 export type ProviderStreams = Partial<
