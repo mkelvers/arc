@@ -4,6 +4,8 @@ import type { AudioMode } from '$lib/anime/audio';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
+import { resumePosition } from '$lib/server/playback-progress/continue';
+import { getPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { PageServerLoad } from './$types';
 
 function legacySlug(title: string, episodeId: string) {
@@ -103,16 +105,17 @@ async function getPlayback(
     };
 }
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
     const id = animeId(params.id);
     if (!id) {
         error(400, 'Invalid anime ID');
     }
     const result = await loadAnime(id);
 
-    const [storedMedia, episodes] = await Promise.all([
+    const [storedMedia, episodes, progress] = await Promise.all([
         anime.tmdb.getStoredMedia(id).catch(() => null),
         anime.episodes.getEpisodes(result).catch(() => []),
+        getPlaybackProgress(locals.user?.id, id),
     ]);
     let currentIndex = episodes.findIndex(
         (episode) => episode.id === params.episode,
@@ -158,6 +161,7 @@ export const load: PageServerLoad = async ({ params }) => {
             storedMedia?.artwork.selectedBackdrop?.url ??
             result.bannerImage ??
             null,
+        startAt: resumePosition(progress, currentEpisode.id),
         playback: getPlayback(
             result,
             playbackEpisode,

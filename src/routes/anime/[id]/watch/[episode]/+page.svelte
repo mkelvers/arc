@@ -76,10 +76,13 @@
 <main class="min-h-dvh">
     <WatchPlayer
         playback={data.playback}
+        animeId={data.anime.id}
         episodeId={data.currentEpisode.id}
+        episodeNumber={data.currentEpisode.number}
         label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
         {poster}
         next={data.nextEpisode?.href}
+        startAt={data.startAt}
     />
 
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12">
