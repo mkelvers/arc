@@ -19,7 +19,9 @@ export function load(sources: Sources, qualities: string[]) {
             : null;
     const rawQuality = localStorage.getItem('arc:quality');
     const quality =
-        rawQuality === 'best' || qualities.includes(rawQuality ?? '')
+        rawQuality === 'best' ||
+        qualities.includes(rawQuality ?? '') ||
+        /^\d+p$/.test(rawQuality ?? '')
             ? (rawQuality ?? 'best')
             : null;
 
