@@ -15,6 +15,9 @@
     --theme-border-strong: light-dark(oklch(0.54 0.008 285), oklch(0.5 0.008 285));
     --theme-accent: oklch(69.181% 0.18362 47.764);
     --theme-on-accent: oklch(0.13 0.01 48);
+    --theme-status-error: #f04427;
+    --theme-status-success: #2ca66f;
+    --theme-on-status: oklch(0.13 0.01 48);
     --theme-panel: oklch(0.26 0.004 285);
     --theme-panel-strong: oklch(0.23 0.004 285);
     --theme-panel-selected: oklch(0.2 0.004 285);
@@ -47,6 +50,9 @@
     --color-border-strong: var(--theme-border-strong);
     --color-accent: var(--theme-accent);
     --color-on-accent: var(--theme-on-accent);
+    --color-status-error: var(--theme-status-error);
+    --color-status-success: var(--theme-status-success);
+    --color-on-status: var(--theme-on-status);
     --color-panel: var(--theme-panel);
     --color-panel-strong: var(--theme-panel-strong);
     --color-panel-selected: var(--theme-panel-selected);
