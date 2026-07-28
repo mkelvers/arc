@@ -96,21 +96,23 @@
             </span>
         </button>
 
-        <button
-            type="button"
-            role="menuitem"
-            class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() => (view = 'quality')}
-        >
-            <span>Quality</span>
-            <span class="flex items-center gap-1 text-white/85">
-                <span>{qualityText}</span>
-                {#if isHd(quality === 'best' ? bestQuality : quality)}
-                    <span class="font-bold text-accent">HD</span>
-                {/if}
-                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
-            </span>
-        </button>
+        {#if qualities.length > 1}
+            <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                onclick={() => (view = 'quality')}
+            >
+                <span>Quality</span>
+                <span class="flex items-center gap-1 text-white/85">
+                    <span>{qualityText}</span>
+                    {#if isHd(quality === 'best' ? bestQuality : quality)}
+                        <span class="font-bold text-accent">HD</span>
+                    {/if}
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                </span>
+            </button>
+        {/if}
     {:else}
         <button
             type="button"
