@@ -1,101 +1,23 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
+import {
+    ensureInternalAnimeId,
+    findInternalAnimeId,
+} from '$lib/server/anime/identity';
 import { db } from '$lib/server/db';
 import {
-    anime,
     animeExternalId,
     animeExternalIdLink,
     watchlist,
 } from '$lib/server/db/schema';
 import type { WatchlistState } from '$lib/server/db/schema';
 
-async function findAnimeId(anilistId: number) {
-    const [stored] = await db
-        .select({ animeId: animeExternalIdLink.animeId })
-        .from(animeExternalId)
-        .innerJoin(
-            animeExternalIdLink,
-            eq(animeExternalIdLink.externalIdId, animeExternalId.id),
-        )
-        .where(
-            and(
-                eq(animeExternalId.provider, 'anilist'),
-                eq(animeExternalId.mediaType, 'anime'),
-                eq(animeExternalId.externalId, anilistId),
-            ),
-        )
-        .limit(1);
-
-    return stored?.animeId ?? null;
-}
-
-async function ensureAnimeId(anilistId: number) {
-    const stored = await findAnimeId(anilistId);
-
-    if (stored) {
-        return stored;
-    }
-
-    return db.transaction(async (tx) => {
-        await tx
-            .insert(animeExternalId)
-            .values({
-                provider: 'anilist',
-                mediaType: 'anime',
-                externalId: anilistId,
-            })
-            .onConflictDoNothing();
-
-        const [externalId] = await tx
-            .select({ id: animeExternalId.id })
-            .from(animeExternalId)
-            .where(
-                and(
-                    eq(animeExternalId.provider, 'anilist'),
-                    eq(animeExternalId.mediaType, 'anime'),
-                    eq(animeExternalId.externalId, anilistId),
-                ),
-            )
-            .limit(1);
-
-        if (!externalId) {
-            throw new Error('Failed to store anime identity');
-        }
-
-        const [existingLink] = await tx
-            .select({ animeId: animeExternalIdLink.animeId })
-            .from(animeExternalIdLink)
-            .where(eq(animeExternalIdLink.externalIdId, externalId.id))
-            .limit(1);
-
-        if (existingLink) {
-            return existingLink.animeId;
-        }
-
-        const [created] = await tx
-            .insert(anime)
-            .values({})
-            .returning({ id: anime.id });
-
-        if (!created) {
-            throw new Error('Failed to store anime');
-        }
-
-        await tx.insert(animeExternalIdLink).values({
-            animeId: created.id,
-            externalIdId: externalId.id,
-        });
-
-        return created.id;
-    });
-}
-
 export async function getWatchlistState(userId: string | undefined, anilistId: number) {
     if (!userId) {
         return null;
     }
 
-    const animeId = await findAnimeId(anilistId);
+    const animeId = await findInternalAnimeId(anilistId);
     if (!animeId) {
         return null;
     }
@@ -174,7 +96,7 @@ export async function removeFromWatchlist(
     userId: string,
     anilistId: number,
 ) {
-    const animeId = await findAnimeId(anilistId);
+    const animeId = await findInternalAnimeId(anilistId);
     if (!animeId) {
         return;
     }
@@ -208,7 +130,7 @@ export async function setWatchlistState(
     anilistId: number,
     state: WatchlistState,
 ) {
-    const animeId = await ensureAnimeId(anilistId);
+    const animeId = await ensureInternalAnimeId(anilistId);
 
     await upsertWatchlistState(userId, animeId, state);
 
@@ -216,7 +138,7 @@ export async function setWatchlistState(
 }
 
 export async function toggleWatchlist(userId: string, anilistId: number) {
-    const animeId = await ensureAnimeId(anilistId);
+    const animeId = await ensureInternalAnimeId(anilistId);
 
     const [item] = await db
         .select({ state: watchlist.state })
