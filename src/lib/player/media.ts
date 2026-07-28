@@ -5,6 +5,13 @@ export interface Stream {
     quality: string | null;
     audioDelay: number;
     subtitleUrl?: string | null;
+    provider?: string;
+}
+
+export interface SubtitleCue {
+    start: number;
+    end: number;
+    text: string;
 }
 
 export type Sources = Partial<Record<AudioMode, Stream[]>>;
@@ -87,6 +94,92 @@ export function isHlsSource(value: string) {
     } catch {
         return /\.m3u8(?:$|[?#])/i.test(value);
     }
+}
+
+function subtitleTime(value: string) {
+    const parts = value.split(':').map(Number);
+    if (
+        parts.some((part) => !Number.isFinite(part)) ||
+        parts.length < 2 ||
+        parts.length > 3
+    ) {
+        return null;
+    }
+
+    const seconds = parts.pop()!;
+    const minutes = parts.pop()!;
+    const hours = parts.pop() ?? 0;
+    return hours * 3_600 + minutes * 60 + seconds;
+}
+
+function subtitleText(value: string) {
+    return value
+        .replace(/<[^>]*>/g, '')
+        .replace(
+            /&(?:#(\d+)|#x([\da-f]+)|(\w+));/gi,
+            (entity, decimal, hexadecimal, named) => {
+                if (decimal || hexadecimal) {
+                    const codePoint = decimal
+                        ? Number(decimal)
+                        : Number.parseInt(hexadecimal, 16);
+                    return Number.isInteger(codePoint) &&
+                        codePoint >= 0 &&
+                        codePoint <= 0x10ffff &&
+                        !(codePoint >= 0xd800 && codePoint <= 0xdfff)
+                        ? String.fromCodePoint(codePoint)
+                        : entity;
+                }
+                return subtitleEntities[String(named).toLowerCase()] ?? entity;
+            },
+        )
+        .replaceAll('\\h', '\u00a0')
+        .trim();
+}
+
+const subtitleEntities: Record<string, string> = {
+    amp: '&',
+    apos: "'",
+    gt: '>',
+    lt: '<',
+    nbsp: '\u00a0',
+    quot: '"',
+};
+
+export function parseWebVtt(value: string) {
+    const blocks = value
+        .replace(/^\uFEFF/, '')
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .split(/\n{2,}/);
+    const cues: SubtitleCue[] = [];
+
+    for (const block of blocks) {
+        const lines = block.split('\n');
+        const timingIndex = lines.findIndex((line) => line.includes('-->'));
+        if (timingIndex < 0) {
+            continue;
+        }
+
+        const timing = lines[timingIndex].match(
+            /((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})\s+-->\s+((?:\d{2,}:)?\d{2}:\d{2}\.\d{3})/,
+        );
+        const start = timing ? subtitleTime(timing[1]) : null;
+        const end = timing ? subtitleTime(timing[2]) : null;
+        const text = subtitleText(lines.slice(timingIndex + 1).join('\n'));
+        if (start === null || end === null || end <= start || !text) {
+            continue;
+        }
+
+        cues.push({ start, end, text });
+    }
+
+    return cues.sort((left, right) => left.start - right.start);
+}
+
+export function subtitlesAt(cues: SubtitleCue[], seconds: number) {
+    return cues
+        .filter((cue) => cue.start <= seconds && seconds < cue.end)
+        .map(({ text }) => text);
 }
 
 export function formatTime(seconds: number) {
