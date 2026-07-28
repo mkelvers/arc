@@ -7,9 +7,13 @@ import {
     verifyProviderMediaId,
 } from './mapping';
 import {
-    matchProviderEpisode,
+    isSpecialEpisodeReference,
+    matchProviderStreamEpisode,
     normalizedProviderTitle,
     providerTitles,
+    specialCollectionMatches,
+    specialReleaseQueries,
+    standaloneSpecialMatches,
 } from './match';
 import type {
     PlaybackProvider,
@@ -74,13 +78,17 @@ function searchResults(value: unknown) {
 function pageIdentity(html: string) {
     const $ = load(html);
     const title = $('.nv-info-main h1').first().text().trim();
+    const alternativeTitle = $('.nv-info-alt-title')
+        .first()
+        .text()
+        .trim();
     const year = $('.nv-info-tags span')
         .map((_, element) => $(element).text().trim())
         .get()
         .map(Number)
         .find((value) => Number.isInteger(value) && value > 1900);
 
-    return { title, year: year ?? null };
+    return { title, alternativeTitle, year: year ?? null };
 }
 
 function exactPageIdentity(
@@ -90,7 +98,11 @@ function exactPageIdentity(
     const titles = new Set(
         providerTitles(anime).map(normalizedProviderTitle),
     );
-    if (!titles.has(normalizedProviderTitle(identity.title))) {
+    if (
+        ![identity.title, identity.alternativeTitle].some((title) =>
+            titles.has(normalizedProviderTitle(title)),
+        )
+    ) {
         return false;
     }
 
@@ -232,6 +244,70 @@ async function getEpisodes(anime: ProviderAnime) {
     return episodes;
 }
 
+async function specialReleaseEpisode(
+    anime: ProviderAnime,
+    episode: Parameters<PlaybackProvider['getStreams']>[1],
+) {
+    const visited = new Set<string>();
+
+    for (const query of specialReleaseQueries(anime, episode)) {
+        const search = new URL('/ajax/search', baseUrl);
+        search.searchParams.set('q', query);
+        const candidates = searchResults(
+            JSON.parse(await requestText(search)) as unknown,
+        ).filter(
+            (candidate) =>
+                !visited.has(candidate.slug) &&
+                (standaloneSpecialMatches(anime, episode, [
+                    candidate.title,
+                ]) ||
+                    specialCollectionMatches(anime, episode, [
+                        candidate.title,
+                    ])),
+        );
+
+        for (const candidate of candidates.slice(0, 6)) {
+            visited.add(candidate.slug);
+            const html = await requestText(
+                new URL(`/watch/${candidate.slug}`, baseUrl),
+            );
+            const identity = pageIdentity(html);
+            const episodes = episodeInventory(html, candidate.slug);
+            const titles = [
+                identity.title,
+                identity.alternativeTitle,
+            ];
+            if (
+                standaloneSpecialMatches(anime, episode, titles) &&
+                episodes.length === 1
+            ) {
+                return {
+                    slug: candidate.slug,
+                    episode: episodes[0],
+                };
+            }
+            if (
+                specialCollectionMatches(
+                    anime,
+                    episode,
+                    titles,
+                    episodes.length,
+                ) &&
+                episode.specialIndex
+            ) {
+                return {
+                    slug: candidate.slug,
+                    episode: episodes[episode.specialIndex - 1],
+                };
+            }
+        }
+    }
+
+    throw new Error(
+        `AniNeko has no matching special release for ${episode.title || episode.id}`,
+    );
+}
+
 function embedUrls(html: string, mode: AudioMode) {
     if (mode === 'raw') {
         return [];
@@ -303,18 +379,42 @@ async function getStreams(
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[],
 ) {
-    if (
-        !Number.isInteger(episode.number) ||
-        episode.number <= 0
-    ) {
-        throw new Error(
-            `AniNeko cannot map episode ${episode.id} to an integer`,
+    let slug: string | undefined;
+    let match: ProviderEpisode | undefined;
+    let parentError: unknown;
+
+    try {
+        const parent = await providerEpisodes(anime);
+        slug = parent.slug;
+        match = matchProviderStreamEpisode(
+            parent.episodes,
+            episode,
+            anime.episodes,
         );
+    } catch (cause) {
+        parentError = cause;
     }
 
-    const { slug, episodes } = await providerEpisodes(anime);
-    const match = matchProviderEpisode(episodes, episode);
-    if (!match) {
+    if (!match && isSpecialEpisodeReference(episode)) {
+        try {
+            const special = await specialReleaseEpisode(
+                anime,
+                episode,
+            );
+            slug = special.slug;
+            match = special.episode;
+        } catch (cause) {
+            throw new AggregateError(
+                parentError ? [parentError, cause] : [cause],
+                `AniNeko could not resolve special ${episode.title || episode.id}`,
+            );
+        }
+    }
+
+    if (!match || !slug) {
+        if (parentError) {
+            throw parentError;
+        }
         throw new Error(
             `AniNeko has no episode ${episode.number} for AniList ${anime.id}`,
         );
