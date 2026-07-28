@@ -2,6 +2,7 @@ import { env } from '$env/dynamic/private';
 
 import { allanimeProvider } from './allanime';
 import { anidbProvider } from './anidb';
+import { anikotoProvider } from './anikoto';
 import { aninekoProvider } from './anineko';
 import { animepaheProvider } from './animepahe';
 import { anipubProvider } from './anipub';
@@ -10,14 +11,18 @@ import { senshiProvider } from './senshi';
 
 const defaultProviders = [
     allanimeProvider,
-    anidbProvider,
-    senshiProvider,
-    anipubProvider,
+    anikotoProvider,
     aninekoProvider,
+    senshiProvider,
+] as const;
+const availableProviders = [
+    ...defaultProviders,
+    anidbProvider,
+    anipubProvider,
     animepaheProvider,
 ] as const;
 const providers = new Map(
-    defaultProviders.map((provider) => [
+    availableProviders.map((provider) => [
         provider.name.toLowerCase(),
         provider,
     ]),
