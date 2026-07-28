@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Player } from '$lib/player/controller.svelte';
     import type { Sources } from '$lib/player/media';
+    import { ProgressSchedule } from '$lib/player/progress';
     import { onMount } from 'svelte';
     import {
         CornersInIcon,
@@ -16,25 +17,156 @@
     import Timeline from './player/Timeline.svelte';
 
     interface Props {
+        animeId: number;
+        episodeId: string;
+        episodeNumber: number;
         sources: Sources;
         label: string;
         poster?: string | null;
         next?: string | null;
+        startAt?: number;
     }
 
-    let { sources, label, poster = null, next = null }: Props = $props();
+    let {
+        animeId,
+        episodeId,
+        episodeNumber,
+        sources,
+        label,
+        poster = null,
+        next = null,
+        startAt = 0,
+    }: Props = $props();
     const player = new Player(
         () => sources,
         () => next,
     );
     const media = player.media;
+    const progressSchedule = new ProgressSchedule();
+    let progressStarted = false;
+    let episodeEnded = false;
+    let finalSaveSent = false;
+    let saveQueue: Promise<void> = Promise.resolve();
 
-    onMount(() => player.mount());
+    function progressPayload(completed: boolean) {
+        const positionSeconds = media.video?.currentTime;
+        const durationSeconds = media.video?.duration;
+
+        if (
+            !Number.isFinite(positionSeconds) ||
+            !Number.isFinite(durationSeconds) ||
+            durationSeconds <= 0
+        ) {
+            return null;
+        }
+
+        return {
+            animeId,
+            episodeId,
+            episodeNumber,
+            positionSeconds,
+            durationSeconds,
+            completed,
+        };
+    }
+
+    async function sendProgress(
+        payload: NonNullable<ReturnType<typeof progressPayload>>,
+        keepalive = false,
+    ) {
+        const response = await fetch('/api/progress', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            credentials: 'same-origin',
+            keepalive,
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                `Progress request failed with ${response.status}`,
+            );
+        }
+    }
+
+    function saveProgress(completed = false, keepalive = false) {
+        const payload = progressPayload(completed);
+        if (!payload) {
+            return Promise.resolve();
+        }
+
+        saveQueue = saveQueue
+            .then(() => sendProgress(payload, keepalive))
+            .catch((cause) => {
+                console.error('Playback progress save failed', cause);
+            });
+
+        return saveQueue;
+    }
+
+    function saveBeforeLeave() {
+        if (episodeEnded || finalSaveSent) {
+            return;
+        }
+
+        const payload = progressPayload(false);
+        if (!payload) {
+            return;
+        }
+
+        finalSaveSent = true;
+        void sendProgress(payload, true).catch(() => undefined);
+    }
+
+    function handleMetadata() {
+        media.handleMetadata(startAt);
+
+        if (progressStarted) {
+            return;
+        }
+
+        progressStarted = true;
+        progressSchedule.start(media.video.currentTime);
+        void saveProgress();
+    }
+
+    function handleTimeUpdate() {
+        media.currentTime = media.video.currentTime;
+
+        const reason = progressSchedule.update({
+            currentTime: media.video.currentTime,
+            duration: media.video.duration,
+            playing: media.playing,
+        });
+        if (reason) {
+            void saveProgress();
+        }
+    }
+
+    async function handleEnded() {
+        episodeEnded = true;
+        media.currentTime = media.video.currentTime;
+        await saveProgress(true, true);
+        media.ended();
+    }
+
+    onMount(() => {
+        const closePlayer = player.mount();
+
+        return () => {
+            saveBeforeLeave();
+            closePlayer();
+        };
+    });
 </script>
 
 <svelte:window
     onpointermove={(event) => player.handlePointerMove(event)}
     onfullscreenchange={() => player.fullscreenChanged()}
+    onpagehide={saveBeforeLeave}
+    onpageshow={() => (finalSaveSent = false)}
 />
 
 <!-- The focusable section owns player-wide shortcuts and surface clicks. -->
@@ -58,19 +190,23 @@
         preload="metadata"
         {poster}
         onloadstart={() => (media.loading = true)}
-        onloadedmetadata={() => media.handleMetadata()}
+        onloadedmetadata={handleMetadata}
         ondurationchange={() => (media.duration = media.video.duration)}
-        ontimeupdate={() => (media.currentTime = media.video.currentTime)}
+        ontimeupdate={handleTimeUpdate}
         onprogress={() => media.updateBuffered()}
         onwaiting={() => media.handleWaiting()}
         oncanplay={() => media.handleCanPlay()}
         onerror={() => void media.tryNextSource()}
+        onplay={() => void saveProgress()}
         onplaying={() => media.handlePlaying()}
         onpause={() => {
             media.playing = false;
             player.showControls();
+            if (!episodeEnded) {
+                void saveProgress();
+            }
         }}
-        onended={() => media.ended()}
+        onended={handleEnded}
         onvolumechange={() => media.volumeChanged()}
     >
     </video>
