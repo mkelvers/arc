@@ -7,6 +7,7 @@ import {
     verifyProviderMediaId,
 } from './mapping';
 import {
+    matchProviderEpisode,
     normalizedProviderTitle,
     providerTitles,
 } from './match';
@@ -312,14 +313,15 @@ async function getStreams(
     }
 
     const { slug, episodes } = await providerEpisodes(anime);
-    if (!episodes.some((candidate) => candidate.number === episode.number)) {
+    const match = matchProviderEpisode(episodes, episode);
+    if (!match) {
         throw new Error(
             `AniNeko has no episode ${episode.number} for AniList ${anime.id}`,
         );
     }
 
     const html = await requestText(
-        new URL(`/watch/${slug}/ep-${episode.number}`, baseUrl),
+        new URL(`/watch/${slug}/ep-${match.number}`, baseUrl),
     );
     const streams: ProviderStreams = {};
     const errors: unknown[] = [];
