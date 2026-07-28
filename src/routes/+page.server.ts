@@ -7,6 +7,7 @@ import type { MediaSeason } from '$lib/graphql/anilist/generated/graphql';
 import { anime } from '$lib/server/anime';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
+import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
 import { updateWatchlist } from '$lib/server/watchlist/action';
 import {
     getWatchlistedAnimeIds,
@@ -32,6 +33,12 @@ function currentSeason(now = new Date()) {
 
 export const load: PageServerLoad = async ({ locals }) => {
     const { season, year } = currentSeason();
+    const continueWatching = getContinueWatchingCards(
+        locals.user?.id,
+    ).catch((cause) => {
+        console.error('Continue watching load failed', cause);
+        return [];
+    });
     const result = await Effect.runPromise(
         anime.anilist.getHomepage(season, year).pipe(Effect.either),
     );
@@ -113,6 +120,7 @@ export const load: PageServerLoad = async ({ locals }) => {
             ]),
         })),
         watchlistedIds: [...watchlisted],
+        continueWatching,
     };
 };
 

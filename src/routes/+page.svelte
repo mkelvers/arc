@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ContinueWatchingGrid from '$lib/components/ContinueWatchingGrid.svelte';
     import HomeHero from '$lib/components/HomeHero.svelte';
     import SeasonRail from '$lib/components/SeasonRail.svelte';
     import type { PageProps } from './$types';
@@ -24,4 +25,7 @@
         overlap={Boolean(data.highlights.length)}
         watchlistedIds={data.watchlistedIds}
     />
+    {#await data.continueWatching then anime}
+        <ContinueWatchingGrid {anime} />
+    {/await}
 </main>
