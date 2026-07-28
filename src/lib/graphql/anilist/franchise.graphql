@@ -12,9 +12,21 @@ query FranchiseMedia($malIds: [Int]) {
                 extraLarge
                 large
             }
+            format
+            episodes
+            duration
+            popularity
             averageScore
             description(asHtml: false)
             genres
+            relations {
+                edges {
+                    relationType
+                    node {
+                        idMal
+                    }
+                }
+            }
         }
     }
 }
