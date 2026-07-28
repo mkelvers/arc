@@ -1,5 +1,5 @@
 import type { AudioMode } from '$lib/anime/audio';
-import { matchProviderEpisode } from './match';
+import { matchProviderStreamEpisode } from './match';
 import type {
     PlaybackProvider,
     ProviderEpisode,
@@ -197,9 +197,10 @@ async function getStreams(
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[],
 ) {
-    const match = matchProviderEpisode(
+    const match = matchProviderStreamEpisode(
         await getEpisodes(anime),
         episode,
+        anime.episodes,
     );
     if (!match || !Number.isInteger(match.number) || match.number <= 0) {
         throw new Error(
