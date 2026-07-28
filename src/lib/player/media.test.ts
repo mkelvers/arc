@@ -7,7 +7,9 @@ import {
     isHd,
     isHlsSource,
     orderStreams,
+    parseWebVtt,
     qualityLabel,
+    subtitlesAt,
     type Stream,
 } from './media';
 
@@ -55,5 +57,31 @@ describe('player media helpers', () => {
         expect(isHlsSource('/api/watch/stream?url=video.mp4')).toBe(
             false,
         );
+    });
+
+    test('parses and selects overlapping WebVTT captions', () => {
+        const cues = parseWebVtt(`
+WEBVTT
+
+00:06.060 --> 00:11.810
+"I want to go on <i>living</i>
+even after my death!"
+
+1
+01:52.510 --> 01:53.910 align:center
+Yeah &amp; cheers!
+
+01:52.880 --> 01:54.750
+Cheers!
+`);
+
+        expect(cues).toHaveLength(3);
+        expect(subtitlesAt(cues, 7)).toEqual([
+            '"I want to go on living\neven after my death!"',
+        ]);
+        expect(subtitlesAt(cues, 113)).toEqual([
+            'Yeah & cheers!',
+            'Cheers!',
+        ]);
     });
 });
