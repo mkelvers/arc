@@ -7,12 +7,21 @@ import {
     availableModes,
     isHlsSource,
     orderStreams,
+    parseWebVtt,
     qualitiesFor,
     qualityLabel,
     streamsFor,
+    subtitlesAt,
     type Sources,
+    type Stream,
+    type SubtitleCue,
 } from './media';
 import * as preferences from './preferences';
+
+interface HlsQuality {
+    label: string;
+    level: number;
+}
 
 export class Playback {
     mode = $state<AudioMode>('sub');
@@ -25,6 +34,9 @@ export class Playback {
     volume = $state(1);
     autoplay = $state(true);
     quality = $state('best');
+    hlsQualities = $state<HlsQuality[]>([]);
+    hlsCurrentQuality = $state<string | null>(null);
+    subtitleCues = $state<SubtitleCue[]>([]);
     sourceIndex = $state(0);
     error = $state(false);
     video!: HTMLVideoElement;
@@ -34,7 +46,11 @@ export class Playback {
     private resumePlayback = false;
     private autoplayAttempted = false;
     private changingSource = false;
+    private pendingSourceFailure: string | null = null;
+    private sourceChain: Stream[] = [];
     private hls: HlsType | null = null;
+    private subtitleRequest: AbortController | null = null;
+    private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
     private readonly audio = new AudioDelay();
 
     constructor(
@@ -52,30 +68,46 @@ export class Playback {
         return streamsFor(this.sources, this.mode);
     }
 
-    private get orderedSources() {
+    private get preferredSources() {
         return orderStreams(this.modeSources, this.quality);
     }
 
+    private get activeSources() {
+        return this.sourceChain.length
+            ? this.sourceChain
+            : this.preferredSources;
+    }
+
     get qualities() {
-        return qualitiesFor(this.modeSources);
+        return this.hlsQualities.length
+            ? this.hlsQualities.map(({ label }) => label)
+            : qualitiesFor(this.modeSources);
     }
 
     get src() {
-        return this.orderedSources[this.sourceIndex]?.url ?? '';
+        return this.activeSources[this.sourceIndex]?.url ?? '';
     }
 
     get audioDelay() {
-        return this.orderedSources[this.sourceIndex]?.audioDelay ?? 0;
+        return this.activeSources[this.sourceIndex]?.audioDelay ?? 0;
     }
 
     get subtitleUrl() {
         return (
-            this.orderedSources[this.sourceIndex]?.subtitleUrl ?? null
+            this.activeSources[this.sourceIndex]?.subtitleUrl ?? null
         );
     }
 
+    get subtitles() {
+        return subtitlesAt(this.subtitleCues, this.currentTime);
+    }
+
     get bestQuality() {
-        return this.modeSources[0]?.quality ?? null;
+        return (
+            this.hlsCurrentQuality ??
+            this.activeSources[this.sourceIndex]?.quality ??
+            null
+        );
     }
 
     get audioModes() {
@@ -149,7 +181,9 @@ export class Playback {
     }
 
     private resetSource() {
+        this.sourceChain = this.preferredSources;
         this.sourceIndex = 0;
+        this.pendingSourceFailure = null;
         this.error = false;
         this.loading = true;
         this.buffered = 0;
@@ -158,6 +192,69 @@ export class Playback {
     private destroyHls() {
         this.hls?.destroy();
         this.hls = null;
+        this.hlsQualities = [];
+        this.hlsCurrentQuality = null;
+    }
+
+    private clearSubtitles() {
+        this.subtitleRequest?.abort();
+        this.subtitleRequest = null;
+        this.subtitleCues = [];
+    }
+
+    private async loadSubtitles(source: string, subtitleUrl: string) {
+        this.clearSubtitles();
+        const request = new AbortController();
+        this.subtitleRequest = request;
+
+        try {
+            const response = await fetch(subtitleUrl, {
+                signal: request.signal,
+            });
+            if (!response.ok) {
+                throw new Error(
+                    `Subtitle request failed with ${response.status}`,
+                );
+            }
+
+            const cues = parseWebVtt(await response.text());
+            if (!cues.length) {
+                throw new Error('Subtitle response had no valid cues');
+            }
+            if (this.subtitleRequest === request && source === this.src) {
+                this.subtitleCues = cues;
+            }
+        } catch (cause) {
+            if (
+                request.signal.aborted ||
+                this.subtitleRequest !== request ||
+                source !== this.src
+            ) {
+                return;
+            }
+
+            console.error('Subtitle source failed', cause);
+            void this.tryNextSource(source);
+        }
+    }
+
+    private clearSourceWatchdog() {
+        clearTimeout(this.sourceWatchdog);
+        this.sourceWatchdog = undefined;
+    }
+
+    private watchSource() {
+        this.clearSourceWatchdog();
+        const source = this.src;
+        if (!source) {
+            return;
+        }
+
+        this.sourceWatchdog = setTimeout(() => {
+            if (source === this.src && this.loading) {
+                void this.tryNextSource(source);
+            }
+        }, 15_000);
     }
 
     private async reloadSource() {
@@ -169,6 +266,8 @@ export class Playback {
         }
 
         this.destroyHls();
+        this.clearSubtitles();
+        this.watchSource();
         this.syncAudio(true);
         this.resumeAudio();
         video.removeAttribute('src');
@@ -176,6 +275,11 @@ export class Playback {
 
         if (!source) {
             return;
+        }
+
+        const subtitleUrl = this.subtitleUrl;
+        if (subtitleUrl) {
+            void this.loadSubtitles(source, subtitleUrl);
         }
 
         if (!isHlsSource(source)) {
@@ -192,6 +296,52 @@ export class Playback {
             const hls = new Hls();
             let recoveredMediaError = false;
             this.hls = hls;
+            hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+                if (this.hls !== hls) {
+                    return;
+                }
+
+                const qualities = data.levels
+                    .map((level, index) => ({
+                        label: level.height > 0 ? `${level.height}p` : '',
+                        level: index,
+                    }))
+                    .filter(
+                        (quality, index, values) =>
+                            quality.label &&
+                            values.findIndex(
+                                ({ label }) => label === quality.label,
+                            ) === index,
+                    )
+                    .toSorted(
+                        (left, right) =>
+                            Number.parseInt(right.label) -
+                            Number.parseInt(left.label),
+                    );
+                this.hlsQualities = qualities;
+
+                const selected = qualities.find(
+                    ({ label }) => label === this.quality,
+                );
+                if (this.quality === 'best') {
+                    hls.currentLevel = -1;
+                } else if (selected) {
+                    hls.currentLevel = selected.level;
+                } else {
+                    this.quality = 'best';
+                    preferences.save('quality', 'best');
+                    hls.currentLevel = -1;
+                }
+            });
+            hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+                if (this.hls !== hls) {
+                    return;
+                }
+
+                this.hlsCurrentQuality =
+                    this.hlsQualities.find(({ level }) => level === data.level)
+                        ?.label ?? null;
+            });
             hls.on(Hls.Events.ERROR, (_event, data) => {
                 if (this.hls !== hls || !data.fatal) {
                     return;
@@ -206,7 +356,7 @@ export class Playback {
                     return;
                 }
 
-                void this.tryNextSource();
+                void this.tryNextSource(source);
             });
             hls.loadSource(source);
             hls.attachMedia(video);
@@ -219,8 +369,7 @@ export class Playback {
             return;
         }
 
-        this.changingSource = false;
-        await this.tryNextSource();
+        await this.tryNextSource(source);
     }
 
     async switchMode(mode: AudioMode) {
@@ -231,16 +380,6 @@ export class Playback {
 
         this.rememberPlayback();
         this.mode = mode;
-
-        if (
-            this.quality !== 'best' &&
-            !this.sources[mode]?.some(
-                ({ quality }) => quality === this.quality,
-            )
-        ) {
-            this.quality = 'best';
-            preferences.save('quality', this.quality);
-        }
 
         this.resetSource();
         preferences.save('audio-mode', mode);
@@ -254,6 +393,17 @@ export class Playback {
             return;
         }
 
+        const hlsQuality = this.hlsQualities.find(
+            ({ label }) => label === quality,
+        );
+        if (this.hls && (quality === 'best' || hlsQuality)) {
+            this.quality = quality;
+            this.hls.currentLevel = quality === 'best' ? -1 : hlsQuality!.level;
+            preferences.save('quality', quality);
+            this.onActivity();
+            return;
+        }
+
         this.rememberPlayback();
         this.quality = quality;
         this.resetSource();
@@ -262,13 +412,21 @@ export class Playback {
         this.onActivity();
     }
 
-    async tryNextSource() {
+    async tryNextSource(failedSource = this.src) {
+        if (failedSource !== this.src) {
+            return;
+        }
         if (this.changingSource) {
+            this.pendingSourceFailure = failedSource;
             return;
         }
         this.changingSource = true;
 
-        if (this.sourceIndex + 1 >= this.orderedSources.length) {
+        if (this.sourceIndex + 1 >= this.activeSources.length) {
+            this.pendingSourceFailure = null;
+            this.clearSourceWatchdog();
+            this.clearSubtitles();
+            this.destroyHls();
             this.loading = false;
             this.error = true;
             this.playing = false;
@@ -287,6 +445,11 @@ export class Playback {
             await this.reloadSource();
         } finally {
             this.changingSource = false;
+            const pending = this.pendingSourceFailure;
+            this.pendingSourceFailure = null;
+            if (pending === this.src) {
+                void this.tryNextSource(pending);
+            }
         }
     }
 
@@ -307,9 +470,7 @@ export class Playback {
 
     handleMetadata() {
         const video = this.video;
-        this.changingSource = false;
         this.duration = video.duration;
-        this.loading = false;
         this.error = false;
         this.syncAudio(true);
 
@@ -345,6 +506,23 @@ export class Playback {
             video.muted = true;
             video.play().catch(() => undefined);
         });
+    }
+
+    handleWaiting() {
+        this.loading = true;
+        this.watchSource();
+    }
+
+    handleCanPlay() {
+        this.loading = false;
+        this.clearSourceWatchdog();
+    }
+
+    handlePlaying() {
+        this.playing = true;
+        this.loading = false;
+        this.clearSourceWatchdog();
+        this.onActivity();
     }
 
     updateBuffered() {
@@ -406,9 +584,12 @@ export class Playback {
             this.quality = saved.quality;
         }
 
+        this.resetSource();
         void this.reloadSource();
 
         return () => {
+            this.clearSourceWatchdog();
+            this.clearSubtitles();
             this.destroyHls();
             this.audio.close();
         };
