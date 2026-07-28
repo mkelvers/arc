@@ -1,0 +1,381 @@
+import { describe, expect, test } from 'bun:test';
+
+import type { ProviderEpisode } from '../providers/types';
+import { matchEpisodeMetadata } from './episode-match';
+import type {
+    AniListAnime,
+    EpisodeCandidate,
+} from './types';
+
+function anime(
+    value: Partial<AniListAnime> & {
+        startDate: AniListAnime['startDate'];
+        endDate: AniListAnime['endDate'];
+    },
+) {
+    return {
+        duration: 24,
+        ...value,
+    } as AniListAnime;
+}
+
+function source(
+    values: Array<[id: string, number: number, title: string]>,
+): ProviderEpisode[] {
+    return values.map(([id, number, title]) => ({
+        id,
+        number,
+        title,
+        audio: ['sub'],
+    }));
+}
+
+function candidate(
+    seasonNumber: number,
+    episodeNumber: number,
+    title: string,
+    rawAirDate: string,
+    runtime = 24,
+): EpisodeCandidate {
+    return {
+        seasonNumber,
+        episodeNumber,
+        title,
+        rawAirDate,
+        runtime,
+        overview: `${title} overview`,
+        imageUrl: `/s${seasonNumber}e${episodeNumber}.jpg`,
+        airDate: rawAirDate,
+    };
+}
+
+describe('TMDB episode identity matching', () => {
+    test('maps a TV finale special instead of leaking into the next season', () => {
+        const episodes = source([
+            ...Array.from(
+                { length: 12 },
+                (_, index) =>
+                    [
+                        String(index + 1),
+                        index + 1,
+                        `Regular ${index + 1}`,
+                    ] as [string, number, string],
+            ),
+            ['13', 13, 'Winter Days!'],
+        ]);
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 13,
+                startDate: { year: 2009, month: 4, day: 3 },
+                endDate: { year: 2009, month: 6, day: 26 },
+            }),
+            episodes,
+            [
+                ...Array.from({ length: 12 }, (_, index) =>
+                    candidate(
+                        1,
+                        index + 1,
+                        `Regular ${index + 1}`,
+                        `2009-${String(4 + Math.floor(index / 4)).padStart(2, '0')}-${String(3 + (index % 4) * 7).padStart(2, '0')}`,
+                    ),
+                ),
+                candidate(0, 1, 'Winter Days!', '2009-06-26'),
+                candidate(2, 1, 'Seniors!', '2010-04-07'),
+            ],
+        );
+
+        expect(metadata.get('13')).toMatchObject({
+            seasonNumber: 0,
+            episodeNumber: 1,
+            title: 'Winter Days!',
+        });
+    });
+
+    test('combines a regular season with selected long-form specials', () => {
+        const episodes = source([
+            ...Array.from(
+                { length: 24 },
+                (_, index) =>
+                    [
+                        String(index + 1),
+                        index + 1,
+                        `Regular ${index + 1}`,
+                    ] as [string, number, string],
+            ),
+            ['25', 25, 'Planning Discussion!'],
+            ['26', 26, 'Visit!'],
+            ['27', 27, ''],
+        ]);
+        const regular = Array.from({ length: 24 }, (_, index) =>
+            candidate(
+                2,
+                index + 1,
+                `Regular ${index + 1}`,
+                new Date(
+                    Date.UTC(2010, 3, 7 + index * 7),
+                )
+                    .toISOString()
+                    .slice(0, 10),
+            ),
+        );
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 26,
+                startDate: { year: 2010, month: 4, day: 7 },
+                endDate: { year: 2010, month: 9, day: 29 },
+            }),
+            episodes,
+            [
+                ...regular,
+                candidate(0, 13, 'Planning Discussion!', '2010-09-22'),
+                candidate(0, 14, 'Visit!', '2010-09-29'),
+                candidate(
+                    0,
+                    12,
+                    'URA-ON!! - We Want Siblings',
+                    '2010-09-15',
+                    3,
+                ),
+                candidate(
+                    0,
+                    15,
+                    'URA-ON!! - Childhood Memories',
+                    '2010-10-20',
+                    3,
+                ),
+                candidate(0, 21, 'Plan!', '2011-03-16'),
+            ],
+        );
+
+        expect(
+            ['25', '26', '27'].map((id) => metadata.get(id)?.title),
+        ).toEqual(['Planning Discussion!', 'Visit!', 'Plan!']);
+    });
+
+    test('matches a fractional leading episode to season zero', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 12,
+                startDate: { year: 2021, month: 1, day: 12 },
+                endDate: { year: 2021, month: 3, day: 30 },
+            }),
+            source([
+                ['0.9', 0.9, 'Digression: Hinata Sakaguchi'],
+                ['1', 1, "Rimuru's Busy Life"],
+            ]),
+            [
+                candidate(
+                    0,
+                    7,
+                    'Digression: Hinata Sakaguchi',
+                    '2021-01-05',
+                ),
+                candidate(2, 1, "Rimuru's Busy Life", '2021-01-12'),
+            ],
+        );
+
+        expect(metadata.get('0.9')).toMatchObject({
+            seasonNumber: 0,
+            episodeNumber: 7,
+        });
+        expect(metadata.get('1')).toMatchObject({
+            seasonNumber: 2,
+            episodeNumber: 1,
+        });
+    });
+
+    test('uses chronology when a provider repeats the preceding title', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 5,
+                startDate: { year: 2019, month: 7, day: 9 },
+                endDate: { year: 2020, month: 11, day: 27 },
+            }),
+            source([
+                ['1', 1, 'The Tragedy of M?'],
+                ['2', 2, 'The Tragedy of M?'],
+                [
+                    '3',
+                    3,
+                    "Rimuru's Glamorous Life as a Teacher, Part 1",
+                ],
+            ]),
+            [
+                candidate(
+                    0,
+                    2,
+                    'Extra: The Tragedy of M?',
+                    '2019-07-09',
+                ),
+                candidate(0, 3, 'Extra: Hey! Butts!', '2019-12-04'),
+                candidate(
+                    0,
+                    4,
+                    "Extra: Rimuru's Glamorous Life as a Teacher, Part 1",
+                    '2020-03-27',
+                ),
+                candidate(
+                    2,
+                    17,
+                    'The Eve of Battle',
+                    '2021-08-03',
+                ),
+            ],
+        );
+
+        expect(metadata.get('1')?.title).toBe(
+            'Extra: The Tragedy of M?',
+        );
+        expect(metadata.get('2')?.title).toBe('Extra: Hey! Butts!');
+    });
+
+    test('uses release dates and runtime for untitled ONA episodes', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                duration: 3,
+                episodes: 2,
+                startDate: { year: 2022, month: 3, day: 19 },
+                endDate: { year: 2022, month: 7, day: 29 },
+            }),
+            source([
+                ['1', 1, ''],
+                ['2', 2, ''],
+            ]),
+            [
+                candidate(
+                    0,
+                    9,
+                    'Sukuwareru Ramiris - 01',
+                    '2022-03-19',
+                    3,
+                ),
+                candidate(
+                    0,
+                    10,
+                    'Sukuwareru Ramiris - 02',
+                    '2022-07-21',
+                    2,
+                ),
+            ],
+        );
+
+        expect(metadata.get('1')?.title).toBe(
+            'Sukuwareru Ramiris - 01',
+        );
+        expect(metadata.get('2')?.title).toBe(
+            'Sukuwareru Ramiris - 02',
+        );
+    });
+
+    test('does not treat the latest available simulcast row as the finale', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 13,
+                startDate: { year: 2026, month: 7, day: 7 },
+                endDate: { year: 2026, month: 9, day: 29 },
+            }),
+            source(
+                Array.from(
+                    { length: 4 },
+                    (_, index) =>
+                        [
+                            String(index + 1),
+                            index + 1,
+                            `Episode ${index + 1}`,
+                        ] as [string, number, string],
+                ),
+            ),
+            Array.from({ length: 13 }, (_, index) =>
+                candidate(
+                    1,
+                    index + 1,
+                    `Episode ${index + 1}`,
+                    new Date(
+                        Date.UTC(2026, 6, 7 + index * 7),
+                    )
+                        .toISOString()
+                        .slice(0, 10),
+                    0,
+                ),
+            ),
+        );
+
+        expect(metadata.get('4')).toMatchObject({
+            seasonNumber: 1,
+            episodeNumber: 4,
+            title: 'Episode 4',
+        });
+    });
+
+    test('prefers the canonical ordinal over a later global provider number', () => {
+        const episodes = source([
+            ...Array.from(
+                { length: 25 },
+                (_, index) =>
+                    [
+                        String(index + 1),
+                        index + 1,
+                        index === 9
+                            ? 'Fanatical Methods Like a Demon'
+                            : `Regular ${index + 1}`,
+                    ] as [string, number, string],
+            ),
+            ['70', 70, 'Episode 70'],
+        ]);
+        const available = Array.from({ length: 25 }, (_, index) =>
+            candidate(
+                1,
+                index + 1,
+                index === 9
+                    ? 'Demonically Inspired Methods'
+                    : `Regular ${index + 1}`,
+                new Date(Date.UTC(2016, 3, 4 + index * 7))
+                    .toISOString()
+                    .slice(0, 10),
+            ),
+        );
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 25,
+                startDate: { year: 2016, month: 4, day: 4 },
+                endDate: { year: 2016, month: 9, day: 19 },
+            }),
+            episodes,
+            available,
+        );
+
+        expect(metadata.get('10')).toMatchObject({
+            seasonNumber: 1,
+            episodeNumber: 10,
+        });
+        expect(metadata.has('70')).toBeFalse();
+    });
+
+    test('uses the release window to disambiguate similar future titles', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 24,
+                startDate: { year: 2024, month: 4, day: 5 },
+                endDate: { year: 2024, month: 9, day: 27 },
+            }),
+            source([
+                ['13', 13, 'The Nations and Invitations'],
+            ]),
+            [
+                candidate(
+                    3,
+                    13,
+                    'Invitation for All Nations',
+                    '2024-06-28',
+                ),
+                candidate(4, 13, 'Invitation', '2026-04-24'),
+            ],
+        );
+
+        expect(metadata.get('13')).toMatchObject({
+            seasonNumber: 3,
+            episodeNumber: 13,
+            rawAirDate: '2024-06-28',
+        });
+    });
+});
