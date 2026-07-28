@@ -6,6 +6,11 @@ interface ClientData {
     mask: Buffer;
 }
 
+interface StringResolver {
+    argument: number;
+    offset: number;
+}
+
 function calculate(expression: string) {
     const tokens = expression.match(/\d+|[-+*/]/g) ?? [];
     if (tokens.join('') !== expression.replaceAll(' ', '')) {
@@ -46,7 +51,58 @@ function calculate(expression: string) {
     return position === tokens.length ? value : NaN;
 }
 
-function decodeChunk(chunk: string) {
+function callArguments(
+    first: string,
+    second: string | undefined,
+): number[] {
+    return [first, second]
+        .filter((value): value is string => value !== undefined)
+        .map(Number);
+}
+
+function decodeMaskParts(
+    source: string,
+    values: string[],
+    wrappers: Map<string, StringResolver>,
+) {
+    const valueAt = (resolver: StringResolver, args: number[]) => {
+        const argument = args[resolver.argument];
+        return argument === undefined
+            ? undefined
+            : values[argument - resolver.offset];
+    };
+
+    return [
+        ...source.matchAll(
+            /\w+\(-?\d+(?:,-?\d+)?\)\+\w+\(-?\d+(?:,-?\d+)?\)/g,
+        ),
+    ].flatMap(([expression]) => {
+        const calls = [
+            ...expression.matchAll(
+                /(\w+)\((-?\d+)(?:,(-?\d+))?\)/g,
+            ),
+        ];
+        if (calls.length !== 2) {
+            return [];
+        }
+
+        const part = calls
+            .map((call) => {
+                const resolver = wrappers.get(call[1]);
+                return resolver
+                    ? valueAt(
+                          resolver,
+                          callArguments(call[2], call[3]),
+                      )
+                    : undefined;
+            })
+            .join('');
+
+        return part ? [Buffer.from(part, 'base64')] : [];
+    });
+}
+
+export function decodeChunk(chunk: string) {
     const legacy = chunk.match(
         /\?["']([0-9a-f]{64})["']:["']["'],\w+=[^;]{0,100}\?["']([A-Za-z0-9._-]+)["']:["']["']/,
     );
@@ -79,7 +135,7 @@ function decodeChunk(chunk: string) {
     const base = table
         ? chunk.match(
               new RegExp(
-                  `function (\\w+)\\((\\w+),\\w+\\)\\{return \\2=\\2-\\(([-+*/\\d ]+)\\),${table[1]}\\(\\)\\[\\2\\]\\}`,
+                  `function (\\w+)\\((\\w+),\\w+\\)\\{return \\2=\\2-\\(?([-+*/\\d ]+)\\)?,${table[1]}\\(\\)\\[\\2\\]\\}`,
               ),
           )
         : null;
@@ -93,7 +149,7 @@ function decodeChunk(chunk: string) {
         return null;
     }
 
-    const wrappers = new Map<string, { argument: number; offset: number }>();
+    const wrappers = new Map<string, StringResolver>();
     const pattern = new RegExp(
         `function (\\w+)\\((\\w+),(\\w+)\\)\\{return ${base[1]}\\((\\2|\\3)-\\s*([-+*/\\d ]+)\\)\\}`,
         'g',
@@ -111,97 +167,101 @@ function decodeChunk(chunk: string) {
         });
     }
 
-    const client = chunk.match(
-        /const \w+=(\w+)\((\d+)\)\+\1\((\d+)\)!=="string"\?"([A-Za-z0-9._-]+)":"",\w+=\[([^\]]+)\]/,
-    );
-    const buildResolver = client ? wrappers.get(client[1]) : null;
-
-    if (!client || !buildResolver) {
-        return null;
-    }
-
     const strings = [
         ...table[2].matchAll(/"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'/g),
     ].map((match) => (match[1] ?? match[2]).replace(/\\(["'\\])/g, '$1'));
     const valueAt = (
         values: string[],
-        resolver: { argument: number; offset: number },
+        resolver: StringResolver,
         args: number[],
-    ) => values[args[resolver.argument] - resolver.offset];
-    let values: string[] | null = null;
+    ) => {
+        const argument = args[resolver.argument];
+        return argument === undefined
+            ? undefined
+            : values[argument - resolver.offset];
+    };
+    const clientPattern =
+        /const \w+=(\w+)\((-?\d+)(?:,(-?\d+))?\)\+\1\((-?\d+)(?:,(-?\d+))?\)!==["']string["']\?["']([A-Za-z0-9._-]+)["']:["']["']/g;
 
-    for (let rotation = 0; rotation < strings.length; rotation++) {
-        const rotated = [
-            ...strings.slice(rotation),
-            ...strings.slice(0, rotation),
-        ];
+    for (const client of chunk.matchAll(clientPattern)) {
+        const buildResolver = wrappers.get(client[1]);
+        if (!buildResolver) {
+            continue;
+        }
 
-        if (
-            valueAt(rotated, buildResolver, [Number(client[2])]) +
-                valueAt(rotated, buildResolver, [Number(client[3])]) ===
-            'undefined'
+        const firstArgs = callArguments(client[2], client[3]);
+        const secondArgs = callArguments(client[4], client[5]);
+        let values: string[] | null = null;
+
+        for (
+            let rotation = 0;
+            rotation < strings.length;
+            rotation++
         ) {
-            values = rotated;
-            break;
+            const rotated = [
+                ...strings.slice(rotation),
+                ...strings.slice(0, rotation),
+            ];
+
+            if (
+                `${valueAt(rotated, buildResolver, firstArgs) ?? ''}${valueAt(rotated, buildResolver, secondArgs) ?? ''}` ===
+                'undefined'
+            ) {
+                values = rotated;
+                break;
+            }
+        }
+
+        if (!values) {
+            continue;
+        }
+
+        const nearby = chunk.slice(
+            (client.index ?? 0) + client[0].length,
+            (client.index ?? 0) + client[0].length + 4_000,
+        );
+        const arrays = nearby.matchAll(
+            /(?:(?:const|let|var) )?\w+=\[([^\]]+)\]/g,
+        );
+
+        for (const array of arrays) {
+            const parts = decodeMaskParts(
+                array[1],
+                values,
+                wrappers,
+            );
+            if (
+                parts.length !== 4 ||
+                parts.some((part) => part.length !== 8)
+            ) {
+                continue;
+            }
+
+            const buildId = client[6];
+            const seed = Buffer.alloc(32);
+
+            for (let index = 0; index < seed.length; index++) {
+                seed[index] =
+                    buildId.charCodeAt(index % buildId.length) ^
+                    ((index * 17 + 31) & 0xff);
+            }
+
+            const mask = Buffer.alloc(32);
+            parts.forEach((part, group) => {
+                for (let index = 0; index < part.length; index++) {
+                    const offset = group * part.length + index;
+                    mask[offset] =
+                        part[index] ^
+                        seed[offset] ^
+                        ((group * 41 + index * 7) & 0xff);
+                }
+            });
+
+            return { buildId, mask };
         }
     }
 
-    if (!values) {
-        return null;
-    }
-
-    const parts = [
-        ...client[5].matchAll(
-            /\w+\(\d+(?:,\d+)?\)\+\w+\(\d+(?:,\d+)?\)/g,
-        ),
-    ].flatMap(([expression]) => {
-        const calls = [
-            ...expression.matchAll(/(\w+)\((\d+)(?:,(\d+))?\)/g),
-        ];
-        if (calls.length !== 2) {
-            return [];
-        }
-
-        const part = calls
-            .map((call) => {
-                const resolver = wrappers.get(call[1]);
-                const args = call
-                    .slice(2)
-                    .filter((value): value is string => Boolean(value))
-                    .map(Number);
-
-                return resolver ? valueAt(values!, resolver, args) : '';
-            })
-            .join('');
-
-        return part ? [Buffer.from(part, 'base64')] : [];
-    });
-
-    if (parts.length !== 4 || parts.some((part) => part.length !== 8)) {
-        return null;
-    }
-
-    const buildId = client[4];
-    const seed = Buffer.alloc(32);
-
-    for (let index = 0; index < seed.length; index++) {
-        seed[index] =
-            buildId.charCodeAt(index % buildId.length) ^
-            ((index * 17 + 31) & 0xff);
-    }
-
-    const mask = Buffer.alloc(32);
-    parts.forEach((part, group) => {
-        for (let index = 0; index < part.length; index++) {
-            const offset = group * part.length + index;
-            mask[offset] =
-                part[index] ^
-                seed[offset] ^
-                ((group * 41 + index * 7) & 0xff);
-        }
-    });
-
-    return { buildId, mask };
+    return null;
 }
 
 export async function getClientData(): Promise<ClientData> {
