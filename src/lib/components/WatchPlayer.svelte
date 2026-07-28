@@ -10,19 +10,25 @@
     }
 
     interface Props {
+        animeId: number;
         episodeId: string;
+        episodeNumber: number;
         label: string;
         next?: string | null;
         playback: Promise<Playback>;
         poster?: string | null;
+        startAt?: number;
     }
 
     let {
+        animeId,
         episodeId,
+        episodeNumber,
         label,
         next = null,
         playback,
         poster = null,
+        startAt = 0,
     }: Props = $props();
     let retrying = $state(false);
 
@@ -62,10 +68,14 @@
     {#key `${episodeId}:${JSON.stringify(result.streams)}`}
         {#if hasStreams(result.streams)}
             <VideoPlayer
+                {animeId}
+                {episodeId}
+                {episodeNumber}
                 sources={result.streams}
                 {label}
                 {poster}
                 {next}
+                {startAt}
             />
         {:else}
             <section
