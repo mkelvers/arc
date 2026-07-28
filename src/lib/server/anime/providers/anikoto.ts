@@ -6,7 +6,11 @@ import {
     saveProviderMediaId,
     verifyProviderMediaId,
 } from './mapping';
-import { normalizedProviderTitle, providerTitles } from './match';
+import {
+    matchProviderEpisode,
+    normalizedProviderTitle,
+    providerTitles,
+} from './match';
 import type {
     PlaybackProvider,
     ProviderAnime,
@@ -453,9 +457,7 @@ async function getStreams(
     }
 
     const { episodes } = await providerSeries(anime);
-    const match = episodes.find(
-        (candidate) => candidate.number === episode.number,
-    );
+    const match = matchProviderEpisode(episodes, episode);
     if (!match) {
         throw new Error(
             `AniKoto has no episode ${episode.number} for AniList ${anime.id}`,
