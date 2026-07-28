@@ -90,11 +90,11 @@
                         />
                     </a>
 
-                    <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-72 sm:px-10 lg:px-16 2xl:self-start 2xl:pt-[calc((100svh-3.5rem)/2+2rem)] 2xl:pb-0">
+                    <div class="pointer-events-none z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-72 sm:px-10 lg:px-16 2xl:self-start 2xl:pt-[calc((100svh-3.5rem)/2+2rem)] 2xl:pb-0">
                         {#if anime.logoUrl}
                             <a
                                 href={anime.href}
-                                class="block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                                class="pointer-events-auto block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                                 aria-label={`View ${anime.title}`}
                             >
                                 <img
@@ -138,7 +138,7 @@
                             </p>
                         {/if}
 
-                        <div class="mt-7 flex flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm">
+                        <div class="pointer-events-auto mt-7 flex flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm">
                             <a
                                 href={anime.watchHref}
                                 class="inline-flex min-h-12 items-center gap-2.5 bg-accent px-5 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-14 2xl:px-7 2xl:text-base"
@@ -181,7 +181,7 @@
                         </div>
 
                         {#if highlights.length > 1}
-                            <div class="mt-4 flex items-center gap-2 2xl:mt-5">
+                            <div class="pointer-events-auto mt-4 flex items-center gap-2 2xl:mt-5">
                                 <button
                                     type="button"
                                     class="grid size-8 place-items-center text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white"
