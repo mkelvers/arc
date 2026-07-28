@@ -33,7 +33,7 @@ function provider(
 }
 
 describe('playback provider fallback', () => {
-    test('aggregates episode inventories and unions their audio modes', async () => {
+    test('uses the first inventory and unions matching audio modes', async () => {
         const attempts: string[] = [];
         const playback = createProviderFallback([
             provider('first', {
@@ -91,6 +91,139 @@ describe('playback provider fallback', () => {
             },
         ]);
         expect(attempts).toEqual(['first', 'second', 'third']);
+    });
+
+    test('chooses the closest complete inventory and matches reordered audio', async () => {
+        const playback = createProviderFallback([
+            provider('combined', {
+                getEpisodes: async () => [
+                    {
+                        id: 'combined-1',
+                        number: 1,
+                        title: 'Hey! Butts!',
+                        audio: ['sub'],
+                    },
+                    {
+                        id: 'combined-2',
+                        number: 2,
+                        title: 'The Tragedy of M?',
+                        audio: ['sub'],
+                    },
+                    {
+                        id: 'combined-3',
+                        number: 3,
+                        title: 'Another Release',
+                        audio: ['sub'],
+                    },
+                ],
+            }),
+            provider('release', {
+                getEpisodes: async () => [
+                    {
+                        id: 'release-1',
+                        number: 1,
+                        title: 'The Tragedy of M?',
+                        audio: ['dub'],
+                    },
+                    {
+                        id: 'release-2',
+                        number: 2,
+                        title: 'Hey! Butts!',
+                        audio: ['dub'],
+                    },
+                ],
+            }),
+        ]);
+
+        expect(
+            await playback.getEpisodes({
+                ...anime,
+                episodes: 2,
+            }),
+        ).toEqual([
+            {
+                id: 'release-1',
+                number: 1,
+                title: 'The Tragedy of M?',
+                audio: ['sub', 'dub'],
+            },
+            {
+                id: 'release-2',
+                number: 2,
+                title: 'Hey! Butts!',
+                audio: ['sub', 'dub'],
+            },
+        ]);
+    });
+
+    test('retains a later-provider fractional special as a candidate', async () => {
+        const playback = createProviderFallback([
+            provider('with-special', {
+                getEpisodes: async () => [
+                    {
+                        id: 'special',
+                        number: 0.5,
+                        title: 'Recap',
+                        audio: ['sub'],
+                    },
+                    {
+                        id: 'first-1',
+                        number: 1,
+                        title: 'First',
+                        audio: ['sub'],
+                    },
+                    {
+                        id: 'first-2',
+                        number: 2,
+                        title: 'Second',
+                        audio: ['sub'],
+                    },
+                ],
+            }),
+            provider('exact', {
+                getEpisodes: async () => [
+                    {
+                        id: 'exact-1',
+                        number: 1,
+                        title: 'First',
+                        audio: ['dub'],
+                    },
+                    {
+                        id: 'exact-2',
+                        number: 2,
+                        title: 'Second',
+                        audio: ['dub'],
+                    },
+                ],
+            }),
+        ]);
+
+        expect(
+            await playback.getEpisodes({
+                ...anime,
+                episodes: 2,
+            }),
+        ).toEqual([
+            {
+                id: 'special',
+                number: 0.5,
+                title: 'Recap',
+                audio: ['sub'],
+                supplemental: true,
+            },
+            {
+                id: 'exact-1',
+                number: 1,
+                title: 'First',
+                audio: ['sub', 'dub'],
+            },
+            {
+                id: 'exact-2',
+                number: 2,
+                title: 'Second',
+                audio: ['sub', 'dub'],
+            },
+        ]);
     });
 
     test('fills missing audio modes from later providers', async () => {
