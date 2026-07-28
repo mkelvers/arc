@@ -106,7 +106,7 @@
                 </div>
 
                 <div class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5">
-                    {#await data.episodes}
+                    {#await data.watchAction}
                         <a
                             href="#anime-episode-list"
                             class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
@@ -114,13 +114,13 @@
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                             VIEW EPISODES
                         </a>
-                    {:then episodes}
+                    {:then watchAction}
                         <a
-                            href={episodes[0]?.href ?? '#anime-episode-list'}
+                            href={watchAction.href}
                             class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                            START WATCHING E1
+                            {watchAction.label}
                         </a>
                     {/await}
                     <form method="POST" action="?/watchlist" use:enhance>
