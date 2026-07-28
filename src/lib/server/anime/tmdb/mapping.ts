@@ -3,6 +3,11 @@ import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { anime as animeTable } from '$lib/server/db/schema';
 import { create } from './client';
+import {
+    relatedSpecialMappingIsBetter,
+    specialEpisodeEvidenceScore,
+    type SpecialEpisodeEvidence,
+} from './mapping-evidence';
 import { findMapping, saveMapping } from './mapping-store';
 import {
     candidateScore,
@@ -18,6 +23,115 @@ import {
     type Mapping,
     type StoredMapping,
 } from './types';
+
+function seasonEvidenceScore(
+    anime: AniListAnime,
+    season: {
+        air_date?: string;
+        episode_count: number;
+        season_number: number;
+    },
+) {
+    let score = season.season_number === 0 ? 100 : 0;
+
+    if (anime.episodes && season.episode_count === anime.episodes) {
+        score += 80;
+    }
+
+    const animeYear = anime.startDate?.year ?? anime.seasonYear;
+    if (animeYear && Number(season.air_date?.slice(0, 4)) === animeYear) {
+        score += 30;
+    }
+
+    return score;
+}
+
+async function specialMappingEvidence(anime: AniListAnime, mapping: Mapping) {
+    if (mapping.mediaType !== 'tv') {
+        return null;
+    }
+
+    try {
+        const client = create();
+        const { data: series } = await client.GET('/3/tv/{series_id}', {
+            params: {
+                path: { series_id: mapping.id },
+                query: { language: 'en-US' },
+            },
+        });
+
+        if (!series) {
+            return null;
+        }
+
+        const selected = (series.seasons ?? [])
+            .map((season) => ({
+                score: seasonEvidenceScore(anime, season),
+                season,
+            }))
+            .sort((left, right) => right.score - left.score)
+            .slice(0, 3);
+        const episodes = await Promise.all(
+            selected.map(async ({ season }) => {
+                const { data } = await client.GET(
+                    '/3/tv/{series_id}/season/{season_number}',
+                    {
+                        params: {
+                            path: {
+                                series_id: mapping.id,
+                                season_number: season.season_number,
+                            },
+                            query: { language: 'en-US' },
+                        },
+                    },
+                );
+
+                return (data?.episodes ?? []).map(
+                    (episode): SpecialEpisodeEvidence => ({
+                        airDate: episode.air_date ?? '',
+                        name: episode.name?.trim() ?? '',
+                        overview: episode.overview?.trim() ?? '',
+                        runtime: episode.runtime || null,
+                        seasonNumber: episode.season_number,
+                        stillPath: episode.still_path ?? null,
+                    }),
+                );
+            }),
+        );
+
+        return specialEpisodeEvidenceScore(anime, episodes.flat());
+    } catch {
+        return null;
+    }
+}
+
+async function preferredSpecialMapping(
+    anime: AniListAnime,
+    direct: Mapping,
+    related: StoredMapping[],
+) {
+    if (
+        !isSpecialRelease(anime) ||
+        related.length !== 1 ||
+        (direct.id === related[0].id &&
+            direct.mediaType === related[0].mediaType)
+    ) {
+        return direct;
+    }
+
+    const relatedMapping = {
+        id: related[0].id,
+        mediaType: related[0].mediaType,
+    };
+    const [directScore, relatedScore] = await Promise.all([
+        specialMappingEvidence(anime, direct),
+        specialMappingEvidence(anime, relatedMapping),
+    ]);
+
+    return relatedSpecialMappingIsBetter(directScore, relatedScore)
+        ? relatedMapping
+        : direct;
+}
 
 async function searchTv(query: string): Promise<Candidate[]> {
     const { data, error } = await create().GET('/3/search/tv', {
@@ -136,9 +250,18 @@ export async function resolveStored(
     // Missing enrichment is safer than attaching art and episodes from a
     // similarly named release, so only persist a confident search result.
     if (match && candidateScore(match, anime) >= 85) {
+        const mapping = await preferredSpecialMapping(
+            anime,
+            {
+                id: match.id,
+                mediaType: match.mediaType,
+            },
+            related,
+        );
+
         return saveMapping(anime, {
-            id: match.id,
-            mediaType: match.mediaType,
+            id: mapping.id,
+            mediaType: mapping.mediaType,
         });
     }
 
