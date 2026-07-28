@@ -158,13 +158,7 @@
                                 />
                                 <button
                                     type="submit"
-                                    class:bg-accent={watchlistedIds.includes(
-                                        anime.id,
-                                    )}
-                                    class:text-on-accent={watchlistedIds.includes(
-                                        anime.id,
-                                    )}
-                                    class="grid size-12 shrink-0 place-items-center border border-accent transition-colors hover:bg-accent hover:text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:size-14"
+                                    class="grid size-12 shrink-0 place-items-center border border-accent text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:size-14"
                                     aria-label={watchlistedIds.includes(anime.id)
                                         ? `Remove ${anime.title} from Plan to Watch`
                                         : `Add ${anime.title} to Plan to Watch`}
