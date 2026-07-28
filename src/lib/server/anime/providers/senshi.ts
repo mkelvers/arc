@@ -1,4 +1,5 @@
 import type { AudioMode } from '$lib/anime/audio';
+import { matchProviderEpisode } from './match';
 import type {
     PlaybackProvider,
     ProviderEpisode,
@@ -196,14 +197,18 @@ async function getStreams(
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[],
 ) {
-    if (!Number.isInteger(episode.number) || episode.number <= 0) {
+    const match = matchProviderEpisode(
+        await getEpisodes(anime),
+        episode,
+    );
+    if (!match || !Number.isInteger(match.number) || match.number <= 0) {
         throw new Error(
             `Senshi cannot map episode ${episode.id} to an integer`,
         );
     }
 
     const payload = await request(
-        `/episode-embeds/${malId(anime)}/${episode.number}`,
+        `/episode-embeds/${malId(anime)}/${match.number}`,
     );
     if (!Array.isArray(payload)) {
         throw new Error('Senshi returned an invalid stream response');
