@@ -47,6 +47,8 @@ export const users = pgTable(
         email: text('email').notNull(),
         emailVerified: boolean('email_verified').notNull().default(false),
         image: text('image'),
+        username: text('username').notNull(),
+        displayUsername: text('display_username').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true })
             .notNull()
             .defaultNow(),
@@ -55,7 +57,10 @@ export const users = pgTable(
             .defaultNow()
             .$onUpdate(() => new Date()),
     },
-    (table) => [unique('users_email_unique').on(table.email)],
+    (table) => [
+        unique('users_email_unique').on(table.email),
+        unique('users_username_unique').on(table.username),
+    ],
 );
 
 export const accounts = pgTable(
@@ -86,7 +91,13 @@ export const accounts = pgTable(
             .defaultNow()
             .$onUpdate(() => new Date()),
     },
-    (table) => [index('accounts_user_id_idx').on(table.userId)],
+    (table) => [
+        unique('accounts_provider_account_unique').on(
+            table.providerId,
+            table.accountId,
+        ),
+        index('accounts_user_id_idx').on(table.userId),
+    ],
 );
 
 export const sessions = pgTable(
@@ -312,6 +323,7 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
 export const watchlist = pgTable(
     'watchlist',
     {
+        id: uuid('id').primaryKey().defaultRandom(),
         userId: uuid('user_id')
             .notNull()
             .references(() => users.id, { onDelete: 'cascade' }),
@@ -327,7 +339,54 @@ export const watchlist = pgTable(
             .defaultNow()
             .$onUpdate(() => new Date()),
     },
-    (table) => [primaryKey({ columns: [table.userId, table.animeId] })],
+    (table) => [
+        unique('watchlist_user_anime_unique').on(
+            table.userId,
+            table.animeId,
+        ),
+        index('watchlist_user_updated_idx').on(
+            table.userId,
+            table.updatedAt,
+        ),
+    ],
+);
+
+export const playbackProgress = pgTable(
+    'playback_progress',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        animeId: integer('anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        episodeId: text('episode_id').notNull(),
+        episodeNumber: doublePrecision('episode_number').notNull(),
+        positionSeconds: doublePrecision('position_seconds').notNull(),
+        durationSeconds: doublePrecision('duration_seconds').notNull(),
+        completed: boolean('completed').notNull().default(false),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+        lastWatchedAt: timestamp('last_watched_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => [
+        unique('playback_progress_user_anime_unique').on(
+            table.userId,
+            table.animeId,
+        ),
+        index('playback_progress_user_watched_idx').on(
+            table.userId,
+            table.lastWatchedAt,
+        ),
+    ],
 );
 
 export type Anime = typeof anime.$inferSelect;
