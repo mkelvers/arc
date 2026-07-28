@@ -5,7 +5,6 @@ import {
     anime,
     animeExternalId,
     animeExternalIdLink,
-    users,
     watchlist,
 } from '$lib/server/db/schema';
 
@@ -147,15 +146,6 @@ export async function getWatchlistedAnimeIds(
 
 export async function togglePlanToWatch(userId: string, anilistId: number) {
     const animeId = await ensureAnimeId(anilistId);
-
-    await db
-        .insert(users)
-        .values({
-            id: userId,
-            name: 'Arc user',
-            email: `${userId}@legacy.invalid`,
-        })
-        .onConflictDoNothing();
 
     const [item] = await db
         .select({ state: watchlist.state })
