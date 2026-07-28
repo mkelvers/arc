@@ -45,6 +45,7 @@ export interface EpisodeMetadata {
     imageUrl: string | null;
     runtime: number | null;
     airDate: string;
+    rawAirDate?: string;
 }
 
 export interface EpisodeCandidate extends EpisodeMetadata {
@@ -53,4 +54,4 @@ export interface EpisodeCandidate extends EpisodeMetadata {
     rawAirDate: string;
 }
 
-export const mappingVersion = 7;
+export const mappingVersion = 8;
