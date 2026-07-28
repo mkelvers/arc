@@ -7,14 +7,22 @@
     import {
         CaretDownIcon,
         BookmarkSimpleIcon,
+        CheckIcon,
         DotsThreeVerticalIcon,
+        PencilSimpleIcon,
         PlayIcon,
-        ShareNetworkIcon,
     } from 'phosphor-svelte';
 
     let { data }: PageProps = $props();
 
     let detailsExpanded = $state(false);
+
+    const watchlistStates = [
+        { value: 'watching', label: 'Watching' },
+        { value: 'plan_to_watch', label: 'Plan to Watch' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'dropped', label: 'Dropped' },
+    ] as const;
 </script>
 
 <svelte:head>
@@ -24,7 +32,7 @@
 <main class="bg-canvas text-foreground">
     <section class="min-h-dvh">
         <figure
-            class="anime-hero grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
+            class="anime-hero relative z-10 grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
             {#await data.artwork then artwork}
                 {#if artwork?.selectedBackdrop}
@@ -119,25 +127,72 @@
                         <button
                             type="submit"
                             class="grid size-11 shrink-0 place-items-center border border-accent text-accent transition-colors lg:size-12"
-                            aria-label={data.watchlistState === 'plan_to_watch' ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
-                            aria-pressed={data.watchlistState === 'plan_to_watch'}
-                            title={data.watchlistState === 'plan_to_watch' ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
+                            aria-label={data.watchlistState ? 'Remove from watchlist' : 'Add to Plan to Watch'}
+                            aria-pressed={Boolean(data.watchlistState)}
+                            title={data.watchlistState ? 'Remove from watchlist' : 'Add to Plan to Watch'}
                         >
                             <BookmarkSimpleIcon
                                 size="1.65em"
-                                weight={data.watchlistState === 'plan_to_watch' ? 'fill' : 'regular'}
+                                weight={data.watchlistState ? 'fill' : 'regular'}
                                 aria-hidden="true"
                             />
                         </button>
                     </form>
-                    <button
-                        type="button"
-                        class="grid size-11 shrink-0 place-items-center transition-colors hover:bg-accent hover:text-on-accent lg:size-12"
-                        aria-label="Share"
-                        title="Share"
+                    <Dropdown
+                        id="watchlist-status"
+                        ariaLabel="Change watchlist status"
+                        menuAlign="start"
+                        menuClass="w-52 pt-2"
+                        triggerClass="grid size-11 shrink-0 cursor-pointer place-items-center transition-opacity hover:opacity-70 peer-focus-visible:opacity-70 lg:size-12"
                     >
-                        <ShareNetworkIcon size="1.65em" weight="regular" aria-hidden="true" />
-                    </button>
+                        {#snippet trigger()}
+                            <PencilSimpleIcon
+                                size="1.65em"
+                                weight="regular"
+                                aria-hidden="true"
+                            />
+                        {/snippet}
+                        {#snippet content()}
+                            <div role="menu" aria-label="Watchlist statuses">
+                                {#each watchlistStates as status}
+                                    <form method="POST" action="?/watchlist" use:enhance>
+                                        <input type="hidden" name="state" value={status.value} />
+                                        <button
+                                            type="submit"
+                                            role="menuitem"
+                                            class:bg-panel-hover={data.watchlistState === status.value}
+                                            class:text-foreground={data.watchlistState === status.value}
+                                            class="flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                        >
+                                            <span>{status.label}</span>
+                                            {#if data.watchlistState === status.value}
+                                                <CheckIcon size="1rem" weight="bold" aria-hidden="true" />
+                                            {/if}
+                                        </button>
+                                    </form>
+                                {/each}
+
+                                {#if data.watchlistState}
+                                    <div class="mt-2 border-t border-border pt-2">
+                                        <form method="POST" action="?/remove" use:enhance>
+                                            <input
+                                                type="hidden"
+                                                name="animeId"
+                                                value={data.anime.id}
+                                            />
+                                            <button
+                                                type="submit"
+                                                role="menuitem"
+                                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-status-error hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"
+                                            >
+                                                Remove from watchlist
+                                            </button>
+                                        </form>
+                                    </div>
+                                {/if}
+                            </div>
+                        {/snippet}
+                    </Dropdown>
                 </div>
             </div>
         </figure>

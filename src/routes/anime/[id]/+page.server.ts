@@ -4,7 +4,10 @@ import { episodeAudioAvailabilityLabel } from '$lib/anime/audio';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
-import { updateWatchlist } from '$lib/server/watchlist/action';
+import {
+    removeWatchlist,
+    updateWatchlist,
+} from '$lib/server/watchlist/action';
 import {
     getWatchlistedAnimeIds,
     getWatchlistState,
@@ -72,4 +75,5 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
     watchlist: updateWatchlist,
+    remove: removeWatchlist,
 };
