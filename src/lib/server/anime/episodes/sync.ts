@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, notInArray, sql } from 'drizzle-orm';
 
 import { mergeAudioModes } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
@@ -11,9 +11,29 @@ import { playback } from '../providers';
 import { tmdb } from '../tmdb';
 import { sourceRevision, storedEpisodes } from './model';
 import { nextRefreshAt, syncVersion } from './policy';
+import { episodesForRelease } from './release';
 import type { AniListAnime } from './types';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
+
+function metadataNeedsRefresh(
+    source: Awaited<ReturnType<typeof playback.getEpisodes>>,
+    metadata: Awaited<ReturnType<typeof tmdb.getEpisodeMetadata>> | null,
+) {
+    if (!metadata || metadata.size < source.length) {
+        return true;
+    }
+
+    return source.some((episode) => {
+        const media = metadata.get(episode.id);
+
+        return (
+            !media ||
+            (/^(?:episode|movie)\b/i.test(media.title) &&
+                (!media.imageUrl || !media.overview))
+        );
+    });
+}
 
 async function recordFailure(anilistId: number, cause: unknown) {
     const message =
@@ -40,15 +60,15 @@ async function recordFailure(anilistId: number, cause: unknown) {
 }
 
 async function fetchAndStore(anime: AniListAnime) {
-    const source = await playback.getEpisodes(anime);
-    if (!source.length) {
+    const providerEpisodes = await playback.getEpisodes(anime);
+    if (!providerEpisodes.length) {
         throw new Error(
             `No playback provider returned episodes for AniList ${anime.id}`,
         );
     }
 
     const metadata = await tmdb
-        .getEpisodeMetadata(anime, source)
+        .getEpisodeMetadata(anime, providerEpisodes)
         .catch((cause) => {
             console.error(
                 `TMDB episode enrichment failed for AniList ${anime.id}`,
@@ -56,8 +76,14 @@ async function fetchAndStore(anime: AniListAnime) {
             );
             return null;
         });
+    const source = episodesForRelease(
+        anime,
+        providerEpisodes,
+        metadata,
+    );
     const now = new Date();
     const revision = sourceRevision(source);
+    const refreshMetadataSoon = metadataNeedsRefresh(source, metadata);
 
     await db.transaction(async (tx) => {
         const [sync, existing] = await Promise.all([
@@ -82,6 +108,8 @@ async function fetchAndStore(anime: AniListAnime) {
         const values = source.map((episode) => {
             const previous = stored.get(episode.id);
             const media = metadata?.get(episode.id);
+            const previousMetadata =
+                metadata === null ? previous : null;
 
             return {
                 anilistId: anime.id,
@@ -90,15 +118,28 @@ async function fetchAndStore(anime: AniListAnime) {
                 providerTitle:
                     episode.title || previous?.providerTitle || null,
                 metadataTitle:
-                    media?.title || previous?.metadataTitle || null,
+                    media?.title ||
+                    previousMetadata?.metadataTitle ||
+                    null,
                 audio: sync?.version === syncVersion
                     ? mergeAudioModes(previous?.audio, episode.audio)
                     : episode.audio,
-                imageUrl: media?.imageUrl ?? previous?.imageUrl ?? null,
+                imageUrl:
+                    media?.imageUrl ??
+                    previousMetadata?.imageUrl ??
+                    null,
                 runtimeMinutes:
-                    media?.runtime ?? previous?.runtimeMinutes ?? null,
-                airDate: media?.airDate || previous?.airDate || null,
-                overview: media?.overview || previous?.overview || null,
+                    media?.runtime ??
+                    previousMetadata?.runtimeMinutes ??
+                    null,
+                airDate:
+                    media?.airDate ||
+                    previousMetadata?.airDate ||
+                    null,
+                overview:
+                    media?.overview ||
+                    previousMetadata?.overview ||
+                    null,
                 firstSeenAt: previous?.firstSeenAt ?? now,
                 lastSeenAt: now,
                 lastVerifiedAt: now,
@@ -143,6 +184,18 @@ async function fetchAndStore(anime: AniListAnime) {
                 },
             });
 
+        await tx
+            .delete(animeEpisode)
+            .where(
+                and(
+                    eq(animeEpisode.anilistId, anime.id),
+                    notInArray(
+                        animeEpisode.episodeId,
+                        source.map(({ id }) => id),
+                    ),
+                ),
+            );
+
         const stableSince =
             sync?.sourceRevision === revision && sync.stableSince
                 ? sync.stableSince
@@ -157,7 +210,11 @@ async function fetchAndStore(anime: AniListAnime) {
                 sourceRevision: revision,
                 stableSince,
                 lastSuccessAt: now,
-                nextRefreshAt: nextRefreshAt(anime, stableSince),
+                nextRefreshAt: nextRefreshAt(
+                    anime,
+                    stableSince,
+                    refreshMetadataSoon,
+                ),
                 failureCount: 0,
                 lastError: null,
                 version: syncVersion,
@@ -170,7 +227,11 @@ async function fetchAndStore(anime: AniListAnime) {
                     sourceRevision: revision,
                     stableSince,
                     lastSuccessAt: now,
-                    nextRefreshAt: nextRefreshAt(anime, stableSince),
+                    nextRefreshAt: nextRefreshAt(
+                        anime,
+                        stableSince,
+                        refreshMetadataSoon,
+                    ),
                     failureCount: 0,
                     lastError: null,
                     version: syncVersion,
