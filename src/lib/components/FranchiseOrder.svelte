@@ -15,6 +15,17 @@
     let track = $state<HTMLDivElement>();
     let canScrollBack = $state(false);
     let canScrollForward = $state(false);
+    let showAll = $state(false);
+    const mainEntries = $derived(
+        order.entries.filter(
+            (entry) =>
+                entry.primary || entry.anilistId === currentAnimeId,
+        ),
+    );
+    const hiddenCount = $derived(order.entries.length - mainEntries.length);
+    const visibleEntries = $derived(
+        showAll ? order.entries : mainEntries,
+    );
 
     function updateScrollState() {
         if (!track) {
@@ -38,7 +49,7 @@
     }
 
     $effect(() => {
-        const entries = order.entries;
+        const entries = visibleEntries;
         if (!entries.length) {
             canScrollBack = false;
             canScrollForward = false;
@@ -67,18 +78,33 @@
 </script>
 
 <section class="pb-7" aria-labelledby="franchise-order-title">
-    <h2 id="franchise-order-title" class="mb-6 text-lg font-semibold">
-        Franchise Order
-    </h2>
+    <div class="mb-6 flex min-h-9 items-center justify-between gap-4">
+        <h2 id="franchise-order-title" class="text-lg font-semibold">
+            Franchise Order
+        </h2>
 
-    {#if order.entries.length}
+        {#if hiddenCount}
+            <button
+                type="button"
+                class="min-h-9 shrink-0 text-xs font-semibold text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                aria-expanded={showAll}
+                aria-controls="franchise-order-list"
+                onclick={() => (showAll = !showAll)}
+            >
+                {showAll ? 'SHOW MAIN' : `SHOW ALL (+${hiddenCount})`}
+            </button>
+        {/if}
+    </div>
+
+    {#if visibleEntries.length}
         <div class="relative">
             <div
+                id="franchise-order-list"
                 bind:this={track}
                 class="-mx-2 grid snap-x snap-mandatory auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-5 2xl:auto-cols-franchise-2xl"
                 onscroll={updateScrollState}
             >
-                {#each order.entries as entry}
+                {#each visibleEntries as entry}
                     <div class="min-w-0 snap-start">
                         <AnimeCard
                             anime={entry}
@@ -112,6 +138,6 @@
             {/if}
         </div>
     {:else}
-        <p class="text-sm text-muted">No titles match the selected formats.</p>
+        <p class="text-sm text-muted">No franchise titles found.</p>
     {/if}
 </section>
