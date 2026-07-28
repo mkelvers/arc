@@ -3,6 +3,7 @@
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
     import WatchPlayer from '$lib/components/WatchPlayer.svelte';
+    import { availableModes } from '$lib/player/media';
     import type { PageProps } from './$types';
     import {
         ArchiveIcon,
@@ -105,7 +106,15 @@
             </div>
 
             <p class="mt-3 text-sm text-watch-muted">
-                {audioAvailabilityLabel(data.currentEpisode.audio)}
+                {#await data.playback}
+                    {audioAvailabilityLabel(data.currentEpisode.audio)}
+                {:then playback}
+                    {audioAvailabilityLabel(
+                        availableModes(playback.streams).length
+                            ? availableModes(playback.streams)
+                            : data.currentEpisode.audio,
+                    )}
+                {/await}
                 {#if data.currentEpisode.duration}
                     <span aria-hidden="true"> · </span>
                     {data.currentEpisode.duration}

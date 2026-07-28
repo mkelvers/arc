@@ -75,13 +75,20 @@ async function getPlayback(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
                 (sources ?? []).map(
-                    ({ url, quality, audioDelay, subtitleUrl }) => ({
+                    ({
+                        url,
+                        quality,
+                        audioDelay,
+                        subtitleUrl,
+                        provider,
+                    }) => ({
                         url: `/api/watch/stream?${new URLSearchParams({
                             url,
                             v: '2',
                         })}`,
                         quality,
                         audioDelay,
+                        provider,
                         subtitleUrl: subtitleUrl
                             ? `/api/watch/stream?${new URLSearchParams({
                                   url: subtitleUrl,
