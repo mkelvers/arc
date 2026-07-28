@@ -15,6 +15,8 @@ export interface ProviderEpisodeReference {
     id: string;
     number: number;
     title?: string;
+    specialIndex?: number;
+    specialCount?: number;
 }
 
 export interface ProviderStream {
