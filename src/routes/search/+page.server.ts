@@ -2,16 +2,13 @@ import { error } from '@sveltejs/kit';
 import { Effect, Either } from 'effect';
 
 import { anime } from '$lib/server/anime';
-import {
-    updateWatchlist,
-    watchlistUser,
-} from '$lib/server/watchlist/action';
+import { updateWatchlist } from '$lib/server/watchlist/action';
 import {
     getWatchlistedAnimeIds,
 } from '$lib/server/watchlist/store';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ url, cookies }) => {
+export const load: PageServerLoad = async ({ url, locals }) => {
     const query = url.searchParams.get('q')?.trim() ?? '';
     if (!query) {
         return { query, results: [], watchlistedIds: [] };
@@ -25,7 +22,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
     }
 
     const watchlisted = await getWatchlistedAnimeIds(
-        watchlistUser(cookies),
+        locals.user?.id,
         result.right.map(({ id }) => id),
     );
 
