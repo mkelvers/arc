@@ -8,6 +8,7 @@ import {
     verifyProviderMediaId,
 } from './mapping';
 import {
+    matchProviderEpisode,
     normalizedProviderTitle,
     providerTitles,
 } from './match';
@@ -365,8 +366,13 @@ async function getStreams(
     modes: AudioMode[],
 ) {
     const { episodes } = await providerEpisodes(anime);
-    const match = episodes.find(
-        (candidate) => candidate.number === episode.number,
+    const match = matchProviderEpisode(
+        episodes.map((candidate) => ({
+            ...candidate,
+            id: String(candidate.providerId),
+            audio: [] as AudioMode[],
+        })),
+        episode,
     );
     if (!match) {
         throw new Error(
