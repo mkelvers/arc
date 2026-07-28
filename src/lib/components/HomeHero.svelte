@@ -160,13 +160,13 @@
                                     type="submit"
                                     class="grid size-12 shrink-0 place-items-center border border-accent text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:size-14"
                                     aria-label={watchlistedIds.includes(anime.id)
-                                        ? `Remove ${anime.title} from Plan to Watch`
+                                        ? `Remove ${anime.title} from watchlist`
                                         : `Add ${anime.title} to Plan to Watch`}
                                     aria-pressed={watchlistedIds.includes(
                                         anime.id,
                                     )}
                                     title={watchlistedIds.includes(anime.id)
-                                        ? 'Remove from Plan to Watch'
+                                        ? 'Remove from watchlist'
                                         : 'Add to Plan to Watch'}
                                 >
                                     <BookmarkSimpleIcon

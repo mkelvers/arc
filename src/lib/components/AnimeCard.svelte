@@ -118,9 +118,9 @@
                     class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
                     aria-label={watchlisted
                         ? `Remove ${anime.title} from watch list`
-                        : `Add ${anime.title} to watch list`}
+                        : `Add ${anime.title} to Plan to Watch`}
                     aria-pressed={watchlisted}
-                    title={watchlisted ? 'Remove from watch list' : 'Add to watch list'}
+                    title={watchlisted ? 'Remove from watch list' : 'Add to Plan to Watch'}
                 >
                     <BookmarkSimpleIcon
                         size="1.55rem"
