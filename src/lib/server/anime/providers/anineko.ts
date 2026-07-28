@@ -148,19 +148,46 @@ async function findSlug(anime: ProviderAnime, refresh = false) {
     );
 }
 
-function episodeNumbers(html: string, slug: string) {
+function episodeInventory(html: string, slug: string) {
     const $ = load(html);
-    const numbers = new Set<number>();
+    const episodes = new Map<number, ProviderEpisode>();
 
-    $(`a[href^="/watch/${slug}/ep-"]`).each((_, element) => {
-        const href = $(element).attr('href') ?? '';
+    $('.nv-info-episode-item').each((_, element) => {
+        const item = $(element);
+        const link = item.find(
+            `a.nv-info-episode-main[href^="/watch/${slug}/ep-"]`,
+        );
+        const href = link.attr('href') ?? '';
         const number = Number(href.match(/\/ep-(\d+)$/)?.[1]);
-        if (Number.isSafeInteger(number) && number > 0) {
-            numbers.add(number);
+        if (!Number.isSafeInteger(number) || number <= 0) {
+            return;
         }
+
+        const badges = new Set(
+            item
+                .find('.nv-info-episode-badges span')
+                .map((_, badge) => $(badge).text().trim().toUpperCase())
+                .get(),
+        );
+        const audio: AudioMode[] = [];
+        if (badges.has('SUB') || badges.has('HSUB')) {
+            audio.push('sub');
+        }
+        if (badges.has('DUB')) {
+            audio.push('dub');
+        }
+
+        episodes.set(number, {
+            id: String(number),
+            number,
+            title: link.find('span').first().text().trim(),
+            audio,
+        });
     });
 
-    return [...numbers].sort((left, right) => left - right);
+    return [...episodes.values()].sort(
+        (left, right) => left.number - right.number,
+    );
 }
 
 async function providerEpisodes(anime: ProviderAnime) {
@@ -188,28 +215,20 @@ async function providerEpisodes(anime: ProviderAnime) {
         html = await requestText(new URL(`/watch/${slug}`, baseUrl));
     }
 
-    const numbers = episodeNumbers(html, slug);
-    if (!numbers.length) {
+    const episodes = episodeInventory(html, slug);
+    if (!episodes.length) {
         throw new Error(
             `AniNeko returned no episodes for AniList ${anime.id}`,
         );
     }
 
     await verifyProviderMediaId(anime.id, providerName);
-    return { slug, numbers };
+    return { slug, episodes };
 }
 
 async function getEpisodes(anime: ProviderAnime) {
-    const { numbers } = await providerEpisodes(anime);
-
-    return numbers.map(
-        (number): ProviderEpisode => ({
-            id: String(number),
-            number,
-            title: '',
-            audio: ['sub'],
-        }),
-    );
+    const { episodes } = await providerEpisodes(anime);
+    return episodes;
 }
 
 function embedUrls(html: string, mode: AudioMode) {
@@ -292,8 +311,8 @@ async function getStreams(
         );
     }
 
-    const { slug, numbers } = await providerEpisodes(anime);
-    if (!numbers.includes(episode.number)) {
+    const { slug, episodes } = await providerEpisodes(anime);
+    if (!episodes.some((candidate) => candidate.number === episode.number)) {
         throw new Error(
             `AniNeko has no episode ${episode.number} for AniList ${anime.id}`,
         );
@@ -305,7 +324,7 @@ async function getStreams(
     const streams: ProviderStreams = {};
     const errors: unknown[] = [];
 
-    for (const mode of [...new Set(modes)]) {
+    for (const mode of new Set(modes)) {
         const candidates = embedUrls(html, mode);
         const results = await Promise.allSettled(
             candidates.map(resolveEmbed),
