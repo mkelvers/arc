@@ -17,7 +17,11 @@ function record(value: unknown): Record<string, unknown> | null {
 }
 
 async function request(path: string) {
-    const response = await fetch(`${baseUrl}${path}`, {
+    return requestUrl(new URL(path, baseUrl));
+}
+
+async function requestUrl(url: URL) {
+    const response = await fetch(url, {
         headers: {
             Accept: 'application/json',
             Referer: `${baseUrl}/`,
@@ -27,7 +31,9 @@ async function request(path: string) {
     });
 
     if (!response.ok) {
-        throw new Error(`Senshi returned ${response.status} for ${path}`);
+        throw new Error(
+            `Senshi returned ${response.status} for ${url.pathname}`,
+        );
     }
 
     return (await response.json()) as unknown;
@@ -91,15 +97,106 @@ function modeForStatus(status: unknown): AudioMode | null {
     return /^(?:hard)?sub$/i.test(status) ? 'sub' : null;
 }
 
+function safeUrl(value: unknown) {
+    if (typeof value !== 'string' || !value.trim()) {
+        return null;
+    }
+
+    try {
+        return new URL(value);
+    } catch {
+        return null;
+    }
+}
+
+function subtitleManifest(item: Record<string, unknown>) {
+    const server = safeUrl(item.serverFM);
+    const fromServer = safeUrl(server?.searchParams.get('sub.info'));
+    const masked = safeUrl(item.masked_base_url);
+    const manifest =
+        fromServer ??
+        (masked
+            ? new URL(
+                  'sub_filemoon.json',
+                  `${masked.toString().replace(/\/?$/, '/')}`,
+              )
+            : null);
+
+    return manifest &&
+        manifest.protocol === 'https:' &&
+        (manifest.hostname === 'ninstream.com' ||
+            manifest.hostname.endsWith('.ninstream.com')) &&
+        manifest.pathname.endsWith('.json')
+        ? manifest
+        : null;
+}
+
+function subtitleTrack(value: unknown) {
+    if (!Array.isArray(value)) {
+        return null;
+    }
+
+    const tracks = value.flatMap((item) => {
+        const track = record(item);
+        const url = safeUrl(track?.src);
+        if (
+            !url ||
+            url.protocol !== 'https:' ||
+            !url.pathname.toLowerCase().endsWith('.vtt') ||
+            !(
+                url.hostname === 'ninjstream.xyz' ||
+                url.hostname.endsWith('.ninjstream.xyz') ||
+                url.hostname === 'ninstream.com' ||
+                url.hostname.endsWith('.ninstream.com')
+            )
+        ) {
+            return [];
+        }
+
+        return [
+            {
+                url: url.toString(),
+                label:
+                    typeof track?.label === 'string'
+                        ? track.label.toLowerCase()
+                        : '',
+                preferred: track?.default === true,
+            },
+        ];
+    });
+    const dialogue = tracks.filter(
+        ({ label }) => !/forced|sign|song/.test(label),
+    );
+
+    return (
+        dialogue.find(({ preferred }) => preferred) ??
+        dialogue.find(({ label }) => /eng|english/.test(label)) ??
+        tracks.find(({ preferred }) => preferred) ??
+        tracks.find(({ label }) => /eng|english/.test(label)) ??
+        tracks[0] ??
+        null
+    )?.url;
+}
+
+async function senshiSubtitle(item: Record<string, unknown>) {
+    const manifest = subtitleManifest(item);
+    if (!manifest) {
+        return null;
+    }
+
+    try {
+        return subtitleTrack(await requestUrl(manifest));
+    } catch {
+        return null;
+    }
+}
+
 async function getStreams(
     anime: Parameters<PlaybackProvider['getStreams']>[0],
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[],
 ) {
-    if (
-        !Number.isInteger(episode.number) ||
-        episode.number <= 0
-    ) {
+    if (!Number.isInteger(episode.number) || episode.number <= 0) {
         throw new Error(
             `Senshi cannot map episode ${episode.id} to an integer`,
         );
@@ -117,6 +214,9 @@ async function getStreams(
 
     for (const value of payload) {
         const item = record(value);
+        if (!item) {
+            continue;
+        }
         const mode = modeForStatus(item?.status);
         const url = item?.url;
 
@@ -133,6 +233,7 @@ async function getStreams(
             url,
             quality: null,
             audioDelay: 0,
+            subtitleUrl: mode === 'sub' ? await senshiSubtitle(item) : null,
         };
         streams[mode] = [...(streams[mode] ?? []), stream];
     }
