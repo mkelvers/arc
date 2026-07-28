@@ -8,11 +8,13 @@ export interface ProviderEpisode {
     number: number;
     title: string;
     audio: AudioMode[];
+    supplemental?: boolean;
 }
 
 export interface ProviderEpisodeReference {
     id: string;
     number: number;
+    title?: string;
 }
 
 export interface ProviderStream {
