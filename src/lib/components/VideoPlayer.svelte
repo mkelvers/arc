@@ -62,14 +62,10 @@
         ondurationchange={() => (media.duration = media.video.duration)}
         ontimeupdate={() => (media.currentTime = media.video.currentTime)}
         onprogress={() => media.updateBuffered()}
-        onwaiting={() => (media.loading = true)}
-        oncanplay={() => (media.loading = false)}
+        onwaiting={() => media.handleWaiting()}
+        oncanplay={() => media.handleCanPlay()}
         onerror={() => void media.tryNextSource()}
-        onplaying={() => {
-            media.playing = true;
-            media.loading = false;
-            player.showControls();
-        }}
+        onplaying={() => media.handlePlaying()}
         onpause={() => {
             media.playing = false;
             player.showControls();
@@ -77,16 +73,20 @@
         onended={() => media.ended()}
         onvolumechange={() => media.volumeChanged()}
     >
-        {#key media.subtitleUrl}
-            <track
-                kind="captions"
-                src={media.subtitleUrl ?? undefined}
-                srclang="en"
-                label="English"
-                default={Boolean(media.subtitleUrl)}
-            />
-        {/key}
     </video>
+
+    {#if media.subtitles.length}
+        <div
+            aria-live="off"
+            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center text-lg leading-snug font-semibold text-white sm:text-xl"
+        >
+            {#each media.subtitles as subtitle}
+                <span class="whitespace-pre-line bg-black/80 px-2 py-0.5">
+                    {subtitle}
+                </span>
+            {/each}
+        </div>
+    {/if}
 
     {#if media.loading}
         <div
