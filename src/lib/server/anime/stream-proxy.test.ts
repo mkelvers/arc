@@ -16,6 +16,11 @@ describe('stream proxy', () => {
                 'https://megap.kotocdn.site/show/master.m3u8',
             ).hostname,
         ).toBe('megap.kotocdn.site');
+        expect(
+            streamTarget(
+                'https://cdn.ninjstream.xyz/show/subtitles.vtt',
+            ).hostname,
+        ).toBe('cdn.ninjstream.xyz');
         expect(() =>
             streamTarget('http://megap.kotocdn.site/show/master.m3u8'),
         ).toThrow(StreamTargetError);

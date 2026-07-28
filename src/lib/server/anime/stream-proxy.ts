@@ -8,6 +8,7 @@ const allowedHosts = [
     'sharepoint.com',
     'hls.anidb.app',
     'ninstream.com',
+    'ninjstream.xyz',
     'megap.kotocdn.site',
     'ibyteimg.com',
     'vibevibe.workers.dev',
@@ -63,7 +64,9 @@ export function streamReferer(target: URL) {
     }
     if (
         target.hostname === 'ninstream.com' ||
-        target.hostname.endsWith('.ninstream.com')
+        target.hostname.endsWith('.ninstream.com') ||
+        target.hostname === 'ninjstream.xyz' ||
+        target.hostname.endsWith('.ninjstream.xyz')
     ) {
         return 'https://senshi.live/';
     }
