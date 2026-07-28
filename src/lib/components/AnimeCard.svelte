@@ -115,8 +115,6 @@
                 <input type="hidden" name="animeId" value={anime.id} />
                 <button
                     type="submit"
-                    class:bg-accent={watchlisted}
-                    class:text-on-accent={watchlisted}
                     class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
                     aria-label={watchlisted
                         ? `Remove ${anime.title} from watch list`
