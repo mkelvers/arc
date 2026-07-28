@@ -7,9 +7,13 @@ import {
     verifyProviderMediaId,
 } from './mapping';
 import {
-    matchProviderEpisode,
+    isSpecialEpisodeReference,
+    matchProviderStreamEpisode,
     normalizedProviderTitle,
     providerTitles,
+    specialCollectionMatches,
+    specialReleaseQueries,
+    standaloneSpecialMatches,
 } from './match';
 import type {
     PlaybackProvider,
@@ -38,6 +42,7 @@ interface AniKotoSeries {
     anilistId: number | null;
     malId: number | null;
     title: string;
+    alternativeTitle: string;
     episodes: AniKotoEpisode[];
 }
 
@@ -197,6 +202,10 @@ function parseSeries(value: unknown): AniKotoSeries | null {
         anilistId: positiveInteger(anime.ani_id),
         malId: positiveInteger(anime.mal_id),
         title: typeof anime.title === 'string' ? anime.title.trim() : '',
+        alternativeTitle:
+            typeof anime.alternative === 'string'
+                ? anime.alternative.trim()
+                : '',
         episodes,
     };
 }
@@ -349,6 +358,80 @@ async function providerSeries(anime: ProviderAnime) {
     return { series, episodes };
 }
 
+async function specialReleaseEpisode(
+    anime: ProviderAnime,
+    episode: Parameters<PlaybackProvider['getStreams']>[1],
+) {
+    const results = await Promise.allSettled(
+        specialReleaseQueries(anime, episode).map(search),
+    );
+    const candidates = new Map<number, SearchCandidate>();
+
+    for (const result of results) {
+        if (result.status !== 'fulfilled') {
+            continue;
+        }
+        for (const candidate of result.value) {
+            if (
+                standaloneSpecialMatches(anime, episode, [
+                    candidate.title,
+                    candidate.alternativeTitle,
+                ]) ||
+                specialCollectionMatches(anime, episode, [
+                    candidate.title,
+                    candidate.alternativeTitle,
+                ])
+            ) {
+                candidates.set(candidate.id, candidate);
+            }
+        }
+    }
+
+    const values = [...candidates.values()];
+    for (let offset = 0; offset < values.length; offset += 12) {
+        const batch = await Promise.allSettled(
+            values
+                .slice(offset, offset + 12)
+                .map((candidate) => loadSeries(candidate.id)),
+        );
+
+        for (const result of batch) {
+            if (result.status !== 'fulfilled') {
+                continue;
+            }
+
+            const playable = result.value.episodes.filter(
+                (candidate) => episodeModes(candidate).length,
+            );
+            const titles = [
+                result.value.title,
+                result.value.alternativeTitle,
+            ];
+            if (
+                standaloneSpecialMatches(anime, episode, titles) &&
+                playable.length === 1
+            ) {
+                return playable[0];
+            }
+            if (
+                specialCollectionMatches(
+                    anime,
+                    episode,
+                    titles,
+                    playable.length,
+                ) &&
+                episode.specialIndex
+            ) {
+                return playable[episode.specialIndex - 1];
+            }
+        }
+    }
+
+    throw new Error(
+        `AniKoto has no matching special release for ${episode.title || episode.id}`,
+    );
+}
+
 async function getEpisodes(anime: ProviderAnime) {
     const { episodes } = await providerSeries(anime);
     const unique = new Map<number, ProviderEpisode>();
@@ -450,15 +533,35 @@ async function getStreams(
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[],
 ) {
-    if (!Number.isFinite(episode.number) || episode.number <= 0) {
-        throw new Error(
-            `AniKoto cannot map episode ${episode.id} to a positive number`,
+    let match: AniKotoEpisode | undefined;
+    let parentError: unknown;
+
+    try {
+        const { episodes } = await providerSeries(anime);
+        match = matchProviderStreamEpisode(
+            episodes,
+            episode,
+            anime.episodes,
         );
+    } catch (cause) {
+        parentError = cause;
     }
 
-    const { episodes } = await providerSeries(anime);
-    const match = matchProviderEpisode(episodes, episode);
+    if (!match && isSpecialEpisodeReference(episode)) {
+        try {
+            match = await specialReleaseEpisode(anime, episode);
+        } catch (cause) {
+            throw new AggregateError(
+                parentError ? [parentError, cause] : [cause],
+                `AniKoto could not resolve special ${episode.title || episode.id}`,
+            );
+        }
+    }
+
     if (!match) {
+        if (parentError) {
+            throw parentError;
+        }
         throw new Error(
             `AniKoto has no episode ${episode.number} for AniList ${anime.id}`,
         );
