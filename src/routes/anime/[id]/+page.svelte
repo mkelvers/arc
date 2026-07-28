@@ -118,9 +118,7 @@
                     <form method="POST" action="?/watchlist" use:enhance>
                         <button
                             type="submit"
-                            class:bg-accent={data.watchlistState === 'plan_to_watch'}
-                            class:text-on-accent={data.watchlistState === 'plan_to_watch'}
-                            class="grid size-11 shrink-0 place-items-center border border-accent transition-colors hover:bg-accent hover:text-on-accent lg:size-12"
+                            class="grid size-11 shrink-0 place-items-center border border-accent text-accent transition-colors lg:size-12"
                             aria-label={data.watchlistState === 'plan_to_watch' ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
                             aria-pressed={data.watchlistState === 'plan_to_watch'}
                             title={data.watchlistState === 'plan_to_watch' ? 'Remove from Plan to Watch' : 'Add to Plan to Watch'}
