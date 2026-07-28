@@ -15,6 +15,10 @@ import {
     fetchOrder,
     type ChiakiEntry,
 } from './franchise/chiaki';
+import {
+    primaryFranchiseIds,
+    type FranchiseSelectionEntry,
+} from './franchise/selection';
 
 const anilistEndpoint = 'https://graphql.anilist.co';
 const cacheLifetime = 24 * 60 * 60 * 1_000;
@@ -98,6 +102,42 @@ async function refresh(malId: number) {
     const { types, entries } = await fetchOrder(malId);
     const typeLabels = new Map(types.map(({ id, label }) => [id, label]));
     const metadata = await fetchMetadata(entries);
+    const primaryIds = primaryFranchiseIds(
+        entries.flatMap((entry): FranchiseSelectionEntry[] => {
+            const media = metadata.get(entry.malId);
+            if (!media) {
+                return [];
+            }
+
+            return [
+                {
+                    malId: entry.malId,
+                    title:
+                        media.title?.english ||
+                        entry.alternativeTitle ||
+                        media.title?.romaji ||
+                        media.title?.native ||
+                        entry.title,
+                    format: media.format,
+                    episodes: media.episodes,
+                    duration: media.duration,
+                    popularity: media.popularity,
+                    secondary: entry.secondary,
+                    relations: (media.relations?.edges ?? []).flatMap(
+                        (relation) =>
+                            relation?.relationType && relation.node?.idMal
+                                ? [
+                                      {
+                                          type: relation.relationType,
+                                          malId: relation.node.idMal,
+                                      },
+                                  ]
+                                : [],
+                    ),
+                },
+            ];
+        }),
+    );
     const playback = await cachedPlayback(
         [...metadata.values()].map(({ id }) => id),
     );
@@ -136,6 +176,7 @@ async function refresh(malId: number) {
                     ),
                     synopsis: synopsis(media?.description),
                     secondary: entry.secondary,
+                    primary: primaryIds.has(entry.malId),
                     href: `/anime/${anilistId}`,
                     watchHref:
                         playback.get(anilistId)?.watchHref ??
