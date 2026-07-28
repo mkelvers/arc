@@ -7,6 +7,7 @@ import {
     animeExternalIdLink,
     watchlist,
 } from '$lib/server/db/schema';
+import type { WatchlistState } from '$lib/server/db/schema';
 
 async function findAnimeId(anilistId: number) {
     const [stored] = await db
@@ -188,7 +189,33 @@ export async function removeFromWatchlist(
         );
 }
 
-export async function togglePlanToWatch(userId: string, anilistId: number) {
+async function upsertWatchlistState(
+    userId: string,
+    animeId: number,
+    state: WatchlistState,
+) {
+    await db
+        .insert(watchlist)
+        .values({ userId, animeId, state })
+        .onConflictDoUpdate({
+            target: [watchlist.userId, watchlist.animeId],
+            set: { state, updatedAt: new Date() },
+        });
+}
+
+export async function setWatchlistState(
+    userId: string,
+    anilistId: number,
+    state: WatchlistState,
+) {
+    const animeId = await ensureAnimeId(anilistId);
+
+    await upsertWatchlistState(userId, animeId, state);
+
+    return state;
+}
+
+export async function toggleWatchlist(userId: string, anilistId: number) {
     const animeId = await ensureAnimeId(anilistId);
 
     const [item] = await db
@@ -202,7 +229,7 @@ export async function togglePlanToWatch(userId: string, anilistId: number) {
         )
         .limit(1);
 
-    if (item?.state === 'plan_to_watch') {
+    if (item) {
         await db
             .delete(watchlist)
             .where(
@@ -214,13 +241,7 @@ export async function togglePlanToWatch(userId: string, anilistId: number) {
         return null;
     }
 
-    await db
-        .insert(watchlist)
-        .values({ userId, animeId, state: 'plan_to_watch' })
-        .onConflictDoUpdate({
-            target: [watchlist.userId, watchlist.animeId],
-            set: { state: 'plan_to_watch', updatedAt: new Date() },
-        });
+    await upsertWatchlistState(userId, animeId, 'plan_to_watch');
 
     return 'plan_to_watch' as const;
 }

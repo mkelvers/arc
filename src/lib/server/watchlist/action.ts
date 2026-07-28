@@ -1,7 +1,19 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 
 import { animeId } from '$lib/server/anime/route';
-import { removeFromWatchlist, togglePlanToWatch } from './store';
+import {
+    watchlistState as watchlistStateEnum,
+    type WatchlistState,
+} from '$lib/server/db/schema';
+import {
+    removeFromWatchlist,
+    setWatchlistState,
+    toggleWatchlist,
+} from './store';
+
+function isWatchlistState(value: string): value is WatchlistState {
+    return watchlistStateEnum.enumValues.includes(value as WatchlistState);
+}
 
 export async function updateWatchlist({
     locals,
@@ -19,8 +31,19 @@ export async function updateWatchlist({
         return fail(400, { message: 'Invalid anime ID' });
     }
 
+    const requestedState = form.get('state');
+    if (
+        requestedState !== null &&
+        (typeof requestedState !== 'string' ||
+            !isWatchlistState(requestedState))
+    ) {
+        return fail(400, { message: 'Invalid watchlist state' });
+    }
+
     try {
-        const state = await togglePlanToWatch(locals.user.id, id);
+        const state = requestedState
+            ? await setWatchlistState(locals.user.id, id, requestedState)
+            : await toggleWatchlist(locals.user.id, id);
 
         return { success: true, state };
     } catch (cause) {
