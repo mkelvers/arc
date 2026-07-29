@@ -35,12 +35,12 @@
         method="POST"
         action="?/remove"
         use:enhance
-        class="absolute top-2 right-2 z-10"
+        class="absolute top-2 right-2 z-10 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
     >
         <input type="hidden" name="animeId" value={animeId} />
         <button
             type="submit"
-            class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="grid size-8 place-items-center text-white/80 transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-label={`Remove ${title} from watchlist`}
             title="Remove from watchlist"
         >
