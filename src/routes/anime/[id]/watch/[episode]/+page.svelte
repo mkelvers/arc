@@ -5,13 +5,7 @@
     import WatchPlayer from '$lib/components/WatchPlayer.svelte';
     import { availableModes } from '$lib/player/media';
     import type { PageProps } from './$types';
-    import {
-        ArchiveIcon,
-        BookmarkSimpleIcon,
-        ShareNetworkIcon,
-        ThumbsDownIcon,
-        ThumbsUpIcon,
-    } from 'phosphor-svelte';
+    import { ArchiveIcon } from 'phosphor-svelte';
 
     let { data }: PageProps = $props();
     let episodeDialogOpen = $state(false);
@@ -55,18 +49,6 @@
         }).format(date);
     }
 
-    async function share() {
-        const shareData = {
-            title: `${data.currentEpisode.label} – ${data.currentEpisode.title}`,
-            url: window.location.href,
-        };
-
-        if (navigator.share) {
-            await navigator.share(shareData);
-        } else {
-            await navigator.clipboard.writeText(shareData.url);
-        }
-    }
 </script>
 
 <svelte:head>
@@ -87,26 +69,15 @@
 
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12">
         <article class="min-w-0 flex-1">
-            <div class="flex items-start gap-6">
-                <div class="min-w-0 flex-1">
-                    <a
-                        href={`/anime/${data.anime.id}`}
-                        class="text-sm font-bold text-accent hover:underline"
-                    >
-                        {data.anime.title}
-                    </a>
-                    <h1 class="mt-4 text-xl leading-tight font-bold">
-                        {data.currentEpisode.label} – {data.currentEpisode.title}
-                    </h1>
-                </div>
-                <button
-                    type="button"
-                    class="grid size-11 shrink-0 place-items-center text-watch-primary hover:bg-white/8 focus-visible:outline-1 focus-visible:outline-white"
-                    aria-label="Bookmark episode"
-                >
-                    <BookmarkSimpleIcon size="1.75rem" aria-hidden="true" />
-                </button>
-            </div>
+            <a
+                href={`/anime/${data.anime.id}`}
+                class="text-sm font-bold text-accent hover:underline"
+            >
+                {data.anime.title}
+            </a>
+            <h1 class="mt-4 text-xl leading-tight font-bold">
+                {data.currentEpisode.label} – {data.currentEpisode.title}
+            </h1>
 
             <p class="mt-3 text-sm text-watch-muted">
                 {#await data.playback}
@@ -128,23 +99,6 @@
                     Released on {releaseDate(data.currentEpisode.releaseDate)}
                 </p>
             {/if}
-
-            <div class="mt-3 flex items-center gap-7 text-sm text-watch-muted">
-                <button type="button" class="inline-flex min-h-11 items-center gap-2 hover:text-white" aria-label="Like episode">
-                    <ThumbsUpIcon size="1.6rem" aria-hidden="true" />
-                </button>
-                <button type="button" class="inline-flex min-h-11 items-center gap-2 hover:text-white" aria-label="Dislike episode">
-                    <ThumbsDownIcon size="1.6rem" aria-hidden="true" />
-                </button>
-                <button
-                    type="button"
-                    class="ml-auto grid size-11 place-items-center text-watch-secondary hover:bg-white/8 hover:text-white focus-visible:outline-1 focus-visible:outline-white"
-                    aria-label="Share episode"
-                    onclick={share}
-                >
-                    <ShareNetworkIcon size="1.6rem" aria-hidden="true" />
-                </button>
-            </div>
 
             {#if data.currentEpisode.overview}
                 <p class="mt-5 max-w-4xl text-base leading-6 text-watch-primary">
