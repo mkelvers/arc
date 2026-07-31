@@ -1,11 +1,27 @@
 <script lang="ts">
+	import { cva, type VariantProps } from 'class-variance-authority';
 	import { XIcon } from 'phosphor-svelte';
 
-	type Tone = 'error' | 'success';
+	const banner = cva(
+		'fixed inset-x-0 top-0 z-100 grid min-h-12 place-items-center px-14 py-2 text-sm font-semibold text-on-status',
+		{
+			variants: {
+				tone: {
+					error: 'bg-status-error',
+					success: 'bg-status-success'
+				}
+			},
+			defaultVariants: {
+				tone: 'success'
+			}
+		}
+	);
+
+	type Tone = NonNullable<VariantProps<typeof banner>['tone']>;
 
 	let {
 		message,
-		tone,
+		tone = 'success',
 		ondismiss
 	}: {
 		message: string;
@@ -16,9 +32,7 @@
 
 {#if message}
 	<div
-		class:bg-status-error={tone === 'error'}
-		class:bg-status-success={tone === 'success'}
-		class="fixed inset-x-0 top-0 z-100 grid min-h-12 place-items-center px-14 py-2 text-sm font-semibold text-on-status"
+		class={banner({ tone })}
 		role={tone === 'error' ? 'alert' : 'status'}
 		aria-live={tone === 'error' ? 'assertive' : 'polite'}
 	>
