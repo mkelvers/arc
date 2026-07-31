@@ -1,5 +1,5 @@
 import { building } from '$app/environment';
-import { redirect, type Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 import { auth } from '$lib/server/auth';
@@ -23,7 +23,41 @@ function unauthorized() {
     });
 }
 
-export const handle: Handle = async ({ event, resolve }) => {
+function redirect(location: string) {
+    return new Response(null, {
+        status: 303,
+        headers: { location },
+    });
+}
+
+function secure(response: Response, https: boolean) {
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set(
+        'Referrer-Policy',
+        'strict-origin-when-cross-origin',
+    );
+    response.headers.set(
+        'Permissions-Policy',
+        'camera=(), geolocation=(), microphone=()',
+    );
+    if (!response.headers.has('Content-Security-Policy')) {
+        response.headers.set(
+            'Content-Security-Policy',
+            "default-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        );
+    }
+    if (https) {
+        response.headers.set(
+            'Strict-Transport-Security',
+            'max-age=31536000; includeSubDomains',
+        );
+    }
+
+    return response;
+}
+
+const route: Handle = async ({ event, resolve }) => {
     const routeId = event.route.id;
 
     event.locals.session = null;
@@ -57,15 +91,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     if (routeId?.startsWith('/(auth)/')) {
         if (result) {
-            redirect(303, '/');
+            return redirect('/');
         }
 
         return resolve(event);
     }
 
     if (!isPublicPage(routeId) && !result) {
-        redirect(303, '/login');
+        return redirect('/login');
     }
 
     return svelteKitHandler({ event, resolve, auth, building });
 };
+
+export const handle: Handle = async (input) =>
+    secure(
+        await route(input),
+        input.event.url.protocol === 'https:',
+    );
