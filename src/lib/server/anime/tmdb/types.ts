@@ -17,7 +17,8 @@ export interface Candidate extends Mapping {
 export interface StoredMapping extends Mapping {
     animeId: number;
     externalIdId: number;
-    mappingVersion: number;
+    title: string | null;
+    verifiedAt: Date | null;
 }
 
 export interface ArtworkImage {
@@ -54,5 +55,3 @@ export interface EpisodeCandidate extends EpisodeMetadata {
     seasonNumber: number;
     rawAirDate: string;
 }
-
-export const mappingVersion = 9;

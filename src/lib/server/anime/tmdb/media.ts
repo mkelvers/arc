@@ -1,36 +1,23 @@
-import { eq } from 'drizzle-orm';
-
 import { db } from '$lib/server/db';
-import {
-    anime as animeTable,
-    animeArtworkPreference,
-} from '$lib/server/db/schema';
+import { animeArtworkPreference } from '$lib/server/db/schema';
 import { fetchArtwork, readArtwork } from './artwork';
 import { findMapping } from './mapping-store';
-import { mappingVersion } from './types';
 
 export async function getStoredMedia(anilistId: number) {
     const match = await findMapping(anilistId);
 
-    if (!match || match.mappingVersion !== mappingVersion) {
+    if (!match) {
         return null;
     }
 
-    const [[stored], artwork] = await Promise.all([
-        db
-            .select({ title: animeTable.title })
-            .from(animeTable)
-            .where(eq(animeTable.id, match.animeId))
-            .limit(1),
-        readArtwork(match),
-    ]);
+    const artwork = await readArtwork(match);
 
-    if (!stored?.title || !artwork) {
+    if (!match.title || !artwork) {
         return null;
     }
 
     return {
-        anime: { id: anilistId, title: stored.title },
+        anime: { id: anilistId, title: match.title },
         artwork,
     };
 }

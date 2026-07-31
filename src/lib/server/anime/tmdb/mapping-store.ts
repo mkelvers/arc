@@ -9,7 +9,6 @@ import {
 } from '$lib/server/db/schema';
 import { titlesFor } from './title';
 import {
-    mappingVersion,
     type AniListAnime,
     type Mapping,
     type StoredMapping,
@@ -29,7 +28,8 @@ export async function findMapping(
             externalIdId: targetId.id,
             id: targetId.externalId,
             mediaType: targetId.mediaType,
-            mappingVersion: animeTable.tmdbMappingVersion,
+            title: animeTable.title,
+            verifiedAt: targetLink.verifiedAt,
         })
         .from(animeExternalId)
         .innerJoin(
@@ -67,7 +67,8 @@ export async function findMapping(
                 externalIdId: match.externalIdId,
                 id: match.id,
                 mediaType: match.mediaType,
-                mappingVersion: match.mappingVersion,
+                title: match.title,
+                verifiedAt: match.verifiedAt,
             };
         }
     }
@@ -79,11 +80,14 @@ export async function findMapping(
     return null;
 }
 
-export async function saveMapping(
+export async function saveVerifiedMapping(
     anime: AniListAnime,
     mapping: Mapping,
 ): Promise<StoredMapping> {
     return db.transaction(async (tx) => {
+        const title = titlesFor(anime)[0] ?? null;
+        const verifiedAt = new Date();
+
         await tx
             .insert(animeExternalId)
             .values({
@@ -117,7 +121,7 @@ export async function saveMapping(
         if (!link) {
             const [created] = await tx
                 .insert(animeTable)
-                .values({ title: titlesFor(anime)[0] ?? null })
+                .values({ title })
                 .returning({ animeId: animeTable.id });
 
             if (!created) {
@@ -133,11 +137,7 @@ export async function saveMapping(
 
         await tx
             .update(animeTable)
-            .set({
-                title: titlesFor(anime)[0] ?? null,
-                tmdbMappingVersion: mappingVersion,
-                updatedAt: new Date(),
-            })
+            .set({ title })
             .where(eq(animeTable.id, link.animeId));
 
         const oldTmdbIds = await tx
@@ -156,20 +156,6 @@ export async function saveMapping(
                     eq(animeExternalId.provider, 'tmdb'),
                 ),
             );
-
-        if (oldTmdbIds.length) {
-            await tx
-                .delete(animeExternalIdLink)
-                .where(
-                    and(
-                        eq(animeExternalIdLink.animeId, link.animeId),
-                        inArray(
-                            animeExternalIdLink.externalIdId,
-                            oldTmdbIds.map(({ id }) => id),
-                        ),
-                    ),
-                );
-        }
 
         await tx
             .insert(animeExternalId)
@@ -195,19 +181,44 @@ export async function saveMapping(
             throw new Error('Failed to store TMDB identity');
         }
 
+        const replacedIds = oldTmdbIds
+            .map(({ id }) => id)
+            .filter((id) => id !== tmdbId.id);
+        if (replacedIds.length) {
+            await tx
+                .delete(animeExternalIdLink)
+                .where(
+                    and(
+                        eq(animeExternalIdLink.animeId, link.animeId),
+                        inArray(
+                            animeExternalIdLink.externalIdId,
+                            replacedIds,
+                        ),
+                    ),
+                );
+        }
+
         await tx
             .insert(animeExternalIdLink)
             .values({
                 animeId: link.animeId,
                 externalIdId: tmdbId.id,
+                verifiedAt,
             })
-            .onConflictDoNothing();
+            .onConflictDoUpdate({
+                target: [
+                    animeExternalIdLink.animeId,
+                    animeExternalIdLink.externalIdId,
+                ],
+                set: { verifiedAt },
+            });
 
         return {
             ...mapping,
             animeId: link.animeId,
             externalIdId: tmdbId.id,
-            mappingVersion,
+            title,
+            verifiedAt,
         };
     });
 }
