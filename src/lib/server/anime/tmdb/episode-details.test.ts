@@ -69,4 +69,40 @@ describe('TMDB episode detail completion', () => {
             imageUrl: 'https://images.example/best.jpg',
         });
     });
+
+    test('fills each text field from any available language', () => {
+        expect(
+            completeEpisodeDetails(candidate, {
+                details: {
+                    name: 'Episode 4',
+                    overview: '',
+                },
+                translations: [
+                    {
+                        country: 'US',
+                        language: 'en',
+                        name: 'Accomplices',
+                        overview: '',
+                    },
+                    {
+                        country: 'JP',
+                        language: 'ja',
+                        name: '共犯者たち',
+                        overview: '日本語で利用可能なあらすじ。',
+                    },
+                    {
+                        country: 'ES',
+                        language: 'es',
+                        name: 'Cómplices',
+                        overview: 'Resumen disponible en español.',
+                    },
+                ],
+                originalLanguage: 'ja',
+                image: (path) => path,
+            }),
+        ).toMatchObject({
+            title: 'Accomplices',
+            overview: '日本語で利用可能なあらすじ。',
+        });
+    });
 });

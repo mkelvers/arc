@@ -29,6 +29,48 @@ function text(value: string | null | undefined) {
     return value?.trim() ?? '';
 }
 
+export function translatedMetadata(
+    translations: EpisodeTranslation[] | undefined,
+    originalLanguage?: string,
+) {
+    const english =
+        translations?.find(
+            (translation) =>
+                translation.language === 'en' &&
+                translation.country === 'US' &&
+                (text(translation.name) ||
+                    text(translation.overview)),
+        ) ??
+        translations?.find(
+            (translation) =>
+                translation.language === 'en' &&
+                (text(translation.name) ||
+                    text(translation.overview)),
+        );
+    const fallbackTranslations = translations
+        ?.filter(
+            (translation) =>
+                translation !== english &&
+                (text(translation.name) ||
+                    text(translation.overview)),
+        )
+        .toSorted(
+            (left, right) =>
+                Number(right.language === originalLanguage) -
+                Number(left.language === originalLanguage),
+        );
+    const preferred = [english, ...(fallbackTranslations ?? [])];
+
+    return {
+        name: preferred
+            .map((translation) => translation?.name)
+            .find((value) => !genericTitle(value)),
+        overview: preferred
+            .map((translation) => text(translation?.overview))
+            .find(Boolean),
+    };
+}
+
 export function episodeDetailsNeeded(candidate: EpisodeCandidate) {
     return {
         details:
@@ -49,33 +91,25 @@ export function completeEpisodeDetails(
         translations,
         stills,
         featured,
+        originalLanguage,
         image,
     }: {
         details?: EpisodeDetail;
         translations?: EpisodeTranslation[];
         stills?: EpisodeStill[];
         featured?: EpisodeDetail;
+        originalLanguage?: string;
         image: (path: string) => string;
     },
 ): EpisodeCandidate {
-    const english =
-        translations?.find(
-            (translation) =>
-                translation.language === 'en' &&
-                translation.country === 'US' &&
-                (text(translation.name) ||
-                    text(translation.overview)),
-        ) ??
-        translations?.find(
-            (translation) =>
-                translation.language === 'en' &&
-                (text(translation.name) ||
-                    text(translation.overview)),
-        );
+    const translated = translatedMetadata(
+        translations,
+        originalLanguage,
+    );
     const title = genericTitle(candidate.title)
         ? [
+              translated.name,
               details?.name,
-              english?.name,
               featured?.name,
               candidate.title,
           ].find((value) => !genericTitle(value)) ?? candidate.title
@@ -100,7 +134,7 @@ export function completeEpisodeDetails(
         overview:
             text(candidate.overview) ||
             text(details?.overview) ||
-            text(english?.overview) ||
+            translated.overview ||
             text(featured?.overview),
         runtime:
             candidate.runtime ||
