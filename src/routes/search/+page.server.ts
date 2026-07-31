@@ -10,6 +10,10 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
     const query = url.searchParams.get('q')?.trim() ?? '';
+    if (query.length > 200) {
+        error(400, 'Search queries cannot exceed 200 characters');
+    }
+
     if (!query) {
         return { query, results: [], watchlistedIds: [] };
     }
