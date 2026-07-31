@@ -5,6 +5,7 @@
         isHd,
         type SettingsView,
     } from '$lib/player/media';
+    import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     interface Props {
@@ -40,9 +41,10 @@
 {#snippet radio(selected: boolean)}
     <span
         aria-hidden="true"
-        class={`grid size-4 place-items-center rounded-full border ${
-            selected ? 'border-player-accent' : 'border-white/55'
-        }`}
+        class={cn(
+            'grid size-4 place-items-center rounded-full border',
+            selected ? 'border-player-accent' : 'border-white/55',
+        )}
     >
         {#if selected}
             <span class="leading-none text-player-accent">•</span>
@@ -67,18 +69,20 @@
             <span>Autoplay</span>
             <span
                 aria-hidden="true"
-                class={`relative h-3.5 w-7 rounded-full border transition-colors ${
+                class={cn(
+                    'relative h-3.5 w-7 rounded-full border transition-colors',
                     autoplay
                         ? 'border-player-accent bg-player-accent/20'
-                        : 'border-white/55 bg-white/12'
-                }`}
+                        : 'border-white/55 bg-white/12',
+                )}
             >
                 <span
-                    class={`absolute top-0.5 left-0.5 size-2 rounded-full transition-all ${
+                    class={cn(
+                        'absolute top-0.5 left-0.5 size-2 rounded-full transition-all',
                         autoplay
                             ? 'translate-x-4 bg-player-accent'
-                            : 'bg-white'
-                    }`}
+                            : 'bg-white',
+                    )}
                 ></span>
             </span>
         </button>

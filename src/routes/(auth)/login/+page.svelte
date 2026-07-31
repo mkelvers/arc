@@ -3,6 +3,7 @@
 
 	import { authClient } from '$lib/auth-client';
 	import StatusBanner from '$lib/components/StatusBanner.svelte';
+	import { cn } from '$lib/utils';
 
 	let username = $state('');
 	let password = $state('');
@@ -79,11 +80,12 @@
 	<div class="mt-16 space-y-6">
 		<div>
 			<div
-				class={`relative h-13 border-b transition-colors focus-within:border-accent ${
+				class={cn(
+					'relative h-13 border-b transition-colors focus-within:border-accent',
 					username.length > 0 || usernameInvalid
 						? 'border-accent'
 						: 'border-border-strong'
-				}`}
+				)}
 			>
 				<input
 					id="username"
@@ -106,11 +108,12 @@
 				/>
 				<label
 					for="username"
-					class={`pointer-events-none absolute top-1 left-0 text-xs transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent ${
+					class={cn(
+						'pointer-events-none absolute top-1 left-0 text-xs transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent',
 						username.length > 0 || usernameInvalid
 							? 'text-accent'
 							: 'text-foreground'
-					}`}
+					)}
 				>
 					Username
 				</label>
@@ -122,11 +125,12 @@
 
 		<div>
 			<div
-				class={`relative h-13 border-b transition-colors focus-within:border-accent ${
+				class={cn(
+					'relative h-13 border-b transition-colors focus-within:border-accent',
 					password.length > 0 || passwordInvalid
 						? 'border-accent'
 						: 'border-border-strong'
-				}`}
+				)}
 			>
 				<input
 					id="password"
@@ -145,11 +149,12 @@
 				/>
 				<label
 					for="password"
-					class={`pointer-events-none absolute top-1 left-0 text-xs transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent ${
+					class={cn(
+						'pointer-events-none absolute top-1 left-0 text-xs transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent',
 						password.length > 0 || passwordInvalid
 							? 'text-accent'
 							: 'text-foreground'
-					}`}
+					)}
 				>
 					Password
 				</label>
@@ -170,11 +175,12 @@
 	</div>
 
 	<button
-		class={`mt-16 min-h-11 w-full rounded-full border px-4 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+		class={cn(
+			'mt-16 min-h-11 w-full rounded-full border px-4 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
 			formValid
 				? 'border-accent bg-accent text-on-accent hover:brightness-110 disabled:cursor-wait disabled:opacity-60'
 				: 'cursor-not-allowed border-border-strong text-subtle'
-		}`}
+		)}
 		type="submit"
 		disabled={!canSubmit}
 	>

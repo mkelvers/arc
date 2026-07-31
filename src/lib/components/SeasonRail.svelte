@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import AnimeCard from './AnimeCard.svelte';
 
@@ -45,7 +46,10 @@
 </script>
 
 <section
-    class={`relative z-20 px-5 pt-10 pb-10 sm:px-10 sm:pt-12 sm:pb-12 lg:px-16 lg:pt-16 lg:pb-16 ${overlap ? '-mt-72' : ''}`}
+    class={cn(
+        'relative z-20 px-5 pt-10 pb-10 sm:px-10 sm:pt-12 sm:pb-12 lg:px-16 lg:pt-16 lg:pb-16',
+        overlap && '-mt-72',
+    )}
     aria-labelledby="new-this-season"
 >
     <h2 id="new-this-season" class="mb-5 text-xl font-bold sm:text-2xl">

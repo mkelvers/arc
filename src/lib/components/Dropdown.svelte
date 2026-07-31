@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte';
+    import { cn } from '$lib/utils';
 
     type Item = {
         label: string;
@@ -58,7 +59,11 @@
     </label>
 
     <div
-        class={`absolute top-full z-50 hidden peer-checked:block ${menuAlign === 'start' ? 'left-0' : 'right-0'} ${menuClass}`}
+        class={cn(
+            'absolute top-full z-50 hidden peer-checked:block',
+            menuAlign === 'start' ? 'left-0' : 'right-0',
+            menuClass,
+        )}
     >
         <div
             role={content ? 'group' : 'menu'}

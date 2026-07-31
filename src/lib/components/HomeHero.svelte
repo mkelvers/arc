@@ -9,6 +9,7 @@
         PlayIcon,
         StarIcon,
     } from 'phosphor-svelte';
+    import { cn } from '$lib/utils';
 
     interface Highlight {
         id: number;
@@ -209,11 +210,12 @@
                                 {#each highlights as item, itemIndex (item.id)}
                                     <button
                                         type="button"
-                                        class={`h-2 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                                        class={cn(
+                                            'h-2 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
                                             itemIndex === active
                                                 ? 'w-8 bg-white'
-                                                : 'w-3 bg-white/45'
-                                        }`}
+                                                : 'w-3 bg-white/45',
+                                        )}
                                         aria-label={`Show ${item.title}`}
                                         aria-current={itemIndex === active
                                             ? 'true'

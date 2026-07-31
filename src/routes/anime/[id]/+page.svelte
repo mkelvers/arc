@@ -3,6 +3,7 @@
     import EpisodeList from '$lib/components/EpisodeList.svelte';
     import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
     import { enhance } from '$app/forms';
+    import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
     import {
         CaretDownIcon,
@@ -200,7 +201,12 @@
         <div class="border-b border-border px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
             <section
                 id="anime-details"
-                class={`grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6 ${detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'}`}
+                class={cn(
+                    'grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
+                    detailsExpanded
+                        ? 'max-h-320'
+                        : 'details-fade max-h-24',
+                )}
             >
                 <p class="max-w-prose text-foreground md:max-w-full">{data.anime.description}</p>
                 <div class="space-y-3">
