@@ -15,6 +15,9 @@ import type {
     StoredMapping,
 } from './types';
 
+const completeFreshFor = 30 * 24 * 60 * 60 * 1_000;
+const sparseFreshFor = 6 * 60 * 60 * 1_000;
+
 function artworkImage(image: {
     aspect_ratio?: number;
     file_path?: string;
@@ -102,7 +105,10 @@ export async function readArtwork(
     match: StoredMapping,
 ): Promise<Artwork | null> {
     const [cached] = await db
-        .select({ externalIdId: animeArtworkCache.externalIdId })
+        .select({
+            externalIdId: animeArtworkCache.externalIdId,
+            fetchedAt: animeArtworkCache.fetchedAt,
+        })
         .from(animeArtworkCache)
         .where(
             and(
@@ -125,10 +131,20 @@ export async function readArtwork(
             .filter((image) => image.type === type)
             .map(storedImage)
             .sort((left, right) => right.voteAverage - left.voteAverage);
+    const backdrops = forType('backdrop');
+    const logos = forType('logo');
+    const freshFor =
+        backdrops.length && logos.length
+            ? completeFreshFor
+            : sparseFreshFor;
+
+    if (Date.now() - cached.fetchedAt.getTime() >= freshFor) {
+        return null;
+    }
 
     return withSelections(match, {
-        backdrops: forType('backdrop'),
-        logos: forType('logo'),
+        backdrops,
+        logos,
     });
 }
 
@@ -181,6 +197,10 @@ export async function fetchArtwork(match: StoredMapping) {
                 width: image.width,
             })),
         ];
+
+        await tx
+            .delete(animeArtwork)
+            .where(eq(animeArtwork.externalIdId, match.externalIdId));
 
         if (rows.length) {
             await tx
