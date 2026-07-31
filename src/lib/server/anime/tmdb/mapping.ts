@@ -47,12 +47,39 @@ function seasonEvidenceScore(
 }
 
 async function specialMappingEvidence(anime: AniListAnime, mapping: Mapping) {
-    if (mapping.mediaType !== 'tv') {
-        return null;
-    }
-
     try {
         const client = create();
+        if (mapping.mediaType === 'movie') {
+            const { data: movie } = await client.GET(
+                '/3/movie/{movie_id}',
+                {
+                    params: {
+                        path: { movie_id: mapping.id },
+                        query: { language: 'en-US' },
+                    },
+                },
+            );
+
+            return movie
+                ? specialEpisodeEvidenceScore(anime, [
+                      {
+                          airDate: movie.release_date ?? '',
+                          name:
+                              movie.title?.trim() ||
+                              movie.original_title?.trim() ||
+                              '',
+                          overview: movie.overview?.trim() ?? '',
+                          runtime: movie.runtime || null,
+                          seasonNumber: 0,
+                          stillPath:
+                              movie.backdrop_path ??
+                              movie.poster_path ??
+                              null,
+                      },
+                  ])
+                : null;
+        }
+
         const { data: series } = await client.GET('/3/tv/{series_id}', {
             params: {
                 path: { series_id: mapping.id },
@@ -135,7 +162,7 @@ async function preferredSpecialMapping(
 
 async function searchTv(query: string): Promise<Candidate[]> {
     const { data, error } = await create().GET('/3/search/tv', {
-        params: { query: { query, include_adult: false } },
+        params: { query: { query, include_adult: true } },
     });
 
     if (!data) {
@@ -160,7 +187,7 @@ async function searchTv(query: string): Promise<Candidate[]> {
 
 async function searchMovies(query: string): Promise<Candidate[]> {
     const { data, error } = await create().GET('/3/search/movie', {
-        params: { query: { query, include_adult: false } },
+        params: { query: { query, include_adult: true } },
     });
 
     if (!data) {
@@ -227,25 +254,39 @@ export async function resolveStored(
         throw new Error('AniList returned no searchable title');
     }
 
-    const search = anime.format === 'MOVIE' ? searchMovies : searchTv;
     const queries = [
         ...new Set(titles.flatMap((title) => [title, seriesTitle(title)])),
     ];
-    const candidates = (
-        await Promise.all(queries.map((title) => search(title)))
-    ).flat();
-    const unique = [
-        ...new Map(
-            candidates.map((candidate) => [
-                `${candidate.mediaType}:${candidate.id}`,
-                candidate,
-            ]),
-        ).values(),
-    ];
-    const match = unique.sort(
-        (left, right) =>
-            candidateScore(right, anime) - candidateScore(left, anime),
-    )[0];
+    const preferredSearch =
+        anime.format === 'MOVIE' ? searchMovies : searchTv;
+    const alternateSearch =
+        anime.format === 'MOVIE' ? searchTv : searchMovies;
+    const findCandidate = async (
+        search: typeof searchTv | typeof searchMovies,
+    ) => {
+        const candidates = (
+            await Promise.all(queries.map((title) => search(title)))
+        ).flat();
+        const unique = [
+            ...new Map(
+                candidates.map((candidate) => [
+                    `${candidate.mediaType}:${candidate.id}`,
+                    candidate,
+                ]),
+            ).values(),
+        ];
+
+        return unique.sort(
+            (left, right) =>
+                candidateScore(right, anime) -
+                candidateScore(left, anime),
+        )[0];
+    };
+    let match = await findCandidate(preferredSearch);
+
+    if (!match || candidateScore(match, anime) < 85) {
+        match = await findCandidate(alternateSearch);
+    }
 
     // Missing enrichment is safer than attaching art and episodes from a
     // similarly named release, so only persist a confident search result.
