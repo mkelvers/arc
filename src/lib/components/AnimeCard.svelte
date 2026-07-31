@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { enhance } from '$app/forms';
-    import { BookmarkSimpleIcon, PlayIcon, StarIcon } from 'phosphor-svelte';
+    import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
     import type { AnimeCard } from '$lib/anime/types';
 
@@ -8,7 +7,6 @@
         anime: AnimeCard;
         current?: boolean;
         compact?: boolean;
-        watchlisted?: boolean;
         onselect?: (anime: AnimeCard) => void;
     }
 
@@ -16,7 +14,6 @@
         anime,
         current = false,
         compact = false,
-        watchlisted = false,
         onselect,
     }: Props = $props();
 </script>
@@ -111,24 +108,6 @@
             >
                 <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
             </a>
-            <form method="POST" action="?/watchlist" use:enhance>
-                <input type="hidden" name="animeId" value={anime.id} />
-                <button
-                    type="submit"
-                    class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
-                    aria-label={watchlisted
-                        ? `Remove ${anime.title} from watch list`
-                        : `Add ${anime.title} to Plan to Watch`}
-                    aria-pressed={watchlisted}
-                    title={watchlisted ? 'Remove from watch list' : 'Add to Plan to Watch'}
-                >
-                    <BookmarkSimpleIcon
-                        size="1.55rem"
-                        weight={watchlisted ? 'fill' : 'regular'}
-                        aria-hidden="true"
-                    />
-                </button>
-            </form>
         </div>
     </div>
 </article>

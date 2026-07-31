@@ -7,10 +7,9 @@
     interface Props {
         anime: AnimeCardModel[];
         overlap?: boolean;
-        watchlistedIds: number[];
     }
 
-    let { anime, overlap = false, watchlistedIds }: Props = $props();
+    let { anime, overlap = false }: Props = $props();
     let rail = $state<HTMLDivElement>();
     let canScrollLeft = $state(false);
     let canScrollRight = $state(false);
@@ -65,11 +64,7 @@
             >
                 {#each anime as entry (entry.id)}
                     <div class="min-w-0 snap-start">
-                        <AnimeCard
-                            anime={entry}
-                            compact
-                            watchlisted={watchlistedIds.includes(entry.id)}
-                        />
+                        <AnimeCard anime={entry} compact />
                     </div>
                 {/each}
             </div>

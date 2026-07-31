@@ -1,8 +1,6 @@
 <script lang="ts">
-    import { enhance } from '$app/forms';
     import { onMount } from 'svelte';
     import {
-        BookmarkSimpleIcon,
         CaretLeftIcon,
         CaretRightIcon,
         PauseIcon,
@@ -28,10 +26,9 @@
 
     interface Props {
         highlights: Highlight[];
-        watchlistedIds: number[];
     }
 
-    let { highlights, watchlistedIds }: Props = $props();
+    let { highlights }: Props = $props();
     let active = $state(0);
     let paused = $state(false);
     let interacting = $state(false);
@@ -151,34 +148,6 @@
                                 />
                                 START WATCHING
                             </a>
-                            <form method="POST" action="?/watchlist" use:enhance>
-                                <input
-                                    type="hidden"
-                                    name="animeId"
-                                    value={anime.id}
-                                />
-                                <button
-                                    type="submit"
-                                    class="grid size-12 shrink-0 place-items-center border border-accent text-accent transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:size-14"
-                                    aria-label={watchlistedIds.includes(anime.id)
-                                        ? `Remove ${anime.title} from watchlist`
-                                        : `Add ${anime.title} to Plan to Watch`}
-                                    aria-pressed={watchlistedIds.includes(
-                                        anime.id,
-                                    )}
-                                    title={watchlistedIds.includes(anime.id)
-                                        ? 'Remove from watchlist'
-                                        : 'Add to Plan to Watch'}
-                                >
-                                    <BookmarkSimpleIcon
-                                        size="1.65rem"
-                                        weight={watchlistedIds.includes(anime.id)
-                                            ? 'fill'
-                                            : 'regular'}
-                                        aria-hidden="true"
-                                    />
-                                </button>
-                            </form>
                         </div>
 
                         {#if highlights.length > 1}

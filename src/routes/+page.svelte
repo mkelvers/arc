@@ -16,14 +16,10 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas text-foreground">
-    <HomeHero
-        highlights={data.highlights}
-        watchlistedIds={data.watchlistedIds}
-    />
+    <HomeHero highlights={data.highlights} />
     <SeasonRail
         anime={data.season}
         overlap={Boolean(data.highlights.length)}
-        watchlistedIds={data.watchlistedIds}
     />
     {#await data.continueWatching then anime}
         <ContinueWatchingGrid {anime} />

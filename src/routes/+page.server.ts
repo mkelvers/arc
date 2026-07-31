@@ -10,10 +10,6 @@ import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
 import { deletePlaybackProgress } from '$lib/server/playback-progress/store';
-import { updateWatchlist } from '$lib/server/watchlist/action';
-import {
-    getWatchlistedAnimeIds,
-} from '$lib/server/watchlist/store';
 import type { Actions, PageServerLoad } from './$types';
 
 function currentSeason(now = new Date()) {
@@ -52,27 +48,25 @@ export const load: PageServerLoad = async ({ locals }) => {
     const highlightIds = result.right.highlights.map(({ id }) => id);
     const seasonIds = result.right.season.map(({ id }) => id);
     const animeIds = [...new Set([...highlightIds, ...seasonIds])];
-    const [storedMedia, episodeRows, popularAudio, watchlisted] =
-        await Promise.all([
-            Promise.all(
-                highlightIds.map((id) =>
-                    anime.tmdb.getStoredMedia(id).catch(() => null),
-                ),
+    const [storedMedia, episodeRows, popularAudio] = await Promise.all([
+        Promise.all(
+            highlightIds.map((id) =>
+                anime.tmdb.getStoredMedia(id).catch(() => null),
             ),
-            animeIds.length
-                ? db
-                      .select({
-                          anilistId: animeEpisode.anilistId,
-                          episodeId: animeEpisode.episodeId,
-                          audio: animeEpisode.audio,
-                      })
-                      .from(animeEpisode)
-                      .where(inArray(animeEpisode.anilistId, animeIds))
-                      .orderBy(asc(animeEpisode.number))
-                : [],
-            anime.allanime.getPopularAudioLabels().catch(() => new Map()),
-            getWatchlistedAnimeIds(locals.user?.id, animeIds),
-        ]);
+        ),
+        animeIds.length
+            ? db
+                  .select({
+                      anilistId: animeEpisode.anilistId,
+                      episodeId: animeEpisode.episodeId,
+                      audio: animeEpisode.audio,
+                  })
+                  .from(animeEpisode)
+                  .where(inArray(animeEpisode.anilistId, animeIds))
+                  .orderBy(asc(animeEpisode.number))
+            : [],
+        anime.allanime.getPopularAudioLabels().catch(() => new Map()),
+    ]);
     const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
 
     for (const episode of episodeRows) {
@@ -121,13 +115,11 @@ export const load: PageServerLoad = async ({ locals }) => {
                 ...(popularAudio.get(card.id) ?? []),
             ]),
         })),
-        watchlistedIds: [...watchlisted],
         continueWatching,
     };
 };
 
 export const actions: Actions = {
-    watchlist: updateWatchlist,
     removeContinueWatching: async ({ locals, request }) => {
         if (!locals.user) {
             redirect(303, '/login');
