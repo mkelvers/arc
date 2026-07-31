@@ -5,6 +5,7 @@ import { Effect, Either } from 'effect';
 import { audioAvailabilityLabel } from '$lib/anime/audio';
 import type { MediaSeason } from '$lib/graphql/anilist/generated/graphql';
 import { anime } from '$lib/server/anime';
+import { animeId } from '$lib/server/anime/route';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
@@ -133,14 +134,14 @@ export const actions: Actions = {
         }
 
         const form = await request.formData();
-        const animeId = Number(form.get('animeId'));
+        const id = animeId(form.get('animeId'));
 
-        if (!Number.isFinite(animeId)) {
+        if (!id) {
             return fail(400, { message: 'Invalid anime ID' });
         }
 
         try {
-            await deletePlaybackProgress(locals.user.id, animeId);
+            await deletePlaybackProgress(locals.user.id, id);
             return { success: true };
         } catch (cause) {
             console.error('Failed to remove continue watching', cause);
