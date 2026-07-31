@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { audioAvailabilityLabel } from '$lib/anime/audio';
     import type { AnimeEpisode } from '$lib/anime/types';
-    import { CalendarBlankIcon, PlayIcon, XIcon } from 'phosphor-svelte';
+    import { XIcon } from 'phosphor-svelte';
+    import EpisodeGridCard from './EpisodeGridCard.svelte';
 
     interface Props {
         open: boolean;
@@ -69,66 +69,13 @@
         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 lg:px-10">
             <div class="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
                 {#each episodes as episode}
-                    <a
-                        href={episode.href}
-                        aria-current={episode.id === currentId ? 'page' : undefined}
-                        class:bg-panel-selected={episode.id === currentId}
-                        class="group relative block min-h-72 min-w-0 p-3 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    >
-                        <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
-                            <div class="relative aspect-video overflow-hidden bg-media-tile">
-                                {#if episode.image || image}
-                                    <img
-                                        src={episode.image ?? image ?? ''}
-                                        alt=""
-                                        class="size-full object-cover"
-                                        loading="lazy"
-                                    />
-                                {/if}
-                                {#if episode.id === currentId}
-                                    <span class="absolute top-2 left-2 bg-accent px-2 py-1 text-xs font-bold text-black uppercase">
-                                        Now playing
-                                    </span>
-                                {/if}
-                                {#if episode.duration}
-                                    <span class="absolute right-1.5 bottom-1.5 bg-black/75 px-1.5 py-0.5 text-sm font-bold text-white">
-                                        {episode.duration}
-                                    </span>
-                                {/if}
-                            </div>
-                            <p class="mt-3 line-clamp-1 text-xs font-semibold text-watch-muted uppercase">
-                                {title}
-                            </p>
-                            <h3 class="mt-2 line-clamp-2 text-base leading-snug font-bold text-white">
-                                {episode.label} – {episode.title}
-                            </h3>
-                            <p class="mt-3 text-sm text-watch-muted">{audioAvailabilityLabel(episode.audio)}</p>
-                        </div>
-
-                        <div class="pointer-events-none absolute inset-0 z-10 flex flex-col bg-panel-strong p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
-                            <p class="line-clamp-1 text-xs font-semibold text-watch-muted uppercase">
-                                {title}
-                            </p>
-                            <h3 class="mt-2 line-clamp-2 text-base leading-snug font-bold text-white">
-                                {episode.label} – {episode.title}
-                            </h3>
-                            {#if episode.releaseDate}
-                                <div class="mt-1 flex items-center gap-1.5 text-xs text-watch-muted">
-                                    <CalendarBlankIcon size="0.875rem" aria-hidden="true" />
-                                    <span>{episode.releaseDate}</span>
-                                </div>
-                            {/if}
-                            {#if episode.overview}
-                                <p class="mt-3 line-clamp-8 text-sm leading-5 text-watch-primary">
-                                    {episode.overview}
-                                </p>
-                            {/if}
-                            <span class="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-bold text-accent uppercase">
-                                <PlayIcon size="1.25rem" weight="bold" aria-hidden="true" />
-                                Play {episode.label}
-                            </span>
-                        </div>
-                    </a>
+                    <EpisodeGridCard
+                        {episode}
+                        {title}
+                        {image}
+                        current={episode.id === currentId}
+                        context="dialog"
+                    />
                 {/each}
             </div>
         </div>
