@@ -6,26 +6,8 @@ import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
+import { formatDuration } from '$lib/utils';
 import { getRecentPlaybackProgress } from './store';
-
-function episodeLabel(number: number) {
-    return `E${Number.isInteger(number) ? number : number.toFixed(1)}`;
-}
-
-function durationLabel(minutes: number | null) {
-    if (!minutes || minutes <= 0) {
-        return '';
-    }
-
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-
-    if (!hours) {
-        return `${remainder}m`;
-    }
-
-    return remainder ? `${hours}h, ${remainder}m` : `${hours}h`;
-}
 
 export async function getContinueWatchingCards(
     userId: string | undefined,
@@ -136,9 +118,9 @@ export async function getContinueWatchingCards(
                 watchHref: `/anime/${progress.anilistId}/watch/${encodeURIComponent(target.episodeId)}`,
                 backdrop,
                 episodeImage,
-                episodeLabel: episodeLabel(target.number),
+                episodeLabel: `E${Number.isInteger(target.number) ? target.number : target.number.toFixed(1)}`,
                 audioLabel: audioAvailabilityLabel(target.audio),
-                duration: durationLabel(runtimeMinutes),
+                duration: formatDuration(runtimeMinutes),
                 resumeAtSeconds: continuingCurrent
                     ? progress.positionSeconds
                     : 0,

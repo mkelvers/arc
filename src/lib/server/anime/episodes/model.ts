@@ -4,27 +4,9 @@ import { createHash } from 'node:crypto';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
+import { formatDuration } from '$lib/utils';
 import type { ProviderEpisode } from '../providers/types';
 import type { AniListAnime, StoredEpisode } from './types';
-
-function duration(minutes: number | null | undefined) {
-    if (!minutes || minutes <= 0) {
-        return '';
-    }
-
-    const hours = Math.floor(minutes / 60);
-    const remainder = minutes % 60;
-
-    if (!hours) {
-        return `${remainder}m`;
-    }
-
-    if (!remainder) {
-        return `${hours}h`;
-    }
-
-    return `${hours}h, ${remainder}m`;
-}
 
 function episodeModel(
     episode: StoredEpisode,
@@ -52,7 +34,9 @@ function episodeModel(
         href: `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
         audio: episode.audio,
         image: episode.imageUrl,
-        duration: duration(episode.runtimeMinutes ?? fallbackDuration),
+        duration: formatDuration(
+            episode.runtimeMinutes ?? fallbackDuration,
+        ),
         releaseDate: episode.airDate ?? '',
         overview: episode.overview ?? '',
     };

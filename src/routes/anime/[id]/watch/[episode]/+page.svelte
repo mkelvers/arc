@@ -4,6 +4,7 @@
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
     import WatchPlayer from '$lib/components/WatchPlayer.svelte';
     import { availableModes } from '$lib/player/media';
+    import { formatDate } from '$lib/utils';
     import type { PageProps } from './$types';
     import { ArchiveIcon } from 'phosphor-svelte';
 
@@ -27,27 +28,6 @@
         renderedEpisodeId = data.currentEpisode.id;
         episodeDialogOpen = false;
     });
-
-    function releaseDate(value: string) {
-        if (!value) {
-            return '';
-        }
-
-        const parts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        const date = parts
-            ? new Date(Date.UTC(Number(parts[3]), Number(parts[1]) - 1, Number(parts[2])))
-            : new Date(`${value}T00:00:00Z`);
-        if (Number.isNaN(date.valueOf())) {
-            return value;
-        }
-
-        return new Intl.DateTimeFormat('en', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            timeZone: 'UTC',
-        }).format(date);
-    }
 
 </script>
 
@@ -96,7 +76,7 @@
             </p>
             {#if data.currentEpisode.releaseDate}
                 <p class="mt-2 text-sm text-watch-secondary">
-                    Released on {releaseDate(data.currentEpisode.releaseDate)}
+                    Released on {formatDate(data.currentEpisode.releaseDate)}
                 </p>
             {/if}
 
