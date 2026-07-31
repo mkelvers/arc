@@ -1,8 +1,11 @@
 import { error, type RequestHandler } from '@sveltejs/kit';
 
 import {
+    boundedResponseBytes,
+    boundedResponseText,
     rewriteHlsPlaylist,
     streamReferer,
+    StreamResponseError,
     streamTarget,
     streamTargetParameter,
     StreamTargetError,
@@ -11,6 +14,9 @@ import {
 
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
+const responseTimeout = 10_000;
+const maximumPlaylistSize = 1024 * 1024;
+const maximumWrappedSegmentSize = 32 * 1024 * 1024;
 
 function source(value: string | null) {
     try {
@@ -29,14 +35,30 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
     let response: Response | null = null;
 
     for (let redirects = 0; redirects <= 3; redirects++) {
-        response = await fetch(target, {
-            headers: {
-                Referer: streamReferer(target),
-                'User-Agent': userAgent,
-                ...(range ? { Range: range } : {}),
-            },
-            redirect: 'manual',
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(
+            () => controller.abort(),
+            responseTimeout,
+        );
+
+        try {
+            response = await fetch(target, {
+                headers: {
+                    Referer: streamReferer(target),
+                    'User-Agent': userAgent,
+                    ...(range ? { Range: range } : {}),
+                },
+                redirect: 'manual',
+                signal: controller.signal,
+            });
+        } catch (cause) {
+            if (controller.signal.aborted) {
+                error(504, 'Episode stream timed out');
+            }
+            throw cause;
+        } finally {
+            clearTimeout(timeout);
+        }
         const location = response.headers.get('location');
 
         if (
@@ -64,7 +86,11 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
         error(502, 'Episode stream did not respond');
     }
     if (!response.ok && response.status !== 206) {
-        error(response.status, 'Episode stream failed');
+        const status =
+            response.status >= 400 && response.status <= 599
+                ? response.status
+                : 502;
+        error(status, 'Episode stream failed');
     }
 
     const contentType = response.headers.get('content-type');
@@ -88,8 +114,23 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
     if (playlist) {
         headers.set('cache-control', 'no-store');
         headers.set('content-type', 'application/vnd.apple.mpegurl');
+        let body: string;
+
+        try {
+            body = await boundedResponseText(
+                response,
+                maximumPlaylistSize,
+                responseTimeout,
+            );
+        } catch (cause) {
+            if (cause instanceof StreamResponseError) {
+                error(cause.status, cause.message);
+            }
+            throw cause;
+        }
+
         return new Response(
-            rewriteHlsPlaylist(await response.text(), target),
+            rewriteHlsPlaylist(body, target),
             {
                 status: response.status,
                 headers,
@@ -98,14 +139,29 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
     }
 
     if (target.hostname.endsWith('.ibyteimg.com')) {
-        const body = Uint8Array.from(
-            unwrapPngSegment(
-                new Uint8Array(await response.arrayBuffer()),
-            ),
-        );
+        let body: Uint8Array<ArrayBuffer>;
+
+        try {
+            body = Uint8Array.from(
+                unwrapPngSegment(
+                    await boundedResponseBytes(
+                        response,
+                        maximumWrappedSegmentSize,
+                        responseTimeout,
+                        'Episode segment',
+                    ),
+                ),
+            );
+        } catch (cause) {
+            if (cause instanceof StreamResponseError) {
+                error(cause.status, cause.message);
+            }
+            throw cause;
+        }
+
         headers.set('content-length', String(body.byteLength));
         headers.set('content-type', 'video/mp2t');
-        return new Response(body.buffer, {
+        return new Response(body, {
             status: response.status,
             headers,
         });

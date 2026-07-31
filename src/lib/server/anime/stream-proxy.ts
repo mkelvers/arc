@@ -29,6 +29,120 @@ export class StreamTargetError extends Error {
     }
 }
 
+export class StreamResponseError extends Error {
+    constructor(
+        message: string,
+        readonly status: 502 | 504,
+    ) {
+        super(message);
+    }
+}
+
+export async function boundedResponseBytes(
+    response: Response,
+    maximumBytes: number,
+    timeoutMs: number,
+    label: string,
+) {
+    const contentLength = Number(
+        response.headers.get('content-length') ?? 0,
+    );
+    if (
+        Number.isFinite(contentLength) &&
+        contentLength > maximumBytes
+    ) {
+        throw new StreamResponseError(
+            `${label} was unexpectedly large`,
+            502,
+        );
+    }
+    if (!response.body) {
+        return new Uint8Array();
+    }
+
+    const reader = response.body.getReader();
+    const parts: Uint8Array[] = [];
+    const deadline = Date.now() + timeoutMs;
+    let length = 0;
+
+    while (true) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+            await reader.cancel().catch(() => undefined);
+            throw new StreamResponseError(
+                `${label} timed out`,
+                504,
+            );
+        }
+
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        const expired = new Promise<never>((_, reject) => {
+            timeout = setTimeout(
+                () =>
+                    reject(
+                        new StreamResponseError(
+                            `${label} timed out`,
+                            504,
+                        ),
+                    ),
+                remaining,
+            );
+        });
+        let result: Awaited<ReturnType<typeof reader.read>>;
+
+        try {
+            result = await Promise.race([reader.read(), expired]);
+        } catch (cause) {
+            await reader.cancel().catch(() => undefined);
+            throw cause instanceof StreamResponseError
+                ? cause
+                : new StreamResponseError(
+                      `${label} could not be read`,
+                      502,
+                  );
+        } finally {
+            clearTimeout(timeout);
+        }
+
+        if (result.done) {
+            break;
+        }
+
+        length += result.value.byteLength;
+        if (length > maximumBytes) {
+            await reader.cancel().catch(() => undefined);
+            throw new StreamResponseError(
+                `${label} was unexpectedly large`,
+                502,
+            );
+        }
+        parts.push(result.value);
+    }
+
+    const body = new Uint8Array(length);
+    let offset = 0;
+    for (const part of parts) {
+        body.set(part, offset);
+        offset += part.byteLength;
+    }
+
+    return body;
+}
+
+export async function boundedResponseText(
+    response: Response,
+    maximumBytes: number,
+    timeoutMs: number,
+) {
+    const body = await boundedResponseBytes(
+        response,
+        maximumBytes,
+        timeoutMs,
+        'Episode playlist',
+    );
+    return new TextDecoder().decode(body);
+}
+
 function allowedHost(hostname: string) {
     return allowedHosts.some(
         (host) =>

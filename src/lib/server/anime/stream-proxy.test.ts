@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    boundedResponseText,
     proxiedStreamUrl,
     rewriteHlsPlaylist,
+    StreamResponseError,
     streamTarget,
     StreamTargetError,
     streamTargetParameter,
@@ -88,5 +90,14 @@ describe('stream proxy', () => {
         expect(unwrapPngSegment(transportStream)).toBe(
             transportStream,
         );
+    });
+
+    test('bounds playlist response bodies', async () => {
+        await expect(
+            boundedResponseText(new Response('playlist'), 8, 1_000),
+        ).resolves.toBe('playlist');
+        await expect(
+            boundedResponseText(new Response('too large'), 8, 1_000),
+        ).rejects.toBeInstanceOf(StreamResponseError);
     });
 });
