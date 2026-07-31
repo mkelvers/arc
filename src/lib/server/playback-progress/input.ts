@@ -1,3 +1,5 @@
+import { isRecord } from '$lib/utils';
+
 export interface PlaybackProgressInput {
     animeId: number;
     episodeId: string;
@@ -16,17 +18,16 @@ function finiteNumber(value: unknown) {
 export function parsePlaybackProgress(
     value: unknown,
 ): PlaybackProgressInput | null {
-    if (!value || typeof value !== 'object') {
+    if (!isRecord(value)) {
         return null;
     }
 
-    const input = value as Record<string, unknown>;
-    const animeId = finiteNumber(input.animeId);
-    const episodeNumber = finiteNumber(input.episodeNumber);
-    const positionSeconds = finiteNumber(input.positionSeconds);
-    const durationSeconds = finiteNumber(input.durationSeconds);
+    const animeId = finiteNumber(value.animeId);
+    const episodeNumber = finiteNumber(value.episodeNumber);
+    const positionSeconds = finiteNumber(value.positionSeconds);
+    const durationSeconds = finiteNumber(value.durationSeconds);
     const episodeId =
-        typeof input.episodeId === 'string' ? input.episodeId.trim() : '';
+        typeof value.episodeId === 'string' ? value.episodeId.trim() : '';
 
     if (
         animeId === null ||
@@ -41,7 +42,7 @@ export function parsePlaybackProgress(
         durationSeconds > 7 * 24 * 60 * 60 ||
         !episodeId ||
         episodeId.length > 512 ||
-        typeof input.completed !== 'boolean'
+        typeof value.completed !== 'boolean'
     ) {
         return null;
     }
@@ -52,6 +53,6 @@ export function parsePlaybackProgress(
         episodeNumber,
         positionSeconds: Math.min(positionSeconds, durationSeconds),
         durationSeconds,
-        completed: input.completed,
+        completed: value.completed,
     };
 }

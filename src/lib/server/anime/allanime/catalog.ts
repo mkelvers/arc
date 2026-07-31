@@ -12,7 +12,8 @@ import {
     saveProviderMediaId,
     verifyProviderMediaId,
 } from '../providers/mapping';
-import { record, request } from './client';
+import { record } from '$lib/utils';
+import { request } from './client';
 import type { AniListAnime, Episode } from './types';
 
 const audioCacheLifetime = 30 * 60 * 1_000;

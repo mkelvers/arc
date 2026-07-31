@@ -1,6 +1,7 @@
 import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
+import { record } from '$lib/utils';
 import {
     providerMediaId,
     saveProviderMediaId,
@@ -27,12 +28,6 @@ const baseUrl = 'https://anineko.to';
 const providerName = 'anineko';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-
-function record(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
 
 async function requestText(url: URL, referer = `${baseUrl}/`) {
     const response = await fetch(url, {

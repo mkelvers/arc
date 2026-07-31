@@ -1,4 +1,5 @@
-import { origin, record, userAgent } from './client';
+import { record } from '$lib/utils';
+import { origin, userAgent } from './client';
 
 interface ClientData {
     bootstrap: Record<string, unknown> | null;

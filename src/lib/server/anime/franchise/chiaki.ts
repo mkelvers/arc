@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 
 import type { FranchiseOrder } from '$lib/anime/types';
+import { positiveInteger } from '$lib/utils';
 
 const baseUrl = 'https://chiaki.site';
 const maxHtmlLength = 2 * 1024 * 1024;
@@ -12,11 +13,6 @@ export interface ChiakiEntry {
     alternativeTitle: string;
     image: string;
     secondary: boolean;
-}
-
-function positiveInteger(value: string | undefined) {
-    const parsed = Number(value);
-    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function imageFromStyle(style: string | undefined) {

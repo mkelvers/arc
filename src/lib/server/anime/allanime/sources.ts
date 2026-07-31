@@ -1,5 +1,6 @@
 import { audioDelayFromMp4 } from '$lib/server/anime/mp4';
-import { record, referer, userAgent } from './client';
+import { record } from '$lib/utils';
+import { referer, userAgent } from './client';
 import type { Source, Stream } from './types';
 
 interface MediaReference {

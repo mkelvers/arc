@@ -10,9 +10,9 @@ import {
     contentLane,
     endpoint,
     origin,
-    record,
     userAgent,
 } from './client';
+import { record } from '$lib/utils';
 import type { StreamCrypto } from './types';
 
 const epochLength = 259_200_000;

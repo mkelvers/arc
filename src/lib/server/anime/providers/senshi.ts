@@ -1,4 +1,5 @@
 import type { AudioMode } from '$lib/anime/audio';
+import { record } from '$lib/utils';
 import { matchProviderStreamEpisode } from './match';
 import type {
     PlaybackProvider,
@@ -10,12 +11,6 @@ import type {
 const baseUrl = 'https://senshi.live';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-
-function record(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
 
 async function request(path: string) {
     return requestUrl(new URL(path, baseUrl));

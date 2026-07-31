@@ -1,4 +1,5 @@
 import type { ProviderEpisode } from '../providers/types';
+import { isRecord } from '$lib/utils';
 import { create, imageUrl } from './client';
 import {
     completeEpisodeDetails,
@@ -26,13 +27,12 @@ function displayAirDate(value: string | undefined) {
 }
 
 function featuredEpisode(value: unknown) {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    if (!isRecord(value)) {
         return null;
     }
 
-    const episode = value as Record<string, unknown>;
-    const seasonNumber = Number(episode.season_number);
-    const episodeNumber = Number(episode.episode_number);
+    const seasonNumber = Number(value.season_number);
+    const episodeNumber = Number(value.episode_number);
     if (
         !Number.isSafeInteger(seasonNumber) ||
         !Number.isSafeInteger(episodeNumber)
@@ -45,20 +45,20 @@ function featuredEpisode(value: unknown) {
         episodeNumber,
         details: {
             name:
-                typeof episode.name === 'string'
-                    ? episode.name
+                typeof value.name === 'string'
+                    ? value.name
                     : undefined,
             overview:
-                typeof episode.overview === 'string'
-                    ? episode.overview
+                typeof value.overview === 'string'
+                    ? value.overview
                     : undefined,
             runtime:
-                typeof episode.runtime === 'number'
-                    ? episode.runtime
+                typeof value.runtime === 'number'
+                    ? value.runtime
                     : undefined,
             stillPath:
-                typeof episode.still_path === 'string'
-                    ? episode.still_path
+                typeof value.still_path === 'string'
+                    ? value.still_path
                     : undefined,
         },
     };
