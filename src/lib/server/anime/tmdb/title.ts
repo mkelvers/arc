@@ -23,7 +23,7 @@ export function seriesTitle(title: string) {
             .replace(/\s+final\s+season$/, '')
             .replace(/\s+(?:the\s+)?movie$/, '')
             .replace(/\s+(?:19|20)\d{2}$/, '')
-            .replace(/\s+第\s*\d+\s*期$/u, '')
+            .replace(/\s+(?:第\s*)?\d+\s*期$/u, '')
             .trim();
     }
 
@@ -84,11 +84,18 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const titles = mapping.map(normalizeTitle);
     const primary = primaryTitles.map(normalizeTitle);
     const names = [candidate.name, candidate.originalName].map(normalizeTitle);
-    const exactPrimary = names.some((name) => primary.includes(name));
-    const exact = names.some((name) => titles.includes(name));
+    const compact = (value: string) => value.replace(/\s+/g, '');
+    const matches = (left: string, right: string) =>
+        left === right || compact(left) === compact(right);
+    const exactPrimary = names.some((name) =>
+        primary.some((title) => matches(name, title)),
+    );
+    const exact = names.some((name) =>
+        titles.some((title) => matches(name, title)),
+    );
     const series = mapping.map(seriesTitle);
     const exactSeries = names.some((name) =>
-        series.includes(seriesTitle(name)),
+        series.some((title) => matches(seriesTitle(name), title)),
     );
     const qualified = primaryTitles.some(
         (title) => seriesTitle(title) !== normalizeTitle(title),
