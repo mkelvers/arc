@@ -70,7 +70,6 @@
                         {#each data.results as result (result.id)}
                             <AnimeCard
                                 anime={result}
-                                watchlisted={data.watchlistedIds.includes(result.id)}
                                 onselect={(anime) => recent.remember(anime)}
                             />
                         {/each}
