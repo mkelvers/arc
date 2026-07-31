@@ -32,13 +32,6 @@ export const externalMediaType = pgEnum('external_media_type', [
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 export const episodeAudio = pgEnum('episode_audio', ['sub', 'dub', 'raw']);
 
-export const watchlistState = pgEnum('watchlist_state', [
-    'watching',
-    'plan_to_watch',
-    'completed',
-    'dropped',
-]);
-
 export const users = pgTable(
     'users',
     {
@@ -320,37 +313,6 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     version: integer('version').notNull().default(1),
 });
 
-export const watchlist = pgTable(
-    'watchlist',
-    {
-        id: uuid('id').primaryKey().defaultRandom(),
-        userId: uuid('user_id')
-            .notNull()
-            .references(() => users.id, { onDelete: 'cascade' }),
-        animeId: integer('anime_id')
-            .notNull()
-            .references(() => anime.id, { onDelete: 'cascade' }),
-        state: watchlistState('state').notNull(),
-        createdAt: timestamp('created_at', { withTimezone: true })
-            .notNull()
-            .defaultNow(),
-        updatedAt: timestamp('updated_at', { withTimezone: true })
-            .notNull()
-            .defaultNow()
-            .$onUpdate(() => new Date()),
-    },
-    (table) => [
-        unique('watchlist_user_anime_unique').on(
-            table.userId,
-            table.animeId,
-        ),
-        index('watchlist_user_updated_idx').on(
-            table.userId,
-            table.updatedAt,
-        ),
-    ],
-);
-
 export const playbackProgress = pgTable(
     'playback_progress',
     {
@@ -392,4 +354,3 @@ export const playbackProgress = pgTable(
 export type Anime = typeof anime.$inferSelect;
 export type AnimeExternalId = typeof animeExternalId.$inferSelect;
 export type AnimeArtwork = typeof animeArtwork.$inferSelect;
-export type WatchlistState = (typeof watchlistState.enumValues)[number];
