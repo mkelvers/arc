@@ -10,11 +10,6 @@
 	const authRoute = $derived(
 		page.route.id?.startsWith('/(auth)/') ?? false
 	);
-	const navItems = [
-		{ href: '/browse', label: 'Browse' },
-		{ href: '/top-picks', label: 'Top Picks' },
-		{ href: '/simulcast', label: 'Simulcast' }
-	];
 </script>
 
 <svelte:head>
@@ -37,14 +32,6 @@
 					<img src={logo} alt="" width="166" height="128" class="h-8 w-auto shrink-0" aria-hidden="true" />
 				</a>
 
-				{#each navItems as item}
-					<a
-						href={item.href}
-						class="hidden h-full items-center border-b border-transparent px-2 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex sm:px-3"
-					>
-						{item.label}
-					</a>
-				{/each}
 			</div>
 
 			<div class="flex h-full items-center">
