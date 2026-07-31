@@ -3,6 +3,10 @@ interface Cached<Value> {
     expiresAt: number;
 }
 
+interface RequestCacheOptions {
+    staleIfError?: boolean;
+}
+
 export class RequestCache<Key, Value> {
     readonly #values = new Map<Key, Cached<Value>>();
     readonly #requests = new Map<Key, Promise<Value>>();
@@ -15,16 +19,25 @@ export class RequestCache<Key, Value> {
         }
     }
 
-    get(key: Key, load: () => Promise<Value>) {
+    get(
+        key: Key,
+        load: () => Promise<Value>,
+        options: RequestCacheOptions = {},
+    ) {
         const now = Date.now();
         const cached = this.#values.get(key);
         if (cached && cached.expiresAt > now) {
             return Promise.resolve(cached.value);
         }
 
+        const staleIfError = (request: Promise<Value>) =>
+            options.staleIfError && cached
+                ? request.catch(() => cached.value)
+                : request;
+
         const active = this.#requests.get(key);
         if (active) {
-            return active;
+            return staleIfError(active);
         }
 
         const request = Promise.resolve()
@@ -51,6 +64,6 @@ export class RequestCache<Key, Value> {
         };
         request.then(cleanup, cleanup);
 
-        return request;
+        return staleIfError(request);
     }
 }
