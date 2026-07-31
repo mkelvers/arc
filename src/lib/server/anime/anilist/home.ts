@@ -19,7 +19,15 @@ async function requestHomepage(
     seasonYear: number,
 ) {
     const response = await Effect.runPromise(
-        request(HomeAnimeDocument, { season, seasonYear }),
+        request(HomeAnimeDocument, { season, seasonYear }).pipe(
+            Effect.retry({
+                times: 1,
+                while: (cause) =>
+                    cause.status == null ||
+                    cause.status === 429 ||
+                    cause.status >= 500,
+            }),
+        ),
     );
 
     return {
@@ -38,7 +46,15 @@ async function requestHomepage(
 
 async function cached(season: MediaSeason, seasonYear: number) {
     const key = `${season}:${seasonYear}`;
-    return cache.get(key, () => requestHomepage(season, seasonYear));
+    return cache.get(
+        key,
+        () =>
+            requestHomepage(season, seasonYear).catch((cause) => {
+                console.error('AniList homepage refresh failed', cause);
+                throw cause;
+            }),
+        { staleIfError: true },
+    );
 }
 
 export function getHomepage(
