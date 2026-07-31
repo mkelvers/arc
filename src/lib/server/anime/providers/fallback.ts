@@ -7,7 +7,7 @@ import type {
 } from './types';
 import { matchProviderEpisode } from './match';
 
-export class ProviderAttemptError extends Error {
+class ProviderAttemptError extends Error {
     constructor(
         readonly provider: string,
         readonly capability: 'episodes' | 'streams',
@@ -61,6 +61,31 @@ function isProviderOutage(cause: unknown) {
     return /(?:timed out|captcha|challenge|clearance|fetch failed|network|offline|\b403\b|\b429\b|\b5\d\d\b)/i.test(
         failureText(cause),
     );
+}
+
+export async function settledStreams(
+    requests: Promise<{ mode: AudioMode; stream: ProviderStream }>[],
+    emptyMessage: string,
+) {
+    const results = await Promise.allSettled(requests);
+    const streams: ProviderStreams = {};
+    const errors: unknown[] = [];
+
+    for (const result of results) {
+        if (result.status === 'rejected') {
+            errors.push(result.reason);
+            continue;
+        }
+
+        const { mode, stream } = result.value;
+        streams[mode] = [...(streams[mode] ?? []), stream];
+    }
+
+    if (!Object.keys(streams).length) {
+        throw new AggregateError(errors, emptyMessage);
+    }
+
+    return streams;
 }
 
 export function createProviderFallback(
