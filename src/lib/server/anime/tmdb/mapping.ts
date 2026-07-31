@@ -1,14 +1,14 @@
-import { eq } from 'drizzle-orm';
-
-import { db } from '$lib/server/db';
-import { anime as animeTable } from '$lib/server/db/schema';
 import { create } from './client';
 import {
     relatedSpecialMappingIsBetter,
     specialEpisodeEvidenceScore,
     type SpecialEpisodeEvidence,
 } from './mapping-evidence';
-import { findMapping, saveMapping } from './mapping-store';
+import {
+    findMapping,
+    saveVerifiedMapping,
+} from './mapping-store';
+import { mappingNeedsVerification } from './mapping-verification';
 import {
     candidateScore,
     isSpecialRelease,
@@ -17,12 +17,13 @@ import {
     titlesFor,
 } from './title';
 import {
-    mappingVersion,
     type AniListAnime,
     type Candidate,
     type Mapping,
     type StoredMapping,
 } from './types';
+
+const requests = new Map<number, Promise<StoredMapping>>();
 
 function seasonEvidenceScore(
     anime: AniListAnime,
@@ -210,23 +211,9 @@ async function searchMovies(query: string): Promise<Candidate[]> {
     );
 }
 
-export async function resolveStored(
+async function discoverMapping(
     anime: AniListAnime,
 ): Promise<StoredMapping> {
-    const stored = await findMapping(anime.id);
-
-    if (stored?.mappingVersion === mappingVersion) {
-        await db
-            .update(animeTable)
-            .set({
-                title: titlesFor(anime)[0] ?? null,
-                updatedAt: new Date(),
-            })
-            .where(eq(animeTable.id, stored.animeId));
-
-        return stored;
-    }
-
     const relatedMappings = (
         await Promise.all(
             (anime.relations?.edges ?? []).flatMap((edge) =>
@@ -300,20 +287,63 @@ export async function resolveStored(
             related,
         );
 
-        return saveMapping(anime, {
+        return saveVerifiedMapping(anime, {
             id: mapping.id,
             mediaType: mapping.mediaType,
         });
     }
 
     if (related.length === 1) {
-        return saveMapping(anime, {
+        return saveVerifiedMapping(anime, {
             id: related[0].id,
             mediaType: related[0].mediaType,
         });
     }
 
     throw new Error(`No confident TMDB match for AniList ${anime.id}`);
+}
+
+async function resolveStoredUncached(
+    anime: AniListAnime,
+): Promise<StoredMapping> {
+    const stored = await findMapping(anime.id);
+    const title = titlesFor(anime)[0] ?? null;
+
+    if (stored && !mappingNeedsVerification(stored, title)) {
+        return stored;
+    }
+
+    try {
+        return await discoverMapping(anime);
+    } catch (cause) {
+        if (stored && stored.title === title) {
+            console.error(
+                `TMDB mapping revalidation failed for AniList ${anime.id}; using the last verified mapping`,
+                cause,
+            );
+            return stored;
+        }
+
+        throw cause;
+    }
+}
+
+export async function resolveStored(
+    anime: AniListAnime,
+): Promise<StoredMapping> {
+    const pending = requests.get(anime.id);
+    if (pending) {
+        return pending;
+    }
+
+    const request = resolveStoredUncached(anime);
+    requests.set(anime.id, request);
+
+    try {
+        return await request;
+    } finally {
+        requests.delete(anime.id);
+    }
 }
 
 export async function resolve(anime: AniListAnime): Promise<Mapping> {
