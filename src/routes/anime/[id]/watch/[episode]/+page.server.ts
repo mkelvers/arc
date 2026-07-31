@@ -8,6 +8,8 @@ import { resumePosition } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { PageServerLoad } from './$types';
 
+// Watch links used title slugs before episode IDs became canonical. Keep this
+// redirect while old bookmarks and shared links can still be in circulation.
 function legacySlug(title: string, episodeId: string) {
     return (
         title
