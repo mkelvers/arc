@@ -29,8 +29,11 @@ function metadataNeedsRefresh(
 
         return (
             !media ||
-            (/^(?:episode|movie)\b/i.test(media.title) &&
-                (!media.imageUrl || !media.overview))
+            /^(?:episode|movie)(?:\s+\d+)?$/i.test(media.title) ||
+            !media.overview ||
+            !media.imageUrl ||
+            !media.runtime ||
+            !media.airDate
         );
     });
 }
