@@ -1,6 +1,8 @@
 import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
+import { positiveInteger, record } from '$lib/utils';
+import { settledStreams } from './fallback';
 import {
     providerMediaId,
     saveProviderMediaId,
@@ -61,12 +63,6 @@ class AniKotoRequestError extends Error {
     }
 }
 
-function record(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
 async function requestText(
     url: URL,
     {
@@ -114,11 +110,6 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
             cause,
         });
     }
-}
-
-function positiveInteger(value: unknown) {
-    const number = Number(value);
-    return Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
 function searchCandidates(html: string) {
@@ -199,8 +190,8 @@ function parseSeries(value: unknown): AniKotoSeries | null {
 
     return {
         id,
-        anilistId: positiveInteger(anime.ani_id),
-        malId: positiveInteger(anime.mal_id),
+        anilistId: positiveInteger(anime.ani_id) ?? null,
+        malId: positiveInteger(anime.mal_id) ?? null,
         title: typeof anime.title === 'string' ? anime.title.trim() : '',
         alternativeTitle:
             typeof anime.alternative === 'string'
@@ -571,32 +562,13 @@ async function getStreams(
         (mode): mode is 'sub' | 'dub' =>
             mode !== 'raw' && Boolean(validEmbed(match.embeds[mode], mode)),
     );
-    const results = await Promise.allSettled(
+    return settledStreams(
         requested.map(async (mode) => ({
             mode,
             stream: await resolveStream(match.embeds[mode]!, mode),
         })),
+        `AniKoto returned no ${modes.join('/')} stream for episode ${episode.id}`,
     );
-    const streams: ProviderStreams = {};
-    const errors: unknown[] = [];
-
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            errors.push(result.reason);
-            continue;
-        }
-
-        streams[result.value.mode] = [result.value.stream];
-    }
-
-    if (!Object.keys(streams).length) {
-        throw new AggregateError(
-            errors,
-            `AniKoto returned no ${modes.join('/')} stream for episode ${episode.id}`,
-        );
-    }
-
-    return streams;
 }
 
 export const anikotoProvider: PlaybackProvider = {

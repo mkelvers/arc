@@ -2,6 +2,8 @@ import { env } from '$env/dynamic/private';
 import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
+import { record } from '$lib/utils';
+import { settledStreams } from './fallback';
 import {
     providerMediaId,
     saveProviderMediaId,
@@ -32,12 +34,6 @@ interface AnimePaheReference {
 interface AnimePaheEpisode {
     number: number;
     session: string;
-}
-
-function record(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
 }
 
 function headers(accept: string) {
@@ -405,7 +401,7 @@ async function getStreams(
         });
     });
 
-    const results = await Promise.allSettled(
+    return settledStreams(
         embeds.map(async (embed) => ({
             mode: embed.mode,
             stream: {
@@ -415,30 +411,8 @@ async function getStreams(
                 subtitleUrl: null,
             } satisfies ProviderStream,
         })),
+        `AnimePahe returned no ${modes.join('/')} stream for episode ${episode.id}`,
     );
-    const streams: ProviderStreams = {};
-    const errors: unknown[] = [];
-
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            errors.push(result.reason);
-            continue;
-        }
-
-        streams[result.value.mode] = [
-            ...(streams[result.value.mode] ?? []),
-            result.value.stream,
-        ];
-    }
-
-    if (!Object.keys(streams).length) {
-        throw new AggregateError(
-            errors,
-            `AnimePahe returned no ${modes.join('/')} stream for episode ${episode.id}`,
-        );
-    }
-
-    return streams;
 }
 
 export const animepaheProvider: PlaybackProvider = {

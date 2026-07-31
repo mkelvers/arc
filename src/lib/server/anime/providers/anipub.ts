@@ -1,6 +1,8 @@
 import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
+import { record } from '$lib/utils';
+import { settledStreams } from './fallback';
 import {
     providerMediaId,
     saveProviderMediaId,
@@ -23,12 +25,6 @@ const megaplayUrl = 'https://megaplay.buzz';
 const providerName = 'anipub';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-
-function record(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
 
 async function requestText(url: URL, referer = `${baseUrl}/`) {
     const response = await fetch(url, {
@@ -312,32 +308,13 @@ async function getStreams(
     }
 
     const id = embedId(link);
-    const results = await Promise.allSettled(
+    return settledStreams(
         [...new Set(modes)].map(async (mode) => ({
             mode,
             stream: await resolveStream(id, mode),
         })),
+        `AniPub returned no ${modes.join('/')} stream for episode ${episode.id}`,
     );
-    const streams: ProviderStreams = {};
-    const errors: unknown[] = [];
-
-    for (const result of results) {
-        if (result.status === 'rejected') {
-            errors.push(result.reason);
-            continue;
-        }
-
-        streams[result.value.mode] = [result.value.stream];
-    }
-
-    if (!Object.keys(streams).length) {
-        throw new AggregateError(
-            errors,
-            `AniPub returned no ${modes.join('/')} stream for episode ${episode.id}`,
-        );
-    }
-
-    return streams;
 }
 
 export const anipubProvider: PlaybackProvider = {
