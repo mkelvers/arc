@@ -109,7 +109,6 @@
                         <AnimeCard
                             anime={entry}
                             current={entry.anilistId === currentAnimeId}
-                            watchlisted={entry.watchlisted}
                         />
                     </div>
                 {/each}

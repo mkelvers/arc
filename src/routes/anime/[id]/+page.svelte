@@ -2,13 +2,11 @@
     import Dropdown from '$lib/components/Dropdown.svelte';
     import EpisodeList from '$lib/components/EpisodeList.svelte';
     import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
-    import { enhance } from '$app/forms';
     import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
     import {
         CaretDownIcon,
         BookmarkSimpleIcon,
-        CheckIcon,
         DotsThreeVerticalIcon,
         PencilSimpleIcon,
         PlayIcon,
@@ -17,13 +15,6 @@
     let { data }: PageProps = $props();
 
     let detailsExpanded = $state(false);
-
-    const watchlistStates = [
-        { value: 'watching', label: 'Watching' },
-        { value: 'plan_to_watch', label: 'Plan to Watch' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'dropped', label: 'Dropped' },
-    ] as const;
 </script>
 
 <svelte:head>
@@ -124,76 +115,32 @@
                             {watchAction.label}
                         </a>
                     {/await}
-                    <form method="POST" action="?/watchlist" use:enhance>
-                        <button
-                            type="submit"
-                            class="grid size-11 shrink-0 place-items-center border border-accent text-accent transition-colors lg:size-12"
-                            aria-label={data.watchlistState ? 'Remove from watchlist' : 'Add to Plan to Watch'}
-                            aria-pressed={Boolean(data.watchlistState)}
-                            title={data.watchlistState ? 'Remove from watchlist' : 'Add to Plan to Watch'}
-                        >
-                            <BookmarkSimpleIcon
-                                size="1.65em"
-                                weight={data.watchlistState ? 'fill' : 'regular'}
-                                aria-hidden="true"
-                            />
-                        </button>
-                    </form>
-                    <Dropdown
-                        id="watchlist-status"
-                        ariaLabel="Change watchlist status"
-                        menuAlign="start"
-                        menuClass="w-52 pt-2"
-                        triggerClass="grid size-11 shrink-0 cursor-pointer place-items-center transition-opacity hover:opacity-70 peer-focus-visible:opacity-70 lg:size-12"
+                    <button
+                        type="button"
+                        class="grid size-11 shrink-0 place-items-center border border-accent text-accent opacity-60 lg:size-12"
+                        aria-label="Coming soon"
+                        title="Coming soon"
+                        disabled
                     >
-                        {#snippet trigger()}
-                            <PencilSimpleIcon
-                                size="1.65em"
-                                weight="regular"
-                                aria-hidden="true"
-                            />
-                        {/snippet}
-                        {#snippet content()}
-                            <div role="menu" aria-label="Watchlist statuses">
-                                {#each watchlistStates as status}
-                                    <form method="POST" action="?/watchlist" use:enhance>
-                                        <input type="hidden" name="state" value={status.value} />
-                                        <button
-                                            type="submit"
-                                            role="menuitem"
-                                            class:bg-panel-hover={data.watchlistState === status.value}
-                                            class:text-foreground={data.watchlistState === status.value}
-                                            class="flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                        >
-                                            <span>{status.label}</span>
-                                            {#if data.watchlistState === status.value}
-                                                <CheckIcon size="1rem" weight="bold" aria-hidden="true" />
-                                            {/if}
-                                        </button>
-                                    </form>
-                                {/each}
-
-                                {#if data.watchlistState}
-                                    <div class="mt-2 border-t border-border pt-2">
-                                        <form method="POST" action="?/remove" use:enhance>
-                                            <input
-                                                type="hidden"
-                                                name="animeId"
-                                                value={data.anime.id}
-                                            />
-                                            <button
-                                                type="submit"
-                                                role="menuitem"
-                                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-status-error hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"
-                                            >
-                                                Remove from watchlist
-                                            </button>
-                                        </form>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/snippet}
-                    </Dropdown>
+                        <BookmarkSimpleIcon
+                            size="1.65em"
+                            weight="regular"
+                            aria-hidden="true"
+                        />
+                    </button>
+                    <button
+                        type="button"
+                        class="grid size-11 shrink-0 place-items-center opacity-60 lg:size-12"
+                        aria-label="Coming soon"
+                        title="Coming soon"
+                        disabled
+                    >
+                        <PencilSimpleIcon
+                            size="1.65em"
+                            weight="regular"
+                            aria-hidden="true"
+                        />
+                    </button>
                 </div>
             </div>
         </figure>

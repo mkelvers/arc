@@ -49,7 +49,6 @@ export type FranchiseOrder = {
             type: string;
             secondary: boolean;
             primary: boolean;
-            watchlisted?: boolean;
         }
     >;
 };
