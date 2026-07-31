@@ -138,7 +138,6 @@ export const verifications = pgTable(
 export const anime = pgTable('anime', {
     id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
     title: text('title'),
-    tmdbMappingVersion: integer('tmdb_mapping_version').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
@@ -177,6 +176,7 @@ export const animeExternalIdLink = pgTable(
         externalIdId: integer('external_id_id')
             .notNull()
             .references(() => animeExternalId.id, { onDelete: 'cascade' }),
+        verifiedAt: timestamp('verified_at', { withTimezone: true }),
     },
     (table) => [
         primaryKey({ columns: [table.animeId, table.externalIdId] }),
