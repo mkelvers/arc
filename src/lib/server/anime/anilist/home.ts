@@ -5,17 +5,14 @@ import {
     type MediaSeason,
 } from '$lib/graphql/anilist/generated/graphql';
 import { GraphQLRequestError } from '$lib/server/graphql';
+import { RequestCache } from '$lib/server/request-cache';
 import { request } from './client';
 import { animeCard, homepageHighlight } from './models';
 import { present } from './text';
 import type { HomepageAnime } from './types';
 
 const lifetime = 30 * 60 * 1_000;
-const cache = new Map<
-    string,
-    { data: HomepageAnime; fetchedAt: number }
->();
-const requests = new Map<string, Promise<HomepageAnime>>();
+const cache = new RequestCache<string, HomepageAnime>(lifetime);
 
 async function requestHomepage(
     season: MediaSeason,
@@ -41,28 +38,7 @@ async function requestHomepage(
 
 async function cached(season: MediaSeason, seasonYear: number) {
     const key = `${season}:${seasonYear}`;
-    const stored = cache.get(key);
-
-    if (stored && Date.now() - stored.fetchedAt < lifetime) {
-        return stored.data;
-    }
-
-    const pending = requests.get(key);
-    if (pending) {
-        return pending;
-    }
-
-    const request = requestHomepage(season, seasonYear).then((data) => {
-        cache.set(key, { data, fetchedAt: Date.now() });
-        return data;
-    });
-    requests.set(key, request);
-
-    try {
-        return await request;
-    } finally {
-        requests.delete(key);
-    }
+    return cache.get(key, () => requestHomepage(season, seasonYear));
 }
 
 export function getHomepage(

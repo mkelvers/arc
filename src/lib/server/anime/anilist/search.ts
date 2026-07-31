@@ -3,41 +3,27 @@ import { Effect } from 'effect';
 import type { AnimeCard } from '$lib/anime/types';
 import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
 import { GraphQLRequestError } from '$lib/server/graphql';
+import { RequestCache } from '$lib/server/request-cache';
 import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
 
 const lifetime = 5 * 60 * 1_000;
-const cache = new Map<string, { data: AnimeCard[]; fetchedAt: number }>();
-const requests = new Map<string, Promise<AnimeCard[]>>();
+const cache = new RequestCache<string, AnimeCard[]>(lifetime);
 
 async function requestSearch(search: string) {
-    const results: AnimeCard[] = [];
-    let page = 1;
-    let hasNextPage = true;
+    const response = await Effect.runPromise(
+        request(SearchAnimePageDocument, {
+            search,
+            page: 1,
+            perPage: 50,
+        }),
+    );
 
-    while (hasNextPage) {
-        const response = await Effect.runPromise(
-            request(SearchAnimePageDocument, {
-                search,
-                page,
-                perPage: 50,
-            }),
-        );
-        const media = present(response.Page?.media);
-
-        results.push(
-            ...media.flatMap((entry) => {
-                const card = animeCard(entry);
-                return card ? [card] : [];
-            }),
-        );
-
-        hasNextPage = response.Page?.pageInfo?.hasNextPage === true;
-        page += 1;
-    }
-
-    return results;
+    return present(response.Page?.media).flatMap((entry) => {
+        const card = animeCard(entry);
+        return card ? [card] : [];
+    });
 }
 
 async function cached(search: string) {
@@ -46,27 +32,7 @@ async function cached(search: string) {
         return [];
     }
 
-    const stored = cache.get(key);
-    if (stored && Date.now() - stored.fetchedAt < lifetime) {
-        return stored.data;
-    }
-
-    const pending = requests.get(key);
-    if (pending) {
-        return pending;
-    }
-
-    const request = requestSearch(search.trim()).then((data) => {
-        cache.set(key, { data, fetchedAt: Date.now() });
-        return data;
-    });
-    requests.set(key, request);
-
-    try {
-        return await request;
-    } finally {
-        requests.delete(key);
-    }
+    return cache.get(key, () => requestSearch(search.trim()));
 }
 
 export function searchAnime(search: string) {

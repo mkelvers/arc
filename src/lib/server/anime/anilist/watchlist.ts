@@ -3,25 +3,19 @@ import { Effect } from 'effect';
 import type { AnimeCard } from '$lib/anime/types';
 import { WatchlistAnimeDocument } from '$lib/graphql/anilist/generated/graphql';
 import { GraphQLRequestError } from '$lib/server/graphql';
+import { RequestCache } from '$lib/server/request-cache';
+import { chunks } from '$lib/utils';
 import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
 
 const pageSize = 50;
 const lifetime = 5 * 60 * 1_000;
-const cache = new Map<string, { data: AnimeCard[]; fetchedAt: number }>();
-const requests = new Map<string, Promise<AnimeCard[]>>();
-
-function pages(ids: number[]) {
-    return Array.from(
-        { length: Math.ceil(ids.length / pageSize) },
-        (_, index) => ids.slice(index * pageSize, (index + 1) * pageSize),
-    );
-}
+const cache = new RequestCache<string, AnimeCard[]>(lifetime);
 
 async function requestWatchlist(ids: number[]) {
     const responses = await Promise.all(
-        pages(ids).map((page) =>
+        chunks(ids, pageSize).map((page) =>
             Effect.runPromise(request(WatchlistAnimeDocument, { ids: page })),
         ),
     );
@@ -46,27 +40,7 @@ async function cached(ids: number[]) {
     }
 
     const key = ids.join(',');
-    const stored = cache.get(key);
-    if (stored && Date.now() - stored.fetchedAt < lifetime) {
-        return stored.data;
-    }
-
-    const pending = requests.get(key);
-    if (pending) {
-        return pending;
-    }
-
-    const pendingRequest = requestWatchlist(ids).then((data) => {
-        cache.set(key, { data, fetchedAt: Date.now() });
-        return data;
-    });
-    requests.set(key, pendingRequest);
-
-    try {
-        return await pendingRequest;
-    } finally {
-        requests.delete(key);
-    }
+    return cache.get(key, () => requestWatchlist(ids));
 }
 
 export function getWatchlistAnime(ids: number[]) {
