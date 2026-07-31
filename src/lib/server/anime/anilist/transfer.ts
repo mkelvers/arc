@@ -5,9 +5,11 @@ import type {
     WatchlistImportEntry,
     WatchlistTransferTitles,
 } from '$lib/server/watchlist/transfer';
+import { chunks } from '$lib/utils';
 import { request } from './client';
 
 const pageSize = 50;
+const aliasesPerRequest = 20;
 const mediaSelection = `
     id
     idMal
@@ -40,23 +42,15 @@ interface TitleVariables {
     [key: string]: string;
 }
 
-function chunks(values: number[]) {
-    return Array.from(
-        { length: Math.ceil(values.length / pageSize) },
-        (_, index) =>
-            values.slice(index * pageSize, (index + 1) * pageSize),
-    );
-}
-
 async function requestByIds(anilistIds: number[], malIds: number[]) {
     const groups = [
-        ...chunks(anilistIds).map((ids, index) => ({
+        ...chunks(anilistIds, pageSize).map((ids, index) => ({
             alias: `anilist${index}`,
             variable: `anilistIds${index}`,
             filter: 'id_in',
             ids,
         })),
-        ...chunks(malIds).map((ids, index) => ({
+        ...chunks(malIds, pageSize).map((ids, index) => ({
             alias: `mal${index}`,
             variable: `malIds${index}`,
             filter: 'idMal_in',
@@ -68,34 +62,44 @@ async function requestByIds(anilistIds: number[], malIds: number[]) {
         return [];
     }
 
-    const definitions = groups
-        .map(({ variable }) => `$${variable}: [Int!]!`)
-        .join(', ');
-    const fields = groups
-        .map(
-            ({ alias, variable, filter }) => `
-                ${alias}: Page(page: 1, perPage: ${pageSize}) {
-                    media(${filter}: $${variable}, type: ANIME) {
-                        ${mediaSelection}
-                    }
-                }
-            `,
-        )
-        .join('\n');
-    const variables = Object.fromEntries(
-        groups.map(({ variable, ids }) => [variable, ids]),
-    );
-    const document = new TypedDocumentString<
-        Record<string, TransferPage | null>,
-        BulkVariables
-    >(`query WatchlistTransfer(${definitions}) { ${fields} }`);
-    const response = await Effect.runPromise(request(document, variables));
+    const media: TransferAnime[] = [];
 
-    return Object.values(response).flatMap((page) =>
-        (page?.media ?? []).filter(
-            (entry): entry is TransferAnime => entry !== null,
-        ),
-    );
+    for (const batch of chunks(groups, aliasesPerRequest)) {
+        const definitions = batch
+            .map(({ variable }) => `$${variable}: [Int!]!`)
+            .join(', ');
+        const fields = batch
+            .map(
+                ({ alias, variable, filter }) => `
+                    ${alias}: Page(page: 1, perPage: ${pageSize}) {
+                        media(${filter}: $${variable}, type: ANIME) {
+                            ${mediaSelection}
+                        }
+                    }
+                `,
+            )
+            .join('\n');
+        const variables = Object.fromEntries(
+            batch.map(({ variable, ids }) => [variable, ids]),
+        );
+        const document = new TypedDocumentString<
+            Record<string, TransferPage | null>,
+            BulkVariables
+        >(`query WatchlistTransfer(${definitions}) { ${fields} }`);
+        const response = await Effect.runPromise(
+            request(document, variables),
+        );
+
+        media.push(
+            ...Object.values(response).flatMap((page) =>
+                (page?.media ?? []).filter(
+                    (entry): entry is TransferAnime => entry !== null,
+                ),
+            ),
+        );
+    }
+
+    return media;
 }
 
 function normalized(value: string) {
@@ -137,41 +141,52 @@ async function requestByTitles(entries: WatchlistImportEntry[]) {
         return new Map<number, TransferAnime>();
     }
 
-    const definitions = searchable
-        .map(({ variable }) => `$${variable}: String!`)
-        .join(', ');
-    const fields = searchable
-        .map(
-            ({ alias, variable }) => `
-                ${alias}: Page(page: 1, perPage: 1) {
-                    media(search: $${variable}, type: ANIME) {
-                        ${mediaSelection}
-                    }
-                }
-            `,
-        )
-        .join('\n');
-    const variables = Object.fromEntries(
-        searchable.map(({ variable, title }) => [variable, title]),
-    );
-    const document = new TypedDocumentString<
-        Record<string, TransferPage | null>,
-        TitleVariables
-    >(`query WatchlistTitleTransfer(${definitions}) { ${fields} }`);
-    const response = await Effect.runPromise(request(document, variables));
     const matched = new Map<number, TransferAnime>();
 
-    searchable.forEach(({ alias, entry }) => {
-        const media = response[alias]?.media?.[0];
-        if (!media) {
-            return;
-        }
+    for (const batch of chunks(searchable, aliasesPerRequest)) {
+        const definitions = batch
+            .map(({ variable }) => `$${variable}: String!`)
+            .join(', ');
+        const fields = batch
+            .map(
+                ({ alias, variable }) => `
+                    ${alias}: Page(page: 1, perPage: 1) {
+                        media(search: $${variable}, type: ANIME) {
+                            ${mediaSelection}
+                        }
+                    }
+                `,
+            )
+            .join('\n');
+        const variables = Object.fromEntries(
+            batch.map(({ variable, title }) => [variable, title]),
+        );
+        const document = new TypedDocumentString<
+            Record<string, TransferPage | null>,
+            TitleVariables
+        >(`query WatchlistTitleTransfer(${definitions}) { ${fields} }`);
+        const response = await Effect.runPromise(
+            request(document, variables),
+        );
 
-        const expected = new Set(titleValues(entry.titles).map(normalized));
-        if (mediaTitles(media).some((title) => expected.has(normalized(title)))) {
-            matched.set(entry.index, media);
-        }
-    });
+        batch.forEach(({ alias, entry }) => {
+            const media = response[alias]?.media?.[0];
+            if (!media) {
+                return;
+            }
+
+            const expected = new Set(
+                titleValues(entry.titles).map(normalized),
+            );
+            if (
+                mediaTitles(media).some((title) =>
+                    expected.has(normalized(title)),
+                )
+            ) {
+                matched.set(entry.index, media);
+            }
+        });
+    }
 
     return matched;
 }

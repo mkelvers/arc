@@ -1,6 +1,10 @@
 import type { WatchlistState } from '$lib/server/db/schema';
-
-const maximumEntries = 500;
+import {
+    isRecord,
+    nonEmptyText,
+    parseDate,
+    positiveInteger,
+} from '$lib/utils';
 
 export interface WatchlistTransferTitles {
     preferred?: string;
@@ -21,35 +25,6 @@ export interface WatchlistImportEntry {
 }
 
 export class WatchlistImportError extends Error {}
-
-function record(value: unknown): Record<string, unknown> | null {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-        ? (value as Record<string, unknown>)
-        : null;
-}
-
-function positiveInteger(value: unknown) {
-    return typeof value === 'number' &&
-        Number.isSafeInteger(value) &&
-        value > 0
-        ? value
-        : undefined;
-}
-
-function text(value: unknown) {
-    return typeof value === 'string' && value.trim()
-        ? value.trim()
-        : undefined;
-}
-
-function date(value: unknown) {
-    if (typeof value !== 'string') {
-        return undefined;
-    }
-
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
 
 function state(value: unknown): WatchlistState | null {
     if (typeof value !== 'string') {
@@ -77,20 +52,20 @@ function state(value: unknown): WatchlistState | null {
 }
 
 function titles(entry: Record<string, unknown>): WatchlistTransferTitles {
-    const nested = record(entry.titles);
-    const directTitle = text(entry.title);
+    const nested = isRecord(entry.titles) ? entry.titles : null;
+    const directTitle = nonEmptyText(entry.title);
 
     if (!nested) {
         return directTitle ? { preferred: directTitle } : {};
     }
 
     return {
-        preferred: text(nested.preferred) ?? directTitle,
-        original: text(nested.original),
-        english: text(nested.english),
-        japanese: text(nested.japanese),
-        romaji: text(nested.romaji),
-        native: text(nested.native),
+        preferred: nonEmptyText(nested.preferred) ?? directTitle,
+        original: nonEmptyText(nested.original),
+        english: nonEmptyText(nested.english),
+        japanese: nonEmptyText(nested.japanese),
+        romaji: nonEmptyText(nested.romaji),
+        native: nonEmptyText(nested.native),
     };
 }
 
@@ -103,7 +78,7 @@ export function parseWatchlistImport(source: string): WatchlistImportEntry[] {
         throw new WatchlistImportError('Choose a valid JSON watchlist file.');
     }
 
-    const root = record(parsed);
+    const root = isRecord(parsed) ? parsed : null;
     const entries = Array.isArray(parsed)
         ? parsed
         : root && Array.isArray(root.entries)
@@ -116,19 +91,13 @@ export function parseWatchlistImport(source: string): WatchlistImportEntry[] {
         );
     }
 
-    if (entries.length > maximumEntries) {
-        throw new WatchlistImportError(
-            `Watchlists can contain at most ${maximumEntries} entries.`,
-        );
-    }
-
     return entries.map((value, index) => {
-        const entry = record(value);
-        if (!entry) {
+        if (!isRecord(value)) {
             throw new WatchlistImportError(
                 `Entry ${index + 1} must be a JSON object.`,
             );
         }
+        const entry = value;
 
         const entryState = state(entry.status ?? entry.state);
         if (!entryState) {
@@ -141,7 +110,7 @@ export function parseWatchlistImport(source: string): WatchlistImportEntry[] {
             entry.anilist_id ?? entry.anilistId,
         );
         const malId = positiveInteger(entry.mal_id ?? entry.malId);
-        const addedAt = date(entry.added_at ?? entry.addedAt);
+        const addedAt = parseDate(entry.added_at ?? entry.addedAt);
         const entryTitles = titles(entry);
 
         if (

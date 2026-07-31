@@ -68,4 +68,15 @@ describe('parseWatchlistImport', () => {
             ),
         ).toThrow(WatchlistImportError);
     });
+
+    test('does not impose an arbitrary watchlist entry cap', () => {
+        const source = Array.from({ length: 501 }, (_, index) => ({
+            anilist_id: index + 1,
+            status: 'completed',
+        }));
+
+        expect(parseWatchlistImport(JSON.stringify(source))).toHaveLength(
+            501,
+        );
+    });
 });

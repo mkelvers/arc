@@ -12,8 +12,16 @@ import {
     watchlist,
 } from '$lib/server/db/schema';
 import type { WatchlistState } from '$lib/server/db/schema';
+import { chunks } from '$lib/utils';
 
-export async function getWatchlistState(userId: string | undefined, anilistId: number) {
+// Keep bulk writes below PostgreSQL's parameter limit without restricting the
+// number of anime a user may import.
+const databaseBatchSize = 1_000;
+
+export async function getWatchlistState(
+    userId: string | undefined,
+    anilistId: number,
+) {
     if (!userId) {
         return null;
     }
@@ -183,11 +191,11 @@ export async function replaceWatchlist(
         const importedAt = Date.now();
         const anilistIds = entries.map(({ anilistId }) => anilistId);
 
-        if (anilistIds.length) {
+        for (const batch of chunks(anilistIds, databaseBatchSize)) {
             await tx
                 .insert(animeExternalId)
                 .values(
-                    anilistIds.map((externalId) => ({
+                    batch.map((externalId) => ({
                         provider: 'anilist' as const,
                         mediaType: 'anime' as const,
                         externalId,
@@ -196,36 +204,53 @@ export async function replaceWatchlist(
                 .onConflictDoNothing();
         }
 
-        const externalIds = anilistIds.length
-            ? await tx
-                  .select({
-                      id: animeExternalId.id,
-                      externalId: animeExternalId.externalId,
-                  })
-                  .from(animeExternalId)
-                  .where(
-                      and(
-                          eq(animeExternalId.provider, 'anilist'),
-                          eq(animeExternalId.mediaType, 'anime'),
-                          inArray(animeExternalId.externalId, anilistIds),
-                      ),
-                  )
-            : [];
+        const externalIds: Array<{ id: number; externalId: number }> = [];
+        for (const batch of chunks(anilistIds, databaseBatchSize)) {
+            externalIds.push(
+                ...(await tx
+                    .select({
+                        id: animeExternalId.id,
+                        externalId: animeExternalId.externalId,
+                    })
+                    .from(animeExternalId)
+                    .where(
+                        and(
+                            eq(animeExternalId.provider, 'anilist'),
+                            eq(animeExternalId.mediaType, 'anime'),
+                            inArray(
+                                animeExternalId.externalId,
+                                batch,
+                            ),
+                        ),
+                    )),
+            );
+        }
+
         const externalIdValues = externalIds.map(({ id }) => id);
-        const links = externalIdValues.length
-            ? await tx
-                  .select({
-                      animeId: animeExternalIdLink.animeId,
-                      externalIdId: animeExternalIdLink.externalIdId,
-                  })
-                  .from(animeExternalIdLink)
-                  .where(
-                      inArray(
-                          animeExternalIdLink.externalIdId,
-                          externalIdValues,
-                      ),
-                  )
-            : [];
+        const links: Array<{
+            animeId: number;
+            externalIdId: number;
+        }> = [];
+        for (const batch of chunks(
+            externalIdValues,
+            databaseBatchSize,
+        )) {
+            links.push(
+                ...(await tx
+                    .select({
+                        animeId: animeExternalIdLink.animeId,
+                        externalIdId:
+                            animeExternalIdLink.externalIdId,
+                    })
+                    .from(animeExternalIdLink)
+                    .where(
+                        inArray(
+                            animeExternalIdLink.externalIdId,
+                            batch,
+                        ),
+                    )),
+            );
+        }
         const linkedExternalIds = new Set(
             links.map(({ externalIdId }) => externalIdId),
         );
@@ -233,31 +258,36 @@ export async function replaceWatchlist(
             ({ id }) => !linkedExternalIds.has(id),
         );
 
-        if (missing.length) {
+        for (const batch of chunks(missing, databaseBatchSize)) {
             const created = await tx
                 .insert(anime)
-                .values(missing.map(() => ({ title: null })))
+                .values(batch.map(() => ({ title: null })))
                 .returning({ id: anime.id });
 
-            await tx.insert(animeExternalIdLink).values(
-                missing.map(({ id }, index) => ({
-                    animeId: created[index].id,
-                    externalIdId: id,
-                })),
-            );
+            if (created.length !== batch.length) {
+                throw new Error('Failed to store imported anime');
+            }
 
-            links.push(
-                ...missing.map(({ id }, index) => ({
-                    animeId: created[index].id,
-                    externalIdId: id,
-                })),
-            );
+            const createdLinks = batch.map(({ id }, index) => ({
+                animeId: created[index].id,
+                externalIdId: id,
+            }));
+
+            await tx.insert(animeExternalIdLink).values(createdLinks);
+
+            links.push(...createdLinks);
         }
 
+        const animeIdByExternalId = new Map(
+            links.map(({ animeId, externalIdId }) => [
+                externalIdId,
+                animeId,
+            ]),
+        );
         const animeIdByAniListId = new Map(
             externalIds.map(({ id, externalId }) => [
                 externalId,
-                links.find(({ externalIdId }) => externalIdId === id)?.animeId,
+                animeIdByExternalId.get(id),
             ]),
         );
         const replacement = entries.map(
@@ -281,8 +311,8 @@ export async function replaceWatchlist(
 
         await tx.delete(watchlist).where(eq(watchlist.userId, userId));
 
-        if (replacement.length) {
-            await tx.insert(watchlist).values(replacement);
+        for (const batch of chunks(replacement, databaseBatchSize)) {
+            await tx.insert(watchlist).values(batch);
         }
     });
 }

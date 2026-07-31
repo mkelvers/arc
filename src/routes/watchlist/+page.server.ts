@@ -13,6 +13,8 @@ import {
 } from '$lib/server/watchlist/transfer';
 import type { Actions, PageServerLoad } from './$types';
 
+// Bound memory and JSON parsing work; entry count is intentionally unlimited
+// and downstream API/database work is batched.
 const maximumFileSize = 2 * 1_024 * 1_024;
 const states = [
     'watching',
@@ -134,14 +136,16 @@ export const actions: Actions = {
                       ]
                     : [];
             });
-            const duplicateIds = replacement.filter(
-                ({ anilistId }, index) =>
-                    replacement.findIndex(
-                        (entry) => entry.anilistId === anilistId,
-                    ) !== index,
-            );
-
-            if (duplicateIds.length) {
+            const seen = new Set<number>();
+            if (
+                replacement.some(({ anilistId }) => {
+                    if (seen.has(anilistId)) {
+                        return true;
+                    }
+                    seen.add(anilistId);
+                    return false;
+                })
+            ) {
                 return fail(400, {
                     message:
                         'Nothing was changed. The imported file contains duplicate anime.',
