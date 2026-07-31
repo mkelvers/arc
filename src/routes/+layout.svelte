@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './layout.css';
 	import { page } from '$app/state';
-	import { BookmarkSimpleIcon, MagnifyingGlassIcon } from 'phosphor-svelte';
+	import { MagnifyingGlassIcon } from 'phosphor-svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import logo from '$lib/assets/logo-128.png';
 
@@ -42,14 +42,6 @@
 					title="Search"
 				>
 					<MagnifyingGlassIcon size={24} weight="regular" aria-hidden="true" />
-				</a>
-				<a
-					href="/watchlist"
-					class="inline-flex h-full w-14 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
-					aria-label="Watchlist"
-					title="Watchlist"
-				>
-					<BookmarkSimpleIcon size={24} weight="regular" aria-hidden="true" />
 				</a>
 			</div>
 		</nav>
