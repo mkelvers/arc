@@ -1,4 +1,6 @@
 import type { AudioMode } from '$lib/anime/audio';
+import { RequestCache } from '$lib/server/request-cache';
+import { record } from '$lib/utils';
 import {
     findShowId,
     getEpisodes,
@@ -8,7 +10,6 @@ import {
     contentLane,
     endpoint,
     origin,
-    record,
     referer,
     site,
     sourceQueryHash,
@@ -29,8 +30,7 @@ import type {
     Streams,
 } from './allanime/types';
 
-const cache = new Map<string, { streams: Streams; expiresAt: number }>();
-const requests = new Map<string, Promise<Streams>>();
+const cache = new RequestCache<string, Streams>(5 * 60 * 1_000);
 const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
 
 async function encryptedSources(
@@ -232,30 +232,7 @@ async function getStreams(
     modes: AudioMode[],
 ) {
     const key = `${anime.id}:${episode}:${modes.toSorted().join(',')}`;
-    const stored = cache.get(key);
-
-    if (stored && Date.now() < stored.expiresAt) {
-        return stored.streams;
-    }
-
-    const pending = requests.get(key);
-    if (pending) {
-        return pending;
-    }
-
-    const request = resolveStreams(anime, episode, modes);
-    requests.set(key, request);
-
-    try {
-        const streams = await request;
-        cache.set(key, {
-            streams,
-            expiresAt: Date.now() + 300_000,
-        });
-        return streams;
-    } finally {
-        requests.delete(key);
-    }
+    return cache.get(key, () => resolveStreams(anime, episode, modes));
 }
 
 export const allanime = {
