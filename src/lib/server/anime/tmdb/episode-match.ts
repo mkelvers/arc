@@ -126,7 +126,9 @@ function pairScore(
         Number.isInteger(source.number) &&
         source.number > 0 &&
         candidate.seasonNumber > 0 &&
-        source.number === candidate.episodeNumber;
+        source.number ===
+            (candidate.releaseEpisodeNumber ??
+                candidate.episodeNumber);
 
     if (
         titled &&
@@ -148,7 +150,9 @@ function pairScore(
 
     if (Number.isInteger(source.number) && source.number > 0) {
         const difference = Math.abs(
-            source.number - candidate.episodeNumber,
+            source.number -
+                (candidate.releaseEpisodeNumber ??
+                    candidate.episodeNumber),
         );
 
         if (difference === 0) {

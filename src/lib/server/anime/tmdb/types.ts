@@ -50,8 +50,9 @@ export interface EpisodeMetadata {
 
 export interface EpisodeCandidate extends EpisodeMetadata {
     episodeNumber: number;
+    releaseEpisodeNumber?: number;
     seasonNumber: number;
     rawAirDate: string;
 }
 
-export const mappingVersion = 8;
+export const mappingVersion = 9;
