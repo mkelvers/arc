@@ -39,12 +39,10 @@ export function graphql<TResult, TVariables>(
 ) {
     return Effect.tryPromise({
         try: async (signal) => {
-            const requestSignal = options.timeoutMs
-                ? AbortSignal.any([
-                      signal,
-                      AbortSignal.timeout(options.timeoutMs),
-                  ])
-                : signal;
+            const requestSignal = AbortSignal.any([
+                signal,
+                AbortSignal.timeout(options.timeoutMs ?? 8_000),
+            ]);
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
