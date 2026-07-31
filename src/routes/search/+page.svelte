@@ -1,55 +1,33 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
+    import { afterNavigate, goto } from '$app/navigation';
+    import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import { RecentSearches } from '$lib/search/recent.svelte';
+    import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
     const recent = new RecentSearches();
-    let searchDraft = $state<string | null>(null);
-    let requestedQuery = $state<string | null>(null);
-    let currentRouteQuery = $state<string | null>(null);
-    const routeQuery = $derived(data.query);
-    const searchValue = $derived(searchDraft ?? routeQuery);
+    let query = $state(untrack(() => data.query));
 
     onMount(() => recent.load());
 
-    $effect(() => {
-        if (currentRouteQuery === null) {
-            currentRouteQuery = routeQuery;
-            requestedQuery = routeQuery;
-            return;
-        }
-
-        if (routeQuery === currentRouteQuery) {
-            return;
-        }
-
-        const previousRouteQuery = currentRouteQuery;
-        currentRouteQuery = routeQuery;
-
-        if (
-            searchDraft === null ||
-            searchDraft.trim() === previousRouteQuery ||
-            searchDraft.trim() === routeQuery
-        ) {
-            searchDraft = null;
+    afterNavigate(({ type }) => {
+        if (type === 'popstate') {
+            query = data.query;
         }
     });
 
     $effect(() => {
-        const query = searchValue.trim();
-        if (query === routeQuery || query === requestedQuery) {
+        const next = query.trim();
+        if (next === data.query) {
             return;
         }
 
         const timeout = setTimeout(() => {
-            requestedQuery = query;
             void goto(
-                query ? `/search?q=${encodeURIComponent(query)}` : '/search',
+                next ? `/search?q=${encodeURIComponent(next)}` : '/search',
                 {
                     replaceState: true,
                     keepFocus: true,
@@ -71,10 +49,9 @@
                 id="anime-search"
                 name="q"
                 type="search"
-                value={searchValue}
                 placeholder="Search…"
                 autocomplete="off"
-                oninput={(event) => (searchDraft = event.currentTarget.value)}
+                bind:value={query}
                 class="h-14 w-full border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
                 autofocus
             />

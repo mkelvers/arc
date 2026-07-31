@@ -1,4 +1,5 @@
 import type { AnimeCard } from '$lib/anime/types';
+import { isRecord } from '$lib/utils';
 
 interface RecentResult {
     id: number;
@@ -9,18 +10,16 @@ interface RecentResult {
 const key = 'arc:recent-search-results';
 
 function isRecent(value: unknown): value is RecentResult {
-    if (!value || typeof value !== 'object') {
+    if (!isRecord(value)) {
         return false;
     }
 
-    const result = value as Partial<RecentResult>;
-
     return (
-        Number.isSafeInteger(result.id) &&
-        typeof result.href === 'string' &&
-        result.href.startsWith('/anime/') &&
-        typeof result.title === 'string' &&
-        result.title.length > 0
+        Number.isSafeInteger(value.id) &&
+        typeof value.href === 'string' &&
+        value.href.startsWith('/anime/') &&
+        typeof value.title === 'string' &&
+        value.title.length > 0
     );
 }
 
