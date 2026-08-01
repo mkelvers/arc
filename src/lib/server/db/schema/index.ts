@@ -279,6 +279,14 @@ export const animeEpisode = pgTable(
         runtimeMinutes: integer('runtime_minutes'),
         airDate: text('air_date'),
         overview: text('overview'),
+        openingStartSeconds: doublePrecision('opening_start_seconds'),
+        openingEndSeconds: doublePrecision('opening_end_seconds'),
+        endingStartSeconds: doublePrecision('ending_start_seconds'),
+        endingEndSeconds: doublePrecision('ending_end_seconds'),
+        skipTimesSource: varchar('skip_times_source', { length: 16 }),
+        skipTimesFetchedAt: timestamp('skip_times_fetched_at', {
+            withTimezone: true,
+        }),
         firstSeenAt: timestamp('first_seen_at', { withTimezone: true })
             .notNull()
             .defaultNow(),
