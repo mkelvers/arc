@@ -305,12 +305,15 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     mediaStatus: varchar('media_status', { length: 32 }),
     expectedEpisodes: integer('expected_episodes'),
     sourceRevision: text('source_revision'),
+    metadataExternalIdId: integer('metadata_external_id_id').references(
+        () => animeExternalId.id,
+        { onDelete: 'set null' },
+    ),
     stableSince: timestamp('stable_since', { withTimezone: true }),
     lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
     nextRefreshAt: timestamp('next_refresh_at', { withTimezone: true }),
     failureCount: integer('failure_count').notNull().default(0),
     lastError: text('last_error'),
-    version: integer('version').notNull().default(1),
 });
 
 export const playbackProgress = pgTable(
