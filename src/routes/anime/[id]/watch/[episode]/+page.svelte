@@ -45,6 +45,8 @@
         {poster}
         next={data.nextEpisode?.href}
         startAt={data.startAt}
+        skipTimes={data.skipTimes}
+        canEditSkipTimes={data.canEditSkipTimes}
     />
 
     <div class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12">

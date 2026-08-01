@@ -1,6 +1,10 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import { hasStreams, type Sources } from '$lib/player/media';
+    import {
+        emptySkipTimes,
+        type EpisodeSkipTimes,
+    } from '$lib/player/skip-times';
+    import type { Sources } from '$lib/player/media';
     import { SpinnerGapIcon } from 'phosphor-svelte';
     import VideoPlayer from './VideoPlayer.svelte';
 
@@ -11,26 +15,93 @@
 
     interface Props {
         animeId: number;
+        canEditSkipTimes: boolean;
         episodeId: string;
         episodeNumber: number;
         label: string;
         next?: string | null;
         playback: Promise<Playback>;
         poster?: string | null;
+        skipTimes: Promise<EpisodeSkipTimes>;
         startAt?: number;
+    }
+
+    interface ActiveEpisode {
+        animeId: number;
+        canEditSkipTimes: boolean;
+        episodeId: string;
+        episodeNumber: number;
+        label: string;
+        next: string | null;
+        poster: string | null;
+        result: Playback;
+        skipTimes: EpisodeSkipTimes;
+        startAt: number;
     }
 
     let {
         animeId,
+        canEditSkipTimes,
         episodeId,
         episodeNumber,
         label,
         next = null,
         playback,
         poster = null,
+        skipTimes,
         startAt = 0,
     }: Props = $props();
+    let active = $state<ActiveEpisode | null>(null);
+    let transitioning = $state(true);
     let retrying = $state(false);
+
+    $effect(() => {
+        const playbackRequest = playback;
+        const skipTimesRequest = skipTimes;
+        const pending = {
+            animeId,
+            canEditSkipTimes,
+            episodeId,
+            episodeNumber,
+            label,
+            next,
+            poster,
+            startAt,
+        };
+        let cancelled = false;
+        transitioning = true;
+
+        void playbackRequest.then((result) => {
+            if (cancelled) {
+                return;
+            }
+
+            active = {
+                ...pending,
+                result,
+                skipTimes: emptySkipTimes(),
+            };
+            transitioning = false;
+
+            void skipTimesRequest
+                .then((resolved) => {
+                    if (
+                        cancelled ||
+                        active?.animeId !== pending.animeId ||
+                        active.episodeId !== pending.episodeId
+                    ) {
+                        return;
+                    }
+
+                    active = { ...active, skipTimes: resolved };
+                })
+                .catch(() => undefined);
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    });
 
     async function retry() {
         retrying = true;
@@ -43,7 +114,27 @@
     }
 </script>
 
-{#await playback}
+{#if active}
+    <VideoPlayer
+        animeId={active.animeId}
+        episodeId={active.episodeId}
+        episodeNumber={active.episodeNumber}
+        sources={active.result.streams}
+        label={active.label}
+        poster={active.poster}
+        next={active.next}
+        startAt={active.startAt}
+        skipTimes={active.skipTimes}
+        canEditSkipTimes={active.canEditSkipTimes}
+        unavailable={!Object.values(active.result.streams).some(
+            (streams) => streams?.length,
+        )}
+        streamError={active.result.streamError}
+        {transitioning}
+        {retrying}
+        onretry={retry}
+    />
+{:else}
     <section
         aria-label={`${label} player`}
         aria-busy="true"
@@ -64,44 +155,4 @@
             class="relative animate-spin text-accent"
         />
     </section>
-{:then result}
-    {#key `${episodeId}:${JSON.stringify(result.streams)}`}
-        {#if hasStreams(result.streams)}
-            <VideoPlayer
-                {animeId}
-                {episodeId}
-                {episodeNumber}
-                sources={result.streams}
-                {label}
-                {poster}
-                {next}
-                {startAt}
-            />
-        {:else}
-            <section
-                aria-label={`${label} player`}
-                role="alert"
-                class="grid aspect-21/9 w-full place-items-center bg-black px-6 text-center"
-            >
-                <div>
-                    <p class="text-base font-bold">
-                        {result.streamError
-                            ? 'The streaming providers could not load this video.'
-                            : 'No video source is available.'}
-                    </p>
-                    <p class="mt-2 text-sm text-white/65">
-                        Arc tried every available source for this episode.
-                    </p>
-                    <button
-                        type="button"
-                        disabled={retrying}
-                        class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
-                        onclick={retry}
-                    >
-                        {retrying ? 'Trying again…' : 'Try again'}
-                    </button>
-                </div>
-            </section>
-        {/if}
-    {/key}
-{/await}
+{/if}

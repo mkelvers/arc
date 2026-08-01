@@ -4,6 +4,7 @@ import type { AudioMode } from '$lib/anime/audio';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
+import { getEpisodeSkipTimes } from '$lib/server/anime/skip-times';
 import { resumePosition } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { PageServerLoad } from './$types';
@@ -183,6 +184,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             storedMedia?.artwork.selectedBackdrop?.url ??
             result.bannerImage ??
             null,
+        canEditSkipTimes: Boolean(locals.user),
+        skipTimes: getEpisodeSkipTimes({
+            anilistId: id,
+            episodeId: currentEpisode.id,
+            episodeNumber: currentEpisode.number,
+            malId: result.idMal,
+        }),
         startAt: resumePosition(progress, currentEpisode.id),
         playback: getPlayback(
             result,
