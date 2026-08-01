@@ -120,6 +120,13 @@
       "when": 1785553610459,
       "tag": "0016_exotic_ozymandias",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785606065589,
+      "tag": "0017_thin_juggernaut",
+      "breakpoints": true
     }
   ]
 }

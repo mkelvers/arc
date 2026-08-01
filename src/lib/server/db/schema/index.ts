@@ -228,6 +228,25 @@ export const animeArtworkPreference = pgTable('anime_artwork_preference', {
         .$onUpdate(() => new Date()),
 });
 
+export const homeHeroSelection = pgTable(
+    'home_hero_selection',
+    {
+        weekStart: varchar('week_start', { length: 10 }).notNull(),
+        position: integer('position').notNull(),
+        anilistId: integer('anilist_id').notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => [
+        primaryKey({ columns: [table.weekStart, table.position] }),
+        unique('home_hero_selection_week_anilist_unique').on(
+            table.weekStart,
+            table.anilistId,
+        ),
+    ],
+);
+
 export const animeDetailsCache = pgTable('anime_details_cache', {
     anilistId: integer('anilist_id').primaryKey(),
     data: jsonb('data').$type<AniListAnime>().notNull(),
