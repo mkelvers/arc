@@ -42,11 +42,22 @@ export interface Artwork extends Mapping {
 
 export interface EpisodeMetadata {
     title: string;
+    titleSource?: EpisodeTextSource | null;
     overview: string;
+    overviewSource?: EpisodeTextSource | null;
     imageUrl: string | null;
     runtime: number | null;
     airDate: string;
     rawAirDate?: string;
+}
+
+export type EpisodeTextSource = 'tmdb' | 'machine';
+
+export interface StoredEpisodeText {
+    title: string | null;
+    titleSource: EpisodeTextSource | null;
+    overview: string | null;
+    overviewSource: EpisodeTextSource | null;
 }
 
 export interface EpisodeCandidate extends EpisodeMetadata {

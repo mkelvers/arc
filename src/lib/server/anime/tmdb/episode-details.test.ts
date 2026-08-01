@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
+    translatableMetadata,
 } from './episode-details';
 import type { EpisodeCandidate } from './types';
 
@@ -19,7 +20,7 @@ const candidate: EpisodeCandidate = {
 
 describe('TMDB episode detail completion', () => {
     test('fills a stale season row from translations, featured data, and stills', () => {
-        expect(episodeDetailsNeeded(candidate)).toEqual({
+        expect(episodeDetailsNeeded(candidate, 'ja')).toEqual({
             details: true,
             translations: true,
             images: true,
@@ -70,7 +71,7 @@ describe('TMDB episode detail completion', () => {
         });
     });
 
-    test('fills each text field from any available language', () => {
+    test('uses only explicitly English text for a Japanese episode', () => {
         expect(
             completeEpisodeDetails(candidate, {
                 details: {
@@ -102,7 +103,67 @@ describe('TMDB episode detail completion', () => {
             }),
         ).toMatchObject({
             title: 'Accomplices',
+            titleSource: 'tmdb',
+            overview: '',
+            overviewSource: null,
+        });
+
+        expect(
+            translatableMetadata(
+                [
+                    {
+                        country: 'JP',
+                        language: 'ja',
+                        name: '共犯者たち',
+                        overview: '日本語で利用可能なあらすじ。',
+                    },
+                    {
+                        country: 'ES',
+                        language: 'es',
+                        name: 'Cómplices',
+                        overview: 'Resumen disponible en español.',
+                    },
+                ],
+                'ja',
+            ),
+        ).toEqual({
+            name: '共犯者たち',
             overview: '日本語で利用可能なあらすじ。',
+        });
+    });
+
+    test('keeps Japanese episodes eligible for English translation refresh', () => {
+        const completeCandidate = {
+            ...candidate,
+            title: 'Crybaby and Naughty Child',
+            overview: 'Japanese text returned by a localized endpoint',
+            imageUrl: 'https://images.example/still.jpg',
+            runtime: 24,
+        };
+
+        expect(episodeDetailsNeeded(completeCandidate, 'ja')).toEqual({
+            details: false,
+            translations: true,
+            images: false,
+        });
+    });
+
+    test('trusts text from an English-original episode', () => {
+        expect(
+            completeEpisodeDetails(
+                {
+                    ...candidate,
+                    title: 'A New Beginning',
+                    overview: 'The journey begins.',
+                },
+                {
+                    originalLanguage: 'en',
+                    image: (path) => path,
+                },
+            ),
+        ).toMatchObject({
+            title: 'A New Beginning',
+            overview: 'The journey begins.',
         });
     });
 });
