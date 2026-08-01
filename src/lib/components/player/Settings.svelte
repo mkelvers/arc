@@ -2,9 +2,14 @@
     import type { AudioMode } from '$lib/anime/audio';
     import {
         audioLabel,
+        formatTime,
         isHd,
         type SettingsView,
     } from '$lib/player/media';
+    import type {
+        SkipKind,
+        SkipTimesDraft,
+    } from '$lib/player/skip-times';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
@@ -12,13 +17,19 @@
         audioModes: AudioMode[];
         autoplay: boolean;
         bestQuality: string | null;
+        canEditSkipTimes: boolean;
         mode: AudioMode;
         onautoplay: () => void;
         onmode: (mode: AudioMode) => void;
         onquality: (quality: string) => void;
+        onskipclear: (kind: SkipKind) => void;
+        onskipmark: (kind: SkipKind, edge: 'start' | 'end') => void;
         qualities: string[];
         quality: string;
         qualityText: string;
+        skipDraft: SkipTimesDraft;
+        skipError: string | null;
+        skipSaving: boolean;
         view?: SettingsView;
     }
 
@@ -26,16 +37,46 @@
         audioModes,
         autoplay,
         bestQuality,
+        canEditSkipTimes,
         mode,
         onautoplay,
         onmode,
         onquality,
+        onskipclear,
+        onskipmark,
         qualities,
         quality,
         qualityText,
+        skipDraft,
+        skipError,
+        skipSaving,
         view = $bindable('main'),
     }: Props = $props();
 
+    const skipKinds: SkipKind[] = ['opening', 'ending'];
+    const skipEdges = ['start', 'end'] as const;
+
+    function skipLabel(kind: SkipKind) {
+        return kind === 'opening' ? 'Opening' : 'Ending';
+    }
+
+    function skipRange(kind: SkipKind) {
+        const { start, end } = skipDraft[kind];
+        if (start === null || end === null) {
+            return 'Not set';
+        }
+
+        return `${formatTime(start)} – ${formatTime(end)}`;
+    }
+
+    function skipEdgeTime(kind: SkipKind, edge: (typeof skipEdges)[number]) {
+        const value = skipDraft[kind][edge];
+        return value === null ? 'Not set' : formatTime(value);
+    }
+
+    function openSkip(kind: SkipKind) {
+        view = kind === 'opening' ? 'segment-opening' : 'segment-ending';
+    }
 </script>
 
 {#snippet radio(selected: boolean)}
@@ -56,7 +97,10 @@
     id="player-settings"
     role="menu"
     aria-label="Playback settings"
-    class="absolute right-0 bottom-full z-40 mb-2 w-60 overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8"
+    class={cn(
+        'absolute right-0 bottom-full z-40 mb-2 overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8',
+        view.startsWith('segment') ? 'w-64' : 'w-60',
+    )}
 >
     {#if view === 'main'}
         <button
@@ -117,16 +161,42 @@
                 </span>
             </button>
         {/if}
+
+        {#if canEditSkipTimes}
+            <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                onclick={() => (view = 'segments')}
+            >
+                <span>Segments</span>
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+            </button>
+        {/if}
     {:else}
+        {@const editingKind =
+            view === 'segment-opening'
+                ? 'opening'
+                : view === 'segment-ending'
+                  ? 'ending'
+                  : null}
         <button
             type="button"
             role="menuitem"
-            aria-label="Back to playback settings"
+            aria-label={editingKind
+                ? 'Back to segments'
+                : 'Back to playback settings'}
             class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() => (view = 'main')}
+            onclick={() => (view = editingKind ? 'segments' : 'main')}
         >
             <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
-            {view === 'quality' ? 'Quality' : 'Audio'}
+            {view === 'quality'
+                ? 'Quality'
+                : view === 'audio'
+                  ? 'Audio'
+                  : editingKind
+                    ? skipLabel(editingKind)
+                    : 'Segments'}
         </button>
 
         {#if view === 'quality'}
@@ -158,7 +228,7 @@
                     </span>
                 </button>
             {/each}
-        {:else}
+        {:else if view === 'audio'}
             {#each audioModes as option}
                 <button
                     type="button"
@@ -171,6 +241,63 @@
                     {audioLabel(option)}
                 </button>
             {/each}
+        {:else if view === 'segments'}
+            {#each skipKinds as kind}
+                <button
+                    type="button"
+                    role="menuitem"
+                    class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    onclick={() => openSkip(kind)}
+                >
+                    <span class="font-medium">{skipLabel(kind)}</span>
+                    <span class="ml-auto text-[0.7rem] text-white/60 tabular-nums">
+                        {skipRange(kind)}
+                    </span>
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                </button>
+            {/each}
+        {:else if editingKind}
+            {#each skipEdges as edge}
+                <button
+                    type="button"
+                    role="menuitem"
+                    aria-label={`Set ${skipLabel(editingKind).toLowerCase()} ${edge} to current playback position`}
+                    title="Set to current playback position"
+                    disabled={skipSaving}
+                    class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
+                    onclick={() => onskipmark(editingKind, edge)}
+                >
+                    <span class="font-medium capitalize">{edge}</span>
+                    <span class="ml-auto text-white/65 tabular-nums">
+                        {skipEdgeTime(editingKind, edge)}
+                    </span>
+                    <span class="font-semibold text-player-accent">Set here</span>
+                </button>
+            {/each}
+
+            {#if skipDraft[editingKind].start !== null || skipDraft[editingKind].end !== null}
+                <button
+                    type="button"
+                    role="menuitem"
+                    disabled={skipSaving}
+                    class="flex min-h-9 w-full items-center px-4 text-left text-white/55 hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:outline-none disabled:opacity-40"
+                    onclick={() => onskipclear(editingKind)}
+                >
+                    Clear segment
+                </button>
+            {/if}
+
+            {#if skipSaving}
+                <p aria-live="polite" class="border-t border-white/8 px-4 py-2 text-[0.7rem] text-white/60">
+                    Saving…
+                </p>
+            {/if}
+
+            {#if skipError}
+                <p role="alert" class="border-t border-white/8 px-4 py-2.5 text-[0.7rem] leading-4 text-red-300">
+                    {skipError}
+                </p>
+            {/if}
         {/if}
     {/if}
 </div>

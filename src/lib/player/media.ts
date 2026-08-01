@@ -15,7 +15,13 @@ export interface SubtitleCue {
 }
 
 export type Sources = Partial<Record<AudioMode, Stream[]>>;
-export type SettingsView = 'main' | 'audio' | 'quality';
+export type SettingsView =
+    | 'main'
+    | 'audio'
+    | 'quality'
+    | 'segments'
+    | 'segment-opening'
+    | 'segment-ending';
 
 export type Shortcut =
     | 'play'
