@@ -47,7 +47,7 @@
     <section
         aria-label={`${label} player`}
         aria-busy="true"
-        class="relative grid aspect-video w-full place-items-center overflow-hidden bg-black px-6 text-center"
+        class="relative grid aspect-21/9 w-full place-items-center overflow-hidden bg-black px-6 text-center"
     >
         {#if poster}
             <img
@@ -81,7 +81,7 @@
             <section
                 aria-label={`${label} player`}
                 role="alert"
-                class="grid aspect-video w-full place-items-center bg-black px-6 text-center"
+                class="grid aspect-21/9 w-full place-items-center bg-black px-6 text-center"
             >
                 <div>
                     <p class="text-base font-bold">
