@@ -105,7 +105,7 @@
                             >
                                 {result.title}
                             </a>
-                            <Tooltip text="Remove">
+                            <Tooltip text="Remove" class="normal-case">
                                 <button
                                     type="button"
                                     class="grid size-11 shrink-0 place-items-center border-l border-black/40 text-muted hover:bg-player-accent/20 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
