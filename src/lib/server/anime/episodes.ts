@@ -1,4 +1,4 @@
-import { and, eq, lte, ne, or } from 'drizzle-orm';
+import { eq, isNull, lte, or } from 'drizzle-orm';
 import { Effect } from 'effect';
 
 import type { AnimeEpisode } from '$lib/anime/types';
@@ -6,18 +6,20 @@ import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
 import { anilist } from './anilist';
 import { storedEpisodes } from './episodes/model';
-import { syncVersion } from './episodes/policy';
+import { episodeRefreshReason } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import type { AniListAnime } from './episodes/types';
+import { findMapping } from './tmdb/mapping-store';
 
 async function getEpisodes(
     anime: AniListAnime,
 ): Promise<AnimeEpisode[]> {
-    const [stored, sync] = await Promise.all([
+    const [stored, sync, metadataSource] = await Promise.all([
         storedEpisodes(anime),
         db
             .select({
-                version: animeEpisodeSync.version,
+                metadataExternalIdId:
+                    animeEpisodeSync.metadataExternalIdId,
                 nextRefreshAt: animeEpisodeSync.nextRefreshAt,
                 lastError: animeEpisodeSync.lastError,
             })
@@ -25,6 +27,7 @@ async function getEpisodes(
             .where(eq(animeEpisodeSync.anilistId, anime.id))
             .limit(1)
             .then((rows) => rows[0] ?? null),
+        findMapping(anime.id).catch(() => null),
     ]);
 
     if (!stored.length) {
@@ -36,17 +39,31 @@ async function getEpisodes(
             throw new Error(sync.lastError);
         }
 
-        return refreshEpisodes(anime);
+        return refreshEpisodes(anime, metadataSource ?? undefined);
     }
 
-    const refreshDue =
-        !sync ||
-        sync.version !== syncVersion ||
-        (sync.nextRefreshAt !== null &&
-            sync.nextRefreshAt.getTime() <= Date.now());
+    const reason = episodeRefreshReason(
+        sync,
+        metadataSource?.externalIdId ?? null,
+    );
 
-    if (refreshDue) {
-        void refreshEpisodes(anime).catch((cause) =>
+    if (reason === 'metadata-source' && metadataSource) {
+        try {
+            return await refreshEpisodes(anime, metadataSource);
+        } catch (cause) {
+            console.error(
+                `Episode metadata source refresh failed for AniList ${anime.id}`,
+                cause,
+            );
+            return stored;
+        }
+    }
+
+    if (reason) {
+        void refreshEpisodes(
+            anime,
+            metadataSource ?? undefined,
+        ).catch((cause) =>
             console.error(
                 `Episode refresh failed for AniList ${anime.id}`,
                 cause,
@@ -63,11 +80,8 @@ async function refreshDue(limit = 20) {
         .from(animeEpisodeSync)
         .where(
             or(
-                ne(animeEpisodeSync.version, syncVersion),
-                and(
-                    eq(animeEpisodeSync.version, syncVersion),
-                    lte(animeEpisodeSync.nextRefreshAt, new Date()),
-                ),
+                isNull(animeEpisodeSync.nextRefreshAt),
+                lte(animeEpisodeSync.nextRefreshAt, new Date()),
             ),
         )
         .limit(Math.max(1, Math.min(limit, 100)));
