@@ -9,8 +9,10 @@ import {
 } from '$lib/server/db/schema';
 import { playback } from '../providers';
 import { tmdb } from '../tmdb';
+import { resolveStored } from '../tmdb/mapping';
+import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
-import { nextRefreshAt, syncVersion } from './policy';
+import { nextRefreshAt } from './policy';
 import { episodesForRelease } from './release';
 import type { AniListAnime } from './types';
 
@@ -50,7 +52,6 @@ async function recordFailure(anilistId: number, cause: unknown) {
             failureCount: 1,
             lastError: message,
             nextRefreshAt: retryAt,
-            version: syncVersion,
         })
         .onConflictDoUpdate({
             target: animeEpisodeSync.anilistId,
@@ -62,7 +63,10 @@ async function recordFailure(anilistId: number, cause: unknown) {
         });
 }
 
-async function fetchAndStore(anime: AniListAnime) {
+async function fetchAndStore(
+    anime: AniListAnime,
+    metadataSource: StoredMapping | undefined,
+) {
     const providerEpisodes = await playback.getEpisodes(anime);
     if (!providerEpisodes.length) {
         throw new Error(
@@ -70,15 +74,30 @@ async function fetchAndStore(anime: AniListAnime) {
         );
     }
 
-    const metadata = await tmdb
-        .getEpisodeMetadata(anime, providerEpisodes)
-        .catch((cause) => {
+    const resolvedMetadataSource =
+        metadataSource ??
+        (await resolveStored(anime).catch((cause) => {
             console.error(
                 `TMDB episode enrichment failed for AniList ${anime.id}`,
                 cause,
             );
             return null;
-        });
+        }));
+    const metadata = resolvedMetadataSource
+        ? await tmdb
+              .getEpisodeMetadata(
+                  anime,
+                  providerEpisodes,
+                  resolvedMetadataSource,
+              )
+              .catch((cause) => {
+                  console.error(
+                      `TMDB episode enrichment failed for AniList ${anime.id}`,
+                      cause,
+                  );
+                  return null;
+              })
+        : null;
     const source = episodesForRelease(
         anime,
         providerEpisodes,
@@ -92,9 +111,10 @@ async function fetchAndStore(anime: AniListAnime) {
         const [sync, existing] = await Promise.all([
             tx
                 .select({
+                    metadataExternalIdId:
+                        animeEpisodeSync.metadataExternalIdId,
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
-                    version: animeEpisodeSync.version,
                 })
                 .from(animeEpisodeSync)
                 .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -112,7 +132,12 @@ async function fetchAndStore(anime: AniListAnime) {
             const previous = stored.get(episode.id);
             const media = metadata?.get(episode.id);
             const previousMetadata =
-                metadata === null ? previous : null;
+                metadata === null &&
+                (!resolvedMetadataSource ||
+                    sync?.metadataExternalIdId ===
+                        resolvedMetadataSource.externalIdId)
+                    ? previous
+                    : null;
 
             return {
                 anilistId: anime.id,
@@ -124,9 +149,7 @@ async function fetchAndStore(anime: AniListAnime) {
                     media?.title ||
                     previousMetadata?.metadataTitle ||
                     null,
-                audio: sync?.version === syncVersion
-                    ? mergeAudioModes(previous?.audio, episode.audio)
-                    : episode.audio,
+                audio: mergeAudioModes(previous?.audio, episode.audio),
                 imageUrl:
                     media?.imageUrl ??
                     previousMetadata?.imageUrl ??
@@ -211,6 +234,10 @@ async function fetchAndStore(anime: AniListAnime) {
                 mediaStatus: anime.status,
                 expectedEpisodes: anime.episodes,
                 sourceRevision: revision,
+                metadataExternalIdId:
+                    resolvedMetadataSource?.externalIdId ??
+                    sync?.metadataExternalIdId ??
+                    null,
                 stableSince,
                 lastSuccessAt: now,
                 nextRefreshAt: nextRefreshAt(
@@ -220,7 +247,6 @@ async function fetchAndStore(anime: AniListAnime) {
                 ),
                 failureCount: 0,
                 lastError: null,
-                version: syncVersion,
             })
             .onConflictDoUpdate({
                 target: animeEpisodeSync.anilistId,
@@ -228,6 +254,10 @@ async function fetchAndStore(anime: AniListAnime) {
                     mediaStatus: anime.status,
                     expectedEpisodes: anime.episodes,
                     sourceRevision: revision,
+                    metadataExternalIdId:
+                        resolvedMetadataSource?.externalIdId ??
+                        sync?.metadataExternalIdId ??
+                        null,
                     stableSince,
                     lastSuccessAt: now,
                     nextRefreshAt: nextRefreshAt(
@@ -237,7 +267,6 @@ async function fetchAndStore(anime: AniListAnime) {
                     ),
                     failureCount: 0,
                     lastError: null,
-                    version: syncVersion,
                 },
             });
     });
@@ -245,21 +274,26 @@ async function fetchAndStore(anime: AniListAnime) {
     return storedEpisodes(anime);
 }
 
-export async function refreshEpisodes(anime: AniListAnime) {
+export async function refreshEpisodes(
+    anime: AniListAnime,
+    metadataSource?: StoredMapping,
+) {
     const pending = requests.get(anime.id);
     if (pending) {
         return pending;
     }
 
-    const request = fetchAndStore(anime).catch(async (cause) => {
-        await recordFailure(anime.id, cause).catch((failure) =>
-            console.error(
-                `Could not record episode refresh failure for AniList ${anime.id}`,
-                failure,
-            ),
-        );
-        throw cause;
-    });
+    const request = fetchAndStore(anime, metadataSource).catch(
+        async (cause) => {
+            await recordFailure(anime.id, cause).catch((failure) =>
+                console.error(
+                    `Could not record episode refresh failure for AniList ${anime.id}`,
+                    failure,
+                ),
+            );
+            throw cause;
+        },
+    );
     requests.set(anime.id, request);
 
     try {
