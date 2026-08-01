@@ -12,6 +12,13 @@ const audioRank = new Map<AudioMode, number>(
     audioModes.map((mode, index) => [mode, index]),
 );
 
+const audioLabelRank = new Map<AudioMode, number>(
+    (['dub', 'sub', 'raw'] satisfies AudioMode[]).map((mode, index) => [
+        mode,
+        index,
+    ]),
+);
+
 function orderedAudio(modes: readonly AudioMode[]) {
     return [...new Set(modes)].toSorted(
         (left, right) => audioRank.get(left)! - audioRank.get(right)!,
@@ -21,7 +28,15 @@ function orderedAudio(modes: readonly AudioMode[]) {
 export function audioAvailabilityLabel<const Modes extends readonly AudioMode[]>(
     modes: Modes,
 ) {
-    return orderedAudio(modes)
+    const ordered = orderedAudio(modes);
+    if (ordered.length === 1 && ordered[0] === 'sub') return 'Subtitled';
+    if (ordered.length === 1 && ordered[0] === 'dub') return 'Dubbed';
+
+    return ordered
+        .toSorted(
+            (left, right) =>
+                audioLabelRank.get(left)! - audioLabelRank.get(right)!,
+        )
         .map((mode) => audioLabel[mode])
         .join(' | ');
 }

@@ -8,9 +8,9 @@ import {
 
 describe('audio availability labels', () => {
     test('derives labels from normalized audio modes', () => {
-        expect(audioAvailabilityLabel(['dub', 'sub', 'dub'])).toBe('Sub | Dub');
-        expect(audioAvailabilityLabel(['sub'])).toBe('Sub');
-        expect(audioAvailabilityLabel(['dub'])).toBe('Dub');
+        expect(audioAvailabilityLabel(['dub', 'sub', 'dub'])).toBe('Dub | Sub');
+        expect(audioAvailabilityLabel(['sub'])).toBe('Subtitled');
+        expect(audioAvailabilityLabel(['dub'])).toBe('Dubbed');
         expect(audioAvailabilityLabel(['raw'])).toBe('Raw');
         expect(audioAvailabilityLabel([])).toBe('');
     });
@@ -21,9 +21,9 @@ describe('audio availability labels', () => {
                 { audio: ['sub'] },
                 { audio: ['dub'] },
             ]),
-        ).toBe('Sub | Dub');
+        ).toBe('Dub | Sub');
         expect(episodeAudioAvailabilityLabel([{ audio: ['dub'] }])).toBe(
-            'Dub',
+            'Dubbed',
         );
     });
 
