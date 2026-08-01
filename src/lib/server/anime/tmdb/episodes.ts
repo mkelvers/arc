@@ -17,6 +17,7 @@ import type {
     AniListAnime,
     EpisodeCandidate,
     EpisodeMetadata,
+    StoredMapping,
 } from './types';
 
 function animeStartDate(anime: AniListAnime) {
@@ -233,12 +234,13 @@ function seasonScore(
 export async function getEpisodeMetadata(
     anime: AniListAnime,
     source: ProviderEpisode[],
+    storedMapping?: StoredMapping,
 ): Promise<Map<string, EpisodeMetadata>> {
     if (!source.length) {
         return new Map();
     }
 
-    const match = await resolveStored(anime);
+    const match = storedMapping ?? (await resolveStored(anime));
     const client = create();
 
     if (match.mediaType === 'movie') {
