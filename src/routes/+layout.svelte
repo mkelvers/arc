@@ -2,8 +2,8 @@
 	import './layout.css';
 	import { page } from '$app/state';
 	import { MagnifyingGlassIcon } from 'phosphor-svelte';
-	import favicon from '$lib/assets/favicon.svg';
-	import logo from '$lib/assets/logo-128.png';
+	import logo from '$lib/assets/logo.png';
+	import favicon from '$lib/assets/favicon.ico';
 
 	let { children } = $props();
 
@@ -14,7 +14,8 @@
 
 <svelte:head>
 	<title>Arc</title>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href={favicon} type="image/png" sizes="512x512" />
+	<link rel="apple-touch-icon" href={favicon} />
 </svelte:head>
 
 {#if page.status >= 400 || authRoute}
@@ -25,13 +26,12 @@
 			<div class="flex h-full items-center gap-3">
 				<a
 					href="/"
-					class="inline-flex size-10 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+					class="inline-flex h-12 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
 					aria-label="Home"
 					title="Home"
 				>
-					<img src={logo} alt="" width="166" height="128" class="h-8 w-auto shrink-0" aria-hidden="true" />
+					<img src={logo} alt="" width="1024" height="420" class="h-10 w-auto shrink-0" aria-hidden="true" />
 				</a>
-
 			</div>
 
 			<div class="flex h-full items-center">

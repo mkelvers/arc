@@ -1,5 +1,5 @@
 <script lang="ts">
-	import logo from '$lib/assets/logo-128.png';
+	import logo from '$lib/assets/logo.png';
 
 	let { children } = $props();
 </script>
@@ -10,9 +10,9 @@
 			<img
 				src={logo}
 				alt="Arc"
-				width="166"
-				height="128"
-				class="h-8 w-auto"
+				width="1024"
+				height="420"
+				class="h-10 w-auto"
 			/>
 		</div>
 	</header>
