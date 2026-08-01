@@ -173,6 +173,27 @@ export const load: PageServerLoad = async ({ params, locals }) => {
                   specialIndex: specialIndex + 1,
                   specialCount: specials.length,
               };
+    // These requests may reach fetch after their initial cache/DB reads. Settle
+    // them in load so they cannot start network work during component SSR.
+    const [skipTimes, playback] = await Promise.all([
+        getEpisodeSkipTimes({
+            anilistId: id,
+            episodeId: currentEpisode.id,
+            episodeNumber: currentEpisode.number,
+            malId: result.idMal,
+        }),
+        getPlayback(
+            result,
+            playbackEpisode,
+            [
+                'sub',
+                'dub',
+                ...(currentEpisode.audio.includes('raw')
+                    ? (['raw'] as const)
+                    : []),
+            ],
+        ),
+    ]);
 
     return {
         anime: toAnimeDetails(result),
@@ -185,23 +206,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             result.bannerImage ??
             null,
         canEditSkipTimes: Boolean(locals.user),
-        skipTimes: getEpisodeSkipTimes({
-            anilistId: id,
-            episodeId: currentEpisode.id,
-            episodeNumber: currentEpisode.number,
-            malId: result.idMal,
-        }),
+        // WatchPlayer keeps promise props to coordinate client transitions.
+        skipTimes: Promise.resolve(skipTimes),
         startAt: resumePosition(progress, currentEpisode.id),
-        playback: getPlayback(
-            result,
-            playbackEpisode,
-            [
-                'sub',
-                'dub',
-                ...(currentEpisode.audio.includes('raw')
-                    ? (['raw'] as const)
-                    : []),
-            ],
-        ),
+        playback: Promise.resolve(playback),
     };
 };
