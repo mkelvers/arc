@@ -11,7 +11,7 @@ import { refreshEpisodes } from './episodes/sync';
 import type { AniListAnime } from './episodes/types';
 import { findMapping } from './tmdb/mapping-store';
 
-async function getEpisodes(
+export async function getEpisodes(
     anime: AniListAnime,
 ): Promise<AnimeEpisode[]> {
     const [stored, sync, metadataSource] = await Promise.all([
