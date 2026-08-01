@@ -127,6 +127,13 @@
       "when": 1785606065589,
       "tag": "0017_thin_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1785609358015,
+      "tag": "0018_free_zarda",
+      "breakpoints": true
     }
   ]
 }

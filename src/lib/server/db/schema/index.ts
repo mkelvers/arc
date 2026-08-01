@@ -31,6 +31,10 @@ export const externalMediaType = pgEnum('external_media_type', [
 
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 export const episodeAudio = pgEnum('episode_audio', ['sub', 'dub', 'raw']);
+export const episodeTextSource = pgEnum('episode_text_source', [
+    'tmdb',
+    'machine',
+]);
 
 export const users = pgTable(
     'users',
@@ -293,11 +297,13 @@ export const animeEpisode = pgTable(
         number: doublePrecision('number').notNull(),
         providerTitle: text('provider_title'),
         metadataTitle: text('metadata_title'),
+        metadataTitleSource: episodeTextSource('metadata_title_source'),
         audio: episodeAudio('audio').array().notNull(),
         imageUrl: text('image_url'),
         runtimeMinutes: integer('runtime_minutes'),
         airDate: text('air_date'),
         overview: text('overview'),
+        overviewSource: episodeTextSource('overview_source'),
         openingStartSeconds: doublePrecision('opening_start_seconds'),
         openingEndSeconds: doublePrecision('opening_end_seconds'),
         endingStartSeconds: doublePrecision('ending_start_seconds'),
