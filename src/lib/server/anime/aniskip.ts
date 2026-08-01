@@ -70,7 +70,7 @@ export function parseAniSkipResponse(value: unknown): EpisodeSkipTimes | null {
 export async function fetchAniSkip(
     malId: number,
     episodeNumber: number,
-) {
+): Promise<EpisodeSkipTimes> {
     const query = new URLSearchParams({ episodeLength: '0' });
     for (const type of ['op', 'ed', 'mixed-op', 'mixed-ed']) {
         query.append('types', type);
@@ -82,6 +82,12 @@ export async function fetchAniSkip(
             signal: AbortSignal.timeout(5_000),
         },
     );
+    if (response.status === 404) {
+        console.info(
+            `AniSkip has no skip times for MAL ${malId}, episode ${episodeNumber}`,
+        );
+        return { opening: null, ending: null, source: 'aniskip' };
+    }
     if (!response.ok) {
         throw new Error(`AniSkip request failed with ${response.status}`);
     }

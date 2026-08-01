@@ -1,6 +1,58 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, mock, test } from 'bun:test';
 
-import { parseAniSkipResponse, validSkipInterval } from './aniskip';
+import {
+    fetchAniSkip,
+    parseAniSkipResponse,
+    validSkipInterval,
+} from './aniskip';
+
+const nativeFetch = globalThis.fetch;
+const nativeInfo = console.info;
+
+afterEach(() => {
+    globalThis.fetch = nativeFetch;
+    console.info = nativeInfo;
+});
+
+describe('fetchAniSkip', () => {
+    test('treats a valid not-found response as empty AniSkip data', async () => {
+        const info = mock(() => {});
+        console.info = info;
+        globalThis.fetch = mock(async () =>
+            Response.json(
+                {
+                    found: false,
+                    results: [],
+                    message: 'No skip times found',
+                    statusCode: 404,
+                },
+                { status: 404 },
+            ),
+        ) as unknown as typeof fetch;
+
+        await expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
+            opening: null,
+            ending: null,
+            source: 'aniskip',
+        });
+        expect(info).toHaveBeenCalledWith(
+            'AniSkip has no skip times for MAL 62001, episode 17',
+        );
+    });
+
+    test('still rejects upstream failures', async () => {
+        globalThis.fetch = mock(async () =>
+            Response.json(
+                { statusCode: 503, message: 'Service unavailable' },
+                { status: 503 },
+            ),
+        ) as unknown as typeof fetch;
+
+        await expect(fetchAniSkip(62_001, 17)).rejects.toThrow(
+            'AniSkip request failed with 503',
+        );
+    });
+});
 
 describe('parseAniSkipResponse', () => {
     test('maps validated opening and ending results', () => {
