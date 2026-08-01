@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { asc, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { Effect, Either } from 'effect';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
@@ -37,6 +37,10 @@ export const load: PageServerLoad = async ({ locals }) => {
         console.error('Continue watching load failed', cause);
         return [];
     });
+    const highlights = anime.getHomeHero().catch((cause) => {
+        console.error('Homepage hero load failed', cause);
+        return [];
+    });
     const result = await Effect.runPromise(
         anime.anilist.getHomepage(season, year).pipe(Effect.either),
     );
@@ -45,25 +49,17 @@ export const load: PageServerLoad = async ({ locals }) => {
         error(502, result.left.message);
     }
 
-    const highlightIds = result.right.highlights.map(({ id }) => id);
     const seasonIds = result.right.season.map(({ id }) => id);
-    const animeIds = [...new Set([...highlightIds, ...seasonIds])];
-    const [storedMedia, episodeRows, popularAudio] = await Promise.all([
-        Promise.all(
-            highlightIds.map((id) =>
-                anime.tmdb.getStoredMedia(id).catch(() => null),
-            ),
-        ),
-        animeIds.length
+    const [homeHero, episodeRows, popularAudio] = await Promise.all([
+        highlights,
+        seasonIds.length
             ? db
                   .select({
                       anilistId: animeEpisode.anilistId,
-                      episodeId: animeEpisode.episodeId,
                       audio: animeEpisode.audio,
                   })
                   .from(animeEpisode)
-                  .where(inArray(animeEpisode.anilistId, animeIds))
-                  .orderBy(asc(animeEpisode.number))
+                  .where(inArray(animeEpisode.anilistId, seasonIds))
             : [],
         anime.allanime.getPopularAudioLabels().catch(() => new Map()),
     ]);
@@ -77,37 +73,8 @@ export const load: PageServerLoad = async ({ locals }) => {
         audioByAnime.set(episode.anilistId, audio);
     }
 
-    const firstEpisodeHrefByAnime = new Map<number, string>();
-    for (const episode of episodeRows) {
-        if (firstEpisodeHrefByAnime.has(episode.anilistId)) {
-            continue;
-        }
-
-        firstEpisodeHrefByAnime.set(
-            episode.anilistId,
-            `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
-        );
-    }
-
     return {
-        highlights: result.right.highlights.map((highlight, index) => {
-            const artwork = storedMedia[index]?.artwork;
-
-            return {
-                ...highlight,
-                image:
-                    artwork?.selectedBackdrop?.url ?? highlight.image,
-                logoUrl: artwork?.selectedLogo?.url ?? null,
-                logoSize: artwork?.logoSize ?? 100,
-                audioLabel: audioAvailabilityLabel([
-                    ...(audioByAnime.get(highlight.id) ?? []),
-                ]),
-                href: `/anime/${highlight.id}`,
-                watchHref:
-                    firstEpisodeHrefByAnime.get(highlight.id) ??
-                    `/anime/${highlight.id}`,
-            };
-        }),
+        highlights: homeHero,
         season: result.right.season.map((card) => ({
             ...card,
             caption: audioAvailabilityLabel([

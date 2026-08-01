@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import {
+        BookmarkSimpleIcon,
         CaretLeftIcon,
         CaretRightIcon,
         PauseIcon,
@@ -15,8 +16,9 @@
         watchHref: string;
         title: string;
         image: string;
-        logoUrl: string | null;
+        logoUrl: string;
         logoSize: number;
+        episodeLabel: string;
         format: string;
         audioLabel: string;
         score: number;
@@ -31,7 +33,7 @@
     let { highlights }: Props = $props();
     let active = $state(0);
     let paused = $state(false);
-    let interacting = $state(false);
+    let focused = $state(false);
 
     function select(index: number) {
         if (!highlights.length) {
@@ -50,10 +52,10 @@
         }
 
         const interval = window.setInterval(() => {
-            if (!paused && !interacting) {
+            if (!paused && !focused) {
                 select(active + 1);
             }
-        }, 8_000);
+        }, 10_000);
 
         return () => window.clearInterval(interval);
     });
@@ -63,11 +65,9 @@
     <section
         class="relative isolate h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black"
         aria-roledescription="carousel"
-        aria-label="Trending anime"
-        onmouseenter={() => (interacting = true)}
-        onmouseleave={() => (interacting = false)}
-        onfocusin={() => (interacting = true)}
-        onfocusout={() => (interacting = false)}
+        aria-label="Popular anime this week"
+        onfocusin={() => (focused = true)}
+        onfocusout={() => (focused = false)}
     >
         {#each highlights as anime, index (anime.id)}
             {#if index === active}
@@ -89,22 +89,18 @@
                     </a>
 
                     <div class="pointer-events-none z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-72 sm:px-10 lg:px-16 2xl:self-start 2xl:pt-[calc((100svh-3.5rem)/2+2rem)] 2xl:pb-0">
-                        {#if anime.logoUrl}
-                            <a
-                                href={anime.href}
-                                class="pointer-events-auto block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-                                aria-label={`View ${anime.title}`}
-                            >
-                                <img
-                                    src={anime.logoUrl}
-                                    alt={anime.title}
-                                    style:height={`clamp(${5 * anime.logoSize / 100}rem, ${6.4 * anime.logoSize / 100}vw, ${8 * anime.logoSize / 100}rem)`}
-                                    class="max-h-28 max-w-[75vw] object-contain object-left sm:max-w-md lg:max-w-xl 2xl:max-h-40 2xl:max-w-2xl"
-                                />
-                            </a>
-                        {:else}
-                            <h1 class="sr-only">{anime.title}</h1>
-                        {/if}
+                        <a
+                            href={anime.href}
+                            class="pointer-events-auto block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                            aria-label={`View ${anime.title}`}
+                        >
+                            <img
+                                src={anime.logoUrl}
+                                alt={anime.title}
+                                style:height={`clamp(${5 * anime.logoSize / 100}rem, ${6.4 * anime.logoSize / 100}vw, ${8 * anime.logoSize / 100}rem)`}
+                                class="max-h-28 max-w-[75vw] object-contain object-left sm:max-w-md lg:max-w-xl 2xl:max-h-40 2xl:max-w-2xl"
+                            />
+                        </a>
 
                         <p class="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/78 sm:text-sm 2xl:mt-8 2xl:text-base">
                             <span>{anime.format}</span>
@@ -143,11 +139,24 @@
                             >
                                 <PlayIcon
                                     size="1.45rem"
-                                    weight="fill"
+                                    weight="bold"
                                     aria-hidden="true"
                                 />
-                                START WATCHING
+                                START WATCHING {anime.episodeLabel}
                             </a>
+                            <button
+                                type="button"
+                                class="grid size-12 shrink-0 place-items-center border border-accent text-accent opacity-60 2xl:size-14"
+                                aria-label="Coming soon"
+                                title="Coming soon"
+                                disabled
+                            >
+                                <BookmarkSimpleIcon
+                                    size="1.65rem"
+                                    weight="regular"
+                                    aria-hidden="true"
+                                />
+                            </button>
                         </div>
 
                         {#if highlights.length > 1}
