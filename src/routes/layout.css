@@ -13,7 +13,7 @@
     --theme-subtle: light-dark(oklch(0.55 0.008 285), oklch(0.57 0.008 285));
     --theme-border: light-dark(oklch(0.78 0.006 285), oklch(0.35 0.008 285));
     --theme-border-strong: light-dark(oklch(0.54 0.008 285), oklch(0.5 0.008 285));
-    --theme-accent: oklch(69.181% 0.18362 47.764);
+    --theme-accent: oklch(58.163% 0.19361 261.343);
     --theme-on-accent: oklch(0.13 0.01 48);
     --theme-status-error: #f04427;
     --theme-status-success: #2ca66f;
