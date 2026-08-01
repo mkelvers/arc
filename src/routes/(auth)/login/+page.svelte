@@ -74,8 +74,8 @@
 
 <StatusBanner message={message} tone="error" ondismiss={() => (message = '')} />
 
-<form class="w-full max-w-[26rem]" onsubmit={login} novalidate>
-	<h1 class="text-center text-3xl font-normal">Login</h1>
+<form class="w-full max-w-104" onsubmit={login} novalidate>
+	<h1 class="text-center text-3xl font-normal">Log In</h1>
 
 	<div class="mt-16 space-y-6">
 		<div>
@@ -184,6 +184,6 @@
 		type="submit"
 		disabled={!canSubmit}
 	>
-		{pending ? 'LOGGING IN…' : 'LOGIN'}
+		{pending ? 'LOGGING IN…' : 'LOG IN'}
 	</button>
 </form>
