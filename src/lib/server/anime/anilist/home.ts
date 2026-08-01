@@ -7,7 +7,7 @@ import {
 import { GraphQLRequestError } from '$lib/server/graphql';
 import { RequestCache } from '$lib/server/request-cache';
 import { request } from './client';
-import { animeCard, homepageHighlight } from './models';
+import { animeCard } from './models';
 import { present } from './text';
 import type { HomepageAnime } from './types';
 
@@ -31,12 +31,6 @@ async function requestHomepage(
     );
 
     return {
-        highlights: present(response.highlights?.media)
-            .flatMap((entry) => {
-                const highlight = homepageHighlight(entry);
-                return highlight ? [highlight] : [];
-            })
-            .slice(0, 5),
         season: present(response.season?.media).flatMap((entry) => {
             const card = animeCard(entry);
             return card ? [card] : [];

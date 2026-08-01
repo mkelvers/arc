@@ -115,7 +115,7 @@ export type HomeAnimeQueryVariables = Exact<{
 }>;
 
 
-export type HomeAnimeQuery = { highlights: { media: Array<{ id: number, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null, season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
+export type HomeAnimeQuery = { season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
 
 export type SearchAnimePageQueryVariables = Exact<{
   search: string;
@@ -263,32 +263,6 @@ export const FranchiseMediaDocument = new TypedDocumentString(`
     `) as unknown as TypedDocumentString<FranchiseMediaQuery, FranchiseMediaQueryVariables>;
 export const HomeAnimeDocument = new TypedDocumentString(`
     query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
-  highlights: Page(page: 1, perPage: 12) {
-    media(
-      type: ANIME
-      season: $season
-      seasonYear: $seasonYear
-      status: RELEASING
-      sort: [TRENDING_DESC, POPULARITY_DESC]
-      isAdult: false
-    ) {
-      id
-      title {
-        english
-        romaji
-        native
-      }
-      bannerImage
-      coverImage {
-        extraLarge
-        large
-      }
-      description(asHtml: false)
-      genres
-      format
-      averageScore
-    }
-  }
   season: Page(page: 1, perPage: 30) {
     media(
       type: ANIME
