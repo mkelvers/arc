@@ -33,6 +33,8 @@ function metadataNeedsRefresh(
             !media ||
             /^(?:episode|movie)(?:\s+\d+)?$/i.test(media.title) ||
             !media.overview ||
+            media.titleSource !== 'tmdb' ||
+            media.overviewSource !== 'tmdb' ||
             !media.imageUrl ||
             !media.runtime ||
             !media.airDate
@@ -74,6 +76,22 @@ async function fetchAndStore(
         );
     }
 
+    const storedText = new Map(
+        await db
+            .select({
+                episodeId: animeEpisode.episodeId,
+                title: animeEpisode.metadataTitle,
+                titleSource: animeEpisode.metadataTitleSource,
+                overview: animeEpisode.overview,
+                overviewSource: animeEpisode.overviewSource,
+            })
+            .from(animeEpisode)
+            .where(eq(animeEpisode.anilistId, anime.id))
+            .then((rows) =>
+                rows.map(({ episodeId, ...text }) => [episodeId, text]),
+            ),
+    );
+
     const resolvedMetadataSource =
         metadataSource ??
         (await resolveStored(anime).catch((cause) => {
@@ -89,6 +107,7 @@ async function fetchAndStore(
                   anime,
                   providerEpisodes,
                   resolvedMetadataSource,
+                  storedText,
               )
               .catch((cause) => {
                   console.error(
@@ -149,6 +168,10 @@ async function fetchAndStore(
                     media?.title ||
                     previousMetadata?.metadataTitle ||
                     null,
+                metadataTitleSource:
+                    media?.titleSource ??
+                    previousMetadata?.metadataTitleSource ??
+                    null,
                 audio: mergeAudioModes(previous?.audio, episode.audio),
                 imageUrl:
                     media?.imageUrl ??
@@ -165,6 +188,10 @@ async function fetchAndStore(
                 overview:
                     media?.overview ||
                     previousMetadata?.overview ||
+                    null,
+                overviewSource:
+                    media?.overviewSource ??
+                    previousMetadata?.overviewSource ??
                     null,
                 firstSeenAt: previous?.firstSeenAt ?? now,
                 lastSeenAt: now,
@@ -190,6 +217,9 @@ async function fetchAndStore(
                     metadataTitle: sql.raw(
                         `excluded.${animeEpisode.metadataTitle.name}`,
                     ),
+                    metadataTitleSource: sql.raw(
+                        `excluded.${animeEpisode.metadataTitleSource.name}`,
+                    ),
                     audio: sql.raw(
                         `excluded.${animeEpisode.audio.name}`,
                     ),
@@ -204,6 +234,9 @@ async function fetchAndStore(
                     ),
                     overview: sql.raw(
                         `excluded.${animeEpisode.overview.name}`,
+                    ),
+                    overviewSource: sql.raw(
+                        `excluded.${animeEpisode.overviewSource.name}`,
                     ),
                     lastSeenAt: now,
                     lastVerifiedAt: now,

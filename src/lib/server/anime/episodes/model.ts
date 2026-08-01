@@ -13,18 +13,14 @@ function episodeModel(
     fallbackDuration: number | null | undefined,
     displayNumber: number,
 ): AnimeEpisode {
-    const genericMetadataTitle =
-        episode.metadataTitle &&
-        /^(?:episode|movie)(?:\s+\d+)?$/i.test(
-            episode.metadataTitle,
-        );
     const title =
-        (genericMetadataTitle
-            ? episode.providerTitle
-            : episode.metadataTitle) ||
-        episode.providerTitle ||
-        episode.metadataTitle ||
-        `Episode ${episode.episodeId}`;
+        episode.metadataTitleSource &&
+        episode.metadataTitle &&
+        !/^(?:episode|movie)(?:\s+\d+)?$/i.test(
+            episode.metadataTitle,
+        )
+            ? episode.metadataTitle
+            : '';
 
     return {
         id: episode.episodeId,
@@ -38,7 +34,7 @@ function episodeModel(
             episode.runtimeMinutes ?? fallbackDuration,
         ),
         releaseDate: episode.airDate ?? '',
-        overview: episode.overview ?? '',
+        overview: episode.overviewSource ? (episode.overview ?? '') : '',
     };
 }
 
