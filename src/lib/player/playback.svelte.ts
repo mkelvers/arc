@@ -551,6 +551,32 @@ export class Playback {
         await this.reloadSource();
     }
 
+    async changeEpisode() {
+        this.clearSourceWatchdog();
+        this.clearSubtitles();
+        this.destroyHls();
+        this.audio.sync(this.video, 0, true);
+
+        this.resumeAt = null;
+        this.resumePlayback = false;
+        this.autoplayAttempted = false;
+        this.changingSource = false;
+        this.pendingSourceFailure = null;
+        this.currentTime = 0;
+        this.duration = 0;
+        this.buffered = 0;
+        this.playing = false;
+        this.loading = true;
+        this.error = false;
+
+        if (!this.sources[this.mode]?.length) {
+            this.mode = this.audioModes[0] ?? 'sub';
+        }
+
+        this.resetSource();
+        await this.reloadSource();
+    }
+
     ended() {
         this.playing = false;
         this.onActivity();

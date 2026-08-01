@@ -2,7 +2,13 @@
     import { Player } from '$lib/player/controller.svelte';
     import type { Sources } from '$lib/player/media';
     import { ProgressSchedule } from '$lib/player/progress';
-    import { onMount } from 'svelte';
+    import {
+        activeSkip as findActiveSkip,
+        skipTimesDraft,
+        type EpisodeSkipTimes,
+        type SkipKind,
+    } from '$lib/player/skip-times';
+    import { onMount, untrack } from 'svelte';
     import {
         CornersInIcon,
         CornersOutIcon,
@@ -18,35 +24,113 @@
 
     interface Props {
         animeId: number;
+        canEditSkipTimes: boolean;
         episodeId: string;
         episodeNumber: number;
         sources: Sources;
         label: string;
         poster?: string | null;
         next?: string | null;
+        onretry: () => void;
         startAt?: number;
+        skipTimes: EpisodeSkipTimes;
+        streamError: boolean;
+        transitioning: boolean;
+        unavailable: boolean;
+        retrying: boolean;
     }
 
     let {
         animeId,
+        canEditSkipTimes,
         episodeId,
         episodeNumber,
         sources,
         label,
         poster = null,
         next = null,
+        onretry,
         startAt = 0,
+        skipTimes,
+        streamError,
+        transitioning,
+        unavailable,
+        retrying,
     }: Props = $props();
     const player = new Player(
         () => sources,
         () => next,
     );
     const media = player.media;
-    const progressSchedule = new ProgressSchedule();
+    let progressSchedule = new ProgressSchedule();
     let progressStarted = false;
     let episodeEnded = false;
     let finalSaveSent = false;
     let saveQueue: Promise<void> = Promise.resolve();
+    let mounted = $state(false);
+    let changingEpisode = $state(false);
+    let loadedSources = untrack(() => sources);
+    let trackedEpisode = untrack(() => ({
+        animeId,
+        episodeId,
+        episodeNumber,
+    }));
+    let receivedSkipTimes = untrack(() => skipTimes);
+    let skipEpisodeId = untrack(() => episodeId);
+    let currentSkipTimes = $state(untrack(() => skipTimes));
+    let skipDraft = $state(untrack(() => skipTimesDraft(skipTimes)));
+    let skipSaving = $state(false);
+    let skipError = $state<string | null>(null);
+
+    const visibleSkip = $derived(
+        findActiveSkip(currentSkipTimes, media.currentTime),
+    );
+
+    $effect(() => {
+        const incoming = skipTimes;
+        const incomingEpisodeId = episodeId;
+        if (
+            incoming === receivedSkipTimes &&
+            incomingEpisodeId === skipEpisodeId
+        ) {
+            return;
+        }
+
+        receivedSkipTimes = incoming;
+        skipEpisodeId = incomingEpisodeId;
+        currentSkipTimes = incoming;
+        skipDraft = skipTimesDraft(incoming);
+        skipError = null;
+    });
+
+    $effect(() => {
+        const incomingSources = sources;
+        const incomingEpisode = { animeId, episodeId, episodeNumber };
+        const episodeChanged =
+            incomingEpisode.animeId !== trackedEpisode.animeId ||
+            incomingEpisode.episodeId !== trackedEpisode.episodeId;
+
+        if (!mounted) {
+            loadedSources = incomingSources;
+            return;
+        }
+        if (!episodeChanged && incomingSources === loadedSources) {
+            return;
+        }
+
+        if (episodeChanged && !episodeEnded) {
+            void saveProgress(false, true);
+        }
+
+        changingEpisode = true;
+        loadedSources = incomingSources;
+        trackedEpisode = incomingEpisode;
+        progressSchedule = new ProgressSchedule();
+        progressStarted = false;
+        episodeEnded = false;
+        finalSaveSent = false;
+        void media.changeEpisode();
+    });
 
     function progressPayload(completed: boolean) {
         const positionSeconds = media.video?.currentTime;
@@ -61,9 +145,7 @@
         }
 
         return {
-            animeId,
-            episodeId,
-            episodeNumber,
+            ...trackedEpisode,
             positionSeconds,
             durationSeconds,
             completed,
@@ -121,6 +203,7 @@
     }
 
     function handleMetadata() {
+        changingEpisode = false;
         media.handleMetadata(startAt);
 
         if (progressStarted) {
@@ -152,10 +235,83 @@
         media.ended();
     }
 
+    async function persistSkipTimes(
+        times: Pick<EpisodeSkipTimes, 'opening' | 'ending'>,
+    ) {
+        skipSaving = true;
+        skipError = null;
+
+        try {
+            const response = await fetch('/api/episodes/skip-times', {
+                method: 'PUT',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    anilistId: trackedEpisode.animeId,
+                    episodeId: trackedEpisode.episodeId,
+                    ...times,
+                }),
+                credentials: 'same-origin',
+            });
+            if (!response.ok) {
+                throw new Error(
+                    response.status === 401
+                        ? 'Sign in to edit segments.'
+                        : 'Segments could not be saved.',
+                );
+            }
+
+            currentSkipTimes = { ...times, source: 'manual' };
+            skipDraft = skipTimesDraft(currentSkipTimes);
+        } catch (cause) {
+            skipError =
+                cause instanceof Error
+                    ? cause.message
+                    : 'Segments could not be saved.';
+        } finally {
+            skipSaving = false;
+        }
+    }
+
+    function markSkip(kind: SkipKind, edge: 'start' | 'end') {
+        const value = Math.round(media.video.currentTime * 1_000) / 1_000;
+        const marked = { ...skipDraft[kind], [edge]: value };
+        skipDraft = { ...skipDraft, [kind]: marked };
+        skipError = null;
+
+        if (marked.start === null || marked.end === null) {
+            return;
+        }
+        if (marked.end <= marked.start) {
+            skipError = 'The end must be after the start.';
+            return;
+        }
+
+        void persistSkipTimes({
+            opening:
+                kind === 'opening'
+                    ? { start: marked.start, end: marked.end }
+                    : currentSkipTimes.opening,
+            ending:
+                kind === 'ending'
+                    ? { start: marked.start, end: marked.end }
+                    : currentSkipTimes.ending,
+        });
+    }
+
+    function clearSkip(kind: SkipKind) {
+        void persistSkipTimes({
+            opening:
+                kind === 'opening' ? null : currentSkipTimes.opening,
+            ending: kind === 'ending' ? null : currentSkipTimes.ending,
+        });
+    }
+
     onMount(() => {
         const closePlayer = player.mount();
+        mounted = true;
 
         return () => {
+            mounted = false;
             saveBeforeLeave();
             closePlayer();
         };
@@ -201,7 +357,7 @@
         onpause={() => {
             media.playing = false;
             player.showControls();
-            if (!episodeEnded) {
+            if (!episodeEnded && !changingEpisode) {
                 void saveProgress();
             }
         }}
@@ -223,7 +379,44 @@
         </div>
     {/if}
 
-    {#if media.loading}
+    {#if transitioning || changingEpisode}
+        <div
+            role="status"
+            aria-label="Loading next episode"
+            class="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/80"
+        >
+            <SpinnerGapIcon
+                size="2.5rem"
+                weight="bold"
+                class="animate-spin text-accent"
+                aria-hidden="true"
+            />
+        </div>
+    {:else if unavailable}
+        <div
+            role="alert"
+            class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center"
+        >
+            <div>
+                <p class="text-base font-bold">
+                    {streamError
+                        ? 'The streaming providers could not load this video.'
+                        : 'No video source is available.'}
+                </p>
+                <p class="mt-2 text-sm text-white/65">
+                    Arc tried every available source for this episode.
+                </p>
+                <button
+                    type="button"
+                    disabled={retrying}
+                    class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
+                    onclick={onretry}
+                >
+                    {retrying ? 'Trying again…' : 'Try again'}
+                </button>
+            </div>
+        </div>
+    {:else if media.loading}
         <div
             role="status"
             aria-label="Loading video"
@@ -238,7 +431,7 @@
         </div>
     {/if}
 
-    {#if media.error}
+    {#if media.error && !unavailable && !transitioning && !changingEpisode}
         <div
             role="alert"
             class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center"
@@ -257,6 +450,23 @@
                 </button>
             </div>
         </div>
+    {/if}
+
+    {#if visibleSkip &&
+        !unavailable &&
+        !transitioning &&
+        !changingEpisode &&
+        !media.error}
+        <button
+            type="button"
+            class="absolute right-4 bottom-24 z-20 min-h-11 rounded-sm bg-white/95 px-5 text-sm font-bold text-black shadow-[0_3px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:right-6 sm:bottom-28"
+            onclick={() => {
+                media.seek(visibleSkip.interval.end);
+                player.showControls();
+            }}
+        >
+            Skip {visibleSkip.kind === 'opening' ? 'intro' : 'outro'}
+        </button>
     {/if}
 
     <div
@@ -351,6 +561,7 @@
                             bind:view={player.settingsView}
                             autoplay={media.autoplay}
                             bestQuality={media.bestQuality}
+                            {canEditSkipTimes}
                             mode={media.mode}
                             qualities={media.qualities}
                             quality={media.quality}
@@ -360,6 +571,11 @@
                             onmode={(mode) => media.switchMode(mode)}
                             onquality={(quality) =>
                                 media.switchQuality(quality)}
+                            onskipclear={clearSkip}
+                            onskipmark={markSkip}
+                            {skipDraft}
+                            {skipError}
+                            {skipSaving}
                         />
                     {/if}
                 </div>
