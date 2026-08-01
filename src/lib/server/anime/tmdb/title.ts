@@ -1,5 +1,19 @@
 import type { AniListAnime, Candidate } from './types';
 
+const romanReleaseSuffix =
+    /\s+(ii|iii|iv|v|vi|vii|viii|ix|x)$/;
+const romanReleaseNumbers: Readonly<Record<string, number>> = {
+    ii: 2,
+    iii: 3,
+    iv: 4,
+    v: 5,
+    vi: 6,
+    vii: 7,
+    viii: 8,
+    ix: 9,
+    x: 10,
+};
+
 export function normalizeTitle(title: string) {
     return title
         .normalize('NFKD')
@@ -21,6 +35,7 @@ export function seriesTitle(title: string) {
                 '',
             )
             .replace(/\s+final\s+season$/, '')
+            .replace(romanReleaseSuffix, '')
             .replace(/\s+(?:the\s+)?movie$/, '')
             .replace(/\s+(?:19|20)\d{2}$/, '')
             .replace(/\s+(?:第\s*)?\d+\s*期$/u, '')
@@ -40,6 +55,30 @@ export function titlesFor(anime: AniListAnime) {
         (title, index, values): title is string =>
             Boolean(title?.trim()) && values.indexOf(title) === index,
     );
+}
+
+export function releaseSequence(anime: AniListAnime) {
+    for (const title of titlesFor(anime)) {
+        const normalized = normalizeTitle(title);
+        const numeric =
+            normalized.match(/\bseason\s+0*(\d+)\b/)?.[1] ??
+            normalized.match(
+                /\b0*(\d+)(?:st|nd|rd|th)\s+season\b/,
+            )?.[1] ??
+            normalized.match(/(?:^|\s)0*(\d+)\s*期$/u)?.[1];
+        const roman = normalized.match(romanReleaseSuffix)?.[1];
+        const sequence = numeric
+            ? Number(numeric)
+            : roman
+              ? romanReleaseNumbers[roman]
+              : null;
+
+        if (sequence && Number.isSafeInteger(sequence)) {
+            return sequence;
+        }
+    }
+
+    return null;
 }
 
 export function isSpecialRelease(anime: AniListAnime) {
