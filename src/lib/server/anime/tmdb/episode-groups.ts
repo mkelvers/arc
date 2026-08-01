@@ -4,7 +4,7 @@ import {
     episodeTitleScore,
     normalizedProviderTitle,
 } from '../providers/match';
-import { titlesFor } from './title';
+import { releaseSequence } from './title';
 import type {
     AniListAnime,
     EpisodeCandidate,
@@ -93,25 +93,6 @@ function inventoryKey(candidates: EpisodeCandidate[]) {
                 `${seasonNumber}:${episodeNumber}`,
         )
         .join(',');
-}
-
-function releaseSequence(anime: AniListAnime) {
-    for (const title of titlesFor(anime)) {
-        const normalized = normalizedProviderTitle(title);
-        const value =
-            normalized.match(/\bseason\s+0*(\d+)\b/)?.[1] ??
-            normalized.match(
-                /\b0*(\d+)(?:st|nd|rd|th)\s+season\b/,
-            )?.[1] ??
-            normalized.match(/(?:^|\s)0*(\d+)\s*期$/u)?.[1];
-        const sequence = Number(value);
-
-        if (Number.isSafeInteger(sequence) && sequence > 0) {
-            return sequence;
-        }
-    }
-
-    return null;
 }
 
 /** Selects a TMDB episode-group block only when it identifies this release. */

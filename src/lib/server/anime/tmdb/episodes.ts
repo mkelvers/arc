@@ -12,6 +12,7 @@ import {
 } from './episode-groups';
 import { matchEpisodeMetadata } from './episode-match';
 import { resolveStored } from './mapping';
+import { releaseSequence } from './title';
 import type {
     AniListAnime,
     EpisodeCandidate,
@@ -201,6 +202,7 @@ function seasonScore(
     largestSourceNumber: number,
     startDate: string | null,
     startYear: number | null,
+    expectedSequence: number | null,
 ) {
     let score = 0;
     const seasonYear = Number(season.air_date?.slice(0, 4)) || null;
@@ -211,6 +213,10 @@ function seasonScore(
 
     if (season.episode_count >= largestSourceNumber) {
         score += 10;
+    }
+
+    if (expectedSequence === season.season_number) {
+        score += 60;
     }
 
     if (startDate && season.air_date === startDate) {
@@ -335,6 +341,7 @@ export async function getEpisodeMetadata(
     const expectedCount = anime.episodes ?? largestSourceNumber;
     const startDate = animeStartDate(anime);
     const startYear = anime.startDate?.year ?? anime.seasonYear ?? null;
+    const expectedSequence = releaseSequence(anime);
     const largestSeason = Math.max(
         0,
         ...regularSeasons.map(({ episode_count }) => episode_count),
@@ -348,6 +355,7 @@ export async function getEpisodeMetadata(
                 largestSourceNumber,
                 startDate,
                 startYear,
+                expectedSequence,
             ),
         }))
         .sort((left, right) => right.score - left.score);
