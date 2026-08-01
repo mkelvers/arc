@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     candidateScore,
     normalizeTitle,
+    releaseSequence,
     seriesTitle,
 } from './title';
 import type { AniListAnime } from './types';
@@ -21,6 +22,11 @@ describe('TMDB title matching', () => {
         expect(seriesTitle('Bleach: Thousand-Year Blood War Part 2')).toBe(
             'bleach thousand year blood war',
         );
+        expect(
+            seriesTitle(
+                'From Old Country Bumpkin to Master Swordsman II',
+            ),
+        ).toBe('from old country bumpkin to master swordsman');
         expect(seriesTitle('ラブライブ！スーパースター!! 3期')).toBe(
             'ラフライフ スーハースター',
         );
@@ -50,6 +56,38 @@ describe('TMDB title matching', () => {
                     },
                     seasonYear: 2024,
                 } as AniListAnime,
+            ),
+        ).toBeGreaterThanOrEqual(85);
+    });
+
+    test('matches a Roman-numeral sequel to its aggregate series', () => {
+        const anime = {
+            title: {
+                english:
+                    'From Old Country Bumpkin to Master Swordsman II',
+                romaji: 'Katainaka no Ossan, Kensei ni Naru II',
+                native: '片田舎のおっさん、剣聖になるII',
+            },
+            startDate: {
+                year: 2026,
+                month: 7,
+                day: 8,
+            },
+            seasonYear: 2026,
+        } as AniListAnime;
+
+        expect(releaseSequence(anime)).toBe(2);
+        expect(
+            candidateScore(
+                {
+                    id: 260823,
+                    mediaType: 'tv',
+                    name: 'From Old Country Bumpkin to Master Swordsman',
+                    originalName: '片田舎のおっさん、剣聖になる',
+                    date: '2025-04-05',
+                    popularity: 29.2599,
+                },
+                anime,
             ),
         ).toBeGreaterThanOrEqual(85);
     });
