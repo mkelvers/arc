@@ -133,6 +133,25 @@ describe('playback episode identity matching', () => {
         ).toBeUndefined();
     });
 
+    test('uses provider numbering for regular stream lookup despite a conflicting display title', () => {
+        const episodes = [
+            { number: 1, title: 'Provider title one' },
+            { number: 2, title: 'Provider title two' },
+        ];
+
+        expect(
+            matchProviderStreamEpisode(
+                episodes,
+                {
+                    id: '2',
+                    number: 2,
+                    title: 'Unrelated metadata title',
+                },
+                2,
+            ),
+        ).toBe(episodes[1]);
+    });
+
     test('requires both the parent franchise and special title for a standalone match', () => {
         const anime = {
             id: 108511,
