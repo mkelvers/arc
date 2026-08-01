@@ -175,17 +175,16 @@
     bind:this={player.container}
     aria-label={`${label} player`}
     tabindex="-1"
-    class:aspect-video={!player.fullscreen}
     class:cursor-none={media.playing && !player.controlsVisible}
     class:h-full={player.fullscreen}
-    class="group relative w-full overflow-hidden bg-black focus:outline-none"
+    class="group relative aspect-21/9 w-full overflow-hidden bg-black focus:outline-none"
     onclick={(event) => player.handleClick(event)}
     ondblclick={(event) => player.handleDoubleClick(event)}
     onkeydown={(event) => player.handleKeydown(event)}
 >
     <video
         bind:this={media.video}
-        class="size-full bg-black object-contain"
+        class="size-full bg-black object-cover"
         playsinline
         preload="metadata"
         {poster}
