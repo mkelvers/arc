@@ -1,5 +1,6 @@
 <script lang="ts">
     import { audioAvailabilityLabel } from '$lib/anime/audio';
+    import { episodeHeading } from '$lib/anime/episode';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
     import WatchPlayer from '$lib/components/WatchPlayer.svelte';
@@ -15,6 +16,7 @@
     const poster = $derived(
         data.currentEpisode.image ?? data.fallbackImage,
     );
+    const heading = $derived(episodeHeading(data.currentEpisode));
 
     $effect(() => {
         if (renderedEpisodeId === undefined) {
@@ -32,7 +34,7 @@
 </script>
 
 <svelte:head>
-    <title>{data.currentEpisode.label} – {data.currentEpisode.title} — Arc</title>
+    <title>{heading} — Arc</title>
 </svelte:head>
 
 <main class="min-h-dvh">
@@ -41,7 +43,7 @@
         animeId={data.anime.id}
         episodeId={data.currentEpisode.id}
         episodeNumber={data.currentEpisode.number}
-        label={`${data.currentEpisode.label} – ${data.currentEpisode.title}`}
+        label={heading}
         {poster}
         next={data.nextEpisode?.href}
         startAt={data.startAt}
@@ -58,7 +60,7 @@
                 {data.anime.title}
             </a>
             <h1 class="mt-4 text-xl leading-tight font-bold">
-                {data.currentEpisode.label} – {data.currentEpisode.title}
+                {heading}
             </h1>
 
             <p class="mt-3 text-sm text-watch-muted">

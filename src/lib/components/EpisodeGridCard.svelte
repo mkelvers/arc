@@ -2,6 +2,7 @@
     import { CalendarBlankIcon, PlayIcon } from 'phosphor-svelte';
 
     import { audioAvailabilityLabel } from '$lib/anime/audio';
+    import { episodeHeading } from '$lib/anime/episode';
     import type { AnimeEpisode } from '$lib/anime/types';
     import { cn } from '$lib/utils';
 
@@ -21,6 +22,7 @@
         context = 'detail',
     }: Props = $props();
     const dialog = $derived(context === 'dialog');
+    const heading = $derived(episodeHeading(episode));
 </script>
 
 <a
@@ -90,7 +92,7 @@
                         : 'mt-1 text-sm leading-snug text-foreground',
                 )}
             >
-                {episode.label} – {episode.title}
+                {heading}
             </h3>
             <p
                 class={cn(
@@ -127,7 +129,7 @@
                     : 'text-sm leading-snug text-foreground',
             )}
         >
-            {episode.label} – {episode.title}
+            {heading}
         </h3>
         {#if episode.releaseDate}
             <div
