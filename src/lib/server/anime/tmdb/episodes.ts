@@ -1,15 +1,14 @@
 import type { ProviderEpisode } from '../providers/types';
+import { translateToEnglish } from '../translation';
 import { isRecord } from '$lib/utils';
 import { create, imageUrl } from './client';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
+    translatableMetadata,
     translatedMetadata,
 } from './episode-details';
-import {
-    releaseEpisodeGroup,
-    type EpisodeGroupBlock,
-} from './episode-groups';
+import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
 import { matchEpisodeMetadata } from './episode-match';
 import { resolveStored } from './mapping';
 import { releaseSequence } from './title';
@@ -17,8 +16,100 @@ import type {
     AniListAnime,
     EpisodeCandidate,
     EpisodeMetadata,
+    StoredEpisodeText,
     StoredMapping,
 } from './types';
+
+interface MetadataEntry {
+    id: string;
+    metadata: EpisodeMetadata;
+    source: {
+        name?: string | null;
+        overview?: string | null;
+    };
+}
+
+async function withMachineTranslation(
+    entries: MetadataEntry[],
+    stored: Map<string, StoredEpisodeText>,
+    anilistId: number,
+) {
+    const metadata = new Map(
+        entries.map(({ id, metadata }) => [id, { ...metadata }]),
+    );
+    const jobs: Array<{
+        id: string;
+        field: 'title' | 'overview';
+        text: string;
+    }> = [];
+
+    for (const { id, source } of entries) {
+        const episode = metadata.get(id);
+        if (!episode) {
+            continue;
+        }
+        const previous = stored.get(id);
+
+        if (!episode.title) {
+            if (previous?.titleSource === 'machine' && previous.title) {
+                episode.title = previous.title;
+                episode.titleSource = 'machine';
+            } else if (source.name?.trim()) {
+                jobs.push({
+                    id,
+                    field: 'title',
+                    text: source.name.trim(),
+                });
+            }
+        }
+
+        if (!episode.overview) {
+            if (previous?.overviewSource === 'machine' && previous.overview) {
+                episode.overview = previous.overview;
+                episode.overviewSource = 'machine';
+            } else if (source.overview?.trim()) {
+                jobs.push({
+                    id,
+                    field: 'overview',
+                    text: source.overview.trim(),
+                });
+            }
+        }
+    }
+
+    if (!jobs.length) {
+        return metadata;
+    }
+
+    try {
+        const translated = await translateToEnglish(
+            jobs.map(({ text }) => text),
+        );
+
+        jobs.forEach(({ id, field }, index) => {
+            const episode = metadata.get(id);
+            const value = translated[index];
+            if (!episode || !value) {
+                return;
+            }
+
+            if (field === 'title') {
+                episode.title = value;
+                episode.titleSource = 'machine';
+            } else {
+                episode.overview = value;
+                episode.overviewSource = 'machine';
+            }
+        });
+    } catch (cause) {
+        console.warn(
+            `Local episode translation failed for AniList ${anilistId}`,
+            cause,
+        );
+    }
+
+    return metadata;
+}
 
 function animeStartDate(anime: AniListAnime) {
     const { year, month, day } = anime.startDate ?? {};
@@ -51,18 +142,11 @@ function featuredEpisode(value: unknown) {
         seasonNumber,
         episodeNumber,
         details: {
-            name:
-                typeof value.name === 'string'
-                    ? value.name
-                    : undefined,
+            name: typeof value.name === 'string' ? value.name : undefined,
             overview:
-                typeof value.overview === 'string'
-                    ? value.overview
-                    : undefined,
+                typeof value.overview === 'string' ? value.overview : undefined,
             runtime:
-                typeof value.runtime === 'number'
-                    ? value.runtime
-                    : undefined,
+                typeof value.runtime === 'number' ? value.runtime : undefined,
             stillPath:
                 typeof value.still_path === 'string'
                     ? value.still_path
@@ -90,9 +174,7 @@ function episodeCandidate(episode: {
     still_path?: unknown;
 }): EpisodeCandidate {
     const stillPath =
-        typeof episode.still_path === 'string'
-            ? episode.still_path
-            : null;
+        typeof episode.still_path === 'string' ? episode.still_path : null;
 
     return {
         episodeNumber: episode.episode_number,
@@ -120,9 +202,8 @@ function bestImagePath(
         | undefined,
 ) {
     return images
-        ?.filter(
-            (image): image is typeof image & { file_path: string } =>
-                Boolean(image.file_path),
+        ?.filter((image): image is typeof image & { file_path: string } =>
+            Boolean(image.file_path),
         )
         .toSorted(
             (left, right) =>
@@ -138,10 +219,9 @@ async function episodeGroupCandidates(
     anime: AniListAnime,
     source: ProviderEpisode[],
 ) {
-    const { data } = await client.GET(
-        '/3/tv/{series_id}/episode_groups',
-        { params: { path: { series_id: seriesId } } },
-    );
+    const { data } = await client.GET('/3/tv/{series_id}/episode_groups', {
+        params: { path: { series_id: seriesId } },
+    });
     if (!data) {
         return null;
     }
@@ -151,16 +231,13 @@ async function episodeGroupCandidates(
             id
                 ? [
                       client
-                          .GET(
-                              '/3/tv/episode_group/{tv_episode_group_id}',
-                              {
-                                  params: {
-                                      path: {
-                                          tv_episode_group_id: id,
-                                      },
+                          .GET('/3/tv/episode_group/{tv_episode_group_id}', {
+                              params: {
+                                  path: {
+                                      tv_episode_group_id: id,
                                   },
                               },
-                          )
+                          })
                           .then(({ data: group }) => group)
                           .catch(() => undefined),
                   ]
@@ -169,21 +246,18 @@ async function episodeGroupCandidates(
     );
     const blocks: EpisodeGroupBlock[] = groups.flatMap((group) =>
         (group?.groups ?? []).map((block) => ({
-            episodes: (block.episodes ?? []).flatMap(
-                (episode, index) =>
-                    Number.isSafeInteger(episode.season_number) &&
-                    Number.isSafeInteger(episode.episode_number)
-                        ? [
-                              {
-                                  ...episodeCandidate(episode),
-                                  order: Number.isSafeInteger(
-                                      episode.order,
-                                  )
-                                      ? episode.order
-                                      : index,
-                              },
-                          ]
-                        : [],
+            episodes: (block.episodes ?? []).flatMap((episode, index) =>
+                Number.isSafeInteger(episode.season_number) &&
+                Number.isSafeInteger(episode.episode_number)
+                    ? [
+                          {
+                              ...episodeCandidate(episode),
+                              order: Number.isSafeInteger(episode.order)
+                                  ? episode.order
+                                  : index,
+                          },
+                      ]
+                    : [],
             ),
             name: block.name,
             order: block.order,
@@ -235,6 +309,7 @@ export async function getEpisodeMetadata(
     anime: AniListAnime,
     source: ProviderEpisode[],
     storedMapping?: StoredMapping,
+    storedText = new Map<string, StoredEpisodeText>(),
 ): Promise<Map<string, EpisodeMetadata>> {
     if (!source.length) {
         return new Map();
@@ -248,15 +323,12 @@ export async function getEpisodeMetadata(
             return new Map();
         }
 
-        const { data: movie, error } = await client.GET(
-            '/3/movie/{movie_id}',
-            {
-                params: {
-                    path: { movie_id: match.id },
-                    query: { language: 'en-US' },
-                },
+        const { data: movie, error } = await client.GET('/3/movie/{movie_id}', {
+            params: {
+                path: { movie_id: match.id },
+                query: { language: 'en-US' },
             },
-        );
+        });
 
         if (!movie) {
             throw new Error('TMDB movie request failed', {
@@ -265,7 +337,9 @@ export async function getEpisodeMetadata(
         }
 
         const [translations, images] = await Promise.all([
-            !movie.overview?.trim() || !movie.title?.trim()
+            movie.original_language !== 'en' ||
+            !movie.overview?.trim() ||
+            !movie.title?.trim()
                 ? client
                       .GET('/3/movie/{movie_id}/translations', {
                           params: { path: { movie_id: match.id } },
@@ -282,51 +356,58 @@ export async function getEpisodeMetadata(
                       .catch(() => undefined)
                 : Promise.resolve(undefined),
         ]);
-        const translated = translatedMetadata(
-            translations?.map((translation) => ({
-                country: translation.iso_3166_1,
-                language: translation.iso_639_1,
-                name: translation.data?.title,
-                overview: translation.data?.overview,
-            })),
+        const localized = translations?.map((translation) => ({
+            country: translation.iso_3166_1,
+            language: translation.iso_639_1,
+            name: translation.data?.title,
+            overview: translation.data?.overview,
+        }));
+        const translated = translatedMetadata(localized);
+        const translatable = translatableMetadata(
+            localized,
             movie.original_language,
         );
+        const originalIsEnglish = movie.original_language === 'en';
         const image =
             movie.backdrop_path ??
             movie.poster_path ??
             bestImagePath(images?.backdrops) ??
             bestImagePath(images?.posters);
-        return new Map([
+        const title =
+            (originalIsEnglish
+                ? movie.title?.trim() || translated.name
+                : translated.name) ?? '';
+        const overview = originalIsEnglish
+            ? movie.overview?.trim() || translated.overview || ''
+            : translated.overview || '';
+
+        return withMachineTranslation(
             [
-                source[0].id,
                 {
-                    title:
-                        movie.title?.trim() ||
-                        translated.name ||
-                        movie.original_title?.trim() ||
-                        source[0].title ||
-                        'Movie',
-                    overview:
-                        movie.overview?.trim() ||
-                        translated.overview ||
-                        '',
-                    imageUrl: image ? imageUrl(image, 'w500') : null,
-                    runtime: movie.runtime || null,
-                    airDate: displayAirDate(movie.release_date),
+                    id: source[0].id,
+                    metadata: {
+                        title,
+                        titleSource: title ? 'tmdb' : null,
+                        overview,
+                        overviewSource: overview ? 'tmdb' : null,
+                        imageUrl: image ? imageUrl(image, 'w500') : null,
+                        runtime: movie.runtime || null,
+                        airDate: displayAirDate(movie.release_date),
+                    },
+                    source: translatable,
                 },
             ],
-        ]);
+            storedText,
+            anime.id,
+        );
     }
 
-    const { data: series, error } = await client.GET(
-        '/3/tv/{series_id}',
-        {
-            params: {
-                path: { series_id: match.id },
-                query: { language: 'en-US' },
-            },
+    const { data: series, error } = await client.GET('/3/tv/{series_id}', {
+        params: {
+            path: { series_id: match.id },
+            query: { language: 'en-US' },
         },
-    );
+    });
 
     if (!series) {
         throw new Error('TMDB series request failed', { cause: error });
@@ -365,10 +446,13 @@ export async function getEpisodeMetadata(
         expectedCount > largestSeason ? ranked : ranked.slice(0, 4);
     const selected = [
         ...new Map(
-            [...selectedRegular, ...specialSeasons.map((season) => ({
-                season,
-                score: 0,
-            }))].map((rankedSeason) => [
+            [
+                ...selectedRegular,
+                ...specialSeasons.map((season) => ({
+                    season,
+                    score: 0,
+                })),
+            ].map((rankedSeason) => [
                 rankedSeason.season.season_number,
                 rankedSeason,
             ]),
@@ -383,8 +467,7 @@ export async function getEpisodeMetadata(
                         params: {
                             path: {
                                 series_id: match.id,
-                                season_number:
-                                    season.season_number,
+                                season_number: season.season_number,
                             },
                             query: { language: 'en-US' },
                         },
@@ -395,9 +478,7 @@ export async function getEpisodeMetadata(
                     return [] as EpisodeCandidate[];
                 }
 
-                return (response.data.episodes ?? []).map(
-                    episodeCandidate,
-                );
+                return (response.data.episodes ?? []).map(episodeCandidate);
             }),
         ),
         episodeGroupCandidates(client, match.id, anime, source).catch(
@@ -412,13 +493,16 @@ export async function getEpisodeMetadata(
     );
     const completed = await Promise.all(
         [...matched.entries()].map(async ([sourceId, candidate]) => {
-            const needed = episodeDetailsNeeded(candidate);
-            if (
-                !needed.details &&
-                !needed.translations &&
-                !needed.images
-            ) {
-                return [sourceId, candidate] as const;
+            const needed = episodeDetailsNeeded(
+                candidate,
+                series.original_language,
+            );
+            if (!needed.details && !needed.translations && !needed.images) {
+                return {
+                    id: sourceId,
+                    metadata: candidate,
+                    source: {},
+                };
             }
 
             const path = {
@@ -458,12 +542,11 @@ export async function getEpisodeMetadata(
                       .then(({ data }) => data?.stills)
                       .catch(() => undefined)
                 : Promise.resolve(undefined);
-            const [details, translations, stills] =
-                await Promise.all([
-                    detailsRequest,
-                    translationsRequest,
-                    imagesRequest,
-                ]);
+            const [details, translations, stills] = await Promise.all([
+                detailsRequest,
+                translationsRequest,
+                imagesRequest,
+            ]);
             const featured = [
                 series.last_episode_to_air,
                 series.next_episode_to_air,
@@ -471,15 +554,20 @@ export async function getEpisodeMetadata(
                 .map(featuredEpisode)
                 .find(
                     (episode) =>
-                        episode?.seasonNumber ===
-                            candidate.seasonNumber &&
-                        episode.episodeNumber ===
-                            candidate.episodeNumber,
+                        episode?.seasonNumber === candidate.seasonNumber &&
+                        episode.episodeNumber === candidate.episodeNumber,
                 );
 
-            return [
-                sourceId,
-                completeEpisodeDetails(candidate, {
+            const localized = translations?.map((translation) => ({
+                country: translation.iso_3166_1,
+                language: translation.iso_639_1,
+                name: translation.data?.name,
+                overview: translation.data?.overview,
+            }));
+
+            return {
+                id: sourceId,
+                metadata: completeEpisodeDetails(candidate, {
                     details: details
                         ? {
                               name: details.name,
@@ -488,12 +576,7 @@ export async function getEpisodeMetadata(
                               stillPath: details.still_path,
                           }
                         : undefined,
-                    translations: translations?.map((translation) => ({
-                        country: translation.iso_3166_1,
-                        language: translation.iso_639_1,
-                        name: translation.data?.name,
-                        overview: translation.data?.overview,
-                    })),
+                    translations: localized,
                     stills: stills?.map((still) => ({
                         filePath: still.file_path,
                         voteAverage: still.vote_average,
@@ -504,9 +587,13 @@ export async function getEpisodeMetadata(
                     originalLanguage: series.original_language,
                     image: (path) => imageUrl(path, 'w500'),
                 }),
-            ] as const;
+                source: translatableMetadata(
+                    localized,
+                    series.original_language,
+                ),
+            };
         }),
     );
 
-    return new Map(completed);
+    return withMachineTranslation(completed, storedText, anime.id);
 }
