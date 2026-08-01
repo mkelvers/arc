@@ -35,10 +35,10 @@ export type AllAnimeAvailableEpisodesQueryVariables = Exact<{
 
 export type AllAnimeAvailableEpisodesQuery = { show: { availableEpisodesDetail: unknown } | null, episodeInfos: Array<{ episodeIdNum: number | string | null, notes: string | null }> | null };
 
-export type AllAnimePopularAudioQueryVariables = Exact<{ [key: string]: never; }>;
+export type AllAnimeWeeklyPopularQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type AllAnimePopularAudioQuery = { queryPopular: { recommendations: Array<{ anyCard: { aniListId: number | string | null, availableEpisodesDetail: unknown } | null }> | null } | null };
+export type AllAnimeWeeklyPopularQuery = { queryPopular: { recommendations: Array<{ anyCard: { aniListId: number | string | null, availableEpisodesDetail: unknown, siteRanks: { weekly: { position: number | null } | null } | null } | null }> | null } | null };
 
 export type AllAnimeEpisodeSourcesQueryVariables = Exact<{
   showId: string;
@@ -96,8 +96,8 @@ export const AllAnimeAvailableEpisodesDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AllAnimeAvailableEpisodesQuery, AllAnimeAvailableEpisodesQueryVariables>;
-export const AllAnimePopularAudioDocument = new TypedDocumentString(`
-    query AllAnimePopularAudio {
+export const AllAnimeWeeklyPopularDocument = new TypedDocumentString(`
+    query AllAnimeWeeklyPopular {
   queryPopular(
     type: anime
     size: 100
@@ -105,17 +105,22 @@ export const AllAnimePopularAudioDocument = new TypedDocumentString(`
     page: 1
     allowAdult: false
     allowUnknown: false
-    denyEcchi: false
+    denyEcchi: true
   ) {
     recommendations {
       anyCard {
         aniListId
         availableEpisodesDetail
+        siteRanks {
+          weekly {
+            position
+          }
+        }
       }
     }
   }
 }
-    `) as unknown as TypedDocumentString<AllAnimePopularAudioQuery, AllAnimePopularAudioQueryVariables>;
+    `) as unknown as TypedDocumentString<AllAnimeWeeklyPopularQuery, AllAnimeWeeklyPopularQueryVariables>;
 export const AllAnimeEpisodeSourcesDocument = new TypedDocumentString(`
     query AllAnimeEpisodeSources($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
   episode(

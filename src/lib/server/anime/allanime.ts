@@ -5,6 +5,7 @@ import {
     findShowId,
     getEpisodes,
     getPopularAudioLabels,
+    getWeeklyPopularAnime,
 } from './allanime/catalog';
 import {
     contentLane,
@@ -238,5 +239,6 @@ async function getStreams(
 export const allanime = {
     getEpisodes,
     getPopularAudioLabels,
+    getWeeklyPopularAnime,
     getStreams,
 };

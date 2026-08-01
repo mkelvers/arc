@@ -35,7 +35,7 @@ query AllAnimeAvailableEpisodes(
     }
 }
 
-query AllAnimePopularAudio {
+query AllAnimeWeeklyPopular {
     queryPopular(
         type: anime
         size: 100
@@ -43,12 +43,17 @@ query AllAnimePopularAudio {
         page: 1
         allowAdult: false
         allowUnknown: false
-        denyEcchi: false
+        denyEcchi: true
     ) {
         recommendations {
             anyCard {
                 aniListId
                 availableEpisodesDetail
+                siteRanks {
+                    weekly {
+                        position
+                    }
+                }
             }
         }
     }

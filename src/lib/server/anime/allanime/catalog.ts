@@ -1,8 +1,8 @@
 import type { AudioMode } from '$lib/anime/audio';
 import {
     AllAnimeAvailableEpisodesDocument,
-    AllAnimePopularAudioDocument,
     AllAnimeSearchDocument,
+    AllAnimeWeeklyPopularDocument,
     type AllAnimeAvailableEpisodesQuery,
     type AllAnimeSearchQuery,
     type VaildTranslationTypeEnumType,
@@ -19,11 +19,16 @@ import type { AniListAnime, Episode } from './types';
 const audioCacheLifetime = 30 * 60 * 1_000;
 const providerName = 'allanime';
 
-let audioCache: {
-    labels: Map<number, AudioMode[]>;
+interface WeeklyPopularAnime {
+    anilistId: number;
+    audio: AudioMode[];
+}
+
+let popularCache: {
+    anime: WeeklyPopularAnime[];
     fetchedAt: number;
 } | null = null;
-let audioRequest: Promise<Map<number, AudioMode[]>> | null = null;
+let popularRequest: Promise<WeeklyPopularAnime[]> | null = null;
 
 function audioModes(value: unknown) {
     const detail = record(value);
@@ -37,44 +42,74 @@ function audioModes(value: unknown) {
     });
 }
 
-export async function getPopularAudioLabels() {
+export async function getWeeklyPopularAnime() {
     if (
-        audioCache &&
-        Date.now() - audioCache.fetchedAt < audioCacheLifetime
+        popularCache &&
+        Date.now() - popularCache.fetchedAt < audioCacheLifetime
     ) {
-        return audioCache.labels;
+        return popularCache.anime;
     }
 
-    if (audioRequest) {
-        return audioRequest;
+    if (popularRequest) {
+        return popularRequest;
     }
 
-    audioRequest = request(AllAnimePopularAudioDocument, {}).then((data) => {
-        const labels = new Map<number, AudioMode[]>();
+    popularRequest = request(AllAnimeWeeklyPopularDocument, {}).then(
+        (data) => {
+            const recommendations = (
+                data.queryPopular?.recommendations ?? []
+            )
+                .map((recommendation, index) => ({
+                    card: recommendation.anyCard,
+                    index,
+                }))
+                .toSorted(
+                    (left, right) =>
+                        (left.card?.siteRanks?.weekly?.position ??
+                            left.index + 1) -
+                        (right.card?.siteRanks?.weekly?.position ??
+                            right.index + 1),
+                );
+            const seen = new Set<number>();
+            const anime: WeeklyPopularAnime[] = [];
 
-        for (const recommendation of data.queryPopular?.recommendations ?? []) {
-            const card = recommendation.anyCard;
-            const anilistId = Number(card?.aniListId);
-            const audio = audioModes(card?.availableEpisodesDetail);
+            for (const { card } of recommendations) {
+                const anilistId = Number(card?.aniListId);
+                if (
+                    !Number.isSafeInteger(anilistId) ||
+                    anilistId <= 0 ||
+                    seen.has(anilistId)
+                ) {
+                    continue;
+                }
 
-            if (
-                Number.isSafeInteger(anilistId) &&
-                anilistId > 0 &&
-                audio.length
-            ) {
-                labels.set(anilistId, audio);
+                seen.add(anilistId);
+                anime.push({
+                    anilistId,
+                    audio: audioModes(card?.availableEpisodesDetail),
+                });
             }
-        }
 
-        audioCache = { labels, fetchedAt: Date.now() };
-        return labels;
-    });
+            popularCache = { anime, fetchedAt: Date.now() };
+            return anime;
+        },
+    );
 
     try {
-        return await audioRequest;
+        return await popularRequest;
     } finally {
-        audioRequest = null;
+        popularRequest = null;
     }
+}
+
+export async function getPopularAudioLabels() {
+    const anime = await getWeeklyPopularAnime();
+
+    return new Map(
+        anime.flatMap(({ anilistId, audio }) =>
+            audio.length ? [[anilistId, audio] as const] : [],
+        ),
+    );
 }
 
 export async function findShowId(anime: AniListAnime, refresh = false) {
