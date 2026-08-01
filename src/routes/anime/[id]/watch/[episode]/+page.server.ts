@@ -21,6 +21,16 @@ function legacySlug(title: string, episodeId: string) {
     );
 }
 
+function playbackFailureSummary(cause: AggregateError) {
+    return [
+        ...new Set(
+            cause.errors.map((error) =>
+                error instanceof Error ? error.message : String(error),
+            ),
+        ),
+    ].join('; ');
+}
+
 async function getPlayback(
     animeData: Parameters<typeof anime.playback.getStreams>[0],
     episode: Parameters<typeof anime.playback.getStreams>[1],
@@ -30,6 +40,7 @@ async function getPlayback(
         ReturnType<typeof anime.playback.getStreams>
     > = {};
     let streamError = false;
+    let lastFailure: unknown;
 
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -39,13 +50,11 @@ async function getPlayback(
                 modes,
             );
             streamError = false;
+            lastFailure = undefined;
             break;
         } catch (cause) {
             streamError = true;
-            console.error(
-                `Playback provider attempt ${attempt + 1} failed`,
-                cause,
-            );
+            lastFailure = cause;
 
             if (attempt === 0) {
                 const errors =
@@ -72,6 +81,17 @@ async function getPlayback(
                 }
             }
         }
+    }
+
+    if (lastFailure instanceof AggregateError) {
+        console.warn(
+            `Playback unavailable for AniList ${animeData.id}, episode ${episode.id}: ${playbackFailureSummary(lastFailure)}`,
+        );
+    } else if (lastFailure !== undefined) {
+        console.error(
+            `Unexpected playback failure for AniList ${animeData.id}, episode ${episode.id}`,
+            lastFailure,
+        );
     }
 
     return {
