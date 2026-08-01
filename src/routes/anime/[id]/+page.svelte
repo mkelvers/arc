@@ -152,13 +152,13 @@
             <section
                 id="anime-details"
                 class={cn(
-                    'grid min-w-0 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
+                    'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
                     detailsExpanded
                         ? 'max-h-320'
                         : 'details-fade max-h-24',
                 )}
             >
-                <p class="max-w-prose text-foreground md:max-w-full">{data.anime.description}</p>
+                <p class="max-w-3xl text-foreground">{data.anime.description}</p>
                 <div class="space-y-3">
                     <p><strong class="font-normal text-foreground">Production:</strong> {data.anime.studios.join(', ')}</p>
                     <p><strong class="font-normal text-foreground">Key staff:</strong> {data.anime.staff}</p>
