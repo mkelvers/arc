@@ -1,6 +1,33 @@
 import type { AniListAnime } from './types';
 
-export const syncVersion = 7;
+export type EpisodeRefreshReason =
+    | 'metadata-source'
+    | 'missing'
+    | 'scheduled';
+
+export function episodeRefreshReason(
+    sync: {
+        metadataExternalIdId: number | null;
+        nextRefreshAt: Date | null;
+    } | null,
+    metadataExternalIdId: number | null,
+    now = Date.now(),
+): EpisodeRefreshReason | null {
+    if (!sync) {
+        return 'missing';
+    }
+
+    if (
+        metadataExternalIdId !== null &&
+        sync.metadataExternalIdId !== metadataExternalIdId
+    ) {
+        return 'metadata-source';
+    }
+
+    return sync.nextRefreshAt && sync.nextRefreshAt.getTime() <= now
+        ? 'scheduled'
+        : null;
+}
 
 export function nextRefreshAt(
     anime: AniListAnime,
