@@ -9,6 +9,7 @@
         StarIcon,
     } from 'phosphor-svelte';
     import { cn } from '$lib/utils';
+    import Tooltip from '$lib/components/Tooltip.svelte';
 
     interface Highlight {
         id: number;
@@ -144,19 +145,20 @@
                                 />
                                 START WATCHING {anime.episodeLabel}
                             </a>
-                            <button
-                                type="button"
-                                class="grid size-12 shrink-0 place-items-center border border-accent text-accent opacity-60 2xl:size-14"
-                                aria-label="Coming soon"
-                                title="Coming soon"
-                                disabled
-                            >
-                                <BookmarkSimpleIcon
-                                    size="1.65rem"
-                                    weight="regular"
-                                    aria-hidden="true"
-                                />
-                            </button>
+                            <Tooltip text="Add to Watchlist">
+                                <button
+                                    type="button"
+                                    class="grid size-12 shrink-0 place-items-center border border-accent text-accent opacity-60 2xl:size-14"
+                                    aria-label="Add to watchlist (coming soon)"
+                                    disabled
+                                >
+                                    <BookmarkSimpleIcon
+                                        size="1.65rem"
+                                        weight="regular"
+                                        aria-hidden="true"
+                                    />
+                                </button>
+                            </Tooltip>
                         </div>
 
                         {#if highlights.length > 1}

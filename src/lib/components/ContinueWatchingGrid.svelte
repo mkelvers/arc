@@ -2,6 +2,7 @@
     import { enhance } from '$app/forms';
     import { XIcon } from 'phosphor-svelte';
     import type { ContinueWatchingCard } from '$lib/anime/types';
+    import Tooltip from '$lib/components/Tooltip.svelte';
 
     interface Props {
         anime: ContinueWatchingCard[];
@@ -76,14 +77,15 @@
                         class="absolute top-2 right-2 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
                     >
                         <input type="hidden" name="animeId" value={entry.animeId} />
-                        <button
-                            type="submit"
-                            class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            aria-label={`Remove ${entry.title} from continue watching`}
-                            title="Remove from continue watching"
-                        >
-                            <XIcon size="1rem" weight="bold" aria-hidden="true" />
-                        </button>
+                        <Tooltip text="Remove">
+                            <button
+                                type="submit"
+                                class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                aria-label={`Remove ${entry.title} from continue watching`}
+                            >
+                                <XIcon size="1rem" weight="bold" aria-hidden="true" />
+                            </button>
+                        </Tooltip>
                     </form>
                 </article>
             {/each}

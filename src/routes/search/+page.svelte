@@ -4,6 +4,7 @@
     import { XIcon } from 'phosphor-svelte';
 
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import Tooltip from '$lib/components/Tooltip.svelte';
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
 
@@ -104,15 +105,16 @@
                             >
                                 {result.title}
                             </a>
-                            <button
-                                type="button"
-                                class="grid size-11 shrink-0 place-items-center border-l border-black/40 text-muted hover:bg-player-accent/20 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                                aria-label={`Remove ${result.title} from recent search results`}
-                                title="Remove"
-                                onclick={() => recent.remove(result.id)}
-                            >
-                                <XIcon size="1.15rem" weight="bold" aria-hidden="true" />
-                            </button>
+                            <Tooltip text="Remove">
+                                <button
+                                    type="button"
+                                    class="grid size-11 shrink-0 place-items-center border-l border-black/40 text-muted hover:bg-player-accent/20 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                                    aria-label={`Remove ${result.title} from recent search results`}
+                                    onclick={() => recent.remove(result.id)}
+                                >
+                                    <XIcon size="1.15rem" weight="bold" aria-hidden="true" />
+                                </button>
+                            </Tooltip>
                         </li>
                     {/each}
                 </ul>

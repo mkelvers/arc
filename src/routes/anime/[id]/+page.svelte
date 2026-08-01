@@ -2,6 +2,7 @@
     import Dropdown from '$lib/components/Dropdown.svelte';
     import EpisodeList from '$lib/components/EpisodeList.svelte';
     import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
+    import Tooltip from '$lib/components/Tooltip.svelte';
     import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
     import {
@@ -115,32 +116,34 @@
                             {watchAction.label}
                         </a>
                     {/await}
-                    <button
-                        type="button"
-                        class="grid size-11 shrink-0 place-items-center border border-accent text-accent opacity-60 lg:size-12"
-                        aria-label="Coming soon"
-                        title="Coming soon"
-                        disabled
-                    >
-                        <BookmarkSimpleIcon
-                            size="1.65em"
-                            weight="regular"
-                            aria-hidden="true"
-                        />
-                    </button>
-                    <button
-                        type="button"
-                        class="grid size-11 shrink-0 place-items-center opacity-60 lg:size-12"
-                        aria-label="Coming soon"
-                        title="Coming soon"
-                        disabled
-                    >
-                        <PencilSimpleIcon
-                            size="1.65em"
-                            weight="regular"
-                            aria-hidden="true"
-                        />
-                    </button>
+                    <Tooltip text="Add to Watchlist">
+                        <button
+                            type="button"
+                            class="grid size-11 shrink-0 place-items-center border border-accent text-accent opacity-60 lg:size-12"
+                            aria-label="Add to watchlist (coming soon)"
+                            disabled
+                        >
+                            <BookmarkSimpleIcon
+                                size="1.65em"
+                                weight="regular"
+                                aria-hidden="true"
+                            />
+                        </button>
+                    </Tooltip>
+                    <Tooltip text="Manage Watchlist Status">
+                        <button
+                            type="button"
+                            class="grid size-11 shrink-0 place-items-center opacity-60 lg:size-12"
+                            aria-label="Manage watchlist status (coming soon)"
+                            disabled
+                        >
+                            <PencilSimpleIcon
+                                size="1.65em"
+                                weight="regular"
+                                aria-hidden="true"
+                            />
+                        </button>
+                    </Tooltip>
                 </div>
             </div>
         </figure>

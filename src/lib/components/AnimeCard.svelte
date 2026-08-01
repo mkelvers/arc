@@ -1,7 +1,12 @@
 <script lang="ts">
-    import { PlayIcon, StarIcon } from 'phosphor-svelte';
+    import {
+        BookmarkSimpleIcon,
+        PlayIcon,
+        StarIcon,
+    } from 'phosphor-svelte';
 
     import type { AnimeCard } from '$lib/anime/types';
+    import Tooltip from '$lib/components/Tooltip.svelte';
 
     interface Props {
         anime: AnimeCard;
@@ -99,15 +104,30 @@
         {/if}
 
         <div class="relative z-10 mt-auto flex items-center gap-2 pt-3 text-accent">
-            <a
-                href={anime.watchHref}
-                class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
-                aria-label={`Start watching ${anime.title}`}
-                title="Start watching"
-                onclick={() => onselect?.(anime)}
-            >
-                <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
-            </a>
+            <Tooltip text="Play E1">
+                <a
+                    href={anime.watchHref}
+                    class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+                    aria-label={`Start watching ${anime.title}`}
+                    onclick={() => onselect?.(anime)}
+                >
+                    <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
+                </a>
+            </Tooltip>
+            <Tooltip text="Add to Watchlist">
+                <button
+                    type="button"
+                    class="grid size-9 place-items-center text-accent opacity-60"
+                    aria-label={`Add ${anime.title} to watchlist (coming soon)`}
+                    disabled
+                >
+                    <BookmarkSimpleIcon
+                        size="1.55rem"
+                        weight="regular"
+                        aria-hidden="true"
+                    />
+                </button>
+            </Tooltip>
         </div>
     </div>
 </article>
