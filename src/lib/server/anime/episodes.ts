@@ -82,6 +82,8 @@ async function getRelatedReleaseTitles(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)].filter(
         (id) => Number.isSafeInteger(id) && id > 0,
     );
+    // Related titles are optional matching evidence. A watch request must not
+    // discover and synchronize every adjacent release merely to obtain them.
     const stored = await storedRelatedReleaseTitles(ids);
 
     return stored.map(({ episodes }) => episodes);

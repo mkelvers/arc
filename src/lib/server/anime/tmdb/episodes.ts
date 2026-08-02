@@ -31,6 +31,8 @@ interface MetadataEntry {
 }
 
 const requestConcurrency = 4;
+// Sparse per-episode endpoints are optional fallbacks. Bound them so one
+// long-running release cannot turn a refresh into thousands of requests.
 const episodeFallbackBudget = 24;
 
 async function mapConcurrent<T, R>(
