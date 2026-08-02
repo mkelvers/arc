@@ -1,10 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import { Effect, Schedule } from 'effect';
 
-import {
-    episodeAudioAvailabilityLabel,
-    type AudioMode,
-} from '$lib/anime/audio';
 import type { FranchiseOrder } from '$lib/anime/types';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
@@ -14,6 +10,7 @@ import { plainText } from './anilist/text';
 import { transientRequestError } from './anilist/client';
 import { withAnimeCardPosters } from './card-posters';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
+import { withFranchisePlayback } from './franchise/playback';
 import {
     primaryFranchiseIds,
     type FranchiseSelectionEntry,
@@ -49,18 +46,15 @@ function synopsis(value: string | null | undefined) {
         .trim();
 }
 
-async function cachedPlayback(anilistIds: number[]) {
+async function currentPlayback(entries: FranchiseOrder['entries']) {
+    const anilistIds = [
+        ...new Set(entries.map(({ anilistId }) => anilistId)),
+    ];
     if (!anilistIds.length) {
-        return new Map<
-            number,
-            {
-                audioLabel: string;
-                watchHref: string | null;
-            }
-        >();
+        return entries;
     }
 
-    const cached = await db
+    const episodes = await db
         .select({
             anilistId: animeEpisode.anilistId,
             episodeId: animeEpisode.episodeId,
@@ -69,35 +63,8 @@ async function cachedPlayback(anilistIds: number[]) {
         })
         .from(animeEpisode)
         .where(inArray(animeEpisode.anilistId, anilistIds));
-    const grouped = new Map<
-        number,
-        Array<{ episodeId: string; number: number; audio: AudioMode[] }>
-    >();
 
-    for (const episode of cached) {
-        grouped.set(episode.anilistId, [
-            ...(grouped.get(episode.anilistId) ?? []),
-            episode,
-        ]);
-    }
-
-    return new Map(
-        [...grouped].map(([anilistId, episodes]) => {
-            const first = episodes.toSorted(
-                (left, right) => left.number - right.number,
-            )[0];
-
-            return [
-                anilistId,
-                {
-                    audioLabel: episodeAudioAvailabilityLabel(episodes),
-                    watchHref: first
-                        ? `/anime/${anilistId}/watch/${encodeURIComponent(first.episodeId)}`
-                        : null,
-                },
-            ] as const;
-        }),
-    );
+    return withFranchisePlayback(entries, episodes);
 }
 
 async function saveOrder(malId: number, data: FranchiseOrder) {
@@ -175,9 +142,6 @@ async function refresh(malId: number) {
             ];
         }),
     );
-    const playback = await cachedPlayback(
-        [...metadata.values()].map(({ id }) => id),
-    );
     const data: FranchiseOrder = {
         types,
         entries: entries.flatMap((entry) => {
@@ -205,7 +169,7 @@ async function refresh(malId: number) {
                         media?.coverImage?.extraLarge ??
                         media?.coverImage?.large ??
                         entry.image,
-                    caption: playback.get(anilistId)?.audioLabel ?? '',
+                    caption: '',
                     score: media?.averageScore ?? 0,
                     genres: (media?.genres ?? []).flatMap((genre) =>
                         genre ? [genre] : [],
@@ -216,9 +180,7 @@ async function refresh(malId: number) {
                         primaryIds.has(entry.malId) ||
                         (!media && !entry.secondary),
                     href: `/anime/${anilistId}`,
-                    watchHref:
-                        playback.get(anilistId)?.watchHref ??
-                        `/anime/${anilistId}`,
+                    watchHref: `/anime/${anilistId}`,
                 },
             ];
         }),
@@ -283,10 +245,11 @@ async function cachedFranchiseOrder(malId: number) {
 
 async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
     const order = await cachedFranchiseOrder(malId);
+    const entries = await currentPlayback(order.entries);
 
     return {
         ...order,
-        entries: await withAnimeCardPosters(order.entries),
+        entries: await withAnimeCardPosters(entries),
     };
 }
 
