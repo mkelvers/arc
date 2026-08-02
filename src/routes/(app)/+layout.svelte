@@ -18,6 +18,13 @@
 			</a>
 
 			<a
+				href="/browse"
+				class="inline-flex h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+			>
+				Browse
+			</a>
+
+			<a
 				href="/simulcast"
 				class="inline-flex h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
 			>
