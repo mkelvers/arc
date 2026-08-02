@@ -132,13 +132,14 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const exact = names.some((name) =>
         titles.some((title) => matches(name, title)),
     );
+    const exactAlias = exact && !exactPrimary;
     const series = mapping.map(seriesTitle);
     const exactSeries = names.some((name) =>
         series.some((title) => matches(seriesTitle(name), title)),
     );
     const qualified = primaryTitles.some(
         (title) => seriesTitle(title) !== normalizeTitle(title),
-    );
+    ) || exactAlias;
     const partial = names.some((name) =>
         titles.some((title) => name.includes(title) || title.includes(name)),
     );

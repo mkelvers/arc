@@ -91,4 +91,50 @@ describe('TMDB title matching', () => {
             ),
         ).toBeGreaterThanOrEqual(85);
     });
+
+    test('matches a named story arc through its adaptation title', () => {
+        expect(
+            candidateScore(
+                {
+                    id: 85937,
+                    mediaType: 'tv',
+                    name: 'Demon Slayer: Kimetsu no Yaiba',
+                    originalName: '鬼滅の刃',
+                    date: '2019-04-06',
+                    popularity: 18.3868,
+                },
+                {
+                    title: {
+                        english:
+                            'Demon Slayer: Kimetsu no Yaiba Hashira Training Arc',
+                        romaji: 'Kimetsu no Yaiba: Hashira Geiko-hen',
+                        native: '鬼滅の刃 柱稽古編',
+                    },
+                    startDate: {
+                        year: 2024,
+                        month: 5,
+                        day: 12,
+                    },
+                    seasonYear: 2024,
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'ADAPTATION',
+                                node: {
+                                    id: 87216,
+                                    type: 'MANGA',
+                                    title: {
+                                        english:
+                                            'Demon Slayer: Kimetsu no Yaiba',
+                                        romaji: 'Kimetsu no Yaiba',
+                                        native: '鬼滅の刃',
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                } as AniListAnime,
+            ),
+        ).toBeGreaterThanOrEqual(85);
+    });
 });
