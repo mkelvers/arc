@@ -58,7 +58,10 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
         const details = await Effect.runPromise(getAnime(id));
         const artwork = await getArtwork(details);
 
-        if (!artwork.selectedBackdrop || !artwork.selectedLogo) {
+        if (
+            !artwork?.selectedBackdrop ||
+            !artwork.selectedLogo
+        ) {
             return null;
         }
 

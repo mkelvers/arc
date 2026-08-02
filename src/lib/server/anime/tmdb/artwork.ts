@@ -7,7 +7,10 @@ import {
     animeArtworkPreference,
 } from '$lib/server/db/schema';
 import { create, imageUrl } from './client';
-import { resolveStored } from './mapping';
+import {
+    NoConfidentTmdbMappingError,
+    resolveStored,
+} from './mapping';
 import { getPoster } from './poster';
 import type {
     AniListAnime,
@@ -250,7 +253,16 @@ export async function fetchArtwork(match: StoredMapping) {
 }
 
 export async function getArtwork(anime: AniListAnime) {
-    const match = await resolveStored(anime);
+    let match: StoredMapping;
+    try {
+        match = await resolveStored(anime);
+    } catch (cause) {
+        if (cause instanceof NoConfidentTmdbMappingError) {
+            return null;
+        }
+        throw cause;
+    }
+
     const [artwork, selectedPoster] = await Promise.all([
         readArtwork(match).then((stored) => stored ?? fetchArtwork(match)),
         getPoster(anime, match).catch((cause) => {

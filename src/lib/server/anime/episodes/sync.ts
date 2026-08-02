@@ -9,7 +9,10 @@ import {
 } from '$lib/server/db/schema';
 import { playback } from '../providers';
 import { tmdb } from '../tmdb';
-import { resolveStored } from '../tmdb/mapping';
+import {
+    NoConfidentTmdbMappingError,
+    resolveStored,
+} from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
 import { nextRefreshAt } from './policy';
@@ -95,6 +98,9 @@ async function fetchAndStore(
     const resolvedMetadataSource =
         metadataSource ??
         (await resolveStored(anime).catch((cause) => {
+            if (cause instanceof NoConfidentTmdbMappingError) {
+                return null;
+            }
             console.error(
                 `TMDB episode enrichment failed for AniList ${anime.id}`,
                 cause,
