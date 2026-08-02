@@ -3,47 +3,17 @@ import { and, eq, notInArray, sql } from 'drizzle-orm';
 import { mergeAudioModes } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
-import {
-    animeEpisode,
-    animeEpisodeSync,
-} from '$lib/server/db/schema';
+import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
 import { playback } from '../providers';
 import { tmdb } from '../tmdb';
-import {
-    NoConfidentTmdbMappingError,
-    resolveStored,
-} from '../tmdb/mapping';
+import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
-import { nextRefreshAt } from './policy';
+import { canPreserveEpisodeMetadata, nextRefreshAt } from './policy';
 import { episodesForRelease } from './release';
 import type { AniListAnime } from './types';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
-
-function metadataNeedsRefresh(
-    source: Awaited<ReturnType<typeof playback.getEpisodes>>,
-    metadata: Awaited<ReturnType<typeof tmdb.getEpisodeMetadata>> | null,
-) {
-    if (!metadata || metadata.size < source.length) {
-        return true;
-    }
-
-    return source.some((episode) => {
-        const media = metadata.get(episode.id);
-
-        return (
-            !media ||
-            /^(?:episode|movie)(?:\s+\d+)?$/i.test(media.title) ||
-            !media.overview ||
-            media.titleSource !== 'tmdb' ||
-            media.overviewSource !== 'tmdb' ||
-            !media.imageUrl ||
-            !media.runtime ||
-            !media.airDate
-        );
-    });
-}
 
 async function recordFailure(anilistId: number, cause: unknown) {
     const message =
@@ -68,10 +38,54 @@ async function recordFailure(anilistId: number, cause: unknown) {
         });
 }
 
+async function recordExpectedEmptyInventory(anime: AniListAnime) {
+    const now = new Date();
+    const revision = sourceRevision([]);
+    const sync = await db
+        .select({
+            metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+            sourceRevision: animeEpisodeSync.sourceRevision,
+            stableSince: animeEpisodeSync.stableSince,
+        })
+        .from(animeEpisodeSync)
+        .where(eq(animeEpisodeSync.anilistId, anime.id))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+    const stableSince =
+        sync?.sourceRevision === revision && sync.stableSince
+            ? sync.stableSince
+            : now;
+    const values = {
+        mediaStatus: anime.status,
+        expectedEpisodes: anime.episodes,
+        sourceRevision: revision,
+        metadataExternalIdId: sync?.metadataExternalIdId ?? null,
+        stableSince,
+        lastSuccessAt: now,
+        nextRefreshAt: nextRefreshAt(anime, stableSince),
+        failureCount: 0,
+        lastError: null,
+    };
+
+    await db
+        .insert(animeEpisodeSync)
+        .values({ anilistId: anime.id, ...values })
+        .onConflictDoUpdate({
+            target: animeEpisodeSync.anilistId,
+            set: values,
+        });
+
+    return storedEpisodes(anime);
+}
+
 async function fetchAndStore(
     anime: AniListAnime,
     metadataSource: StoredMapping | undefined,
 ) {
+    if (anime.status === 'NOT_YET_RELEASED') {
+        return recordExpectedEmptyInventory(anime);
+    }
+
     const providerEpisodes = await playback.getEpisodes(anime);
     if (!providerEpisodes.length) {
         throw new Error(
@@ -79,8 +93,8 @@ async function fetchAndStore(
         );
     }
 
-    const storedText = new Map(
-        await db
+    const [storedText, previousMetadataExternalIdId] = await Promise.all([
+        db
             .select({
                 episodeId: animeEpisode.episodeId,
                 title: animeEpisode.metadataTitle,
@@ -90,10 +104,24 @@ async function fetchAndStore(
             })
             .from(animeEpisode)
             .where(eq(animeEpisode.anilistId, anime.id))
-            .then((rows) =>
-                rows.map(({ episodeId, ...text }) => [episodeId, text]),
+            .then(
+                (rows) =>
+                    new Map(
+                        rows.map(
+                            ({ episodeId, ...text }) =>
+                                [episodeId, text] as const,
+                        ),
+                    ),
             ),
-    );
+        db
+            .select({
+                metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+            })
+            .from(animeEpisodeSync)
+            .where(eq(animeEpisodeSync.anilistId, anime.id))
+            .limit(1)
+            .then((rows) => rows[0]?.metadataExternalIdId ?? null),
+    ]);
 
     const resolvedMetadataSource =
         metadataSource ??
@@ -113,7 +141,12 @@ async function fetchAndStore(
                   anime,
                   providerEpisodes,
                   resolvedMetadataSource,
-                  storedText,
+                  canPreserveEpisodeMetadata(
+                      previousMetadataExternalIdId,
+                      resolvedMetadataSource.externalIdId,
+                  )
+                      ? storedText
+                      : new Map(),
               )
               .catch((cause) => {
                   console.error(
@@ -123,21 +156,15 @@ async function fetchAndStore(
                   return null;
               })
         : null;
-    const source = episodesForRelease(
-        anime,
-        providerEpisodes,
-        metadata,
-    );
+    const source = episodesForRelease(anime, providerEpisodes, metadata);
     const now = new Date();
     const revision = sourceRevision(source);
-    const refreshMetadataSoon = metadataNeedsRefresh(source, metadata);
 
     await db.transaction(async (tx) => {
         const [sync, existing] = await Promise.all([
             tx
                 .select({
-                    metadataExternalIdId:
-                        animeEpisodeSync.metadataExternalIdId,
+                    metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
                 })
@@ -156,45 +183,30 @@ async function fetchAndStore(
         const values = source.map((episode) => {
             const previous = stored.get(episode.id);
             const media = metadata?.get(episode.id);
-            const previousMetadata =
-                metadata === null &&
-                (!resolvedMetadataSource ||
-                    sync?.metadataExternalIdId ===
-                        resolvedMetadataSource.externalIdId)
-                    ? previous
-                    : null;
+            const previousMetadata = canPreserveEpisodeMetadata(
+                sync?.metadataExternalIdId ?? null,
+                resolvedMetadataSource?.externalIdId ?? null,
+            )
+                ? previous
+                : null;
 
             return {
                 anilistId: anime.id,
                 episodeId: episode.id,
                 number: episode.number,
-                providerTitle:
-                    episode.title || previous?.providerTitle || null,
+                providerTitle: episode.title || previous?.providerTitle || null,
                 metadataTitle:
-                    media?.title ||
-                    previousMetadata?.metadataTitle ||
-                    null,
+                    media?.title || previousMetadata?.metadataTitle || null,
                 metadataTitleSource:
                     media?.titleSource ??
                     previousMetadata?.metadataTitleSource ??
                     null,
                 audio: mergeAudioModes(previous?.audio, episode.audio),
-                imageUrl:
-                    media?.imageUrl ??
-                    previousMetadata?.imageUrl ??
-                    null,
+                imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
                 runtimeMinutes:
-                    media?.runtime ??
-                    previousMetadata?.runtimeMinutes ??
-                    null,
-                airDate:
-                    media?.airDate ||
-                    previousMetadata?.airDate ||
-                    null,
-                overview:
-                    media?.overview ||
-                    previousMetadata?.overview ||
-                    null,
+                    media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
+                airDate: media?.airDate || previousMetadata?.airDate || null,
+                overview: media?.overview || previousMetadata?.overview || null,
                 overviewSource:
                     media?.overviewSource ??
                     previousMetadata?.overviewSource ??
@@ -209,14 +221,9 @@ async function fetchAndStore(
             .insert(animeEpisode)
             .values(values)
             .onConflictDoUpdate({
-                target: [
-                    animeEpisode.anilistId,
-                    animeEpisode.episodeId,
-                ],
+                target: [animeEpisode.anilistId, animeEpisode.episodeId],
                 set: {
-                    number: sql.raw(
-                        `excluded.${animeEpisode.number.name}`,
-                    ),
+                    number: sql.raw(`excluded.${animeEpisode.number.name}`),
                     providerTitle: sql.raw(
                         `excluded.${animeEpisode.providerTitle.name}`,
                     ),
@@ -226,21 +233,13 @@ async function fetchAndStore(
                     metadataTitleSource: sql.raw(
                         `excluded.${animeEpisode.metadataTitleSource.name}`,
                     ),
-                    audio: sql.raw(
-                        `excluded.${animeEpisode.audio.name}`,
-                    ),
-                    imageUrl: sql.raw(
-                        `excluded.${animeEpisode.imageUrl.name}`,
-                    ),
+                    audio: sql.raw(`excluded.${animeEpisode.audio.name}`),
+                    imageUrl: sql.raw(`excluded.${animeEpisode.imageUrl.name}`),
                     runtimeMinutes: sql.raw(
                         `excluded.${animeEpisode.runtimeMinutes.name}`,
                     ),
-                    airDate: sql.raw(
-                        `excluded.${animeEpisode.airDate.name}`,
-                    ),
-                    overview: sql.raw(
-                        `excluded.${animeEpisode.overview.name}`,
-                    ),
+                    airDate: sql.raw(`excluded.${animeEpisode.airDate.name}`),
+                    overview: sql.raw(`excluded.${animeEpisode.overview.name}`),
                     overviewSource: sql.raw(
                         `excluded.${animeEpisode.overviewSource.name}`,
                     ),
@@ -249,17 +248,15 @@ async function fetchAndStore(
                 },
             });
 
-        await tx
-            .delete(animeEpisode)
-            .where(
-                and(
-                    eq(animeEpisode.anilistId, anime.id),
-                    notInArray(
-                        animeEpisode.episodeId,
-                        source.map(({ id }) => id),
-                    ),
+        await tx.delete(animeEpisode).where(
+            and(
+                eq(animeEpisode.anilistId, anime.id),
+                notInArray(
+                    animeEpisode.episodeId,
+                    source.map(({ id }) => id),
                 ),
-            );
+            ),
+        );
 
         const stableSince =
             sync?.sourceRevision === revision && sync.stableSince
@@ -279,11 +276,7 @@ async function fetchAndStore(
                     null,
                 stableSince,
                 lastSuccessAt: now,
-                nextRefreshAt: nextRefreshAt(
-                    anime,
-                    stableSince,
-                    refreshMetadataSoon,
-                ),
+                nextRefreshAt: nextRefreshAt(anime, stableSince),
                 failureCount: 0,
                 lastError: null,
             })
@@ -299,11 +292,7 @@ async function fetchAndStore(
                         null,
                     stableSince,
                     lastSuccessAt: now,
-                    nextRefreshAt: nextRefreshAt(
-                        anime,
-                        stableSince,
-                        refreshMetadataSoon,
-                    ),
+                    nextRefreshAt: nextRefreshAt(anime, stableSince),
                     failureCount: 0,
                     lastError: null,
                 },

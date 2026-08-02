@@ -5,10 +5,7 @@ import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
 import { anilist } from './anilist';
-import {
-    storedEpisodes,
-    storedRelatedReleaseTitles,
-} from './episodes/model';
+import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import { episodeRefreshReason } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import type { AniListAnime } from './episodes/types';
@@ -22,8 +19,7 @@ export async function getEpisodes(
         storedEpisodes(anime),
         db
             .select({
-                metadataExternalIdId:
-                    animeEpisodeSync.metadataExternalIdId,
+                metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
                 nextRefreshAt: animeEpisodeSync.nextRefreshAt,
                 lastError: animeEpisodeSync.lastError,
             })
@@ -38,12 +34,15 @@ export async function getEpisodes(
         anime.status === 'FINISHED' &&
         !coversExpectedEpisodes(stored, anime.episodes);
     if (!stored.length || incompleteFinishedRelease) {
-        if (
-            sync?.lastError &&
-            sync.nextRefreshAt &&
-            sync.nextRefreshAt.getTime() > Date.now()
-        ) {
-            throw new Error(sync.lastError);
+        const refreshDeferred =
+            sync?.nextRefreshAt && sync.nextRefreshAt.getTime() > Date.now();
+        if (refreshDeferred) {
+            if (anime.status === 'NOT_YET_RELEASED') {
+                return stored;
+            }
+            if (sync.lastError) {
+                throw new Error(sync.lastError);
+            }
         }
 
         return refreshEpisodes(anime, metadataSource ?? undefined);
@@ -67,14 +66,12 @@ export async function getEpisodes(
     }
 
     if (reason) {
-        void refreshEpisodes(
-            anime,
-            metadataSource ?? undefined,
-        ).catch((cause) =>
-            console.error(
-                `Episode refresh failed for AniList ${anime.id}`,
-                cause,
-            ),
+        void refreshEpisodes(anime, metadataSource ?? undefined).catch(
+            (cause) =>
+                console.error(
+                    `Episode refresh failed for AniList ${anime.id}`,
+                    cause,
+                ),
         );
     }
 
@@ -85,28 +82,7 @@ async function getRelatedReleaseTitles(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)].filter(
         (id) => Number.isSafeInteger(id) && id > 0,
     );
-    let stored = await storedRelatedReleaseTitles(ids);
-    const available = new Set(stored.map(({ anilistId }) => anilistId));
-
-    for (const id of ids) {
-        if (available.has(id)) {
-            continue;
-        }
-
-        try {
-            const related = await Effect.runPromise(anilist.getAnime(id));
-            await getEpisodes(related);
-        } catch (cause) {
-            console.warn(
-                `Related episode identity unavailable for AniList ${id}`,
-                cause,
-            );
-        }
-    }
-
-    if (available.size < ids.length) {
-        stored = await storedRelatedReleaseTitles(ids);
-    }
+    const stored = await storedRelatedReleaseTitles(ids);
 
     return stored.map(({ episodes }) => episodes);
 }
@@ -126,9 +102,7 @@ async function refreshDue(limit = 20) {
 
     for (const { anilistId } of due) {
         try {
-            const anime = await Effect.runPromise(
-                anilist.getAnime(anilistId),
-            );
+            const anime = await Effect.runPromise(anilist.getAnime(anilistId));
             const episodes = await refreshEpisodes(anime);
             results.push({
                 anilistId,
@@ -139,9 +113,7 @@ async function refreshDue(limit = 20) {
             results.push({
                 anilistId,
                 error:
-                    cause instanceof Error
-                        ? cause.message
-                        : 'Refresh failed',
+                    cause instanceof Error ? cause.message : 'Refresh failed',
                 ok: false,
             });
         }
