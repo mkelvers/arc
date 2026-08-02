@@ -8,8 +8,8 @@ const legacyIdentityCookie = 'arc_user';
 
 export function isPublicPage(routeId: string | null) {
     return (
-        routeId === '/' ||
-        routeId === '/anime/[id]' ||
+        routeId === '/(app)' ||
+        routeId === '/(app)/anime/[id]' ||
         routeId?.startsWith('/(auth)/') === true
     );
 }
