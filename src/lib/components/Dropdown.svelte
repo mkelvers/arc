@@ -35,6 +35,15 @@
     let root = $state<HTMLDivElement>();
     let menu = $state<HTMLDivElement>();
 
+    function closeOnSelection(event: MouseEvent) {
+        if (
+            event.target instanceof Element &&
+            event.target.closest('a, button')
+        ) {
+            open = false;
+        }
+    }
+
     $effect(() => {
         if (!open || !menu) {
             return;
@@ -109,7 +118,7 @@
             role={content ? 'group' : 'menu'}
             aria-label={content ? ariaLabel : undefined}
             class="bg-panel"
-            onclick={() => (open = false)}
+            onclick={closeOnSelection}
         >
             {#if content}
                 {@render content()}
