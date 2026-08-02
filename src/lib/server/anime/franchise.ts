@@ -10,6 +10,11 @@ import { plainText } from './anilist/text';
 import { transientRequestError } from './anilist/client';
 import { withAnimeCardPosters } from './card-posters';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
+import {
+    verifiedFranchiseCache,
+    verifiedFranchiseOrder,
+    type FranchiseCacheData,
+} from './franchise/cache';
 import { withFranchisePlayback } from './franchise/playback';
 import {
     primaryFranchiseIds,
@@ -69,6 +74,7 @@ async function currentPlayback(entries: FranchiseOrder['entries']) {
 
 async function saveOrder(malId: number, data: FranchiseOrder) {
     const fetchedAt = new Date();
+    const cached = verifiedFranchiseCache(data, fetchedAt);
 
     try {
         await db
@@ -81,13 +87,13 @@ async function saveOrder(malId: number, data: FranchiseOrder) {
                     ]),
                 ].map((entryMalId) => ({
                     malId: entryMalId,
-                    data,
+                    data: cached,
                     fetchedAt,
                 })),
             )
             .onConflictDoUpdate({
                 target: animeFranchiseCache.malId,
-                set: { data, fetchedAt },
+                set: { data: cached, fetchedAt },
             });
     } catch (cause) {
         console.error(`Franchise cache write failed for MAL ${malId}`, cause);
@@ -97,15 +103,7 @@ async function saveOrder(malId: number, data: FranchiseOrder) {
 async function refresh(malId: number) {
     const { types, entries } = await fetchOrder(malId);
     const typeLabels = new Map(types.map(({ id, label }) => [id, label]));
-    const metadata = await fetchMetadata(entries).catch(
-        (cause): Awaited<ReturnType<typeof fetchMetadata>> => {
-            console.warn(
-                `AniList franchise enrichment unavailable for MAL ${malId}; using Chiaki metadata`,
-                cause,
-            );
-            return new Map();
-        },
-    );
+    const metadata = await fetchMetadata(entries);
     const primaryIds = primaryFranchiseIds(
         entries.flatMap((entry): FranchiseSelectionEntry[] => {
             const media = metadata.get(entry.malId);
@@ -194,7 +192,7 @@ async function refresh(malId: number) {
 async function cachedFranchiseOrder(malId: number) {
     let stored:
         | {
-              data: FranchiseOrder;
+              data: FranchiseCacheData;
               fetchedAt: Date;
           }
         | undefined;
@@ -212,11 +210,16 @@ async function cachedFranchiseOrder(malId: number) {
         console.error(`Franchise cache read failed for MAL ${malId}`, cause);
     }
 
+    const storedOrder = stored
+        ? verifiedFranchiseOrder(stored.data)
+        : null;
+
     if (
         stored &&
+        storedOrder &&
         Date.now() - stored.fetchedAt.getTime() < 24 * 60 * 60 * 1_000
     ) {
-        return stored.data;
+        return storedOrder;
     }
 
     const pending = requests.get(malId);
@@ -225,12 +228,12 @@ async function cachedFranchiseOrder(malId: number) {
     }
 
     const request = refresh(malId).catch((cause) => {
-        if (stored) {
+        if (storedOrder) {
             console.warn(
                 `Franchise refresh failed for MAL ${malId}; using stored order`,
                 cause,
             );
-            return stored.data;
+            return storedOrder;
         }
         throw cause;
     });

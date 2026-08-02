@@ -16,7 +16,7 @@ import {
     varchar,
 } from 'drizzle-orm/pg-core';
 
-import type { FranchiseOrder } from '$lib/anime/types';
+import type { FranchiseCacheData } from '$lib/server/anime/franchise/cache';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
@@ -269,7 +269,7 @@ export const animeReleasePoster = pgTable(
 
 export const animeFranchiseCache = pgTable('anime_franchise_cache', {
     malId: integer('mal_id').primaryKey(),
-    data: jsonb('data').$type<FranchiseOrder>().notNull(),
+    data: jsonb('data').$type<FranchiseCacheData>().notNull(),
     fetchedAt: timestamp('fetched_at', { withTimezone: true })
         .notNull()
         .defaultNow(),
