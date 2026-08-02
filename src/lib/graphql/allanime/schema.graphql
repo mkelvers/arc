@@ -29,6 +29,7 @@ input SearchInput {
     query: String
     season: String
     types: [String!]
+    year: Int
 }
 
 type Query {
@@ -78,10 +79,13 @@ type RelatedShow {
 
 type Show {
     _id: String
+    aniListId: FlexibleInt
     availableEpisodesDetail: Object
+    averageScore: Float
     description: String
     englishName: String
     episodeCount: String
+    genres: [String!]
     lastEpisodeTimestamp: Object
     malId: String
     name: String

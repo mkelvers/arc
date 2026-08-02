@@ -59,6 +59,32 @@ query AllAnimeWeeklyPopular {
     }
 }
 
+query AllAnimeSimulcastPage(
+    $search: SearchInput
+    $page: Int!
+    $limit: Int!
+) {
+    shows(
+        search: $search
+        limit: $limit
+        page: $page
+        countryOrigin: ALL
+    ) {
+        edges {
+            _id
+            aniListId
+            name
+            englishName
+            description
+            thumbnail
+            averageScore
+            genres
+            season
+            availableEpisodesDetail
+        }
+    }
+}
+
 query AllAnimeEpisodeSources(
     $showId: String!
     $translationType: VaildTranslationTypeEnumType!

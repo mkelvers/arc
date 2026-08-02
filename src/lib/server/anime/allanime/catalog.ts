@@ -1,7 +1,10 @@
-import type { AudioMode } from '$lib/anime/audio';
+import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
+import type { AnimeSeasonSelection } from '$lib/anime/season';
+import type { AnimeCard } from '$lib/anime/types';
 import {
     AllAnimeAvailableEpisodesDocument,
     AllAnimeSearchDocument,
+    AllAnimeSimulcastPageDocument,
     AllAnimeWeeklyPopularDocument,
     type AllAnimeAvailableEpisodesQuery,
     type AllAnimeSearchQuery,
@@ -12,12 +15,24 @@ import {
     saveProviderMediaId,
     verifyProviderMediaId,
 } from '../providers/mapping';
-import { record } from '$lib/utils';
+import { RequestCache } from '$lib/server/request-cache';
+import { nonEmptyText, positiveInteger, record } from '$lib/utils';
+import { plainText } from '../anilist/text';
 import { request } from './client';
 import type { AniListAnime, Episode } from './types';
 
 const audioCacheLifetime = 30 * 60 * 1_000;
 const providerName = 'allanime';
+const simulcastPageSize = 24;
+const simulcastPages = new RequestCache<string, SimulcastPage>(
+    30 * 60 * 1_000,
+);
+
+interface SimulcastPage {
+    anime: AnimeCard[];
+    hasNextPage: boolean;
+    page: number;
+}
 
 interface WeeklyPopularAnime {
     anilistId: number;
@@ -40,6 +55,114 @@ function audioModes(value: unknown) {
         const episodes = detail[mode];
         return Array.isArray(episodes) && episodes.length > 0;
     });
+}
+
+function matchesSeason(value: unknown, selected: AnimeSeasonSelection) {
+    const season = record(value);
+    const quarter = nonEmptyText(season?.quarter)?.toUpperCase();
+    const year = positiveInteger(season?.year);
+
+    return quarter === selected.season && year === selected.year;
+}
+
+function simulcastCard(show: {
+    aniListId: number | string | null;
+    availableEpisodesDetail: unknown;
+    averageScore: number | null;
+    description: string | null;
+    englishName: string | null;
+    genres: string[] | null;
+    name: string | null;
+    thumbnail: string | null;
+}): AnimeCard | null {
+    const id = positiveInteger(show.aniListId);
+    const image = nonEmptyText(show.thumbnail);
+    const title = nonEmptyText(show.englishName) ?? nonEmptyText(show.name);
+    if (!id || !image || !title) {
+        return null;
+    }
+
+    return {
+        id,
+        href: `/anime/${id}`,
+        watchHref: `/anime/${id}`,
+        title,
+        image,
+        caption: audioAvailabilityLabel(
+            audioModes(show.availableEpisodesDetail),
+        ),
+        score: Math.round(show.averageScore ?? 0),
+        genres: [
+            ...new Set(
+                (show.genres ?? [])
+                    .map((genre) => genre.trim())
+                    .filter(Boolean),
+            ),
+        ],
+        synopsis: plainText(show.description),
+    };
+}
+
+async function requestSimulcastPage(
+    selected: AnimeSeasonSelection,
+    page: number,
+) {
+    const response = await request(AllAnimeSimulcastPageDocument, {
+        search: {
+            allowAdult: false,
+            allowUnknown: false,
+            season: `${selected.season[0]}${selected.season.slice(1).toLowerCase()}`,
+            year: selected.year,
+        },
+        page,
+        limit: simulcastPageSize,
+    });
+    const shows = response.shows?.edges ?? [];
+    const seen = new Set<number>();
+    const anime: AnimeCard[] = [];
+
+    for (const show of shows) {
+        if (!matchesSeason(show.season, selected)) {
+            continue;
+        }
+
+        const card = simulcastCard(show);
+        if (!card || seen.has(card.id)) {
+            continue;
+        }
+
+        seen.add(card.id);
+        anime.push(card);
+    }
+
+    return {
+        anime,
+        hasNextPage: shows.length === simulcastPageSize,
+        page,
+    };
+}
+
+export function getSimulcastPage(
+    selected: AnimeSeasonSelection,
+    page: number,
+) {
+    if (!Number.isSafeInteger(page) || page <= 0) {
+        throw new RangeError('Simulcast page must be a positive integer');
+    }
+
+    const key = `${selected.season}:${selected.year}:${page}`;
+    return simulcastPages.get(
+        key,
+        () =>
+            requestSimulcastPage(selected, page).catch((cause) => {
+                console.error(
+                    `AllAnime simulcast ${key} refresh failed`,
+                    cause,
+                );
+                throw cause;
+            }),
+        { staleIfError: true },
+    );
 }
 
 export async function getWeeklyPopularAnime() {

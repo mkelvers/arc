@@ -11,6 +11,7 @@ export type SearchInput = {
   query?: string | null | undefined;
   season?: string | null | undefined;
   types?: Array<string> | null | undefined;
+  year?: number | null | undefined;
 };
 
 export type VaildTranslationTypeEnumType =
@@ -39,6 +40,15 @@ export type AllAnimeWeeklyPopularQueryVariables = Exact<{ [key: string]: never; 
 
 
 export type AllAnimeWeeklyPopularQuery = { queryPopular: { recommendations: Array<{ anyCard: { aniListId: number | string | null, availableEpisodesDetail: unknown, siteRanks: { weekly: { position: number | null } | null } | null } | null }> | null } | null };
+
+export type AllAnimeSimulcastPageQueryVariables = Exact<{
+  search?: SearchInput | null | undefined;
+  page: number;
+  limit: number;
+}>;
+
+
+export type AllAnimeSimulcastPageQuery = { shows: { edges: Array<{ _id: string | null, aniListId: number | string | null, name: string | null, englishName: string | null, description: string | null, thumbnail: string | null, averageScore: number | null, genres: Array<string> | null, season: unknown, availableEpisodesDetail: unknown }> | null } | null };
 
 export type AllAnimeEpisodeSourcesQueryVariables = Exact<{
   showId: string;
@@ -121,6 +131,24 @@ export const AllAnimeWeeklyPopularDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AllAnimeWeeklyPopularQuery, AllAnimeWeeklyPopularQueryVariables>;
+export const AllAnimeSimulcastPageDocument = new TypedDocumentString(`
+    query AllAnimeSimulcastPage($search: SearchInput, $page: Int!, $limit: Int!) {
+  shows(search: $search, limit: $limit, page: $page, countryOrigin: ALL) {
+    edges {
+      _id
+      aniListId
+      name
+      englishName
+      description
+      thumbnail
+      averageScore
+      genres
+      season
+      availableEpisodesDetail
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AllAnimeSimulcastPageQuery, AllAnimeSimulcastPageQueryVariables>;
 export const AllAnimeEpisodeSourcesDocument = new TypedDocumentString(`
     query AllAnimeEpisodeSources($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
   episode(
