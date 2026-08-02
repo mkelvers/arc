@@ -5,6 +5,7 @@
     type Item = {
         label: string;
         href: string;
+        current?: boolean;
     };
 
     interface Props {
@@ -31,9 +32,43 @@
         triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel peer-checked:bg-panel',
     }: Props = $props();
     let open = $state(false);
+    let root = $state<HTMLDivElement>();
+    let menu = $state<HTMLDivElement>();
+
+    $effect(() => {
+        if (!open || !menu) {
+            return;
+        }
+
+        requestAnimationFrame(() => {
+            menu
+                ?.querySelector<HTMLElement>('[aria-current="page"]')
+                ?.scrollIntoView({ block: 'nearest' });
+        });
+    });
+
+    $effect(() => {
+        const element = root;
+        if (!element) {
+            return;
+        }
+
+        const close = (event: PointerEvent) => {
+            if (
+                event.target instanceof Node &&
+                !element.contains(event.target)
+            ) {
+                open = false;
+            }
+        };
+        document.addEventListener('pointerdown', close);
+
+        return () => document.removeEventListener('pointerdown', close);
+    });
 </script>
 
 <div
+    bind:this={root}
     class="dropdown relative"
     role="group"
     onmouseenter={() => {
@@ -41,7 +76,11 @@
             open = true;
         }
     }}
-    onmouseleave={() => (open = false)}
+    onmouseleave={() => {
+        if (openOnHover) {
+            open = false;
+        }
+    }}
 >
     <input
         {id}
@@ -59,6 +98,7 @@
     </label>
 
     <div
+        bind:this={menu}
         class={cn(
             'absolute top-full z-50 hidden peer-checked:block',
             menuAlign === 'start' ? 'left-0' : 'right-0',
@@ -78,7 +118,10 @@
                     <a
                         role="menuitem"
                         href={item.href}
-                        class="block whitespace-nowrap px-5 py-3 text-sm leading-tight font-normal text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        aria-current={item.current ? 'page' : undefined}
+                        class:text-accent={item.current}
+                        class:text-muted={!item.current}
+                        class="block whitespace-nowrap px-5 py-3 text-sm leading-tight font-normal hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                     >
                         {item.label}
                     </a>
