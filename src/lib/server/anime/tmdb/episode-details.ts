@@ -1,3 +1,4 @@
+import { episodeTitleScore } from '../providers/match';
 import type { EpisodeCandidate } from './types';
 
 export interface EpisodeDetail {
@@ -27,6 +28,17 @@ function genericTitle(value: string | null | undefined) {
 
 function text(value: string | null | undefined) {
     return value?.trim() ?? '';
+}
+
+export function hasRequestedEpisodeLocalization(
+    sourceTitle: string,
+    candidateTitle: string,
+    originalLanguage?: string,
+) {
+    return (
+        originalLanguage === 'en' ||
+        episodeTitleScore(sourceTitle, candidateTitle) >= 15
+    );
 }
 
 export function translatedMetadata(
@@ -73,18 +85,16 @@ export function translatableMetadata(
 
 export function episodeDetailsNeeded(
     candidate: EpisodeCandidate,
-    originalLanguage?: string,
+    localizedText = false,
 ) {
-    const originalIsEnglish = originalLanguage === 'en';
-
     return {
         details:
-            (originalIsEnglish &&
+            (localizedText &&
                 (genericTitle(candidate.title) || !candidate.overview)) ||
             !candidate.runtime ||
             !candidate.imageUrl,
         translations:
-            !originalIsEnglish ||
+            !localizedText ||
             genericTitle(candidate.title) ||
             !candidate.overview,
         images: !candidate.imageUrl,
@@ -98,20 +108,19 @@ export function completeEpisodeDetails(
         translations,
         stills,
         featured,
-        originalLanguage,
+        localizedText = false,
         image,
     }: {
         details?: EpisodeDetail;
         translations?: EpisodeTranslation[];
         stills?: EpisodeStill[];
         featured?: EpisodeDetail;
-        originalLanguage?: string;
+        localizedText?: boolean;
         image: (path: string) => string;
     },
 ): EpisodeCandidate {
     const translated = translatedMetadata(translations);
-    const originalIsEnglish = originalLanguage === 'en';
-    const title = originalIsEnglish
+    const title = localizedText
         ? genericTitle(candidate.title)
             ? ([translated.name, details?.name, featured?.name].find(
                   (value) => !genericTitle(value),
@@ -119,7 +128,7 @@ export function completeEpisodeDetails(
             : candidate.title
         : (translated.name ?? '');
     const titleSource = title ? 'tmdb' : null;
-    const overview = originalIsEnglish
+    const overview = localizedText
         ? text(candidate.overview) ||
           text(details?.overview) ||
           translated.overview ||

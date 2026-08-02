@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
+    hasRequestedEpisodeLocalization,
     translatableMetadata,
 } from './episode-details';
 import type { EpisodeCandidate } from './types';
@@ -20,7 +21,7 @@ const candidate: EpisodeCandidate = {
 
 describe('TMDB episode detail completion', () => {
     test('fills a stale season row from translations, featured data, and stills', () => {
-        expect(episodeDetailsNeeded(candidate, 'ja')).toEqual({
+        expect(episodeDetailsNeeded(candidate, false)).toEqual({
             details: true,
             translations: true,
             images: true,
@@ -98,7 +99,7 @@ describe('TMDB episode detail completion', () => {
                         overview: 'Resumen disponible en español.',
                     },
                 ],
-                originalLanguage: 'ja',
+                localizedText: false,
                 image: (path) => path,
             }),
         ).toMatchObject({
@@ -141,29 +142,52 @@ describe('TMDB episode detail completion', () => {
             runtime: 24,
         };
 
-        expect(episodeDetailsNeeded(completeCandidate, 'ja')).toEqual({
+        expect(episodeDetailsNeeded(completeCandidate, false)).toEqual({
             details: false,
             translations: true,
             images: false,
         });
     });
 
-    test('trusts text from an English-original episode', () => {
+    test('trusts text verified as the requested English localization', () => {
+        const localized = {
+            ...candidate,
+            title: 'A New Beginning',
+            overview: 'The journey begins.',
+            imageUrl: 'https://images.example/still.jpg',
+            runtime: 24,
+        };
+
+        expect(episodeDetailsNeeded(localized, true)).toEqual({
+            details: false,
+            translations: false,
+            images: false,
+        });
         expect(
-            completeEpisodeDetails(
-                {
-                    ...candidate,
-                    title: 'A New Beginning',
-                    overview: 'The journey begins.',
-                },
-                {
-                    originalLanguage: 'en',
-                    image: (path) => path,
-                },
-            ),
+            completeEpisodeDetails(localized, {
+                localizedText: true,
+                image: (path) => path,
+            }),
         ).toMatchObject({
             title: 'A New Beginning',
             overview: 'The journey begins.',
         });
+    });
+
+    test('recognizes localized bulk text from provider title evidence', () => {
+        expect(
+            hasRequestedEpisodeLocalization(
+                'I’m Luffy! The Man Who’s Gonna Be King of the Pirates!',
+                "I'm Luffy! The Man Who Will Become the Pirate King!",
+                'ja',
+            ),
+        ).toBeTrue();
+        expect(
+            hasRequestedEpisodeLocalization(
+                'A New Beginning',
+                '新たな始まり',
+                'ja',
+            ),
+        ).toBeFalse();
     });
 });

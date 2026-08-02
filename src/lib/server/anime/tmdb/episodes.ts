@@ -5,6 +5,7 @@ import { create, imageUrl } from './client';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
+    hasRequestedEpisodeLocalization,
     translatableMetadata,
     translatedMetadata,
 } from './episode-details';
@@ -27,6 +28,32 @@ interface MetadataEntry {
         name?: string | null;
         overview?: string | null;
     };
+}
+
+const requestConcurrency = 4;
+const episodeFallbackBudget = 24;
+
+async function mapConcurrent<T, R>(
+    values: T[],
+    map: (value: T, index: number) => Promise<R>,
+) {
+    const results = Array<R>(values.length);
+    let next = 0;
+    const worker = async () => {
+        while (next < values.length) {
+            const index = next++;
+            results[index] = await map(values[index], index);
+        }
+    };
+
+    await Promise.all(
+        Array.from(
+            { length: Math.min(requestConcurrency, values.length) },
+            () => worker(),
+        ),
+    );
+
+    return results;
 }
 
 async function withMachineTranslation(
@@ -226,23 +253,18 @@ async function episodeGroupCandidates(
         return null;
     }
 
-    const groups = await Promise.all(
-        (data.results ?? []).flatMap(({ id }) =>
-            id
-                ? [
-                      client
-                          .GET('/3/tv/episode_group/{tv_episode_group_id}', {
-                              params: {
-                                  path: {
-                                      tv_episode_group_id: id,
-                                  },
-                              },
-                          })
-                          .then(({ data: group }) => group)
-                          .catch(() => undefined),
-                  ]
-                : [],
-        ),
+    const groupIds = (data.results ?? []).flatMap(({ id }) => (id ? [id] : []));
+    const groups = await mapConcurrent(groupIds, (id) =>
+        client
+            .GET('/3/tv/episode_group/{tv_episode_group_id}', {
+                params: {
+                    path: {
+                        tv_episode_group_id: id,
+                    },
+                },
+            })
+            .then(({ data: group }) => group)
+            .catch(() => undefined),
     );
     const blocks: EpisodeGroupBlock[] = groups.flatMap((group) =>
         (group?.groups ?? []).map((block) => ({
@@ -459,28 +481,26 @@ export async function getEpisodeMetadata(
         ).values(),
     ];
     const [fetched, grouped] = await Promise.all([
-        Promise.all(
-            selected.map(async ({ season }) => {
-                const response = await client.GET(
-                    '/3/tv/{series_id}/season/{season_number}',
-                    {
-                        params: {
-                            path: {
-                                series_id: match.id,
-                                season_number: season.season_number,
-                            },
-                            query: { language: 'en-US' },
+        mapConcurrent(selected, async ({ season }) => {
+            const response = await client.GET(
+                '/3/tv/{series_id}/season/{season_number}',
+                {
+                    params: {
+                        path: {
+                            series_id: match.id,
+                            season_number: season.season_number,
                         },
+                        query: { language: 'en-US' },
                     },
-                );
+                },
+            );
 
-                if (!response.data) {
-                    return [] as EpisodeCandidate[];
-                }
+            if (!response.data) {
+                return [] as EpisodeCandidate[];
+            }
 
-                return (response.data.episodes ?? []).map(episodeCandidate);
-            }),
-        ),
+            return (response.data.episodes ?? []).map(episodeCandidate);
+        }),
         episodeGroupCandidates(client, match.id, anime, source).catch(
             () => null,
         ),
@@ -492,16 +512,54 @@ export async function getEpisodeMetadata(
         grouped,
         fetched.flat(),
     );
-    const completed = await Promise.all(
-        [...matched.entries()].map(async ([sourceId, candidate]) => {
-            const needed = episodeDetailsNeeded(
-                candidate,
-                series.original_language,
-            );
-            if (!needed.details && !needed.translations && !needed.images) {
+    const sourceById = new Map(source.map((episode) => [episode.id, episode]));
+    let fallbacks = 0;
+    const matches = [...matched.entries()].map(([sourceId, candidate]) => {
+        const localizedText = hasRequestedEpisodeLocalization(
+            sourceById.get(sourceId)?.title ?? '',
+            candidate.title,
+            series.original_language,
+        );
+        const needed = episodeDetailsNeeded(candidate, localizedText);
+        const previous = storedText.get(sourceId);
+        const storedTextComplete = Boolean(
+            previous?.titleSource &&
+            previous.title?.trim() &&
+            previous.overviewSource &&
+            previous.overview?.trim(),
+        );
+        if (storedTextComplete) {
+            needed.translations = false;
+        }
+        const needsFallback =
+            needed.details || needed.translations || needed.images;
+        const fetchFallback =
+            needsFallback && fallbacks++ < episodeFallbackBudget;
+
+        return {
+            sourceId,
+            candidate,
+            localizedText,
+            needed,
+            fetchFallback,
+        };
+    });
+    const completed = await mapConcurrent(
+        matches,
+        async ({
+            sourceId,
+            candidate,
+            localizedText,
+            needed,
+            fetchFallback,
+        }) => {
+            if (!fetchFallback) {
                 return {
                     id: sourceId,
-                    metadata: candidate,
+                    metadata: completeEpisodeDetails(candidate, {
+                        localizedText,
+                        image: (path) => imageUrl(path, 'w500'),
+                    }),
                     source: {},
                 };
             }
@@ -511,38 +569,41 @@ export async function getEpisodeMetadata(
                 season_number: candidate.seasonNumber,
                 episode_number: candidate.episodeNumber,
             };
-            const detailsRequest = needed.details
-                ? client
-                      .GET(
-                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}',
-                          {
-                              params: {
-                                  path,
-                                  query: { language: 'en-US' },
+            const detailsRequest =
+                fetchFallback && needed.details
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}',
+                              {
+                                  params: {
+                                      path,
+                                      query: { language: 'en-US' },
+                                  },
                               },
-                          },
-                      )
-                      .then(({ data }) => data)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
-            const translationsRequest = needed.translations
-                ? client
-                      .GET(
-                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
-                          { params: { path } },
-                      )
-                      .then(({ data }) => data?.translations)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
-            const imagesRequest = needed.images
-                ? client
-                      .GET(
-                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/images',
-                          { params: { path } },
-                      )
-                      .then(({ data }) => data?.stills)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
+                          )
+                          .then(({ data }) => data)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
+            const translationsRequest =
+                fetchFallback && needed.translations
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
+                              { params: { path } },
+                          )
+                          .then(({ data }) => data?.translations)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
+            const imagesRequest =
+                fetchFallback && needed.images
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/images',
+                              { params: { path } },
+                          )
+                          .then(({ data }) => data?.stills)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
             const [details, translations, stills] = await Promise.all([
                 detailsRequest,
                 translationsRequest,
@@ -585,7 +646,7 @@ export async function getEpisodeMetadata(
                         width: still.width,
                     })),
                     featured: featured?.details,
-                    originalLanguage: series.original_language,
+                    localizedText,
                     image: (path) => imageUrl(path, 'w500'),
                 }),
                 source: translatableMetadata(
@@ -593,7 +654,7 @@ export async function getEpisodeMetadata(
                     series.original_language,
                 ),
             };
-        }),
+        },
     );
 
     return withMachineTranslation(completed, storedText, anime.id);
