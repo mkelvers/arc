@@ -1,5 +1,6 @@
 import { anilist } from './anilist';
 import { allanime } from './allanime';
+import { browse } from './browse';
 import { withAnimeCardPosters } from './card-posters';
 import { episodes } from './episodes';
 import { franchise } from './franchise';
@@ -11,6 +12,7 @@ import { tmdb } from './tmdb';
 export const anime = {
     anilist,
     allanime,
+    browse,
     withAnimeCardPosters,
     episodes,
     franchise,
