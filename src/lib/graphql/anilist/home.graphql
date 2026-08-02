@@ -24,4 +24,35 @@ query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
             averageScore
         }
     }
+    popular: Page(page: 1, perPage: 50) {
+        media(
+            type: ANIME
+            format: TV
+            sort: POPULARITY_DESC
+            isAdult: false
+        ) {
+            id
+            title {
+                english
+                romaji
+                native
+            }
+            coverImage {
+                extraLarge
+                large
+            }
+            description(asHtml: false)
+            genres
+            format
+            averageScore
+            relations {
+                edges {
+                    relationType
+                    node {
+                        id
+                    }
+                }
+            }
+        }
+    }
 }

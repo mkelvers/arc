@@ -115,7 +115,7 @@ export type HomeAnimeQueryVariables = Exact<{
 }>;
 
 
-export type HomeAnimeQuery = { season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
+export type HomeAnimeQuery = { season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null, popular: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number } | null } | null> | null } | null } | null> | null } | null };
 
 export type SearchAnimePageQueryVariables = Exact<{
   search: string;
@@ -286,6 +286,32 @@ export const HomeAnimeDocument = new TypedDocumentString(`
       genres
       format
       averageScore
+    }
+  }
+  popular: Page(page: 1, perPage: 50) {
+    media(type: ANIME, format: TV, sort: POPULARITY_DESC, isAdult: false) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      format
+      averageScore
+      relations {
+        edges {
+          relationType
+          node {
+            id
+          }
+        }
+      }
     }
   }
 }

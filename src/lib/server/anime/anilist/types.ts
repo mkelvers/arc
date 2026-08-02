@@ -10,4 +10,5 @@ export type SearchMedia = NonNullable<
 >;
 export interface HomepageAnime {
     season: AnimeCard[];
+    popular: AnimeCard[];
 }

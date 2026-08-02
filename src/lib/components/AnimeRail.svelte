@@ -6,10 +6,21 @@
 
     interface Props {
         anime: AnimeCardModel[];
+        heading: string;
+        headingId: string;
+        emptyMessage: string;
         overlap?: boolean;
+        topSpacing?: boolean;
     }
 
-    let { anime, overlap = false }: Props = $props();
+    let {
+        anime,
+        heading,
+        headingId,
+        emptyMessage,
+        overlap = false,
+        topSpacing = true,
+    }: Props = $props();
     let rail = $state<HTMLDivElement>();
     let canScrollLeft = $state(false);
     let canScrollRight = $state(false);
@@ -46,13 +57,14 @@
 
 <section
     class={cn(
-        'relative z-20 px-5 pt-10 pb-10 sm:px-10 sm:pt-12 sm:pb-12 lg:px-16 lg:pt-16 lg:pb-16',
+        'relative z-20 px-5 pb-10 sm:px-10 sm:pb-12 lg:px-16 lg:pb-16',
+        topSpacing && 'pt-10 sm:pt-12 lg:pt-16',
         overlap && '-mt-72',
     )}
-    aria-labelledby="new-this-season"
+    aria-labelledby={headingId}
 >
-    <h2 id="new-this-season" class="mb-5 text-xl font-bold sm:text-2xl">
-        New Anime from the Current Season
+    <h2 id={headingId} class="mb-5 text-xl font-bold sm:text-2xl">
+        {heading}
     </h2>
 
     {#if anime.length}
@@ -73,7 +85,7 @@
                 <button
                     type="button"
                     class="absolute top-[42%] -left-3 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label="Scroll season anime left"
+                    aria-label={`Scroll ${heading.toLocaleLowerCase()} left`}
                     onclick={() => move(-1)}
                 >
                     <CaretLeftIcon
@@ -88,7 +100,7 @@
                 <button
                     type="button"
                     class="absolute top-[42%] -right-3 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label="Scroll season anime right"
+                    aria-label={`Scroll ${heading.toLocaleLowerCase()} right`}
                     onclick={() => move(1)}
                 >
                     <CaretRightIcon
@@ -100,8 +112,6 @@
             {/if}
         </div>
     {:else}
-        <p class="text-sm text-muted">
-            No seasonal anime are available right now.
-        </p>
+        <p class="text-sm text-muted">{emptyMessage}</p>
     {/if}
 </section>
