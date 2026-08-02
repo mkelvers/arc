@@ -123,9 +123,8 @@ export function releaseEpisodeGroup(
         );
         const seasonMatch = Boolean(
             expectedSequence &&
-                (block.order === expectedSequence ||
-                    normalizedProviderTitle(block.name ?? '') ===
-                        `season ${expectedSequence}`),
+                normalizedProviderTitle(block.name ?? '') ===
+                    `season ${expectedSequence}`,
         );
         const titles = titleEvidence(source, candidates);
         const confident = expectedCount

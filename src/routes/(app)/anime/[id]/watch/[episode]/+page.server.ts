@@ -134,12 +134,28 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         error(400, 'Invalid anime ID');
     }
     const result = await loadAnime(id);
-
-    const [storedMedia, episodes, progress] = await Promise.all([
-        anime.tmdb.getStoredMedia(id).catch(() => null),
-        anime.episodes.getEpisodes(result).catch(() => []),
-        getPlaybackProgress(locals.user?.id, id),
+    const releaseRelations = new Set([
+        'PARENT',
+        'PREQUEL',
+        'SEQUEL',
     ]);
+    const relatedIds = (result.relations?.edges ?? []).flatMap(
+        (edge) =>
+            edge?.relationType &&
+            releaseRelations.has(edge.relationType) &&
+            edge.node?.type === 'ANIME' &&
+            edge.node.id !== id
+                ? [edge.node.id]
+                : [],
+    );
+
+    const [storedMedia, episodes, relatedReleases, progress] =
+        await Promise.all([
+            anime.tmdb.getStoredMedia(id).catch(() => null),
+            anime.episodes.getEpisodes(result).catch(() => []),
+            anime.episodes.getRelatedReleaseTitles(relatedIds),
+            getPlaybackProgress(locals.user?.id, id),
+        ]);
     let currentIndex = episodes.findIndex(
         (episode) => episode.id === params.episode,
     );
@@ -159,6 +175,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     }
 
     const currentEpisode = episodes[currentIndex];
+    const release = episodes.map(({ number, title }) => ({
+        number,
+        title,
+    }));
     const specials = episodes.filter(
         ({ number }) => number <= 0 || !Number.isInteger(number),
     );
@@ -167,9 +187,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     );
     const playbackEpisode =
         specialIndex < 0
-            ? currentEpisode
+            ? { ...currentEpisode, release, relatedReleases }
             : {
                   ...currentEpisode,
+                  release,
+                  relatedReleases,
                   specialIndex: specialIndex + 1,
                   specialCount: specials.length,
               };

@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, inArray } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
 import type { AnimeEpisode } from '$lib/anime/types';
@@ -55,6 +55,47 @@ export async function storedEpisodes(anime: AniListAnime) {
             sequentialLabels ? index + 1 : episode.number,
         ),
     );
+}
+
+export async function storedRelatedReleaseTitles(anilistIds: number[]) {
+    const ids = [...new Set(anilistIds)].filter(
+        (id) => Number.isSafeInteger(id) && id > 0,
+    );
+    if (!ids.length) {
+        return [];
+    }
+
+    const rows = await db
+        .select({
+            anilistId: animeEpisode.anilistId,
+            number: animeEpisode.number,
+            title: animeEpisode.metadataTitle,
+            titleSource: animeEpisode.metadataTitleSource,
+        })
+        .from(animeEpisode)
+        .where(inArray(animeEpisode.anilistId, ids))
+        .orderBy(
+            asc(animeEpisode.anilistId),
+            asc(animeEpisode.number),
+        );
+    const releases = new Map<
+        number,
+        { number: number; title: string }[]
+    >();
+
+    for (const row of rows) {
+        if (!row.titleSource || !row.title?.trim()) {
+            continue;
+        }
+
+        const release = releases.get(row.anilistId) ?? [];
+        release.push({ number: row.number, title: row.title });
+        releases.set(row.anilistId, release);
+    }
+
+    return [...releases]
+        .map(([anilistId, episodes]) => ({ anilistId, episodes }))
+        .filter(({ episodes }) => episodes.length);
 }
 
 export function sourceRevision(episodes: ProviderEpisode[]) {

@@ -5,10 +5,14 @@ import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
 import { anilist } from './anilist';
-import { storedEpisodes } from './episodes/model';
+import {
+    storedEpisodes,
+    storedRelatedReleaseTitles,
+} from './episodes/model';
 import { episodeRefreshReason } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import type { AniListAnime } from './episodes/types';
+import { coversExpectedEpisodes } from './providers/match';
 import { findMapping } from './tmdb/mapping-store';
 
 export async function getEpisodes(
@@ -30,7 +34,10 @@ export async function getEpisodes(
         findMapping(anime.id).catch(() => null),
     ]);
 
-    if (!stored.length) {
+    const incompleteFinishedRelease =
+        anime.status === 'FINISHED' &&
+        !coversExpectedEpisodes(stored, anime.episodes);
+    if (!stored.length || incompleteFinishedRelease) {
         if (
             sync?.lastError &&
             sync.nextRefreshAt &&
@@ -74,6 +81,36 @@ export async function getEpisodes(
     return stored;
 }
 
+async function getRelatedReleaseTitles(anilistIds: number[]) {
+    const ids = [...new Set(anilistIds)].filter(
+        (id) => Number.isSafeInteger(id) && id > 0,
+    );
+    let stored = await storedRelatedReleaseTitles(ids);
+    const available = new Set(stored.map(({ anilistId }) => anilistId));
+
+    for (const id of ids) {
+        if (available.has(id)) {
+            continue;
+        }
+
+        try {
+            const related = await Effect.runPromise(anilist.getAnime(id));
+            await getEpisodes(related);
+        } catch (cause) {
+            console.warn(
+                `Related episode identity unavailable for AniList ${id}`,
+                cause,
+            );
+        }
+    }
+
+    if (available.size < ids.length) {
+        stored = await storedRelatedReleaseTitles(ids);
+    }
+
+    return stored.map(({ episodes }) => episodes);
+}
+
 async function refreshDue(limit = 20) {
     const due = await db
         .select({ anilistId: animeEpisodeSync.anilistId })
@@ -115,6 +152,7 @@ async function refreshDue(limit = 20) {
 
 export const episodes = {
     getEpisodes,
+    getRelatedReleaseTitles,
     refreshDue,
     refreshEpisodes,
 };

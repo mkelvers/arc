@@ -170,4 +170,28 @@ describe('TMDB episode groups', () => {
             releaseEpisodeNumber: 1,
         });
     });
+
+    test('does not treat a story arc order as a season number', () => {
+        const arc = block(1, 10, [2015, 10, 4]);
+
+        expect(
+            releaseEpisodeGroup(
+                {
+                    ...anime(10, [2016, 10, 8]),
+                    title: { english: 'Example Season 3' },
+                } as AniListAnime,
+                source([
+                    'Greetings',
+                    'The Threat of the Left',
+                ]),
+                [
+                    {
+                        ...arc,
+                        name: 'Tokyo Expedition',
+                        order: 3,
+                    },
+                ],
+            ),
+        ).toBeNull();
+    });
 });

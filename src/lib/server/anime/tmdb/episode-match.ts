@@ -2,7 +2,9 @@ import type { ProviderEpisode } from '../providers/types';
 import {
     episodeTitleKey,
     episodeTitleScore,
+    isSpecialEpisodeReference,
 } from '../providers/match';
+import { isSpecialRelease, titlesFor } from './title';
 import type {
     AniListAnime,
     EpisodeCandidate,
@@ -119,6 +121,12 @@ function pairScore(
 ) {
     let score = -20;
     const title = episodeTitleScore(source.title, candidate.title);
+    const date = dateScore(
+        anime,
+        sourceIndex,
+        sourceLength,
+        candidate,
+    );
     const titled = Boolean(episodeTitleKey(source.title));
     const specialNumber =
         source.number <= 0 || !Number.isInteger(source.number);
@@ -129,12 +137,31 @@ function pairScore(
         source.number ===
             (candidate.releaseEpisodeNumber ??
                 candidate.episodeNumber);
+    const specialRelease = isSpecialRelease(anime);
+    const specialCandidate =
+        specialRelease && candidate.seasonNumber === 0;
+
+    if (specialRelease && candidate.seasonNumber > 0) {
+        score -= 100;
+    } else if (specialCandidate) {
+        score += 100;
+        if (
+            titlesFor(anime).some(
+                (title) =>
+                    episodeTitleScore(title, candidate.title) >= 60,
+            )
+        ) {
+            score += 100;
+        }
+    }
 
     if (
         titled &&
         !duplicateTitle &&
         title < 15 &&
-        !sameRegularNumber
+        !sameRegularNumber &&
+        !specialCandidate &&
+        date < 55
     ) {
         return -Infinity;
     }
@@ -143,6 +170,9 @@ function pairScore(
         candidate.seasonNumber !== 0 &&
         title < 60
     ) {
+        return -Infinity;
+    }
+    if (title >= 60 && date < 0) {
         return -Infinity;
     }
 
@@ -173,10 +203,7 @@ function pairScore(
         score += difference <= 3 ? 20 : difference <= 8 ? 5 : -20;
     }
 
-    return (
-        score +
-        dateScore(anime, sourceIndex, sourceLength, candidate)
-    );
+    return score + date;
 }
 
 function candidateOrder(
@@ -231,8 +258,21 @@ export function matchEpisodeMetadata(
                 candidate,
                 duplicateTitle(episode),
             );
+            const sameNumber =
+                Number.isInteger(episode.number) &&
+                episode.number > 0 &&
+                episode.number ===
+                    (candidate.releaseEpisodeNumber ??
+                        candidate.episodeNumber);
+            const titleCanEstablishIdentity =
+                candidate.seasonNumber === 0 ||
+                isSpecialEpisodeReference(episode) ||
+                (sameNumber && !isSpecialRelease(anime));
 
-            return title >= 60 && Number.isFinite(score) && score >= 5
+            return titleCanEstablishIdentity &&
+                title >= 60 &&
+                Number.isFinite(score) &&
+                score >= 5
                 ? [
                       {
                           sourceIndex,
@@ -346,4 +386,25 @@ export function matchEpisodeMetadata(
             candidates[candidateIndex],
         ]),
     );
+}
+
+export function matchBestEpisodeMetadata(
+    anime: AniListAnime,
+    source: ProviderEpisode[],
+    focused: EpisodeCandidate[] | null,
+    available: EpisodeCandidate[],
+) {
+    const availableMatches = matchEpisodeMetadata(
+        anime,
+        source,
+        available,
+    );
+    if (!focused) {
+        return availableMatches;
+    }
+
+    const focusedMatches = matchEpisodeMetadata(anime, source, focused);
+    return focusedMatches.size >= availableMatches.size
+        ? focusedMatches
+        : availableMatches;
 }

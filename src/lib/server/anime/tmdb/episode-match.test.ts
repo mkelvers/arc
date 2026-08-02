@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
-import { matchEpisodeMetadata } from './episode-match';
+import {
+    matchBestEpisodeMetadata,
+    matchEpisodeMetadata,
+} from './episode-match';
 import type {
     AniListAnime,
     EpisodeCandidate,
@@ -377,5 +380,153 @@ describe('TMDB episode identity matching', () => {
             episodeNumber: 13,
             rawAirDate: '2024-06-28',
         });
+    });
+
+    test('rejects exact titles from an earlier cour', () => {
+        const staleTitles = [
+            'Introductions',
+            'Lost',
+            'Perspective',
+            'Take it Easy',
+            'Hunger',
+            'Enhancements',
+            'Return',
+            'Challenger',
+        ];
+        const releaseTitles = [
+            'Rhythm',
+            'Found',
+            'Broken Heart',
+            'Cats vs. Monkeys',
+            'Trap',
+            'The Ultimate Challengers',
+            'Leader',
+            'Hero',
+        ];
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 12,
+                startDate: { year: 2020, month: 10, day: 3 },
+                endDate: { year: 2020, month: 12, day: 19 },
+            }),
+            source(
+                staleTitles.map(
+                    (title, index) =>
+                        [
+                            String(index + 1),
+                            index + 1,
+                            title,
+                        ] as [string, number, string],
+                ),
+            ),
+            [
+                ...staleTitles.map((title, index) =>
+                    candidate(
+                        4,
+                        index + 1,
+                        title,
+                        new Date(
+                            Date.UTC(2020, 0, 11 + index * 7),
+                        )
+                            .toISOString()
+                            .slice(0, 10),
+                    ),
+                ),
+                ...releaseTitles.map((title, index) =>
+                    candidate(
+                        4,
+                        index + 14,
+                        title,
+                        new Date(
+                            Date.UTC(2020, 9, 3 + index * 7),
+                        )
+                            .toISOString()
+                            .slice(0, 10),
+                    ),
+                ),
+            ],
+        );
+
+        expect(
+            staleTitles.map((_, index) =>
+                metadata.get(String(index + 1))?.episodeNumber,
+            ),
+        ).toEqual([14, 15, 16, 17, 18, 19, 20, 21]);
+    });
+
+    test('keeps an OVA out of a nearby regular season', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                format: 'OVA',
+                episodes: 2,
+                startDate: { year: 2020, month: 1, day: 10 },
+                endDate: { year: 2020, month: 1, day: 10 },
+                title: {
+                    english: 'HAIKYU!! LAND VS. AIR',
+                    romaji: null,
+                    native: null,
+                },
+                synonyms: ['The Path of the Ball'],
+            }),
+            source([
+                ['1', 1, 'Introductions'],
+                ['2', 2, 'Lost'],
+            ]),
+            [
+                candidate(4, 1, 'Introductions', '2020-01-11'),
+                candidate(4, 2, 'Lost', '2020-01-18'),
+                candidate(0, 4, 'Land vs. Air', '2020-01-22'),
+                candidate(0, 5, 'The Path of the Ball', '2020-01-22'),
+            ],
+        );
+
+        expect(
+            ['1', '2'].map(
+                (id) => metadata.get(id)?.seasonNumber,
+            ),
+        ).toEqual([0, 0]);
+        expect(
+            ['1', '2'].map(
+                (id) => metadata.get(id)?.episodeNumber,
+            ),
+        ).toEqual([4, 5]);
+    });
+
+    test('falls back when an episode group covers fewer episodes', () => {
+        const release = anime({
+            episodes: 3,
+            startDate: { year: 2016, month: 10, day: 8 },
+            endDate: { year: 2016, month: 10, day: 22 },
+        });
+        const episodes = source([
+            ['1', 1, 'Greetings'],
+            ['2', 2, 'The Threat of the Left'],
+            ['3', 3, 'Guess-Monster'],
+        ]);
+        const metadata = matchBestEpisodeMetadata(
+            release,
+            episodes,
+            [
+                candidate(2, 1, "Let's Go To Tokyo!!", '2015-10-04'),
+                candidate(2, 2, 'Direct Sunlight', '2015-10-11'),
+                candidate(2, 3, 'Townsperson B', '2015-10-18'),
+            ],
+            [
+                candidate(3, 1, 'Greetings', '2016-10-08'),
+                candidate(
+                    3,
+                    2,
+                    'The Threat of the Left',
+                    '2016-10-15',
+                ),
+                candidate(3, 3, 'Guess-Monster', '2016-10-22'),
+            ],
+        );
+
+        expect(
+            [...metadata.values()].map(
+                ({ seasonNumber }) => seasonNumber,
+            ),
+        ).toEqual([3, 3, 3]);
     });
 });

@@ -9,7 +9,7 @@ import {
     translatedMetadata,
 } from './episode-details';
 import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
-import { matchEpisodeMetadata } from './episode-match';
+import { matchBestEpisodeMetadata } from './episode-match';
 import { resolveStored } from './mapping';
 import { releaseSequence } from './title';
 import type {
@@ -486,10 +486,11 @@ export async function getEpisodeMetadata(
         ),
     ]);
 
-    const matched = matchEpisodeMetadata(
+    const matched = matchBestEpisodeMetadata(
         anime,
         source,
-        grouped ?? fetched.flat(),
+        grouped,
+        fetched.flat(),
     );
     const completed = await Promise.all(
         [...matched.entries()].map(async ([sourceId, candidate]) => {
