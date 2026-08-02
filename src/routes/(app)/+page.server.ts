@@ -31,12 +31,12 @@ function currentSeason(now = new Date()) {
 
 export const load: PageServerLoad = async ({ locals }) => {
     const { season, year } = currentSeason();
-    const continueWatching = getContinueWatchingCards(
-        locals.user?.id,
-    ).catch((cause) => {
-        console.error('Continue watching load failed', cause);
-        return [];
-    });
+    const continueWatching = getContinueWatchingCards(locals.user?.id).catch(
+        (cause) => {
+            console.error('Continue watching load failed', cause);
+            return [];
+        },
+    );
     const highlights = anime.getHomeHero().catch((cause) => {
         console.error('Homepage hero load failed', cause);
         return [];
@@ -49,17 +49,23 @@ export const load: PageServerLoad = async ({ locals }) => {
         error(502, result.left.message);
     }
 
-    const seasonIds = result.right.season.map(({ id }) => id);
+    const animeIds = [
+        ...new Set(
+            [...result.right.season, ...result.right.popular].map(
+                ({ id }) => id,
+            ),
+        ),
+    ];
     const [homeHero, episodeRows, popularAudio] = await Promise.all([
         highlights,
-        seasonIds.length
+        animeIds.length
             ? db
                   .select({
                       anilistId: animeEpisode.anilistId,
                       audio: animeEpisode.audio,
                   })
                   .from(animeEpisode)
-                  .where(inArray(animeEpisode.anilistId, seasonIds))
+                  .where(inArray(animeEpisode.anilistId, animeIds))
             : [],
         anime.allanime.getPopularAudioLabels().catch(() => new Map()),
     ]);
@@ -73,15 +79,24 @@ export const load: PageServerLoad = async ({ locals }) => {
         audioByAnime.set(episode.anilistId, audio);
     }
 
+    const withAudio = (card: (typeof result.right.season)[number]) => ({
+        ...card,
+        caption: audioAvailabilityLabel([
+            ...(audioByAnime.get(card.id) ?? []),
+            ...(popularAudio.get(card.id) ?? []),
+        ]),
+    });
+
+    const seasonCards = result.right.season.map(withAudio);
+    const cards = await anime.withAnimeCardPosters([
+        ...seasonCards,
+        ...result.right.popular.map(withAudio),
+    ]);
+
     return {
         highlights: homeHero,
-        season: result.right.season.map((card) => ({
-            ...card,
-            caption: audioAvailabilityLabel([
-                ...(audioByAnime.get(card.id) ?? []),
-                ...(popularAudio.get(card.id) ?? []),
-            ]),
-        })),
+        season: cards.slice(0, seasonCards.length),
+        popular: cards.slice(seasonCards.length),
         continueWatching,
     };
 };

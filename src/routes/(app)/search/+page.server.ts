@@ -23,6 +23,6 @@ export const load: PageServerLoad = async ({ url }) => {
 
     return {
         query,
-        results: result.right,
+        results: await anime.withAnimeCardPosters(result.right),
     };
 };
