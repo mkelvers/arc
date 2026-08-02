@@ -303,6 +303,72 @@ export const animeDetailsCache = pgTable('anime_details_cache', {
         .defaultNow(),
 });
 
+export const animeCatalog = pgTable(
+    'anime_catalog',
+    {
+        anilistId: integer('anilist_id').primaryKey(),
+        title: text('title').notNull(),
+        searchText: text('search_text').notNull(),
+        imageUrl: text('image_url').notNull(),
+        synopsis: text('synopsis').notNull(),
+        genres: text('genres').array().notNull(),
+        tags: text('tags').array().notNull().default([]),
+        format: varchar('format', { length: 16 }),
+        status: varchar('status', { length: 32 }),
+        isAdult: boolean('is_adult').notNull(),
+        popularity: integer('popularity'),
+        averageScore: integer('average_score'),
+        sourceFetchedAt: timestamp('source_fetched_at', {
+            withTimezone: true,
+        })
+            .notNull()
+            .defaultNow(),
+        createdAt: timestamp('created_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        index('anime_catalog_safe_popularity_idx').on(
+            table.isAdult,
+            table.popularity,
+        ),
+        index('anime_catalog_safe_score_idx').on(
+            table.isAdult,
+            table.averageScore,
+        ),
+        index('anime_catalog_format_status_idx').on(
+            table.format,
+            table.status,
+        ),
+        index('anime_catalog_genres_idx').using('gin', table.genres),
+        index('anime_catalog_tags_idx').using('gin', table.tags),
+    ],
+);
+
+export const animeCatalogRefresh = pgTable('anime_catalog_refresh', {
+    queryKey: text('query_key').primaryKey(),
+    animeIds: integer('anime_ids').array().notNull().default([]),
+    hasNextPage: boolean('has_next_page').notNull().default(false),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
+export const animeCatalogTaxonomy = pgTable('anime_catalog_taxonomy', {
+    provider: varchar('provider', { length: 32 }).primaryKey(),
+    genres: text('genres').array().notNull(),
+    tags: text('tags').array().notNull().default([]),
+    formats: text('formats').array().notNull(),
+    statuses: text('statuses').array().notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
+});
+
 export const animePlaybackProvider = pgTable('anime_playback_provider', {
     anilistId: integer('anilist_id').primaryKey(),
     allanimeShowId: text('allanime_show_id').notNull(),

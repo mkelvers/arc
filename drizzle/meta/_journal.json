@@ -148,6 +148,41 @@
       "when": 1785634836255,
       "tag": "0020_sloppy_diamondback",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1785649646006,
+      "tag": "0021_chief_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1785650012521,
+      "tag": "0022_nappy_santa_claus",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1785650573608,
+      "tag": "0023_cheerful_jigsaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1785651013842,
+      "tag": "0024_open_agent_zero",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1785651727536,
+      "tag": "0025_superb_malice",
+      "breakpoints": true
     }
   ]
 }
