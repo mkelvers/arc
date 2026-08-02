@@ -134,6 +134,20 @@
       "when": 1785609358015,
       "tag": "0018_free_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1785633067601,
+      "tag": "0019_natural_taskmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1785634836255,
+      "tag": "0020_sloppy_diamondback",
+      "breakpoints": true
     }
   ]
 }

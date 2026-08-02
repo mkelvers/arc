@@ -1,6 +1,7 @@
 import {
     boolean,
     doublePrecision,
+    foreignKey,
     index,
     integer,
     jsonb,
@@ -10,10 +11,12 @@ import {
     text,
     timestamp,
     unique,
+    uniqueIndex,
     uuid,
     varchar,
 } from 'drizzle-orm/pg-core';
 
+import type { FranchiseOrder } from '$lib/anime/types';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
@@ -230,6 +233,46 @@ export const animeArtworkPreference = pgTable('anime_artwork_preference', {
         .notNull()
         .defaultNow()
         .$onUpdate(() => new Date()),
+});
+
+export const animeReleasePoster = pgTable(
+    'anime_release_poster',
+    {
+        animeId: integer('anime_id').primaryKey(),
+        externalIdId: integer('external_id_id').notNull(),
+        filePath: text('file_path'),
+        seasonNumber: integer('season_number'),
+        aspectRatio: doublePrecision('aspect_ratio'),
+        height: integer('height'),
+        language: varchar('language', { length: 16 }),
+        voteAverage: doublePrecision('vote_average'),
+        width: integer('width'),
+        fetchedAt: timestamp('fetched_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => [
+        foreignKey({
+            columns: [table.animeId, table.externalIdId],
+            foreignColumns: [
+                animeExternalIdLink.animeId,
+                animeExternalIdLink.externalIdId,
+            ],
+        }).onDelete('cascade'),
+        index('anime_release_poster_external_id_idx').on(table.externalIdId),
+        uniqueIndex('anime_release_poster_external_file_unique').on(
+            table.externalIdId,
+            table.filePath,
+        ),
+    ],
+);
+
+export const animeFranchiseCache = pgTable('anime_franchise_cache', {
+    malId: integer('mal_id').primaryKey(),
+    data: jsonb('data').$type<FranchiseOrder>().notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+        .notNull()
+        .defaultNow(),
 });
 
 export const homeHeroSelection = pgTable(
