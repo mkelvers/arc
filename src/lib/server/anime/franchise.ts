@@ -146,7 +146,7 @@ async function refresh(malId: number) {
         types,
         entries: entries.flatMap((entry) => {
             const media = metadata.get(entry.malId);
-            const anilistId = media?.id ?? entry.anilistId;
+            const anilistId = media?.id;
             const type = typeLabels.get(entry.typeId);
 
             if (!anilistId || !type) {

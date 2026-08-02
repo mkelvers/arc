@@ -35,16 +35,15 @@ describe('Chiaki franchise order parsing', () => {
             { id: '3', label: 'Movie' },
         ]);
         expect(
-            order.entries.map(({ anilistId, malId, secondary, typeId }) => ({
-                anilistId,
+            order.entries.map(({ malId, secondary, typeId }) => ({
                 malId,
                 secondary,
                 typeId,
             })),
         ).toEqual([
-            { anilistId: 16498, malId: 16498, secondary: false, typeId: '1' },
-            { anilistId: 18397, malId: 18397, secondary: true, typeId: '2' },
-            { anilistId: 20691, malId: 23775, secondary: false, typeId: '3' },
+            { malId: 16498, secondary: false, typeId: '1' },
+            { malId: 18397, secondary: true, typeId: '2' },
+            { malId: 23775, secondary: false, typeId: '3' },
         ]);
         expect(order.entries[0]?.image).toBe(
             'https://chiaki.site/images/aot.jpg',

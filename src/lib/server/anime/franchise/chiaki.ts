@@ -7,7 +7,6 @@ const baseUrl = 'https://chiaki.site';
 const maxHtmlLength = 2 * 1024 * 1024;
 
 export interface ChiakiEntry {
-    anilistId: number | null;
     malId: number;
     typeId: string;
     title: string;
@@ -39,8 +38,6 @@ export function parseOrder(html: string) {
         .map((_, row) => {
             const element = $(row);
             const entry: ChiakiEntry = {
-                anilistId:
-                    positiveInteger(element.attr('data-anilist-id')) ?? null,
                 malId: positiveInteger(element.attr('data-id')) ?? 0,
                 typeId: element.attr('data-type')?.trim() ?? '',
                 title: element.find('.wo_title').first().text().trim(),
