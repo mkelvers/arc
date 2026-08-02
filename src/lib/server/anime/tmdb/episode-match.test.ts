@@ -310,6 +310,46 @@ describe('TMDB episode identity matching', () => {
         });
     });
 
+    test('keeps an extended finale when its date and ordinal match', () => {
+        const episodes = source(
+            Array.from(
+                { length: 8 },
+                (_, index) =>
+                    [
+                        String(index + 1),
+                        index + 1,
+                        index === 7
+                            ? 'Hashiras, Assemble'
+                            : `Episode ${index + 1}`,
+                    ] as [string, number, string],
+            ),
+        );
+        const metadata = matchEpisodeMetadata(
+            anime({
+                duration: 30,
+                episodes: 8,
+                startDate: { year: 2024, month: 5, day: 12 },
+                endDate: { year: 2024, month: 6, day: 30 },
+            }),
+            episodes,
+            [
+                candidate(
+                    5,
+                    8,
+                    'The Hashira Unite',
+                    '2024-06-30',
+                    41,
+                ),
+            ],
+        );
+
+        expect(metadata.get('8')).toMatchObject({
+            seasonNumber: 5,
+            episodeNumber: 8,
+            title: 'The Hashira Unite',
+        });
+    });
+
     test('prefers the canonical ordinal over a later global provider number', () => {
         const episodes = source([
             ...Array.from(

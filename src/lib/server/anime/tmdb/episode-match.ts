@@ -196,7 +196,11 @@ function pairScore(
 
     if (anime.duration && candidate.runtime) {
         const difference = Math.abs(anime.duration - candidate.runtime);
-        if (difference > 8 && title < 60) {
+        if (
+            difference > 8 &&
+            title < 60 &&
+            !(sameRegularNumber && date >= 100)
+        ) {
             return -Infinity;
         }
 
