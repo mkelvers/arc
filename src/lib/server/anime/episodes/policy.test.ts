@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     canPreserveEpisodeMetadata,
+    episodeInventoryIsExpected,
     episodeRefreshReason,
     nextRefreshAt,
 } from './policy';
@@ -66,6 +67,12 @@ describe('episode refresh policy', () => {
         expect(canPreserveEpisodeMetadata(42, null)).toBeTrue();
         expect(canPreserveEpisodeMetadata(null, 42)).toBeFalse();
         expect(canPreserveEpisodeMetadata(41, 42)).toBeFalse();
+    });
+
+    test('does not probe playback before a release begins', () => {
+        expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
+        expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
+        expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
     });
 
     test('backs off stable finished titles even when optional fields are absent', () => {

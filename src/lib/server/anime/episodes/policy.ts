@@ -36,6 +36,10 @@ export function canPreserveEpisodeMetadata(
     );
 }
 
+export function episodeInventoryIsExpected(status: AniListAnime['status']) {
+    return status !== 'NOT_YET_RELEASED';
+}
+
 export function nextRefreshAt(anime: AniListAnime, stableSince: Date) {
     const now = Date.now();
     const after = (milliseconds: number) => new Date(now + milliseconds);

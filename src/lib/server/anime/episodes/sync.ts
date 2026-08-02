@@ -9,7 +9,11 @@ import { tmdb } from '../tmdb';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
-import { canPreserveEpisodeMetadata, nextRefreshAt } from './policy';
+import {
+    canPreserveEpisodeMetadata,
+    episodeInventoryIsExpected,
+    nextRefreshAt,
+} from './policy';
 import { episodesForRelease } from './release';
 import type { AniListAnime } from './types';
 
@@ -82,7 +86,7 @@ async function fetchAndStore(
     anime: AniListAnime,
     metadataSource: StoredMapping | undefined,
 ) {
-    if (anime.status === 'NOT_YET_RELEASED') {
+    if (!episodeInventoryIsExpected(anime.status)) {
         return recordExpectedEmptyInventory(anime);
     }
 
