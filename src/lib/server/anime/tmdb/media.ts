@@ -2,6 +2,7 @@ import { db } from '$lib/server/db';
 import { animeArtworkPreference } from '$lib/server/db/schema';
 import { fetchArtwork, readArtwork } from './artwork';
 import { findMapping } from './mapping-store';
+import { readPoster } from './poster';
 
 export async function getStoredMedia(anilistId: number) {
     const match = await findMapping(anilistId);
@@ -10,7 +11,10 @@ export async function getStoredMedia(anilistId: number) {
         return null;
     }
 
-    const artwork = await readArtwork(match);
+    const [artwork, selectedPoster] = await Promise.all([
+        readArtwork(match),
+        readPoster(match),
+    ]);
 
     if (!match.title || !artwork) {
         return null;
@@ -18,7 +22,7 @@ export async function getStoredMedia(anilistId: number) {
 
     return {
         anime: { id: anilistId, title: match.title },
-        artwork,
+        artwork: { ...artwork, selectedPoster },
     };
 }
 

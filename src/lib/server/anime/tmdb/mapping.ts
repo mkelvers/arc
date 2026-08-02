@@ -25,6 +25,12 @@ import {
 
 const requests = new Map<number, Promise<StoredMapping>>();
 
+export class NoConfidentTmdbMappingError extends Error {
+    constructor(readonly anilistId: number) {
+        super(`No confident TMDB match for AniList ${anilistId}`);
+    }
+}
+
 function seasonEvidenceScore(
     anime: AniListAnime,
     season: {
@@ -300,7 +306,7 @@ async function discoverMapping(
         });
     }
 
-    throw new Error(`No confident TMDB match for AniList ${anime.id}`);
+    throw new NoConfidentTmdbMappingError(anime.id);
 }
 
 async function resolveStoredUncached(

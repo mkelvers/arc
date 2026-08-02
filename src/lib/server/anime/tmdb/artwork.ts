@@ -8,6 +8,7 @@ import {
 } from '$lib/server/db/schema';
 import { create, imageUrl } from './client';
 import { resolveStored } from './mapping';
+import { getPoster } from './poster';
 import type {
     AniListAnime,
     Artwork,
@@ -96,6 +97,7 @@ async function withSelections(
               ) ??
               artwork.logos[0] ??
               null),
+        selectedPoster: null,
         logoHidden,
         logoSize: preference?.logoSize ?? 100,
     };
@@ -249,6 +251,16 @@ export async function fetchArtwork(match: StoredMapping) {
 
 export async function getArtwork(anime: AniListAnime) {
     const match = await resolveStored(anime);
+    const [artwork, selectedPoster] = await Promise.all([
+        readArtwork(match).then((stored) => stored ?? fetchArtwork(match)),
+        getPoster(anime, match).catch((cause) => {
+            console.warn(
+                `TMDB poster enrichment failed for AniList ${anime.id}`,
+                cause,
+            );
+            return null;
+        }),
+    ]);
 
-    return (await readArtwork(match)) ?? fetchArtwork(match);
+    return { ...artwork, selectedPoster };
 }

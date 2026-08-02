@@ -36,6 +36,7 @@ export interface Artwork extends Mapping {
     logos: ArtworkImage[];
     selectedBackdrop: ArtworkImage | null;
     selectedLogo: ArtworkImage | null;
+    selectedPoster: ArtworkImage | null;
     logoHidden: boolean;
     logoSize: number;
 }
