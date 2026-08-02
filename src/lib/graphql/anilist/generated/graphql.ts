@@ -75,6 +75,46 @@ export type MediaSeason =
   /** Predominantly started airing between January and March */
   | 'WINTER';
 
+/** Media sort enums */
+export type MediaSort =
+  | 'CHAPTERS'
+  | 'CHAPTERS_DESC'
+  | 'DURATION'
+  | 'DURATION_DESC'
+  | 'END_DATE'
+  | 'END_DATE_DESC'
+  | 'EPISODES'
+  | 'EPISODES_DESC'
+  | 'FAVOURITES'
+  | 'FAVOURITES_DESC'
+  | 'FORMAT'
+  | 'FORMAT_DESC'
+  | 'ID'
+  | 'ID_DESC'
+  | 'POPULARITY'
+  | 'POPULARITY_DESC'
+  | 'SCORE'
+  | 'SCORE_DESC'
+  | 'SEARCH_MATCH'
+  | 'START_DATE'
+  | 'START_DATE_DESC'
+  | 'STATUS'
+  | 'STATUS_DESC'
+  | 'TITLE_ENGLISH'
+  | 'TITLE_ENGLISH_DESC'
+  | 'TITLE_NATIVE'
+  | 'TITLE_NATIVE_DESC'
+  | 'TITLE_ROMAJI'
+  | 'TITLE_ROMAJI_DESC'
+  | 'TRENDING'
+  | 'TRENDING_DESC'
+  | 'TYPE'
+  | 'TYPE_DESC'
+  | 'UPDATED_AT'
+  | 'UPDATED_AT_DESC'
+  | 'VOLUMES'
+  | 'VOLUMES_DESC';
+
 /** The current releasing status of the media */
 export type MediaStatus =
   /** Ended before the work could be finished */
@@ -101,6 +141,26 @@ export type AnimeQueryVariables = Exact<{
 
 
 export type AnimeQuery = { Media: { id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, endDate: { year: number | null, month: number | null, day: number | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
+
+export type BrowseAnimeTaxonomyQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type BrowseAnimeTaxonomyQuery = { GenreCollection: Array<string | null> | null, tags: Array<{ name: string, isAdult: boolean | null } | null> | null, formats: { enumValues: Array<{ name: string }> | null } | null, statuses: { enumValues: Array<{ name: string }> | null } | null };
+
+export type BrowseAnimePageQueryVariables = Exact<{
+  search?: string | null | undefined;
+  genre?: string | null | undefined;
+  tag?: string | null | undefined;
+  format?: MediaFormat | null | undefined;
+  status?: MediaStatus | null | undefined;
+  isAdult?: boolean | null | undefined;
+  sort?: Array<MediaSort | null | undefined> | MediaSort | null | undefined;
+  page: number;
+  perPage: number;
+}>;
+
+
+export type BrowseAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, isAdult: boolean | null, averageScore: number | null, popularity: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, tags: Array<{ name: string } | null> | null } | null> | null } | null };
 
 export type FranchiseMediaQueryVariables = Exact<{
   malIds?: Array<number | null | undefined> | number | null | undefined;
@@ -232,6 +292,66 @@ export const AnimeDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AnimeQuery, AnimeQueryVariables>;
+export const BrowseAnimeTaxonomyDocument = new TypedDocumentString(`
+    query BrowseAnimeTaxonomy {
+  GenreCollection
+  tags: MediaTagCollection {
+    name
+    isAdult
+  }
+  formats: __type(name: "MediaFormat") {
+    enumValues {
+      name
+    }
+  }
+  statuses: __type(name: "MediaStatus") {
+    enumValues {
+      name
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<BrowseAnimeTaxonomyQuery, BrowseAnimeTaxonomyQueryVariables>;
+export const BrowseAnimePageDocument = new TypedDocumentString(`
+    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $isAdult: Boolean, $sort: [MediaSort], $page: Int!, $perPage: Int!) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      hasNextPage
+    }
+    media(
+      search: $search
+      type: ANIME
+      genre: $genre
+      tag: $tag
+      format: $format
+      status: $status
+      isAdult: $isAdult
+      sort: $sort
+    ) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      synonyms
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      tags {
+        name
+      }
+      format
+      status
+      isAdult
+      averageScore
+      popularity
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<BrowseAnimePageQuery, BrowseAnimePageQueryVariables>;
 export const FranchiseMediaDocument = new TypedDocumentString(`
     query FranchiseMedia($malIds: [Int]) {
   Page(perPage: 50) {

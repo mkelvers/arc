@@ -1,0 +1,49 @@
+query BrowseAnimePage(
+    $search: String
+    $genre: String
+    $tag: String
+    $format: MediaFormat
+    $status: MediaStatus
+    $isAdult: Boolean
+    $sort: [MediaSort]
+    $page: Int!
+    $perPage: Int!
+) {
+    Page(page: $page, perPage: $perPage) {
+        pageInfo {
+            hasNextPage
+        }
+        media(
+            search: $search
+            type: ANIME
+            genre: $genre
+            tag: $tag
+            format: $format
+            status: $status
+            isAdult: $isAdult
+            sort: $sort
+        ) {
+            id
+            title {
+                english
+                romaji
+                native
+            }
+            synonyms
+            coverImage {
+                extraLarge
+                large
+            }
+            description(asHtml: false)
+            genres
+            tags {
+                name
+            }
+            format
+            status
+            isAdult
+            averageScore
+            popularity
+        }
+    }
+}
