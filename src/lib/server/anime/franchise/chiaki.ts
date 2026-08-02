@@ -7,6 +7,7 @@ const baseUrl = 'https://chiaki.site';
 const maxHtmlLength = 2 * 1024 * 1024;
 
 export interface ChiakiEntry {
+    anilistId: number | null;
     malId: number;
     typeId: string;
     title: string;
@@ -20,30 +21,7 @@ function imageFromStyle(style: string | undefined) {
     return path ? new URL(path, `${baseUrl}/`).href : '';
 }
 
-export async function fetchOrder(malId: number) {
-    const response = await fetch(
-        `${baseUrl}/?/tools/watch_order/id/${malId}`,
-        {
-            headers: {
-                Accept: 'text/html,application/xhtml+xml',
-                'Accept-Language': 'en-US,en;q=0.9',
-                Referer: `${baseUrl}/`,
-                'User-Agent':
-                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
-            },
-            signal: AbortSignal.timeout(15_000),
-        },
-    );
-
-    if (!response.ok) {
-        throw new Error(`Chiaki returned ${response.status}`);
-    }
-
-    const html = await response.text();
-    if (html.length > maxHtmlLength) {
-        throw new Error('Chiaki response was unexpectedly large');
-    }
-
+export function parseOrder(html: string) {
     const $ = cheerio.load(html);
     const types = $('#wo_type_filter label')
         .map((_, label) => {
@@ -61,6 +39,8 @@ export async function fetchOrder(malId: number) {
         .map((_, row) => {
             const element = $(row);
             const entry: ChiakiEntry = {
+                anilistId:
+                    positiveInteger(element.attr('data-anilist-id')) ?? null,
                 malId: positiveInteger(element.attr('data-id')) ?? 0,
                 typeId: element.attr('data-type')?.trim() ?? '',
                 title: element.find('.wo_title').first().text().trim(),
@@ -75,10 +55,7 @@ export async function fetchOrder(malId: number) {
                 secondary: element.hasClass('wo_row_secondary'),
             };
 
-            return entry.malId &&
-                entry.typeId &&
-                entry.title &&
-                entry.image
+            return entry.malId && entry.typeId && entry.title && entry.image
                 ? entry
                 : null;
         })
@@ -90,4 +67,28 @@ export async function fetchOrder(malId: number) {
     }
 
     return { types, entries };
+}
+
+export async function fetchOrder(malId: number) {
+    const response = await fetch(`${baseUrl}/?/tools/watch_order/id/${malId}`, {
+        headers: {
+            Accept: 'text/html,application/xhtml+xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+            Referer: `${baseUrl}/`,
+            'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+        },
+        signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Chiaki returned ${response.status}`);
+    }
+
+    const html = await response.text();
+    if (html.length > maxHtmlLength) {
+        throw new Error('Chiaki response was unexpectedly large');
+    }
+
+    return parseOrder(html);
 }

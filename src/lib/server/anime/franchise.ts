@@ -1,5 +1,5 @@
-import { inArray } from 'drizzle-orm';
-import { Effect } from 'effect';
+import { eq, inArray } from 'drizzle-orm';
+import { Effect, Schedule } from 'effect';
 
 import {
     episodeAudioAvailabilityLabel,
@@ -8,29 +8,31 @@ import {
 import type { FranchiseOrder } from '$lib/anime/types';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
-import { animeEpisode } from '$lib/server/db/schema';
+import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
 import { graphql } from '$lib/server/graphql';
 import { plainText } from './anilist/text';
-import {
-    fetchOrder,
-    type ChiakiEntry,
-} from './franchise/chiaki';
+import { transientRequestError } from './anilist/client';
+import { withAnimeCardPosters } from './card-posters';
+import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import {
     primaryFranchiseIds,
     type FranchiseSelectionEntry,
 } from './franchise/selection';
 
 const anilistEndpoint = 'https://graphql.anilist.co';
-const cacheLifetime = 24 * 60 * 60 * 1_000;
-
-const cache = new Map<number, { data: FranchiseOrder; fetchedAt: number }>();
 const requests = new Map<number, Promise<FranchiseOrder>>();
 
 async function fetchMetadata(entries: ChiakiEntry[]) {
     const result = await Effect.runPromise(
         graphql(anilistEndpoint, FranchiseMediaDocument, {
             malIds: entries.map(({ malId }) => malId),
-        }),
+        }).pipe(
+            Effect.retry({
+                times: 2,
+                schedule: Schedule.exponential('750 millis'),
+                while: transientRequestError,
+            }),
+        ),
     );
 
     return new Map(
@@ -98,10 +100,45 @@ async function cachedPlayback(anilistIds: number[]) {
     );
 }
 
+async function saveOrder(malId: number, data: FranchiseOrder) {
+    const fetchedAt = new Date();
+
+    try {
+        await db
+            .insert(animeFranchiseCache)
+            .values(
+                [
+                    ...new Set([
+                        malId,
+                        ...data.entries.map((entry) => entry.malId),
+                    ]),
+                ].map((entryMalId) => ({
+                    malId: entryMalId,
+                    data,
+                    fetchedAt,
+                })),
+            )
+            .onConflictDoUpdate({
+                target: animeFranchiseCache.malId,
+                set: { data, fetchedAt },
+            });
+    } catch (cause) {
+        console.error(`Franchise cache write failed for MAL ${malId}`, cause);
+    }
+}
+
 async function refresh(malId: number) {
     const { types, entries } = await fetchOrder(malId);
     const typeLabels = new Map(types.map(({ id, label }) => [id, label]));
-    const metadata = await fetchMetadata(entries);
+    const metadata = await fetchMetadata(entries).catch(
+        (cause): Awaited<ReturnType<typeof fetchMetadata>> => {
+            console.warn(
+                `AniList franchise enrichment unavailable for MAL ${malId}; using Chiaki metadata`,
+                cause,
+            );
+            return new Map();
+        },
+    );
     const primaryIds = primaryFranchiseIds(
         entries.flatMap((entry): FranchiseSelectionEntry[] => {
             const media = metadata.get(entry.malId);
@@ -145,7 +182,7 @@ async function refresh(malId: number) {
         types,
         entries: entries.flatMap((entry) => {
             const media = metadata.get(entry.malId);
-            const anilistId = media?.id;
+            const anilistId = media?.id ?? entry.anilistId;
             const type = typeLabels.get(entry.typeId);
 
             if (!anilistId || !type) {
@@ -168,15 +205,16 @@ async function refresh(malId: number) {
                         media?.coverImage?.extraLarge ??
                         media?.coverImage?.large ??
                         entry.image,
-                    caption:
-                        playback.get(anilistId)?.audioLabel ?? '',
+                    caption: playback.get(anilistId)?.audioLabel ?? '',
                     score: media?.averageScore ?? 0,
                     genres: (media?.genres ?? []).flatMap((genre) =>
                         genre ? [genre] : [],
                     ),
                     synopsis: synopsis(media?.description),
                     secondary: entry.secondary,
-                    primary: primaryIds.has(entry.malId),
+                    primary:
+                        primaryIds.has(entry.malId) ||
+                        (!media && !entry.secondary),
                     href: `/anime/${anilistId}`,
                     watchHref:
                         playback.get(anilistId)?.watchHref ??
@@ -186,15 +224,37 @@ async function refresh(malId: number) {
         }),
     };
 
-    cache.set(malId, { data, fetchedAt: Date.now() });
+    await saveOrder(malId, data);
 
     return data;
 }
 
-async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
-    const cached = cache.get(malId);
-    if (cached && Date.now() - cached.fetchedAt < cacheLifetime) {
-        return cached.data;
+async function cachedFranchiseOrder(malId: number) {
+    let stored:
+        | {
+              data: FranchiseOrder;
+              fetchedAt: Date;
+          }
+        | undefined;
+
+    try {
+        [stored] = await db
+            .select({
+                data: animeFranchiseCache.data,
+                fetchedAt: animeFranchiseCache.fetchedAt,
+            })
+            .from(animeFranchiseCache)
+            .where(eq(animeFranchiseCache.malId, malId))
+            .limit(1);
+    } catch (cause) {
+        console.error(`Franchise cache read failed for MAL ${malId}`, cause);
+    }
+
+    if (
+        stored &&
+        Date.now() - stored.fetchedAt.getTime() < 24 * 60 * 60 * 1_000
+    ) {
+        return stored.data;
     }
 
     const pending = requests.get(malId);
@@ -203,8 +263,12 @@ async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
     }
 
     const request = refresh(malId).catch((cause) => {
-        if (cached) {
-            return cached.data;
+        if (stored) {
+            console.warn(
+                `Franchise refresh failed for MAL ${malId}; using stored order`,
+                cause,
+            );
+            return stored.data;
         }
         throw cause;
     });
@@ -215,6 +279,15 @@ async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
     } finally {
         requests.delete(malId);
     }
+}
+
+async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
+    const order = await cachedFranchiseOrder(malId);
+
+    return {
+        ...order,
+        entries: await withAnimeCardPosters(order.entries),
+    };
 }
 
 export const franchise = {
