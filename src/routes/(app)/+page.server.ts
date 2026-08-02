@@ -3,7 +3,7 @@ import { inArray } from 'drizzle-orm';
 import { Effect, Either } from 'effect';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
-import type { MediaSeason } from '$lib/graphql/anilist/generated/graphql';
+import { currentAnimeSeason } from '$lib/anime/season';
 import { anime } from '$lib/server/anime';
 import { animeId } from '$lib/server/anime/route';
 import { db } from '$lib/server/db';
@@ -12,25 +12,8 @@ import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
 import { deletePlaybackProgress } from '$lib/server/playback-progress/store';
 import type { Actions, PageServerLoad } from './$types';
 
-function currentSeason(now = new Date()) {
-    const month = now.getUTCMonth() + 1;
-    const season: MediaSeason =
-        month <= 3
-            ? 'WINTER'
-            : month <= 6
-              ? 'SPRING'
-              : month <= 9
-                ? 'SUMMER'
-                : 'FALL';
-
-    return {
-        season,
-        year: now.getUTCFullYear(),
-    };
-}
-
 export const load: PageServerLoad = async ({ locals }) => {
-    const { season, year } = currentSeason();
+    const { season, year } = currentAnimeSeason();
     const continueWatching = getContinueWatchingCards(locals.user?.id).catch(
         (cause) => {
             console.error('Continue watching load failed', cause);
