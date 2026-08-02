@@ -344,14 +344,3 @@ export async function getStoredPosters(anilistIds: number[]) {
         ),
     );
 }
-
-export async function stalePosterIds(anilistIds: number[]) {
-    const rows = await posterRows(anilistIds);
-    const fresh = new Set(
-        rows
-            .filter(({ poster }) => isFresh(poster))
-            .map(({ anilistId }) => anilistId),
-    );
-
-    return [...new Set(anilistIds)].filter((id) => !fresh.has(id));
-}
