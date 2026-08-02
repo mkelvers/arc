@@ -83,9 +83,6 @@ export async function fetchAniSkip(
         },
     );
     if (response.status === 404) {
-        console.info(
-            `AniSkip has no skip times for MAL ${malId}, episode ${episodeNumber}`,
-        );
         return { opening: null, ending: null, source: 'aniskip' };
     }
     if (!response.ok) {

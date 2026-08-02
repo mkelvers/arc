@@ -7,17 +7,13 @@ import {
 } from './aniskip';
 
 const nativeFetch = globalThis.fetch;
-const nativeInfo = console.info;
 
 afterEach(() => {
     globalThis.fetch = nativeFetch;
-    console.info = nativeInfo;
 });
 
 describe('fetchAniSkip', () => {
     test('treats a valid not-found response as empty AniSkip data', async () => {
-        const info = mock(() => {});
-        console.info = info;
         globalThis.fetch = mock(async () =>
             Response.json(
                 {
@@ -35,9 +31,6 @@ describe('fetchAniSkip', () => {
             ending: null,
             source: 'aniskip',
         });
-        expect(info).toHaveBeenCalledWith(
-            'AniSkip has no skip times for MAL 62001, episode 17',
-        );
     });
 
     test('still rejects upstream failures', async () => {
