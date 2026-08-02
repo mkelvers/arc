@@ -5,7 +5,10 @@ import type {
     ProviderStream,
     ProviderStreams,
 } from './types';
-import { matchProviderEpisode } from './match';
+import {
+    coversExpectedEpisodes,
+    matchProviderEpisode,
+} from './match';
 
 class ProviderAttemptError extends Error {
     constructor(
@@ -201,10 +204,11 @@ export function createProviderFallback(
                         throw new Error('the episode inventory was empty');
                     }
 
-                    return { episodes, error: null };
+                    return { provider, episodes, error: null };
                 } catch (cause) {
                     markFailure(provider, 'episodes', cause);
                     return {
+                        provider,
                         episodes: [],
                         error: new ProviderAttemptError(
                             provider.name,
@@ -223,11 +227,33 @@ export function createProviderFallback(
             (
                 result,
             ): result is {
+                provider: PlaybackProvider;
                 episodes: ProviderEpisode[];
                 error: null;
             } => Boolean(result.episodes.length),
         );
         const expected = anime.episodes;
+        const eligible =
+            anime.status === 'FINISHED' && expected && expected > 0
+                ? successful.filter(({ episodes }) =>
+                      coversExpectedEpisodes(episodes, expected),
+                  )
+                : successful;
+        if (!eligible.length && successful.length) {
+            throw new AggregateError(
+                successful.map(
+                    ({ provider, episodes }) =>
+                        new ProviderAttemptError(
+                            provider.name,
+                            'episodes',
+                            new Error(
+                                `incomplete inventory: expected episodes 1-${expected}, received ${episodes.length} entries`,
+                            ),
+                        ),
+                ),
+                `No playback provider returned the complete finished release for AniList ${anime.id}`,
+            );
+        }
         const inventoryPenalty = (
             inventory: ProviderEpisode[],
         ) => {
@@ -251,16 +277,16 @@ export function createProviderFallback(
                 Math.abs(inventory.length - expected)
             );
         };
-        const canonicalIndex = successful.reduce(
+        const canonicalIndex = eligible.reduce(
             (best, result, index) =>
                 inventoryPenalty(result.episodes) <
-                inventoryPenalty(successful[best].episodes)
+                inventoryPenalty(eligible[best].episodes)
                     ? index
                     : best,
             0,
         );
-        const canonical = successful[canonicalIndex];
-        const alternates = successful.filter(
+        const canonical = eligible[canonicalIndex];
+        const alternates = eligible.filter(
             (_, index) => index !== canonicalIndex,
         );
 

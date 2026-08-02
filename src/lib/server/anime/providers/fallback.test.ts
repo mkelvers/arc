@@ -156,6 +156,31 @@ describe('playback provider fallback', () => {
         ]);
     });
 
+    test('fails closed when a finished release inventory is incomplete', async () => {
+        const playback = createProviderFallback([
+            provider('incomplete', {
+                getEpisodes: async () => [
+                    {
+                        id: 'one',
+                        number: 1,
+                        title: 'First',
+                        audio: ['sub'],
+                    },
+                ],
+            }),
+        ]);
+
+        await expect(
+            playback.getEpisodes({
+                ...anime,
+                status: 'FINISHED',
+                episodes: 2,
+            }),
+        ).rejects.toThrow(
+            'No playback provider returned the complete finished release',
+        );
+    });
+
     test('retains a later-provider fractional special as a candidate', async () => {
         const playback = createProviderFallback([
             provider('with-special', {

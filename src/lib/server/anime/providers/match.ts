@@ -108,6 +108,106 @@ export function episodeTitleScore(left: string, right: string) {
     return -30;
 }
 
+export function coversExpectedEpisodes(
+    episodes: { number: number }[],
+    expected: number | null | undefined,
+) {
+    if (!expected || expected <= 0) {
+        return true;
+    }
+
+    const covered = new Set(
+        episodes.flatMap(({ number }) =>
+            Number.isInteger(number) &&
+            number > 0 &&
+            number <= expected
+                ? [number]
+                : [],
+        ),
+    );
+    return covered.size === expected;
+}
+
+export type ReleaseInventoryEvidence =
+    | 'aligned'
+    | 'conflicting'
+    | 'unknown';
+
+function meaningfulEpisodeTitle(title: string | undefined) {
+    const key = title ? episodeTitleKey(title) : '';
+    return key && !/^\d+$/.test(key) ? key : null;
+}
+
+export function releaseInventoryEvidence<
+    T extends { number: number; title: string },
+>(
+    episodes: T[],
+    release: ProviderEpisodeReference['release'],
+    relatedReleases: ProviderEpisodeReference['relatedReleases'] = [],
+): ReleaseInventoryEvidence {
+    const references = (release ?? []).filter(({ title }) =>
+        meaningfulEpisodeTitle(title),
+    );
+    if (!references.length) {
+        return 'unknown';
+    }
+
+    const candidates = episodes.filter(({ title }) =>
+        meaningfulEpisodeTitle(title),
+    );
+    const requiredMatches = references.length === 1 ? 1 : 2;
+    const aligned = references.filter((reference) => {
+        const candidate = candidates.find(
+            ({ number }) => number === reference.number,
+        );
+        return (
+            candidate &&
+            episodeTitleScore(reference.title ?? '', candidate.title) >=
+                60
+        );
+    }).length;
+    const releaseMatches = references.filter((reference) =>
+        candidates.some(
+            (candidate) =>
+                episodeTitleScore(
+                    reference.title ?? '',
+                    candidate.title,
+                ) >= 60,
+        ),
+    ).length;
+    const relatedEvidence = relatedReleases.map((related) => {
+        const titles = related.filter(({ title }) =>
+            meaningfulEpisodeTitle(title),
+        );
+        const required = titles.length === 1 ? 1 : 2;
+        const matches = titles.filter((reference) =>
+            candidates.some(
+                (candidate) =>
+                    episodeTitleScore(
+                        reference.title ?? '',
+                        candidate.title,
+                    ) >= 60,
+            ),
+        ).length;
+
+        return { matches, required };
+    });
+    const matchesRelatedRelease = relatedEvidence.some(
+        ({ matches, required }) =>
+            matches >= required &&
+            matches >= releaseMatches + required,
+    );
+
+    if (matchesRelatedRelease) {
+        return 'conflicting';
+    }
+
+    return aligned >= requiredMatches ||
+        releaseMatches >= requiredMatches
+        ? 'aligned'
+        : 'unknown';
+}
+
 const releaseTitleStopWords = new Set([
     'a',
     'an',
@@ -351,6 +451,21 @@ export function matchProviderStreamEpisode<
     reference: ProviderEpisodeReference,
     expectedEpisodes: number | null | undefined,
 ) {
+    const evidence = releaseInventoryEvidence(
+        episodes,
+        reference.release,
+        reference.relatedReleases,
+    );
+    if (evidence === 'conflicting') {
+        return undefined;
+    }
+    if (evidence === 'aligned') {
+        const match = matchProviderEpisode(episodes, reference);
+        if (match) {
+            return match;
+        }
+    }
+
     if (
         Number.isInteger(reference.number) &&
         reference.number > 0 &&

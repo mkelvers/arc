@@ -1,15 +1,37 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    coversExpectedEpisodes,
     episodeTitleScore,
     matchProviderEpisode,
     matchProviderStreamEpisode,
+    releaseInventoryEvidence,
     specialCollectionMatches,
     standaloneSpecialMatches,
 } from './match';
 import type { ProviderAnime } from './types';
 
 describe('playback episode identity matching', () => {
+    test('requires every expected numbered episode', () => {
+        expect(
+            coversExpectedEpisodes(
+                [{ number: 1 }, { number: 2 }],
+                3,
+            ),
+        ).toBe(false);
+        expect(
+            coversExpectedEpisodes(
+                [
+                    { number: 0.5 },
+                    { number: 1 },
+                    { number: 2 },
+                    { number: 3 },
+                ],
+                3,
+            ),
+        ).toBe(true);
+    });
+
     test('matches provider numbering by title before ordinal position', () => {
         const episodes = [
             {
@@ -146,6 +168,89 @@ describe('playback episode identity matching', () => {
                     id: '2',
                     number: 2,
                     title: 'Unrelated metadata title',
+                },
+                2,
+            ),
+        ).toBe(episodes[1]);
+    });
+
+    test('identifies an inventory from a related cour', () => {
+        const release = [
+            { number: 1, title: 'Rhythm' },
+            { number: 2, title: 'Found' },
+            { number: 3, title: 'The Ultimate Challengers' },
+        ];
+        const firstCour = [
+            { number: 1, title: 'Introductions' },
+            { number: 2, title: 'Lost' },
+            { number: 3, title: 'Challenger' },
+        ];
+
+        expect(
+            releaseInventoryEvidence(firstCour, release, [firstCour]),
+        ).toBe('conflicting');
+        expect(
+            matchProviderStreamEpisode(
+                firstCour,
+                {
+                    id: 'one',
+                    number: 1,
+                    title: 'Rhythm',
+                    release,
+                    relatedReleases: [firstCour],
+                },
+                3,
+            ),
+        ).toBeUndefined();
+    });
+
+    test('does not infer a conflict from unknown or localized titles alone', () => {
+        const release = [
+            { number: 1, title: 'Rhythm' },
+            { number: 2, title: 'Found' },
+        ];
+
+        expect(
+            releaseInventoryEvidence(
+                [
+                    { number: 1, title: 'Rizumu' },
+                    { number: 2, title: 'Mitsuketa' },
+                ],
+                release,
+            ),
+        ).toBe('unknown');
+        expect(
+            releaseInventoryEvidence(
+                [
+                    { number: 1, title: 'Episode 1' },
+                    { number: 2, title: 'Episode 2' },
+                ],
+                release,
+            ),
+        ).toBe('unknown');
+    });
+
+    test('uses corroborated release titles when provider numbering is reordered', () => {
+        const episodes = [
+            { number: 1, title: 'Found' },
+            { number: 2, title: 'Rhythm' },
+        ];
+        const release = [
+            { number: 1, title: 'Rhythm' },
+            { number: 2, title: 'Found' },
+        ];
+
+        expect(releaseInventoryEvidence(episodes, release)).toBe(
+            'aligned',
+        );
+        expect(
+            matchProviderStreamEpisode(
+                episodes,
+                {
+                    id: 'one',
+                    number: 1,
+                    title: 'Rhythm',
+                    release,
                 },
                 2,
             ),

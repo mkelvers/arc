@@ -15,6 +15,11 @@ export interface ProviderEpisodeReference {
     id: string;
     number: number;
     title?: string;
+    release?: Pick<ProviderEpisodeReference, 'number' | 'title'>[];
+    relatedReleases?: Pick<
+        ProviderEpisodeReference,
+        'number' | 'title'
+    >[][];
     specialIndex?: number;
     specialCount?: number;
 }
