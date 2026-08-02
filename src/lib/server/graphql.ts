@@ -23,6 +23,8 @@ const Payload = Schema.Struct({
     ),
 });
 
+type Payload = typeof Payload.Type;
+
 export class GraphQLRequestError extends Data.TaggedError(
     'GraphQLRequestError',
 )<{
@@ -30,6 +32,28 @@ export class GraphQLRequestError extends Data.TaggedError(
     readonly cause?: unknown;
     readonly status?: number;
 }> {}
+
+function parseJson(text: string): unknown {
+    if (!text) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(text) as unknown;
+    } catch {
+        return null;
+    }
+}
+
+function bodyPreview(text: string): string | undefined {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+
+    if (!normalized) {
+        return undefined;
+    }
+
+    return normalized.slice(0, 300);
+}
 
 export function graphql<TResult, TVariables>(
     endpoint: string,
@@ -43,11 +67,16 @@ export function graphql<TResult, TVariables>(
                 signal,
                 AbortSignal.timeout(options.timeoutMs ?? 8_000),
             ]);
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    Accept: 'application/graphql-response+json, application/json',
+                    Accept: 'application/json',
                     'Content-Type': 'application/json',
+
+                    // Since this is server-side code, identify the application.
+                    'User-Agent': 'Arc/0.1',
+
                     ...options.headers,
                 },
                 body: JSON.stringify({
@@ -57,9 +86,14 @@ export function graphql<TResult, TVariables>(
                 signal: requestSignal,
             });
 
+            // Read text first because a Cloudflare/WAF response may be HTML
+            // rather than JSON.
+            const responseText = await response.text();
+
             return {
                 response,
-                body: (await response.json()) as unknown,
+                responseText,
+                body: parseJson(responseText),
             };
         },
         catch: (cause) =>
@@ -68,34 +102,59 @@ export function graphql<TResult, TVariables>(
                 cause,
             }),
     }).pipe(
-        Effect.flatMap(({ response, body }) => {
+        Effect.flatMap(({ response, responseText, body }) =>
+            Schema.decodeUnknown(Payload)(body).pipe(
+                Effect.map((payload) => ({
+                    response,
+                    responseText,
+                    payload,
+                })),
+                Effect.catchAll((cause) => {
+                    if (!response.ok) {
+                        const preview = bodyPreview(responseText);
+
+                        return Effect.fail(
+                            new GraphQLRequestError({
+                                message: preview
+                                    ? `The GraphQL endpoint returned ${response.status}: ${preview}`
+                                    : `The GraphQL endpoint returned ${response.status}`,
+                                status: response.status,
+                                cause,
+                            }),
+                        );
+                    }
+
+                    return Effect.fail(
+                        new GraphQLRequestError({
+                            message:
+                                'The GraphQL endpoint returned an invalid response',
+                            cause,
+                        }),
+                    );
+                }),
+            ),
+        ),
+
+        Effect.flatMap(({ response, payload }) => {
+            const graphQLError = payload.errors?.[0];
+
+            // Check the GraphQL payload before throwing a generic HTTP error.
+            if (graphQLError) {
+                return Effect.fail(
+                    new GraphQLRequestError({
+                        message: graphQLError.message,
+                        status:
+                            graphQLError.status ??
+                            (!response.ok ? response.status : undefined),
+                    }),
+                );
+            }
+
             if (!response.ok) {
                 return Effect.fail(
                     new GraphQLRequestError({
                         message: `The GraphQL endpoint returned ${response.status}`,
                         status: response.status,
-                    }),
-                );
-            }
-
-            return Schema.decodeUnknown(Payload)(body).pipe(
-                Effect.mapError(
-                    (cause) =>
-                        new GraphQLRequestError({
-                            message: 'The GraphQL endpoint returned an invalid response',
-                            cause,
-                        }),
-                ),
-            );
-        }),
-        Effect.flatMap((payload) => {
-            const message = payload.errors?.[0]?.message;
-
-            if (message) {
-                return Effect.fail(
-                    new GraphQLRequestError({
-                        message,
-                        status: payload.errors?.[0]?.status,
                     }),
                 );
             }
