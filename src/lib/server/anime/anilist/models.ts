@@ -1,5 +1,5 @@
 import type { AnimeCard } from '$lib/anime/types';
-import { enumLabel, mediaTitle, plainText, present } from './text';
+import { mediaTitle, plainText, present } from './text';
 import type { SearchMedia } from './types';
 
 export function animeCard(media: SearchMedia): AnimeCard | null {
@@ -16,7 +16,7 @@ export function animeCard(media: SearchMedia): AnimeCard | null {
         watchHref: `/anime/${media.id}`,
         title: mediaTitle(media),
         image,
-        caption: `Anime ${enumLabel(media.format, '')}`.trim(),
+        caption: '',
         score: media.averageScore ?? 0,
         genres: present(media.genres),
         synopsis: plainText(media.description),
