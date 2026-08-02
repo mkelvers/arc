@@ -2,7 +2,10 @@
     import { onDestroy, untrack } from 'svelte';
     import { CaretDownIcon } from 'phosphor-svelte';
 
-    import type { AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import {
+        isAnimeCard,
+        type AnimeCard as AnimeCardModel,
+    } from '$lib/anime/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
     import { isRecord } from '$lib/utils';
@@ -22,24 +25,6 @@
     let failure = $state('');
     let sentinel = $state<HTMLDivElement>();
     let activeRequest: AbortController | undefined;
-
-    function isAnimeCard(value: unknown): value is AnimeCardModel {
-        return (
-            isRecord(value) &&
-            Number.isSafeInteger(value.id) &&
-            typeof value.href === 'string' &&
-            value.href.startsWith('/anime/') &&
-            typeof value.watchHref === 'string' &&
-            typeof value.title === 'string' &&
-            typeof value.image === 'string' &&
-            typeof value.caption === 'string' &&
-            typeof value.score === 'number' &&
-            Number.isFinite(value.score) &&
-            Array.isArray(value.genres) &&
-            value.genres.every((genre) => typeof genre === 'string') &&
-            typeof value.synopsis === 'string'
-        );
-    }
 
     function responsePage(value: unknown, expectedPage: number) {
         if (
