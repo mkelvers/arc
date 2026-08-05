@@ -268,6 +268,33 @@ Cheers!
         expect(alignSubtitleTracks(dub, shifted)).toEqual(original);
     });
 
+    test('calibrates sparse tracks from title cards a dub trim apart', () => {
+        // A dub that trims its opening runs about 11 seconds early, and its
+        // own caption track may then carry only a few title cards that also
+        // appear in the sub track. Those anchors sit just outside a tight
+        // matching window but cluster exactly at the trim, so they must still
+        // shift the sub cues onto the dub timeline.
+        const dub = [0, 200, 240, 590].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'Title card',
+        }));
+        const sub = [11, 211, 251, 601].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'Title card',
+        }));
+
+        expect(subtitleTrackOffset(dub, sub)).toBe(-11);
+        expect(alignSubtitleTracks(dub, sub)).toEqual(
+            sub.map((cue) => ({
+                ...cue,
+                start: cue.start - 11,
+                end: cue.end - 11,
+            })),
+        );
+    });
+
     test('refuses to calibrate from too few shared lines', () => {
         const dub = [
             { start: 0, end: 4, text: 'One' },

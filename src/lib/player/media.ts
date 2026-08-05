@@ -120,11 +120,14 @@ function overlaps(left: SubtitleCue, right: SubtitleCue) {
 }
 
 // Dub and sub versions of an episode are separate encodes whose audio can
-// be heard offset from the shared video timeline (dubs usually run early).
-// The dub's own captions are anchored to that dub timeline; the sub track is
-// not. When enough lines appear in both, shift the sub cues onto the dub
-// timeline so merged or sub-only captions stay in sync with the heard audio.
-const subtitleCalibrationWindow = 10;
+// be heard offset from the shared video timeline (dubs usually run early;
+// measured trims are around 11 seconds). The dub's own captions are anchored
+// to that dub timeline; the sub track is not. When enough lines appear in
+// both, shift the sub cues onto the dub timeline so merged or sub-only
+// captions stay in sync with the heard audio. The window is wide enough to
+// see those trims but stays far below title cards that coincidentally share
+// wording at unrelated times (existing test gap: 100 seconds).
+const subtitleCalibrationWindow = 15;
 const minimumCalibrationMatches = 3;
 // Same-wording matches only earn the median when they cluster tightly around
 // it: short phrases that coincidentally appear in differently worded tracks
