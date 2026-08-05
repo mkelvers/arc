@@ -11,10 +11,14 @@ import {
     qualitiesFor,
     qualityLabel,
     streamsFor,
+    subtitlesFor,
+    subtitleTracks,
     subtitlesAt,
     type Sources,
     type Stream,
     type SubtitleCue,
+    type SubtitleMode,
+    type SubtitleSize,
 } from './media';
 import * as preferences from './preferences';
 
@@ -37,6 +41,9 @@ export class Playback {
     hlsQualities = $state<HlsQuality[]>([]);
     hlsCurrentQuality = $state<string | null>(null);
     subtitleCues = $state<SubtitleCue[]>([]);
+    subtitleMode = $state<SubtitleMode>('merge');
+    subtitleSize = $state<SubtitleSize>('normal');
+    subtitleBackground = $state(true);
     sourceIndex = $state(0);
     error = $state(false);
     video!: HTMLVideoElement;
@@ -90,12 +97,6 @@ export class Playback {
 
     get audioDelay() {
         return this.activeSources[this.sourceIndex]?.audioDelay ?? 0;
-    }
-
-    get subtitleUrl() {
-        return (
-            this.activeSources[this.sourceIndex]?.subtitleUrl ?? null
-        );
     }
 
     get subtitles() {
@@ -202,34 +203,68 @@ export class Playback {
         this.subtitleCues = [];
     }
 
-    private async loadSubtitles(source: string, subtitleUrl: string) {
-        this.clearSubtitles();
-        const request = new AbortController();
-        this.subtitleRequest = request;
-
+    private async fetchSubtitleCues(url: string, signal: AbortSignal) {
         try {
-            const response = await fetch(subtitleUrl, {
-                signal: request.signal,
-            });
+            const response = await fetch(url, { signal });
             if (!response.ok) {
-                throw new Error(
-                    `Subtitle request failed with ${response.status}`,
-                );
+                return null;
             }
 
             const cues = parseWebVtt(await response.text());
-            if (!cues.length) {
-                throw new Error('Subtitle response had no valid cues');
+            return cues.length ? cues : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private async loadSubtitles(source: string) {
+        this.clearSubtitles();
+        const request = new AbortController();
+        this.subtitleRequest = request;
+        const { own, sub } = subtitleTracks(
+            this.sources,
+            this.activeSources[this.sourceIndex],
+        );
+        const stale = () =>
+            request.signal.aborted ||
+            this.subtitleRequest !== request ||
+            source !== this.src;
+
+        // A source without any caption track plays without subtitles; only a
+        // track that exists but cannot be loaded is a source failure.
+        if (!own && !sub) {
+            return;
+        }
+
+        try {
+            const ownCues = own
+                ? await this.fetchSubtitleCues(own, request.signal)
+                : null;
+            const subCues =
+                sub && sub !== own
+                    ? await this.fetchSubtitleCues(sub, request.signal)
+                    : null;
+
+            if (stale()) {
+                return;
             }
-            if (this.subtitleRequest === request && source === this.src) {
-                this.subtitleCues = cues;
+
+            // Show the track(s) the subtitle preference asks for: the merge
+            // keeps both with the active stream's own (dub) track preferred,
+            // while 'dub' and 'sub' show a single track and fall back to the
+            // other when theirs is missing.
+            const chosen = subtitlesFor(
+                this.subtitleMode,
+                ownCues,
+                subCues,
+            );
+            if (chosen) {
+                this.subtitleCues = chosen;
+                return;
             }
+            throw new Error('Subtitle sources returned no usable cues');
         } catch (cause) {
-            if (
-                request.signal.aborted ||
-                this.subtitleRequest !== request ||
-                source !== this.src
-            ) {
+            if (stale()) {
                 return;
             }
 
@@ -277,10 +312,7 @@ export class Playback {
             return;
         }
 
-        const subtitleUrl = this.subtitleUrl;
-        if (subtitleUrl) {
-            void this.loadSubtitles(source, subtitleUrl);
-        }
+        void this.loadSubtitles(source);
 
         if (!isHlsSource(source)) {
             video.src = source;
@@ -409,6 +441,42 @@ export class Playback {
         this.resetSource();
         preferences.save('quality', quality);
         await this.reloadSource();
+        this.onActivity();
+    }
+
+    switchSubtitleMode(mode: SubtitleMode) {
+        if (mode === this.subtitleMode) {
+            this.onActivity();
+            return;
+        }
+
+        this.subtitleMode = mode;
+        preferences.save('subtitles', mode);
+        if (this.src) {
+            void this.loadSubtitles(this.src);
+        }
+        this.onActivity();
+    }
+
+    switchSubtitleSize(size: SubtitleSize) {
+        if (size === this.subtitleSize) {
+            this.onActivity();
+            return;
+        }
+
+        this.subtitleSize = size;
+        preferences.save('subtitle-size', size);
+        this.onActivity();
+    }
+
+    switchSubtitleBackground(enabled: boolean) {
+        if (enabled === this.subtitleBackground) {
+            this.onActivity();
+            return;
+        }
+
+        this.subtitleBackground = enabled;
+        preferences.save('subtitle-background', enabled);
         this.onActivity();
     }
 
@@ -617,6 +685,16 @@ export class Playback {
 
         if (saved.quality && saved.quality !== this.quality) {
             this.quality = saved.quality;
+        }
+
+        if (saved.subtitleMode) {
+            this.subtitleMode = saved.subtitleMode;
+        }
+        if (saved.subtitleSize) {
+            this.subtitleSize = saved.subtitleSize;
+        }
+        if (saved.subtitleBackground !== null) {
+            this.subtitleBackground = saved.subtitleBackground;
         }
 
         this.resetSource();

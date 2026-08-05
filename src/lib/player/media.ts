@@ -18,10 +18,24 @@ export type Sources = Partial<Record<AudioMode, Stream[]>>;
 export type SettingsView =
     | 'main'
     | 'audio'
+    | 'subtitles'
+    | 'subtitle-language'
+    | 'subtitle-size'
+    | 'subtitle-background'
     | 'quality'
     | 'segments'
     | 'segment-opening'
     | 'segment-ending';
+
+/** Which caption track(s) to show: the active stream's own, the sub
+ * track, or both merged with the active stream's track preferred. */
+export type SubtitleMode = 'merge' | 'dub' | 'sub';
+
+export type SubtitleSize =
+    | 'small'
+    | 'normal'
+    | 'large'
+    | 'extra-large';
 
 export type Shortcut =
     | 'play'
@@ -35,6 +49,108 @@ export type Shortcut =
 
 export function streamsFor(sources: Sources, mode: AudioMode) {
     return sources[mode] ?? sources.sub ?? sources.dub ?? sources.raw ?? [];
+}
+
+export interface SubtitleTracks {
+    /** The active stream's own caption track, if it has one. */
+    own: string | null;
+    /** The sub version's caption track, as a fallback for dubs. */
+    sub: string | null;
+}
+
+export function subtitleTracks(
+    sources: Sources,
+    stream: Stream | undefined,
+): SubtitleTracks {
+    return {
+        own: stream?.subtitleUrl ?? null,
+        sub: sources.sub?.find((candidate) => candidate.subtitleUrl)
+            ?.subtitleUrl ?? null,
+    };
+}
+
+// Provider dub tracks and sub tracks overlap: the same dialogue often appears
+// in both, at roughly the same time but with different wording (dubs add
+// speaker labels, SDH sound effects, and their own translations). When both
+// say the same line, keep only the preferred (dub) track; otherwise show both.
+const minimumSharedLineRatio = 0.4;
+
+function lineWords(value: string) {
+    return value
+        .toLowerCase()
+        .replace(/[\u2018\u2019]/g, "'")
+        .split(/[^\p{L}\p{N}']+/u)
+        .filter(Boolean);
+}
+
+function containedWords(shorter: string[], longer: string[]) {
+    let cursor = 0;
+    for (const word of shorter) {
+        cursor = longer.indexOf(word, cursor) + 1;
+        if (!cursor) {
+            return false;
+        }
+    }
+    return true;
+}
+
+export function sameLine(left: string, right: string) {
+    const a = lineWords(left);
+    const b = lineWords(right);
+    if (a.join(' ') === b.join(' ')) {
+        return true;
+    }
+
+    // Treat a line as the same when one is a fuller version of the other
+    // (speaker prefixes, extra words, punctuation, line breaks) and the shared
+    // core is a substantial part of the longer line. A short phrase inside a
+    // longer, different line ("How?" in "How did this happen?") does not
+    // count, and word order still matters: "I hate you" and "You hate me"
+    // are different lines.
+    const [shorter, longer] =
+        a.length <= b.length ? [a, b] : [b, a];
+    return (
+        containedWords(shorter, longer) &&
+        shorter.length / longer.length >= minimumSharedLineRatio
+    );
+}
+
+function overlaps(left: SubtitleCue, right: SubtitleCue) {
+    return left.start < right.end && right.start < left.end;
+}
+
+export function mergeSubtitleTracks(
+    preferred: SubtitleCue[],
+    alternate: SubtitleCue[],
+) {
+    const merged = [...preferred];
+
+    for (const cue of alternate) {
+        const redundant = preferred.some(
+            (other) => overlaps(other, cue) && sameLine(other.text, cue.text),
+        );
+        if (!redundant) {
+            merged.push(cue);
+        }
+    }
+
+    return merged.sort((left, right) => left.start - right.start);
+}
+
+export function subtitlesFor(
+    mode: SubtitleMode,
+    own: SubtitleCue[] | null,
+    sub: SubtitleCue[] | null,
+) {
+    if (mode === 'dub') {
+        return own ?? sub;
+    }
+    if (mode === 'sub') {
+        return sub ?? own;
+    }
+    return own && sub
+        ? mergeSubtitleTracks(own, sub)
+        : (own ?? sub);
 }
 
 export function qualitiesFor(streams: Stream[]) {

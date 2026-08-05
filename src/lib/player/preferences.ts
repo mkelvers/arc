@@ -1,7 +1,14 @@
 import type { AudioMode } from '$lib/anime/audio';
-import type { Sources } from './media';
+import type { Sources, SubtitleMode, SubtitleSize } from './media';
 
-type Key = 'audio-mode' | 'autoplay' | 'quality' | 'volume';
+type Key =
+    | 'audio-mode'
+    | 'autoplay'
+    | 'quality'
+    | 'volume'
+    | 'subtitles'
+    | 'subtitle-size'
+    | 'subtitle-background';
 
 export function load(sources: Sources, qualities: string[]) {
     const rawVolume = localStorage.getItem('arc:volume');
@@ -24,6 +31,26 @@ export function load(sources: Sources, qualities: string[]) {
         /^\d+p$/.test(rawQuality ?? '')
             ? (rawQuality ?? 'best')
             : null;
+    const rawSubtitles = localStorage.getItem('arc:subtitles');
+    const subtitleMode =
+        rawSubtitles === 'merge' ||
+        rawSubtitles === 'dub' ||
+        rawSubtitles === 'sub'
+            ? (rawSubtitles as SubtitleMode)
+            : null;
+    const rawSize = localStorage.getItem('arc:subtitle-size');
+    const subtitleSize =
+        rawSize === 'small' ||
+        rawSize === 'normal' ||
+        rawSize === 'large' ||
+        rawSize === 'extra-large'
+            ? (rawSize as SubtitleSize)
+            : null;
+    const rawBackground = localStorage.getItem('arc:subtitle-background');
+    const subtitleBackground =
+        rawBackground === 'true' || rawBackground === 'false'
+            ? rawBackground === 'true'
+            : null;
 
     return {
         volume:
@@ -36,6 +63,9 @@ export function load(sources: Sources, qualities: string[]) {
         mode: mode as AudioMode | null,
         autoplay,
         quality,
+        subtitleMode,
+        subtitleSize,
+        subtitleBackground,
     };
 }
 
