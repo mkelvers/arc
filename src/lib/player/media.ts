@@ -126,6 +126,11 @@ function overlaps(left: SubtitleCue, right: SubtitleCue) {
 // timeline so merged or sub-only captions stay in sync with the heard audio.
 const subtitleCalibrationWindow = 10;
 const minimumCalibrationMatches = 3;
+// Same-wording matches only earn the median when they cluster tightly around
+// it: short phrases that coincidentally appear in differently worded tracks
+// (AI-translated dubs) spread out and would otherwise corrupt the offset.
+const calibrationTightWindow = 1;
+const calibrationTightRatio = 0.6;
 
 /** The median offset (in seconds) of the lines the alternate track shares
  * with the preferred track, or null when too few lines match to trust it.
@@ -167,17 +172,157 @@ export function subtitleTrackOffset(
     }
 
     deltas.sort((left, right) => left - right);
-    return deltas[Math.floor(deltas.length / 2)];
+    const median = deltas[Math.floor(deltas.length / 2)];
+    const tight =
+        deltas.filter(
+            (delta) => Math.abs(delta - median) <= calibrationTightWindow,
+        ).length / deltas.length;
+
+    return tight >= calibrationTightRatio ? median : null;
+}
+
+// Same-wording calibration cannot see tracks whose text was translated or
+// rewritten (AI-generated dub captions), but those tracks still place cues at
+// the same moments as the dialogue they cover. When same-line matching fails,
+// correlate cue timing density instead of wording.
+const patternBin = 0.5; // coarse shift step, seconds
+const patternRange = 60; // maximum plausible trim between encodes, seconds
+const patternCoincidence = 0.25; // midpoint match window, seconds
+const minimumPatternCues = 10; // below this, timing density is meaningless
+const patternRefineDistance = 2; // nearest-cue window when refining, seconds
+const patternCandidateSpread = 5; // skip candidates this close to a tried one
+
+function nearestIndex(values: number[], target: number) {
+    let low = 0;
+    let high = values.length;
+    while (low < high) {
+        const middle = (low + high) >> 1;
+        if (values[middle] < target) {
+            low = middle + 1;
+        } else {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+/** The timing offset between two differently worded tracks, found by
+ * correlating when dialogue happens rather than what it says. Returns null
+ * when either track is too sparse or no candidate shift is consistent. */
+export function subtitlePatternOffset(
+    preferred: SubtitleCue[],
+    alternate: SubtitleCue[],
+) {
+    if (
+        preferred.length < minimumPatternCues ||
+        alternate.length < minimumPatternCues
+    ) {
+        return null;
+    }
+
+    const preferredMids = preferred
+        .map((cue) => (cue.start + cue.end) / 2)
+        .sort((left, right) => left - right);
+    const alternateMids = alternate
+        .map((cue) => (cue.start + cue.end) / 2)
+        .sort((left, right) => left - right);
+    const alternateStarts = alternate
+        .map((cue) => cue.start)
+        .sort((left, right) => left - right);
+
+    const candidates: { shift: number; score: number }[] = [];
+    for (
+        let shift = -patternRange;
+        shift <= patternRange;
+        shift += patternBin
+    ) {
+        let score = 0;
+        for (const mid of preferredMids) {
+            const target = mid - shift;
+            const index = nearestIndex(
+                alternateMids,
+                target - patternCoincidence,
+            );
+            if (
+                index < alternateMids.length &&
+                alternateMids[index] <= target + patternCoincidence
+            ) {
+                score++;
+            }
+        }
+        candidates.push({ shift, score });
+    }
+    candidates.sort((left, right) => right.score - left.score);
+
+    const tried: number[] = [];
+    for (const { shift } of candidates) {
+        if (
+            tried.some(
+                (value) => Math.abs(value - shift) <= patternCandidateSpread,
+            )
+        ) {
+            continue;
+        }
+        tried.push(shift);
+
+        // Refine the coarse candidate against nearest cue starts; a candidate
+        // wins when at least the dimension minimum of cues line up and the
+        // deltas cluster tightly around their median.
+        const deltas: number[] = [];
+        for (const cue of preferred) {
+            const target = cue.start - shift;
+            const index = nearestIndex(alternateStarts, target);
+            let nearest: { start: number; distance: number } | null = null;
+            for (const candidate of [index - 1, index]) {
+                if (candidate < 0 || candidate >= alternateStarts.length) {
+                    continue;
+                }
+                const distance = Math.abs(
+                    alternateStarts[candidate] - target,
+                );
+                if (
+                    nearest === null ||
+                    distance < nearest.distance
+                ) {
+                    nearest = {
+                        start: alternateStarts[candidate],
+                        distance,
+                    };
+                }
+            }
+            if (nearest && nearest.distance <= patternRefineDistance) {
+                deltas.push(cue.start - nearest.start);
+            }
+        }
+
+        if (deltas.length < minimumPatternCues) {
+            continue;
+        }
+        deltas.sort((left, right) => left - right);
+        const median = deltas[Math.floor(deltas.length / 2)];
+        const tight =
+            deltas.filter(
+                (delta) => Math.abs(delta - median) <= calibrationTightWindow,
+            ).length / deltas.length;
+        if (tight >= calibrationTightRatio) {
+            return median;
+        }
+    }
+
+    return null;
 }
 
 /** Shift the alternate (sub) track onto the preferred (dub) track's
  * timeline, or return it unchanged when the tracks already line up or share
- * too few lines to calibrate. */
+ * too few matching cues to calibrate. Same-wording lines are matched first;
+ * when they cannot be trusted, cue timing patterns take over. */
 export function alignSubtitleTracks(
     preferred: SubtitleCue[],
     alternate: SubtitleCue[],
 ) {
-    const offset = subtitleTrackOffset(preferred, alternate);
+    const offset =
+        subtitleTrackOffset(preferred, alternate) ??
+        subtitlePatternOffset(preferred, alternate);
     if (!offset) {
         return alternate;
     }

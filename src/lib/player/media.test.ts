@@ -12,6 +12,7 @@ import {
     qualityLabel,
     sameLine,
     mergeSubtitleTracks,
+    subtitlePatternOffset,
     subtitleTrackOffset,
     subtitlesAt,
     subtitleTracks,
@@ -298,5 +299,90 @@ Cheers!
 
         expect(subtitleTrackOffset(dub, sub)).toBeNull();
         expect(alignSubtitleTracks(dub, sub)).toBe(sub);
+    });
+
+    test('rejects same-text matches that do not cluster around the median', () => {
+        // A translated dub track can reuse short phrases at unrelated times:
+        // the same-line matches spread out and must not be trusted even when
+        // there are enough of them.
+        const dub = [0, 20, 40, 60, 80, 100, 120, 140].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'How?',
+        }));
+        const sub = [5, 17, 47, 59, 86, 96, 122, 148].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'How?',
+        }));
+
+        expect(subtitleTrackOffset(dub, sub)).toBeNull();
+        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
+    });
+
+    test('recovers the offset of dense differently worded tracks by pattern', () => {
+        const dub = Array.from({ length: 30 }, (_, index) => ({
+            start: index * 10,
+            end: index * 10 + 4,
+            text: `Dub dialogue ${index}`,
+        }));
+        const original = dub.map((cue, index) => ({
+            ...cue,
+            text: `Sub dialogue ${index}`,
+        }));
+        const shifted = original.map((cue) => ({
+            ...cue,
+            start: cue.start + 11,
+            end: cue.end + 11,
+        }));
+
+        expect(subtitleTrackOffset(dub, shifted)).toBeNull();
+        expect(subtitlePatternOffset(dub, shifted)).toBeCloseTo(-11, 1);
+        expect(alignSubtitleTracks(dub, shifted)).toEqual(original);
+    });
+
+    test('falls back to pattern when same-line matches are scattered', () => {
+        const dub = Array.from({ length: 30 }, (_, index) => ({
+            start: index * 10,
+            end: index * 10 + 4,
+            text: `Dub dialogue ${index}`,
+        }));
+        const how = [5, 25, 45, 65, 85, 105, 125, 145].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'How?',
+        }));
+        const sub = [
+            ...dub.map((cue, index) => ({
+                ...cue,
+                text: `Sub dialogue ${index}`,
+            })),
+            ...how.map((cue, index) => ({
+                ...cue,
+                start: [0, 28, 52, 64, 91, 101, 127, 153][index],
+                end: [0, 28, 52, 64, 91, 101, 127, 153][index] + 4,
+            })),
+        ].sort((left, right) => left.start - right.start);
+
+        expect(subtitleTrackOffset(dub, sub)).toBeNull();
+        expect(subtitlePatternOffset(dub, sub)).toBe(0);
+        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
+    });
+
+    test('refuses pattern calibration for sparse tracks', () => {
+        const sparse = [0, 20, 40, 60, 80, 100, 120, 140].map((start) => ({
+            start,
+            end: start + 4,
+            text: `Line ${start}`,
+        }));
+        const dense = Array.from({ length: 30 }, (_, index) => ({
+            start: index * 10,
+            end: index * 10 + 4,
+            text: `Line ${index}`,
+        }));
+
+        expect(subtitlePatternOffset(sparse, dense)).toBeNull();
+        expect(subtitlePatternOffset(dense, sparse)).toBeNull();
+        expect(alignSubtitleTracks(sparse, dense)).toBe(dense);
     });
 });
