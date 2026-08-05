@@ -43,12 +43,12 @@
                             <img
                                 src={entry.episodeImage}
                                 alt=""
-                                class="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                                class="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                                 loading="lazy"
                             />
                             {#if entry.duration}
                                 <span
-                                    class="absolute right-2 bottom-2 bg-black/85 px-1.5 py-0.5 text-xs font-semibold text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                                    class="absolute right-2 bottom-2 bg-black/85 px-1.5 py-0.5 text-xs font-semibold text-white transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
                                 >
                                     {entry.duration}
                                 </span>
@@ -74,7 +74,7 @@
                         method="POST"
                         action="?/removeContinueWatching"
                         use:enhance
-                        class="absolute top-2 right-2 z-10 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                        class="absolute top-2 right-2 z-10 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
                     >
                         <input type="hidden" name="animeId" value={entry.animeId} />
                         <Tooltip text="Remove">
