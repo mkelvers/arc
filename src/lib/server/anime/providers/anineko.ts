@@ -86,6 +86,16 @@ function pageIdentity(html: string) {
     return { title, alternativeTitle, year: year ?? null };
 }
 
+// AniNeko appends a disambiguator such as "(TV)" to some titles (e.g.
+// "Jujutsu Kaisen (TV)"). Strip a trailing parenthetical before exact
+// matching; only the very end of the title is touched, so sequels such as
+// "Jujutsu Kaisen 2nd Season" still compare as distinct titles.
+function matchableTitle(title: string) {
+    return normalizedProviderTitle(
+        title.replace(/\s*\((?:tv|tv series)\)$/i, ''),
+    );
+}
+
 function exactPageIdentity(
     identity: ReturnType<typeof pageIdentity>,
     anime: ProviderAnime,
@@ -93,11 +103,10 @@ function exactPageIdentity(
     const titles = new Set(
         providerTitles(anime).map(normalizedProviderTitle),
     );
-    if (
-        ![identity.title, identity.alternativeTitle].some((title) =>
-            titles.has(normalizedProviderTitle(title)),
-        )
-    ) {
+    const pageTitles = new Set(
+        [identity.title, identity.alternativeTitle].map(matchableTitle),
+    );
+    if (![...titles].some((title) => pageTitles.has(title))) {
         return false;
     }
 
@@ -129,9 +138,8 @@ async function findSlug(anime: ProviderAnime, refresh = false) {
         ) as unknown;
         const candidates = searchResults(payload).filter(
             (candidate) =>
-                exactTitles.has(
-                    normalizedProviderTitle(candidate.title),
-                ) && !visited.has(candidate.slug),
+                exactTitles.has(matchableTitle(candidate.title)) &&
+                !visited.has(candidate.slug),
         );
 
         for (const candidate of candidates.slice(0, 6)) {
