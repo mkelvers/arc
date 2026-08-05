@@ -47,7 +47,7 @@ export class Player {
     handleClick(event: MouseEvent) {
         this.focus();
 
-        if (isControl(event.target)) {
+        if (this.media.loading || isControl(event.target)) {
             return;
         }
 
@@ -56,7 +56,7 @@ export class Player {
     }
 
     handleDoubleClick(event: MouseEvent) {
-        if (isControl(event.target)) {
+        if (this.media.loading || isControl(event.target)) {
             return;
         }
 
@@ -68,6 +68,10 @@ export class Player {
         if (event.code === 'Escape' && this.settingsOpen) {
             event.preventDefault();
             this.closeSettings();
+            return;
+        }
+
+        if (this.media.loading) {
             return;
         }
 

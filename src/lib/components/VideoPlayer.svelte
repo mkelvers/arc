@@ -459,7 +459,8 @@
         !media.error}
         <button
             type="button"
-            class="absolute right-4 bottom-24 z-20 min-h-11 rounded-sm bg-white/95 px-5 text-sm font-bold text-black shadow-[0_3px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:right-6 sm:bottom-28"
+            disabled={media.loading}
+            class="absolute right-4 bottom-24 z-20 min-h-11 rounded-sm bg-white/95 px-5 text-sm font-bold text-black shadow-[0_3px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50 sm:right-6 sm:bottom-28"
             onclick={() => {
                 media.seek(visibleSkip.interval.end);
                 player.showControls();
@@ -479,7 +480,8 @@
                 <button
                     type="button"
                     aria-label={media.playing ? 'Pause' : 'Play'}
-                    class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                    disabled={media.loading}
+                    class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white disabled:opacity-50"
                     onclick={() => {
                         media.togglePlayback();
                         player.showControls();
@@ -516,6 +518,7 @@
                                 step="0.05"
                                 value={media.muted ? 0 : media.volume}
                                 aria-label="Volume"
+                                disabled={media.loading}
                                 class="volume-input absolute inset-0 size-full cursor-pointer opacity-0"
                                 oninput={(event) =>
                                     media.setVolume(
@@ -528,7 +531,8 @@
                     <button
                         type="button"
                         aria-label={media.muted ? 'Unmute' : 'Mute'}
-                        class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                        disabled={media.loading}
+                        class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white disabled:opacity-50"
                         onclick={() => {
                             media.toggleMute();
                             player.showControls();
@@ -550,7 +554,8 @@
                         aria-label="Playback settings"
                         aria-expanded={player.settingsOpen}
                         aria-controls="player-settings"
-                        class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                        disabled={media.loading}
+                        class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white disabled:opacity-50"
                         onclick={() => player.openSettings()}
                     >
                         <GearIcon size="1.5rem" aria-hidden="true" />
@@ -585,7 +590,8 @@
                     aria-label={player.fullscreen
                         ? 'Exit fullscreen'
                         : 'Enter fullscreen'}
-                    class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                    disabled={media.loading}
+                    class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white disabled:opacity-50"
                     onclick={() => {
                         void player.toggleFullscreen();
                         player.showControls();
