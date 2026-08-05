@@ -27,9 +27,9 @@ export type SettingsView =
     | 'segment-opening'
     | 'segment-ending';
 
-/** Which caption track(s) to show: the active stream's own, the sub
- * track, or both merged with the active stream's track preferred. */
-export type SubtitleMode = 'merge' | 'dub' | 'sub';
+/** Which audio script the English captions follow. */
+export type SubtitleMode = 'off' | 'dub' | 'sub';
+export type SubtitleKind = 'cc' | 'translated' | 'limited';
 
 export type SubtitleSize =
     | 'small'
@@ -51,164 +51,209 @@ export function streamsFor(sources: Sources, mode: AudioMode) {
     return sources[mode] ?? sources.sub ?? sources.dub ?? sources.raw ?? [];
 }
 
+export interface SubtitleTrack {
+    url: string;
+    source: Stream;
+}
+
 export interface SubtitleTracks {
-    /** The active stream's own caption track, if it has one. */
-    own: string | null;
-    /** The sub version's caption track, as a fallback for dubs. */
-    sub: string | null;
+    /** Captions returned with the active encode. */
+    own: SubtitleTrack | null;
+    /** Captions from the same provider's Japanese encode. */
+    sub: SubtitleTrack | null;
 }
 
 export function subtitleTracks(
     sources: Sources,
+    mode: AudioMode,
     stream: Stream | undefined,
 ): SubtitleTracks {
+    if (!stream) {
+        return { own: null, sub: null };
+    }
+
+    const own = stream.subtitleUrl
+        ? { url: stream.subtitleUrl, source: stream }
+        : null;
+    if (mode !== 'dub' || !stream.provider) {
+        return { own, sub: null };
+    }
+
+    // A subtitle URL only has a trustworthy timing relationship with the
+    // encode/provider that exposed it. Pair dubs with their provider's sub
+    // encode; never borrow a track from an unrelated source.
+    const subSource = sources.sub?.find(
+        (candidate) =>
+            candidate.provider === stream.provider && candidate.subtitleUrl,
+    );
+    const sub = subSource?.subtitleUrl
+        ? { url: subSource.subtitleUrl, source: subSource }
+        : null;
+
+    // MegaPlay sometimes repeats the Japanese VTT in the dub payload. It is
+    // still timed for the sub encode, so do not mislabel it as native dub CC.
+    const sharedSubTrack = own && sub && own.url === sub.url;
+
     return {
-        own: stream?.subtitleUrl ?? null,
-        sub: sources.sub?.find((candidate) => candidate.subtitleUrl)
-            ?.subtitleUrl ?? null,
+        own: sharedSubTrack ? null : own,
+        sub,
     };
 }
 
-/** The distinct caption tracks shipped by every dub source. Dub sources can
- * carry different tracks (the fullest one has the dialogue, others may be
- * title cards only or auto-translated), so the player borrows the fullest
- * one when the active source's own track is missing or brittle. */
-export function dubCaptionTracks(sources: Sources) {
-    const urls: string[] = [];
-    for (const stream of sources.dub ?? []) {
-        const url = stream.subtitleUrl;
-        if (url && !urls.includes(url)) {
-            urls.push(url);
+export function hasSubtitleTrack(
+    sources: Sources,
+    mode: AudioMode,
+    stream: Stream,
+) {
+    const tracks = subtitleTracks(sources, mode, stream);
+    return Boolean(tracks.own || tracks.sub);
+}
+
+/** Other Japanese encodes whose own captions may prove equivalent to the
+ * primary fallback. They are timing references only after cue equality is
+ * verified by the player. */
+export function subtitleReferenceTracks(
+    sources: Sources,
+    primary: SubtitleTrack,
+) {
+    const seen = new Set<string>();
+
+    return (sources.sub ?? []).flatMap((source) => {
+        if (!source.subtitleUrl || source === primary.source) {
+            return [];
         }
-    }
-    return urls;
-}
 
-// Provider dub tracks and sub tracks overlap: the same dialogue often appears
-// in both, at roughly the same time but with different wording (dubs add
-// speaker labels, SDH sound effects, and their own translations). When both
-// say the same line, keep only the preferred (dub) track; otherwise show both.
-const minimumSharedLineRatio = 0.4;
-
-function lineWords(value: string) {
-    return value
-        .toLowerCase()
-        .replace(/[\u2018\u2019]/g, "'")
-        .split(/[^\p{L}\p{N}']+/u)
-        .filter(Boolean);
-}
-
-function containedWords(shorter: string[], longer: string[]) {
-    let cursor = 0;
-    for (const word of shorter) {
-        cursor = longer.indexOf(word, cursor) + 1;
-        if (!cursor) {
-            return false;
+        const key = `${source.url}\n${source.subtitleUrl}`;
+        if (seen.has(key)) {
+            return [];
         }
-    }
-    return true;
+        seen.add(key);
+        return [{ url: source.subtitleUrl, source }];
+    });
 }
 
-export function sameLine(left: string, right: string) {
-    const a = lineWords(left);
-    const b = lineWords(right);
-    if (a.join(' ') === b.join(' ')) {
-        return true;
-    }
+/** One caption choice in the Subtitles/CC → Language menu. The label names
+ * what the player shows for that mode. */
+export interface SubtitleOption {
+    mode: SubtitleMode;
+    label: string;
+}
 
-    // Treat a line as the same when one is a fuller version of the other
-    // (speaker prefixes, extra words, punctuation, line breaks) and the shared
-    // core is a substantial part of the longer line. A short phrase inside a
-    // longer, different line ("How?" in "How did this happen?") does not
-    // count, and word order still matters: "I hate you" and "You hate me"
-    // are different lines.
-    const [shorter, longer] =
-        a.length <= b.length ? [a, b] : [b, a];
+export function subtitleOptionsFor(kind: SubtitleKind | null) {
+    const options: SubtitleOption[] = [{ mode: 'off', label: 'Off' }];
+    if (kind) {
+        options.push({
+            mode: kind === 'translated' ? 'sub' : 'dub',
+            label:
+                kind === 'cc'
+                    ? 'English CC'
+                    : kind === 'translated'
+                      ? 'English (Translated)'
+                      : 'English (Signs & Songs)',
+        });
+    }
+    return options;
+}
+
+/** Dub captions are dialogue-capable when their cue coverage is a meaningful
+ * fraction of the Japanese track. Full dub CC can combine lines and therefore
+ * need not match cue-for-cue; forced/sign tracks are typically far smaller. */
+const minimumDialogueCues = 50;
+
+export function hasDialogueCoverage(dubCues: number, subCues: number) {
     return (
-        containedWords(shorter, longer) &&
-        shorter.length / longer.length >= minimumSharedLineRatio
+        dubCues >= minimumDialogueCues &&
+        (subCues === 0 || dubCues / subCues >= 0.2)
     );
 }
 
-function overlaps(left: SubtitleCue, right: SubtitleCue) {
-    return left.start < right.end && right.start < left.end;
+export function preferredSubtitleKind(
+    audioMode: AudioMode,
+    ownCues: number,
+    subCues: number,
+): SubtitleKind | null {
+    if (audioMode !== 'dub') {
+        return ownCues > 0 ? 'translated' : null;
+    }
+    if (hasDialogueCoverage(ownCues, subCues)) {
+        return 'cc';
+    }
+    if (subCues > 0) {
+        return 'translated';
+    }
+    return ownCues > 0 ? 'limited' : null;
 }
 
-// Dub and sub versions of an episode are separate encodes whose audio can
-// be heard offset from the shared video timeline (dubs usually run early;
-// measured trims are around 11 seconds). The dub's own captions are anchored
-// to that dub timeline; the sub track is not. When enough lines appear in
-// both, shift the sub cues onto the dub timeline so merged or sub-only
-// captions stay in sync with the heard audio. The window is wide enough to
-// see those trims but stays far below title cards that coincidentally share
-// wording at unrelated times (existing test gap: 100 seconds).
-const subtitleCalibrationWindow = 15;
-const minimumCalibrationMatches = 3;
-// Same-wording matches only earn the median when they cluster tightly around
-// it: short phrases that coincidentally appear in differently worded tracks
-// (AI-translated dubs) spread out and would otherwise corrupt the offset.
-const calibrationTightWindow = 1;
-const calibrationTightRatio = 0.6;
+export function shiftSubtitleCues(cues: SubtitleCue[], offset: number) {
+    if (!offset) {
+        return cues;
+    }
 
-/** The median offset (in seconds) of the lines the alternate track shares
- * with the preferred track, or null when too few lines match to trust it.
- * Positive means the alternate runs early relative to the preferred: adding
- * the offset moves its cues onto the preferred timeline. */
-export function subtitleTrackOffset(
-    preferred: SubtitleCue[],
-    alternate: SubtitleCue[],
+    return cues.map((cue) => ({
+        ...cue,
+        start: cue.start + offset,
+        end: cue.end + offset,
+    }));
+}
+
+/** Cue equality is the proof required before another provider's encode can
+ * serve as a timing reference for a fallback track. */
+export function sameSubtitleCues(
+    left: SubtitleCue[],
+    right: SubtitleCue[],
 ) {
-    const deltas: number[] = [];
-    let from = 0;
-
-    for (const cue of preferred) {
-        while (
-            from < alternate.length &&
-            alternate[from].end < cue.start - subtitleCalibrationWindow
-        ) {
-            from++;
-        }
-
-        for (let index = from; index < alternate.length; index++) {
-            const other = alternate[index];
-            if (other.start > cue.start + subtitleCalibrationWindow) {
-                break;
-            }
-            if (
-                sameLine(cue.text, other.text) &&
-                Math.abs(cue.start - other.start) <=
-                    subtitleCalibrationWindow
-            ) {
-                deltas.push(cue.start - other.start);
-                break;
-            }
-        }
-    }
-
-    if (deltas.length < minimumCalibrationMatches) {
-        return null;
-    }
-
-    deltas.sort((left, right) => left - right);
-    const median = deltas[Math.floor(deltas.length / 2)];
-    const tight =
-        deltas.filter(
-            (delta) => Math.abs(delta - median) <= calibrationTightWindow,
-        ).length / deltas.length;
-
-    return tight >= calibrationTightRatio ? median : null;
+    return (
+        left.length === right.length &&
+        left.every(
+            (cue, index) =>
+                cue.text === right[index].text &&
+                Math.abs(cue.start - right[index].start) < 0.01 &&
+                Math.abs(cue.end - right[index].end) < 0.01,
+        )
+    );
 }
 
-// Same-wording calibration cannot see tracks whose text was translated or
-// rewritten (AI-generated dub captions), but those tracks still place cues at
-// the same moments as the dialogue they cover. When same-line matching fails,
-// correlate cue timing density instead of wording.
-const patternBin = 0.5; // coarse shift step, seconds
-const patternRange = 60; // maximum plausible trim between encodes, seconds
-const patternCoincidence = 0.25; // midpoint match window, seconds
-const minimumPatternCues = 10; // below this, timing density is meaningless
-const patternRefineDistance = 2; // nearest-cue window when refining, seconds
-const patternCandidateSpread = 5; // skip candidates this close to a tried one
+export interface HlsTimeline {
+    variant: string | null;
+    boundaries: number[] | null;
+}
+
+/** Read either the first playable variant from a master playlist or the
+ * cumulative segment boundaries from a media playlist. */
+export function hlsTimeline(value: string): HlsTimeline {
+    const lines = value.split(/\r?\n/).map((line) => line.trim());
+    const boundaries: number[] = [];
+    let elapsed = 0;
+
+    for (const line of lines) {
+        const duration = Number(line.match(/^#EXTINF:([\d.]+)/)?.[1]);
+        if (!Number.isFinite(duration) || duration <= 0) {
+            continue;
+        }
+
+        elapsed += duration;
+        boundaries.push(elapsed);
+    }
+    if (boundaries.length) {
+        // The final boundary only expresses total duration and is not a
+        // content/keyframe anchor shared by the two encodes.
+        return { variant: null, boundaries: boundaries.slice(0, -1) };
+    }
+
+    const stream = lines.findIndex((line) =>
+        line.startsWith('#EXT-X-STREAM-INF:'),
+    );
+    const variant =
+        stream >= 0
+            ? lines
+                  .slice(stream + 1)
+                  .find((line) => line && !line.startsWith('#'))
+            : null;
+    return {
+        variant: variant ?? null,
+        boundaries: null,
+    };
+}
 
 function nearestIndex(values: number[], target: number) {
     let low = 0;
@@ -224,166 +269,207 @@ function nearestIndex(values: number[], target: number) {
     return low;
 }
 
-/** The timing offset between two differently worded tracks, found by
- * correlating when dialogue happens rather than what it says. Returns null
- * when either track is too sparse or no candidate shift is consistent. */
-export function subtitlePatternOffset(
-    preferred: SubtitleCue[],
-    alternate: SubtitleCue[],
-) {
+const timelineRange = 60;
+const timelineStep = 0.25;
+const timelineTolerance = 0.25;
+const minimumTimelineMatches = 12;
+const minimumTimelineCoverage = 0.15;
+const minimumScoreLead = 1.4;
+const alignmentWindow = 120;
+const alignmentStep = 20;
+const alignmentChangeTolerance = 0.5;
+const minimumAlignmentSamples = 2;
+
+function timelineScore(reference: number[], target: number[], offset: number) {
+    let matches = 0;
+    for (const boundary of target) {
+        const expected = boundary - offset;
+        const index = nearestIndex(reference, expected - timelineTolerance);
+        if (
+            index < reference.length &&
+            reference[index] <= expected + timelineTolerance
+        ) {
+            matches++;
+        }
+    }
+    return matches;
+}
+
+/** Find one locally stable trim between two HLS timelines. */
+function timelineOffset(reference: number[], target: number[]) {
     if (
-        preferred.length < minimumPatternCues ||
-        alternate.length < minimumPatternCues
+        reference.length < minimumTimelineMatches ||
+        target.length < minimumTimelineMatches
     ) {
         return null;
     }
 
-    const preferredMids = preferred
-        .map((cue) => (cue.start + cue.end) / 2)
-        .sort((left, right) => left - right);
-    const alternateMids = alternate
-        .map((cue) => (cue.start + cue.end) / 2)
-        .sort((left, right) => left - right);
-    const alternateStarts = alternate
-        .map((cue) => cue.start)
-        .sort((left, right) => left - right);
-
-    const candidates: { shift: number; score: number }[] = [];
+    const candidates: { offset: number; score: number }[] = [];
     for (
-        let shift = -patternRange;
-        shift <= patternRange;
-        shift += patternBin
+        let offset = -timelineRange;
+        offset <= timelineRange;
+        offset += timelineStep
     ) {
-        let score = 0;
-        for (const mid of preferredMids) {
-            const target = mid - shift;
-            const index = nearestIndex(
-                alternateMids,
-                target - patternCoincidence,
-            );
-            if (
-                index < alternateMids.length &&
-                alternateMids[index] <= target + patternCoincidence
-            ) {
-                score++;
-            }
-        }
-        candidates.push({ shift, score });
+        candidates.push({
+            offset,
+            score: timelineScore(reference, target, offset),
+        });
     }
     candidates.sort((left, right) => right.score - left.score);
 
-    const tried: number[] = [];
-    for (const { shift } of candidates) {
+    const best = candidates[0];
+    const alternate = candidates.find(
+        ({ offset }) => Math.abs(offset - best.offset) >= 1,
+    );
+    const coverage = best.score / Math.min(reference.length, target.length);
+    if (
+        best.score < minimumTimelineMatches ||
+        coverage < minimumTimelineCoverage ||
+        (alternate && best.score < alternate.score * minimumScoreLead)
+    ) {
+        return null;
+    }
+
+    const deltas: number[] = [];
+    for (const boundary of target) {
+        const expected = boundary - best.offset;
+        const index = nearestIndex(reference, expected);
+        const nearest = [index - 1, index]
+            .filter((candidate) => candidate >= 0 && candidate < reference.length)
+            .map((candidate) => reference[candidate])
+            .toSorted(
+                (left, right) =>
+                    Math.abs(left - expected) - Math.abs(right - expected),
+            )[0];
         if (
-            tried.some(
-                (value) => Math.abs(value - shift) <= patternCandidateSpread,
-            )
+            nearest !== undefined &&
+            Math.abs(nearest - expected) <= timelineStep * 2
         ) {
-            continue;
-        }
-        tried.push(shift);
-
-        // Refine the coarse candidate against nearest cue starts; a candidate
-        // wins when at least the dimension minimum of cues line up and the
-        // deltas cluster tightly around their median.
-        const deltas: number[] = [];
-        for (const cue of preferred) {
-            const target = cue.start - shift;
-            const index = nearestIndex(alternateStarts, target);
-            let nearest: { start: number; distance: number } | null = null;
-            for (const candidate of [index - 1, index]) {
-                if (candidate < 0 || candidate >= alternateStarts.length) {
-                    continue;
-                }
-                const distance = Math.abs(
-                    alternateStarts[candidate] - target,
-                );
-                if (
-                    nearest === null ||
-                    distance < nearest.distance
-                ) {
-                    nearest = {
-                        start: alternateStarts[candidate],
-                        distance,
-                    };
-                }
-            }
-            if (nearest && nearest.distance <= patternRefineDistance) {
-                deltas.push(cue.start - nearest.start);
-            }
-        }
-
-        if (deltas.length < minimumPatternCues) {
-            continue;
-        }
-        deltas.sort((left, right) => left - right);
-        const median = deltas[Math.floor(deltas.length / 2)];
-        const tight =
-            deltas.filter(
-                (delta) => Math.abs(delta - median) <= calibrationTightWindow,
-            ).length / deltas.length;
-        if (tight >= calibrationTightRatio) {
-            return median;
+            deltas.push(boundary - nearest);
         }
     }
-
-    return null;
-}
-
-/** Shift the alternate (sub) track onto the preferred (dub) track's
- * timeline, or return it unchanged when the tracks already line up or share
- * too few matching cues to calibrate. Same-wording lines are matched first;
- * when they cannot be trusted, cue timing patterns take over. */
-export function alignSubtitleTracks(
-    preferred: SubtitleCue[],
-    alternate: SubtitleCue[],
-) {
-    const offset =
-        subtitleTrackOffset(preferred, alternate) ??
-        subtitlePatternOffset(preferred, alternate);
-    if (!offset) {
-        return alternate;
+    if (deltas.length < minimumTimelineMatches) {
+        return null;
     }
 
-    return alternate.map((cue) => ({
-        start: cue.start + offset,
-        end: cue.end + offset,
-        text: cue.text,
-    }));
+    deltas.sort((left, right) => left - right);
+    const offset = deltas[Math.floor(deltas.length / 2)];
+    return Math.abs(offset) < 0.05 ? 0 : offset;
 }
 
-export function mergeSubtitleTracks(
-    preferred: SubtitleCue[],
-    alternate: SubtitleCue[],
-) {
-    const merged = [...preferred];
+export interface TimelineOffset {
+    /** Time on the reference encode at which this offset starts. */
+    at: number;
+    /** Seconds added to reference-timed cues on the target encode. */
+    offset: number;
+}
 
-    for (const cue of alternate) {
-        const redundant = preferred.some(
-            (other) => overlaps(other, cue) && sameLine(other.text, cue.text),
+function median(values: number[]) {
+    const ordered = values.toSorted((left, right) => left - right);
+    return ordered[Math.floor(ordered.length / 2)];
+}
+
+/** Align HLS encodes as piecewise-constant trims. Dub releases can insert
+ * distributor cards, alternate openings, or eyecatches, so one offset for the
+ * whole episode is not always valid. Weak local correlations are omitted. */
+export function hlsTimelineOffsets(
+    reference: number[],
+    target: number[],
+): TimelineOffset[] {
+    const end = reference.at(-1) ?? 0;
+    const samples: TimelineOffset[] = [];
+
+    for (
+        let start = 0;
+        start < end;
+        start += alignmentStep
+    ) {
+        const stop = start + alignmentWindow;
+        const offset = timelineOffset(
+            reference.filter(
+                (boundary) => boundary >= start && boundary <= stop,
+            ),
+            target.filter(
+                (boundary) =>
+                    boundary >= Math.max(0, start - timelineRange) &&
+                    boundary <= stop + timelineRange,
+            ),
         );
-        if (!redundant) {
-            merged.push(cue);
+        if (offset !== null) {
+            samples.push({
+                at: start + alignmentWindow / 2,
+                offset,
+            });
         }
     }
 
-    return merged.sort((left, right) => left.start - right.start);
+    const groups: TimelineOffset[][] = [];
+    for (const sample of samples) {
+        const group = groups.at(-1);
+        const groupOffset = group
+            ? median(group.map(({ offset }) => offset))
+            : null;
+        if (
+            !group ||
+            groupOffset === null ||
+            Math.abs(sample.offset - groupOffset) >=
+                alignmentChangeTolerance
+        ) {
+            groups.push([sample]);
+        } else {
+            group.push(sample);
+        }
+    }
+
+    const stable = groups.filter(
+        (group) => group.length >= minimumAlignmentSamples,
+    );
+    if (!stable.length) {
+        const sampleEnd = Math.min(end, 300);
+        const offset = timelineOffset(
+            reference.filter((boundary) => boundary <= sampleEnd),
+            target.filter(
+                (boundary) => boundary <= sampleEnd + timelineRange,
+            ),
+        );
+        return offset === null ? [] : [{ at: 0, offset }];
+    }
+
+    return stable.map((group, index) => {
+        const previous = stable[index - 1];
+        return {
+            at:
+                index === 0
+                    ? 0
+                    : (previous.at(-1)!.at + group[0].at) / 2,
+            offset: median(group.map((sample) => sample.offset)),
+        };
+    });
 }
 
-export function subtitlesFor(
-    mode: SubtitleMode,
-    own: SubtitleCue[] | null,
-    sub: SubtitleCue[] | null,
+/** The initial stable trim, retained for callers that only need one offset. */
+export function hlsTimelineOffset(reference: number[], target: number[]) {
+    return hlsTimelineOffsets(reference, target)[0]?.offset ?? null;
+}
+
+export function alignSubtitleCues(
+    cues: SubtitleCue[],
+    offsets: TimelineOffset[],
 ) {
-    if (mode === 'dub') {
-        return own ?? sub;
+    if (!offsets.length) {
+        return cues;
     }
-    if (mode === 'sub') {
-        return sub ?? own;
-    }
-    return own && sub
-        ? mergeSubtitleTracks(own, sub)
-        : (own ?? sub);
+
+    return cues.map((cue) => {
+        const offset = offsets.findLast(({ at }) => at <= cue.start)?.offset;
+        return offset === undefined
+            ? cue
+            : {
+                  ...cue,
+                  start: cue.start + offset,
+                  end: cue.end + offset,
+              };
+    });
 }
 
 export function qualitiesFor(streams: Stream[]) {

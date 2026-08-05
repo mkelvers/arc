@@ -4,23 +4,32 @@ import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { AudioDelay } from './audio';
 import {
-    alignSubtitleTracks,
+    alignSubtitleCues,
     availableModes,
-    dubCaptionTracks,
+    hasDialogueCoverage,
+    hasSubtitleTrack,
+    hlsTimeline,
+    hlsTimelineOffsets,
     isHlsSource,
     orderStreams,
     parseWebVtt,
+    preferredSubtitleKind,
     qualitiesFor,
     qualityLabel,
+    sameSubtitleCues,
     streamsFor,
-    subtitlesFor,
+    subtitleOptionsFor,
+    subtitleReferenceTracks,
     subtitleTracks,
     subtitlesAt,
     type Sources,
     type Stream,
     type SubtitleCue,
+    type SubtitleKind,
     type SubtitleMode,
+    type SubtitleOption,
     type SubtitleSize,
+    type SubtitleTrack,
 } from './media';
 import * as preferences from './preferences';
 
@@ -43,7 +52,8 @@ export class Playback {
     hlsQualities = $state<HlsQuality[]>([]);
     hlsCurrentQuality = $state<string | null>(null);
     subtitleCues = $state<SubtitleCue[]>([]);
-    subtitleMode = $state<SubtitleMode>('merge');
+    subtitleMode = $state<SubtitleMode>('dub');
+    subtitleOptions = $state<SubtitleOption[]>(subtitleOptionsFor(null));
     subtitleSize = $state<SubtitleSize>('normal');
     subtitleBackground = $state(true);
     sourceIndex = $state(0);
@@ -57,6 +67,10 @@ export class Playback {
     private changingSource = false;
     private pendingSourceFailure: string | null = null;
     private sourceChain: Stream[] = [];
+    private subtitlesEnabled = $state(true);
+    private loadedSubtitles: Partial<
+        Record<Exclude<SubtitleMode, 'off'>, SubtitleCue[]>
+    > = {};
     private hls: HlsType | null = null;
     private subtitleRequest: AbortController | null = null;
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
@@ -78,7 +92,20 @@ export class Playback {
     }
 
     private get preferredSources() {
-        return orderStreams(this.modeSources, this.quality);
+        const ordered = orderStreams(this.modeSources, this.quality);
+        if (!this.subtitlesEnabled) {
+            return ordered;
+        }
+
+        const captioned = ordered.filter((stream) =>
+            hasSubtitleTrack(this.sources, this.mode, stream),
+        );
+        return captioned.length
+            ? [
+                  ...captioned,
+                  ...ordered.filter((stream) => !captioned.includes(stream)),
+              ]
+            : ordered;
     }
 
     private get activeSources() {
@@ -203,6 +230,8 @@ export class Playback {
         this.subtitleRequest?.abort();
         this.subtitleRequest = null;
         this.subtitleCues = [];
+        this.loadedSubtitles = {};
+        this.subtitleOptions = subtitleOptionsFor(null);
     }
 
     private async fetchSubtitleCues(url: string, signal: AbortSignal) {
@@ -219,90 +248,213 @@ export class Playback {
         }
     }
 
+    private async fetchHlsTimeline(source: string, signal: AbortSignal) {
+        if (!isHlsSource(source)) {
+            return null;
+        }
+
+        const response = await fetch(source, { signal });
+        if (!response.ok) {
+            return null;
+        }
+
+        let timeline = hlsTimeline(await response.text());
+        if (!timeline.variant) {
+            return timeline.boundaries;
+        }
+
+        const base = response.url || new URL(source, location.href).toString();
+        const variant = await fetch(new URL(timeline.variant, base), { signal });
+        if (!variant.ok) {
+            return null;
+        }
+
+        timeline = hlsTimeline(await variant.text());
+        return timeline.boundaries;
+    }
+
+    private async subtitleOffsets(
+        reference: Stream,
+        target: Stream,
+        signal: AbortSignal,
+    ) {
+        if (reference.url === target.url) {
+            return [{ at: 0, offset: 0 }];
+        }
+
+        const [referenceTimeline, targetTimeline] = await Promise.all([
+            this.fetchHlsTimeline(reference.url, signal),
+            this.fetchHlsTimeline(target.url, signal),
+        ]);
+        return referenceTimeline && targetTimeline
+            ? hlsTimelineOffsets(referenceTimeline, targetTimeline)
+            : null;
+    }
+
+    private async fallbackSubtitleOffsets(
+        primary: SubtitleTrack,
+        target: Stream,
+        cues: SubtitleCue[],
+        signal: AbortSignal,
+    ) {
+        const offsets = await this.subtitleOffsets(
+            primary.source,
+            target,
+            signal,
+        );
+        if (offsets?.length) {
+            return offsets;
+        }
+
+        const loaded = new Map<string, SubtitleCue[] | null>();
+        loaded.set(primary.url, cues);
+        for (const reference of subtitleReferenceTracks(
+            this.sources,
+            primary,
+        )) {
+            let referenceCues = loaded.get(reference.url);
+            if (referenceCues === undefined) {
+                referenceCues = await this.fetchSubtitleCues(
+                    reference.url,
+                    signal,
+                );
+                loaded.set(reference.url, referenceCues);
+            }
+            if (
+                !referenceCues ||
+                !sameSubtitleCues(cues, referenceCues)
+            ) {
+                continue;
+            }
+
+            const alternative = await this.subtitleOffsets(
+                reference.source,
+                target,
+                signal,
+            );
+            if (alternative?.length) {
+                return alternative;
+            }
+        }
+
+        return null;
+    }
+
+    private useSubtitles(kind: SubtitleKind, cues: SubtitleCue[]) {
+        const mode = kind === 'translated' ? 'sub' : 'dub';
+        this.loadedSubtitles = { [mode]: cues };
+        this.subtitleOptions = subtitleOptionsFor(kind);
+        this.subtitleMode = this.subtitlesEnabled ? mode : 'off';
+        this.subtitleCues = this.subtitlesEnabled ? cues : [];
+    }
+
+    private offerAvailableSubtitles() {
+        const source = this.modeSources.find((candidate) =>
+            hasSubtitleTrack(this.sources, this.mode, candidate),
+        );
+        const tracks = subtitleTracks(this.sources, this.mode, source);
+        const kind: SubtitleKind | null =
+            this.mode === 'dub' && tracks.own
+                ? 'limited'
+                : tracks.own || tracks.sub
+                  ? 'translated'
+                  : null;
+        this.subtitleOptions = subtitleOptionsFor(kind);
+        this.subtitleMode = 'off';
+    }
+
     private async loadSubtitles(source: string) {
         this.clearSubtitles();
         const request = new AbortController();
         this.subtitleRequest = request;
         const active = this.activeSources[this.sourceIndex];
-        const { own, sub } = subtitleTracks(this.sources, active);
-        // Dub sources can ship different caption tracks (the fullest carries
-        // the dialogue, others may be title cards only). While watching the
-        // dub, load every track and prefer the fullest, so a missing or
-        // brittle track on the active source still gets dialogue captions.
-        const borrowed =
-            this.mode === 'dub'
-                ? dubCaptionTracks(this.sources).filter((url) => url !== own)
-                : [];
+        const { own, sub } = subtitleTracks(this.sources, this.mode, active);
         const stale = () =>
             request.signal.aborted ||
             this.subtitleRequest !== request ||
             source !== this.src;
 
-        // A source without any caption track plays without subtitles; only a
-        // track that exists but cannot be loaded is a source failure.
-        if (!own && !sub && !borrowed.length) {
+        if (!active || (!own && !sub)) {
+            this.offerAvailableSubtitles();
             return;
         }
 
         try {
-            const ownCues = own
-                ? await this.fetchSubtitleCues(own, request.signal)
-                : null;
-            const borrowedCues = (
-                await Promise.all(
-                    borrowed.map((url) =>
-                        this.fetchSubtitleCues(url, request.signal),
-                    ),
-                )
-            ).filter((cues): cues is SubtitleCue[] => cues !== null);
-            const subCues =
-                sub && sub !== own && !borrowed.includes(sub)
-                    ? await this.fetchSubtitleCues(sub, request.signal)
-                    : null;
+            const ownRequest = own
+                ? this.fetchSubtitleCues(own.url, request.signal)
+                : Promise.resolve(null);
+            const subRequest =
+                sub && sub.url !== own?.url
+                    ? this.fetchSubtitleCues(sub.url, request.signal)
+                    : ownRequest;
+            const [ownCues, subCues] = await Promise.all([
+                ownRequest,
+                subRequest,
+            ]);
 
             if (stale()) {
                 return;
             }
 
-            // Prefer the fullest dub track, keeping the active stream's own
-            // on ties. Dub and sub versions of an episode are separate
-            // encodes whose audio can sit offset from the shared video
-            // timeline; the chosen dub track is anchored to the heard dub
-            // audio, so shift the sub cues onto its timeline to keep merged
-            // or sub-only captions in sync.
-            let dubCues = ownCues;
-            for (const cues of borrowedCues) {
-                if (!dubCues || cues.length > dubCues.length) {
-                    dubCues = cues;
+            const preferred = preferredSubtitleKind(
+                this.mode,
+                ownCues?.length ?? 0,
+                subCues?.length ?? 0,
+            );
+            if ((preferred === 'cc' || preferred === 'limited') && ownCues) {
+                this.useSubtitles(preferred, ownCues);
+                return;
+            }
+
+            if (
+                preferred === 'translated' &&
+                this.mode !== 'dub' &&
+                ownCues
+            ) {
+                this.useSubtitles('translated', ownCues);
+                return;
+            }
+
+            if (preferred === 'translated' && sub && subCues) {
+                const offsets = await this.fallbackSubtitleOffsets(
+                    sub,
+                    active,
+                    subCues,
+                    request.signal,
+                );
+                if (stale()) {
+                    return;
+                }
+                if (offsets?.length) {
+                    this.useSubtitles(
+                        'translated',
+                        alignSubtitleCues(subCues, offsets),
+                    );
+                    return;
                 }
             }
 
-            const alignedSub =
-                dubCues && subCues
-                    ? alignSubtitleTracks(dubCues, subCues)
-                    : subCues;
-
-            // Show the track(s) the subtitle preference asks for: the merge
-            // keeps both with the dub track preferred, while 'dub' and 'sub'
-            // show a single track and fall back to the other when theirs is
-            // missing.
-            const chosen = subtitlesFor(
-                this.subtitleMode,
-                dubCues,
-                alignedSub,
-            );
-            if (chosen) {
-                this.subtitleCues = chosen;
+            // If the fuller fallback cannot be calibrated, retain the active
+            // encode's own signs/forced track instead of showing nothing.
+            if (ownCues) {
+                this.useSubtitles(
+                    hasDialogueCoverage(ownCues.length, 0)
+                        ? 'cc'
+                        : 'limited',
+                    ownCues,
+                );
                 return;
             }
-            throw new Error('Subtitle sources returned no usable cues');
+
+            this.offerAvailableSubtitles();
+            console.warn('Subtitle track could not be loaded or aligned');
         } catch (cause) {
             if (stale()) {
                 return;
             }
 
-            console.error('Subtitle source failed', cause);
-            void this.tryNextSource(source);
+            this.offerAvailableSubtitles();
+            console.warn('Subtitle track could not be loaded or aligned', cause);
         }
     }
 
@@ -478,14 +630,31 @@ export class Playback {
     }
 
     switchSubtitleMode(mode: SubtitleMode) {
-        if (mode === this.subtitleMode) {
+        const enabled = mode !== 'off';
+        if (enabled === this.subtitlesEnabled && mode === this.subtitleMode) {
             this.onActivity();
             return;
         }
 
+        const wasEnabled = this.subtitlesEnabled;
+        this.subtitlesEnabled = enabled;
         this.subtitleMode = mode;
-        preferences.save('subtitles', mode);
-        if (this.src) {
+        preferences.save('subtitles', enabled);
+        if (!enabled) {
+            this.subtitleCues = [];
+        } else if (this.loadedSubtitles[mode]) {
+            this.subtitleCues = this.loadedSubtitles[mode];
+        } else if (!wasEnabled && this.src) {
+            const current = this.activeSources[this.sourceIndex];
+            const preferred = this.preferredSources[0];
+            if (preferred && preferred !== current) {
+                this.rememberPlayback();
+                this.resetSource();
+                void this.reloadSource();
+            } else {
+                void this.loadSubtitles(this.src);
+            }
+        } else if (this.src) {
             void this.loadSubtitles(this.src);
         }
         this.onActivity();
@@ -720,8 +889,11 @@ export class Playback {
             this.quality = saved.quality;
         }
 
-        if (saved.subtitleMode) {
-            this.subtitleMode = saved.subtitleMode;
+        if (saved.subtitleEnabled !== null) {
+            this.subtitlesEnabled = saved.subtitleEnabled;
+            if (!saved.subtitleEnabled) {
+                this.subtitleMode = 'off';
+            }
         }
         if (saved.subtitleSize) {
             this.subtitleSize = saved.subtitleSize;

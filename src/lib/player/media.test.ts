@@ -1,23 +1,26 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-    alignSubtitleTracks,
+    alignSubtitleCues,
     audioLabel,
-    dubCaptionTracks,
     formatTime,
+    hasDialogueCoverage,
     hasStreams,
+    hasSubtitleTrack,
+    hlsTimeline,
+    hlsTimelineOffset,
+    hlsTimelineOffsets,
     isHd,
     isHlsSource,
     orderStreams,
     parseWebVtt,
+    preferredSubtitleKind,
     qualityLabel,
-    sameLine,
-    mergeSubtitleTracks,
-    subtitlePatternOffset,
-    subtitleTrackOffset,
+    sameSubtitleCues,
+    subtitleOptionsFor,
+    subtitleReferenceTracks,
     subtitlesAt,
     subtitleTracks,
-    subtitlesFor,
     type Stream,
 } from './media';
 
@@ -93,359 +96,230 @@ Cheers!
         ]);
     });
 
-    test('exposes the active track and the sub fallback separately', () => {
-        const captioned: Stream = {
-            url: '/sub',
+    test('pairs fallback subtitles only within the active provider', () => {
+        const sub: Stream = {
+            url: '/anikoto-sub.m3u8',
             quality: null,
             audioDelay: 0,
-            subtitleUrl: 'https://media.example/sub.vtt',
+            subtitleUrl: '/sub.vtt',
+            provider: 'AniKoto',
         };
-        const uncaptioned: Stream = {
-            url: '/dub',
+        const dub: Stream = {
+            url: '/anikoto-dub.m3u8',
             quality: null,
             audioDelay: 0,
             subtitleUrl: null,
+            provider: 'AniKoto',
         };
-        const sources = { sub: [captioned], dub: [uncaptioned] };
+        const unrelated: Stream = {
+            ...dub,
+            url: '/allanime-dub.mp4',
+            provider: 'AllAnime',
+        };
+        const sources = { sub: [sub], dub: [dub, unrelated] };
 
-        expect(subtitleTracks(sources, uncaptioned)).toEqual({
+        expect(subtitleTracks(sources, 'dub', dub)).toEqual({
             own: null,
-            sub: 'https://media.example/sub.vtt',
+            sub: { url: '/sub.vtt', source: sub },
         });
-        expect(subtitleTracks(sources, captioned)).toEqual({
-            own: 'https://media.example/sub.vtt',
-            sub: 'https://media.example/sub.vtt',
-        });
-        expect(subtitleTracks({ dub: [uncaptioned] }, uncaptioned)).toEqual({
+        expect(subtitleTracks(sources, 'dub', unrelated)).toEqual({
             own: null,
             sub: null,
         });
+        expect(hasSubtitleTrack(sources, 'dub', dub)).toBe(true);
+        expect(hasSubtitleTrack(sources, 'dub', unrelated)).toBe(false);
     });
 
-    test('lists every dub caption track once for borrowing', () => {
-        const dub: Stream[] = [
-            {
-                url: '/dub-1',
-                quality: null,
-                audioDelay: 0,
-                subtitleUrl: 'https://media.example/eng-3.vtt',
-            },
-            {
-                url: '/dub-2',
-                quality: null,
-                audioDelay: 0,
-                subtitleUrl: 'https://media.example/eng-0.vtt',
-            },
-            {
-                url: '/dub-3',
-                quality: null,
-                audioDelay: 0,
-                subtitleUrl: null,
-            },
-            {
-                url: '/dub-4',
-                quality: null,
-                audioDelay: 0,
-                subtitleUrl: 'https://media.example/eng-3.vtt',
-            },
-        ];
+    test('recognizes a repeated sub VTT in a dub payload', () => {
+        const sub: Stream = {
+            url: '/sub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/shared.vtt',
+            provider: 'AniKoto',
+        };
+        const dub: Stream = {
+            url: '/sub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/shared.vtt',
+            provider: 'AniKoto',
+        };
 
-        expect(dubCaptionTracks({ dub })).toEqual([
-            'https://media.example/eng-3.vtt',
-            'https://media.example/eng-0.vtt',
+        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub)).toEqual({
+            own: null,
+            sub: { url: '/shared.vtt', source: sub },
+        });
+    });
+
+    test('keeps native dub CC separate from the provider sub fallback', () => {
+        const sub: Stream = {
+            url: '/sub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/sub.vtt',
+            provider: 'AniKoto',
+        };
+        const dub: Stream = {
+            url: '/dub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/dub.vtt',
+            provider: 'AniKoto',
+        };
+
+        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub)).toEqual({
+            own: { url: '/dub.vtt', source: dub },
+            sub: { url: '/sub.vtt', source: sub },
+        });
+    });
+
+    test('offers alternate timing references without treating them as captions', () => {
+        const primary: Stream = {
+            url: '/anikoto-sub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/anikoto.vtt',
+            provider: 'AniKoto',
+        };
+        const alternative: Stream = {
+            url: '/anineko-sub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/anineko.vtt',
+            provider: 'AniNeko',
+        };
+
+        expect(
+            subtitleReferenceTracks(
+                { sub: [primary, alternative] },
+                { url: '/anikoto.vtt', source: primary },
+            ),
+        ).toEqual([{ url: '/anineko.vtt', source: alternative }]);
+    });
+
+    test('uses honest English track labels and always offers Off', () => {
+        expect(subtitleOptionsFor('cc')).toEqual([
+            { mode: 'off', label: 'Off' },
+            { mode: 'dub', label: 'English CC' },
         ]);
-        expect(dubCaptionTracks({ sub: dub })).toEqual([]);
-    });
-
-    test('classifies lines that say the same thing', () => {
-        expect(sameLine('Nezuko, don\'t die!', 'Nezuko, don\'t die!')).toBe(
-            true,
-        );
-        expect(
-            sameLine(
-                'Nezuko, don\'t die!',
-                'Nezuko, don\'t die! Don\'t die on me!',
-            ),
-        ).toBe(true);
-        expect(sameLine('How?', 'Boy: How?')).toBe(true);
-        expect(sameLine('How?', 'How did this happen?')).toBe(false);
-        expect(sameLine('Run!', 'Don\'t stop!')).toBe(false);
-    });
-
-    test('ignores punctuation and speaker labels in line comparisons', () => {
-        expect(
-            sameLine('I won\'t let you die!', 'I won\'t let you die.'),
-        ).toBe(true);
-        expect(sameLine('Tanjiro?', 'Woman: Tanjiro.')).toBe(true);
-        expect(
-            sameLine(
-                'Your face is covered in soot.',
-                'Your face is all covered in soot.',
-            ),
-        ).toBe(true);
-        expect(
-            sameLine(
-                'Come on, Nezuko!',
-                'Nezuko, don\'t die! Don\'t die on me!',
-            ),
-        ).toBe(false);
-        expect(
-            sameLine(
-                'Are you going to town again today?',
-                'You\'re going to town again today?',
-            ),
-        ).toBe(false);
-    });
-
-    test('merges tracks with dub precedence on same lines', () => {
-        const dub = [
-            { start: 0, end: 10, text: 'Boy: How?' },
-            { start: 20, end: 30, text: 'Sign' },
-        ];
-        const sub = [
-            { start: 2, end: 8, text: 'How?' },
-            {
-                start: 25,
-                end: 35,
-                text: 'Nezuko, don\'t die!',
-            },
-            { start: 40, end: 50, text: 'Gojou Satoru.' },
-        ];
-
-        const merged = mergeSubtitleTracks(dub, sub);
-        const texts = merged.map(({ text }) => text);
-        expect(texts).toContain('Boy: How?');
-        expect(texts).not.toContain('How?');
-        expect(texts).toContain('Sign');
-        expect(texts).toContain('Nezuko, don\'t die!');
-        expect(texts).toContain('Gojou Satoru.');
-        expect(merged).toEqual([
-            ...merged,
-        ].toSorted((left, right) => left.start - right.start));
-    });
-
-    test('keeps only the preferred cue for identical overlapping lines', () => {
-        const preferred = [
-            { start: 0, end: 10, text: 'Same line' },
-        ];
-        const alternate = [
-            { start: 2, end: 8, text: 'Same line' },
-        ];
-
-        expect(mergeSubtitleTracks(preferred, alternate)).toEqual(
-            preferred,
-        );
-    });
-
-    test('dedupes overlapping lines that differ only in punctuation', () => {
-        const dub = [
-            { start: 0, end: 10, text: 'I won\'t let you die.' },
-        ];
-        const sub = [
-            { start: 2, end: 8, text: 'I won\'t let you die!' },
-        ];
-
-        expect(mergeSubtitleTracks(dub, sub)).toEqual(dub);
-    });
-
-    test('selects subtitle tracks by the preferred mode', () => {
-        const own = [{ start: 0, end: 10, text: 'Dub line' }];
-        const sub = [{ start: 0, end: 10, text: 'Sub line' }];
-
-        expect(subtitlesFor('dub', own, sub)).toBe(own);
-        expect(subtitlesFor('dub', null, sub)).toBe(sub);
-        expect(subtitlesFor('sub', own, sub)).toBe(sub);
-        expect(subtitlesFor('sub', own, null)).toBe(own);
-        expect(subtitlesFor('merge', null, sub)).toBe(sub);
-        expect(subtitlesFor('merge', own, null)).toBe(own);
-        expect(subtitlesFor('merge', null, null)).toBeNull();
-    });
-
-    test('merge mode keeps both tracks with dub precedence', () => {
-        const own = [{ start: 0, end: 10, text: 'Boy: How?' }];
-        const sub = [
-            { start: 2, end: 8, text: 'How?' },
-            { start: 20, end: 30, text: 'Standalone' },
-        ];
-
-        const merged = subtitlesFor('merge', own, sub)!;
-        expect(merged.map(({ text }) => text)).toEqual([
-            'Boy: How?',
-            'Standalone',
+        expect(subtitleOptionsFor('translated')).toEqual([
+            { mode: 'off', label: 'Off' },
+            { mode: 'sub', label: 'English (Translated)' },
+        ]);
+        expect(subtitleOptionsFor('limited')).toEqual([
+            { mode: 'off', label: 'Off' },
+            { mode: 'dub', label: 'English (Signs & Songs)' },
+        ]);
+        expect(subtitleOptionsFor(null)).toEqual([
+            { mode: 'off', label: 'Off' },
         ]);
     });
 
-    test('finds no offset when tracks already align', () => {
-        const dub = [0, 20, 40, 60, 80].map((start) => ({
-            start,
-            end: start + 4,
-            text: `Line ${start}`,
-        }));
-        const sub = dub.map((cue) => ({ ...cue }));
-
-        expect(subtitleTrackOffset(dub, sub)).toBe(0);
-        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
+    test('distinguishes dialogue CC from a brittle signs track by coverage', () => {
+        expect(hasDialogueCoverage(553, 394)).toBe(true);
+        expect(hasDialogueCoverage(319, 394)).toBe(true);
+        expect(hasDialogueCoverage(30, 476)).toBe(false);
+        expect(hasDialogueCoverage(8, 394)).toBe(false);
+        expect(hasDialogueCoverage(30, 0)).toBe(false);
+        expect(hasDialogueCoverage(300, 0)).toBe(true);
+        expect(preferredSubtitleKind('dub', 553, 394)).toBe('cc');
+        expect(preferredSubtitleKind('dub', 8, 394)).toBe('translated');
+        expect(preferredSubtitleKind('dub', 8, 0)).toBe('limited');
+        expect(preferredSubtitleKind('sub', 476, 0)).toBe('translated');
     });
 
-    test('shifts sub cues onto the dub timeline', () => {
-        const dub = [0, 20, 40, 60, 80].map((start) => ({
-            start,
-            end: start + 4,
-            text: `Line ${start}`,
-        }));
-        const original = dub.map((cue) => ({ ...cue }));
-        const shifted = dub.map((cue) => ({
-            ...cue,
-            start: cue.start + 2.5,
-            end: cue.end + 2.5,
-        }));
-
-        expect(subtitleTrackOffset(dub, shifted)).toBe(-2.5);
-        expect(alignSubtitleTracks(dub, shifted)).toEqual(original);
+    test('reads HLS variants and segment boundaries', () => {
+        expect(
+            hlsTimeline(`#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8`),
+        ).toEqual({ variant: 'video/index.m3u8', boundaries: null });
+        expect(
+            hlsTimeline(
+                `#EXTM3U\n#EXTINF:3.5,\na\n#EXTINF:4.25,\nb\n#EXTINF:2.0,\nc`,
+            ),
+        ).toEqual({ variant: null, boundaries: [3.5, 7.75] });
     });
 
-    test('calibrates sparse tracks from title cards a dub trim apart', () => {
-        // A dub that trims its opening runs about 11 seconds early, and its
-        // own caption track may then carry only a few title cards that also
-        // appear in the sub track. Those anchors sit just outside a tight
-        // matching window but cluster exactly at the trim, so they must still
-        // shift the sub cues onto the dub timeline.
-        const dub = [0, 200, 240, 590].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'Title card',
-        }));
-        const sub = [11, 211, 251, 601].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'Title card',
-        }));
+    test('calibrates a sub track from matching HLS content boundaries', () => {
+        const reference = Array.from(
+            { length: 120 },
+            (_, index) => 1.2 + ((index * 37) % 43) / 10 + (index % 7) * 0.013,
+        )
+            .reduce<number[]>((boundaries, duration) => {
+                boundaries.push((boundaries.at(-1) ?? 0) + duration);
+                return boundaries;
+            }, []);
+        const offset = 15.974;
+        const target = reference
+            .filter((_, index) => index % 3 !== 0)
+            .map((boundary) => boundary + offset);
 
-        expect(subtitleTrackOffset(dub, sub)).toBe(-11);
-        expect(alignSubtitleTracks(dub, sub)).toEqual(
-            sub.map((cue) => ({
-                ...cue,
-                start: cue.start - 11,
-                end: cue.end - 11,
-            })),
+        expect(hlsTimelineOffset(reference, target)).toBeCloseTo(offset, 2);
+        expect(
+            alignSubtitleCues(
+                [{ start: 28.34, end: 30.7, text: 'Mommy!' }],
+                [{ at: 0, offset }],
+            ),
+        ).toEqual([
+            { start: 44.314, end: 46.674, text: 'Mommy!' },
+        ]);
+    });
+
+    test('aligns captions across multiple encode edits', () => {
+        const reference = Array.from(
+            { length: 420 },
+            (_, index) => 1.5 + ((index * 29) % 37) / 10,
+        ).reduce<number[]>((boundaries, duration) => {
+            boundaries.push((boundaries.at(-1) ?? 0) + duration);
+            return boundaries;
+        }, []);
+        const target = [3, 7, 11, ...reference.map((boundary) =>
+            boundary + (boundary < 220 ? 15 : boundary < 610 ? 24 : 29),
+        )].toSorted((left, right) => left - right);
+
+        const offsets = hlsTimelineOffsets(reference, target);
+        expect(offsets).toHaveLength(3);
+        expect(offsets.map(({ offset }) => offset)).toEqual([15, 24, 29]);
+
+        expect(
+            alignSubtitleCues(
+                [
+                    { start: 100, end: 102, text: 'Early' },
+                    { start: 400, end: 402, text: 'Middle' },
+                    { start: 800, end: 802, text: 'Late' },
+                ],
+                offsets,
+            ),
+        ).toEqual([
+            { start: 115, end: 117, text: 'Early' },
+            { start: 424, end: 426, text: 'Middle' },
+            { start: 829, end: 831, text: 'Late' },
+        ]);
+    });
+
+    test('requires equivalent cues before using another timing reference', () => {
+        const cues = [{ start: 1, end: 2, text: 'A line' }];
+
+        expect(
+            sameSubtitleCues(cues, [
+                { start: 1.005, end: 2.005, text: 'A line' },
+            ]),
+        ).toBe(true);
+        expect(
+            sameSubtitleCues(cues, [
+                { start: 1, end: 2, text: 'A different line' },
+            ]),
+        ).toBe(false);
+    });
+
+    test('fails closed for sparse or unrelated HLS timelines', () => {
+        expect(hlsTimelineOffset([1, 2, 3], [17, 18, 19])).toBeNull();
+
+        const reference = Array.from({ length: 80 }, (_, index) => index * 4.1);
+        const unrelated = Array.from(
+            { length: 80 },
+            (_, index) => index * 3.7 + (index % 5) * 0.13,
         );
-    });
-
-    test('refuses to calibrate from too few shared lines', () => {
-        const dub = [
-            { start: 0, end: 4, text: 'One' },
-            { start: 20, end: 24, text: 'Two' },
-        ];
-        const sub = [
-            { start: 2, end: 6, text: 'One' },
-            { start: 22, end: 26, text: 'Two' },
-        ];
-
-        expect(subtitleTrackOffset(dub, sub)).toBeNull();
-        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
-    });
-
-    test('ignores same-text lines that are far apart in time', () => {
-        // A title card like "Itadori" can appear in both tracks at very
-        // different times; the calibration window must not treat those as
-        // shared dialogue and corrupt the offset.
-        const dub = [0, 20, 40].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'Itadori',
-        }));
-        const sub = [100, 120, 140].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'Itadori',
-        }));
-
-        expect(subtitleTrackOffset(dub, sub)).toBeNull();
-        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
-    });
-
-    test('rejects same-text matches that do not cluster around the median', () => {
-        // A translated dub track can reuse short phrases at unrelated times:
-        // the same-line matches spread out and must not be trusted even when
-        // there are enough of them.
-        const dub = [0, 20, 40, 60, 80, 100, 120, 140].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'How?',
-        }));
-        const sub = [5, 17, 47, 59, 86, 96, 122, 148].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'How?',
-        }));
-
-        expect(subtitleTrackOffset(dub, sub)).toBeNull();
-        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
-    });
-
-    test('recovers the offset of dense differently worded tracks by pattern', () => {
-        const dub = Array.from({ length: 30 }, (_, index) => ({
-            start: index * 10,
-            end: index * 10 + 4,
-            text: `Dub dialogue ${index}`,
-        }));
-        const original = dub.map((cue, index) => ({
-            ...cue,
-            text: `Sub dialogue ${index}`,
-        }));
-        const shifted = original.map((cue) => ({
-            ...cue,
-            start: cue.start + 11,
-            end: cue.end + 11,
-        }));
-
-        expect(subtitleTrackOffset(dub, shifted)).toBeNull();
-        expect(subtitlePatternOffset(dub, shifted)).toBeCloseTo(-11, 1);
-        expect(alignSubtitleTracks(dub, shifted)).toEqual(original);
-    });
-
-    test('falls back to pattern when same-line matches are scattered', () => {
-        const dub = Array.from({ length: 30 }, (_, index) => ({
-            start: index * 10,
-            end: index * 10 + 4,
-            text: `Dub dialogue ${index}`,
-        }));
-        const how = [5, 25, 45, 65, 85, 105, 125, 145].map((start) => ({
-            start,
-            end: start + 4,
-            text: 'How?',
-        }));
-        const sub = [
-            ...dub.map((cue, index) => ({
-                ...cue,
-                text: `Sub dialogue ${index}`,
-            })),
-            ...how.map((cue, index) => ({
-                ...cue,
-                start: [0, 28, 52, 64, 91, 101, 127, 153][index],
-                end: [0, 28, 52, 64, 91, 101, 127, 153][index] + 4,
-            })),
-        ].sort((left, right) => left.start - right.start);
-
-        expect(subtitleTrackOffset(dub, sub)).toBeNull();
-        expect(subtitlePatternOffset(dub, sub)).toBe(0);
-        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
-    });
-
-    test('refuses pattern calibration for sparse tracks', () => {
-        const sparse = [0, 20, 40, 60, 80, 100, 120, 140].map((start) => ({
-            start,
-            end: start + 4,
-            text: `Line ${start}`,
-        }));
-        const dense = Array.from({ length: 30 }, (_, index) => ({
-            start: index * 10,
-            end: index * 10 + 4,
-            text: `Line ${index}`,
-        }));
-
-        expect(subtitlePatternOffset(sparse, dense)).toBeNull();
-        expect(subtitlePatternOffset(dense, sparse)).toBeNull();
-        expect(alignSubtitleTracks(sparse, dense)).toBe(dense);
+        expect(hlsTimelineOffset(reference, unrelated)).toBeNull();
     });
 });

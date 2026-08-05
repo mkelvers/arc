@@ -6,6 +6,7 @@
         isHd,
         type SettingsView,
         type SubtitleMode,
+        type SubtitleOption,
         type SubtitleSize,
     } from '$lib/player/media';
     import type {
@@ -34,6 +35,7 @@
         skipSaving: boolean;
         subtitleBackground: boolean;
         subtitleMode: SubtitleMode;
+        subtitleOptions: SubtitleOption[];
         subtitleSize: SubtitleSize;
         onsubtitlebackground: (enabled: boolean) => void;
         onsubtitlemode: (mode: SubtitleMode) => void;
@@ -60,6 +62,7 @@
         skipSaving,
         subtitleBackground,
         subtitleMode,
+        subtitleOptions,
         subtitleSize,
         onsubtitlebackground,
         onsubtitlemode,
@@ -69,7 +72,6 @@
 
     const skipKinds: SkipKind[] = ['opening', 'ending'];
     const skipEdges = ['start', 'end'] as const;
-    const subtitleModes: SubtitleMode[] = ['merge', 'dub', 'sub'];
     const subtitleSizes: SubtitleSize[] = [
         'small',
         'normal',
@@ -77,17 +79,21 @@
         'extra-large',
     ];
 
-    const subtitleModeLabels: Record<SubtitleMode, string> = {
-        merge: 'Merge',
-        dub: 'Dub',
-        sub: 'Sub',
-    };
     const subtitleSizeLabels: Record<SubtitleSize, string> = {
         small: 'Small',
         normal: 'Normal',
         large: 'Large',
         'extra-large': 'Extra Large',
     };
+
+    // Distinguish a dub transcript from translated Japanese dialogue even
+    // though both tracks contain English text.
+    let subtitleLanguageLabel = $derived(
+        subtitleOptions.find((option) => option.mode === subtitleMode)
+            ?.label ??
+            subtitleOptions[0]?.label ??
+            'Off',
+    );
 
     function skipLabel(kind: SkipKind) {
         return kind === 'opening' ? 'Opening' : 'Ending';
@@ -185,7 +191,7 @@
         >
             <span>Subtitles/CC</span>
             <span class="flex items-center gap-1 text-white/85">
-                {subtitleModeLabels[subtitleMode]}
+                {subtitleLanguageLabel}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </button>
@@ -315,7 +321,7 @@
             >
                 <span>Language</span>
                 <span class="flex items-center gap-1 text-white/85">
-                    {subtitleModeLabels[subtitleMode]}
+                    {subtitleLanguageLabel}
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                 </span>
             </button>
@@ -348,16 +354,16 @@
                 </span>
             </button>
         {:else if view === 'subtitle-language'}
-            {#each subtitleModes as option}
+            {#each subtitleOptions as option}
                 <button
                     type="button"
                     role="menuitemradio"
-                    aria-checked={subtitleMode === option}
+                    aria-checked={subtitleMode === option.mode}
                     class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => onsubtitlemode(option)}
+                    onclick={() => onsubtitlemode(option.mode)}
                 >
-                    {@render radio(subtitleMode === option)}
-                    {subtitleModeLabels[option]}
+                    {@render radio(subtitleMode === option.mode)}
+                    {option.label}
                 </button>
             {/each}
         {:else if view === 'subtitle-size'}

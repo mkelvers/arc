@@ -598,6 +598,7 @@
                             {skipSaving}
                             subtitleBackground={media.subtitleBackground}
                             subtitleMode={media.subtitleMode}
+                            subtitleOptions={media.subtitleOptions}
                             subtitleSize={media.subtitleSize}
                             onsubtitlebackground={(enabled) =>
                                 media.switchSubtitleBackground(enabled)}
