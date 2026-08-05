@@ -15,7 +15,9 @@ import {
 import { record } from '$lib/utils';
 import type { StreamCrypto } from './types';
 
-const epochLength = 259_200_000;
+// AllAnime rotates the boot epoch every 7 days; the bootstrap response
+// reports the same epochMs window the client computes against.
+const epochLength = 604_800_000;
 const graceLength = 86_400_000;
 
 let cache: StreamCrypto | null = null;
