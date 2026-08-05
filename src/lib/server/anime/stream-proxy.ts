@@ -9,7 +9,6 @@ const allowedHosts = [
     'hls.anidb.app',
     'ninstream.com',
     'ninjstream.xyz',
-    'megap.kotocdn.site',
     'ibyteimg.com',
     'vibevibe.workers.dev',
     'vivibebe.site',
@@ -144,9 +143,14 @@ export async function boundedResponseText(
 }
 
 function allowedHost(hostname: string) {
-    return allowedHosts.some(
-        (host) =>
-            hostname === host || hostname.endsWith(`.${host}`),
+    // MegaPlay rotates per-series CDN hosts that all share the `megap.`
+    // prefix; the rest of the list is exact-or-`.<host>` suffix matched.
+    return (
+        hostname.startsWith('megap.') ||
+        allowedHosts.some(
+            (host) =>
+                hostname === host || hostname.endsWith(`.${host}`),
+        )
     );
 }
 
@@ -188,7 +192,7 @@ export function streamReferer(target: URL) {
         return 'https://anidb.app/';
     }
     if (
-        target.hostname === 'megap.kotocdn.site' ||
+        target.hostname.startsWith('megap.') ||
         target.hostname.endsWith('.lostproject.club')
     ) {
         return 'https://megaplay.buzz/';

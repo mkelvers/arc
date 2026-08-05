@@ -5,6 +5,7 @@ import {
     proxiedStreamUrl,
     rewriteHlsPlaylist,
     StreamResponseError,
+    streamReferer,
     streamTarget,
     StreamTargetError,
     streamTargetParameter,
@@ -29,6 +30,19 @@ describe('stream proxy', () => {
         expect(() =>
             streamTarget('https://127.0.0.1/private'),
         ).toThrow(StreamTargetError);
+    });
+
+    test('accepts rotated megap CDN hosts and maps their referer', () => {
+        const target = streamTarget(
+            'https://megap.shiora.site/show/master.m3u8',
+        );
+        expect(target.hostname).toBe('megap.shiora.site');
+        expect(streamReferer(target)).toBe('https://megaplay.buzz/');
+        expect(
+            streamReferer(
+                new URL('https://megap.akirax.buzz/show/master.m3u8'),
+            ),
+        ).toBe('https://megaplay.buzz/');
     });
 
     test('rewrites relative variants, segments, and tag URIs', () => {
