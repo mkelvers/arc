@@ -456,9 +456,10 @@ function supportedMediaUrl(value: unknown) {
 
     try {
         const url = new URL(value);
+        // MegaPlay serves each series from a rotated `megap.<host>` CDN
+        // subdomain, so match the shared prefix rather than fixed hosts.
         const supported =
-            url.hostname === 'megap.kotocdn.site' ||
-            url.hostname.endsWith('.megap.kotocdn.site') ||
+            url.hostname.startsWith('megap.') ||
             url.hostname === 'lostproject.club' ||
             url.hostname.endsWith('.lostproject.club');
         return url.protocol === 'https:' && supported ? url : null;

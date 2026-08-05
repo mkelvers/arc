@@ -225,6 +225,64 @@ describe('AniKoto provider', () => {
         });
     });
 
+    test('resolves HLS from a rotated megap CDN host', async () => {
+        storedMediaId = '6351';
+        globalThis.fetch = mock(async (input: string | URL | Request) => {
+            const url = new URL(
+                input instanceof Request ? input.url : input.toString(),
+            );
+            if (
+                url.hostname === 'anikotoapi.site' &&
+                url.pathname === '/series/6351'
+            ) {
+                return response(seriesPayload());
+            }
+            if (
+                url.hostname === 'megaplay.buzz' &&
+                url.pathname.startsWith('/stream/s-2/')
+            ) {
+                return response(
+                    `<title>File 13462 - MegaPlay</title>`,
+                );
+            }
+            if (
+                url.hostname === 'megaplay.buzz' &&
+                url.pathname === '/stream/getSources'
+            ) {
+                return response({
+                    sources: {
+                        file: 'https://megap.shiora.site/jjk/master.m3u8',
+                    },
+                    tracks: [
+                        {
+                            kind: 'captions',
+                            label: 'English',
+                            file: 'https://cc.lostproject.club/jjk.vtt',
+                        },
+                    ],
+                });
+            }
+            throw new Error(`Unexpected request: ${url}`);
+        }) as unknown as typeof fetch;
+
+        const streams = await anikotoProvider.getStreams(
+            anime,
+            { id: '1', number: 1 },
+            ['sub'],
+        );
+
+        expect(streams).toEqual({
+            sub: [
+                {
+                    url: 'https://megap.shiora.site/jjk/master.m3u8',
+                    quality: null,
+                    audioDelay: 0,
+                    subtitleUrl: 'https://cc.lostproject.club/jjk.vtt',
+                },
+            ],
+        });
+    });
+
     test('finds a fractional special stored as a standalone provider release', async () => {
         storedMediaId = '5665';
         globalThis.fetch = mock(async (input: string | URL | Request) => {
