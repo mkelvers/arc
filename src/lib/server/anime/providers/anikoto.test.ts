@@ -283,6 +283,142 @@ describe('AniKoto provider', () => {
         });
     });
 
+    test('prefers the fullest non-AI dub caption track', async () => {
+        storedMediaId = '6351';
+        globalThis.fetch = mock(async (input: string | URL | Request) => {
+            const url = new URL(
+                input instanceof Request ? input.url : input.toString(),
+            );
+            if (
+                url.hostname === 'anikotoapi.site' &&
+                url.pathname === '/series/6351'
+            ) {
+                return response(seriesPayload());
+            }
+            if (
+                url.hostname === 'megaplay.buzz' &&
+                url.pathname.startsWith('/stream/s-2/')
+            ) {
+                return response(
+                    `<title>File 13463 - MegaPlay</title>`,
+                );
+            }
+            if (
+                url.hostname === 'megaplay.buzz' &&
+                url.pathname === '/stream/getSources'
+            ) {
+                return response({
+                    sources: {
+                        file: 'https://megap.kotocdn.site/dub/master.m3u8',
+                    },
+                    tracks: [
+                        {
+                            kind: 'captions',
+                            label: 'English (AI)',
+                            file: 'https://cc.lostproject.club/english-ai.vtt',
+                            default: true,
+                        },
+                        {
+                            kind: 'captions',
+                            label: 'English',
+                            file: 'https://cc.lostproject.club/eng-2.vtt',
+                        },
+                        {
+                            kind: 'captions',
+                            label: 'English 2',
+                            file: 'https://cc.lostproject.club/eng-3.vtt',
+                        },
+                    ],
+                });
+            }
+            if (url.hostname === 'cc.lostproject.club') {
+                const file = url.pathname.split('/').pop() ?? '';
+                const cues: Record<string, string> = {
+                    'english-ai.vtt':
+                        'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\na line\n',
+                    'eng-2.vtt':
+                        'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\na title\n',
+                    'eng-3.vtt':
+                        'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nline one\n\n00:00:03.000 --> 00:00:04.000\nline two\n',
+                };
+                return response(cues[file] ?? 'WEBVTT\n');
+            }
+            throw new Error(`Unexpected request: ${url}`);
+        }) as unknown as typeof fetch;
+
+        const streams = await anikotoProvider.getStreams(
+            anime,
+            { id: '1', number: 1 },
+            ['dub'],
+        );
+
+        expect(streams.dub).toEqual([
+            {
+                url: 'https://megap.kotocdn.site/dub/master.m3u8',
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: 'https://cc.lostproject.club/eng-3.vtt',
+            },
+        ]);
+    });
+
+    test('keeps an AI-labeled captions track when it is the only one', async () => {
+        storedMediaId = '6351';
+        globalThis.fetch = mock(async (input: string | URL | Request) => {
+            const url = new URL(
+                input instanceof Request ? input.url : input.toString(),
+            );
+            if (
+                url.hostname === 'anikotoapi.site' &&
+                url.pathname === '/series/6351'
+            ) {
+                return response(seriesPayload());
+            }
+            if (
+                url.hostname === 'megaplay.buzz' &&
+                url.pathname.startsWith('/stream/s-2/')
+            ) {
+                return response(
+                    `<title>File 13464 - MegaPlay</title>`,
+                );
+            }
+            if (
+                url.hostname === 'megaplay.buzz' &&
+                url.pathname === '/stream/getSources'
+            ) {
+                return response({
+                    sources: {
+                        file: 'https://megap.kotocdn.site/dub/master.m3u8',
+                    },
+                    tracks: [
+                        {
+                            kind: 'captions',
+                            label: 'English (AI)',
+                            file: 'https://cc.lostproject.club/english-ai.vtt',
+                            default: true,
+                        },
+                    ],
+                });
+            }
+            throw new Error(`Unexpected request: ${url}`);
+        }) as unknown as typeof fetch;
+
+        const streams = await anikotoProvider.getStreams(
+            anime,
+            { id: '1', number: 1 },
+            ['dub'],
+        );
+
+        expect(streams.dub).toEqual([
+            {
+                url: 'https://megap.kotocdn.site/dub/master.m3u8',
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: 'https://cc.lostproject.club/english-ai.vtt',
+            },
+        ]);
+    });
+
     test('finds a fractional special stored as a standalone provider release', async () => {
         storedMediaId = '5665';
         globalThis.fetch = mock(async (input: string | URL | Request) => {
