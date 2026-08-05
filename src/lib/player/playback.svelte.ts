@@ -6,6 +6,7 @@ import { AudioDelay } from './audio';
 import {
     alignSubtitleTracks,
     availableModes,
+    dubCaptionTracks,
     isHlsSource,
     orderStreams,
     parseWebVtt,
@@ -222,10 +223,16 @@ export class Playback {
         this.clearSubtitles();
         const request = new AbortController();
         this.subtitleRequest = request;
-        const { own, sub } = subtitleTracks(
-            this.sources,
-            this.activeSources[this.sourceIndex],
-        );
+        const active = this.activeSources[this.sourceIndex];
+        const { own, sub } = subtitleTracks(this.sources, active);
+        // Dub sources can ship different caption tracks (the fullest carries
+        // the dialogue, others may be title cards only). While watching the
+        // dub, load every track and prefer the fullest, so a missing or
+        // brittle track on the active source still gets dialogue captions.
+        const borrowed =
+            this.mode === 'dub'
+                ? dubCaptionTracks(this.sources).filter((url) => url !== own)
+                : [];
         const stale = () =>
             request.signal.aborted ||
             this.subtitleRequest !== request ||
@@ -233,7 +240,7 @@ export class Playback {
 
         // A source without any caption track plays without subtitles; only a
         // track that exists but cannot be loaded is a source failure.
-        if (!own && !sub) {
+        if (!own && !sub && !borrowed.length) {
             return;
         }
 
@@ -241,8 +248,15 @@ export class Playback {
             const ownCues = own
                 ? await this.fetchSubtitleCues(own, request.signal)
                 : null;
+            const borrowedCues = (
+                await Promise.all(
+                    borrowed.map((url) =>
+                        this.fetchSubtitleCues(url, request.signal),
+                    ),
+                )
+            ).filter((cues): cues is SubtitleCue[] => cues !== null);
             const subCues =
-                sub && sub !== own
+                sub && sub !== own && !borrowed.includes(sub)
                     ? await this.fetchSubtitleCues(sub, request.signal)
                     : null;
 
@@ -250,23 +264,31 @@ export class Playback {
                 return;
             }
 
-            // Dub and sub versions of an episode are separate encodes whose
-            // audio can sit offset from the shared video timeline. The dub's
-            // own captions are anchored to the heard dub audio, so when the
-            // dub track exists, shift the sub cues onto its timeline to keep
-            // merged or sub-only subtitles in sync.
+            // Prefer the fullest dub track, keeping the active stream's own
+            // on ties. Dub and sub versions of an episode are separate
+            // encodes whose audio can sit offset from the shared video
+            // timeline; the chosen dub track is anchored to the heard dub
+            // audio, so shift the sub cues onto its timeline to keep merged
+            // or sub-only captions in sync.
+            let dubCues = ownCues;
+            for (const cues of borrowedCues) {
+                if (!dubCues || cues.length > dubCues.length) {
+                    dubCues = cues;
+                }
+            }
+
             const alignedSub =
-                ownCues && subCues
-                    ? alignSubtitleTracks(ownCues, subCues)
+                dubCues && subCues
+                    ? alignSubtitleTracks(dubCues, subCues)
                     : subCues;
 
             // Show the track(s) the subtitle preference asks for: the merge
-            // keeps both with the active stream's own (dub) track preferred,
-            // while 'dub' and 'sub' show a single track and fall back to the
-            // other when theirs is missing.
+            // keeps both with the dub track preferred, while 'dub' and 'sub'
+            // show a single track and fall back to the other when theirs is
+            // missing.
             const chosen = subtitlesFor(
                 this.subtitleMode,
-                ownCues,
+                dubCues,
                 alignedSub,
             );
             if (chosen) {

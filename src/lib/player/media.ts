@@ -69,6 +69,21 @@ export function subtitleTracks(
     };
 }
 
+/** The distinct caption tracks shipped by every dub source. Dub sources can
+ * carry different tracks (the fullest one has the dialogue, others may be
+ * title cards only or auto-translated), so the player borrows the fullest
+ * one when the active source's own track is missing or brittle. */
+export function dubCaptionTracks(sources: Sources) {
+    const urls: string[] = [];
+    for (const stream of sources.dub ?? []) {
+        const url = stream.subtitleUrl;
+        if (url && !urls.includes(url)) {
+            urls.push(url);
+        }
+    }
+    return urls;
+}
+
 // Provider dub tracks and sub tracks overlap: the same dialogue often appears
 // in both, at roughly the same time but with different wording (dubs add
 // speaker labels, SDH sound effects, and their own translations). When both

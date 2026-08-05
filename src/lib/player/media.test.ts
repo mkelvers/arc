@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     alignSubtitleTracks,
     audioLabel,
+    dubCaptionTracks,
     formatTime,
     hasStreams,
     isHd,
@@ -119,6 +120,41 @@ Cheers!
             own: null,
             sub: null,
         });
+    });
+
+    test('lists every dub caption track once for borrowing', () => {
+        const dub: Stream[] = [
+            {
+                url: '/dub-1',
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: 'https://media.example/eng-3.vtt',
+            },
+            {
+                url: '/dub-2',
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: 'https://media.example/eng-0.vtt',
+            },
+            {
+                url: '/dub-3',
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: null,
+            },
+            {
+                url: '/dub-4',
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: 'https://media.example/eng-3.vtt',
+            },
+        ];
+
+        expect(dubCaptionTracks({ dub })).toEqual([
+            'https://media.example/eng-3.vtt',
+            'https://media.example/eng-0.vtt',
+        ]);
+        expect(dubCaptionTracks({ sub: dub })).toEqual([]);
     });
 
     test('classifies lines that say the same thing', () => {
