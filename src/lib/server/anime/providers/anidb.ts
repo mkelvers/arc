@@ -18,7 +18,6 @@ import type {
     PlaybackProvider,
     ProviderEpisode,
     ProviderStream,
-    ProviderStreams,
 } from './types';
 
 const baseUrl = 'https://anidb.app';

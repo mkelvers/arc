@@ -1,5 +1,6 @@
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { fullestCaption } from './captions';
 import { matchProviderStreamEpisode } from './match';
 import type {
     PlaybackProvider,
@@ -33,6 +34,21 @@ async function requestUrl(url: URL) {
     }
 
     return (await response.json()) as unknown;
+}
+
+async function requestText(url: string) {
+    const response = await fetch(url, {
+        headers: {
+            Accept: 'text/vtt',
+            Referer: `${baseUrl}/`,
+            'User-Agent': userAgent,
+        },
+        signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) {
+        throw new Error(`Senshi returned ${response.status} for captions`);
+    }
+    return response.text();
 }
 
 function malId(anime: Parameters<PlaybackProvider['getEpisodes']>[0]) {
@@ -127,9 +143,9 @@ function subtitleManifest(item: Record<string, unknown>) {
         : null;
 }
 
-function subtitleTrack(value: unknown) {
+function subtitleTracks(value: unknown) {
     if (!Array.isArray(value)) {
-        return null;
+        return [];
     }
 
     const tracks = value.flatMap((item) => {
@@ -160,18 +176,13 @@ function subtitleTrack(value: unknown) {
             },
         ];
     });
-    const dialogue = tracks.filter(
+    const english = tracks.filter(({ label }) => /\b(?:eng|english)\b/.test(label));
+    const dialogue = english.filter(
         ({ label }) => !/forced|sign|song/.test(label),
     );
-
-    return (
-        dialogue.find(({ preferred }) => preferred) ??
-        dialogue.find(({ label }) => /eng|english/.test(label)) ??
-        tracks.find(({ preferred }) => preferred) ??
-        tracks.find(({ label }) => /eng|english/.test(label)) ??
-        tracks[0] ??
-        null
-    )?.url;
+    return (dialogue.length ? dialogue : english).map(
+        ({ url, preferred }) => ({ url, preferred }),
+    );
 }
 
 async function senshiSubtitle(item: Record<string, unknown>) {
@@ -181,7 +192,10 @@ async function senshiSubtitle(item: Record<string, unknown>) {
     }
 
     try {
-        return subtitleTrack(await requestUrl(manifest));
+        return fullestCaption(
+            subtitleTracks(await requestUrl(manifest)),
+            requestText,
+        );
     } catch {
         return null;
     }

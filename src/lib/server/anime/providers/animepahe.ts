@@ -18,7 +18,6 @@ import type {
     ProviderAnime,
     ProviderEpisode,
     ProviderStream,
-    ProviderStreams,
 } from './types';
 
 const baseUrl = 'https://animepahe.pw';

@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
 import {
     providerMediaId,
@@ -17,7 +18,6 @@ import type {
     ProviderAnime,
     ProviderEpisode,
     ProviderStream,
-    ProviderStreams,
 } from './types';
 
 const baseUrl = 'https://anipub.xyz';
@@ -263,19 +263,40 @@ async function resolveStream(id: string, mode: AudioMode) {
         throw new Error('AniPub returned an unsupported stream URL');
     }
 
-    const subtitleUrl =
-        Array.isArray(payload?.tracks)
-            ? payload.tracks
-                  .flatMap((item) => {
-                      const track = record(item);
-                      return typeof track?.file === 'string' &&
-                          String(track.kind).toLowerCase() ===
-                              'captions'
-                          ? [track.file]
-                          : [];
-                  })
-                  .at(0) ?? null
-            : null;
+    const captions = Array.isArray(payload?.tracks)
+        ? payload.tracks.flatMap((item) => {
+              const track = record(item);
+              const file = track?.file;
+              const label =
+                  typeof track?.label === 'string'
+                      ? track.label.toLowerCase()
+                      : '';
+              if (
+                  typeof file !== 'string' ||
+                  String(track?.kind).toLowerCase() !== 'captions' ||
+                  !/\b(?:eng|english)\b/.test(label)
+              ) {
+                  return [];
+              }
+
+              try {
+                  const url = new URL(file);
+                  return url.protocol === 'https:'
+                      ? [
+                            {
+                                url: url.toString(),
+                                preferred: track?.default === true,
+                            },
+                        ]
+                      : [];
+              } catch {
+                  return [];
+              }
+          })
+        : [];
+    const subtitleUrl = await fullestCaption(captions, (subtitle) =>
+        requestText(new URL(subtitle), `${megaplayUrl}/`),
+    );
 
     return {
         url: url.toString(),

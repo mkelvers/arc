@@ -283,7 +283,7 @@ describe('AniKoto provider', () => {
         });
     });
 
-    test('prefers the fullest non-AI dub caption track', async () => {
+    test('prefers the fullest dub caption track', async () => {
         storedMediaId = '6351';
         globalThis.fetch = mock(async (input: string | URL | Request) => {
             const url = new URL(

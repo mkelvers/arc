@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { positiveInteger, record } from '$lib/utils';
+import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
 import {
     providerMediaId,
@@ -22,7 +23,6 @@ import type {
     ProviderAnime,
     ProviderEpisode,
     ProviderStream,
-    ProviderStreams,
 } from './types';
 
 const baseUrl = 'https://anikototv.to';
@@ -473,7 +473,7 @@ function englishCaptionTracks(payload: Record<string, unknown>) {
         return [];
     }
 
-    const candidates: { url: URL; label: string }[] = [];
+    const candidates: { url: string; preferred: boolean }[] = [];
     for (const value of payload.tracks) {
         const track = record(value);
         const kind =
@@ -486,52 +486,26 @@ function englishCaptionTracks(payload: Record<string, unknown>) {
 
         const url = supportedMediaUrl(track?.file);
         if (url) {
-            candidates.push({ url, label });
+            candidates.push({
+                url: url.toString(),
+                preferred: track?.default === true,
+            });
         }
     }
 
     return candidates;
 }
 
-/** Pick the caption track that carries the dub's dialogue. Dubs often ship
- * an auto-translated "English (AI)" track ahead of the real dialogue track,
- * and the label alone does not say which other track is dialogue ("English"
- * can be title cards only). Prefer a non-AI English track, and among several
- * the fullest one. */
+/** Pick the English track with the most cues. A plain "English" label can be
+ * signs-only, while an AI-labelled track can carry the only full dialogue. */
 async function englishSubtitle(payload: Record<string, unknown>) {
     const candidates = englishCaptionTracks(payload);
-    if (!candidates.length) {
-        return null;
-    }
-
-    const dialogue = candidates.filter(({ label }) => !/\bai\b/.test(label));
-    const preferred = dialogue.length ? dialogue : candidates;
-    if (preferred.length === 1) {
-        return preferred[0].url.toString();
-    }
-
-    // Count cues from every candidate and keep the fullest track; a failed
-    // fetch degrades to the first preferred track.
-    const fullest = await Promise.all(
-        preferred.map(async ({ url }) => {
-            try {
-                const text = await requestText(url, {
-                    accept: 'text/vtt',
-                    referer: `${megaplayUrl}/`,
-                });
-                return { url, cues: (text.match(/-->/g) ?? []).length };
-            } catch {
-                return { url, cues: -1 };
-            }
+    return fullestCaption(candidates, (url) =>
+        requestText(new URL(url), {
+            accept: 'text/vtt',
+            referer: `${megaplayUrl}/`,
         }),
-    ).then((results) =>
-        results.reduce(
-            (best, next) => (next.cues > best.cues ? next : best),
-            { url: null as URL | null, cues: -1 },
-        ),
     );
-
-    return (fullest.url ?? preferred[0].url).toString();
 }
 
 async function resolveStream(embedValue: string, mode: 'sub' | 'dub') {

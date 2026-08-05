@@ -55,7 +55,10 @@ export const GET: RequestHandler = async ({ request, url, fetch }) => {
             if (controller.signal.aborted) {
                 error(504, 'Episode stream timed out');
             }
-            throw cause;
+            console.warn(
+                `Episode stream request failed for ${target.hostname}: ${cause instanceof Error ? cause.message : String(cause)}`,
+            );
+            error(502, 'Episode stream failed');
         } finally {
             clearTimeout(timeout);
         }
