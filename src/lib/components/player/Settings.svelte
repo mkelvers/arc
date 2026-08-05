@@ -5,6 +5,8 @@
         formatTime,
         isHd,
         type SettingsView,
+        type SubtitleMode,
+        type SubtitleSize,
     } from '$lib/player/media';
     import type {
         SkipKind,
@@ -30,6 +32,12 @@
         skipDraft: SkipTimesDraft;
         skipError: string | null;
         skipSaving: boolean;
+        subtitleBackground: boolean;
+        subtitleMode: SubtitleMode;
+        subtitleSize: SubtitleSize;
+        onsubtitlebackground: (enabled: boolean) => void;
+        onsubtitlemode: (mode: SubtitleMode) => void;
+        onsubtitlesize: (size: SubtitleSize) => void;
         view?: SettingsView;
     }
 
@@ -50,11 +58,36 @@
         skipDraft,
         skipError,
         skipSaving,
+        subtitleBackground,
+        subtitleMode,
+        subtitleSize,
+        onsubtitlebackground,
+        onsubtitlemode,
+        onsubtitlesize,
         view = $bindable('main'),
     }: Props = $props();
 
     const skipKinds: SkipKind[] = ['opening', 'ending'];
     const skipEdges = ['start', 'end'] as const;
+    const subtitleModes: SubtitleMode[] = ['merge', 'dub', 'sub'];
+    const subtitleSizes: SubtitleSize[] = [
+        'small',
+        'normal',
+        'large',
+        'extra-large',
+    ];
+
+    const subtitleModeLabels: Record<SubtitleMode, string> = {
+        merge: 'Merge',
+        dub: 'Dub',
+        sub: 'Sub',
+    };
+    const subtitleSizeLabels: Record<SubtitleSize, string> = {
+        small: 'Small',
+        normal: 'Normal',
+        large: 'Large',
+        'extra-large': 'Extra Large',
+    };
 
     function skipLabel(kind: SkipKind) {
         return kind === 'opening' ? 'Opening' : 'Ending';
@@ -144,6 +177,19 @@
             </span>
         </button>
 
+        <button
+            type="button"
+            role="menuitem"
+            class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+            onclick={() => (view = 'subtitles')}
+        >
+            <span>Subtitles/CC</span>
+            <span class="flex items-center gap-1 text-white/85">
+                {subtitleModeLabels[subtitleMode]}
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+            </span>
+        </button>
+
         {#if qualities.length > 1}
             <button
                 type="button"
@@ -180,23 +226,42 @@
                 : view === 'segment-ending'
                   ? 'ending'
                   : null}
+        {@const subtitleOption =
+            view === 'subtitle-language'
+                ? 'Language'
+                : view === 'subtitle-size'
+                  ? 'Size'
+                  : view === 'subtitle-background'
+                    ? 'Background'
+                    : null}
         <button
             type="button"
             role="menuitem"
             aria-label={editingKind
                 ? 'Back to segments'
-                : 'Back to playback settings'}
+                : subtitleOption
+                  ? 'Back to Subtitles/CC'
+                  : 'Back to playback settings'}
             class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() => (view = editingKind ? 'segments' : 'main')}
+            onclick={() =>
+                (view = editingKind
+                    ? 'segments'
+                    : subtitleOption
+                      ? 'subtitles'
+                      : 'main')}
         >
             <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
             {view === 'quality'
                 ? 'Quality'
                 : view === 'audio'
                   ? 'Audio'
-                  : editingKind
-                    ? skipLabel(editingKind)
-                    : 'Segments'}
+                  : view === 'subtitles'
+                    ? 'Subtitles/CC'
+                    : editingKind
+                      ? skipLabel(editingKind)
+                      : subtitleOption
+                        ? subtitleOption
+                        : 'Segments'}
         </button>
 
         {#if view === 'quality'}
@@ -239,6 +304,89 @@
                 >
                     {@render radio(mode === option)}
                     {audioLabel(option)}
+                </button>
+            {/each}
+        {:else if view === 'subtitles'}
+            <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                onclick={() => (view = 'subtitle-language')}
+            >
+                <span>Language</span>
+                <span class="flex items-center gap-1 text-white/85">
+                    {subtitleModeLabels[subtitleMode]}
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                </span>
+            </button>
+
+            <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                onclick={() => (view = 'subtitle-size')}
+            >
+                <span>Size</span>
+                <span class="flex items-center gap-1 text-white/85">
+                    {subtitleSizeLabels[subtitleSize]}
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                </span>
+            </button>
+
+            <button
+                type="button"
+                role="menuitem"
+                class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                onclick={() => (view = 'subtitle-background')}
+            >
+                <span>Background</span>
+                <span class="flex items-center gap-1 text-white/85">
+                    <span class="capitalize">
+                        {subtitleBackground ? 'On' : 'Off'}
+                    </span>
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                </span>
+            </button>
+        {:else if view === 'subtitle-language'}
+            {#each subtitleModes as option}
+                <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={subtitleMode === option}
+                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    onclick={() => onsubtitlemode(option)}
+                >
+                    {@render radio(subtitleMode === option)}
+                    {subtitleModeLabels[option]}
+                </button>
+            {/each}
+        {:else if view === 'subtitle-size'}
+            {#each subtitleSizes as option}
+                <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={subtitleSize === option}
+                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    onclick={() => onsubtitlesize(option)}
+                >
+                    {@render radio(subtitleSize === option)}
+                    {subtitleSizeLabels[option]}
+                </button>
+            {/each}
+        {:else if view === 'subtitle-background'}
+            {#each ['on', 'off'] as option}
+                <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={
+                        subtitleBackground === (option === 'on')
+                    }
+                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    onclick={() =>
+                        onsubtitlebackground(option === 'on')}
+                >
+                    {@render radio(subtitleBackground === (option === 'on'))}
+                    <span class="capitalize">{option}</span>
                 </button>
             {/each}
         {:else if view === 'segments'}

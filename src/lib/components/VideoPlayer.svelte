@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Player } from '$lib/player/controller.svelte';
-    import type { Sources } from '$lib/player/media';
+    import type { Sources, SubtitleSize } from '$lib/player/media';
+    import { cn } from '$lib/utils';
     import { ProgressSchedule } from '$lib/player/progress';
     import {
         activeSkip as findActiveSkip,
@@ -81,6 +82,13 @@
     let skipDraft = $state(untrack(() => skipTimesDraft(skipTimes)));
     let skipSaving = $state(false);
     let skipError = $state<string | null>(null);
+
+    const subtitleSizeClasses: Record<SubtitleSize, string> = {
+        small: 'text-sm sm:text-2xl',
+        normal: 'text-lg sm:text-4xl',
+        large: 'text-xl sm:text-5xl',
+        'extra-large': 'text-2xl sm:text-6xl',
+    };
 
     const visibleSkip = $derived(
         findActiveSkip(currentSkipTimes, media.currentTime),
@@ -369,10 +377,17 @@
     {#if media.subtitles.length}
         <div
             aria-live="off"
-            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center text-lg leading-snug font-semibold text-white sm:text-4xl"
+            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center leading-snug font-semibold text-white {subtitleSizeClasses[media.subtitleSize]}"
         >
             {#each media.subtitles as subtitle}
-                <span class="whitespace-pre-line bg-black/80 px-2 py-0.5">
+                <span
+                    class={cn(
+                        'whitespace-pre-line px-2 py-0.5',
+                        media.subtitleBackground
+                            ? 'bg-black/80'
+                            : '[text-shadow:0_1px_2px_rgb(0_0_0/0.9),0_0_8px_rgb(0_0_0/0.6)]',
+                    )}
+                >
                     {subtitle}
                 </span>
             {/each}
@@ -581,6 +596,15 @@
                             {skipDraft}
                             {skipError}
                             {skipSaving}
+                            subtitleBackground={media.subtitleBackground}
+                            subtitleMode={media.subtitleMode}
+                            subtitleSize={media.subtitleSize}
+                            onsubtitlebackground={(enabled) =>
+                                media.switchSubtitleBackground(enabled)}
+                            onsubtitlemode={(mode) =>
+                                media.switchSubtitleMode(mode)}
+                            onsubtitlesize={(size) =>
+                                media.switchSubtitleSize(size)}
                         />
                     {/if}
                 </div>
