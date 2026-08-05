@@ -119,6 +119,76 @@ function overlaps(left: SubtitleCue, right: SubtitleCue) {
     return left.start < right.end && right.start < left.end;
 }
 
+// Dub and sub versions of an episode are separate encodes whose audio can
+// be heard offset from the shared video timeline (dubs usually run early).
+// The dub's own captions are anchored to that dub timeline; the sub track is
+// not. When enough lines appear in both, shift the sub cues onto the dub
+// timeline so merged or sub-only captions stay in sync with the heard audio.
+const subtitleCalibrationWindow = 10;
+const minimumCalibrationMatches = 3;
+
+/** The median offset (in seconds) of the lines the alternate track shares
+ * with the preferred track, or null when too few lines match to trust it.
+ * Positive means the alternate runs early relative to the preferred: adding
+ * the offset moves its cues onto the preferred timeline. */
+export function subtitleTrackOffset(
+    preferred: SubtitleCue[],
+    alternate: SubtitleCue[],
+) {
+    const deltas: number[] = [];
+    let from = 0;
+
+    for (const cue of preferred) {
+        while (
+            from < alternate.length &&
+            alternate[from].end < cue.start - subtitleCalibrationWindow
+        ) {
+            from++;
+        }
+
+        for (let index = from; index < alternate.length; index++) {
+            const other = alternate[index];
+            if (other.start > cue.start + subtitleCalibrationWindow) {
+                break;
+            }
+            if (
+                sameLine(cue.text, other.text) &&
+                Math.abs(cue.start - other.start) <=
+                    subtitleCalibrationWindow
+            ) {
+                deltas.push(cue.start - other.start);
+                break;
+            }
+        }
+    }
+
+    if (deltas.length < minimumCalibrationMatches) {
+        return null;
+    }
+
+    deltas.sort((left, right) => left - right);
+    return deltas[Math.floor(deltas.length / 2)];
+}
+
+/** Shift the alternate (sub) track onto the preferred (dub) track's
+ * timeline, or return it unchanged when the tracks already line up or share
+ * too few lines to calibrate. */
+export function alignSubtitleTracks(
+    preferred: SubtitleCue[],
+    alternate: SubtitleCue[],
+) {
+    const offset = subtitleTrackOffset(preferred, alternate);
+    if (!offset) {
+        return alternate;
+    }
+
+    return alternate.map((cue) => ({
+        start: cue.start + offset,
+        end: cue.end + offset,
+        text: cue.text,
+    }));
+}
+
 export function mergeSubtitleTracks(
     preferred: SubtitleCue[],
     alternate: SubtitleCue[],

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    alignSubtitleTracks,
     audioLabel,
     formatTime,
     hasStreams,
@@ -11,6 +12,7 @@ import {
     qualityLabel,
     sameLine,
     mergeSubtitleTracks,
+    subtitleTrackOffset,
     subtitlesAt,
     subtitleTracks,
     subtitlesFor,
@@ -234,5 +236,67 @@ Cheers!
             'Boy: How?',
             'Standalone',
         ]);
+    });
+
+    test('finds no offset when tracks already align', () => {
+        const dub = [0, 20, 40, 60, 80].map((start) => ({
+            start,
+            end: start + 4,
+            text: `Line ${start}`,
+        }));
+        const sub = dub.map((cue) => ({ ...cue }));
+
+        expect(subtitleTrackOffset(dub, sub)).toBe(0);
+        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
+    });
+
+    test('shifts sub cues onto the dub timeline', () => {
+        const dub = [0, 20, 40, 60, 80].map((start) => ({
+            start,
+            end: start + 4,
+            text: `Line ${start}`,
+        }));
+        const original = dub.map((cue) => ({ ...cue }));
+        const shifted = dub.map((cue) => ({
+            ...cue,
+            start: cue.start + 2.5,
+            end: cue.end + 2.5,
+        }));
+
+        expect(subtitleTrackOffset(dub, shifted)).toBe(-2.5);
+        expect(alignSubtitleTracks(dub, shifted)).toEqual(original);
+    });
+
+    test('refuses to calibrate from too few shared lines', () => {
+        const dub = [
+            { start: 0, end: 4, text: 'One' },
+            { start: 20, end: 24, text: 'Two' },
+        ];
+        const sub = [
+            { start: 2, end: 6, text: 'One' },
+            { start: 22, end: 26, text: 'Two' },
+        ];
+
+        expect(subtitleTrackOffset(dub, sub)).toBeNull();
+        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
+    });
+
+    test('ignores same-text lines that are far apart in time', () => {
+        // A title card like "Itadori" can appear in both tracks at very
+        // different times; the calibration window must not treat those as
+        // shared dialogue and corrupt the offset.
+        const dub = [0, 20, 40].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'Itadori',
+        }));
+        const sub = [100, 120, 140].map((start) => ({
+            start,
+            end: start + 4,
+            text: 'Itadori',
+        }));
+
+        expect(subtitleTrackOffset(dub, sub)).toBeNull();
+        expect(alignSubtitleTracks(dub, sub)).toBe(sub);
     });
 });
