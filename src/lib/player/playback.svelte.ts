@@ -4,6 +4,7 @@ import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { AudioDelay } from './audio';
 import {
+    alignSubtitleTracks,
     availableModes,
     isHlsSource,
     orderStreams,
@@ -249,6 +250,16 @@ export class Playback {
                 return;
             }
 
+            // Dub and sub versions of an episode are separate encodes whose
+            // audio can sit offset from the shared video timeline. The dub's
+            // own captions are anchored to the heard dub audio, so when the
+            // dub track exists, shift the sub cues onto its timeline to keep
+            // merged or sub-only subtitles in sync.
+            const alignedSub =
+                ownCues && subCues
+                    ? alignSubtitleTracks(ownCues, subCues)
+                    : subCues;
+
             // Show the track(s) the subtitle preference asks for: the merge
             // keeps both with the active stream's own (dub) track preferred,
             // while 'dub' and 'sub' show a single track and fall back to the
@@ -256,7 +267,7 @@ export class Playback {
             const chosen = subtitlesFor(
                 this.subtitleMode,
                 ownCues,
-                subCues,
+                alignedSub,
             );
             if (chosen) {
                 this.subtitleCues = chosen;
