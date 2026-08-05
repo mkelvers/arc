@@ -516,7 +516,7 @@ async function resolveStream(embedValue: string, mode: 'sub' | 'dub') {
         url: streamUrl.toString(),
         quality: null,
         audioDelay: 0,
-        subtitleUrl: mode === 'sub' ? englishSubtitle(payload) : null,
+        subtitleUrl: englishSubtitle(payload),
     } satisfies ProviderStream;
 }
 

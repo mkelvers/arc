@@ -234,7 +234,7 @@ async function getStreams(
             url,
             quality: null,
             audioDelay: 0,
-            subtitleUrl: mode === 'sub' ? await senshiSubtitle(item) : null,
+            subtitleUrl: await senshiSubtitle(item),
         };
         streams[mode] = [...(streams[mode] ?? []), stream];
     }

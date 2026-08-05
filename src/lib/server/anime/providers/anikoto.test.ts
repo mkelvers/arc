@@ -156,7 +156,7 @@ describe('AniKoto provider', () => {
         ]);
     });
 
-    test('resolves independent sub and dub HLS sources with captions on sub', async () => {
+    test('resolves independent sub and dub HLS sources with per-mode captions', async () => {
         storedMediaId = '6351';
         globalThis.fetch = mock(async (input: string | URL | Request) => {
             const url = new URL(
@@ -219,7 +219,7 @@ describe('AniKoto provider', () => {
                     url: 'https://megap.kotocdn.site/dub/master.m3u8',
                     quality: null,
                     audioDelay: 0,
-                    subtitleUrl: null,
+                    subtitleUrl: 'https://cc.lostproject.club/dub.vtt',
                 },
             ],
         });
@@ -638,6 +638,18 @@ describe('AniKoto provider', () => {
                 });
                 expect(manifest.ok).toBe(true);
                 expect(await manifest.text()).toStartWith('#EXTM3U');
+
+                if (stream!.subtitleUrl) {
+                    const captions = await nativeFetch(stream!.subtitleUrl, {
+                        headers: {
+                            Referer: `${megaplayOrigin}/`,
+                            'User-Agent': liveUserAgent,
+                        },
+                        signal: AbortSignal.timeout(15_000),
+                    });
+                    expect(captions.ok).toBe(true);
+                    expect(await captions.text()).toStartWith('WEBVTT');
+                }
             }
         },
         60_000,

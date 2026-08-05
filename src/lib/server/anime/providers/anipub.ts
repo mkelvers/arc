@@ -264,7 +264,7 @@ async function resolveStream(id: string, mode: AudioMode) {
     }
 
     const subtitleUrl =
-        mode === 'sub' && Array.isArray(payload?.tracks)
+        Array.isArray(payload?.tracks)
             ? payload.tracks
                   .flatMap((item) => {
                       const track = record(item);
