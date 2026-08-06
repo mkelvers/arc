@@ -167,7 +167,10 @@ export function streamTarget(value: string | null) {
     }
 
     if (target.protocol !== 'https:' || !allowedHost(target.hostname)) {
-        throw new StreamTargetError('Unsupported stream host', 403);
+        throw new StreamTargetError(
+            `Unsupported stream host: ${target.hostname}`,
+            403,
+        );
     }
 
     return target;
@@ -238,17 +241,44 @@ export function streamTargetParameter(url: URL) {
     }
 }
 
-function rewrittenReference(reference: string, playlist: URL) {
+function rewrittenReference(
+    reference: string,
+    playlist: URL,
+    warnedHosts: Set<string>,
+) {
     if (reference.startsWith('data:')) {
         return reference;
     }
 
-    return proxiedStreamUrl(
-        streamTarget(new URL(reference, playlist).toString()),
-    );
+    let target: URL;
+    try {
+        target = new URL(reference, playlist);
+    } catch {
+        return reference;
+    }
+
+    try {
+        return proxiedStreamUrl(streamTarget(target.toString()));
+    } catch (cause) {
+        if (!(cause instanceof StreamTargetError)) {
+            throw cause;
+        }
+
+        // The proxy only serves allowlisted hosts. Keep the original
+        // reference so the browser can still fetch it directly, and
+        // surface the gap so a legitimate provider CDN can be allowed.
+        if (!warnedHosts.has(target.hostname)) {
+            warnedHosts.add(target.hostname);
+            console.warn(
+                `Stream proxy skipped unlisted host ${target.hostname} referenced by ${playlist.hostname}`,
+            );
+        }
+        return reference;
+    }
 }
 
 export function rewriteHlsPlaylist(value: string, playlist: URL) {
+    const warnedHosts = new Set<string>();
     return value
         .split(/\r?\n/)
         .map((line) => {
@@ -256,11 +286,11 @@ export function rewriteHlsPlaylist(value: string, playlist: URL) {
                 return line.replace(
                     /URI=(["'])(.*?)\1/g,
                     (_, quote: string, uri: string) =>
-                        `URI=${quote}${rewrittenReference(uri, playlist)}${quote}`,
+                        `URI=${quote}${rewrittenReference(uri, playlist, warnedHosts)}${quote}`,
                 );
             }
 
-            return rewrittenReference(line.trim(), playlist);
+            return rewrittenReference(line.trim(), playlist, warnedHosts);
         })
         .join('\n');
 }

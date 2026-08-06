@@ -30,6 +30,9 @@ describe('stream proxy', () => {
         expect(() =>
             streamTarget('https://127.0.0.1/private'),
         ).toThrow(StreamTargetError);
+        expect(() =>
+            streamTarget('https://media.example.net/show/master.m3u8'),
+        ).toThrow(/media\.example\.net/);
     });
 
     test('accepts rotated megap CDN hosts and maps their referer', () => {
@@ -83,6 +86,32 @@ describe('stream proxy', () => {
         );
         expect(streamTargetParameter(proxied)).toBe(
             'https://megap.kotocdn.site/show/720/index.m3u8',
+        );
+    });
+
+    test('keeps references to unlisted hosts unproxied', () => {
+        const playlist = new URL(
+            'https://megap.kotocdn.site/show/master.m3u8',
+        );
+        const result = rewriteHlsPlaylist(
+            [
+                '#EXTM3U',
+                '#EXT-X-KEY:METHOD=AES-128,URI="key.bin"',
+                'https://megap.kotocdn.site/show/720/index.m3u8',
+                'https://media.example.net/show/720/index.m3u8',
+            ].join('\n'),
+            playlist,
+        );
+
+        expect(result).toContain(
+            proxiedStreamUrl(
+                new URL(
+                    'https://megap.kotocdn.site/show/720/index.m3u8',
+                ),
+            ),
+        );
+        expect(result).toContain(
+            'https://media.example.net/show/720/index.m3u8',
         );
     });
 
