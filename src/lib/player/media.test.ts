@@ -14,7 +14,6 @@ import {
     isHlsSource,
     orderStreams,
     parseWebVtt,
-    preferredSubtitleKind,
     qualityLabel,
     sameSubtitleCues,
     subtitleOptionsFor,
@@ -198,21 +197,26 @@ Cheers!
         ).toEqual([{ url: '/anineko.vtt', source: alternative }]);
     });
 
-    test('uses honest English track labels and always offers Off', () => {
-        expect(subtitleOptionsFor('cc')).toEqual([
-            { mode: 'off', label: 'Off' },
+    test('offers every caption track an encode provides, None last', () => {
+        expect(subtitleOptionsFor([])).toEqual([
+            { mode: 'off', label: 'None' },
+        ]);
+        expect(subtitleOptionsFor(['cc'])).toEqual([
             { mode: 'dub', label: 'English CC' },
+            { mode: 'off', label: 'None' },
         ]);
-        expect(subtitleOptionsFor('translated')).toEqual([
-            { mode: 'off', label: 'Off' },
-            { mode: 'sub', label: 'English (Translated)' },
+        expect(subtitleOptionsFor(['translated'])).toEqual([
+            { mode: 'sub', label: 'Original' },
+            { mode: 'off', label: 'None' },
         ]);
-        expect(subtitleOptionsFor('limited')).toEqual([
-            { mode: 'off', label: 'Off' },
-            { mode: 'dub', label: 'English (Signs & Songs)' },
+        expect(subtitleOptionsFor(['limited'])).toEqual([
+            { mode: 'dub', label: 'Signs & Songs' },
+            { mode: 'off', label: 'None' },
         ]);
-        expect(subtitleOptionsFor(null)).toEqual([
-            { mode: 'off', label: 'Off' },
+        expect(subtitleOptionsFor(['cc', 'translated'])).toEqual([
+            { mode: 'dub', label: 'English CC' },
+            { mode: 'sub', label: 'Original' },
+            { mode: 'off', label: 'None' },
         ]);
     });
 
@@ -223,10 +227,6 @@ Cheers!
         expect(hasDialogueCoverage(8, 394)).toBe(false);
         expect(hasDialogueCoverage(30, 0)).toBe(false);
         expect(hasDialogueCoverage(300, 0)).toBe(true);
-        expect(preferredSubtitleKind('dub', 553, 394)).toBe('cc');
-        expect(preferredSubtitleKind('dub', 8, 394)).toBe('translated');
-        expect(preferredSubtitleKind('dub', 8, 0)).toBe('limited');
-        expect(preferredSubtitleKind('sub', 476, 0)).toBe('translated');
     });
 
     test('reads HLS variants and segment boundaries', () => {

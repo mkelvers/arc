@@ -13,7 +13,6 @@ import {
     isHlsSource,
     orderStreams,
     parseWebVtt,
-    preferredSubtitleKind,
     qualitiesFor,
     qualityLabel,
     sameSubtitleCues,
@@ -24,6 +23,7 @@ import {
     subtitlesAt,
     type Sources,
     type Stream,
+    type SubtitleBackground,
     type SubtitleCue,
     type SubtitleKind,
     type SubtitleMode,
@@ -53,9 +53,9 @@ export class Playback {
     hlsCurrentQuality = $state<string | null>(null);
     subtitleCues = $state<SubtitleCue[]>([]);
     subtitleMode = $state<SubtitleMode>('dub');
-    subtitleOptions = $state<SubtitleOption[]>(subtitleOptionsFor(null));
+    subtitleOptions = $state<SubtitleOption[]>(subtitleOptionsFor([]));
     subtitleSize = $state<SubtitleSize>('normal');
-    subtitleBackground = $state(true);
+    subtitleBackground = $state<SubtitleBackground>('black');
     sourceIndex = $state(0);
     error = $state(false);
     video!: HTMLVideoElement;
@@ -231,7 +231,7 @@ export class Playback {
         this.subtitleRequest = null;
         this.subtitleCues = [];
         this.loadedSubtitles = {};
-        this.subtitleOptions = subtitleOptionsFor(null);
+        this.subtitleOptions = subtitleOptionsFor([]);
     }
 
     private async fetchSubtitleCues(url: string, signal: AbortSignal) {
@@ -340,12 +340,19 @@ export class Playback {
         return null;
     }
 
-    private useSubtitles(kind: SubtitleKind, cues: SubtitleCue[]) {
-        const mode = kind === 'translated' ? 'sub' : 'dub';
-        this.loadedSubtitles = { [mode]: cues };
-        this.subtitleOptions = subtitleOptionsFor(kind);
-        this.subtitleMode = this.subtitlesEnabled ? mode : 'off';
-        this.subtitleCues = this.subtitlesEnabled ? cues : [];
+    /** The best caption track among the ones available, mirroring the old
+     * single-choice preference: dialogue CC, then translation, then signs. */
+    private defaultSubtitleKind(kinds: SubtitleKind[]) {
+        if (kinds.includes('cc')) {
+            return 'cc';
+        }
+        if (kinds.includes('translated')) {
+            return 'translated';
+        }
+        if (kinds.includes('limited')) {
+            return 'limited';
+        }
+        return null;
     }
 
     private offerAvailableSubtitles() {
@@ -353,13 +360,18 @@ export class Playback {
             hasSubtitleTrack(this.sources, this.mode, candidate),
         );
         const tracks = subtitleTracks(this.sources, this.mode, source);
-        const kind: SubtitleKind | null =
-            this.mode === 'dub' && tracks.own
-                ? 'limited'
-                : tracks.own || tracks.sub
-                  ? 'translated'
-                  : null;
-        this.subtitleOptions = subtitleOptionsFor(kind);
+        const kinds: SubtitleKind[] = [];
+        if (this.mode === 'dub') {
+            if (tracks.own) {
+                kinds.push('limited');
+            }
+            if (tracks.sub) {
+                kinds.push('translated');
+            }
+        } else if (tracks.own) {
+            kinds.push('translated');
+        }
+        this.subtitleOptions = subtitleOptionsFor(kinds);
         this.subtitleMode = 'off';
     }
 
@@ -396,26 +408,28 @@ export class Playback {
                 return;
             }
 
-            const preferred = preferredSubtitleKind(
-                this.mode,
-                ownCues?.length ?? 0,
-                subCues?.length ?? 0,
-            );
-            if ((preferred === 'cc' || preferred === 'limited') && ownCues) {
-                this.useSubtitles(preferred, ownCues);
-                return;
+            const kinds: SubtitleKind[] = [];
+
+            // The active encode's own track is dub CC (or signs) on a dub and
+            // the translated dialogue on a sub/raw encode.
+            if (ownCues) {
+                const kind =
+                    this.mode === 'dub'
+                        ? hasDialogueCoverage(
+                              ownCues.length,
+                              subCues?.length ?? 0,
+                          )
+                            ? 'cc'
+                            : 'limited'
+                        : 'translated';
+                this.loadedSubtitles[kind === 'translated' ? 'sub' : 'dub'] =
+                    ownCues;
+                kinds.push(kind);
             }
 
-            if (
-                preferred === 'translated' &&
-                this.mode !== 'dub' &&
-                ownCues
-            ) {
-                this.useSubtitles('translated', ownCues);
-                return;
-            }
-
-            if (preferred === 'translated' && sub && subCues) {
+            // Offer the provider's translated track as an alternative to
+            // native dub captions when it can be calibrated to this encode.
+            if (this.mode === 'dub' && sub && subCues) {
                 const offsets = await this.fallbackSubtitleOffsets(
                     sub,
                     active,
@@ -426,28 +440,31 @@ export class Playback {
                     return;
                 }
                 if (offsets?.length) {
-                    this.useSubtitles(
-                        'translated',
-                        alignSubtitleCues(subCues, offsets),
+                    this.loadedSubtitles.sub = alignSubtitleCues(
+                        subCues,
+                        offsets,
                     );
-                    return;
+                    if (!kinds.includes('translated')) {
+                        kinds.push('translated');
+                    }
                 }
             }
 
-            // If the fuller fallback cannot be calibrated, retain the active
-            // encode's own signs/forced track instead of showing nothing.
-            if (ownCues) {
-                this.useSubtitles(
-                    hasDialogueCoverage(ownCues.length, 0)
-                        ? 'cc'
-                        : 'limited',
-                    ownCues,
-                );
-                return;
+            this.subtitleOptions = subtitleOptionsFor(kinds);
+            const defaultKind = this.defaultSubtitleKind(kinds);
+            if (this.subtitlesEnabled && defaultKind) {
+                this.subtitleMode =
+                    defaultKind === 'translated' ? 'sub' : 'dub';
+                this.subtitleCues =
+                    this.loadedSubtitles[this.subtitleMode] ?? [];
+            } else {
+                this.subtitleMode = 'off';
+                this.subtitleCues = [];
             }
 
-            this.offerAvailableSubtitles();
-            console.warn('Subtitle track could not be loaded or aligned');
+            if (!kinds.length) {
+                console.warn('Subtitle track could not be loaded or aligned');
+            }
         } catch (cause) {
             if (stale()) {
                 return;
@@ -671,14 +688,14 @@ export class Playback {
         this.onActivity();
     }
 
-    switchSubtitleBackground(enabled: boolean) {
-        if (enabled === this.subtitleBackground) {
+    switchSubtitleBackground(background: SubtitleBackground) {
+        if (background === this.subtitleBackground) {
             this.onActivity();
             return;
         }
 
-        this.subtitleBackground = enabled;
-        preferences.save('subtitle-background', enabled);
+        this.subtitleBackground = background;
+        preferences.save('subtitle-background', background);
         this.onActivity();
     }
 
@@ -895,10 +912,10 @@ export class Playback {
                 this.subtitleMode = 'off';
             }
         }
-        if (saved.subtitleSize) {
+        if (saved.subtitleSize !== null) {
             this.subtitleSize = saved.subtitleSize;
         }
-        if (saved.subtitleBackground !== null) {
+        if (saved.subtitleBackground !== undefined) {
             this.subtitleBackground = saved.subtitleBackground;
         }
 

@@ -1,7 +1,6 @@
 <script lang="ts">
     import { Player } from '$lib/player/controller.svelte';
-    import type { Sources, SubtitleSize } from '$lib/player/media';
-    import { cn } from '$lib/utils';
+    import { subtitleSizes, type Sources } from '$lib/player/media';
     import { ProgressSchedule } from '$lib/player/progress';
     import {
         activeSkip as findActiveSkip,
@@ -82,13 +81,6 @@
     let skipDraft = $state(untrack(() => skipTimesDraft(skipTimes)));
     let skipSaving = $state(false);
     let skipError = $state<string | null>(null);
-
-    const subtitleSizeClasses: Record<SubtitleSize, string> = {
-        small: 'text-sm sm:text-2xl',
-        normal: 'text-lg sm:text-4xl',
-        large: 'text-xl sm:text-5xl',
-        'extra-large': 'text-2xl sm:text-6xl',
-    };
 
     const visibleSkip = $derived(
         findActiveSkip(currentSkipTimes, media.currentTime),
@@ -377,16 +369,17 @@
     {#if media.subtitles.length}
         <div
             aria-live="off"
-            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center leading-snug font-semibold text-white {subtitleSizeClasses[media.subtitleSize]}"
+            class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center leading-snug font-semibold text-white"
+            style={`font-size: ${subtitleSizes[media.subtitleSize].px}px`}
         >
             {#each media.subtitles as subtitle}
                 <span
-                    class={cn(
-                        'whitespace-pre-line px-2 py-0.5',
-                        media.subtitleBackground
-                            ? 'bg-black/80'
-                            : '[text-shadow:0_1px_2px_rgb(0_0_0/0.9),0_0_8px_rgb(0_0_0/0.6)]',
-                    )}
+                    class="whitespace-pre-line px-2 py-0.5"
+                    style={
+                        media.subtitleBackground === 'black'
+                            ? 'background-color: color-mix(in srgb, #000 80%, transparent)'
+                            : 'text-shadow:0 1px 2px rgb(0 0 0/0.9),0 0 8px rgb(0 0 0/0.6)'
+                    }
                 >
                     {subtitle}
                 </span>
@@ -600,8 +593,8 @@
                             subtitleMode={media.subtitleMode}
                             subtitleOptions={media.subtitleOptions}
                             subtitleSize={media.subtitleSize}
-                            onsubtitlebackground={(enabled) =>
-                                media.switchSubtitleBackground(enabled)}
+                            onsubtitlebackground={(background) =>
+                                media.switchSubtitleBackground(background)}
                             onsubtitlemode={(mode) =>
                                 media.switchSubtitleMode(mode)}
                             onsubtitlesize={(size) =>

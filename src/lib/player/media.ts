@@ -19,7 +19,6 @@ export type SettingsView =
     | 'main'
     | 'audio'
     | 'subtitles'
-    | 'subtitle-language'
     | 'subtitle-size'
     | 'subtitle-background'
     | 'quality'
@@ -30,12 +29,6 @@ export type SettingsView =
 /** Which audio script the English captions follow. */
 export type SubtitleMode = 'off' | 'dub' | 'sub';
 export type SubtitleKind = 'cc' | 'translated' | 'limited';
-
-export type SubtitleSize =
-    | 'small'
-    | 'normal'
-    | 'large'
-    | 'extra-large';
 
 export type Shortcut =
     | 'play'
@@ -132,26 +125,56 @@ export function subtitleReferenceTracks(
     });
 }
 
-/** One caption choice in the Subtitles/CC → Language menu. The label names
- * what the player shows for that mode. */
+/** One caption choice in the Subtitles/CC menu. The mode says which loaded
+ * cue set to display; the label names the track for the user. None is always
+ * offered last. */
 export interface SubtitleOption {
     mode: SubtitleMode;
     label: string;
 }
 
-export function subtitleOptionsFor(kind: SubtitleKind | null) {
-    const options: SubtitleOption[] = [{ mode: 'off', label: 'Off' }];
-    if (kind) {
+/** The subtitle size presets and the pixel size each renders at. */
+export const subtitleSizes = {
+    small: { label: 'Small', px: 24 },
+    normal: { label: 'Normal', px: 32 },
+    large: { label: 'Large', px: 40 },
+    'extra-large': { label: 'Extra Large', px: 48 },
+};
+
+export type SubtitleSize = keyof typeof subtitleSizes;
+
+/** Menu order for the size presets. */
+export const subtitleSizeOrder = [
+    'small',
+    'normal',
+    'large',
+    'extra-large',
+] as const satisfies readonly SubtitleSize[];
+
+/** True when the string names a subtitle size preset. */
+export function isSubtitleSize(value: string | null): value is SubtitleSize {
+    return value !== null && value in subtitleSizes;
+}
+
+/** Subtitle backdrop choices. Black renders as a soft 80% black box. */
+export type SubtitleBackground = 'none' | 'black';
+
+const subtitleLabels: Record<SubtitleKind, string> = {
+    cc: 'English CC',
+    translated: 'Original',
+    limited: 'Signs & Songs',
+};
+
+/** The caption choices for the tracks an encode actually provides. */
+export function subtitleOptionsFor(kinds: SubtitleKind[]) {
+    const options: SubtitleOption[] = [];
+    for (const kind of kinds) {
         options.push({
             mode: kind === 'translated' ? 'sub' : 'dub',
-            label:
-                kind === 'cc'
-                    ? 'English CC'
-                    : kind === 'translated'
-                      ? 'English (Translated)'
-                      : 'English (Signs & Songs)',
+            label: subtitleLabels[kind],
         });
     }
+    options.push({ mode: 'off', label: 'None' });
     return options;
 }
 
@@ -165,23 +188,6 @@ export function hasDialogueCoverage(dubCues: number, subCues: number) {
         dubCues >= minimumDialogueCues &&
         (subCues === 0 || dubCues / subCues >= 0.2)
     );
-}
-
-export function preferredSubtitleKind(
-    audioMode: AudioMode,
-    ownCues: number,
-    subCues: number,
-): SubtitleKind | null {
-    if (audioMode !== 'dub') {
-        return ownCues > 0 ? 'translated' : null;
-    }
-    if (hasDialogueCoverage(ownCues, subCues)) {
-        return 'cc';
-    }
-    if (subCues > 0) {
-        return 'translated';
-    }
-    return ownCues > 0 ? 'limited' : null;
 }
 
 export function shiftSubtitleCues(cues: SubtitleCue[], offset: number) {
