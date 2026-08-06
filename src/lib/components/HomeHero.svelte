@@ -103,7 +103,7 @@
                             />
                         </a>
 
-                        <p class="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/65 sm:text-sm 2xl:mt-8 2xl:text-sm">
+                        <p class="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm">
                             <span>{anime.format}</span>
                             {#if anime.audioLabel}
                                 <span aria-hidden="true">•</span>
@@ -128,7 +128,7 @@
                         </p>
 
                         {#if anime.description}
-                            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/70 sm:text-base 2xl:text-base 2xl:leading-7">
+                            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7">
                                 {anime.description}
                             </p>
                         {/if}
