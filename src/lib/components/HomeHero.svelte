@@ -128,7 +128,7 @@
                         </p>
 
                         {#if anime.description}
-                            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7">
+                            <p class="mt-4 max-w-4xl text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7">
                                 {anime.description}
                             </p>
                         {/if}
