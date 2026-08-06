@@ -99,11 +99,11 @@
                                 src={anime.logoUrl}
                                 alt={anime.title}
                                 style:height={`clamp(${5 * anime.logoSize / 100}rem, ${6.4 * anime.logoSize / 100}vw, ${8 * anime.logoSize / 100}rem)`}
-                                class="max-h-28 max-w-[75vw] object-contain object-left sm:max-w-md lg:max-w-xl 2xl:max-h-40 2xl:max-w-2xl"
+                                class="max-h-24 max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-h-36 2xl:max-w-2xl"
                             />
                         </a>
 
-                        <p class="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/78 sm:text-sm 2xl:mt-8 2xl:text-base">
+                        <p class="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm">
                             <span>{anime.format}</span>
                             {#if anime.audioLabel}
                                 <span aria-hidden="true">•</span>
@@ -128,7 +128,7 @@
                         </p>
 
                         {#if anime.description}
-                            <p class="mt-4 line-clamp-3 max-w-2xl text-sm leading-6 text-white/88 sm:text-base 2xl:max-w-3xl 2xl:text-lg 2xl:leading-7">
+                            <p class="mt-4 max-w-4xl text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7">
                                 {anime.description}
                             </p>
                         {/if}
@@ -136,10 +136,10 @@
                         <div class="pointer-events-auto mt-7 flex flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm">
                             <a
                                 href={anime.watchHref}
-                                class="inline-flex min-h-12 items-center gap-2.5 bg-accent px-5 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-14 2xl:px-7 2xl:text-base"
+                                class="inline-flex min-h-10 items-center gap-2 bg-accent px-4 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-12 2xl:px-5 2xl:text-sm"
                             >
                                 <PlayIcon
-                                    size="1.45rem"
+                                    size="1.2rem"
                                     weight="bold"
                                     aria-hidden="true"
                                 />
@@ -148,12 +148,12 @@
                             <Tooltip text="Add to Watchlist">
                                 <button
                                     type="button"
-                                    class="grid size-12 shrink-0 place-items-center border border-accent text-accent opacity-60 2xl:size-14"
+                                    class="grid size-10 shrink-0 place-items-center border border-accent text-accent opacity-60 2xl:size-12"
                                     aria-label="Add to watchlist (coming soon)"
                                     disabled
                                 >
                                     <BookmarkSimpleIcon
-                                        size="1.65rem"
+                                        size="1.35rem"
                                         weight="regular"
                                         aria-hidden="true"
                                     />
@@ -193,8 +193,8 @@
                                         class={cn(
                                             'h-2 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
                                             itemIndex === active
-                                                ? 'w-8 bg-white'
-                                                : 'w-3 bg-white/45',
+                                                ? 'w-6 bg-white'
+                                                : 'w-2 bg-white/45',
                                         )}
                                         aria-label={`Show ${item.title}`}
                                         aria-current={itemIndex === active
