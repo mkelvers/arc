@@ -99,7 +99,7 @@
                                 src={anime.logoUrl}
                                 alt={anime.title}
                                 style:height={`clamp(${5 * anime.logoSize / 100}rem, ${6.4 * anime.logoSize / 100}vw, ${8 * anime.logoSize / 100}rem)`}
-                                class="max-h-20 max-w-[60vw] object-contain object-left sm:max-w-sm lg:max-w-md 2xl:max-h-28 2xl:max-w-xl"
+                                class="max-h-24 max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-h-36 2xl:max-w-2xl"
                             />
                         </a>
 
@@ -128,7 +128,7 @@
                         </p>
 
                         {#if anime.description}
-                            <p class="mt-4 line-clamp-3 max-w-xl text-sm leading-6 text-white/70 sm:text-base 2xl:max-w-2xl 2xl:text-base 2xl:leading-7">
+                            <p class="mt-4 max-w-2xl text-sm leading-6 text-white/70 sm:text-base 2xl:text-base 2xl:leading-7">
                                 {anime.description}
                             </p>
                         {/if}
