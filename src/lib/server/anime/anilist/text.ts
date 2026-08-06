@@ -46,6 +46,9 @@ export function plainText(value: string | null | undefined) {
     return value
         .replace(/<br\s*\/?>/gi, ' ')
         .replace(/<[^>]+>/g, '')
+        // remove trailing Source or Note blocks like "(Source: ...)" or bare "Note: ..."
+        .replace(/\s*\(Source:[\s\S]*$/i, '')
+        .replace(/\s*Note:[\s\S]*$/i, '')
         .replace(/\s+/g, ' ')
         .trim();
 }
