@@ -10,14 +10,14 @@ import { simulcast } from './simulcast';
 import { tmdb } from './tmdb';
 
 export const anime = {
-    anilist,
-    allanime,
-    browse,
-    withAnimeCardPosters,
-    episodes,
-    franchise,
-    getHomeHero,
-    playback,
-    simulcast,
-    tmdb,
+  anilist,
+  allanime,
+  browse,
+  withAnimeCardPosters,
+  episodes,
+  franchise,
+  getHomeHero,
+  playback,
+  simulcast,
+  tmdb,
 };
