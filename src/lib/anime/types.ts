@@ -1,10 +1,10 @@
-import { Schema } from "effect";
+import { Schema } from 'effect';
 
-import type { AudioMode } from "./audio";
+import type { AudioMode } from './audio';
 
 const AnimeCardSchema = Schema.Struct({
   id: Schema.Int,
-  href: Schema.String.pipe(Schema.startsWith("/anime/")),
+  href: Schema.String.pipe(Schema.startsWith('/anime/')),
   watchHref: Schema.String,
   title: Schema.String,
   image: Schema.String,

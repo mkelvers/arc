@@ -10,47 +10,42 @@ import { createProviderFallback } from './fallback';
 import { senshiProvider } from './senshi';
 
 const defaultProviders = [
-    allanimeProvider,
-    anikotoProvider,
-    aninekoProvider,
-    senshiProvider,
+  allanimeProvider,
+  anikotoProvider,
+  aninekoProvider,
+  senshiProvider,
 ] as const;
 const availableProviders = [
-    ...defaultProviders,
-    anidbProvider,
-    anipubProvider,
-    animepaheProvider,
+  ...defaultProviders,
+  anidbProvider,
+  anipubProvider,
+  animepaheProvider,
 ] as const;
 const providers = new Map(
-    availableProviders.map((provider) => [
-        provider.name.toLowerCase(),
-        provider,
-    ]),
+  availableProviders.map((provider) => [provider.name.toLowerCase(), provider])
 );
 
 function providerOrder() {
-    const configured = env.PLAYBACK_PROVIDERS?.split(',')
-        .map((name) => name.trim().toLowerCase())
-        .filter(Boolean);
-    if (!configured?.length) {
-        return defaultProviders;
+  const configured = env.PLAYBACK_PROVIDERS?.split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter(Boolean);
+  if (!configured?.length) {
+    return defaultProviders;
+  }
+
+  const selected = configured.map((name) => {
+    const provider = providers.get(name);
+    if (!provider) {
+      throw new Error(
+        `Unknown playback provider "${name}". Available providers: ${[...providers.keys()].join(
+          ', '
+        )}`
+      );
     }
+    return provider;
+  });
 
-    const selected = configured.map((name) => {
-        const provider = providers.get(name);
-        if (!provider) {
-            throw new Error(
-                `Unknown playback provider "${name}". Available providers: ${[
-                    ...providers.keys(),
-                ].join(', ')}`,
-            );
-        }
-        return provider;
-    });
-
-    return selected.filter(
-        (provider, index) => selected.indexOf(provider) === index,
-    );
+  return selected.filter((provider, index) => selected.indexOf(provider) === index);
 }
 
 export const playback = createProviderFallback(providerOrder());

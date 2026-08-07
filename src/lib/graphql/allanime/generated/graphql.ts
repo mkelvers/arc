@@ -2,7 +2,9 @@
 /** Internal type. DO NOT USE DIRECTLY. */
 type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
-export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type Incremental<T> =
+  | T
+  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 export type SearchInput = {
   allowAdult?: boolean | null | undefined;
@@ -14,18 +16,18 @@ export type SearchInput = {
   year?: number | null | undefined;
 };
 
-export type VaildTranslationTypeEnumType =
-  | 'dub'
-  | 'raw'
-  | 'sub';
+export type VaildTranslationTypeEnumType = 'dub' | 'raw' | 'sub';
 
 export type AllAnimeSearchQueryVariables = Exact<{
   search?: SearchInput | null | undefined;
   translationType?: VaildTranslationTypeEnumType | null | undefined;
 }>;
 
-
-export type AllAnimeSearchQuery = { shows: { edges: Array<{ _id: string | null, malId: string | null, name: string | null }> | null } | null };
+export type AllAnimeSearchQuery = {
+  shows: {
+    edges: Array<{ _id: string | null; malId: string | null; name: string | null }> | null;
+  } | null;
+};
 
 export type AllAnimeAvailableEpisodesQueryVariables = Exact<{
   showId: string;
@@ -33,13 +35,24 @@ export type AllAnimeAvailableEpisodesQueryVariables = Exact<{
   end: number;
 }>;
 
+export type AllAnimeAvailableEpisodesQuery = {
+  show: { availableEpisodesDetail: unknown } | null;
+  episodeInfos: Array<{ episodeIdNum: number | string | null; notes: string | null }> | null;
+};
 
-export type AllAnimeAvailableEpisodesQuery = { show: { availableEpisodesDetail: unknown } | null, episodeInfos: Array<{ episodeIdNum: number | string | null, notes: string | null }> | null };
+export type AllAnimeWeeklyPopularQueryVariables = Exact<{ [key: string]: never }>;
 
-export type AllAnimeWeeklyPopularQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type AllAnimeWeeklyPopularQuery = { queryPopular: { recommendations: Array<{ anyCard: { aniListId: number | string | null, availableEpisodesDetail: unknown, siteRanks: { weekly: { position: number | null } | null } | null } | null }> | null } | null };
+export type AllAnimeWeeklyPopularQuery = {
+  queryPopular: {
+    recommendations: Array<{
+      anyCard: {
+        aniListId: number | string | null;
+        availableEpisodesDetail: unknown;
+        siteRanks: { weekly: { position: number | null } | null } | null;
+      } | null;
+    }> | null;
+  } | null;
+};
 
 export type AllAnimeSimulcastPageQueryVariables = Exact<{
   search?: SearchInput | null | undefined;
@@ -47,15 +60,28 @@ export type AllAnimeSimulcastPageQueryVariables = Exact<{
   limit: number;
 }>;
 
-
-export type AllAnimeSimulcastPageQuery = { shows: { edges: Array<{ _id: string | null, aniListId: number | string | null, name: string | null, englishName: string | null, description: string | null, thumbnail: string | null, averageScore: number | null, genres: Array<string> | null, season: unknown, availableEpisodesDetail: unknown }> | null } | null };
+export type AllAnimeSimulcastPageQuery = {
+  shows: {
+    edges: Array<{
+      _id: string | null;
+      aniListId: number | string | null;
+      name: string | null;
+      englishName: string | null;
+      description: string | null;
+      thumbnail: string | null;
+      averageScore: number | null;
+      genres: Array<string> | null;
+      season: unknown;
+      availableEpisodesDetail: unknown;
+    }> | null;
+  } | null;
+};
 
 export type AllAnimeEpisodeSourcesQueryVariables = Exact<{
   showId: string;
   translationType: VaildTranslationTypeEnumType;
   episodeString: string;
 }>;
-
 
 export type AllAnimeEpisodeSourcesQuery = { episode: { sourceUrls: unknown } | null };
 
@@ -105,7 +131,10 @@ export const AllAnimeAvailableEpisodesDocument = new TypedDocumentString(`
     notes
   }
 }
-    `) as unknown as TypedDocumentString<AllAnimeAvailableEpisodesQuery, AllAnimeAvailableEpisodesQueryVariables>;
+    `) as unknown as TypedDocumentString<
+  AllAnimeAvailableEpisodesQuery,
+  AllAnimeAvailableEpisodesQueryVariables
+>;
 export const AllAnimeWeeklyPopularDocument = new TypedDocumentString(`
     query AllAnimeWeeklyPopular {
   queryPopular(
@@ -130,7 +159,10 @@ export const AllAnimeWeeklyPopularDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<AllAnimeWeeklyPopularQuery, AllAnimeWeeklyPopularQueryVariables>;
+    `) as unknown as TypedDocumentString<
+  AllAnimeWeeklyPopularQuery,
+  AllAnimeWeeklyPopularQueryVariables
+>;
 export const AllAnimeSimulcastPageDocument = new TypedDocumentString(`
     query AllAnimeSimulcastPage($search: SearchInput, $page: Int!, $limit: Int!) {
   shows(search: $search, limit: $limit, page: $page, countryOrigin: ALL) {
@@ -148,7 +180,10 @@ export const AllAnimeSimulcastPageDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<AllAnimeSimulcastPageQuery, AllAnimeSimulcastPageQueryVariables>;
+    `) as unknown as TypedDocumentString<
+  AllAnimeSimulcastPageQuery,
+  AllAnimeSimulcastPageQueryVariables
+>;
 export const AllAnimeEpisodeSourcesDocument = new TypedDocumentString(`
     query AllAnimeEpisodeSources($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
   episode(
@@ -159,4 +194,7 @@ export const AllAnimeEpisodeSourcesDocument = new TypedDocumentString(`
     sourceUrls
   }
 }
-    `) as unknown as TypedDocumentString<AllAnimeEpisodeSourcesQuery, AllAnimeEpisodeSourcesQueryVariables>;
+    `) as unknown as TypedDocumentString<
+  AllAnimeEpisodeSourcesQuery,
+  AllAnimeEpisodeSourcesQueryVariables
+>;

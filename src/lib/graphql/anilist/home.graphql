@@ -1,58 +1,53 @@
 query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
-    season: Page(page: 1, perPage: 30) {
-        media(
-            type: ANIME
-            season: $season
-            seasonYear: $seasonYear
-            status_in: [RELEASING, NOT_YET_RELEASED]
-            sort: [POPULARITY_DESC, TRENDING_DESC]
-            isAdult: false
-        ) {
-            id
-            title {
-                english
-                romaji
-                native
-            }
-            coverImage {
-                extraLarge
-                large
-            }
-            description(asHtml: false)
-            genres
-            format
-            averageScore
-        }
+  season: Page(page: 1, perPage: 30) {
+    media(
+      type: ANIME
+      season: $season
+      seasonYear: $seasonYear
+      status_in: [RELEASING, NOT_YET_RELEASED]
+      sort: [POPULARITY_DESC, TRENDING_DESC]
+      isAdult: false
+    ) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      format
+      averageScore
     }
-    popular: Page(page: 1, perPage: 50) {
-        media(
-            type: ANIME
-            format: TV
-            sort: POPULARITY_DESC
-            isAdult: false
-        ) {
+  }
+  popular: Page(page: 1, perPage: 50) {
+    media(type: ANIME, format: TV, sort: POPULARITY_DESC, isAdult: false) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      format
+      averageScore
+      relations {
+        edges {
+          relationType
+          node {
             id
-            title {
-                english
-                romaji
-                native
-            }
-            coverImage {
-                extraLarge
-                large
-            }
-            description(asHtml: false)
-            genres
-            format
-            averageScore
-            relations {
-                edges {
-                    relationType
-                    node {
-                        id
-                    }
-                }
-            }
+          }
         }
+      }
     }
+  }
 }

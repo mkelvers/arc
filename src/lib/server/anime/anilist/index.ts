@@ -4,8 +4,8 @@ import { searchAnime } from './search';
 import { getSimulcastSeasonStarts } from './simulcast';
 
 export const anilist = {
-    getAnime,
-    getHomepage,
-    getSimulcastSeasonStarts,
-    searchAnime,
+  getAnime,
+  getHomepage,
+  getSimulcastSeasonStarts,
+  searchAnime,
 };

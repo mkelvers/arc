@@ -1,23 +1,23 @@
 query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
-    Page(page: $page, perPage: $perPage) {
-        pageInfo {
-            hasNextPage
-        }
-        media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
-            id
-            title {
-                english
-                romaji
-                native
-            }
-            coverImage {
-                extraLarge
-                large
-            }
-            description(asHtml: false)
-            genres
-            format
-            averageScore
-        }
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      hasNextPage
     }
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      format
+      averageScore
+    }
+  }
 }

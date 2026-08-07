@@ -1,46 +1,46 @@
 query SimulcastSeasonStarts {
-    winter: Page(page: 1, perPage: 1) {
-        media(
-            type: ANIME
-            season: WINTER
-            startDate_greater: 10000000
-            sort: [START_DATE]
-            isAdult: false
-        ) {
-            seasonYear
-        }
+  winter: Page(page: 1, perPage: 1) {
+    media(
+      type: ANIME
+      season: WINTER
+      startDate_greater: 10000000
+      sort: [START_DATE]
+      isAdult: false
+    ) {
+      seasonYear
     }
-    spring: Page(page: 1, perPage: 1) {
-        media(
-            type: ANIME
-            season: SPRING
-            startDate_greater: 10000000
-            sort: [START_DATE]
-            isAdult: false
-        ) {
-            seasonYear
-        }
+  }
+  spring: Page(page: 1, perPage: 1) {
+    media(
+      type: ANIME
+      season: SPRING
+      startDate_greater: 10000000
+      sort: [START_DATE]
+      isAdult: false
+    ) {
+      seasonYear
     }
-    summer: Page(page: 1, perPage: 1) {
-        media(
-            type: ANIME
-            season: SUMMER
-            startDate_greater: 10000000
-            sort: [START_DATE]
-            isAdult: false
-        ) {
-            seasonYear
-        }
+  }
+  summer: Page(page: 1, perPage: 1) {
+    media(
+      type: ANIME
+      season: SUMMER
+      startDate_greater: 10000000
+      sort: [START_DATE]
+      isAdult: false
+    ) {
+      seasonYear
     }
-    fall: Page(page: 1, perPage: 1) {
-        media(
-            type: ANIME
-            season: FALL
-            startDate_greater: 10000000
-            sort: [START_DATE]
-            isAdult: false
-        ) {
-            seasonYear
-        }
+  }
+  fall: Page(page: 1, perPage: 1) {
+    media(
+      type: ANIME
+      season: FALL
+      startDate_greater: 10000000
+      sort: [START_DATE]
+      isAdult: false
+    ) {
+      seasonYear
     }
+  }
 }

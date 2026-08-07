@@ -112,12 +112,8 @@
           "name": "accounts_user_id_users_id_fk",
           "tableFrom": "accounts",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -127,10 +123,7 @@
         "accounts_provider_account_unique": {
           "name": "accounts_provider_account_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider_id",
-            "account_id"
-          ]
+          "columns": ["provider_id", "account_id"]
         }
       },
       "policies": {},
@@ -247,12 +240,8 @@
           "name": "anime_artwork_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_artwork",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -260,11 +249,7 @@
       "compositePrimaryKeys": {
         "anime_artwork_external_id_id_type_file_path_pk": {
           "name": "anime_artwork_external_id_id_type_file_path_pk",
-          "columns": [
-            "external_id_id",
-            "type",
-            "file_path"
-          ]
+          "columns": ["external_id_id", "type", "file_path"]
         }
       },
       "uniqueConstraints": {},
@@ -303,12 +288,8 @@
           "name": "anime_artwork_cache_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_artwork_cache",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -369,12 +350,8 @@
           "name": "anime_artwork_preference_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_artwork_preference",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -538,10 +515,7 @@
       "compositePrimaryKeys": {
         "anime_episode_anilist_id_episode_id_pk": {
           "name": "anime_episode_anilist_id_episode_id_pk",
-          "columns": [
-            "anilist_id",
-            "episode_id"
-          ]
+          "columns": ["anilist_id", "episode_id"]
         }
       },
       "uniqueConstraints": {},
@@ -680,11 +654,7 @@
         "anime_external_id_identity": {
           "name": "anime_external_id_identity",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider",
-            "media_type",
-            "external_id"
-          ]
+          "columns": ["provider", "media_type", "external_id"]
         }
       },
       "policies": {},
@@ -720,12 +690,8 @@
           "name": "anime_external_id_link_anime_id_anime_id_fk",
           "tableFrom": "anime_external_id_link",
           "tableTo": "anime",
-          "columnsFrom": [
-            "anime_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["anime_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -733,12 +699,8 @@
           "name": "anime_external_id_link_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_external_id_link",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -746,10 +708,7 @@
       "compositePrimaryKeys": {
         "anime_external_id_link_anime_id_external_id_id_pk": {
           "name": "anime_external_id_link_anime_id_external_id_id_pk",
-          "columns": [
-            "anime_id",
-            "external_id_id"
-          ]
+          "columns": ["anime_id", "external_id_id"]
         }
       },
       "uniqueConstraints": {},
@@ -838,10 +797,7 @@
       "compositePrimaryKeys": {
         "anime_provider_mapping_anilist_id_provider_pk": {
           "name": "anime_provider_mapping_anilist_id_provider_pk",
-          "columns": [
-            "anilist_id",
-            "provider"
-          ]
+          "columns": ["anilist_id", "provider"]
         }
       },
       "uniqueConstraints": {},
@@ -953,12 +909,8 @@
           "name": "playback_progress_user_id_users_id_fk",
           "tableFrom": "playback_progress",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -966,12 +918,8 @@
           "name": "playback_progress_anime_id_anime_id_fk",
           "tableFrom": "playback_progress",
           "tableTo": "anime",
-          "columnsFrom": [
-            "anime_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["anime_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -981,10 +929,7 @@
         "playback_progress_user_anime_unique": {
           "name": "playback_progress_user_anime_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "user_id",
-            "anime_id"
-          ]
+          "columns": ["user_id", "anime_id"]
         }
       },
       "policies": {},
@@ -1069,12 +1014,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1084,9 +1025,7 @@
         "sessions_token_unique": {
           "name": "sessions_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1163,16 +1102,12 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         },
         "users_username_unique": {
           "name": "users_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         }
       },
       "policies": {},
@@ -1252,36 +1187,22 @@
     "public.artwork_type": {
       "name": "artwork_type",
       "schema": "public",
-      "values": [
-        "backdrop",
-        "logo"
-      ]
+      "values": ["backdrop", "logo"]
     },
     "public.episode_audio": {
       "name": "episode_audio",
       "schema": "public",
-      "values": [
-        "sub",
-        "dub",
-        "raw"
-      ]
+      "values": ["sub", "dub", "raw"]
     },
     "public.external_media_type": {
       "name": "external_media_type",
       "schema": "public",
-      "values": [
-        "anime",
-        "movie",
-        "tv"
-      ]
+      "values": ["anime", "movie", "tv"]
     },
     "public.external_provider": {
       "name": "external_provider",
       "schema": "public",
-      "values": [
-        "anilist",
-        "tmdb"
-      ]
+      "values": ["anilist", "tmdb"]
     }
   },
   "schemas": {},
