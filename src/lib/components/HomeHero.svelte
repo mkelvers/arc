@@ -87,7 +87,7 @@
           </a>
 
           <div
-            class="pointer-events-none z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-72 sm:px-10 lg:px-16 2xl:self-start 2xl:pt-[calc((100svh-3.5rem)/2+2rem)] 2xl:pb-0"
+            class="pointer-events-none z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 2xl:self-center 2xl:pb-0"
           >
             <a
               href={anime.href}
@@ -97,13 +97,13 @@
               <img
                 src={anime.logoUrl}
                 alt={anime.title}
-                style:height={`clamp(${(5 * anime.logoSize) / 100}rem, ${(6.4 * anime.logoSize) / 100}vw, ${(8 * anime.logoSize) / 100}rem)`}
-                class="max-h-24 max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-h-36 2xl:max-w-2xl"
+                style:height={`clamp(${(5 * anime.logoSize) / 100}rem, ${(5.7 * anime.logoSize) / 100}vw, ${(6.25 * anime.logoSize) / 100}rem)`}
+                class="max-h-24 max-w-md object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
               />
             </a>
 
             <p
-              class="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm"
+              class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm"
             >
               <span>{anime.format}</span>
               {#if anime.audioLabel}
@@ -126,7 +126,7 @@
 
             {#if anime.description}
               <p
-                class="mt-4 max-w-4xl text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7"
+                class="mt-4 max-w-[min(100%,46rem)] text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7"
               >
                 {anime.description}
               </p>
