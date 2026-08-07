@@ -13,98 +13,90 @@ import { deletePlaybackProgress } from '$lib/server/playback-progress/store';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-    const { season, year } = currentAnimeSeason();
-    const continueWatching = getContinueWatchingCards(locals.user?.id).catch(
-        (cause) => {
-            console.error('Continue watching load failed', cause);
-            return [];
-        },
-    );
-    const highlights = anime.getHomeHero().catch((cause) => {
-        console.error('Homepage hero load failed', cause);
-        return [];
-    });
-    const result = await Effect.runPromise(
-        anime.anilist.getHomepage(season, year).pipe(Effect.either),
-    );
+  const { season, year } = currentAnimeSeason();
+  const continueWatching = getContinueWatchingCards(locals.user?.id).catch((cause) => {
+    console.error('Continue watching load failed', cause);
+    return [];
+  });
+  const highlights = anime.getHomeHero().catch((cause) => {
+    console.error('Homepage hero load failed', cause);
+    return [];
+  });
+  const result = await Effect.runPromise(
+    anime.anilist.getHomepage(season, year).pipe(Effect.either)
+  );
 
-    if (Either.isLeft(result)) {
-        error(502, result.left.message);
-    }
+  if (Either.isLeft(result)) {
+    error(502, result.left.message);
+  }
 
-    const animeIds = [
-        ...new Set(
-            [...result.right.season, ...result.right.popular].map(
-                ({ id }) => id,
-            ),
-        ),
-    ];
-    const [homeHero, episodeRows, popularAudio] = await Promise.all([
-        highlights,
-        animeIds.length
-            ? db
-                  .select({
-                      anilistId: animeEpisode.anilistId,
-                      audio: animeEpisode.audio,
-                  })
-                  .from(animeEpisode)
-                  .where(inArray(animeEpisode.anilistId, animeIds))
-            : [],
-        anime.allanime.getPopularAudioLabels().catch(() => new Map()),
-    ]);
-    const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
+  const animeIds = [
+    ...new Set([...result.right.season, ...result.right.popular].map(({ id }) => id)),
+  ];
+  const [homeHero, episodeRows, popularAudio] = await Promise.all([
+    highlights,
+    animeIds.length
+      ? db
+          .select({
+            anilistId: animeEpisode.anilistId,
+            audio: animeEpisode.audio,
+          })
+          .from(animeEpisode)
+          .where(inArray(animeEpisode.anilistId, animeIds))
+      : [],
+    anime.allanime.getPopularAudioLabels().catch(() => new Map()),
+  ]);
+  const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
 
-    for (const episode of episodeRows) {
-        const audio =
-            audioByAnime.get(episode.anilistId) ??
-            new Set<'sub' | 'dub' | 'raw'>();
-        episode.audio.forEach((mode) => audio.add(mode));
-        audioByAnime.set(episode.anilistId, audio);
-    }
+  for (const episode of episodeRows) {
+    const audio = audioByAnime.get(episode.anilistId) ?? new Set<'sub' | 'dub' | 'raw'>();
+    episode.audio.forEach((mode) => audio.add(mode));
+    audioByAnime.set(episode.anilistId, audio);
+  }
 
-    const withAudio = (card: (typeof result.right.season)[number]) => ({
-        ...card,
-        caption: audioAvailabilityLabel([
-            ...(audioByAnime.get(card.id) ?? []),
-            ...(popularAudio.get(card.id) ?? []),
-        ]),
-    });
+  const withAudio = (card: (typeof result.right.season)[number]) => ({
+    ...card,
+    caption: audioAvailabilityLabel([
+      ...(audioByAnime.get(card.id) ?? []),
+      ...(popularAudio.get(card.id) ?? []),
+    ]),
+  });
 
-    const seasonCards = result.right.season.map(withAudio);
-    const cards = await anime.withAnimeCardPosters([
-        ...seasonCards,
-        ...result.right.popular.map(withAudio),
-    ]);
+  const seasonCards = result.right.season.map(withAudio);
+  const cards = await anime.withAnimeCardPosters([
+    ...seasonCards,
+    ...result.right.popular.map(withAudio),
+  ]);
 
-    return {
-        highlights: homeHero,
-        season: cards.slice(0, seasonCards.length),
-        popular: cards.slice(seasonCards.length),
-        continueWatching,
-    };
+  return {
+    highlights: homeHero,
+    season: cards.slice(0, seasonCards.length),
+    popular: cards.slice(seasonCards.length),
+    continueWatching,
+  };
 };
 
 export const actions: Actions = {
-    removeContinueWatching: async ({ locals, request }) => {
-        if (!locals.user) {
-            redirect(303, '/login');
-        }
+  removeContinueWatching: async ({ locals, request }) => {
+    if (!locals.user) {
+      redirect(303, '/login');
+    }
 
-        const form = await request.formData();
-        const id = animeId(form.get('animeId'));
+    const form = await request.formData();
+    const id = animeId(form.get('animeId'));
 
-        if (!id) {
-            return fail(400, { message: 'Invalid anime ID' });
-        }
+    if (!id) {
+      return fail(400, { message: 'Invalid anime ID' });
+    }
 
-        try {
-            await deletePlaybackProgress(locals.user.id, id);
-            return { success: true };
-        } catch (cause) {
-            console.error('Failed to remove continue watching', cause);
-            return fail(500, {
-                message: 'Failed to remove continue watching',
-            });
-        }
-    },
+    try {
+      await deletePlaybackProgress(locals.user.id, id);
+      return { success: true };
+    } catch (cause) {
+      console.error('Failed to remove continue watching', cause);
+      return fail(500, {
+        message: 'Failed to remove continue watching',
+      });
+    }
+  },
 };
