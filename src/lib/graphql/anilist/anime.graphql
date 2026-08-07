@@ -1,80 +1,80 @@
 query Anime($id: Int!) {
-    Media(id: $id, type: ANIME) {
-        id
-        idMal
-        title {
+  Media(id: $id, type: ANIME) {
+    id
+    idMal
+    title {
+      english
+      romaji
+      native
+    }
+    synonyms
+    bannerImage
+    description(asHtml: false)
+    genres
+    format
+    status
+    season
+    seasonYear
+    startDate {
+      year
+      month
+      day
+    }
+    endDate {
+      year
+      month
+      day
+    }
+    episodes
+    duration
+    nextAiringEpisode {
+      airingAt
+      episode
+    }
+    relations {
+      edges {
+        relationType
+        node {
+          id
+          type
+          title {
             english
             romaji
             native
+          }
         }
-        synonyms
-        bannerImage
-        description(asHtml: false)
-        genres
-        format
-        status
-        season
-        seasonYear
-        startDate {
-            year
-            month
-            day
-        }
-        endDate {
-            year
-            month
-            day
-        }
-        episodes
-        duration
-        nextAiringEpisode {
-            airingAt
-            episode
-        }
-        relations {
-            edges {
-                relationType
-                node {
-                    id
-                    type
-                    title {
-                        english
-                        romaji
-                        native
-                    }
-                }
-            }
-        }
-        averageScore
-        popularity
-        favourites
-        rankings {
-            rank
-            type
-            year
-            season
-            allTime
-        }
-        tags {
-            name
-            rank
-            isGeneralSpoiler
-            isMediaSpoiler
-        }
-        studios(isMain: true) {
-            nodes {
-                name
-            }
-        }
-        staff(page: 1, perPage: 30, sort: RELEVANCE) {
-            edges {
-                role
-                node {
-                    name {
-                        full
-                    }
-                }
-            }
-        }
+      }
     }
+    averageScore
+    popularity
+    favourites
+    rankings {
+      rank
+      type
+      year
+      season
+      allTime
+    }
+    tags {
+      name
+      rank
+      isGeneralSpoiler
+      isMediaSpoiler
+    }
+    studios(isMain: true) {
+      nodes {
+        name
+      }
+    }
+    staff(page: 1, perPage: 30, sort: RELEVANCE) {
+      edges {
+        role
+        node {
+          name {
+            full
+          }
+        }
+      }
+    }
+  }
 }
