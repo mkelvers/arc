@@ -121,12 +121,8 @@
           "name": "anime_artwork_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_artwork",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -134,11 +130,7 @@
       "compositePrimaryKeys": {
         "anime_artwork_external_id_id_type_file_path_pk": {
           "name": "anime_artwork_external_id_id_type_file_path_pk",
-          "columns": [
-            "external_id_id",
-            "type",
-            "file_path"
-          ]
+          "columns": ["external_id_id", "type", "file_path"]
         }
       },
       "uniqueConstraints": {},
@@ -177,12 +169,8 @@
           "name": "anime_artwork_cache_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_artwork_cache",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -243,12 +231,8 @@
           "name": "anime_artwork_preference_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_artwork_preference",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -393,11 +377,7 @@
         "anime_external_id_identity": {
           "name": "anime_external_id_identity",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider",
-            "media_type",
-            "external_id"
-          ]
+          "columns": ["provider", "media_type", "external_id"]
         }
       },
       "policies": {},
@@ -427,12 +407,8 @@
           "name": "anime_external_id_link_anime_id_anime_id_fk",
           "tableFrom": "anime_external_id_link",
           "tableTo": "anime",
-          "columnsFrom": [
-            "anime_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["anime_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -440,12 +416,8 @@
           "name": "anime_external_id_link_external_id_id_anime_external_id_id_fk",
           "tableFrom": "anime_external_id_link",
           "tableTo": "anime_external_id",
-          "columnsFrom": [
-            "external_id_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["external_id_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -453,10 +425,7 @@
       "compositePrimaryKeys": {
         "anime_external_id_link_anime_id_external_id_id_pk": {
           "name": "anime_external_id_link_anime_id_external_id_id_pk",
-          "columns": [
-            "anime_id",
-            "external_id_id"
-          ]
+          "columns": ["anime_id", "external_id_id"]
         }
       },
       "uniqueConstraints": {},
@@ -547,12 +516,8 @@
           "name": "watchlist_user_id_users_id_fk",
           "tableFrom": "watchlist",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -560,12 +525,8 @@
           "name": "watchlist_anime_id_anime_id_fk",
           "tableFrom": "watchlist",
           "tableTo": "anime",
-          "columnsFrom": [
-            "anime_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["anime_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -573,10 +534,7 @@
       "compositePrimaryKeys": {
         "watchlist_user_id_anime_id_pk": {
           "name": "watchlist_user_id_anime_id_pk",
-          "columns": [
-            "user_id",
-            "anime_id"
-          ]
+          "columns": ["user_id", "anime_id"]
         }
       },
       "uniqueConstraints": {},
@@ -589,37 +547,22 @@
     "public.artwork_type": {
       "name": "artwork_type",
       "schema": "public",
-      "values": [
-        "backdrop",
-        "logo"
-      ]
+      "values": ["backdrop", "logo"]
     },
     "public.external_media_type": {
       "name": "external_media_type",
       "schema": "public",
-      "values": [
-        "anime",
-        "movie",
-        "tv"
-      ]
+      "values": ["anime", "movie", "tv"]
     },
     "public.external_provider": {
       "name": "external_provider",
       "schema": "public",
-      "values": [
-        "anilist",
-        "tmdb"
-      ]
+      "values": ["anilist", "tmdb"]
     },
     "public.watchlist_state": {
       "name": "watchlist_state",
       "schema": "public",
-      "values": [
-        "watching",
-        "plan_to_watch",
-        "completed",
-        "dropped"
-      ]
+      "values": ["watching", "plan_to_watch", "completed", "dropped"]
     }
   },
   "schemas": {},
