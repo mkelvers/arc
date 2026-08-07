@@ -6,7 +6,6 @@
     CaretRightIcon,
     PauseIcon,
     PlayIcon,
-    StarIcon,
   } from 'phosphor-svelte';
   import { cn } from '$lib/utils';
   import Tooltip from '$lib/components/Tooltip.svelte';
@@ -22,7 +21,6 @@
     episodeLabel: string;
     format: string;
     audioLabel: string;
-    score: number;
     genres: string[];
     description: string;
   }
@@ -103,24 +101,14 @@
             </a>
 
             <p
-              class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm"
+              class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm"
             >
-              <span>{anime.format}</span>
+              <span class="hero-metadata__tag">{anime.format}</span>
               {#if anime.audioLabel}
-                <span aria-hidden="true">•</span>
-                <span>{anime.audioLabel}</span>
-              {/if}
-              {#if anime.score}
-                <span aria-hidden="true">•</span>
-                <span class="inline-flex items-center gap-1">
-                  {anime.score}%
-                  <StarIcon size="0.95em" weight="fill" aria-hidden="true" />
-                  <span class="sr-only">AniList score</span>
-                </span>
+                <span class="hero-metadata__tag">{anime.audioLabel}</span>
               {/if}
               {#if anime.genres.length}
-                <span aria-hidden="true">•</span>
-                <span>{anime.genres.slice(0, 3).join(', ')}</span>
+                <span class="hero-metadata__tag">{anime.genres.slice(0, 3).join(', ')}</span>
               {/if}
             </p>
 
@@ -213,3 +201,17 @@
     {/if}
   </section>
 {/if}
+
+<style>
+  .hero-metadata__tag:not(:first-child)::before {
+    width: 0.25rem;
+    height: 0.25rem;
+    margin-inline: 0.25rem;
+    display: inline-block;
+    background-color: currentcolor;
+    content: '';
+    line-height: 1;
+    vertical-align: middle;
+    transform: rotate(45deg);
+  }
+</style>

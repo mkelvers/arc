@@ -24,7 +24,6 @@ export interface HomeHeroAnime {
   logoSize: number;
   format: string;
   audioLabel: string;
-  score: number;
   genres: string[];
   description: string;
 }
@@ -75,7 +74,6 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
       logoSize: artwork.logoSize,
       format: enumLabel(details.format, ''),
       audioLabel: audioAvailabilityLabel([...new Set(episodes.flatMap(({ audio }) => audio))]),
-      score: details.averageScore ?? 0,
       genres: present(details.genres),
       description: plainText(details.description),
     };
