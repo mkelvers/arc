@@ -10,5 +10,8 @@
   "endOfLine": "lf",
   "proseWrap": "never",
   "htmlWhitespaceSensitivity": "css",
-  "vueIndentScriptAndStyle": false
+  "vueIndentScriptAndStyle": false,
+  "svelte": {
+    "allowShorthand": false
+  }
 }
