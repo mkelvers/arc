@@ -6,7 +6,6 @@
   import { cn } from '$lib/utils';
   import type { PageProps } from './$types';
   import {
-    CaretDownIcon,
     BookmarkSimpleIcon,
     DotsThreeVerticalIcon,
     PencilSimpleIcon,
@@ -75,21 +74,24 @@
           {/await}
         </div>
 
-        <p class="mt-8 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base">
-          <span class="font-normal">{data.anime.format}</span>
+        <p
+          class="mt-8 flex flex-wrap items-center gap-y-1 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base"
+        >
           {#await data.audioLabel then audioLabel}
             {#if audioLabel}
-              <span class="mx-1" aria-hidden="true">•</span>
-              <span>{audioLabel}</span>
+              <span class="anime-hero-metadata__tag">{audioLabel}</span>
             {/if}
           {/await}
-          <span class="mx-1" aria-hidden="true">•</span>
-          {#each data.anime.genres as genre, index}
-            <a class="underline underline-offset-2" href="/">{genre}</a>{index <
-            data.anime.genres.length - 1
-              ? ', '
-              : ''}
-          {/each}
+          {#if data.anime.genres.length}
+            <span class="anime-hero-metadata__tag">
+              {#each data.anime.genres as genre, index}
+                <a class="underline underline-offset-2" href="/">{genre}</a>{index <
+                data.anime.genres.length - 1
+                  ? ', '
+                  : ''}
+              {/each}
+            </span>
+          {/if}
         </p>
 
         <div
@@ -106,7 +108,6 @@
           </span>
           <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
           <strong>AniList score: {data.anime.score}%</strong>
-          <CaretDownIcon size="0.9em" weight="fill" aria-hidden="true" />
         </div>
 
         <div
@@ -222,3 +223,17 @@
     {/await}
   </div>
 </main>
+
+<style>
+  .anime-hero-metadata__tag:not(:first-child)::before {
+    width: 0.25rem;
+    height: 0.25rem;
+    margin-inline: 0.25rem;
+    display: inline-block;
+    background-color: currentcolor;
+    content: '';
+    line-height: 1;
+    vertical-align: middle;
+    transform: rotate(45deg);
+  }
+</style>

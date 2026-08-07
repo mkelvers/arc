@@ -19,7 +19,6 @@
     logoUrl: string;
     logoSize: number;
     episodeLabel: string;
-    format: string;
     audioLabel: string;
     genres: string[];
     description: string;
@@ -103,7 +102,6 @@
             <p
               class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm"
             >
-              <span class="hero-metadata__tag">{anime.format}</span>
               {#if anime.audioLabel}
                 <span class="hero-metadata__tag">{anime.audioLabel}</span>
               {/if}

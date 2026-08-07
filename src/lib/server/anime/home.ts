@@ -5,7 +5,7 @@ import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { db } from '$lib/server/db';
 import { homeHeroSelection } from '$lib/server/db/schema';
 import { getAnime } from './anilist/details';
-import { enumLabel, mediaTitle, plainText, present } from './anilist/text';
+import { mediaTitle, plainText, present } from './anilist/text';
 import { getWeeklyPopularAnime } from './allanime/catalog';
 import { getEpisodes } from './episodes';
 import { homeHeroSize, selectHomeHero, utcWeekStart } from './home/selection';
@@ -22,7 +22,6 @@ export interface HomeHeroAnime {
   image: string;
   logoUrl: string;
   logoSize: number;
-  format: string;
   audioLabel: string;
   genres: string[];
   description: string;
@@ -72,7 +71,6 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
       image: artwork.selectedBackdrop.url,
       logoUrl: artwork.selectedLogo.url,
       logoSize: artwork.logoSize,
-      format: enumLabel(details.format, ''),
       audioLabel: audioAvailabilityLabel([...new Set(episodes.flatMap(({ audio }) => audio))]),
       genres: present(details.genres),
       description: plainText(details.description),
