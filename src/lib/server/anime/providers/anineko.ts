@@ -2,88 +2,77 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
 import {
-    providerMediaId,
-    saveProviderMediaId,
-    verifyProviderMediaId,
-} from './mapping';
-import {
-    isSpecialEpisodeReference,
-    matchProviderStreamEpisode,
-    normalizedProviderTitle,
-    providerTitles,
-    specialCollectionMatches,
-    specialReleaseQueries,
-    standaloneSpecialMatches,
+  isSpecialEpisodeReference,
+  matchProviderStreamEpisode,
+  normalizedProviderTitle,
+  providerTitles,
+  specialCollectionMatches,
+  specialReleaseQueries,
+  standaloneSpecialMatches,
 } from './match';
 import type {
-    PlaybackProvider,
-    ProviderAnime,
-    ProviderEpisode,
-    ProviderStream,
-    ProviderStreams,
+  PlaybackProvider,
+  ProviderAnime,
+  ProviderEpisode,
+  ProviderStream,
+  ProviderStreams,
 } from './types';
 
 const baseUrl = 'https://anineko.to';
 const providerName = 'anineko';
 const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
 async function requestText(url: URL, referer = `${baseUrl}/`) {
-    const response = await fetch(url, {
-        headers: {
-            Accept: 'text/html,application/json',
-            Referer: referer,
-            'User-Agent': userAgent,
-        },
-        signal: AbortSignal.timeout(8_000),
-    });
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'text/html,application/json',
+      Referer: referer,
+      'User-Agent': userAgent,
+    },
+    signal: AbortSignal.timeout(8_000),
+  });
 
-    if (!response.ok) {
-        throw new Error(
-            `AniNeko returned ${response.status} for ${url.pathname}`,
-        );
-    }
+  if (!response.ok) {
+    throw new Error(`AniNeko returned ${response.status} for ${url.pathname}`);
+  }
 
-    return response.text();
+  return response.text();
 }
 
 function searchResults(value: unknown) {
-    const payload = record(value);
-    if (!payload?.success || !Array.isArray(payload.results)) {
-        return [];
+  const payload = record(value);
+  if (!payload?.success || !Array.isArray(payload.results)) {
+    return [];
+  }
+
+  return payload.results.flatMap((item) => {
+    const result = record(item);
+    const title = result?.title;
+    const path = result?.url;
+    if (typeof title !== 'string' || typeof path !== 'string') {
+      return [];
     }
 
-    return payload.results.flatMap((item) => {
-        const result = record(item);
-        const title = result?.title;
-        const path = result?.url;
-        if (typeof title !== 'string' || typeof path !== 'string') {
-            return [];
-        }
-
-        const url = new URL(path, baseUrl);
-        const match = url.pathname.match(/^\/watch\/([^/?#]+)$/);
-        return url.origin === baseUrl && match
-            ? [{ title: title.trim(), slug: match[1] }]
-            : [];
-    });
+    const url = new URL(path, baseUrl);
+    const match = url.pathname.match(/^\/watch\/([^/?#]+)$/);
+    return url.origin === baseUrl && match ? [{ title: title.trim(), slug: match[1] }] : [];
+  });
 }
 
 function pageIdentity(html: string) {
-    const $ = load(html);
-    const title = $('.nv-info-main h1').first().text().trim();
-    const alternativeTitle = $('.nv-info-alt-title')
-        .first()
-        .text()
-        .trim();
-    const year = $('.nv-info-tags span')
-        .map((_, element) => $(element).text().trim())
-        .get()
-        .map(Number)
-        .find((value) => Number.isInteger(value) && value > 1900);
+  const $ = load(html);
+  const title = $('.nv-info-main h1').first().text().trim();
+  const alternativeTitle = $('.nv-info-alt-title').first().text().trim();
+  const year = $('.nv-info-tags span')
+    .map((_, element) => $(element).text().trim())
+    .get()
+    .map(Number)
+    .find((value) => Number.isInteger(value) && value > 1900);
 
-    return { title, alternativeTitle, year: year ?? null };
+  return { title, alternativeTitle, year: year ?? null };
 }
 
 // AniNeko appends a disambiguator such as "(TV)" to some titles (e.g.
@@ -91,374 +80,302 @@ function pageIdentity(html: string) {
 // matching; only the very end of the title is touched, so sequels such as
 // "Jujutsu Kaisen 2nd Season" still compare as distinct titles.
 function matchableTitle(title: string) {
-    return normalizedProviderTitle(
-        title.replace(/\s*\((?:tv|tv series)\)$/i, ''),
-    );
+  return normalizedProviderTitle(title.replace(/\s*\((?:tv|tv series)\)$/i, ''));
 }
 
-function exactPageIdentity(
-    identity: ReturnType<typeof pageIdentity>,
-    anime: ProviderAnime,
-) {
-    const titles = new Set(
-        providerTitles(anime).map(normalizedProviderTitle),
-    );
-    const pageTitles = new Set(
-        [identity.title, identity.alternativeTitle].map(matchableTitle),
-    );
-    if (![...titles].some((title) => pageTitles.has(title))) {
-        return false;
-    }
+function exactPageIdentity(identity: ReturnType<typeof pageIdentity>, anime: ProviderAnime) {
+  const titles = new Set(providerTitles(anime).map(normalizedProviderTitle));
+  const pageTitles = new Set([identity.title, identity.alternativeTitle].map(matchableTitle));
+  if (![...titles].some((title) => pageTitles.has(title))) {
+    return false;
+  }
 
-    const expectedYear = anime.startDate?.year;
-    return (
-        !expectedYear ||
-        identity.year === null ||
-        identity.year === expectedYear
-    );
+  const expectedYear = anime.startDate?.year;
+  return !expectedYear || identity.year === null || identity.year === expectedYear;
 }
 
 async function findSlug(anime: ProviderAnime, refresh = false) {
-    if (!refresh) {
-        const stored = await providerMediaId(anime.id, providerName);
-        if (stored && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(stored)) {
-            return stored;
-        }
+  if (!refresh) {
+    const stored = await providerMediaId(anime.id, providerName);
+    if (stored && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(stored)) {
+      return stored;
     }
+  }
 
-    const titles = providerTitles(anime);
-    const exactTitles = new Set(titles.map(normalizedProviderTitle));
-    const visited = new Set<string>();
+  const titles = providerTitles(anime);
+  const exactTitles = new Set(titles.map(normalizedProviderTitle));
+  const visited = new Set<string>();
 
-    for (const title of titles) {
-        const search = new URL('/ajax/search', baseUrl);
-        search.searchParams.set('q', title);
-        const payload = JSON.parse(
-            await requestText(search),
-        ) as unknown;
-        const candidates = searchResults(payload).filter(
-            (candidate) =>
-                exactTitles.has(matchableTitle(candidate.title)) &&
-                !visited.has(candidate.slug),
-        );
-
-        for (const candidate of candidates.slice(0, 6)) {
-            visited.add(candidate.slug);
-            const page = new URL(`/watch/${candidate.slug}`, baseUrl);
-            const identity = pageIdentity(await requestText(page));
-            if (!exactPageIdentity(identity, anime)) {
-                continue;
-            }
-
-            await saveProviderMediaId(
-                anime.id,
-                providerName,
-                candidate.slug,
-            );
-            return candidate.slug;
-        }
-    }
-
-    throw new Error(
-        `AniNeko has no exact title match for AniList ${anime.id}`,
+  for (const title of titles) {
+    const search = new URL('/ajax/search', baseUrl);
+    search.searchParams.set('q', title);
+    const payload = JSON.parse(await requestText(search)) as unknown;
+    const candidates = searchResults(payload).filter(
+      (candidate) =>
+        exactTitles.has(matchableTitle(candidate.title)) && !visited.has(candidate.slug)
     );
+
+    for (const candidate of candidates.slice(0, 6)) {
+      visited.add(candidate.slug);
+      const page = new URL(`/watch/${candidate.slug}`, baseUrl);
+      const identity = pageIdentity(await requestText(page));
+      if (!exactPageIdentity(identity, anime)) {
+        continue;
+      }
+
+      await saveProviderMediaId(anime.id, providerName, candidate.slug);
+      return candidate.slug;
+    }
+  }
+
+  throw new Error(`AniNeko has no exact title match for AniList ${anime.id}`);
 }
 
 function episodeInventory(html: string, slug: string) {
-    const $ = load(html);
-    const episodes = new Map<number, ProviderEpisode>();
+  const $ = load(html);
+  const episodes = new Map<number, ProviderEpisode>();
 
-    $('.nv-info-episode-item').each((_, element) => {
-        const item = $(element);
-        const link = item.find(
-            `a.nv-info-episode-main[href^="/watch/${slug}/ep-"]`,
-        );
-        const href = link.attr('href') ?? '';
-        const number = Number(href.match(/\/ep-(\d+)$/)?.[1]);
-        if (!Number.isSafeInteger(number) || number <= 0) {
-            return;
-        }
+  $('.nv-info-episode-item').each((_, element) => {
+    const item = $(element);
+    const link = item.find(`a.nv-info-episode-main[href^="/watch/${slug}/ep-"]`);
+    const href = link.attr('href') ?? '';
+    const number = Number(href.match(/\/ep-(\d+)$/)?.[1]);
+    if (!Number.isSafeInteger(number) || number <= 0) {
+      return;
+    }
 
-        const badges = new Set(
-            item
-                .find('.nv-info-episode-badges span')
-                .map((_, badge) => $(badge).text().trim().toUpperCase())
-                .get(),
-        );
-        const audio: AudioMode[] = [];
-        if (badges.has('SUB') || badges.has('HSUB')) {
-            audio.push('sub');
-        }
-        if (badges.has('DUB')) {
-            audio.push('dub');
-        }
-
-        episodes.set(number, {
-            id: String(number),
-            number,
-            title: link.find('span').first().text().trim(),
-            audio,
-        });
-    });
-
-    return [...episodes.values()].sort(
-        (left, right) => left.number - right.number,
+    const badges = new Set(
+      item
+        .find('.nv-info-episode-badges span')
+        .map((_, badge) => $(badge).text().trim().toUpperCase())
+        .get()
     );
+    const audio: AudioMode[] = [];
+    if (badges.has('SUB') || badges.has('HSUB')) {
+      audio.push('sub');
+    }
+    if (badges.has('DUB')) {
+      audio.push('dub');
+    }
+
+    episodes.set(number, {
+      id: String(number),
+      number,
+      title: link.find('span').first().text().trim(),
+      audio,
+    });
+  });
+
+  return [...episodes.values()].sort((left, right) => left.number - right.number);
 }
 
 async function providerEpisodes(anime: ProviderAnime) {
-    let slug = await findSlug(anime);
-    let html: string;
+  let slug = await findSlug(anime);
+  let html: string;
 
-    try {
-        html = await requestText(new URL(`/watch/${slug}`, baseUrl));
-    } catch (cause) {
-        if (
-            !(
-                cause instanceof Error &&
-                /returned 404/.test(cause.message)
-            )
-        ) {
-            throw cause;
-        }
-
-        slug = await findSlug(anime, true);
-        html = await requestText(new URL(`/watch/${slug}`, baseUrl));
+  try {
+    html = await requestText(new URL(`/watch/${slug}`, baseUrl));
+  } catch (cause) {
+    if (!(cause instanceof Error && /returned 404/.test(cause.message))) {
+      throw cause;
     }
 
-    if (!exactPageIdentity(pageIdentity(html), anime)) {
-        slug = await findSlug(anime, true);
-        html = await requestText(new URL(`/watch/${slug}`, baseUrl));
-    }
+    slug = await findSlug(anime, true);
+    html = await requestText(new URL(`/watch/${slug}`, baseUrl));
+  }
 
-    const episodes = episodeInventory(html, slug);
-    if (!episodes.length) {
-        throw new Error(
-            `AniNeko returned no episodes for AniList ${anime.id}`,
-        );
-    }
+  if (!exactPageIdentity(pageIdentity(html), anime)) {
+    slug = await findSlug(anime, true);
+    html = await requestText(new URL(`/watch/${slug}`, baseUrl));
+  }
 
-    await verifyProviderMediaId(anime.id, providerName);
-    return { slug, episodes };
+  const episodes = episodeInventory(html, slug);
+  if (!episodes.length) {
+    throw new Error(`AniNeko returned no episodes for AniList ${anime.id}`);
+  }
+
+  await verifyProviderMediaId(anime.id, providerName);
+  return { slug, episodes };
 }
 
 async function getEpisodes(anime: ProviderAnime) {
-    const { episodes } = await providerEpisodes(anime);
-    return episodes;
+  const { episodes } = await providerEpisodes(anime);
+  return episodes;
 }
 
 async function specialReleaseEpisode(
-    anime: ProviderAnime,
-    episode: Parameters<PlaybackProvider['getStreams']>[1],
+  anime: ProviderAnime,
+  episode: Parameters<PlaybackProvider['getStreams']>[1]
 ) {
-    const visited = new Set<string>();
+  const visited = new Set<string>();
 
-    for (const query of specialReleaseQueries(anime, episode)) {
-        const search = new URL('/ajax/search', baseUrl);
-        search.searchParams.set('q', query);
-        const candidates = searchResults(
-            JSON.parse(await requestText(search)) as unknown,
-        ).filter(
-            (candidate) =>
-                !visited.has(candidate.slug) &&
-                (standaloneSpecialMatches(anime, episode, [
-                    candidate.title,
-                ]) ||
-                    specialCollectionMatches(anime, episode, [
-                        candidate.title,
-                    ])),
-        );
-
-        for (const candidate of candidates.slice(0, 6)) {
-            visited.add(candidate.slug);
-            const html = await requestText(
-                new URL(`/watch/${candidate.slug}`, baseUrl),
-            );
-            const identity = pageIdentity(html);
-            const episodes = episodeInventory(html, candidate.slug);
-            const titles = [
-                identity.title,
-                identity.alternativeTitle,
-            ];
-            if (
-                standaloneSpecialMatches(anime, episode, titles) &&
-                episodes.length === 1
-            ) {
-                return {
-                    slug: candidate.slug,
-                    episode: episodes[0],
-                };
-            }
-            if (
-                specialCollectionMatches(
-                    anime,
-                    episode,
-                    titles,
-                    episodes.length,
-                ) &&
-                episode.specialIndex
-            ) {
-                return {
-                    slug: candidate.slug,
-                    episode: episodes[episode.specialIndex - 1],
-                };
-            }
-        }
-    }
-
-    throw new Error(
-        `AniNeko has no matching special release for ${episode.title || episode.id}`,
+  for (const query of specialReleaseQueries(anime, episode)) {
+    const search = new URL('/ajax/search', baseUrl);
+    search.searchParams.set('q', query);
+    const candidates = searchResults(JSON.parse(await requestText(search)) as unknown).filter(
+      (candidate) =>
+        !visited.has(candidate.slug) &&
+        (standaloneSpecialMatches(anime, episode, [candidate.title]) ||
+          specialCollectionMatches(anime, episode, [candidate.title]))
     );
+
+    for (const candidate of candidates.slice(0, 6)) {
+      visited.add(candidate.slug);
+      const html = await requestText(new URL(`/watch/${candidate.slug}`, baseUrl));
+      const identity = pageIdentity(html);
+      const episodes = episodeInventory(html, candidate.slug);
+      const titles = [identity.title, identity.alternativeTitle];
+      if (standaloneSpecialMatches(anime, episode, titles) && episodes.length === 1) {
+        return {
+          slug: candidate.slug,
+          episode: episodes[0],
+        };
+      }
+      if (
+        specialCollectionMatches(anime, episode, titles, episodes.length) &&
+        episode.specialIndex
+      ) {
+        return {
+          slug: candidate.slug,
+          episode: episodes[episode.specialIndex - 1],
+        };
+      }
+    }
+  }
+
+  throw new Error(`AniNeko has no matching special release for ${episode.title || episode.id}`);
 }
 
 function embedUrls(html: string, mode: AudioMode) {
-    if (mode === 'raw') {
-        return [];
+  if (mode === 'raw') {
+    return [];
+  }
+
+  const $ = load(html);
+  const groups = mode === 'dub' ? ['dub'] : ['sub', 'hsub'];
+  const urls: string[] = [];
+
+  for (const group of groups) {
+    $(`.lang-group[data-id="${group}"] [data-video]`).each((_, element) => {
+      const value = $(element).attr('data-video');
+      if (value && !urls.includes(value)) {
+        urls.push(value);
+      }
+    });
+    if (urls.length) {
+      break;
     }
+  }
 
-    const $ = load(html);
-    const groups =
-        mode === 'dub' ? ['dub'] : ['sub', 'hsub'];
-    const urls: string[] = [];
-
-    for (const group of groups) {
-        $(`.lang-group[data-id="${group}"] [data-video]`).each(
-            (_, element) => {
-                const value = $(element).attr('data-video');
-                if (value && !urls.includes(value)) {
-                    urls.push(value);
-                }
-            },
-        );
-        if (urls.length) {
-            break;
-        }
-    }
-
-    return urls;
+  return urls;
 }
 
 function supportedEmbed(url: URL) {
-    return (
-        url.hostname === 'bibiemb.xyz' ||
-        url.hostname.endsWith('.bibiemb.xyz') ||
-        url.hostname === 'vivibebe.site' ||
-        url.hostname.endsWith('.vivibebe.site')
-    );
+  return (
+    url.hostname === 'bibiemb.xyz' ||
+    url.hostname.endsWith('.bibiemb.xyz') ||
+    url.hostname === 'vivibebe.site' ||
+    url.hostname.endsWith('.vivibebe.site')
+  );
 }
 
 async function resolveEmbed(value: string) {
-    const embed = new URL(value);
-    if (embed.protocol !== 'https:' || !supportedEmbed(embed)) {
-        throw new Error('AniNeko returned an unsupported embed host');
-    }
+  const embed = new URL(value);
+  if (embed.protocol !== 'https:' || !supportedEmbed(embed)) {
+    throw new Error('AniNeko returned an unsupported embed host');
+  }
 
-    const html = await requestText(embed, `${baseUrl}/`);
-    const match = html
-        .replaceAll('\\/', '/')
-        .match(
-            /const\s+src\s*=\s*["'](https:\/\/[^"'\\\s]+\/master\.m3u8(?:\?[^"'\\\s]*)?)["']/i,
-        );
-    if (!match) {
-        throw new Error('AniNeko embed returned no HLS stream');
-    }
+  const html = await requestText(embed, `${baseUrl}/`);
+  const match = html
+    .replaceAll('\\/', '/')
+    .match(/const\s+src\s*=\s*["'](https:\/\/[^"'\\\s]+\/master\.m3u8(?:\?[^"'\\\s]*)?)["']/i);
+  if (!match) {
+    throw new Error('AniNeko embed returned no HLS stream');
+  }
 
-    const stream = new URL(match[1]);
-    if (stream.protocol !== 'https:') {
-        throw new Error('AniNeko returned an unsupported stream URL');
-    }
+  const stream = new URL(match[1]);
+  if (stream.protocol !== 'https:') {
+    throw new Error('AniNeko returned an unsupported stream URL');
+  }
 
-    const subtitle = embed.searchParams.get('sub');
-    return {
-        url: stream.toString(),
-        quality: null,
-        audioDelay: 0,
-        subtitleUrl: subtitle,
-    } satisfies ProviderStream;
+  const subtitle = embed.searchParams.get('sub');
+  return {
+    url: stream.toString(),
+    quality: null,
+    audioDelay: 0,
+    subtitleUrl: subtitle,
+  } satisfies ProviderStream;
 }
 
 async function getStreams(
-    anime: ProviderAnime,
-    episode: Parameters<PlaybackProvider['getStreams']>[1],
-    modes: AudioMode[],
+  anime: ProviderAnime,
+  episode: Parameters<PlaybackProvider['getStreams']>[1],
+  modes: AudioMode[]
 ) {
-    let slug: string | undefined;
-    let match: ProviderEpisode | undefined;
-    let parentError: unknown;
+  let slug: string | undefined;
+  let match: ProviderEpisode | undefined;
+  let parentError: unknown;
 
+  try {
+    const parent = await providerEpisodes(anime);
+    slug = parent.slug;
+    match = matchProviderStreamEpisode(parent.episodes, episode, anime.episodes);
+  } catch (cause) {
+    parentError = cause;
+  }
+
+  if (!match && isSpecialEpisodeReference(episode)) {
     try {
-        const parent = await providerEpisodes(anime);
-        slug = parent.slug;
-        match = matchProviderStreamEpisode(
-            parent.episodes,
-            episode,
-            anime.episodes,
-        );
+      const special = await specialReleaseEpisode(anime, episode);
+      slug = special.slug;
+      match = special.episode;
     } catch (cause) {
-        parentError = cause;
+      throw new AggregateError(
+        parentError ? [parentError, cause] : [cause],
+        `AniNeko could not resolve special ${episode.title || episode.id}`
+      );
     }
+  }
 
-    if (!match && isSpecialEpisodeReference(episode)) {
-        try {
-            const special = await specialReleaseEpisode(
-                anime,
-                episode,
-            );
-            slug = special.slug;
-            match = special.episode;
-        } catch (cause) {
-            throw new AggregateError(
-                parentError ? [parentError, cause] : [cause],
-                `AniNeko could not resolve special ${episode.title || episode.id}`,
-            );
-        }
+  if (!match || !slug) {
+    if (parentError) {
+      throw parentError;
     }
+    throw new Error(`AniNeko has no episode ${episode.number} for AniList ${anime.id}`);
+  }
 
-    if (!match || !slug) {
-        if (parentError) {
-            throw parentError;
-        }
-        throw new Error(
-            `AniNeko has no episode ${episode.number} for AniList ${anime.id}`,
-        );
+  const html = await requestText(new URL(`/watch/${slug}/ep-${match.number}`, baseUrl));
+  const streams: ProviderStreams = {};
+  const errors: unknown[] = [];
+
+  for (const mode of new Set(modes)) {
+    const candidates = embedUrls(html, mode);
+    const results = await Promise.allSettled(candidates.map(resolveEmbed));
+    const resolved = results.flatMap((result) => {
+      if (result.status === 'fulfilled') {
+        return [result.value];
+      }
+
+      errors.push(result.reason);
+      return [];
+    });
+    if (resolved.length) {
+      streams[mode] = resolved;
     }
+  }
 
-    const html = await requestText(
-        new URL(`/watch/${slug}/ep-${match.number}`, baseUrl),
+  if (!Object.keys(streams).length) {
+    throw new AggregateError(
+      errors,
+      `AniNeko returned no ${modes.join('/')} stream for episode ${episode.id}`
     );
-    const streams: ProviderStreams = {};
-    const errors: unknown[] = [];
+  }
 
-    for (const mode of new Set(modes)) {
-        const candidates = embedUrls(html, mode);
-        const results = await Promise.allSettled(
-            candidates.map(resolveEmbed),
-        );
-        const resolved = results.flatMap((result) => {
-            if (result.status === 'fulfilled') {
-                return [result.value];
-            }
-
-            errors.push(result.reason);
-            return [];
-        });
-        if (resolved.length) {
-            streams[mode] = resolved;
-        }
-    }
-
-    if (!Object.keys(streams).length) {
-        throw new AggregateError(
-            errors,
-            `AniNeko returned no ${modes.join('/')} stream for episode ${episode.id}`,
-        );
-    }
-
-    return streams;
+  return streams;
 }
 
 export const aninekoProvider: PlaybackProvider = {
-    name: 'AniNeko',
-    getEpisodes,
-    getStreams,
+  name: 'AniNeko',
+  getEpisodes,
+  getStreams,
 };
