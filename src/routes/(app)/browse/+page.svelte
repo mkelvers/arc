@@ -22,13 +22,12 @@
         type BrowseFilters,
     } from '$lib/anime/browse';
     import {
-        isAnimeCard,
+        isAnimeCardPage,
         type AnimeCard as AnimeCardModel,
     } from '$lib/anime/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
-    import { isRecord } from '$lib/utils';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -103,21 +102,9 @@
     }
 
     function responsePage(value: unknown, expectedPage: number) {
-        if (
-            !isRecord(value) ||
-            value.page !== expectedPage ||
-            typeof value.hasNextPage !== 'boolean' ||
-            !Array.isArray(value.anime) ||
-            !value.anime.every(isAnimeCard)
-        ) {
-            return null;
-        }
-
-        return {
-            anime: value.anime,
-            hasNextPage: value.hasNextPage,
-            page: expectedPage,
-        };
+        return isAnimeCardPage(value) && value.page === expectedPage
+            ? value
+            : null;
     }
 
     async function loadMore() {
