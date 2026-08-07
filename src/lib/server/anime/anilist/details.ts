@@ -17,152 +17,146 @@ const backgroundRefreshes = new Set<number>();
 const retryAt = new Map<number, number>();
 
 function failureMessage(cause: unknown) {
-    return cause instanceof Error ? cause.message : String(cause);
+  return cause instanceof Error ? cause.message : String(cause);
 }
 
 function refreshRetryDelay(cause: unknown) {
-    return cause instanceof GraphQLRequestError && cause.status === 404
-        ? permanentRetryDelay
-        : transientRetryDelay;
+  return cause instanceof GraphQLRequestError && cause.status === 404
+    ? permanentRetryDelay
+    : transientRetryDelay;
 }
 
 function requestAnime(id: number) {
-    return request(AnimeDocument, { id }).pipe(
-        Effect.retry({
-            times: 2,
-            schedule: Schedule.exponential('750 millis'),
-            while: transientRequestError,
-        }),
-        Effect.flatMap(({ Media }) =>
-            Media
-                ? Effect.succeed(Media)
-                : Effect.fail(
-                      new GraphQLRequestError({
-                          message: 'AniList returned no anime',
-                      }),
-                  ),
-        ),
-    );
+  return request(AnimeDocument, { id }).pipe(
+    Effect.retry({
+      times: 2,
+      schedule: Schedule.exponential('750 millis'),
+      while: transientRequestError,
+    }),
+    Effect.flatMap(({ Media }) =>
+      Media
+        ? Effect.succeed(Media)
+        : Effect.fail(
+            new GraphQLRequestError({
+              message: 'AniList returned no anime',
+            })
+          )
+    )
+  );
 }
 
 async function refresh(id: number) {
-    const pending = requests.get(id);
-    if (pending) {
-        return pending;
+  const pending = requests.get(id);
+  if (pending) {
+    return pending;
+  }
+
+  const request = Effect.runPromise(requestAnime(id).pipe(Effect.either)).then(async (result) => {
+    if (Either.isLeft(result)) {
+      throw result.left;
     }
 
-    const request = Effect.runPromise(
-        requestAnime(id).pipe(Effect.either),
-    ).then(async (result) => {
-        if (Either.isLeft(result)) {
-            throw result.left;
-        }
-
-        const data = result.right;
-
-        try {
-            await db
-                .insert(animeDetailsCache)
-                .values({
-                    anilistId: id,
-                    data,
-                    version,
-                    fetchedAt: new Date(),
-                })
-                .onConflictDoUpdate({
-                    target: animeDetailsCache.anilistId,
-                    set: {
-                        data,
-                        version,
-                        fetchedAt: new Date(),
-                    },
-                });
-        } catch (cause) {
-            console.error(`AniList cache write failed for ${id}`, cause);
-        }
-
-        return data;
-    });
-    requests.set(id, request);
+    const data = result.right;
 
     try {
-        return await request;
-    } finally {
-        requests.delete(id);
+      await db
+        .insert(animeDetailsCache)
+        .values({
+          anilistId: id,
+          data,
+          version,
+          fetchedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: animeDetailsCache.anilistId,
+          set: {
+            data,
+            version,
+            fetchedAt: new Date(),
+          },
+        });
+    } catch (cause) {
+      console.error(`AniList cache write failed for ${id}`, cause);
     }
+
+    return data;
+  });
+  requests.set(id, request);
+
+  try {
+    return await request;
+  } finally {
+    requests.delete(id);
+  }
 }
 
 async function cached(id: number) {
-    let stored:
-        | {
-              data: AniListAnime;
-              version: number;
-              fetchedAt: Date;
-          }
-        | undefined;
+  let stored:
+    | {
+        data: AniListAnime;
+        version: number;
+        fetchedAt: Date;
+      }
+    | undefined;
 
-    try {
-        [stored] = await db
-            .select({
-                data: animeDetailsCache.data,
-                version: animeDetailsCache.version,
-                fetchedAt: animeDetailsCache.fetchedAt,
-            })
-            .from(animeDetailsCache)
-            .where(eq(animeDetailsCache.anilistId, id))
-            .limit(1);
-    } catch (cause) {
-        console.error(`AniList cache read failed for ${id}`, cause);
-    }
+  try {
+    [stored] = await db
+      .select({
+        data: animeDetailsCache.data,
+        version: animeDetailsCache.version,
+        fetchedAt: animeDetailsCache.fetchedAt,
+      })
+      .from(animeDetailsCache)
+      .where(eq(animeDetailsCache.anilistId, id))
+      .limit(1);
+  } catch (cause) {
+    console.error(`AniList cache read failed for ${id}`, cause);
+  }
 
-    if (stored?.version === version) {
-        if (
-            Date.now() - stored.fetchedAt.getTime() > lifetime &&
-            (retryAt.get(id) ?? 0) <= Date.now() &&
-            !backgroundRefreshes.has(id)
-        ) {
-            backgroundRefreshes.add(id);
-            void refresh(id).then(
-                () => retryAt.delete(id),
-                (cause) => {
-                    retryAt.set(
-                        id,
-                        Date.now() + refreshRetryDelay(cause),
-                    );
-                    console.warn(
-                        `AniList cached details refresh deferred for ${id}: ${failureMessage(cause)}`,
-                    );
-                },
-            ).finally(() => backgroundRefreshes.delete(id));
-        }
-
-        return stored.data;
-    }
-
-    try {
-        return await refresh(id);
-    } catch (cause) {
-        if (stored) {
-            console.error(
-                `AniList refresh failed for ${id}; using stale cache`,
-                cause,
+  if (stored?.version === version) {
+    if (
+      Date.now() - stored.fetchedAt.getTime() > lifetime &&
+      (retryAt.get(id) ?? 0) <= Date.now() &&
+      !backgroundRefreshes.has(id)
+    ) {
+      backgroundRefreshes.add(id);
+      void refresh(id)
+        .then(
+          () => retryAt.delete(id),
+          (cause) => {
+            retryAt.set(id, Date.now() + refreshRetryDelay(cause));
+            console.warn(
+              `AniList cached details refresh deferred for ${id}: ${failureMessage(cause)}`
             );
-            return stored.data;
-        }
-
-        throw cause;
+          }
+        )
+        .finally(() => backgroundRefreshes.delete(id));
     }
+
+    return stored.data;
+  }
+
+  try {
+    return await refresh(id);
+  } catch (cause) {
+    if (stored) {
+      console.error(`AniList refresh failed for ${id}; using stale cache`, cause);
+      return stored.data;
+    }
+
+    throw cause;
+  }
 }
 
 export function getAnime(id: number) {
-    return Effect.tryPromise({
-        try: () => cached(id),
-        catch: (cause) =>
-            cause instanceof GraphQLRequestError
-                ? cause
-                : new GraphQLRequestError({
-                      message: 'Anime details could not be loaded',
-                      cause,
-                  }),
-    });
+  return Effect.tryPromise({
+    try: () => cached(id),
+    catch: (cause) =>
+      cause instanceof GraphQLRequestError
+        ? cause
+        : new GraphQLRequestError({
+            message: 'Anime details could not be loaded',
+            cause,
+          }),
+  });
 }
