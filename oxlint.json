@@ -1,0 +1,61 @@
+{
+  "$schema": "https://oxc-project.github.io/schema/oxlint.json",
+  "settings": {
+    "ignorePatterns": ["node_modules", ".svelte-kit", "build", "dist", "drizzle", "*.generated.ts"]
+  },
+  "rules": {
+    "correctness": "error",
+    "suspicious": "error",
+    "complexity": "error",
+    "perf": "error",
+    "style": "error",
+    "pedantic": "error",
+    "nursery": "error",
+    "restriction": "error",
+    "imports": "error",
+    "typescript": {
+      "no-explicit-any": "error",
+      "no-unused-vars": "error",
+      "consistent-type-imports": "error",
+      "no-unnecessary-type-assertion": "error",
+      "no-unnecessary-type-constraint": "error",
+      "no-inferrable-types": "error",
+      "prefer-nullish-coalescing": "error",
+      "prefer-optional-chain": "error",
+      "no-floating-promises": "error",
+      "no-misused-promises": "error",
+      "await-only-promise": "error",
+      "no-unnecessary-condition": "error",
+      "strict-boolean-expressions": "error",
+      "no-confusing-void-expression": "error",
+      "prefer-readonly": "error",
+      "prefer-readonly-parameter-types": "error",
+      "no-unused-type-parameters": "error",
+      "no-unnecessary-template-expression": "error",
+      "consistent-type-exports": "error"
+    },
+    "svelte": {
+      "enforce-svelte-5-syntax": "error",
+      "no-at-debug-tags": "error",
+      "button-has-type": "error",
+      "valid-compile": "error",
+      "no-unused-svelte-ignore": "error",
+      "shorthand-attribute": "error",
+      "shorthand-directive": "error",
+      "no-inner-declarations": "error",
+      "no-target-blank": "error",
+      "require-optimized-img": "warn",
+      "no-duplicate-attributes": "error",
+      "no-unknown-style-properties": "error"
+    }
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.spec.ts", "**/*.test.ts", "**/*.spec.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off",
+        "typescript/no-misused-promises": "off"
+      }
+    }
+  ]
+}

@@ -1,35 +1,32 @@
+import { Schema } from 'effect';
+
 import type { AudioMode } from './audio';
-import { isRecord } from '$lib/utils';
 
-export type AnimeCard = {
-  id: number;
-  href: string;
-  watchHref: string;
-  title: string;
-  image: string;
-  caption: string;
-  score: number;
-  genres: string[];
-  synopsis: string;
-};
+const AnimeCardSchema = Schema.Struct({
+  id: Schema.Int,
+  href: Schema.String.pipe(Schema.startsWith('/anime/')),
+  watchHref: Schema.String,
+  title: Schema.String,
+  image: Schema.String,
+  caption: Schema.String,
+  score: Schema.Finite,
+  genres: Schema.Array(Schema.String),
+  synopsis: Schema.String,
+});
 
-export function isAnimeCard(value: unknown): value is AnimeCard {
-  return (
-    isRecord(value) &&
-    Number.isSafeInteger(value.id) &&
-    typeof value.href === 'string' &&
-    value.href.startsWith('/anime/') &&
-    typeof value.watchHref === 'string' &&
-    typeof value.title === 'string' &&
-    typeof value.image === 'string' &&
-    typeof value.caption === 'string' &&
-    typeof value.score === 'number' &&
-    Number.isFinite(value.score) &&
-    Array.isArray(value.genres) &&
-    value.genres.every((genre) => typeof genre === 'string') &&
-    typeof value.synopsis === 'string'
-  );
-}
+export type AnimeCard = typeof AnimeCardSchema.Type;
+
+export const isAnimeCard = Schema.is(AnimeCardSchema);
+
+const AnimeCardPageSchema = Schema.Struct({
+  anime: Schema.Array(AnimeCardSchema),
+  hasNextPage: Schema.Boolean,
+  page: Schema.Int,
+});
+
+export type AnimeCardPage = typeof AnimeCardPageSchema.Type;
+
+export const isAnimeCardPage = Schema.is(AnimeCardPageSchema);
 
 export type AnimeEpisode = {
   id: string;
