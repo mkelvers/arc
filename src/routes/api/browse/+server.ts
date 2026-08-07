@@ -7,25 +7,25 @@ import { positiveInteger } from '$lib/utils';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ url }) => {
-    const filters = parseBrowseFilters(url.searchParams);
-    const page = positiveInteger(url.searchParams.get('page'));
-    if (!filters || !page) {
-        error(400, 'Valid browse filters and a page are required');
+  const filters = parseBrowseFilters(url.searchParams);
+  const page = positiveInteger(url.searchParams.get('page'));
+  if (!filters || !page) {
+    error(400, 'Valid browse filters and a page are required');
+  }
+
+  try {
+    const result = await anime.browse.page(filters, page);
+    return json({
+      anime: result.anime,
+      hasNextPage: result.hasNextPage,
+      page: result.page,
+    });
+  } catch (cause) {
+    if (cause instanceof BrowseFilterError) {
+      error(400, cause.message);
     }
 
-    try {
-        const result = await anime.browse.page(filters, page);
-        return json({
-            anime: result.anime,
-            hasNextPage: result.hasNextPage,
-            page: result.page,
-        });
-    } catch (cause) {
-        if (cause instanceof BrowseFilterError) {
-            error(400, cause.message);
-        }
-
-        console.error(`Browse page ${page} load failed`, cause);
-        error(502, 'More anime could not be loaded');
-    }
+    console.error(`Browse page ${page} load failed`, cause);
+    error(502, 'More anime could not be loaded');
+  }
 };
