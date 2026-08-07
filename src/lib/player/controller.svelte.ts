@@ -2,163 +2,160 @@ import { isControl, shortcut, type SettingsView, type Sources } from './media';
 import { Playback } from './playback.svelte';
 
 export class Player {
-    container!: HTMLElement;
-    controlsVisible = $state(true);
-    fullscreen = $state(false);
-    scrubbing = $state(false);
-    settingsOpen = $state(false);
-    settingsView = $state<SettingsView>('main');
-    readonly media: Playback;
+  container!: HTMLElement;
+  controlsVisible = $state(true);
+  fullscreen = $state(false);
+  scrubbing = $state(false);
+  settingsOpen = $state(false);
+  settingsView = $state<SettingsView>('main');
+  readonly media: Playback;
 
-    private hideControlsTimer: ReturnType<typeof setTimeout> | undefined;
+  private hideControlsTimer: ReturnType<typeof setTimeout> | undefined;
 
-    constructor(
-        readSources: () => Sources,
-        readNext: () => string | null,
+  constructor(readSources: () => Sources, readNext: () => string | null) {
+    this.media = new Playback(
+      readSources,
+      readNext,
+      () => this.scrubbing,
+      () => this.showControls()
+    );
+  }
+
+  showControls() {
+    this.controlsVisible = true;
+    clearTimeout(this.hideControlsTimer);
+
+    if (this.media.playing && !this.scrubbing && !this.settingsOpen) {
+      this.hideControlsTimer = setTimeout(() => {
+        this.controlsVisible = false;
+      }, 2_000);
+    }
+  }
+
+  async toggleFullscreen() {
+    if (document.fullscreenElement === this.container) {
+      await document.exitFullscreen();
+      return;
+    }
+
+    await this.container.requestFullscreen();
+  }
+
+  handleClick(event: MouseEvent) {
+    this.focus();
+
+    if (this.media.loading || isControl(event.target)) {
+      return;
+    }
+
+    this.media.togglePlayback();
+    this.showControls();
+  }
+
+  handleDoubleClick(event: MouseEvent) {
+    if (this.media.loading || isControl(event.target)) {
+      return;
+    }
+
+    void this.toggleFullscreen();
+    this.showControls();
+  }
+
+  handleKeydown(event: KeyboardEvent) {
+    if (event.code === 'Escape' && this.settingsOpen) {
+      event.preventDefault();
+      this.closeSettings();
+      return;
+    }
+
+    if (this.media.loading) {
+      return;
+    }
+
+    const action = shortcut(event);
+    if (!action) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (action === 'play') {
+      this.media.togglePlayback();
+    } else if (action === 'mute') {
+      this.media.toggleMute();
+    } else if (action === 'fullscreen') {
+      void this.toggleFullscreen();
+    } else if (action === 'start') {
+      this.media.seek(0);
+    } else if (action === 'end') {
+      this.media.seek(this.media.duration);
+    } else if ('seek' in action) {
+      this.media.seek(this.media.video.currentTime + action.seek);
+    } else if ('volume' in action) {
+      this.media.changeVolume(action.volume);
+    } else {
+      this.media.seek(this.media.duration * action.percent);
+    }
+
+    this.showControls();
+  }
+
+  handlePointerMove(event: PointerEvent) {
+    const bounds = this.container?.getBoundingClientRect();
+
+    if (
+      bounds &&
+      event.clientX >= bounds.left &&
+      event.clientX <= bounds.right &&
+      event.clientY >= bounds.top &&
+      event.clientY <= bounds.bottom
     ) {
-        this.media = new Playback(
-            readSources,
-            readNext,
-            () => this.scrubbing,
-            () => this.showControls(),
-        );
+      this.showControls();
+    }
+  }
+
+  openSettings() {
+    if (!this.settingsOpen) {
+      this.settingsView = 'main';
     }
 
-    showControls() {
-        this.controlsVisible = true;
-        clearTimeout(this.hideControlsTimer);
+    this.settingsOpen = !this.settingsOpen;
+    this.showControls();
+  }
 
-        if (this.media.playing && !this.scrubbing && !this.settingsOpen) {
-            this.hideControlsTimer = setTimeout(() => {
-                this.controlsVisible = false;
-            }, 2_000);
-        }
+  closeSettings() {
+    if (this.settingsView === 'main') {
+      this.settingsOpen = false;
+    } else {
+      this.settingsView = 'main';
     }
 
-    async toggleFullscreen() {
-        if (document.fullscreenElement === this.container) {
-            await document.exitFullscreen();
-            return;
-        }
+    this.showControls();
+  }
 
-        await this.container.requestFullscreen();
+  setScrubbing(active: boolean) {
+    this.scrubbing = active;
+
+    if (active) {
+      this.media.syncAudio(true);
     }
+  }
 
-    handleClick(event: MouseEvent) {
-        this.focus();
+  focus() {
+    this.container.focus({ preventScroll: true });
+  }
 
-        if (this.media.loading || isControl(event.target)) {
-            return;
-        }
+  fullscreenChanged() {
+    this.fullscreen = document.fullscreenElement === this.container;
+    this.showControls();
+  }
 
-        this.media.togglePlayback();
-        this.showControls();
-    }
+  mount() {
+    const closeMedia = this.media.mount();
 
-    handleDoubleClick(event: MouseEvent) {
-        if (this.media.loading || isControl(event.target)) {
-            return;
-        }
-
-        void this.toggleFullscreen();
-        this.showControls();
-    }
-
-    handleKeydown(event: KeyboardEvent) {
-        if (event.code === 'Escape' && this.settingsOpen) {
-            event.preventDefault();
-            this.closeSettings();
-            return;
-        }
-
-        if (this.media.loading) {
-            return;
-        }
-
-        const action = shortcut(event);
-        if (!action) {
-            return;
-        }
-
-        event.preventDefault();
-
-        if (action === 'play') {
-            this.media.togglePlayback();
-        } else if (action === 'mute') {
-            this.media.toggleMute();
-        } else if (action === 'fullscreen') {
-            void this.toggleFullscreen();
-        } else if (action === 'start') {
-            this.media.seek(0);
-        } else if (action === 'end') {
-            this.media.seek(this.media.duration);
-        } else if ('seek' in action) {
-            this.media.seek(this.media.video.currentTime + action.seek);
-        } else if ('volume' in action) {
-            this.media.changeVolume(action.volume);
-        } else {
-            this.media.seek(this.media.duration * action.percent);
-        }
-
-        this.showControls();
-    }
-
-    handlePointerMove(event: PointerEvent) {
-        const bounds = this.container?.getBoundingClientRect();
-
-        if (
-            bounds &&
-            event.clientX >= bounds.left &&
-            event.clientX <= bounds.right &&
-            event.clientY >= bounds.top &&
-            event.clientY <= bounds.bottom
-        ) {
-            this.showControls();
-        }
-    }
-
-    openSettings() {
-        if (!this.settingsOpen) {
-            this.settingsView = 'main';
-        }
-
-        this.settingsOpen = !this.settingsOpen;
-        this.showControls();
-    }
-
-    closeSettings() {
-        if (this.settingsView === 'main') {
-            this.settingsOpen = false;
-        } else {
-            this.settingsView = 'main';
-        }
-
-        this.showControls();
-    }
-
-    setScrubbing(active: boolean) {
-        this.scrubbing = active;
-
-        if (active) {
-            this.media.syncAudio(true);
-        }
-    }
-
-    focus() {
-        this.container.focus({ preventScroll: true });
-    }
-
-    fullscreenChanged() {
-        this.fullscreen = document.fullscreenElement === this.container;
-        this.showControls();
-    }
-
-    mount() {
-        const closeMedia = this.media.mount();
-
-        return () => {
-            clearTimeout(this.hideControlsTimer);
-            closeMedia();
-        };
-    }
+    return () => {
+      clearTimeout(this.hideControlsTimer);
+      closeMedia();
+    };
+  }
 }
