@@ -1,318 +1,264 @@
 import { Buffer } from 'node:buffer';
 
 const allowedHosts = [
-    'tools.fast4speed.rsvp',
-    'repackager.wixmp.com',
-    'video.wixstatic.com',
-    'mp4upload.com',
-    'sharepoint.com',
-    'hls.anidb.app',
-    'ninstream.com',
-    'ninjstream.xyz',
-    'ibyteimg.com',
-    'vibevibe.workers.dev',
-    'vivibebe.site',
-    'lostproject.club',
-    'anizara.store',
-    'kwik.cx',
-    'uwucdn.top',
-    'streampeaker.org',
+  'tools.fast4speed.rsvp',
+  'repackager.wixmp.com',
+  'video.wixstatic.com',
+  'mp4upload.com',
+  'sharepoint.com',
+  'hls.anidb.app',
+  'ninstream.com',
+  'ninjstream.xyz',
+  'ibyteimg.com',
+  'vibevibe.workers.dev',
+  'vivibebe.site',
+  'lostproject.club',
+  'anizara.store',
+  'kwik.cx',
+  'uwucdn.top',
+  'streampeaker.org',
 ];
 
 export class StreamTargetError extends Error {
-    constructor(
-        message: string,
-        readonly status: 400 | 403,
-    ) {
-        super(message);
-    }
+  constructor(
+    message: string,
+    readonly status: 400 | 403
+  ) {
+    super(message);
+  }
 }
 
 export class StreamResponseError extends Error {
-    constructor(
-        message: string,
-        readonly status: 502 | 504,
-    ) {
-        super(message);
-    }
+  constructor(
+    message: string,
+    readonly status: 502 | 504
+  ) {
+    super(message);
+  }
 }
 
 export async function boundedResponseBytes(
-    response: Response,
-    maximumBytes: number,
-    timeoutMs: number,
-    label: string,
+  response: Response,
+  maximumBytes: number,
+  timeoutMs: number,
+  label: string
 ) {
-    const contentLength = Number(
-        response.headers.get('content-length') ?? 0,
-    );
-    if (
-        Number.isFinite(contentLength) &&
-        contentLength > maximumBytes
-    ) {
-        throw new StreamResponseError(
-            `${label} was unexpectedly large`,
-            502,
-        );
-    }
-    if (!response.body) {
-        return new Uint8Array();
-    }
+  const contentLength = Number(response.headers.get('content-length') ?? 0);
+  if (Number.isFinite(contentLength) && contentLength > maximumBytes) {
+    throw new StreamResponseError(`${label} was unexpectedly large`, 502);
+  }
+  if (!response.body) {
+    return new Uint8Array();
+  }
 
-    const reader = response.body.getReader();
-    const parts: Uint8Array[] = [];
-    const deadline = Date.now() + timeoutMs;
-    let length = 0;
+  const reader = response.body.getReader();
+  const parts: Uint8Array[] = [];
+  const deadline = Date.now() + timeoutMs;
+  let length = 0;
 
-    while (true) {
-        const remaining = deadline - Date.now();
-        if (remaining <= 0) {
-            await reader.cancel().catch(() => undefined);
-            throw new StreamResponseError(
-                `${label} timed out`,
-                504,
-            );
-        }
-
-        let timeout: ReturnType<typeof setTimeout> | undefined;
-        const expired = new Promise<never>((_, reject) => {
-            timeout = setTimeout(
-                () =>
-                    reject(
-                        new StreamResponseError(
-                            `${label} timed out`,
-                            504,
-                        ),
-                    ),
-                remaining,
-            );
-        });
-        let result: Awaited<ReturnType<typeof reader.read>>;
-
-        try {
-            result = await Promise.race([reader.read(), expired]);
-        } catch (cause) {
-            await reader.cancel().catch(() => undefined);
-            throw cause instanceof StreamResponseError
-                ? cause
-                : new StreamResponseError(
-                      `${label} could not be read`,
-                      502,
-                  );
-        } finally {
-            clearTimeout(timeout);
-        }
-
-        if (result.done) {
-            break;
-        }
-
-        length += result.value.byteLength;
-        if (length > maximumBytes) {
-            await reader.cancel().catch(() => undefined);
-            throw new StreamResponseError(
-                `${label} was unexpectedly large`,
-                502,
-            );
-        }
-        parts.push(result.value);
+  while (true) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      await reader.cancel().catch(() => undefined);
+      throw new StreamResponseError(`${label} timed out`, 504);
     }
 
-    const body = new Uint8Array(length);
-    let offset = 0;
-    for (const part of parts) {
-        body.set(part, offset);
-        offset += part.byteLength;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<never>((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new StreamResponseError(`${label} timed out`, 504)),
+        remaining
+      );
+    });
+    let result: Awaited<ReturnType<typeof reader.read>>;
+
+    try {
+      result = await Promise.race([reader.read(), expired]);
+    } catch (cause) {
+      await reader.cancel().catch(() => undefined);
+      throw cause instanceof StreamResponseError
+        ? cause
+        : new StreamResponseError(`${label} could not be read`, 502);
+    } finally {
+      clearTimeout(timeout);
     }
 
-    return body;
+    if (result.done) {
+      break;
+    }
+
+    length += result.value.byteLength;
+    if (length > maximumBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw new StreamResponseError(`${label} was unexpectedly large`, 502);
+    }
+    parts.push(result.value);
+  }
+
+  const body = new Uint8Array(length);
+  let offset = 0;
+  for (const part of parts) {
+    body.set(part, offset);
+    offset += part.byteLength;
+  }
+
+  return body;
 }
 
 export async function boundedResponseText(
-    response: Response,
-    maximumBytes: number,
-    timeoutMs: number,
+  response: Response,
+  maximumBytes: number,
+  timeoutMs: number
 ) {
-    const body = await boundedResponseBytes(
-        response,
-        maximumBytes,
-        timeoutMs,
-        'Episode playlist',
-    );
-    return new TextDecoder().decode(body);
+  const body = await boundedResponseBytes(response, maximumBytes, timeoutMs, 'Episode playlist');
+  return new TextDecoder().decode(body);
 }
 
 function allowedHost(hostname: string) {
-    // MegaPlay rotates per-series CDN hosts that all share the `megap.`
-    // prefix; the rest of the list is exact-or-`.<host>` suffix matched.
-    return (
-        hostname.startsWith('megap.') ||
-        allowedHosts.some(
-            (host) =>
-                hostname === host || hostname.endsWith(`.${host}`),
-        )
-    );
+  // MegaPlay rotates per-series CDN hosts that all share the `megap.`
+  // prefix; the rest of the list is exact-or-`.<host>` suffix matched.
+  return (
+    hostname.startsWith('megap.') ||
+    allowedHosts.some((host) => hostname === host || hostname.endsWith(`.${host}`))
+  );
 }
 
 export function streamTarget(value: string | null) {
-    if (!value) {
-        throw new StreamTargetError('Missing stream URL', 400);
-    }
+  if (!value) {
+    throw new StreamTargetError('Missing stream URL', 400);
+  }
 
-    let target: URL;
-    try {
-        target = new URL(value);
-    } catch {
-        throw new StreamTargetError('Invalid stream URL', 400);
-    }
+  let target: URL;
+  try {
+    target = new URL(value);
+  } catch {
+    throw new StreamTargetError('Invalid stream URL', 400);
+  }
 
-    if (target.protocol !== 'https:' || !allowedHost(target.hostname)) {
-        throw new StreamTargetError(
-            `Unsupported stream host: ${target.hostname}`,
-            403,
-        );
-    }
+  if (target.protocol !== 'https:' || !allowedHost(target.hostname)) {
+    throw new StreamTargetError(`Unsupported stream host: ${target.hostname}`, 403);
+  }
 
-    return target;
+  return target;
 }
 
 export function streamReferer(target: URL) {
-    if (
-        target.hostname === 'mp4upload.com' ||
-        target.hostname.endsWith('.mp4upload.com')
-    ) {
-        return 'https://www.mp4upload.com';
-    }
-    if (
-        target.hostname === 'ninstream.com' ||
-        target.hostname.endsWith('.ninstream.com') ||
-        target.hostname === 'ninjstream.xyz' ||
-        target.hostname.endsWith('.ninjstream.xyz')
-    ) {
-        return 'https://senshi.live/';
-    }
-    if (target.hostname === 'hls.anidb.app') {
-        return 'https://anidb.app/';
-    }
-    if (
-        target.hostname.startsWith('megap.') ||
-        target.hostname.endsWith('.lostproject.club')
-    ) {
-        return 'https://megaplay.buzz/';
-    }
-    if (
-        target.hostname === 'vivibebe.site' ||
-        target.hostname.endsWith('.vibevibe.workers.dev') ||
-        target.hostname.endsWith('.anizara.store') ||
-        target.hostname.endsWith('.ibyteimg.com')
-    ) {
-        return 'https://anineko.to/';
-    }
-    if (
-        target.hostname === 'kwik.cx' ||
-        target.hostname.endsWith('.kwik.cx') ||
-        target.hostname === 'uwucdn.top' ||
-        target.hostname.endsWith('.uwucdn.top') ||
-        target.hostname === 'streampeaker.org' ||
-        target.hostname.endsWith('.streampeaker.org')
-    ) {
-        return 'https://kwik.cx/';
-    }
+  if (target.hostname === 'mp4upload.com' || target.hostname.endsWith('.mp4upload.com')) {
+    return 'https://www.mp4upload.com';
+  }
+  if (
+    target.hostname === 'ninstream.com' ||
+    target.hostname.endsWith('.ninstream.com') ||
+    target.hostname === 'ninjstream.xyz' ||
+    target.hostname.endsWith('.ninjstream.xyz')
+  ) {
+    return 'https://senshi.live/';
+  }
+  if (target.hostname === 'hls.anidb.app') {
+    return 'https://anidb.app/';
+  }
+  if (target.hostname.startsWith('megap.') || target.hostname.endsWith('.lostproject.club')) {
+    return 'https://megaplay.buzz/';
+  }
+  if (
+    target.hostname === 'vivibebe.site' ||
+    target.hostname.endsWith('.vibevibe.workers.dev') ||
+    target.hostname.endsWith('.anizara.store') ||
+    target.hostname.endsWith('.ibyteimg.com')
+  ) {
+    return 'https://anineko.to/';
+  }
+  if (
+    target.hostname === 'kwik.cx' ||
+    target.hostname.endsWith('.kwik.cx') ||
+    target.hostname === 'uwucdn.top' ||
+    target.hostname.endsWith('.uwucdn.top') ||
+    target.hostname === 'streampeaker.org' ||
+    target.hostname.endsWith('.streampeaker.org')
+  ) {
+    return 'https://kwik.cx/';
+  }
 
-    return 'https://youtu-chan.com';
+  return 'https://youtu-chan.com';
 }
 
 export function proxiedStreamUrl(target: URL) {
-    return `/api/watch/stream?${new URLSearchParams({
-        src: Buffer.from(target.toString()).toString('base64url'),
-    })}`;
+  return `/api/watch/stream?${new URLSearchParams({
+    src: Buffer.from(target.toString()).toString('base64url'),
+  })}`;
 }
 
 export function streamTargetParameter(url: URL) {
-    const encoded = url.searchParams.get('src');
-    if (!encoded) {
-        return url.searchParams.get('url');
-    }
+  const encoded = url.searchParams.get('src');
+  if (!encoded) {
+    return url.searchParams.get('url');
+  }
 
-    try {
-        return Buffer.from(encoded, 'base64url').toString('utf8');
-    } catch {
-        return null;
-    }
+  try {
+    return Buffer.from(encoded, 'base64url').toString('utf8');
+  } catch {
+    return null;
+  }
 }
 
-function rewrittenReference(
-    reference: string,
-    playlist: URL,
-    warnedHosts: Set<string>,
-) {
-    if (reference.startsWith('data:')) {
-        return reference;
+function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<string>) {
+  if (reference.startsWith('data:')) {
+    return reference;
+  }
+
+  let target: URL;
+  try {
+    target = new URL(reference, playlist);
+  } catch {
+    return reference;
+  }
+
+  try {
+    return proxiedStreamUrl(streamTarget(target.toString()));
+  } catch (cause) {
+    if (!(cause instanceof StreamTargetError)) {
+      throw cause;
     }
 
-    let target: URL;
-    try {
-        target = new URL(reference, playlist);
-    } catch {
-        return reference;
+    // The proxy only serves allowlisted hosts. Keep the original
+    // reference so the browser can still fetch it directly, and
+    // surface the gap so a legitimate provider CDN can be allowed.
+    if (!warnedHosts.has(target.hostname)) {
+      warnedHosts.add(target.hostname);
+      console.warn(
+        `Stream proxy skipped unlisted host ${target.hostname} referenced by ${playlist.hostname}`
+      );
     }
-
-    try {
-        return proxiedStreamUrl(streamTarget(target.toString()));
-    } catch (cause) {
-        if (!(cause instanceof StreamTargetError)) {
-            throw cause;
-        }
-
-        // The proxy only serves allowlisted hosts. Keep the original
-        // reference so the browser can still fetch it directly, and
-        // surface the gap so a legitimate provider CDN can be allowed.
-        if (!warnedHosts.has(target.hostname)) {
-            warnedHosts.add(target.hostname);
-            console.warn(
-                `Stream proxy skipped unlisted host ${target.hostname} referenced by ${playlist.hostname}`,
-            );
-        }
-        return reference;
-    }
+    return reference;
+  }
 }
 
 export function rewriteHlsPlaylist(value: string, playlist: URL) {
-    const warnedHosts = new Set<string>();
-    return value
-        .split(/\r?\n/)
-        .map((line) => {
-            if (!line || line.startsWith('#')) {
-                return line.replace(
-                    /URI=(["'])(.*?)\1/g,
-                    (_, quote: string, uri: string) =>
-                        `URI=${quote}${rewrittenReference(uri, playlist, warnedHosts)}${quote}`,
-                );
-            }
+  const warnedHosts = new Set<string>();
+  return value
+    .split(/\r?\n/)
+    .map((line) => {
+      if (!line || line.startsWith('#')) {
+        return line.replace(
+          /URI=(["'])(.*?)\1/g,
+          (_, quote: string, uri: string) =>
+            `URI=${quote}${rewrittenReference(uri, playlist, warnedHosts)}${quote}`
+        );
+      }
 
-            return rewrittenReference(line.trim(), playlist, warnedHosts);
-        })
-        .join('\n');
+      return rewrittenReference(line.trim(), playlist, warnedHosts);
+    })
+    .join('\n');
 }
 
-const pngEnd = new Uint8Array([
-    0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
-]);
+const pngEnd = new Uint8Array([0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
 
 export function unwrapPngSegment(value: Uint8Array) {
-    for (
-        let index = 0;
-        index <= value.length - pngEnd.length;
-        index++
-    ) {
-        if (
-            pngEnd.every(
-                (byte, offset) => value[index + offset] === byte,
-            )
-        ) {
-            return value.slice(index + pngEnd.length);
-        }
+  for (let index = 0; index <= value.length - pngEnd.length; index++) {
+    if (pngEnd.every((byte, offset) => value[index + offset] === byte)) {
+      return value.slice(index + pngEnd.length);
     }
+  }
 
-    return value;
+  return value;
 }
