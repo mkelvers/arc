@@ -33,7 +33,7 @@
 
     <form method="POST" action="?/update">
       <div class="overflow-hidden bg-surface">
-        <div class="relative aspect-[3/1] overflow-hidden bg-panel-strong">
+        <div class="relative aspect-3/1 overflow-hidden bg-panel-strong">
           <img src={data.account.artSource} alt="" class="size-full object-cover" />
         </div>
 
