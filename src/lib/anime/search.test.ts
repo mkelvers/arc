@@ -62,21 +62,16 @@ describe('rankAnimeSearch', () => {
 
 describe('distinctSearchArtwork', () => {
   test('keeps only the highest-ranked result for a shared backdrop', () => {
-    const first = result('First season', 100);
-    const second = result('Second season', 90);
-    const distinct = result('Movie', 80);
-    first.backdrop = 'https://example.com/shared.jpg';
-    second.backdrop = 'https://example.com/shared.jpg';
-    distinct.backdrop = 'https://example.com/movie.jpg';
+    const first = { ...result('First season', 100), backdrop: 'https://example.com/shared.jpg' };
+    const second = { ...result('Second season', 90), backdrop: 'https://example.com/shared.jpg' };
+    const distinct = { ...result('Movie', 80), backdrop: 'https://example.com/movie.jpg' };
 
     expect(distinctSearchArtwork([first, second, distinct], 4)).toEqual([first, distinct]);
   });
 
   test('deduplicates a release that inherited a mapped artwork group', () => {
-    const first = result('First season', 100);
-    const third = result('Third season', 90);
-    first.artworkGroup = 'tmdb:tv:123';
-    third.artworkGroup = 'tmdb:tv:123';
+    const first = { ...result('First season', 100), artworkGroup: 'tmdb:tv:123' };
+    const third = { ...result('Third season', 90), artworkGroup: 'tmdb:tv:123' };
 
     expect(distinctSearchArtwork([first, third], 4)).toEqual([first]);
   });
@@ -85,8 +80,7 @@ describe('distinctSearchArtwork', () => {
 describe('inferSearchArtwork', () => {
   test('inherits one uniquely related TV mapping without a TMDB request', () => {
     const first = result('First season', 100);
-    const third = result('Third season', 90);
-    third.relatedIds = [first.id];
+    const third = { ...result('Third season', 90), relatedIds: [first.id] };
 
     const artwork = inferSearchArtwork(
       [first, third],
@@ -100,11 +94,8 @@ describe('inferSearchArtwork', () => {
   });
 
   test('does not infer movies or ambiguous TV mappings', () => {
-    const movie = result('Movie', 100);
-    const series = result('Series', 90);
-    movie.format = 'MOVIE';
-    movie.relatedIds = [1];
-    series.relatedIds = [1, 2];
+    const movie = { ...result('Movie', 100), format: 'MOVIE', relatedIds: [1] };
+    const series = { ...result('Series', 90), relatedIds: [1, 2] };
     const stored = new Map([
       [1, { group: 'tmdb:tv:1', backdrop: null }],
       [2, { group: 'tmdb:tv:2', backdrop: null }],

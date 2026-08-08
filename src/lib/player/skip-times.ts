@@ -1,5 +1,5 @@
 export type SkipKind = 'opening' | 'ending';
-export type SkipTimesSource = 'aniskip' | 'manual';
+type SkipTimesSource = 'aniskip' | 'manual';
 
 export interface SkipInterval {
   start: number;

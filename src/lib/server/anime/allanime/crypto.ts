@@ -65,7 +65,7 @@ export async function getCrypto(refresh = false) {
   }
 
   const epoch = Number(bootstrap.epoch);
-  const part = Buffer.from(String(bootstrap.partB ?? ''), 'base64');
+  const part = Buffer.from(typeof bootstrap.partB === 'string' ? bootstrap.partB : '', 'base64');
 
   if (
     !Number.isSafeInteger(epoch) ||

@@ -37,7 +37,7 @@ function excluded(column: { name: string }) {
   return sql.raw(`excluded."${column.name}"`);
 }
 
-export function browseRefreshKey(filters: BrowseFilters, page: number) {
+function browseRefreshKey(filters: BrowseFilters, page: number) {
   return JSON.stringify({
     query: filters.query.toLocaleLowerCase('en'),
     safe: filters.safe,

@@ -1,15 +1,6 @@
 import { Schema } from 'effect';
 
-import type { AnimeCard } from './types';
-
-export type AnimeSearchResult = AnimeCard & {
-  titles: string[];
-  format: string | null;
-  popularity: number;
-  backdrop: string | null;
-  artworkGroup: string | null;
-  relatedIds: number[];
-};
+import { AnimeCardSchema } from './types';
 
 export interface SearchArtwork {
   group: string;
@@ -17,15 +8,7 @@ export interface SearchArtwork {
 }
 
 const AnimeSearchResultSchema = Schema.Struct({
-  id: Schema.Int,
-  href: Schema.String.pipe(Schema.startsWith('/anime/')),
-  watchHref: Schema.String,
-  title: Schema.String,
-  image: Schema.String,
-  caption: Schema.String,
-  score: Schema.Finite,
-  genres: Schema.Array(Schema.String),
-  synopsis: Schema.String,
+  ...AnimeCardSchema.fields,
   titles: Schema.Array(Schema.String),
   format: Schema.NullOr(Schema.String),
   popularity: Schema.Finite,
@@ -33,6 +16,8 @@ const AnimeSearchResultSchema = Schema.Struct({
   artworkGroup: Schema.NullOr(Schema.String),
   relatedIds: Schema.Array(Schema.Int),
 });
+
+export type AnimeSearchResult = typeof AnimeSearchResultSchema.Type;
 
 const isSearchResults = Schema.is(Schema.Array(AnimeSearchResultSchema));
 
@@ -84,7 +69,7 @@ function fuzzyDistance(query: string, candidate: string) {
   return distance;
 }
 
-export function searchRelevance(query: string, titles: string[]) {
+export function searchRelevance(query: string, titles: readonly string[]) {
   const queryWords = words(query);
   const compactQuery = queryWords.join('');
   if (!compactQuery) {

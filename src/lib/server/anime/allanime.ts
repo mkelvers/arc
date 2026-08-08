@@ -152,7 +152,7 @@ async function resolveStreams(anime: AniListAnime, episode: string, modes: Audio
       sourceResults.map((result) =>
         result.error instanceof Error && result.error.message.includes('AA_CRYPTO')
           ? load(result.mode)
-          : result
+          : Promise.resolve(result)
       )
     );
   }

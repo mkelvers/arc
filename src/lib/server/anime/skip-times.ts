@@ -117,7 +117,7 @@ export async function getEpisodeSkipTimes({
   }
 }
 
-export async function getStoredEpisodeSkipTimes(
+async function getStoredEpisodeSkipTimes(
   anilistId: number,
   episodeId: string
 ): Promise<EpisodeSkipTimes> {

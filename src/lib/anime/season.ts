@@ -1,4 +1,4 @@
-export const animeSeasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
+const animeSeasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
 
 export type AnimeSeason = (typeof animeSeasons)[number];
 

@@ -10,7 +10,7 @@ interface PopularAnime {
   } | null;
 }
 
-export const popularAnimeSize = 30;
+const popularAnimeSize = 30;
 
 export function selectPopularAnime<Anime extends PopularAnime>(media: Array<Anime | null>) {
   const anime = media.filter((entry): entry is Anime => entry !== null);

@@ -2,7 +2,7 @@ import { Schema } from 'effect';
 
 import type { AudioMode } from './audio';
 
-const AnimeCardSchema = Schema.Struct({
+export const AnimeCardSchema = Schema.Struct({
   id: Schema.Int,
   href: Schema.String.pipe(Schema.startsWith('/anime/')),
   watchHref: Schema.String,
@@ -23,8 +23,6 @@ const AnimeCardPageSchema = Schema.Struct({
   hasNextPage: Schema.Boolean,
   page: Schema.Int,
 });
-
-export type AnimeCardPage = typeof AnimeCardPageSchema.Type;
 
 export const isAnimeCardPage = Schema.is(AnimeCardPageSchema);
 

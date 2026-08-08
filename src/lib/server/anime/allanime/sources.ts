@@ -28,9 +28,9 @@ export function sourceReferences(value: unknown): Source[] {
 }
 
 const substitutions = new Map(
-  [...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&()*+,;=%'].map(
-    (character) => [(character.charCodeAt(0) ^ 0x38).toString(16).padStart(2, '0'), character]
-  )
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&()*+,;=%'
+    .split('')
+    .map((character) => [(character.charCodeAt(0) ^ 0x38).toString(16).padStart(2, '0'), character])
 );
 
 export function decodeSourceUrl(value: string) {
@@ -104,7 +104,8 @@ export async function detectAudioDelay(target: string) {
 }
 
 function streamQuality(value: unknown) {
-  const match = String(value ?? '').match(/^(\d{3,4})p?$/i);
+  const normalized = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+  const match = normalized.match(/^(\d{3,4})p?$/i);
   return match ? `${Number(match[1])}p` : null;
 }
 

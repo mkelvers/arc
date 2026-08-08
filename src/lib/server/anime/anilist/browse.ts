@@ -24,7 +24,7 @@ export interface BrowseSourceTaxonomy {
   statuses: string[];
 }
 
-export interface BrowseCatalogEntry {
+interface BrowseCatalogEntry {
   anilistId: number;
   title: string;
   searchText: string;

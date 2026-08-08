@@ -13,7 +13,7 @@ import { getArtwork } from './tmdb/artwork';
 
 const requests = new Map<string, Promise<HomeHeroAnime[]>>();
 
-export interface HomeHeroAnime {
+interface HomeHeroAnime {
   id: number;
   href: string;
   watchHref: string;

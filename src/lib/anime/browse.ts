@@ -7,8 +7,8 @@ export const browsePageSize = 42;
 
 type OptionValue<Options extends readonly { value: string }[]> = Options[number]['value'];
 
-export type BrowseSort = OptionValue<typeof browseSorts>;
-export type BrowseOrder = 'asc' | 'desc';
+type BrowseSort = OptionValue<typeof browseSorts>;
+type BrowseOrder = 'asc' | 'desc';
 
 export interface BrowseTaxonomy {
   genres: string[];

@@ -175,18 +175,6 @@ export function hasDialogueCoverage(dubCues: number, subCues: number) {
   return dubCues >= minimumDialogueCues && (subCues === 0 || dubCues / subCues >= 0.2);
 }
 
-export function shiftSubtitleCues(cues: SubtitleCue[], offset: number) {
-  if (!offset) {
-    return cues;
-  }
-
-  return cues.map((cue) => ({
-    ...cue,
-    start: cue.start + offset,
-    end: cue.end + offset,
-  }));
-}
-
 /** Cue equality is the proof required before another provider's encode can
  * serve as a timing reference for a fallback track. */
 export function sameSubtitleCues(left: SubtitleCue[], right: SubtitleCue[]) {

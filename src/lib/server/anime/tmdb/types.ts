@@ -52,7 +52,7 @@ export interface EpisodeMetadata {
   rawAirDate?: string;
 }
 
-export type EpisodeTextSource = 'tmdb' | 'machine';
+type EpisodeTextSource = 'tmdb' | 'machine';
 
 export interface StoredEpisodeText {
   title: string | null;

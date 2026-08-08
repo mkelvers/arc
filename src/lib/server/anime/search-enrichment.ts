@@ -66,7 +66,7 @@ async function storedArtwork(anilistIds: number[]) {
   return new Map(
     [...candidates].flatMap(([anilistId, values]) => {
       const groups = new Set(values.map(({ group }) => group));
-      return groups.size === 1 ? [[anilistId, values[0]!] as const] : [];
+      return groups.size === 1 ? [[anilistId, values[0]] as const] : [];
     })
   );
 }

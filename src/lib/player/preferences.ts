@@ -21,7 +21,7 @@ export function load(sources: Sources, qualities: string[]) {
   const rawVolume = localStorage.getItem('arc:volume');
   const volume = rawVolume === null ? null : Number(rawVolume);
   const rawMode = localStorage.getItem('arc:audio-mode');
-  const mode =
+  const mode: AudioMode | null =
     (rawMode === 'sub' || rawMode === 'dub' || rawMode === 'raw') && sources[rawMode]?.length
       ? rawMode
       : null;
@@ -73,7 +73,7 @@ export function load(sources: Sources, qualities: string[]) {
   return {
     volume:
       volume !== null && Number.isFinite(volume) && volume >= 0 && volume <= 1 ? volume : null,
-    mode: mode as AudioMode | null,
+    mode,
     autoplay,
     quality,
     subtitleEnabled,

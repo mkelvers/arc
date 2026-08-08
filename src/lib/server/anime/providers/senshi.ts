@@ -113,7 +113,7 @@ function subtitleManifest(item: Record<string, unknown>) {
   const masked = safeUrl(item.masked_base_url);
   const manifest =
     fromServer ??
-    (masked ? new URL('sub_filemoon.json', `${masked.toString().replace(/\/?$/, '/')}`) : null);
+    (masked ? new URL('sub_filemoon.json', masked.toString().replace(/\/?$/, '/')) : null);
 
   return manifest &&
     manifest.protocol === 'https:' &&
