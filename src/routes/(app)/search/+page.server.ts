@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ url }) => {
     error(400, 'Search queries cannot exceed 200 characters');
   }
 
-  if (!query) {
+  if (query.length < 2) {
     return { query, results: [] };
   }
 
@@ -21,6 +21,6 @@ export const load: PageServerLoad = async ({ url }) => {
 
   return {
     query,
-    results: await anime.withAnimeCardPosters(result.right),
+    results: await anime.withAnimeSearchMetadata(await anime.withAnimeCardPosters(result.right)),
   };
 };
