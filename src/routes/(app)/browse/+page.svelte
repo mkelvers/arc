@@ -211,7 +211,7 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
-  <section class="mx-auto w-full max-w-[96rem]" aria-labelledby="browse-title">
+  <section class="mx-auto w-full max-w-384" aria-labelledby="browse-title">
     <h1 id="browse-title" class="mb-6 text-2xl font-semibold">Browse Anime</h1>
 
     <div class="mb-10 flex flex-wrap items-stretch border-y border-border">
@@ -235,7 +235,7 @@
           type="button"
           class:text-accent={data.filters.safe}
           class:text-muted={!data.filters.safe}
-          class="grid size-12 place-items-center border-l border-border transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-[-1px] focus-visible:outline-accent"
+          class="grid size-12 place-items-center border-l border-border transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
           aria-label={data.filters.safe
             ? 'Disable safe for work filtering'
             : 'Enable safe for work filtering'}
@@ -402,7 +402,7 @@
       <Tooltip text={data.filters.order === 'desc' ? 'Descending' : 'Ascending'}>
         <button
           type="button"
-          class="grid size-12 place-items-center border-l border-border text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-[-1px] focus-visible:outline-accent"
+          class="grid size-12 place-items-center border-l border-border text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
           aria-label={data.filters.order === 'desc'
             ? 'Sort in ascending order'
             : 'Sort in descending order'}
