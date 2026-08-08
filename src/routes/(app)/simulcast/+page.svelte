@@ -118,7 +118,7 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
-  <section class="mx-auto w-full max-w-[96rem]" aria-labelledby="simulcast-title">
+  <section class="mx-auto w-full max-w-384" aria-labelledby="simulcast-title">
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <h1 id="simulcast-title" class="text-2xl font-semibold">Simulcast Season</h1>
       <Dropdown
