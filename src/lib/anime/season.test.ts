@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
-  animeSeasonLabel,
   availableAnimeSeasons,
   currentAnimeSeason,
   parseAnimeSeason,
@@ -62,9 +61,8 @@ describe('anime seasons', () => {
     ]);
   });
 
-  test('normalizes season input and formats its label', () => {
+  test('normalizes season input', () => {
     expect(parseAnimeSeason(' summer ')).toBe('SUMMER');
     expect(parseAnimeSeason('monsoon')).toBeUndefined();
-    expect(animeSeasonLabel({ season: 'SUMMER', year: 2026 })).toBe('Summer 2026');
   });
 });

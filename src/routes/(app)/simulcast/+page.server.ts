@@ -1,7 +1,6 @@
 import { error } from '@sveltejs/kit';
 
 import {
-  animeSeasonLabel,
   availableAnimeSeasons,
   compareAnimeSeasons,
   currentAnimeSeason,
@@ -32,7 +31,7 @@ export const load: PageServerLoad = async ({ url }) => {
   if (!seasons.some(({ season, year }) => season === selected.season && year === selected.year)) {
     error(404, 'That simulcast season is not available');
   }
-  const label = animeSeasonLabel(selected);
+  const label = `${selected.season[0]}${selected.season.slice(1).toLowerCase()} ${selected.year}`;
 
   return {
     pageTitle: `${label} simulcast`,
@@ -42,7 +41,7 @@ export const load: PageServerLoad = async ({ url }) => {
     options: seasons
       .map((option) => ({
         ...option,
-        label: animeSeasonLabel(option),
+        label: `${option.season[0]}${option.season.slice(1).toLowerCase()} ${option.year}`,
         current: option.season === selected.season && option.year === selected.year,
         href:
           compareAnimeSeasons(option, current) === 0

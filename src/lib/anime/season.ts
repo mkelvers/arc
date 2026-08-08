@@ -52,7 +52,3 @@ export function availableAnimeSeasons(starts: AnimeSeasonStartYears, latest: Ani
 
   return options;
 }
-
-export function animeSeasonLabel({ season, year }: AnimeSeasonSelection) {
-  return `${season[0]}${season.slice(1).toLowerCase()} ${year}`;
-}
