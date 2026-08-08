@@ -169,9 +169,8 @@ export function subtitleOptionsFor(kinds: SubtitleKind[]) {
 /** Dub captions are dialogue-capable when their cue coverage is a meaningful
  * fraction of the Japanese track. Full dub CC can combine lines and therefore
  * need not match cue-for-cue; forced/sign tracks are typically far smaller. */
-const minimumDialogueCues = 50;
-
 export function hasDialogueCoverage(dubCues: number, subCues: number) {
+  const minimumDialogueCues = 50;
   return dubCues >= minimumDialogueCues && (subCues === 0 || dubCues / subCues >= 0.2);
 }
 
@@ -241,21 +240,14 @@ function nearestIndex(values: number[], target: number) {
 
 const timelineRange = 60;
 const timelineStep = 0.25;
-const timelineTolerance = 0.25;
 const minimumTimelineMatches = 12;
-const minimumTimelineCoverage = 0.15;
-const minimumScoreLead = 1.4;
-const alignmentWindow = 120;
-const alignmentStep = 20;
-const alignmentChangeTolerance = 0.5;
-const minimumAlignmentSamples = 2;
 
 function timelineScore(reference: number[], target: number[], offset: number) {
   let matches = 0;
   for (const boundary of target) {
     const expected = boundary - offset;
-    const index = nearestIndex(reference, expected - timelineTolerance);
-    if (index < reference.length && reference[index] <= expected + timelineTolerance) {
+    const index = nearestIndex(reference, expected - 0.25);
+    if (index < reference.length && reference[index] <= expected + 0.25) {
       matches++;
     }
   }
@@ -264,6 +256,9 @@ function timelineScore(reference: number[], target: number[], offset: number) {
 
 /** Find one locally stable trim between two HLS timelines. */
 function timelineOffset(reference: number[], target: number[]) {
+  const minimumTimelineCoverage = 0.15;
+  const minimumScoreLead = 1.4;
+
   if (reference.length < minimumTimelineMatches || target.length < minimumTimelineMatches) {
     return null;
   }
@@ -325,6 +320,10 @@ function median(values: number[]) {
  * distributor cards, alternate openings, or eyecatches, so one offset for the
  * whole episode is not always valid. Weak local correlations are omitted. */
 export function hlsTimelineOffsets(reference: number[], target: number[]): TimelineOffset[] {
+  const alignmentWindow = 120;
+  const alignmentStep = 20;
+  const alignmentChangeTolerance = 0.5;
+  const minimumAlignmentSamples = 2;
   const end = reference.at(-1) ?? 0;
   const samples: TimelineOffset[] = [];
 
@@ -379,11 +378,6 @@ export function hlsTimelineOffsets(reference: number[], target: number[]): Timel
   });
 }
 
-/** The initial stable trim, retained for callers that only need one offset. */
-export function hlsTimelineOffset(reference: number[], target: number[]) {
-  return hlsTimelineOffsets(reference, target)[0]?.offset ?? null;
-}
-
 export function alignSubtitleCues(cues: SubtitleCue[], offsets: TimelineOffset[]) {
   if (!offsets.length) {
     return cues;
@@ -424,10 +418,6 @@ export function orderStreams(streams: Stream[], quality: string) {
 
 export function availableModes(sources: Sources) {
   return (['sub', 'dub', 'raw'] as const).filter((mode) => Boolean(sources[mode]?.length));
-}
-
-export function hasStreams(sources: Sources) {
-  return availableModes(sources).length > 0;
 }
 
 export function audioLabel(mode: AudioMode) {

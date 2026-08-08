@@ -1,6 +1,3 @@
-export const progressIntervalSeconds = 30;
-export const nearEndThresholdSeconds = 5;
-
 export type ProgressSaveReason = 'periodic' | 'ending';
 
 interface Sample {
@@ -14,7 +11,7 @@ export class ProgressSchedule {
   private nearEndSaved = false;
 
   start(currentTime: number) {
-    this.nextPeriodicAt = Math.max(0, currentTime) + progressIntervalSeconds;
+    this.nextPeriodicAt = Math.max(0, currentTime) + 30;
     this.nearEndSaved = false;
   }
 
@@ -24,7 +21,7 @@ export class ProgressSchedule {
     }
 
     const remaining = duration - currentTime;
-    if (remaining > nearEndThresholdSeconds) {
+    if (remaining > 5) {
       this.nearEndSaved = false;
     } else {
       if (currentTime > 0 && remaining >= 0 && !this.nearEndSaved) {
@@ -44,7 +41,7 @@ export class ProgressSchedule {
       return null;
     }
 
-    this.nextPeriodicAt = currentTime + progressIntervalSeconds;
+    this.nextPeriodicAt = currentTime + 30;
     return 'periodic';
   }
 }

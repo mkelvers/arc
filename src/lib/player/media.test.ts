@@ -5,10 +5,8 @@ import {
   audioLabel,
   formatTime,
   hasDialogueCoverage,
-  hasStreams,
   hasSubtitleTrack,
   hlsTimeline,
-  hlsTimelineOffset,
   hlsTimelineOffsets,
   isHd,
   isHlsSource,
@@ -45,11 +43,6 @@ describe('player media helpers', () => {
     expect(qualityLabel('best', '1080p')).toBe('Auto 1080p');
     expect(isHd('720p')).toBe(true);
     expect(isHd('480p')).toBe(false);
-  });
-
-  test('accepts every audio mode supported by the player', () => {
-    expect(hasStreams({ raw: streams })).toBe(true);
-    expect(hasStreams({})).toBe(false);
   });
 
   test('recognizes direct and proxied HLS sources', () => {
@@ -237,7 +230,7 @@ Cheers!
       .filter((_, index) => index % 3 !== 0)
       .map((boundary) => boundary + offset);
 
-    expect(hlsTimelineOffset(reference, target)).toBeCloseTo(offset, 2);
+    expect(hlsTimelineOffsets(reference, target)[0]?.offset).toBeCloseTo(offset, 2);
     expect(
       alignSubtitleCues([{ start: 28.34, end: 30.7, text: 'Mommy!' }], [{ at: 0, offset }])
     ).toEqual([{ start: 44.314, end: 46.674, text: 'Mommy!' }]);
@@ -286,10 +279,10 @@ Cheers!
   });
 
   test('fails closed for sparse or unrelated HLS timelines', () => {
-    expect(hlsTimelineOffset([1, 2, 3], [17, 18, 19])).toBeNull();
+    expect(hlsTimelineOffsets([1, 2, 3], [17, 18, 19])).toEqual([]);
 
     const reference = Array.from({ length: 80 }, (_, index) => index * 4.1);
     const unrelated = Array.from({ length: 80 }, (_, index) => index * 3.7 + (index % 5) * 0.13);
-    expect(hlsTimelineOffset(reference, unrelated)).toBeNull();
+    expect(hlsTimelineOffsets(reference, unrelated)).toEqual([]);
   });
 });

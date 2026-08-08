@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { nearEndThresholdSeconds, ProgressSchedule, progressIntervalSeconds } from './progress';
+import { ProgressSchedule } from './progress';
 
 describe('playback progress schedule', () => {
   test('saves after each 30 seconds of active media progress', () => {
@@ -16,7 +16,7 @@ describe('playback progress schedule', () => {
     ).toBeNull();
     expect(
       schedule.update({
-        currentTime: 120 + progressIntervalSeconds,
+        currentTime: 150,
         duration: 1_440,
         playing: true,
       })
@@ -37,7 +37,7 @@ describe('playback progress schedule', () => {
 
     expect(
       schedule.update({
-        currentTime: duration - nearEndThresholdSeconds,
+        currentTime: duration - 5,
         duration,
         playing: true,
       })
