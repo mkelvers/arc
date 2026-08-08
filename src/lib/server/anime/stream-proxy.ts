@@ -46,12 +46,6 @@ class StreamTargetError extends StreamProxyError {
   }
 }
 
-class StreamResponseError extends StreamProxyError {
-  constructor(message: string, status: 502 | 504) {
-    super(message, status);
-  }
-}
-
 async function providerResponse(target: URL, range: string | null, fetchStream: StreamFetch) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), responseTimeout);
@@ -79,7 +73,7 @@ async function providerResponse(target: URL, range: string | null, fetchStream: 
   }
 }
 
-function forwardedHeaders(response: Response) {
+async function proxiedResponse(target: URL, response: Response) {
   const headers = new Headers();
   for (const name of ['accept-ranges', 'cache-control', 'content-range', 'etag', 'last-modified']) {
     const value = response.headers.get(name);
@@ -87,21 +81,7 @@ function forwardedHeaders(response: Response) {
       headers.set(name, value);
     }
   }
-  return headers;
-}
 
-function streamContentType(target: URL, contentType: string | null) {
-  if (target.pathname.toLowerCase().endsWith('.vtt')) {
-    return 'text/vtt; charset=utf-8';
-  }
-  if (target.hostname.endsWith('ninstream.com') && /\.(?:jpe?g|png)$/i.test(target.pathname)) {
-    return 'video/mp2t';
-  }
-  return !contentType || contentType === 'application/octet-stream' ? 'video/mp4' : contentType;
-}
-
-async function proxiedResponse(target: URL, response: Response) {
-  const headers = forwardedHeaders(response);
   const contentType = response.headers.get('content-type');
   const playlist =
     target.pathname.toLowerCase().endsWith('.m3u8') ||
@@ -109,7 +89,9 @@ async function proxiedResponse(target: URL, response: Response) {
   if (playlist) {
     headers.set('cache-control', 'no-store');
     headers.set('content-type', 'application/vnd.apple.mpegurl');
-    const body = await boundedResponseText(response, maximumPlaylistSize, responseTimeout);
+    const body = new TextDecoder().decode(
+      await boundedResponseBytes(response, maximumPlaylistSize, responseTimeout, 'Episode playlist')
+    );
 
     return new Response(rewriteHlsPlaylist(body, target), {
       status: response.status,
@@ -141,7 +123,17 @@ async function proxiedResponse(target: URL, response: Response) {
   if (contentLength) {
     headers.set('content-length', contentLength);
   }
-  headers.set('content-type', streamContentType(target, contentType));
+  let mediaType =
+    !contentType || contentType === 'application/octet-stream' ? 'video/mp4' : contentType;
+  if (target.pathname.toLowerCase().endsWith('.vtt')) {
+    mediaType = 'text/vtt; charset=utf-8';
+  } else if (
+    target.hostname.endsWith('ninstream.com') &&
+    /\.(?:jpe?g|png)$/i.test(target.pathname)
+  ) {
+    mediaType = 'video/mp2t';
+  }
+  headers.set('content-type', mediaType);
 
   return new Response(response.body, {
     status: response.status,
@@ -161,7 +153,10 @@ async function followProviderRedirects(
     const location = response.headers.get('location');
 
     if (response.status < 300 || response.status >= 400 || !location) {
-      validateProviderResponse(response);
+      if (!response.ok && response.status !== 206) {
+        const status = response.status >= 400 && response.status <= 599 ? response.status : 502;
+        throw new StreamProxyError('Episode stream failed', status);
+      }
       return { response, target };
     }
     if (redirects === 3) {
@@ -178,48 +173,21 @@ async function followProviderRedirects(
   throw new StreamProxyError('Episode stream did not respond', 502);
 }
 
-function validateProviderResponse(response: Response) {
-  if (!response.ok && response.status !== 206) {
-    const status = response.status >= 400 && response.status <= 599 ? response.status : 502;
-    throw new StreamProxyError('Episode stream failed', status);
-  }
-}
-
 export async function proxyStreamRequest(request: Request, fetchStream: StreamFetch) {
-  const target = streamTarget(streamTargetParameter(new URL(request.url)));
+  const url = new URL(request.url);
+  const encoded = url.searchParams.get('src');
+  let source = url.searchParams.get('url');
+  if (encoded) {
+    try {
+      source = Buffer.from(encoded, 'base64url').toString('utf8');
+    } catch {
+      source = null;
+    }
+  }
+
+  const target = streamTarget(source);
   const provider = await followProviderRedirects(target, request.headers.get('range'), fetchStream);
   return proxiedResponse(provider.target, provider.response);
-}
-
-async function readResponseChunk(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  deadline: number,
-  label: string
-) {
-  const remaining = deadline - Date.now();
-  if (remaining <= 0) {
-    await reader.cancel().catch(() => undefined);
-    throw new StreamResponseError(`${label} timed out`, 504);
-  }
-
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const expired = new Promise<never>((_, reject) => {
-    timeout = setTimeout(
-      () => reject(new StreamResponseError(`${label} timed out`, 504)),
-      remaining
-    );
-  });
-
-  try {
-    return await Promise.race([reader.read(), expired]);
-  } catch (cause) {
-    await reader.cancel().catch(() => undefined);
-    throw cause instanceof StreamResponseError
-      ? cause
-      : new StreamResponseError(`${label} could not be read`, 502);
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 async function boundedResponseBytes(
@@ -230,7 +198,7 @@ async function boundedResponseBytes(
 ) {
   const contentLength = Number(response.headers.get('content-length') ?? 0);
   if (Number.isFinite(contentLength) && contentLength > maximumBytes) {
-    throw new StreamResponseError(`${label} was unexpectedly large`, 502);
+    throw new StreamProxyError(`${label} was unexpectedly large`, 502);
   }
   if (!response.body) {
     return new Uint8Array();
@@ -242,7 +210,31 @@ async function boundedResponseBytes(
   let length = 0;
 
   while (true) {
-    const result = await readResponseChunk(reader, deadline, label);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      await reader.cancel().catch(() => undefined);
+      throw new StreamProxyError(`${label} timed out`, 504);
+    }
+
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<never>((_, reject) => {
+      timeout = setTimeout(
+        () => reject(new StreamProxyError(`${label} timed out`, 504)),
+        remaining
+      );
+    });
+    let result: Awaited<ReturnType<typeof reader.read>>;
+
+    try {
+      result = await Promise.race([reader.read(), expired]);
+    } catch (cause) {
+      await reader.cancel().catch(() => undefined);
+      throw cause instanceof StreamProxyError
+        ? cause
+        : new StreamProxyError(`${label} could not be read`, 502);
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (result.done) {
       break;
@@ -251,7 +243,7 @@ async function boundedResponseBytes(
     length += result.value.byteLength;
     if (length > maximumBytes) {
       await reader.cancel().catch(() => undefined);
-      throw new StreamResponseError(`${label} was unexpectedly large`, 502);
+      throw new StreamProxyError(`${label} was unexpectedly large`, 502);
     }
     parts.push(result.value);
   }
@@ -264,11 +256,6 @@ async function boundedResponseBytes(
   }
 
   return body;
-}
-
-async function boundedResponseText(response: Response, maximumBytes: number, timeoutMs: number) {
-  const body = await boundedResponseBytes(response, maximumBytes, timeoutMs, 'Episode playlist');
-  return new TextDecoder().decode(body);
 }
 
 function allowedHost(hostname: string) {
@@ -324,25 +311,6 @@ function streamReferer(target: URL) {
   return 'https://youtu-chan.com';
 }
 
-function proxiedStreamUrl(target: URL) {
-  return `/api/watch/stream?${new URLSearchParams({
-    src: Buffer.from(target.toString()).toString('base64url'),
-  })}`;
-}
-
-function streamTargetParameter(url: URL) {
-  const encoded = url.searchParams.get('src');
-  if (!encoded) {
-    return url.searchParams.get('url');
-  }
-
-  try {
-    return Buffer.from(encoded, 'base64url').toString('utf8');
-  } catch {
-    return null;
-  }
-}
-
 function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<string>) {
   if (reference.startsWith('data:')) {
     return reference;
@@ -356,7 +324,10 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
   }
 
   try {
-    return proxiedStreamUrl(streamTarget(target.toString()));
+    const allowedTarget = streamTarget(target.toString());
+    return `/api/watch/stream?${new URLSearchParams({
+      src: Buffer.from(allowedTarget.toString()).toString('base64url'),
+    })}`;
   } catch (cause) {
     if (!(cause instanceof StreamTargetError)) {
       throw cause;
