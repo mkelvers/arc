@@ -16,6 +16,7 @@
     ariaLabel?: string;
     menuAlign?: 'start' | 'end';
     menuClass?: string;
+    modal?: boolean;
     openOnHover?: boolean;
     triggerClass?: string;
   }
@@ -28,6 +29,7 @@
     ariaLabel = 'More options',
     menuAlign = 'end',
     menuClass = 'w-48',
+    modal = false,
     openOnHover = false,
     triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel peer-checked:bg-panel',
   }: Props = $props();
@@ -51,6 +53,27 @@
         ?.querySelector<HTMLElement>('[aria-current="page"]')
         ?.scrollIntoView({ block: 'nearest' });
     });
+  });
+
+  $effect(() => {
+    if (!open || !modal) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        open = false;
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', closeOnEscape);
+    };
   });
 
   $effect(() => {
@@ -89,6 +112,15 @@
   <label for={id} data-testid="dropdown-trigger" class={triggerClass}>
     {@render trigger()}
   </label>
+
+  {#if open && modal}
+    <button
+      type="button"
+      class="fixed inset-x-0 top-14 bottom-0 z-40 cursor-default bg-black/65 backdrop-blur-[2px]"
+      aria-label="Close menu"
+      onclick={() => (open = false)}
+    ></button>
+  {/if}
 
   <div
     bind:this={menu}
