@@ -1,5 +1,3 @@
-import { Effect } from 'effect';
-
 import type { BrowseFilters } from '$lib/anime/browse';
 import {
   BrowseAnimePageDocument,
@@ -44,20 +42,18 @@ export function browseMediaSort(filters: Pick<BrowseFilters, 'sort' | 'order'>):
   return filters.order === 'desc' ? `${sort}_DESC` : sort;
 }
 
-async function requestBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
-  const response = await Effect.runPromise(
-    request(BrowseAnimePageDocument, {
-      search: filters.query || undefined,
-      genre: filters.genre ?? undefined,
-      tag: filters.tag ?? undefined,
-      format: filters.format ?? undefined,
-      status: filters.status ?? undefined,
-      isAdult: filters.safe ? false : undefined,
-      sort: [browseMediaSort(filters)],
-      page,
-      perPage,
-    })
-  );
+export async function getBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
+  const response = await request(BrowseAnimePageDocument, {
+    search: filters.query || undefined,
+    genre: filters.genre ?? undefined,
+    tag: filters.tag ?? undefined,
+    format: filters.format ?? undefined,
+    status: filters.status ?? undefined,
+    isAdult: filters.safe ? false : undefined,
+    sort: [browseMediaSort(filters)],
+    page,
+    perPage,
+  });
 
   const anime = present(response.Page?.media).flatMap((media) => {
     const imageUrl = media.coverImage?.extraLarge ?? media.coverImage?.large;
@@ -103,21 +99,8 @@ async function requestBrowsePage(filters: AniListBrowseFilters, page: number, pe
   };
 }
 
-export function getBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
-  return Effect.tryPromise({
-    try: () => requestBrowsePage(filters, page, perPage),
-    catch: (cause) =>
-      cause instanceof GraphQLRequestError
-        ? cause
-        : new GraphQLRequestError({
-            message: 'The anime catalog could not be loaded',
-            cause,
-          }),
-  });
-}
-
-async function requestBrowseTaxonomy() {
-  const response = await Effect.runPromise(request(BrowseAnimeTaxonomyDocument, {}));
+export async function getBrowseTaxonomy() {
+  const response = await request(BrowseAnimeTaxonomyDocument, {});
   const sortedUnique = (values: string[]) =>
     [...new Set(values)].sort((left, right) => left.localeCompare(right, 'en'));
   const taxonomy = {
@@ -143,19 +126,6 @@ async function requestBrowseTaxonomy() {
   }
 
   return taxonomy;
-}
-
-export function getBrowseTaxonomy() {
-  return Effect.tryPromise({
-    try: requestBrowseTaxonomy,
-    catch: (cause) =>
-      cause instanceof GraphQLRequestError
-        ? cause
-        : new GraphQLRequestError({
-            message: 'The anime browse filters could not be loaded',
-            cause,
-          }),
-  });
 }
 
 export function isMediaFormat(taxonomy: BrowseSourceTaxonomy, value: string): value is MediaFormat {

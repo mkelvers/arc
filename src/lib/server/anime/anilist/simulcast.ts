@@ -1,10 +1,7 @@
-import { Effect, Schedule } from 'effect';
-
 import type { AnimeSeason, AnimeSeasonStartYears } from '$lib/anime/season';
 import { SimulcastSeasonStartsDocument } from '$lib/graphql/anilist/generated/graphql';
-import { GraphQLRequestError } from '$lib/server/graphql';
 import { RequestCache } from '$lib/server/request-cache';
-import { request, transientRequestError } from './client';
+import { request } from './client';
 
 const starts = new RequestCache<string, AnimeSeasonStartYears>(24 * 60 * 60 * 1_000);
 
@@ -14,15 +11,7 @@ function startYear(media: Array<{ seasonYear: number | null } | null> | null | u
 }
 
 async function requestSeasonStarts() {
-  const response = await Effect.runPromise(
-    request(SimulcastSeasonStartsDocument, {}).pipe(
-      Effect.retry({
-        times: 2,
-        schedule: Schedule.exponential('750 millis'),
-        while: transientRequestError,
-      })
-    )
-  );
+  const response = await request(SimulcastSeasonStartsDocument, {}, { retries: 2 });
   const entries: Array<[AnimeSeason, number | undefined]> = [
     ['WINTER', startYear(response.winter?.media)],
     ['SPRING', startYear(response.spring?.media)],
@@ -35,7 +24,7 @@ async function requestSeasonStarts() {
   );
 }
 
-async function cachedSeasonStarts() {
+export async function getSimulcastSeasonStarts() {
   return starts.get(
     'catalog',
     () =>
@@ -45,16 +34,4 @@ async function cachedSeasonStarts() {
       }),
     { staleIfError: true }
   );
-}
-
-function requestEffect<Value>(load: () => Promise<Value>, message: string) {
-  return Effect.tryPromise({
-    try: load,
-    catch: (cause) =>
-      cause instanceof GraphQLRequestError ? cause : new GraphQLRequestError({ message, cause }),
-  });
-}
-
-export function getSimulcastSeasonStarts() {
-  return requestEffect(cachedSeasonStarts, 'Simulcast seasons could not be loaded');
 }

@@ -1,11 +1,10 @@
 import { eq } from 'drizzle-orm';
-import { Effect, Either, Schedule } from 'effect';
 
 import { AnimeDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeDetailsCache } from '$lib/server/db/schema';
 import { GraphQLRequestError } from '$lib/server/graphql';
-import { request, transientRequestError } from './client';
+import { request } from './client';
 import type { AniListAnime } from './types';
 
 const version = 2;
@@ -26,23 +25,15 @@ function refreshRetryDelay(cause: unknown) {
     : transientRetryDelay;
 }
 
-function requestAnime(id: number) {
-  return request(AnimeDocument, { id }).pipe(
-    Effect.retry({
-      times: 2,
-      schedule: Schedule.exponential('750 millis'),
-      while: transientRequestError,
-    }),
-    Effect.flatMap(({ Media }) =>
-      Media
-        ? Effect.succeed(Media)
-        : Effect.fail(
-            new GraphQLRequestError({
-              message: 'AniList returned no anime',
-            })
-          )
-    )
-  );
+async function requestAnime(id: number) {
+  const { Media } = await request(AnimeDocument, { id }, { retries: 2 });
+  if (!Media) {
+    throw new GraphQLRequestError({
+      message: 'AniList returned no anime',
+    });
+  }
+
+  return Media;
 }
 
 async function refresh(id: number) {
@@ -51,13 +42,7 @@ async function refresh(id: number) {
     return pending;
   }
 
-  const request = Effect.runPromise(requestAnime(id).pipe(Effect.either)).then(async (result) => {
-    if (Either.isLeft(result)) {
-      throw result.left;
-    }
-
-    const data = result.right;
-
+  const request = requestAnime(id).then(async (data) => {
     try {
       await db
         .insert(animeDetailsCache)
@@ -90,7 +75,7 @@ async function refresh(id: number) {
   }
 }
 
-async function cached(id: number) {
+export async function getAnime(id: number) {
   let stored:
     | {
         data: AniListAnime;
@@ -146,17 +131,4 @@ async function cached(id: number) {
 
     throw cause;
   }
-}
-
-export function getAnime(id: number) {
-  return Effect.tryPromise({
-    try: () => cached(id),
-    catch: (cause) =>
-      cause instanceof GraphQLRequestError
-        ? cause
-        : new GraphQLRequestError({
-            message: 'Anime details could not be loaded',
-            cause,
-          }),
-  });
 }
