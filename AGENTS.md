@@ -8,6 +8,8 @@ Apply KISS, YAGNI, DRY, separation of concerns, high cohesion, low coupling, enc
 
 A module, function, type, or component must earn its existence. Before adding one, ask whether the behavior belongs in an existing cohesive module, whether it is reused, and whether naming the concept separately makes the caller easier to understand. Inline trivial one-use transformations when the inline expression is clearer. Extract code when it represents a meaningful domain rule, removes genuine repetition, isolates an effect, or can be tested independently. Do not split or combine files merely to optimize line counts.
 
+Design from the stable owning boundary and the code's long-term steady state, not as a sequence of patches. Before adding a helper, constant, wrapper, or piece of state, identify the concrete reuse, policy, or invariant it represents; inline incidental one-use mechanics. Prefer maintained framework integrations and native platform behavior over locally rebuilding SDK loaders, lifecycle management, form parsing, or validation. After implementation, collapse scaffolding that no longer carries domain meaning.
+
 Keep one authoritative implementation of repeated, domain-neutral operations. Small reusable parsing and validation helpers such as record checks, positive-integer parsing, text normalization, and date handling may share a focused utility module when their contracts are genuinely identical. Do not create a miscellaneous dumping ground: anime identity, provider behavior, watchlist rules, route state, and other domain concepts stay with their owning domain even if their implementation is small.
 
 ## Project structure
