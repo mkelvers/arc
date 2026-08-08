@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 
-import type { AnimeCard } from '$lib/anime/types';
+import { rankAnimeSearch, type AnimeSearchResult } from '$lib/anime/search';
 import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
 import { GraphQLRequestError } from '$lib/server/graphql';
 import { RequestCache } from '$lib/server/request-cache';
@@ -9,7 +9,7 @@ import { animeCard } from './models';
 import { present } from './text';
 
 const lifetime = 5 * 60 * 1_000;
-const cache = new RequestCache<string, AnimeCard[]>(lifetime);
+const cache = new RequestCache<string, AnimeSearchResult[]>(lifetime);
 
 async function requestSearch(search: string) {
   const response = await Effect.runPromise(
@@ -20,10 +20,40 @@ async function requestSearch(search: string) {
     })
   );
 
-  return present(response.Page?.media).flatMap((entry) => {
+  const results = present(response.Page?.media).flatMap((entry) => {
     const card = animeCard(entry);
-    return card ? [card] : [];
+    if (!card) {
+      return [];
+    }
+
+    const titles = [
+      entry.title?.english,
+      entry.title?.romaji,
+      entry.title?.native,
+      ...present(entry.synonyms),
+    ].filter(
+      (title, index, values): title is string => Boolean(title) && values.indexOf(title) === index
+    );
+    const relatedIds = present(entry.relations?.edges).flatMap((edge) =>
+      (edge?.relationType === 'PREQUEL' || edge?.relationType === 'SEQUEL') && edge.node
+        ? [edge.node.id]
+        : []
+    );
+
+    return [
+      {
+        ...card,
+        titles,
+        format: entry.format ?? null,
+        popularity: entry.popularity ?? 0,
+        backdrop: null,
+        artworkGroup: null,
+        relatedIds,
+      },
+    ];
   });
+
+  return rankAnimeSearch(search, results);
 }
 
 async function cached(search: string) {

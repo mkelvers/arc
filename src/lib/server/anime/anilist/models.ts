@@ -1,8 +1,23 @@
 import type { AnimeCard } from '$lib/anime/types';
 import { mediaTitle, plainText, present } from './text';
-import type { SearchMedia } from './types';
 
-export function animeCard(media: SearchMedia): AnimeCard | null {
+interface CardMedia {
+  id: number;
+  title?: {
+    english?: string | null;
+    romaji?: string | null;
+    native?: string | null;
+  } | null;
+  coverImage?: {
+    extraLarge?: string | null;
+    large?: string | null;
+  } | null;
+  description?: string | null;
+  genres?: ReadonlyArray<string | null> | null;
+  averageScore?: number | null;
+}
+
+export function animeCard(media: CardMedia): AnimeCard | null {
   const image = media.coverImage?.extraLarge ?? media.coverImage?.large ?? null;
 
   if (!image) {
