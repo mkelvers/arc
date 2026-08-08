@@ -1,13 +1,8 @@
 import type { AudioMode } from '$lib/anime/audio';
 import { RequestCache } from '$lib/server/request-cache';
 import { record } from '$lib/utils';
-import {
-  findShowId,
-  getEpisodes,
-  getPopularAudioLabels,
-  getSimulcastPage,
-  getWeeklyPopularAnime,
-} from './allanime/catalog';
+import type { AniListAnime } from './anilist/types';
+import { findShowId } from './allanime/catalog';
 import {
   contentLane,
   endpoint,
@@ -24,7 +19,7 @@ import {
   resolveTarget,
   sourceReferences,
 } from './allanime/sources';
-import type { AniListAnime, Source, Stream, StreamCrypto, Streams } from './allanime/types';
+import type { Source, Stream, StreamCrypto, Streams } from './allanime/types';
 
 const cache = new RequestCache<string, Streams>(5 * 60 * 1_000);
 const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
@@ -192,15 +187,7 @@ async function resolveStreams(anime: AniListAnime, episode: string, modes: Audio
   throw new AggregateError(errors, `AllAnime returned no playable source for episode ${episode}`);
 }
 
-async function getStreams(anime: AniListAnime, episode: string, modes: AudioMode[]) {
+export async function getStreams(anime: AniListAnime, episode: string, modes: AudioMode[]) {
   const key = `${anime.id}:${episode}:${modes.toSorted().join(',')}`;
   return cache.get(key, () => resolveStreams(anime, episode, modes));
 }
-
-export const allanime = {
-  getEpisodes,
-  getPopularAudioLabels,
-  getSimulcastPage,
-  getWeeklyPopularAnime,
-  getStreams,
-};

@@ -1,5 +1,3 @@
-import { Effect } from 'effect';
-
 import { graphql } from '$lib/server/graphql';
 
 export const endpoint = 'https://api.mkissa.net/api';
@@ -15,13 +13,11 @@ export function request<TResult, TVariables>(
   document: Parameters<typeof graphql<TResult, TVariables>>[1],
   variables: TVariables
 ) {
-  return Effect.runPromise(
-    graphql(endpoint, document, variables, {
-      headers: {
-        Referer: referer,
-        'User-Agent': userAgent,
-      },
-      timeoutMs: 8_000,
-    })
-  );
+  return graphql(endpoint, document, variables, {
+    headers: {
+      Referer: referer,
+      'User-Agent': userAgent,
+    },
+    timeoutMs: 8_000,
+  });
 }
