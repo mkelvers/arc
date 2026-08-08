@@ -1,4 +1,4 @@
-import { Schema } from 'effect';
+import { z } from 'zod';
 
 import { AnimeCardSchema } from './types';
 
@@ -7,25 +7,24 @@ export interface SearchArtwork {
   backdrop: string | null;
 }
 
-const AnimeSearchResultSchema = Schema.Struct({
-  ...AnimeCardSchema.fields,
-  titles: Schema.Array(Schema.String),
-  format: Schema.NullOr(Schema.String),
-  popularity: Schema.Finite,
-  backdrop: Schema.NullOr(Schema.String),
-  artworkGroup: Schema.NullOr(Schema.String),
-  relatedIds: Schema.Array(Schema.Int),
+const AnimeSearchResultSchema = AnimeCardSchema.extend({
+  titles: z.array(z.string()),
+  format: z.string().nullable(),
+  popularity: z.number().finite(),
+  backdrop: z.string().nullable(),
+  artworkGroup: z.string().nullable(),
+  relatedIds: z.array(z.number().int()),
 });
 
-export type AnimeSearchResult = typeof AnimeSearchResultSchema.Type;
+export type AnimeSearchResult = z.infer<typeof AnimeSearchResultSchema>;
 
-const isSearchResults = Schema.is(Schema.Array(AnimeSearchResultSchema));
+const AnimeSearchResultsSchema = z.array(AnimeSearchResultSchema);
 
 export function isAnimeSearchResults(value: unknown): value is AnimeSearchResult[] {
-  return isSearchResults(value);
+  return AnimeSearchResultsSchema.safeParse(value).success;
 }
 
-function words(value: string) {
+function searchTokens(value: string) {
   return value
     .normalize('NFKD')
     .toLocaleLowerCase('en')
@@ -70,7 +69,7 @@ function fuzzyDistance(query: string, candidate: string) {
 }
 
 export function searchRelevance(query: string, titles: readonly string[]) {
-  const queryWords = words(query);
+  const queryWords = searchTokens(query);
   const compactQuery = queryWords.join('');
   if (!compactQuery) {
     return 0;
@@ -79,7 +78,7 @@ export function searchRelevance(query: string, titles: readonly string[]) {
   return Math.max(
     0,
     ...titles.map((title) => {
-      const titleWords = words(title);
+      const titleWords = searchTokens(title);
       const compactTitle = titleWords.join('');
       const phrase = titleWords.join(' ');
       const queryPhrase = queryWords.join(' ');
@@ -87,18 +86,22 @@ export function searchRelevance(query: string, titles: readonly string[]) {
       if (compactTitle === compactQuery && compactQuery.length > 5) {
         return 1_000;
       }
+
       if (
         compactTitle !== compactQuery &&
         (phrase.startsWith(queryPhrase) || compactTitle.startsWith(compactQuery))
       ) {
         return 880;
       }
+
       if (titleWords.map((word) => word[0]).join('') === compactQuery) {
         return 840;
       }
+
       if (queryWords.length === 1 && titleWords.includes(queryPhrase)) {
         return 760;
       }
+
       if (phrase.includes(queryPhrase) || compactTitle.includes(compactQuery)) {
         return 760 - Math.min(compactTitle.indexOf(compactQuery), 100);
       }

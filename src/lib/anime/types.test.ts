@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isAnimeCard, isAnimeCardPage, type AnimeCard } from './types';
+import { isAnimeCardPage, type AnimeCard } from './types';
 
 const card = {
   id: 1,
@@ -13,17 +13,6 @@ const card = {
   genres: [],
   synopsis: '',
 } satisfies AnimeCard;
-
-describe('anime card response validation', () => {
-  test('accepts complete cards from paginated responses', () => {
-    expect(isAnimeCard(card)).toBeTrue();
-  });
-
-  test('rejects invalid links and non-finite scores', () => {
-    expect(isAnimeCard({ ...card, href: 'https://example.test' })).toBeFalse();
-    expect(isAnimeCard({ ...card, score: Number.NaN })).toBeFalse();
-  });
-});
 
 describe('anime card page response validation', () => {
   const page = {
@@ -43,6 +32,10 @@ describe('anime card page response validation', () => {
         anime: [{ ...card, id: '1' }],
       })
     ).toBeFalse();
+    expect(isAnimeCardPage({ ...page, anime: [{ ...card, href: 'https://example.test' }] })).toBe(
+      false
+    );
+    expect(isAnimeCardPage({ ...page, anime: [{ ...card, score: Number.NaN }] })).toBeFalse();
     expect(isAnimeCardPage({ ...page, page: 1.5 })).toBeFalse();
     expect(isAnimeCardPage({ ...page, hasNextPage: 'yes' })).toBeFalse();
   });

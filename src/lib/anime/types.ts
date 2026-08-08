@@ -1,30 +1,30 @@
-import { Schema } from 'effect';
+import { z } from 'zod';
 
 import type { AudioMode } from './audio';
 
-export const AnimeCardSchema = Schema.Struct({
-  id: Schema.Int,
-  href: Schema.String.pipe(Schema.startsWith('/anime/')),
-  watchHref: Schema.String,
-  title: Schema.String,
-  image: Schema.String,
-  caption: Schema.String,
-  score: Schema.Finite,
-  genres: Schema.Array(Schema.String),
-  synopsis: Schema.String,
+export const AnimeCardSchema = z.object({
+  id: z.number().int(),
+  href: z.string().startsWith('/anime/'),
+  watchHref: z.string(),
+  title: z.string(),
+  image: z.string(),
+  caption: z.string(),
+  score: z.number().finite(),
+  genres: z.array(z.string()),
+  synopsis: z.string(),
 });
 
-export type AnimeCard = typeof AnimeCardSchema.Type;
+export type AnimeCard = z.infer<typeof AnimeCardSchema>;
 
-export const isAnimeCard = Schema.is(AnimeCardSchema);
-
-const AnimeCardPageSchema = Schema.Struct({
-  anime: Schema.Array(AnimeCardSchema),
-  hasNextPage: Schema.Boolean,
-  page: Schema.Int,
+const AnimeCardPageSchema = z.object({
+  anime: z.array(AnimeCardSchema),
+  hasNextPage: z.boolean(),
+  page: z.number().int(),
 });
 
-export const isAnimeCardPage = Schema.is(AnimeCardPageSchema);
+export function isAnimeCardPage(value: unknown): value is z.infer<typeof AnimeCardPageSchema> {
+  return AnimeCardPageSchema.safeParse(value).success;
+}
 
 export type AnimeEpisode = {
   id: string;
