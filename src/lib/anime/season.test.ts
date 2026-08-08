@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-  availableAnimeSeasons,
-  currentAnimeSeason,
-  parseAnimeSeason,
-} from './season';
+import { availableAnimeSeasons, currentAnimeSeason, parseAnimeSeason } from './season';
 
 describe('anime seasons', () => {
   test.each([
