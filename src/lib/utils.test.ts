@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { formatDate, formatDuration, isRecord, nonEmptyText, positiveInteger, record } from './utils';
+import {
+  formatDate,
+  formatDuration,
+  isRecord,
+  nonEmptyText,
+  positiveInteger,
+  record,
+} from './utils';
 
 describe('shared utilities', () => {
   test('narrows and parses records without accepting arrays', () => {
