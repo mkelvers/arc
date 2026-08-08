@@ -21,7 +21,7 @@ export default defineConfig({
         mode: 'auto',
         directives: {
           'default-src': ['self'],
-          'script-src': ['self'],
+          'script-src': ['self', 'https://challenges.cloudflare.com'],
           'style-src': ['self', 'unsafe-inline'],
           'img-src': ['self', 'data:', 'https:'],
           'font-src': ['self'],
@@ -31,6 +31,7 @@ export default defineConfig({
           'base-uri': ['self'],
           'form-action': ['self'],
           'frame-ancestors': ['none'],
+          'frame-src': ['https://challenges.cloudflare.com'],
         },
       },
     }),
