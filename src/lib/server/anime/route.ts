@@ -13,13 +13,11 @@ export async function loadAnime(id: number) {
   try {
     return await getAnime(id);
   } catch (cause) {
-    error(
-      cause instanceof GraphQLRequestError && cause.status === 404 ? 404 : 502,
-      cause instanceof GraphQLRequestError && cause.status === 404
-        ? 'This anime is no longer available on AniList'
-        : cause instanceof Error
-          ? cause.message
-          : 'Anime details could not be loaded'
-    );
+    if (cause instanceof GraphQLRequestError && cause.status === 404) {
+      error(404, 'This anime is no longer available on AniList');
+    }
+
+    console.error(`AniList anime ${id} load failed`, cause);
+    error(502, 'Anime details could not be loaded');
   }
 }

@@ -15,9 +15,10 @@ export const load: PageServerLoad = async ({ url }) => {
     return { pageTitle: 'Search anime', query, results: [] };
   }
 
-  const results = await searchAnime(query).catch((cause) =>
-    error(502, cause instanceof Error ? cause.message : 'Anime search could not be loaded')
-  );
+  const results = await searchAnime(query).catch((cause) => {
+    console.error(`Anime search for ${JSON.stringify(query)} failed`, cause);
+    error(502, 'Anime search could not be loaded');
+  });
 
   return {
     pageTitle: 'Search anime',

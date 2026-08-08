@@ -24,9 +24,10 @@ export const load: PageServerLoad = async ({ locals }) => {
     console.error('Homepage hero load failed', cause);
     return [];
   });
-  const homepage = await getHomepage(season, year).catch((cause) =>
-    error(502, cause instanceof Error ? cause.message : 'The home page could not be loaded')
-  );
+  const homepage = await getHomepage(season, year).catch((cause) => {
+    console.error('Homepage catalog load failed', cause);
+    error(502, 'The home page could not be loaded');
+  });
 
   const animeIds = [...new Set([...homepage.season, ...homepage.popular].map(({ id }) => id))];
   const [homeHero, episodeRows, popularAudio] = await Promise.all([
