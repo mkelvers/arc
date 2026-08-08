@@ -138,8 +138,6 @@
           {/each}
         </div>
       </section>
-    {:else if resultQuery.length === 1}
-      <p class="text-sm text-muted">Keep typing to search.</p>
     {:else if resultQuery}
       {#if results.length}
         <section aria-labelledby="top-results-title">
@@ -167,8 +165,6 @@
         {/key}
       {:else if failed}
         <p class="text-sm text-muted">Search could not be loaded. Please try again.</p>
-      {:else}
-        <p class="text-sm text-muted">No anime found for “{resultQuery}”.</p>
       {/if}
     {:else if recent.results.length}
       <section aria-labelledby="recent-results-title">
