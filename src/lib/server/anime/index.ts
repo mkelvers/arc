@@ -6,6 +6,7 @@ import { episodes } from './episodes';
 import { franchise } from './franchise';
 import { getHomeHero } from './home';
 import { playback } from './providers';
+import { withAnimeSearchMetadata } from './search-enrichment';
 import { simulcast } from './simulcast';
 import { tmdb } from './tmdb';
 
@@ -18,6 +19,7 @@ export const anime = {
   franchise,
   getHomeHero,
   playback,
+  withAnimeSearchMetadata,
   simulcast,
   tmdb,
 };
