@@ -50,6 +50,16 @@ UI components should be accessible, predictable, and restrained. Preserve semant
 
 ## Refactoring and verification
 
+### Deletion-first cleanup
+
+For cleanup work, reduce the number of concepts before rearranging them. Check production call sites separately from tests, framework entry points, generated contracts, database schemas, and public exports. Delete dead files and exports first; inline incidental one-use mechanics next; localize one-function literals next; only then consider moving or extracting code.
+
+Do not introduce a helper, facade, barrel, options object, adapter, or component merely to make a patch easier, satisfy an analyzer, or expose an internal for a test. A new production symbol must own a reused operation, a named domain rule, a trust boundary, an external effect, or a policy that is clearer when tested independently. A function that only calls another function with the same arguments and returns its result normally fails this test.
+
+Prefer a small amount of obvious local repetition over a falsely generic abstraction. Do not remove repetition when the similar-looking callers have different error messages, ownership, lifecycle, security requirements, or product meaning. Analyzer findings are leads, never targets; a nonzero complexity or duplication score does not by itself justify a change.
+
+Use braces for every conditional body. Put a blank line between independent guard clauses and between validation, transformation, effects, and return steps when those phases are easier to scan separately. Do not compress control flow merely because a formatter permits it.
+
 Inspect call sites, tests, generated contracts, database constraints, and runtime behavior before changing a boundary. Preserve unrelated work in the tree. Refactors should normally keep behavior stable; when behavior must change, state the reason and cover it with focused tests. Delete obsolete files, exports, dependencies, comments, and compatibility paths once their consumers and data requirements are proven absent.
 
 Prefer direct code over chains of tiny wrappers. Consolidate repeated logic only after confirming that the semantics are the same. A duplicated three-line expression can be clearer than a falsely generic abstraction; repeated validation with an identical contract should usually be shared. Constants are warranted for shared policy, protocol values, or values whose names add meaning—not merely because a literal can be moved to the top of a file.
