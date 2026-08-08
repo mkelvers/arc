@@ -9,3 +9,5 @@ Validate external responses, persisted JSON, headers, form values, and URL value
 Keep caches and request coalescing with the operation whose freshness policy they implement. Avoid `cachedX` and `getX` layers when one public function can own key normalization, cache lookup, and loading clearly. Retain separate request and mapping stages when each is substantial and the split makes provider transformation testable.
 
 Provider absence, optional enrichment failure, and fatal transport failure are different outcomes. Preserve those distinctions while removing wrappers; do not turn cleanup into silent fallback behavior.
+
+Transport tests should prefer an ephemeral local HTTP server over assigning `globalThis.fetch`. When a provider's fixed external hosts make that impossible, keep any fetch replacement scoped to the test and restore it reliably; do not add a production pass-through fetch module solely to make mocking easier.
