@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { browseHref, parseBrowseFilters, type BrowseFilters } from './browse';
+import { browseSearchParams, parseBrowseFilters, type BrowseFilters } from './browse';
 
 describe('browse filters', () => {
   test('uses safe popularity defaults for a clean URL', () => {
@@ -27,12 +27,12 @@ describe('browse filters', () => {
       sort: 'score',
       order: 'asc',
     };
-    const href = browseHref(filters);
+    const searchParams = browseSearchParams(filters);
 
-    expect(href).toBe(
-      '/browse?q=Cowboy+Bebop&sfw=0&tag=tag-value&status=FINISHED&format=TV&sort=score&order=asc'
+    expect(searchParams.toString()).toBe(
+      'q=Cowboy+Bebop&sfw=0&tag=tag-value&status=FINISHED&format=TV&sort=score&order=asc'
     );
-    expect(parseBrowseFilters(new URL(href, 'https://arc.test').searchParams)).toEqual(filters);
+    expect(parseBrowseFilters(searchParams)).toEqual(filters);
   });
 
   test.each(['sfw=maybe', 'sort=unknown', 'order=unknown'])(

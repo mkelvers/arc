@@ -5,16 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function chunks<T>(values: readonly T[], size: number): T[][] {
-  if (!Number.isSafeInteger(size) || size <= 0) {
-    throw new RangeError('Chunk size must be a positive integer');
-  }
-
-  return Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
-    values.slice(index * size, (index + 1) * size)
-  );
-}
-
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -36,15 +26,6 @@ export function positiveInteger(value: unknown) {
 
 export function nonEmptyText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
-}
-
-export function parseDate(value: unknown) {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 }
 
 export function formatDate(value: string) {

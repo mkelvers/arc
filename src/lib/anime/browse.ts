@@ -5,9 +5,7 @@ export const browseSorts = [
 
 export const browsePageSize = 42;
 
-type OptionValue<Options extends readonly { value: string }[]> = Options[number]['value'];
-
-type BrowseSort = OptionValue<typeof browseSorts>;
+type BrowseSort = (typeof browseSorts)[number]['value'];
 type BrowseOrder = 'asc' | 'desc';
 
 export interface BrowseTaxonomy {
@@ -28,29 +26,6 @@ export interface BrowseFilters {
   order: BrowseOrder;
 }
 
-export const defaultBrowseFilters: BrowseFilters = {
-  query: '',
-  safe: true,
-  genre: null,
-  tag: null,
-  status: null,
-  format: null,
-  sort: 'popularity',
-  order: 'desc',
-};
-
-function optionValue<const Options extends readonly { value: string }[]>(
-  options: Options,
-  value: string | null,
-  fallback: OptionValue<Options>
-) {
-  if (value === null) {
-    return fallback;
-  }
-
-  return options.some((option) => option.value === value) ? (value as OptionValue<Options>) : null;
-}
-
 export function parseBrowseFilters(searchParams: URLSearchParams) {
   const query = searchParams.get('q')?.trim() ?? '';
   const safeValue = searchParams.get('sfw');
@@ -68,11 +43,15 @@ export function parseBrowseFilters(searchParams: URLSearchParams) {
   const tag = metadataValue('tag');
   const status = metadataValue('status');
   const format = metadataValue('format');
-  const sort = optionValue(browseSorts, searchParams.get('sort'), defaultBrowseFilters.sort);
+  const sortValue = searchParams.get('sort');
+  const sort =
+    sortValue === null
+      ? 'popularity'
+      : (browseSorts.find(({ value }) => value === sortValue)?.value ?? null);
   const orderValue = searchParams.get('order');
   const order =
     orderValue === null
-      ? defaultBrowseFilters.order
+      ? 'desc'
       : orderValue === 'asc' || orderValue === 'desc'
         ? orderValue
         : null;
@@ -124,19 +103,14 @@ export function browseSearchParams(filters: BrowseFilters) {
   if (filters.format) {
     searchParams.set('format', filters.format);
   }
-  if (filters.sort !== defaultBrowseFilters.sort) {
+  if (filters.sort !== 'popularity') {
     searchParams.set('sort', filters.sort);
   }
-  if (filters.order !== defaultBrowseFilters.order) {
+  if (filters.order !== 'desc') {
     searchParams.set('order', filters.order);
   }
 
   return searchParams;
-}
-
-export function browseHref(filters: BrowseFilters) {
-  const search = browseSearchParams(filters).toString();
-  return search ? `/browse?${search}` : '/browse';
 }
 
 export function browseEnumLabel(value: string) {

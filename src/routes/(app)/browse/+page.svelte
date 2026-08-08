@@ -16,7 +16,6 @@
   import {
     browseEnumLabel,
     browseFormatLabel,
-    browseHref,
     browseSearchParams,
     browseSorts,
     type BrowseFilters,
@@ -45,11 +44,13 @@
   );
 
   function filterHref(patch: Partial<BrowseFilters>) {
-    return browseHref({
+    const search = browseSearchParams({
       ...data.filters,
       query: query.trim(),
       ...patch,
-    });
+    }).toString();
+
+    return search ? `/browse?${search}` : '/browse';
   }
 
   function filterItems(

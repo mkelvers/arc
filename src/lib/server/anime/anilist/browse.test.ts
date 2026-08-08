@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 
-import { defaultBrowseFilters } from '$lib/anime/browse';
 import { browseMediaSort } from './browse';
 
 describe('AniList browse ordering', () => {
@@ -12,7 +11,6 @@ describe('AniList browse ordering', () => {
   ] as const)('maps %s %s to %s', (sort, order, expected) => {
     expect(
       browseMediaSort({
-        ...defaultBrowseFilters,
         sort,
         order,
       })
