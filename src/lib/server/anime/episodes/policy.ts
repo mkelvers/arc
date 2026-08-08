@@ -1,4 +1,4 @@
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 export type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 

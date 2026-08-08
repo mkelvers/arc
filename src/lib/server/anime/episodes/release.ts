@@ -1,6 +1,6 @@
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 const day = 24 * 60 * 60 * 1_000;
 const releaseDateGrace = 14 * day;

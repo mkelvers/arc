@@ -5,7 +5,7 @@ import {
   specialEpisodeEvidenceScore,
   type SpecialEpisodeEvidence,
 } from './mapping-evidence';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 const anime = {
   duration: 24,

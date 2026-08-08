@@ -2,10 +2,11 @@ import { and, eq, sql } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '$lib/server/db/schema';
+import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
 import { getPoster } from './poster';
-import type { AniListAnime, Artwork, ArtworkImage, StoredMapping } from './types';
+import type { Artwork, ArtworkImage, StoredMapping } from './types';
 
 const completeFreshFor = 30 * 24 * 60 * 60 * 1_000;
 const sparseFreshFor = 6 * 60 * 60 * 1_000;

@@ -6,7 +6,7 @@ import {
   episodeRefreshReason,
   nextRefreshAt,
 } from './policy';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 describe('episode refresh policy', () => {
   const future = new Date('2026-08-02T00:00:00Z');

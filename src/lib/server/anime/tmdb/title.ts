@@ -1,4 +1,5 @@
-import type { AniListAnime, Candidate } from './types';
+import type { AniListAnime } from '../anilist/types';
+import type { Candidate } from './types';
 
 const romanReleaseSuffix = /\s+(ii|iii|iv|v|vi|vii|viii|ix|x)$/;
 const romanReleaseNumbers: Readonly<Record<string, number>> = {

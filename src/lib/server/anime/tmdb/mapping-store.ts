@@ -3,8 +3,9 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '$lib/server/db';
 import { anime as animeTable, animeExternalId, animeExternalIdLink } from '$lib/server/db/schema';
+import type { AniListAnime } from '../anilist/types';
 import { titlesFor } from './title';
-import { type AniListAnime, type Mapping, type StoredMapping } from './types';
+import { type Mapping, type StoredMapping } from './types';
 
 export async function findMapping(anilistId: number): Promise<StoredMapping | null> {
   const targetId = alias(animeExternalId, 'target_external_id');

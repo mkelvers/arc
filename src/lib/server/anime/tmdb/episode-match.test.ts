@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
 import { matchBestEpisodeMetadata, matchEpisodeMetadata } from './episode-match';
-import type { AniListAnime, EpisodeCandidate } from './types';
+import type { AniListAnime } from '../anilist/types';
+import type { EpisodeCandidate } from './types';
 
 function anime(
   value: Partial<AniListAnime> & {

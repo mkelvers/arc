@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
 import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number | null, start: [number, number, number]) {
   return {

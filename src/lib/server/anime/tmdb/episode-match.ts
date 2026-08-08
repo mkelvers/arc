@@ -1,7 +1,8 @@
+import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 import { episodeTitleKey, episodeTitleScore, isSpecialEpisodeReference } from '../providers/match';
 import { isSpecialRelease, titlesFor } from './title';
-import type { AniListAnime, EpisodeCandidate } from './types';
+import type { EpisodeCandidate } from './types';
 
 function animeDate(
   value:

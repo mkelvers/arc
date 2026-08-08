@@ -5,8 +5,10 @@ import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { formatDuration } from '$lib/utils';
+import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
-import type { AniListAnime, StoredEpisode } from './types';
+
+type StoredEpisode = typeof animeEpisode.$inferSelect;
 
 function episodeModel(
   episode: StoredEpisode,

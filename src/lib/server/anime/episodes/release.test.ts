@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
 import { episodesForRelease } from './release';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
   return {

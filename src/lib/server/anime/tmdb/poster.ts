@@ -4,9 +4,10 @@ import { alias } from 'drizzle-orm/pg-core';
 import { db } from '$lib/server/db';
 import { animeExternalId, animeExternalIdLink, animeReleasePoster } from '$lib/server/db/schema';
 import { isRecord } from '$lib/utils';
+import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { selectPoster, selectReleaseSeason, type PosterCandidate } from './poster-selection';
-import type { AniListAnime, ArtworkImage, StoredMapping } from './types';
+import type { ArtworkImage, StoredMapping } from './types';
 
 const completeFreshFor = 30 * 24 * 60 * 60 * 1_000;
 const sparseFreshFor = 6 * 60 * 60 * 1_000;

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { selectPoster, selectReleaseSeason } from './poster-selection';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 function anime(values: Partial<AniListAnime> = {}): AniListAnime {
   return {

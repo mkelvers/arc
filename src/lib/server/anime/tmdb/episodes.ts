@@ -1,3 +1,4 @@
+import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 import { translateToEnglish } from '../translation';
 import { isRecord } from '$lib/utils';
@@ -13,13 +14,7 @@ import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
 import { matchBestEpisodeMetadata } from './episode-match';
 import { resolveStored } from './mapping';
 import { releaseSequence } from './title';
-import type {
-  AniListAnime,
-  EpisodeCandidate,
-  EpisodeMetadata,
-  StoredEpisodeText,
-  StoredMapping,
-} from './types';
+import type { EpisodeCandidate, EpisodeMetadata, StoredEpisodeText, StoredMapping } from './types';
 
 interface MetadataEntry {
   id: string;

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { candidateScore, normalizeTitle, releaseSequence, seriesTitle } from './title';
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 describe('TMDB title matching', () => {
   test('normalizes punctuation and diacritics', () => {

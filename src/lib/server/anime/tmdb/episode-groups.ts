@@ -1,7 +1,8 @@
+import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 import { episodeTitleKey, episodeTitleScore, normalizedProviderTitle } from '../providers/match';
 import { releaseSequence } from './title';
-import type { AniListAnime, EpisodeCandidate } from './types';
+import type { EpisodeCandidate } from './types';
 
 export interface EpisodeGroupBlock {
   episodes: Array<

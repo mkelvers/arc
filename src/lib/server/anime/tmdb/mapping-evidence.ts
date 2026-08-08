@@ -1,4 +1,4 @@
-import type { AniListAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 import { normalizeTitle, titlesFor } from './title';
 
 const day = 24 * 60 * 60 * 1_000;

@@ -15,7 +15,8 @@ import { RequestCache } from '$lib/server/request-cache';
 import { nonEmptyText, positiveInteger, record } from '$lib/utils';
 import { plainText } from '../anilist/text';
 import { request } from './client';
-import type { AniListAnime, Episode } from './types';
+import type { AniListAnime } from '../anilist/types';
+import type { ProviderEpisode } from '../providers/types';
 
 const audioCacheLifetime = 30 * 60 * 1_000;
 const providerName = 'allanime';
@@ -258,7 +259,7 @@ export async function findShowId(anime: AniListAnime, refresh = false) {
   throw new Error(`AllAnime has no exact MAL match for ${anime.idMal}`);
 }
 
-export async function getEpisodes(anime: AniListAnime): Promise<Episode[]> {
+export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[]> {
   let showId = await findShowId(anime);
   const load = (id: string) =>
     request<AllAnimeAvailableEpisodesQuery, { showId: string; start: number; end: number }>(

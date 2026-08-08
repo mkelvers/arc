@@ -1,5 +1,5 @@
+import type { AniListAnime } from '../anilist/types';
 import { isSpecialRelease, releaseSequence } from './title';
-import type { AniListAnime } from './types';
 
 interface Season {
   air_date?: string;
