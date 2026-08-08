@@ -77,7 +77,3 @@ export async function renderAccountArt(userId: string) {
 
   return new Avatar(style, { seed: userId, size: 512 }).toString();
 }
-
-export async function accountArtSource(userId: string) {
-  return `data:image/svg+xml;base64,${Buffer.from(await renderAccountArt(userId)).toString('base64')}`;
-}

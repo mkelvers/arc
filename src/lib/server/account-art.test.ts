@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { accountArtSource, accountArtStyle, renderAccountArt } from './account-art';
+import { accountArtStyle, renderAccountArt } from './account-art';
 
 describe('account art', () => {
   test('selects one stable DiceBear style for a user', async () => {
@@ -16,13 +16,6 @@ describe('account art', () => {
 
     expect(first).toBe(second);
     expect(first.startsWith('<svg')).toBe(true);
-  });
-
-  test('provides an embeddable source without exposing the user ID', async () => {
-    const source = await accountArtSource('user-123');
-
-    expect(source.startsWith('data:image/svg+xml;base64,')).toBe(true);
-    expect(source).not.toContain('user-123');
   });
 
   test('can select and render every bundled DiceBear style', async () => {
