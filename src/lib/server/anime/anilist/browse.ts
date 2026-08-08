@@ -37,12 +37,8 @@ interface BrowseCatalogEntry {
   averageScore: number | null;
 }
 
-export function browseMediaSort(filters: Pick<BrowseFilters, 'sort' | 'order'>): MediaSort {
-  const sort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
-  return filters.order === 'desc' ? `${sort}_DESC` : sort;
-}
-
 export async function getBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
+  const sort: MediaSort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
   const response = await request(BrowseAnimePageDocument, {
     search: filters.query || undefined,
     genre: filters.genre ?? undefined,
@@ -50,7 +46,7 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
     format: filters.format ?? undefined,
     status: filters.status ?? undefined,
     isAdult: filters.safe ? false : undefined,
-    sort: [browseMediaSort(filters)],
+    sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
     page,
     perPage,
   });
