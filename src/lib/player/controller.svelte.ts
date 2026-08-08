@@ -79,22 +79,30 @@ export class Player {
 
     event.preventDefault();
 
-    if (action === 'play') {
-      this.media.togglePlayback();
-    } else if (action === 'mute') {
-      this.media.toggleMute();
-    } else if (action === 'fullscreen') {
-      void this.toggleFullscreen();
-    } else if (action === 'start') {
-      this.media.seek(0);
-    } else if (action === 'end') {
-      this.media.seek(this.media.duration);
-    } else if ('seek' in action) {
-      this.media.seek(this.media.video.currentTime + action.seek);
-    } else if ('volume' in action) {
-      this.media.changeVolume(action.volume);
-    } else {
-      this.media.seek(this.media.duration * action.percent);
+    switch (action) {
+      case 'play':
+        this.media.togglePlayback();
+        break;
+      case 'mute':
+        this.media.toggleMute();
+        break;
+      case 'fullscreen':
+        void this.toggleFullscreen();
+        break;
+      case 'start':
+        this.media.seek(0);
+        break;
+      case 'end':
+        this.media.seek(this.media.duration);
+        break;
+      default:
+        if ('seek' in action) {
+          this.media.seek(this.media.video.currentTime + action.seek);
+        } else if ('volume' in action) {
+          this.media.changeVolume(action.volume);
+        } else {
+          this.media.seek(this.media.duration * action.percent);
+        }
     }
 
     this.showControls();
