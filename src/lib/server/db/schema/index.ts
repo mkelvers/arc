@@ -119,6 +119,25 @@ export const verifications = pgTable(
   (table) => [index('verifications_identifier_idx').on(table.identifier)]
 );
 
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    codeHash: text('code_hash').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    reservedAt: timestamp('reserved_at', { withTimezone: true }),
+    reservationId: uuid('reservation_id'),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    usedByUserId: uuid('used_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (table) => [
+    unique('invitations_code_hash_unique').on(table.codeHash),
+    uniqueIndex('invitations_reservation_id_unique').on(table.reservationId),
+    index('invitations_used_by_user_id_idx').on(table.usedByUserId),
+  ]
+);
+
 export const anime = pgTable('anime', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   title: text('title'),
