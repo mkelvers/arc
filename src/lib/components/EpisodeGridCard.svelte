@@ -2,7 +2,6 @@
   import { CalendarBlankIcon, PlayIcon } from 'phosphor-svelte';
 
   import { audioAvailabilityLabel } from '$lib/anime/audio';
-  import { episodeHeading } from '$lib/anime/episode';
   import type { AnimeEpisode } from '$lib/anime/types';
   import { cn } from '$lib/utils';
 
@@ -16,7 +15,7 @@
 
   let { episode, title, image = null, current = false, context = 'detail' }: Props = $props();
   const dialog = $derived(context === 'dialog');
-  const heading = $derived(episodeHeading(episode));
+  const heading = $derived(episode.title ? `${episode.label} – ${episode.title}` : episode.label);
 </script>
 
 <a

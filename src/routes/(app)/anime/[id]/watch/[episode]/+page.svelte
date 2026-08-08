@@ -1,6 +1,5 @@
 <script lang="ts">
   import { audioAvailabilityLabel } from '$lib/anime/audio';
-  import { episodeHeading } from '$lib/anime/episode';
   import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
   import WatchEpisodeCard from '$lib/components/WatchEpisodeCard.svelte';
   import WatchPlayer from '$lib/components/WatchPlayer.svelte';
@@ -14,7 +13,11 @@
   let renderedEpisodeId = $state<string>();
 
   const poster = $derived(data.currentEpisode.image ?? data.fallbackImage);
-  const heading = $derived(episodeHeading(data.currentEpisode));
+  const heading = $derived(
+    data.currentEpisode.title
+      ? `${data.currentEpisode.label} – ${data.currentEpisode.title}`
+      : data.currentEpisode.label
+  );
 
   $effect(() => {
     if (renderedEpisodeId === undefined) {

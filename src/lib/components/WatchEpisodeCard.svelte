@@ -1,6 +1,5 @@
 <script lang="ts">
   import { audioAvailabilityLabel } from '$lib/anime/audio';
-  import { episodeHeading } from '$lib/anime/episode';
   import type { AnimeEpisode } from '$lib/anime/types';
 
   interface Props {
@@ -9,7 +8,7 @@
   }
 
   let { episode, image = null }: Props = $props();
-  const heading = $derived(episodeHeading(episode));
+  const heading = $derived(episode.title ? `${episode.label} – ${episode.title}` : episode.label);
 </script>
 
 <a
