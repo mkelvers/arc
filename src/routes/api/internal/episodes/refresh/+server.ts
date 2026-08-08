@@ -2,7 +2,7 @@ import { env } from '$env/dynamic/private';
 import { error, json, type RequestHandler } from '@sveltejs/kit';
 import { timingSafeEqual } from 'node:crypto';
 
-import { anime } from '$lib/server/anime';
+import { refreshDue } from '$lib/server/anime/episodes';
 
 function authorized(header: string | null) {
   const token = env.EPISODE_SYNC_TOKEN;
@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
   const limit = Number.isSafeInteger(requestedLimit)
     ? Math.max(1, Math.min(requestedLimit, 100))
     : 20;
-  const results = await anime.episodes.refreshDue(limit);
+  const results = await refreshDue(limit);
 
   return json(
     {

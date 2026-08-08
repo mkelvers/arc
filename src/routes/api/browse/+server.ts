@@ -1,8 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 
 import { parseBrowseFilters } from '$lib/anime/browse';
-import { anime } from '$lib/server/anime';
-import { BrowseFilterError } from '$lib/server/anime/browse';
+import { browsePage, BrowseFilterError } from '$lib/server/anime/browse';
 import { positiveInteger } from '$lib/utils';
 import type { RequestHandler } from './$types';
 
@@ -14,7 +13,7 @@ export const GET: RequestHandler = async ({ url }) => {
   }
 
   try {
-    const result = await anime.browse.page(filters, page);
+    const result = await browsePage(filters, page);
     return json({
       anime: result.anime,
       hasNextPage: result.hasNextPage,

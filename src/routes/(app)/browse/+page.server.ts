@@ -1,8 +1,7 @@
 import { error } from '@sveltejs/kit';
 
 import { parseBrowseFilters } from '$lib/anime/browse';
-import { anime } from '$lib/server/anime';
-import { BrowseFilterError } from '$lib/server/anime/browse';
+import { BrowseFilterError, initialBrowsePage } from '$lib/server/anime/browse';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -15,7 +14,7 @@ export const load: PageServerLoad = async ({ url }) => {
     return {
       pageTitle: 'Browse anime',
       filters,
-      ...(await anime.browse.initialPage(filters)),
+      ...(await initialBrowsePage(filters)),
     };
   } catch (cause) {
     if (cause instanceof BrowseFilterError) {

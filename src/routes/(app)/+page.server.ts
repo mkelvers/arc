@@ -1,10 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { inArray } from 'drizzle-orm';
-import { Effect, Either } from 'effect';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { currentAnimeSeason } from '$lib/anime/season';
-import { anime } from '$lib/server/anime';
+import { getHomepage } from '$lib/server/anime/anilist/home';
+import { getPopularAudioLabels } from '$lib/server/anime/allanime/catalog';
+import { withAnimeCardPosters } from '$lib/server/anime/card-posters';
+import { getHomeHero } from '$lib/server/anime/home';
 import { animeId } from '$lib/server/anime/route';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
@@ -18,21 +20,15 @@ export const load: PageServerLoad = async ({ locals }) => {
     console.error('Continue watching load failed', cause);
     return [];
   });
-  const highlights = anime.getHomeHero().catch((cause) => {
+  const highlights = getHomeHero().catch((cause) => {
     console.error('Homepage hero load failed', cause);
     return [];
   });
-  const result = await Effect.runPromise(
-    anime.anilist.getHomepage(season, year).pipe(Effect.either)
+  const homepage = await getHomepage(season, year).catch((cause) =>
+    error(502, cause instanceof Error ? cause.message : 'The home page could not be loaded')
   );
 
-  if (Either.isLeft(result)) {
-    error(502, result.left.message);
-  }
-
-  const animeIds = [
-    ...new Set([...result.right.season, ...result.right.popular].map(({ id }) => id)),
-  ];
+  const animeIds = [...new Set([...homepage.season, ...homepage.popular].map(({ id }) => id))];
   const [homeHero, episodeRows, popularAudio] = await Promise.all([
     highlights,
     animeIds.length
@@ -44,7 +40,7 @@ export const load: PageServerLoad = async ({ locals }) => {
           .from(animeEpisode)
           .where(inArray(animeEpisode.anilistId, animeIds))
       : [],
-    anime.allanime.getPopularAudioLabels().catch(() => new Map()),
+    getPopularAudioLabels().catch(() => new Map()),
   ]);
   const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
 
@@ -54,7 +50,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     audioByAnime.set(episode.anilistId, audio);
   }
 
-  const withAudio = (card: (typeof result.right.season)[number]) => ({
+  const withAudio = (card: (typeof homepage.season)[number]) => ({
     ...card,
     caption: audioAvailabilityLabel([
       ...(audioByAnime.get(card.id) ?? []),
@@ -62,11 +58,8 @@ export const load: PageServerLoad = async ({ locals }) => {
     ]),
   });
 
-  const seasonCards = result.right.season.map(withAudio);
-  const cards = await anime.withAnimeCardPosters([
-    ...seasonCards,
-    ...result.right.popular.map(withAudio),
-  ]);
+  const seasonCards = homepage.season.map(withAudio);
+  const cards = await withAnimeCardPosters([...seasonCards, ...homepage.popular.map(withAudio)]);
 
   return {
     pageTitle: 'Watch anime',

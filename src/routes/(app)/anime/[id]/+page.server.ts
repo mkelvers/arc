@@ -1,9 +1,11 @@
 import { error } from '@sveltejs/kit';
 
 import { episodeAudioAvailabilityLabel } from '$lib/anime/audio';
-import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
+import { getEpisodes } from '$lib/server/anime/episodes';
+import { getFranchiseOrder } from '$lib/server/anime/franchise';
 import { animeId, loadAnime } from '$lib/server/anime/route';
+import { getArtwork } from '$lib/server/anime/tmdb/artwork';
 import { continuationEpisode } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { PageServerLoad } from './$types';
@@ -19,11 +21,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   const result = await loadAnime(id);
   const details = toAnimeDetails(result);
 
-  const artwork = anime.tmdb.getArtwork(result).catch((cause) => {
+  const artwork = getArtwork(result).catch((cause) => {
     console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
     return null;
   });
-  const episodes = anime.episodes.getEpisodes(result).catch(() => []);
+  const episodes = getEpisodes(result).catch(() => []);
   const watchAction = Promise.all([episodes, getPlaybackProgress(userId, id)]).then(
     ([availableEpisodes, progress]) => {
       const continuation = continuationEpisode(progress, availableEpisodes);
@@ -41,7 +43,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   );
   const audioLabel = episodes.then(episodeAudioAvailabilityLabel);
   const franchise = result.idMal
-    ? anime.franchise.getFranchiseOrder(result.idMal).catch((cause) => {
+    ? getFranchiseOrder(result.idMal).catch((cause) => {
         console.error(`Franchise order failed for MAL ${result.idMal}`, cause);
         return null;
       })

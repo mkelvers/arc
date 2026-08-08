@@ -1,11 +1,12 @@
 import { error, redirect } from '@sveltejs/kit';
 
 import type { AudioMode } from '$lib/anime/audio';
-import { episodeHeading } from '$lib/anime/episode';
-import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
+import { getEpisodes, getRelatedReleaseTitles } from '$lib/server/anime/episodes';
+import { playback } from '$lib/server/anime/providers';
 import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getEpisodeSkipTimes } from '$lib/server/anime/skip-times';
+import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import { resumePosition } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { PageServerLoad } from './$types';
@@ -32,17 +33,17 @@ function playbackFailureSummary(cause: AggregateError) {
 }
 
 async function getPlayback(
-  animeData: Parameters<typeof anime.playback.getStreams>[0],
-  episode: Parameters<typeof anime.playback.getStreams>[1],
+  animeData: Parameters<typeof playback.getStreams>[0],
+  episode: Parameters<typeof playback.getStreams>[1],
   modes: AudioMode[]
 ) {
-  let remoteStreams: Awaited<ReturnType<typeof anime.playback.getStreams>> = {};
+  let remoteStreams: Awaited<ReturnType<typeof playback.getStreams>> = {};
   let streamError = false;
   let lastFailure: unknown;
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      remoteStreams = await anime.playback.getStreams(animeData, episode, modes);
+      remoteStreams = await playback.getStreams(animeData, episode, modes);
       streamError = false;
       lastFailure = undefined;
       break;
@@ -124,9 +125,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   );
 
   const [storedMedia, episodes, relatedReleases, progress] = await Promise.all([
-    anime.tmdb.getStoredMedia(id).catch(() => null),
-    anime.episodes.getEpisodes(result).catch(() => []),
-    anime.episodes.getRelatedReleaseTitles(relatedIds),
+    getStoredMedia(id).catch(() => null),
+    getEpisodes(result).catch(() => []),
+    getRelatedReleaseTitles(relatedIds),
     getPlaybackProgress(locals.user?.id, id),
   ]);
   let currentIndex = episodes.findIndex((episode) => episode.id === params.episode);
@@ -178,7 +179,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   ]);
 
   return {
-    pageTitle: `Watch ${details.title} — ${episodeHeading(currentEpisode)}`,
+    pageTitle: `Watch ${details.title} — ${
+      currentEpisode.title
+        ? `${currentEpisode.label} – ${currentEpisode.title}`
+        : currentEpisode.label
+    }`,
     anime: details,
     episodes,
     currentEpisode,

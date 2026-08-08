@@ -1,8 +1,14 @@
 import { error, fail } from '@sveltejs/kit';
 
-import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
+import { getArtwork } from '$lib/server/anime/tmdb/artwork';
+import {
+  getStoredMedia,
+  refreshArtwork,
+  selectArtwork,
+  setLogoSize,
+} from '$lib/server/anime/tmdb/media';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -11,7 +17,7 @@ export const load: PageServerLoad = async ({ params }) => {
     error(400, 'Invalid anime ID');
   }
 
-  const stored = await anime.tmdb.getStoredMedia(id).catch((cause) => {
+  const stored = await getStoredMedia(id).catch((cause) => {
     console.error(`Stored TMDB media read failed for AniList ${id}`, cause);
     return null;
   });
@@ -30,7 +36,7 @@ export const load: PageServerLoad = async ({ params }) => {
     return {
       pageTitle: `${details.title} artwork`,
       anime: details,
-      artwork: await anime.tmdb.getArtwork(result),
+      artwork: await getArtwork(result),
     };
   } catch (cause) {
     console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
@@ -53,7 +59,7 @@ export const actions: Actions = {
 
     if (intent === 'refresh') {
       try {
-        await anime.tmdb.refreshArtwork(id);
+        await refreshArtwork(id);
         return { success: true };
       } catch (cause) {
         return fail(502, {
@@ -66,7 +72,7 @@ export const actions: Actions = {
       const logoSize = Number(data.get('logoSize'));
 
       try {
-        await anime.tmdb.setLogoSize(id, logoSize);
+        await setLogoSize(id, logoSize);
         return { success: true };
       } catch (cause) {
         return fail(400, {
@@ -86,7 +92,7 @@ export const actions: Actions = {
     }
 
     try {
-      await anime.tmdb.selectArtwork(id, type, value === '' ? null : value);
+      await selectArtwork(id, type, value === '' ? null : value);
       return { success: true };
     } catch (cause) {
       return fail(400, {

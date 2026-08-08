@@ -6,12 +6,13 @@ import {
   compareAnimeSeasons,
   currentAnimeSeason,
 } from '$lib/anime/season';
-import { anime } from '$lib/server/anime';
+import { getSimulcastSeasonStarts } from '$lib/server/anime/anilist/simulcast';
+import { requestedSimulcastSeason, simulcastPage } from '$lib/server/anime/simulcast';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
   const current = currentAnimeSeason();
-  const selected = anime.simulcast.requestedSeason(url.searchParams, current);
+  const selected = requestedSimulcastSeason(url.searchParams, current);
   if (!selected) {
     error(400, 'A valid season and year are required');
   }
@@ -20,8 +21,8 @@ export const load: PageServerLoad = async ({ url }) => {
   }
 
   const [starts, page] = await Promise.all([
-    anime.simulcast.seasonStarts(),
-    anime.simulcast.page(selected, 1),
+    getSimulcastSeasonStarts(),
+    simulcastPage(selected, 1),
   ]).catch((cause) => {
     console.error('Simulcast page load failed', cause);
     error(502, 'Simulcast could not be loaded');

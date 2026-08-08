@@ -1,7 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { Effect, Either } from 'effect';
 
-import { anime } from '$lib/server/anime';
+import { searchAnime } from '$lib/server/anime/anilist/search';
+import { withAnimeCardPosters } from '$lib/server/anime/card-posters';
+import { withAnimeSearchMetadata } from '$lib/server/anime/search-enrichment';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -14,14 +15,13 @@ export const load: PageServerLoad = async ({ url }) => {
     return { pageTitle: 'Search anime', query, results: [] };
   }
 
-  const result = await Effect.runPromise(anime.anilist.searchAnime(query).pipe(Effect.either));
-  if (Either.isLeft(result)) {
-    error(502, result.left.message);
-  }
+  const results = await searchAnime(query).catch((cause) =>
+    error(502, cause instanceof Error ? cause.message : 'Anime search could not be loaded')
+  );
 
   return {
     pageTitle: 'Search anime',
     query,
-    results: await anime.withAnimeSearchMetadata(await anime.withAnimeCardPosters(result.right)),
+    results: await withAnimeSearchMetadata(await withAnimeCardPosters(results)),
   };
 };
