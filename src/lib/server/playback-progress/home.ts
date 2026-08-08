@@ -2,8 +2,8 @@ import { asc, inArray } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
 import type { ContinueWatchingCard } from '$lib/anime/types';
-import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
+import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { formatDuration } from '$lib/utils';
@@ -61,7 +61,7 @@ export async function getContinueWatchingCards(
         return null;
       }
 
-      const storedMedia = await anime.tmdb.getStoredMedia(progress.anilistId).catch((cause) => {
+      const storedMedia = await getStoredMedia(progress.anilistId).catch((cause) => {
         console.error(`Stored TMDB media failed for AniList ${progress.anilistId}`, cause);
         return null;
       });

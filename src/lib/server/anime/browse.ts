@@ -1,5 +1,4 @@
 import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
-import { Effect } from 'effect';
 
 import { browsePageSize, type BrowseFilters, type BrowseTaxonomy } from '$lib/anime/browse';
 import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
@@ -52,7 +51,7 @@ function browseRefreshKey(filters: BrowseFilters, page: number) {
 }
 
 async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, pageNumber: number) {
-  const result = await Effect.runPromise(getBrowsePage(filters, pageNumber, browsePageSize));
+  const result = await getBrowsePage(filters, pageNumber, browsePageSize);
   const fetchedAt = new Date();
   const cachePage = {
     animeIds: result.anime.map(({ anilistId }) => anilistId),
@@ -139,7 +138,7 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
 }
 
 async function refreshTaxonomy() {
-  const taxonomy = await Effect.runPromise(getBrowseTaxonomy());
+  const taxonomy = await getBrowseTaxonomy();
   const fetchedAt = new Date();
 
   await db
@@ -408,17 +407,15 @@ async function loadPage(filters: BrowseFilters, page: number) {
   };
 }
 
-async function initialPage(filters: BrowseFilters) {
+export async function initialBrowsePage(filters: BrowseFilters) {
   const { sourceTaxonomy: taxonomy, ...result } = await loadPage(filters, 1);
 
   return { ...result, taxonomy: await pageTaxonomy(taxonomy) };
 }
 
-async function page(filters: BrowseFilters, number: number) {
+export async function browsePage(filters: BrowseFilters, number: number) {
   const { sourceTaxonomy: _, ...result } = await loadPage(filters, number);
   return result;
 }
 
 export class BrowseFilterError extends Error {}
-
-export const browse = { initialPage, page };

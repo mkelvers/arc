@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
-import { Effect, Either } from 'effect';
 
-import { anilist } from './anilist';
+import { GraphQLRequestError } from '$lib/server/graphql';
+import { getAnime } from './anilist/details';
 
 export function animeId(value: FormDataEntryValue | string | null | undefined) {
   const id = Number(value);
@@ -10,16 +10,16 @@ export function animeId(value: FormDataEntryValue | string | null | undefined) {
 }
 
 export async function loadAnime(id: number) {
-  const result = await Effect.runPromise(anilist.getAnime(id).pipe(Effect.either));
-
-  if (Either.isLeft(result)) {
+  try {
+    return await getAnime(id);
+  } catch (cause) {
     error(
-      result.left.status === 404 ? 404 : 502,
-      result.left.status === 404
+      cause instanceof GraphQLRequestError && cause.status === 404 ? 404 : 502,
+      cause instanceof GraphQLRequestError && cause.status === 404
         ? 'This anime is no longer available on AniList'
-        : result.left.message
+        : cause instanceof Error
+          ? cause.message
+          : 'Anime details could not be loaded'
     );
   }
-
-  return result.right;
 }

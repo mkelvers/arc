@@ -1,13 +1,10 @@
-import { Effect } from 'effect';
-
 import { parseAnimeSeason, type AnimeSeasonSelection } from '$lib/anime/season';
 import { positiveInteger } from '$lib/utils';
-import { getSimulcastSeasonStarts } from './anilist/simulcast';
-import { getSimulcastPage } from './allanime/catalog';
+import { getSimulcastPage as fetchSimulcastPage } from './allanime/catalog';
 import { withAnimeCardPosters } from './card-posters';
 
-async function page(selection: AnimeSeasonSelection, number: number) {
-  const result = await getSimulcastPage(selection, number);
+export async function simulcastPage(selection: AnimeSeasonSelection, number: number) {
+  const result = await fetchSimulcastPage(selection, number);
 
   return {
     ...result,
@@ -17,11 +14,10 @@ async function page(selection: AnimeSeasonSelection, number: number) {
   };
 }
 
-function seasonStarts() {
-  return Effect.runPromise(getSimulcastSeasonStarts());
-}
-
-function requestedSeason(searchParams: URLSearchParams, fallback: AnimeSeasonSelection) {
+export function requestedSimulcastSeason(
+  searchParams: URLSearchParams,
+  fallback: AnimeSeasonSelection
+) {
   const seasonValue = searchParams.get('season');
   const yearValue = searchParams.get('year');
   if (seasonValue === null && yearValue === null) {
@@ -32,9 +28,3 @@ function requestedSeason(searchParams: URLSearchParams, fallback: AnimeSeasonSel
   const year = positiveInteger(yearValue);
   return season && year ? { season, year } : null;
 }
-
-export const simulcast = {
-  page,
-  requestedSeason,
-  seasonStarts,
-};

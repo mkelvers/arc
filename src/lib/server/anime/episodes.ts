@@ -1,14 +1,13 @@
 import { eq, isNull, lte, or } from 'drizzle-orm';
-import { Effect } from 'effect';
 
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
-import { anilist } from './anilist';
+import { getAnime } from './anilist/details';
+import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import { episodeRefreshReason } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
-import type { AniListAnime } from './episodes/types';
 import { coversExpectedEpisodes } from './providers/match';
 import { findMapping } from './tmdb/mapping-store';
 
@@ -64,7 +63,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
   return stored;
 }
 
-async function getRelatedReleaseTitles(anilistIds: number[]) {
+export async function getRelatedReleaseTitles(anilistIds: number[]) {
   const ids = [...new Set(anilistIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
   // Related titles are optional matching evidence. A watch request must not
   // discover and synchronize every adjacent release merely to obtain them.
@@ -73,7 +72,7 @@ async function getRelatedReleaseTitles(anilistIds: number[]) {
   return stored.map(({ episodes }) => episodes);
 }
 
-async function refreshDue(limit = 20) {
+export async function refreshDue(limit = 20) {
   const due = await db
     .select({ anilistId: animeEpisodeSync.anilistId })
     .from(animeEpisodeSync)
@@ -85,7 +84,7 @@ async function refreshDue(limit = 20) {
 
   for (const { anilistId } of due) {
     try {
-      const anime = await Effect.runPromise(anilist.getAnime(anilistId));
+      const anime = await getAnime(anilistId);
       const episodes = await refreshEpisodes(anime);
       results.push({
         anilistId,
@@ -103,10 +102,3 @@ async function refreshDue(limit = 20) {
 
   return results;
 }
-
-export const episodes = {
-  getEpisodes,
-  getRelatedReleaseTitles,
-  refreshDue,
-  refreshEpisodes,
-};

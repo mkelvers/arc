@@ -1,13 +1,11 @@
 import { eq, inArray } from 'drizzle-orm';
-import { Effect, Schedule } from 'effect';
 
 import type { FranchiseOrder } from '$lib/anime/types';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
-import { graphql } from '$lib/server/graphql';
+import { request } from './anilist/client';
 import { plainText } from './anilist/text';
-import { transientRequestError } from './anilist/client';
 import { withAnimeCardPosters } from './card-posters';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import {
@@ -18,20 +16,15 @@ import {
 import { withFranchisePlayback } from './franchise/playback';
 import { primaryFranchiseIds, type FranchiseSelectionEntry } from './franchise/selection';
 
-const anilistEndpoint = 'https://graphql.anilist.co';
 const requests = new Map<number, Promise<FranchiseOrder>>();
 
 async function fetchMetadata(entries: ChiakiEntry[]) {
-  const result = await Effect.runPromise(
-    graphql(anilistEndpoint, FranchiseMediaDocument, {
+  const result = await request(
+    FranchiseMediaDocument,
+    {
       malIds: entries.map(({ malId }) => malId),
-    }).pipe(
-      Effect.retry({
-        times: 2,
-        schedule: Schedule.exponential('750 millis'),
-        while: transientRequestError,
-      })
-    )
+    },
+    { retries: 2 }
   );
 
   return new Map(
@@ -219,7 +212,7 @@ async function cachedFranchiseOrder(malId: number) {
   }
 }
 
-async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
+export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
   const order = await cachedFranchiseOrder(malId);
   const entries = await currentPlayback(order.entries);
 
@@ -228,7 +221,3 @@ async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
     entries: await withAnimeCardPosters(entries),
   };
 }
-
-export const franchise = {
-  getFranchiseOrder,
-};

@@ -1,3 +1,4 @@
+import type { AniListAnime } from '../anilist/types';
 import { create } from './client';
 import {
   relatedSpecialMappingIsBetter,
@@ -7,7 +8,7 @@ import {
 import { findMapping, saveVerifiedMapping } from './mapping-store';
 import { mappingNeedsVerification } from './mapping-verification';
 import { candidateScore, isSpecialRelease, mappingTitles, seriesTitle, titlesFor } from './title';
-import { type AniListAnime, type Candidate, type Mapping, type StoredMapping } from './types';
+import { type Candidate, type Mapping, type StoredMapping } from './types';
 
 const requests = new Map<number, Promise<StoredMapping>>();
 
@@ -296,10 +297,4 @@ export async function resolveStored(anime: AniListAnime): Promise<StoredMapping>
   } finally {
     requests.delete(anime.id);
   }
-}
-
-export async function resolve(anime: AniListAnime): Promise<Mapping> {
-  const { id, mediaType } = await resolveStored(anime);
-
-  return { id, mediaType };
 }

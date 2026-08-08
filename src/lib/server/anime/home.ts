@@ -1,5 +1,4 @@
 import { asc, desc, eq, lt } from 'drizzle-orm';
-import { Effect } from 'effect';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { db } from '$lib/server/db';
@@ -49,7 +48,7 @@ async function previousSelection(weekStart: string) {
 
 async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
   try {
-    const details = await Effect.runPromise(getAnime(id));
+    const details = await getAnime(id);
     const artwork = await getArtwork(details);
 
     if (!artwork?.selectedBackdrop || !artwork.selectedLogo) {

@@ -4,14 +4,14 @@ import { mergeAudioModes } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
+import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
-import { tmdb } from '../tmdb';
+import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
 import { canPreserveEpisodeMetadata, episodeInventoryIsExpected, nextRefreshAt } from './policy';
 import { episodesForRelease } from './release';
-import type { AniListAnime } from './types';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
 
@@ -117,22 +117,20 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
       return null;
     }));
   const metadata = resolvedMetadataSource
-    ? await tmdb
-        .getEpisodeMetadata(
-          anime,
-          providerEpisodes,
-          resolvedMetadataSource,
-          canPreserveEpisodeMetadata(
-            previousMetadataExternalIdId,
-            resolvedMetadataSource.externalIdId
-          )
-            ? storedText
-            : new Map()
+    ? await getEpisodeMetadata(
+        anime,
+        providerEpisodes,
+        resolvedMetadataSource,
+        canPreserveEpisodeMetadata(
+          previousMetadataExternalIdId,
+          resolvedMetadataSource.externalIdId
         )
-        .catch((cause) => {
-          console.error(`TMDB episode enrichment failed for AniList ${anime.id}`, cause);
-          return null;
-        })
+          ? storedText
+          : new Map()
+      ).catch((cause) => {
+        console.error(`TMDB episode enrichment failed for AniList ${anime.id}`, cause);
+        return null;
+      })
     : null;
   const source = episodesForRelease(anime, providerEpisodes, metadata);
   const now = new Date();
