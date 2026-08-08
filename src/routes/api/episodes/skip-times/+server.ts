@@ -1,18 +1,9 @@
 import { json } from '@sveltejs/kit';
 
-import type { SkipInterval } from '$lib/player/skip-times';
 import { validSkipInterval } from '$lib/server/anime/aniskip';
 import { saveEpisodeSkipTimes } from '$lib/server/anime/skip-times';
 import { isRecord } from '$lib/utils';
 import type { RequestHandler } from './$types';
-
-function optionalInterval(value: unknown): SkipInterval | null | undefined {
-  if (value === null) {
-    return null;
-  }
-
-  return validSkipInterval(value) ?? undefined;
-}
 
 export const PUT: RequestHandler = async ({ locals, request }) => {
   if (!locals.user) {
@@ -32,8 +23,8 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
 
   const anilistId = body.anilistId;
   const episodeId = typeof body.episodeId === 'string' ? body.episodeId.trim() : '';
-  const opening = optionalInterval(body.opening);
-  const ending = optionalInterval(body.ending);
+  const opening = body.opening === null ? null : validSkipInterval(body.opening);
+  const ending = body.ending === null ? null : validSkipInterval(body.ending);
 
   if (
     typeof anilistId !== 'number' ||
@@ -41,8 +32,8 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
     anilistId <= 0 ||
     !episodeId ||
     episodeId.length > 512 ||
-    opening === undefined ||
-    ending === undefined
+    (body.opening !== null && !opening) ||
+    (body.ending !== null && !ending)
   ) {
     return json({ message: 'Invalid segments' }, { status: 400 });
   }

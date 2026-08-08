@@ -22,8 +22,13 @@ function orderedAudio(modes: readonly AudioMode[]) {
 
 export function audioAvailabilityLabel<const Modes extends readonly AudioMode[]>(modes: Modes) {
   const ordered = orderedAudio(modes);
-  if (ordered.length === 1 && ordered[0] === 'sub') return 'Subtitled';
-  if (ordered.length === 1 && ordered[0] === 'dub') return 'Dubbed';
+  if (ordered.length === 1 && ordered[0] === 'sub') {
+    return 'Subtitled';
+  }
+
+  if (ordered.length === 1 && ordered[0] === 'dub') {
+    return 'Dubbed';
+  }
 
   return ordered
     .toSorted((left, right) => audioLabelRank.get(left)! - audioLabelRank.get(right)!)

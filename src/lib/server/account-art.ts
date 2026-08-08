@@ -58,12 +58,8 @@ const styleNames = [
 const styles = new Map<string, Style>();
 const resolvePackage = createRequire(import.meta.url).resolve;
 
-async function accountArtDigest(userId: string) {
-  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(userId));
-}
-
 export async function accountArtStyle(userId: string) {
-  const digest = await accountArtDigest(userId);
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(userId));
   const index = new DataView(digest).getUint32(0) % styleNames.length;
   return styleNames[index];
 }
