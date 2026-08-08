@@ -5,8 +5,9 @@
   color-scheme: light dark;
 
   --theme-canvas: light-dark(oklch(0.985 0.002 75), #000);
-  --theme-header: light-dark(#f7f7f7, #161719);
-  --theme-header-hover: light-dark(#ececec, #242529);
+  --theme-header: light-dark(#f7f7f7, #232427);
+  --theme-header-hover: light-dark(#ececec, #303136);
+  --theme-search: light-dark(#f1f1f1, #161719);
   --theme-foreground: light-dark(oklch(0.16 0.006 285), oklch(0.97 0.002 75));
   --theme-surface: light-dark(oklch(0.955 0.004 75), oklch(0.17 0.006 285));
   --theme-muted: light-dark(oklch(0.43 0.008 285), oklch(0.71 0.008 285));
@@ -44,6 +45,7 @@
   --color-canvas: var(--theme-canvas);
   --color-header: var(--theme-header);
   --color-header-hover: var(--theme-header-hover);
+  --color-search: var(--theme-search);
   --color-foreground: var(--theme-foreground);
   --color-surface: var(--theme-surface);
   --color-muted: var(--theme-muted);
