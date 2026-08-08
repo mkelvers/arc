@@ -30,10 +30,6 @@
   });
 </script>
 
-<svelte:head>
-  <title>{heading} — Arc</title>
-</svelte:head>
-
 <main class="min-h-dvh">
   <WatchPlayer
     playback={data.playback}

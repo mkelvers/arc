@@ -13,7 +13,10 @@ export const load: PageServerLoad = async ({ locals }) => {
     redirect(303, '/login');
   }
 
-  return { account: await getAccount(locals.user.id) };
+  return {
+    pageTitle: 'Account settings',
+    account: await getAccount(locals.user.id),
+  };
 };
 
 export const actions: Actions = {

@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 
 import type { AudioMode } from '$lib/anime/audio';
+import { episodeHeading } from '$lib/anime/episode';
 import { anime } from '$lib/server/anime';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
@@ -111,6 +112,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     error(400, 'Invalid anime ID');
   }
   const result = await loadAnime(id);
+  const details = toAnimeDetails(result);
   const releaseRelations = new Set(['PARENT', 'PREQUEL', 'SEQUEL']);
   const relatedIds = (result.relations?.edges ?? []).flatMap((edge) =>
     edge?.relationType &&
@@ -176,7 +178,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   ]);
 
   return {
-    anime: toAnimeDetails(result),
+    pageTitle: `Watch ${details.title} — ${episodeHeading(currentEpisode)}`,
+    anime: details,
     episodes,
     currentEpisode,
     previousEpisode: episodes[currentIndex - 1] ?? null,

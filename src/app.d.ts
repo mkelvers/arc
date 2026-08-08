@@ -9,7 +9,9 @@ declare global {
       session: AuthSession['session'] | null;
       user: AuthSession['user'] | null;
     }
-    // interface PageData {}
+    interface PageData {
+      pageTitle?: string;
+    }
     // interface PageState {}
     // interface Platform {}
   }

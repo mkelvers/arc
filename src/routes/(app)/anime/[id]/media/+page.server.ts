@@ -17,20 +17,26 @@ export const load: PageServerLoad = async ({ params }) => {
   });
 
   if (stored) {
-    return stored;
+    return {
+      ...stored,
+      pageTitle: `${stored.anime.title} artwork`,
+    };
   }
 
   const result = await loadAnime(id);
+  const details = toAnimeDetails(result);
 
   try {
     return {
-      anime: toAnimeDetails(result),
+      pageTitle: `${details.title} artwork`,
+      anime: details,
       artwork: await anime.tmdb.getArtwork(result),
     };
   } catch (cause) {
     console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
     return {
-      anime: toAnimeDetails(result),
+      pageTitle: `${details.title} artwork`,
+      anime: details,
       artwork: null,
     };
   }

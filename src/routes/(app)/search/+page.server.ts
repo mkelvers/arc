@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ url }) => {
   }
 
   if (query.length < 2) {
-    return { query, results: [] };
+    return { pageTitle: 'Search anime', query, results: [] };
   }
 
   const result = await Effect.runPromise(anime.anilist.searchAnime(query).pipe(Effect.either));
@@ -20,6 +20,7 @@ export const load: PageServerLoad = async ({ url }) => {
   }
 
   return {
+    pageTitle: 'Search anime',
     query,
     results: await anime.withAnimeSearchMetadata(await anime.withAnimeCardPosters(result.right)),
   };

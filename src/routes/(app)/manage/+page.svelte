@@ -23,10 +23,6 @@
   });
 </script>
 
-<svelte:head>
-  <title>Edit Account — Arc</title>
-</svelte:head>
-
 <main class="min-h-[calc(100vh-3.5rem)] px-4 py-10 md:py-16">
   <section class="mx-auto w-full max-w-lg">
     <h1 class="mb-7 text-center text-2xl font-bold tracking-tight">Edit Account</h1>

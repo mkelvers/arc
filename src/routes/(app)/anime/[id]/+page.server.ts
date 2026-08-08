@@ -17,6 +17,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   const userId = locals.user?.id;
 
   const result = await loadAnime(id);
+  const details = toAnimeDetails(result);
 
   const artwork = anime.tmdb.getArtwork(result).catch((cause) => {
     console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
@@ -47,7 +48,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     : Promise.resolve(null);
 
   return {
-    anime: toAnimeDetails(result),
+    pageTitle: `Watch ${details.title}`,
+    anime: details,
     artwork,
     episodes,
     watchAction,

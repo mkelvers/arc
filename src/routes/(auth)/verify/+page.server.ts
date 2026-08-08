@@ -8,7 +8,10 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ url }) => {
   const value = url.searchParams.get('returnTo');
-  return { returnTo: value?.startsWith('/') && !value.startsWith('//') ? value : '/' };
+  return {
+    pageTitle: 'Verify',
+    returnTo: value?.startsWith('/') && !value.startsWith('//') ? value : '/',
+  };
 };
 
 export const actions: Actions = {

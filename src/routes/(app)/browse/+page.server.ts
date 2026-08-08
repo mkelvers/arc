@@ -13,6 +13,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
   try {
     return {
+      pageTitle: 'Browse anime',
       filters,
       ...(await anime.browse.initialPage(filters)),
     };

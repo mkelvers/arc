@@ -69,6 +69,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   ]);
 
   return {
+    pageTitle: 'Watch anime',
     highlights: homeHero,
     season: cards.slice(0, seasonCards.length),
     popular: cards.slice(seasonCards.length),

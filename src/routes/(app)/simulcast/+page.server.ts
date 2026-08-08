@@ -31,11 +31,13 @@ export const load: PageServerLoad = async ({ url }) => {
   if (!seasons.some(({ season, year }) => season === selected.season && year === selected.year)) {
     error(404, 'That simulcast season is not available');
   }
+  const label = animeSeasonLabel(selected);
 
   return {
+    pageTitle: `${label} simulcast`,
     season: selected.season,
     year: selected.year,
-    label: animeSeasonLabel(selected),
+    label,
     options: seasons
       .map((option) => ({
         ...option,
