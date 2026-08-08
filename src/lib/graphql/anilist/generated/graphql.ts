@@ -311,12 +311,20 @@ export type SearchAnimePageQuery = {
     pageInfo: { hasNextPage: boolean | null } | null;
     media: Array<{
       id: number;
+      synonyms: Array<string | null> | null;
       description: string | null;
       genres: Array<string | null> | null;
       format: MediaFormat | null;
       averageScore: number | null;
+      popularity: number | null;
       title: { english: string | null; romaji: string | null; native: string | null } | null;
       coverImage: { extraLarge: string | null; large: string | null } | null;
+      relations: {
+        edges: Array<{
+          relationType: MediaRelation | null;
+          node: { id: number } | null;
+        } | null> | null;
+      } | null;
     } | null> | null;
   } | null;
 };
@@ -596,6 +604,7 @@ export const SearchAnimePageDocument = new TypedDocumentString(`
         romaji
         native
       }
+      synonyms
       coverImage {
         extraLarge
         large
@@ -604,6 +613,15 @@ export const SearchAnimePageDocument = new TypedDocumentString(`
       genres
       format
       averageScore
+      popularity
+      relations {
+        edges {
+          relationType
+          node {
+            id
+          }
+        }
+      }
     }
   }
 }

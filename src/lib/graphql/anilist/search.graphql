@@ -10,6 +10,7 @@ query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
         romaji
         native
       }
+      synonyms
       coverImage {
         extraLarge
         large
@@ -18,6 +19,15 @@ query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
       genres
       format
       averageScore
+      popularity
+      relations {
+        edges {
+          relationType
+          node {
+            id
+          }
+        }
+      }
     }
   }
 }
