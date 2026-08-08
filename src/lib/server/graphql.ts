@@ -1,5 +1,5 @@
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
-import { Data, Effect, Schema } from 'effect';
+import { z } from 'zod';
 
 interface Document<TResult, TVariables> extends DocumentTypeDecoration<TResult, TVariables> {
   toString(): string;
@@ -7,161 +7,136 @@ interface Document<TResult, TVariables> extends DocumentTypeDecoration<TResult, 
 
 interface GraphQLOptions {
   headers?: Record<string, string>;
+  retries?: number;
   timeoutMs?: number;
 }
 
-const Payload = Schema.Struct({
-  data: Schema.optional(Schema.Unknown),
-  errors: Schema.optional(
-    Schema.Array(
-      Schema.Struct({
-        message: Schema.String,
-        status: Schema.optional(Schema.Number),
+const payloadSchema = z.object({
+  data: z.unknown().optional(),
+  errors: z
+    .array(
+      z.object({
+        message: z.string(),
+        status: z.number().optional(),
       })
     )
-  ),
+    .optional(),
 });
 
-type Payload = typeof Payload.Type;
-
-export class GraphQLRequestError extends Data.TaggedError('GraphQLRequestError')<{
-  readonly message: string;
-  readonly cause?: unknown;
+export class GraphQLRequestError extends Error {
   readonly status?: number;
-}> {}
 
-function parseJson(text: string): unknown {
-  if (!text) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return null;
+  constructor({
+    message,
+    cause,
+    status,
+  }: {
+    readonly message: string;
+    readonly cause?: unknown;
+    readonly status?: number;
+  }) {
+    super(message, { cause });
+    this.name = 'GraphQLRequestError';
+    this.status = status;
   }
 }
 
-function bodyPreview(text: string): string | undefined {
-  const normalized = text.replace(/\s+/g, ' ').trim();
-
-  if (!normalized) {
-    return undefined;
-  }
-
-  return normalized.slice(0, 300);
-}
-
-export function graphql<TResult, TVariables>(
+export async function graphql<TResult, TVariables>(
   endpoint: string,
   document: Document<TResult, TVariables>,
   variables: TVariables,
   options: GraphQLOptions = {}
 ) {
-  return Effect.tryPromise({
-    try: async (signal) => {
-      const requestSignal = AbortSignal.any([
-        signal,
-        AbortSignal.timeout(options.timeoutMs ?? 8_000),
-      ]);
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      let response: Response;
+      let responseText: string;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
+      try {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
 
-          // Since this is server-side code, identify the application.
-          'User-Agent': 'Arc/0.1',
+            // Since this is server-side code, identify the application.
+            'User-Agent': 'Arc/0.1',
 
-          ...options.headers,
-        },
-        body: JSON.stringify({
-          query: document.toString(),
-          variables,
-        }),
-        signal: requestSignal,
-      });
+            ...options.headers,
+          },
+          body: JSON.stringify({
+            query: document.toString(),
+            variables,
+          }),
+          signal: AbortSignal.timeout(options.timeoutMs ?? 8_000),
+        });
+        responseText = await response.text();
+      } catch (cause) {
+        throw new GraphQLRequestError({
+          message: 'The GraphQL endpoint could not be reached',
+          cause,
+        });
+      }
 
-      // Read text first because a Cloudflare/WAF response may be HTML
-      // rather than JSON.
-      const responseText = await response.text();
+      let body: unknown = null;
+      if (responseText) {
+        try {
+          body = JSON.parse(responseText) as unknown;
+        } catch {
+          // The validation below reports non-JSON responses with HTTP context.
+        }
+      }
 
-      return {
-        response,
-        responseText,
-        body: parseJson(responseText),
-      };
-    },
-    catch: (cause) =>
-      new GraphQLRequestError({
-        message: 'The GraphQL endpoint could not be reached',
-        cause,
-      }),
-  }).pipe(
-    Effect.flatMap(({ response, responseText, body }) =>
-      Schema.decodeUnknown(Payload)(body).pipe(
-        Effect.map((payload) => ({
-          response,
-          responseText,
-          payload,
-        })),
-        Effect.catchAll((cause) => {
-          if (!response.ok) {
-            const preview = bodyPreview(responseText);
+      const result = payloadSchema.safeParse(body);
+      if (!result.success) {
+        if (!response.ok) {
+          const preview = responseText.replace(/\s+/g, ' ').trim().slice(0, 300);
+          throw new GraphQLRequestError({
+            message: preview
+              ? `The GraphQL endpoint returned ${response.status}: ${preview}`
+              : `The GraphQL endpoint returned ${response.status}`,
+            status: response.status,
+            cause: result.error,
+          });
+        }
 
-            return Effect.fail(
-              new GraphQLRequestError({
-                message: preview
-                  ? `The GraphQL endpoint returned ${response.status}: ${preview}`
-                  : `The GraphQL endpoint returned ${response.status}`,
-                status: response.status,
-                cause,
-              })
-            );
-          }
+        throw new GraphQLRequestError({
+          message: 'The GraphQL endpoint returned an invalid response',
+          cause: result.error,
+        });
+      }
 
-          return Effect.fail(
-            new GraphQLRequestError({
-              message: 'The GraphQL endpoint returned an invalid response',
-              cause,
-            })
-          );
-        })
-      )
-    ),
-
-    Effect.flatMap(({ response, payload }) => {
-      const graphQLError = payload.errors?.[0];
-
-      // Check the GraphQL payload before throwing a generic HTTP error.
+      const graphQLError = result.data.errors?.[0];
       if (graphQLError) {
-        return Effect.fail(
-          new GraphQLRequestError({
-            message: graphQLError.message,
-            status: graphQLError.status ?? (!response.ok ? response.status : undefined),
-          })
-        );
+        throw new GraphQLRequestError({
+          message: graphQLError.message,
+          status: graphQLError.status ?? (!response.ok ? response.status : undefined),
+        });
       }
 
       if (!response.ok) {
-        return Effect.fail(
-          new GraphQLRequestError({
-            message: `The GraphQL endpoint returned ${response.status}`,
-            status: response.status,
-          })
-        );
+        throw new GraphQLRequestError({
+          message: `The GraphQL endpoint returned ${response.status}`,
+          status: response.status,
+        });
       }
 
-      if (payload.data == null) {
-        return Effect.fail(
-          new GraphQLRequestError({
-            message: 'The GraphQL endpoint returned no data',
-          })
-        );
+      if (result.data.data == null) {
+        throw new GraphQLRequestError({
+          message: 'The GraphQL endpoint returned no data',
+        });
       }
 
-      return Effect.succeed(payload.data as TResult);
-    })
-  );
+      return result.data.data as TResult;
+    } catch (cause) {
+      const retryable =
+        cause instanceof GraphQLRequestError &&
+        (cause.status == null || cause.status === 429 || cause.status >= 500);
+      if (!retryable || attempt >= (options.retries ?? 0)) {
+        throw cause;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 750 * 2 ** attempt));
+    }
+  }
 }
