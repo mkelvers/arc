@@ -58,7 +58,7 @@
 
 {#if highlights.length}
   <section
-    class="relative isolate h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-[100svh]"
+    class="relative isolate h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-svh"
     aria-roledescription="carousel"
     aria-label="Popular anime this week"
     onfocusin={() => (focused = true)}
