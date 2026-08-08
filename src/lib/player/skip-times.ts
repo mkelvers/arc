@@ -17,10 +17,6 @@ export interface SkipTimesDraft {
   ending: { start: number | null; end: number | null };
 }
 
-export function emptySkipTimes(): EpisodeSkipTimes {
-  return { opening: null, ending: null, source: null };
-}
-
 export function skipTimesDraft(times: EpisodeSkipTimes): SkipTimesDraft {
   return {
     opening: {

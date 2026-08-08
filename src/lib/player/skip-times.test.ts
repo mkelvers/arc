@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { activeSkip, emptySkipTimes, skipTimesDraft, type EpisodeSkipTimes } from './skip-times';
+import { activeSkip, skipTimesDraft, type EpisodeSkipTimes } from './skip-times';
 
 const times: EpisodeSkipTimes = {
   opening: { start: 5, end: 95 },
@@ -27,7 +27,7 @@ describe('activeSkip', () => {
 });
 
 test('skipTimesDraft preserves absent endpoints for manual editing', () => {
-  expect(skipTimesDraft(emptySkipTimes())).toEqual({
+  expect(skipTimesDraft({ opening: null, ending: null, source: null })).toEqual({
     opening: { start: null, end: null },
     ending: { start: null, end: null },
   });

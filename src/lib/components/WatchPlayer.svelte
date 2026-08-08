@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
-  import { emptySkipTimes, type EpisodeSkipTimes } from '$lib/player/skip-times';
+  import type { EpisodeSkipTimes } from '$lib/player/skip-times';
   import type { Sources } from '$lib/player/media';
   import { SpinnerGapIcon } from 'phosphor-svelte';
   import VideoPlayer from './VideoPlayer.svelte';
@@ -76,7 +76,7 @@
       active = {
         ...pending,
         result,
-        skipTimes: emptySkipTimes(),
+        skipTimes: { opening: null, ending: null, source: null },
       };
       transitioning = false;
 
