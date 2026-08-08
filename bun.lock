@@ -14,7 +14,6 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "drizzle-orm": "^0.45.2",
-        "effect": "^3.22.0",
         "hls.js": "^1.6.16",
         "openapi-fetch": "^0.17.0",
         "postgres": "^3.4.9",
