@@ -1,0 +1,8 @@
+{
+  "minTokens": 40,
+  "minLines": 5,
+  "mode": "mild",
+  "format": ["typescript", "svelte"],
+  "ignore": ["**/generated/**", "**/generated.ts", "**/*.test.ts"],
+  "reporters": ["ai"]
+}
