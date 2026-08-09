@@ -82,11 +82,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
               state: entry.state,
               addedAt: timestamp(entry.addedAt),
               updatedAt: timestamp(entry.updatedAt),
-              watchedAt: timestamp(entry.watchedAt),
-              recentActivityAt: Math.max(
-                timestamp(entry.updatedAt) ?? 0,
-                timestamp(entry.watchedAt) ?? 0
-              ),
             },
           ]
         : [];
@@ -97,14 +92,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         return selection.order === 'newest' ? title : -title;
       }
 
-      const key =
-        selection.sort === 'recent_activity'
-          ? 'recentActivityAt'
-          : selection.sort === 'updated'
-            ? 'updatedAt'
-            : selection.sort === 'watched'
-              ? 'watchedAt'
-              : 'addedAt';
+      const key = selection.sort === 'updated' ? 'updatedAt' : 'addedAt';
       const leftValue = left[key];
       const rightValue = right[key];
 
@@ -122,15 +110,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
       return left.title.localeCompare(right.title, 'en');
     })
-    .map(
-      ({
-        addedAt: _addedAt,
-        updatedAt: _updatedAt,
-        watchedAt: _watchedAt,
-        recentActivityAt: _recentActivityAt,
-        ...entry
-      }) => entry
-    );
+    .map(({ addedAt: _addedAt, updatedAt: _updatedAt, ...entry }) => entry);
 
   return {
     pageTitle: 'Watchlist',

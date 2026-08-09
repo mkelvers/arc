@@ -32,9 +32,7 @@
     label: string;
   }>;
   const sorts = [
-    { value: 'recent_activity', label: 'Recent Activity' },
     { value: 'updated', label: 'Updated' },
-    { value: 'watched', label: 'Watched' },
     { value: 'added', label: 'Added' },
     { value: 'alphabetical', label: 'Alphabetical' },
   ] as const satisfies ReadonlyArray<{ value: WatchlistSort; label: string }>;
@@ -46,7 +44,7 @@
     filters.find(({ value }) => value === data.selection.state)?.label ?? 'All'
   );
   const selectedSortLabel = $derived(
-    sorts.find(({ value }) => value === data.selection.sort)?.label ?? 'Recent Activity'
+    sorts.find(({ value }) => value === data.selection.sort)?.label ?? 'Updated'
   );
   const filteredEmptyCopy = $derived.by(() => {
     switch (data.selection.state) {
@@ -91,7 +89,7 @@
     if (selection.state !== 'all') {
       query.set('state', selection.state);
     }
-    if (selection.sort !== 'recent_activity') {
+    if (selection.sort !== 'updated') {
       query.set('sort', selection.sort);
     }
     if (selection.order !== 'newest') {
