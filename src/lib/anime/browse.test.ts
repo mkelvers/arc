@@ -11,6 +11,11 @@ describe('browse filters', () => {
       tag: null,
       status: null,
       format: null,
+      source: null,
+      season: null,
+      year: null,
+      country: null,
+      audio: null,
       sort: 'popularity',
       order: 'desc',
     });
@@ -24,18 +29,23 @@ describe('browse filters', () => {
       tag: 'tag-value',
       status: 'FINISHED',
       format: 'TV',
+      source: 'MANGA',
+      season: 'SPRING',
+      year: 1998,
+      country: 'JP',
+      audio: 'dub',
       sort: 'score',
       order: 'asc',
     };
     const searchParams = browseSearchParams(filters);
 
     expect(searchParams.toString()).toBe(
-      'q=Cowboy+Bebop&sfw=0&tag=tag-value&status=FINISHED&format=TV&sort=score&order=asc'
+      'q=Cowboy+Bebop&sfw=0&tag=tag-value&status=FINISHED&format=TV&source=MANGA&season=SPRING&year=1998&country=JP&audio=dub&sort=score&order=asc'
     );
     expect(parseBrowseFilters(searchParams)).toEqual(filters);
   });
 
-  test.each(['sfw=maybe', 'sort=unknown', 'order=unknown'])(
+  test.each(['sfw=maybe', 'sort=unknown', 'order=unknown', 'audio=raw', 'year=98'])(
     'rejects invalid filter values in %s',
     (query) => {
       expect(parseBrowseFilters(new URLSearchParams(query))).toBeNull();
@@ -47,6 +57,9 @@ describe('browse filters', () => {
     'tag=',
     'status=',
     'format=',
+    'source=',
+    'season=',
+    'country=',
     'genre=genre-value&tag=tag-value',
     `genre=${'a'.repeat(65)}`,
   ])('rejects malformed metadata filters in %s', (query) => {
