@@ -216,7 +216,10 @@
       duration: media.video.duration,
       playing: media.playing,
     });
-    if (reason) {
+    if (reason === 'ending') {
+      episodeEnded = true;
+      void saveProgress(true, true);
+    } else if (reason === 'periodic') {
       void saveProgress();
     }
   }
