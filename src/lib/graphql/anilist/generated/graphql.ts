@@ -381,6 +381,23 @@ export type SimulcastSeasonStartsQuery = {
   fall: { media: Array<{ seasonYear: number | null } | null> | null } | null;
 };
 
+export type WatchlistAnimeQueryVariables = Exact<{
+  ids: Array<number> | number;
+}>;
+
+export type WatchlistAnimeQuery = {
+  Page: {
+    media: Array<{
+      id: number;
+      description: string | null;
+      genres: Array<string | null> | null;
+      averageScore: number | null;
+      title: { english: string | null; romaji: string | null; native: string | null } | null;
+      coverImage: { extraLarge: string | null; large: string | null } | null;
+    } | null> | null;
+  } | null;
+};
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -738,3 +755,24 @@ export const SimulcastSeasonStartsDocument = new TypedDocumentString(`
   SimulcastSeasonStartsQuery,
   SimulcastSeasonStartsQueryVariables
 >;
+export const WatchlistAnimeDocument = new TypedDocumentString(`
+    query WatchlistAnime($ids: [Int!]!) {
+  Page(page: 1, perPage: 50) {
+    media(id_in: $ids, type: ANIME, isAdult: false) {
+      id
+      title {
+        english
+        romaji
+        native
+      }
+      coverImage {
+        extraLarge
+        large
+      }
+      description(asHtml: false)
+      genres
+      averageScore
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<WatchlistAnimeQuery, WatchlistAnimeQueryVariables>;
