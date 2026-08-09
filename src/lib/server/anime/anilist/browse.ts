@@ -3,16 +3,23 @@ import {
   BrowseAnimePageDocument,
   BrowseAnimeTaxonomyDocument,
   type MediaFormat,
+  type MediaSeason,
   type MediaSort,
+  type MediaSource,
   type MediaStatus,
 } from '$lib/graphql/anilist/generated/graphql';
 import { GraphQLRequestError } from '$lib/server/graphql';
 import { request } from './client';
 import { mediaTitle, plainText, present } from './text';
 
-export interface AniListBrowseFilters extends Omit<BrowseFilters, 'format' | 'status'> {
+export interface AniListBrowseFilters extends Omit<
+  BrowseFilters,
+  'format' | 'status' | 'source' | 'season' | 'audio'
+> {
   format: MediaFormat | null;
   status: MediaStatus | null;
+  source: MediaSource | null;
+  season: MediaSeason | null;
 }
 
 export interface BrowseSourceTaxonomy {
@@ -20,6 +27,8 @@ export interface BrowseSourceTaxonomy {
   tags: string[];
   formats: string[];
   statuses: string[];
+  sources: string[];
+  seasons: string[];
 }
 
 interface BrowseCatalogEntry {
@@ -32,6 +41,10 @@ interface BrowseCatalogEntry {
   tags: string[];
   format: MediaFormat | null;
   status: MediaStatus | null;
+  source: MediaSource | null;
+  season: MediaSeason | null;
+  seasonYear: number | null;
+  countryOfOrigin: string | null;
   isAdult: boolean;
   popularity: number | null;
   averageScore: number | null;
@@ -45,6 +58,10 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
     tag: filters.tag ?? undefined,
     format: filters.format ?? undefined,
     status: filters.status ?? undefined,
+    source: filters.source ?? undefined,
+    season: filters.season ?? undefined,
+    seasonYear: filters.year ?? undefined,
+    countryOfOrigin: filters.country ?? undefined,
     isAdult: filters.safe ? false : undefined,
     sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
     page,
@@ -81,6 +98,10 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
         tags: present(media.tags).map(({ name }) => name),
         format: media.format,
         status: media.status,
+        source: media.source,
+        season: media.season,
+        seasonYear: media.seasonYear,
+        countryOfOrigin: typeof media.countryOfOrigin === 'string' ? media.countryOfOrigin : null,
         // Unknown classifications are excluded from safe browsing.
         isAdult: media.isAdult !== false,
         popularity: media.popularity,
@@ -108,13 +129,17 @@ export async function getBrowseTaxonomy() {
     ),
     formats: present(response.formats?.enumValues).map(({ name }) => name),
     statuses: present(response.statuses?.enumValues).map(({ name }) => name),
+    sources: present(response.sources?.enumValues).map(({ name }) => name),
+    seasons: present(response.seasons?.enumValues).map(({ name }) => name),
   } satisfies BrowseSourceTaxonomy;
 
   if (
     !taxonomy.genres.length ||
     !taxonomy.tags.length ||
     !taxonomy.formats.length ||
-    !taxonomy.statuses.length
+    !taxonomy.statuses.length ||
+    !taxonomy.sources.length ||
+    !taxonomy.seasons.length
   ) {
     throw new GraphQLRequestError({
       message: 'AniList returned an incomplete browse taxonomy',

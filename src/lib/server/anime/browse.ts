@@ -19,6 +19,7 @@ import {
   type AniListBrowseFilters,
   type BrowseSourceTaxonomy,
 } from './anilist/browse';
+import type { MediaSeason, MediaSource } from '$lib/graphql/anilist/generated/graphql';
 import { withAnimeCardPosters } from './card-posters';
 
 const refreshLifetime = 6 * 60 * 60 * 1_000;
@@ -36,7 +37,7 @@ function excluded(column: { name: string }) {
   return sql.raw(`excluded."${column.name}"`);
 }
 
-function browseRefreshKey(filters: BrowseFilters, page: number) {
+function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
   return JSON.stringify({
     query: filters.query.toLocaleLowerCase('en'),
     safe: filters.safe,
@@ -44,6 +45,10 @@ function browseRefreshKey(filters: BrowseFilters, page: number) {
     tag: filters.tag,
     status: filters.status,
     format: filters.format,
+    source: filters.source,
+    season: filters.season,
+    year: filters.year,
+    country: filters.country,
     sort: filters.sort,
     order: filters.order,
     page,
@@ -79,6 +84,10 @@ async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, p
             tags: excluded(animeCatalog.tags),
             format: excluded(animeCatalog.format),
             status: excluded(animeCatalog.status),
+            source: excluded(animeCatalog.source),
+            season: excluded(animeCatalog.season),
+            seasonYear: excluded(animeCatalog.seasonYear),
+            countryOfOrigin: excluded(animeCatalog.countryOfOrigin),
             isAdult: excluded(animeCatalog.isAdult),
             popularity: excluded(animeCatalog.popularity),
             averageScore: excluded(animeCatalog.averageScore),
@@ -163,6 +172,8 @@ async function sourceTaxonomy() {
       tags: animeCatalogTaxonomy.tags,
       formats: animeCatalogTaxonomy.formats,
       statuses: animeCatalogTaxonomy.statuses,
+      sources: animeCatalogTaxonomy.sources,
+      seasons: animeCatalogTaxonomy.seasons,
       fetchedAt: animeCatalogTaxonomy.fetchedAt,
     })
     .from(animeCatalogTaxonomy)
@@ -172,6 +183,8 @@ async function sourceTaxonomy() {
   if (
     stored &&
     stored.tags.length > 0 &&
+    stored.sources.length > 0 &&
+    stored.seasons.length > 0 &&
     Date.now() - stored.fetchedAt.getTime() < taxonomyLifetime
   ) {
     return stored;
@@ -227,7 +240,22 @@ function validatedFilters(
     return filters.status;
   })();
 
-  return { ...filters, format, status };
+  if (filters.source && !taxonomy.sources.includes(filters.source)) {
+    throw new BrowseFilterError('Unknown source material');
+  }
+  if (filters.season && !taxonomy.seasons.includes(filters.season)) {
+    throw new BrowseFilterError('Unknown anime season');
+  }
+
+  const { audio: _, ...sourceFilters } = filters;
+
+  return {
+    ...sourceFilters,
+    format,
+    status,
+    source: filters.source as MediaSource | null,
+    season: filters.season as MediaSeason | null,
+  };
 }
 
 async function observedFormats(taxonomy: BrowseSourceTaxonomy) {
@@ -250,11 +278,30 @@ async function observedFormats(taxonomy: BrowseSourceTaxonomy) {
 }
 
 async function pageTaxonomy(taxonomy: BrowseSourceTaxonomy): Promise<BrowseTaxonomy> {
+  const [years, countries] = await Promise.all([
+    db
+      .select({ value: animeCatalog.seasonYear })
+      .from(animeCatalog)
+      .where(sql`${animeCatalog.seasonYear} is not null`)
+      .groupBy(animeCatalog.seasonYear)
+      .orderBy(sql`${animeCatalog.seasonYear} desc`),
+    db
+      .select({ value: animeCatalog.countryOfOrigin })
+      .from(animeCatalog)
+      .where(sql`${animeCatalog.countryOfOrigin} is not null`)
+      .groupBy(animeCatalog.countryOfOrigin)
+      .orderBy(animeCatalog.countryOfOrigin),
+  ]);
+
   return {
     genres: taxonomy.genres,
     tags: taxonomy.tags,
     formats: await observedFormats(taxonomy),
     statuses: taxonomy.statuses,
+    sources: taxonomy.sources,
+    seasons: taxonomy.seasons,
+    years: years.flatMap(({ value }) => (value ? [value] : [])),
+    countries: countries.flatMap(({ value }) => (value ? [value] : [])),
   };
 }
 
@@ -284,7 +331,12 @@ function catalogConditions(filters: BrowseFilters) {
     filters.genre ? arrayContains(animeCatalog.genres, [filters.genre]) : undefined,
     filters.tag ? arrayContains(animeCatalog.tags, [filters.tag]) : undefined,
     filters.status ? eq(animeCatalog.status, filters.status) : undefined,
-    filters.format ? eq(animeCatalog.format, filters.format) : undefined
+    filters.format ? eq(animeCatalog.format, filters.format) : undefined,
+    filters.source ? eq(animeCatalog.source, filters.source) : undefined,
+    filters.season ? eq(animeCatalog.season, filters.season) : undefined,
+    filters.year ? eq(animeCatalog.seasonYear, filters.year) : undefined,
+    filters.country ? eq(animeCatalog.countryOfOrigin, filters.country) : undefined,
+    filters.audio === 'dub' ? hasDub : undefined
   );
 }
 
