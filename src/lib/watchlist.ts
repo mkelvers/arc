@@ -19,13 +19,7 @@ export const WatchlistEntriesSchema = z.array(
   })
 );
 
-export const watchlistSorts = [
-  'recent_activity',
-  'updated',
-  'watched',
-  'added',
-  'alphabetical',
-] as const;
+export const watchlistSorts = ['updated', 'added', 'alphabetical'] as const;
 
 export type WatchlistSort = (typeof watchlistSorts)[number];
 export type WatchlistOrder = 'newest' | 'oldest';
@@ -35,9 +29,7 @@ export function watchlistState(value: string | null): WatchlistState | 'all' {
 }
 
 export function watchlistSort(value: string | null): WatchlistSort {
-  return watchlistSorts.includes(value as WatchlistSort)
-    ? (value as WatchlistSort)
-    : 'recent_activity';
+  return watchlistSorts.includes(value as WatchlistSort) ? (value as WatchlistSort) : 'updated';
 }
 
 export function watchlistOrder(value: string | null): WatchlistOrder {
