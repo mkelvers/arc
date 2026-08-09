@@ -5,7 +5,7 @@ import { toAnimeDetails } from '$lib/server/anime/details';
 import { getEpisodes, getRelatedReleaseTitles } from '$lib/server/anime/episodes';
 import { playback } from '$lib/server/anime/providers';
 import { animeId, loadAnime } from '$lib/server/anime/route';
-import { getEpisodeSkipTimes } from '$lib/server/anime/skip-times';
+import { getEpisodeSkipTimes, getSegmentTemplates } from '$lib/server/anime/skip-times';
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import { resumePosition } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
@@ -164,13 +164,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         };
   // These requests may reach fetch after their initial cache/DB reads. Settle
   // them in load so they cannot start network work during component SSR.
-  const [skipTimes, playback] = await Promise.all([
+  const [skipTimes, segmentTemplates, playback] = await Promise.all([
     getEpisodeSkipTimes({
       anilistId: id,
       episodeId: currentEpisode.id,
       episodeNumber: currentEpisode.number,
       malId: result.idMal,
     }),
+    getSegmentTemplates(id, currentEpisode.number),
     getPlayback(result, playbackEpisode, [
       'sub',
       'dub',
@@ -193,6 +194,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     canEditSkipTimes: Boolean(locals.user),
     // WatchPlayer keeps promise props to coordinate client transitions.
     skipTimes: Promise.resolve(skipTimes),
+    segmentTemplates: Promise.resolve(segmentTemplates),
     startAt: resumePosition(progress, currentEpisode.id),
     playback: Promise.resolve(playback),
   };

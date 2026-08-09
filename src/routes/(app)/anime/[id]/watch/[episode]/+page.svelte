@@ -44,6 +44,7 @@
     next={data.nextEpisode?.href}
     startAt={data.startAt}
     skipTimes={data.skipTimes}
+    segmentTemplates={data.segmentTemplates}
     canEditSkipTimes={data.canEditSkipTimes}
   />
 

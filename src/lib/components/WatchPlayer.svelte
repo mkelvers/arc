@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
-  import type { EpisodeSkipTimes } from '$lib/player/skip-times';
+  import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
   import type { Sources } from '$lib/player/media';
   import { SpinnerGapIcon } from 'phosphor-svelte';
   import VideoPlayer from './VideoPlayer.svelte';
@@ -20,6 +20,7 @@
     playback: Promise<Playback>;
     poster?: string | null;
     skipTimes: Promise<EpisodeSkipTimes>;
+    segmentTemplates: Promise<SegmentTemplates>;
     startAt?: number;
   }
 
@@ -33,6 +34,7 @@
     poster: string | null;
     result: Playback;
     skipTimes: EpisodeSkipTimes;
+    segmentTemplates: SegmentTemplates;
     startAt: number;
   }
 
@@ -46,6 +48,7 @@
     playback,
     poster = null,
     skipTimes,
+    segmentTemplates,
     startAt = 0,
   }: Props = $props();
   let active = $state<ActiveEpisode | null>(null);
@@ -55,6 +58,7 @@
   $effect(() => {
     const playbackRequest = playback;
     const skipTimesRequest = skipTimes;
+    const segmentTemplatesRequest = segmentTemplates;
     const pending = {
       animeId,
       canEditSkipTimes,
@@ -77,6 +81,7 @@
         ...pending,
         result,
         skipTimes: { opening: null, ending: null, source: null },
+        segmentTemplates: { opening: null, ending: null },
       };
       transitioning = false;
 
@@ -91,6 +96,20 @@
           }
 
           active = { ...active, skipTimes: resolved };
+        })
+        .catch(() => undefined);
+
+      void segmentTemplatesRequest
+        .then((resolved) => {
+          if (
+            cancelled ||
+            active?.animeId !== pending.animeId ||
+            active.episodeId !== pending.episodeId
+          ) {
+            return;
+          }
+
+          active = { ...active, segmentTemplates: resolved };
         })
         .catch(() => undefined);
     });
@@ -122,6 +141,7 @@
     next={active.next}
     startAt={active.startAt}
     skipTimes={active.skipTimes}
+    segmentTemplates={active.segmentTemplates}
     canEditSkipTimes={active.canEditSkipTimes}
     unavailable={!Object.values(active.result.streams).some((streams) => streams?.length)}
     streamError={active.result.streamError}

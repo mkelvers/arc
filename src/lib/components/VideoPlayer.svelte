@@ -4,8 +4,12 @@
   import { ProgressSchedule } from '$lib/player/progress';
   import {
     activeSkip as findActiveSkip,
+    intervalFromTemplate,
+    parseSegmentSaveResult,
     skipTimesDraft,
     type EpisodeSkipTimes,
+    type SegmentTemplates,
+    type SkipInterval,
     type SkipKind,
   } from '$lib/player/skip-times';
   import { onMount, untrack } from 'svelte';
@@ -34,6 +38,7 @@
     onretry: () => void;
     startAt?: number;
     skipTimes: EpisodeSkipTimes;
+    segmentTemplates: SegmentTemplates;
     streamError: boolean;
     transitioning: boolean;
     unavailable: boolean;
@@ -52,6 +57,7 @@
     onretry,
     startAt = 0,
     skipTimes,
+    segmentTemplates,
     streamError,
     transitioning,
     unavailable,
@@ -76,9 +82,12 @@
     episodeNumber,
   }));
   let receivedSkipTimes = untrack(() => skipTimes);
+  let receivedSegmentTemplates = untrack(() => segmentTemplates);
   let skipEpisodeId = untrack(() => episodeId);
   let currentSkipTimes = $state(untrack(() => skipTimes));
+  let currentSegmentTemplates = $state(untrack(() => segmentTemplates));
   let skipDraft = $state(untrack(() => skipTimesDraft(skipTimes)));
+  let creatingTemplate = $state<SkipKind | null>(null);
   let skipSaving = $state(false);
   let skipError = $state<string | null>(null);
 
@@ -95,7 +104,18 @@
     skipEpisodeId = incomingEpisodeId;
     currentSkipTimes = incoming;
     skipDraft = skipTimesDraft(incoming);
+    creatingTemplate = null;
     skipError = null;
+  });
+
+  $effect(() => {
+    const incoming = segmentTemplates;
+    if (incoming === receivedSegmentTemplates) {
+      return;
+    }
+
+    receivedSegmentTemplates = incoming;
+    currentSegmentTemplates = incoming;
   });
 
   $effect(() => {
@@ -231,7 +251,13 @@
     media.ended();
   }
 
-  async function persistSkipTimes(times: Pick<EpisodeSkipTimes, 'opening' | 'ending'>) {
+  type SegmentSave =
+    | { operation: 'clear' }
+    | { operation: 'apply-template'; start: number }
+    | { operation: 'set'; interval: SkipInterval; createTemplate: boolean };
+
+  async function persistSegment(kind: SkipKind, save: SegmentSave) {
+    const episode = { ...trackedEpisode };
     skipSaving = true;
     skipError = null;
 
@@ -240,9 +266,10 @@
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          anilistId: trackedEpisode.animeId,
-          episodeId: trackedEpisode.episodeId,
-          ...times,
+          anilistId: episode.animeId,
+          episodeId: episode.episodeId,
+          kind,
+          ...save,
         }),
         credentials: 'same-origin',
       });
@@ -252,8 +279,21 @@
         );
       }
 
-      currentSkipTimes = { ...times, source: 'manual' };
-      skipDraft = skipTimesDraft(currentSkipTimes);
+      const saved = parseSegmentSaveResult(await response.json());
+      if (!saved) {
+        throw new Error('Arc returned invalid segment data.');
+      }
+      if (
+        episode.animeId !== trackedEpisode.animeId ||
+        episode.episodeId !== trackedEpisode.episodeId
+      ) {
+        return;
+      }
+
+      currentSkipTimes = saved.times;
+      currentSegmentTemplates = saved.templates;
+      skipDraft = skipTimesDraft(saved.times);
+      creatingTemplate = null;
     } catch (cause) {
       skipError = cause instanceof Error ? cause.message : 'Segments could not be saved.';
     } finally {
@@ -263,6 +303,19 @@
 
   function markSkip(kind: SkipKind, edge: 'start' | 'end') {
     const value = Math.round(media.video.currentTime * 1_000) / 1_000;
+    const template = currentSegmentTemplates[kind];
+    if (edge === 'start' && template && creatingTemplate !== kind) {
+      const interval = intervalFromTemplate(value, template.duration);
+      if (!interval) {
+        skipError = 'The template could not be applied.';
+        return;
+      }
+
+      skipDraft = { ...skipDraft, [kind]: interval };
+      void persistSegment(kind, { operation: 'apply-template', start: value });
+      return;
+    }
+
     const marked = { ...skipDraft[kind], [edge]: value };
     skipDraft = { ...skipDraft, [kind]: marked };
     skipError = null;
@@ -275,19 +328,35 @@
       return;
     }
 
-    void persistSkipTimes({
-      opening:
-        kind === 'opening' ? { start: marked.start, end: marked.end } : currentSkipTimes.opening,
-      ending:
-        kind === 'ending' ? { start: marked.start, end: marked.end } : currentSkipTimes.ending,
+    const interval = { start: marked.start, end: marked.end };
+    void persistSegment(kind, {
+      operation: 'set',
+      interval,
+      createTemplate: creatingTemplate === kind || !template,
     });
   }
 
   function clearSkip(kind: SkipKind) {
-    void persistSkipTimes({
-      opening: kind === 'opening' ? null : currentSkipTimes.opening,
-      ending: kind === 'ending' ? null : currentSkipTimes.ending,
-    });
+    creatingTemplate = null;
+    void persistSegment(kind, { operation: 'clear' });
+  }
+
+  function startTemplate(kind: SkipKind) {
+    creatingTemplate = kind;
+    skipDraft = { ...skipDraft, [kind]: { start: null, end: null } };
+    skipError = null;
+  }
+
+  function cancelTemplate(kind: SkipKind) {
+    creatingTemplate = null;
+    skipDraft = {
+      ...skipDraft,
+      [kind]: {
+        start: currentSkipTimes[kind]?.start ?? null,
+        end: currentSkipTimes[kind]?.end ?? null,
+      },
+    };
+    skipError = null;
   }
 
   onMount(() => {
@@ -556,6 +625,11 @@
               onquality={(quality) => media.switchQuality(quality)}
               onskipclear={clearSkip}
               onskipmark={markSkip}
+              onskiptemplatecancel={cancelTemplate}
+              onskiptemplatenew={startTemplate}
+              episodeNumber={episodeNumber}
+              segmentTemplates={currentSegmentTemplates}
+              creatingTemplate={creatingTemplate}
               skipDraft={skipDraft}
               skipError={skipError}
               skipSaving={skipSaving}

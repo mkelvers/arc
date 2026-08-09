@@ -12,7 +12,7 @@
     type SubtitleOption,
     type SubtitleSize,
   } from '$lib/player/media';
-  import type { SkipKind, SkipTimesDraft } from '$lib/player/skip-times';
+  import type { SegmentTemplates, SkipKind, SkipTimesDraft } from '$lib/player/skip-times';
   import { cn } from '$lib/utils';
   import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
@@ -21,18 +21,23 @@
     autoplay: boolean;
     bestQuality: string | null;
     canEditSkipTimes: boolean;
+    creatingTemplate: SkipKind | null;
+    episodeNumber: number;
     mode: AudioMode;
     onautoplay: () => void;
     onmode: (mode: AudioMode) => void;
     onquality: (quality: string) => void;
     onskipclear: (kind: SkipKind) => void;
     onskipmark: (kind: SkipKind, edge: 'start' | 'end') => void;
+    onskiptemplatecancel: (kind: SkipKind) => void;
+    onskiptemplatenew: (kind: SkipKind) => void;
     qualities: string[];
     quality: string;
     qualityText: string;
     skipDraft: SkipTimesDraft;
     skipError: string | null;
     skipSaving: boolean;
+    segmentTemplates: SegmentTemplates;
     subtitleBackground: SubtitleBackground;
     subtitleMode: SubtitleMode;
     subtitleOptions: SubtitleOption[];
@@ -48,18 +53,23 @@
     autoplay,
     bestQuality,
     canEditSkipTimes,
+    creatingTemplate,
+    episodeNumber,
     mode,
     onautoplay,
     onmode,
     onquality,
     onskipclear,
     onskipmark,
+    onskiptemplatecancel,
+    onskiptemplatenew,
     qualities,
     quality,
     qualityText,
     skipDraft,
     skipError,
     skipSaving,
+    segmentTemplates,
     subtitleBackground,
     subtitleMode,
     subtitleOptions,
@@ -367,6 +377,7 @@
         </button>
       {/each}
     {:else if editingKind}
+      {@const template = segmentTemplates[editingKind]}
       {#each skipEdges as edge}
         <button
           type="button"
@@ -384,6 +395,25 @@
           <span class="font-semibold text-player-accent">Set here</span>
         </button>
       {/each}
+
+      {#if Number.isSafeInteger(episodeNumber) && episodeNumber > 0}
+        <button
+          type="button"
+          role="menuitem"
+          disabled={skipSaving}
+          class="flex min-h-9 w-full items-center px-4 text-left font-semibold text-player-accent hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
+          onclick={() =>
+            creatingTemplate === editingKind
+              ? onskiptemplatecancel(editingKind)
+              : onskiptemplatenew(editingKind)}
+        >
+          {creatingTemplate === editingKind
+            ? 'Cancel new template'
+            : template
+              ? `New ${skipLabel(editingKind).toLowerCase()}`
+              : 'Start new template'}
+        </button>
+      {/if}
 
       {#if skipDraft[editingKind].start !== null || skipDraft[editingKind].end !== null}
         <button
