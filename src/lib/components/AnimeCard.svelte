@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { BookmarkSimpleIcon, PlayIcon, StarIcon } from 'phosphor-svelte';
+  import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
   import type { AnimeCard } from '$lib/anime/types';
   import Tooltip from '$lib/components/Tooltip.svelte';
+  import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
 
   interface Props {
     anime: AnimeCard;
@@ -101,16 +102,7 @@
           <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
         </a>
       </Tooltip>
-      <Tooltip text="Add to Watchlist">
-        <button
-          type="button"
-          class="grid size-9 place-items-center text-accent opacity-60"
-          aria-label={`Add ${anime.title} to watchlist (coming soon)`}
-          disabled
-        >
-          <BookmarkSimpleIcon size="1.55rem" weight="regular" aria-hidden="true" />
-        </button>
-      </Tooltip>
+      <WatchlistBookmark animeId={anime.id} title={anime.title} />
     </div>
   </div>
 </article>

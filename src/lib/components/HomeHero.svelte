@@ -1,14 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import {
-    BookmarkSimpleIcon,
-    CaretLeftIcon,
-    CaretRightIcon,
-    PauseIcon,
-    PlayIcon,
-  } from 'phosphor-svelte';
+  import { CaretLeftIcon, CaretRightIcon, PauseIcon, PlayIcon } from 'phosphor-svelte';
   import { cn } from '$lib/utils';
-  import Tooltip from '$lib/components/Tooltip.svelte';
+  import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
 
   interface Highlight {
     id: number;
@@ -128,16 +122,12 @@
                 <PlayIcon size="1.2rem" weight="bold" aria-hidden="true" />
                 START WATCHING {anime.episodeLabel}
               </a>
-              <Tooltip text="Add to Watchlist">
-                <button
-                  type="button"
-                  class="grid size-10 shrink-0 place-items-center border border-accent text-accent opacity-60 2xl:size-12"
-                  aria-label="Add to watchlist (coming soon)"
-                  disabled
-                >
-                  <BookmarkSimpleIcon size="1.35rem" weight="regular" aria-hidden="true" />
-                </button>
-              </Tooltip>
+              <WatchlistBookmark
+                animeId={anime.id}
+                title={anime.title}
+                class="size-10 shrink-0 border border-accent 2xl:size-12"
+                iconSize="1.35rem"
+              />
             </div>
 
             {#if highlights.length > 1}

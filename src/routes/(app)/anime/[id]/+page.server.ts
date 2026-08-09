@@ -8,6 +8,7 @@ import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getArtwork } from '$lib/server/anime/tmdb/artwork';
 import { continuationEpisode } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
+import { getWatchlistState } from '$lib/server/watchlist';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -20,6 +21,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   const result = await loadAnime(id);
   const details = toAnimeDetails(result);
+  const watchlistState = await getWatchlistState(userId, id);
 
   const artwork = getArtwork(result).catch((cause) => {
     console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
@@ -57,5 +59,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     watchAction,
     audioLabel,
     franchise,
+    watchlistState,
   };
 };
