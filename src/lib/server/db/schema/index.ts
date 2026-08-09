@@ -28,6 +28,7 @@ export const externalMediaType = pgEnum('external_media_type', ['anime', 'movie'
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 export const episodeAudio = pgEnum('episode_audio', ['sub', 'dub', 'raw']);
 export const episodeTextSource = pgEnum('episode_text_source', ['tmdb', 'machine']);
+export const episodeSegmentKind = pgEnum('episode_segment_kind', ['opening', 'ending']);
 
 export const watchlistState = pgEnum('watchlist_state', [
   'watching',
@@ -389,6 +390,25 @@ export const animeEpisode = pgTable(
   (table) => [
     primaryKey({ columns: [table.anilistId, table.episodeId] }),
     index('anime_episode_anilist_number_idx').on(table.anilistId, table.number),
+  ]
+);
+
+export const animeEpisodeSegmentTemplate = pgTable(
+  'anime_episode_segment_template',
+  {
+    anilistId: integer('anilist_id').notNull(),
+    kind: episodeSegmentKind('kind').notNull(),
+    episodeFrom: integer('episode_from').notNull(),
+    durationSeconds: doublePrecision('duration_seconds').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.anilistId, table.kind, table.episodeFrom] }),
+    index('anime_episode_segment_template_lookup_idx').on(
+      table.anilistId,
+      table.kind,
+      table.episodeFrom
+    ),
   ]
 );
 
