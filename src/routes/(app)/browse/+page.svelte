@@ -2,14 +2,19 @@
   import { afterNavigate, goto } from '$app/navigation';
   import { onDestroy, untrack } from 'svelte';
   import {
+    BookOpenTextIcon,
+    CalendarBlankIcon,
     CaretDownIcon,
     ChartBarIcon,
+    GlobeHemisphereWestIcon,
     MagnifyingGlassIcon,
+    MicrophoneStageIcon,
     MonitorPlayIcon,
     PulseIcon,
     ShieldCheckIcon,
     SortAscendingIcon,
     SortDescendingIcon,
+    SunHorizonIcon,
     TagIcon,
   } from 'phosphor-svelte';
 
@@ -17,13 +22,11 @@
     browseEnumLabel,
     browseFormatLabel,
     browseSearchParams,
-    browseSorts,
     type BrowseFilters,
   } from '$lib/anime/browse';
   import { isAnimeCardPage, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
   import AnimeCard from '$lib/components/AnimeCard.svelte';
   import Dropdown from '$lib/components/Dropdown.svelte';
-  import Tooltip from '$lib/components/Tooltip.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
@@ -35,6 +38,7 @@
   let sentinel = $state<HTMLDivElement>();
   let activeRequest: AbortController | undefined;
   let categoryQuery = $state('');
+  let safe = $state(untrack(() => data.filters.safe));
   let categoryNeedle = $derived(categoryQuery.trim().toLocaleLowerCase('en'));
   let visibleGenres = $derived(
     data.taxonomy.genres.filter((value) => value.toLocaleLowerCase('en').includes(categoryNeedle))
@@ -42,6 +46,19 @@
   let visibleTags = $derived(
     data.taxonomy.tags.filter((value) => value.toLocaleLowerCase('en').includes(categoryNeedle))
   );
+  const browseOrderings = [
+    { label: 'Most popular', sort: 'popularity', order: 'desc' },
+    { label: 'Least popular', sort: 'popularity', order: 'asc' },
+    { label: 'Highest score', sort: 'score', order: 'desc' },
+    { label: 'Lowest score', sort: 'score', order: 'asc' },
+  ] as const;
+  let ordering = $derived(
+    browseOrderings.find(
+      (option) => option.sort === data.filters.sort && option.order === data.filters.order
+    ) ?? browseOrderings[0]
+  );
+  const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+  const countryLabel = (value: string) => regionNames.of(value) ?? value;
 
   function filterHref(patch: Partial<BrowseFilters>) {
     const search = browseSearchParams({
@@ -54,7 +71,7 @@
   }
 
   function filterItems(
-    key: 'genre' | 'status' | 'format',
+    key: 'genre' | 'status' | 'format' | 'source' | 'season' | 'country',
     values: readonly string[],
     current: string | null,
     emptyLabel: string,
@@ -83,10 +100,22 @@
   }
 
   function selectFilter(patch: Partial<BrowseFilters>) {
-    void goto(filterHref(patch), {
+    return goto(filterHref(patch), {
       keepFocus: true,
       noScroll: true,
     });
+  }
+
+  async function toggleSafe() {
+    const next = !safe;
+    safe = next;
+
+    try {
+      await selectFilter({ safe: next });
+    } catch (cause) {
+      safe = data.filters.safe;
+      console.warn('Safe mode could not be updated', cause);
+    }
   }
 
   function responsePage(value: unknown, expectedPage: number) {
@@ -146,6 +175,7 @@
 
   afterNavigate(({ type }) => {
     categoryQuery = '';
+    safe = data.filters.safe;
     if (type === 'popstate') {
       query = data.filters.query;
     }
@@ -206,7 +236,7 @@
 <svelte:head>
   <meta
     name="description"
-    content="Browse anime by genre, tag, status, type, popularity, and score."
+    content="Browse anime by genre, tag, status, type, audio, season, year, source material, country, popularity, and score."
   />
 </svelte:head>
 
@@ -214,210 +244,314 @@
   <section class="mx-auto w-full max-w-384" aria-labelledby="browse-title">
     <h1 id="browse-title" class="mb-6 text-2xl font-semibold">Browse Anime</h1>
 
-    <div class="mb-10 flex flex-wrap items-stretch border-y border-border">
+    <div class="mb-10">
       <label
-        class="flex h-12 min-w-64 flex-1 items-center gap-3 px-3 text-muted focus-within:text-foreground"
+        class="flex h-14 w-full items-center gap-4 border-b-2 border-border text-muted transition-colors focus-within:border-accent focus-within:text-foreground"
       >
-        <MagnifyingGlassIcon size="1.2rem" weight="regular" class="shrink-0" aria-hidden="true" />
+        <MagnifyingGlassIcon size="1.35rem" weight="regular" class="shrink-0" aria-hidden="true" />
         <span class="sr-only">Search anime</span>
         <input
           name="q"
           type="search"
-          placeholder="Search anime…"
+          placeholder="Search the anime catalog…"
           autocomplete="off"
           bind:value={query}
-          class="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-subtle"
+          class="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle"
         />
       </label>
 
-      <Tooltip text={data.filters.safe ? 'Safe for work on' : 'Safe for work off'}>
-        <button
-          type="button"
-          class:text-accent={data.filters.safe}
-          class:text-muted={!data.filters.safe}
-          class="grid size-12 place-items-center border-l border-border transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
-          aria-label={data.filters.safe
-            ? 'Disable safe for work filtering'
-            : 'Enable safe for work filtering'}
-          aria-pressed={data.filters.safe}
-          onclick={() => selectFilter({ safe: !data.filters.safe })}
+      <div class="mt-3 flex flex-wrap items-center gap-1 sm:gap-2">
+        <Dropdown
+          id="browse-genre"
+          ariaLabel="Filter by genre or tag"
+          menuAlign="start"
+          menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.genre || data.filters.tag ? 'text-accent' : 'text-muted'}`}
         >
-          <ShieldCheckIcon
-            size="1.25rem"
-            weight={data.filters.safe ? 'fill' : 'regular'}
-            aria-hidden="true"
-          />
-        </button>
-      </Tooltip>
-
-      <Dropdown
-        id="browse-genre"
-        ariaLabel="Filter by genre or tag"
-        menuClass="mt-px max-h-80 min-w-52 overflow-y-auto shadow-xl"
-        triggerClass="flex h-12 min-w-40 cursor-pointer items-center gap-2 border-l border-border px-3 text-sm text-muted transition-colors hover:text-foreground peer-checked:text-foreground"
-      >
-        {#snippet trigger()}
-          <TagIcon size="1.1rem" weight="regular" aria-hidden="true" />
-          <span class="max-w-32 truncate">
-            {data.filters.genre ?? data.filters.tag ?? 'Genres'}
-          </span>
-          <CaretDownIcon size="0.8rem" weight="bold" class="ml-auto" aria-hidden="true" />
-        {/snippet}
-        {#snippet content()}
-          <div role="menu" aria-label="Genre and tag filters">
-            <div class="sticky top-0 z-10 border-b border-border bg-panel p-2">
-              <label
-                class="flex h-9 items-center gap-2 px-2 text-muted focus-within:text-foreground"
+          {#snippet trigger()}
+            <TagIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span class="max-w-32 truncate">
+              {data.filters.genre ?? data.filters.tag ?? 'Genres & tags'}
+            </span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+          {#snippet content()}
+            <div role="menu" aria-label="Genre and tag filters">
+              <div class="sticky top-0 z-10 border-b border-border bg-panel p-2">
+                <label
+                  class="flex h-9 items-center gap-2 px-2 text-muted focus-within:text-foreground"
+                >
+                  <MagnifyingGlassIcon size="1rem" weight="regular" aria-hidden="true" />
+                  <span class="sr-only">Search genres and tags</span>
+                  <input
+                    type="search"
+                    placeholder="Find a genre or tag…"
+                    autocomplete="off"
+                    bind:value={categoryQuery}
+                    class="h-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-subtle"
+                  />
+                </label>
+              </div>
+              <a
+                role="menuitem"
+                href={filterHref({ genre: null, tag: null })}
+                aria-current={!data.filters.genre && !data.filters.tag ? 'page' : undefined}
+                class:text-accent={!data.filters.genre && !data.filters.tag}
+                class:text-muted={Boolean(data.filters.genre || data.filters.tag)}
+                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
               >
-                <MagnifyingGlassIcon size="1rem" weight="regular" aria-hidden="true" />
-                <span class="sr-only">Search genres and tags</span>
-                <input
-                  type="search"
-                  placeholder="Find a genre or tag…"
-                  autocomplete="off"
-                  bind:value={categoryQuery}
-                  class="h-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-subtle"
-                />
-              </label>
+                All genres and tags
+              </a>
+              {#if visibleGenres.length}
+                <p
+                  class="border-t border-border px-5 pt-3 pb-1 text-xs font-medium tracking-wide text-subtle uppercase"
+                >
+                  Genres
+                </p>
+                {#each visibleGenres as genre}
+                  <a
+                    role="menuitem"
+                    href={filterHref({ genre, tag: null })}
+                    aria-current={data.filters.genre === genre ? 'page' : undefined}
+                    class:text-accent={data.filters.genre === genre}
+                    class:text-muted={data.filters.genre !== genre}
+                    class="block whitespace-nowrap px-5 py-2.5 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                  >
+                    {genre}
+                  </a>
+                {/each}
+              {/if}
+              {#if visibleTags.length}
+                <p
+                  class="border-t border-border px-5 pt-3 pb-1 text-xs font-medium tracking-wide text-subtle uppercase"
+                >
+                  Tags
+                </p>
+                {#each visibleTags as tag}
+                  <a
+                    role="menuitem"
+                    href={filterHref({ genre: null, tag })}
+                    aria-current={data.filters.tag === tag ? 'page' : undefined}
+                    class:text-accent={data.filters.tag === tag}
+                    class:text-muted={data.filters.tag !== tag}
+                    class="block whitespace-nowrap px-5 py-2.5 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                  >
+                    {tag}
+                  </a>
+                {/each}
+              {/if}
+              {#if !visibleGenres.length && !visibleTags.length}
+                <p class="px-5 py-5 text-sm text-muted">No matching genres or tags.</p>
+              {/if}
             </div>
-            <a
-              role="menuitem"
-              href={filterHref({ genre: null, tag: null })}
-              aria-current={!data.filters.genre && !data.filters.tag ? 'page' : undefined}
-              class:text-accent={!data.filters.genre && !data.filters.tag}
-              class:text-muted={Boolean(data.filters.genre || data.filters.tag)}
-              class="block whitespace-nowrap px-5 py-3 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-            >
-              All genres and tags
-            </a>
-            {#if visibleGenres.length}
-              <p
-                class="border-t border-border px-5 pt-3 pb-1 text-xs font-medium tracking-wide text-subtle uppercase"
-              >
-                Genres
-              </p>
-              {#each visibleGenres as genre}
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-status"
+          items={filterItems(
+            'status',
+            data.taxonomy.statuses,
+            data.filters.status,
+            'All statuses',
+            browseEnumLabel
+          )}
+          ariaLabel="Filter by release status"
+          menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.status ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <PulseIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span class="max-w-32 truncate">
+              {selectedLabel(data.filters.status, 'Status', browseEnumLabel)}
+            </span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-format"
+          items={filterItems(
+            'format',
+            data.taxonomy.formats,
+            data.filters.format,
+            'All types',
+            browseFormatLabel
+          )}
+          ariaLabel="Filter by anime type"
+          menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.format ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <MonitorPlayIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span class="max-w-28 truncate">
+              {selectedLabel(data.filters.format, 'Type', browseFormatLabel)}
+            </span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-audio"
+          items={[
+            {
+              label: 'Any audio',
+              href: filterHref({ audio: null }),
+              current: data.filters.audio === null,
+            },
+            {
+              label: 'Dubbed',
+              href: filterHref({ audio: 'dub' }),
+              current: data.filters.audio === 'dub',
+            },
+          ]}
+          ariaLabel="Filter by audio availability"
+          menuClass="mt-2 min-w-44 shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.audio ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <MicrophoneStageIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span>{data.filters.audio === 'dub' ? 'Dubbed' : 'Audio'}</span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-season"
+          items={filterItems(
+            'season',
+            data.taxonomy.seasons,
+            data.filters.season,
+            'All seasons',
+            browseEnumLabel
+          )}
+          ariaLabel="Filter by release season"
+          menuClass="mt-2 min-w-44 shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.season ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <SunHorizonIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span>{selectedLabel(data.filters.season, 'Season', browseEnumLabel)}</span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-year"
+          items={[
+            {
+              label: 'All years',
+              href: filterHref({ year: null }),
+              current: data.filters.year === null,
+            },
+            ...data.taxonomy.years.map((year) => ({
+              label: String(year),
+              href: filterHref({ year }),
+              current: data.filters.year === year,
+            })),
+          ]}
+          ariaLabel="Filter by release year"
+          menuClass="mt-2 max-h-80 min-w-36 overflow-y-auto shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.year ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <CalendarBlankIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span>{data.filters.year ?? 'Year'}</span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-source"
+          items={filterItems(
+            'source',
+            data.taxonomy.sources,
+            data.filters.source,
+            'All source materials',
+            browseEnumLabel
+          )}
+          ariaLabel="Filter by source material"
+          menuClass="mt-2 max-h-80 min-w-56 overflow-y-auto shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.source ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <BookOpenTextIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span class="max-w-36 truncate">
+              {selectedLabel(data.filters.source, 'Source', browseEnumLabel)}
+            </span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-country"
+          items={filterItems(
+            'country',
+            data.taxonomy.countries,
+            data.filters.country,
+            'All countries',
+            countryLabel
+          )}
+          ariaLabel="Filter by country of origin"
+          menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
+          triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.country ? 'text-accent' : 'text-muted'}`}
+        >
+          {#snippet trigger()}
+            <GlobeHemisphereWestIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span class="max-w-32 truncate">
+              {selectedLabel(data.filters.country, 'Country', countryLabel)}
+            </span>
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+        </Dropdown>
+
+        <Dropdown
+          id="browse-sort"
+          ariaLabel={`Choose browse ordering. ${ordering.label} selected`}
+          menuClass="mt-2 min-w-48 shadow-xl"
+          triggerClass="flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+        >
+          {#snippet trigger()}
+            <ChartBarIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            <span>{ordering.label}</span>
+            {#if data.filters.order === 'desc'}
+              <SortDescendingIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            {:else}
+              <SortAscendingIcon size="1.1rem" weight="regular" aria-hidden="true" />
+            {/if}
+            <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+          {/snippet}
+          {#snippet content()}
+            <div role="menu" aria-label="Browse ordering">
+              {#each browseOrderings as option}
                 <a
                   role="menuitem"
-                  href={filterHref({ genre, tag: null })}
-                  aria-current={data.filters.genre === genre ? 'page' : undefined}
-                  class:text-accent={data.filters.genre === genre}
-                  class:text-muted={data.filters.genre !== genre}
-                  class="block whitespace-nowrap px-5 py-2.5 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                  href={filterHref({ sort: option.sort, order: option.order })}
+                  aria-current={ordering === option ? 'page' : undefined}
+                  class:text-accent={ordering === option}
+                  class:text-muted={ordering !== option}
+                  class="block whitespace-nowrap px-5 py-3 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                 >
-                  {genre}
+                  {option.label}
                 </a>
               {/each}
-            {/if}
-            {#if visibleTags.length}
-              <p
-                class="border-t border-border px-5 pt-3 pb-1 text-xs font-medium tracking-wide text-subtle uppercase"
-              >
-                Tags
-              </p>
-              {#each visibleTags as tag}
-                <a
-                  role="menuitem"
-                  href={filterHref({ genre: null, tag })}
-                  aria-current={data.filters.tag === tag ? 'page' : undefined}
-                  class:text-accent={data.filters.tag === tag}
-                  class:text-muted={data.filters.tag !== tag}
-                  class="block whitespace-nowrap px-5 py-2.5 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                >
-                  {tag}
-                </a>
-              {/each}
-            {/if}
-            {#if !visibleGenres.length && !visibleTags.length}
-              <p class="px-5 py-5 text-sm text-muted">No matching genres or tags.</p>
-            {/if}
-          </div>
-        {/snippet}
-      </Dropdown>
+            </div>
+          {/snippet}
+        </Dropdown>
 
-      <Dropdown
-        id="browse-status"
-        items={filterItems(
-          'status',
-          data.taxonomy.statuses,
-          data.filters.status,
-          'All statuses',
-          browseEnumLabel
-        )}
-        ariaLabel="Filter by release status"
-        menuClass="mt-px max-h-80 min-w-52 overflow-y-auto shadow-xl"
-        triggerClass="flex h-12 min-w-40 cursor-pointer items-center gap-2 border-l border-border px-3 text-sm text-muted transition-colors hover:text-foreground peer-checked:text-foreground"
-      >
-        {#snippet trigger()}
-          <PulseIcon size="1.1rem" weight="regular" aria-hidden="true" />
-          <span class="max-w-32 truncate">
-            {selectedLabel(data.filters.status, 'Status', browseEnumLabel)}
-          </span>
-          <CaretDownIcon size="0.8rem" weight="bold" class="ml-auto" aria-hidden="true" />
-        {/snippet}
-      </Dropdown>
-
-      <Dropdown
-        id="browse-format"
-        items={filterItems(
-          'format',
-          data.taxonomy.formats,
-          data.filters.format,
-          'All types',
-          browseFormatLabel
-        )}
-        ariaLabel="Filter by anime type"
-        menuClass="mt-px max-h-80 min-w-48 overflow-y-auto shadow-xl"
-        triggerClass="flex h-12 min-w-36 cursor-pointer items-center gap-2 border-l border-border px-3 text-sm text-muted transition-colors hover:text-foreground peer-checked:text-foreground"
-      >
-        {#snippet trigger()}
-          <MonitorPlayIcon size="1.1rem" weight="regular" aria-hidden="true" />
-          <span class="max-w-28 truncate">
-            {selectedLabel(data.filters.format, 'Type', browseFormatLabel)}
-          </span>
-          <CaretDownIcon size="0.8rem" weight="bold" class="ml-auto" aria-hidden="true" />
-        {/snippet}
-      </Dropdown>
-
-      <Dropdown
-        id="browse-sort"
-        items={browseSorts.map((option) => ({
-          label: option.label,
-          href: filterHref({ sort: option.value }),
-          current: data.filters.sort === option.value,
-        }))}
-        ariaLabel="Choose browse ordering"
-        menuClass="mt-px min-w-44 shadow-xl"
-        triggerClass="flex h-12 min-w-40 cursor-pointer items-center gap-2 border-l border-border px-3 text-sm text-muted transition-colors hover:text-foreground peer-checked:text-foreground"
-      >
-        {#snippet trigger()}
-          <ChartBarIcon size="1.1rem" weight="regular" aria-hidden="true" />
-          <span>
-            {browseSorts.find(({ value }) => value === data.filters.sort)?.label}
-          </span>
-          <CaretDownIcon size="0.8rem" weight="bold" class="ml-auto" aria-hidden="true" />
-        {/snippet}
-      </Dropdown>
-
-      <Tooltip text={data.filters.order === 'desc' ? 'Descending' : 'Ascending'}>
         <button
           type="button"
-          class="grid size-12 place-items-center border-l border-border text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-accent"
-          aria-label={data.filters.order === 'desc'
-            ? 'Sort in ascending order'
-            : 'Sort in descending order'}
-          onclick={() =>
-            selectFilter({
-              order: data.filters.order === 'desc' ? 'asc' : 'desc',
-            })}
+          class:text-accent={safe}
+          class:text-muted={!safe}
+          class="inline-flex h-11 items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          aria-label={safe ? 'Disable safe for work filtering' : 'Enable safe for work filtering'}
+          aria-pressed={safe}
+          onclick={() => void toggleSafe()}
         >
-          {#if data.filters.order === 'desc'}
-            <SortDescendingIcon size="1.25rem" weight="regular" aria-hidden="true" />
-          {:else}
-            <SortAscendingIcon size="1.25rem" weight="regular" aria-hidden="true" />
-          {/if}
+          <ShieldCheckIcon size="1.25rem" weight={safe ? 'fill' : 'regular'} aria-hidden="true" />
+          <span>Safe mode</span>
         </button>
-      </Tooltip>
+      </div>
     </div>
 
     {#if data.stale}
