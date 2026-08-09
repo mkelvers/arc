@@ -282,6 +282,10 @@ export const animeCatalog = pgTable(
     tags: text('tags').array().notNull().default([]),
     format: varchar('format', { length: 16 }),
     status: varchar('status', { length: 32 }),
+    source: varchar('source', { length: 32 }),
+    season: varchar('season', { length: 16 }),
+    seasonYear: integer('season_year'),
+    countryOfOrigin: varchar('country_of_origin', { length: 8 }),
     isAdult: boolean('is_adult').notNull(),
     popularity: integer('popularity'),
     averageScore: integer('average_score'),
@@ -300,6 +304,8 @@ export const animeCatalog = pgTable(
     index('anime_catalog_safe_popularity_idx').on(table.isAdult, table.popularity),
     index('anime_catalog_safe_score_idx').on(table.isAdult, table.averageScore),
     index('anime_catalog_format_status_idx').on(table.format, table.status),
+    index('anime_catalog_season_year_idx').on(table.season, table.seasonYear),
+    index('anime_catalog_source_country_idx').on(table.source, table.countryOfOrigin),
     index('anime_catalog_genres_idx').using('gin', table.genres),
     index('anime_catalog_tags_idx').using('gin', table.tags),
   ]
@@ -318,6 +324,8 @@ export const animeCatalogTaxonomy = pgTable('anime_catalog_taxonomy', {
   tags: text('tags').array().notNull().default([]),
   formats: text('formats').array().notNull(),
   statuses: text('statuses').array().notNull(),
+  sources: text('sources').array().notNull().default([]),
+  seasons: text('seasons').array().notNull().default([]),
   fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
