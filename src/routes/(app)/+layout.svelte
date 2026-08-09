@@ -72,6 +72,15 @@
         <MagnifyingGlassIcon size={24} weight="regular" aria-hidden="true" />
       </a>
 
+      <a
+        href="/watchlist"
+        class="inline-flex h-full w-14 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+        aria-label="Watchlist"
+        title="Watchlist"
+      >
+        <BookmarkSimpleIcon size={24} weight="regular" aria-hidden="true" />
+      </a>
+
       {#if data.account}
         <Dropdown
           id="account-menu"
@@ -122,16 +131,13 @@
             </div>
 
             <div class="border-b border-white/10 py-2">
-              <button
-                type="button"
-                disabled
-                class="flex min-h-12 w-full items-center gap-3 px-5 text-left text-sm text-subtle disabled:cursor-not-allowed"
-                title="Coming soon"
+              <a
+                href="/watchlist"
+                class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
               >
                 <BookmarkSimpleIcon size={21} aria-hidden="true" />
                 <span>Watchlist</span>
-                <span class="ml-auto text-xs">Coming soon</span>
-              </button>
+              </a>
               <button
                 type="button"
                 disabled
