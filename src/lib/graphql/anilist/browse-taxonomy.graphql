@@ -14,4 +14,14 @@ query BrowseAnimeTaxonomy {
       name
     }
   }
+  sources: __type(name: "MediaSource") {
+    enumValues {
+      name
+    }
+  }
+  seasons: __type(name: "MediaSeason") {
+    enumValues {
+      name
+    }
+  }
 }

@@ -4,6 +4,10 @@ query BrowseAnimePage(
   $tag: String
   $format: MediaFormat
   $status: MediaStatus
+  $source: MediaSource
+  $season: MediaSeason
+  $seasonYear: Int
+  $countryOfOrigin: CountryCode
   $isAdult: Boolean
   $sort: [MediaSort]
   $page: Int!
@@ -20,6 +24,10 @@ query BrowseAnimePage(
       tag: $tag
       format: $format
       status: $status
+      source: $source
+      season: $season
+      seasonYear: $seasonYear
+      countryOfOrigin: $countryOfOrigin
       isAdult: $isAdult
       sort: $sort
     ) {
@@ -41,6 +49,10 @@ query BrowseAnimePage(
       }
       format
       status
+      source
+      season
+      seasonYear
+      countryOfOrigin
       isAdult
       averageScore
       popularity

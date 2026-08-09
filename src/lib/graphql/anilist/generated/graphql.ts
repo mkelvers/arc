@@ -117,6 +117,39 @@ export type MediaSort =
   | 'VOLUMES'
   | 'VOLUMES_DESC';
 
+/** Source type the media was adapted from */
+export type MediaSource =
+  /** Version 2+ only. Japanese Anime */
+  | 'ANIME'
+  /** Version 3 only. Comics excluding manga */
+  | 'COMIC'
+  /** Version 2+ only. Self-published works */
+  | 'DOUJINSHI'
+  /** Version 3 only. Games excluding video games */
+  | 'GAME'
+  /** Written work published in volumes */
+  | 'LIGHT_NOVEL'
+  /** Version 3 only. Live action media such as movies or TV show */
+  | 'LIVE_ACTION'
+  /** Asian comic book */
+  | 'MANGA'
+  /** Version 3 only. Multimedia project */
+  | 'MULTIMEDIA_PROJECT'
+  /** Version 2+ only. Written works not published in volumes */
+  | 'NOVEL'
+  /** An original production not based of another work */
+  | 'ORIGINAL'
+  /** Other */
+  | 'OTHER'
+  /** Version 3 only. Picture book */
+  | 'PICTURE_BOOK'
+  /** Video game */
+  | 'VIDEO_GAME'
+  /** Video game driven primary by text and narrative */
+  | 'VISUAL_NOVEL'
+  /** Version 3 only. Written works published online */
+  | 'WEB_NOVEL';
+
 /** The current releasing status of the media */
 export type MediaStatus =
   /** Ended before the work could be finished */
@@ -202,6 +235,8 @@ export type BrowseAnimeTaxonomyQuery = {
   tags: Array<{ name: string; isAdult: boolean | null } | null> | null;
   formats: { enumValues: Array<{ name: string }> | null } | null;
   statuses: { enumValues: Array<{ name: string }> | null } | null;
+  sources: { enumValues: Array<{ name: string }> | null } | null;
+  seasons: { enumValues: Array<{ name: string }> | null } | null;
 };
 
 export type BrowseAnimePageQueryVariables = Exact<{
@@ -210,6 +245,10 @@ export type BrowseAnimePageQueryVariables = Exact<{
   tag?: string | null | undefined;
   format?: MediaFormat | null | undefined;
   status?: MediaStatus | null | undefined;
+  source?: MediaSource | null | undefined;
+  season?: MediaSeason | null | undefined;
+  seasonYear?: number | null | undefined;
+  countryOfOrigin?: unknown;
   isAdult?: boolean | null | undefined;
   sort?: Array<MediaSort | null | undefined> | MediaSort | null | undefined;
   page: number;
@@ -226,6 +265,10 @@ export type BrowseAnimePageQuery = {
       genres: Array<string | null> | null;
       format: MediaFormat | null;
       status: MediaStatus | null;
+      source: MediaSource | null;
+      season: MediaSeason | null;
+      seasonYear: number | null;
+      countryOfOrigin: unknown;
       isAdult: boolean | null;
       averageScore: number | null;
       popularity: number | null;
@@ -456,13 +499,23 @@ export const BrowseAnimeTaxonomyDocument = new TypedDocumentString(`
       name
     }
   }
+  sources: __type(name: "MediaSource") {
+    enumValues {
+      name
+    }
+  }
+  seasons: __type(name: "MediaSeason") {
+    enumValues {
+      name
+    }
+  }
 }
     `) as unknown as TypedDocumentString<
   BrowseAnimeTaxonomyQuery,
   BrowseAnimeTaxonomyQueryVariables
 >;
 export const BrowseAnimePageDocument = new TypedDocumentString(`
-    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $isAdult: Boolean, $sort: [MediaSort], $page: Int!, $perPage: Int!) {
+    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $source: MediaSource, $season: MediaSeason, $seasonYear: Int, $countryOfOrigin: CountryCode, $isAdult: Boolean, $sort: [MediaSort], $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       hasNextPage
@@ -474,6 +527,10 @@ export const BrowseAnimePageDocument = new TypedDocumentString(`
       tag: $tag
       format: $format
       status: $status
+      source: $source
+      season: $season
+      seasonYear: $seasonYear
+      countryOfOrigin: $countryOfOrigin
       isAdult: $isAdult
       sort: $sort
     ) {
@@ -495,6 +552,10 @@ export const BrowseAnimePageDocument = new TypedDocumentString(`
       }
       format
       status
+      source
+      season
+      seasonYear
+      countryOfOrigin
       isAdult
       averageScore
       popularity
