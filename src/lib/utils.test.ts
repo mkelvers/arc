@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  batches,
   formatDate,
   formatDuration,
   isRecord,
   nonEmptyText,
+  parseDate,
   positiveInteger,
   record,
 } from './utils';
@@ -23,6 +25,14 @@ describe('shared utilities', () => {
     expect(positiveInteger(true)).toBeUndefined();
     expect(nonEmptyText('  title  ')).toBe('title');
     expect(nonEmptyText('   ')).toBeUndefined();
+    expect(parseDate('2026-08-09T12:30:00.000Z')).toEqual(new Date('2026-08-09T12:30:00.000Z'));
+    expect(parseDate('not a date')).toBeUndefined();
+  });
+
+  test('splits work into validated batches', () => {
+    expect(batches([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(batches([], 2)).toEqual([]);
+    expect(() => batches([1], 0)).toThrow(RangeError);
   });
 
   test('formats dates and durations consistently', () => {

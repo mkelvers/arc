@@ -28,6 +28,28 @@ export function nonEmptyText(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
+export function parseDate(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+export function batches<T>(values: readonly T[], size: number) {
+  if (!Number.isSafeInteger(size) || size <= 0) {
+    throw new RangeError('Batch size must be a positive integer');
+  }
+
+  const result: T[][] = [];
+  for (let index = 0; index < values.length; index += size) {
+    result.push(values.slice(index, index + size));
+  }
+
+  return result;
+}
+
 export function formatDate(value: string) {
   if (!value) {
     return '';
