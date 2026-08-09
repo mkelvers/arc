@@ -1,9 +1,0 @@
-{
-  "$schema": "./node_modules/knip/schema.json",
-  "includeEntryExports": true,
-  "ignoreDependencies": ["@dicebear/styles"],
-  "ignoreIssues": {
-    "src/lib/**/generated/**": ["exports", "nsExports", "types", "nsTypes"],
-    "src/lib/server/anime/tmdb/generated.ts": ["exports", "nsExports", "types", "nsTypes"]
-  }
-}
