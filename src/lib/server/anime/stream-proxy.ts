@@ -30,19 +30,23 @@ const refererHostGroups = [
 ] as const;
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
+type StreamBody = 'playlist' | 'segment';
+type StreamProxyFailure =
+  | { kind: 'missing-source' }
+  | { kind: 'invalid-source' }
+  | { kind: 'unsupported-host'; hostname: string }
+  | { kind: 'request-timeout' }
+  | { kind: 'upstream'; status: number | null }
+  | { kind: 'redirect-limit' }
+  | { kind: 'unsupported-redirect' }
+  | { kind: 'no-response' }
+  | { kind: 'body-too-large'; body: StreamBody }
+  | { kind: 'body-timeout'; body: StreamBody }
+  | { kind: 'body-read'; body: StreamBody };
 
 export class StreamProxyError extends Error {
-  constructor(
-    message: string,
-    readonly status: number
-  ) {
-    super(message);
-  }
-}
-
-class StreamTargetError extends StreamProxyError {
-  constructor(message: string, status: 400 | 403) {
-    super(message, status);
+  constructor(readonly reason: StreamProxyFailure) {
+    super(reason.kind);
   }
 }
 
@@ -62,12 +66,12 @@ async function providerResponse(target: URL, range: string | null, fetchStream: 
     });
   } catch (cause) {
     if (controller.signal.aborted) {
-      throw new StreamProxyError('Episode stream timed out', 504);
+      throw new StreamProxyError({ kind: 'request-timeout' });
     }
     console.warn(
       `Episode stream request failed for ${target.hostname}: ${cause instanceof Error ? cause.message : String(cause)}`
     );
-    throw new StreamProxyError('Episode stream failed', 502);
+    throw new StreamProxyError({ kind: 'upstream', status: null });
   } finally {
     clearTimeout(timeout);
   }
@@ -90,7 +94,7 @@ async function proxiedResponse(target: URL, response: Response) {
     headers.set('cache-control', 'no-store');
     headers.set('content-type', 'application/vnd.apple.mpegurl');
     const body = new TextDecoder().decode(
-      await boundedResponseBytes(response, maximumPlaylistSize, responseTimeout, 'Episode playlist')
+      await boundedResponseBytes(response, maximumPlaylistSize, responseTimeout, 'playlist')
     );
 
     return new Response(rewriteHlsPlaylist(body, target), {
@@ -102,12 +106,7 @@ async function proxiedResponse(target: URL, response: Response) {
   if (target.hostname.endsWith('.ibyteimg.com')) {
     const body = Uint8Array.from(
       unwrapPngSegment(
-        await boundedResponseBytes(
-          response,
-          maximumWrappedSegmentSize,
-          responseTimeout,
-          'Episode segment'
-        )
+        await boundedResponseBytes(response, maximumWrappedSegmentSize, responseTimeout, 'segment')
       )
     );
     headers.set('content-length', String(body.byteLength));
@@ -155,22 +154,22 @@ async function followProviderRedirects(
     if (response.status < 300 || response.status >= 400 || !location) {
       if (!response.ok && response.status !== 206) {
         const status = response.status >= 400 && response.status <= 599 ? response.status : 502;
-        throw new StreamProxyError('Episode stream failed', status);
+        throw new StreamProxyError({ kind: 'upstream', status });
       }
       return { response, target };
     }
     if (redirects === 3) {
-      throw new StreamProxyError('Episode stream redirected too many times', 502);
+      throw new StreamProxyError({ kind: 'redirect-limit' });
     }
 
     try {
       target = streamTarget(new URL(location, target).toString());
     } catch {
-      throw new StreamProxyError('Episode stream redirected to an unsupported host', 502);
+      throw new StreamProxyError({ kind: 'unsupported-redirect' });
     }
   }
 
-  throw new StreamProxyError('Episode stream did not respond', 502);
+  throw new StreamProxyError({ kind: 'no-response' });
 }
 
 export async function proxyStreamRequest(request: Request, fetchStream: StreamFetch) {
@@ -194,11 +193,11 @@ async function boundedResponseBytes(
   response: Response,
   maximumBytes: number,
   timeoutMs: number,
-  label: string
+  bodyKind: StreamBody
 ) {
   const contentLength = Number(response.headers.get('content-length') ?? 0);
   if (Number.isFinite(contentLength) && contentLength > maximumBytes) {
-    throw new StreamProxyError(`${label} was unexpectedly large`, 502);
+    throw new StreamProxyError({ kind: 'body-too-large', body: bodyKind });
   }
   if (!response.body) {
     return new Uint8Array();
@@ -213,13 +212,13 @@ async function boundedResponseBytes(
     const remaining = deadline - Date.now();
     if (remaining <= 0) {
       await reader.cancel().catch(() => undefined);
-      throw new StreamProxyError(`${label} timed out`, 504);
+      throw new StreamProxyError({ kind: 'body-timeout', body: bodyKind });
     }
 
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const expired = new Promise<never>((_, reject) => {
       timeout = setTimeout(
-        () => reject(new StreamProxyError(`${label} timed out`, 504)),
+        () => reject(new StreamProxyError({ kind: 'body-timeout', body: bodyKind })),
         remaining
       );
     });
@@ -231,7 +230,7 @@ async function boundedResponseBytes(
       await reader.cancel().catch(() => undefined);
       throw cause instanceof StreamProxyError
         ? cause
-        : new StreamProxyError(`${label} could not be read`, 502);
+        : new StreamProxyError({ kind: 'body-read', body: bodyKind });
     } finally {
       clearTimeout(timeout);
     }
@@ -243,7 +242,7 @@ async function boundedResponseBytes(
     length += result.value.byteLength;
     if (length > maximumBytes) {
       await reader.cancel().catch(() => undefined);
-      throw new StreamProxyError(`${label} was unexpectedly large`, 502);
+      throw new StreamProxyError({ kind: 'body-too-large', body: bodyKind });
     }
     parts.push(result.value);
   }
@@ -270,18 +269,18 @@ function matchesHost(hostname: string, hosts: readonly string[]) {
 
 function streamTarget(value: string | null) {
   if (!value) {
-    throw new StreamTargetError('Missing stream URL', 400);
+    throw new StreamProxyError({ kind: 'missing-source' });
   }
 
   let target: URL;
   try {
     target = new URL(value);
   } catch {
-    throw new StreamTargetError('Invalid stream URL', 400);
+    throw new StreamProxyError({ kind: 'invalid-source' });
   }
 
   if (target.protocol !== 'https:' || !allowedHost(target.hostname)) {
-    throw new StreamTargetError(`Unsupported stream host: ${target.hostname}`, 403);
+    throw new StreamProxyError({ kind: 'unsupported-host', hostname: target.hostname });
   }
 
   return target;
@@ -329,7 +328,7 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
       src: Buffer.from(allowedTarget.toString()).toString('base64url'),
     })}`;
   } catch (cause) {
-    if (!(cause instanceof StreamTargetError)) {
+    if (!(cause instanceof StreamProxyError)) {
       throw cause;
     }
 

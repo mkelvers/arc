@@ -17,8 +17,7 @@ describe('stream proxy', () => {
         `https://arc.local/api/watch/stream?${new URLSearchParams({ url: target })}`
       );
       await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
-        status: 403,
-        message: `Unsupported stream host: ${hostname}`,
+        reason: { kind: 'unsupported-host', hostname },
       });
     }
   });
@@ -81,8 +80,7 @@ describe('stream proxy', () => {
       });
 
     await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
-      status: 502,
-      message: 'Episode stream redirected to an unsupported host',
+      reason: { kind: 'unsupported-redirect' },
     });
   });
 
@@ -99,8 +97,7 @@ describe('stream proxy', () => {
       });
 
     await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
-      status: 502,
-      message: 'Episode playlist was unexpectedly large',
+      reason: { kind: 'body-too-large', body: 'playlist' },
     });
   });
 
@@ -114,8 +111,7 @@ describe('stream proxy', () => {
       });
 
     await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
-      status: 502,
-      message: 'Episode playlist was unexpectedly large',
+      reason: { kind: 'body-too-large', body: 'playlist' },
     });
   });
 
