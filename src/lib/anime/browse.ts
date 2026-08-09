@@ -7,6 +7,8 @@ export const browsePageSize = 42;
 
 type BrowseSort = (typeof browseSorts)[number]['value'];
 type BrowseOrder = 'asc' | 'desc';
+const defaultBrowseSort: BrowseSort = 'popularity';
+const defaultBrowseOrder: BrowseOrder = 'desc';
 
 export interface BrowseTaxonomy {
   genres: string[];
@@ -46,12 +48,12 @@ export function parseBrowseFilters(searchParams: URLSearchParams) {
   const sortValue = searchParams.get('sort');
   const sort =
     sortValue === null
-      ? 'popularity'
+      ? defaultBrowseSort
       : (browseSorts.find(({ value }) => value === sortValue)?.value ?? null);
   const orderValue = searchParams.get('order');
   const order =
     orderValue === null
-      ? 'desc'
+      ? defaultBrowseOrder
       : orderValue === 'asc' || orderValue === 'desc'
         ? orderValue
         : null;
@@ -103,10 +105,10 @@ export function browseSearchParams(filters: BrowseFilters) {
   if (filters.format) {
     searchParams.set('format', filters.format);
   }
-  if (filters.sort !== 'popularity') {
+  if (filters.sort !== defaultBrowseSort) {
     searchParams.set('sort', filters.sort);
   }
-  if (filters.order !== 'desc') {
+  if (filters.order !== defaultBrowseOrder) {
     searchParams.set('order', filters.order);
   }
 
