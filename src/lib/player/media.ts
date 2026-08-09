@@ -243,11 +243,12 @@ const timelineStep = 0.25;
 const minimumTimelineMatches = 12;
 
 function timelineScore(reference: number[], target: number[], offset: number) {
+  const timelineTolerance = 0.25;
   let matches = 0;
   for (const boundary of target) {
     const expected = boundary - offset;
-    const index = nearestIndex(reference, expected - 0.25);
-    if (index < reference.length && reference[index] <= expected + 0.25) {
+    const index = nearestIndex(reference, expected - timelineTolerance);
+    if (index < reference.length && reference[index] <= expected + timelineTolerance) {
       matches++;
     }
   }
