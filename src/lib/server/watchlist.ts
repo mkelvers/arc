@@ -9,12 +9,11 @@ import {
   animeEpisodeSync,
   animeExternalId,
   animeExternalIdLink,
-  playbackProgress,
   watchlist,
   type WatchlistState,
 } from '$lib/server/db/schema';
 import { batches } from '$lib/utils';
-import { watchlistStateAfterEpisodeCompletion } from './watchlist-completion';
+import { watchlistStateAfterPlayback } from './watchlist-completion';
 
 const databaseBatchSize = 1_000;
 
@@ -71,18 +70,10 @@ export async function getWatchlistEntries(userId: string) {
       state: watchlist.state,
       addedAt: watchlist.createdAt,
       updatedAt: watchlist.updatedAt,
-      watchedAt: playbackProgress.lastWatchedAt,
     })
     .from(watchlist)
     .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, watchlist.animeId))
     .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
-    .leftJoin(
-      playbackProgress,
-      and(
-        eq(playbackProgress.userId, watchlist.userId),
-        eq(playbackProgress.animeId, watchlist.animeId)
-      )
-    )
     .where(
       and(
         eq(watchlist.userId, userId),
@@ -291,17 +282,22 @@ export async function applyWatchlistEntries(
   });
 }
 
-export async function updateWatchlistAfterEpisodeCompletion(
+export async function updateWatchlistAfterPlayback(
   userId: string,
   animeId: number,
   input: PlaybackProgressInput
 ) {
-  const [[current], [release], episodes] = await Promise.all([
-    db
-      .select({ state: watchlist.state })
-      .from(watchlist)
-      .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)))
-      .limit(1),
+  const [current] = await db
+    .select({ state: watchlist.state })
+    .from(watchlist)
+    .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)))
+    .limit(1);
+
+  if (current && (!input.completed || current.state === 'completed')) {
+    return;
+  }
+
+  const [[release], episodes] = await Promise.all([
     db
       .select({
         mediaStatus: animeEpisodeSync.mediaStatus,
@@ -318,15 +314,11 @@ export async function updateWatchlistAfterEpisodeCompletion(
       .from(animeEpisode)
       .where(eq(animeEpisode.anilistId, input.animeId)),
   ]);
-  const next = watchlistStateAfterEpisodeCompletion(
-    current?.state ?? null,
-    release ?? null,
-    episodes,
-    {
-      episodeId: input.episodeId,
-      number: input.episodeNumber,
-    }
-  );
+  const next = watchlistStateAfterPlayback(current?.state ?? null, release ?? null, episodes, {
+    episodeId: input.episodeId,
+    number: input.episodeNumber,
+    completed: input.completed,
+  });
 
   if (next === null || next === current?.state) {
     return;

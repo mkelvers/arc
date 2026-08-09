@@ -10,7 +10,7 @@ import {
   playbackProgress,
   watchlist as watchlistTable,
 } from '$lib/server/db/schema';
-import { updateWatchlistAfterEpisodeCompletion } from '$lib/server/watchlist';
+import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
 import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
@@ -42,9 +42,7 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
       },
     });
 
-  if (input.completed) {
-    await updateWatchlistAfterEpisodeCompletion(userId, animeId, input);
-  }
+  await updateWatchlistAfterPlayback(userId, animeId, input);
 }
 
 export async function getPlaybackProgress(userId: string | undefined, anilistId: number) {

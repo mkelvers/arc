@@ -11,21 +11,24 @@ interface Release {
   expectedEpisodes: number | null;
 }
 
-export function watchlistStateAfterEpisodeCompletion(
+export function watchlistStateAfterPlayback(
   current: WatchlistState | null,
   release: Release | null,
   episodes: Episode[],
-  completedEpisode: Episode
+  playback: Episode & { completed: boolean }
 ): WatchlistState | null {
   const storedEpisode = episodes.some(
-    ({ episodeId, number }) =>
-      episodeId === completedEpisode.episodeId && number === completedEpisode.number
+    ({ episodeId, number }) => episodeId === playback.episodeId && number === playback.number
   );
   if (!storedEpisode) {
     return current;
   }
 
-  if (current === 'completed') {
+  if (current === null) {
+    return 'watching';
+  }
+
+  if (!playback.completed || current === 'completed') {
     return current;
   }
 
@@ -35,8 +38,8 @@ export function watchlistStateAfterEpisodeCompletion(
     expected !== null &&
     expected !== undefined &&
     expected > 0 &&
-    completedEpisode.number === expected &&
+    playback.number === expected &&
     coversExpectedEpisodes(episodes, expected);
 
-  return completedSeries ? 'completed' : 'watching';
+  return completedSeries ? 'completed' : current;
 }
