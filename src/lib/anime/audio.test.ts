@@ -7,7 +7,8 @@ describe('audio availability labels', () => {
     expect(audioAvailabilityLabel(['dub', 'sub', 'dub'])).toBe('Dub | Sub');
     expect(audioAvailabilityLabel(['sub'])).toBe('Subtitled');
     expect(audioAvailabilityLabel(['dub'])).toBe('Dubbed');
-    expect(audioAvailabilityLabel(['raw'])).toBe('Raw');
+    expect(audioAvailabilityLabel(['raw'])).toBe('Subtitled');
+    expect(audioAvailabilityLabel(['dub', 'raw'])).toBe('Dub | Sub');
     expect(audioAvailabilityLabel([])).toBe('');
   });
 

@@ -2,17 +2,7 @@ const audioModes = ['sub', 'dub', 'raw'] as const;
 
 export type AudioMode = (typeof audioModes)[number];
 
-const audioLabel = {
-  sub: 'Sub',
-  dub: 'Dub',
-  raw: 'Raw',
-} satisfies Record<AudioMode, string>;
-
 const audioRank = new Map<AudioMode, number>(audioModes.map((mode, index) => [mode, index]));
-
-const audioLabelRank = new Map<AudioMode, number>(
-  (['dub', 'sub', 'raw'] satisfies AudioMode[]).map((mode, index) => [mode, index])
-);
 
 function orderedAudio(modes: readonly AudioMode[]) {
   return [...new Set(modes)].toSorted(
@@ -21,18 +11,19 @@ function orderedAudio(modes: readonly AudioMode[]) {
 }
 
 export function audioAvailabilityLabel<const Modes extends readonly AudioMode[]>(modes: Modes) {
-  const ordered = orderedAudio(modes);
-  if (ordered.length === 1 && ordered[0] === 'sub') {
+  const ordered = orderedAudio(modes).map((mode) => (mode === 'raw' ? 'sub' : mode));
+  const available = [...new Set(ordered)];
+  if (available.length === 1 && available[0] === 'sub') {
     return 'Subtitled';
   }
 
-  if (ordered.length === 1 && ordered[0] === 'dub') {
+  if (available.length === 1 && available[0] === 'dub') {
     return 'Dubbed';
   }
 
-  return ordered
-    .toSorted((left, right) => audioLabelRank.get(left)! - audioLabelRank.get(right)!)
-    .map((mode) => audioLabel[mode])
+  return (['dub', 'sub'] as const)
+    .filter((mode) => available.includes(mode))
+    .map((mode) => (mode === 'dub' ? 'Dub' : 'Sub'))
     .join(' | ');
 }
 
