@@ -1,0 +1,12 @@
+query SyncMediaList($userId: Int!) {
+  MediaListCollection(userId: $userId, type: ANIME) {
+    lists {
+      entries {
+        status
+        media {
+          id
+        }
+      }
+    }
+  }
+}

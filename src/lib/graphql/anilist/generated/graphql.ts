@@ -2,9 +2,7 @@
 /** Internal type. DO NOT USE DIRECTLY. */
 type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
-export type Incremental<T> =
-  | T
-  | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 /** The format the media was released in */
 export type MediaFormat =
@@ -28,6 +26,21 @@ export type MediaFormat =
   | 'TV'
   /** Anime which are under 15 minutes in length and broadcast on television */
   | 'TV_SHORT';
+
+/** Media list watching/reading status enum. */
+export type MediaListStatus =
+  /** Finished watching/reading */
+  | 'COMPLETED'
+  /** Currently watching/reading */
+  | 'CURRENT'
+  /** Stopped watching/reading before completing */
+  | 'DROPPED'
+  /** Paused watching/reading */
+  | 'PAUSED'
+  /** Planning to watch/read */
+  | 'PLANNING'
+  /** Re-watching/reading */
+  | 'REPEATING';
 
 /** The type of ranking */
 export type MediaRankType =
@@ -174,70 +187,13 @@ export type AnimeQueryVariables = Exact<{
   id: number;
 }>;
 
-export type AnimeQuery = {
-  Media: {
-    id: number;
-    idMal: number | null;
-    synonyms: Array<string | null> | null;
-    bannerImage: string | null;
-    description: string | null;
-    genres: Array<string | null> | null;
-    format: MediaFormat | null;
-    status: MediaStatus | null;
-    season: MediaSeason | null;
-    seasonYear: number | null;
-    episodes: number | null;
-    duration: number | null;
-    averageScore: number | null;
-    popularity: number | null;
-    favourites: number | null;
-    title: { english: string | null; romaji: string | null; native: string | null } | null;
-    startDate: { year: number | null; month: number | null; day: number | null } | null;
-    endDate: { year: number | null; month: number | null; day: number | null } | null;
-    nextAiringEpisode: { airingAt: number; episode: number } | null;
-    relations: {
-      edges: Array<{
-        relationType: MediaRelation | null;
-        node: {
-          id: number;
-          type: MediaType | null;
-          title: { english: string | null; romaji: string | null; native: string | null } | null;
-        } | null;
-      } | null> | null;
-    } | null;
-    rankings: Array<{
-      rank: number;
-      type: MediaRankType;
-      year: number | null;
-      season: MediaSeason | null;
-      allTime: boolean | null;
-    } | null> | null;
-    tags: Array<{
-      name: string;
-      rank: number | null;
-      isGeneralSpoiler: boolean | null;
-      isMediaSpoiler: boolean | null;
-    } | null> | null;
-    studios: { nodes: Array<{ name: string } | null> | null } | null;
-    staff: {
-      edges: Array<{
-        role: string | null;
-        node: { name: { full: string | null } | null } | null;
-      } | null> | null;
-    } | null;
-  } | null;
-};
 
-export type BrowseAnimeTaxonomyQueryVariables = Exact<{ [key: string]: never }>;
+export type AnimeQuery = { Media: { id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, endDate: { year: number | null, month: number | null, day: number | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
 
-export type BrowseAnimeTaxonomyQuery = {
-  GenreCollection: Array<string | null> | null;
-  tags: Array<{ name: string; isAdult: boolean | null } | null> | null;
-  formats: { enumValues: Array<{ name: string }> | null } | null;
-  statuses: { enumValues: Array<{ name: string }> | null } | null;
-  sources: { enumValues: Array<{ name: string }> | null } | null;
-  seasons: { enumValues: Array<{ name: string }> | null } | null;
-};
+export type BrowseAnimeTaxonomyQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type BrowseAnimeTaxonomyQuery = { GenreCollection: Array<string | null> | null, tags: Array<{ name: string, isAdult: boolean | null } | null> | null, formats: { enumValues: Array<{ name: string }> | null } | null, statuses: { enumValues: Array<{ name: string }> | null } | null, sources: { enumValues: Array<{ name: string }> | null } | null, seasons: { enumValues: Array<{ name: string }> | null } | null };
 
 export type BrowseAnimePageQueryVariables = Exact<{
   search?: string | null | undefined;
@@ -255,93 +211,23 @@ export type BrowseAnimePageQueryVariables = Exact<{
   perPage: number;
 }>;
 
-export type BrowseAnimePageQuery = {
-  Page: {
-    pageInfo: { hasNextPage: boolean | null } | null;
-    media: Array<{
-      id: number;
-      synonyms: Array<string | null> | null;
-      description: string | null;
-      genres: Array<string | null> | null;
-      format: MediaFormat | null;
-      status: MediaStatus | null;
-      source: MediaSource | null;
-      season: MediaSeason | null;
-      seasonYear: number | null;
-      countryOfOrigin: unknown;
-      isAdult: boolean | null;
-      averageScore: number | null;
-      popularity: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-      coverImage: { extraLarge: string | null; large: string | null } | null;
-      tags: Array<{ name: string } | null> | null;
-    } | null> | null;
-  } | null;
-};
+
+export type BrowseAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, source: MediaSource | null, season: MediaSeason | null, seasonYear: number | null, countryOfOrigin: unknown, isAdult: boolean | null, averageScore: number | null, popularity: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, tags: Array<{ name: string } | null> | null } | null> | null } | null };
 
 export type FranchiseMediaQueryVariables = Exact<{
   malIds?: Array<number | null | undefined> | number | null | undefined;
 }>;
 
-export type FranchiseMediaQuery = {
-  Page: {
-    media: Array<{
-      id: number;
-      idMal: number | null;
-      format: MediaFormat | null;
-      episodes: number | null;
-      duration: number | null;
-      popularity: number | null;
-      averageScore: number | null;
-      description: string | null;
-      genres: Array<string | null> | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-      coverImage: { extraLarge: string | null; large: string | null } | null;
-      relations: {
-        edges: Array<{
-          relationType: MediaRelation | null;
-          node: { idMal: number | null } | null;
-        } | null> | null;
-      } | null;
-    } | null> | null;
-  } | null;
-};
+
+export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: number | null, format: MediaFormat | null, episodes: number | null, duration: number | null, popularity: number | null, averageScore: number | null, description: string | null, genres: Array<string | null> | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { idMal: number | null } | null } | null> | null } | null } | null> | null } | null };
 
 export type HomeAnimeQueryVariables = Exact<{
   season: MediaSeason;
   seasonYear: number;
 }>;
 
-export type HomeAnimeQuery = {
-  season: {
-    media: Array<{
-      id: number;
-      description: string | null;
-      genres: Array<string | null> | null;
-      format: MediaFormat | null;
-      averageScore: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-      coverImage: { extraLarge: string | null; large: string | null } | null;
-    } | null> | null;
-  } | null;
-  popular: {
-    media: Array<{
-      id: number;
-      description: string | null;
-      genres: Array<string | null> | null;
-      format: MediaFormat | null;
-      averageScore: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-      coverImage: { extraLarge: string | null; large: string | null } | null;
-      relations: {
-        edges: Array<{
-          relationType: MediaRelation | null;
-          node: { id: number } | null;
-        } | null> | null;
-      } | null;
-    } | null> | null;
-  } | null;
-};
+
+export type HomeAnimeQuery = { season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null, popular: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number } | null } | null> | null } | null } | null> | null } | null };
 
 export type SearchAnimePageQueryVariables = Exact<{
   search: string;
@@ -349,76 +235,35 @@ export type SearchAnimePageQueryVariables = Exact<{
   perPage: number;
 }>;
 
-export type SearchAnimePageQuery = {
-  Page: {
-    pageInfo: { hasNextPage: boolean | null } | null;
-    media: Array<{
-      id: number;
-      synonyms: Array<string | null> | null;
-      description: string | null;
-      genres: Array<string | null> | null;
-      format: MediaFormat | null;
-      averageScore: number | null;
-      popularity: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-      coverImage: { extraLarge: string | null; large: string | null } | null;
-      relations: {
-        edges: Array<{
-          relationType: MediaRelation | null;
-          node: { id: number } | null;
-        } | null> | null;
-      } | null;
-    } | null> | null;
-  } | null;
-};
 
-export type SimulcastSeasonStartsQueryVariables = Exact<{ [key: string]: never }>;
+export type SearchAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, popularity: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number } | null } | null> | null } | null } | null> | null } | null };
 
-export type SimulcastSeasonStartsQuery = {
-  winter: { media: Array<{ seasonYear: number | null } | null> | null } | null;
-  spring: { media: Array<{ seasonYear: number | null } | null> | null } | null;
-  summer: { media: Array<{ seasonYear: number | null } | null> | null } | null;
-  fall: { media: Array<{ seasonYear: number | null } | null> | null } | null;
-};
+export type SimulcastSeasonStartsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type SimulcastSeasonStartsQuery = { winter: { media: Array<{ seasonYear: number | null } | null> | null } | null, spring: { media: Array<{ seasonYear: number | null } | null> | null } | null, summer: { media: Array<{ seasonYear: number | null } | null> | null } | null, fall: { media: Array<{ seasonYear: number | null } | null> | null } | null };
+
+export type SyncMediaListQueryVariables = Exact<{
+  userId: number;
+}>;
+
+
+export type SyncMediaListQuery = { MediaListCollection: { lists: Array<{ entries: Array<{ status: MediaListStatus | null, media: { id: number } | null } | null> | null } | null> | null } | null };
 
 export type WatchlistTransferAnimeQueryVariables = Exact<{
   anilistIds?: Array<number | null | undefined> | number | null | undefined;
   malIds?: Array<number | null | undefined> | number | null | undefined;
 }>;
 
-export type WatchlistTransferAnimeQuery = {
-  anilist: {
-    media: Array<{
-      id: number;
-      idMal: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-    } | null> | null;
-  } | null;
-  mal: {
-    media: Array<{
-      id: number;
-      idMal: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-    } | null> | null;
-  } | null;
-};
+
+export type WatchlistTransferAnimeQuery = { anilist: { media: Array<{ id: number, idMal: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null> | null } | null, mal: { media: Array<{ id: number, idMal: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null> | null } | null };
 
 export type WatchlistAnimeQueryVariables = Exact<{
   ids: Array<number> | number;
 }>;
 
-export type WatchlistAnimeQuery = {
-  Page: {
-    media: Array<{
-      id: number;
-      description: string | null;
-      genres: Array<string | null> | null;
-      averageScore: number | null;
-      title: { english: string | null; romaji: string | null; native: string | null } | null;
-      coverImage: { extraLarge: string | null; large: string | null } | null;
-    } | null> | null;
-  } | null;
-};
+
+export type WatchlistAnimeQuery = { Page: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -549,10 +394,7 @@ export const BrowseAnimeTaxonomyDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  BrowseAnimeTaxonomyQuery,
-  BrowseAnimeTaxonomyQueryVariables
->;
+    `) as unknown as TypedDocumentString<BrowseAnimeTaxonomyQuery, BrowseAnimeTaxonomyQueryVariables>;
 export const BrowseAnimePageDocument = new TypedDocumentString(`
     query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $source: MediaSource, $season: MediaSeason, $seasonYear: Int, $countryOfOrigin: CountryCode, $isAdult: Boolean, $sort: [MediaSort], $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {
@@ -773,10 +615,21 @@ export const SimulcastSeasonStartsDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  SimulcastSeasonStartsQuery,
-  SimulcastSeasonStartsQueryVariables
->;
+    `) as unknown as TypedDocumentString<SimulcastSeasonStartsQuery, SimulcastSeasonStartsQueryVariables>;
+export const SyncMediaListDocument = new TypedDocumentString(`
+    query SyncMediaList($userId: Int!) {
+  MediaListCollection(userId: $userId, type: ANIME) {
+    lists {
+      entries {
+        status
+        media {
+          id
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<SyncMediaListQuery, SyncMediaListQueryVariables>;
 export const WatchlistTransferAnimeDocument = new TypedDocumentString(`
     query WatchlistTransferAnime($anilistIds: [Int], $malIds: [Int]) {
   anilist: Page(page: 1, perPage: 50) {
@@ -802,10 +655,7 @@ export const WatchlistTransferAnimeDocument = new TypedDocumentString(`
     }
   }
 }
-    `) as unknown as TypedDocumentString<
-  WatchlistTransferAnimeQuery,
-  WatchlistTransferAnimeQueryVariables
->;
+    `) as unknown as TypedDocumentString<WatchlistTransferAnimeQuery, WatchlistTransferAnimeQueryVariables>;
 export const WatchlistAnimeDocument = new TypedDocumentString(`
     query WatchlistAnime($ids: [Int!]!) {
   Page(page: 1, perPage: 50) {

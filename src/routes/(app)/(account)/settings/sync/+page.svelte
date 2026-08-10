@@ -1,5 +1,9 @@
 <script lang="ts">
+  import StatusBanner from '$lib/components/StatusBanner.svelte';
+
   let { data, form } = $props();
+  let dismissedForm = $state<unknown>();
+  const statusMessage = $derived(form && form !== dismissedForm ? (form.message ?? '') : '');
 </script>
 
 <div class="flex items-start justify-between gap-6">
@@ -123,14 +127,18 @@
       <button
         type="submit"
         disabled={!data.anilistConnected ||
-          !data.settings.importAnilistChanges ||
-          !data.settings.watchingStatus}
+          (!data.settings.importAnilistChanges &&
+            !data.settings.watchingStatus &&
+            !data.settings.episodeProgress)}
         class="mt-4 inline-flex min-h-10 items-center justify-center bg-accent px-6 text-sm font-medium text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
         >Sync Now</button
       >
     </form>
-    {#if form?.message}
-      <p class="mt-3 text-sm text-status-error">{form.message}</p>
-    {/if}
   </div>
 </section>
+
+<StatusBanner
+  message={statusMessage}
+  tone={form?.success ? 'success' : 'error'}
+  ondismiss={() => (dismissedForm = form)}
+/>

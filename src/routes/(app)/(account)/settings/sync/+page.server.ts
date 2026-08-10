@@ -2,7 +2,12 @@ import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import {
+  SyncMediaListDocument,
+  type MediaListStatus,
+} from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
+import { graphql } from '$lib/server/graphql';
 import { accounts, syncSettings } from '$lib/server/db/schema';
 import { applyWatchlistEntries } from '$lib/server/watchlist';
 import type { Actions, PageServerLoad } from './$types';
@@ -13,22 +18,20 @@ const settingSchema = z.enum([
   'watchingStatus',
   'importAnilistChanges',
 ]);
-const syncResponseSchema = z.object({
-  data: z.object({
-    MediaListCollection: z.object({
-      lists: z.array(
-        z.object({
-          entries: z.array(
-            z.object({
-              status: z.enum(['CURRENT', 'COMPLETED', 'PLANNING', 'DROPPED', 'PAUSED']),
-              media: z.object({ id: z.number().int().positive() }),
-            })
-          ),
-        })
-      ),
-    }),
-  }),
-});
+function watchlistState(status: MediaListStatus) {
+  switch (status) {
+    case 'COMPLETED':
+      return 'completed' as const;
+    case 'CURRENT':
+    case 'REPEATING':
+      return 'watching' as const;
+    case 'DROPPED':
+      return 'dropped' as const;
+    case 'PAUSED':
+    case 'PLANNING':
+      return 'plan_to_watch' as const;
+  }
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
   if (!locals.user) {
@@ -105,54 +108,44 @@ export const actions: Actions = {
       return fail(400, { message: 'Connect AniList before syncing.' });
     }
 
-    if (!settings?.importAnilistChanges || !settings.watchingStatus) {
-      return fail(400, { message: 'Enable AniList changes and watching status before syncing.' });
+    if (!settings) {
+      return fail(400, { message: 'Choose at least one sync option before syncing.' });
     }
 
-    const response = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${account.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: `
-          query SyncMediaList($userId: Int!) {
-            MediaListCollection(userId: $userId, type: ANIME) {
-              lists {
-                entries {
-                  status
-                  media { id }
-                }
-              }
-            }
-          }
-        `,
-        variables: { userId: Number(account.accountId) },
-      }),
-      signal: AbortSignal.timeout(8_000),
-    });
+    if (!settings.importAnilistChanges && !settings.watchingStatus && !settings.episodeProgress) {
+      return fail(400, { message: 'Choose at least one sync option before syncing.' });
+    }
 
-    if (!response.ok) {
+    const accountId = Number(account.accountId);
+    if (!Number.isSafeInteger(accountId) || accountId <= 0) {
+      return fail(502, { message: 'The AniList account could not be identified.' });
+    }
+
+    let response;
+    try {
+      response = await graphql(
+        'https://graphql.anilist.co',
+        SyncMediaListDocument,
+        { userId: accountId },
+        { headers: { Authorization: `Bearer ${account.accessToken}` } }
+      );
+    } catch {
       return fail(502, { message: 'AniList could not be reached.' });
     }
 
-    const result = syncResponseSchema.safeParse(await response.json());
-    if (!result.success) {
-      return fail(502, { message: 'AniList returned an invalid sync response.' });
-    }
+    const entries =
+      settings.watchingStatus || settings.importAnilistChanges
+        ? (response.MediaListCollection?.lists?.flatMap(
+            (list) =>
+              list?.entries?.flatMap((entry) => {
+                if (!entry?.media?.id || !entry.status) {
+                  return [];
+                }
 
-    const stateByStatus = {
-      CURRENT: 'watching',
-      COMPLETED: 'completed',
-      PLANNING: 'plan_to_watch',
-      DROPPED: 'dropped',
-      PAUSED: 'plan_to_watch',
-    } as const;
-    const entries = result.data.data.MediaListCollection.lists.flatMap(({ entries }) =>
-      entries.map(({ media, status }) => ({ anilistId: media.id, state: stateByStatus[status] }))
-    );
+                return [{ anilistId: entry.media.id, state: watchlistState(entry.status) }];
+              }) ?? []
+          ) ?? [])
+        : [];
     const syncedAt = new Date();
 
     await applyWatchlistEntries(userId, entries);
