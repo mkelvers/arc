@@ -1,23 +1,59 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
-  import { CaretRightIcon } from 'phosphor-svelte';
+  import { enhance } from '$app/forms';
+  import { CaretRightIcon, ChecksIcon, TrashIcon } from 'phosphor-svelte';
   import { onMount } from 'svelte';
 
   import emptyArtwork from '$lib/assets/notifications-empty.png';
+  import Modal from '$lib/components/Modal.svelte';
   import type { PageProps } from './$types';
 
   let { data }: PageProps = $props();
+  let clearDialogOpen = $state(false);
+  let clearForm = $state<HTMLFormElement>();
 
-  onMount(() => {
-    void invalidateAll();
-  });
+  onMount(() => void invalidateAll());
+
+  function clearNotifications() {
+    clearDialogOpen = false;
+    clearForm?.requestSubmit();
+  }
 </script>
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
   <div class="mx-auto w-full max-w-256 px-5 py-9 sm:px-10 sm:py-11 lg:py-14">
-    <h1 class="border-b border-border pb-6 text-center text-2xl font-semibold">
-      Notification Center
-    </h1>
+    <h1 class="text-center text-2xl font-semibold">Notification Center</h1>
+    <div class="mt-5 flex justify-end gap-2 border-b border-border pb-3">
+      <form method="POST" action="?/readAll" use:enhance>
+        <button
+          type="submit"
+          class="inline-flex min-h-10 items-center gap-2 px-3 text-xs font-bold text-muted transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <ChecksIcon size="1rem" weight="bold" aria-hidden="true" />
+          Read all
+        </button>
+      </form>
+      <form bind:this={clearForm} method="POST" action="?/clearAll" use:enhance>
+        <button
+          type="button"
+          class="inline-flex min-h-10 items-center gap-2 px-3 text-xs font-bold text-muted transition-colors hover:bg-surface hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          onclick={() => (clearDialogOpen = true)}
+        >
+          <TrashIcon size="1rem" weight="bold" aria-hidden="true" />
+          Clear all
+        </button>
+      </form>
+    </div>
+
+    <Modal
+      id="clear-notifications"
+      bind:open={clearDialogOpen}
+      title="Clear notifications?"
+      description="This will permanently remove all notifications from your Notification Center."
+      confirmLabel="Clear all"
+      danger
+      onconfirm={clearNotifications}
+    />
 
     {#if data.notifications.length}
       <section class="mt-8 sm:mt-10" aria-label="Notifications">
@@ -38,6 +74,9 @@
                 class="flex min-w-0 flex-1 flex-col justify-start px-5 pt-6 pb-5 sm:px-7 sm:pt-8"
               >
                 <h2 class="text-base font-semibold sm:text-lg">{item.title}</h2>
+                {#if item.eventDate}
+                  <p class="mt-1 text-xs text-subtle">{item.eventDate}</p>
+                {/if}
                 <p class="mt-2 line-clamp-2 text-sm leading-6 text-muted">{item.body}</p>
                 <a
                   href={item.href}

@@ -90,11 +90,20 @@
           triggerClass="flex h-14 cursor-pointer items-center gap-2 px-3 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted"
         >
           {#snippet trigger()}
-            <img
-              src={data.account.artSource}
-              alt=""
-              class="size-8 rounded-full object-cover ring-1 ring-white/20"
-            />
+            <span class="relative">
+              <img
+                src={data.account.artSource}
+                alt=""
+                class="size-8 rounded-full object-cover ring-1 ring-white/20"
+              />
+              {#if data.unreadNotifications}
+                <span
+                  class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-status-error ring-2 ring-header"
+                >
+                  <span class="sr-only">Unread notifications</span>
+                </span>
+              {/if}
+            </span>
             <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
           {/snippet}
 
@@ -142,6 +151,11 @@
             >
               <BellIcon size={21} aria-hidden="true" />
               <span>Notifications</span>
+              {#if data.unreadNotifications}
+                <span class="ml-auto size-2 rounded-full bg-status-error">
+                  <span class="sr-only">Unread notifications</span>
+                </span>
+              {/if}
             </a>
 
             <button
