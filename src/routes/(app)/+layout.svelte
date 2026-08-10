@@ -120,35 +120,32 @@
               </a>
             </div>
 
-            <div class="border-y border-white/10 py-2">
-              <a
-                href="/manage"
-                class="flex min-h-12 items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-              >
-                <GearIcon size={21} aria-hidden="true" />
-                <span>Settings</span>
-              </a>
-            </div>
+            <a
+              href="/manage"
+              class="flex min-h-12 items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+            >
+              <GearIcon size={21} aria-hidden="true" />
+              <span>Settings</span>
+            </a>
 
-            <div class="border-b border-white/10 py-2">
-              <a
-                href="/watchlist"
-                class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-              >
-                <BookmarkSimpleIcon size={21} aria-hidden="true" />
-                <span>Watchlist</span>
-              </a>
-              <button
-                type="button"
-                disabled
-                class="flex min-h-12 w-full items-center gap-3 px-5 text-left text-sm text-subtle disabled:cursor-not-allowed"
-                title="Coming soon"
-              >
-                <BellIcon size={21} aria-hidden="true" />
-                <span>Notifications</span>
-                <span class="ml-auto text-xs">Coming soon</span>
-              </button>
-            </div>
+            <a
+              href="/watchlist"
+              class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+            >
+              <BookmarkSimpleIcon size={21} aria-hidden="true" />
+              <span>Watchlist</span>
+            </a>
+
+            <button
+              type="button"
+              disabled
+              class="flex min-h-12 w-full items-center gap-3 px-5 text-left text-sm text-subtle disabled:cursor-not-allowed"
+              title="Coming soon"
+            >
+              <BellIcon size={21} aria-hidden="true" />
+              <span>Notifications</span>
+              <span class="ml-auto text-xs">Coming soon</span>
+            </button>
 
             <button
               type="button"
