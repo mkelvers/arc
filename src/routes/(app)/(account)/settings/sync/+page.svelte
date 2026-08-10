@@ -58,5 +58,30 @@
         </span>
       </span>
     </label>
+
+    <label class="mt-8 flex items-center justify-between gap-6 text-sm leading-relaxed text-muted">
+      <span>Import AniList Changes</span>
+      <span class="relative flex size-4 shrink-0 items-center justify-center">
+        <input type="checkbox" class="peer sr-only" aria-label="Import AniList changes" checked />
+        <span
+          class="flex size-4 items-center justify-center border border-border-strong bg-transparent text-player-accent transition-colors hover:border-player-accent peer-checked:border-player-accent peer-focus-visible:ring-2 peer-focus-visible:ring-player-accent peer-checked:[&>svg]:opacity-100"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 12 12" class="size-2.5 opacity-0 transition-opacity" fill="none">
+            <path d="m2 6 2.5 2.5L10 3" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        </span>
+      </span>
+    </label>
+  </div>
+
+  <div class="mt-10">
+    <p class="text-sm leading-relaxed text-muted">Last Synced: Never</p>
+    <button
+      type="button"
+      disabled
+      class="mt-4 inline-flex min-h-10 items-center justify-center bg-accent px-6 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >Sync Now</button
+    >
   </div>
 </section>
