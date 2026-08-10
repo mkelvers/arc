@@ -9,28 +9,40 @@ import { clearance, verifyClearance } from '$lib/server/clearance';
 
 const security: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('Permissions-Policy', 'camera=(), geolocation=(), microphone=()');
+  const headers = new Headers(response.headers);
+
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'camera=(), geolocation=(), microphone=()');
   if (event.url.protocol === 'https:') {
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
-  return response;
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
 };
 
 const route: Handle = async ({ event, resolve }) => {
-  const routeId = event.route.id;
-  const authApi = event.url.pathname.startsWith('/api/auth');
+  const id = event.route.id;
+  const path = event.url.pathname;
+  const isAuth = path.startsWith('/api/auth');
+  const isApi = id?.startsWith('/api/') === true;
 
-  event.locals.session = null;
-  event.locals.user = null;
+  if (event.cookies.get('arc_user')) {
+    event.cookies.delete('arc_user', { path: '/' });
+  }
 
-  if (event.cookies.get('arc_user')) event.cookies.delete('arc_user', { path: '/' });
-  if (event.url.pathname.startsWith('/api/internal/') || routeId === '/(auth)/verify') {
+  if (path.startsWith('/api/internal/') || id === '/(auth)/verify') {
     return resolve(event);
   }
-  if (!routeId && !authApi) return resolve(event);
+
+  if (!id && !isAuth) {
+    return resolve(event);
+  }
 
   if (
     !(await verifyClearance(
@@ -39,7 +51,8 @@ const route: Handle = async ({ event, resolve }) => {
     ))
   ) {
     event.cookies.delete(clearance.cookie, { path: '/' });
-    if (authApi || routeId?.startsWith('/api/')) {
+
+    if (isAuth || isApi) {
       return new Response('Human verification required', {
         status: 403,
         headers: { 'cache-control': 'no-store' },
@@ -51,27 +64,37 @@ const route: Handle = async ({ event, resolve }) => {
     );
   }
 
-  if (authApi) return svelteKitHandler({ event, resolve, auth, building });
+  if (isAuth) {
+    return svelteKitHandler({ event, resolve, auth, building });
+  }
 
   const result = await auth.api.getSession({ headers: event.request.headers });
-  event.locals.session = result?.session ?? null;
-  event.locals.user = result?.user ?? null;
+  event.locals.session = result?.session;
+  event.locals.user = result?.user;
 
-  if (routeId?.startsWith('/api/')) {
-    return result
-      ? resolve(event)
-      : new Response('Unauthorized', {
-          status: 401,
-          headers: { 'cache-control': 'no-store' },
-        });
-  }
-  if (routeId?.startsWith('/(auth)/')) {
-    if (result) redirect(303, '/');
+  if (isApi) {
+    if (!result) {
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: { 'cache-control': 'no-store' },
+      });
+    }
+
     return resolve(event);
   }
-  if (routeId !== '/(app)' && routeId !== '/(app)/anime/[id]' && !result) {
+
+  if (id?.startsWith('/(auth)/')) {
+    if (result) {
+      redirect(303, '/');
+    }
+
+    return resolve(event);
+  }
+
+  if (id !== '/(app)' && id !== '/(app)/anime/[id]' && !result) {
     redirect(303, '/login');
   }
+
   return svelteKitHandler({ event, resolve, auth, building });
 };
 
