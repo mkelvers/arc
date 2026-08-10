@@ -1,4 +1,5 @@
 import type { WatchlistState } from '$lib/watchlist';
+import { load } from 'cheerio';
 import { isRecord, nonEmptyText, parseDate, positiveInteger } from '$lib/utils';
 
 export interface WatchlistTransferTitles {
@@ -111,5 +112,69 @@ export function parseWatchlistImport(source: string): WatchlistImportEntry[] {
       updatedAt: parseDate(value.updated_at ?? value.updatedAt),
       titles: titles(value),
     };
+  });
+}
+
+export function parseMyAnimeListXml(source: string): WatchlistImportEntry[] {
+  const document = load(source, { xmlMode: true });
+  const entries: WatchlistImportEntry[] = [];
+
+  document('anime').each((index, anime) => {
+    const field = (name: string) => document(anime).find(name).first().text().trim();
+    const state = importedWatchlistState(field('my_status'));
+    const malId = positiveInteger(field('series_animedb_id'));
+
+    if (!state || !malId) {
+      return;
+    }
+
+    entries.push({
+      index,
+      malId,
+      state,
+      addedAt: parseDate(field('my_start_date')),
+      updatedAt: parseDate(field('my_finish_date')),
+      titles: { preferred: nonEmptyText(field('series_title')) },
+    });
+  });
+
+  if (!entries.length) {
+    throw new WatchlistImportError('The XML file contains no supported anime entries.');
+  }
+
+  return entries;
+}
+
+export function parseUniversalCsv(source: string): WatchlistImportEntry[] {
+  const rows = source
+    .split(/\r?\n/)
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .map((row) => row.split(',').map((value) => value.trim().replace(/^"|"$/g, '')));
+  const headers = rows.shift()?.map((header) => header.toLowerCase().replaceAll(' ', '_'));
+
+  if (!headers?.length || !rows.length) {
+    throw new WatchlistImportError('The CSV file contains no supported anime entries.');
+  }
+
+  return rows.flatMap((row, index) => {
+    const record = Object.fromEntries(headers.map((header, column) => [header, row[column]]));
+    const state = importedWatchlistState(record.status ?? record.watch_status ?? record.state);
+    const anilistId = positiveInteger(record.anilist_id ?? record.anilistid);
+    const malId = positiveInteger(record.mal_id ?? record.malid);
+
+    if (!state || (!anilistId && !malId)) {
+      return [];
+    }
+
+    return [
+      {
+        index,
+        anilistId: anilistId ?? undefined,
+        malId: malId ?? undefined,
+        state,
+        titles: { preferred: nonEmptyText(record.title) },
+      },
+    ];
   });
 }

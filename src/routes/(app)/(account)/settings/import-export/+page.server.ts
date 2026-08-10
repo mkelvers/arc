@@ -1,0 +1,105 @@
+import { fail, redirect } from '@sveltejs/kit';
+
+import { resolveWatchlistImport } from '$lib/server/anime/anilist/watchlist-transfer';
+import { applyWatchlistEntries } from '$lib/server/watchlist';
+import { syncUser } from '$lib/server/sync/service';
+import {
+  importedActivityAt,
+  parseMyAnimeListXml,
+  parseUniversalCsv,
+  parseWatchlistImport,
+  WatchlistImportError,
+} from '$lib/server/watchlist-transfer';
+import type { Actions } from './$types';
+
+const maximumFileSize = 2 * 1_024 * 1_024;
+
+async function importFile(
+  userId: string,
+  file: File,
+  parser: (source: string) => ReturnType<typeof parseWatchlistImport>
+) {
+  if (!(file instanceof File) || !file.size) {
+    return fail(400, { message: 'Choose a library file.' });
+  }
+
+  if (file.size > maximumFileSize) {
+    return fail(413, { message: 'The library file must be smaller than 2 MB.' });
+  }
+
+  try {
+    const imported = parser(await file.text());
+    const resolved = await resolveWatchlistImport(imported);
+    const importedAt = Date.now();
+    const entries = imported.flatMap((entry) => {
+      const match = resolved.get(entry.index);
+      if (!match) {
+        return [];
+      }
+
+      return [
+        {
+          anilistId: match.id,
+          state: entry.state,
+          addedAt: entry.addedAt ?? importedActivityAt(entry.index, importedAt),
+          updatedAt: entry.updatedAt ?? importedActivityAt(entry.index, importedAt),
+        },
+      ];
+    });
+
+    if (!entries.length) {
+      return fail(400, { message: 'No anime could be matched.' });
+    }
+
+    const result = await applyWatchlistEntries(userId, entries);
+    return {
+      success: true,
+      message: `Imported ${result.added + result.updated} anime.`,
+    };
+  } catch (cause) {
+    if (cause instanceof WatchlistImportError) {
+      return fail(400, { message: cause.message });
+    }
+
+    console.error('Library import failed', cause);
+    return fail(502, { message: 'The library could not be imported.' });
+  }
+}
+
+export const actions: Actions = {
+  importAniList: async ({ locals }) => {
+    if (!locals.user) {
+      redirect(303, '/login');
+    }
+
+    await syncUser(locals.user.id, { importAnilistChanges: true });
+    return { success: true, message: 'AniList library imported.' };
+  },
+  importMal: async ({ locals, request }) => {
+    if (!locals.user) {
+      redirect(303, '/login');
+    }
+
+    const file = (await request.formData()).get('file');
+    return importFile(locals.user.id, file as File, parseMyAnimeListXml);
+  },
+  importUniversal: async ({ locals, request }) => {
+    if (!locals.user) {
+      redirect(303, '/login');
+    }
+
+    const file = (await request.formData()).get('file');
+    if (!(file instanceof File)) {
+      return fail(400, { message: 'Choose a library file.' });
+    }
+
+    const extension = file.name.toLowerCase().split('.').pop();
+    const parser =
+      extension === 'json'
+        ? parseWatchlistImport
+        : extension === 'csv'
+          ? parseUniversalCsv
+          : parseMyAnimeListXml;
+    return importFile(locals.user.id, file, parser);
+  },
+};

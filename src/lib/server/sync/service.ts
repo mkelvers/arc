@@ -51,8 +51,14 @@ function anilistStatus(state: WatchlistState): MediaListStatus {
   }
 }
 
-export async function syncUser(userId: string) {
-  const [account, settings] = await Promise.all([
+interface SyncOptions {
+  importAnilistChanges?: boolean;
+  watchingStatus?: boolean;
+  episodeProgress?: boolean;
+}
+
+export async function syncUser(userId: string, overrides: SyncOptions = {}) {
+  const [account, storedSettings] = await Promise.all([
     db.query.accounts.findFirst({
       columns: { accessToken: true, accountId: true },
       where: (entry, { and, eq }) => and(eq(entry.userId, userId), eq(entry.providerId, 'anilist')),
@@ -60,9 +66,17 @@ export async function syncUser(userId: string) {
     db.query.syncSettings.findFirst({ where: (entry, { eq }) => eq(entry.userId, userId) }),
   ]);
 
-  if (!account?.accessToken || !settings) {
+  if (!account?.accessToken) {
     return;
   }
+
+  const settings = {
+    automaticSync: storedSettings?.automaticSync ?? false,
+    episodeProgress: overrides.episodeProgress ?? storedSettings?.episodeProgress ?? false,
+    watchingStatus: overrides.watchingStatus ?? storedSettings?.watchingStatus ?? false,
+    importAnilistChanges:
+      overrides.importAnilistChanges ?? storedSettings?.importAnilistChanges ?? false,
+  };
 
   const accountId = Number(account.accountId);
   if (!Number.isSafeInteger(accountId) || accountId <= 0) {
@@ -213,10 +227,12 @@ export async function syncUser(userId: string) {
   }
 
   const syncedAt = new Date();
-  await db
-    .update(syncSettings)
-    .set({ lastSyncedAt: syncedAt, updatedAt: syncedAt })
-    .where(eq(syncSettings.userId, userId));
+  if (storedSettings) {
+    await db
+      .update(syncSettings)
+      .set({ lastSyncedAt: syncedAt, updatedAt: syncedAt })
+      .where(eq(syncSettings.userId, userId));
+  }
 }
 
 export async function getAutomaticSyncUsers() {
