@@ -239,6 +239,20 @@
       "when": 1786391841025,
       "tag": "0033_brave_outlaw_kid",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786396337784,
+      "tag": "0034_funny_jasper_sitwell",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786396479413,
+      "tag": "0035_sharp_starjammers",
+      "breakpoints": true
     }
   ]
 }
