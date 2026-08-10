@@ -84,7 +84,7 @@
 }
 
 @utility subtitle-outline {
-    -webkit-text-stroke: 0.25em #000;
+  -webkit-text-stroke: 0.25em #000;
   paint-order: stroke fill;
 }
 

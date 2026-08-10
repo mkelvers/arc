@@ -7,13 +7,7 @@ import {
   type SubtitleSize,
 } from './media';
 
-type Key =
-  | 'audio-mode'
-  | 'autoplay'
-  | 'quality'
-  | 'volume'
-  | 'subtitles'
-  | 'subtitle-size';
+type Key = 'audio-mode' | 'autoplay' | 'quality' | 'volume' | 'subtitles' | 'subtitle-size';
 
 export function load(sources: Sources, qualities: string[]) {
   const rawVolume = localStorage.getItem('arc:volume');
