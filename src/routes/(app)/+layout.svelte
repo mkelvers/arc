@@ -136,16 +136,13 @@
               <span>Watchlist</span>
             </a>
 
-            <button
-              type="button"
-              disabled
-              class="flex min-h-12 w-full items-center gap-3 px-5 text-left text-sm text-subtle disabled:cursor-not-allowed"
-              title="Coming soon"
+            <a
+              href="/notifications"
+              class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
             >
               <BellIcon size={21} aria-hidden="true" />
               <span>Notifications</span>
-              <span class="ml-auto text-xs">Coming soon</span>
-            </button>
+            </a>
 
             <button
               type="button"

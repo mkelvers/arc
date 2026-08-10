@@ -1,4 +1,5 @@
 import { getAccount } from '$lib/server/account';
+import { getUnreadNotificationCount } from '$lib/server/notifications';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -6,5 +7,10 @@ export const load: LayoutServerLoad = async ({ locals }) => {
     return { account: null };
   }
 
-  return { account: await getAccount(locals.user.id) };
+  const [account, unreadNotifications] = await Promise.all([
+    getAccount(locals.user.id),
+    getUnreadNotificationCount(locals.user.id),
+  ]);
+
+  return { account, unreadNotifications };
 };
