@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, isNull } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import {
@@ -13,6 +13,26 @@ import {
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import type { EpisodeAvailabilityTransition } from '$lib/server/anime/episodes/policy';
 import type { AniListAnime } from '$lib/server/anime/anilist/types';
+
+const recentSeasonWindow = 180 * 24 * 60 * 60 * 1_000;
+
+function recentSeason(data: AniListAnime) {
+  if (data.format === 'MOVIE') {
+    return false;
+  }
+
+  if (data.status === 'RELEASING') {
+    return true;
+  }
+
+  const { year, month, day } = data.startDate ?? {};
+  if (!year || !month || !day) {
+    return false;
+  }
+
+  const startedAt = Date.UTC(year, month - 1, day);
+  return startedAt <= Date.now() && Date.now() - startedAt <= recentSeasonWindow;
+}
 
 export type NotificationInput = {
   userId: string;
@@ -34,6 +54,36 @@ export async function interestedUserIds(anilistId: number) {
         eq(animeExternalId.provider, 'anilist'),
         eq(animeExternalId.mediaType, 'anime'),
         eq(animeExternalId.externalId, anilistId)
+      )
+    );
+  const progress = await db
+    .select({ userId: playbackProgress.userId })
+    .from(playbackProgress)
+    .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, playbackProgress.animeId))
+    .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
+    .where(
+      and(
+        eq(animeExternalId.provider, 'anilist'),
+        eq(animeExternalId.mediaType, 'anime'),
+        eq(animeExternalId.externalId, anilistId)
+      )
+    );
+
+  return new Set([...rows, ...progress].map(({ userId }) => userId));
+}
+
+export async function episodeInterestedUserIds(anilistId: number) {
+  const rows = await db
+    .select({ userId: watchlist.userId })
+    .from(watchlist)
+    .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, watchlist.animeId))
+    .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
+    .where(
+      and(
+        eq(animeExternalId.provider, 'anilist'),
+        eq(animeExternalId.mediaType, 'anime'),
+        eq(animeExternalId.externalId, anilistId),
+        inArray(watchlist.state, ['watching', 'plan_to_watch'])
       )
     );
   const progress = await db
@@ -78,11 +128,60 @@ export async function notifyEpisodeTransitions(
       anilistId,
       episodeId: transition.episodeId,
       dedupeKey: `${transition.kind}:${anilistId}:${transition.episodeId}`,
-      facts: { title, number: transition.number },
+      facts: { title, number: transition.number, eventDate: transition.airDate },
     }))
   );
 
   await createNotifications(inputs);
+}
+
+export async function notifyRecentEpisodeCatchup(
+  anilistId: number,
+  title: string,
+  userIds: ReadonlySet<string>,
+  since: Date
+) {
+  const [latest] = await db
+    .select({
+      episodeId: animeEpisode.episodeId,
+      number: animeEpisode.number,
+      airDate: animeEpisode.airDate,
+    })
+    .from(animeEpisode)
+    .where(and(eq(animeEpisode.anilistId, anilistId), gte(animeEpisode.firstSeenAt, since)))
+    .orderBy(desc(animeEpisode.number))
+    .limit(50);
+
+  const canonical = latest && Number.isInteger(latest.number) && latest.number > 0 ? latest : null;
+
+  if (!canonical) {
+    return;
+  }
+
+  const seasonUsers = await db
+    .select({ userId: notification.userId })
+    .from(notification)
+    .where(
+      and(
+        eq(notification.anilistId, anilistId),
+        eq(notification.kind, 'season_available'),
+        inArray(notification.userId, [...userIds])
+      )
+    );
+  const seasonUserIds = new Set(seasonUsers.map(({ userId }) => userId));
+
+  await createNotifications(
+    [...userIds]
+      .filter((userId) => !seasonUserIds.has(userId))
+      .map((userId) => ({
+        userId,
+        kind: 'episode_available' as const,
+        anilistId,
+        episodeId: canonical.episodeId,
+        dedupeKey: `episode_available:${anilistId}:${canonical.episodeId}`,
+        facts: { title, number: canonical.number, eventDate: canonical.airDate, catchup: true },
+      }))
+  );
 }
 
 export async function notifyAvailableSeasons(anime: AniListAnime) {
@@ -105,6 +204,34 @@ export async function notifyAvailableSeasons(anime: AniListAnime) {
     return;
   }
 
+  const sequelDetails = await db
+    .select({ anilistId: animeDetailsCache.anilistId, data: animeDetailsCache.data })
+    .from(animeDetailsCache)
+    .where(
+      inArray(
+        animeDetailsCache.anilistId,
+        sequels.map(({ id }) => id)
+      )
+    );
+  const now = Date.now();
+  const eligibleIds = new Set(
+    sequelDetails
+      .filter(({ data }) => {
+        if (data.status === 'RELEASING') {
+          return true;
+        }
+
+        const { year, month, day } = data.startDate ?? {};
+        if (!year || !month || !day) {
+          return false;
+        }
+
+        const startedAt = Date.UTC(year, month - 1, day);
+        return startedAt <= now && now - startedAt <= recentSeasonWindow;
+      })
+      .map(({ anilistId }) => anilistId)
+  );
+  const detailsById = new Map(sequelDetails.map(({ anilistId, data }) => [anilistId, data]));
   const available = await db
     .select({ anilistId: animeEpisode.anilistId })
     .from(animeEpisode)
@@ -120,14 +247,23 @@ export async function notifyAvailableSeasons(anime: AniListAnime) {
 
   await createNotifications(
     sequels
-      .filter(({ id }) => availableIds.has(id))
+      .filter(({ id }) => availableIds.has(id) && eligibleIds.has(id))
       .flatMap(({ id, title }) =>
         [...users].map((userId) => ({
           userId,
           kind: 'season_available' as const,
           anilistId: id,
           dedupeKey: `season_available:${id}`,
-          facts: { title: title ?? `Anime ${id}`, parentTitle },
+          facts: {
+            title: title ?? `Anime ${id}`,
+            parentTitle,
+            eventDate: (() => {
+              const start = detailsById.get(id)?.startDate;
+              return start?.year && start.month && start.day
+                ? `${start.year}-${String(start.month).padStart(2, '0')}-${String(start.day).padStart(2, '0')}`
+                : null;
+            })(),
+          },
         }))
       )
   );
@@ -149,6 +285,10 @@ export async function markNotificationsRead(userId: string) {
     .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
 }
 
+export async function clearNotifications(userId: string) {
+  await db.delete(notification).where(eq(notification.userId, userId));
+}
+
 export async function getNotifications(userId: string, limit = 50) {
   const rows = await db
     .select()
@@ -164,7 +304,7 @@ export async function getNotifications(userId: string, limit = 50) {
 
   const [details, episodes, storedMedia] = await Promise.all([
     db
-      .select({ anilistId: animeDetailsCache.anilistId, bannerImage: animeDetailsCache.data })
+      .select({ anilistId: animeDetailsCache.anilistId, data: animeDetailsCache.data })
       .from(animeDetailsCache)
       .where(inArray(animeDetailsCache.anilistId, ids)),
     db
@@ -172,6 +312,8 @@ export async function getNotifications(userId: string, limit = 50) {
         anilistId: animeEpisode.anilistId,
         episodeId: animeEpisode.episodeId,
         imageUrl: animeEpisode.imageUrl,
+        airDate: animeEpisode.airDate,
+        firstSeenAt: animeEpisode.firstSeenAt,
       })
       .from(animeEpisode)
       .where(inArray(animeEpisode.anilistId, ids)),
@@ -181,10 +323,17 @@ export async function getNotifications(userId: string, limit = 50) {
       )
     ),
   ]);
-  const detailById = new Map(details.map(({ anilistId, bannerImage }) => [anilistId, bannerImage]));
+  const detailById = new Map(details.map(({ anilistId, data }) => [anilistId, data]));
   const episodeImageById = new Map(
     episodes.map(({ anilistId, episodeId, imageUrl }) => [`${anilistId}:${episodeId}`, imageUrl])
   );
+  const firstEpisodeByAnime = new Map<number, (typeof episodes)[number]>();
+  for (const episode of episodes) {
+    const current = firstEpisodeByAnime.get(episode.anilistId);
+    if (!current || episode.firstSeenAt < current.firstSeenAt) {
+      firstEpisodeByAnime.set(episode.anilistId, episode);
+    }
+  }
   const backdropById = new Map(
     storedMedia.flatMap(([anilistId, media]) =>
       media?.artwork.selectedBackdrop?.url
@@ -193,18 +342,39 @@ export async function getNotifications(userId: string, limit = 50) {
     )
   );
 
-  return rows.map((row) => {
+  return rows.flatMap((row) => {
+    const media = detailById.get(row.anilistId);
+    if (row.kind === 'season_available' && (!media || !recentSeason(media))) {
+      return [];
+    }
+    if (row.facts.catchup === true && (!media || media.status !== 'RELEASING')) {
+      return [];
+    }
+
     const facts = row.facts;
     const title = typeof facts.title === 'string' ? facts.title : `Anime ${row.anilistId}`;
-    const number = typeof facts.number === 'number' ? facts.number : null;
+    const number =
+      typeof facts.number === 'number'
+        ? facts.number
+        : typeof facts.episodeNumber === 'number'
+          ? facts.episodeNumber
+          : null;
+    if (
+      row.kind !== 'season_available' &&
+      (number === null || !Number.isInteger(number) || number <= 0)
+    ) {
+      return [];
+    }
     const episode =
       number === null ? '' : `Episode ${Number.isInteger(number) ? number : number.toFixed(1)}`;
     const isSeason = row.kind === 'season_available';
     const body = isSeason
-      ? `A new season of ${typeof facts.parentTitle === 'string' ? facts.parentTitle : title} is now available to watch.`
-      : row.kind === 'dub_available'
-        ? `${episode || 'A new episode'} of ${title} is now available dubbed.`
-        : `${episode || 'A new episode'} of ${title} is now available to watch.`;
+      ? `${title} is now available to watch.`
+      : facts.catchup === true
+        ? `New episodes of ${title} are available through ${episode}.`
+        : row.kind === 'dub_available'
+          ? `${episode || 'A new episode'} of ${title} is now available dubbed.`
+          : `${episode || 'A new episode'} of ${title} is now available to watch.`;
     const href = row.episodeId
       ? `/anime/${row.anilistId}/watch/${encodeURIComponent(row.episodeId)}`
       : `/anime/${row.anilistId}`;
@@ -219,15 +389,36 @@ export async function getNotifications(userId: string, limit = 50) {
     const episodeImage = row.episodeId
       ? (episodeImageById.get(`${row.anilistId}:${row.episodeId}`) ?? null)
       : null;
+    const episodeSource = row.episodeId
+      ? episodes.find(
+          ({ anilistId, episodeId }) => anilistId === row.anilistId && episodeId === row.episodeId
+        )
+      : firstEpisodeByAnime.get(row.anilistId);
+    const eventValue =
+      (typeof facts.eventDate === 'string' && facts.eventDate) ||
+      episodeSource?.airDate ||
+      episodeSource?.firstSeenAt.toISOString() ||
+      (!isSeason ? row.createdAt.toISOString() : null);
+    const eventDate = eventValue
+      ? new Intl.DateTimeFormat('en', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(eventValue))
+      : null;
 
-    return {
-      id: row.id,
-      title,
-      body,
-      href,
-      image: backdropById.get(row.anilistId) ?? fallbackBanner ?? episodeImage,
-      actionLabel: isSeason ? 'View season' : 'Watch now',
-      createdAt: row.createdAt.getTime(),
-    };
+    return [
+      {
+        id: row.id,
+        title,
+        body,
+        href,
+        image: backdropById.get(row.anilistId) ?? fallbackBanner ?? episodeImage,
+        actionLabel: isSeason ? 'View season' : 'Watch now',
+        eventDate,
+        createdAt: row.createdAt.getTime(),
+      },
+    ];
   });
 }
