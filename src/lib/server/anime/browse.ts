@@ -22,8 +22,8 @@ import {
 import type { MediaSeason, MediaSource } from '$lib/graphql/anilist/generated/graphql';
 import { withAnimeCardPosters } from './card-posters';
 
-const refreshLifetime = 6 * 60 * 60 * 1_000;
-const taxonomyLifetime = 24 * 60 * 60 * 1_000;
+const refreshLifetime = 24 * 60 * 60 * 1_000;
+const taxonomyLifetime = 7 * 24 * 60 * 60 * 1_000;
 const maximumPage = 2_147_483_647;
 type CatalogCachePage = {
   animeIds: number[];
@@ -125,25 +125,32 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
     return { ...stored, stale: false };
   }
 
-  let refresh = activeRefreshes.get(queryKey);
-  if (!refresh) {
-    refresh = refreshCatalog(filters, queryKey, page);
+  const startRefresh = () => {
+    const active = activeRefreshes.get(queryKey);
+    if (active) {
+      return active;
+    }
+
+    const refresh = refreshCatalog(filters, queryKey, page);
     activeRefreshes.set(queryKey, refresh);
+    const cleanup = () => {
+      if (activeRefreshes.get(queryKey) === refresh) {
+        activeRefreshes.delete(queryKey);
+      }
+    };
+    refresh.then(cleanup, cleanup);
+    return refresh;
+  };
+
+  const refresh = startRefresh();
+  if (stored) {
+    void refresh.catch((cause) => {
+      console.warn(`AniList browse page ${page} refresh failed; using stored values`, cause);
+    });
+    return { ...stored, stale: true };
   }
 
-  try {
-    return { ...(await refresh), stale: false };
-  } catch (cause) {
-    if (stored) {
-      console.warn(`AniList browse page ${page} refresh failed; using stored values`, cause);
-      return { ...stored, stale: true };
-    }
-    throw cause;
-  } finally {
-    if (activeRefreshes.get(queryKey) === refresh) {
-      activeRefreshes.delete(queryKey);
-    }
-  }
+  return { ...(await refresh), stale: false };
 }
 
 async function refreshTaxonomy() {
@@ -196,15 +203,14 @@ async function sourceTaxonomy() {
     });
   }
 
-  try {
-    return await activeTaxonomyRefresh;
-  } catch (cause) {
-    if (stored) {
+  if (stored) {
+    void activeTaxonomyRefresh.catch((cause) => {
       console.warn('AniList browse taxonomy refresh failed; using stored values', cause);
-      return stored;
-    }
-    throw cause;
+    });
+    return stored;
   }
+
+  return activeTaxonomyRefresh;
 }
 
 function validatedFilters(
