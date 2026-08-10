@@ -1,6 +1,42 @@
 import type { AniListAnime } from '../anilist/types';
+import type { AudioMode } from '$lib/anime/audio';
 
 export type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
+
+export type EpisodeAvailabilityTransition = {
+  episodeId: string;
+  number: number;
+  kind: 'episode_available' | 'dub_available';
+};
+
+export function episodeAvailabilityTransitions(
+  previous: ReadonlyMap<string, { audio: readonly AudioMode[] }>,
+  current: readonly { id: string; number: number; audio: readonly AudioMode[] }[]
+) {
+  const transitions: EpisodeAvailabilityTransition[] = [];
+
+  for (const episode of current) {
+    const stored = previous.get(episode.id);
+    if (!stored) {
+      transitions.push({
+        episodeId: episode.id,
+        number: episode.number,
+        kind: 'episode_available',
+      });
+      continue;
+    }
+
+    if (!stored.audio.includes('dub') && episode.audio.includes('dub')) {
+      transitions.push({
+        episodeId: episode.id,
+        number: episode.number,
+        kind: 'dub_available',
+      });
+    }
+  }
+
+  return transitions;
+}
 
 export function episodeRefreshReason(
   sync: {

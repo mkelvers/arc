@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   canPreserveEpisodeMetadata,
+  episodeAvailabilityTransitions,
   episodeInventoryIsExpected,
   episodeRefreshReason,
   nextRefreshAt,
@@ -82,5 +83,24 @@ describe('episode refresh policy', () => {
 
     expect(next.getTime()).toBeGreaterThanOrEqual(before);
     expect(next.getTime()).toBeLessThanOrEqual(after);
+  });
+
+  test('reports new episodes and newly available dubs only', () => {
+    const transitions = episodeAvailabilityTransitions(
+      new Map([
+        ['one', { audio: ['sub'] as const }],
+        ['two', { audio: ['sub', 'dub'] as const }],
+      ]),
+      [
+        { id: 'one', number: 1, audio: ['sub', 'dub'] as const },
+        { id: 'two', number: 2, audio: ['sub', 'dub'] as const },
+        { id: 'three', number: 3, audio: ['sub'] as const },
+      ]
+    );
+
+    expect(transitions).toEqual([
+      { episodeId: 'one', number: 1, kind: 'dub_available' },
+      { episodeId: 'three', number: 3, kind: 'episode_available' },
+    ]);
   });
 });

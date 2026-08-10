@@ -4,13 +4,23 @@ import { mergeAudioModes } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
+import {
+  interestedUserIds,
+  notifyAvailableSeasons,
+  notifyEpisodeTransitions,
+} from '$lib/server/notifications';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
-import { canPreserveEpisodeMetadata, episodeInventoryIsExpected, nextRefreshAt } from './policy';
+import {
+  canPreserveEpisodeMetadata,
+  episodeAvailabilityTransitions,
+  episodeInventoryIsExpected,
+  nextRefreshAt,
+} from './policy';
 import { episodesForRelease } from './release';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
@@ -135,6 +145,8 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
   const source = episodesForRelease(anime, providerEpisodes, metadata);
   const now = new Date();
   const revision = sourceRevision(source);
+  let transitions: ReturnType<typeof episodeAvailabilityTransitions> = [];
+  let hadBaseline = false;
 
   await db.transaction(async (tx) => {
     const [sync, existing] = await Promise.all([
@@ -143,6 +155,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
           metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
           sourceRevision: animeEpisodeSync.sourceRevision,
           stableSince: animeEpisodeSync.stableSince,
+          lastSuccessAt: animeEpisodeSync.lastSuccessAt,
         })
         .from(animeEpisodeSync)
         .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -179,6 +192,13 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         lastVerifiedAt: now,
       };
     });
+    hadBaseline = Boolean(sync?.lastSuccessAt);
+    transitions = hadBaseline
+      ? episodeAvailabilityTransitions(
+          stored,
+          values.map(({ episodeId, number, audio }) => ({ id: episodeId, number, audio }))
+        )
+      : [];
 
     await tx
       .insert(animeEpisode)
@@ -245,6 +265,24 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         },
       });
   });
+
+  if (transitions.length) {
+    const users = await interestedUserIds(anime.id);
+    await notifyEpisodeTransitions(
+      anime.id,
+      anime.title?.english ?? anime.title?.romaji ?? anime.title?.native ?? `Anime ${anime.id}`,
+      transitions,
+      users
+    ).catch((cause) =>
+      console.error(`Episode notification write failed for AniList ${anime.id}`, cause)
+    );
+  }
+
+  if (hadBaseline) {
+    await notifyAvailableSeasons(anime).catch((cause) =>
+      console.error(`Season notification write failed for AniList ${anime.id}`, cause)
+    );
+  }
 
   return storedEpisodes(anime);
 }
