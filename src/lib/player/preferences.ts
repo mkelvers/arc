@@ -4,7 +4,6 @@ import {
   subtitleSizeOrder,
   subtitleSizes,
   type Sources,
-  type SubtitleBackground,
   type SubtitleSize,
 } from './media';
 
@@ -14,8 +13,7 @@ type Key =
   | 'quality'
   | 'volume'
   | 'subtitles'
-  | 'subtitle-size'
-  | 'subtitle-background';
+  | 'subtitle-size';
 
 export function load(sources: Sources, qualities: string[]) {
   const rawVolume = localStorage.getItem('arc:volume');
@@ -60,15 +58,6 @@ export function load(sources: Sources, qualities: string[]) {
           subtitleSizeOrder[0]
         )
       : null;
-  const rawBackground = localStorage.getItem('arc:subtitle-background');
-  // undefined means nothing was saved; 'none' is the explicit None choice.
-  // Any other saved value was a color, which now renders as the black box.
-  const subtitleBackground: SubtitleBackground | undefined =
-    rawBackground === null
-      ? undefined
-      : rawBackground === 'none' || rawBackground === 'false'
-        ? 'none'
-        : 'black';
 
   return {
     volume:
@@ -78,7 +67,6 @@ export function load(sources: Sources, qualities: string[]) {
     quality,
     subtitleEnabled,
     subtitleSize,
-    subtitleBackground,
   };
 }
 

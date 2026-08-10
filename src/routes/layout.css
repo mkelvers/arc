@@ -83,6 +83,11 @@
   grid-auto-columns: calc((100% - 8.75rem) / 7.2);
 }
 
+@utility subtitle-outline {
+    -webkit-text-stroke: 0.25em #000;
+  paint-order: stroke fill;
+}
+
 @layer base {
   * {
     scrollbar-width: none;

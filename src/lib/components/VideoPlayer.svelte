@@ -426,12 +426,7 @@
       style={`font-size: ${subtitleSizes[media.subtitleSize].px}px`}
     >
       {#each media.subtitles as subtitle}
-        <span
-          class="whitespace-pre-line px-2 py-0.5"
-          style={media.subtitleBackground === 'black'
-            ? 'background-color: color-mix(in srgb, #000 80%, transparent)'
-            : 'text-shadow:0 1px 2px rgb(0 0 0/0.9),0 0 8px rgb(0 0 0/0.6)'}
-        >
+        <span class="subtitle-outline whitespace-pre-line">
           {subtitle}
         </span>
       {/each}
@@ -633,11 +628,9 @@
               skipDraft={skipDraft}
               skipError={skipError}
               skipSaving={skipSaving}
-              subtitleBackground={media.subtitleBackground}
               subtitleMode={media.subtitleMode}
               subtitleOptions={media.subtitleOptions}
               subtitleSize={media.subtitleSize}
-              onsubtitlebackground={(background) => media.switchSubtitleBackground(background)}
               onsubtitlemode={(mode) => media.switchSubtitleMode(mode)}
               onsubtitlesize={(size) => media.switchSubtitleSize(size)}
             />

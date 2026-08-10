@@ -23,7 +23,6 @@ import {
   subtitlesAt,
   type Sources,
   type Stream,
-  type SubtitleBackground,
   type SubtitleCue,
   type SubtitleKind,
   type SubtitleMode,
@@ -55,7 +54,6 @@ export class Playback {
   subtitleMode = $state<SubtitleMode>('dub');
   subtitleOptions = $state<SubtitleOption[]>(subtitleOptionsFor([]));
   subtitleSize = $state<SubtitleSize>('normal');
-  subtitleBackground = $state<SubtitleBackground>('black');
   sourceIndex = $state(0);
   error = $state(false);
   video!: HTMLVideoElement;
@@ -616,17 +614,6 @@ export class Playback {
     this.onActivity();
   }
 
-  switchSubtitleBackground(background: SubtitleBackground) {
-    if (background === this.subtitleBackground) {
-      this.onActivity();
-      return;
-    }
-
-    this.subtitleBackground = background;
-    preferences.save('subtitle-background', background);
-    this.onActivity();
-  }
-
   async tryNextSource(failedSource = this.src) {
     if (failedSource !== this.src) {
       return;
@@ -835,9 +822,6 @@ export class Playback {
     }
     if (saved.subtitleSize !== null) {
       this.subtitleSize = saved.subtitleSize;
-    }
-    if (saved.subtitleBackground !== undefined) {
-      this.subtitleBackground = saved.subtitleBackground;
     }
 
     this.resetSource();

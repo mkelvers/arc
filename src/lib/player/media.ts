@@ -20,7 +20,6 @@ export type SettingsView =
   | 'audio'
   | 'subtitles'
   | 'subtitle-size'
-  | 'subtitle-background'
   | 'quality'
   | 'segments'
   | 'segment-opening'
@@ -143,9 +142,6 @@ export const subtitleSizeOrder = [
 export function isSubtitleSize(value: string | null): value is SubtitleSize {
   return value !== null && value in subtitleSizes;
 }
-
-/** Subtitle backdrop choices. Black renders as a soft 80% black box. */
-export type SubtitleBackground = 'none' | 'black';
 
 const subtitleLabels: Record<SubtitleKind, string> = {
   cc: 'English CC',
