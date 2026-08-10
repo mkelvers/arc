@@ -16,16 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     where: (account, { and, eq }) =>
       and(eq(account.userId, userId), eq(account.providerId, 'anilist')),
   });
-  const myanimelistAccount = await db.query.accounts.findFirst({
-    columns: { id: true },
-    where: (account, { and, eq }) =>
-      and(eq(account.userId, userId), eq(account.providerId, 'myanimelist')),
-  });
-
-  return {
-    anilistConnected: Boolean(anilistAccount),
-    myanimelistConnected: Boolean(myanimelistAccount),
-  };
+  return { anilistConnected: Boolean(anilistAccount) };
 };
 
 export const actions: Actions = {
@@ -38,17 +29,6 @@ export const actions: Actions = {
     await db
       .delete(accounts)
       .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'anilist')));
-
-    return { success: true };
-  },
-  disconnectMyAnimeList: async ({ locals }) => {
-    if (!locals.user) {
-      redirect(303, '/login');
-    }
-
-    await db
-      .delete(accounts)
-      .where(and(eq(accounts.userId, locals.user.id), eq(accounts.providerId, 'myanimelist')));
 
     return { success: true };
   },
