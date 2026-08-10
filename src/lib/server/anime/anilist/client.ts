@@ -6,14 +6,12 @@ import { db } from '$lib/server/db';
 import { anilistQueryCache } from '$lib/server/db/schema';
 import { graphql } from '$lib/server/graphql';
 import { isRecord } from '$lib/utils';
-import { AniListRequestPolicy } from './request-policy';
+import { anilistRequestPolicy } from './request-policy';
 
 const endpoint = 'https://graphql.anilist.co';
 const defaultFreshFor = 24 * 60 * 60 * 1_000;
 const cleanupInterval = 60 * 60 * 1_000;
-const requestInterval = 2_100;
 const requests = new Map<string, Promise<unknown>>();
-const policy = new AniListRequestPolicy(requestInterval);
 let cleanupAfter = 0;
 
 interface RequestOptions {
@@ -63,7 +61,7 @@ async function refresh<TResult, TVariables>(
   variables: TVariables,
   options: RequestOptions
 ) {
-  const data = await policy.run(() =>
+  const data = await anilistRequestPolicy.run(() =>
     graphql(endpoint, document, variables, { timeoutMs: options.timeoutMs })
   );
   const fetchedAt = new Date();

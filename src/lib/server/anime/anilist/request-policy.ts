@@ -58,3 +58,6 @@ export class AniListRequestPolicy {
     }
   }
 }
+
+// All AniList operations share the provider's process-wide rate budget.
+export const anilistRequestPolicy = new AniListRequestPolicy(2_100);

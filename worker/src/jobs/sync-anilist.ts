@@ -11,6 +11,8 @@ export async function syncAniList(userId: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`AniList sync failed: ${response.status}`);
+    const retryAfter = response.headers.get('Retry-After');
+    const delay = retryAfter ? `; retry after ${retryAfter}s` : '';
+    throw new Error(`AniList sync failed: ${response.status}${delay}`);
   }
 }

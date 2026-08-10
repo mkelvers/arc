@@ -4,9 +4,7 @@ import {
 } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { graphql } from '$lib/server/graphql';
-import { AniListRequestPolicy } from '$lib/server/anime/anilist/request-policy';
-
-const policy = new AniListRequestPolicy(2_100);
+import { anilistRequestPolicy } from '$lib/server/anime/anilist/request-policy';
 
 export async function removeAniListEntry(userId: string, anilistId: number) {
   const [account, settings] = await Promise.all([
@@ -26,7 +24,7 @@ export async function removeAniListEntry(userId: string, anilistId: number) {
     return;
   }
 
-  const entry = await policy.run(() =>
+  const entry = await anilistRequestPolicy.run(() =>
     graphql(
       'https://graphql.anilist.co',
       FindSyncMediaListEntryDocument,
@@ -39,7 +37,7 @@ export async function removeAniListEntry(userId: string, anilistId: number) {
   }
   const mediaListId = entry.MediaList.id;
 
-  await policy.run(() =>
+  await anilistRequestPolicy.run(() =>
     graphql(
       'https://graphql.anilist.co',
       DeleteSyncMediaListEntryDocument,

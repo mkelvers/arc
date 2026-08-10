@@ -18,10 +18,9 @@ import {
 } from '$lib/server/db/schema';
 import { graphql } from '$lib/server/graphql';
 import { applyWatchlistEntries, getWatchlistEntries } from '$lib/server/watchlist';
-import { AniListRequestPolicy } from '$lib/server/anime/anilist/request-policy';
+import { anilistRequestPolicy } from '$lib/server/anime/anilist/request-policy';
 
 const endpoint = 'https://graphql.anilist.co';
-const policy = new AniListRequestPolicy(2_100);
 
 function watchlistState(status: MediaListStatus): WatchlistState {
   switch (status) {
@@ -83,7 +82,7 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
     throw new Error('The AniList account could not be identified');
   }
 
-  const response = await policy.run(() =>
+  const response = await anilistRequestPolicy.run(() =>
     graphql(
       endpoint,
       SyncMediaListDocument,
@@ -209,7 +208,7 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
         continue;
       }
 
-      await policy.run(() =>
+      await anilistRequestPolicy.run(() =>
         graphql(
           endpoint,
           SaveSyncMediaListEntryDocument,

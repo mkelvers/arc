@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 
 import { resolveWatchlistImport } from '$lib/server/anime/anilist/watchlist-transfer';
 import { applyWatchlistEntries } from '$lib/server/watchlist';
+import { GraphQLRequestError } from '$lib/server/graphql';
 import { syncUser } from '$lib/server/sync/service';
 import {
   importedActivityAt,
@@ -61,6 +62,15 @@ async function importFile(
       return fail(400, { message: cause.message });
     }
 
+    if (
+      cause instanceof GraphQLRequestError &&
+      (cause.status === 429 || cause.status == null || cause.status >= 500)
+    ) {
+      return fail(503, {
+        message: 'AniList is temporarily unavailable. Please try again shortly.',
+      });
+    }
+
     console.error('Library import failed', cause);
     return fail(502, { message: 'The library could not be imported.' });
   }
@@ -72,8 +82,22 @@ export const actions: Actions = {
       redirect(303, '/login');
     }
 
-    await syncUser(locals.user.id, { importAnilistChanges: true });
-    return { success: true, message: 'AniList library imported.' };
+    try {
+      await syncUser(locals.user.id, { importAnilistChanges: true });
+      return { success: true, message: 'AniList library imported.' };
+    } catch (cause) {
+      if (
+        cause instanceof GraphQLRequestError &&
+        (cause.status === 429 || cause.status == null || cause.status >= 500)
+      ) {
+        return fail(503, {
+          message: 'AniList is temporarily unavailable. Please try again shortly.',
+        });
+      }
+
+      console.error('AniList library import failed', cause);
+      return fail(502, { message: 'The AniList library could not be imported.' });
+    }
   },
   importMal: async ({ locals, request }) => {
     if (!locals.user) {

@@ -12,6 +12,17 @@ export async function syncAllUsers(queue: Queue) {
 
   const users = (await response.json()) as Array<{ userId: string }>;
   for (const { userId } of users) {
-    await queue.add('sync-anilist', { userId }, { priority: 10, attempts: 3 });
+    await queue.add(
+      'sync-anilist',
+      { userId },
+      {
+        jobId: `sync-anilist:${userId}`,
+        priority: 10,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 60_000 },
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
   }
 }
