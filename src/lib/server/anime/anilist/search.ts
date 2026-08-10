@@ -9,11 +9,15 @@ const lifetime = 5 * 60 * 1_000;
 const cache = new RequestCache<string, AnimeSearchResult[]>(lifetime);
 
 async function requestSearch(search: string) {
-  const response = await request(SearchAnimePageDocument, {
-    search,
-    page: 1,
-    perPage: 50,
-  });
+  const response = await request(
+    SearchAnimePageDocument,
+    {
+      search,
+      page: 1,
+      perPage: 50,
+    },
+    { cacheForMs: 6 * 60 * 60 * 1_000 }
+  );
 
   const results = present(response.Page?.media).flatMap((entry) => {
     const card = animeCard(entry);
