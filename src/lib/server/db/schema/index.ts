@@ -278,6 +278,17 @@ export const animeDetailsCache = pgTable('anime_details_cache', {
   fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const anilistQueryCache = pgTable(
+  'anilist_query_cache',
+  {
+    key: varchar('key', { length: 64 }).primaryKey(),
+    data: jsonb('data').$type<unknown>().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('anilist_query_cache_expires_idx').on(table.expiresAt)]
+);
+
 export const animeCatalog = pgTable(
   'anime_catalog',
   {
