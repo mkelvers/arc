@@ -1,9 +1,8 @@
-import { eq, isNull, lte, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
-import { getAnime } from './anilist/details';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import { episodeRefreshReason } from './episodes/policy';
@@ -70,35 +69,4 @@ export async function getRelatedReleaseTitles(anilistIds: number[]) {
   const stored = await storedRelatedReleaseTitles(ids);
 
   return stored.map(({ episodes }) => episodes);
-}
-
-export async function refreshDue(limit = 20) {
-  const due = await db
-    .select({ anilistId: animeEpisodeSync.anilistId })
-    .from(animeEpisodeSync)
-    .where(
-      or(isNull(animeEpisodeSync.nextRefreshAt), lte(animeEpisodeSync.nextRefreshAt, new Date()))
-    )
-    .limit(Math.max(1, Math.min(limit, 100)));
-  const results = [];
-
-  for (const { anilistId } of due) {
-    try {
-      const anime = await getAnime(anilistId);
-      const episodes = await refreshEpisodes(anime);
-      results.push({
-        anilistId,
-        episodes: episodes.length,
-        ok: true,
-      });
-    } catch (cause) {
-      results.push({
-        anilistId,
-        error: cause instanceof Error ? cause.message : 'Refresh failed',
-        ok: false,
-      });
-    }
-  }
-
-  return results;
 }
