@@ -230,40 +230,60 @@
           </a>
         </div>
       </section>
-    {:else if data.entries.length === 0}
-      <section
-        class="mt-10 grid min-h-96 place-items-center border border-dashed border-border px-6 py-10 text-center sm:mt-12"
-        aria-labelledby="empty-filter-title"
-      >
-        <div class="flex max-w-sm flex-col items-center">
-          <img
-            src={filteredEmptyArtwork}
-            alt=""
-            width="622"
-            height="640"
-            class="h-auto w-40 sm:w-44"
-          />
-          <h2 id="empty-filter-title" class="mt-2 text-lg font-semibold">
-            {filteredEmptyCopy.title}
-          </h2>
-          <p class="mt-2 text-sm leading-6 text-muted">{filteredEmptyCopy.body}</p>
-          <a
-            href={selectionHref({ state: 'all' })}
-            class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-opacity hover:opacity-85 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            View All Watchlist
-          </a>
-        </div>
-      </section>
     {:else}
       <section class="mt-8" aria-label={`${selectedStateLabel} anime`}>
-        <div
-          class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 2xl:gap-x-5"
-        >
-          {#each data.entries as entry (entry.id)}
-            <WatchlistCard anime={entry} />
-          {/each}
-        </div>
+        {#await data.entries}
+          <div
+            class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 2xl:gap-x-5"
+            aria-busy="true"
+            aria-label="Loading watchlist"
+          >
+            {#each Array.from({ length: Math.min(data.totalEntries, 14) }) as _}
+              <div class="animate-pulse" aria-hidden="true">
+                <div class="aspect-2/3 bg-surface"></div>
+                <div class="mt-3 h-4 w-4/5 bg-surface"></div>
+                <div class="mt-2 h-4 w-2/5 bg-surface"></div>
+              </div>
+            {/each}
+          </div>
+        {:then entries}
+          {#if entries.length === 0}
+            <section
+              class="mt-10 grid min-h-96 place-items-center border border-dashed border-border px-6 py-10 text-center sm:mt-12"
+              aria-labelledby="empty-filter-title"
+            >
+              <div class="flex max-w-sm flex-col items-center">
+                <img
+                  src={filteredEmptyArtwork}
+                  alt=""
+                  width="622"
+                  height="640"
+                  class="h-auto w-40 sm:w-44"
+                />
+                <h2 id="empty-filter-title" class="mt-2 text-lg font-semibold">
+                  {filteredEmptyCopy.title}
+                </h2>
+                <p class="mt-2 text-sm leading-6 text-muted">{filteredEmptyCopy.body}</p>
+                <a
+                  href={selectionHref({ state: 'all' })}
+                  class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-opacity hover:opacity-85 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  View All Watchlist
+                </a>
+              </div>
+            </section>
+          {:else}
+            <div
+              class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 2xl:gap-x-5"
+            >
+              {#each entries as entry (entry.id)}
+                <WatchlistCard anime={entry} />
+              {/each}
+            </div>
+          {/if}
+        {:catch}
+          <p class="py-16 text-center text-muted">Your watchlist could not be loaded.</p>
+        {/await}
       </section>
     {/if}
   </div>

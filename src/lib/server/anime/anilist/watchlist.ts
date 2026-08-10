@@ -36,5 +36,8 @@ export function getWatchlistAnime(ids: number[]) {
     return Promise.resolve([]);
   }
 
-  return cache.get(ids.join(','), () => requestAnime(ids), { staleIfError: true });
+  return cache.get(ids.join(','), () => requestAnime(ids), {
+    staleIfError: true,
+    staleWhileRevalidate: true,
+  });
 }

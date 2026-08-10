@@ -49,68 +49,68 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
   const filtered =
     selection.state === 'all' ? stored : stored.filter(({ state }) => state === selection.state);
-  const cards = await getWatchlistAnime(filtered.map(({ anilistId }) => anilistId)).catch(
-    (cause) => {
-      console.error('Watchlist anime enrichment failed', cause);
-      error(502, 'Your watchlist anime could not be loaded');
+  const entries = (async () => {
+    const cards = await getWatchlistAnime(filtered.map(({ anilistId }) => anilistId));
+    const cardIds = cards.map(({ id }) => id);
+    const episodeRows = cardIds.length
+      ? await db
+          .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
+          .from(animeEpisode)
+          .where(inArray(animeEpisode.anilistId, cardIds))
+      : [];
+    const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
+
+    for (const episode of episodeRows) {
+      const audio = audioByAnime.get(episode.anilistId) ?? new Set<'sub' | 'dub' | 'raw'>();
+      episode.audio.forEach((mode) => audio.add(mode));
+      audioByAnime.set(episode.anilistId, audio);
     }
-  );
-  const cardIds = cards.map(({ id }) => id);
-  const episodeRows = cardIds.length
-    ? await db
-        .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
-        .from(animeEpisode)
-        .where(inArray(animeEpisode.anilistId, cardIds))
-    : [];
-  const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
 
-  for (const episode of episodeRows) {
-    const audio = audioByAnime.get(episode.anilistId) ?? new Set<'sub' | 'dub' | 'raw'>();
-    episode.audio.forEach((mode) => audio.add(mode));
-    audioByAnime.set(episode.anilistId, audio);
-  }
+    const storedById = new Map(filtered.map((entry) => [entry.anilistId, entry]));
+    return (await withAnimeCardPosters(cards))
+      .flatMap((card) => {
+        const entry = storedById.get(card.id);
+        return entry
+          ? [
+              {
+                ...card,
+                caption: audioAvailabilityLabel([...(audioByAnime.get(card.id) ?? [])]),
+                state: entry.state,
+                addedAt: timestamp(entry.addedAt),
+                updatedAt: timestamp(entry.updatedAt),
+              },
+            ]
+          : [];
+      })
+      .sort((left, right) => {
+        if (selection.sort === 'alphabetical') {
+          const title = left.title.localeCompare(right.title, 'en');
+          return selection.order === 'newest' ? title : -title;
+        }
 
-  const storedById = new Map(filtered.map((entry) => [entry.anilistId, entry]));
-  const entries = (await withAnimeCardPosters(cards))
-    .flatMap((card) => {
-      const entry = storedById.get(card.id);
-      return entry
-        ? [
-            {
-              ...card,
-              caption: audioAvailabilityLabel([...(audioByAnime.get(card.id) ?? [])]),
-              state: entry.state,
-              addedAt: timestamp(entry.addedAt),
-              updatedAt: timestamp(entry.updatedAt),
-            },
-          ]
-        : [];
-    })
-    .sort((left, right) => {
-      if (selection.sort === 'alphabetical') {
-        const title = left.title.localeCompare(right.title, 'en');
-        return selection.order === 'newest' ? title : -title;
-      }
+        const key = selection.sort === 'updated' ? 'updatedAt' : 'addedAt';
+        const leftValue = left[key];
+        const rightValue = right[key];
 
-      const key = selection.sort === 'updated' ? 'updatedAt' : 'addedAt';
-      const leftValue = left[key];
-      const rightValue = right[key];
+        if (leftValue === null && rightValue !== null) {
+          return 1;
+        }
+        if (rightValue === null && leftValue !== null) {
+          return -1;
+        }
 
-      if (leftValue === null && rightValue !== null) {
-        return 1;
-      }
-      if (rightValue === null && leftValue !== null) {
-        return -1;
-      }
+        const time = (leftValue ?? 0) - (rightValue ?? 0);
+        if (time) {
+          return selection.order === 'newest' ? -time : time;
+        }
 
-      const time = (leftValue ?? 0) - (rightValue ?? 0);
-      if (time) {
-        return selection.order === 'newest' ? -time : time;
-      }
-
-      return left.title.localeCompare(right.title, 'en');
-    })
-    .map(({ addedAt: _addedAt, updatedAt: _updatedAt, ...entry }) => entry);
+        return left.title.localeCompare(right.title, 'en');
+      })
+      .map(({ addedAt: _addedAt, updatedAt: _updatedAt, ...entry }) => entry);
+  })().catch((cause) => {
+    console.error('Watchlist anime enrichment failed', cause);
+    throw error(502, 'Your watchlist anime could not be loaded');
+  });
 
   return {
     pageTitle: 'Watchlist',
