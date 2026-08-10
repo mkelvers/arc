@@ -2,11 +2,32 @@ query SyncMediaList($userId: Int!) {
   MediaListCollection(userId: $userId, type: ANIME) {
     lists {
       entries {
+        id
         status
+        progress
+        updatedAt
         media {
           id
         }
       }
     }
+  }
+}
+
+mutation SaveSyncMediaListEntry($mediaId: Int!, $status: MediaListStatus, $progress: Int) {
+  SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress) {
+    id
+  }
+}
+
+mutation DeleteSyncMediaListEntry($id: Int!) {
+  DeleteMediaListEntry(id: $id) {
+    deleted
+  }
+}
+
+query FindSyncMediaListEntry($mediaId: Int!, $userId: Int!) {
+  MediaList(mediaId: $mediaId, userId: $userId) {
+    id
   }
 }

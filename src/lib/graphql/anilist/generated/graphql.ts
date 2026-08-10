@@ -248,7 +248,31 @@ export type SyncMediaListQueryVariables = Exact<{
 }>;
 
 
-export type SyncMediaListQuery = { MediaListCollection: { lists: Array<{ entries: Array<{ status: MediaListStatus | null, media: { id: number } | null } | null> | null } | null> | null } | null };
+export type SyncMediaListQuery = { MediaListCollection: { lists: Array<{ entries: Array<{ id: number, status: MediaListStatus | null, progress: number | null, updatedAt: number | null, media: { id: number } | null } | null> | null } | null> | null } | null };
+
+export type SaveSyncMediaListEntryMutationVariables = Exact<{
+  mediaId: number;
+  status?: MediaListStatus | null | undefined;
+  progress?: number | null | undefined;
+}>;
+
+
+export type SaveSyncMediaListEntryMutation = { SaveMediaListEntry: { id: number } | null };
+
+export type DeleteSyncMediaListEntryMutationVariables = Exact<{
+  id: number;
+}>;
+
+
+export type DeleteSyncMediaListEntryMutation = { DeleteMediaListEntry: { deleted: boolean | null } | null };
+
+export type FindSyncMediaListEntryQueryVariables = Exact<{
+  mediaId: number;
+  userId: number;
+}>;
+
+
+export type FindSyncMediaListEntryQuery = { MediaList: { id: number } | null };
 
 export type WatchlistTransferAnimeQueryVariables = Exact<{
   anilistIds?: Array<number | null | undefined> | number | null | undefined;
@@ -621,7 +645,10 @@ export const SyncMediaListDocument = new TypedDocumentString(`
   MediaListCollection(userId: $userId, type: ANIME) {
     lists {
       entries {
+        id
         status
+        progress
+        updatedAt
         media {
           id
         }
@@ -630,6 +657,27 @@ export const SyncMediaListDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SyncMediaListQuery, SyncMediaListQueryVariables>;
+export const SaveSyncMediaListEntryDocument = new TypedDocumentString(`
+    mutation SaveSyncMediaListEntry($mediaId: Int!, $status: MediaListStatus, $progress: Int) {
+  SaveMediaListEntry(mediaId: $mediaId, status: $status, progress: $progress) {
+    id
+  }
+}
+    `) as unknown as TypedDocumentString<SaveSyncMediaListEntryMutation, SaveSyncMediaListEntryMutationVariables>;
+export const DeleteSyncMediaListEntryDocument = new TypedDocumentString(`
+    mutation DeleteSyncMediaListEntry($id: Int!) {
+  DeleteMediaListEntry(id: $id) {
+    deleted
+  }
+}
+    `) as unknown as TypedDocumentString<DeleteSyncMediaListEntryMutation, DeleteSyncMediaListEntryMutationVariables>;
+export const FindSyncMediaListEntryDocument = new TypedDocumentString(`
+    query FindSyncMediaListEntry($mediaId: Int!, $userId: Int!) {
+  MediaList(mediaId: $mediaId, userId: $userId) {
+    id
+  }
+}
+    `) as unknown as TypedDocumentString<FindSyncMediaListEntryQuery, FindSyncMediaListEntryQueryVariables>;
 export const WatchlistTransferAnimeDocument = new TypedDocumentString(`
     query WatchlistTransferAnime($anilistIds: [Int], $malIds: [Int]) {
   anilist: Page(page: 1, perPage: 50) {
