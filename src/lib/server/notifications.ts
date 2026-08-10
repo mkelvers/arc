@@ -10,9 +10,9 @@ import {
   playbackProgress,
   watchlist,
 } from '$lib/server/db/schema';
-import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import type { EpisodeAvailabilityTransition } from '$lib/server/anime/episodes/policy';
 import type { AniListAnime } from '$lib/server/anime/anilist/types';
+import { getStoredBackdrops } from '$lib/server/anime/tmdb/media';
 
 const recentSeasonWindow = 180 * 24 * 60 * 60 * 1_000;
 
@@ -273,7 +273,13 @@ export async function getUnreadNotificationCount(userId: string) {
   const [row] = await db
     .select({ count: count() })
     .from(notification)
-    .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
+    .where(
+      and(
+        eq(notification.userId, userId),
+        isNull(notification.readAt),
+        isNull(notification.dismissedAt)
+      )
+    );
 
   return row?.count ?? 0;
 }
@@ -282,18 +288,28 @@ export async function markNotificationsRead(userId: string) {
   await db
     .update(notification)
     .set({ readAt: new Date() })
-    .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
+    .where(
+      and(
+        eq(notification.userId, userId),
+        isNull(notification.readAt),
+        isNull(notification.dismissedAt)
+      )
+    );
 }
 
 export async function clearNotifications(userId: string) {
-  await db.delete(notification).where(eq(notification.userId, userId));
+  const dismissedAt = new Date();
+  await db
+    .update(notification)
+    .set({ dismissedAt, readAt: dismissedAt })
+    .where(and(eq(notification.userId, userId), isNull(notification.dismissedAt)));
 }
 
 export async function getNotifications(userId: string, limit = 50) {
   const rows = await db
     .select()
     .from(notification)
-    .where(eq(notification.userId, userId))
+    .where(and(eq(notification.userId, userId), isNull(notification.dismissedAt)))
     .orderBy(desc(notification.createdAt))
     .limit(Math.max(1, Math.min(limit, 100)));
   const ids = [...new Set(rows.map(({ anilistId }) => anilistId))];
@@ -302,45 +318,12 @@ export async function getNotifications(userId: string, limit = 50) {
     return [];
   }
 
-  const [details, episodes, storedMedia] = await Promise.all([
-    db
-      .select({ anilistId: animeDetailsCache.anilistId, data: animeDetailsCache.data })
-      .from(animeDetailsCache)
-      .where(inArray(animeDetailsCache.anilistId, ids)),
-    db
-      .select({
-        anilistId: animeEpisode.anilistId,
-        episodeId: animeEpisode.episodeId,
-        imageUrl: animeEpisode.imageUrl,
-        airDate: animeEpisode.airDate,
-        firstSeenAt: animeEpisode.firstSeenAt,
-      })
-      .from(animeEpisode)
-      .where(inArray(animeEpisode.anilistId, ids)),
-    Promise.all(
-      ids.map(
-        async (anilistId) => [anilistId, await getStoredMedia(anilistId).catch(() => null)] as const
-      )
-    ),
-  ]);
+  const details = await db
+    .select({ anilistId: animeDetailsCache.anilistId, data: animeDetailsCache.data })
+    .from(animeDetailsCache)
+    .where(inArray(animeDetailsCache.anilistId, ids));
   const detailById = new Map(details.map(({ anilistId, data }) => [anilistId, data]));
-  const episodeImageById = new Map(
-    episodes.map(({ anilistId, episodeId, imageUrl }) => [`${anilistId}:${episodeId}`, imageUrl])
-  );
-  const firstEpisodeByAnime = new Map<number, (typeof episodes)[number]>();
-  for (const episode of episodes) {
-    const current = firstEpisodeByAnime.get(episode.anilistId);
-    if (!current || episode.firstSeenAt < current.firstSeenAt) {
-      firstEpisodeByAnime.set(episode.anilistId, episode);
-    }
-  }
-  const backdropById = new Map(
-    storedMedia.flatMap(([anilistId, media]) =>
-      media?.artwork.selectedBackdrop?.url
-        ? [[anilistId, media.artwork.selectedBackdrop.url] as const]
-        : []
-    )
-  );
+  const backdropById = await getStoredBackdrops(ids);
 
   return rows.flatMap((row) => {
     const media = detailById.get(row.anilistId);
@@ -365,8 +348,7 @@ export async function getNotifications(userId: string, limit = 50) {
     ) {
       return [];
     }
-    const episode =
-      number === null ? '' : `Episode ${Number.isInteger(number) ? number : number.toFixed(1)}`;
+    const episode = number === null ? '' : `Episode ${number}`;
     const isSeason = row.kind === 'season_available';
     const body = isSeason
       ? `${title} is now available to watch.`
@@ -378,27 +360,9 @@ export async function getNotifications(userId: string, limit = 50) {
     const href = row.episodeId
       ? `/anime/${row.anilistId}/watch/${encodeURIComponent(row.episodeId)}`
       : `/anime/${row.anilistId}`;
-    const banner = detailById.get(row.anilistId);
-    const fallbackBanner =
-      banner &&
-      typeof banner === 'object' &&
-      'bannerImage' in banner &&
-      typeof banner.bannerImage === 'string'
-        ? banner.bannerImage
-        : null;
-    const episodeImage = row.episodeId
-      ? (episodeImageById.get(`${row.anilistId}:${row.episodeId}`) ?? null)
-      : null;
-    const episodeSource = row.episodeId
-      ? episodes.find(
-          ({ anilistId, episodeId }) => anilistId === row.anilistId && episodeId === row.episodeId
-        )
-      : firstEpisodeByAnime.get(row.anilistId);
     const eventValue =
       (typeof facts.eventDate === 'string' && facts.eventDate) ||
-      episodeSource?.airDate ||
-      episodeSource?.firstSeenAt.toISOString() ||
-      (!isSeason ? row.createdAt.toISOString() : null);
+      row.createdAt.toISOString();
     const eventDate = eventValue
       ? new Intl.DateTimeFormat('en', {
           day: 'numeric',
@@ -414,7 +378,7 @@ export async function getNotifications(userId: string, limit = 50) {
         title,
         body,
         href,
-        image: backdropById.get(row.anilistId) ?? fallbackBanner ?? episodeImage,
+        image: backdropById.get(row.anilistId) ?? null,
         actionLabel: isSeason ? 'View season' : 'Watch now',
         eventDate,
         createdAt: row.createdAt.getTime(),

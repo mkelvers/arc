@@ -509,6 +509,7 @@ export const notification = pgTable(
     facts: jsonb('facts').$type<Record<string, unknown>>().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     readAt: timestamp('read_at', { withTimezone: true }),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
   },
   (table) => [
     unique('notification_user_dedupe_unique').on(table.userId, table.dedupeKey),

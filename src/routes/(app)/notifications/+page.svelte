@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { invalidateAll } from '$app/navigation';
   import { enhance } from '$app/forms';
   import { CaretRightIcon, ChecksIcon, TrashIcon } from 'phosphor-svelte';
-  import { onMount } from 'svelte';
 
   import emptyArtwork from '$lib/assets/notifications-empty.png';
   import Modal from '$lib/components/Modal.svelte';
@@ -11,8 +9,6 @@
   let { data }: PageProps = $props();
   let clearDialogOpen = $state(false);
   let clearForm = $state<HTMLFormElement>();
-
-  onMount(() => void invalidateAll());
 
   function clearNotifications() {
     clearDialogOpen = false;
