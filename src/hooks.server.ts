@@ -5,7 +5,10 @@ import { sequence } from '@sveltejs/kit/hooks';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 import { auth } from '$lib/server/auth';
+import { startAwarenessLoop } from '$lib/server/anime/awareness';
 import { clearance, verifyClearance } from '$lib/server/clearance';
+
+startAwarenessLoop();
 
 const security: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
