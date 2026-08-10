@@ -324,7 +324,7 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
 
   try {
     const allowedTarget = streamTarget(target.toString());
-    return `/api/watch/stream?${new URLSearchParams({
+    return `/api/episodes/stream?${new URLSearchParams({
       src: Buffer.from(allowedTarget.toString()).toString('base64url'),
     })}`;
   } catch (cause) {

@@ -14,7 +14,7 @@ describe('stream proxy', () => {
       ['https://media.example.net/show/master.m3u8', 'media.example.net'],
     ]) {
       const request = new Request(
-        `https://arc.local/api/watch/stream?${new URLSearchParams({ url: target })}`
+        `https://arc.local/api/episodes/stream?${new URLSearchParams({ url: target })}`
       );
       await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
         reason: { kind: 'unsupported-host', hostname },
@@ -25,7 +25,7 @@ describe('stream proxy', () => {
   test('forwards provider media with the required request and response headers', async () => {
     const target = 'https://cdn.mp4upload.com/show/episode.mp4';
     const request = new Request(
-      'https://arc.local/api/watch/stream?src=aHR0cHM6Ly9jZG4ubXA0dXBsb2FkLmNvbS9zaG93L2VwaXNvZGUubXA0',
+      'https://arc.local/api/episodes/stream?src=aHR0cHM6Ly9jZG4ubXA0dXBsb2FkLmNvbS9zaG93L2VwaXNvZGUubXA0',
       { headers: { Range: 'bytes=100-199' } }
     );
     let providerRequest: { target: string; init: RequestInit } | undefined;
@@ -71,7 +71,7 @@ describe('stream proxy', () => {
 
   test('refuses a provider redirect to an unsupported host', async () => {
     const request = new Request(
-      'https://arc.local/api/watch/stream?url=https%3A%2F%2Fcdn.mp4upload.com%2Fepisode.mp4'
+      'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fcdn.mp4upload.com%2Fepisode.mp4'
     );
     const fetchStream = async () =>
       new Response(null, {
@@ -86,7 +86,7 @@ describe('stream proxy', () => {
 
   test('rejects an oversized provider playlist', async () => {
     const request = new Request(
-      'https://arc.local/api/watch/stream?url=https%3A%2F%2Fmegap.kotocdn.site%2Fshow%2Fmaster.m3u8'
+      'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.kotocdn.site%2Fshow%2Fmaster.m3u8'
     );
     const fetchStream = async () =>
       new Response(null, {
@@ -103,7 +103,7 @@ describe('stream proxy', () => {
 
   test('bounds a provider playlist even without a content-length header', async () => {
     const request = new Request(
-      'https://arc.local/api/watch/stream?url=https%3A%2F%2Fmegap.kotocdn.site%2Fshow%2Fmaster.m3u8'
+      'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.kotocdn.site%2Fshow%2Fmaster.m3u8'
     );
     const fetchStream = async () =>
       new Response(new Uint8Array(1024 * 1024 + 1), {
@@ -117,7 +117,7 @@ describe('stream proxy', () => {
 
   test('rewrites allowed playlist references and preserves unlisted hosts', async () => {
     const request = new Request(
-      'https://arc.local/api/watch/stream?url=https%3A%2F%2Fmegap.shiora.site%2Fshow%2Fmaster.m3u8'
+      'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.shiora.site%2Fshow%2Fmaster.m3u8'
     );
     let providerRequest: RequestInit | undefined;
     const fetchStream = async (_url: URL, init: RequestInit) => {
@@ -143,8 +143,8 @@ describe('stream proxy', () => {
     }).toEqual({
       body: [
         '#EXTM3U',
-        '#EXT-X-KEY:METHOD=AES-128,URI="/api/watch/stream?src=aHR0cHM6Ly9tZWdhcC5zaGlvcmEuc2l0ZS9zaG93L2tleS5iaW4"',
-        '/api/watch/stream?src=aHR0cHM6Ly9tZWdhcC5zaGlvcmEuc2l0ZS9zaG93LzcyMC9pbmRleC5tM3U4',
+        '#EXT-X-KEY:METHOD=AES-128,URI="/api/episodes/stream?src=aHR0cHM6Ly9tZWdhcC5zaGlvcmEuc2l0ZS9zaG93L2tleS5iaW4"',
+        '/api/episodes/stream?src=aHR0cHM6Ly9tZWdhcC5zaGlvcmEuc2l0ZS9zaG93LzcyMC9pbmRleC5tM3U4',
         'https://media.example.net/show/720/index.m3u8',
       ].join('\n'),
       cacheControl: 'no-store',
@@ -155,7 +155,7 @@ describe('stream proxy', () => {
 
   test('unwraps image-disguised transport-stream segments', async () => {
     const request = new Request(
-      'https://arc.local/api/watch/stream?url=https%3A%2F%2Fcdn.ibyteimg.com%2Fshow%2Fsegment.png'
+      'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fcdn.ibyteimg.com%2Fshow%2Fsegment.png'
     );
     const wrapped = new Uint8Array([
       0x89, 0x50, 0x4e, 0x47, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, 0x47, 0x40, 0x11,

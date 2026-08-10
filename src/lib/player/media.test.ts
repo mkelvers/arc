@@ -47,10 +47,10 @@ describe('player media helpers', () => {
 
   test('recognizes direct and proxied HLS sources', () => {
     expect(isHlsSource('https://media.example/master.m3u8?token=1')).toBe(true);
-    expect(isHlsSource('/api/watch/stream?url=https%3A%2F%2Fmedia.example%2Fmaster.m3u8')).toBe(
+    expect(isHlsSource('/api/episodes/stream?url=https%3A%2F%2Fmedia.example%2Fmaster.m3u8')).toBe(
       true
     );
-    expect(isHlsSource('/api/watch/stream?url=video.mp4')).toBe(false);
+    expect(isHlsSource('/api/episodes/stream?url=video.mp4')).toBe(false);
   });
 
   test('parses and selects overlapping WebVTT captions', () => {

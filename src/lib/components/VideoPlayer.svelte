@@ -171,7 +171,7 @@
     payload: NonNullable<ReturnType<typeof progressPayload>>,
     keepalive = false
   ) {
-    const response = await fetch('/api/progress', {
+    const response = await fetch('/api/episodes/progress', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
