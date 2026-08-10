@@ -2,8 +2,6 @@ import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-const stateCookie = 'arc_anilist_oauth_state';
-
 export const GET: RequestHandler = ({ cookies, url, locals }) => {
   if (!locals.user) {
     redirect(303, '/login');
@@ -14,7 +12,7 @@ export const GET: RequestHandler = ({ cookies, url, locals }) => {
   }
 
   const state = crypto.randomUUID();
-  cookies.set(stateCookie, state, {
+  cookies.set('arc_anilist_oauth_state', state, {
     httpOnly: true,
     maxAge: 600,
     path: '/settings/accounts',

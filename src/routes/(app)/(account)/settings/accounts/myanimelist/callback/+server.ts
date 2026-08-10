@@ -7,8 +7,6 @@ import { db } from '$lib/server/db';
 import { accounts } from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
 
-const stateCookie = 'arc_myanimelist_oauth_state';
-const verifierCookie = 'arc_myanimelist_oauth_verifier';
 const tokenResponseSchema = z.object({
   access_token: z.string().min(1),
   refresh_token: z.string().min(1),
@@ -24,10 +22,10 @@ export const GET: RequestHandler = async ({ cookies, locals, url }) => {
   }
 
   const state = url.searchParams.get('state');
-  const expectedState = cookies.get(stateCookie);
-  const verifier = cookies.get(verifierCookie);
-  cookies.delete(stateCookie, { path: '/settings/accounts' });
-  cookies.delete(verifierCookie, { path: '/settings/accounts' });
+  const expectedState = cookies.get('arc_myanimelist_oauth_state');
+  const verifier = cookies.get('arc_myanimelist_oauth_verifier');
+  cookies.delete('arc_myanimelist_oauth_state', { path: '/settings/accounts' });
+  cookies.delete('arc_myanimelist_oauth_verifier', { path: '/settings/accounts' });
 
   if (!state || !expectedState || state !== expectedState || !verifier) {
     redirect(303, '/settings/accounts?myanimelist=error');

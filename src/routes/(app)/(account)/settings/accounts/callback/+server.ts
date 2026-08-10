@@ -7,7 +7,6 @@ import { db } from '$lib/server/db';
 import { accounts } from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
 
-const stateCookie = 'arc_anilist_oauth_state';
 const tokenResponseSchema = z.object({
   access_token: z.string().min(1),
   expires_in: z.number().int().positive().optional(),
@@ -28,8 +27,8 @@ export const GET: RequestHandler = async ({ cookies, locals, url }) => {
   const userId = locals.user.id;
 
   const state = url.searchParams.get('state');
-  const expectedState = cookies.get(stateCookie);
-  cookies.delete(stateCookie, { path: '/settings/accounts' });
+  const expectedState = cookies.get('arc_anilist_oauth_state');
+  cookies.delete('arc_anilist_oauth_state', { path: '/settings/accounts' });
 
   if (!state || !expectedState || state !== expectedState) {
     redirect(303, '/settings/accounts?anilist=error');

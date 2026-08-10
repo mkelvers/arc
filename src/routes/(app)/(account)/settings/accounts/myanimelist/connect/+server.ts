@@ -2,9 +2,6 @@ import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-const stateCookie = 'arc_myanimelist_oauth_state';
-const verifierCookie = 'arc_myanimelist_oauth_verifier';
-
 export const GET: RequestHandler = ({ cookies, url, locals }) => {
   if (!locals.user) {
     redirect(303, '/login');
@@ -24,8 +21,8 @@ export const GET: RequestHandler = ({ cookies, url, locals }) => {
     secure: url.protocol === 'https:',
   };
 
-  cookies.set(stateCookie, state, cookieOptions);
-  cookies.set(verifierCookie, verifier, cookieOptions);
+  cookies.set('arc_myanimelist_oauth_state', state, cookieOptions);
+  cookies.set('arc_myanimelist_oauth_verifier', verifier, cookieOptions);
 
   const params = new URLSearchParams({
     response_type: 'code',
