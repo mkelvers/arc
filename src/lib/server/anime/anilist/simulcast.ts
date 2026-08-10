@@ -11,7 +11,13 @@ function startYear(media: Array<{ seasonYear: number | null } | null> | null | u
 }
 
 async function requestSeasonStarts() {
-  const response = await request(SimulcastSeasonStartsDocument, {}, { retries: 2 });
+  const response = await request(
+    SimulcastSeasonStartsDocument,
+    {},
+    {
+      cacheForMs: 7 * 24 * 60 * 60 * 1_000,
+    }
+  );
   const entries: Array<[AnimeSeason, number | undefined]> = [
     ['WINTER', startYear(response.winter?.media)],
     ['SPRING', startYear(response.spring?.media)],
@@ -32,6 +38,6 @@ export async function getSimulcastSeasonStarts() {
         console.error('AniList season range refresh failed', cause);
         throw cause;
       }),
-    { staleIfError: true }
+    { staleIfError: true, staleWhileRevalidate: true }
   );
 }

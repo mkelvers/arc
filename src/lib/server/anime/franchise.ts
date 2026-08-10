@@ -17,6 +17,7 @@ import { withFranchisePlayback } from './franchise/playback';
 import { primaryFranchiseIds, type FranchiseSelectionEntry } from './franchise/selection';
 
 const requests = new Map<number, Promise<FranchiseOrder>>();
+const lifetime = 7 * 24 * 60 * 60 * 1_000;
 
 async function fetchMetadata(entries: ChiakiEntry[]) {
   const result = await request(
@@ -24,7 +25,7 @@ async function fetchMetadata(entries: ChiakiEntry[]) {
     {
       malIds: entries.map(({ malId }) => malId),
     },
-    { retries: 2 }
+    { cacheForMs: 7 * 24 * 60 * 60 * 1_000 }
   );
 
   return new Map(
@@ -187,22 +188,34 @@ async function cachedFranchiseOrder(malId: number) {
 
   const storedOrder = stored ? verifiedFranchiseOrder(stored.data) : null;
 
-  if (stored && storedOrder && Date.now() - stored.fetchedAt.getTime() < 24 * 60 * 60 * 1_000) {
+  if (stored && storedOrder && Date.now() - stored.fetchedAt.getTime() < lifetime) {
     return storedOrder;
   }
 
   const pending = requests.get(malId);
-  if (pending) {
+  if (pending && !storedOrder) {
     return pending;
   }
 
-  const request = refresh(malId).catch((cause) => {
-    if (storedOrder) {
-      console.warn(`Franchise refresh failed for MAL ${malId}; using stored order`, cause);
-      return storedOrder;
+  if (storedOrder) {
+    if (!pending) {
+      const background = refresh(malId);
+      requests.set(malId, background);
+      void background
+        .catch((cause) => {
+          console.warn(`Franchise refresh failed for MAL ${malId}; using stored order`, cause);
+        })
+        .finally(() => {
+          if (requests.get(malId) === background) {
+            requests.delete(malId);
+          }
+        });
     }
-    throw cause;
-  });
+
+    return storedOrder;
+  }
+
+  const request = refresh(malId);
   requests.set(malId, request);
 
   try {

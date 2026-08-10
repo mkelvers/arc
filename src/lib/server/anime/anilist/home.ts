@@ -10,7 +10,13 @@ const lifetime = 30 * 60 * 1_000;
 const cache = new RequestCache<string, HomepageAnime>(lifetime);
 
 async function requestHomepage(season: MediaSeason, seasonYear: number) {
-  const response = await request(HomeAnimeDocument, { season, seasonYear }, { retries: 2 });
+  const response = await request(
+    HomeAnimeDocument,
+    { season, seasonYear },
+    {
+      cacheForMs: 6 * 60 * 60 * 1_000,
+    }
+  );
 
   const cards = (media: NonNullable<typeof response.season>['media'] | undefined) =>
     present(media).flatMap((entry) => {
@@ -33,6 +39,6 @@ export async function getHomepage(season: MediaSeason, seasonYear: number) {
         console.error('AniList homepage refresh failed', cause);
         throw cause;
       }),
-    { staleIfError: true }
+    { staleIfError: true, staleWhileRevalidate: true }
   );
 }

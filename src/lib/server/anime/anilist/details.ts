@@ -26,7 +26,7 @@ function refreshRetryDelay(cause: unknown) {
 }
 
 async function requestAnime(id: number) {
-  const { Media } = await request(AnimeDocument, { id }, { retries: 2 });
+  const { Media } = await request(AnimeDocument, { id });
   if (!Media) {
     throw new GraphQLRequestError({
       message: 'AniList returned no anime',
