@@ -51,3 +51,31 @@ test('request cache can retain a stale value when refresh fails', async () => {
   expect(concurrent).toBe(1);
   expect(calls).toBe(2);
 });
+
+test('request cache serves stale data immediately while one refresh runs', async () => {
+  const cache = new RequestCache<string, number>(100);
+  let calls = 0;
+  let finishRefresh: ((value: number) => void) | undefined;
+  const load = () => {
+    calls += 1;
+    if (calls === 1) {
+      return Promise.resolve(1);
+    }
+
+    return new Promise<number>((resolve) => {
+      finishRefresh = resolve;
+    });
+  };
+
+  await expect(cache.get('key', load)).resolves.toBe(1);
+  await Bun.sleep(110);
+
+  await expect(cache.get('key', load, { staleWhileRevalidate: true })).resolves.toBe(1);
+  await expect(cache.get('key', load, { staleWhileRevalidate: true })).resolves.toBe(1);
+  await Bun.sleep(1);
+  expect(calls).toBe(2);
+
+  finishRefresh?.(2);
+  await Bun.sleep(1);
+  await expect(cache.get('key', load)).resolves.toBe(2);
+});

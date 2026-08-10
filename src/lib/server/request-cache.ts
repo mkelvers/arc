@@ -5,6 +5,7 @@ interface Cached<Value> {
 
 interface RequestCacheOptions {
   staleIfError?: boolean;
+  staleWhileRevalidate?: boolean;
 }
 
 export class RequestCache<Key, Value> {
@@ -27,9 +28,18 @@ export class RequestCache<Key, Value> {
     const staleIfError = (request: Promise<Value>) =>
       options.staleIfError && cached ? request.catch(() => cached.value) : request;
 
+    const cachedOrRequest = (request: Promise<Value>) => {
+      if (!cached || !options.staleWhileRevalidate) {
+        return staleIfError(request);
+      }
+
+      void request.catch(() => undefined);
+      return Promise.resolve(cached.value);
+    };
+
     const active = this.#requests.get(key);
     if (active) {
-      return staleIfError(active);
+      return cachedOrRequest(active);
     }
 
     const request = Promise.resolve()
@@ -56,6 +66,6 @@ export class RequestCache<Key, Value> {
     };
     request.then(cleanup, cleanup);
 
-    return staleIfError(request);
+    return cachedOrRequest(request);
   }
 }
