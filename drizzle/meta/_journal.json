@@ -218,6 +218,13 @@
       "when": 1786343959961,
       "tag": "0030_good_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1786388538118,
+      "tag": "0031_striped_rage",
+      "breakpoints": true
     }
   ]
 }

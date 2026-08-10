@@ -37,6 +37,12 @@ export const watchlistState = pgEnum('watchlist_state', [
   'dropped',
 ]);
 
+export const notificationKind = pgEnum('notification_kind', [
+  'episode_available',
+  'dub_available',
+  'season_available',
+]);
+
 export const users = pgTable(
   'users',
   {
@@ -486,6 +492,27 @@ export const playbackProgress = pgTable(
   (table) => [
     unique('playback_progress_user_anime_unique').on(table.userId, table.animeId),
     index('playback_progress_user_watched_idx').on(table.userId, table.lastWatchedAt),
+  ]
+);
+
+export const notification = pgTable(
+  'notification',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: notificationKind('kind').notNull(),
+    anilistId: integer('anilist_id').notNull(),
+    episodeId: text('episode_id'),
+    dedupeKey: text('dedupe_key').notNull(),
+    facts: jsonb('facts').$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (table) => [
+    unique('notification_user_dedupe_unique').on(table.userId, table.dedupeKey),
+    index('notification_user_created_idx').on(table.userId, table.createdAt),
   ]
 );
 
