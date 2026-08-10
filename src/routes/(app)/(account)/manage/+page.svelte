@@ -25,7 +25,7 @@
 
 <main class="min-h-[calc(100vh-3.5rem)] px-4 py-10 md:py-16">
   <section class="mx-auto w-full max-w-lg">
-    <h1 class="mb-7 text-center text-2xl font-bold tracking-tight">Edit Account</h1>
+    <h1 class="mb-7 text-center text-2xl font-bold tracking-tight">Manage Account</h1>
 
     <form method="POST" action="?/update">
       <div class="overflow-hidden bg-surface">
@@ -55,18 +55,6 @@
             This is how your account is shown across Arc. You can change it at any time.
           </p>
 
-          <label class="mt-7 block text-xs font-semibold text-muted" for="username">
-            Username
-          </label>
-          <input
-            id="username"
-            readonly
-            value={data.account.username}
-            class="mt-2 w-full cursor-not-allowed border-0 border-b border-border bg-transparent px-0 pb-2 text-lg text-subtle outline-none"
-          />
-          <p class="mt-2 text-xs leading-relaxed text-subtle">
-            This is the username you created with your account. It cannot be changed.
-          </p>
         </div>
       </div>
 

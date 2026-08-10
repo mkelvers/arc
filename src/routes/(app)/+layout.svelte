@@ -122,7 +122,7 @@
             </div>
 
             <a
-              href="/manage"
+              href="/settings"
               class="flex min-h-12 items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
             >
               <GearIcon size={21} aria-hidden="true" />

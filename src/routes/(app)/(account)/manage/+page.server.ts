@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   }
 
   return {
-    pageTitle: 'Account settings',
+    pageTitle: 'Manage account',
     account: await getAccount(locals.user.id),
   };
 };
