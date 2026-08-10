@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { watchlistOrder, watchlistSort, watchlistSorts, watchlistState } from './watchlist';
+import {
+  watchlistActivityTimestamp,
+  watchlistOrder,
+  watchlistSort,
+  watchlistSorts,
+  watchlistState,
+} from './watchlist';
 
 describe('watchlist URL selection', () => {
   test('accepts supported state, sort, and order values', () => {
@@ -19,5 +25,10 @@ describe('watchlist URL selection', () => {
     expect(watchlistSorts).toEqual(['updated', 'added', 'alphabetical']);
     expect(watchlistSort('recent_activity')).toBe('updated');
     expect(watchlistSort('watched')).toBe('updated');
+  });
+
+  test('uses local add time when provider update time is older', () => {
+    expect(watchlistActivityTimestamp(1_000, 2_000)).toBe(2_000);
+    expect(watchlistActivityTimestamp(3_000, 2_000)).toBe(3_000);
   });
 });

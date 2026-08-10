@@ -17,7 +17,12 @@ import {
   parseWatchlistImport,
   WatchlistImportError,
 } from '$lib/server/watchlist-transfer';
-import { watchlistOrder, watchlistSort, watchlistState } from '$lib/watchlist';
+import {
+  watchlistActivityTimestamp,
+  watchlistOrder,
+  watchlistSort,
+  watchlistState,
+} from '$lib/watchlist';
 import type { Actions, PageServerLoad } from './$types';
 
 // Bound in-memory multipart and JSON parsing work. Entry count remains unlimited;
@@ -88,18 +93,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
           return selection.order === 'newest' ? title : -title;
         }
 
-        const key = selection.sort === 'updated' ? 'updatedAt' : 'addedAt';
-        const leftValue = left[key];
-        const rightValue = right[key];
+        const leftValue =
+          selection.sort === 'updated'
+            ? watchlistActivityTimestamp(left.updatedAt, left.addedAt)
+            : (left.addedAt ?? 0);
+        const rightValue =
+          selection.sort === 'updated'
+            ? watchlistActivityTimestamp(right.updatedAt, right.addedAt)
+            : (right.addedAt ?? 0);
 
-        if (leftValue === null && rightValue !== null) {
-          return 1;
-        }
-        if (rightValue === null && leftValue !== null) {
-          return -1;
-        }
-
-        const time = (leftValue ?? 0) - (rightValue ?? 0);
+        const time = leftValue - rightValue;
         if (time) {
           return selection.order === 'newest' ? -time : time;
         }
