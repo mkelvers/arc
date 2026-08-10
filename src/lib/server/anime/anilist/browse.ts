@@ -117,7 +117,13 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
 }
 
 export async function getBrowseTaxonomy() {
-  const response = await request(BrowseAnimeTaxonomyDocument, {});
+  const response = await request(
+    BrowseAnimeTaxonomyDocument,
+    {},
+    {
+      cacheForMs: 7 * 24 * 60 * 60 * 1_000,
+    }
+  );
   const sortedUnique = (values: string[]) =>
     [...new Set(values)].sort((left, right) => left.localeCompare(right, 'en'));
   const taxonomy = {
