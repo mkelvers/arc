@@ -5,9 +5,10 @@ import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
 import {
-  interestedUserIds,
+  episodeInterestedUserIds,
   notifyAvailableSeasons,
   notifyEpisodeTransitions,
+  notifyRecentEpisodeCatchup,
 } from '$lib/server/notifications';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
@@ -196,7 +197,12 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
     transitions = hadBaseline
       ? episodeAvailabilityTransitions(
           stored,
-          values.map(({ episodeId, number, audio }) => ({ id: episodeId, number, audio }))
+          values.map(({ episodeId, number, audio, airDate }) => ({
+            id: episodeId,
+            number,
+            audio,
+            airDate,
+          }))
         )
       : [];
 
@@ -267,18 +273,26 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
   });
 
   if (transitions.length) {
-    const users = await interestedUserIds(anime.id);
-    await notifyEpisodeTransitions(
-      anime.id,
-      anime.title?.english ?? anime.title?.romaji ?? anime.title?.native ?? `Anime ${anime.id}`,
-      transitions,
-      users
-    ).catch((cause) =>
+    const users = await episodeInterestedUserIds(anime.id);
+    const title =
+      anime.title?.english ?? anime.title?.romaji ?? anime.title?.native ?? `Anime ${anime.id}`;
+    await notifyEpisodeTransitions(anime.id, title, transitions, users).catch((cause) =>
       console.error(`Episode notification write failed for AniList ${anime.id}`, cause)
     );
   }
 
   if (hadBaseline) {
+    const users = await episodeInterestedUserIds(anime.id);
+    if (anime.status === 'RELEASING') {
+      await notifyRecentEpisodeCatchup(
+        anime.id,
+        anime.title?.english ?? anime.title?.romaji ?? anime.title?.native ?? `Anime ${anime.id}`,
+        users,
+        new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000)
+      ).catch((cause) =>
+        console.error(`Recent episode notification write failed for AniList ${anime.id}`, cause)
+      );
+    }
     await notifyAvailableSeasons(anime).catch((cause) =>
       console.error(`Season notification write failed for AniList ${anime.id}`, cause)
     );

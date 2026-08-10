@@ -6,21 +6,32 @@ export type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 export type EpisodeAvailabilityTransition = {
   episodeId: string;
   number: number;
+  airDate: string | null;
   kind: 'episode_available' | 'dub_available';
 };
 
 export function episodeAvailabilityTransitions(
   previous: ReadonlyMap<string, { audio: readonly AudioMode[] }>,
-  current: readonly { id: string; number: number; audio: readonly AudioMode[] }[]
+  current: readonly {
+    id: string;
+    number: number;
+    audio: readonly AudioMode[];
+    airDate?: string | null;
+  }[]
 ) {
   const transitions: EpisodeAvailabilityTransition[] = [];
 
   for (const episode of current) {
+    if (!Number.isInteger(episode.number) || episode.number <= 0) {
+      continue;
+    }
+
     const stored = previous.get(episode.id);
     if (!stored) {
       transitions.push({
         episodeId: episode.id,
         number: episode.number,
+        airDate: episode.airDate ?? null,
         kind: 'episode_available',
       });
       continue;
@@ -30,6 +41,7 @@ export function episodeAvailabilityTransitions(
       transitions.push({
         episodeId: episode.id,
         number: episode.number,
+        airDate: episode.airDate ?? null,
         kind: 'dub_available',
       });
     }

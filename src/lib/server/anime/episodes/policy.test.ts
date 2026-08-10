@@ -95,12 +95,13 @@ describe('episode refresh policy', () => {
         { id: 'one', number: 1, audio: ['sub', 'dub'] as const },
         { id: 'two', number: 2, audio: ['sub', 'dub'] as const },
         { id: 'three', number: 3, audio: ['sub'] as const },
+        { id: 'special', number: 3.5, audio: ['sub'] as const },
       ]
     );
 
     expect(transitions).toEqual([
-      { episodeId: 'one', number: 1, kind: 'dub_available' },
-      { episodeId: 'three', number: 3, kind: 'episode_available' },
+      { episodeId: 'one', number: 1, airDate: null, kind: 'dub_available' },
+      { episodeId: 'three', number: 3, airDate: null, kind: 'episode_available' },
     ]);
   });
 });
