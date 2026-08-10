@@ -21,7 +21,7 @@
 </script>
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
-  <div class="mx-auto w-full max-w-256 px-5 py-9 sm:px-10 sm:py-11 lg:py-14">
+  <div class="mx-auto w-full max-w-5xl px-5 py-9 sm:px-10 sm:py-11 lg:py-14">
     <h1 class="text-center text-2xl font-semibold">Notification Center</h1>
     <div class="mt-5 flex justify-end gap-2 border-b border-border pb-3">
       <form method="POST" action="?/readAll" use:enhance>
