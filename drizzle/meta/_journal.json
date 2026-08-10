@@ -232,6 +232,13 @@
       "when": 1786391385605,
       "tag": "0032_unique_marvel_apes",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1786391841025,
+      "tag": "0033_brave_outlaw_kid",
+      "breakpoints": true
     }
   ]
 }
