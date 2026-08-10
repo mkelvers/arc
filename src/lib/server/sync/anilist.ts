@@ -3,7 +3,7 @@ import {
   FindSyncMediaListEntryDocument,
 } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
-import { graphql } from '$lib/server/graphql';
+import { GraphQLRequestError, graphql } from '$lib/server/graphql';
 import { anilistRequestPolicy } from '$lib/server/anime/anilist/request-policy';
 
 export async function removeAniListEntry(userId: string, anilistId: number) {
@@ -24,25 +24,42 @@ export async function removeAniListEntry(userId: string, anilistId: number) {
     return;
   }
 
-  const entry = await anilistRequestPolicy.run(() =>
-    graphql(
-      'https://graphql.anilist.co',
-      FindSyncMediaListEntryDocument,
-      { mediaId: anilistId, userId: userIdOnAniList },
-      { headers: { Authorization: `Bearer ${account.accessToken}` } }
-    )
-  );
+  let entry;
+  try {
+    entry = await anilistRequestPolicy.run(() =>
+      graphql(
+        'https://graphql.anilist.co',
+        FindSyncMediaListEntryDocument,
+        { mediaId: anilistId, userId: userIdOnAniList },
+        { headers: { Authorization: `Bearer ${account.accessToken}` } }
+      )
+    );
+  } catch (cause) {
+    if (cause instanceof GraphQLRequestError && cause.status === 404) {
+      return;
+    }
+
+    throw cause;
+  }
   if (!entry.MediaList?.id) {
     return;
   }
   const mediaListId = entry.MediaList.id;
 
-  await anilistRequestPolicy.run(() =>
-    graphql(
-      'https://graphql.anilist.co',
-      DeleteSyncMediaListEntryDocument,
-      { id: mediaListId },
-      { headers: { Authorization: `Bearer ${account.accessToken}` } }
-    )
-  );
+  try {
+    await anilistRequestPolicy.run(() =>
+      graphql(
+        'https://graphql.anilist.co',
+        DeleteSyncMediaListEntryDocument,
+        { id: mediaListId },
+        { headers: { Authorization: `Bearer ${account.accessToken}` } }
+      )
+    );
+  } catch (cause) {
+    if (cause instanceof GraphQLRequestError && cause.status === 404) {
+      return;
+    }
+
+    throw cause;
+  }
 }

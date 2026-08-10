@@ -11,7 +11,7 @@ export async function enqueueUserSync(userId: string, priority = 1) {
     'sync-anilist',
     { userId },
     {
-      jobId: `sync-anilist:${userId}`,
+      jobId: `sync-anilist-${userId}`,
       priority,
       attempts: 3,
       backoff: { type: 'exponential', delay: 60_000 },

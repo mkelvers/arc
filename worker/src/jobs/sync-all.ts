@@ -16,7 +16,7 @@ export async function syncAllUsers(queue: Queue) {
       'sync-anilist',
       { userId },
       {
-        jobId: `sync-anilist:${userId}`,
+        jobId: `sync-anilist-${userId}`,
         priority: 10,
         attempts: 3,
         backoff: { type: 'exponential', delay: 60_000 },
