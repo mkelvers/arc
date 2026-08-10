@@ -25,20 +25,39 @@ const payloadSchema = z.object({
 
 export class GraphQLRequestError extends Error {
   readonly status?: number;
+  readonly retryAfterMs?: number;
 
   constructor({
     message,
     cause,
     status,
+    retryAfterMs,
   }: {
     readonly message: string;
     readonly cause?: unknown;
     readonly status?: number;
+    readonly retryAfterMs?: number;
   }) {
     super(message, { cause });
     this.name = 'GraphQLRequestError';
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
+}
+
+function retryAfterMs(response: Response) {
+  const value = response.headers.get('Retry-After');
+  if (!value) {
+    return undefined;
+  }
+
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1_000;
+  }
+
+  const date = Date.parse(value);
+  return Number.isNaN(date) ? undefined : Math.max(0, date - Date.now());
 }
 
 export async function graphql<TResult, TVariables>(
@@ -96,6 +115,7 @@ export async function graphql<TResult, TVariables>(
               ? `The GraphQL endpoint returned ${response.status}: ${preview}`
               : `The GraphQL endpoint returned ${response.status}`,
             status: response.status,
+            retryAfterMs: retryAfterMs(response),
             cause: result.error,
           });
         }
@@ -111,6 +131,7 @@ export async function graphql<TResult, TVariables>(
         throw new GraphQLRequestError({
           message: graphQLError.message,
           status: graphQLError.status ?? (!response.ok ? response.status : undefined),
+          retryAfterMs: retryAfterMs(response),
         });
       }
 
@@ -118,6 +139,7 @@ export async function graphql<TResult, TVariables>(
         throw new GraphQLRequestError({
           message: `The GraphQL endpoint returned ${response.status}`,
           status: response.status,
+          retryAfterMs: retryAfterMs(response),
         });
       }
 

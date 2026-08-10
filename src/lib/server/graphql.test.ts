@@ -43,6 +43,26 @@ describe('GraphQL requests', () => {
     }
   });
 
+  test('preserves the provider retry window from a rate-limited response', async () => {
+    const server = Bun.serve({
+      port: 0,
+      fetch: () =>
+        Response.json(
+          { errors: [{ message: 'Rate limited', status: 429 }] },
+          { status: 429, headers: { 'Retry-After': '45' } }
+        ),
+    });
+
+    try {
+      await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+        status: 429,
+        retryAfterMs: 45_000,
+      });
+    } finally {
+      await server.stop(true);
+    }
+  });
+
   test('retries a bounded number of transient failures', async () => {
     let attempts = 0;
     const server = Bun.serve({
