@@ -466,6 +466,8 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     anilistId: integer('anilist_id').primaryKey(),
     mediaStatus: varchar('media_status', { length: 32 }),
     expectedEpisodes: integer('expected_episodes'),
+    nextAiringAt: timestamp('next_airing_at', { withTimezone: true }),
+    nextAiringEpisode: integer('next_airing_episode'),
     sourceRevision: text('source_revision'),
     metadataExternalIdId: integer('metadata_external_id_id').references(() => animeExternalId.id, {
         onDelete: 'set null',

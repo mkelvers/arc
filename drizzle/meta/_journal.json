@@ -260,6 +260,13 @@
             "when": 1786432952231,
             "tag": "0036_wakeful_stick",
             "breakpoints": true
+        },
+        {
+            "idx": 37,
+            "version": "7",
+            "when": 1786447713923,
+            "tag": "0037_living_zaladane",
+            "breakpoints": true
         }
     ]
 }

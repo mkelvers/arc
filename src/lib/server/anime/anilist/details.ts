@@ -8,9 +8,6 @@ import { request } from './client';
 import type { AniListAnime } from './types';
 
 const version = 2;
-const lifetime = 6 * 60 * 60 * 1_000;
-const transientRetryDelay = 5 * 60 * 1_000;
-const permanentRetryDelay = 6 * 60 * 60 * 1_000;
 const requests = new Map<number, Promise<AniListAnime>>();
 const backgroundRefreshes = new Set<number>();
 const retryAt = new Map<number, number>();
@@ -21,8 +18,8 @@ function failureMessage(cause: unknown) {
 
 function refreshRetryDelay(cause: unknown) {
     return cause instanceof GraphQLRequestError && cause.status === 404
-        ? permanentRetryDelay
-        : transientRetryDelay;
+        ? 6 * 60 * 60 * 1_000
+        : 5 * 60 * 1_000;
 }
 
 async function requestAnime(id: number) {
@@ -36,7 +33,7 @@ async function requestAnime(id: number) {
     return Media;
 }
 
-async function refresh(id: number) {
+export async function refreshAnime(id: number) {
     const pending = requests.get(id);
     if (pending) {
         return pending;
@@ -100,12 +97,12 @@ export async function getAnime(id: number) {
 
     if (stored?.version === version) {
         if (
-            Date.now() - stored.fetchedAt.getTime() > lifetime &&
+            Date.now() - stored.fetchedAt.getTime() > 6 * 60 * 60 * 1_000 &&
             (retryAt.get(id) ?? 0) <= Date.now() &&
             !backgroundRefreshes.has(id)
         ) {
             backgroundRefreshes.add(id);
-            void refresh(id)
+            void refreshAnime(id)
                 .then(
                     () => retryAt.delete(id),
                     (cause) => {
@@ -122,7 +119,7 @@ export async function getAnime(id: number) {
     }
 
     try {
-        return await refresh(id);
+        return await refreshAnime(id);
     } catch (cause) {
         if (stored) {
             console.error(`AniList refresh failed for ${id}; using stale cache`, cause);
