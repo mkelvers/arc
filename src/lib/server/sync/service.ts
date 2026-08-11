@@ -3,7 +3,7 @@ import {
     SyncMediaListDocument,
     type MediaListStatus,
 } from '$lib/graphql/anilist/generated/graphql';
-import { and, desc, eq, lte } from 'drizzle-orm';
+import { and, desc, eq, lt, lte, sql } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import { ensureInternalAnimeId } from '$lib/server/anime/identity';
@@ -19,6 +19,7 @@ import {
 import { graphql } from '$lib/server/graphql';
 import { applyWatchlistEntries, getWatchlistEntries } from '$lib/server/watchlist';
 import { anilistRequestPolicy } from '$lib/server/anime/anilist/request-policy';
+import { anilistCompletedEpisodes, shouldImportAnilistProgress } from './progress';
 
 const endpoint = 'https://graphql.anilist.co';
 
@@ -112,6 +113,29 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
         ) ?? [];
 
     const local = await getWatchlistEntries(userId);
+    const localProgressRows = settings.episodeProgress
+        ? await db
+              .select({
+                  anilistId: animeExternalId.externalId,
+                  episodeNumber: playbackProgress.episodeNumber,
+                  completed: playbackProgress.completed,
+                  eventAt: playbackProgress.eventAt,
+              })
+              .from(playbackProgress)
+              .innerJoin(
+                  animeExternalIdLink,
+                  eq(animeExternalIdLink.animeId, playbackProgress.animeId)
+              )
+              .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
+              .where(
+                  and(
+                      eq(playbackProgress.userId, userId),
+                      eq(animeExternalId.provider, 'anilist'),
+                      eq(animeExternalId.mediaType, 'anime')
+                  )
+              )
+        : [];
+    const progressByAnime = new Map(localProgressRows.map((entry) => [entry.anilistId, entry]));
 
     if (settings.importAnilistChanges) {
         const localById = new Map(local.map((entry) => [entry.anilistId, entry]));
@@ -143,6 +167,12 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
                 continue;
             }
 
+            if (
+                !shouldImportAnilistProgress(progressByAnime.get(entry.anilistId), entry.progress)
+            ) {
+                continue;
+            }
+
             const [episode] = await db
                 .select({
                     episodeId: animeEpisode.episodeId,
@@ -164,7 +194,8 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
 
             const animeId = await ensureInternalAnimeId(entry.anilistId);
             const durationSeconds = Math.max(60, (episode.runtimeMinutes ?? 24) * 60);
-            await db
+            const eventAt = new Date(entry.updatedAt * 1_000);
+            const [saved] = await db
                 .insert(playbackProgress)
                 .values({
                     userId,
@@ -175,6 +206,7 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
                     durationSeconds,
                     completed: true,
                     lastWatchedAt: new Date(),
+                    eventAt,
                 })
                 .onConflictDoUpdate({
                     target: [playbackProgress.userId, playbackProgress.animeId],
@@ -186,35 +218,41 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
                         completed: true,
                         updatedAt: new Date(),
                         lastWatchedAt: new Date(),
+                        eventAt,
                     },
+                    setWhere: lt(
+                        playbackProgress.eventAt,
+                        sql.raw(`excluded.${playbackProgress.eventAt.name}`)
+                    ),
+                })
+                .returning({ episodeNumber: playbackProgress.episodeNumber });
+
+            if (saved) {
+                progressByAnime.set(entry.anilistId, {
+                    anilistId: entry.anilistId,
+                    episodeNumber: episode.number,
+                    completed: true,
+                    eventAt,
                 });
+            }
         }
     }
-
-    const progressRows = settings.episodeProgress
-        ? await db
-              .select({
-                  anilistId: animeExternalId.externalId,
-                  episodeNumber: playbackProgress.episodeNumber,
-              })
-              .from(playbackProgress)
-              .innerJoin(
-                  animeExternalIdLink,
-                  eq(animeExternalIdLink.animeId, playbackProgress.animeId)
-              )
-              .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
-              .innerJoin(animeEpisode, eq(animeEpisode.anilistId, animeExternalId.externalId))
-              .where(eq(playbackProgress.userId, userId))
-        : [];
-    const progressByAnime = new Map(
-        progressRows.map((entry) => [entry.anilistId, Math.ceil(entry.episodeNumber)])
-    );
 
     if (settings.watchingStatus || settings.episodeProgress) {
         const remoteById = new Map(remote.map((entry) => [entry.anilistId, entry]));
         for (const entry of local) {
             const current = remoteById.get(entry.anilistId);
-            if (current && entry.updatedAt.getTime() <= current.updatedAt * 1_000) {
+            const progress = progressByAnime.get(entry.anilistId);
+            const watchlistNeedsSync =
+                settings.watchingStatus &&
+                (!current || entry.updatedAt.getTime() > current.updatedAt * 1_000);
+            const completedEpisodes = progress ? anilistCompletedEpisodes(progress) : null;
+            const progressNeedsSync =
+                settings.episodeProgress &&
+                completedEpisodes !== null &&
+                completedEpisodes > (current?.progress ?? 0);
+
+            if (!watchlistNeedsSync && !progressNeedsSync) {
                 continue;
             }
 
@@ -224,10 +262,8 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
                     SaveSyncMediaListEntryDocument,
                     {
                         mediaId: entry.anilistId,
-                        ...(settings.watchingStatus ? { status: anilistStatus(entry.state) } : {}),
-                        ...(settings.episodeProgress && progressByAnime.has(entry.anilistId)
-                            ? { progress: progressByAnime.get(entry.anilistId) }
-                            : {}),
+                        ...(watchlistNeedsSync ? { status: anilistStatus(entry.state) } : {}),
+                        ...(progressNeedsSync ? { progress: completedEpisodes } : {}),
                     },
                     { headers: { Authorization: `Bearer ${account.accessToken}` } }
                 )
