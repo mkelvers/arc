@@ -20,9 +20,8 @@ import {
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
 import type { MediaSeason, MediaSource } from '$lib/graphql/anilist/generated/graphql';
-import { withAnimeCardPosters } from './card-posters';
+import { enrichAnimeCards } from './card-enrichment';
 
-const maximumPage = 2_147_483_647;
 type CatalogCachePage = {
     animeIds: number[];
     hasNextPage: boolean;
@@ -433,11 +432,11 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
         };
     });
 
-    return withAnimeCardPosters(cards);
+    return enrichAnimeCards(cards);
 }
 
 async function loadPage(filters: BrowseFilters, page: number) {
-    if (!Number.isSafeInteger(page) || page < 1 || page > maximumPage) {
+    if (!Number.isSafeInteger(page) || page < 1 || page > 2_147_483_647) {
         throw new BrowseFilterError('Invalid browse page');
     }
 

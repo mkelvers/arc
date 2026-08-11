@@ -1,14 +1,14 @@
 import { parseAnimeSeason, type AnimeSeasonSelection } from '$lib/anime/season';
 import { positiveInteger } from '$lib/utils';
 import { getSimulcastPage as fetchSimulcastPage } from './allanime/catalog';
-import { withAnimeCardPosters } from './card-posters';
+import { enrichAnimeCards } from './card-enrichment';
 
 export async function simulcastPage(selection: AnimeSeasonSelection, number: number) {
     const result = await fetchSimulcastPage(selection, number);
 
     return {
         ...result,
-        anime: (await withAnimeCardPosters(result.anime)).filter(({ image }) =>
+        anime: (await enrichAnimeCards(result.anime)).filter(({ image }) =>
             /^https?:\/\//i.test(image)
         ),
     };

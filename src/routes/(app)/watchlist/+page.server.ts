@@ -3,7 +3,7 @@ import { inArray } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { getWatchlistAnime } from '$lib/server/anime/anilist/watchlist';
-import { withAnimeCardPosters } from '$lib/server/anime/card-posters';
+import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { getWatchlistEntries } from '$lib/server/watchlist';
@@ -60,7 +60,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         }
 
         const storedById = new Map(filtered.map((entry) => [entry.anilistId, entry]));
-        return (await withAnimeCardPosters(cards))
+        return (await enrichAnimeCards(cards))
             .flatMap((card) => {
                 const entry = storedById.get(card.id);
                 return entry

@@ -5,7 +5,7 @@ import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { currentAnimeSeason } from '$lib/anime/season';
 import { getHomepage } from '$lib/server/anime/anilist/home';
 import { getPopularAudioLabels } from '$lib/server/anime/allanime/catalog';
-import { withAnimeCardPosters } from '$lib/server/anime/card-posters';
+import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { getHomeHero } from '$lib/server/anime/home';
 import { animeId } from '$lib/server/anime/route';
 import { db } from '$lib/server/db';
@@ -60,7 +60,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     });
 
     const seasonCards = homepage.season.map(withAudio);
-    const cards = await withAnimeCardPosters([...seasonCards, ...homepage.popular.map(withAudio)]);
+    const cards = await enrichAnimeCards([...seasonCards, ...homepage.popular.map(withAudio)]);
 
     return {
         pageTitle: 'Watch anime',

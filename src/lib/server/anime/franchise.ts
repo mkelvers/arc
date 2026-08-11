@@ -6,7 +6,7 @@ import { db } from '$lib/server/db';
 import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
 import { request } from './anilist/client';
 import { plainText } from './anilist/text';
-import { withAnimeCardPosters } from './card-posters';
+import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import {
     verifiedFranchiseCache,
@@ -239,6 +239,6 @@ export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> 
 
     return {
         ...order,
-        entries: await withAnimeCardPosters(entries),
+        entries: await enrichAnimeCards(entries),
     };
 }

@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 
 import { searchAnime } from '$lib/server/anime/anilist/search';
-import { withAnimeCardPosters } from '$lib/server/anime/card-posters';
+import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { withAnimeSearchMetadata } from '$lib/server/anime/search-enrichment';
 import type { PageServerLoad } from './$types';
 
@@ -23,6 +23,6 @@ export const load: PageServerLoad = async ({ url }) => {
     return {
         pageTitle: 'Search anime',
         query,
-        results: await withAnimeSearchMetadata(await withAnimeCardPosters(results)),
+        results: await withAnimeSearchMetadata(await enrichAnimeCards(results)),
     };
 };

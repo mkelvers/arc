@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 
 import { searchAnime } from '$lib/server/anime/anilist/search';
-import { withAnimeCardPosters } from '$lib/server/anime/card-posters';
+import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { withAnimeSearchMetadata } from '$lib/server/anime/search-enrichment';
 import type { RequestHandler } from './$types';
 
@@ -22,5 +22,5 @@ export const GET: RequestHandler = async ({ url }) => {
         error(502, 'Anime search could not be loaded');
     }
 
-    return json(await withAnimeSearchMetadata(await withAnimeCardPosters(results)));
+    return json(await withAnimeSearchMetadata(await enrichAnimeCards(results)));
 };
