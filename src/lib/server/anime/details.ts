@@ -76,7 +76,7 @@ function formatRankings(media: Anime) {
     ].filter((ranking): ranking is string => Boolean(ranking));
 }
 
-export function toAnimeDetails(media: Anime) {
+export function toAnimeDetails(media: Anime, description = media.description) {
     return {
         id: media.id,
         title:
@@ -85,7 +85,7 @@ export function toAnimeDetails(media: Anime) {
             media.title?.native ??
             `Anime ${media.id}`,
         bannerImage: media.bannerImage ?? null,
-        description: formatDescription(media.description),
+        description: formatDescription(description),
         genres: present(media.genres),
         format: enumLabel(media.format),
         status: media.status,

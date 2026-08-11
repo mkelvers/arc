@@ -5,6 +5,7 @@ import { toAnimeDetails } from '$lib/server/anime/details';
 import { getEpisodeRevision, getEpisodes } from '$lib/server/anime/episodes';
 import { getFranchiseOrder } from '$lib/server/anime/franchise';
 import { animeId, loadAnime } from '$lib/server/anime/route';
+import { resolveAnimeSynopsis } from '$lib/server/anime/synopsis';
 import { getArtwork } from '$lib/server/anime/tmdb/artwork';
 import { continuationEpisode } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
@@ -21,7 +22,7 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
     const userId = locals.user?.id;
 
     const result = await loadAnime(id);
-    const details = toAnimeDetails(result);
+    const details = toAnimeDetails(result, await resolveAnimeSynopsis(result));
     const watchlistState = await getWatchlistState(userId, id);
 
     const artwork = getArtwork(result).catch((cause) => {
