@@ -4,12 +4,9 @@
         audioLabel,
         formatTime,
         isHd,
-        subtitleSizeOrder,
-        subtitleSizes,
         type SettingsView,
         type SubtitleMode,
         type SubtitleOption,
-        type SubtitleSize,
     } from '$lib/player/media';
     import type { SegmentTemplates, SkipKind, SkipTimesDraft } from '$lib/player/skip-times';
     import { cn } from '$lib/utils';
@@ -41,9 +38,7 @@
         };
         subtitleMode: SubtitleMode;
         subtitleOptions: SubtitleOption[];
-        subtitleSize: SubtitleSize;
         onsubtitlemode: (mode: SubtitleMode) => void;
-        onsubtitlesize: (size: SubtitleSize) => void;
         view?: SettingsView;
     }
 
@@ -70,9 +65,7 @@
         segments,
         subtitleMode,
         subtitleOptions,
-        subtitleSize,
         onsubtitlemode,
-        onsubtitlesize,
         view = $bindable('main'),
     }: Props = $props();
 
@@ -218,18 +211,12 @@
     {:else}
         {@const editingKind =
             view === 'segment-opening' ? 'opening' : view === 'segment-ending' ? 'ending' : null}
-        {@const subtitleOption = view === 'subtitle-size' ? 'Size' : null}
         <button
             type="button"
             role="menuitem"
-            aria-label={editingKind
-                ? 'Back to segments'
-                : subtitleOption
-                  ? 'Back to Subtitles/CC'
-                  : 'Back to playback settings'}
+            aria-label={editingKind ? 'Back to segments' : 'Back to playback settings'}
             class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() =>
-                (view = editingKind ? 'segments' : subtitleOption ? 'subtitles' : 'main')}
+            onclick={() => (view = editingKind ? 'segments' : 'main')}
         >
             <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
             {view === 'quality'
@@ -240,9 +227,7 @@
                     ? 'Subtitles/CC'
                     : editingKind
                       ? skipLabel(editingKind)
-                      : subtitleOption
-                        ? subtitleOption
-                        : 'Segments'}
+                      : 'Segments'}
         </button>
 
         {#if view === 'quality'}
@@ -288,19 +273,6 @@
                 </button>
             {/each}
         {:else if view === 'subtitles'}
-            <button
-                type="button"
-                role="menuitem"
-                class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                onclick={() => (view = 'subtitle-size')}
-            >
-                <span>Size</span>
-                <span class="flex items-center gap-1 text-white/85">
-                    {subtitleSizes[subtitleSize].label}
-                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
-                </span>
-            </button>
-
             {#each subtitleOptions as option}
                 <button
                     type="button"
@@ -311,19 +283,6 @@
                 >
                     {@render radio(subtitleMode === option.mode)}
                     {option.label}
-                </button>
-            {/each}
-        {:else if view === 'subtitle-size'}
-            {#each subtitleSizeOrder as size}
-                <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={subtitleSize === size}
-                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => onsubtitlesize(size)}
-                >
-                    {@render radio(subtitleSize === size)}
-                    {subtitleSizes[size].label}
                 </button>
             {/each}
         {:else if view === 'segments'}
