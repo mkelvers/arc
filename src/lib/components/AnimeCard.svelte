@@ -104,7 +104,7 @@
         </div>
     </article>
 {:else if variant === 'top'}
-    <article class="group relative min-w-0 overflow-hidden text-foreground">
+    <article class="group relative min-w-0 text-foreground">
         <div
             class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
         >
@@ -131,7 +131,7 @@
             </a>
         </div>
         <div
-            class="pointer-events-none absolute inset-0 flex flex-col overflow-hidden bg-surface p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-0 flex flex-col bg-surface p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
             <a
                 href={anime.href}
@@ -186,7 +186,7 @@
     <article
         class:border-foreground={current}
         class:border-transparent={!current}
-        class="group relative isolate min-w-0 overflow-hidden p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10"
+        class="group relative isolate min-w-0 p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10"
     >
         <div
             class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
@@ -219,7 +219,7 @@
             loading="lazy"
         />
         <div
-            class="pointer-events-none absolute inset-0 flex flex-col overflow-hidden bg-surface/88 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-0 flex flex-col bg-surface/88 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
             <a
                 href={anime.href}

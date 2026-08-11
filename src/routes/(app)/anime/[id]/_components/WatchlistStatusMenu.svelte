@@ -6,6 +6,7 @@
     import { watchlistStatusOptions, type WatchlistState } from '$lib/watchlist';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import Tooltip from '$lib/components/Tooltip.svelte';
 
     interface Props {
         animeId: number;
@@ -84,10 +85,12 @@
     ariaLabel={`Manage ${title} watchlist status`}
     menuAlign="start"
     menuClass="w-52 pt-2"
-    triggerClass="grid size-10 shrink-0 cursor-pointer place-items-center text-accent transition-opacity hover:opacity-70 peer-focus-visible:opacity-70"
+    triggerClass="grid size-10 shrink-0 cursor-pointer place-items-center text-accent"
 >
     {#snippet trigger()}
-        <PencilSimpleIcon size="1.65em" weight="regular" aria-hidden="true" />
+        <Tooltip text="Manage Watchlist Status" class="size-full items-center justify-center">
+            <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true" />
+        </Tooltip>
     {/snippet}
 
     {#snippet content()}
