@@ -3,8 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { parseOrder } from './chiaki';
 
 describe('Chiaki franchise order parsing', () => {
-  test('parses ordered television, movie, and OVA releases', () => {
-    const order = parseOrder(`
+    test('parses ordered television, movie, and OVA releases', () => {
+        const order = parseOrder(`
             <div id="wo_type_filter">
                 <label><input type="checkbox" value="1"> TV</label>
                 <label><input type="checkbox" value="2"> OVA</label>
@@ -29,28 +29,28 @@ describe('Chiaki franchise order parsing', () => {
             </table>
         `);
 
-    expect(order.types).toEqual([
-      { id: '1', label: 'TV' },
-      { id: '2', label: 'OVA' },
-      { id: '3', label: 'Movie' },
-    ]);
-    expect(
-      order.entries.map(({ malId, secondary, typeId }) => ({
-        malId,
-        secondary,
-        typeId,
-      }))
-    ).toEqual([
-      { malId: 16498, secondary: false, typeId: '1' },
-      { malId: 18397, secondary: true, typeId: '2' },
-      { malId: 23775, secondary: false, typeId: '3' },
-    ]);
-    expect(order.entries[0]?.image).toBe('https://chiaki.site/images/aot.jpg');
-  });
+        expect(order.types).toEqual([
+            { id: '1', label: 'TV' },
+            { id: '2', label: 'OVA' },
+            { id: '3', label: 'Movie' },
+        ]);
+        expect(
+            order.entries.map(({ malId, secondary, typeId }) => ({
+                malId,
+                secondary,
+                typeId,
+            }))
+        ).toEqual([
+            { malId: 16498, secondary: false, typeId: '1' },
+            { malId: 18397, secondary: true, typeId: '2' },
+            { malId: 23775, secondary: false, typeId: '3' },
+        ]);
+        expect(order.entries[0]?.image).toBe('https://chiaki.site/images/aot.jpg');
+    });
 
-  test('rejects an upstream page without watch-order markup', () => {
-    expect(() => parseOrder('<main>Not found</main>')).toThrow(
-      'Chiaki watch-order markup was not found'
-    );
-  });
+    test('rejects an upstream page without watch-order markup', () => {
+        expect(() => parseOrder('<main>Not found</main>')).toThrow(
+            'Chiaki watch-order markup was not found'
+        );
+    });
 });
