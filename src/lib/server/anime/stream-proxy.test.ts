@@ -153,6 +153,54 @@ describe('stream proxy', () => {
         });
     });
 
+    test('keeps TikTok ad references direct without warning about an unlisted host', async () => {
+        const request = new Request(
+            'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.shiora.site%2Fshow%2Fmaster.m3u8'
+        );
+        const fetchStream = async () =>
+            new Response(
+                [
+                    '#EXTM3U',
+                    'https://p16-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
+                    'https://p19-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
+                ].join('\n'),
+                { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+            );
+        const warning = console.warn;
+        const warnings: string[] = [];
+        console.warn = (message: string) => warnings.push(message);
+
+        try {
+            const response = await proxyStreamRequest(request, fetchStream);
+
+            expect(await response.text()).toBe(
+                [
+                    '#EXTM3U',
+                    'https://p16-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
+                    'https://p19-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
+                ].join('\n')
+            );
+            expect(warnings).toEqual([]);
+        } finally {
+            console.warn = warning;
+        }
+    });
+
+    test('keeps rotating IByte ad references direct', async () => {
+        const target = 'https://p16-ad-sg.ibyteimg.com/obj/ad-site-i18n-sg/ad.image';
+        const request = new Request(
+            'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.shiora.site%2Fshow%2Fmaster.m3u8'
+        );
+        const fetchStream = async () =>
+            new Response(target, {
+                headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+            });
+
+        const response = await proxyStreamRequest(request, fetchStream);
+
+        expect(await response.text()).toBe(target);
+    });
+
     test('unwraps image-disguised transport-stream segments', async () => {
         const request = new Request(
             'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fcdn.ibyteimg.com%2Fshow%2Fsegment.png'

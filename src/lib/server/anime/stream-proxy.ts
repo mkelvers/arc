@@ -28,6 +28,7 @@ const refererHostGroups = [
     { hosts: ['ninstream.com', 'ninjstream.xyz'], referer: 'https://senshi.live/' },
     { hosts: ['kwik.cx', 'uwucdn.top', 'streampeaker.org'], referer: 'https://kwik.cx/' },
 ] as const;
+const directPlaylistHost = /^p\d+-(?:ad-site-sign-sg\.tiktokcdn\.com|ad-sg\.ibyteimg\.com)$/;
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
 type StreamBody = 'playlist' | 'segment';
@@ -335,6 +336,12 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
     try {
         target = new URL(reference, playlist);
     } catch {
+        return reference;
+    }
+
+    // MegaPlay playlists include optional ad assets. Keep them direct instead
+    // of proxying them during stream startup.
+    if (directPlaylistHost.test(target.hostname)) {
         return reference;
     }
 
