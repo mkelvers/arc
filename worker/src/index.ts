@@ -15,11 +15,13 @@ await queue.add(
     }
 );
 
+await queue.removeJobScheduler('daily-anilist-sync');
+
 await queue.upsertJobScheduler(
-    'daily-anilist-sync',
+    'daily-anilist-publication',
     { pattern: '0 59 23 * * *', tz: workerConfig.timezone },
     {
-        name: 'sync-anilist-all',
+        name: 'publish-anilist-all',
         data: {},
         opts: { priority: 10, attempts: 3, removeOnComplete: 100 },
     }

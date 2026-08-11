@@ -15,7 +15,7 @@ import {
 import { batches } from '$lib/utils';
 import { watchlistStateAfterPlayback } from './watchlist-completion';
 import { removeAniListEntry } from './sync/anilist';
-import { enqueueUserSync } from './sync/queue';
+import { enqueueAniListPublication } from './sync/queue';
 
 const databaseBatchSize = 1_000;
 
@@ -122,8 +122,8 @@ async function setInternalWatchlistState(userId: string, animeId: number, state:
 export async function setWatchlistState(userId: string, anilistId: number, state: WatchlistState) {
     const animeId = await ensureInternalAnimeId(anilistId);
     const result = await setInternalWatchlistState(userId, animeId, state);
-    void enqueueUserSync(userId).catch((cause) =>
-        console.warn('AniList sync enqueue failed', cause)
+    void enqueueAniListPublication(userId).catch((cause) =>
+        console.warn('AniList publication enqueue failed', cause)
     );
     return result;
 }
@@ -140,8 +140,8 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
     void removeAniListEntry(userId, anilistId).catch((cause) =>
         console.warn('AniList entry removal failed', cause)
     );
-    void enqueueUserSync(userId).catch((cause) =>
-        console.warn('AniList sync enqueue failed', cause)
+    void enqueueAniListPublication(userId).catch((cause) =>
+        console.warn('AniList publication enqueue failed', cause)
     );
 }
 
@@ -150,7 +150,7 @@ export async function applyWatchlistEntries(
     entries: WatchlistEntryInput[],
     mode: WatchlistImportMode = 'merge'
 ) {
-    return db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
         const anilistIds = [...new Set(entries.map(({ anilistId }) => anilistId))];
 
         for (const batch of batches(anilistIds, databaseBatchSize)) {
@@ -305,6 +305,12 @@ export async function applyWatchlistEntries(
             removed: 0,
         };
     });
+
+    void enqueueAniListPublication(userId).catch((cause) =>
+        console.warn('AniList publication enqueue failed', cause)
+    );
+
+    return result;
 }
 
 export async function updateWatchlistAfterPlayback(

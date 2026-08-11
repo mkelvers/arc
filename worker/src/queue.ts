@@ -2,8 +2,8 @@ import { DelayedError, Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 
 import { workerConfig } from './config';
-import { syncAllUsers } from './jobs/sync-all';
-import { syncAniList } from './jobs/sync-anilist';
+import { publishAllUsers } from './jobs/sync-all';
+import { publishAniList } from './jobs/sync-anilist';
 import { scanAiring, syncAiring } from './jobs/sync-airing';
 
 interface SyncJob {
@@ -23,13 +23,16 @@ export function createWorker(queue: Queue) {
         'arc',
         async (job, token) => {
             switch (job.name) {
+                // Jobs already persisted under the old name remain outbound-only.
                 case 'sync-anilist':
+                case 'publish-anilist':
                     if (!job.data.userId) {
-                        throw new Error('AniList sync job has no user ID');
+                        throw new Error('AniList publication job has no user ID');
                     }
-                    return syncAniList(job.data.userId);
+                    return publishAniList(job.data.userId);
                 case 'sync-anilist-all':
-                    return syncAllUsers(queue);
+                case 'publish-anilist-all':
+                    return publishAllUsers(queue);
                 case 'scan-airing':
                     return scanAiring(queue);
                 case 'sync-airing':

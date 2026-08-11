@@ -6,12 +6,12 @@ const arcQueue = new Queue('arc', {
     connection: new IORedis(env.REDIS_URL),
 });
 
-export async function enqueueUserSync(userId: string, priority = 1) {
+export async function enqueueAniListPublication(userId: string, priority = 1) {
     await arcQueue.add(
-        'sync-anilist',
+        'publish-anilist',
         { userId },
         {
-            jobId: `sync-anilist-${userId}`,
+            jobId: `publish-anilist-${userId}`,
             priority,
             attempts: 3,
             backoff: { type: 'exponential', delay: 60_000 },

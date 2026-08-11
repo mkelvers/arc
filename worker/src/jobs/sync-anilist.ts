@@ -1,6 +1,6 @@
 import { workerConfig } from '../config';
 
-export async function syncAniList(userId: string) {
+export async function publishAniList(userId: string) {
     const response = await fetch(`${workerConfig.webUrl}/api/internal/sync/anilist`, {
         method: 'POST',
         headers: {
@@ -14,6 +14,6 @@ export async function syncAniList(userId: string) {
     if (!response.ok) {
         const retryAfter = response.headers.get('Retry-After');
         const delay = retryAfter ? `; retry after ${retryAfter}s` : '';
-        throw new Error(`AniList sync failed: ${response.status}${delay}`);
+        throw new Error(`AniList publication failed: ${response.status}${delay}`);
     }
 }
