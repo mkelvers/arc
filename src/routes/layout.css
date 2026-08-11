@@ -1,10 +1,6 @@
 @import '@fontsource-variable/inter/wght.css';
 @import 'tailwindcss';
 
-[data-timeline-position] {
-    left: attr(data-timeline-position);
-}
-
 [data-buffered-progress]::before,
 [data-progress]::after {
     position: absolute;
@@ -14,12 +10,12 @@
 }
 
 [data-buffered-progress]::before {
-    width: attr(data-buffered-progress);
+    width: var(--buffered-progress);
     background: rgb(255 255 255 / 0.6);
 }
 
 [data-progress]::after {
-    width: attr(data-progress);
+    width: var(--progress);
     background: var(--theme-accent);
 }
 
@@ -33,6 +29,10 @@
     border-top: 0.25rem solid white;
     content: '';
     transform: translateX(-50%);
+}
+
+[data-timeline-position] {
+    left: var(--timeline-position);
 }
 
 [data-subtitle-size] {
