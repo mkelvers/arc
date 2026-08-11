@@ -1,6 +1,7 @@
 import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
 import type { AnimeSeasonSelection } from '$lib/anime/season';
 import type { AnimeCard } from '$lib/anime/types';
+import { and, eq } from 'drizzle-orm';
 import {
   AllAnimeAvailableEpisodesDocument,
   AllAnimeSearchDocument,
@@ -11,17 +12,20 @@ import {
   type VaildTranslationTypeEnumType,
 } from '$lib/graphql/allanime/generated/graphql';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from '../providers/mapping';
-import { RequestCache } from '$lib/server/request-cache';
+import { db } from '$lib/server/db';
+import { animeSimulcastPageCache } from '$lib/server/db/schema';
 import { nonEmptyText, positiveInteger, record } from '$lib/utils';
 import { plainText } from '../anilist/text';
 import { request } from './client';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
+import { isAnimeCardPage } from '$lib/anime/types';
 
 const audioCacheLifetime = 30 * 60 * 1_000;
 const providerName = 'allanime';
 const simulcastPageSize = 24;
-const simulcastPages = new RequestCache<string, SimulcastPage>(30 * 60 * 1_000);
+const simulcastPageLifetime = 30 * 60 * 1_000;
+const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();
 
 interface SimulcastPage {
   anime: AnimeCard[];
@@ -132,15 +136,77 @@ export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
   }
 
   const key = `${selected.season}:${selected.year}:${page}`;
-  return simulcastPages.get(
-    key,
-    () =>
-      requestSimulcastPage(selected, page).catch((cause) => {
+  const refresh = () => {
+    const active = activeSimulcastRefreshes.get(key);
+    if (active) {
+      return active;
+    }
+
+    const request = requestSimulcastPage(selected, page).then(async (data) => {
+      try {
+        await db
+          .insert(animeSimulcastPageCache)
+          .values({
+            season: selected.season,
+            year: selected.year,
+            page,
+            data,
+            fetchedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [
+              animeSimulcastPageCache.season,
+              animeSimulcastPageCache.year,
+              animeSimulcastPageCache.page,
+            ],
+            set: { data, fetchedAt: new Date() },
+          });
+      } catch (cause) {
+        console.warn('AllAnime simulcast cache write failed', cause);
+      }
+
+      return data;
+    });
+    activeSimulcastRefreshes.set(key, request);
+    request.then(
+      () => activeSimulcastRefreshes.delete(key),
+      () => activeSimulcastRefreshes.delete(key)
+    );
+    return request;
+  };
+
+  return db
+    .select({ data: animeSimulcastPageCache.data, fetchedAt: animeSimulcastPageCache.fetchedAt })
+    .from(animeSimulcastPageCache)
+    .where(
+      and(
+        eq(animeSimulcastPageCache.season, selected.season),
+        eq(animeSimulcastPageCache.year, selected.year),
+        eq(animeSimulcastPageCache.page, page)
+      )
+    )
+    .limit(1)
+    .then(async ([stored]) => {
+      const cached = stored && isAnimeCardPage(stored.data) ? stored.data : null;
+      const fresh = cached && Date.now() - stored.fetchedAt.getTime() < simulcastPageLifetime;
+      if (fresh) {
+        return cached;
+      }
+
+      const request = refresh().catch((cause) => {
         console.error(`AllAnime simulcast ${key} refresh failed`, cause);
+        if (cached) {
+          return cached;
+        }
         throw cause;
-      }),
-    { staleIfError: true }
-  );
+      });
+      if (cached) {
+        void request;
+        return cached;
+      }
+
+      return request;
+    });
 }
 
 export async function getWeeklyPopularAnime() {

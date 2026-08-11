@@ -253,6 +253,13 @@
       "when": 1786396479413,
       "tag": "0035_sharp_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1786432952231,
+      "tag": "0036_wakeful_stick",
+      "breakpoints": true
     }
   ]
 }
