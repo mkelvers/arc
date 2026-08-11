@@ -1,222 +1,232 @@
 <script lang="ts">
-  import Dropdown from '$lib/components/Dropdown.svelte';
-  import EpisodeList from '$lib/components/EpisodeList.svelte';
-  import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
-  import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
-  import WatchlistStatusMenu from '$lib/components/WatchlistStatusMenu.svelte';
-  import { cn } from '$lib/utils';
-  import type { PageProps } from './$types';
-  import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
+    import Dropdown from '$lib/components/Dropdown.svelte';
+    import EpisodeList from '$lib/components/EpisodeList.svelte';
+    import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
+    import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
+    import WatchlistStatusMenu from './_components/WatchlistStatusMenu.svelte';
+    import { cn } from '$lib/utils';
+    import type { PageProps } from './$types';
+    import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
 
-  let { data }: PageProps = $props();
+    let { data }: PageProps = $props();
 
-  let detailsExpanded = $state(false);
+    let detailsExpanded = $state(false);
 </script>
 
 <main class="bg-canvas text-foreground">
-  <section class="min-h-dvh">
-    <figure
-      class="anime-hero relative z-10 grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
-    >
-      {#await data.artwork then artwork}
-        {#if artwork?.selectedBackdrop}
-          <img
-            src={artwork.selectedBackdrop.url}
-            alt={data.anime.title}
-            class="z-0 col-start-1 row-start-1 size-full object-cover object-[center_0%]"
-          />
-        {/if}
-      {/await}
-
-      <div
-        class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
-      >
-        <Dropdown
-          id="more-options"
-          items={[{ label: 'View Media Options', href: `/anime/${data.anime.id}/media` }]}
+    <section class="min-h-dvh">
+        <figure
+            class="anime-hero relative z-10 grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
-          {#snippet trigger()}
-            <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
-              <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
-              <span>MORE</span>
-            </span>
-          {/snippet}
-        </Dropdown>
-      </div>
+            {#await data.artwork then artwork}
+                {#if artwork?.selectedBackdrop}
+                    <img
+                        src={artwork.selectedBackdrop.url}
+                        alt={data.anime.title}
+                        class="z-0 col-start-1 row-start-1 size-full object-cover object-[center_0%]"
+                    />
+                {/if}
+            {/await}
 
-      <div
-        class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20"
-      >
-        <div class="w-fit">
-          {#await data.artwork then artwork}
-            {#if artwork?.selectedLogo}
-              <img
-                src={artwork.selectedLogo.url}
-                alt={data.anime.title}
-                style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(5.7 * artwork.logoSize) / 100}vw, ${(6.25 * artwork.logoSize) / 100}rem)`}
-                class="max-h-24 max-w-md object-contain object-left sm:max-h-32 lg:max-h-none lg:max-w-none"
-              />
-            {:else if !artwork}
-              <h1
-                class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl"
-              >
-                {data.anime.title}
-              </h1>
-            {/if}
-          {/await}
+            <div
+                class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
+            >
+                <Dropdown
+                    id="more-options"
+                    items={[{ label: 'View Media Options', href: `/anime/${data.anime.id}/media` }]}
+                >
+                    {#snippet trigger()}
+                        <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
+                            <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                            <span>More</span>
+                        </span>
+                    {/snippet}
+                </Dropdown>
+            </div>
+
+            <div
+                class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20"
+            >
+                <div class="w-fit">
+                    {#await data.artwork then artwork}
+                        {#if artwork?.selectedLogo}
+                            <img
+                                src={artwork.selectedLogo.url}
+                                alt={data.anime.title}
+                                style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(6.4 * artwork.logoSize) / 100}vw, ${(8 * artwork.logoSize) / 100}rem)`}
+                                class="max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
+                            />
+                        {:else if !artwork}
+                            <h1
+                                class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl"
+                            >
+                                {data.anime.title}
+                            </h1>
+                        {/if}
+                    {/await}
+                </div>
+
+                <p
+                    class="mt-8 flex flex-wrap items-center gap-y-1 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base"
+                >
+                    {#await data.audioLabel then audioLabel}
+                        {#if audioLabel}
+                            <span class="anime-hero-metadata__tag">{audioLabel}</span>
+                        {/if}
+                    {/await}
+                    {#if data.anime.genres.length}
+                        <span class="anime-hero-metadata__tag">
+                            {#each data.anime.genres as genre, index}
+                                <a class="underline underline-offset-2" href="/">{genre}</a>{index <
+                                data.anime.genres.length - 1
+                                    ? ', '
+                                    : ''}
+                            {/each}
+                        </span>
+                    {/if}
+                </p>
+
+                <div
+                    class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
+                >
+                    <span
+                        class="flex items-center gap-0.5 text-muted"
+                        aria-label="5 out of 5 stars"
+                    >
+                        {#each Array(5) as _}
+                            <svg
+                                class="size-6 fill-current sm:size-7"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
+                                />
+                            </svg>
+                        {/each}
+                    </span>
+                    <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
+                    <strong>AniList score: {data.anime.score}%</strong>
+                </div>
+
+                <div
+                    class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
+                >
+                    {#await data.watchAction}
+                        <a
+                            href="#anime-episode-list"
+                            class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
+                        >
+                            <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
+                            VIEW EPISODES
+                        </a>
+                    {:then watchAction}
+                        <a
+                            href={watchAction.href}
+                            class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
+                        >
+                            <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
+                            {watchAction.label}
+                        </a>
+                    {/await}
+                    <WatchlistBookmark
+                        animeId={data.anime.id}
+                        title={data.anime.title}
+                        class="size-11 shrink-0 border border-accent lg:size-12"
+                        iconSize="1.65em"
+                    />
+                    <WatchlistStatusMenu
+                        animeId={data.anime.id}
+                        title={data.anime.title}
+                        initialState={data.watchlistState ?? undefined}
+                    />
+                </div>
+            </div>
+        </figure>
+
+        <div class="border-b border-border px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
+            <section
+                id="anime-details"
+                class={cn(
+                    'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
+                    detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'
+                )}
+            >
+                <p class="max-w-3xl text-foreground">{data.anime.description}</p>
+                <div class="space-y-3">
+                    <p>
+                        <strong class="font-normal text-foreground">Production:</strong>
+                        {data.anime.studios.join(', ')}
+                    </p>
+                    <p>
+                        <strong class="font-normal text-foreground">Key staff:</strong>
+                        {data.anime.staff}
+                    </p>
+                    <p>
+                        <strong class="font-normal text-foreground">Rankings:</strong>
+                        {data.anime.rankings.join(', ')}
+                    </p>
+                    <p>
+                        <strong class="font-normal text-foreground">Audience:</strong>
+                        {data.anime.members} members, {data.anime.favourites} favorites
+                    </p>
+                    <p>
+                        <strong class="font-normal text-foreground">Themes:</strong>
+                        {data.anime.themes.join(', ')}
+                    </p>
+                    <p>
+                        <strong class="font-normal text-foreground">Genres:</strong>
+                        {#each data.anime.genres as genre, index}
+                            <a class="underline underline-offset-2" href="/">{genre}</a>{index <
+                            data.anime.genres.length - 1
+                                ? ', '
+                                : ''}
+                        {/each}
+                    </p>
+                </div>
+            </section>
+
+            <button
+                type="button"
+                class="min-h-11 text-xs font-semibold text-accent"
+                aria-expanded={detailsExpanded}
+                aria-controls="anime-details"
+                onclick={() => (detailsExpanded = !detailsExpanded)}
+            >
+                {detailsExpanded ? 'FEWER DETAILS' : 'MORE DETAILS'}
+            </button>
         </div>
+    </section>
 
-        <p
-          class="mt-8 flex flex-wrap items-center gap-y-1 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base"
-        >
-          {#await data.audioLabel then audioLabel}
-            {#if audioLabel}
-              <span class="anime-hero-metadata__tag">{audioLabel}</span>
-            {/if}
-          {/await}
-          {#if data.anime.genres.length}
-            <span class="anime-hero-metadata__tag">
-              {#each data.anime.genres as genre, index}
-                <a class="underline underline-offset-2" href="/">{genre}</a>{index <
-                data.anime.genres.length - 1
-                  ? ', '
-                  : ''}
-              {/each}
-            </span>
-          {/if}
-        </p>
-
-        <div
-          class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
-        >
-          <span class="flex items-center gap-0.5 text-muted" aria-label="5 out of 5 stars">
-            {#each Array(5) as _}
-              <svg class="size-6 fill-current sm:size-7" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                  d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
+    <div class="px-5 sm:px-10 lg:px-16">
+        {#await data.episodes then episodes}
+            {#await data.artwork then artwork}
+                <EpisodeList
+                    episodes={episodes}
+                    title={data.anime.title}
+                    image={artwork?.selectedBackdrop?.url ?? null}
                 />
-              </svg>
-            {/each}
-          </span>
-          <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
-          <strong>AniList score: {data.anime.score}%</strong>
-        </div>
+            {/await}
+        {/await}
 
-        <div
-          class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
-        >
-          {#await data.watchAction}
-            <a
-              href="#anime-episode-list"
-              class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
-            >
-              <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-              VIEW EPISODES
-            </a>
-          {:then watchAction}
-            <a
-              href={watchAction.href}
-              class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
-            >
-              <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-              {watchAction.label}
-            </a>
-          {/await}
-          <WatchlistBookmark
-            animeId={data.anime.id}
-            title={data.anime.title}
-            class="size-11 shrink-0 border border-accent lg:size-12"
-            iconSize="1.65em"
-          />
-          <WatchlistStatusMenu
-            animeId={data.anime.id}
-            title={data.anime.title}
-            initialState={data.watchlistState ?? undefined}
-          />
-        </div>
-      </div>
-    </figure>
-
-    <div class="border-b border-border px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
-      <section
-        id="anime-details"
-        class={cn(
-          'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
-          detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'
-        )}
-      >
-        <p class="max-w-3xl text-foreground">{data.anime.description}</p>
-        <div class="space-y-3">
-          <p>
-            <strong class="font-normal text-foreground">Production:</strong>
-            {data.anime.studios.join(', ')}
-          </p>
-          <p><strong class="font-normal text-foreground">Key staff:</strong> {data.anime.staff}</p>
-          <p>
-            <strong class="font-normal text-foreground">Rankings:</strong>
-            {data.anime.rankings.join(', ')}
-          </p>
-          <p>
-            <strong class="font-normal text-foreground">Audience:</strong>
-            {data.anime.members} members, {data.anime.favourites} favorites
-          </p>
-          <p>
-            <strong class="font-normal text-foreground">Themes:</strong>
-            {data.anime.themes.join(', ')}
-          </p>
-          <p>
-            <strong class="font-normal text-foreground">Genres:</strong>
-            {#each data.anime.genres as genre, index}
-              <a class="underline underline-offset-2" href="/">{genre}</a>{index <
-              data.anime.genres.length - 1
-                ? ', '
-                : ''}
-            {/each}
-          </p>
-        </div>
-      </section>
-
-      <button
-        type="button"
-        class="min-h-11 text-xs font-semibold text-accent"
-        aria-expanded={detailsExpanded}
-        aria-controls="anime-details"
-        onclick={() => (detailsExpanded = !detailsExpanded)}
-      >
-        {detailsExpanded ? 'FEWER DETAILS' : 'MORE DETAILS'}
-      </button>
+        {#await data.franchise then franchise}
+            {#if franchise?.entries.length}
+                <FranchiseOrder order={franchise} currentAnimeId={data.anime.id} />
+            {/if}
+        {/await}
     </div>
-  </section>
-
-  <div class="px-5 sm:px-10 lg:px-16">
-    {#await data.episodes then episodes}
-      {#await data.artwork then artwork}
-        <EpisodeList
-          episodes={episodes}
-          title={data.anime.title}
-          image={artwork?.selectedBackdrop?.url ?? null}
-        />
-      {/await}
-    {/await}
-
-    {#await data.franchise then franchise}
-      {#if franchise?.entries.length}
-        <FranchiseOrder order={franchise} currentAnimeId={data.anime.id} />
-      {/if}
-    {/await}
-  </div>
 </main>
 
 <style>
-  .anime-hero-metadata__tag:not(:first-child)::before {
-    width: 0.25rem;
-    height: 0.25rem;
-    margin-inline: 0.25rem;
-    display: inline-block;
-    background-color: currentcolor;
-    content: '';
-    line-height: 1;
-    vertical-align: middle;
-    transform: rotate(45deg);
-  }
+    .anime-hero-metadata__tag:not(:first-child)::before {
+        width: 0.25rem;
+        height: 0.25rem;
+        margin-inline: 0.25rem;
+        display: inline-block;
+        background-color: currentcolor;
+        content: '';
+        line-height: 1;
+        vertical-align: middle;
+        transform: rotate(45deg);
+    }
 </style>
