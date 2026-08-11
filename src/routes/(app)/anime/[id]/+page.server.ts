@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 
 import { episodeAudioAvailabilityLabel } from '$lib/anime/audio';
 import { toAnimeDetails } from '$lib/server/anime/details';
-import { getEpisodes } from '$lib/server/anime/episodes';
+import { getEpisodeRevision, getEpisodes } from '$lib/server/anime/episodes';
 import { getFranchiseOrder } from '$lib/server/anime/franchise';
 import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getArtwork } from '$lib/server/anime/tmdb/artwork';
@@ -11,11 +11,12 @@ import { getPlaybackProgress } from '$lib/server/playback-progress/store';
 import { getWatchlistState } from '$lib/server/watchlist';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, depends }) => {
     const id = animeId(params.id);
     if (!id) {
         error(400, 'Invalid anime ID');
     }
+    depends(`arc:anime:${id}:episodes`);
 
     const userId = locals.user?.id;
 
@@ -56,6 +57,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         anime: details,
         artwork,
         episodes,
+        episodeRevision: episodes.then(() => getEpisodeRevision(id)),
         watchAction,
         audioLabel,
         franchise,

@@ -3,6 +3,7 @@
     import EpisodeList from '$lib/components/EpisodeList.svelte';
     import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
+    import AiringStatus from './_components/AiringStatus.svelte';
     import WatchlistStatusMenu from './_components/WatchlistStatusMenu.svelte';
     import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
@@ -69,6 +70,14 @@
                 <p
                     class="mt-8 flex flex-wrap items-center gap-y-1 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base"
                 >
+                    {#if data.anime.status === 'RELEASING' && data.anime.nextAiringEpisode}
+                        <AiringStatus
+                            animeId={data.anime.id}
+                            episode={data.anime.nextAiringEpisode.episode}
+                            airingAt={data.anime.nextAiringEpisode.airingAt}
+                            initialRevision={data.episodeRevision}
+                        />
+                    {/if}
                     {#await data.audioLabel then audioLabel}
                         {#if audioLabel}
                             <span class="anime-hero-metadata__tag">{audioLabel}</span>

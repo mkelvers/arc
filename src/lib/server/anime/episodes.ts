@@ -62,6 +62,15 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
     return stored;
 }
 
+export async function getEpisodeRevision(anilistId: number) {
+    return db
+        .select({ revision: animeEpisodeSync.sourceRevision })
+        .from(animeEpisodeSync)
+        .where(eq(animeEpisodeSync.anilistId, anilistId))
+        .limit(1)
+        .then((rows) => rows[0]?.revision ?? null);
+}
+
 export async function getRelatedReleaseTitles(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
     // Related titles are optional matching evidence. A watch request must not
