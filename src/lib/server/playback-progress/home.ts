@@ -39,25 +39,21 @@ export async function getContinueWatchingCards(
                 ({ episodeId }) => episodeId === progress.episodeId
             );
             const current = currentIndex >= 0 ? episodes[currentIndex] : null;
-            const target = progress.completed
-                ? (episodes[currentIndex + 1] ??
-                  episodes.find(({ number }) => number > progress.episodeNumber) ??
-                  null)
-                : (current ?? {
-                      anilistId: progress.anilistId,
-                      episodeId: progress.episodeId,
-                      number: progress.episodeNumber,
-                      providerTitle: null,
-                      metadataTitle: null,
-                      audio: [],
-                      imageUrl: null,
-                      runtimeMinutes: Math.ceil(progress.durationSeconds / 60),
-                      airDate: null,
-                      overview: null,
-                      firstSeenAt: new Date(),
-                      lastSeenAt: new Date(),
-                      lastVerifiedAt: new Date(),
-                  });
+            const target = current ?? {
+                anilistId: progress.anilistId,
+                episodeId: progress.episodeId,
+                number: progress.episodeNumber,
+                providerTitle: null,
+                metadataTitle: null,
+                audio: [],
+                imageUrl: null,
+                runtimeMinutes: Math.ceil(progress.durationSeconds / 60),
+                airDate: null,
+                overview: null,
+                firstSeenAt: new Date(),
+                lastSeenAt: new Date(),
+                lastVerifiedAt: new Date(),
+            };
 
             if (!target) {
                 return null;
@@ -78,8 +74,7 @@ export async function getContinueWatchingCards(
                 return null;
             }
 
-            const continuingCurrent =
-                !progress.completed && target.episodeId === progress.episodeId;
+            const continuingCurrent = target.episodeId === progress.episodeId;
             const runtimeMinutes =
                 target.runtimeMinutes ??
                 (continuingCurrent ? Math.ceil(progress.durationSeconds / 60) : null);

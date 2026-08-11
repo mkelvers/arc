@@ -70,6 +70,7 @@
     const media = player.media;
     let progressSchedule = new ProgressSchedule();
     let progressStarted = false;
+    let hasPlayed = false;
     let episodeEnded = false;
     let finalSaveSent = false;
     let saveQueue: Promise<void> = Promise.resolve();
@@ -133,7 +134,7 @@
             return;
         }
 
-        if (episodeChanged && !episodeEnded) {
+        if (episodeChanged && hasPlayed && !episodeEnded) {
             void saveProgress(false, true);
         }
 
@@ -142,6 +143,7 @@
         trackedEpisode = incomingEpisode;
         progressSchedule = new ProgressSchedule();
         progressStarted = false;
+        hasPlayed = false;
         episodeEnded = false;
         finalSaveSent = false;
         void media.changeEpisode();
@@ -202,7 +204,7 @@
     }
 
     function saveBeforeLeave() {
-        if (episodeEnded || finalSaveSent) {
+        if (!hasPlayed || episodeEnded || finalSaveSent) {
             return;
         }
 
@@ -225,7 +227,6 @@
 
         progressStarted = true;
         progressSchedule.start(media.video.currentTime);
-        void saveProgress();
     }
 
     function handleTimeUpdate() {
@@ -415,7 +416,10 @@
         onwaiting={() => media.handleWaiting()}
         oncanplay={() => media.handleCanPlay()}
         onerror={() => void media.tryNextSource()}
-        onplay={() => void saveProgress()}
+        onplay={() => {
+            hasPlayed = true;
+            void saveProgress();
+        }}
         onplaying={() => media.handlePlaying()}
         onpause={() => {
             media.playing = false;

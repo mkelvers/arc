@@ -109,7 +109,8 @@ export async function getRecentPlaybackProgress(userId: string | undefined, limi
             and(
                 eq(playbackProgress.userId, userId),
                 eq(animeExternalId.provider, 'anilist'),
-                eq(animeExternalId.mediaType, 'anime')
+                eq(animeExternalId.mediaType, 'anime'),
+                eq(playbackProgress.completed, false)
             )
         )
         .orderBy(desc(playbackProgress.lastWatchedAt))
