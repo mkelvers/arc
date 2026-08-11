@@ -3,10 +3,10 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '$lib/server/db';
 import {
-  animeArtwork,
-  animeArtworkPreference,
-  animeExternalId,
-  animeExternalIdLink,
+    animeArtwork,
+    animeArtworkPreference,
+    animeExternalId,
+    animeExternalIdLink,
 } from '$lib/server/db/schema';
 import { fetchArtwork, readArtwork } from './artwork';
 import { imageUrl } from './client';
@@ -14,174 +14,176 @@ import { findMapping } from './mapping-store';
 import { readPoster } from './poster';
 
 export async function getStoredMedia(anilistId: number) {
-  const match = await findMapping(anilistId);
+    const match = await findMapping(anilistId);
 
-  if (!match) {
-    return null;
-  }
+    if (!match) {
+        return null;
+    }
 
-  const [artwork, selectedPoster] = await Promise.all([readArtwork(match), readPoster(match)]);
+    const [artwork, selectedPoster] = await Promise.all([readArtwork(match), readPoster(match)]);
 
-  if (!match.title || !artwork) {
-    return null;
-  }
+    if (!match.title || !artwork) {
+        return null;
+    }
 
-  return {
-    anime: { id: anilistId, title: match.title },
-    artwork: { ...artwork, selectedPoster },
-  };
+    return {
+        anime: { id: anilistId, title: match.title },
+        artwork: { ...artwork, selectedPoster },
+    };
 }
 
 export async function getStoredBackdrops(anilistIds: number[]) {
-  const ids = [...new Set(anilistIds)];
-  if (!ids.length) {
-    return new Map<number, string>();
-  }
-
-  const source = alias(animeExternalId, 'backdrop_anilist_id');
-  const sourceLink = alias(animeExternalIdLink, 'backdrop_anilist_link');
-  const targetLink = alias(animeExternalIdLink, 'backdrop_tmdb_link');
-  const target = alias(animeExternalId, 'backdrop_tmdb_id');
-  const rows = await db
-    .select({
-      anilistId: source.externalId,
-      mediaType: target.mediaType,
-      filePath: animeArtwork.filePath,
-    })
-    .from(source)
-    .innerJoin(sourceLink, eq(sourceLink.externalIdId, source.id))
-    .innerJoin(targetLink, eq(targetLink.animeId, sourceLink.animeId))
-    .innerJoin(
-      target,
-      and(
-        eq(target.id, targetLink.externalIdId),
-        eq(target.provider, 'tmdb'),
-        inArray(target.mediaType, ['movie', 'tv'])
-      )
-    )
-    .leftJoin(animeArtworkPreference, eq(animeArtworkPreference.externalIdId, target.id))
-    .leftJoin(
-      animeArtwork,
-      and(
-        eq(animeArtwork.externalIdId, target.id),
-        eq(animeArtwork.type, 'backdrop'),
-        eq(animeArtwork.filePath, animeArtworkPreference.backdropFilePath)
-      )
-    )
-    .where(
-      and(
-        eq(source.provider, 'anilist'),
-        eq(source.mediaType, 'anime'),
-        inArray(source.externalId, ids)
-      )
-    );
-
-  const candidates = new Map<number, { group: string; filePath: string }[]>();
-  for (const row of rows) {
-    if (!row.filePath) {
-      continue;
+    const ids = [...new Set(anilistIds)];
+    if (!ids.length) {
+        return new Map<number, string>();
     }
 
-    const values = candidates.get(row.anilistId) ?? [];
-    values.push({
-      group: `tmdb:${row.mediaType}:${row.filePath}`,
-      filePath: row.filePath,
-    });
-    candidates.set(row.anilistId, values);
-  }
+    const source = alias(animeExternalId, 'backdrop_anilist_id');
+    const sourceLink = alias(animeExternalIdLink, 'backdrop_anilist_link');
+    const targetLink = alias(animeExternalIdLink, 'backdrop_tmdb_link');
+    const target = alias(animeExternalId, 'backdrop_tmdb_id');
+    const rows = await db
+        .select({
+            anilistId: source.externalId,
+            mediaType: target.mediaType,
+            filePath: animeArtwork.filePath,
+        })
+        .from(source)
+        .innerJoin(sourceLink, eq(sourceLink.externalIdId, source.id))
+        .innerJoin(targetLink, eq(targetLink.animeId, sourceLink.animeId))
+        .innerJoin(
+            target,
+            and(
+                eq(target.id, targetLink.externalIdId),
+                eq(target.provider, 'tmdb'),
+                inArray(target.mediaType, ['movie', 'tv'])
+            )
+        )
+        .leftJoin(animeArtworkPreference, eq(animeArtworkPreference.externalIdId, target.id))
+        .leftJoin(
+            animeArtwork,
+            and(
+                eq(animeArtwork.externalIdId, target.id),
+                eq(animeArtwork.type, 'backdrop'),
+                eq(animeArtwork.filePath, animeArtworkPreference.backdropFilePath)
+            )
+        )
+        .where(
+            and(
+                eq(source.provider, 'anilist'),
+                eq(source.mediaType, 'anime'),
+                inArray(source.externalId, ids)
+            )
+        );
 
-  return new Map(
-    [...candidates].flatMap(([anilistId, values]) => {
-      const groups = new Set(values.map(({ group }) => group));
-      return groups.size === 1 ? [[anilistId, imageUrl(values[0].filePath, 'w780')] as const] : [];
-    })
-  );
+    const candidates = new Map<number, { group: string; filePath: string }[]>();
+    for (const row of rows) {
+        if (!row.filePath) {
+            continue;
+        }
+
+        const values = candidates.get(row.anilistId) ?? [];
+        values.push({
+            group: `tmdb:${row.mediaType}:${row.filePath}`,
+            filePath: row.filePath,
+        });
+        candidates.set(row.anilistId, values);
+    }
+
+    return new Map(
+        [...candidates].flatMap(([anilistId, values]) => {
+            const groups = new Set(values.map(({ group }) => group));
+            return groups.size === 1
+                ? [[anilistId, imageUrl(values[0].filePath, 'w780')] as const]
+                : [];
+        })
+    );
 }
 
 export async function refreshArtwork(anilistId: number) {
-  const match = await findMapping(anilistId);
+    const match = await findMapping(anilistId);
 
-  if (!match) {
-    throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
-  }
+    if (!match) {
+        throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
+    }
 
-  return fetchArtwork(match);
+    return fetchArtwork(match);
 }
 
 export async function selectArtwork(
-  anilistId: number,
-  type: 'backdrop' | 'logo',
-  filePath: string | null
+    anilistId: number,
+    type: 'backdrop' | 'logo',
+    filePath: string | null
 ) {
-  const match = await findMapping(anilistId);
+    const match = await findMapping(anilistId);
 
-  if (!match) {
-    throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
-  }
+    if (!match) {
+        throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
+    }
 
-  const artwork = await readArtwork(match);
-  if (!artwork) {
-    throw new Error('Artwork has not been cached yet');
-  }
+    const artwork = await readArtwork(match);
+    if (!artwork) {
+        throw new Error('Artwork has not been cached yet');
+    }
 
-  const images = type === 'backdrop' ? artwork.backdrops : artwork.logos;
+    const images = type === 'backdrop' ? artwork.backdrops : artwork.logos;
 
-  if (filePath === null && type !== 'logo') {
-    throw new Error('Only a logo can be hidden');
-  }
+    if (filePath === null && type !== 'logo') {
+        throw new Error('Only a logo can be hidden');
+    }
 
-  if (filePath !== null && !images.some((image) => image.filePath === filePath)) {
-    throw new Error('Artwork does not belong to this anime');
-  }
+    if (filePath !== null && !images.some((image) => image.filePath === filePath)) {
+        throw new Error('Artwork does not belong to this anime');
+    }
 
-  const updatedAt = new Date();
+    const updatedAt = new Date();
 
-  if (type === 'backdrop') {
+    if (type === 'backdrop') {
+        await db
+            .insert(animeArtworkPreference)
+            .values({
+                externalIdId: match.externalIdId,
+                backdropFilePath: filePath,
+            })
+            .onConflictDoUpdate({
+                target: animeArtworkPreference.externalIdId,
+                set: { backdropFilePath: filePath, updatedAt },
+            });
+        return;
+    }
+
     await db
-      .insert(animeArtworkPreference)
-      .values({
-        externalIdId: match.externalIdId,
-        backdropFilePath: filePath,
-      })
-      .onConflictDoUpdate({
-        target: animeArtworkPreference.externalIdId,
-        set: { backdropFilePath: filePath, updatedAt },
-      });
-    return;
-  }
-
-  await db
-    .insert(animeArtworkPreference)
-    .values({
-      externalIdId: match.externalIdId,
-      logoFilePath: filePath,
-      logoHidden: filePath === null,
-    })
-    .onConflictDoUpdate({
-      target: animeArtworkPreference.externalIdId,
-      set: {
-        logoFilePath: filePath,
-        logoHidden: filePath === null,
-        updatedAt,
-      },
-    });
+        .insert(animeArtworkPreference)
+        .values({
+            externalIdId: match.externalIdId,
+            logoFilePath: filePath,
+            logoHidden: filePath === null,
+        })
+        .onConflictDoUpdate({
+            target: animeArtworkPreference.externalIdId,
+            set: {
+                logoFilePath: filePath,
+                logoHidden: filePath === null,
+                updatedAt,
+            },
+        });
 }
 
 export async function setLogoSize(anilistId: number, logoSize: number) {
-  if (!Number.isInteger(logoSize) || logoSize < 50 || logoSize > 300) {
-    throw new Error('Logo size must be between 50 and 300');
-  }
+    if (!Number.isInteger(logoSize) || logoSize < 50 || logoSize > 300) {
+        throw new Error('Logo size must be between 50 and 300');
+    }
 
-  const match = await findMapping(anilistId);
-  if (!match) {
-    throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
-  }
+    const match = await findMapping(anilistId);
+    if (!match) {
+        throw new Error(`No stored TMDB mapping for AniList ${anilistId}`);
+    }
 
-  await db
-    .insert(animeArtworkPreference)
-    .values({ externalIdId: match.externalIdId, logoSize })
-    .onConflictDoUpdate({
-      target: animeArtworkPreference.externalIdId,
-      set: { logoSize, updatedAt: new Date() },
-    });
+    await db
+        .insert(animeArtworkPreference)
+        .values({ externalIdId: match.externalIdId, logoSize })
+        .onConflictDoUpdate({
+            target: animeArtworkPreference.externalIdId,
+            set: { logoSize, updatedAt: new Date() },
+        });
 }
