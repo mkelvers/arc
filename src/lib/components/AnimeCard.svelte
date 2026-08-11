@@ -186,7 +186,7 @@
     <article
         class:border-foreground={current}
         class:border-transparent={!current}
-        class="group relative isolate min-w-0 overflow-hidden p-2 text-foreground transition-colors after:pointer-events-none after:absolute after:inset-0 after:z-0 after:bg-surface/88 after:opacity-0 after:content-[''] after:transition-opacity group-focus-within:after:opacity-100 group-hover:after:opacity-100 focus-within:z-10 focus-within:border-foreground hover:z-10"
+        class="group relative isolate min-w-0 overflow-hidden p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10"
     >
         <div
             class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
@@ -215,11 +215,11 @@
         <img
             src={anime.image}
             alt=""
-            class="pointer-events-none absolute inset-0 z-0 size-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
             loading="lazy"
         />
         <div
-            class="pointer-events-none absolute inset-2 z-10 flex flex-col overflow-hidden p-3 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-0 flex flex-col overflow-hidden bg-surface/88 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
             <a
                 href={anime.link}
@@ -263,7 +263,7 @@
                 </p>
             {/if}
 
-            <div class="relative z-10 mt-auto flex items-center gap-2 pt-3 text-accent">
+            <div class="mt-auto flex items-center gap-2 pt-3 text-accent">
                 <Tooltip text="Play E1">
                     <a
                         href={anime.link}
@@ -276,12 +276,15 @@
                 </Tooltip>
                 <WatchlistBookmark animeId={anime.id} title={anime.title} />
                 {#if onremove}
-                    <Tooltip text={removeFailed ? 'Try again' : 'Remove'}>
+                    <Tooltip
+                        text={removeFailed ? 'Try again' : 'Remove'}
+                        class="absolute top-2 right-2 z-20"
+                    >
                         <button
                             type="button"
                             aria-label={`Remove ${anime.title} from watchlist`}
                             disabled={removing}
-                            class="absolute top-2 right-2 z-20 grid size-8 place-items-center text-white/80 drop-shadow-sm hover:text-status-error disabled:opacity-50"
+                            class="grid size-8 place-items-center text-white/80 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
                             onclick={remove}
                         >
                             <XIcon size="1rem" weight="bold" aria-hidden="true" />
