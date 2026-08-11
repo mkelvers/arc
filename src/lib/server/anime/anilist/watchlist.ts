@@ -9,14 +9,13 @@ import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
 
-const pageSize = 50;
 const cache = new RequestCache<string, Map<number, AnimeCard>>(5 * 60 * 1_000);
 
 async function requestAnime(ids: number[], stored: Map<number, AnimeCard>) {
     const result = new Map(stored);
     const fetched: AnimeCard[] = [];
 
-    for (const idsBatch of batches(ids, pageSize)) {
+    for (const idsBatch of batches(ids, 50)) {
         const response = await request(WatchlistAnimeDocument, { ids: idsBatch });
         for (const entry of present(response.Page?.media)) {
             const card = animeCard(entry);

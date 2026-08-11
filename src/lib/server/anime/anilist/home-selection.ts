@@ -10,8 +10,6 @@ interface PopularAnime {
     } | null;
 }
 
-const popularAnimeSize = 30;
-
 export function selectPopularAnime<Anime extends PopularAnime>(media: Array<Anime | null>) {
     const anime = media.filter((entry): entry is Anime => entry !== null);
     const parent = new Map(anime.map(({ id }) => [id, id]));
@@ -59,7 +57,7 @@ export function selectPopularAnime<Anime extends PopularAnime>(media: Array<Anim
 
         seen.add(franchise);
         selected.push(entry);
-        if (selected.length === popularAnimeSize) {
+        if (selected.length === 30) {
             break;
         }
     }

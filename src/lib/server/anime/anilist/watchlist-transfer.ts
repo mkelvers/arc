@@ -4,8 +4,6 @@ import { batches } from '$lib/utils';
 import { request } from './client';
 import { present } from './text';
 
-const pageSize = 50;
-
 export interface WatchlistTransferAnime {
     id: number;
     idMal: number | null;
@@ -17,8 +15,8 @@ export interface WatchlistTransferAnime {
 }
 
 export async function getWatchlistTransferAnime(anilistIds: number[], malIds: number[] = []) {
-    const anilistBatches = batches([...new Set(anilistIds)], pageSize);
-    const malBatches = batches([...new Set(malIds)], pageSize);
+    const anilistBatches = batches([...new Set(anilistIds)], 50);
+    const malBatches = batches([...new Set(malIds)], 50);
     const requestCount = Math.max(anilistBatches.length, malBatches.length);
     const media: WatchlistTransferAnime[] = [];
 

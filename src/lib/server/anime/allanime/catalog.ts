@@ -22,7 +22,6 @@ import type { ProviderEpisode } from '../providers/types';
 import { isAnimeCardPage } from '$lib/anime/types';
 
 const providerName = 'allanime';
-const simulcastPageSize = 24;
 const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();
 
 interface SimulcastPage {
@@ -93,7 +92,7 @@ function simulcastCard(show: {
 }
 
 async function requestSimulcastPage(selected: AnimeSeasonSelection, page: number) {
-    const response = await request(AllAnimeSimulcastPageDocument, {
+    const variables = {
         search: {
             allowAdult: false,
             allowUnknown: false,
@@ -101,8 +100,9 @@ async function requestSimulcastPage(selected: AnimeSeasonSelection, page: number
             year: selected.year,
         },
         page,
-        limit: simulcastPageSize,
-    });
+        limit: 24,
+    };
+    const response = await request(AllAnimeSimulcastPageDocument, variables);
     const shows = response.shows?.edges ?? [];
     const seen = new Set<number>();
     const anime: AnimeCard[] = [];
@@ -123,7 +123,7 @@ async function requestSimulcastPage(selected: AnimeSeasonSelection, page: number
 
     return {
         anime,
-        hasNextPage: shows.length === simulcastPageSize,
+        hasNextPage: shows.length === variables.limit,
         page,
     };
 }
