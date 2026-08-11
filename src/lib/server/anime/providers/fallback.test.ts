@@ -90,6 +90,34 @@ describe('playback provider fallback', () => {
         expect(attempts).toEqual(['first', 'second', 'third']);
     });
 
+    test('uses the freshest provider inventory through the next airing episode', async () => {
+        const episodes = (providerName: string, count: number) =>
+            Array.from({ length: count }, (_, index) => ({
+                id: `${providerName}-${index + 1}`,
+                number: index + 1,
+                title: `Episode ${index + 1}`,
+                audio: ['sub' as const],
+            }));
+        const playback = createProviderFallback([
+            provider('lagging', {
+                getEpisodes: async () => episodes('lagging', 5),
+            }),
+            provider('current', {
+                getEpisodes: async () => episodes('current', 6),
+            }),
+        ]);
+
+        const result = await playback.getEpisodes({
+            ...anime,
+            status: 'RELEASING',
+            episodes: null,
+            nextAiringEpisode: { episode: 7, airingAt: 1_786_968_000 },
+        });
+
+        expect(result).toHaveLength(6);
+        expect(result.at(-1)).toMatchObject({ id: 'current-6', number: 6 });
+    });
+
     test('chooses the closest complete inventory and matches reordered audio', async () => {
         const playback = createProviderFallback([
             provider('combined', {

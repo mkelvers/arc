@@ -187,6 +187,12 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
             } => Boolean(result.episodes.length)
         );
         const expected = anime.episodes;
+        const availableEpisodes =
+            anime.status === 'RELEASING' &&
+            anime.nextAiringEpisode?.episode &&
+            anime.nextAiringEpisode.episode > 1
+                ? anime.nextAiringEpisode.episode - 1
+                : expected;
         const eligible =
             anime.status === 'FINISHED' && expected && expected > 0
                 ? successful.filter(({ episodes }) => coversExpectedEpisodes(episodes, expected))
@@ -207,18 +213,20 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
             );
         }
         const inventoryPenalty = (inventory: ProviderEpisode[]) => {
-            if (!expected || expected <= 0) {
+            if (!availableEpisodes || availableEpisodes <= 0) {
                 return 0;
             }
 
             const covered = new Set(
                 inventory.flatMap(({ number }) =>
-                    Number.isInteger(number) && number > 0 && number <= expected ? [number] : []
+                    Number.isInteger(number) && number > 0 && number <= availableEpisodes
+                        ? [number]
+                        : []
                 )
             );
-            const missing = expected - covered.size;
+            const missing = availableEpisodes - covered.size;
 
-            return missing * 10_000 + Math.abs(inventory.length - expected);
+            return missing * 10_000 + Math.abs(inventory.length - availableEpisodes);
         };
         const canonicalIndex = eligible.reduce(
             (best, result, index) =>
@@ -254,7 +262,7 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                     const fillsExpectedGap =
                         Number.isInteger(alternate.number) &&
                         alternate.number > 0 &&
-                        alternate.number <= (anime.episodes ?? 0);
+                        alternate.number <= (availableEpisodes ?? 0);
                     const possibleSpecial =
                         alternate.number <= 0 || !Number.isInteger(alternate.number);
                     if (!fillsExpectedGap && !possibleSpecial) {
