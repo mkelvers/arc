@@ -281,6 +281,20 @@
             "when": 1786473461683,
             "tag": "0039_big_ultragirl",
             "breakpoints": true
+        },
+        {
+            "idx": 40,
+            "version": "7",
+            "when": 1786483976228,
+            "tag": "0040_last_ultimo",
+            "breakpoints": true
+        },
+        {
+            "idx": 41,
+            "version": "7",
+            "when": 1786485573867,
+            "tag": "0041_complex_psylocke",
+            "breakpoints": true
         }
     ]
 }

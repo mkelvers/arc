@@ -112,21 +112,6 @@ export const sessions = pgTable(
     (table) => [index('sessions_user_id_idx').on(table.userId)]
 );
 
-export const syncSettings = pgTable('sync_settings', {
-    userId: uuid('user_id')
-        .primaryKey()
-        .references(() => users.id, { onDelete: 'cascade' }),
-    automaticSync: boolean('automatic_sync').notNull().default(false),
-    episodeProgress: boolean('episode_progress').notNull().default(false),
-    watchingStatus: boolean('watching_status').notNull().default(false),
-    importAnilistChanges: boolean('import_anilist_changes').notNull().default(false),
-    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-        .notNull()
-        .defaultNow()
-        .$onUpdate(() => new Date()),
-});
-
 export const verifications = pgTable(
     'verifications',
     {
@@ -548,6 +533,7 @@ export const playbackProgress = pgTable(
             .$onUpdate(() => new Date()),
         lastWatchedAt: timestamp('last_watched_at', { withTimezone: true }).notNull().defaultNow(),
         eventAt: timestamp('event_at', { withTimezone: true }).notNull().defaultNow(),
+        dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
     },
     (table) => [
         unique('playback_progress_user_anime_unique').on(table.userId, table.animeId),
