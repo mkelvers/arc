@@ -1,61 +1,61 @@
 query BrowseAnimePage(
-  $search: String
-  $genre: String
-  $tag: String
-  $format: MediaFormat
-  $status: MediaStatus
-  $source: MediaSource
-  $season: MediaSeason
-  $seasonYear: Int
-  $countryOfOrigin: CountryCode
-  $isAdult: Boolean
-  $sort: [MediaSort]
-  $page: Int!
-  $perPage: Int!
+    $search: String
+    $genre: String
+    $tag: String
+    $format: MediaFormat
+    $status: MediaStatus
+    $source: MediaSource
+    $season: MediaSeason
+    $seasonYear: Int
+    $countryOfOrigin: CountryCode
+    $isAdult: Boolean
+    $sort: [MediaSort]
+    $page: Int!
+    $perPage: Int!
 ) {
-  Page(page: $page, perPage: $perPage) {
-    pageInfo {
-      hasNextPage
+    Page(page: $page, perPage: $perPage) {
+        pageInfo {
+            hasNextPage
+        }
+        media(
+            search: $search
+            type: ANIME
+            genre: $genre
+            tag: $tag
+            format: $format
+            status: $status
+            source: $source
+            season: $season
+            seasonYear: $seasonYear
+            countryOfOrigin: $countryOfOrigin
+            isAdult: $isAdult
+            sort: $sort
+        ) {
+            id
+            title {
+                english
+                romaji
+                native
+            }
+            synonyms
+            coverImage {
+                extraLarge
+                large
+            }
+            description(asHtml: false)
+            genres
+            tags {
+                name
+            }
+            format
+            status
+            source
+            season
+            seasonYear
+            countryOfOrigin
+            isAdult
+            averageScore
+            popularity
+        }
     }
-    media(
-      search: $search
-      type: ANIME
-      genre: $genre
-      tag: $tag
-      format: $format
-      status: $status
-      source: $source
-      season: $season
-      seasonYear: $seasonYear
-      countryOfOrigin: $countryOfOrigin
-      isAdult: $isAdult
-      sort: $sort
-    ) {
-      id
-      title {
-        english
-        romaji
-        native
-      }
-      synonyms
-      coverImage {
-        extraLarge
-        large
-      }
-      description(asHtml: false)
-      genres
-      tags {
-        name
-      }
-      format
-      status
-      source
-      season
-      seasonYear
-      countryOfOrigin
-      isAdult
-      averageScore
-      popularity
-    }
-  }
 }

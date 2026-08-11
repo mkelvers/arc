@@ -1,5 +1,5 @@
 schema {
-  query: Query
+    query: Query
 }
 
 scalar FlexibleInt
@@ -7,133 +7,133 @@ scalar Object
 scalar DateTime
 
 enum VaildCountryOriginEnumType {
-  ALL
+    ALL
 }
 
 enum VaildTranslationTypeEnumType {
-  sub
-  dub
-  raw
+    sub
+    dub
+    raw
 }
 
 enum VaildPopularTypeEnumType {
-  anime
-  manga
-  all
+    anime
+    manga
+    all
 }
 
 input SearchInput {
-  allowAdult: Boolean
-  allowUnknown: Boolean
-  includeTypes: Boolean
-  query: String
-  season: String
-  types: [String!]
-  year: Int
+    allowAdult: Boolean
+    allowUnknown: Boolean
+    includeTypes: Boolean
+    query: String
+    season: String
+    types: [String!]
+    year: Int
 }
 
 type Query {
-  episode(
-    showId: String!
-    translationType: VaildTranslationTypeEnumType!
-    episodeString: String!
-  ): Episode
-  episodeInfos(showId: String!, episodeNumStart: Float!, episodeNumEnd: Float!): [EpisodeInfo!]
-  show(_id: String!): Show
-  shows(
-    search: SearchInput
-    limit: Int
-    page: Int
-    translationType: VaildTranslationTypeEnumType
-    countryOrigin: VaildCountryOriginEnumType
-  ): ShowConnection
-  queryPopular(
-    type: VaildPopularTypeEnumType!
-    size: Int!
-    dateRange: Int
-    isAdult: Boolean
-    page: Int
-    allowAdult: Boolean
-    allowUnknown: Boolean
-    denyEcchi: Boolean
-  ): RecommendationsResponse
+    episode(
+        showId: String!
+        translationType: VaildTranslationTypeEnumType!
+        episodeString: String!
+    ): Episode
+    episodeInfos(showId: String!, episodeNumStart: Float!, episodeNumEnd: Float!): [EpisodeInfo!]
+    show(_id: String!): Show
+    shows(
+        search: SearchInput
+        limit: Int
+        page: Int
+        translationType: VaildTranslationTypeEnumType
+        countryOrigin: VaildCountryOriginEnumType
+    ): ShowConnection
+    queryPopular(
+        type: VaildPopularTypeEnumType!
+        size: Int!
+        dateRange: Int
+        isAdult: Boolean
+        page: Int
+        allowAdult: Boolean
+        allowUnknown: Boolean
+        denyEcchi: Boolean
+    ): RecommendationsResponse
 }
 
 type Episode {
-  sourceUrls: Object
+    sourceUrls: Object
 }
 
 type EpisodeInfo {
-  episodeIdNum: FlexibleInt
-  notes: String
+    episodeIdNum: FlexibleInt
+    notes: String
 }
 
 type RelatedShow {
-  relation: String
-  showId: String
+    relation: String
+    showId: String
 }
 
 type Show {
-  _id: String
-  aniListId: FlexibleInt
-  availableEpisodesDetail: Object
-  averageScore: Float
-  description: String
-  englishName: String
-  episodeCount: String
-  genres: [String!]
-  lastEpisodeTimestamp: Object
-  malId: String
-  name: String
-  nextAiringEpisode: Object
-  relatedShows: [RelatedShow!]
-  season: Object
-  status: String
-  thumbnail: String
-  type: String
+    _id: String
+    aniListId: FlexibleInt
+    availableEpisodesDetail: Object
+    averageScore: Float
+    description: String
+    englishName: String
+    episodeCount: String
+    genres: [String!]
+    lastEpisodeTimestamp: Object
+    malId: String
+    name: String
+    nextAiringEpisode: Object
+    relatedShows: [RelatedShow!]
+    season: Object
+    status: String
+    thumbnail: String
+    type: String
 }
 
 type ShowConnection {
-  edges: [Show!]
+    edges: [Show!]
 }
 
 type RecommendationsResponse {
-  total: Int
-  recommendations: [Recommendation!]
+    total: Int
+    recommendations: [Recommendation!]
 }
 
 type Recommendation {
-  anyCard: AnyCard
-  isManga: Boolean
+    anyCard: AnyCard
+    isManga: Boolean
 }
 
 type AnyCard {
-  _id: String
-  name: String
-  englishName: String
-  description: String
-  malId: FlexibleInt
-  aniListId: FlexibleInt
-  status: String
-  thumbnail: String
-  banner: String
-  type: String
-  season: Object
-  episodeCount: FlexibleInt
-  popularity: FlexibleInt
-  availableEpisodesDetail: Object
-  siteRanks: SiteRanks
+    _id: String
+    name: String
+    englishName: String
+    description: String
+    malId: FlexibleInt
+    aniListId: FlexibleInt
+    status: String
+    thumbnail: String
+    banner: String
+    type: String
+    season: Object
+    episodeCount: FlexibleInt
+    popularity: FlexibleInt
+    availableEpisodesDetail: Object
+    siteRanks: SiteRanks
 }
 
 type SiteRanks {
-  weekly: SiteRankSnapshot
+    weekly: SiteRankSnapshot
 }
 
 type SiteRankSnapshot {
-  position: Int
-  total: Int
-  score: Float
-  delta: Int
-  computedAt: DateTime
-  windowDays: Int
+    position: Int
+    total: Int
+    score: Float
+    delta: Int
+    computedAt: DateTime
+    windowDays: Int
 }
