@@ -1,8 +1,7 @@
 import { env } from '$env/dynamic/private';
-import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 
-import { getAutomaticSyncUsers, syncUser } from '$lib/server/sync/service';
+import { getAniListUsers, publishAniList } from '$lib/server/sync/service';
 import { GraphQLRequestError } from '$lib/server/graphql';
 import type { RequestHandler } from './$types';
 
@@ -21,7 +20,7 @@ export const GET: RequestHandler = async ({ request }) => {
         return new Response('Unauthorized', { status: 401 });
     }
 
-    return json(await getAutomaticSyncUsers());
+    return Response.json(await getAniListUsers());
 };
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -31,11 +30,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const parsed = userIdSchema.safeParse(await request.json());
     if (!parsed.success) {
-        return json({ message: 'Invalid sync user' }, { status: 400 });
+        return Response.json({ message: 'Invalid AniList publication user' }, { status: 400 });
     }
 
     try {
-        await syncUser(parsed.data.userId);
+        await publishAniList(parsed.data.userId);
     } catch (cause) {
         if (
             cause instanceof GraphQLRequestError &&

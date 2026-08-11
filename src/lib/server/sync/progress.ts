@@ -10,10 +10,3 @@ export function anilistCompletedEpisodes(progress: EpisodeProgress) {
 
     return Math.max(0, episodes);
 }
-
-export function shouldImportAnilistProgress(
-    local: EpisodeProgress | undefined,
-    remoteCompletedEpisodes: number
-) {
-    return !local || remoteCompletedEpisodes > anilistCompletedEpisodes(local);
-}

@@ -7,16 +7,13 @@ import { GraphQLRequestError, graphql } from '$lib/server/graphql';
 import { anilistRequestPolicy } from '$lib/server/anime/anilist/request-policy';
 
 export async function removeAniListEntry(userId: string, anilistId: number) {
-    const [account, settings] = await Promise.all([
-        db.query.accounts.findFirst({
-            columns: { accessToken: true, accountId: true },
-            where: (entry, { and, eq }) =>
-                and(eq(entry.userId, userId), eq(entry.providerId, 'anilist')),
-        }),
-        db.query.syncSettings.findFirst({ where: (entry, { eq }) => eq(entry.userId, userId) }),
-    ]);
+    const account = await db.query.accounts.findFirst({
+        columns: { accessToken: true, accountId: true },
+        where: (entry, { and, eq }) =>
+            and(eq(entry.userId, userId), eq(entry.providerId, 'anilist')),
+    });
 
-    if (!account?.accessToken || !settings?.watchingStatus) {
+    if (!account?.accessToken) {
         return;
     }
 
