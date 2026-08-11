@@ -5,6 +5,7 @@ import { workerConfig } from '../config';
 export async function syncAllUsers(queue: Queue) {
     const response = await fetch(`${workerConfig.webUrl}/api/internal/sync/anilist`, {
         headers: { Authorization: `Bearer ${workerConfig.workerToken}` },
+        signal: AbortSignal.timeout(120_000),
     });
     if (!response.ok) {
         throw new Error(`Could not load automatic sync users: ${response.status}`);

@@ -8,6 +8,7 @@ export async function syncAniList(userId: string) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId }),
+        signal: AbortSignal.timeout(120_000),
     });
 
     if (!response.ok) {
