@@ -31,7 +31,7 @@ describe('automatic watchlist status', () => {
         ).toBe('watching');
     });
 
-    test('preserves an existing status while playback progress changes', () => {
+    test('moves an existing non-completed status to watching when playback starts', () => {
         expect(
             watchlistStateAfterPlayback(
                 'plan_to_watch',
@@ -39,7 +39,7 @@ describe('automatic watchlist status', () => {
                 episodes,
                 { ...episodes[0], completed: true }
             )
-        ).toBe('plan_to_watch');
+        ).toBe('watching');
     });
 
     test('does not complete an incomplete provider inventory', () => {

@@ -24,11 +24,7 @@ export function watchlistStateAfterPlayback(
         return current;
     }
 
-    if (current === null) {
-        return 'watching';
-    }
-
-    if (!playback.completed || current === 'completed') {
+    if (current === 'completed') {
         return current;
     }
 
@@ -41,5 +37,5 @@ export function watchlistStateAfterPlayback(
         playback.number === expected &&
         coversExpectedEpisodes(episodes, expected);
 
-    return completedSeries ? 'completed' : current;
+    return completedSeries ? 'completed' : 'watching';
 }
