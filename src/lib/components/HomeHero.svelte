@@ -57,7 +57,7 @@
 
 {#if highlights.length}
     <section
-        class="relative isolate h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-svh"
+        class="relative h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-svh"
         aria-roledescription="carousel"
         aria-label="Popular anime this week"
         onfocusin={() => (focused = true)}
@@ -83,11 +83,11 @@
                     </a>
 
                     <div
-                        class="pointer-events-none z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 2xl:self-center 2xl:pb-0"
+                        class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 2xl:self-center 2xl:pb-0"
                     >
                         <a
                             href={anime.href}
-                            class="pointer-events-auto block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                            class="pointer-events-auto relative z-10 block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                             aria-label={`View ${anime.title}`}
                         >
                             <img
@@ -138,7 +138,9 @@
                         </div>
 
                         {#if highlights.length > 1}
-                            <div class="pointer-events-auto mt-4 flex items-center gap-2 2xl:mt-5">
+                            <div
+                                class="pointer-events-auto relative z-30 mt-4 flex items-center gap-2 2xl:mt-5"
+                            >
                                 <button
                                     type="button"
                                     class="grid size-8 place-items-center text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white"
