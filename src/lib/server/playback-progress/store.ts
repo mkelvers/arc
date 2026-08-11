@@ -84,12 +84,12 @@ export async function deletePlaybackProgress(userId: string, anilistId: number) 
         .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
 }
 
-export async function getRecentPlaybackProgress(userId: string | undefined, limit = 24) {
+export async function getRecentPlaybackProgress(userId: string | undefined, limit?: number) {
     if (!userId) {
         return [];
     }
 
-    return db
+    const query = db
         .select({
             anilistId: animeExternalId.externalId,
             animeTitle: animeTable.title,
@@ -112,6 +112,7 @@ export async function getRecentPlaybackProgress(userId: string | undefined, limi
                 eq(animeExternalId.mediaType, 'anime')
             )
         )
-        .orderBy(desc(playbackProgress.lastWatchedAt))
-        .limit(Math.max(1, Math.min(limit, 50)));
+        .orderBy(desc(playbackProgress.lastWatchedAt));
+
+    return limit === undefined ? query : query.limit(Math.max(1, Math.min(limit, 50)));
 }

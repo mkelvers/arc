@@ -10,10 +10,9 @@ import { formatDuration } from '$lib/utils';
 import { getRecentPlaybackProgress } from './store';
 
 export async function getContinueWatchingCards(
-    userId: string | undefined,
-    limit = 10
+    userId: string | undefined
 ): Promise<ContinueWatchingCard[]> {
-    const progressEntries = await getRecentPlaybackProgress(userId, limit * 2);
+    const progressEntries = await getRecentPlaybackProgress(userId);
     if (!progressEntries.length) {
         return [];
     }
@@ -63,6 +62,14 @@ export async function getContinueWatchingCards(
                 return null;
             }
 
+            const targetIndex = episodes.findIndex(
+                ({ episodeId }) => episodeId === target.episodeId
+            );
+            const displayNumber =
+                targetIndex >= 0 && episodes.some(({ number }, index) => number !== index + 1)
+                    ? targetIndex + 1
+                    : target.number;
+
             const storedMedia = await getStoredMedia(progress.anilistId).catch((cause) => {
                 console.error(`Stored TMDB media failed for AniList ${progress.anilistId}`, cause);
                 return null;
@@ -90,7 +97,7 @@ export async function getContinueWatchingCards(
                 link: `/anime/${progress.anilistId}/watch/${encodeURIComponent(target.episodeId)}`,
                 backdrop,
                 episodeImage,
-                episodeLabel: `E${Number.isInteger(target.number) ? target.number : target.number.toFixed(1)}`,
+                episodeLabel: `E${Number.isInteger(displayNumber) ? displayNumber : displayNumber.toFixed(1)}`,
                 audioLabel: audioAvailabilityLabel(target.audio),
                 duration: formatDuration(runtimeMinutes),
                 resumeAtSeconds: continuingCurrent ? progress.positionSeconds : 0,
@@ -98,5 +105,5 @@ export async function getContinueWatchingCards(
         })
     );
 
-    return cards.filter((card): card is ContinueWatchingCard => card !== null).slice(0, limit);
+    return cards.filter((card): card is ContinueWatchingCard => card !== null);
 }
