@@ -222,7 +222,7 @@
             class="pointer-events-none absolute inset-0 flex flex-col overflow-hidden bg-surface/88 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
             <a
-                href={anime.link}
+                href={anime.href}
                 class="absolute inset-0 z-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 aria-current={current ? 'page' : undefined}
                 aria-label={`View ${anime.title}`}
