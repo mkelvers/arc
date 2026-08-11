@@ -136,7 +136,10 @@ export async function syncUser(userId: string, overrides: SyncOptions = {}) {
 
     if (settings.episodeProgress) {
         for (const entry of remote) {
-            if (entry.progress <= 0) {
+            if (
+                entry.progress <= 0 ||
+                (entry.status !== 'CURRENT' && entry.status !== 'REPEATING')
+            ) {
                 continue;
             }
 
