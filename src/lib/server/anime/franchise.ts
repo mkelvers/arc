@@ -17,7 +17,6 @@ import { withFranchisePlayback } from './franchise/playback';
 import { primaryFranchiseIds, type FranchiseSelectionEntry } from './franchise/selection';
 
 const requests = new Map<number, Promise<FranchiseOrder>>();
-const lifetime = 7 * 24 * 60 * 60 * 1_000;
 
 async function fetchMetadata(entries: ChiakiEntry[]) {
     const result = await request(
@@ -190,7 +189,11 @@ async function cachedFranchiseOrder(malId: number) {
 
     const storedOrder = stored ? verifiedFranchiseOrder(stored.data) : null;
 
-    if (stored && storedOrder && Date.now() - stored.fetchedAt.getTime() < lifetime) {
+    if (
+        stored &&
+        storedOrder &&
+        Date.now() - stored.fetchedAt.getTime() < 7 * 24 * 60 * 60 * 1_000
+    ) {
         return storedOrder;
     }
 

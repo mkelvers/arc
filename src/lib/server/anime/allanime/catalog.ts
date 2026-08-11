@@ -21,10 +21,8 @@ import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 import { isAnimeCardPage } from '$lib/anime/types';
 
-const audioCacheLifetime = 30 * 60 * 1_000;
 const providerName = 'allanime';
 const simulcastPageSize = 24;
-const simulcastPageLifetime = 30 * 60 * 1_000;
 const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();
 
 interface SimulcastPage {
@@ -191,7 +189,7 @@ export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
         .limit(1)
         .then(async ([stored]) => {
             const cached = stored && isAnimeCardPage(stored.data) ? stored.data : null;
-            const fresh = cached && Date.now() - stored.fetchedAt.getTime() < simulcastPageLifetime;
+            const fresh = cached && Date.now() - stored.fetchedAt.getTime() < 30 * 60 * 1_000;
             if (fresh) {
                 return cached;
             }
@@ -213,7 +211,7 @@ export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
 }
 
 export async function getWeeklyPopularAnime() {
-    if (popularCache && Date.now() - popularCache.fetchedAt < audioCacheLifetime) {
+    if (popularCache && Date.now() - popularCache.fetchedAt < 30 * 60 * 1_000) {
         return popularCache.anime;
     }
 

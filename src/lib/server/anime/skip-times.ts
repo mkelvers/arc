@@ -11,8 +11,6 @@ import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSegmentTemplate } from '$lib/server/db/schema';
 import { fetchAniSkip, validSkipInterval } from './aniskip';
 
-const refreshAfterMs = 30 * 24 * 60 * 60 * 1_000;
-
 type StoredSkipTimes = Pick<
     typeof animeEpisode.$inferSelect,
     | 'openingStartSeconds'
@@ -80,7 +78,8 @@ export async function getEpisodeSkipTimes({
 
     const cached = storedTimes(row);
     const fresh =
-        row.skipTimesFetchedAt && Date.now() - row.skipTimesFetchedAt.getTime() < refreshAfterMs;
+        row.skipTimesFetchedAt &&
+        Date.now() - row.skipTimesFetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000;
     if (row.skipTimesSource === 'manual' || fresh) {
         return cached;
     }
@@ -187,7 +186,12 @@ export async function getSegmentTemplates(
 type SegmentSave =
     | { kind: SkipKind; operation: 'clear' }
     | { kind: SkipKind; operation: 'apply-template'; start: number }
-    | { kind: SkipKind; operation: 'set'; interval: SkipInterval; createTemplate: boolean };
+    | {
+          kind: SkipKind;
+          operation: 'set';
+          interval: SkipInterval;
+          createTemplate: boolean;
+      };
 
 export async function saveEpisodeSegment(anilistId: number, episodeId: string, save: SegmentSave) {
     const saved = await db.transaction(async (tx) => {

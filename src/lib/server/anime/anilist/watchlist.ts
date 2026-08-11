@@ -10,9 +10,7 @@ import { animeCard } from './models';
 import { present } from './text';
 
 const pageSize = 50;
-const lifetime = 5 * 60 * 1_000;
-const storedFreshFor = 6 * 60 * 60 * 1_000;
-const cache = new RequestCache<string, Map<number, AnimeCard>>(lifetime);
+const cache = new RequestCache<string, Map<number, AnimeCard>>(5 * 60 * 1_000);
 
 async function requestAnime(ids: number[], stored: Map<number, AnimeCard>) {
     const result = new Map(stored);
@@ -34,7 +32,11 @@ async function requestAnime(ids: number[], stored: Map<number, AnimeCard>) {
             await db
                 .insert(animeCardCache)
                 .values(
-                    fetched.map((data) => ({ anilistId: data.id, data, fetchedAt: new Date() }))
+                    fetched.map((data) => ({
+                        anilistId: data.id,
+                        data,
+                        fetchedAt: new Date(),
+                    }))
                 )
                 .onConflictDoUpdate({
                     target: animeCardCache.anilistId,
@@ -71,7 +73,7 @@ export function getWatchlistAnime(ids: number[]) {
                     .where(inArray(animeCardCache.anilistId, uniqueIds));
                 const stored = new Map(rows.map(({ id, data }) => [id, data]));
                 const staleIds = rows
-                    .filter(({ fetchedAt }) => now - fetchedAt.getTime() >= storedFreshFor)
+                    .filter(({ fetchedAt }) => now - fetchedAt.getTime() >= 6 * 60 * 60 * 1_000)
                     .map(({ id }) => id);
                 const missingIds = uniqueIds.filter((id) => !stored.has(id));
 

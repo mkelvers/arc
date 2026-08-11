@@ -6,8 +6,7 @@ import { animeCard } from './models';
 import { present } from './text';
 import type { HomepageAnime } from './types';
 
-const lifetime = 30 * 60 * 1_000;
-const cache = new RequestCache<string, HomepageAnime>(lifetime);
+const cache = new RequestCache<string, HomepageAnime>(30 * 60 * 1_000);
 
 async function requestHomepage(season: MediaSeason, seasonYear: number) {
     const response = await request(

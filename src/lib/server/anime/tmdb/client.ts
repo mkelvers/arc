@@ -5,11 +5,10 @@ import type { paths } from './generated';
 
 const baseUrl = 'https://api.themoviedb.org';
 const imageBaseUrl = 'https://image.tmdb.org/t/p';
-const requestTimeout = 8_000;
 
 function timedFetch(request: Request) {
     return fetch(request, {
-        signal: AbortSignal.any([request.signal, AbortSignal.timeout(requestTimeout)]),
+        signal: AbortSignal.any([request.signal, AbortSignal.timeout(8_000)]),
     });
 }
 

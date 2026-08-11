@@ -10,7 +10,6 @@ import { anilistRequestPolicy } from './request-policy';
 
 const endpoint = 'https://graphql.anilist.co';
 const defaultFreshFor = 24 * 60 * 60 * 1_000;
-const cleanupInterval = 60 * 60 * 1_000;
 const requests = new Map<string, Promise<unknown>>();
 let cleanupAfter = 0;
 
@@ -47,7 +46,7 @@ async function removeExpiredEntries(now: Date) {
         return;
     }
 
-    cleanupAfter = now.getTime() + cleanupInterval;
+    cleanupAfter = now.getTime() + 60 * 60 * 1_000;
     try {
         await db.delete(anilistQueryCache).where(lte(anilistQueryCache.expiresAt, now));
     } catch (cause) {
@@ -96,7 +95,10 @@ export async function request<TResult, TVariables>(
     const key = cacheKey(document, variables);
     try {
         const [stored] = await db
-            .select({ data: anilistQueryCache.data, expiresAt: anilistQueryCache.expiresAt })
+            .select({
+                data: anilistQueryCache.data,
+                expiresAt: anilistQueryCache.expiresAt,
+            })
             .from(anilistQueryCache)
             .where(eq(anilistQueryCache.key, key))
             .limit(1);

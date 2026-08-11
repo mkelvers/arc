@@ -5,8 +5,7 @@ import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
 
-const lifetime = 5 * 60 * 1_000;
-const cache = new RequestCache<string, AnimeSearchResult[]>(lifetime);
+const cache = new RequestCache<string, AnimeSearchResult[]>(5 * 60 * 1_000);
 
 async function requestSearch(search: string) {
     const response = await request(

@@ -1,8 +1,5 @@
 import { GraphQLRequestError } from '$lib/server/graphql';
 
-const unavailableRetryDelay = 30_000;
-const defaultRateLimitRetryDelay = 60_000;
-
 function sleep(milliseconds: number) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -44,9 +41,9 @@ export class AniListRequestPolicy {
             if (cause instanceof GraphQLRequestError) {
                 const delay =
                     cause.status === 429
-                        ? (cause.retryAfterMs ?? defaultRateLimitRetryDelay)
+                        ? (cause.retryAfterMs ?? 60_000)
                         : cause.status == null || cause.status >= 500
-                          ? unavailableRetryDelay
+                          ? 30_000
                           : 0;
 
                 if (delay > 0) {

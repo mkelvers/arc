@@ -22,8 +22,6 @@ import {
 import type { MediaSeason, MediaSource } from '$lib/graphql/anilist/generated/graphql';
 import { withAnimeCardPosters } from './card-posters';
 
-const refreshLifetime = 24 * 60 * 60 * 1_000;
-const taxonomyLifetime = 7 * 24 * 60 * 60 * 1_000;
 const maximumPage = 2_147_483_647;
 type CatalogCachePage = {
     animeIds: number[];
@@ -121,7 +119,7 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
         .where(eq(animeCatalogRefresh.queryKey, queryKey))
         .limit(1);
 
-    if (stored && Date.now() - stored.fetchedAt.getTime() < refreshLifetime) {
+    if (stored && Date.now() - stored.fetchedAt.getTime() < 24 * 60 * 60 * 1_000) {
         return { ...stored, stale: false };
     }
 
@@ -192,7 +190,7 @@ async function sourceTaxonomy() {
         stored.tags.length > 0 &&
         stored.sources.length > 0 &&
         stored.seasons.length > 0 &&
-        Date.now() - stored.fetchedAt.getTime() < taxonomyLifetime
+        Date.now() - stored.fetchedAt.getTime() < 7 * 24 * 60 * 60 * 1_000
     ) {
         return stored;
     }
