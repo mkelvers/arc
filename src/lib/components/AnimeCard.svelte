@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayIcon, StarIcon, TrashIcon } from 'phosphor-svelte';
+    import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
     import type { AnimeCard } from '$lib/anime/types';
     import Tooltip from '$lib/components/Tooltip.svelte';
@@ -10,36 +10,10 @@
         current?: boolean;
         compact?: boolean;
         onselect?: () => void;
-        onremove?: () => Promise<void>;
         variant?: 'poster' | 'compact' | 'top';
     }
 
-    let {
-        anime,
-        current = false,
-        compact = false,
-        onremove,
-        onselect,
-        variant = 'poster',
-    }: Props = $props();
-    let removing = $state(false);
-    let removeFailed = $state(false);
-
-    async function remove() {
-        if (!onremove || removing) {
-            return;
-        }
-
-        removing = true;
-        removeFailed = false;
-        try {
-            await onremove();
-        } catch {
-            removeFailed = true;
-        } finally {
-            removing = false;
-        }
-    }
+    let { anime, current = false, compact = false, onselect, variant = 'poster' }: Props = $props();
 </script>
 
 {#if variant === 'compact'}
@@ -275,19 +249,6 @@
                     </a>
                 </Tooltip>
                 <WatchlistBookmark animeId={anime.id} title={anime.title} />
-                {#if onremove}
-                    <Tooltip text={removeFailed ? 'Try again' : 'Remove'}>
-                        <button
-                            type="button"
-                            aria-label={`Remove ${anime.title} from watchlist`}
-                            disabled={removing}
-                            class="grid size-9 place-items-center transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
-                            onclick={remove}
-                        >
-                            <TrashIcon size="1.45rem" weight="regular" aria-hidden="true" />
-                        </button>
-                    </Tooltip>
-                {/if}
             </div>
         </div>
     </article>
