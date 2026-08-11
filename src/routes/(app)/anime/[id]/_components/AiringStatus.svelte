@@ -3,33 +3,34 @@
 
     interface Props {
         animeId: number;
-        episode: number;
         airingAt: number;
         initialRevision: Promise<string | null>;
     }
 
-    let { animeId, episode, airingAt, initialRevision }: Props = $props();
-    let now = $state(Date.now());
+    let { animeId, airingAt, initialRevision }: Props = $props();
+    let airingTime = $state<string | null>(null);
+    const airingDate = $derived.by(() => {
+        const date = new Date(airingAt * 1_000);
+        const day = date.getDate();
+        const suffix =
+            day >= 11 && day <= 13
+                ? 'th'
+                : day % 10 === 1
+                  ? 'st'
+                  : day % 10 === 2
+                    ? 'nd'
+                    : day % 10 === 3
+                      ? 'rd'
+                      : 'th';
 
-    const countdown = $derived.by(() => {
-        const minutes = Math.max(0, Math.ceil((airingAt * 1_000 - now) / 60_000));
-        if (minutes === 0) {
-            return 'airing now';
-        }
-
-        const days = Math.floor(minutes / (24 * 60));
-        const hours = Math.floor((minutes % (24 * 60)) / 60);
-        const remainder = minutes % 60;
-
-        return `in ${[days ? `${days}d` : '', hours ? `${hours}h` : '', `${remainder}m`]
-            .filter(Boolean)
-            .join(' ')}`;
+        return `${date.toLocaleDateString('en-US', { month: 'short' })} ${day}${suffix}`;
     });
 
     $effect(() => {
-        const timer = setInterval(() => (now = Date.now()), 60_000);
-
-        return () => clearInterval(timer);
+        airingTime = new Date(airingAt * 1_000).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+        });
     });
 
     $effect(() => {
@@ -98,7 +99,6 @@
     });
 </script>
 
-<span class="anime-hero-metadata__tag">
-    Airing · E{episode}
-    {countdown}
-</span>
+<p class="mt-7 text-base font-semibold text-foreground/80 sm:mt-8 sm:text-lg">
+    The next episode airs {airingDate}{#if airingTime}{' '}at {airingTime}{/if}.
+</p>

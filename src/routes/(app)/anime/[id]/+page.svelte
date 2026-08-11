@@ -67,17 +67,22 @@
                     {/await}
                 </div>
 
+                {#if data.anime.status === 'RELEASING' && data.anime.nextAiringEpisode}
+                    <AiringStatus
+                        animeId={data.anime.id}
+                        airingAt={data.anime.nextAiringEpisode.airingAt}
+                        initialRevision={data.episodeRevision}
+                    />
+                {/if}
+
                 <p
-                    class="mt-8 flex flex-wrap items-center gap-y-1 text-sm text-muted sm:mt-10 lg:mt-11 lg:text-base"
+                    class={cn(
+                        'flex flex-wrap items-center gap-y-1 text-sm text-muted lg:text-base',
+                        data.anime.status === 'RELEASING' && data.anime.nextAiringEpisode
+                            ? 'mt-3'
+                            : 'mt-8 sm:mt-10 lg:mt-11'
+                    )}
                 >
-                    {#if data.anime.status === 'RELEASING' && data.anime.nextAiringEpisode}
-                        <AiringStatus
-                            animeId={data.anime.id}
-                            episode={data.anime.nextAiringEpisode.episode}
-                            airingAt={data.anime.nextAiringEpisode.airingAt}
-                            initialRevision={data.episodeRevision}
-                        />
-                    {/if}
                     {#await data.audioLabel then audioLabel}
                         {#if audioLabel}
                             <span class="anime-hero-metadata__tag">{audioLabel}</span>
