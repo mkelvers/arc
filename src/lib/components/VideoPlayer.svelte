@@ -1,6 +1,11 @@
 <script lang="ts">
     import { Player } from '$lib/player/controller.svelte';
-    import { subtitleSizes, type Sources } from '$lib/player/media';
+    import {
+        subtitleBackgrounds,
+        subtitleSizes,
+        subtitleTextColors,
+        type Sources,
+    } from '$lib/player/media';
     import { ProgressSchedule } from '$lib/player/progress';
     import {
         activeSkip as findActiveSkip,
@@ -437,10 +442,18 @@
         <div
             aria-live="off"
             class="pointer-events-none absolute inset-x-6 bottom-20 z-10 flex flex-col items-center gap-1 text-center leading-snug font-semibold text-white"
-            data-subtitle-size={`${subtitleSizes[media.subtitleSize].px}px`}
         >
             {#each media.subtitles as subtitle}
-                <span class="subtitle-outline whitespace-pre-line">
+                <span
+                    class:subtitle-outline={media.subtitleEdgeStyle === 'outline'}
+                    class="whitespace-pre-line px-2 py-0.5"
+                    style:color={subtitleTextColors[media.subtitleTextColor].value}
+                    style:font-size={`${subtitleSizes[media.subtitleSize].px}px`}
+                    style:background-color={subtitleBackgrounds[media.subtitleBackground].value ===
+                    null
+                        ? 'transparent'
+                        : `rgb(${subtitleBackgrounds[media.subtitleBackground].value} / ${media.subtitleBackgroundOpacity})`}
+                >
                     {subtitle}
                 </span>
             {/each}

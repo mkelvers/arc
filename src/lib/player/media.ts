@@ -129,6 +129,32 @@ export const subtitleSizes = {
 
 export type SubtitleSize = keyof typeof subtitleSizes;
 
+export const subtitleTextColors = {
+    white: { label: 'White', value: '#ffffff' },
+    yellow: { label: 'Yellow', value: '#fff36b' },
+    black: { label: 'Black', value: '#111111' },
+} as const;
+
+export type SubtitleTextColor = keyof typeof subtitleTextColors;
+
+export const subtitleEdgeStyles = {
+    outline: { label: 'Outline' },
+    none: { label: 'None' },
+} as const;
+
+export type SubtitleEdgeStyle = keyof typeof subtitleEdgeStyles;
+
+export const subtitleBackgrounds = {
+    black: { label: 'Black', value: '0 0 0' },
+    white: { label: 'White', value: '255 255 255' },
+    none: { label: 'None', value: null },
+} as const;
+
+export type SubtitleBackground = keyof typeof subtitleBackgrounds;
+
+export const subtitleBackgroundOpacities = [0, 0.25, 0.5, 0.75, 1] as const;
+export type SubtitleBackgroundOpacity = (typeof subtitleBackgroundOpacities)[number];
+
 /** Menu order for the size presets. */
 export const subtitleSizeOrder = [
     'small',

@@ -1,13 +1,32 @@
 import type { AudioMode } from '$lib/anime/audio';
 import {
     isSubtitleSize,
+    subtitleBackgroundOpacities,
+    subtitleBackgrounds,
     subtitleSizeOrder,
     subtitleSizes,
+    subtitleTextColors,
     type Sources,
+    type SubtitleBackground,
+    type SubtitleBackgroundOpacity,
+    type SubtitleEdgeStyle,
     type SubtitleSize,
+    type SubtitleMode,
+    type SubtitleTextColor,
 } from './media';
 
-type Key = 'audio-mode' | 'autoplay' | 'quality' | 'volume' | 'subtitles' | 'subtitle-size';
+type Key =
+    | 'audio-mode'
+    | 'autoplay'
+    | 'quality'
+    | 'volume'
+    | 'subtitles'
+    | 'subtitle-mode'
+    | 'subtitle-size'
+    | 'subtitle-text-color'
+    | 'subtitle-background'
+    | 'subtitle-background-opacity'
+    | 'subtitle-edge-style';
 
 export function load(sources: Sources, qualities: string[]) {
     const rawVolume = localStorage.getItem('arc:volume');
@@ -28,6 +47,11 @@ export function load(sources: Sources, qualities: string[]) {
             ? (rawQuality ?? 'best')
             : null;
     const rawSubtitles = localStorage.getItem('arc:subtitles');
+    const rawSubtitleMode = localStorage.getItem('arc:subtitle-mode');
+    const subtitleMode: SubtitleMode | null =
+        rawSubtitleMode === 'off' || rawSubtitleMode === 'dub' || rawSubtitleMode === 'sub'
+            ? rawSubtitleMode
+            : null;
     const subtitleEnabled =
         rawSubtitles === 'false' || rawSubtitles === 'off'
             ? false
@@ -55,6 +79,25 @@ export function load(sources: Sources, qualities: string[]) {
             )
           : null;
 
+    const rawTextColor = localStorage.getItem('arc:subtitle-text-color');
+    const subtitleTextColor: SubtitleTextColor | null =
+        rawTextColor !== null && rawTextColor in subtitleTextColors
+            ? (rawTextColor as SubtitleTextColor)
+            : null;
+    const rawBackground = localStorage.getItem('arc:subtitle-background');
+    const subtitleBackground: SubtitleBackground | null =
+        rawBackground !== null && rawBackground in subtitleBackgrounds
+            ? (rawBackground as SubtitleBackground)
+            : null;
+    const rawBackgroundOpacity = Number(localStorage.getItem('arc:subtitle-background-opacity'));
+    const subtitleBackgroundOpacity: SubtitleBackgroundOpacity | null =
+        subtitleBackgroundOpacities.includes(rawBackgroundOpacity as SubtitleBackgroundOpacity)
+            ? (rawBackgroundOpacity as SubtitleBackgroundOpacity)
+            : null;
+    const rawEdgeStyle = localStorage.getItem('arc:subtitle-edge-style');
+    const subtitleEdgeStyle: SubtitleEdgeStyle | null =
+        rawEdgeStyle === 'outline' || rawEdgeStyle === 'none' ? rawEdgeStyle : null;
+
     return {
         volume:
             volume !== null && Number.isFinite(volume) && volume >= 0 && volume <= 1
@@ -64,7 +107,12 @@ export function load(sources: Sources, qualities: string[]) {
         autoplay,
         quality,
         subtitleEnabled,
+        subtitleMode,
         subtitleSize,
+        subtitleTextColor,
+        subtitleBackground,
+        subtitleBackgroundOpacity,
+        subtitleEdgeStyle,
     };
 }
 

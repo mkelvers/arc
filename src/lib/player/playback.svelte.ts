@@ -24,10 +24,14 @@ import {
     type Sources,
     type Stream,
     type SubtitleCue,
+    type SubtitleBackground,
+    type SubtitleBackgroundOpacity,
+    type SubtitleEdgeStyle,
     type SubtitleKind,
     type SubtitleMode,
     type SubtitleOption,
     type SubtitleSize,
+    type SubtitleTextColor,
     type SubtitleTrack,
 } from './media';
 import * as preferences from './preferences';
@@ -54,6 +58,10 @@ export class Playback {
     subtitleMode = $state<SubtitleMode>('dub');
     subtitleOptions = $state<SubtitleOption[]>(subtitleOptionsFor([]));
     subtitleSize = $state<SubtitleSize>('normal');
+    subtitleTextColor = $state<SubtitleTextColor>('white');
+    subtitleBackground = $state<SubtitleBackground>('black');
+    subtitleBackgroundOpacity = $state<SubtitleBackgroundOpacity>(0.75);
+    subtitleEdgeStyle = $state<SubtitleEdgeStyle>('outline');
     sourceIndex = $state(0);
     error = $state(false);
     video!: HTMLVideoElement;
@@ -319,6 +327,21 @@ export class Playback {
         return null;
     }
 
+    private preferredSubtitleKind(kinds: SubtitleKind[]) {
+        if (this.subtitleMode === 'sub' && kinds.includes('translated')) {
+            return 'translated';
+        }
+        if (this.subtitleMode === 'dub') {
+            if (kinds.includes('cc')) {
+                return 'cc';
+            }
+            if (kinds.includes('limited')) {
+                return 'limited';
+            }
+        }
+        return this.defaultSubtitleKind(kinds);
+    }
+
     private offerAvailableSubtitles() {
         const source = this.modeSources.find((candidate) =>
             hasSubtitleTrack(this.sources, this.mode, candidate)
@@ -403,9 +426,9 @@ export class Playback {
             }
 
             this.subtitleOptions = subtitleOptionsFor(kinds);
-            const defaultKind = this.defaultSubtitleKind(kinds);
-            if (this.subtitlesEnabled && defaultKind) {
-                this.subtitleMode = defaultKind === 'translated' ? 'sub' : 'dub';
+            const selectedKind = this.preferredSubtitleKind(kinds);
+            if (this.subtitlesEnabled && selectedKind) {
+                this.subtitleMode = selectedKind === 'translated' ? 'sub' : 'dub';
                 this.subtitleCues = this.loadedSubtitles[this.subtitleMode] ?? [];
             } else {
                 this.subtitleMode = 'off';
@@ -595,6 +618,7 @@ export class Playback {
         this.subtitlesEnabled = enabled;
         this.subtitleMode = mode;
         preferences.save('subtitles', enabled);
+        preferences.save('subtitle-mode', mode);
         if (!enabled) {
             this.subtitleCues = [];
         } else if (this.loadedSubtitles[mode]) {
@@ -624,6 +648,21 @@ export class Playback {
         this.subtitleSize = size;
         preferences.save('subtitle-size', size);
         this.onActivity();
+    }
+
+    switchSubtitleTextColor(color: SubtitleTextColor) {
+        this.subtitleTextColor = color;
+        preferences.save('subtitle-text-color', color);
+    }
+
+    switchSubtitleBackground(background: SubtitleBackground) {
+        this.subtitleBackground = background;
+        preferences.save('subtitle-background', background);
+    }
+
+    switchSubtitleBackgroundOpacity(opacity: SubtitleBackgroundOpacity) {
+        this.subtitleBackgroundOpacity = opacity;
+        preferences.save('subtitle-background-opacity', opacity);
     }
 
     async tryNextSource(failedSource = this.src) {
@@ -832,8 +871,23 @@ export class Playback {
                 this.subtitleMode = 'off';
             }
         }
+        if (saved.subtitleMode !== null) {
+            this.subtitleMode = saved.subtitleMode;
+        }
         if (saved.subtitleSize !== null) {
             this.subtitleSize = saved.subtitleSize;
+        }
+        if (saved.subtitleTextColor !== null) {
+            this.subtitleTextColor = saved.subtitleTextColor;
+        }
+        if (saved.subtitleBackground !== null) {
+            this.subtitleBackground = saved.subtitleBackground;
+        }
+        if (saved.subtitleBackgroundOpacity !== null) {
+            this.subtitleBackgroundOpacity = saved.subtitleBackgroundOpacity;
+        }
+        if (saved.subtitleEdgeStyle !== null) {
+            this.subtitleEdgeStyle = saved.subtitleEdgeStyle;
         }
 
         this.resetSource();
