@@ -146,7 +146,6 @@
                     <WatchlistBookmark
                         animeId={data.anime.id}
                         title={data.anime.title}
-                        class="size-11 shrink-0 border border-accent lg:size-12"
                         iconSize="1.65em"
                     />
                     <WatchlistStatusMenu

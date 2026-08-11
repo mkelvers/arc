@@ -3,18 +3,16 @@
     import { page } from '$app/state';
     import { BookmarkSimpleIcon } from 'phosphor-svelte';
 
-    import { cn } from '$lib/utils';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Tooltip from './Tooltip.svelte';
 
     interface Props {
         animeId: number;
         title: string;
-        class?: string;
         iconSize?: string;
     }
 
-    let { animeId, title, class: className, iconSize = '1.55rem' }: Props = $props();
+    let { animeId, title, iconSize = '1.55rem' }: Props = $props();
     let pending = $state(false);
     let failed = $state(false);
     const watchlistStatus = $derived(watchlist.state(animeId));
@@ -61,10 +59,7 @@
 <Tooltip text={failed ? 'Try again' : added ? 'Remove from Watchlist' : 'Add to Watchlist'}>
     <button
         type="button"
-        class={cn(
-            'grid size-9 place-items-center text-accent transition-opacity disabled:cursor-wait disabled:opacity-50',
-            className
-        )}
+        class="grid size-10 shrink-0 place-items-center border-2 border-accent text-accent transition-opacity disabled:cursor-wait disabled:opacity-50"
         aria-label={label}
         aria-pressed={added}
         disabled={pending}

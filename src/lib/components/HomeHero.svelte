@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { CaretLeftIcon, CaretRightIcon, PauseIcon, PlayIcon } from 'phosphor-svelte';
+    import { CaretLeftIcon, CaretRightIcon, PlayIcon } from 'phosphor-svelte';
     import { cn } from '$lib/utils';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
 
@@ -26,8 +26,11 @@
 
     let { highlights }: Props = $props();
     let active = $state(0);
-    let paused = $state(false);
-    let focused = $state(false);
+    let progression = $state(0);
+    let reducedMotion = $state(false);
+    const autoRotate = $derived(highlights.length > 1 && !reducedMotion);
+
+    const slideDuration = 20_000;
 
     function select(index: number) {
         if (!highlights.length) {
@@ -35,23 +38,11 @@
         }
 
         active = (index + highlights.length) % highlights.length;
+        progression += 1;
     }
 
     onMount(() => {
-        if (
-            highlights.length < 2 ||
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ) {
-            return;
-        }
-
-        const interval = window.setInterval(() => {
-            if (!paused && !focused) {
-                select(active + 1);
-            }
-        }, 10_000);
-
-        return () => window.clearInterval(interval);
+        reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     });
 </script>
 
@@ -60,8 +51,6 @@
         class="relative h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-svh"
         aria-roledescription="carousel"
         aria-label="Trending anime now"
-        onfocusin={() => (focused = true)}
-        onfocusout={() => (focused = false)}
     >
         {#each highlights as anime, index (anime.id)}
             {#if index === active}
@@ -99,21 +88,21 @@
                         </a>
 
                         <p
-                            class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-y-1 text-xs font-medium text-white/40 sm:text-sm 2xl:mt-8 2xl:text-sm"
+                            class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-y-1 text-xs font-normal text-white/50 sm:text-sm 2xl:mt-8 2xl:text-sm"
                         >
                             {#if anime.audioLabel}
                                 <span class="hero-metadata__tag">{anime.audioLabel}</span>
                             {/if}
                             {#if anime.genres.length}
                                 <span class="hero-metadata__tag"
-                                    >{anime.genres.slice(0, 3).join(', ')}</span
+                                    >{anime.genres.slice(0, 4).join(', ')}</span
                                 >
                             {/if}
                         </p>
 
                         {#if anime.description}
                             <p
-                                class="mt-4 line-clamp-3 max-w-[min(100%,46rem)] text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7"
+                                class="mt-3 line-clamp-4 max-w-[min(100%,46rem)] text-sm leading-6 text-[#bbb] sm:text-base 2xl:text-base 2xl:leading-7"
                             >
                                 {anime.description}
                             </p>
@@ -124,7 +113,7 @@
                         >
                             <a
                                 href={anime.link}
-                                class="inline-flex min-h-10 items-center gap-2 bg-accent px-4 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:min-h-12 2xl:px-5 2xl:text-sm"
+                                class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:text-sm"
                             >
                                 <PlayIcon size="1.2rem" weight="bold" aria-hidden="true" />
                                 Start watching {anime.episodeLabel}
@@ -132,42 +121,39 @@
                             <WatchlistBookmark
                                 animeId={anime.id}
                                 title={anime.title}
-                                class="size-10 shrink-0 border border-accent 2xl:size-12"
                                 iconSize="1.35rem"
                             />
                         </div>
 
                         {#if highlights.length > 1}
                             <div
-                                class="pointer-events-auto relative z-30 mt-4 flex items-center gap-2 2xl:mt-5"
+                                class="pointer-events-auto relative z-30 mt-6 flex items-center gap-2 2xl:mt-7"
                             >
-                                <button
-                                    type="button"
-                                    class="grid size-8 place-items-center text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-white"
-                                    aria-label={paused ? 'Play carousel' : 'Pause carousel'}
-                                    aria-pressed={paused}
-                                    onclick={() => (paused = !paused)}
-                                >
-                                    {#if paused}
-                                        <PlayIcon size="1rem" weight="fill" aria-hidden="true" />
-                                    {:else}
-                                        <PauseIcon size="1rem" weight="fill" aria-hidden="true" />
-                                    {/if}
-                                </button>
-
                                 {#each highlights as item, itemIndex (item.id)}
                                     <button
                                         type="button"
                                         class={cn(
-                                            'h-2 rounded-full transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
-                                            itemIndex === active
-                                                ? 'w-6 bg-white'
-                                                : 'w-2 bg-white/45'
+                                            'relative h-2 overflow-hidden rounded-full bg-white/50 transition-[width,background-color] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+                                            itemIndex === active ? 'w-12' : 'w-6 hover:bg-white/70'
                                         )}
                                         aria-label={`Show ${item.title}`}
                                         aria-current={itemIndex === active ? 'true' : undefined}
                                         onclick={() => select(itemIndex)}
                                     >
+                                        {#if itemIndex === active}
+                                            {#key progression}
+                                                <span
+                                                    class={cn(
+                                                        'absolute inset-y-0 left-0 bg-accent',
+                                                        autoRotate
+                                                            ? 'hero-pagination__progress'
+                                                            : 'w-full'
+                                                    )}
+                                                    style:animation-duration={`${slideDuration}ms`}
+                                                    onanimationend={() => select(active + 1)}
+                                                ></span>
+                                            {/key}
+                                        {/if}
                                         <span class="sr-only">
                                             Show {item.title}
                                         </span>
@@ -212,5 +198,21 @@
         line-height: 1;
         vertical-align: middle;
         transform: rotate(45deg);
+    }
+
+    .hero-pagination__progress {
+        animation-name: hero-slide-progress;
+        animation-timing-function: linear;
+        animation-fill-mode: forwards;
+    }
+
+    @keyframes hero-slide-progress {
+        from {
+            width: 0;
+        }
+
+        to {
+            width: 100%;
+        }
     }
 </style>
