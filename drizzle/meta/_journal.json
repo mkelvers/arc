@@ -274,6 +274,13 @@
             "when": 1786465882794,
             "tag": "0038_tranquil_maestro",
             "breakpoints": true
+        },
+        {
+            "idx": 39,
+            "version": "7",
+            "when": 1786473461683,
+            "tag": "0039_big_ultragirl",
+            "breakpoints": true
         }
     ]
 }

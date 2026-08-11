@@ -547,6 +547,7 @@ export const playbackProgress = pgTable(
             .defaultNow()
             .$onUpdate(() => new Date()),
         lastWatchedAt: timestamp('last_watched_at', { withTimezone: true }).notNull().defaultNow(),
+        eventAt: timestamp('event_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
         unique('playback_progress_user_anime_unique').on(table.userId, table.animeId),
