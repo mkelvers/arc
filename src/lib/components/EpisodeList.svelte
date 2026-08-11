@@ -18,7 +18,5 @@
         <EpisodeGridCard episode={episode} title={title} image={image} />
       {/each}
     </div>
-  {:else}
-    <p class="text-sm text-muted">No available episodes found yet.</p>
   {/if}
 </section>
