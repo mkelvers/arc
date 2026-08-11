@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, ne, or } from 'drizzle-orm';
 
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
 import { db } from '$lib/server/db';
@@ -8,6 +8,7 @@ import {
     animeExternalId,
     animeExternalIdLink,
     playbackProgress,
+    watchlist as watchlistTable,
 } from '$lib/server/db/schema';
 import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
 import { enqueueUserSync } from '$lib/server/sync/queue';
@@ -105,12 +106,19 @@ export async function getRecentPlaybackProgress(userId: string | undefined, limi
         .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, playbackProgress.animeId))
         .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
         .leftJoin(animeDetailsCache, eq(animeDetailsCache.anilistId, animeExternalId.externalId))
+        .leftJoin(
+            watchlistTable,
+            and(
+                eq(watchlistTable.userId, playbackProgress.userId),
+                eq(watchlistTable.animeId, playbackProgress.animeId)
+            )
+        )
         .where(
             and(
                 eq(playbackProgress.userId, userId),
                 eq(animeExternalId.provider, 'anilist'),
                 eq(animeExternalId.mediaType, 'anime'),
-                eq(playbackProgress.completed, false)
+                or(isNull(watchlistTable.state), ne(watchlistTable.state, 'completed'))
             )
         )
         .orderBy(desc(playbackProgress.lastWatchedAt))
