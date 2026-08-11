@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 
 import { resolveWatchlistImport } from '$lib/server/anime/anilist/watchlist-transfer';
-import { applyWatchlistEntries } from '$lib/server/watchlist';
+import { applyWatchlistEntries, type WatchlistImportMode } from '$lib/server/watchlist';
 import { GraphQLRequestError } from '$lib/server/graphql';
 import { syncUser } from '$lib/server/sync/service';
 import {
@@ -18,7 +18,8 @@ const maximumFileSize = 2 * 1_024 * 1_024;
 async function importFile(
     userId: string,
     file: File,
-    parser: (source: string) => ReturnType<typeof parseWatchlistImport>
+    parser: (source: string) => ReturnType<typeof parseWatchlistImport>,
+    mode: WatchlistImportMode
 ) {
     if (!(file instanceof File) || !file.size) {
         return fail(400, { message: 'Choose a library file.' });
@@ -52,10 +53,13 @@ async function importFile(
             return fail(400, { message: 'No anime could be matched.' });
         }
 
-        const result = await applyWatchlistEntries(userId, entries);
+        const result = await applyWatchlistEntries(userId, entries, mode);
         return {
             success: true,
-            message: `Imported ${result.added + result.updated} anime.`,
+            message:
+                mode === 'replace'
+                    ? `Replaced your watchlist with ${result.added} anime.`
+                    : `Added ${result.added} anime. Existing entries were left unchanged.`,
         };
     } catch (cause) {
         if (cause instanceof WatchlistImportError) {
@@ -104,26 +108,30 @@ export const actions: Actions = {
             redirect(303, '/login');
         }
 
-        const file = (await request.formData()).get('file');
-        return importFile(locals.user.id, file as File, parseMyAnimeListXml);
+        const form = await request.formData();
+        const file = form.get('file');
+        const mode = form.get('mode') === 'replace' ? 'replace' : 'add';
+        return importFile(locals.user.id, file as File, parseMyAnimeListXml, mode);
     },
     importUniversal: async ({ locals, request }) => {
         if (!locals.user) {
             redirect(303, '/login');
         }
 
-        const file = (await request.formData()).get('file');
+        const form = await request.formData();
+        const file = form.get('file');
         if (!(file instanceof File)) {
             return fail(400, { message: 'Choose a library file.' });
         }
 
         const extension = file.name.toLowerCase().split('.').pop();
+        const mode = form.get('mode') === 'replace' ? 'replace' : 'add';
         const parser =
             extension === 'json'
                 ? parseWatchlistImport
                 : extension === 'csv'
                   ? parseUniversalCsv
                   : parseMyAnimeListXml;
-        return importFile(locals.user.id, file, parser);
+        return importFile(locals.user.id, file, parser, mode);
     },
 };

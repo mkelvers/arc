@@ -3,13 +3,46 @@
 
     let { form } = $props();
     let dismissedForm = $state<unknown>();
+    let replaceWatchlist = $state(false);
     const statusMessage = $derived(form && form !== dismissedForm ? (form.message ?? '') : '');
 </script>
 
 <section aria-labelledby="import-library">
     <h2 id="import-library" class="text-sm font-medium text-foreground">Import Library</h2>
 
-    <div class="mt-5 space-y-7">
+    <div class="mt-5">
+        <label class="flex cursor-pointer items-start gap-3 text-sm text-muted">
+            <span class="relative mt-0.5 flex size-4 shrink-0 items-center justify-center">
+                <input
+                    bind:checked={replaceWatchlist}
+                    type="checkbox"
+                    class="peer absolute inset-0 z-10 cursor-pointer opacity-0"
+                    aria-label="Replace current watchlist"
+                />
+                <span
+                    class="flex size-4 items-center justify-center border border-border-strong bg-transparent text-player-accent transition-colors peer-hover:border-player-accent peer-checked:border-player-accent peer-focus-visible:ring-2 peer-focus-visible:ring-player-accent peer-checked:[&>svg]:opacity-100"
+                    aria-hidden="true"
+                >
+                    <svg
+                        viewBox="0 0 12 12"
+                        class="size-2.5 opacity-0 transition-opacity"
+                        fill="none"
+                    >
+                        <path d="m2 6 2.5 2.5L10 3" stroke="currentColor" stroke-width="1.5" />
+                    </svg>
+                </span>
+            </span>
+            <span>
+                <span class="font-medium text-foreground">Replace current watchlist</span>
+                <span class="mt-1 block text-xs leading-5 text-muted">
+                    Remove entries not included in the imported file. Leave this off to add only
+                    anime that is not already in your watchlist.
+                </span>
+            </span>
+        </label>
+    </div>
+
+    <div class="mt-7 space-y-7">
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
                 <h3 class="text-sm text-foreground">AniList</h3>
@@ -32,6 +65,7 @@
                 </p>
             </div>
             <form method="POST" action="?/importMal" enctype="multipart/form-data" class="shrink-0">
+                <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
                 <input
                     id="mal-import"
                     name="file"
@@ -61,6 +95,7 @@
                 enctype="multipart/form-data"
                 class="shrink-0"
             >
+                <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
                 <input
                     id="universal-import"
                     name="file"

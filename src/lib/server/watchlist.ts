@@ -19,7 +19,7 @@ import { enqueueUserSync } from './sync/queue';
 
 const databaseBatchSize = 1_000;
 
-export type WatchlistImportMode = 'merge' | 'replace';
+export type WatchlistImportMode = 'add' | 'merge' | 'replace';
 
 export interface WatchlistEntryInput {
     anilistId: number;
@@ -266,6 +266,19 @@ export async function applyWatchlistEntries(
             ({ animeId, state }) =>
                 currentByAnimeId.has(animeId) && currentByAnimeId.get(animeId) !== state
         );
+
+        if (mode === 'add') {
+            for (const batch of batches(added, databaseBatchSize)) {
+                await tx.insert(watchlist).values(batch);
+            }
+
+            return {
+                added: added.length,
+                updated: 0,
+                unchanged: rows.length - added.length,
+                removed: 0,
+            };
+        }
 
         for (const batch of batches(added, databaseBatchSize)) {
             await tx.insert(watchlist).values(batch);
