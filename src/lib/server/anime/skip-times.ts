@@ -1,11 +1,11 @@
 import { and, desc, eq, isNull, lte, ne, or } from 'drizzle-orm';
 
 import {
-  intervalFromTemplate,
-  type EpisodeSkipTimes,
-  type SegmentTemplates,
-  type SkipInterval,
-  type SkipKind,
+    intervalFromTemplate,
+    type EpisodeSkipTimes,
+    type SegmentTemplates,
+    type SkipInterval,
+    type SkipKind,
 } from '$lib/player/skip-times';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSegmentTemplate } from '$lib/server/db/schema';
@@ -14,265 +14,275 @@ import { fetchAniSkip, validSkipInterval } from './aniskip';
 const refreshAfterMs = 30 * 24 * 60 * 60 * 1_000;
 
 type StoredSkipTimes = Pick<
-  typeof animeEpisode.$inferSelect,
-  | 'openingStartSeconds'
-  | 'openingEndSeconds'
-  | 'endingStartSeconds'
-  | 'endingEndSeconds'
-  | 'skipTimesSource'
-  | 'skipTimesFetchedAt'
+    typeof animeEpisode.$inferSelect,
+    | 'openingStartSeconds'
+    | 'openingEndSeconds'
+    | 'endingStartSeconds'
+    | 'endingEndSeconds'
+    | 'skipTimesSource'
+    | 'skipTimesFetchedAt'
 >;
 
 function storedTimes(row: StoredSkipTimes): EpisodeSkipTimes {
-  const source =
-    row.skipTimesSource === 'aniskip' || row.skipTimesSource === 'manual'
-      ? row.skipTimesSource
-      : null;
+    const source =
+        row.skipTimesSource === 'aniskip' || row.skipTimesSource === 'manual'
+            ? row.skipTimesSource
+            : null;
 
-  return {
-    opening:
-      row.openingStartSeconds !== null && row.openingEndSeconds !== null
-        ? {
-            start: row.openingStartSeconds,
-            end: row.openingEndSeconds,
-          }
-        : null,
-    ending:
-      row.endingStartSeconds !== null && row.endingEndSeconds !== null
-        ? {
-            start: row.endingStartSeconds,
-            end: row.endingEndSeconds,
-          }
-        : null,
-    source,
-  };
+    return {
+        opening:
+            row.openingStartSeconds !== null && row.openingEndSeconds !== null
+                ? {
+                      start: row.openingStartSeconds,
+                      end: row.openingEndSeconds,
+                  }
+                : null,
+        ending:
+            row.endingStartSeconds !== null && row.endingEndSeconds !== null
+                ? {
+                      start: row.endingStartSeconds,
+                      end: row.endingEndSeconds,
+                  }
+                : null,
+        source,
+    };
 }
 
 interface EpisodeIdentity {
-  anilistId: number;
-  episodeId: string;
-  episodeNumber: number;
-  malId: number | null | undefined;
+    anilistId: number;
+    episodeId: string;
+    episodeNumber: number;
+    malId: number | null | undefined;
 }
 
 export async function getEpisodeSkipTimes({
-  anilistId,
-  episodeId,
-  episodeNumber,
-  malId,
+    anilistId,
+    episodeId,
+    episodeNumber,
+    malId,
 }: EpisodeIdentity): Promise<EpisodeSkipTimes> {
-  const [row] = await db
-    .select({
-      openingStartSeconds: animeEpisode.openingStartSeconds,
-      openingEndSeconds: animeEpisode.openingEndSeconds,
-      endingStartSeconds: animeEpisode.endingStartSeconds,
-      endingEndSeconds: animeEpisode.endingEndSeconds,
-      skipTimesSource: animeEpisode.skipTimesSource,
-      skipTimesFetchedAt: animeEpisode.skipTimesFetchedAt,
-    })
-    .from(animeEpisode)
-    .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
-    .limit(1);
+    const [row] = await db
+        .select({
+            openingStartSeconds: animeEpisode.openingStartSeconds,
+            openingEndSeconds: animeEpisode.openingEndSeconds,
+            endingStartSeconds: animeEpisode.endingStartSeconds,
+            endingEndSeconds: animeEpisode.endingEndSeconds,
+            skipTimesSource: animeEpisode.skipTimesSource,
+            skipTimesFetchedAt: animeEpisode.skipTimesFetchedAt,
+        })
+        .from(animeEpisode)
+        .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
+        .limit(1);
 
-  if (!row) {
-    return { opening: null, ending: null, source: null };
-  }
+    if (!row) {
+        return { opening: null, ending: null, source: null };
+    }
 
-  const cached = storedTimes(row);
-  const fresh =
-    row.skipTimesFetchedAt && Date.now() - row.skipTimesFetchedAt.getTime() < refreshAfterMs;
-  if (row.skipTimesSource === 'manual' || fresh) {
-    return cached;
-  }
+    const cached = storedTimes(row);
+    const fresh =
+        row.skipTimesFetchedAt && Date.now() - row.skipTimesFetchedAt.getTime() < refreshAfterMs;
+    if (row.skipTimesSource === 'manual' || fresh) {
+        return cached;
+    }
 
-  if (
-    !malId ||
-    !Number.isSafeInteger(malId) ||
-    !Number.isSafeInteger(episodeNumber) ||
-    episodeNumber <= 0
-  ) {
-    return cached;
-  }
+    if (
+        !malId ||
+        !Number.isSafeInteger(malId) ||
+        !Number.isSafeInteger(episodeNumber) ||
+        episodeNumber <= 0
+    ) {
+        return cached;
+    }
 
-  try {
-    const remote = await fetchAniSkip(malId, episodeNumber);
-    const [updated] = await db
-      .update(animeEpisode)
-      .set({
-        openingStartSeconds: remote.opening?.start ?? null,
-        openingEndSeconds: remote.opening?.end ?? null,
-        endingStartSeconds: remote.ending?.start ?? null,
-        endingEndSeconds: remote.ending?.end ?? null,
-        skipTimesSource: 'aniskip',
-        skipTimesFetchedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(animeEpisode.anilistId, anilistId),
-          eq(animeEpisode.episodeId, episodeId),
-          or(isNull(animeEpisode.skipTimesSource), ne(animeEpisode.skipTimesSource, 'manual'))
-        )
-      )
-      .returning({ episodeId: animeEpisode.episodeId });
+    try {
+        const remote = await fetchAniSkip(malId, episodeNumber);
+        const [updated] = await db
+            .update(animeEpisode)
+            .set({
+                openingStartSeconds: remote.opening?.start ?? null,
+                openingEndSeconds: remote.opening?.end ?? null,
+                endingStartSeconds: remote.ending?.start ?? null,
+                endingEndSeconds: remote.ending?.end ?? null,
+                skipTimesSource: 'aniskip',
+                skipTimesFetchedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(animeEpisode.anilistId, anilistId),
+                    eq(animeEpisode.episodeId, episodeId),
+                    or(
+                        isNull(animeEpisode.skipTimesSource),
+                        ne(animeEpisode.skipTimesSource, 'manual')
+                    )
+                )
+            )
+            .returning({ episodeId: animeEpisode.episodeId });
 
-    return updated ? remote : getStoredEpisodeSkipTimes(anilistId, episodeId);
-  } catch (cause) {
-    const detail = cause instanceof Error ? cause.message : 'Unknown AniSkip failure';
-    console.warn(`AniSkip unavailable for AniList ${anilistId}, episode ${episodeId}: ${detail}`);
-    return cached;
-  }
+        return updated ? remote : getStoredEpisodeSkipTimes(anilistId, episodeId);
+    } catch (cause) {
+        const detail = cause instanceof Error ? cause.message : 'Unknown AniSkip failure';
+        console.warn(
+            `AniSkip unavailable for AniList ${anilistId}, episode ${episodeId}: ${detail}`
+        );
+        return cached;
+    }
 }
 
 async function getStoredEpisodeSkipTimes(
-  anilistId: number,
-  episodeId: string
+    anilistId: number,
+    episodeId: string
 ): Promise<EpisodeSkipTimes> {
-  const [row] = await db
-    .select({
-      openingStartSeconds: animeEpisode.openingStartSeconds,
-      openingEndSeconds: animeEpisode.openingEndSeconds,
-      endingStartSeconds: animeEpisode.endingStartSeconds,
-      endingEndSeconds: animeEpisode.endingEndSeconds,
-      skipTimesSource: animeEpisode.skipTimesSource,
-      skipTimesFetchedAt: animeEpisode.skipTimesFetchedAt,
-    })
-    .from(animeEpisode)
-    .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
-    .limit(1);
+    const [row] = await db
+        .select({
+            openingStartSeconds: animeEpisode.openingStartSeconds,
+            openingEndSeconds: animeEpisode.openingEndSeconds,
+            endingStartSeconds: animeEpisode.endingStartSeconds,
+            endingEndSeconds: animeEpisode.endingEndSeconds,
+            skipTimesSource: animeEpisode.skipTimesSource,
+            skipTimesFetchedAt: animeEpisode.skipTimesFetchedAt,
+        })
+        .from(animeEpisode)
+        .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
+        .limit(1);
 
-  return row ? storedTimes(row) : { opening: null, ending: null, source: null };
+    return row ? storedTimes(row) : { opening: null, ending: null, source: null };
 }
 
 export async function getSegmentTemplates(
-  anilistId: number,
-  episodeNumber: number
+    anilistId: number,
+    episodeNumber: number
 ): Promise<SegmentTemplates> {
-  const templates: SegmentTemplates = { opening: null, ending: null };
-  if (!Number.isSafeInteger(episodeNumber) || episodeNumber <= 0) {
-    return templates;
-  }
-
-  const rows = await db
-    .select({
-      kind: animeEpisodeSegmentTemplate.kind,
-      fromEpisode: animeEpisodeSegmentTemplate.episodeFrom,
-      duration: animeEpisodeSegmentTemplate.durationSeconds,
-    })
-    .from(animeEpisodeSegmentTemplate)
-    .where(
-      and(
-        eq(animeEpisodeSegmentTemplate.anilistId, anilistId),
-        lte(animeEpisodeSegmentTemplate.episodeFrom, episodeNumber)
-      )
-    )
-    .orderBy(desc(animeEpisodeSegmentTemplate.episodeFrom));
-
-  for (const row of rows) {
-    if (!templates[row.kind] && intervalFromTemplate(0, row.duration)) {
-      templates[row.kind] = {
-        fromEpisode: row.fromEpisode,
-        duration: row.duration,
-      };
+    const templates: SegmentTemplates = { opening: null, ending: null };
+    if (!Number.isSafeInteger(episodeNumber) || episodeNumber <= 0) {
+        return templates;
     }
-  }
 
-  return templates;
+    const rows = await db
+        .select({
+            kind: animeEpisodeSegmentTemplate.kind,
+            fromEpisode: animeEpisodeSegmentTemplate.episodeFrom,
+            duration: animeEpisodeSegmentTemplate.durationSeconds,
+        })
+        .from(animeEpisodeSegmentTemplate)
+        .where(
+            and(
+                eq(animeEpisodeSegmentTemplate.anilistId, anilistId),
+                lte(animeEpisodeSegmentTemplate.episodeFrom, episodeNumber)
+            )
+        )
+        .orderBy(desc(animeEpisodeSegmentTemplate.episodeFrom));
+
+    for (const row of rows) {
+        if (!templates[row.kind] && intervalFromTemplate(0, row.duration)) {
+            templates[row.kind] = {
+                fromEpisode: row.fromEpisode,
+                duration: row.duration,
+            };
+        }
+    }
+
+    return templates;
 }
 
 type SegmentSave =
-  | { kind: SkipKind; operation: 'clear' }
-  | { kind: SkipKind; operation: 'apply-template'; start: number }
-  | { kind: SkipKind; operation: 'set'; interval: SkipInterval; createTemplate: boolean };
+    | { kind: SkipKind; operation: 'clear' }
+    | { kind: SkipKind; operation: 'apply-template'; start: number }
+    | { kind: SkipKind; operation: 'set'; interval: SkipInterval; createTemplate: boolean };
 
 export async function saveEpisodeSegment(anilistId: number, episodeId: string, save: SegmentSave) {
-  const saved = await db.transaction(async (tx) => {
-    const [episode] = await tx
-      .select({ number: animeEpisode.number })
-      .from(animeEpisode)
-      .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
-      .limit(1);
-    if (!episode) {
-      return null;
-    }
-    if (
-      (save.operation === 'apply-template' || (save.operation === 'set' && save.createTemplate)) &&
-      (!Number.isSafeInteger(episode.number) || episode.number <= 0)
-    ) {
-      return null;
-    }
+    const saved = await db.transaction(async (tx) => {
+        const [episode] = await tx
+            .select({ number: animeEpisode.number })
+            .from(animeEpisode)
+            .where(
+                and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId))
+            )
+            .limit(1);
+        if (!episode) {
+            return null;
+        }
+        if (
+            (save.operation === 'apply-template' ||
+                (save.operation === 'set' && save.createTemplate)) &&
+            (!Number.isSafeInteger(episode.number) || episode.number <= 0)
+        ) {
+            return null;
+        }
 
-    let interval: SkipInterval | null;
-    if (save.operation === 'clear') {
-      interval = null;
-    } else if (save.operation === 'set') {
-      interval = save.interval;
-    } else {
-      const [template] = await tx
-        .select({ duration: animeEpisodeSegmentTemplate.durationSeconds })
-        .from(animeEpisodeSegmentTemplate)
-        .where(
-          and(
-            eq(animeEpisodeSegmentTemplate.anilistId, anilistId),
-            eq(animeEpisodeSegmentTemplate.kind, save.kind),
-            lte(animeEpisodeSegmentTemplate.episodeFrom, episode.number)
-          )
-        )
-        .orderBy(desc(animeEpisodeSegmentTemplate.episodeFrom))
-        .limit(1);
-      interval = template ? intervalFromTemplate(save.start, template.duration) : null;
-      if (!interval || !validSkipInterval(interval)) {
+        let interval: SkipInterval | null;
+        if (save.operation === 'clear') {
+            interval = null;
+        } else if (save.operation === 'set') {
+            interval = save.interval;
+        } else {
+            const [template] = await tx
+                .select({ duration: animeEpisodeSegmentTemplate.durationSeconds })
+                .from(animeEpisodeSegmentTemplate)
+                .where(
+                    and(
+                        eq(animeEpisodeSegmentTemplate.anilistId, anilistId),
+                        eq(animeEpisodeSegmentTemplate.kind, save.kind),
+                        lte(animeEpisodeSegmentTemplate.episodeFrom, episode.number)
+                    )
+                )
+                .orderBy(desc(animeEpisodeSegmentTemplate.episodeFrom))
+                .limit(1);
+            interval = template ? intervalFromTemplate(save.start, template.duration) : null;
+            if (!interval || !validSkipInterval(interval)) {
+                return null;
+            }
+        }
+
+        const values =
+            save.kind === 'opening'
+                ? {
+                      openingStartSeconds: interval?.start ?? null,
+                      openingEndSeconds: interval?.end ?? null,
+                      skipTimesSource: 'manual' as const,
+                      skipTimesFetchedAt: new Date(),
+                  }
+                : {
+                      endingStartSeconds: interval?.start ?? null,
+                      endingEndSeconds: interval?.end ?? null,
+                      skipTimesSource: 'manual' as const,
+                      skipTimesFetchedAt: new Date(),
+                  };
+        await tx
+            .update(animeEpisode)
+            .set(values)
+            .where(
+                and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId))
+            );
+
+        if (save.operation === 'set' && save.createTemplate) {
+            await tx
+                .insert(animeEpisodeSegmentTemplate)
+                .values({
+                    anilistId,
+                    kind: save.kind,
+                    episodeFrom: episode.number,
+                    durationSeconds: save.interval.end - save.interval.start,
+                })
+                .onConflictDoUpdate({
+                    target: [
+                        animeEpisodeSegmentTemplate.anilistId,
+                        animeEpisodeSegmentTemplate.kind,
+                        animeEpisodeSegmentTemplate.episodeFrom,
+                    ],
+                    set: { durationSeconds: save.interval.end - save.interval.start },
+                });
+        }
+
+        return episode.number;
+    });
+    if (saved === null) {
         return null;
-      }
     }
 
-    const values =
-      save.kind === 'opening'
-        ? {
-            openingStartSeconds: interval?.start ?? null,
-            openingEndSeconds: interval?.end ?? null,
-            skipTimesSource: 'manual' as const,
-            skipTimesFetchedAt: new Date(),
-          }
-        : {
-            endingStartSeconds: interval?.start ?? null,
-            endingEndSeconds: interval?.end ?? null,
-            skipTimesSource: 'manual' as const,
-            skipTimesFetchedAt: new Date(),
-          };
-    await tx
-      .update(animeEpisode)
-      .set(values)
-      .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)));
+    const [times, templates] = await Promise.all([
+        getStoredEpisodeSkipTimes(anilistId, episodeId),
+        getSegmentTemplates(anilistId, saved),
+    ]);
 
-    if (save.operation === 'set' && save.createTemplate) {
-      await tx
-        .insert(animeEpisodeSegmentTemplate)
-        .values({
-          anilistId,
-          kind: save.kind,
-          episodeFrom: episode.number,
-          durationSeconds: save.interval.end - save.interval.start,
-        })
-        .onConflictDoUpdate({
-          target: [
-            animeEpisodeSegmentTemplate.anilistId,
-            animeEpisodeSegmentTemplate.kind,
-            animeEpisodeSegmentTemplate.episodeFrom,
-          ],
-          set: { durationSeconds: save.interval.end - save.interval.start },
-        });
-    }
-
-    return episode.number;
-  });
-  if (saved === null) {
-    return null;
-  }
-
-  const [times, templates] = await Promise.all([
-    getStoredEpisodeSkipTimes(anilistId, episodeId),
-    getSegmentTemplates(anilistId, saved),
-  ]);
-
-  return { times, templates };
+    return { times, templates };
 }
