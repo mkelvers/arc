@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
 
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
 import { db } from '$lib/server/db';
@@ -17,7 +17,7 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
     const animeId = await ensureInternalAnimeId(input.animeId);
     const now = new Date();
 
-    await db
+    const [saved] = await db
         .insert(playbackProgress)
         .values({
             userId,
@@ -28,6 +28,7 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
             durationSeconds: input.durationSeconds,
             completed: input.completed,
             lastWatchedAt: now,
+            eventAt: input.eventAt,
         })
         .onConflictDoUpdate({
             target: [playbackProgress.userId, playbackProgress.animeId],
@@ -39,8 +40,18 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
                 completed: input.completed,
                 updatedAt: now,
                 lastWatchedAt: now,
+                eventAt: input.eventAt,
             },
-        });
+            setWhere: lt(
+                playbackProgress.eventAt,
+                sql.raw(`excluded.${playbackProgress.eventAt.name}`)
+            ),
+        })
+        .returning({ id: playbackProgress.id });
+
+    if (!saved) {
+        return;
+    }
 
     await updateWatchlistAfterPlayback(userId, animeId, input);
     void enqueueUserSync(userId).catch((cause) =>
@@ -65,6 +76,7 @@ export async function getPlaybackProgress(userId: string | undefined, anilistId:
             positionSeconds: playbackProgress.positionSeconds,
             durationSeconds: playbackProgress.durationSeconds,
             completed: playbackProgress.completed,
+            eventAt: playbackProgress.eventAt,
         })
         .from(playbackProgress)
         .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)))

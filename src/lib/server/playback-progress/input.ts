@@ -7,6 +7,7 @@ export interface PlaybackProgressInput {
     positionSeconds: number;
     durationSeconds: number;
     completed: boolean;
+    eventAt: Date;
 }
 
 function finiteNumber(value: unknown) {
@@ -22,6 +23,7 @@ export function parsePlaybackProgress(value: unknown): PlaybackProgressInput | n
     const episodeNumber = finiteNumber(value.episodeNumber);
     const positionSeconds = finiteNumber(value.positionSeconds);
     const durationSeconds = finiteNumber(value.durationSeconds);
+    const eventAt = finiteNumber(value.eventAt);
     const episodeId = typeof value.episodeId === 'string' ? value.episodeId.trim() : '';
 
     if (
@@ -35,6 +37,10 @@ export function parsePlaybackProgress(value: unknown): PlaybackProgressInput | n
         durationSeconds === null ||
         durationSeconds <= 0 ||
         durationSeconds > 7 * 24 * 60 * 60 ||
+        eventAt === null ||
+        !Number.isSafeInteger(eventAt) ||
+        eventAt < 0 ||
+        eventAt > Date.now() + 5 * 60 * 1_000 ||
         !episodeId ||
         episodeId.length > 512 ||
         typeof value.completed !== 'boolean'
@@ -49,5 +55,6 @@ export function parsePlaybackProgress(value: unknown): PlaybackProgressInput | n
         positionSeconds: Math.min(positionSeconds, durationSeconds),
         durationSeconds,
         completed: value.completed,
+        eventAt: new Date(eventAt),
     };
 }
