@@ -1,85 +1,84 @@
 <script lang="ts">
-  interface Props {
-    id?: string;
-    open?: boolean;
-    title: string;
-    description: string;
-    confirmLabel: string;
-    danger?: boolean;
-    onconfirm: () => void;
-  }
+    import type { Snippet } from 'svelte';
+    import { XIcon } from 'phosphor-svelte';
 
-  let {
-    id = 'modal',
-    open = $bindable(false),
-    title,
-    description,
-    confirmLabel,
-    danger = false,
-    onconfirm,
-  }: Props = $props();
-  let dialog = $state<HTMLDialogElement>();
-
-  $effect(() => {
-    if (!dialog) {
-      return;
+    interface Props {
+        children?: Snippet;
+        description?: string;
+        id?: string;
+        onclose?: () => void;
+        open?: boolean;
+        title: string;
+        wide?: boolean;
     }
 
-    if (open && !dialog.open) {
-      dialog.showModal();
-    } else if (!open && dialog.open) {
-      dialog.close();
+    let {
+        children,
+        description,
+        id = 'modal',
+        onclose,
+        open = $bindable(false),
+        title,
+        wide = false,
+    }: Props = $props();
+    let dialog = $state<HTMLDialogElement>();
+
+    $effect(() => {
+        if (!dialog) {
+            return;
+        }
+
+        if (open && !dialog.open) {
+            dialog.showModal();
+        } else if (!open && dialog.open) {
+            dialog.close();
+        }
+    });
+
+    function close() {
+        open = false;
     }
-  });
 
-  function close() {
-    open = false;
-  }
-
-  function confirm() {
-    open = false;
-    onconfirm();
-  }
+    function closed() {
+        open = false;
+        onclose?.();
+    }
 </script>
 
 <dialog
-  bind:this={dialog}
-  aria-labelledby={`${id}-title`}
-  aria-describedby={`${id}-description`}
-  class="m-auto w-[calc(100%-2rem)] max-w-md bg-panel p-0 text-foreground backdrop:bg-black/75"
-  onclick={(event) => {
-    if (event.target === dialog) {
-      close();
-    }
-  }}
-  oncancel={(event) => {
-    event.preventDefault();
-    close();
-  }}
+    bind:this={dialog}
+    aria-labelledby={`${id}-title`}
+    aria-describedby={description ? `${id}-description` : undefined}
+    class={`${wide ? 'h-11/12 w-11/12 max-w-5xl' : 'w-[calc(100%-2rem)] max-w-md'} m-auto max-h-screen overflow-hidden bg-panel p-0 text-foreground backdrop:bg-black/75`}
+    onclick={(event) => {
+        if (event.target === dialog) {
+            close();
+        }
+    }}
+    oncancel={(event) => {
+        event.preventDefault();
+        close();
+    }}
+    onclose={closed}
 >
-  <div class="p-6 sm:p-7">
-    <h2 id={`${id}-title`} class="text-lg font-semibold">{title}</h2>
-    <p id={`${id}-description`} class="mt-2 text-sm leading-6 text-muted">{description}</p>
+    <header
+        class="flex min-h-20 items-center border-b border-black/15 bg-panel-strong px-5 sm:px-8"
+    >
+        <div class="min-w-0">
+            <h2 id={`${id}-title`} class="line-clamp-2 text-lg font-bold sm:text-xl">{title}</h2>
+            {#if description}
+                <p id={`${id}-description`} class="mt-1 text-sm text-muted">{description}</p>
+            {/if}
+        </div>
+        <button
+            type="button"
+            class="ml-auto grid size-11 shrink-0 place-items-center hover:bg-white/8 focus-visible:outline-1 focus-visible:outline-white"
+            aria-label={`Close ${title}`}
+            onclick={close}
+        >
+            <XIcon size="1.75rem" weight="bold" aria-hidden="true" />
+        </button>
+    </header>
 
-    <div class="mt-7 flex justify-end gap-3">
-      <button
-        type="button"
-        class="min-h-11 px-4 text-sm font-medium text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:outline-1 focus-visible:outline-foreground"
-        onclick={close}
-      >
-        Cancel
-      </button>
-      <button
-        type="button"
-        class:bg-status-error={danger}
-        class:text-on-status={danger}
-        class:bg-accent={!danger}
-        class:text-on-accent={!danger}
-        class="min-h-11 px-5 text-sm font-bold transition-opacity hover:opacity-85 focus-visible:outline-1 focus-visible:outline-offset-2"
-        onclick={confirm}
-      >
-        {confirmLabel}
-      </button>
-    </div>
-  </div>
+    {@render children?.()}
 </dialog>
