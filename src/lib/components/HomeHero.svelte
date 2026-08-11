@@ -104,18 +104,39 @@
                 <div
                     class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 2xl:self-center 2xl:pb-0"
                 >
-                    <a
-                        href={activeAnime.href}
-                        class="pointer-events-auto relative z-10 block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-                        aria-label={`View ${activeAnime.title}`}
-                    >
-                        <img
-                            src={activeAnime.logo.url}
-                            alt={activeAnime.title}
-                            style:height={`clamp(${(5 * activeAnime.logo.size) / 100}rem, ${(6.4 * activeAnime.logo.size) / 100}vw, ${(8 * activeAnime.logo.size) / 100}rem)`}
-                            class="max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
-                        />
-                    </a>
+                    <div class="relative">
+                        <a
+                            href={activeAnime.href}
+                            class="pointer-events-auto relative z-10 block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                            aria-label={`View ${activeAnime.title}`}
+                        >
+                            <img
+                                src={activeAnime.logo.url}
+                                alt={activeAnime.title}
+                                style:height={`clamp(${(5 * activeAnime.logo.size) / 100}rem, ${(6.4 * activeAnime.logo.size) / 100}vw, ${(8 * activeAnime.logo.size) / 100}rem)`}
+                                class="block max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
+                            />
+                        </a>
+
+                        {#if highlights.length > 1}
+                            <button
+                                type="button"
+                                class="pointer-events-auto absolute top-1/2 -left-4 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-left-7 lg:-left-11"
+                                aria-label="Previous anime"
+                                onclick={() => select(active - 1, 'complete')}
+                            >
+                                <CaretLeftIcon size="1.7rem" weight="bold" aria-hidden="true" />
+                            </button>
+                            <button
+                                type="button"
+                                class="pointer-events-auto absolute top-1/2 -right-4 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-right-7 lg:-right-11"
+                                aria-label="Next anime"
+                                onclick={() => select(active + 1, 'complete')}
+                            >
+                                <CaretRightIcon size="1.7rem" weight="bold" aria-hidden="true" />
+                            </button>
+                        {/if}
+                    </div>
 
                     <p
                         class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-y-1 text-xs font-normal text-white/50 sm:text-sm 2xl:mt-8 2xl:text-sm"
@@ -196,25 +217,6 @@
                     {/if}
                 </div>
             </article>
-        {/if}
-
-        {#if highlights.length > 1}
-            <button
-                type="button"
-                class="absolute top-[calc((100svh-3.5rem)/2)] left-2 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:left-5"
-                aria-label="Previous anime"
-                onclick={() => select(active - 1, 'complete')}
-            >
-                <CaretLeftIcon size="1.7rem" weight="bold" aria-hidden="true" />
-            </button>
-            <button
-                type="button"
-                class="absolute top-[calc((100svh-3.5rem)/2)] right-2 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:right-5"
-                aria-label="Next anime"
-                onclick={() => select(active + 1, 'complete')}
-            >
-                <CaretRightIcon size="1.7rem" weight="bold" aria-hidden="true" />
-            </button>
         {/if}
     </section>
 {/if}
