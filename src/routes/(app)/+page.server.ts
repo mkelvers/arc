@@ -11,7 +11,7 @@ import { animeId } from '$lib/server/anime/route';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
-import { deletePlaybackProgress } from '$lib/server/playback-progress/store';
+import { dismissPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -85,7 +85,7 @@ export const actions: Actions = {
         }
 
         try {
-            await deletePlaybackProgress(locals.user.id, id);
+            await dismissPlaybackProgress(locals.user.id, id);
             return { success: true };
         } catch (cause) {
             console.error('Failed to remove continue watching', cause);

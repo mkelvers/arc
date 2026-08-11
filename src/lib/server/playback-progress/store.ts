@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
 import { db } from '$lib/server/db';
@@ -10,7 +10,7 @@ import {
     playbackProgress,
 } from '$lib/server/db/schema';
 import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
-import { enqueueUserSync } from '$lib/server/sync/queue';
+import { enqueueAniListPublication } from '$lib/server/sync/queue';
 import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
@@ -29,6 +29,7 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
             completed: input.completed,
             lastWatchedAt: now,
             eventAt: input.eventAt,
+            dismissedAt: null,
         })
         .onConflictDoUpdate({
             target: [playbackProgress.userId, playbackProgress.animeId],
@@ -41,10 +42,17 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
                 updatedAt: now,
                 lastWatchedAt: now,
                 eventAt: input.eventAt,
+                dismissedAt: null,
             },
-            setWhere: lt(
-                playbackProgress.eventAt,
-                sql.raw(`excluded.${playbackProgress.eventAt.name}`)
+            setWhere: and(
+                lt(playbackProgress.eventAt, sql.raw(`excluded.${playbackProgress.eventAt.name}`)),
+                or(
+                    isNull(playbackProgress.dismissedAt),
+                    lt(
+                        playbackProgress.dismissedAt,
+                        sql.raw(`excluded.${playbackProgress.eventAt.name}`)
+                    )
+                )
             ),
         })
         .returning({ id: playbackProgress.id });
@@ -54,8 +62,8 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
     }
 
     await updateWatchlistAfterPlayback(userId, animeId, input);
-    void enqueueUserSync(userId).catch((cause) =>
-        console.warn('AniList sync enqueue failed', cause)
+    void enqueueAniListPublication(userId).catch((cause) =>
+        console.warn('AniList publication enqueue failed', cause)
     );
 }
 
@@ -79,20 +87,27 @@ export async function getPlaybackProgress(userId: string | undefined, anilistId:
             eventAt: playbackProgress.eventAt,
         })
         .from(playbackProgress)
-        .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)))
+        .where(
+            and(
+                eq(playbackProgress.userId, userId),
+                eq(playbackProgress.animeId, animeId),
+                isNull(playbackProgress.dismissedAt)
+            )
+        )
         .limit(1);
 
     return progress ?? null;
 }
 
-export async function deletePlaybackProgress(userId: string, anilistId: number) {
+export async function dismissPlaybackProgress(userId: string, anilistId: number) {
     const animeId = await findInternalAnimeId(anilistId);
     if (!animeId) {
         return;
     }
 
     await db
-        .delete(playbackProgress)
+        .update(playbackProgress)
+        .set({ dismissedAt: new Date() })
         .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
 }
 
@@ -120,6 +135,7 @@ export async function getRecentPlaybackProgress(userId: string | undefined, limi
         .where(
             and(
                 eq(playbackProgress.userId, userId),
+                isNull(playbackProgress.dismissedAt),
                 eq(animeExternalId.provider, 'anilist'),
                 eq(animeExternalId.mediaType, 'anime')
             )
