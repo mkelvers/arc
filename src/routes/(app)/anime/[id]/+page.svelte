@@ -129,15 +129,15 @@
                     {#await data.watchAction}
                         <a
                             href="#anime-episode-list"
-                            class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
+                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase sm:px-6"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                            VIEW EPISODES
+                            View episodes
                         </a>
                     {:then watchAction}
                         <a
                             href={watchAction.href}
-                            class="flex min-h-11 items-center gap-2.5 bg-accent px-4 text-on-accent sm:px-6 lg:h-12"
+                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase sm:px-6"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                             {watchAction.label}
@@ -147,6 +147,7 @@
                         animeId={data.anime.id}
                         title={data.anime.title}
                         iconSize="1.65em"
+                        outlined
                     />
                     <WatchlistStatusMenu
                         animeId={data.anime.id}
@@ -201,12 +202,12 @@
 
             <button
                 type="button"
-                class="min-h-11 text-xs font-semibold text-accent"
+                class="min-h-11 text-xs font-semibold text-accent uppercase"
                 aria-expanded={detailsExpanded}
                 aria-controls="anime-details"
                 onclick={() => (detailsExpanded = !detailsExpanded)}
             >
-                {detailsExpanded ? 'FEWER DETAILS' : 'MORE DETAILS'}
+                {detailsExpanded ? 'Fewer details' : 'More details'}
             </button>
         </div>
     </section>

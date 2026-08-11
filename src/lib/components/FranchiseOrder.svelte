@@ -79,12 +79,12 @@
         {#if hiddenCount}
             <button
                 type="button"
-                class="min-h-9 shrink-0 text-xs font-semibold text-accent focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                class="min-h-9 shrink-0 text-xs font-semibold text-accent uppercase focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 aria-expanded={showAll}
                 aria-controls="franchise-order-list"
                 onclick={() => (showAll = !showAll)}
             >
-                {showAll ? 'SHOW MAIN' : `SHOW ALL (+${hiddenCount})`}
+                {showAll ? 'Show main' : `Show all (+${hiddenCount})`}
             </button>
         {/if}
     </div>

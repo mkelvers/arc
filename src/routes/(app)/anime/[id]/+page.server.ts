@@ -32,16 +32,20 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
     const episodes = getEpisodes(result).catch(() => []);
     const watchAction = Promise.all([episodes, getPlaybackProgress(userId, id)]).then(
         ([availableEpisodes, progress]) => {
-            const continuation = continuationEpisode(progress, availableEpisodes);
+            const continuation = continuationEpisode(
+                progress,
+                availableEpisodes,
+                details.status === 'FINISHED'
+            );
             const target = continuation ?? availableEpisodes[0] ?? null;
 
             return {
                 href: target?.href ?? '#anime-episode-list',
                 label: continuation
-                    ? `CONTINUE WATCHING ${continuation.label}`
+                    ? `Continue watching ${continuation.label}`
                     : target
-                      ? `START WATCHING ${target.label}`
-                      : 'VIEW EPISODES',
+                      ? `Start watching ${target.label}`
+                      : 'View episodes',
             };
         }
     );

@@ -113,7 +113,7 @@
                         >
                             <a
                                 href={anime.link}
-                                class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:text-sm"
+                                class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent uppercase transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:text-sm"
                             >
                                 <PlayIcon size="1.2rem" weight="bold" aria-hidden="true" />
                                 Start watching {anime.episodeLabel}
@@ -122,6 +122,7 @@
                                 animeId={anime.id}
                                 title={anime.title}
                                 iconSize="1.35rem"
+                                outlined
                             />
                         </div>
 

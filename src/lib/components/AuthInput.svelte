@@ -53,13 +53,13 @@
         </label>
         {#if type === 'password' && value}
             <button
-                class="absolute inset-y-0 right-0 min-w-12 pt-8 text-xs font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+                class="absolute inset-y-0 right-0 min-w-12 pt-8 text-xs font-semibold text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
                 type="button"
                 aria-label={visible ? 'Hide password' : 'Show password'}
                 aria-pressed={visible}
                 onclick={() => (visible = !visible)}
             >
-                {visible ? 'HIDE' : 'SHOW'}
+                {visible ? 'Hide' : 'Show'}
             </button>
         {/if}
     </div>

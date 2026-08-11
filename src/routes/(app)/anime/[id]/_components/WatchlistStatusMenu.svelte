@@ -84,7 +84,7 @@
     ariaLabel={`Manage ${title} watchlist status`}
     menuAlign="start"
     menuClass="w-52 pt-2"
-    triggerClass="grid size-11 shrink-0 cursor-pointer place-items-center text-accent transition-opacity hover:opacity-70 peer-focus-visible:opacity-70 lg:size-12"
+    triggerClass="grid size-10 shrink-0 cursor-pointer place-items-center text-accent transition-opacity hover:opacity-70 peer-focus-visible:opacity-70"
 >
     {#snippet trigger()}
         <PencilSimpleIcon size="1.65em" weight="regular" aria-hidden="true" />
