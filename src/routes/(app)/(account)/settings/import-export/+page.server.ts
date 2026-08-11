@@ -3,7 +3,6 @@ import { fail, redirect } from '@sveltejs/kit';
 import { resolveWatchlistImport } from '$lib/server/anime/anilist/watchlist-transfer';
 import { applyWatchlistEntries, type WatchlistImportMode } from '$lib/server/watchlist';
 import { GraphQLRequestError } from '$lib/server/graphql';
-import { syncUser } from '$lib/server/sync/service';
 import {
     importedActivityAt,
     parseMyAnimeListXml,
@@ -81,28 +80,6 @@ async function importFile(
 }
 
 export const actions: Actions = {
-    importAniList: async ({ locals }) => {
-        if (!locals.user) {
-            redirect(303, '/login');
-        }
-
-        try {
-            await syncUser(locals.user.id, { importAnilistChanges: true });
-            return { success: true, message: 'AniList library imported.' };
-        } catch (cause) {
-            if (
-                cause instanceof GraphQLRequestError &&
-                (cause.status === 429 || cause.status == null || cause.status >= 500)
-            ) {
-                return fail(503, {
-                    message: 'AniList is temporarily unavailable. Please try again shortly.',
-                });
-            }
-
-            console.error('AniList library import failed', cause);
-            return fail(502, { message: 'The AniList library could not be imported.' });
-        }
-    },
     importMal: async ({ locals, request }) => {
         if (!locals.user) {
             redirect(303, '/login');

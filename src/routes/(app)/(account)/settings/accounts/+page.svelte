@@ -15,7 +15,8 @@
     <div class="min-w-0 flex-1 text-left">
         <h2 class="text-lg font-medium">AniList</h2>
         <p class="mt-1 max-w-md text-sm leading-relaxed text-muted">
-            Connect your AniList account and manage syncing in Sync Settings.
+            Arc publishes your library activity to AniList so AniList can notify you about new
+            episodes and related releases. AniList never changes your Arc library.
         </p>
 
         {#if data.anilistConnected}

@@ -45,20 +45,6 @@
     <div class="mt-7 space-y-7">
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
-                <h3 class="text-sm text-foreground">AniList</h3>
-                <p class="mt-1 leading-relaxed text-muted">Import your current AniList library.</p>
-            </div>
-            <form method="POST" action="?/importAniList">
-                <button
-                    type="submit"
-                    class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >Import from AniList</button
-                >
-            </form>
-        </div>
-
-        <div class="flex items-start justify-between gap-6 text-sm">
-            <div>
                 <h3 class="text-sm text-foreground">MyAnimeList XML</h3>
                 <p class="mt-1 leading-relaxed text-muted">
                     Import a standard MyAnimeList XML export.

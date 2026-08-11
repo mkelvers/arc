@@ -6,69 +6,17 @@
     let { children } = $props();
 
     const pages = {
-        '/settings/preferences': {
-            title: 'Preferences',
-            synopsis: 'Manage your general Arc preferences.',
-        },
-        '/settings/appearance': {
-            title: 'Appearance',
-            synopsis: 'Customize how Arc looks.',
-        },
-        '/settings/notifications': {
-            title: 'Notifications',
-            synopsis: 'Choose which notifications you receive from Arc.',
-        },
-        '/settings/playback-preferences': {
-            title: 'Playback Preferences',
-            synopsis: 'Configure your playback experience.',
-        },
         '/settings/subtitles': {
             title: 'Subtitles',
             synopsis: 'Manage subtitle display preferences.',
         },
-        '/settings/watchlist': {
-            title: 'Watchlist',
-            synopsis: 'Manage your watchlist preferences.',
-        },
-        '/settings/content-preferences': {
-            title: 'Content Preferences',
-            synopsis: 'Choose how content is organized and displayed.',
-        },
         '/settings/accounts': {
             title: 'Anime Accounts',
-            synopsis: 'Connect your anime accounts to Arc.',
-        },
-        '/settings/sync': {
-            title: 'Sync Settings',
-            synopsis: 'Choose how your anime accounts stay in sync.',
+            synopsis: 'Publish your Arc library to AniList.',
         },
         '/settings/import-export': {
             title: 'Import & Export',
             synopsis: 'Move your anime data into or out of Arc.',
-        },
-        '/settings/profile': {
-            title: 'Profile',
-            synopsis: 'Manage your Arc profile.',
-        },
-        '/settings/email': {
-            title: 'Email',
-            synopsis: 'Manage the email address on your account.',
-        },
-        '/settings/password': {
-            title: 'Password',
-            synopsis: 'Update your account password.',
-        },
-        '/settings/devices-sessions': {
-            title: 'Devices & Sessions',
-            synopsis: 'Review the devices and sessions connected to your account.',
-        },
-        '/settings/privacy': {
-            title: 'Privacy',
-            synopsis: 'Manage your privacy settings.',
-        },
-        '/settings/data-management': {
-            title: 'Data Management',
-            synopsis: 'Manage the data associated with your Arc account.',
         },
     } as const;
 
