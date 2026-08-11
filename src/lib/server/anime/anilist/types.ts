@@ -3,6 +3,6 @@ import type { AnimeCard } from '$lib/anime/types';
 
 export type AniListAnime = NonNullable<AnimeQuery['Media']>;
 export interface HomepageAnime {
-  season: AnimeCard[];
-  popular: AnimeCard[];
+    season: AnimeCard[];
+    popular: AnimeCard[];
 }
