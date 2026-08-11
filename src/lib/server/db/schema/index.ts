@@ -276,19 +276,43 @@ export const animeFranchiseCache = pgTable('anime_franchise_cache', {
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const homeHeroCandidate = pgTable(
+    'home_hero_candidate',
+    {
+        anilistId: integer('anilist_id').primaryKey(),
+        averageScore: integer('average_score').notNull(),
+        trendingRank: integer('trending_rank').notNull(),
+        fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [index('home_hero_candidate_fetched_idx').on(table.fetchedAt)]
+);
+
 export const homeHeroSelection = pgTable(
     'home_hero_selection',
     {
-        weekStart: varchar('week_start', { length: 10 }).notNull(),
+        rotationStart: varchar('rotation_start', { length: 10 }).notNull(),
         position: integer('position').notNull(),
         anilistId: integer('anilist_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
-        primaryKey({ columns: [table.weekStart, table.position] }),
-        unique('home_hero_selection_week_anilist_unique').on(table.weekStart, table.anilistId),
+        primaryKey({ columns: [table.rotationStart, table.position] }),
+        unique('home_hero_selection_rotation_anilist_unique').on(
+            table.rotationStart,
+            table.anilistId
+        ),
     ]
 );
+
+export const animeSynopsisCache = pgTable('anime_synopsis_cache', {
+    anilistId: integer('anilist_id').primaryKey(),
+    synopsis: text('synopsis'),
+    sourceAnilistId: integer('source_anilist_id'),
+    tmdbExternalIdId: integer('tmdb_external_id_id').references(() => animeExternalId.id, {
+        onDelete: 'set null',
+    }),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const animeDetailsCache = pgTable('anime_details_cache', {
     anilistId: integer('anilist_id').primaryKey(),
