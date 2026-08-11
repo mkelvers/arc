@@ -4,10 +4,11 @@ import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { db } from '$lib/server/db';
 import { homeHeroSelection } from '$lib/server/db/schema';
 import { getAnime } from './anilist/details';
-import { mediaTitle, plainText, present } from './anilist/text';
-import { getWeeklyPopularAnime } from './allanime/catalog';
+import { getHomeHeroCandidates } from './anilist/hero';
+import { mediaTitle, present } from './anilist/text';
 import { getEpisodes } from './episodes';
-import { homeHeroSize, selectHomeHero, utcWeekStart } from './home/selection';
+import { resolveHeroSynopsis } from './synopsis';
+import { homeHeroRotationStart, rotatedHomeHeroCandidates, selectHomeHero } from './home/selection';
 import { getArtwork } from './tmdb/artwork';
 
 const requests = new Map<string, Promise<HomeHeroAnime[]>>();
@@ -28,24 +29,32 @@ interface HomeHeroAnime {
     description: string;
 }
 
-async function selectionForWeek(weekStart: string) {
+async function selectionForRotation(rotationStart: string) {
     return db
         .select({ anilistId: homeHeroSelection.anilistId })
         .from(homeHeroSelection)
-        .where(eq(homeHeroSelection.weekStart, weekStart))
+        .where(eq(homeHeroSelection.rotationStart, rotationStart))
         .orderBy(asc(homeHeroSelection.position))
         .then((rows) => rows.map(({ anilistId }) => anilistId));
 }
 
-async function previousSelection(weekStart: string) {
-    const [previous] = await db
-        .select({ weekStart: homeHeroSelection.weekStart })
+async function previousSelection(rotationStart: string) {
+    const rotations = await db
+        .select({ rotationStart: homeHeroSelection.rotationStart })
         .from(homeHeroSelection)
-        .where(lt(homeHeroSelection.weekStart, weekStart))
-        .orderBy(desc(homeHeroSelection.weekStart))
-        .limit(1);
+        .where(lt(homeHeroSelection.rotationStart, rotationStart))
+        .groupBy(homeHeroSelection.rotationStart)
+        .orderBy(desc(homeHeroSelection.rotationStart))
+        .limit(4);
 
-    return previous ? selectionForWeek(previous.weekStart) : [];
+    const selections = await Promise.all(
+        rotations.map(({ rotationStart: previous }) => selectionForRotation(previous))
+    );
+
+    return {
+        previous: selections[0] ?? [],
+        recent: selections.flat(),
+    };
 }
 
 async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
@@ -78,7 +87,7 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
                 ...new Set(episodes.flatMap(({ audio }) => audio)),
             ]),
             genres: present(details.genres),
-            description: plainText(details.description),
+            description: await resolveHeroSynopsis(details),
         };
     } catch (cause) {
         console.error(`Homepage hero candidate ${id} failed`, cause);
@@ -87,19 +96,29 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
 }
 
 async function hydrate(ids: number[]) {
-    return selectHomeHero(ids, eligibleHero);
+    return selectHomeHero(
+        ids.map((anilistId, index) => ({
+            anilistId,
+            averageScore: 0,
+            trendingRank: index + 1,
+        })),
+        eligibleHero
+    );
 }
 
-async function buildSelection(weekStart: string) {
-    const popular = await getWeeklyPopularAnime();
+async function buildSelection(rotationStart: string) {
+    const [candidates, history] = await Promise.all([
+        getHomeHeroCandidates(),
+        previousSelection(rotationStart),
+    ]);
     const selected = await selectHomeHero(
-        popular.map(({ anilistId }) => anilistId),
+        rotatedHomeHeroCandidates(candidates, history.previous, history.recent),
         eligibleHero
     );
 
-    if (selected.length < homeHeroSize) {
+    if (selected.length < 6) {
         throw new Error(
-            `Only ${selected.length} weekly anime had complete hero artwork and an available episode`
+            `Only ${selected.length} releasing anime had complete hero artwork and an available episode`
         );
     }
 
@@ -107,34 +126,34 @@ async function buildSelection(weekStart: string) {
         .insert(homeHeroSelection)
         .values(
             selected.map(({ id }, position) => ({
-                weekStart,
+                rotationStart,
                 position,
                 anilistId: id,
             }))
         )
         .onConflictDoNothing();
 
-    const stored = await selectionForWeek(weekStart);
+    const stored = await selectionForRotation(rotationStart);
     const selectedById = new Map(selected.map((anime) => [anime.id, anime]));
 
-    return stored.length === homeHeroSize && stored.every((id) => selectedById.has(id))
+    return stored.length === 6 && stored.every((id) => selectedById.has(id))
         ? stored.map((id) => selectedById.get(id)!)
         : hydrate(stored);
 }
 
-async function loadHomeHero(weekStart: string) {
-    const stored = await selectionForWeek(weekStart);
-    if (stored.length === homeHeroSize) {
+async function loadHomeHero(rotationStart: string) {
+    const stored = await selectionForRotation(rotationStart);
+    if (stored.length === 6) {
         return hydrate(stored);
     }
 
     try {
-        return await buildSelection(weekStart);
+        return await buildSelection(rotationStart);
     } catch (cause) {
-        const previous = await previousSelection(weekStart);
+        const { previous } = await previousSelection(rotationStart);
         if (previous.length) {
             console.error(
-                `Weekly homepage hero refresh failed; using ${previous.length} previous selections`,
+                `Homepage hero rotation failed; using ${previous.length} previous selections`,
                 cause
             );
             return hydrate(previous);
@@ -145,18 +164,18 @@ async function loadHomeHero(weekStart: string) {
 }
 
 export function getHomeHero(now = new Date()) {
-    const weekStart = utcWeekStart(now);
-    const active = requests.get(weekStart);
+    const rotationStart = homeHeroRotationStart(now);
+    const active = requests.get(rotationStart);
     if (active) {
         return active;
     }
 
-    const request = loadHomeHero(weekStart);
-    requests.set(weekStart, request);
+    const request = loadHomeHero(rotationStart);
+    requests.set(rotationStart, request);
 
     const cleanup = () => {
-        if (requests.get(weekStart) === request) {
-            requests.delete(weekStart);
+        if (requests.get(rotationStart) === request) {
+            requests.delete(rotationStart);
         }
     };
     request.then(cleanup, cleanup);

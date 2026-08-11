@@ -378,6 +378,26 @@ export type HomeAnimeQuery = {
     } | null;
 };
 
+export type HomeHeroCandidatesQueryVariables = Exact<{
+    seasonYear: number;
+}>;
+
+export type HomeHeroCandidatesQuery = {
+    Page: {
+        media: Array<{
+            id: number;
+            averageScore: number | null;
+            popularity: number | null;
+            favourites: number | null;
+            seasonYear: number | null;
+            genres: Array<string | null> | null;
+            relations: {
+                edges: Array<{ relationType: MediaRelation | null } | null> | null;
+            } | null;
+        } | null> | null;
+    } | null;
+};
+
 export type SearchAnimePageQueryVariables = Exact<{
     search: string;
     page: number;
@@ -784,6 +804,33 @@ export const HomeAnimeDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<HomeAnimeQuery, HomeAnimeQueryVariables>;
+export const HomeHeroCandidatesDocument = new TypedDocumentString(`
+    query HomeHeroCandidates($seasonYear: Int!) {
+  Page(page: 1, perPage: 50) {
+    media(
+      type: ANIME
+      format: TV
+      status: RELEASING
+      seasonYear: $seasonYear
+      averageScore_greater: 70
+      sort: [TRENDING_DESC, SCORE_DESC]
+      isAdult: false
+    ) {
+      id
+      averageScore
+      popularity
+      favourites
+      seasonYear
+      genres
+      relations {
+        edges {
+          relationType
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<HomeHeroCandidatesQuery, HomeHeroCandidatesQueryVariables>;
 export const SearchAnimePageDocument = new TypedDocumentString(`
     query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {

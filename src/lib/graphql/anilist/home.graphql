@@ -51,3 +51,29 @@ query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
         }
     }
 }
+
+query HomeHeroCandidates($seasonYear: Int!) {
+    Page(page: 1, perPage: 50) {
+        media(
+            type: ANIME
+            format: TV
+            status: RELEASING
+            seasonYear: $seasonYear
+            averageScore_greater: 70
+            sort: [TRENDING_DESC, SCORE_DESC]
+            isAdult: false
+        ) {
+            id
+            averageScore
+            popularity
+            favourites
+            seasonYear
+            genres
+            relations {
+                edges {
+                    relationType
+                }
+            }
+        }
+    }
+}

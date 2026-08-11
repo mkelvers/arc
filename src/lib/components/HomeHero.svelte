@@ -59,7 +59,7 @@
     <section
         class="relative h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-svh"
         aria-roledescription="carousel"
-        aria-label="Popular anime this week"
+        aria-label="Trending anime now"
         onfocusin={() => (focused = true)}
         onfocusout={() => (focused = false)}
     >
@@ -113,7 +113,7 @@
 
                         {#if anime.description}
                             <p
-                                class="mt-4 line-clamp-3 max-w-[min(100%,46rem)] text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7 min-[120.1rem]:line-clamp-none min-[120.1rem]:max-w-[min(100%,48rem)]"
+                                class="mt-4 line-clamp-3 max-w-[min(100%,46rem)] text-sm leading-6 text-white/80 sm:text-base 2xl:text-base 2xl:leading-7"
                             >
                                 {anime.description}
                             </p>
