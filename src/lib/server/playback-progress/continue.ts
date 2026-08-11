@@ -6,7 +6,11 @@ interface Progress {
     completed: boolean;
 }
 
-export function continuationEpisode(progress: Progress | null, episodes: AnimeEpisode[]) {
+export function continuationEpisode(
+    progress: Progress | null,
+    episodes: AnimeEpisode[],
+    releaseFinished: boolean
+) {
     if (!progress) {
         return null;
     }
@@ -16,7 +20,11 @@ export function continuationEpisode(progress: Progress | null, episodes: AnimeEp
         return null;
     }
 
-    return progress.completed ? (episodes[currentIndex + 1] ?? null) : episodes[currentIndex];
+    if (!progress.completed) {
+        return episodes[currentIndex];
+    }
+
+    return episodes[currentIndex + 1] ?? (releaseFinished ? null : episodes[currentIndex]);
 }
 
 export function resumePosition(progress: Progress | null, episodeId: string) {

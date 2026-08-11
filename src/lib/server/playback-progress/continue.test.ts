@@ -38,7 +38,7 @@ describe('continue watching target', () => {
             completed: false,
         };
 
-        expect(continuationEpisode(progress, episodes)?.id).toBe('one');
+        expect(continuationEpisode(progress, episodes, false)?.id).toBe('one');
         expect(resumePosition(progress, 'one')).toBe(321);
     });
 
@@ -49,7 +49,7 @@ describe('continue watching target', () => {
             completed: true,
         };
 
-        expect(continuationEpisode(progress, episodes)?.id).toBe('two');
+        expect(continuationEpisode(progress, episodes, false)?.id).toBe('two');
         expect(resumePosition(progress, 'one')).toBe(0);
     });
 
@@ -61,8 +61,23 @@ describe('continue watching target', () => {
                     positionSeconds: 1_440,
                     completed: true,
                 },
-                episodes
+                episodes,
+                true
             )
         ).toBeNull();
+    });
+
+    test('keeps the newest completed episode available while the release is airing', () => {
+        expect(
+            continuationEpisode(
+                {
+                    episodeId: 'two',
+                    positionSeconds: 1_440,
+                    completed: true,
+                },
+                episodes,
+                false
+            )?.id
+        ).toBe('two');
     });
 });

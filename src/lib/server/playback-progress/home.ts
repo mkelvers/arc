@@ -38,9 +38,11 @@ export async function getContinueWatchingCards(
                 ({ episodeId }) => episodeId === progress.episodeId
             );
             const current = currentIndex >= 0 ? episodes[currentIndex] : null;
+            const details = progress.details ? toAnimeDetails(progress.details) : null;
             const target = progress.completed
                 ? (episodes[currentIndex + 1] ??
                   episodes.find(({ number }) => number > progress.episodeNumber) ??
+                  (details?.status === 'FINISHED' ? null : current) ??
                   null)
                 : (current ?? {
                       anilistId: progress.anilistId,
@@ -74,7 +76,6 @@ export async function getContinueWatchingCards(
                 console.error(`Stored TMDB media failed for AniList ${progress.anilistId}`, cause);
                 return null;
             });
-            const details = progress.details ? toAnimeDetails(progress.details) : null;
             const backdrop =
                 storedMedia?.artwork.selectedBackdrop?.url ??
                 details?.bannerImage ??
