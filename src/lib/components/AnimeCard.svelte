@@ -186,7 +186,7 @@
     <article
         class:border-foreground={current}
         class:border-transparent={!current}
-        class="group relative isolate min-w-0 overflow-hidden p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10 hover:bg-surface/88"
+        class="group relative isolate min-w-0 overflow-hidden p-2 text-foreground transition-colors after:pointer-events-none after:absolute after:inset-0 after:z-0 after:bg-surface/88 after:opacity-0 after:content-[''] after:transition-opacity group-focus-within:after:opacity-100 group-hover:after:opacity-100 focus-within:z-10 focus-within:border-foreground hover:z-10"
     >
         <div
             class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
@@ -215,15 +215,11 @@
         <img
             src={anime.image}
             alt=""
-            class="pointer-events-none absolute inset-0 -z-20 size-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-0 z-0 size-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
             loading="lazy"
         />
         <div
-            class="pointer-events-none absolute inset-0 -z-10 bg-surface/88 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-            aria-hidden="true"
-        ></div>
-        <div
-            class="pointer-events-none absolute inset-2 flex flex-col overflow-hidden p-3 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-2 z-10 flex flex-col overflow-hidden p-3 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
             <a
                 href={anime.link}
