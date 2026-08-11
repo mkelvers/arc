@@ -1,28 +1,17 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import {
-        CaretDownIcon,
-        CircleIcon,
-        DownloadSimpleIcon,
-        ListBulletsIcon,
-        RadioButtonIcon,
-    } from 'phosphor-svelte';
+    import { CaretDownIcon, CircleIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
 
     import emptyArtwork from '$lib/assets/watchlist-empty.png';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
     import Skeleton from '$lib/components/Skeleton.svelte';
-    import StatusBanner from '$lib/components/StatusBanner.svelte';
-    import Tooltip from '$lib/components/Tooltip.svelte';
-    import WatchlistImportDialog from '$lib/components/WatchlistImportDialog.svelte';
     import type { WatchlistOrder, WatchlistSort, WatchlistState } from '$lib/watchlist';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
-    let statusMessage = $state('');
-    let statusTone = $state<'error' | 'success'>('success');
 
     const filters = [
         { value: 'all', label: 'All' },
@@ -102,14 +91,7 @@
         const search = query.toString();
         return search ? `/watchlist?${search}` : '/watchlist';
     }
-
-    function showStatus(message: string, tone: 'error' | 'success') {
-        statusMessage = message;
-        statusTone = tone;
-    }
 </script>
-
-<StatusBanner message={statusMessage} tone={statusTone} ondismiss={() => (statusMessage = '')} />
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
@@ -136,20 +118,6 @@
                     {/each}
                 </ul>
             </nav>
-
-            <div class="mb-2 ml-3 flex h-10 shrink-0 items-center" aria-label="Watchlist data">
-                <WatchlistImportDialog onresult={showStatus} />
-                <Tooltip text="Export watchlist">
-                    <a
-                        href="/watchlist/export"
-                        class="grid size-10 place-items-center text-muted transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
-                        aria-label="Export watchlist"
-                        download
-                    >
-                        <DownloadSimpleIcon size="1.2rem" weight="regular" aria-hidden="true" />
-                    </a>
-                </Tooltip>
-            </div>
 
             {#if data.totalEntries}
                 <Dropdown
