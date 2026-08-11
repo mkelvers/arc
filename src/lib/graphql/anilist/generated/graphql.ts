@@ -185,6 +185,22 @@ export type MediaType =
     /** Asian comic */
     | 'MANGA';
 
+export type AiringAnimePageQueryVariables = Exact<{
+    page: number;
+    perPage: number;
+}>;
+
+export type AiringAnimePageQuery = {
+    Page: {
+        pageInfo: { hasNextPage: boolean | null } | null;
+        media: Array<{
+            id: number;
+            status: MediaStatus | null;
+            nextAiringEpisode: { airingAt: number; episode: number } | null;
+        } | null> | null;
+    } | null;
+};
+
 export type AnimeQueryVariables = Exact<{
     id: number;
 }>;
@@ -499,6 +515,23 @@ export class TypedDocumentString<TResult, TVariables>
     }
 }
 
+export const AiringAnimePageDocument = new TypedDocumentString(`
+    query AiringAnimePage($page: Int!, $perPage: Int!) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      hasNextPage
+    }
+    media(type: ANIME, status: RELEASING, sort: ID) {
+      id
+      status
+      nextAiringEpisode {
+        airingAt
+        episode
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AiringAnimePageQuery, AiringAnimePageQueryVariables>;
 export const AnimeDocument = new TypedDocumentString(`
     query Anime($id: Int!) {
   Media(id: $id, type: ANIME) {

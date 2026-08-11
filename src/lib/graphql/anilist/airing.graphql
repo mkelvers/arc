@@ -1,0 +1,15 @@
+query AiringAnimePage($page: Int!, $perPage: Int!) {
+    Page(page: $page, perPage: $perPage) {
+        pageInfo {
+            hasNextPage
+        }
+        media(type: ANIME, status: RELEASING, sort: ID) {
+            id
+            status
+            nextAiringEpisode {
+                airingAt
+                episode
+            }
+        }
+    }
+}
