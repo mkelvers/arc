@@ -19,7 +19,9 @@
   let failed = $state(false);
   const watchlistStatus = $derived(watchlist.state(animeId));
   const added = $derived(watchlistStatus !== null);
-  const label = $derived(added ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`);
+  const label = $derived(
+    added ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`
+  );
 
   $effect(() => {
     if (!page.data.account) {
