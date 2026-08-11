@@ -10,9 +10,9 @@
 
     import emptyArtwork from '$lib/assets/watchlist-empty.png';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.png';
-    import Dropdown from '$lib/components/Dropdown.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import DataSpinner from '$lib/components/DataSpinner.svelte';
+    import Dropdown from '$lib/components/Dropdown.svelte';
+    import Skeleton from '$lib/components/Skeleton.svelte';
     import StatusBanner from '$lib/components/StatusBanner.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
     import WatchlistImportDialog from '$lib/components/WatchlistImportDialog.svelte';
@@ -256,8 +256,18 @@
         {:else}
             <section class="mt-8" aria-label={`${selectedStateLabel} anime`}>
                 {#await data.entries}
-                    <div class="flex justify-center py-20" aria-busy="true">
-                        <DataSpinner label="Loading watchlist" />
+                    <div
+                        class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 2xl:gap-x-5"
+                        aria-busy="true"
+                        aria-label="Loading watchlist"
+                    >
+                        {#each Array(24) as _, index (index)}
+                            <div class="min-w-0 p-2">
+                                <Skeleton class="aspect-2/3 w-full" />
+                                <Skeleton class="mt-3 h-4 w-4/5" />
+                                <Skeleton class="mt-2 h-4 w-2/5" />
+                            </div>
+                        {/each}
                     </div>
                 {:then entries}
                     {#if entries.length === 0}

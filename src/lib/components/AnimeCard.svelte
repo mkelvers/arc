@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { PlayIcon, StarIcon, XIcon } from 'phosphor-svelte';
+    import { PlayIcon, StarIcon, TrashIcon } from 'phosphor-svelte';
 
     import type { AnimeCard } from '$lib/anime/types';
     import Tooltip from '$lib/components/Tooltip.svelte';
@@ -276,18 +276,15 @@
                 </Tooltip>
                 <WatchlistBookmark animeId={anime.id} title={anime.title} />
                 {#if onremove}
-                    <Tooltip
-                        text={removeFailed ? 'Try again' : 'Remove'}
-                        class="absolute top-2 right-2 z-20"
-                    >
+                    <Tooltip text={removeFailed ? 'Try again' : 'Remove'}>
                         <button
                             type="button"
                             aria-label={`Remove ${anime.title} from watchlist`}
                             disabled={removing}
-                            class="grid size-8 place-items-center text-white/80 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
+                            class="grid size-9 place-items-center transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-50"
                             onclick={remove}
                         >
-                            <XIcon size="1rem" weight="bold" aria-hidden="true" />
+                            <TrashIcon size="1.45rem" weight="regular" aria-hidden="true" />
                         </button>
                     </Tooltip>
                 {/if}
