@@ -47,7 +47,7 @@
         class="group relative min-w-0 transition-colors hover:bg-surface focus-within:bg-surface"
     >
         <a
-            href={anime.link}
+            href={anime.href}
             class="absolute inset-0 z-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-label={`View ${anime.title}`}
             onclick={onselect}
@@ -109,7 +109,7 @@
             class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
         >
             <a
-                href={anime.link}
+                href={anime.href}
                 class="block focus-visible:outline-none"
                 aria-label={`View ${anime.title}`}
                 onclick={onselect}
@@ -134,7 +134,7 @@
             class="pointer-events-none absolute inset-0 flex flex-col overflow-hidden bg-surface p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
         >
             <a
-                href={anime.link}
+                href={anime.href}
                 class="absolute inset-0 z-0"
                 aria-label={`View ${anime.title}`}
                 onclick={onselect}
@@ -192,7 +192,7 @@
             class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
         >
             <a
-                href={anime.link}
+                href={anime.href}
                 class="block focus-visible:outline-none"
                 aria-current={current ? 'page' : undefined}
                 onclick={onselect}

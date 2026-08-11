@@ -69,7 +69,7 @@
                     class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden"
                 >
                     <a
-                        href={anime.link}
+                        href={anime.href}
                         class="col-start-1 row-start-1 block focus-visible:outline-2 focus-visible:outline-white"
                         aria-label={`View ${anime.title}`}
                     >
@@ -86,7 +86,7 @@
                         class="pointer-events-none z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 2xl:self-center 2xl:pb-0"
                     >
                         <a
-                            href={anime.link}
+                            href={anime.href}
                             class="pointer-events-auto block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                             aria-label={`View ${anime.title}`}
                         >

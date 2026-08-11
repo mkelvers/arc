@@ -36,7 +36,11 @@ export class RecentSearches {
             const stored = JSON.parse(localStorage.getItem(key) ?? '[]');
 
             if (Array.isArray(stored)) {
-                this.results = stored.filter(isRecent);
+                this.results = stored.filter(isRecent).map(({ id, title }) => ({
+                    id,
+                    href: `/anime/${id}`,
+                    title,
+                }));
             }
         } catch {
             localStorage.removeItem(key);
@@ -46,7 +50,7 @@ export class RecentSearches {
     remember(anime: AnimeCard) {
         const result = {
             id: anime.id,
-            href: anime.link,
+            href: anime.href,
             title: anime.title,
         };
 
