@@ -1,28 +1,28 @@
 {
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "typescript", "unicorn"],
-  "categories": {
-    "correctness": "error"
-  },
-  "options": {
-    "denyWarnings": true,
-    "reportUnusedDisableDirectives": "error"
-  },
-  "ignorePatterns": [
-    ".svelte-kit/**",
-    "build/**",
-    "dist/**",
-    "drizzle/**",
-    "node_modules/**",
-    "**/generated/**",
-    "**/generated.ts"
-  ],
-  "rules": {
-    "import/no-cycle": ["error", { "ignoreTypes": false }],
-    "typescript/consistent-type-exports": "error",
-    "typescript/consistent-type-imports": "error",
-    "typescript/no-explicit-any": "error",
-    "typescript/no-unnecessary-template-expression": "error",
-    "typescript/no-unnecessary-type-assertion": "error"
-  }
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["import", "typescript", "unicorn"],
+    "categories": {
+        "correctness": "error"
+    },
+    "options": {
+        "denyWarnings": true,
+        "reportUnusedDisableDirectives": "error"
+    },
+    "ignorePatterns": [
+        ".svelte-kit/**",
+        "build/**",
+        "dist/**",
+        "drizzle/**",
+        "node_modules/**",
+        "**/generated/**",
+        "**/generated.ts"
+    ],
+    "rules": {
+        "import/no-cycle": ["error", { "ignoreTypes": false }],
+        "typescript/consistent-type-exports": "error",
+        "typescript/consistent-type-imports": "error",
+        "typescript/no-explicit-any": "error",
+        "typescript/no-unnecessary-template-expression": "error",
+        "typescript/no-unnecessary-type-assertion": "error"
+    }
 }

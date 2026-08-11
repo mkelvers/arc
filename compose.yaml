@@ -1,29 +1,29 @@
 services:
-  postgres:
-    image: postgres:18-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-arc}
-      POSTGRES_USER: ${POSTGRES_USER:-arc}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arc}
-    ports:
-      - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-arc} -d ${POSTGRES_DB:-arc}']
-      interval: 2s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-    volumes:
-      - postgres-data:/var/lib/postgresql
-  redis:
-    image: redis:8-alpine
-    restart: unless-stopped
-    ports:
-      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
-    volumes:
-      - redis-data:/data
+    postgres:
+        image: postgres:18-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: ${POSTGRES_DB:-arc}
+            POSTGRES_USER: ${POSTGRES_USER:-arc}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arc}
+        ports:
+            - '127.0.0.1:${POSTGRES_PORT:-5433}:5432'
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-arc} -d ${POSTGRES_DB:-arc}']
+            interval: 2s
+            timeout: 5s
+            retries: 10
+            start_period: 5s
+        volumes:
+            - postgres-data:/var/lib/postgresql
+    redis:
+        image: redis:8-alpine
+        restart: unless-stopped
+        ports:
+            - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+        volumes:
+            - redis-data:/data
 
 volumes:
-  postgres-data:
-  redis-data:
+    postgres-data:
+    redis-data:
