@@ -93,9 +93,7 @@ export async function getStoredBackdrops(anilistIds: number[]) {
   return new Map(
     [...candidates].flatMap(([anilistId, values]) => {
       const groups = new Set(values.map(({ group }) => group));
-      return groups.size === 1
-        ? [[anilistId, imageUrl(values[0].filePath, 'w780')] as const]
-        : [];
+      return groups.size === 1 ? [[anilistId, imageUrl(values[0].filePath, 'w780')] as const] : [];
     })
   );
 }

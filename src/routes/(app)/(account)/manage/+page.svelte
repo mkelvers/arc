@@ -54,7 +54,6 @@
           <p class="mt-2 text-xs leading-relaxed text-subtle">
             This is how your account is shown across Arc. You can change it at any time.
           </p>
-
         </div>
       </div>
 

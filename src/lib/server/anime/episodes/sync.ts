@@ -10,11 +10,7 @@ import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
-import {
-  canPreserveEpisodeMetadata,
-  episodeInventoryIsExpected,
-  nextRefreshAt,
-} from './policy';
+import { canPreserveEpisodeMetadata, episodeInventoryIsExpected, nextRefreshAt } from './policy';
 import { episodesForRelease } from './release';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
