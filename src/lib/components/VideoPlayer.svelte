@@ -6,7 +6,7 @@
         subtitleTextColors,
         type Sources,
     } from '$lib/player/media';
-    import { ProgressSchedule } from '$lib/player/progress';
+    import { nextProgressEventAt, ProgressSchedule } from '$lib/player/progress';
     import {
         activeSkip as findActiveSkip,
         intervalFromTemplate,
@@ -41,6 +41,7 @@
         next?: string | null;
         onretry: () => void;
         startAt?: number;
+        progressEventAt: number;
         segments: {
             canEdit: boolean;
             times: EpisodeSkipTimes;
@@ -62,6 +63,7 @@
         next = null,
         onretry,
         startAt = 0,
+        progressEventAt,
         segments,
         error,
         transitioning,
@@ -75,6 +77,8 @@
     const media = player.media;
     let progressSchedule = new ProgressSchedule();
     let progressStarted = false;
+    let eventCursor = untrack(() => progressEventAt);
+    let eventClock: { base: number; startedAt: number } | null = null;
     let hasPlayed = false;
     let episodeEnded = false;
     let finalSaveSent = false;
@@ -98,6 +102,16 @@
     let skipError = $state<string | null>(null);
 
     const visibleSkip = $derived(findActiveSkip(currentSkipTimes, media.currentTime));
+
+    $effect(() => {
+        const incoming = progressEventAt;
+        if (!mounted || incoming <= eventCursor) {
+            return;
+        }
+
+        eventCursor = incoming;
+        eventClock = { base: incoming, startedAt: performance.now() };
+    });
 
     $effect(() => {
         const incoming = segments.times;
@@ -166,11 +180,17 @@
             return null;
         }
 
+        const estimatedServerTime = eventClock
+            ? eventClock.base + performance.now() - eventClock.startedAt
+            : eventCursor + 1;
+        eventCursor = nextProgressEventAt(eventCursor, estimatedServerTime);
+
         return {
             ...trackedEpisode,
             positionSeconds,
             durationSeconds,
             completed,
+            eventAt: eventCursor,
         };
     }
 
@@ -378,6 +398,7 @@
         container.addEventListener('dblclick', doubleClick);
         container.addEventListener('keydown', keydown);
         mounted = true;
+        eventClock = { base: progressEventAt, startedAt: performance.now() };
 
         return () => {
             container.removeEventListener('click', click);

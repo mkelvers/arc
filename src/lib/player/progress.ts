@@ -1,5 +1,9 @@
 export type ProgressSaveReason = 'periodic' | 'ending';
 
+export function nextProgressEventAt(previous: number, now: number) {
+    return Math.max(previous + 1, Math.floor(now));
+}
+
 interface Sample {
     currentTime: number;
     duration: number;

@@ -24,6 +24,7 @@
             templates: Promise<SegmentTemplates>;
         };
         startAt?: number;
+        progressEventAt: number;
     }
 
     interface ActiveEpisode {
@@ -40,6 +41,7 @@
             templates: SegmentTemplates;
         };
         startAt: number;
+        progressEventAt: number;
     }
 
     let {
@@ -52,6 +54,7 @@
         poster = null,
         segments,
         startAt = 0,
+        progressEventAt,
     }: Props = $props();
     let active = $state<ActiveEpisode | null>(null);
     let transitioning = $state(true);
@@ -69,6 +72,7 @@
             next,
             poster,
             startAt,
+            progressEventAt,
         };
         let cancelled = false;
         transitioning = true;
@@ -144,6 +148,7 @@
         poster={active.poster}
         next={active.next}
         startAt={active.startAt}
+        progressEventAt={active.progressEventAt}
         segments={active.segments}
         unavailable={!Object.values(active.result.streams).some((streams) => streams?.length)}
         error={active.result.error}

@@ -43,6 +43,7 @@
         poster={poster}
         next={data.nextEpisode?.href}
         startAt={data.startAt}
+        progressEventAt={data.progressEventAt}
         segments={data.segments}
     />
 

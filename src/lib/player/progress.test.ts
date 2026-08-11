@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { ProgressSchedule } from './progress';
+import { nextProgressEventAt, ProgressSchedule } from './progress';
 
 describe('playback progress schedule', () => {
     test('saves after each 30 seconds of active media progress', () => {
@@ -49,5 +49,12 @@ describe('playback progress schedule', () => {
                 playing: true,
             })
         ).toBeNull();
+    });
+});
+
+describe('progress event ordering', () => {
+    test('keeps saves monotonic when the wall clock does not advance', () => {
+        expect(nextProgressEventAt(1_000, 900)).toBe(1_001);
+        expect(nextProgressEventAt(1_000, 2_000)).toBe(2_000);
     });
 });

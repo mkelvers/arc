@@ -200,6 +200,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             templates: Promise.resolve(segmentTemplates),
         },
         startAt: resumePosition(progress, currentEpisode.id),
+        progressEventAt: Math.max(Date.now(), progress?.eventAt.getTime() ?? 0),
         playback: Promise.resolve(playback),
     };
 };
