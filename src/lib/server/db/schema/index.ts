@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { FranchiseCacheData } from '$lib/server/anime/franchise/cache';
+import type { AnimeCard } from '$lib/anime/types';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
 type AniListAnime = NonNullable<AnimeQuery['Media']>;
@@ -302,6 +303,26 @@ export const anilistQueryCache = pgTable(
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('anilist_query_cache_expires_idx').on(table.expiresAt)]
+);
+
+export const animeCardCache = pgTable('anime_card_cache', {
+  anilistId: integer('anilist_id').primaryKey(),
+  data: jsonb('data').$type<AnimeCard>().notNull(),
+  fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const animeSimulcastPageCache = pgTable(
+  'anime_simulcast_page_cache',
+  {
+    season: varchar('season', { length: 8 }).notNull(),
+    year: integer('year').notNull(),
+    page: integer('page').notNull(),
+    data: jsonb('data')
+      .$type<{ anime: AnimeCard[]; hasNextPage: boolean; page: number }>()
+      .notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.season, table.year, table.page] })]
 );
 
 export const animeCatalog = pgTable(
