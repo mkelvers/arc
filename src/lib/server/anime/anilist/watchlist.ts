@@ -72,7 +72,12 @@ export function getWatchlistAnime(ids: number[]) {
                     .where(inArray(animeCardCache.anilistId, uniqueIds));
                 const stored = new Map(rows.map(({ id, data }) => [id, data]));
                 const staleIds = rows
-                    .filter(({ fetchedAt }) => now - fetchedAt.getTime() >= 6 * 60 * 60 * 1_000)
+                    .filter(
+                        ({ data, fetchedAt }) =>
+                            data.format == null ||
+                            data.status == null ||
+                            now - fetchedAt.getTime() >= 6 * 60 * 60 * 1_000
+                    )
                     .map(({ id }) => id);
                 const missingIds = uniqueIds.filter((id) => !stored.has(id));
 

@@ -15,6 +15,8 @@ interface CardMedia {
     description?: string | null;
     genres?: ReadonlyArray<string | null> | null;
     averageScore?: number | null;
+    format?: string | null;
+    status?: string | null;
 }
 
 export function animeCard(media: CardMedia): AnimeCard | null {
@@ -31,6 +33,8 @@ export function animeCard(media: CardMedia): AnimeCard | null {
         title: mediaTitle(media),
         image,
         audioLabel: '',
+        format: media.format ?? null,
+        status: media.status ?? null,
         score: media.averageScore ?? 0,
         genres: present(media.genres),
         synopsis: plainText(media.description),
