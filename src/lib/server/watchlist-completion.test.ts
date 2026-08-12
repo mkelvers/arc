@@ -20,7 +20,7 @@ describe('automatic watchlist status', () => {
         ).toBe('completed');
     });
 
-    test('adds a new anime to watching when playback starts', () => {
+    test('does not add an unfinished anime to the watchlist when playback starts', () => {
         expect(
             watchlistStateAfterPlayback(
                 null,
@@ -28,7 +28,29 @@ describe('automatic watchlist status', () => {
                 episodes,
                 { ...episodes[0], completed: false }
             )
-        ).toBe('watching');
+        ).toBeNull();
+    });
+
+    test('adds a finished anime to completed after its final episode', () => {
+        expect(
+            watchlistStateAfterPlayback(
+                null,
+                { mediaStatus: 'FINISHED', expectedEpisodes: 3 },
+                episodes,
+                { ...episodes[2], completed: true }
+            )
+        ).toBe('completed');
+    });
+
+    test('does not complete a finished anime before playback is complete', () => {
+        expect(
+            watchlistStateAfterPlayback(
+                null,
+                { mediaStatus: 'FINISHED', expectedEpisodes: 3 },
+                episodes,
+                { ...episodes[2], completed: false }
+            )
+        ).toBeNull();
     });
 
     test('moves an existing non-completed status to watching when playback starts', () => {
@@ -50,7 +72,7 @@ describe('automatic watchlist status', () => {
                 episodes,
                 { ...episodes[2], completed: true }
             )
-        ).toBe('watching');
+        ).toBeNull();
     });
 
     test('ignores a completion report outside the stored provider inventory', () => {
