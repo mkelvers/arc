@@ -1,7 +1,9 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
     import {
         BookmarkSimpleIcon,
+        BellIcon,
         CaretDownIcon,
         GearIcon,
         MagnifyingGlassIcon,
@@ -14,6 +16,28 @@
     import Dropdown from '$lib/components/Dropdown.svelte';
 
     let { data, children } = $props();
+    let hasUnreadNotifications = $state(false);
+
+    onMount(() => {
+        if (!data.account) {
+            return;
+        }
+
+        const controller = new AbortController();
+
+        void fetch('/api/notifications/unread', { signal: controller.signal })
+            .then(async (response) => (response.ok ? ((await response.json()) as unknown) : null))
+            .then((result) => {
+                hasUnreadNotifications =
+                    typeof result === 'object' &&
+                    result !== null &&
+                    'hasUnreadNotifications' in result &&
+                    result.hasUnreadNotifications === true;
+            })
+            .catch(() => undefined);
+
+        return () => controller.abort();
+    });
 
     async function signOut() {
         await authClient.signOut({
@@ -76,7 +100,9 @@
             {#if data.account}
                 <Dropdown
                     id="account-menu"
-                    ariaLabel="Account menu"
+                    ariaLabel={hasUnreadNotifications
+                        ? 'Account menu, unread notifications'
+                        : 'Account menu'}
                     modal
                     menuClass="w-[min(21rem,calc(100vw-1rem))]"
                     triggerClass="flex h-14 cursor-pointer items-center gap-2 px-3 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted"
@@ -87,6 +113,12 @@
                                 username={data.account.username}
                                 class="size-8 text-sm ring-1 ring-white/20"
                             />
+                            {#if hasUnreadNotifications}
+                                <span
+                                    class="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-status-error ring-2 ring-header"
+                                    aria-hidden="true"
+                                ></span>
+                            {/if}
                         </span>
                         <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -105,6 +137,21 @@
                                 </span>
                             </div>
                         </div>
+
+                        <a
+                            href="/notifications"
+                            class="flex min-h-12 items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                        >
+                            <BellIcon size={21} aria-hidden="true" />
+                            <span>Notifications</span>
+                            {#if hasUnreadNotifications}
+                                <span
+                                    class="ml-auto size-2 rounded-full bg-status-error"
+                                    aria-hidden="true"
+                                ></span>
+                                <span class="sr-only">Unread notifications</span>
+                            {/if}
+                        </a>
 
                         <a
                             href="/settings"
