@@ -30,6 +30,7 @@ export function watchlistStateAfterPlayback(
 
     const expected = release?.expectedEpisodes;
     const completedSeries =
+        playback.completed &&
         release?.mediaStatus === 'FINISHED' &&
         expected !== null &&
         expected !== undefined &&
@@ -37,5 +38,9 @@ export function watchlistStateAfterPlayback(
         playback.number === expected &&
         coversExpectedEpisodes(episodes, expected);
 
-    return completedSeries ? 'completed' : 'watching';
+    if (completedSeries) {
+        return 'completed';
+    }
+
+    return current ? 'watching' : null;
 }
