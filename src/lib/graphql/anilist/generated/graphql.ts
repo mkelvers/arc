@@ -188,6 +188,7 @@ export type MediaType =
 export type AiringAnimePageQueryVariables = Exact<{
     page: number;
     perPage: number;
+    ids?: Array<number | null | undefined> | number | null | undefined;
 }>;
 
 export type AiringAnimePageQuery = {
@@ -536,12 +537,12 @@ export class TypedDocumentString<TResult, TVariables>
 }
 
 export const AiringAnimePageDocument = new TypedDocumentString(`
-    query AiringAnimePage($page: Int!, $perPage: Int!) {
+    query AiringAnimePage($page: Int!, $perPage: Int!, $ids: [Int]) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       hasNextPage
     }
-    media(type: ANIME, status: RELEASING, sort: ID) {
+    media(id_in: $ids, type: ANIME, status: RELEASING, sort: ID) {
       id
       status
       nextAiringEpisode {

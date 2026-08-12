@@ -4,10 +4,15 @@ import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
 import { getAiringAnime } from './anilist/airing';
 import { refreshAnime } from './anilist/details';
+import { createEpisodeRefreshQueue, type EpisodeRefreshTarget } from './episode-refresh';
 import { refreshEpisodes } from './episodes/sync';
+import { getProactiveAnimeIds } from './interest';
+
+const episodeRefreshQueue = createEpisodeRefreshQueue(db);
 
 export async function scanAiringAnime() {
-    const airing = await getAiringAnime();
+    const proactiveIds = await getProactiveAnimeIds();
+    const airing = await getAiringAnime(proactiveIds);
 
     for (const anime of airing) {
         await db
@@ -55,7 +60,7 @@ export async function scanAiringAnime() {
         storedTargets.map(({ anilistId, number }) => `${anilistId}:${number}`)
     );
 
-    return airing.map((anime) => {
+    const scheduled = airing.map((anime) => {
         const refreshEpisode = anime.episode && anime.episode > 1 ? anime.episode - 1 : null;
 
         return {
@@ -64,9 +69,34 @@ export async function scanAiringAnime() {
             refreshEpisode,
         };
     });
+
+    const refreshes = scheduled.flatMap((anime) => {
+        const rows: Array<{ anilistId: number; targetEpisode: number; runAt: Date }> = [];
+
+        if (anime.refreshNow && anime.refreshEpisode) {
+            rows.push({
+                anilistId: anime.id,
+                targetEpisode: anime.refreshEpisode,
+                runAt: new Date(),
+            });
+        }
+        if (anime.airingAt && anime.episode) {
+            rows.push({
+                anilistId: anime.id,
+                targetEpisode: anime.episode,
+                runAt: new Date(anime.airingAt * 1_000 + 10 * 60 * 1_000),
+            });
+        }
+
+        return rows;
+    });
+
+    await episodeRefreshQueue.schedule(refreshes);
+
+    return scheduled;
 }
 
-export async function refreshAiringAnime(anilistId: number, targetEpisode?: number) {
+async function refreshAiringAnime(anilistId: number, targetEpisode?: number) {
     const anime = await refreshAnime(anilistId);
     let episodes: Awaited<ReturnType<typeof refreshEpisodes>> = [];
     let providerInventoryAvailable = true;
@@ -84,24 +114,48 @@ export async function refreshAiringAnime(anilistId: number, targetEpisode?: numb
         }
     }
 
+    const episodeAvailable =
+        providerInventoryAvailable &&
+        (targetEpisode === undefined || episodes.some(({ number }) => number === targetEpisode));
+
     await db
         .update(animeEpisodeSync)
         .set({
             mediaStatus: anime.status,
-            nextAiringAt: anime.nextAiringEpisode
-                ? new Date(anime.nextAiringEpisode.airingAt * 1_000)
-                : null,
-            nextAiringEpisode: anime.nextAiringEpisode?.episode ?? null,
+            ...(episodeAvailable
+                ? {
+                      nextAiringAt: anime.nextAiringEpisode
+                          ? new Date(anime.nextAiringEpisode.airingAt * 1_000)
+                          : null,
+                      nextAiringEpisode: anime.nextAiringEpisode?.episode ?? null,
+                  }
+                : {}),
         })
         .where(eq(animeEpisodeSync.anilistId, anilistId));
 
     return {
-        episodeAvailable:
-            providerInventoryAvailable &&
-            (targetEpisode === undefined ||
-                episodes.some(({ number }) => number === targetEpisode)),
+        episodeAvailable,
         mediaStatus: anime.status,
         nextAiringAt: anime.nextAiringEpisode?.airingAt ?? null,
         nextAiringEpisode: anime.nextAiringEpisode?.episode ?? null,
     };
+}
+
+async function refreshScheduledEpisode({ anilistId, targetEpisode }: EpisodeRefreshTarget) {
+    const stored = await db
+        .select({ episodeId: animeEpisode.episodeId })
+        .from(animeEpisode)
+        .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.number, targetEpisode)))
+        .limit(1);
+
+    if (stored.length) {
+        return true;
+    }
+
+    return (await refreshAiringAnime(anilistId, targetEpisode)).episodeAvailable;
+}
+
+export async function refreshScheduledEpisodes() {
+    await episodeRefreshQueue.prune(await getProactiveAnimeIds());
+    return episodeRefreshQueue.drain(refreshScheduledEpisode);
 }
