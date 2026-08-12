@@ -9,9 +9,13 @@ import { animeEpisode } from '$lib/server/db/schema';
 import { getWatchlistEntries } from '$lib/server/watchlist';
 import {
     watchlistActivityTimestamp,
+    watchlistLanguage,
+    watchlistMatchesFilters,
+    watchlistMediaType,
     watchlistOrder,
     watchlistSort,
     watchlistState,
+    watchlistType,
 } from '$lib/watchlist';
 import type { PageServerLoad } from './$types';
 
@@ -26,6 +30,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
     const selection = {
         state: watchlistState(url.searchParams.get('state')),
+        language: watchlistLanguage(url.searchParams.get('language')),
+        media: watchlistMediaType(url.searchParams.get('media')),
+        type: watchlistType(url.searchParams.get('type')),
         sort: watchlistSort(url.searchParams.get('sort')),
         order: watchlistOrder(url.searchParams.get('order')),
     };
@@ -63,7 +70,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         return (await enrichAnimeCards(cards))
             .flatMap((card) => {
                 const entry = storedById.get(card.id);
-                return entry
+                const audio = audioByAnime.get(card.id) ?? new Set();
+                return entry && watchlistMatchesFilters(card, audio, selection)
                     ? [
                           {
                               ...card,
