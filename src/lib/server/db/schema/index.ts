@@ -92,6 +92,35 @@ export const accounts = pgTable(
     ]
 );
 
+export const anilistPublication = pgTable(
+    'anilist_publication',
+    {
+        userId: uuid('user_id')
+            .primaryKey()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        version: integer('version').notNull().default(1),
+        nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+        attempts: integer('attempts').notNull().default(0),
+        leaseUntil: timestamp('lease_until', { withTimezone: true }),
+        lastError: text('last_error'),
+    },
+    (table) => [index('anilist_publication_due_idx').on(table.nextAttemptAt, table.leaseUntil)]
+);
+
+export const maintenanceTask = pgTable('maintenance_task', {
+    name: text('name').primaryKey(),
+    nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
+    lastError: text('last_error'),
+});
+
+export const maintenanceHeartbeat = pgTable('maintenance_heartbeat', {
+    name: text('name').primaryKey(),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    lastError: text('last_error'),
+});
+
 export const sessions = pgTable(
     'sessions',
     {
@@ -487,6 +516,43 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     failureCount: integer('failure_count').notNull().default(0),
     lastError: text('last_error'),
 });
+
+export const animeEpisodeRefresh = pgTable(
+    'anime_episode_refresh',
+    {
+        anilistId: integer('anilist_id')
+            .notNull()
+            .references(() => animeEpisodeSync.anilistId, { onDelete: 'cascade' }),
+        targetEpisode: integer('target_episode').notNull(),
+        runAt: timestamp('run_at', { withTimezone: true }).notNull(),
+        firstScheduledAt: timestamp('first_scheduled_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        attempts: integer('attempts').notNull().default(0),
+        leaseUntil: timestamp('lease_until', { withTimezone: true }),
+        retiredAt: timestamp('retired_at', { withTimezone: true }),
+        lastError: text('last_error'),
+    },
+    (table) => [
+        primaryKey({ columns: [table.anilistId, table.targetEpisode] }),
+        index('anime_episode_refresh_due_idx').on(table.runAt, table.leaseUntil),
+    ]
+);
+
+export const animeRecentVisit = pgTable(
+    'anime_recent_visit',
+    {
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        anilistId: integer('anilist_id').notNull(),
+        visitedAt: timestamp('visited_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        primaryKey({ columns: [table.userId, table.anilistId] }),
+        index('anime_recent_visit_time_idx').on(table.visitedAt),
+    ]
+);
 
 export const watchlist = pgTable(
     'watchlist',
