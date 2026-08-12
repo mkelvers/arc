@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ locals }) => {
         const count = await getUnreadNotificationCount(locals.user.id);
         return json({ hasUnreadNotifications: count > 0 });
     } catch (cause) {
-        console.error('AniList unread notification count could not be loaded', cause);
-        return json({ hasUnreadNotifications: false }, { status: 502 });
+        console.error('Unread notification count could not be loaded', cause);
+        return json({ hasUnreadNotifications: false }, { status: 503 });
     }
 };
