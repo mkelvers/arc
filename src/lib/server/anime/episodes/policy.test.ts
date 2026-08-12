@@ -4,6 +4,7 @@ import {
     canPreserveEpisodeMetadata,
     episodeAvailabilityTransitions,
     episodeInventoryIsExpected,
+    episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
 } from './policy';
@@ -74,6 +75,21 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
         expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
         expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
+    });
+
+    test('backs off scheduled provider checks from minutes to days', () => {
+        expect(
+            [0, 1, 2, 3, 4, 5, 6, 7].map((attempts) => episodeRefreshRetryDelay(attempts))
+        ).toEqual([
+            120_000, 300_000, 900_000, 3_600_000, 21_600_000, 43_200_000, 86_400_000, 86_400_000,
+        ]);
+    });
+
+    test('retires a provider check after twelve attempts or fourteen days', () => {
+        const now = Date.now();
+
+        expect(episodeRefreshRetryDelay(11, now, now)).toBeNull();
+        expect(episodeRefreshRetryDelay(3, now - 14 * 24 * 60 * 60 * 1_000, now)).toBeNull();
     });
 
     test('backs off stable finished titles even when optional fields are absent', () => {

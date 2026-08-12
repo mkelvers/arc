@@ -80,6 +80,33 @@ export function episodeInventoryIsExpected(status: AniListAnime['status']) {
     return status !== 'NOT_YET_RELEASED';
 }
 
+const episodeRefreshRetryDelays = [
+    2 * 60 * 1_000,
+    5 * 60 * 1_000,
+    15 * 60 * 1_000,
+    60 * 60 * 1_000,
+    6 * 60 * 60 * 1_000,
+    12 * 60 * 60 * 1_000,
+    24 * 60 * 60 * 1_000,
+];
+const episodeRefreshLifetimeMs = 14 * 24 * 60 * 60 * 1_000;
+const maximumEpisodeRefreshAttempts = 12;
+
+export function episodeRefreshRetryDelay(
+    attempts: number,
+    firstScheduledAt = Date.now(),
+    now = Date.now()
+) {
+    if (
+        attempts + 1 >= maximumEpisodeRefreshAttempts ||
+        now - firstScheduledAt >= episodeRefreshLifetimeMs
+    ) {
+        return null;
+    }
+
+    return episodeRefreshRetryDelays[Math.min(attempts, episodeRefreshRetryDelays.length - 1)];
+}
+
 export function nextRefreshAt(anime: AniListAnime, stableSince: Date) {
     const now = Date.now();
     const after = (milliseconds: number) => new Date(now + milliseconds);
