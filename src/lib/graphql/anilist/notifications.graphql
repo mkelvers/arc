@@ -1,60 +1,22 @@
-query AniListNotifications($page: Int!, $perPage: Int!) {
-    Viewer {
-        options {
-            notificationOptions {
-                type
-                enabled
+query NotificationTargetMedia($ids: [Int!]!) {
+    Page(perPage: 50) {
+        media(id_in: $ids, type: ANIME) {
+            id
+            type
+            status
+            title {
+                english
+                romaji
+                native
             }
-        }
-    }
-    Page(page: $page, perPage: $perPage) {
-        pageInfo {
-            currentPage
-            hasNextPage
-        }
-        notifications(type_in: [AIRING, RELATED_MEDIA_ADDITION], resetNotificationCount: false) {
-            __typename
-            ... on AiringNotification {
-                id
-                type
-                animeId
-                episode
-                contexts
-                createdAt
-                media {
-                    id
-                    type
-                    bannerImage
-                    title {
-                        english
-                        romaji
-                        native
-                    }
-                }
-            }
-            ... on RelatedMediaAdditionNotification {
-                id
-                type
-                mediaId
-                context
-                createdAt
-                media {
-                    id
-                    type
-                    bannerImage
-                    title {
-                        english
-                        romaji
-                        native
+            relations {
+                edges {
+                    relationType
+                    node {
+                        id
                     }
                 }
             }
         }
-    }
-}
-
-query AniListUnreadNotificationCount {
-    Viewer {
-        unreadNotificationCount
     }
 }

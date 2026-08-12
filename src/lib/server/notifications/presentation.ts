@@ -1,99 +1,46 @@
-import { z } from 'zod';
+import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
 
-const titleSchema = z
-    .object({
-        english: z.string().nullable(),
-        romaji: z.string().nullable(),
-        native: z.string().nullable(),
-    })
-    .nullable();
-const animeSchema = z.object({
-    id: z.number().int().positive(),
-    type: z.literal('ANIME'),
-    bannerImage: z.string().nullable(),
-    title: titleSchema,
-});
-const notificationSchema = z.discriminatedUnion('__typename', [
-    z.object({
-        __typename: z.literal('AiringNotification'),
-        id: z.number().int().positive(),
-        animeId: z.number().int().positive(),
-        episode: z.number().int().positive(),
-        createdAt: z.number().int().nonnegative().nullable(),
-        media: animeSchema.nullable(),
-    }),
-    z.object({
-        __typename: z.literal('RelatedMediaAdditionNotification'),
-        id: z.number().int().positive(),
-        mediaId: z.number().int().positive(),
-        createdAt: z.number().int().nonnegative().nullable(),
-        media: animeSchema.nullable(),
-    }),
-]);
+export type NotificationKind =
+    | 'season_announced'
+    | 'season_available'
+    | 'episode_available'
+    | 'audio_available';
 
-export interface NotificationItem {
-    id: number;
-    kind: 'airing' | 'related_media';
+export interface NotificationFacts {
+    kind: NotificationKind;
     anilistId: number;
+    episodeId: string | null;
     episodeNumber: number | null;
-    title: string;
-    body: string;
-    href: string;
-    image: string | null;
-    createdAt: number;
+    audio: readonly AudioMode[];
 }
 
-function mediaTitle(media: z.infer<typeof animeSchema>) {
-    return media.title?.english || media.title?.romaji || media.title?.native || 'Untitled anime';
+export function notificationAudioLabel(audio: readonly AudioMode[]) {
+    return audio.length ? audioAvailabilityLabel(audio) : null;
 }
 
-export function notificationItems(notifications: unknown): NotificationItem[] {
-    const items: NotificationItem[] = [];
+export function notificationBody(facts: NotificationFacts) {
+    const episode = facts.episodeNumber === null ? null : `Episode ${facts.episodeNumber}`;
 
-    if (!Array.isArray(notifications)) {
-        return items;
+    switch (facts.kind) {
+        case 'season_announced':
+            return 'A new season has been announced for an anime in your library.';
+        case 'season_available':
+            return episode
+                ? `${episode} from the new season is now available to watch.`
+                : 'The new season is now available to watch.';
+        case 'episode_available':
+            return `${episode ?? 'A new episode'} is now ready to watch.`;
+        case 'audio_available':
+            return `A new audio option is available for ${episode ?? 'this episode'}.`;
     }
+}
 
-    for (const value of notifications) {
-        const parsed = notificationSchema.safeParse(value);
-        if (!parsed.success) {
-            continue;
-        }
+export function notificationHref(facts: Pick<NotificationFacts, 'anilistId'>) {
+    return `/anime/${facts.anilistId}`;
+}
 
-        const notification = parsed.data;
-        const media = notification.media;
-        if (!media) {
-            continue;
-        }
-
-        if (notification.__typename === 'AiringNotification') {
-            const title = mediaTitle(media);
-            items.push({
-                id: notification.id,
-                kind: 'airing',
-                anilistId: notification.animeId,
-                episodeNumber: notification.episode,
-                title,
-                body: `Episode ${notification.episode} of ${title} has aired.`,
-                href: `/anime/${notification.animeId}`,
-                image: media.bannerImage,
-                createdAt: notification.createdAt ?? 0,
-            });
-        } else {
-            const title = mediaTitle(media);
-            items.push({
-                id: notification.id,
-                kind: 'related_media',
-                anilistId: notification.mediaId,
-                episodeNumber: null,
-                title,
-                body: `${title} was announced as a related release for an anime in your list.`,
-                href: `/anime/${notification.mediaId}`,
-                image: media.bannerImage,
-                createdAt: notification.createdAt ?? 0,
-            });
-        }
-    }
-
-    return items;
+export function notificationWatchHref(facts: Pick<NotificationFacts, 'anilistId' | 'episodeId'>) {
+    return facts.episodeId
+        ? `/anime/${facts.anilistId}/watch/${encodeURIComponent(facts.episodeId)}`
+        : null;
 }

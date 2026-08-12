@@ -7,7 +7,9 @@ export type EpisodeAvailabilityTransition = {
     episodeId: string;
     number: number;
     airDate: string | null;
-    kind: 'episode_available' | 'dub_available';
+    kind: 'episode_available' | 'audio_available';
+    audio: AudioMode[];
+    observedAt?: Date;
 };
 
 export function episodeAvailabilityTransitions(
@@ -33,16 +35,19 @@ export function episodeAvailabilityTransitions(
                 number: episode.number,
                 airDate: episode.airDate ?? null,
                 kind: 'episode_available',
+                audio: [...episode.audio],
             });
             continue;
         }
 
-        if (!stored.audio.includes('dub') && episode.audio.includes('dub')) {
+        const addedAudio = episode.audio.filter((mode) => !stored.audio.includes(mode));
+        if (addedAudio.length) {
             transitions.push({
                 episodeId: episode.id,
                 number: episode.number,
                 airDate: episode.airDate ?? null,
-                kind: 'dub_available',
+                kind: 'audio_available',
+                audio: addedAudio,
             });
         }
     }
@@ -74,6 +79,16 @@ export function canPreserveEpisodeMetadata(
     currentExternalIdId: number | null
 ) {
     return currentExternalIdId === null || previousExternalIdId === currentExternalIdId;
+}
+
+export function episodeMetadataNeedsRefresh(
+    episodes: readonly { image: string | null; title: string; overview: string }[],
+    hasMetadataSource: boolean
+) {
+    return (
+        hasMetadataSource &&
+        episodes.some(({ image, title, overview }) => image !== null && (!title || !overview))
+    );
 }
 
 export function episodeInventoryIsExpected(status: AniListAnime['status']) {

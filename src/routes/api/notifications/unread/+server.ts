@@ -4,15 +4,17 @@ import { getUnreadNotificationCount } from '$lib/server/notifications';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals }) => {
+    const headers = { 'cache-control': 'no-store' };
+
     if (!locals.user) {
-        return new Response('Unauthorized', { status: 401 });
+        return json({ message: 'Authentication required' }, { status: 401, headers });
     }
 
     try {
         const count = await getUnreadNotificationCount(locals.user.id);
-        return json({ hasUnreadNotifications: count > 0 });
+        return json({ hasUnreadNotifications: count > 0 }, { headers });
     } catch (cause) {
-        console.error('AniList unread notification count could not be loaded', cause);
-        return json({ hasUnreadNotifications: false }, { status: 502 });
+        console.error('Unread notification count could not be loaded', cause);
+        return json({ hasUnreadNotifications: false }, { status: 503, headers });
     }
 };

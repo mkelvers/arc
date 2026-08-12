@@ -309,6 +309,20 @@
             "when": 1786521409060,
             "tag": "0043_dark_blackheart",
             "breakpoints": true
+        },
+        {
+            "idx": 44,
+            "version": "7",
+            "when": 1786552920182,
+            "tag": "0044_swift_tinkerer",
+            "breakpoints": true
+        },
+        {
+            "idx": 45,
+            "version": "7",
+            "when": 1786553162539,
+            "tag": "0045_easy_serpent_society",
+            "breakpoints": true
         }
     ]
 }
