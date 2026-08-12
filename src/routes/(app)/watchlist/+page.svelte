@@ -215,6 +215,28 @@
                     {#snippet content()}
                         <div role="menu" aria-label="Watchlist filtering" class="py-2">
                             {#if filterView === 'main'}
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    aria-haspopup="menu"
+                                    aria-expanded="false"
+                                    class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={(event) => {
+                                        event.stopPropagation();
+                                        filterView = 'type';
+                                    }}
+                                >
+                                    <span>Type</span>
+                                    <span class="flex items-center gap-1 text-foreground">
+                                        {selectedTypeLabel}
+                                        <CaretRightIcon
+                                            size="0.85rem"
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                </button>
+
                                 {#each filterGroups as group}
                                     <p
                                         class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase"
@@ -250,28 +272,6 @@
                                         </a>
                                     {/each}
                                 {/each}
-
-                                <button
-                                    type="button"
-                                    role="menuitem"
-                                    aria-haspopup="menu"
-                                    aria-expanded="false"
-                                    class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    onclick={(event) => {
-                                        event.stopPropagation();
-                                        filterView = 'type';
-                                    }}
-                                >
-                                    <span>Type</span>
-                                    <span class="flex items-center gap-1 text-foreground">
-                                        {selectedTypeLabel}
-                                        <CaretRightIcon
-                                            size="0.85rem"
-                                            weight="bold"
-                                            aria-hidden="true"
-                                        />
-                                    </span>
-                                </button>
                             {:else}
                                 <button
                                     type="button"
