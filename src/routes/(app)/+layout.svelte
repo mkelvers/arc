@@ -5,12 +5,12 @@
         CaretDownIcon,
         GearIcon,
         MagnifyingGlassIcon,
-        PencilSimpleIcon,
         SignOutIcon,
         UserCircleIcon,
     } from 'phosphor-svelte';
     import logo from '$lib/assets/logo.png';
     import { authClient } from '$lib/auth-client';
+    import AccountAvatar from '$lib/components/AccountAvatar.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
 
     let { data, children } = $props();
@@ -90,10 +90,9 @@
                 >
                     {#snippet trigger()}
                         <span class="relative">
-                            <img
-                                src={data.account.artSource}
-                                alt=""
-                                class="size-8 rounded-full object-cover ring-1 ring-white/20"
+                            <AccountAvatar
+                                username={data.account.username}
+                                class="size-8 text-sm ring-1 ring-white/20"
                             />
                         </span>
                         <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
@@ -101,26 +100,17 @@
 
                     {#snippet content()}
                         <div class="bg-panel-strong">
-                            <a
-                                href="/manage"
-                                class="group flex min-h-20 items-center gap-3 px-5 py-3 transition-colors hover:bg-panel-hover focus-visible:bg-panel-hover focus-visible:outline-none"
-                            >
-                                <img
-                                    src={data.account.artSource}
-                                    alt=""
-                                    class="size-11 rounded-full object-cover"
+                            <div class="flex min-h-20 items-center gap-3 px-5 py-3">
+                                <AccountAvatar
+                                    username={data.account.username}
+                                    class="size-11 text-lg"
                                 />
                                 <span
                                     class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground"
                                 >
                                     {data.account.name}
                                 </span>
-                                <PencilSimpleIcon
-                                    size={19}
-                                    class="text-muted transition-colors group-hover:text-foreground"
-                                    aria-hidden="true"
-                                />
-                            </a>
+                            </div>
                         </div>
 
                         <a
