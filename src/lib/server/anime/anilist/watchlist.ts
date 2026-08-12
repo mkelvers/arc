@@ -73,7 +73,7 @@ export function getWatchlistAnime(ids: number[]) {
                 const stored = new Map(rows.map(({ id, data }) => [id, data]));
                 const staleIds = rows
                     .filter(
-                        ({ id, data, fetchedAt }) =>
+                        ({ data, fetchedAt }) =>
                             data.format == null ||
                             data.status == null ||
                             now - fetchedAt.getTime() >= 6 * 60 * 60 * 1_000
