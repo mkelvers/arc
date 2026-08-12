@@ -1,6 +1,8 @@
 <script lang="ts">
     import {
         CaretDownIcon,
+        CaretLeftIcon,
+        CaretRightIcon,
         CircleIcon,
         FunnelIcon,
         ListBulletsIcon,
@@ -66,7 +68,6 @@
     const filterGroups = [
         { label: 'Language', options: languages, key: 'language' },
         { label: 'Media', options: media, key: 'media' },
-        { label: 'Type', options: types, key: 'type' },
     ] as const satisfies ReadonlyArray<{
         label: string;
         key: FilterKey;
@@ -83,6 +84,10 @@
             Number(data.selection.media !== 'all') +
             Number(data.selection.type !== 'all')
     );
+    const selectedTypeLabel = $derived(
+        types.find(({ value }) => value === data.selection.type)?.label ?? 'All'
+    );
+    let filterView = $state<'main' | 'type'>('main');
     const filteredEmptyCopy = $derived.by(() => {
         switch (data.selection.state) {
             case 'watching':
@@ -209,24 +214,90 @@
 
                     {#snippet content()}
                         <div role="menu" aria-label="Watchlist filtering" class="py-2">
-                            {#each filterGroups as group}
-                                <p
-                                    class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase"
+                            {#if filterView === 'main'}
+                                {#each filterGroups as group}
+                                    <p
+                                        class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase"
+                                    >
+                                        {group.label}
+                                    </p>
+                                    {#each group.options as option}
+                                        <a
+                                            role="menuitemradio"
+                                            aria-checked={filterSelected(group.key, option.value)}
+                                            href={filterHref(group.key, option.value)}
+                                            class:text-foreground={filterSelected(
+                                                group.key,
+                                                option.value
+                                            )}
+                                            class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                        >
+                                            {#if filterSelected(group.key, option.value)}
+                                                <RadioButtonIcon
+                                                    size="1.25rem"
+                                                    weight="fill"
+                                                    class="text-accent"
+                                                    aria-hidden="true"
+                                                />
+                                            {:else}
+                                                <CircleIcon
+                                                    size="1.25rem"
+                                                    weight="regular"
+                                                    aria-hidden="true"
+                                                />
+                                            {/if}
+                                            {option.label}
+                                        </a>
+                                    {/each}
+                                {/each}
+
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    aria-haspopup="menu"
+                                    aria-expanded="false"
+                                    class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={(event) => {
+                                        event.stopPropagation();
+                                        filterView = 'type';
+                                    }}
                                 >
-                                    {group.label}
-                                </p>
-                                {#each group.options as option}
+                                    <span>Type</span>
+                                    <span class="flex items-center gap-1 text-foreground">
+                                        {selectedTypeLabel}
+                                        <CaretRightIcon
+                                            size="0.85rem"
+                                            weight="bold"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                </button>
+                            {:else}
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    class="flex min-h-11 w-full items-center gap-2 px-5 text-left text-xs font-bold text-foreground uppercase hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"
+                                    onclick={(event) => {
+                                        event.stopPropagation();
+                                        filterView = 'main';
+                                    }}
+                                >
+                                    <CaretLeftIcon
+                                        size="0.95rem"
+                                        weight="bold"
+                                        aria-hidden="true"
+                                    />
+                                    Type
+                                </button>
+                                {#each types as option}
                                     <a
                                         role="menuitemradio"
-                                        aria-checked={filterSelected(group.key, option.value)}
-                                        href={filterHref(group.key, option.value)}
-                                        class:text-foreground={filterSelected(
-                                            group.key,
-                                            option.value
-                                        )}
+                                        aria-checked={filterSelected('type', option.value)}
+                                        href={filterHref('type', option.value)}
+                                        class:text-foreground={filterSelected('type', option.value)}
                                         class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     >
-                                        {#if filterSelected(group.key, option.value)}
+                                        {#if filterSelected('type', option.value)}
                                             <RadioButtonIcon
                                                 size="1.25rem"
                                                 weight="fill"
@@ -243,7 +314,7 @@
                                         {option.label}
                                     </a>
                                 {/each}
-                            {/each}
+                            {/if}
                         </div>
                     {/snippet}
                 </Dropdown>
