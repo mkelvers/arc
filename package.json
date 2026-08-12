@@ -5,7 +5,6 @@
     "type": "module",
     "scripts": {
         "dev": "vite dev",
-        "dev:worker": "bun worker/src/index.ts",
         "build": "vite build",
         "preview": "vite preview",
         "prepare": "svelte-kit sync || echo ''",
@@ -28,13 +27,11 @@
     "dependencies": {
         "@fontsource-variable/inter": "^5.3.0",
         "better-auth": "1.6.26",
-        "bullmq": "^5.58.5",
         "cheerio": "^1.2.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "drizzle-orm": "^0.45.2",
         "hls.js": "^1.6.17",
-        "ioredis": "^5.6.1",
         "openapi-fetch": "^0.17.0",
         "postgres": "^3.4.9",
         "svelte-turnstile": "^0.11.0",
