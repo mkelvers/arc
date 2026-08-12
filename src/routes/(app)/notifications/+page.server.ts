@@ -12,10 +12,15 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     const page = positiveInteger(url.searchParams.get('page')) ?? 1;
     try {
         const result = await getNotificationInbox(locals.user.id, page);
-        await markNotificationsRead(
-            locals.user.id,
-            result.notifications.map(({ id }) => id)
-        );
+
+        try {
+            await markNotificationsRead(
+                locals.user.id,
+                result.notifications.map(({ id }) => id)
+            );
+        } catch (cause) {
+            console.error('Notifications could not be marked read', cause);
+        }
 
         return {
             page,
