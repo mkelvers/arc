@@ -1,4 +1,5 @@
 import {
+    DeleteSyncMediaListEntryDocument,
     SaveSyncMediaListEntryDocument,
     SyncMediaListDocument,
     type MediaListStatus,
@@ -14,7 +15,7 @@ import {
     playbackProgress,
     type WatchlistState,
 } from '$lib/server/db/schema';
-import { graphql } from '$lib/server/graphql';
+import { GraphQLRequestError, graphql } from '$lib/server/graphql';
 import { getWatchlistEntries } from '$lib/server/watchlist';
 import { anilistCompletedEpisodes } from './progress';
 
@@ -86,6 +87,7 @@ export async function publishAniList(userId: string) {
                     entry?.media?.id && entry.status
                         ? [
                               {
+                                  id: entry.id,
                                   anilistId: entry.media.id,
                                   status: entry.status,
                                   progress: entry.progress ?? 0,
@@ -96,6 +98,7 @@ export async function publishAniList(userId: string) {
         ) ?? [];
     const remoteByAnime = new Map(remoteEntries.map((entry) => [entry.anilistId, entry] as const));
     const progressByAnime = new Map(progressRows.map((entry) => [entry.anilistId, entry]));
+    const localAnimeIds = new Set(watchlistEntries.map((entry) => entry.anilistId));
 
     for (const entry of watchlistEntries) {
         const remote = remoteByAnime.get(entry.anilistId);
@@ -122,6 +125,29 @@ export async function publishAniList(userId: string) {
                 { headers: { Authorization: `Bearer ${account.accessToken}` } }
             )
         );
+    }
+
+    for (const entry of remoteEntries) {
+        if (localAnimeIds.has(entry.anilistId)) {
+            continue;
+        }
+
+        try {
+            await anilistRequestPolicy.run(() =>
+                graphql(
+                    endpoint,
+                    DeleteSyncMediaListEntryDocument,
+                    { id: entry.id },
+                    { headers: { Authorization: `Bearer ${account.accessToken}` } }
+                )
+            );
+        } catch (cause) {
+            if (cause instanceof GraphQLRequestError && cause.status === 404) {
+                continue;
+            }
+
+            throw cause;
+        }
     }
 }
 
