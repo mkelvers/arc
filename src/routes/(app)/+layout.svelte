@@ -8,9 +8,9 @@
         SignOutIcon,
         UserCircleIcon,
     } from 'phosphor-svelte';
-    import logo from '$lib/assets/logo.png';
     import { authClient } from '$lib/auth-client';
     import AccountAvatar from '$lib/components/AccountAvatar.svelte';
+    import Logo from '$lib/components/Logo.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
 
     let { data, children } = $props();
@@ -36,14 +36,7 @@
                 aria-label="Home"
                 title="Home"
             >
-                <img
-                    src={logo}
-                    alt=""
-                    width="1024"
-                    height="420"
-                    class="h-10 w-auto shrink-0"
-                    aria-hidden="true"
-                />
+                <Logo alt="Arc" />
             </a>
 
             <a
