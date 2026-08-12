@@ -49,24 +49,6 @@ export function translatedMetadata(translations: EpisodeTranslation[] | undefine
     };
 }
 
-export function translatableMetadata(
-    translations: EpisodeTranslation[] | undefined,
-    originalLanguage?: string
-) {
-    const source = (translations ?? [])
-        .filter((translation) => translation.language !== 'en')
-        .toSorted(
-            (left, right) =>
-                Number(right.language === originalLanguage) -
-                Number(left.language === originalLanguage)
-        );
-
-    return {
-        name: source.map((translation) => translation.name).find((value) => !genericTitle(value)),
-        overview: source.map((translation) => text(translation.overview)).find(Boolean),
-    };
-}
-
 export function episodeDetailsNeeded(candidate: EpisodeCandidate, localizedText = false) {
     return {
         details:

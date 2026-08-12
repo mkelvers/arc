@@ -4,7 +4,6 @@ import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
     hasRequestedEpisodeLocalization,
-    translatableMetadata,
 } from './episode-details';
 import type { EpisodeCandidate } from './types';
 
@@ -107,29 +106,6 @@ describe('TMDB episode detail completion', () => {
             titleSource: 'tmdb',
             overview: '',
             overviewSource: null,
-        });
-
-        expect(
-            translatableMetadata(
-                [
-                    {
-                        country: 'JP',
-                        language: 'ja',
-                        name: '共犯者たち',
-                        overview: '日本語で利用可能なあらすじ。',
-                    },
-                    {
-                        country: 'ES',
-                        language: 'es',
-                        name: 'Cómplices',
-                        overview: 'Resumen disponible en español.',
-                    },
-                ],
-                'ja'
-            )
-        ).toEqual({
-            name: '共犯者たち',
-            overview: '日本語で利用可能なあらすじ。',
         });
     });
 

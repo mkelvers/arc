@@ -1,13 +1,11 @@
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
-import { translateToEnglish } from '../translation';
 import { isRecord } from '$lib/utils';
 import { create, imageUrl } from './client';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
     hasRequestedEpisodeLocalization,
-    translatableMetadata,
     translatedMetadata,
 } from './episode-details';
 import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
@@ -19,10 +17,6 @@ import type { EpisodeCandidate, EpisodeMetadata, StoredEpisodeText, StoredMappin
 interface MetadataEntry {
     id: string;
     metadata: EpisodeMetadata;
-    source: {
-        name?: string | null;
-        overview?: string | null;
-    };
 }
 
 const requestConcurrency = 4;
@@ -47,19 +41,10 @@ async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) =
     return results;
 }
 
-async function withMachineTranslation(
-    entries: MetadataEntry[],
-    stored: Map<string, StoredEpisodeText>,
-    anilistId: number
-) {
+function withStoredMachineText(entries: MetadataEntry[], stored: Map<string, StoredEpisodeText>) {
     const metadata = new Map(entries.map(({ id, metadata }) => [id, { ...metadata }]));
-    const jobs: Array<{
-        id: string;
-        field: 'title' | 'overview';
-        text: string;
-    }> = [];
 
-    for (const { id, source } of entries) {
+    for (const { id } of entries) {
         const episode = metadata.get(id);
         if (!episode) {
             continue;
@@ -70,12 +55,6 @@ async function withMachineTranslation(
             if (previous?.titleSource === 'machine' && previous.title) {
                 episode.title = previous.title;
                 episode.titleSource = 'machine';
-            } else if (source.name?.trim()) {
-                jobs.push({
-                    id,
-                    field: 'title',
-                    text: source.name.trim(),
-                });
             }
         }
 
@@ -83,40 +62,8 @@ async function withMachineTranslation(
             if (previous?.overviewSource === 'machine' && previous.overview) {
                 episode.overview = previous.overview;
                 episode.overviewSource = 'machine';
-            } else if (source.overview?.trim()) {
-                jobs.push({
-                    id,
-                    field: 'overview',
-                    text: source.overview.trim(),
-                });
             }
         }
-    }
-
-    if (!jobs.length) {
-        return metadata;
-    }
-
-    try {
-        const translated = await translateToEnglish(jobs.map(({ text }) => text));
-
-        jobs.forEach(({ id, field }, index) => {
-            const episode = metadata.get(id);
-            const value = translated[index];
-            if (!episode || !value) {
-                return;
-            }
-
-            if (field === 'title') {
-                episode.title = value;
-                episode.titleSource = 'machine';
-            } else {
-                episode.overview = value;
-                episode.overviewSource = 'machine';
-            }
-        });
-    } catch (cause) {
-        console.warn(`Local episode translation failed for AniList ${anilistId}`, cause);
     }
 
     return metadata;
@@ -350,7 +297,6 @@ export async function getEpisodeMetadata(
             overview: translation.data?.overview,
         }));
         const translated = translatedMetadata(localized);
-        const translatable = translatableMetadata(localized, movie.original_language);
         const originalIsEnglish = movie.original_language === 'en';
         const image =
             movie.backdrop_path ??
@@ -363,7 +309,7 @@ export async function getEpisodeMetadata(
             ? movie.overview?.trim() || translated.overview || ''
             : translated.overview || '';
 
-        return withMachineTranslation(
+        return withStoredMachineText(
             [
                 {
                     id: source[0].id,
@@ -376,11 +322,9 @@ export async function getEpisodeMetadata(
                         runtime: movie.runtime || null,
                         airDate: displayAirDate(movie.release_date),
                     },
-                    source: translatable,
                 },
             ],
-            storedText,
-            anime.id
+            storedText
         );
     }
 
@@ -579,10 +523,9 @@ export async function getEpisodeMetadata(
                     localizedText,
                     image: (path) => imageUrl(path, 'w500'),
                 }),
-                source: translatableMetadata(localized, series.original_language),
             };
         }
     );
 
-    return withMachineTranslation(completed, storedText, anime.id);
+    return withStoredMachineText(completed, storedText);
 }
