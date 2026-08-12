@@ -14,6 +14,8 @@ query WatchlistAnime($ids: [Int!]!) {
             description(asHtml: false)
             genres
             averageScore
+            format
+            status
         }
     }
 }

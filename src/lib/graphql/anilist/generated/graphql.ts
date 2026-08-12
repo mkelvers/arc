@@ -637,6 +637,8 @@ export type WatchlistAnimeQuery = {
             description: string | null;
             genres: Array<string | null> | null;
             averageScore: number | null;
+            format: MediaFormat | null;
+            status: MediaStatus | null;
             title: { english: string | null; romaji: string | null; native: string | null } | null;
             coverImage: { extraLarge: string | null; large: string | null } | null;
         } | null> | null;
@@ -1209,6 +1211,8 @@ export const WatchlistAnimeDocument = new TypedDocumentString(`
       description(asHtml: false)
       genres
       averageScore
+      format
+      status
     }
   }
 }
