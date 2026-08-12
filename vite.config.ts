@@ -3,7 +3,7 @@ import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => ({
     plugins: [
         tailwindcss(),
         sveltekit({
@@ -25,7 +25,18 @@ export default defineConfig(() => ({
                         'self',
                         'https://challenges.cloudflare.com',
                         'sha256-uP++nI0YQearma9Hc2G0q99ClgaYxxtiO48R2lvXePk=',
+                        'sha256-DV44IKgITwDAfvthDHThPRsyNopVAzUXfpIRO1uDQDI=',
+                        ...(mode === 'development' ? (['unsafe-eval'] as const) : []),
                     ],
+                    ...(mode === 'development'
+                        ? {
+                              'script-src-elem': [
+                                  'self',
+                                  'https://challenges.cloudflare.com',
+                                  'unsafe-inline',
+                              ] as const,
+                          }
+                        : {}),
                     'style-src': ['self', 'unsafe-inline'],
                     'img-src': ['self', 'data:', 'https:'],
                     'font-src': ['self'],
@@ -34,6 +45,7 @@ export default defineConfig(() => ({
                         'https://*.tiktokcdn.com',
                         'https://p16-ad-sg.ibyteimg.com',
                         'https://p19-ad-sg.ibyteimg.com',
+                        ...(mode === 'development' ? (['ws:'] as const) : []),
                     ],
                     'worker-src': ['self', 'blob:'],
                     'media-src': ['self', 'blob:'],
