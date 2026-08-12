@@ -11,3 +11,5 @@ if (!env.DATABASE_URL) {
 const client = postgres(env.DATABASE_URL);
 
 export const db = drizzle({ client, schema });
+
+export type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];

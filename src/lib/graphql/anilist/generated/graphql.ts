@@ -399,6 +399,27 @@ export type HomeHeroCandidatesQuery = {
     } | null;
 };
 
+export type NotificationTargetMediaQueryVariables = Exact<{
+    ids: Array<number> | number;
+}>;
+
+export type NotificationTargetMediaQuery = {
+    Page: {
+        media: Array<{
+            id: number;
+            type: MediaType | null;
+            status: MediaStatus | null;
+            title: { english: string | null; romaji: string | null; native: string | null } | null;
+            relations: {
+                edges: Array<{
+                    relationType: MediaRelation | null;
+                    node: { id: number } | null;
+                } | null> | null;
+            } | null;
+        } | null> | null;
+    } | null;
+};
+
 export type SearchAnimePageQueryVariables = Exact<{
     search: string;
     page: number;
@@ -832,6 +853,33 @@ export const HomeHeroCandidatesDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<HomeHeroCandidatesQuery, HomeHeroCandidatesQueryVariables>;
+export const NotificationTargetMediaDocument = new TypedDocumentString(`
+    query NotificationTargetMedia($ids: [Int!]!) {
+  Page(perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      type
+      status
+      title {
+        english
+        romaji
+        native
+      }
+      relations {
+        edges {
+          relationType
+          node {
+            id
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<
+    NotificationTargetMediaQuery,
+    NotificationTargetMediaQueryVariables
+>;
 export const SearchAnimePageDocument = new TypedDocumentString(`
     query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {

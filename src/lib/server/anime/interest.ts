@@ -5,6 +5,7 @@ import {
     animeExternalId,
     animeExternalIdLink,
     animeRecentVisit,
+    notificationInterest,
     playbackProgress,
     watchlist,
 } from '$lib/server/db/schema';
@@ -34,7 +35,7 @@ export async function getProactiveAnimeIds(now = new Date()) {
     const recentThreshold = new Date(now.getTime() - recentVisitLifetimeMs);
     await db.delete(animeRecentVisit).where(lt(animeRecentVisit.visitedAt, recentThreshold));
 
-    const [watchlistRows, progressRows, visitRows] = await Promise.all([
+    const [watchlistRows, progressRows, visitRows, notificationRows] = await Promise.all([
         db
             .select(selectedAniListId())
             .from(watchlist)
@@ -62,11 +63,14 @@ export async function getProactiveAnimeIds(now = new Date()) {
             .select({ anilistId: animeRecentVisit.anilistId })
             .from(animeRecentVisit)
             .where(gte(animeRecentVisit.visitedAt, recentThreshold)),
+        db.selectDistinct({ anilistId: notificationInterest.anilistId }).from(notificationInterest),
     ]);
 
     return [
         ...new Set(
-            [...watchlistRows, ...progressRows, ...visitRows].map(({ anilistId }) => anilistId)
+            [...watchlistRows, ...progressRows, ...visitRows, ...notificationRows].map(
+                ({ anilistId }) => anilistId
+            )
         ),
     ];
 }

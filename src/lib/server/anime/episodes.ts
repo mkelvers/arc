@@ -5,7 +5,7 @@ import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodeRefreshReason } from './episodes/policy';
+import { episodeMetadataNeedsRefresh, episodeRefreshReason } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import { coversExpectedEpisodes } from './providers/match';
 import { findMapping } from './tmdb/mapping-store';
@@ -28,8 +28,24 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
 
     const incompleteFinishedRelease =
         anime.status === 'FINISHED' && !coversExpectedEpisodes(stored, anime.episodes);
-    if (!stored.length || incompleteFinishedRelease) {
+    const incompleteMetadata = episodeMetadataNeedsRefresh(
+        stored,
+        sync?.metadataExternalIdId !== null && sync?.metadataExternalIdId !== undefined
+    );
+    if (!stored.length || incompleteFinishedRelease || incompleteMetadata) {
         const refreshDeferred = sync?.nextRefreshAt && sync.nextRefreshAt.getTime() > Date.now();
+        if (incompleteMetadata) {
+            try {
+                return await refreshEpisodes(anime, metadataSource ?? undefined);
+            } catch (cause) {
+                console.error(
+                    `Stale episode metadata refresh failed for AniList ${anime.id}`,
+                    cause
+                );
+                return stored;
+            }
+        }
+
         if (refreshDeferred) {
             if (anime.status === 'NOT_YET_RELEASED') {
                 return stored;

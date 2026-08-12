@@ -1,5 +1,5 @@
 <script lang="ts">
-    import logo from '$lib/assets/logo.png';
+    import Logo from '$lib/components/Logo.svelte';
 
     let { children } = $props();
 </script>
@@ -7,7 +7,7 @@
 <div class="flex min-h-dvh flex-col bg-canvas text-foreground">
     <header class="h-14 shrink-0 bg-header">
         <div class="grid h-full place-items-center">
-            <img src={logo} alt="Arc" width="1024" height="420" class="h-10 w-auto" />
+            <Logo alt="Arc" />
         </div>
     </header>
 
