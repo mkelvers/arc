@@ -1,7 +1,8 @@
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
-import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
+import { animeEpisode, animeEpisodeSync, notificationInterest } from '$lib/server/db/schema';
+import { notificationInventoryRefreshDue } from '$lib/server/notifications/inventory';
 import { getAiringAnime } from './anilist/airing';
 import { refreshAnime } from './anilist/details';
 import { createEpisodeRefreshQueue, type EpisodeRefreshTarget } from './episode-refresh';
@@ -9,6 +10,30 @@ import { refreshEpisodes } from './episodes/sync';
 import { getProactiveAnimeIds } from './interest';
 
 const episodeRefreshQueue = createEpisodeRefreshQueue(db);
+
+async function scheduleNotificationInventoryRefreshes() {
+    const rows = await db
+        .selectDistinct({
+            anilistId: notificationInterest.anilistId,
+            mediaStatus: animeEpisodeSync.mediaStatus,
+            lastSuccessAt: animeEpisodeSync.lastSuccessAt,
+            nextRefreshAt: animeEpisodeSync.nextRefreshAt,
+        })
+        .from(notificationInterest)
+        .innerJoin(
+            animeEpisodeSync,
+            eq(animeEpisodeSync.anilistId, notificationInterest.anilistId)
+        );
+    const now = new Date();
+
+    await episodeRefreshQueue.schedule(
+        rows.flatMap((row) =>
+            notificationInventoryRefreshDue(row, now.getTime())
+                ? [{ anilistId: row.anilistId, targetEpisode: 0, runAt: now }]
+                : []
+        )
+    );
+}
 
 export async function scanAiringAnime() {
     const proactiveIds = await getProactiveAnimeIds();
@@ -92,6 +117,7 @@ export async function scanAiringAnime() {
     });
 
     await episodeRefreshQueue.schedule(refreshes);
+    await scheduleNotificationInventoryRefreshes();
 
     return scheduled;
 }
@@ -142,6 +168,10 @@ async function refreshAiringAnime(anilistId: number, targetEpisode?: number) {
 }
 
 async function refreshScheduledEpisode({ anilistId, targetEpisode }: EpisodeRefreshTarget) {
+    if (targetEpisode === 0) {
+        return (await refreshAiringAnime(anilistId)).episodeAvailable;
+    }
+
     const stored = await db
         .select({ episodeId: animeEpisode.episodeId })
         .from(animeEpisode)
