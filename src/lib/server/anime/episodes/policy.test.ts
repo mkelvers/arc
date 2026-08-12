@@ -101,7 +101,7 @@ describe('episode refresh policy', () => {
         expect(next.getTime()).toBeLessThanOrEqual(after);
     });
 
-    test('reports new episodes and newly available dubs only', () => {
+    test('reports new episodes and every newly playable audio mode only', () => {
         const transitions = episodeAvailabilityTransitions(
             new Map([
                 ['one', { audio: ['sub'] as const }],
@@ -116,8 +116,20 @@ describe('episode refresh policy', () => {
         );
 
         expect(transitions).toEqual([
-            { episodeId: 'one', number: 1, airDate: null, kind: 'dub_available' },
-            { episodeId: 'three', number: 3, airDate: null, kind: 'episode_available' },
+            {
+                episodeId: 'one',
+                number: 1,
+                airDate: null,
+                kind: 'audio_available',
+                audio: ['dub'],
+            },
+            {
+                episodeId: 'three',
+                number: 3,
+                airDate: null,
+                kind: 'episode_available',
+                audio: ['sub'],
+            },
         ]);
     });
 });
