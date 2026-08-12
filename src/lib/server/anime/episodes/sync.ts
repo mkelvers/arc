@@ -4,13 +4,19 @@ import { mergeAudioModes } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
+import { recordProviderEpisodeChanges } from '$lib/server/notifications/provider';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
 import { sourceRevision, storedEpisodes } from './model';
-import { canPreserveEpisodeMetadata, episodeInventoryIsExpected, nextRefreshAt } from './policy';
+import {
+    canPreserveEpisodeMetadata,
+    episodeAvailabilityTransitions,
+    episodeInventoryIsExpected,
+    nextRefreshAt,
+} from './policy';
 import { episodesForRelease } from './release';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
@@ -144,6 +150,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
+                    lastSuccessAt: animeEpisodeSync.lastSuccessAt,
                 })
                 .from(animeEpisodeSync)
                 .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -152,6 +159,10 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
             tx.select().from(animeEpisode).where(eq(animeEpisode.anilistId, anime.id)),
         ]);
         const stored = new Map(existing.map((episode) => [episode.episodeId, episode]));
+        const transitions = episodeAvailabilityTransitions(
+            new Map(existing.map((episode) => [episode.episodeId, { audio: episode.audio }])),
+            source
+        ).map((transition) => ({ ...transition, observedAt: now }));
         const values = source.map((episode) => {
             const previous = stored.get(episode.id);
             const media = metadata?.get(episode.id);
@@ -181,6 +192,9 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                 lastVerifiedAt: now,
             };
         });
+        const latestEpisode = values
+            .filter(({ number }) => Number.isInteger(number) && number > 0)
+            .toSorted((left, right) => right.number - left.number)[0];
         await tx
             .insert(animeEpisode)
             .values(values)
@@ -247,6 +261,22 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     lastError: null,
                 },
             });
+
+        await recordProviderEpisodeChanges(
+            tx,
+            anime,
+            sync?.lastSuccessAt !== null && sync?.lastSuccessAt !== undefined,
+            transitions,
+            latestEpisode
+                ? {
+                      episodeId: latestEpisode.episodeId,
+                      episodeNumber: latestEpisode.number,
+                      audio: latestEpisode.audio,
+                      airDate: latestEpisode.airDate,
+                      observedAt: latestEpisode.firstSeenAt,
+                  }
+                : null
+        );
     });
 
     return storedEpisodes(anime);
