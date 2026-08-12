@@ -10,7 +10,7 @@ import {
     playbackProgress,
 } from '$lib/server/db/schema';
 import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
-import { enqueueAniListPublication } from '$lib/server/sync/queue';
+import { requestAniListPublication } from '$lib/server/sync/publication';
 import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
@@ -62,9 +62,7 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
     }
 
     await updateWatchlistAfterPlayback(userId, animeId, input);
-    void enqueueAniListPublication(userId).catch((cause) =>
-        console.warn('AniList publication enqueue failed', cause)
-    );
+    await requestAniListPublication(userId);
 }
 
 export async function getPlaybackProgress(userId: string | undefined, anilistId: number) {

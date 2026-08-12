@@ -14,8 +14,7 @@ import {
 } from '$lib/server/db/schema';
 import { batches } from '$lib/utils';
 import { watchlistStateAfterPlayback } from './watchlist-completion';
-import { removeAniListEntry } from './sync/anilist';
-import { enqueueAniListPublication } from './sync/queue';
+import { requestAniListPublication } from './sync/publication';
 
 const databaseBatchSize = 1_000;
 
@@ -122,9 +121,7 @@ async function setInternalWatchlistState(userId: string, animeId: number, state:
 export async function setWatchlistState(userId: string, anilistId: number, state: WatchlistState) {
     const animeId = await ensureInternalAnimeId(anilistId);
     const result = await setInternalWatchlistState(userId, animeId, state);
-    void enqueueAniListPublication(userId).catch((cause) =>
-        console.warn('AniList publication enqueue failed', cause)
-    );
+    await requestAniListPublication(userId);
     return result;
 }
 
@@ -137,12 +134,7 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
     await db
         .delete(watchlist)
         .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
-    void removeAniListEntry(userId, anilistId).catch((cause) =>
-        console.warn('AniList entry removal failed', cause)
-    );
-    void enqueueAniListPublication(userId).catch((cause) =>
-        console.warn('AniList publication enqueue failed', cause)
-    );
+    await requestAniListPublication(userId);
 }
 
 export async function applyWatchlistEntries(
@@ -306,9 +298,7 @@ export async function applyWatchlistEntries(
         };
     });
 
-    void enqueueAniListPublication(userId).catch((cause) =>
-        console.warn('AniList publication enqueue failed', cause)
-    );
+    await requestAniListPublication(userId);
 
     return result;
 }

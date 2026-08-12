@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 import { db } from '$lib/server/db';
 import { accounts } from '$lib/server/db/schema';
-import { enqueueAniListPublication } from '$lib/server/sync/queue';
+import { requestAniListPublication } from '$lib/server/sync/publication';
 import type { RequestHandler } from './$types';
 
 const tokenResponseSchema = z.object({
@@ -116,9 +116,7 @@ export const GET: RequestHandler = async ({ cookies, locals, url }) => {
         });
     }
 
-    void enqueueAniListPublication(userId).catch((cause) =>
-        console.warn('AniList publication enqueue failed', cause)
-    );
+    await requestAniListPublication(userId);
 
     redirect(303, '/settings/accounts?anilist=connected');
 };
