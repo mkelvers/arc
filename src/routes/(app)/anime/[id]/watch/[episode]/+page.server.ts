@@ -3,6 +3,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { AudioMode } from '$lib/anime/audio';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { getEpisodes, getRelatedReleaseTitles } from '$lib/server/anime/episodes';
+import { recordAnimeVisit } from '$lib/server/anime/interest';
 import { playback } from '$lib/server/anime/providers';
 import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getEpisodeSkipTimes, getSegmentTemplates } from '$lib/server/anime/skip-times';
@@ -131,6 +132,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         getEpisodes(result).catch(() => []),
         getRelatedReleaseTitles(relatedIds),
         getPlaybackProgress(locals.user?.id, id),
+        recordAnimeVisit(locals.user?.id, id),
     ]);
     let currentIndex = episodes.findIndex((episode) => episode.id === params.episode);
 
