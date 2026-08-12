@@ -54,6 +54,40 @@ function block(
 }
 
 describe('TMDB episode groups', () => {
+    test('maps Re:ZERO release episode 12 to TMDB season 1 episode 78', () => {
+        const candidates = Array.from({ length: 19 }, (_, index) => ({
+            order: index,
+            seasonNumber: 1,
+            episodeNumber: 67 + index,
+            title: index === 11 ? 'From Now On' : `Episode ${index + 1}`,
+            rawAirDate:
+                index === 11 ? '2026-08-12' : `2026-04-${String(8 + index).padStart(2, '0')}`,
+            airDate: '',
+            overview: index === 11 ? 'After waking up without his memories yet again.' : '',
+            imageUrl: index === 11 ? '/wCls3YU2fX7Lfy0Cjf3s1H3PnM2.jpg' : null,
+            runtime: 24,
+        }));
+        const selected = releaseEpisodeGroup(
+            {
+                episodes: 19,
+                startDate: { year: 2026, month: 4, day: 8 },
+                title: {
+                    english: 'Re:ZERO -Starting Life in Another World- Season 4',
+                },
+            } as AniListAnime,
+            source(Array.from({ length: 12 }, (_, index) => `Episode ${index + 1}`)),
+            [{ episodes: candidates, name: 'Season 4', order: 1 }]
+        );
+
+        expect(selected?.[11]).toMatchObject({
+            seasonNumber: 1,
+            episodeNumber: 78,
+            releaseEpisodeNumber: 12,
+            title: 'From Now On',
+            rawAirDate: '2026-08-12',
+        });
+    });
+
     test('selects a separately released second season from one absolute season', () => {
         const selected = releaseEpisodeGroup(
             anime(13, [2026, 7, 5]),

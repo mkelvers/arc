@@ -81,6 +81,16 @@ export function canPreserveEpisodeMetadata(
     return currentExternalIdId === null || previousExternalIdId === currentExternalIdId;
 }
 
+export function episodeMetadataNeedsRefresh(
+    episodes: readonly { image: string | null; title: string; overview: string }[],
+    hasMetadataSource: boolean
+) {
+    return (
+        hasMetadataSource &&
+        episodes.some(({ image, title, overview }) => image !== null && (!title || !overview))
+    );
+}
+
 export function episodeInventoryIsExpected(status: AniListAnime['status']) {
     return status !== 'NOT_YET_RELEASED';
 }

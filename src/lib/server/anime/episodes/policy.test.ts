@@ -4,6 +4,7 @@ import {
     canPreserveEpisodeMetadata,
     episodeAvailabilityTransitions,
     episodeInventoryIsExpected,
+    episodeMetadataNeedsRefresh,
     episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
@@ -69,6 +70,33 @@ describe('episode refresh policy', () => {
         expect(canPreserveEpisodeMetadata(42, null)).toBeTrue();
         expect(canPreserveEpisodeMetadata(null, 42)).toBeFalse();
         expect(canPreserveEpisodeMetadata(41, 42)).toBeFalse();
+    });
+
+    test('refreshes stored rows with an image but missing episode metadata', () => {
+        expect(
+            episodeMetadataNeedsRefresh(
+                [{ image: 'https://image.example/still.jpg', title: '', overview: '' }],
+                true
+            )
+        ).toBeTrue();
+        expect(
+            episodeMetadataNeedsRefresh(
+                [
+                    {
+                        image: 'https://image.example/still.jpg',
+                        title: 'From Now On',
+                        overview: 'Text',
+                    },
+                ],
+                true
+            )
+        ).toBeFalse();
+        expect(
+            episodeMetadataNeedsRefresh(
+                [{ image: 'https://image.example/still.jpg', title: '', overview: '' }],
+                false
+            )
+        ).toBeFalse();
     });
 
     test('does not probe playback before a release begins', () => {

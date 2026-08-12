@@ -85,14 +85,16 @@ export function completeEpisodeDetails(
                   (value) => !genericTitle(value)
               ) ?? '')
             : candidate.title
-        : (translated.name ?? '');
+        : ([translated.name, details?.name, candidate.title].find(
+              (value) => !genericTitle(value)
+          ) ?? '');
     const titleSource = title ? 'tmdb' : null;
     const overview = localizedText
         ? text(candidate.overview) ||
           text(details?.overview) ||
           translated.overview ||
           text(featured?.overview)
-        : translated.overview || '';
+        : translated.overview || text(details?.overview) || text(candidate.overview);
     const bestStill = stills
         ?.filter((still): still is EpisodeStill & { filePath: string } => Boolean(still.filePath))
         .toSorted(

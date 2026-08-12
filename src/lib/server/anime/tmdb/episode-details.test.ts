@@ -109,6 +109,39 @@ describe('TMDB episode detail completion', () => {
         });
     });
 
+    test('keeps English group metadata when the translation endpoint has no text', () => {
+        const episode = {
+            ...candidate,
+            seasonNumber: 1,
+            episodeNumber: 78,
+            releaseEpisodeNumber: 12,
+            title: 'From Now On',
+            overview:
+                'After waking up without his memories yet again, Subaru makes up his mind to save Meili this time.',
+            imageUrl: 'https://image.tmdb.org/t/p/w500/wCls3YU2fX7Lfy0Cjf3s1H3PnM2.jpg',
+            runtime: 24,
+            rawAirDate: '2026-08-12',
+            airDate: '08/12/2026',
+        };
+
+        expect(
+            completeEpisodeDetails(episode, {
+                localizedText: false,
+                image: (path) => path,
+            })
+        ).toMatchObject({
+            title: 'From Now On',
+            titleSource: 'tmdb',
+            overview:
+                'After waking up without his memories yet again, Subaru makes up his mind to save Meili this time.',
+            overviewSource: 'tmdb',
+            imageUrl: 'https://image.tmdb.org/t/p/w500/wCls3YU2fX7Lfy0Cjf3s1H3PnM2.jpg',
+            runtime: 24,
+            rawAirDate: '2026-08-12',
+            airDate: '08/12/2026',
+        });
+    });
+
     test('keeps Japanese episodes eligible for English translation refresh', () => {
         const completeCandidate = {
             ...candidate,
