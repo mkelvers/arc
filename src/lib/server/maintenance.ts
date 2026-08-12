@@ -3,15 +3,18 @@ import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { refreshScheduledEpisodes, scanAiringAnime } from '$lib/server/anime/airing-sync';
 import { db } from '$lib/server/db';
 import { maintenanceHeartbeat, maintenanceTask } from '$lib/server/db/schema';
+import { reconcileAllNotificationInterests } from '$lib/server/notifications/reconcile';
 import { publishPendingAniList, requestAllAniListPublications } from '$lib/server/sync/publication';
 
 const dailyMs = 24 * 60 * 60 * 1_000;
+const hourlyMs = 60 * 60 * 1_000;
+const notificationReconciliationMs = 6 * 60 * 60 * 1_000;
 const recurringLeaseMs = 10 * 60 * 1_000;
 const recurringFailureRetryMs = 5 * 60 * 1_000;
 const heartbeatName = 'scheduler';
 const heartbeatStaleAfterMs = 3 * 60 * 1_000;
 
-async function runRecurringTask(name: string, task: () => Promise<unknown>) {
+async function runRecurringTask(name: string, intervalMs: number, task: () => Promise<unknown>) {
     const now = new Date();
     await db.insert(maintenanceTask).values({ name, nextRunAt: now }).onConflictDoNothing();
 
@@ -36,7 +39,7 @@ async function runRecurringTask(name: string, task: () => Promise<unknown>) {
         await db
             .update(maintenanceTask)
             .set({
-                nextRunAt: new Date(Date.now() + dailyMs),
+                nextRunAt: new Date(Date.now() + intervalMs),
                 leaseUntil: null,
                 lastError: null,
             })
@@ -69,16 +72,24 @@ export async function runMaintenance() {
         });
 
     try {
+        const notificationInterests = await runRecurringTask(
+            'notification-interests',
+            notificationReconciliationMs,
+            reconcileAllNotificationInterests
+        );
+        const airingScan = await runRecurringTask('airing-scan', hourlyMs, scanAiringAnime);
         const episodes = await refreshScheduledEpisodes();
-        const airingScan = await runRecurringTask('airing-scan', scanAiringAnime);
         const anilistReconciliation = await runRecurringTask(
             'anilist-reconciliation',
+            dailyMs,
             requestAllAniListPublications
         );
         const anilist = await publishPendingAniList();
-        const errors = [airingScan.error, anilistReconciliation.error].filter(
-            (message): message is string => Boolean(message)
-        );
+        const errors = [
+            notificationInterests.error,
+            airingScan.error,
+            anilistReconciliation.error,
+        ].filter((message): message is string => Boolean(message));
         const completedAt = new Date();
 
         await db
@@ -89,6 +100,7 @@ export async function runMaintenance() {
         return {
             healthy: errors.length === 0,
             episodes,
+            notificationInterests,
             airingScan,
             anilistReconciliation,
             anilist,
