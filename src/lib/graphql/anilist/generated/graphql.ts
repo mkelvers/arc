@@ -185,49 +185,6 @@ export type MediaType =
     /** Asian comic */
     | 'MANGA';
 
-/** Notification type enum */
-export type NotificationType =
-    /** A user has liked your activity */
-    | 'ACTIVITY_LIKE'
-    /** A user has mentioned you in their activity */
-    | 'ACTIVITY_MENTION'
-    /** A user has sent you message */
-    | 'ACTIVITY_MESSAGE'
-    /** A user has replied to your activity */
-    | 'ACTIVITY_REPLY'
-    /** A user has liked your activity reply */
-    | 'ACTIVITY_REPLY_LIKE'
-    /** A user has replied to activity you have also replied to */
-    | 'ACTIVITY_REPLY_SUBSCRIBED'
-    /** An anime you are currently watching has aired */
-    | 'AIRING'
-    /** A user's character submission has been accepted, partially accepted, or rejected */
-    | 'CHARACTER_SUBMISSION_UPDATE'
-    /** A user has followed you */
-    | 'FOLLOWING'
-    /** An anime or manga has had a data change that affects how a user may track it in their lists */
-    | 'MEDIA_DATA_CHANGE'
-    /** An anime or manga on the user's list has been deleted from the site */
-    | 'MEDIA_DELETION'
-    /** Anime or manga entries on the user's list have been merged into a single entry */
-    | 'MEDIA_MERGE'
-    /** A user's submission has been accepted, partially accepted, or rejected */
-    | 'MEDIA_SUBMISSION_UPDATE'
-    /** A new anime or manga has been added to the site where its related media is on the user's list */
-    | 'RELATED_MEDIA_ADDITION'
-    /** A user's staff submission has been accepted, partially accepted, or rejected */
-    | 'STAFF_SUBMISSION_UPDATE'
-    /** A user has liked your forum comment */
-    | 'THREAD_COMMENT_LIKE'
-    /** A user has mentioned you in a forum comment */
-    | 'THREAD_COMMENT_MENTION'
-    /** A user has replied to your forum comment */
-    | 'THREAD_COMMENT_REPLY'
-    /** A user has liked your forum thread */
-    | 'THREAD_LIKE'
-    /** A user has commented in one of your subscribed forum threads */
-    | 'THREAD_SUBSCRIBED';
-
 export type AiringAnimePageQueryVariables = Exact<{
     page: number;
     perPage: number;
@@ -442,87 +399,25 @@ export type HomeHeroCandidatesQuery = {
     } | null;
 };
 
-export type AniListNotificationsQueryVariables = Exact<{
-    page: number;
-    perPage: number;
+export type NotificationTargetMediaQueryVariables = Exact<{
+    ids: Array<number> | number;
 }>;
 
-export type AniListNotificationsQuery = {
-    Viewer: {
-        options: {
-            notificationOptions: Array<{
-                type: NotificationType | null;
-                enabled: boolean | null;
-            } | null> | null;
-        } | null;
-    } | null;
+export type NotificationTargetMediaQuery = {
     Page: {
-        pageInfo: { currentPage: number | null; hasNextPage: boolean | null } | null;
-        notifications: Array<
-            | { __typename: 'ActivityLikeNotification' }
-            | { __typename: 'ActivityMentionNotification' }
-            | { __typename: 'ActivityMessageNotification' }
-            | { __typename: 'ActivityReplyLikeNotification' }
-            | { __typename: 'ActivityReplyNotification' }
-            | { __typename: 'ActivityReplySubscribedNotification' }
-            | {
-                  __typename: 'AiringNotification';
-                  id: number;
-                  type: NotificationType | null;
-                  animeId: number;
-                  episode: number;
-                  contexts: Array<string | null> | null;
-                  createdAt: number | null;
-                  media: {
-                      id: number;
-                      type: MediaType | null;
-                      bannerImage: string | null;
-                      title: {
-                          english: string | null;
-                          romaji: string | null;
-                          native: string | null;
-                      } | null;
-                  } | null;
-              }
-            | { __typename: 'CharacterSubmissionUpdateNotification' }
-            | { __typename: 'FollowingNotification' }
-            | { __typename: 'MediaDataChangeNotification' }
-            | { __typename: 'MediaDeletionNotification' }
-            | { __typename: 'MediaMergeNotification' }
-            | { __typename: 'MediaSubmissionUpdateNotification' }
-            | {
-                  __typename: 'RelatedMediaAdditionNotification';
-                  id: number;
-                  type: NotificationType | null;
-                  mediaId: number;
-                  context: string | null;
-                  createdAt: number | null;
-                  media: {
-                      id: number;
-                      type: MediaType | null;
-                      bannerImage: string | null;
-                      title: {
-                          english: string | null;
-                          romaji: string | null;
-                          native: string | null;
-                      } | null;
-                  } | null;
-              }
-            | { __typename: 'StaffSubmissionUpdateNotification' }
-            | { __typename: 'ThreadCommentLikeNotification' }
-            | { __typename: 'ThreadCommentMentionNotification' }
-            | { __typename: 'ThreadCommentReplyNotification' }
-            | { __typename: 'ThreadCommentSubscribedNotification' }
-            | { __typename: 'ThreadLikeNotification' }
-            | null
-        > | null;
+        media: Array<{
+            id: number;
+            type: MediaType | null;
+            status: MediaStatus | null;
+            title: { english: string | null; romaji: string | null; native: string | null } | null;
+            relations: {
+                edges: Array<{
+                    relationType: MediaRelation | null;
+                    node: { id: number } | null;
+                } | null> | null;
+            } | null;
+        } | null> | null;
     } | null;
-};
-
-export type AniListUnreadNotificationCountQueryVariables = Exact<{ [key: string]: never }>;
-
-export type AniListUnreadNotificationCountQuery = {
-    Viewer: { unreadNotificationCount: number | null } | null;
 };
 
 export type SearchAnimePageQueryVariables = Exact<{
@@ -958,58 +853,23 @@ export const HomeHeroCandidatesDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<HomeHeroCandidatesQuery, HomeHeroCandidatesQueryVariables>;
-export const AniListNotificationsDocument = new TypedDocumentString(`
-    query AniListNotifications($page: Int!, $perPage: Int!) {
-  Viewer {
-    options {
-      notificationOptions {
-        type
-        enabled
+export const NotificationTargetMediaDocument = new TypedDocumentString(`
+    query NotificationTargetMedia($ids: [Int!]!) {
+  Page(perPage: 50) {
+    media(id_in: $ids, type: ANIME) {
+      id
+      type
+      status
+      title {
+        english
+        romaji
+        native
       }
-    }
-  }
-  Page(page: $page, perPage: $perPage) {
-    pageInfo {
-      currentPage
-      hasNextPage
-    }
-    notifications(
-      type_in: [AIRING, RELATED_MEDIA_ADDITION]
-      resetNotificationCount: false
-    ) {
-      __typename
-      ... on AiringNotification {
-        id
-        type
-        animeId
-        episode
-        contexts
-        createdAt
-        media {
-          id
-          type
-          bannerImage
-          title {
-            english
-            romaji
-            native
-          }
-        }
-      }
-      ... on RelatedMediaAdditionNotification {
-        id
-        type
-        mediaId
-        context
-        createdAt
-        media {
-          id
-          type
-          bannerImage
-          title {
-            english
-            romaji
-            native
+      relations {
+        edges {
+          relationType
+          node {
+            id
           }
         }
       }
@@ -1017,18 +877,8 @@ export const AniListNotificationsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<
-    AniListNotificationsQuery,
-    AniListNotificationsQueryVariables
->;
-export const AniListUnreadNotificationCountDocument = new TypedDocumentString(`
-    query AniListUnreadNotificationCount {
-  Viewer {
-    unreadNotificationCount
-  }
-}
-    `) as unknown as TypedDocumentString<
-    AniListUnreadNotificationCountQuery,
-    AniListUnreadNotificationCountQueryVariables
+    NotificationTargetMediaQuery,
+    NotificationTargetMediaQueryVariables
 >;
 export const SearchAnimePageDocument = new TypedDocumentString(`
     query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
