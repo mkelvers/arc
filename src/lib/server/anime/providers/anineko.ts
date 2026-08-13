@@ -2,23 +2,18 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { animeTitles } from '../anilist/text';
+import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
 import {
     isSpecialEpisodeReference,
     matchProviderStreamEpisode,
     normalizedProviderTitle,
-    providerTitles,
     specialCollectionMatches,
     specialReleaseQueries,
     standaloneSpecialMatches,
 } from './match';
-import type {
-    PlaybackProvider,
-    ProviderAnime,
-    ProviderEpisode,
-    ProviderStream,
-    ProviderStreams,
-} from './types';
+import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
 
 const baseUrl = 'https://anineko.to';
 const providerName = 'anineko';
@@ -83,8 +78,8 @@ function matchableTitle(title: string) {
     return normalizedProviderTitle(title.replace(/\s*\((?:tv|tv series)\)$/i, ''));
 }
 
-function exactPageIdentity(identity: ReturnType<typeof pageIdentity>, anime: ProviderAnime) {
-    const titles = new Set(providerTitles(anime).map(normalizedProviderTitle));
+function exactPageIdentity(identity: ReturnType<typeof pageIdentity>, anime: AniListAnime) {
+    const titles = new Set(animeTitles(anime).map(normalizedProviderTitle));
     const pageTitles = new Set([identity.title, identity.alternativeTitle].map(matchableTitle));
     if (![...titles].some((title) => pageTitles.has(title))) {
         return false;
@@ -94,7 +89,7 @@ function exactPageIdentity(identity: ReturnType<typeof pageIdentity>, anime: Pro
     return !expectedYear || identity.year === null || identity.year === expectedYear;
 }
 
-async function findSlug(anime: ProviderAnime, refresh = false) {
+async function findSlug(anime: AniListAnime, refresh = false) {
     if (!refresh) {
         const stored = await providerMediaId(anime.id, providerName);
         if (stored && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(stored)) {
@@ -102,7 +97,7 @@ async function findSlug(anime: ProviderAnime, refresh = false) {
         }
     }
 
-    const titles = providerTitles(anime);
+    const titles = animeTitles(anime);
     const exactTitles = new Set(titles.map(normalizedProviderTitle));
     const visited = new Set<string>();
 
@@ -169,7 +164,7 @@ function episodeInventory(html: string, slug: string) {
     return [...episodes.values()].sort((left, right) => left.number - right.number);
 }
 
-async function providerEpisodes(anime: ProviderAnime) {
+async function providerEpisodes(anime: AniListAnime) {
     let slug = await findSlug(anime);
     let html: string;
 
@@ -198,13 +193,13 @@ async function providerEpisodes(anime: ProviderAnime) {
     return { slug, episodes };
 }
 
-async function getEpisodes(anime: ProviderAnime) {
+async function getEpisodes(anime: AniListAnime) {
     const { episodes } = await providerEpisodes(anime);
     return episodes;
 }
 
 async function specialReleaseEpisode(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: Parameters<PlaybackProvider['getStreams']>[1]
 ) {
     const visited = new Set<string>();
@@ -308,7 +303,7 @@ async function resolveEmbed(value: string) {
 }
 
 async function getStreams(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[]
 ) {

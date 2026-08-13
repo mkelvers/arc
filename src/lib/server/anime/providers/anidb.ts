@@ -3,9 +3,10 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { animeTitles } from '../anilist/text';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
-import { matchProviderEpisode, normalizedProviderTitle, providerTitles } from './match';
+import { matchProviderEpisode, normalizedProviderTitle } from './match';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
 
 const baseUrl = 'https://anidb.app';
@@ -148,7 +149,7 @@ async function findAnimeId(anime: Parameters<PlaybackProvider['getEpisodes']>[0]
         }
     }
 
-    const titles = providerTitles(anime);
+    const titles = animeTitles(anime);
     const normalized = new Set(titles.map(normalizedProviderTitle));
     const visited = new Set<number>();
 

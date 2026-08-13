@@ -15,11 +15,11 @@ import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from '../
 import { db } from '$lib/server/db';
 import { animeSimulcastPageCache } from '$lib/server/db/schema';
 import { nonEmptyText, positiveInteger, record } from '$lib/utils';
-import { plainText } from '../anilist/text';
+import { animeTitles, plainText } from '../anilist/text';
 import { request } from './client';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
-import { isAnimeCardPage } from '$lib/anime/types';
+import { AnimeCardPageSchema } from '$lib/anime/types';
 
 const providerName = 'allanime';
 const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();
@@ -188,7 +188,8 @@ export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
         )
         .limit(1)
         .then(async ([stored]) => {
-            const cached = stored && isAnimeCardPage(stored.data) ? stored.data : null;
+            const parsed = stored ? AnimeCardPageSchema.safeParse(stored.data) : null;
+            const cached = parsed?.success ? parsed.data : null;
             const fresh = cached && Date.now() - stored.fetchedAt.getTime() < 30 * 60 * 1_000;
             if (fresh) {
                 return cached;
@@ -210,7 +211,7 @@ export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
         });
 }
 
-export async function getWeeklyPopularAnime() {
+async function getWeeklyPopularAnime() {
     if (popularCache && Date.now() - popularCache.fetchedAt < 30 * 60 * 1_000) {
         return popularCache.anime;
     }
@@ -277,15 +278,7 @@ export async function findShowId(anime: AniListAnime, refresh = false) {
         }
     }
 
-    const titles = [
-        anime.title?.english,
-        anime.title?.romaji,
-        anime.title?.native,
-        ...(anime.synonyms ?? []),
-    ].filter(
-        (title, index, values): title is string =>
-            Boolean(title?.trim()) && values.indexOf(title) === index
-    );
+    const titles = animeTitles(anime);
 
     // Provider title search is only discovery. MAL identity remains the match
     // contract so similarly named seasons and movies cannot leak in.

@@ -1,7 +1,5 @@
 import type { AudioMode } from '$lib/anime/audio';
-import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
-
-export type ProviderAnime = NonNullable<AnimeQuery['Media']>;
+import type { AniListAnime } from '../anilist/types';
 
 export interface ProviderEpisode {
     id: string;
@@ -33,9 +31,9 @@ export type ProviderStreams = Partial<Record<AudioMode, ProviderStream[]>>;
 
 export interface PlaybackProvider {
     name: string;
-    getEpisodes(anime: ProviderAnime): Promise<ProviderEpisode[]>;
+    getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[]>;
     getStreams(
-        anime: ProviderAnime,
+        anime: AniListAnime,
         episode: ProviderEpisodeReference,
         modes: AudioMode[]
     ): Promise<ProviderStreams>;

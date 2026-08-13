@@ -1,3 +1,4 @@
+import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import type { Candidate } from './types';
 
@@ -42,20 +43,8 @@ export function seriesTitle(title: string) {
     return value;
 }
 
-export function titlesFor(anime: AniListAnime) {
-    return [
-        anime.title?.english,
-        anime.title?.romaji,
-        anime.title?.native,
-        ...(anime.synonyms ?? []),
-    ].filter(
-        (title, index, values): title is string =>
-            Boolean(title?.trim()) && values.indexOf(title) === index
-    );
-}
-
 export function releaseSequence(anime: AniListAnime) {
-    for (const title of titlesFor(anime)) {
+    for (const title of animeTitles(anime)) {
         const normalized = normalizeTitle(title);
         const numeric =
             normalized.match(/\bseason\s+0*(\d+)\b/)?.[1] ??
@@ -88,7 +77,7 @@ export function isSpecialRelease(anime: AniListAnime) {
 
 export function mappingTitles(anime: AniListAnime) {
     return [
-        ...titlesFor(anime).slice(0, 3),
+        ...animeTitles(anime).slice(0, 3),
         ...(anime.relations?.edges ?? []).flatMap((edge) =>
             edge?.relationType === 'ADAPTATION' ||
             (isSpecialRelease(anime) && edge?.relationType === 'PARENT')
@@ -103,7 +92,7 @@ export function mappingTitles(anime: AniListAnime) {
 
 export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const mapping = mappingTitles(anime);
-    const primaryTitles = titlesFor(anime);
+    const primaryTitles = animeTitles(anime);
     const titles = mapping.map(normalizeTitle);
     const primary = primaryTitles.map(normalizeTitle);
     const names = [candidate.name, candidate.originalName].map(normalizeTitle);

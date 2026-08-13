@@ -1,3 +1,4 @@
+import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { create } from './client';
 import {
@@ -7,7 +8,7 @@ import {
 } from './mapping-evidence';
 import { findMapping, saveVerifiedMapping } from './mapping-store';
 import { mappingNeedsVerification } from './mapping-verification';
-import { candidateScore, isSpecialRelease, mappingTitles, seriesTitle, titlesFor } from './title';
+import { candidateScore, isSpecialRelease, mappingTitles, seriesTitle } from './title';
 import { type Candidate, type Mapping, type StoredMapping } from './types';
 
 const requests = new Map<number, Promise<StoredMapping>>();
@@ -262,7 +263,7 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
 
 async function resolveStoredUncached(anime: AniListAnime): Promise<StoredMapping> {
     const stored = await findMapping(anime.id);
-    const title = titlesFor(anime)[0] ?? null;
+    const title = animeTitles(anime)[0] ?? null;
 
     if (stored && !mappingNeedsVerification(stored, title)) {
         return stored;

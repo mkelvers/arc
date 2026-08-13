@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { positiveInteger, record } from '$lib/utils';
+import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -9,12 +10,12 @@ import {
     isSpecialEpisodeReference,
     matchProviderStreamEpisode,
     normalizedProviderTitle,
-    providerTitles,
     specialCollectionMatches,
     specialReleaseQueries,
     standaloneSpecialMatches,
 } from './match';
-import type { PlaybackProvider, ProviderAnime, ProviderEpisode, ProviderStream } from './types';
+import type { AniListAnime } from '../anilist/types';
+import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
 
 const baseUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';
@@ -186,7 +187,7 @@ async function loadSeries(id: number) {
     return series;
 }
 
-function exactIdentity(series: AniKotoSeries, anime: ProviderAnime) {
+function exactIdentity(series: AniKotoSeries, anime: AniListAnime) {
     if (series.anilistId !== null) {
         return series.anilistId === anime.id;
     }
@@ -200,8 +201,8 @@ async function search(title: string) {
     return searchCandidates(await requestText(url));
 }
 
-async function matchingSeries(candidates: SearchCandidate[], anime: ProviderAnime) {
-    const titles = new Set(providerTitles(anime).map(normalizedProviderTitle));
+async function matchingSeries(candidates: SearchCandidate[], anime: AniListAnime) {
+    const titles = new Set(animeTitles(anime).map(normalizedProviderTitle));
     const exact = candidates.filter(
         (candidate) =>
             titles.has(normalizedProviderTitle(candidate.title)) ||
@@ -225,7 +226,7 @@ async function matchingSeries(candidates: SearchCandidate[], anime: ProviderAnim
     return null;
 }
 
-async function findSeries(anime: ProviderAnime, refresh = false) {
+async function findSeries(anime: AniListAnime, refresh = false) {
     if (!refresh) {
         const stored = positiveInteger(await providerMediaId(anime.id, providerName));
         if (stored) {
@@ -243,7 +244,7 @@ async function findSeries(anime: ProviderAnime, refresh = false) {
         }
     }
 
-    const results = await Promise.allSettled(providerTitles(anime).slice(0, 6).map(search));
+    const results = await Promise.allSettled(animeTitles(anime).slice(0, 6).map(search));
     const candidates = new Map<number, SearchCandidate>();
     for (const result of results) {
         if (result.status !== 'fulfilled') {
@@ -285,7 +286,7 @@ function episodeModes(episode: AniKotoEpisode) {
     );
 }
 
-async function providerSeries(anime: ProviderAnime) {
+async function providerSeries(anime: AniListAnime) {
     const series = await findSeries(anime);
     const episodes = series.episodes
         .filter((episode) => episodeModes(episode).length)
@@ -298,7 +299,7 @@ async function providerSeries(anime: ProviderAnime) {
 }
 
 async function specialReleaseEpisode(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: Parameters<PlaybackProvider['getStreams']>[1]
 ) {
     const results = await Promise.allSettled(specialReleaseQueries(anime, episode).map(search));
@@ -354,7 +355,7 @@ async function specialReleaseEpisode(
     throw new Error(`AniKoto has no matching special release for ${episode.title || episode.id}`);
 }
 
-async function getEpisodes(anime: ProviderAnime) {
+async function getEpisodes(anime: AniListAnime) {
     const { episodes } = await providerSeries(anime);
     const unique = new Map<number, ProviderEpisode>();
 
@@ -437,12 +438,7 @@ async function englishSubtitle(payload: Record<string, unknown>) {
     );
 }
 
-async function resolveStream(embedValue: string, mode: 'sub' | 'dub') {
-    const embed = validEmbed(embedValue, mode);
-    if (!embed) {
-        throw new Error(`AniKoto returned an invalid ${mode} embed`);
-    }
-
+async function resolveStream(embed: URL) {
     const id = sourceId(await requestText(embed, { referer: `${baseUrl}/` }));
     if (!id) {
         throw new Error('AniKoto MegaPlay embed returned no source ID');
@@ -466,7 +462,7 @@ async function resolveStream(embedValue: string, mode: 'sub' | 'dub') {
 }
 
 async function getStreams(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[]
 ) {
@@ -498,14 +494,18 @@ async function getStreams(
         throw new Error(`AniKoto has no episode ${episode.number} for AniList ${anime.id}`);
     }
 
-    const requested = [...new Set(modes)].filter(
-        (mode): mode is 'sub' | 'dub' =>
-            mode !== 'raw' && Boolean(validEmbed(match.embeds[mode], mode))
-    );
+    const requested = [...new Set(modes)].flatMap((mode) => {
+        if (mode === 'raw') {
+            return [];
+        }
+
+        const embed = validEmbed(match.embeds[mode], mode);
+        return embed ? [{ mode, embed }] : [];
+    });
     return settledStreams(
-        requested.map(async (mode) => ({
+        requested.map(async ({ mode, embed }) => ({
             mode,
-            stream: await resolveStream(match.embeds[mode]!, mode),
+            stream: await resolveStream(embed),
         })),
         `AniKoto returned no ${modes.join('/')} stream for episode ${episode.id}`
     );

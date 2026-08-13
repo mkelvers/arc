@@ -3,10 +3,12 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { animeTitles } from '../anilist/text';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
-import { normalizedProviderTitle, providerTitles } from './match';
-import type { PlaybackProvider, ProviderAnime, ProviderEpisode, ProviderStream } from './types';
+import { normalizedProviderTitle } from './match';
+import type { AniListAnime } from '../anilist/types';
+import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
 
 const baseUrl = 'https://animepahe.pw';
 const providerName = 'animepahe';
@@ -111,7 +113,7 @@ function searchItems(value: unknown) {
     });
 }
 
-async function findAnime(anime: ProviderAnime, refresh = false) {
+async function findAnime(anime: AniListAnime, refresh = false) {
     if (!refresh) {
         const stored = parseReference(await providerMediaId(anime.id, providerName));
         if (stored) {
@@ -119,7 +121,7 @@ async function findAnime(anime: ProviderAnime, refresh = false) {
         }
     }
 
-    const titles = providerTitles(anime);
+    const titles = animeTitles(anime);
     const exactTitles = new Set(titles.map(normalizedProviderTitle));
     const expectedYear = anime.startDate?.year;
 
@@ -185,7 +187,7 @@ async function loadEpisodes(reference: AnimePaheReference) {
         .sort((left, right) => left.number - right.number);
 }
 
-async function providerEpisodes(anime: ProviderAnime) {
+async function providerEpisodes(anime: AniListAnime) {
     let reference = await findAnime(anime);
     let episodes: AnimePaheEpisode[];
 
@@ -208,7 +210,7 @@ async function providerEpisodes(anime: ProviderAnime) {
     return { reference, episodes };
 }
 
-async function getEpisodes(anime: ProviderAnime) {
+async function getEpisodes(anime: AniListAnime) {
     const { episodes } = await providerEpisodes(anime);
 
     return episodes.map((episode): ProviderEpisode => ({
@@ -279,7 +281,7 @@ async function resolveKwik(value: string) {
 }
 
 async function getStreams(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[]
 ) {

@@ -89,11 +89,12 @@ async function responsePrefix(response: Response, limit: number) {
 }
 
 export async function detectAudioDelay(target: string) {
-    const host = new URL(target).hostname;
     const response = await fetch(target, {
         headers: {
             Range: 'bytes=0-2097151',
-            Referer: host.endsWith('.mp4upload.com') ? 'https://www.mp4upload.com' : referer,
+            Referer: new URL(target).hostname.endsWith('.mp4upload.com')
+                ? 'https://www.mp4upload.com'
+                : referer,
             'User-Agent': userAgent,
         },
         signal: AbortSignal.timeout(8_000),

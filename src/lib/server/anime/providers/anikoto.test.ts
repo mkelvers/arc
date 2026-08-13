@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 
-import type { ProviderAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 let storedMediaId: string | null = null;
 
@@ -23,7 +23,7 @@ const anime = {
         native: '葬送のフリーレン',
     },
     synonyms: [],
-} as unknown as ProviderAnime;
+} as unknown as AniListAnime;
 const slimeSeason = {
     id: 108511,
     idMal: 39551,
@@ -34,7 +34,7 @@ const slimeSeason = {
         native: '転生したらスライムだった件 第2期',
     },
     synonyms: [],
-} as unknown as ProviderAnime;
+} as unknown as AniListAnime;
 const slimeSeasonThree = {
     id: 156822,
     idMal: 53580,
@@ -45,7 +45,7 @@ const slimeSeasonThree = {
         native: '転生したらスライムだった件 第3期',
     },
     synonyms: [],
-} as unknown as ProviderAnime;
+} as unknown as AniListAnime;
 const reawakening = {
     id: 184694,
     idMal: 59841,
@@ -56,7 +56,7 @@ const reawakening = {
         native: '俺だけレベルアップな件 -ReAwakening-',
     },
     synonyms: [],
-} as unknown as ProviderAnime;
+} as unknown as AniListAnime;
 
 function response(value: unknown, status = 200) {
     return new Response(typeof value === 'string' ? value : JSON.stringify(value), { status });

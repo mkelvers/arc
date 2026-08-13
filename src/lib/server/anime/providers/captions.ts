@@ -1,4 +1,4 @@
-export interface CaptionCandidate {
+interface CaptionCandidate {
     url: string;
     preferred: boolean;
 }

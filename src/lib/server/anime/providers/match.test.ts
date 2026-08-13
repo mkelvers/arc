@@ -9,7 +9,7 @@ import {
     specialCollectionMatches,
     standaloneSpecialMatches,
 } from './match';
-import type { ProviderAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 describe('playback episode identity matching', () => {
     test('requires every expected numbered episode', () => {
@@ -241,7 +241,7 @@ describe('playback episode identity matching', () => {
                 romaji: 'Tensei Shitara Slime Datta Ken 2nd Season',
             },
             synonyms: [],
-        } as unknown as ProviderAnime;
+        } as unknown as AniListAnime;
         const episode = {
             id: '0.9',
             number: 0.9,
@@ -273,7 +273,7 @@ describe('playback episode identity matching', () => {
                 romaji: 'Tensei Shitara Slime Datta Ken 3rd Season',
             },
             synonyms: [],
-        } as unknown as ProviderAnime;
+        } as unknown as AniListAnime;
         const episode = {
             id: '17.5',
             number: 17.5,

@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
 import { createProviderFallback } from './fallback';
-import type { PlaybackProvider, ProviderAnime, ProviderStream } from './types';
+import type { AniListAnime } from '../anilist/types';
+import type { PlaybackProvider, ProviderStream } from './types';
 
-const anime = { id: 1 } as ProviderAnime;
+const anime = { id: 1 } as AniListAnime;
 const episode = { id: '1', number: 1 };
 const stream: ProviderStream = {
     url: 'https://media.example/episode.m3u8',

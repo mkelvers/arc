@@ -1,3 +1,5 @@
+import type { AniListAnime } from './types';
+
 export function present<T>(values: ReadonlyArray<T | null> | null | undefined): T[] {
     return values?.filter((value): value is T => value !== null) ?? [];
 }
@@ -27,6 +29,18 @@ export function mediaTitle(media: {
 }) {
     return (
         media.title?.english ?? media.title?.romaji ?? media.title?.native ?? `Anime ${media.id}`
+    );
+}
+
+export function animeTitles(anime: AniListAnime) {
+    return [
+        anime.title?.english,
+        anime.title?.romaji,
+        anime.title?.native,
+        ...(anime.synonyms ?? []),
+    ].filter(
+        (title, index, values): title is string =>
+            Boolean(title?.trim()) && values.indexOf(title) === index
     );
 }
 

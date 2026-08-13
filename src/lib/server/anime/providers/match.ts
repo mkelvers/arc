@@ -1,16 +1,6 @@
-import type { ProviderAnime, ProviderEpisodeReference } from './types';
-
-export function providerTitles(anime: ProviderAnime) {
-    return [
-        anime.title?.english,
-        anime.title?.romaji,
-        anime.title?.native,
-        ...(anime.synonyms ?? []),
-    ].filter(
-        (title, index, values): title is string =>
-            Boolean(title?.trim()) && values.indexOf(title) === index
-    );
-}
+import { animeTitles } from '../anilist/text';
+import type { AniListAnime } from '../anilist/types';
+import type { ProviderEpisodeReference } from './types';
 
 export function isSpecialEpisodeReference(episode: ProviderEpisodeReference) {
     return episode.number <= 0 || !Number.isInteger(episode.number);
@@ -97,7 +87,7 @@ export function coversExpectedEpisodes(
     return covered.size === expected;
 }
 
-export type ReleaseInventoryEvidence = 'aligned' | 'conflicting' | 'unknown';
+type ReleaseInventoryEvidence = 'aligned' | 'conflicting' | 'unknown';
 
 function meaningfulEpisodeTitle(title: string | undefined) {
     const key = title ? episodeTitleKey(title) : '';
@@ -230,8 +220,14 @@ function relatedCollectionTitle(left: string, right: string) {
     );
 }
 
+function belongsToAnime(anime: AniListAnime, titles: string[]) {
+    return animeTitles(anime).some((animeTitle) =>
+        titles.some((title) => relatedCollectionTitle(animeTitle, title))
+    );
+}
+
 export function standaloneSpecialMatches(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: ProviderEpisodeReference,
     candidateTitles: string[]
 ) {
@@ -246,14 +242,12 @@ export function standaloneSpecialMatches(
     const titles = candidateTitles.filter(Boolean);
     return (
         titles.some((title) => episodeTitleScore(episode.title ?? '', title) >= 60) &&
-        providerTitles(anime).some((animeTitle) =>
-            titles.some((title) => relatedCollectionTitle(animeTitle, title))
-        )
+        belongsToAnime(anime, titles)
     );
 }
 
 export function specialCollectionMatches(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: ProviderEpisodeReference,
     candidateTitles: string[],
     providerEpisodeCount?: number
@@ -277,14 +271,11 @@ export function specialCollectionMatches(
             /\b(?:digressions?|extras?|oads?|onas?|ovas?|recaps?|specials?)\b/.test(
                 normalizedProviderTitle(title)
             )
-        ) &&
-        providerTitles(anime).some((animeTitle) =>
-            titles.some((title) => relatedCollectionTitle(animeTitle, title))
-        )
+        ) && belongsToAnime(anime, titles)
     );
 }
 
-export function specialReleaseQueries(anime: ProviderAnime, episode: ProviderEpisodeReference) {
+export function specialReleaseQueries(anime: AniListAnime, episode: ProviderEpisodeReference) {
     if (
         !isSpecialEpisodeReference(episode) ||
         !episode.title?.trim() ||
@@ -302,10 +293,10 @@ export function specialReleaseQueries(anime: ProviderAnime, episode: ProviderEpi
 
     return [
         ...new Set([
-            ...providerTitles(anime)
+            ...animeTitles(anime)
                 .slice(0, 3)
                 .map((title) => `${searchTitle(title)} ${episodeTitle}`),
-            ...providerTitles(anime)
+            ...animeTitles(anime)
                 .slice(0, 3)
                 .map((title) => `${searchTitle(title)} specials`),
             episodeTitle,

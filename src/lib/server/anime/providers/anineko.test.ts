@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 
-import type { ProviderAnime } from './types';
+import type { AniListAnime } from '../anilist/types';
 
 let storedSlug: string | null = null;
 
@@ -26,7 +26,7 @@ const anime = {
         native: '呪術廻戦',
     },
     synonyms: [],
-} as unknown as ProviderAnime;
+} as unknown as AniListAnime;
 
 function response(value: unknown, status = 200) {
     return new Response(typeof value === 'string' ? value : JSON.stringify(value), { status });

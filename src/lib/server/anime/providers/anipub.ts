@@ -2,11 +2,13 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
+import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
-import { normalizedProviderTitle, providerTitles } from './match';
-import type { PlaybackProvider, ProviderAnime, ProviderEpisode, ProviderStream } from './types';
+import { normalizedProviderTitle } from './match';
+import type { AniListAnime } from '../anilist/types';
+import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
 
 const baseUrl = 'https://anipub.xyz';
 const megaplayUrl = 'https://megaplay.buzz';
@@ -44,23 +46,14 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
 }
 
 function searchResults(value: unknown) {
-    if (Array.isArray(value)) {
-        return value.flatMap((item) => {
-            const result = record(item);
-            const id = Number(result?.Id);
-            const name = result?.Name;
-            return Number.isSafeInteger(id) && id > 0 && typeof name === 'string'
-                ? [{ id, name: name.trim() }]
-                : [];
-        });
-    }
-
-    const result = record(value);
-    const id = Number(result?.Id);
-    const name = result?.Name;
-    return Number.isSafeInteger(id) && id > 0 && typeof name === 'string'
-        ? [{ id, name: name.trim() }]
-        : [];
+    return (Array.isArray(value) ? value : [value]).flatMap((item) => {
+        const result = record(item);
+        const id = Number(result?.Id);
+        const name = result?.Name;
+        return Number.isSafeInteger(id) && id > 0 && typeof name === 'string'
+            ? [{ id, name: name.trim() }]
+            : [];
+    });
 }
 
 async function info(id: number) {
@@ -73,7 +66,7 @@ async function info(id: number) {
     };
 }
 
-async function findAnimeId(anime: ProviderAnime, refresh = false) {
+async function findAnimeId(anime: AniListAnime, refresh = false) {
     if (!refresh) {
         const stored = Number(await providerMediaId(anime.id, providerName));
         if (Number.isSafeInteger(stored) && stored > 0) {
@@ -85,7 +78,7 @@ async function findAnimeId(anime: ProviderAnime, refresh = false) {
         throw new Error(`AniList ${anime.id} has no MAL ID`);
     }
 
-    const titles = providerTitles(anime);
+    const titles = animeTitles(anime);
     const exactTitles = new Set(titles.map(normalizedProviderTitle));
     const visited = new Set<number>();
 
@@ -133,7 +126,7 @@ function episodeLinks(value: unknown) {
     return links;
 }
 
-async function loadEpisodeLinks(anime: ProviderAnime) {
+async function loadEpisodeLinks(anime: AniListAnime) {
     let id = await findAnimeId(anime);
 
     try {
@@ -150,7 +143,7 @@ async function loadEpisodeLinks(anime: ProviderAnime) {
     }
 }
 
-async function getEpisodes(anime: ProviderAnime) {
+async function getEpisodes(anime: AniListAnime) {
     const links = await loadEpisodeLinks(anime);
 
     return links.map((_, index): ProviderEpisode => ({
@@ -246,7 +239,7 @@ async function resolveStream(id: string, mode: AudioMode) {
 }
 
 async function getStreams(
-    anime: ProviderAnime,
+    anime: AniListAnime,
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[]
 ) {

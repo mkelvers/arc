@@ -3,8 +3,8 @@ import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '$lib/server/db';
 import { anime as animeTable, animeExternalId, animeExternalIdLink } from '$lib/server/db/schema';
+import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
-import { titlesFor } from './title';
 import { type Mapping, type StoredMapping } from './types';
 
 export async function findMapping(anilistId: number): Promise<StoredMapping | null> {
@@ -67,7 +67,7 @@ export async function saveVerifiedMapping(
     mapping: Mapping
 ): Promise<StoredMapping> {
     return db.transaction(async (tx) => {
-        const title = titlesFor(anime)[0] ?? null;
+        const title = animeTitles(anime)[0] ?? null;
         const verifiedAt = new Date();
 
         await tx
