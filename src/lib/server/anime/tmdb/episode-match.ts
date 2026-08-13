@@ -1,37 +1,13 @@
+import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
+import { animeDate, dateTimestamp } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import { episodeTitleKey, episodeTitleScore, isSpecialEpisodeReference } from '../providers/match';
-import { isSpecialRelease, titlesFor } from './title';
+import { isSpecialRelease } from './title';
 import type { EpisodeCandidate } from './types';
 
 const day = 24 * 60 * 60 * 1_000;
 const maximumBroadcastDelay = 14 * day;
-
-function animeDate(
-    value:
-        | {
-              year?: number | null;
-              month?: number | null;
-              day?: number | null;
-          }
-        | null
-        | undefined
-) {
-    const { year, month, day } = value ?? {};
-
-    return year && month && day
-        ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        : null;
-}
-
-function dateTime(value: string | null) {
-    if (!value) {
-        return null;
-    }
-
-    const timestamp = Date.parse(`${value}T00:00:00Z`);
-    return Number.isFinite(timestamp) ? timestamp : null;
-}
 
 function daysBetween(left: number, right: number) {
     return Math.abs(left - right) / day;
@@ -43,9 +19,9 @@ function dateScore(
     sourceLength: number,
     candidate: EpisodeCandidate
 ) {
-    const candidateTime = dateTime(candidate.rawAirDate);
-    const startTime = dateTime(animeDate(anime.startDate));
-    const endTime = dateTime(animeDate(anime.endDate));
+    const candidateTime = dateTimestamp(candidate.rawAirDate);
+    const startTime = dateTimestamp(animeDate(anime.startDate));
+    const endTime = dateTimestamp(animeDate(anime.endDate));
 
     if (candidateTime === null) {
         return 0;
@@ -118,7 +94,7 @@ function pairScore(
         score -= 100;
     } else if (specialCandidate) {
         score += 100;
-        if (titlesFor(anime).some((title) => episodeTitleScore(title, candidate.title) >= 60)) {
+        if (animeTitles(anime).some((title) => episodeTitleScore(title, candidate.title) >= 60)) {
             score += 100;
         }
     }
@@ -212,8 +188,8 @@ function releaseScheduleMetadata(
     const firstCandidateIndex = matches.get(firstSourceIndex);
     const firstCandidate =
         firstCandidateIndex === undefined ? undefined : candidates[firstCandidateIndex];
-    const start = dateTime(animeDate(anime.startDate));
-    const firstBroadcast = dateTime(firstCandidate?.rawAirDate ?? null);
+    const start = dateTimestamp(animeDate(anime.startDate));
+    const firstBroadcast = dateTimestamp(firstCandidate?.rawAirDate);
 
     if (
         !firstCandidate ||
@@ -238,10 +214,10 @@ function releaseScheduleMetadata(
         );
     const confirmations: boolean[] = [];
     const expectedEpisodes = anime.episodes;
-    const end = dateTime(animeDate(anime.endDate));
+    const end = dateTimestamp(animeDate(anime.endDate));
 
     if (expectedEpisodes && end !== null) {
-        const finale = dateTime(scheduledCandidate(expectedEpisodes)?.rawAirDate ?? null);
+        const finale = dateTimestamp(scheduledCandidate(expectedEpisodes)?.rawAirDate);
         if (finale !== null) {
             confirmations.push(finale - end === offset);
         }
@@ -250,7 +226,7 @@ function releaseScheduleMetadata(
     const nextEpisode = anime.nextAiringEpisode?.episode;
     const nextAiring = airingDay(anime.nextAiringEpisode?.airingAt);
     if (nextEpisode && nextAiring !== null) {
-        const nextBroadcast = dateTime(scheduledCandidate(nextEpisode)?.rawAirDate ?? null);
+        const nextBroadcast = dateTimestamp(scheduledCandidate(nextEpisode)?.rawAirDate);
         if (nextBroadcast !== null) {
             confirmations.push(nextBroadcast - nextAiring === offset);
         }
@@ -277,7 +253,7 @@ function matchedMetadata(
     return new Map(
         [...matches.entries()].map(([sourceIndex, candidateIndex]) => {
             const candidate = candidates[candidateIndex];
-            const broadcast = dateTime(candidate.rawAirDate);
+            const broadcast = dateTimestamp(candidate.rawAirDate);
             const metadata =
                 schedule && candidate.seasonNumber === schedule.seasonNumber && broadcast !== null
                     ? { ...candidate, airDate: displayDate(broadcast - schedule.offset) }

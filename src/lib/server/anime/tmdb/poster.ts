@@ -9,8 +9,6 @@ import { create, imageUrl } from './client';
 import { selectPoster, selectReleaseSeason, type PosterCandidate } from './poster-selection';
 import type { ArtworkImage, StoredMapping } from './types';
 
-const completeFreshFor = 30 * 24 * 60 * 60 * 1_000;
-const sparseFreshFor = 6 * 60 * 60 * 1_000;
 const requests = new Map<string, Promise<ArtworkImage | null>>();
 
 function posterCandidate(image: {
@@ -70,7 +68,7 @@ async function cacheRow(match: StoredMapping) {
 }
 
 function isFresh(row: typeof animeReleasePoster.$inferSelect) {
-    const lifetime = row.filePath ? completeFreshFor : sparseFreshFor;
+    const lifetime = row.filePath ? 30 * 24 * 60 * 60 * 1_000 : 6 * 60 * 60 * 1_000;
     return Date.now() - row.fetchedAt.getTime() < lifetime;
 }
 
@@ -293,13 +291,14 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
     return request;
 }
 
-async function posterRows(anilistIds: number[]) {
-    if (!anilistIds.length) {
-        return [];
+export async function getStoredPosters(anilistIds: number[]) {
+    const ids = [...new Set(anilistIds)];
+    if (!ids.length) {
+        return new Map<number, string>();
     }
 
     const source = alias(animeExternalId, 'poster_anilist_id');
-    return db
+    const rows = await db
         .select({
             anilistId: source.externalId,
             poster: animeReleasePoster,
@@ -311,13 +310,10 @@ async function posterRows(anilistIds: number[]) {
             and(
                 eq(source.provider, 'anilist'),
                 eq(source.mediaType, 'anime'),
-                inArray(source.externalId, anilistIds)
+                inArray(source.externalId, ids)
             )
         );
-}
 
-export async function getStoredPosters(anilistIds: number[]) {
-    const rows = await posterRows(anilistIds);
     return new Map(
         rows.flatMap(({ anilistId, poster }) =>
             poster.filePath ? [[anilistId, imageUrl(poster.filePath, 'w780')] as const] : []

@@ -8,9 +8,6 @@ import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
 import { getPoster } from './poster';
 import type { Artwork, ArtworkImage, StoredMapping } from './types';
 
-const completeFreshFor = 30 * 24 * 60 * 60 * 1_000;
-const sparseFreshFor = 6 * 60 * 60 * 1_000;
-
 function artworkImage(image: {
     aspect_ratio?: number;
     file_path?: string;
@@ -111,7 +108,8 @@ export async function readArtwork(match: StoredMapping): Promise<Artwork | null>
             .sort((left, right) => right.voteAverage - left.voteAverage);
     const backdrops = forType('backdrop');
     const logos = forType('logo');
-    const freshFor = backdrops.length && logos.length ? completeFreshFor : sparseFreshFor;
+    const freshFor =
+        backdrops.length && logos.length ? 30 * 24 * 60 * 60 * 1_000 : 6 * 60 * 60 * 1_000;
 
     if (Date.now() - cached.fetchedAt.getTime() >= freshFor) {
         return null;

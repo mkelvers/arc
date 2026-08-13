@@ -1,4 +1,5 @@
 import type { AniListAnime } from '../anilist/types';
+import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import { isRecord } from '$lib/utils';
 import { create, imageUrl } from './client';
@@ -69,14 +70,6 @@ function withStoredMachineText(entries: MetadataEntry[], stored: Map<string, Sto
     return metadata;
 }
 
-function animeStartDate(anime: AniListAnime) {
-    const { year, month, day } = anime.startDate ?? {};
-
-    return year && month && day
-        ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        : null;
-}
-
 function displayAirDate(value: string | undefined) {
     const [year, month, day] = (value ?? '').split('-');
     return year && month && day ? `${month}/${day}/${year}` : '';
@@ -103,13 +96,6 @@ function featuredEpisode(value: unknown) {
             stillPath: typeof value.still_path === 'string' ? value.still_path : undefined,
         },
     };
-}
-
-function largestNumber(source: ProviderEpisode[]) {
-    return Math.max(
-        0,
-        ...source.filter(({ number }) => Number.isInteger(number)).map(({ number }) => number)
-    );
 }
 
 function episodeCandidate(episode: {
@@ -342,9 +328,12 @@ export async function getEpisodeMetadata(
     const seasons = series.seasons ?? [];
     const regularSeasons = seasons.filter(({ season_number }) => season_number > 0);
     const specialSeasons = seasons.filter(({ season_number }) => season_number === 0);
-    const largestSourceNumber = largestNumber(source);
+    const largestSourceNumber = Math.max(
+        0,
+        ...source.filter(({ number }) => Number.isInteger(number)).map(({ number }) => number)
+    );
     const expectedCount = anime.episodes ?? largestSourceNumber;
-    const startDate = animeStartDate(anime);
+    const startDate = animeDate(anime.startDate);
     const startYear = anime.startDate?.year ?? anime.seasonYear ?? null;
     const expectedSequence = releaseSequence(anime);
     const largestSeason = Math.max(0, ...regularSeasons.map(({ episode_count }) => episode_count));
@@ -374,7 +363,7 @@ export async function getEpisodeMetadata(
         ).values(),
     ];
     const [fetched, grouped] = await Promise.all([
-        mapConcurrent(selected, async ({ season }) => {
+        mapConcurrent(selected, async ({ season }): Promise<EpisodeCandidate[]> => {
             const response = await client.GET('/3/tv/{series_id}/season/{season_number}', {
                 params: {
                     path: {
@@ -386,7 +375,7 @@ export async function getEpisodeMetadata(
             });
 
             if (!response.data) {
-                return [] as EpisodeCandidate[];
+                return [];
             }
 
             return (response.data.episodes ?? []).map(episodeCandidate);
@@ -415,7 +404,10 @@ export async function getEpisodeMetadata(
             needed.translations = false;
         }
         const needsFallback = needed.details || needed.translations || needed.images;
-        const fetchFallback = needsFallback && fallbacks++ < episodeFallbackBudget;
+        const fetchFallback = needsFallback && fallbacks < episodeFallbackBudget;
+        if (fetchFallback) {
+            fallbacks += 1;
+        }
 
         return {
             sourceId,
@@ -435,7 +427,6 @@ export async function getEpisodeMetadata(
                         localizedText,
                         image: (path) => imageUrl(path, 'w500'),
                     }),
-                    source: {},
                 };
             }
 
@@ -444,43 +435,37 @@ export async function getEpisodeMetadata(
                 season_number: candidate.seasonNumber,
                 episode_number: candidate.episodeNumber,
             };
-            const detailsRequest =
-                fetchFallback && needed.details
-                    ? client
-                          .GET(
-                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}',
-                              {
-                                  params: {
-                                      path,
-                                      query: { language: 'en-US' },
-                                  },
-                              }
-                          )
-                          .then(({ data }) => data)
-                          .catch(() => undefined)
-                    : Promise.resolve(undefined);
-            const translationsRequest =
-                fetchFallback && needed.translations
-                    ? client
-                          .GET(
-                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
-                              { params: { path } }
-                          )
-                          .then(({ data }) => data?.translations)
-                          .catch(() => undefined)
-                    : Promise.resolve(undefined);
-            const imagesRequest =
-                fetchFallback && needed.images
-                    ? client
-                          .GET(
-                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/images',
-                              {
-                                  params: { path },
-                              }
-                          )
-                          .then(({ data }) => data?.stills)
-                          .catch(() => undefined)
-                    : Promise.resolve(undefined);
+            const detailsRequest = needed.details
+                ? client
+                      .GET('/3/tv/{series_id}/season/{season_number}/episode/{episode_number}', {
+                          params: {
+                              path,
+                              query: { language: 'en-US' },
+                          },
+                      })
+                      .then(({ data }) => data)
+                      .catch(() => undefined)
+                : Promise.resolve(undefined);
+            const translationsRequest = needed.translations
+                ? client
+                      .GET(
+                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
+                          { params: { path } }
+                      )
+                      .then(({ data }) => data?.translations)
+                      .catch(() => undefined)
+                : Promise.resolve(undefined);
+            const imagesRequest = needed.images
+                ? client
+                      .GET(
+                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/images',
+                          {
+                              params: { path },
+                          }
+                      )
+                      .then(({ data }) => data?.stills)
+                      .catch(() => undefined)
+                : Promise.resolve(undefined);
             const [details, translations, stills] = await Promise.all([
                 detailsRequest,
                 translationsRequest,

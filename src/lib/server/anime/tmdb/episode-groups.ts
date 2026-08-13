@@ -1,4 +1,5 @@
 import type { AniListAnime } from '../anilist/types';
+import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import { episodeTitleKey, episodeTitleScore, normalizedProviderTitle } from '../providers/match';
 import { releaseSequence } from './title';
@@ -12,14 +13,6 @@ export interface EpisodeGroupBlock {
     >;
     name?: string;
     order: number;
-}
-
-function animeStartDate(anime: AniListAnime) {
-    const { year, month, day } = anime.startDate ?? {};
-
-    return year && month && day
-        ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        : null;
 }
 
 function orderedCandidates(block: EpisodeGroupBlock) {
@@ -80,7 +73,7 @@ export function releaseEpisodeGroup(
     blocks: EpisodeGroupBlock[]
 ) {
     const expectedCount = anime.episodes ?? null;
-    const expectedStart = animeStartDate(anime);
+    const expectedStart = animeDate(anime.startDate);
     const expectedSequence = releaseSequence(anime);
     const matches = blocks.flatMap((block) => {
         const candidates = orderedCandidates(block);

@@ -1,4 +1,5 @@
 import type { AniListAnime } from '../anilist/types';
+import { animeDate } from '../date';
 import { isSpecialRelease, releaseSequence } from './title';
 
 interface Season {
@@ -8,7 +9,7 @@ interface Season {
     season_number: number;
 }
 
-export interface ReleaseSeasonSelection {
+interface ReleaseSeasonSelection {
     aggregate: boolean;
     season: Season;
 }
@@ -23,18 +24,11 @@ export interface PosterCandidate {
     width: number;
 }
 
-function startDate(anime: AniListAnime) {
-    const { year, month, day } = anime.startDate ?? {};
-    return year && month && day
-        ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        : null;
-}
-
 export function selectReleaseSeason(
     anime: AniListAnime,
     seasons: Season[]
 ): ReleaseSeasonSelection | null {
-    const expectedDate = startDate(anime);
+    const expectedDate = animeDate(anime.startDate);
     const expectedYear = anime.startDate?.year ?? anime.seasonYear;
     const expectedSequence = releaseSequence(anime);
     const candidates = seasons.filter(({ season_number }) =>

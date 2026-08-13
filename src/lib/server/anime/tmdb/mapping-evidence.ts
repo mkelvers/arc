@@ -1,5 +1,7 @@
+import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
-import { normalizeTitle, titlesFor } from './title';
+import { animeDate, dateTimestamp } from '../date';
+import { normalizeTitle } from './title';
 
 const day = 24 * 60 * 60 * 1_000;
 
@@ -12,32 +14,6 @@ export interface SpecialEpisodeEvidence {
     stillPath: string | null;
 }
 
-function animeDate(
-    value:
-        | {
-              year?: number | null;
-              month?: number | null;
-              day?: number | null;
-          }
-        | null
-        | undefined
-) {
-    const { year, month, day: date } = value ?? {};
-
-    return year && month && date
-        ? `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`
-        : null;
-}
-
-function timestamp(value: string | null) {
-    if (!value) {
-        return null;
-    }
-
-    const parsed = Date.parse(`${value}T00:00:00Z`);
-    return Number.isFinite(parsed) ? parsed : null;
-}
-
 function releaseQualifiers(anime: AniListAnime) {
     const related = (anime.relations?.edges ?? []).flatMap((edge) =>
         edge?.node?.type === 'ANIME'
@@ -48,7 +24,7 @@ function releaseQualifiers(anime: AniListAnime) {
         .filter((title): title is string => Boolean(title?.trim()))
         .map(normalizeTitle);
 
-    return titlesFor(anime)
+    return animeTitles(anime)
         .flatMap((title) => {
             const normalized = normalizeTitle(title);
             const suffixes = parentTitles.flatMap((parent) =>
@@ -62,11 +38,11 @@ function releaseQualifiers(anime: AniListAnime) {
 
 function seasonEvidenceScore(anime: AniListAnime, episodes: SpecialEpisodeEvidence[]) {
     const expected = anime.episodes ?? 0;
-    const start = timestamp(animeDate(anime.startDate));
-    const end = timestamp(animeDate(anime.endDate)) ?? start;
+    const start = dateTimestamp(animeDate(anime.startDate));
+    const end = dateTimestamp(animeDate(anime.endDate)) ?? start;
     const startYear = anime.startDate?.year ?? anime.seasonYear ?? null;
     const relevant = episodes.filter((episode) => {
-        const aired = timestamp(episode.airDate);
+        const aired = dateTimestamp(episode.airDate);
 
         if (aired !== null && start !== null && end !== null) {
             return aired >= start - 14 * day && aired <= end + 14 * day;
@@ -92,7 +68,7 @@ function seasonEvidenceScore(anime: AniListAnime, episodes: SpecialEpisodeEviden
         score += 40;
     }
 
-    if (start !== null && relevant.some((episode) => timestamp(episode.airDate) === start)) {
+    if (start !== null && relevant.some((episode) => dateTimestamp(episode.airDate) === start)) {
         score += 60;
     }
 

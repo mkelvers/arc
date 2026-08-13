@@ -32,10 +32,10 @@ export async function getStoredMedia(anilistId: number) {
     };
 }
 
-export async function getStoredBackdrops(anilistIds: number[]) {
+export async function getStoredBackdropCandidates(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)];
     if (!ids.length) {
-        return new Map<number, string>();
+        return [];
     }
 
     const source = alias(animeExternalId, 'backdrop_anilist_id');
@@ -45,6 +45,7 @@ export async function getStoredBackdrops(anilistIds: number[]) {
     const rows = await db
         .select({
             anilistId: source.externalId,
+            targetId: target.externalId,
             mediaType: target.mediaType,
             filePath: animeArtwork.filePath,
         })
@@ -75,6 +76,12 @@ export async function getStoredBackdrops(anilistIds: number[]) {
                 inArray(source.externalId, ids)
             )
         );
+
+    return rows;
+}
+
+export async function getStoredBackdrops(anilistIds: number[]) {
+    const rows = await getStoredBackdropCandidates(anilistIds);
 
     const candidates = new Map<number, { group: string; filePath: string }[]>();
     for (const row of rows) {
