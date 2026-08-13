@@ -12,15 +12,7 @@
         wide?: boolean;
     }
 
-    let {
-        children,
-        description,
-        id = 'modal',
-        onclose,
-        open = $bindable(false),
-        title,
-        wide = false,
-    }: Props = $props();
+    let { children, description, id = 'modal', onclose, open = false, title, wide = false }: Props = $props();
     let dialog = $state<HTMLDialogElement>();
 
     $effect(() => {
@@ -36,12 +28,7 @@
     });
 
     function close() {
-        open = false;
-    }
-
-    function closed() {
-        open = false;
-        onclose?.();
+        dialog?.close();
     }
 </script>
 
@@ -59,11 +46,9 @@
         event.preventDefault();
         close();
     }}
-    onclose={closed}
+    onclose={onclose}
 >
-    <header
-        class="flex min-h-20 items-center border-b border-black/15 bg-panel-strong px-5 sm:px-8"
-    >
+    <header class="flex min-h-20 items-center border-b border-black/15 bg-panel-strong px-5 sm:px-8">
         <div class="min-w-0">
             <h2 id={`${id}-title`} class="line-clamp-2 text-lg font-bold sm:text-xl">{title}</h2>
             {#if description}
