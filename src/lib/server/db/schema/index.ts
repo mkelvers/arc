@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { FranchiseCacheData } from '$lib/server/anime/franchise/cache';
+import type { AnimeSearchResult } from '$lib/anime/search';
 import type { AnimeCard } from '$lib/anime/types';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
@@ -351,6 +352,25 @@ export const anilistQueryCache = pgTable(
         fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [index('anilist_query_cache_expires_idx').on(table.expiresAt)]
+);
+
+export const animeSearchIndex = pgTable(
+    'anime_search_index',
+    {
+        anilistId: integer('anilist_id').primaryKey(),
+        searchText: text('search_text').notNull(),
+        data: jsonb('data').$type<AnimeSearchResult>().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        index('anime_search_index_text_idx').using(
+            'gin',
+            table.searchText.asc().op('gin_trgm_ops')
+        ),
+    ]
 );
 
 export const anilistNotificationTarget = pgTable('anilist_notification_target', {
