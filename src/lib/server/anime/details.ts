@@ -75,6 +75,14 @@ function formatRankings(media: AniListAnime) {
 }
 
 export function toAnimeDetails(media: AniListAnime, description = media.description) {
+    const nextAiringEpisode =
+        media.nextAiringEpisode && media.nextAiringEpisode.airingAt * 1_000 > Date.now()
+            ? {
+                  episode: media.nextAiringEpisode.episode,
+                  airingAt: media.nextAiringEpisode.airingAt,
+              }
+            : null;
+
     return {
         id: media.id,
         title:
@@ -87,12 +95,7 @@ export function toAnimeDetails(media: AniListAnime, description = media.descript
         genres: present(media.genres),
         format: enumLabel(media.format),
         status: media.status,
-        nextAiringEpisode: media.nextAiringEpisode
-            ? {
-                  episode: media.nextAiringEpisode.episode,
-                  airingAt: media.nextAiringEpisode.airingAt,
-              }
-            : null,
+        nextAiringEpisode,
         score: media.averageScore ?? 0,
         members: count.format(media.popularity ?? 0),
         favourites: count.format(media.favourites ?? 0),

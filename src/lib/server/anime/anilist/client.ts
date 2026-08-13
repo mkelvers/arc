@@ -16,6 +16,7 @@ let cleanupAfter = 0;
 interface RequestOptions {
     cacheForMs?: number;
     timeoutMs?: number;
+    forceRefresh?: boolean;
 }
 
 function canonical(value: unknown): unknown {
@@ -106,7 +107,7 @@ export async function request<TResult, TVariables>(
 
         if (stored && !isRecord(stored.data)) {
             await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
-        } else if (stored && stored.expiresAt.getTime() > Date.now()) {
+        } else if (!options.forceRefresh && stored && stored.expiresAt.getTime() > Date.now()) {
             return stored.data as TResult;
         }
     } catch (cause) {

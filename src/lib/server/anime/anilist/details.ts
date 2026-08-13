@@ -19,7 +19,7 @@ function refreshRetryDelay(cause: unknown) {
 }
 
 async function requestAnime(id: number) {
-    const { Media } = await request(AnimeDocument, { id });
+    const { Media } = await request(AnimeDocument, { id }, { forceRefresh: true });
     if (!Media) {
         throw new GraphQLRequestError({
             message: 'AniList returned no anime',
@@ -92,6 +92,22 @@ export async function getAnime(id: number) {
     }
 
     if (stored?.version === version) {
+        const airingPassed =
+            stored.data.status === 'RELEASING' &&
+            typeof stored.data.nextAiringEpisode?.airingAt === 'number' &&
+            stored.data.nextAiringEpisode.airingAt * 1_000 <= Date.now();
+        if (airingPassed && (retryAt.get(id) ?? 0) <= Date.now()) {
+            try {
+                return await refreshAnime(id);
+            } catch (cause) {
+                retryAt.set(id, Date.now() + refreshRetryDelay(cause));
+                console.warn(
+                    `AniList airing refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
+                );
+                return stored.data;
+            }
+        }
+
         if (
             Date.now() - stored.fetchedAt.getTime() > 6 * 60 * 60 * 1_000 &&
             (retryAt.get(id) ?? 0) <= Date.now() &&
