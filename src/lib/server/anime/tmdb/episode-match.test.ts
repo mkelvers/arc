@@ -248,6 +248,69 @@ describe('TMDB episode identity matching', () => {
         });
     });
 
+    test('uses an earlier streaming schedule when TMDB consistently dates the TV broadcast', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 12,
+                startDate: { year: 2026, month: 7, day: 3 },
+                endDate: { year: 2026, month: 9, day: 18 },
+                nextAiringEpisode: {
+                    episode: 7,
+                    airingAt: 1_786_714_200,
+                },
+            }),
+            source(
+                Array.from(
+                    { length: 6 },
+                    (_, index) =>
+                        [String(index + 1), index + 1, `Episode ${index + 1}`] as [
+                            string,
+                            number,
+                            string,
+                        ]
+                )
+            ),
+            Array.from({ length: 12 }, (_, index) =>
+                candidate(
+                    1,
+                    index + 1,
+                    `Episode ${index + 1}`,
+                    new Date(Date.UTC(2026, 6, 10 + index * 7)).toISOString().slice(0, 10)
+                )
+            )
+        );
+
+        expect(['1', '2', '3', '4', '5', '6'].map((id) => metadata.get(id)?.airDate)).toEqual([
+            '07/03/2026',
+            '07/10/2026',
+            '07/17/2026',
+            '07/24/2026',
+            '07/31/2026',
+            '08/07/2026',
+        ]);
+        expect(metadata.get('6')?.rawAirDate).toBe('2026-08-14');
+    });
+
+    test('keeps TMDB dates when the release schedule does not confirm the offset', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 2,
+                startDate: { year: 2026, month: 7, day: 3 },
+                endDate: { year: 2026, month: 7, day: 17 },
+            }),
+            source([
+                ['1', 1, 'Episode 1'],
+                ['2', 2, 'Episode 2'],
+            ]),
+            [candidate(1, 1, 'Episode 1', '2026-07-10'), candidate(1, 2, 'Episode 2', '2026-07-17')]
+        );
+
+        expect(['1', '2'].map((id) => metadata.get(id)?.airDate)).toEqual([
+            '2026-07-10',
+            '2026-07-17',
+        ]);
+    });
+
     test('keeps an extended finale when its date and ordinal match', () => {
         const episodes = source(
             Array.from(
