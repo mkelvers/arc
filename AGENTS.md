@@ -2,6 +2,8 @@
 
 Arc is a production application. Every change must preserve that standard: code should be secure by default, easy to navigate, deliberately small, strongly typed, and unsurprising to both users and maintainers. Prefer the simplest complete solution, not the shortest patch and not the most elaborate architecture.
 
+Read and follow `CODE_STANDARD.md` for every implementation, refactor, and review. It is the repository's normative maintainability contract. Apply narrower directory-level guidance alongside it.
+
 ## Core design
 
 Apply KISS, YAGNI, DRY, separation of concerns, high cohesion, low coupling, encapsulation, testability, and the principle of least astonishment as practical decision tools rather than slogans. SOLID principles are useful when they make a real boundary clearer; they are not a reason to introduce interfaces, factories, dependency injection, wrappers, or layers that have only one implementation and no present need.
