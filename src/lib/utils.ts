@@ -28,15 +28,6 @@ export function nonEmptyText(value: unknown) {
     return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
 
-export function parseDate(value: unknown) {
-    if (typeof value !== 'string') {
-        return undefined;
-    }
-
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-}
-
 export function batches<T>(values: readonly T[], size: number) {
     if (!Number.isSafeInteger(size) || size <= 0) {
         throw new RangeError('Batch size must be a positive integer');
@@ -48,26 +39,6 @@ export function batches<T>(values: readonly T[], size: number) {
     }
 
     return result;
-}
-
-export function formatDate(value: string) {
-    if (!value) {
-        return '';
-    }
-
-    const parts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    const date = parts
-        ? new Date(Date.UTC(Number(parts[3]), Number(parts[1]) - 1, Number(parts[2])))
-        : new Date(`${value}T00:00:00Z`);
-
-    return Number.isNaN(date.valueOf())
-        ? value
-        : new Intl.DateTimeFormat('en', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-              timeZone: 'UTC',
-          }).format(date);
 }
 
 export function formatDuration(minutes: number | null | undefined) {

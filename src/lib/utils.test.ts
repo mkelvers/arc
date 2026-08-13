@@ -1,15 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-    batches,
-    formatDate,
-    formatDuration,
-    isRecord,
-    nonEmptyText,
-    parseDate,
-    positiveInteger,
-    record,
-} from './utils';
+import { batches, formatDuration, isRecord, nonEmptyText, positiveInteger, record } from './utils';
 
 describe('shared utilities', () => {
     test('narrows and parses records without accepting arrays', () => {
@@ -25,8 +16,6 @@ describe('shared utilities', () => {
         expect(positiveInteger(true)).toBeUndefined();
         expect(nonEmptyText('  title  ')).toBe('title');
         expect(nonEmptyText('   ')).toBeUndefined();
-        expect(parseDate('2026-08-09T12:30:00.000Z')).toEqual(new Date('2026-08-09T12:30:00.000Z'));
-        expect(parseDate('not a date')).toBeUndefined();
     });
 
     test('splits work into validated batches', () => {
@@ -35,9 +24,7 @@ describe('shared utilities', () => {
         expect(() => batches([1], 0)).toThrow(RangeError);
     });
 
-    test('formats dates and durations consistently', () => {
-        expect(formatDate('7/29/2026')).toBe('Jul 29, 2026');
-        expect(formatDate('not a date')).toBe('not a date');
+    test('formats durations consistently', () => {
         expect(formatDuration(25)).toBe('25m');
         expect(formatDuration(125)).toBe('2h, 5m');
         expect(formatDuration(null)).toBe('');

@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     importedActivityAt,
-    importedWatchlistState,
     parseWatchlistImport,
     WatchlistImportError,
 } from './watchlist-transfer';
@@ -42,9 +41,15 @@ describe('watchlist transfer', () => {
     });
 
     test('maps provider hold and repeat states into Arc states', () => {
-        expect(importedWatchlistState('PAUSED')).toBe('plan_to_watch');
-        expect(importedWatchlistState('on_hold')).toBe('plan_to_watch');
-        expect(importedWatchlistState('REPEATING')).toBe('watching');
+        expect(
+            parseWatchlistImport(
+                JSON.stringify([
+                    { anilist_id: 1, status: 'PAUSED' },
+                    { anilist_id: 2, status: 'on_hold' },
+                    { anilist_id: 3, status: 'REPEATING' },
+                ])
+            ).map(({ state }) => state)
+        ).toEqual(['plan_to_watch', 'plan_to_watch', 'watching']);
     });
 
     test('preserves JSON position as descending import activity', () => {

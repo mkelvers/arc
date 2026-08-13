@@ -1,8 +1,8 @@
 import type { WatchlistState } from '$lib/watchlist';
 import { load } from 'cheerio';
-import { isRecord, nonEmptyText, parseDate, positiveInteger } from '$lib/utils';
+import { isRecord, nonEmptyText, positiveInteger } from '$lib/utils';
 
-export interface WatchlistTransferTitles {
+interface WatchlistTransferTitles {
     preferred?: string;
     english?: string;
     romaji?: string;
@@ -21,11 +21,20 @@ export interface WatchlistImportEntry {
 
 export class WatchlistImportError extends Error {}
 
+function importDate(value: unknown) {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
 export function importedActivityAt(index: number, importedAt: number) {
     return new Date(importedAt - index);
 }
 
-export function importedWatchlistState(value: unknown): WatchlistState | null {
+function importedWatchlistState(value: unknown): WatchlistState | null {
     if (typeof value !== 'string') {
         return null;
     }
@@ -71,7 +80,7 @@ export function parseWatchlistImport(source: string): WatchlistImportEntry[] {
     let parsed: unknown;
 
     try {
-        parsed = JSON.parse(source) as unknown;
+        parsed = JSON.parse(source);
     } catch {
         throw new WatchlistImportError('Choose a valid JSON watchlist file.');
     }
@@ -110,8 +119,8 @@ export function parseWatchlistImport(source: string): WatchlistImportEntry[] {
             anilistId,
             malId,
             state,
-            addedAt: parseDate(value.added_at ?? value.addedAt),
-            updatedAt: parseDate(value.updated_at ?? value.updatedAt),
+            addedAt: importDate(value.added_at ?? value.addedAt),
+            updatedAt: importDate(value.updated_at ?? value.updatedAt),
             titles: titles(value),
         };
     });
@@ -134,8 +143,8 @@ export function parseMyAnimeListXml(source: string): WatchlistImportEntry[] {
             index,
             malId,
             state,
-            addedAt: parseDate(field('my_start_date')),
-            updatedAt: parseDate(field('my_finish_date')),
+            addedAt: importDate(field('my_start_date')),
+            updatedAt: importDate(field('my_finish_date')),
             titles: { preferred: nonEmptyText(field('series_title')) },
         });
     });
