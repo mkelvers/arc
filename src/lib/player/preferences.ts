@@ -1,11 +1,8 @@
 import type { AudioMode } from '$lib/anime/audio';
 import {
-    isSubtitleSize,
     subtitleBackgroundOpacities,
-    subtitleBackgrounds,
     subtitleSizeOrder,
     subtitleSizes,
-    subtitleTextColors,
     type Sources,
     type SubtitleBackground,
     type SubtitleBackgroundOpacity,
@@ -122,34 +119,32 @@ export function load(sources: Sources, qualities: string[]) {
     const parsedSize = rawSize !== null ? Number(rawSize) : NaN;
     // Preset names save directly; px numbers from the old size slider resolve
     // to the nearest preset so those saves survive.
-    const subtitleSize: SubtitleSize | null = isSubtitleSize(rawSize)
-        ? rawSize
-        : Number.isFinite(parsedSize)
-          ? subtitleSizeOrder.reduce(
-                (nearest, size) =>
-                    Math.abs(subtitleSizes[size].px - parsedSize) <
-                    Math.abs(subtitleSizes[nearest].px - parsedSize)
-                        ? size
-                        : nearest,
-                subtitleSizeOrder[0]
-            )
-          : null;
+    const subtitleSize: SubtitleSize | null =
+        subtitleSizeOrder.find((size) => size === rawSize) ??
+        (Number.isFinite(parsedSize)
+            ? subtitleSizeOrder.reduce(
+                  (nearest, size) =>
+                      Math.abs(subtitleSizes[size].px - parsedSize) <
+                      Math.abs(subtitleSizes[nearest].px - parsedSize)
+                          ? size
+                          : nearest,
+                  subtitleSizeOrder[0]
+              )
+            : null);
 
     const rawTextColor = values['subtitle-text-color'] ?? null;
     const subtitleTextColor: SubtitleTextColor | null =
-        rawTextColor !== null && rawTextColor in subtitleTextColors
-            ? (rawTextColor as SubtitleTextColor)
+        rawTextColor === 'white' || rawTextColor === 'yellow' || rawTextColor === 'black'
+            ? rawTextColor
             : null;
     const rawBackground = values['subtitle-background'] ?? null;
     const subtitleBackground: SubtitleBackground | null =
-        rawBackground !== null && rawBackground in subtitleBackgrounds
-            ? (rawBackground as SubtitleBackground)
+        rawBackground === 'black' || rawBackground === 'white' || rawBackground === 'none'
+            ? rawBackground
             : null;
     const rawBackgroundOpacity = Number(values['subtitle-background-opacity']);
     const subtitleBackgroundOpacity: SubtitleBackgroundOpacity | null =
-        subtitleBackgroundOpacities.includes(rawBackgroundOpacity as SubtitleBackgroundOpacity)
-            ? (rawBackgroundOpacity as SubtitleBackgroundOpacity)
-            : null;
+        subtitleBackgroundOpacities.find((opacity) => opacity === rawBackgroundOpacity) ?? null;
     const rawEdgeStyle = values['subtitle-edge-style'] ?? null;
     const subtitleEdgeStyle: SubtitleEdgeStyle | null =
         rawEdgeStyle === 'outline' || rawEdgeStyle === 'none' ? rawEdgeStyle : null;

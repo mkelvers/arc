@@ -15,21 +15,12 @@ export interface SubtitleCue {
 }
 
 export type Sources = Partial<Record<AudioMode, Stream[]>>;
-export type SettingsView =
-    | 'main'
-    | 'audio'
-    | 'subtitles'
-    | 'subtitle-size'
-    | 'quality'
-    | 'segments'
-    | 'segment-opening'
-    | 'segment-ending';
 
 /** Which audio script the English captions follow. */
 export type SubtitleMode = 'off' | 'dub' | 'sub';
 export type SubtitleKind = 'cc' | 'translated' | 'limited';
 
-export type Shortcut =
+type Shortcut =
     | 'play'
     | 'mute'
     | 'fullscreen'
@@ -48,7 +39,7 @@ export interface SubtitleTrack {
     source: Stream;
 }
 
-export interface SubtitleTracks {
+interface SubtitleTracks {
     /** Captions returned with the active encode. */
     own: SubtitleTrack | null;
     /** Captions from the same provider's Japanese encode. */
@@ -164,11 +155,6 @@ export const subtitleSizeOrder = [
     'extra-large',
 ] as const satisfies readonly SubtitleSize[];
 
-/** True when the string names a subtitle size preset. */
-export function isSubtitleSize(value: string | null): value is SubtitleSize {
-    return value !== null && value in subtitleSizes;
-}
-
 const subtitleLabels: Record<SubtitleKind, string> = {
     cc: 'English CC',
     translated: 'Original',
@@ -210,7 +196,7 @@ export function sameSubtitleCues(left: SubtitleCue[], right: SubtitleCue[]) {
     );
 }
 
-export interface HlsTimeline {
+interface HlsTimeline {
     variant: string | null;
     boundaries: number[] | null;
 }
@@ -327,7 +313,7 @@ function timelineOffset(reference: number[], target: number[]) {
     return Math.abs(offset) < 0.05 ? 0 : offset;
 }
 
-export interface TimelineOffset {
+interface TimelineOffset {
     /** Time on the reference encode at which this offset starts. */
     at: number;
     /** Seconds added to reference-timed cues on the target encode. */
@@ -395,8 +381,9 @@ export function hlsTimelineOffsets(reference: number[], target: number[]): Timel
 
     return stable.map((group, index) => {
         const previous = stable[index - 1];
+        const previousEnd = previous?.at(-1)?.at;
         return {
-            at: index === 0 ? 0 : (previous.at(-1)!.at + group[0].at) / 2,
+            at: previousEnd === undefined ? 0 : (previousEnd + group[0].at) / 2,
             offset: median(group.map((sample) => sample.offset)),
         };
     });
@@ -417,15 +404,6 @@ export function alignSubtitleCues(cues: SubtitleCue[], offsets: TimelineOffset[]
                   end: cue.end + offset,
               };
     });
-}
-
-export function qualitiesFor(streams: Stream[]) {
-    return streams
-        .map(({ quality }) => quality)
-        .filter(
-            (value, index, values): value is string =>
-                Boolean(value) && values.indexOf(value) === index
-        );
 }
 
 export function orderStreams(streams: Stream[], quality: string) {
@@ -453,14 +431,6 @@ export function audioLabel(mode: AudioMode) {
     return mode === 'raw' ? 'Japanese (Raw)' : 'Japanese';
 }
 
-export function qualityLabel(quality: string, best: string | null) {
-    if (quality !== 'best') {
-        return quality;
-    }
-
-    return best ? `Auto ${best}` : 'Auto';
-}
-
 export function isHd(quality: string | null) {
     return Number(quality?.match(/\d+/)?.[0] ?? 0) >= 720;
 }
@@ -482,8 +452,12 @@ function subtitleTime(value: string) {
         return null;
     }
 
-    const seconds = parts.pop()!;
-    const minutes = parts.pop()!;
+    const seconds = parts.pop();
+    const minutes = parts.pop();
+    if (seconds === undefined || minutes === undefined) {
+        return null;
+    }
+
     const hours = parts.pop() ?? 0;
     return hours * 3_600 + minutes * 60 + seconds;
 }

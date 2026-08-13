@@ -1,12 +1,16 @@
-import { isRecord } from '$lib/utils';
+import { z } from 'zod';
 
 export type SkipKind = 'opening' | 'ending';
 type SkipTimesSource = 'aniskip' | 'manual';
 
-export interface SkipInterval {
-    start: number;
-    end: number;
-}
+const SkipIntervalSchema = z
+    .object({
+        start: z.number().finite().nonnegative(),
+        end: z.number().finite().positive(),
+    })
+    .refine(({ start, end }) => end > start);
+
+export type SkipInterval = z.infer<typeof SkipIntervalSchema>;
 
 export interface EpisodeSkipTimes {
     opening: SkipInterval | null;
@@ -14,21 +18,36 @@ export interface EpisodeSkipTimes {
     source: SkipTimesSource | null;
 }
 
-export interface SegmentTemplate {
-    fromEpisode: number;
-    duration: number;
-}
+const SegmentTemplateSchema = z.object({
+    fromEpisode: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    duration: z.number().finite().positive(),
+});
+
+type SegmentTemplate = z.infer<typeof SegmentTemplateSchema>;
 
 export type SegmentTemplates = Record<SkipKind, SegmentTemplate | null>;
 
-export interface SegmentSaveResult {
-    times: EpisodeSkipTimes;
-    templates: SegmentTemplates;
-}
+export const SegmentSaveResultSchema = z.object({
+    times: z.object({
+        opening: SkipIntervalSchema.nullable(),
+        ending: SkipIntervalSchema.nullable(),
+        source: z.literal('manual'),
+    }),
+    templates: z.object({
+        opening: SegmentTemplateSchema.nullable(),
+        ending: SegmentTemplateSchema.nullable(),
+    }),
+});
 
-export interface SkipTimesDraft {
-    opening: { start: number | null; end: number | null };
-    ending: { start: number | null; end: number | null };
+interface SkipTimesDraft {
+    opening: {
+        start: number | null;
+        end: number | null;
+    };
+    ending: {
+        start: number | null;
+        end: number | null;
+    };
 }
 
 export function skipTimesDraft(times: EpisodeSkipTimes): SkipTimesDraft {
@@ -71,61 +90,4 @@ export function intervalFromTemplate(start: number, duration: number): SkipInter
     }
 
     return { start, end };
-}
-
-export function parseSegmentSaveResult(value: unknown): SegmentSaveResult | null {
-    if (!isRecord(value) || !isRecord(value.times) || !isRecord(value.templates)) {
-        return null;
-    }
-
-    const parseInterval = (candidate: unknown) => {
-        if (candidate === null) {
-            return null;
-        }
-        if (!isRecord(candidate)) {
-            return undefined;
-        }
-
-        const { start, end } = candidate;
-        return typeof start === 'number' &&
-            typeof end === 'number' &&
-            intervalFromTemplate(start, end - start)
-            ? { start, end }
-            : undefined;
-    };
-    const parseTemplate = (candidate: unknown) => {
-        if (candidate === null) {
-            return null;
-        }
-        if (!isRecord(candidate)) {
-            return undefined;
-        }
-
-        const { fromEpisode, duration } = candidate;
-        return typeof fromEpisode === 'number' &&
-            Number.isSafeInteger(fromEpisode) &&
-            fromEpisode > 0 &&
-            typeof duration === 'number' &&
-            intervalFromTemplate(0, duration)
-            ? { fromEpisode, duration }
-            : undefined;
-    };
-    const opening = parseInterval(value.times.opening);
-    const ending = parseInterval(value.times.ending);
-    const openingTemplate = parseTemplate(value.templates.opening);
-    const endingTemplate = parseTemplate(value.templates.ending);
-    if (
-        opening === undefined ||
-        ending === undefined ||
-        openingTemplate === undefined ||
-        endingTemplate === undefined ||
-        value.times.source !== 'manual'
-    ) {
-        return null;
-    }
-
-    return {
-        times: { opening, ending, source: 'manual' },
-        templates: { opening: openingTemplate, ending: endingTemplate },
-    };
 }

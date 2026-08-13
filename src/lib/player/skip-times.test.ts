@@ -3,10 +3,9 @@ import { describe, expect, test } from 'bun:test';
 import {
     activeSkip,
     intervalFromTemplate,
-    parseSegmentSaveResult,
+    SegmentSaveResultSchema,
     skipTimesDraft,
     type EpisodeSkipTimes,
-    type SegmentSaveResult,
 } from './skip-times';
 
 const times: EpisodeSkipTimes = {
@@ -52,7 +51,7 @@ describe('intervalFromTemplate', () => {
     });
 });
 
-describe('parseSegmentSaveResult', () => {
+describe('SegmentSaveResultSchema', () => {
     test('validates saved segments and their active templates', () => {
         const result = {
             times: {
@@ -64,18 +63,18 @@ describe('parseSegmentSaveResult', () => {
                 opening: { fromEpisode: 26, duration: 89.8 },
                 ending: null,
             },
-        } satisfies SegmentSaveResult;
+        } as const;
 
-        expect(parseSegmentSaveResult(result)).toEqual(result);
+        expect(SegmentSaveResultSchema.parse(result)).toEqual(result);
     });
 
     test('rejects malformed save responses', () => {
-        expect(parseSegmentSaveResult({ times: {}, templates: {} })).toBeNull();
+        expect(SegmentSaveResultSchema.safeParse({ times: {}, templates: {} }).success).toBeFalse();
         expect(
-            parseSegmentSaveResult({
+            SegmentSaveResultSchema.safeParse({
                 times: { opening: null, ending: null, source: 'manual' },
                 templates: { opening: { fromEpisode: 0, duration: 90 }, ending: null },
-            })
-        ).toBeNull();
+            }).success
+        ).toBeFalse();
     });
 });

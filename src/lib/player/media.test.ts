@@ -12,7 +12,6 @@ import {
     isHlsSource,
     orderStreams,
     parseWebVtt,
-    qualityLabel,
     sameSubtitleCues,
     subtitleOptionsFor,
     subtitleReferenceTracks,
@@ -40,7 +39,6 @@ describe('player media helpers', () => {
 
     test('derives concise labels', () => {
         expect(audioLabel('dub')).toBe('English');
-        expect(qualityLabel('best', '1080p')).toBe('Auto 1080p');
         expect(isHd('720p')).toBe(true);
         expect(isHd('480p')).toBe(false);
     });

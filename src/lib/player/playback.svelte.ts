@@ -3,36 +3,16 @@ import type { AudioMode } from '$lib/anime/audio';
 import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { AudioDelay } from './audio';
+import { Captions } from './captions.svelte';
 import {
-    alignSubtitleCues,
     availableModes,
-    hasDialogueCoverage,
     hasSubtitleTrack,
-    hlsTimeline,
-    hlsTimelineOffsets,
     isHlsSource,
     orderStreams,
-    parseWebVtt,
-    qualitiesFor,
-    qualityLabel,
-    sameSubtitleCues,
     streamsFor,
-    subtitleOptionsFor,
-    subtitleReferenceTracks,
-    subtitleTracks,
-    subtitlesAt,
     type Sources,
     type Stream,
-    type SubtitleCue,
-    type SubtitleBackground,
-    type SubtitleBackgroundOpacity,
-    type SubtitleEdgeStyle,
-    type SubtitleKind,
     type SubtitleMode,
-    type SubtitleOption,
-    type SubtitleSize,
-    type SubtitleTextColor,
-    type SubtitleTrack,
 } from './media';
 import * as preferences from './preferences';
 
@@ -54,17 +34,11 @@ export class Playback {
     quality = $state('best');
     hlsQualities = $state<HlsQuality[]>([]);
     hlsCurrentQuality = $state<string | null>(null);
-    subtitleCues = $state<SubtitleCue[]>([]);
-    subtitleMode = $state<SubtitleMode>('dub');
-    subtitleOptions = $state<SubtitleOption[]>(subtitleOptionsFor([]));
-    subtitleSize = $state<SubtitleSize>('normal');
-    subtitleTextColor = $state<SubtitleTextColor>('white');
-    subtitleBackground = $state<SubtitleBackground>('black');
-    subtitleBackgroundOpacity = $state<SubtitleBackgroundOpacity>(0.75);
-    subtitleEdgeStyle = $state<SubtitleEdgeStyle>('outline');
     sourceIndex = $state(0);
     error = $state(false);
     video!: HTMLVideoElement;
+    scrubbing = false;
+    readonly captions = new Captions();
 
     private lastVolume = 1;
     private resumeAt: number | null = null;
@@ -73,22 +47,18 @@ export class Playback {
     private changingSource = false;
     private pendingSourceFailure: string | null = null;
     private sourceChain: Stream[] = [];
-    private subtitlesEnabled = $state(true);
-    private loadedSubtitles: Partial<Record<Exclude<SubtitleMode, 'off'>, SubtitleCue[]>> = {};
     private hls: HlsType | null = null;
-    private subtitleRequest: AbortController | null = null;
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
     private readonly audio = new AudioDelay();
 
     constructor(
-        private readonly readSources: () => Sources,
-        private readonly readNext: () => string | null,
-        private readonly isScrubbing: () => boolean,
-        private readonly onActivity: () => void
+        private sources: Sources,
+        private next: string | null
     ) {}
 
-    private get sources() {
-        return this.readSources();
+    sync(sources: Sources, next: string | null) {
+        this.sources = sources;
+        this.next = next;
     }
 
     private get modeSources() {
@@ -97,7 +67,7 @@ export class Playback {
 
     private get preferredSources() {
         const ordered = orderStreams(this.modeSources, this.quality);
-        if (!this.subtitlesEnabled) {
+        if (!this.captions.enabled) {
             return ordered;
         }
 
@@ -116,7 +86,12 @@ export class Playback {
     get qualities() {
         return this.hlsQualities.length
             ? this.hlsQualities.map(({ label }) => label)
-            : qualitiesFor(this.modeSources);
+            : this.modeSources
+                  .map(({ quality }) => quality)
+                  .filter(
+                      (quality, index, qualities): quality is string =>
+                          Boolean(quality) && qualities.indexOf(quality) === index
+                  );
     }
 
     get src() {
@@ -128,7 +103,7 @@ export class Playback {
     }
 
     get subtitles() {
-        return subtitlesAt(this.subtitleCues, this.currentTime);
+        return this.captions.at(this.currentTime);
     }
 
     get bestQuality() {
@@ -140,7 +115,11 @@ export class Playback {
     }
 
     get qualityText() {
-        return qualityLabel(this.quality, this.bestQuality);
+        return this.quality === 'best'
+            ? this.bestQuality
+                ? `Auto ${this.bestQuality}`
+                : 'Auto'
+            : this.quality;
     }
 
     get volumeProgress() {
@@ -149,6 +128,14 @@ export class Playback {
 
     syncAudio(reset = false) {
         this.audio.sync(this.video, this.audioDelay, reset);
+    }
+
+    setScrubbing(active: boolean) {
+        this.scrubbing = active;
+
+        if (active) {
+            this.syncAudio(true);
+        }
     }
 
     private resumeAudio() {
@@ -195,7 +182,6 @@ export class Playback {
     toggleAutoplay() {
         this.autoplay = !this.autoplay;
         preferences.save('autoplay', this.autoplay);
-        this.onActivity();
     }
 
     private rememberPlayback() {
@@ -217,235 +203,6 @@ export class Playback {
         this.hls = null;
         this.hlsQualities = [];
         this.hlsCurrentQuality = null;
-    }
-
-    private clearSubtitles() {
-        this.subtitleRequest?.abort();
-        this.subtitleRequest = null;
-        this.subtitleCues = [];
-        this.loadedSubtitles = {};
-        this.subtitleOptions = subtitleOptionsFor([]);
-    }
-
-    private async fetchSubtitleCues(url: string, signal: AbortSignal) {
-        try {
-            const response = await fetch(url, { signal });
-            if (!response.ok) {
-                return null;
-            }
-
-            const cues = parseWebVtt(await response.text());
-            return cues.length ? cues : null;
-        } catch {
-            return null;
-        }
-    }
-
-    private async fetchHlsTimeline(source: string, signal: AbortSignal) {
-        if (!isHlsSource(source)) {
-            return null;
-        }
-
-        const response = await fetch(source, { signal });
-        if (!response.ok) {
-            return null;
-        }
-
-        let timeline = hlsTimeline(await response.text());
-        if (!timeline.variant) {
-            return timeline.boundaries;
-        }
-
-        const base = response.url || new URL(source, location.href).toString();
-        const variant = await fetch(new URL(timeline.variant, base), { signal });
-        if (!variant.ok) {
-            return null;
-        }
-
-        timeline = hlsTimeline(await variant.text());
-        return timeline.boundaries;
-    }
-
-    private async subtitleOffsets(reference: Stream, target: Stream, signal: AbortSignal) {
-        if (reference.url === target.url) {
-            return [{ at: 0, offset: 0 }];
-        }
-
-        const [referenceTimeline, targetTimeline] = await Promise.all([
-            this.fetchHlsTimeline(reference.url, signal),
-            this.fetchHlsTimeline(target.url, signal),
-        ]);
-        return referenceTimeline && targetTimeline
-            ? hlsTimelineOffsets(referenceTimeline, targetTimeline)
-            : null;
-    }
-
-    private async fallbackSubtitleOffsets(
-        primary: SubtitleTrack,
-        target: Stream,
-        cues: SubtitleCue[],
-        signal: AbortSignal
-    ) {
-        const offsets = await this.subtitleOffsets(primary.source, target, signal);
-        if (offsets?.length) {
-            return offsets;
-        }
-
-        const loaded = new Map<string, SubtitleCue[] | null>();
-        loaded.set(primary.url, cues);
-        for (const reference of subtitleReferenceTracks(this.sources, primary)) {
-            let referenceCues = loaded.get(reference.url);
-            if (referenceCues === undefined) {
-                referenceCues = await this.fetchSubtitleCues(reference.url, signal);
-                loaded.set(reference.url, referenceCues);
-            }
-            if (!referenceCues || !sameSubtitleCues(cues, referenceCues)) {
-                continue;
-            }
-
-            const alternative = await this.subtitleOffsets(reference.source, target, signal);
-            if (alternative?.length) {
-                return alternative;
-            }
-        }
-
-        return null;
-    }
-
-    /** The best caption track among the ones available, mirroring the old
-     * single-choice preference: dialogue CC, then translation, then signs. */
-    private defaultSubtitleKind(kinds: SubtitleKind[]) {
-        if (kinds.includes('cc')) {
-            return 'cc';
-        }
-        if (kinds.includes('translated')) {
-            return 'translated';
-        }
-        if (kinds.includes('limited')) {
-            return 'limited';
-        }
-        return null;
-    }
-
-    private preferredSubtitleKind(kinds: SubtitleKind[]) {
-        if (this.subtitleMode === 'sub' && kinds.includes('translated')) {
-            return 'translated';
-        }
-        if (this.subtitleMode === 'dub') {
-            if (kinds.includes('cc')) {
-                return 'cc';
-            }
-            if (kinds.includes('limited')) {
-                return 'limited';
-            }
-        }
-        return this.defaultSubtitleKind(kinds);
-    }
-
-    private offerAvailableSubtitles() {
-        const source = this.modeSources.find((candidate) =>
-            hasSubtitleTrack(this.sources, this.mode, candidate)
-        );
-        const tracks = subtitleTracks(this.sources, this.mode, source);
-        const kinds: SubtitleKind[] = [];
-        if (this.mode === 'dub') {
-            if (tracks.own) {
-                kinds.push('limited');
-            }
-            if (tracks.sub) {
-                kinds.push('translated');
-            }
-        } else if (tracks.own) {
-            kinds.push('translated');
-        }
-        this.subtitleOptions = subtitleOptionsFor(kinds);
-        this.subtitleMode = 'off';
-    }
-
-    private async loadSubtitles(source: string) {
-        this.clearSubtitles();
-        const request = new AbortController();
-        this.subtitleRequest = request;
-        const active = this.activeSources[this.sourceIndex];
-        const { own, sub } = subtitleTracks(this.sources, this.mode, active);
-        const stale = () =>
-            request.signal.aborted || this.subtitleRequest !== request || source !== this.src;
-
-        if (!active || (!own && !sub)) {
-            this.offerAvailableSubtitles();
-            return;
-        }
-
-        try {
-            const ownRequest = own
-                ? this.fetchSubtitleCues(own.url, request.signal)
-                : Promise.resolve(null);
-            const subRequest =
-                sub && sub.url !== own?.url
-                    ? this.fetchSubtitleCues(sub.url, request.signal)
-                    : ownRequest;
-            const [ownCues, subCues] = await Promise.all([ownRequest, subRequest]);
-
-            if (stale()) {
-                return;
-            }
-
-            const kinds: SubtitleKind[] = [];
-
-            // The active encode's own track is dub CC (or signs) on a dub and
-            // the translated dialogue on a sub/raw encode.
-            if (ownCues) {
-                const kind =
-                    this.mode === 'dub'
-                        ? hasDialogueCoverage(ownCues.length, subCues?.length ?? 0)
-                            ? 'cc'
-                            : 'limited'
-                        : 'translated';
-                this.loadedSubtitles[kind === 'translated' ? 'sub' : 'dub'] = ownCues;
-                kinds.push(kind);
-            }
-
-            // Offer the provider's translated track as an alternative to
-            // native dub captions when it can be calibrated to this encode.
-            if (this.mode === 'dub' && sub && subCues) {
-                const offsets = await this.fallbackSubtitleOffsets(
-                    sub,
-                    active,
-                    subCues,
-                    request.signal
-                );
-                if (stale()) {
-                    return;
-                }
-                if (offsets?.length) {
-                    this.loadedSubtitles.sub = alignSubtitleCues(subCues, offsets);
-                    if (!kinds.includes('translated')) {
-                        kinds.push('translated');
-                    }
-                }
-            }
-
-            this.subtitleOptions = subtitleOptionsFor(kinds);
-            const selectedKind = this.preferredSubtitleKind(kinds);
-            if (this.subtitlesEnabled && selectedKind) {
-                this.subtitleMode = selectedKind === 'translated' ? 'sub' : 'dub';
-                this.subtitleCues = this.loadedSubtitles[this.subtitleMode] ?? [];
-            } else {
-                this.subtitleMode = 'off';
-                this.subtitleCues = [];
-            }
-
-            if (!kinds.length) {
-                console.warn('Subtitle track could not be loaded or aligned');
-            }
-        } catch (cause) {
-            if (stale()) {
-                return;
-            }
-
-            this.offerAvailableSubtitles();
-            console.warn('Subtitle track could not be loaded or aligned', cause);
-        }
     }
 
     private clearSourceWatchdog() {
@@ -476,7 +233,7 @@ export class Playback {
         }
 
         this.destroyHls();
-        this.clearSubtitles();
+        this.captions.clear();
         this.watchSource();
         this.syncAudio(true);
         this.resumeAudio();
@@ -487,7 +244,12 @@ export class Playback {
             return;
         }
 
-        void this.loadSubtitles(source);
+        void this.captions.load(
+            this.sources,
+            this.mode,
+            this.activeSources[this.sourceIndex],
+            source
+        );
 
         if (!isHlsSource(source)) {
             video.src = source;
@@ -571,7 +333,6 @@ export class Playback {
 
     async switchMode(mode: AudioMode) {
         if (!this.sources[mode] || mode === this.mode) {
-            this.onActivity();
             return;
         }
 
@@ -581,21 +342,18 @@ export class Playback {
         this.resetSource();
         preferences.save('audio-mode', mode);
         await this.reloadSource();
-        this.onActivity();
     }
 
     async switchQuality(quality: string) {
         if (quality === this.quality) {
-            this.onActivity();
             return;
         }
 
         const hlsQuality = this.hlsQualities.find(({ label }) => label === quality);
         if (this.hls && (quality === 'best' || hlsQuality)) {
             this.quality = quality;
-            this.hls.currentLevel = quality === 'best' ? -1 : hlsQuality!.level;
+            this.hls.currentLevel = hlsQuality?.level ?? -1;
             preferences.save('quality', quality);
-            this.onActivity();
             return;
         }
 
@@ -604,65 +362,28 @@ export class Playback {
         this.resetSource();
         preferences.save('quality', quality);
         await this.reloadSource();
-        this.onActivity();
     }
 
     switchSubtitleMode(mode: SubtitleMode) {
-        const enabled = mode !== 'off';
-        if (enabled === this.subtitlesEnabled && mode === this.subtitleMode) {
-            this.onActivity();
+        const selection = this.captions.select(mode);
+        if (selection === 'done') {
             return;
         }
 
-        const wasEnabled = this.subtitlesEnabled;
-        this.subtitlesEnabled = enabled;
-        this.subtitleMode = mode;
-        preferences.save('subtitles', enabled);
-        preferences.save('subtitle-mode', mode);
-        if (!enabled) {
-            this.subtitleCues = [];
-        } else if (this.loadedSubtitles[mode]) {
-            this.subtitleCues = this.loadedSubtitles[mode];
-        } else if (!wasEnabled && this.src) {
-            const current = this.activeSources[this.sourceIndex];
+        const current = this.activeSources[this.sourceIndex];
+        if (selection === 'reevaluate-source') {
             const preferred = this.preferredSources[0];
             if (preferred && preferred !== current) {
                 this.rememberPlayback();
                 this.resetSource();
                 void this.reloadSource();
-            } else {
-                void this.loadSubtitles(this.src);
+                return;
             }
-        } else if (this.src) {
-            void this.loadSubtitles(this.src);
-        }
-        this.onActivity();
-    }
-
-    switchSubtitleSize(size: SubtitleSize) {
-        if (size === this.subtitleSize) {
-            this.onActivity();
-            return;
         }
 
-        this.subtitleSize = size;
-        preferences.save('subtitle-size', size);
-        this.onActivity();
-    }
-
-    switchSubtitleTextColor(color: SubtitleTextColor) {
-        this.subtitleTextColor = color;
-        preferences.save('subtitle-text-color', color);
-    }
-
-    switchSubtitleBackground(background: SubtitleBackground) {
-        this.subtitleBackground = background;
-        preferences.save('subtitle-background', background);
-    }
-
-    switchSubtitleBackgroundOpacity(opacity: SubtitleBackgroundOpacity) {
-        this.subtitleBackgroundOpacity = opacity;
-        preferences.save('subtitle-background-opacity', opacity);
+        if (this.src) {
+            void this.captions.load(this.sources, this.mode, current, this.src);
+        }
     }
 
     async tryNextSource(failedSource = this.src) {
@@ -678,13 +399,12 @@ export class Playback {
         if (this.sourceIndex + 1 >= this.activeSources.length) {
             this.pendingSourceFailure = null;
             this.clearSourceWatchdog();
-            this.clearSubtitles();
+            this.captions.clear();
             this.destroyHls();
             this.loading = false;
             this.error = true;
             this.playing = false;
             this.changingSource = false;
-            this.onActivity();
             return;
         }
 
@@ -713,7 +433,7 @@ export class Playback {
         const time = Math.max(0, Math.min(this.duration, seconds));
         this.currentTime = time;
 
-        if (!this.isScrubbing()) {
+        if (!this.scrubbing) {
             this.syncAudio(true);
         }
 
@@ -779,7 +499,6 @@ export class Playback {
         this.playing = true;
         this.loading = false;
         this.clearSourceWatchdog();
-        this.onActivity();
     }
 
     updateBuffered() {
@@ -799,7 +518,7 @@ export class Playback {
 
     async changeEpisode() {
         this.clearSourceWatchdog();
-        this.clearSubtitles();
+        this.captions.clear();
         this.destroyHls();
         this.audio.sync(this.video, 0, true);
 
@@ -825,11 +544,9 @@ export class Playback {
 
     ended() {
         this.playing = false;
-        this.onActivity();
 
-        const next = this.readNext();
-        if (this.autoplay && next) {
-            void goto(next);
+        if (this.autoplay && this.next) {
+            void goto(this.next);
         }
     }
 
@@ -866,28 +583,28 @@ export class Playback {
         }
 
         if (saved.subtitleEnabled !== null) {
-            this.subtitlesEnabled = saved.subtitleEnabled;
+            this.captions.enabled = saved.subtitleEnabled;
             if (!saved.subtitleEnabled) {
-                this.subtitleMode = 'off';
+                this.captions.mode = 'off';
             }
         }
         if (saved.subtitleMode !== null) {
-            this.subtitleMode = saved.subtitleMode;
+            this.captions.mode = saved.subtitleMode;
         }
         if (saved.subtitleSize !== null) {
-            this.subtitleSize = saved.subtitleSize;
+            this.captions.size = saved.subtitleSize;
         }
         if (saved.subtitleTextColor !== null) {
-            this.subtitleTextColor = saved.subtitleTextColor;
+            this.captions.textColor = saved.subtitleTextColor;
         }
         if (saved.subtitleBackground !== null) {
-            this.subtitleBackground = saved.subtitleBackground;
+            this.captions.background = saved.subtitleBackground;
         }
         if (saved.subtitleBackgroundOpacity !== null) {
-            this.subtitleBackgroundOpacity = saved.subtitleBackgroundOpacity;
+            this.captions.backgroundOpacity = saved.subtitleBackgroundOpacity;
         }
         if (saved.subtitleEdgeStyle !== null) {
-            this.subtitleEdgeStyle = saved.subtitleEdgeStyle;
+            this.captions.edgeStyle = saved.subtitleEdgeStyle;
         }
 
         this.resetSource();
@@ -895,7 +612,7 @@ export class Playback {
 
         return () => {
             this.clearSourceWatchdog();
-            this.clearSubtitles();
+            this.captions.clear();
             this.destroyHls();
             this.audio.close();
         };
