@@ -168,57 +168,59 @@
             </div>
         </figure>
 
-        <div class="border-b border-border px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
-            <section
-                id="anime-details"
-                class={cn(
-                    'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
-                    detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'
-                )}
-            >
-                <p class="max-w-3xl text-foreground">{data.anime.description}</p>
-                <div class="space-y-3">
-                    <p>
-                        <strong class="font-normal text-foreground">Production:</strong>
-                        {data.anime.studios.join(', ')}
-                    </p>
-                    <p>
-                        <strong class="font-normal text-foreground">Key staff:</strong>
-                        {data.anime.staff}
-                    </p>
-                    <p>
-                        <strong class="font-normal text-foreground">Rankings:</strong>
-                        {data.anime.rankings.join(', ')}
-                    </p>
-                    <p>
-                        <strong class="font-normal text-foreground">Audience:</strong>
-                        {data.anime.members} members, {data.anime.favourites} favorites
-                    </p>
-                    <p>
-                        <strong class="font-normal text-foreground">Themes:</strong>
-                        {data.anime.themes.join(', ')}
-                    </p>
-                    <p>
-                        <strong class="font-normal text-foreground">Genres:</strong>
-                        {#each data.anime.genres as genre, index}
-                            <a class="underline underline-offset-2" href="/">{genre}</a>{index <
-                            data.anime.genres.length - 1
-                                ? ', '
-                                : ''}
-                        {/each}
-                    </p>
-                </div>
-            </section>
+        <div class="px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
+            <div class="border-b border-border">
+                <section
+                    id="anime-details"
+                    class={cn(
+                        'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
+                        detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'
+                    )}
+                >
+                    <p class="max-w-3xl text-foreground">{data.anime.description}</p>
+                    <div class="space-y-3">
+                        <p>
+                            <strong class="font-normal text-foreground">Production:</strong>
+                            {data.anime.studios.join(', ')}
+                        </p>
+                        <p>
+                            <strong class="font-normal text-foreground">Key staff:</strong>
+                            {data.anime.staff}
+                        </p>
+                        <p>
+                            <strong class="font-normal text-foreground">Rankings:</strong>
+                            {data.anime.rankings.join(', ')}
+                        </p>
+                        <p>
+                            <strong class="font-normal text-foreground">Audience:</strong>
+                            {data.anime.members} members, {data.anime.favourites} favorites
+                        </p>
+                        <p>
+                            <strong class="font-normal text-foreground">Themes:</strong>
+                            {data.anime.themes.join(', ')}
+                        </p>
+                        <p>
+                            <strong class="font-normal text-foreground">Genres:</strong>
+                            {#each data.anime.genres as genre, index}
+                                <a class="underline underline-offset-2" href="/">{genre}</a>{index <
+                                data.anime.genres.length - 1
+                                    ? ', '
+                                    : ''}
+                            {/each}
+                        </p>
+                    </div>
+                </section>
 
-            <button
-                type="button"
-                class="min-h-11 text-xs font-semibold text-accent uppercase"
-                aria-expanded={detailsExpanded}
-                aria-controls="anime-details"
-                onclick={() => (detailsExpanded = !detailsExpanded)}
-            >
-                {detailsExpanded ? 'Fewer details' : 'More details'}
-            </button>
+                <button
+                    type="button"
+                    class="min-h-11 text-xs font-semibold text-accent uppercase"
+                    aria-expanded={detailsExpanded}
+                    aria-controls="anime-details"
+                    onclick={() => (detailsExpanded = !detailsExpanded)}
+                >
+                    {detailsExpanded ? 'Fewer details' : 'More details'}
+                </button>
+            </div>
         </div>
     </section>
 
