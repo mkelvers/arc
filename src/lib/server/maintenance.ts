@@ -6,11 +6,6 @@ import { maintenanceHeartbeat, maintenanceTask } from '$lib/server/db/schema';
 import { reconcileAllNotificationInterests } from '$lib/server/notifications/reconcile';
 import { publishPendingAniList, requestAllAniListPublications } from '$lib/server/sync/publication';
 
-const dailyMs = 24 * 60 * 60 * 1_000;
-const hourlyMs = 60 * 60 * 1_000;
-const notificationReconciliationMs = 6 * 60 * 60 * 1_000;
-const recurringLeaseMs = 10 * 60 * 1_000;
-const recurringFailureRetryMs = 5 * 60 * 1_000;
 const heartbeatName = 'scheduler';
 const heartbeatStaleAfterMs = 3 * 60 * 1_000;
 
@@ -20,7 +15,7 @@ async function runRecurringTask(name: string, intervalMs: number, task: () => Pr
 
     const [claimed] = await db
         .update(maintenanceTask)
-        .set({ leaseUntil: new Date(now.getTime() + recurringLeaseMs) })
+        .set({ leaseUntil: new Date(now.getTime() + 10 * 60 * 1_000) })
         .where(
             and(
                 eq(maintenanceTask.name, name),
@@ -51,7 +46,7 @@ async function runRecurringTask(name: string, intervalMs: number, task: () => Pr
         await db
             .update(maintenanceTask)
             .set({
-                nextRunAt: new Date(Date.now() + recurringFailureRetryMs),
+                nextRunAt: new Date(Date.now() + 5 * 60 * 1_000),
                 leaseUntil: null,
                 lastError: message,
             })
@@ -74,14 +69,14 @@ export async function runMaintenance() {
     try {
         const notificationInterests = await runRecurringTask(
             'notification-interests',
-            notificationReconciliationMs,
+            6 * 60 * 60 * 1_000,
             reconcileAllNotificationInterests
         );
-        const airingScan = await runRecurringTask('airing-scan', hourlyMs, scanAiringAnime);
+        const airingScan = await runRecurringTask('airing-scan', 60 * 60 * 1_000, scanAiringAnime);
         const episodes = await refreshScheduledEpisodes();
         const anilistReconciliation = await runRecurringTask(
             'anilist-reconciliation',
-            dailyMs,
+            24 * 60 * 60 * 1_000,
             requestAllAniListPublications
         );
         const anilist = await publishPendingAniList();
@@ -126,10 +121,12 @@ export async function maintenanceHealth(now = new Date()) {
         .where(eq(maintenanceHeartbeat.name, heartbeatName))
         .limit(1);
     const ageMs = heartbeat ? now.getTime() - heartbeat.startedAt.getTime() : null;
-    const healthy = heartbeat !== undefined && ageMs !== null && ageMs <= heartbeatStaleAfterMs;
-
     return {
-        healthy: healthy && heartbeat.lastError === null,
+        healthy:
+            heartbeat !== undefined &&
+            ageMs !== null &&
+            ageMs <= heartbeatStaleAfterMs &&
+            heartbeat.lastError === null,
         reason: !heartbeat
             ? 'Maintenance has not run'
             : ageMs !== null && ageMs > heartbeatStaleAfterMs
