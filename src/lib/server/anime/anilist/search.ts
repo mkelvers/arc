@@ -1,11 +1,14 @@
 import { rankAnimeSearch, type AnimeSearchResult } from '$lib/anime/search';
 import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
+import { db } from '$lib/server/db';
 import { RequestCache } from '$lib/server/request-cache';
+import { createAnimeSearchIndex } from '$lib/server/anime/search-index';
 import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
 
 const cache = new RequestCache<string, AnimeSearchResult[]>(5 * 60 * 1_000);
+const searchIndex = createAnimeSearchIndex(db);
 
 async function requestSearch(search: string) {
     const response = await request(
@@ -52,7 +55,10 @@ async function requestSearch(search: string) {
         ];
     });
 
-    return rankAnimeSearch(search, results);
+    const ranked = rankAnimeSearch(search, results);
+    await searchIndex.store(ranked);
+
+    return ranked;
 }
 
 export async function searchAnime(search: string) {
@@ -61,5 +67,8 @@ export async function searchAnime(search: string) {
         return [];
     }
 
-    return cache.get(key, () => requestSearch(search.trim()));
+    return cache.get(key, async () => {
+        const stored = await searchIndex.find(search);
+        return stored.length ? stored : requestSearch(search.trim());
+    });
 }
