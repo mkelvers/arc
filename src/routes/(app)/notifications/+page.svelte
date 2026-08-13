@@ -3,6 +3,7 @@
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     import emptyArtwork from '$lib/assets/notifications-empty.png';
+    import EmptyState from '$lib/components/EmptyState.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -91,26 +92,14 @@
                     {/each}
                 </section>
             {:else}
-                <section
-                    class="mt-10 grid min-h-120 place-items-center border border-dashed border-border px-6 py-12 text-center sm:mt-12"
-                    aria-labelledby="empty-notifications-title"
-                >
-                    <div class="flex max-w-md flex-col items-center">
-                        <img
-                            src={emptyArtwork}
-                            alt=""
-                            width="1254"
-                            height="1254"
-                            class="h-auto w-64 sm:w-72"
-                        />
-                        <h2 id="empty-notifications-title" class="mt-1 text-lg font-semibold">
-                            You’re all caught up.
-                        </h2>
-                        <p class="mt-2 text-sm leading-6 text-muted">
-                            New episodes and related releases will appear here.
-                        </p>
-                    </div>
-                </section>
+                <EmptyState
+                    artwork={emptyArtwork}
+                    artworkWidth={1254}
+                    artworkHeight={1254}
+                    id="empty-notifications-title"
+                    title="You’re all caught up."
+                    body="We’ll let you know when something new arrives."
+                />
             {/if}
 
             {#if data.page > 1 || data.result.hasNextPage}
