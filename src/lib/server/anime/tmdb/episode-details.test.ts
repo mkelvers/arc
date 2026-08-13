@@ -19,6 +19,42 @@ const candidate: EpisodeCandidate = {
 };
 
 describe('TMDB episode detail completion', () => {
+    test('completes episode 6 from a non-English translation when English is empty', () => {
+        expect(
+            completeEpisodeDetails(
+                {
+                    ...candidate,
+                    episodeNumber: 6,
+                    title: 'Lingering Scent Behind the Supermarket with You',
+                },
+                {
+                    translations: [
+                        {
+                            country: 'US',
+                            language: 'en',
+                            name: 'Lingering Scent Behind the Supermarket with You',
+                            overview: '',
+                        },
+                        {
+                            country: 'JP',
+                            language: 'ja',
+                            name: 'スーパーの裏に残る匂い',
+                            overview:
+                                'Sasaki has a cigarette and nowhere to smoke it—until a pierced stranger calls out to him in the night.',
+                        },
+                    ],
+                    image: (path) => `https://images.example${path}`,
+                }
+            )
+        ).toMatchObject({
+            episodeNumber: 6,
+            overview:
+                'Sasaki has a cigarette and nowhere to smoke it—until a pierced stranger calls out to him in the night.',
+            overviewSource: 'tmdb',
+            imageUrl: null,
+        });
+    });
+
     test('fills a stale season row from translations, featured data, and stills', () => {
         expect(episodeDetailsNeeded(candidate, false)).toEqual({
             details: true,
@@ -104,8 +140,8 @@ describe('TMDB episode detail completion', () => {
         ).toMatchObject({
             title: 'Accomplices',
             titleSource: 'tmdb',
-            overview: '',
-            overviewSource: null,
+            overview: '日本語で利用可能なあらすじ。',
+            overviewSource: 'tmdb',
         });
     });
 
