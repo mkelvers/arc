@@ -5,13 +5,14 @@ import { z } from 'zod';
 
 import { db } from '$lib/server/db';
 import { accounts } from '$lib/server/db/schema';
-import { requestAniListPublication } from '$lib/server/sync/publication';
+import { requestAniListPublication } from '$lib/server/sync/publication-request';
 import type { RequestHandler } from './$types';
 
 const tokenResponseSchema = z.object({
     access_token: z.string().min(1),
     expires_in: z.number().int().positive().optional(),
 });
+
 const viewerResponseSchema = z.object({
     data: z.object({
         Viewer: z.object({

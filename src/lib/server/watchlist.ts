@@ -14,7 +14,7 @@ import {
 } from '$lib/server/db/schema';
 import { batches } from '$lib/utils';
 import { watchlistStateAfterPlayback } from './watchlist-completion';
-import { requestAniListPublication } from './sync/publication';
+import { requestAniListPublication } from './sync/publication-request';
 
 const databaseBatchSize = 1_000;
 
@@ -119,8 +119,11 @@ async function setInternalWatchlistState(userId: string, animeId: number, state:
 }
 
 export async function setWatchlistState(userId: string, anilistId: number, state: WatchlistState) {
-    const animeId = await ensureInternalAnimeId(anilistId);
-    const result = await setInternalWatchlistState(userId, animeId, state);
+    const result = await setInternalWatchlistState(
+        userId,
+        await ensureInternalAnimeId(anilistId),
+        state
+    );
     await requestAniListPublication(userId);
     return result;
 }

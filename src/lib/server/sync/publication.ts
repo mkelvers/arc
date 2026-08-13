@@ -6,25 +6,6 @@ import { GraphQLRequestError } from '$lib/server/graphql';
 import { publicationRetryDelay } from './publication-policy';
 import { getAniListUsers, publishAniList } from './service';
 
-const leaseDurationMs = 2 * 60 * 1_000;
-
-export async function requestAniListPublication(userId: string) {
-    const now = new Date();
-
-    await db
-        .insert(anilistPublication)
-        .values({ userId, nextAttemptAt: now })
-        .onConflictDoUpdate({
-            target: anilistPublication.userId,
-            set: {
-                version: sql`${anilistPublication.version} + 1`,
-                nextAttemptAt: now,
-                attempts: 0,
-                lastError: null,
-            },
-        });
-}
-
 export async function requestAllAniListPublications() {
     const users = await getAniListUsers();
     if (!users.length) {
@@ -70,7 +51,7 @@ async function claimPublications(limit: number) {
     for (const candidate of candidates) {
         const [row] = await db
             .update(anilistPublication)
-            .set({ leaseUntil: new Date(now.getTime() + leaseDurationMs) })
+            .set({ leaseUntil: new Date(now.getTime() + 2 * 60 * 1_000) })
             .where(
                 and(
                     eq(anilistPublication.userId, candidate.userId),

@@ -10,7 +10,7 @@ import {
     playbackProgress,
 } from '$lib/server/db/schema';
 import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
-import { requestAniListPublication } from '$lib/server/sync/publication';
+import { requestAniListPublication } from '$lib/server/sync/publication-request';
 import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
