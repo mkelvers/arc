@@ -3,7 +3,7 @@
     import { page } from '$app/state';
     import { CheckIcon, PencilSimpleIcon } from 'phosphor-svelte';
 
-    import { watchlistStatusOptions, type WatchlistState } from '$lib/watchlist';
+    import { watchlistStates, type WatchlistState } from '$lib/watchlist';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
@@ -17,12 +17,12 @@
     let { animeId, title, initialState }: Props = $props();
     let pending = $state(false);
     let failed = $state(false);
-    let seeded = false;
+    let seededAnimeId: number | undefined;
     const watchlistStatus = $derived(watchlist.state(animeId));
 
     $effect(() => {
-        if (initialState && !seeded) {
-            seeded = true;
+        if (initialState && seededAnimeId !== animeId) {
+            seededAnimeId = animeId;
             watchlist.seed(animeId, initialState);
         }
         if (page.data.account) {
@@ -95,7 +95,7 @@
 
     {#snippet content()}
         <div role="menu" aria-label={`Set ${title} watchlist status`}>
-            {#each watchlistStatusOptions as option}
+            {#each watchlistStates as option}
                 <button
                     type="button"
                     role="menuitem"
@@ -127,10 +127,7 @@
             {/if}
 
             {#if failed}
-                <p
-                    class="border-t border-white/10 px-4 py-3 text-xs text-status-error"
-                    role="alert"
-                >
+                <p class="border-t border-white/10 px-4 py-3 text-xs text-status-error" role="alert">
                     Watchlist could not be updated. Try again.
                 </p>
             {/if}

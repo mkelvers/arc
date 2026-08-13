@@ -8,7 +8,7 @@
     }
 
     let { animeId, airingAt, initialRevision }: Props = $props();
-    let airingTime = $state<string | null>(null);
+    let airingTime = $state('');
     const airingDate = $derived.by(() => {
         const date = new Date(airingAt * 1_000);
         const day = date.getDate();
@@ -75,10 +75,7 @@
                     } catch (cause) {
                         if (!controller.signal.aborted && !warned) {
                             warned = true;
-                            console.warn(
-                                `Episode update check failed for AniList ${animeId}`,
-                                cause
-                            );
+                            console.warn(`Episode update check failed for AniList ${animeId}`, cause);
                         }
                     }
                 }
@@ -100,5 +97,5 @@
 </script>
 
 <p class="mt-7 text-base font-semibold text-foreground/80 sm:mt-8 sm:text-lg">
-    The next episode airs {airingDate}{#if airingTime}{' '}at {airingTime}{/if}.
+    The next episode airs {airingDate}{airingTime ? ` at ${airingTime}` : ''}.
 </p>

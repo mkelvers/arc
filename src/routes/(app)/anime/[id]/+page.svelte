@@ -50,9 +50,7 @@
                 </Dropdown>
             </div>
 
-            <div
-                class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20"
-            >
+            <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
                 <div class="w-fit">
                     {#await data.artwork then artwork}
                         {#if artwork?.selectedLogo}
@@ -101,10 +99,13 @@
                     {#if data.anime.genres.length}
                         <span class="anime-hero-metadata__tag">
                             {#each data.anime.genres as genre, index}
-                                <a class="underline underline-offset-2" href="/">{genre}</a>{index <
-                                data.anime.genres.length - 1
-                                    ? ', '
-                                    : ''}
+                                <a
+                                    class="underline underline-offset-2"
+                                    href={`/browse?genre=${encodeURIComponent(genre)}`}
+                                >
+                                    {genre}
+                                </a>
+                                {index < data.anime.genres.length - 1 ? ', ' : ''}
                             {/each}
                         </span>
                     {/if}
@@ -113,16 +114,9 @@
                 <div
                     class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
                 >
-                    <span
-                        class="flex items-center gap-0.5 text-muted"
-                        aria-label="5 out of 5 stars"
-                    >
+                    <span class="flex items-center gap-0.5 text-muted" aria-hidden="true">
                         {#each Array(5) as _}
-                            <svg
-                                class="size-6 fill-current sm:size-7"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                            >
+                            <svg class="size-6 fill-current sm:size-7" viewBox="0 0 24 24" aria-hidden="true">
                                 <path
                                     d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
                                 />
@@ -202,10 +196,13 @@
                         <p>
                             <strong class="font-normal text-foreground">Genres:</strong>
                             {#each data.anime.genres as genre, index}
-                                <a class="underline underline-offset-2" href="/">{genre}</a>{index <
-                                data.anime.genres.length - 1
-                                    ? ', '
-                                    : ''}
+                                <a
+                                    class="underline underline-offset-2"
+                                    href={`/browse?genre=${encodeURIComponent(genre)}`}
+                                >
+                                    {genre}
+                                </a>
+                                {index < data.anime.genres.length - 1 ? ', ' : ''}
                             {/each}
                         </p>
                     </div>

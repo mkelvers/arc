@@ -6,9 +6,7 @@
 </script>
 
 <main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
-    <header
-        class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between"
-    >
+    <header class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
             <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">← Back to anime</a>
             <h1 class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">
@@ -35,8 +33,8 @@
         <section class="max-w-2xl border border-border bg-surface p-6 sm:p-8">
             <h2 class="text-xl font-semibold sm:text-2xl">No TMDB media available</h2>
             <p class="mt-3 leading-7 text-muted">
-                This release is still available on Arc, but no reliable TMDB match was found. Its
-                media options will appear automatically when a confident match becomes available.
+                This release is still available on Arc, but no reliable TMDB match was found. Its media options
+                will appear automatically when a confident match becomes available.
             </p>
             <a
                 href={`/anime/${data.anime.id}`}
@@ -91,21 +89,14 @@
                         <button
                             type="submit"
                             aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
-                            class:border-accent={data.artwork.selectedLogo?.filePath ===
-                                image.filePath}
-                            class:border-border={data.artwork.selectedLogo?.filePath !==
-                                image.filePath}
+                            class:border-accent={data.artwork.selectedLogo?.filePath === image.filePath}
+                            class:border-border={data.artwork.selectedLogo?.filePath !== image.filePath}
                             class="grid min-h-40 w-full place-items-center border bg-surface p-5 sm:min-h-48 sm:p-6"
                         >
-                            <img
-                                src={image.url}
-                                alt={`${data.anime.title} logo`}
-                                class="max-h-40 max-w-full"
-                            />
-                            <span class="sr-only"
-                                >{image.width} × {image.height}, {image.language ??
-                                    'no language'}</span
-                            >
+                            <img src={image.url} alt={`${data.anime.title} logo`} class="max-h-40 max-w-full" />
+                            <span class="sr-only">
+                                {image.width} × {image.height}, {image.language ?? 'no language'}
+                            </span>
                         </button>
                     </form>
                 {/each}
@@ -123,12 +114,9 @@
                         <input type="hidden" name="filePath" value={image.filePath} />
                         <button
                             type="submit"
-                            aria-pressed={data.artwork.selectedBackdrop?.filePath ===
-                                image.filePath}
-                            class:border-accent={data.artwork.selectedBackdrop?.filePath ===
-                                image.filePath}
-                            class:border-border={data.artwork.selectedBackdrop?.filePath !==
-                                image.filePath}
+                            aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
+                            class:border-accent={data.artwork.selectedBackdrop?.filePath === image.filePath}
+                            class:border-border={data.artwork.selectedBackdrop?.filePath !== image.filePath}
                             class="w-full overflow-hidden border bg-surface text-left"
                         >
                             <ProgressiveImage
