@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    availableEpisodeCount,
     canPreserveEpisodeMetadata,
     episodeAvailabilityTransitions,
     episodeInventoryIsExpected,
@@ -103,6 +104,28 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
         expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
         expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
+    });
+
+    test('expects all episodes before the next airing episode', () => {
+        expect(
+            availableEpisodeCount({
+                status: 'RELEASING',
+                nextAiringEpisode: { episode: 7, airingAt: 1_786_968_000 },
+            })
+        ).toBe(6);
+        expect(availableEpisodeCount({ status: 'RELEASING', nextAiringEpisode: null })).toBeNull();
+        expect(
+            availableEpisodeCount({
+                status: 'FINISHED',
+                nextAiringEpisode: { episode: 7, airingAt: 1_786_968_000 },
+            })
+        ).toBeNull();
+        expect(
+            availableEpisodeCount({
+                status: 'RELEASING',
+                nextAiringEpisode: { episode: 6, airingAt: Math.floor(Date.now() / 1_000) - 1 },
+            })
+        ).toBe(6);
     });
 
     test('backs off scheduled provider checks from minutes to days', () => {

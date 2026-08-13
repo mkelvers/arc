@@ -95,6 +95,18 @@ export function episodeInventoryIsExpected(status: AniListAnime['status']) {
     return status !== 'NOT_YET_RELEASED';
 }
 
+export function availableEpisodeCount(anime: Pick<AniListAnime, 'status' | 'nextAiringEpisode'>) {
+    if (anime.status !== 'RELEASING' || !anime.nextAiringEpisode?.episode) {
+        return null;
+    }
+
+    const nextEpisode = anime.nextAiringEpisode.episode;
+    const airingPassed =
+        anime.nextAiringEpisode.airingAt && anime.nextAiringEpisode.airingAt * 1_000 <= Date.now();
+
+    return Math.max(0, nextEpisode - (airingPassed ? 0 : 1));
+}
+
 const episodeRefreshRetryDelays = [
     2 * 60 * 1_000,
     5 * 60 * 1_000,

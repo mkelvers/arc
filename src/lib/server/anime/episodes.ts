@@ -5,7 +5,11 @@ import { db } from '$lib/server/db';
 import { animeEpisodeSync } from '$lib/server/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodeMetadataNeedsRefresh, episodeRefreshReason } from './episodes/policy';
+import {
+    availableEpisodeCount,
+    episodeMetadataNeedsRefresh,
+    episodeRefreshReason,
+} from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import { coversExpectedEpisodes } from './providers/match';
 import { findMapping } from './tmdb/mapping-store';
@@ -18,6 +22,8 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
                 nextRefreshAt: animeEpisodeSync.nextRefreshAt,
                 lastError: animeEpisodeSync.lastError,
+                nextAiringAt: animeEpisodeSync.nextAiringAt,
+                nextAiringEpisode: animeEpisodeSync.nextAiringEpisode,
             })
             .from(animeEpisodeSync)
             .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -28,11 +34,26 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
 
     const incompleteFinishedRelease =
         anime.status === 'FINISHED' && !coversExpectedEpisodes(stored, anime.episodes);
+    const persistedAiredEpisodes =
+        anime.status === 'RELEASING' &&
+        sync?.nextAiringAt &&
+        sync.nextAiringAt.getTime() <= Date.now() &&
+        sync.nextAiringEpisode
+            ? sync.nextAiringEpisode
+            : 0;
+    const availableEpisodes = Math.max(availableEpisodeCount(anime) ?? 0, persistedAiredEpisodes);
+    const incompleteReleasingRelease =
+        availableEpisodes > 0 && !coversExpectedEpisodes(stored, availableEpisodes);
     const incompleteMetadata = episodeMetadataNeedsRefresh(
         stored,
         sync?.metadataExternalIdId !== null && sync?.metadataExternalIdId !== undefined
     );
-    if (!stored.length || incompleteFinishedRelease || incompleteMetadata) {
+    if (
+        !stored.length ||
+        incompleteFinishedRelease ||
+        incompleteReleasingRelease ||
+        incompleteMetadata
+    ) {
         const refreshDeferred = sync?.nextRefreshAt && sync.nextRefreshAt.getTime() > Date.now();
         if (incompleteMetadata) {
             try {
@@ -55,7 +76,16 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
             }
         }
 
-        return refreshEpisodes(anime, metadataSource ?? undefined);
+        try {
+            return await refreshEpisodes(anime, metadataSource ?? undefined);
+        } catch (cause) {
+            if (stored.length) {
+                console.error(`Episode refresh failed for AniList ${anime.id}`, cause);
+                return stored;
+            }
+
+            throw cause;
+        }
     }
 
     const reason = episodeRefreshReason(sync, metadataSource?.externalIdId ?? null);
