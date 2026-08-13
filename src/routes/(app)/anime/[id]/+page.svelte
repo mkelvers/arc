@@ -13,6 +13,7 @@
     let { data }: PageProps = $props();
 
     let detailsExpanded = $state(false);
+    let loadedBackdrop = $state<string | null>(null);
 </script>
 
 <main class="bg-canvas text-foreground">
@@ -28,6 +29,7 @@
                         previewSize="w300"
                         class="z-0 col-start-1 row-start-1"
                         imageClass="object-[center_0%]"
+                        onready={() => (loadedBackdrop = artwork.selectedBackdrop?.url ?? null)}
                     />
                 {/if}
             {/await}
@@ -58,7 +60,12 @@
                                 src={artwork.selectedLogo.url}
                                 alt={data.anime.title}
                                 style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(6.4 * artwork.logoSize) / 100}vw, ${(8 * artwork.logoSize) / 100}rem)`}
-                                class="max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
+                                class={cn(
+                                    'max-w-[65vw] object-contain object-left opacity-0 transition-opacity duration-300 sm:max-w-md lg:max-w-lg 2xl:max-w-2xl',
+                                    (!artwork.selectedBackdrop ||
+                                        loadedBackdrop === artwork.selectedBackdrop.url) &&
+                                        'opacity-100'
+                                )}
                             />
                         {:else if !artwork}
                             <h1
