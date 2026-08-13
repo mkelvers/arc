@@ -22,6 +22,7 @@
     let resultQuery = $state(untrack(() => data.query));
     let loading = $state(false);
     let failed = $state(false);
+    let searchInput = $state<HTMLInputElement>();
     let activeRequest: AbortController | undefined;
 
     const searchableResults = $derived(results.filter(({ format }) => format !== 'MUSIC'));
@@ -31,7 +32,10 @@
     );
     const movies = $derived(searchableResults.filter(({ format }) => format === 'MOVIE'));
 
-    onMount(() => recent.load());
+    onMount(() => {
+        searchInput?.focus();
+        recent.load();
+    });
 
     afterNavigate(({ type }) => {
         if (type === 'popstate') {
@@ -117,6 +121,7 @@
                 placeholder="Search…"
                 autocomplete="off"
                 bind:value={query}
+                bind:this={searchInput}
                 class="h-14 w-full border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
             />
         </form>
