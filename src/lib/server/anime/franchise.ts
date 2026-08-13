@@ -5,7 +5,7 @@ import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
 import { request } from './anilist/client';
-import { plainText } from './anilist/text';
+import { plainText, present } from './anilist/text';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import {
@@ -28,17 +28,10 @@ async function fetchMetadata(entries: ChiakiEntry[]) {
     );
 
     return new Map(
-        (result.Page?.media ?? [])
-            .filter((media) => media?.idMal)
-            .map((media) => [media!.idMal!, media!] as const)
+        present(result.Page?.media).flatMap((media) =>
+            media.idMal ? [[media.idMal, media] as const] : []
+        )
     );
-}
-
-function synopsis(value: string | null | undefined) {
-    return plainText(value)
-        .replace(/\s*\(Source:[\s\S]*$/i, '')
-        .replace(/\s*Note:[\s\S]*$/i, '')
-        .trim();
 }
 
 async function currentPlayback(entries: FranchiseOrder['entries']) {
@@ -151,7 +144,7 @@ async function refresh(malId: number) {
                     audioLabel: '',
                     score: media?.averageScore ?? 0,
                     genres: (media?.genres ?? []).flatMap((genre) => (genre ? [genre] : [])),
-                    synopsis: synopsis(media?.description),
+                    synopsis: plainText(media?.description),
                     secondary: entry.secondary,
                     primary: primaryIds.has(entry.malId) || (!media && !entry.secondary),
                     href: `/anime/${anilistId}`,

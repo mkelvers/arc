@@ -3,7 +3,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 import {
     animeSearchText,
-    isAnimeSearchResults,
+    AnimeSearchResultSchema,
     rankAnimeSearch,
     searchRelevance,
     type AnimeSearchResult,
@@ -38,11 +38,12 @@ export function createAnimeSearchIndex(database: SearchDatabase) {
                 )
                 .orderBy(desc(similarity))
                 .limit(80);
-            const candidates = rows.flatMap(({ data }) =>
-                isAnimeSearchResults([data]) && searchRelevance(query, data.titles) > 0
-                    ? [data]
-                    : []
-            );
+            const candidates = rows.flatMap(({ data }) => {
+                const result = AnimeSearchResultSchema.safeParse(data);
+                return result.success && searchRelevance(query, result.data.titles) > 0
+                    ? [result.data]
+                    : [];
+            });
 
             return rankAnimeSearch(query, candidates).slice(0, 50);
         },

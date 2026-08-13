@@ -1,9 +1,5 @@
 import { GraphQLRequestError } from '$lib/server/graphql';
 
-function sleep(milliseconds: number) {
-    return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
-
 export class AniListRequestPolicy {
     #blockedUntil = 0;
     #nextStartAt = 0;
@@ -19,7 +15,7 @@ export class AniListRequestPolicy {
         const turn = this.#schedule.then(async () => {
             const wait = this.#nextStartAt - Date.now();
             if (wait > 0) {
-                await sleep(wait);
+                await new Promise((resolve) => setTimeout(resolve, wait));
             }
 
             if (this.#blockedUntil > Date.now()) {

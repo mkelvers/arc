@@ -1,12 +1,14 @@
+import type { AnimeCard } from '$lib/anime/types';
 import { HomeAnimeDocument, type MediaSeason } from '$lib/graphql/anilist/generated/graphql';
 import { RequestCache } from '$lib/server/request-cache';
 import { request } from './client';
 import { selectPopularAnime } from './home-selection';
 import { animeCard } from './models';
 import { present } from './text';
-import type { HomepageAnime } from './types';
 
-const cache = new RequestCache<string, HomepageAnime>(30 * 60 * 1_000);
+const cache = new RequestCache<string, { season: AnimeCard[]; popular: AnimeCard[] }>(
+    30 * 60 * 1_000
+);
 
 async function requestHomepage(season: MediaSeason, seasonYear: number) {
     const response = await request(

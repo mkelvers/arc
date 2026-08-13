@@ -1,7 +1,7 @@
 import type { AniListAnime } from '../anilist/types';
 import type { AudioMode } from '$lib/anime/audio';
 
-export type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
+type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 
 export type EpisodeAvailabilityTransition = {
     episodeId: string;

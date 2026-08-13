@@ -1,20 +1,18 @@
-import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
+import type { AniListAnime } from './anilist/types';
 import { enumLabel, present } from './anilist/text';
-
-type Anime = NonNullable<AnimeQuery['Media']>;
 
 const count = new Intl.NumberFormat('en', {
     maximumFractionDigits: 1,
     notation: 'compact',
 });
 
-const staffRoles = {
-    'Original Creator': 'Original creator',
-    Director: 'Director',
-    'Series Composition': 'Series composition',
-    'Character Design': 'Character design',
-    Music: 'Music',
-} as const;
+const staffRoles = new Map([
+    ['Original Creator', 'Original creator'],
+    ['Director', 'Director'],
+    ['Series Composition', 'Series composition'],
+    ['Character Design', 'Character design'],
+    ['Music', 'Music'],
+]);
 
 function formatDescription(value: string | null) {
     if (!value) {
@@ -43,12 +41,12 @@ function formatDescription(value: string | null) {
     return cutoff >= 340 ? fragment.slice(0, cutoff) : `${fragment.trimEnd()}…`;
 }
 
-function formatStaff(media: Anime) {
+function formatStaff(media: AniListAnime) {
     const credits = new Map<string, string[]>();
 
     for (const edge of present(media.staff?.edges)) {
         const name = edge.node?.name?.full?.trim();
-        const role = edge.role ? staffRoles[edge.role as keyof typeof staffRoles] : undefined;
+        const role = edge.role ? staffRoles.get(edge.role) : undefined;
 
         if (name && role) {
             credits.set(name, [...(credits.get(name) ?? []), role]);
@@ -58,7 +56,7 @@ function formatStaff(media: Anime) {
     return [...credits].map(([name, roles]) => `${name} (${roles.join(', ')})`).join(', ');
 }
 
-function formatRankings(media: Anime) {
+function formatRankings(media: AniListAnime) {
     const rankings = present(media.rankings).filter(({ type }) => type === 'POPULAR');
     const seasonal = rankings.find(
         ({ season, year }) => season === media.season && year === media.seasonYear
@@ -76,7 +74,7 @@ function formatRankings(media: Anime) {
     ].filter((ranking): ranking is string => Boolean(ranking));
 }
 
-export function toAnimeDetails(media: Anime, description = media.description) {
+export function toAnimeDetails(media: AniListAnime, description = media.description) {
     return {
         id: media.id,
         title:

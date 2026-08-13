@@ -149,7 +149,14 @@ export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
     const components = continuityComponents(entries);
     const primaryComponent = components.toSorted((left, right) => {
         const score = (component: number[]) =>
-            component.reduce((total, malId) => total + entryWeight(byId.get(malId)!), 0);
+            component.reduce((total, malId) => {
+                const entry = byId.get(malId);
+                if (!entry) {
+                    throw new Error(`Franchise component contains unknown MAL ID ${malId}`);
+                }
+
+                return total + entryWeight(entry);
+            }, 0);
 
         return score(right) - score(left) || right.length - left.length;
     })[0];

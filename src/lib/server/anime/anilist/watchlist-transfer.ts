@@ -4,7 +4,7 @@ import { batches } from '$lib/utils';
 import { request } from './client';
 import { present } from './text';
 
-export interface WatchlistTransferAnime {
+interface WatchlistTransferAnime {
     id: number;
     idMal: number | null;
     title: {

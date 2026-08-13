@@ -4,9 +4,6 @@ import type { db } from '$lib/server/db';
 import { animeEpisodeRefresh } from '$lib/server/db/schema';
 import { episodeRefreshRetryDelay } from './episodes/policy';
 
-const leaseDurationMs = 2 * 60 * 1_000;
-const retiredRetentionMs = 90 * 24 * 60 * 60 * 1_000;
-
 export interface EpisodeRefreshTarget {
     anilistId: number;
     targetEpisode: number;
@@ -49,7 +46,10 @@ export function createEpisodeRefreshQueue(database: typeof db) {
             .where(
                 or(
                     notInArray(animeEpisodeRefresh.anilistId, anilistIds),
-                    lte(animeEpisodeRefresh.retiredAt, new Date(Date.now() - retiredRetentionMs))
+                    lte(
+                        animeEpisodeRefresh.retiredAt,
+                        new Date(Date.now() - 90 * 24 * 60 * 60 * 1_000)
+                    )
                 )
             );
     }
@@ -81,7 +81,7 @@ export function createEpisodeRefreshQueue(database: typeof db) {
         for (const candidate of candidates) {
             const [row] = await database
                 .update(animeEpisodeRefresh)
-                .set({ leaseUntil: new Date(now.getTime() + leaseDurationMs) })
+                .set({ leaseUntil: new Date(now.getTime() + 2 * 60 * 1_000) })
                 .where(
                     and(
                         eq(animeEpisodeRefresh.anilistId, candidate.anilistId),

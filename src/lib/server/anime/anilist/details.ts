@@ -12,10 +12,6 @@ const requests = new Map<number, Promise<AniListAnime>>();
 const backgroundRefreshes = new Set<number>();
 const retryAt = new Map<number, number>();
 
-function failureMessage(cause: unknown) {
-    return cause instanceof Error ? cause.message : String(cause);
-}
-
 function refreshRetryDelay(cause: unknown) {
     return cause instanceof GraphQLRequestError && cause.status === 404
         ? 6 * 60 * 60 * 1_000
@@ -108,7 +104,7 @@ export async function getAnime(id: number) {
                     (cause) => {
                         retryAt.set(id, Date.now() + refreshRetryDelay(cause));
                         console.warn(
-                            `AniList cached details refresh deferred for ${id}: ${failureMessage(cause)}`
+                            `AniList cached details refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
                         );
                     }
                 )

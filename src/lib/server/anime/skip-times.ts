@@ -53,13 +53,8 @@ interface EpisodeIdentity {
     malId: number | null | undefined;
 }
 
-export async function getEpisodeSkipTimes({
-    anilistId,
-    episodeId,
-    episodeNumber,
-    malId,
-}: EpisodeIdentity): Promise<EpisodeSkipTimes> {
-    const [row] = await db
+function storedEpisodeTimes(anilistId: number, episodeId: string) {
+    return db
         .select({
             openingStartSeconds: animeEpisode.openingStartSeconds,
             openingEndSeconds: animeEpisode.openingEndSeconds,
@@ -70,7 +65,17 @@ export async function getEpisodeSkipTimes({
         })
         .from(animeEpisode)
         .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
-        .limit(1);
+        .limit(1)
+        .then((rows) => rows[0]);
+}
+
+export async function getEpisodeSkipTimes({
+    anilistId,
+    episodeId,
+    episodeNumber,
+    malId,
+}: EpisodeIdentity): Promise<EpisodeSkipTimes> {
+    const row = await storedEpisodeTimes(anilistId, episodeId);
 
     if (!row) {
         return { opening: null, ending: null, source: null };
@@ -131,18 +136,7 @@ async function getStoredEpisodeSkipTimes(
     anilistId: number,
     episodeId: string
 ): Promise<EpisodeSkipTimes> {
-    const [row] = await db
-        .select({
-            openingStartSeconds: animeEpisode.openingStartSeconds,
-            openingEndSeconds: animeEpisode.openingEndSeconds,
-            endingStartSeconds: animeEpisode.endingStartSeconds,
-            endingEndSeconds: animeEpisode.endingEndSeconds,
-            skipTimesSource: animeEpisode.skipTimesSource,
-            skipTimesFetchedAt: animeEpisode.skipTimesFetchedAt,
-        })
-        .from(animeEpisode)
-        .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId)))
-        .limit(1);
+    const row = await storedEpisodeTimes(anilistId, episodeId);
 
     return row ? storedTimes(row) : { opening: null, ending: null, source: null };
 }

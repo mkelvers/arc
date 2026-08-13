@@ -1,66 +1,24 @@
-import { and, eq, inArray } from 'drizzle-orm';
-import { alias } from 'drizzle-orm/pg-core';
+import { inArray } from 'drizzle-orm';
 
 import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
 import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '$lib/anime/search';
 import { db } from '$lib/server/db';
-import {
-    animeArtwork,
-    animeArtworkPreference,
-    animeEpisode,
-    animeExternalId,
-    animeExternalIdLink,
-} from '$lib/server/db/schema';
+import { animeEpisode } from '$lib/server/db/schema';
 import { imageUrl } from './tmdb/client';
+import { getStoredBackdropCandidates } from './tmdb/media';
 
 async function storedArtwork(anilistIds: number[]) {
-    const source = alias(animeExternalId, 'search_anilist_id');
-    const sourceLink = alias(animeExternalIdLink, 'search_anilist_link');
-    const targetLink = alias(animeExternalIdLink, 'search_tmdb_link');
-    const target = alias(animeExternalId, 'search_tmdb_id');
-
-    const rows = await db
-        .select({
-            anilistId: source.externalId,
-            targetId: target.externalId,
-            mediaType: target.mediaType,
-            filePath: animeArtwork.filePath,
-        })
-        .from(source)
-        .innerJoin(sourceLink, eq(sourceLink.externalIdId, source.id))
-        .innerJoin(targetLink, eq(targetLink.animeId, sourceLink.animeId))
-        .innerJoin(
-            target,
-            and(
-                eq(target.id, targetLink.externalIdId),
-                eq(target.provider, 'tmdb'),
-                inArray(target.mediaType, ['movie', 'tv'])
-            )
-        )
-        .leftJoin(animeArtworkPreference, eq(animeArtworkPreference.externalIdId, target.id))
-        .leftJoin(
-            animeArtwork,
-            and(
-                eq(animeArtwork.externalIdId, target.id),
-                eq(animeArtwork.type, 'backdrop'),
-                eq(animeArtwork.filePath, animeArtworkPreference.backdropFilePath)
-            )
-        )
-        .where(
-            and(
-                eq(source.provider, 'anilist'),
-                eq(source.mediaType, 'anime'),
-                inArray(source.externalId, anilistIds)
-            )
-        );
+    const rows = await getStoredBackdropCandidates(anilistIds);
 
     const candidates = new Map<number, SearchArtwork[]>();
     for (const row of rows) {
-        const value = {
-            group: `tmdb:${row.mediaType}:${row.targetId}`,
-            backdrop: row.filePath ? imageUrl(row.filePath, 'w780') : null,
-        };
-        candidates.set(row.anilistId, [...(candidates.get(row.anilistId) ?? []), value]);
+        candidates.set(row.anilistId, [
+            ...(candidates.get(row.anilistId) ?? []),
+            {
+                group: `tmdb:${row.mediaType}:${row.targetId}`,
+                backdrop: row.filePath ? imageUrl(row.filePath, 'w780') : null,
+            },
+        ]);
     }
 
     return new Map(

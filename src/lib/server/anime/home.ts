@@ -135,10 +135,12 @@ async function buildSelection(rotationStart: string) {
 
     const stored = await selectionForRotation(rotationStart);
     const selectedById = new Map(selected.map((anime) => [anime.id, anime]));
+    const ordered = stored.flatMap((id) => {
+        const anime = selectedById.get(id);
+        return anime ? [anime] : [];
+    });
 
-    return stored.length === 6 && stored.every((id) => selectedById.has(id))
-        ? stored.map((id) => selectedById.get(id)!)
-        : hydrate(stored);
+    return stored.length === 6 && ordered.length === 6 ? ordered : hydrate(stored);
 }
 
 async function loadHomeHero(rotationStart: string) {

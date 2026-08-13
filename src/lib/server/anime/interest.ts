@@ -10,8 +10,6 @@ import {
     watchlist,
 } from '$lib/server/db/schema';
 
-const recentVisitLifetimeMs = 30 * 24 * 60 * 60 * 1_000;
-
 export async function recordAnimeVisit(userId: string | undefined, anilistId: number) {
     if (!userId) {
         return;
@@ -27,17 +25,13 @@ export async function recordAnimeVisit(userId: string | undefined, anilistId: nu
         });
 }
 
-function selectedAniListId() {
-    return { anilistId: animeExternalId.externalId };
-}
-
 export async function getProactiveAnimeIds(now = new Date()) {
-    const recentThreshold = new Date(now.getTime() - recentVisitLifetimeMs);
+    const recentThreshold = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1_000);
     await db.delete(animeRecentVisit).where(lt(animeRecentVisit.visitedAt, recentThreshold));
 
     const [watchlistRows, progressRows, visitRows, notificationRows] = await Promise.all([
         db
-            .select(selectedAniListId())
+            .select({ anilistId: animeExternalId.externalId })
             .from(watchlist)
             .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, watchlist.animeId))
             .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
@@ -45,7 +39,7 @@ export async function getProactiveAnimeIds(now = new Date()) {
                 and(eq(animeExternalId.provider, 'anilist'), eq(animeExternalId.mediaType, 'anime'))
             ),
         db
-            .select(selectedAniListId())
+            .select({ anilistId: animeExternalId.externalId })
             .from(playbackProgress)
             .innerJoin(
                 animeExternalIdLink,
