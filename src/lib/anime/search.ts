@@ -7,7 +7,7 @@ export interface SearchArtwork {
     backdrop: string | null;
 }
 
-const AnimeSearchResultSchema = AnimeCardSchema.extend({
+export const AnimeSearchResultSchema = AnimeCardSchema.extend({
     titles: z.array(z.string()),
     format: z.string().nullable(),
     popularity: z.number(),
@@ -18,22 +18,34 @@ const AnimeSearchResultSchema = AnimeCardSchema.extend({
 
 export type AnimeSearchResult = z.infer<typeof AnimeSearchResultSchema>;
 
-const AnimeSearchResultsSchema = z.array(AnimeSearchResultSchema);
-
-export function isAnimeSearchResults(value: unknown): value is AnimeSearchResult[] {
-    return AnimeSearchResultsSchema.safeParse(value).success;
-}
-
 function searchTokens(value: string) {
-    return value
+    const normalized = value
         .normalize('NFKD')
         .toLocaleLowerCase('en')
         .replace(/\p{M}/gu, '')
         .replace(/\bzero\b/gu, '0')
         .replace(/[^\p{L}\p{N}]+/gu, ' ')
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
+        .trim();
+
+    return normalized ? normalized.split(/\s+/) : [];
+}
+
+interface SearchPhrase {
+    words: string[];
+    phrase: string;
+    compact: string;
+    acronym: string;
+}
+
+function searchPhrase(value: string): SearchPhrase {
+    const words = searchTokens(value);
+
+    return {
+        words,
+        phrase: words.join(' '),
+        compact: words.join(''),
+        acronym: words.map((word) => word[0]).join(''),
+    };
 }
 
 export function animeSearchText(titles: readonly string[]) {
@@ -85,53 +97,46 @@ function fuzzyDistance(query: string, candidate: string) {
     return distance;
 }
 
-export function searchRelevance(query: string, titles: readonly string[]) {
-    const queryWords = searchTokens(query);
-    const compactQuery = queryWords.join('');
-    if (!compactQuery) {
+function titleRelevance(query: SearchPhrase, title: string) {
+    const candidate = searchPhrase(title);
+
+    if (candidate.compact === query.compact && query.compact.length > 5) {
+        return 1_000;
+    }
+
+    if (
+        candidate.compact !== query.compact &&
+        (candidate.phrase.startsWith(query.phrase) || candidate.compact.startsWith(query.compact))
+    ) {
+        return 880;
+    }
+
+    if (candidate.acronym === query.compact) {
+        return 840;
+    }
+
+    if (query.words.length === 1 && candidate.words.includes(query.phrase)) {
+        return 760;
+    }
+
+    if (candidate.phrase.includes(query.phrase) || candidate.compact.includes(query.compact)) {
+        return 760 - Math.min(candidate.compact.indexOf(query.compact), 100);
+    }
+
+    if (query.compact.length < 4 || query.compact.length > 64) {
         return 0;
     }
 
-    return Math.max(
-        0,
-        ...titles.map((title) => {
-            const titleWords = searchTokens(title);
-            const compactTitle = titleWords.join('');
-            const phrase = titleWords.join(' ');
-            const queryPhrase = queryWords.join(' ');
+    const distance = fuzzyDistance(query.compact, candidate.compact);
+    const tolerance = query.compact.length < 7 ? 1 : 2;
+    return distance <= tolerance ? 620 - distance * 60 : 0;
+}
 
-            if (compactTitle === compactQuery && compactQuery.length > 5) {
-                return 1_000;
-            }
-
-            if (
-                compactTitle !== compactQuery &&
-                (phrase.startsWith(queryPhrase) || compactTitle.startsWith(compactQuery))
-            ) {
-                return 880;
-            }
-
-            if (titleWords.map((word) => word[0]).join('') === compactQuery) {
-                return 840;
-            }
-
-            if (queryWords.length === 1 && titleWords.includes(queryPhrase)) {
-                return 760;
-            }
-
-            if (phrase.includes(queryPhrase) || compactTitle.includes(compactQuery)) {
-                return 760 - Math.min(compactTitle.indexOf(compactQuery), 100);
-            }
-
-            if (compactQuery.length < 4 || compactQuery.length > 64) {
-                return 0;
-            }
-
-            const distance = fuzzyDistance(compactQuery, compactTitle);
-            const tolerance = compactQuery.length < 7 ? 1 : 2;
-            return distance <= tolerance ? 620 - distance * 60 : 0;
-        })
-    );
+export function searchRelevance(query: string, titles: readonly string[]) {
+    const phrase = searchPhrase(query);
+    return phrase.compact
+        ? Math.max(0, ...titles.map((title) => titleRelevance(phrase, title)))
+        : 0;
 }
 
 export function rankAnimeSearch(query: string, results: AnimeSearchResult[]) {

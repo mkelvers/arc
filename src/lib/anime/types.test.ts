@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isAnimeCardPage, type AnimeCard } from './types';
+import { AnimeCardPageSchema, type AnimeCard } from './types';
 
 const card = {
     id: 1,
@@ -22,21 +22,29 @@ describe('anime card page response validation', () => {
     };
 
     test('accepts complete paginated responses', () => {
-        expect(isAnimeCardPage(page)).toBeTrue();
+        expect(AnimeCardPageSchema.safeParse(page).success).toBeTrue();
     });
 
     test('rejects malformed pages and invalid cards', () => {
         expect(
-            isAnimeCardPage({
+            AnimeCardPageSchema.safeParse({
                 ...page,
                 anime: [{ ...card, id: '1' }],
-            })
+            }).success
         ).toBeFalse();
         expect(
-            isAnimeCardPage({ ...page, anime: [{ ...card, href: 'https://example.test' }] })
+            AnimeCardPageSchema.safeParse({
+                ...page,
+                anime: [{ ...card, href: 'https://example.test' }],
+            }).success
         ).toBe(false);
-        expect(isAnimeCardPage({ ...page, anime: [{ ...card, score: Number.NaN }] })).toBeFalse();
-        expect(isAnimeCardPage({ ...page, page: 1.5 })).toBeFalse();
-        expect(isAnimeCardPage({ ...page, hasNextPage: 'yes' })).toBeFalse();
+        expect(
+            AnimeCardPageSchema.safeParse({
+                ...page,
+                anime: [{ ...card, score: Number.NaN }],
+            }).success
+        ).toBeFalse();
+        expect(AnimeCardPageSchema.safeParse({ ...page, page: 1.5 }).success).toBeFalse();
+        expect(AnimeCardPageSchema.safeParse({ ...page, hasNextPage: 'yes' }).success).toBeFalse();
     });
 });

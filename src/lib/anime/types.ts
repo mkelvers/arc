@@ -18,15 +18,11 @@ export const AnimeCardSchema = z.object({
 
 export type AnimeCard = z.infer<typeof AnimeCardSchema>;
 
-const AnimeCardPageSchema = z.object({
+export const AnimeCardPageSchema = z.object({
     anime: z.array(AnimeCardSchema),
     hasNextPage: z.boolean(),
     page: z.number().int(),
 });
-
-export function isAnimeCardPage(value: unknown): value is z.infer<typeof AnimeCardPageSchema> {
-    return AnimeCardPageSchema.safeParse(value).success;
-}
 
 export type AnimeEpisode = {
     id: string;
