@@ -3,6 +3,7 @@
     import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
     import type { Sources } from '$lib/player/media';
     import { SpinnerGapIcon } from 'phosphor-svelte';
+    import ProgressiveImage from './ProgressiveImage.svelte';
     import VideoPlayer from './VideoPlayer.svelte';
 
     interface Playback {
@@ -163,10 +164,12 @@
         class="relative grid aspect-21/9 w-full place-items-center overflow-hidden bg-black px-6 text-center"
     >
         {#if poster}
-            <img
+            <ProgressiveImage
                 src={poster}
                 alt=""
-                class="absolute inset-0 size-full scale-105 object-cover opacity-35 blur-xl"
+                previewSize="w300"
+                class="absolute inset-0 opacity-35"
+                imageClass="scale-105 blur-xl"
             />
         {/if}
         <SpinnerGapIcon

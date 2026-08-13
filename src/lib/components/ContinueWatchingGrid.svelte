@@ -2,6 +2,7 @@
     import { enhance } from '$app/forms';
     import { XIcon } from 'phosphor-svelte';
     import type { ContinueWatchingCard } from '$lib/anime/types';
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
 
     interface Props {
@@ -31,17 +32,16 @@
                         aria-label={`Continue watching ${entry.title}, ${entry.episodeLabel}`}
                     >
                         <div class="relative aspect-video overflow-hidden bg-surface">
-                            <img
+                            <ProgressiveImage
                                 src={entry.backdrop}
                                 alt=""
-                                class="absolute inset-0 size-full object-cover transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
-                                loading="lazy"
+                                previewSize="w300"
+                                class="absolute inset-0 transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
                             />
-                            <img
+                            <ProgressiveImage
                                 src={entry.episodeImage}
                                 alt=""
-                                class="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                                loading="lazy"
+                                class="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                             />
                             {#if entry.duration}
                                 <span

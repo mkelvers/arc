@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -130,10 +131,11 @@
                                 image.filePath}
                             class="w-full overflow-hidden border bg-surface text-left"
                         >
-                            <img
+                            <ProgressiveImage
                                 src={image.url}
                                 alt={`${data.anime.title} backdrop`}
-                                class="aspect-video w-full object-cover"
+                                previewSize="w300"
+                                class="aspect-video w-full"
                             />
                             <span class="block px-3 py-2 text-xs text-subtle">
                                 {image.width} × {image.height} · {image.language ?? 'no language'} · {image.voteAverage.toFixed(

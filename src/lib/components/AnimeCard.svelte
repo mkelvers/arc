@@ -2,6 +2,7 @@
     import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
     import type { AnimeCard } from '$lib/anime/types';
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
 
@@ -30,7 +31,7 @@
         </a>
         <div class="flex min-h-28 gap-3 p-2">
             <div class="aspect-2/3 h-24 shrink-0 overflow-hidden bg-surface">
-                <img src={anime.image} alt="" class="size-full object-cover" loading="lazy" />
+                <ProgressiveImage src={anime.image} alt="" />
             </div>
             <div class="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-col py-1">
                 <h3 class="line-clamp-1 text-sm leading-snug font-semibold">{anime.title}</h3>
@@ -89,11 +90,10 @@
                 onclick={onselect}
             >
                 <div class="aspect-video overflow-hidden bg-surface">
-                    <img
+                    <ProgressiveImage
                         src={anime.backdrop ?? anime.image}
                         alt=""
-                        class="size-full object-cover"
-                        loading="lazy"
+                        previewSize="w300"
                     />
                 </div>
                 <h3 class="mt-3 line-clamp-2 min-h-10 text-sm leading-snug font-semibold">
@@ -172,7 +172,7 @@
                 onclick={onselect}
             >
                 <div class="aspect-2/3 overflow-hidden bg-surface">
-                    <img src={anime.image} alt="" class="size-full object-cover" loading="lazy" />
+                    <ProgressiveImage src={anime.image} alt="" />
                 </div>
                 <h3
                     class:min-h-10={!compact}
@@ -186,11 +186,10 @@
             </a>
         </div>
 
-        <img
+        <ProgressiveImage
             src={anime.image}
             alt=""
-            class="pointer-events-none absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-            loading="lazy"
+            class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
         />
         <div
             class="pointer-events-none absolute inset-0 flex flex-col bg-surface/88 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"

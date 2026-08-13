@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     import emptyArtwork from '$lib/assets/notifications-empty.png';
@@ -38,11 +39,11 @@
                             class="group relative grid overflow-hidden bg-canvas transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[20rem_minmax(0,1fr)]"
                         >
                             {#if notification.image}
-                                <img
+                                <ProgressiveImage
                                     src={notification.image}
                                     alt=""
-                                    class="aspect-video h-full w-full object-cover sm:aspect-[4/3]"
-                                    loading="lazy"
+                                    previewSize="w300"
+                                    class="aspect-video h-full w-full sm:aspect-[4/3]"
                                 />
                             {:else}
                                 <div class="hidden aspect-[4/3] bg-panel sm:block"></div>

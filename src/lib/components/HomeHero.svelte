@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { CaretLeftIcon, CaretRightIcon, PlayIcon } from 'phosphor-svelte';
     import { cn } from '$lib/utils';
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
 
     interface Highlight {
@@ -82,13 +83,15 @@
                 >
                     {#each highlights as anime, index (anime.id)}
                         {#if index === active || index === previous}
-                            <img
+                            <ProgressiveImage
                                 src={anime.image}
                                 alt=""
+                                previewSize="w300"
                                 class={cn(
-                                    'col-start-1 row-start-1 size-full object-cover object-center transition-opacity duration-500 ease-out motion-reduce:transition-none',
+                                    'col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none',
                                     index === active ? 'opacity-100' : 'opacity-0'
                                 )}
+                                imageClass="object-center"
                                 loading={index === 0 ? 'eager' : 'lazy'}
                                 fetchpriority={index === 0 ? 'high' : 'auto'}
                                 ontransitionend={(event) => {

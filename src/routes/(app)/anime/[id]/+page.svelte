@@ -2,6 +2,7 @@
     import Dropdown from '$lib/components/Dropdown.svelte';
     import EpisodeList from '$lib/components/EpisodeList.svelte';
     import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import AiringStatus from './_components/AiringStatus.svelte';
     import WatchlistStatusMenu from './_components/WatchlistStatusMenu.svelte';
@@ -21,10 +22,12 @@
         >
             {#await data.artwork then artwork}
                 {#if artwork?.selectedBackdrop}
-                    <img
+                    <ProgressiveImage
                         src={artwork.selectedBackdrop.url}
                         alt={data.anime.title}
-                        class="z-0 col-start-1 row-start-1 size-full object-cover object-[center_0%]"
+                        previewSize="w300"
+                        class="z-0 col-start-1 row-start-1"
+                        imageClass="object-[center_0%]"
                     />
                 {/if}
             {/await}

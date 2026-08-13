@@ -4,6 +4,7 @@
     import { audioAvailabilityLabel } from '$lib/anime/audio';
     import type { AnimeEpisode } from '$lib/anime/types';
     import { cn } from '$lib/utils';
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
 
     interface Props {
         episode: AnimeEpisode;
@@ -26,10 +27,10 @@
     >
         <div class="relative aspect-video w-36 shrink-0 overflow-hidden bg-media-tile">
             {#if episode.image || image}
-                <img
+                <ProgressiveImage
                     src={episode.image ?? image ?? ''}
                     alt=""
-                    class="size-full object-cover transition-transform duration-200 group-hover:scale-105"
+                    imageClass="transition-transform duration-200 group-hover:scale-105"
                 />
             {/if}
             {#if episode.duration}
@@ -67,11 +68,10 @@
                 )}
             >
                 {#if episode.image || image}
-                    <img
+                    <ProgressiveImage
                         src={episode.image ?? image ?? ''}
                         alt=""
-                        class={cn('size-full object-cover', !dialog && 'brightness-75')}
-                        loading="lazy"
+                        imageClass={cn(!dialog && 'brightness-75')}
                     />
                 {/if}
                 {#if current}
