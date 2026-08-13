@@ -13,14 +13,7 @@
         topSpacing?: boolean;
     }
 
-    let {
-        anime,
-        heading,
-        headingId,
-        emptyMessage,
-        overlap = false,
-        topSpacing = true,
-    }: Props = $props();
+    let { anime, heading, headingId, emptyMessage, overlap = false, topSpacing = true }: Props = $props();
     let rail = $state<HTMLDivElement>();
     let canScrollLeft = $state(false);
     let canScrollRight = $state(false);

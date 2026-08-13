@@ -28,9 +28,7 @@
 </script>
 
 <div>
-    <div
-        class="relative h-13 border-b border-border-strong transition-colors focus-within:border-accent"
-    >
+    <div class="relative h-13 border-b border-border-strong transition-colors focus-within:border-accent">
         <input
             id={name}
             class="peer h-full w-full bg-transparent pt-8 pr-14 text-base outline-none placeholder:text-transparent"

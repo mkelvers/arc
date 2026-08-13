@@ -13,14 +13,13 @@
 
     let { id, title, results, onselect }: Props = $props();
     let expanded = $state(false);
-    const visible = $derived(expanded ? results : results.slice(0, 6));
 </script>
 
 {#if results.length}
     <section class="mt-10" aria-labelledby={id}>
         <h2 id={id} class="mb-3 text-xl font-bold">{title}</h2>
         <div class="-mx-2 grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
-            {#each visible as result (result.id)}
+            {#each expanded ? results : results.slice(0, 6) as result (result.id)}
                 <AnimeCard anime={result} variant="compact" onselect={() => onselect?.(result)} />
             {/each}
         </div>

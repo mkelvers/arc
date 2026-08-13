@@ -12,12 +12,7 @@
     let { episodes = [], title, image = null, loading = false }: Props = $props();
 </script>
 
-<section
-    id="anime-episode-list"
-    class="py-7 sm:pb-12 lg:pb-16"
-    aria-busy={loading}
-    aria-live="polite"
->
+<section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16" aria-busy={loading} aria-live="polite">
     {#if loading}
         <span class="sr-only">Loading episodes</span>
         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">

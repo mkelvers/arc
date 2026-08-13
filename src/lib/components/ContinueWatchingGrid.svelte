@@ -13,10 +13,7 @@
 </script>
 
 {#if anime.length}
-    <section
-        class="px-5 pb-16 sm:px-10 sm:pb-18 lg:px-16 lg:pb-24"
-        aria-labelledby="continue-watching"
-    >
+    <section class="px-5 pb-16 sm:px-10 sm:pb-18 lg:px-16 lg:pb-24" aria-labelledby="continue-watching">
         <h2 id="continue-watching" class="mb-5 text-xl font-bold sm:text-2xl">Continue Watching</h2>
 
         <div

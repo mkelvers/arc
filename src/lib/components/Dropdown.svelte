@@ -108,13 +108,7 @@
         }
     }}
 >
-    <input
-        id={id}
-        type="checkbox"
-        aria-label={ariaLabel}
-        class="peer sr-only"
-        bind:checked={open}
-    />
+    <input id={id} type="checkbox" aria-label={ariaLabel} class="peer sr-only" bind:checked={open} />
     <label for={id} data-testid="dropdown-trigger" class={triggerClass}>
         {@render trigger()}
     </label>

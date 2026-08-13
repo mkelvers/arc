@@ -10,8 +10,7 @@
         actionLabel?: string;
     }
 
-    let { artwork, artworkHeight, artworkWidth, body, id, title, actionHref, actionLabel }: Props =
-        $props();
+    let { artwork, artworkHeight, artworkWidth, body, id, title, actionHref, actionLabel }: Props = $props();
 </script>
 
 <section

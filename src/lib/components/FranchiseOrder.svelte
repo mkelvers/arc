@@ -44,8 +44,7 @@
     }
 
     $effect(() => {
-        const entries = visibleEntries;
-        if (!entries.length) {
+        if (!visibleEntries.length) {
             canScrollBack = false;
             canScrollForward = false;
             return;

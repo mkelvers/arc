@@ -17,9 +17,7 @@
     let { animeId, title, iconSize = '1.55rem', outlined = false }: Props = $props();
     let pending = $state(false);
     let failed = $state(false);
-    const watchlistStatus = $derived(watchlist.state(animeId));
-    const added = $derived(watchlistStatus !== null);
-    const label = $derived(added ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`);
+    const added = $derived(watchlist.state(animeId) !== null);
 
     $effect(() => {
         if (!page.data.account) {
@@ -65,7 +63,7 @@
             'grid shrink-0 place-items-center text-accent transition-opacity disabled:cursor-wait disabled:opacity-50',
             outlined ? 'size-10 border-2 border-accent' : 'size-9'
         )}
-        aria-label={label}
+        aria-label={added ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`}
         aria-pressed={added}
         disabled={pending}
         onclick={toggle}
