@@ -1,9 +1,9 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import SettingsLayer from './_components/SettingsLayer.svelte';
     import SettingsSidebar from './_components/SettingsSidebar.svelte';
+    import type { LayoutProps } from './$types';
 
-    let { children } = $props();
+    let { children }: LayoutProps = $props();
 
     const pages = {
         '/settings/subtitles': {
@@ -37,7 +37,17 @@
 >
     <SettingsSidebar />
 
-    <SettingsLayer title={currentPage.title} synopsis={currentPage.synopsis}>
-        {@render children()}
-    </SettingsLayer>
+    <section
+        class="h-fit min-w-0 self-start bg-panel px-7 py-8 md:px-10 md:py-10"
+        aria-labelledby="settings-title"
+    >
+        <header class="text-center">
+            <h1 id="settings-title" class="text-2xl font-bold tracking-tight">{currentPage.title}</h1>
+            <p class="mt-2 text-base text-muted">{currentPage.synopsis}</p>
+        </header>
+
+        <div class="mt-8">
+            {@render children()}
+        </div>
+    </section>
 </main>

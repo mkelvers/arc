@@ -20,8 +20,9 @@
     <a
         href="/settings"
         class="text-2xl font-bold tracking-tight focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-        >Account Settings</a
     >
+        Account Settings
+    </a>
 
     <nav class="mt-12" aria-label="Settings sections">
         {#each sections as section}
@@ -33,12 +34,12 @@
                         <li>
                             <a
                                 href={link.href}
-                                class="mx-1 block px-2 py-2.5 text-base {page.url.pathname ===
-                                link.href
+                                class="mx-1 block px-2 py-2.5 text-base {page.url.pathname === link.href
                                     ? 'text-accent hover:text-accent focus-visible:text-accent'
                                     : 'text-muted hover:text-foreground focus-visible:text-foreground'} transition-colors hover:bg-panel-hover focus-visible:bg-panel-hover focus-visible:outline-none"
-                                >{link.label}</a
                             >
+                                {link.label}
+                            </a>
                         </li>
                     {/each}
                 </ul>

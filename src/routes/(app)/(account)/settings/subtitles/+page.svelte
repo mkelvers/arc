@@ -66,17 +66,8 @@
         saveEdgeStyle('outline');
     }
 
-    const sizeOptions = subtitleSizeOrder;
-    const textColorOptions = [
-        'white',
-        'yellow',
-        'black',
-    ] as const satisfies readonly SubtitleTextColor[];
-    const backgroundOptions = [
-        'black',
-        'white',
-        'none',
-    ] as const satisfies readonly SubtitleBackground[];
+    const textColorOptions = ['white', 'yellow', 'black'] as const satisfies readonly SubtitleTextColor[];
+    const backgroundOptions = ['black', 'white', 'none'] as const satisfies readonly SubtitleBackground[];
     const edgeStyleOptions = ['outline', 'none'] as const satisfies readonly SubtitleEdgeStyle[];
 </script>
 
@@ -90,7 +81,7 @@
 
         <div
             class="relative mt-5 aspect-[16/7] min-h-48 overflow-hidden bg-black bg-cover bg-center ring-1 ring-border/50"
-            style={`background-image: url(${ccBackground})`}
+            style:background-image={`url(${ccBackground})`}
         >
             <div class="absolute inset-0 flex items-end justify-center p-4 sm:p-8">
                 <p
@@ -113,9 +104,7 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div>
                 <span class="text-xs text-muted">Font</span>
-                <div class="mt-2 min-h-10 border-b border-border-strong pb-2 text-sm text-muted">
-                    Default
-                </div>
+                <div class="mt-2 min-h-10 border-b border-border-strong pb-2 text-sm text-muted">Default</div>
             </div>
             <label class="block text-sm">
                 <span class="text-xs text-muted">Size</span>
@@ -131,7 +120,7 @@
                         <CaretDownIcon size="0.9rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                     {#snippet content()}
-                        {#each sizeOptions as option}
+                        {#each subtitleSizeOrder as option}
                             <button
                                 type="button"
                                 class="block w-full px-3 py-2.5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"

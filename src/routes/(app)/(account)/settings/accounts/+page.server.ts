@@ -10,13 +10,14 @@ export const load: PageServerLoad = async ({ locals }) => {
         redirect(303, '/login');
     }
 
-    const userId = locals.user.id;
-    const anilistAccount = await db.query.accounts.findFirst({
-        columns: { id: true },
-        where: (account, { and, eq }) =>
-            and(eq(account.userId, userId), eq(account.providerId, 'anilist')),
-    });
-    return { anilistConnected: Boolean(anilistAccount) };
+    return {
+        anilistConnected: Boolean(
+            await db.query.accounts.findFirst({
+                columns: { id: true },
+                where: and(eq(accounts.userId, locals.user.id), eq(accounts.providerId, 'anilist')),
+            })
+        ),
+    };
 };
 
 export const actions: Actions = {
@@ -25,10 +26,9 @@ export const actions: Actions = {
             redirect(303, '/login');
         }
 
-        const userId = locals.user.id;
         await db
             .delete(accounts)
-            .where(and(eq(accounts.userId, userId), eq(accounts.providerId, 'anilist')));
+            .where(and(eq(accounts.userId, locals.user.id), eq(accounts.providerId, 'anilist')));
 
         return { success: true };
     },

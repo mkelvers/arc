@@ -1,10 +1,10 @@
 <script lang="ts">
     import StatusBanner from '$lib/components/StatusBanner.svelte';
+    import type { PageProps } from './$types';
 
-    let { form } = $props();
+    let { form }: PageProps = $props();
     let dismissedForm = $state<unknown>();
     let replaceWatchlist = $state(false);
-    const statusMessage = $derived(form && form !== dismissedForm ? (form.message ?? '') : '');
 </script>
 
 <section aria-labelledby="import-library">
@@ -23,11 +23,7 @@
                     class="flex size-4 items-center justify-center border border-border-strong bg-transparent text-player-accent transition-colors peer-hover:border-player-accent peer-checked:border-player-accent peer-focus-visible:ring-2 peer-focus-visible:ring-player-accent peer-checked:[&>svg]:opacity-100"
                     aria-hidden="true"
                 >
-                    <svg
-                        viewBox="0 0 12 12"
-                        class="size-2.5 opacity-0 transition-opacity"
-                        fill="none"
-                    >
+                    <svg viewBox="0 0 12 12" class="size-2.5 opacity-0 transition-opacity" fill="none">
                         <path d="m2 6 2.5 2.5L10 3" stroke="currentColor" stroke-width="1.5" />
                     </svg>
                 </span>
@@ -35,8 +31,8 @@
             <span>
                 <span class="font-medium text-foreground">Replace current watchlist</span>
                 <span class="mt-1 block text-xs leading-5 text-muted">
-                    Remove entries not included in the imported file. Leave this off to add only
-                    anime that is not already in your watchlist.
+                    Remove entries not included in the imported file. Leave this off to add only anime that is not
+                    already in your watchlist.
                 </span>
             </span>
         </label>
@@ -46,9 +42,7 @@
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
                 <h3 class="text-sm text-foreground">MyAnimeList XML</h3>
-                <p class="mt-1 leading-relaxed text-muted">
-                    Import a standard MyAnimeList XML export.
-                </p>
+                <p class="mt-1 leading-relaxed text-muted">Import a standard MyAnimeList XML export.</p>
             </div>
             <form method="POST" action="?/importMal" enctype="multipart/form-data" class="shrink-0">
                 <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
@@ -63,24 +57,18 @@
                 <label
                     for="mal-import"
                     class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-accent"
-                    >Choose File</label
                 >
+                    Choose File
+                </label>
             </form>
         </div>
 
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
                 <h3 class="text-sm text-foreground">Universal Import</h3>
-                <p class="mt-1 leading-relaxed text-muted">
-                    Import anime from JSON, XML, or CSV files.
-                </p>
+                <p class="mt-1 leading-relaxed text-muted">Import anime from JSON, XML, or CSV files.</p>
             </div>
-            <form
-                method="POST"
-                action="?/importUniversal"
-                enctype="multipart/form-data"
-                class="shrink-0"
-            >
+            <form method="POST" action="?/importUniversal" enctype="multipart/form-data" class="shrink-0">
                 <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
                 <input
                     id="universal-import"
@@ -93,52 +81,49 @@
                 <label
                     for="universal-import"
                     class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-accent"
-                    >Choose File</label
                 >
+                    Choose File
+                </label>
             </form>
         </div>
     </div>
 </section>
 
 <StatusBanner
-    message={statusMessage}
+    message={form && form !== dismissedForm ? (form.message ?? '') : ''}
     tone={form?.success ? 'success' : 'error'}
     ondismiss={() => (dismissedForm = form)}
 />
 
 <section class="mt-10" aria-labelledby="export-library">
     <h2 id="export-library" class="text-sm font-medium text-foreground">Export Library</h2>
-    <p class="mt-1 text-sm leading-relaxed text-muted">
-        Download a copy of your Arc anime library.
-    </p>
+    <p class="mt-1 text-sm leading-relaxed text-muted">Download a copy of your Arc anime library.</p>
 
     <div class="mt-5 space-y-7">
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
                 <h3 class="text-sm text-foreground">Arc JSON</h3>
-                <p class="mt-1 leading-relaxed text-muted">
-                    Complete portable copy of your library.
-                </p>
+                <p class="mt-1 leading-relaxed text-muted">Complete portable copy of your library.</p>
             </div>
             <a
                 href="/watchlist/export"
                 class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >Export</a
             >
+                Export
+            </a>
         </div>
 
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
                 <h3 class="text-sm text-foreground">MyAnimeList XML</h3>
-                <p class="mt-1 leading-relaxed text-muted">
-                    Export in a format compatible with MyAnimeList.
-                </p>
+                <p class="mt-1 leading-relaxed text-muted">Export in a format compatible with MyAnimeList.</p>
             </div>
             <a
                 href="/settings/import-export/export/mal"
                 class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >Export</a
             >
+                Export
+            </a>
         </div>
     </div>
 </section>
