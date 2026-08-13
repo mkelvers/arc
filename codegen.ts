@@ -1,6 +1,6 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
 
-const config: CodegenConfig = {
+export default {
     generates: {
         'src/lib/graphql/anilist/generated/': {
             schema: 'https://graphql.anilist.co',
@@ -39,6 +39,4 @@ const config: CodegenConfig = {
             },
         },
     },
-};
-
-export default config;
+} satisfies CodegenConfig;

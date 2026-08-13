@@ -7,7 +7,7 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { auth } from '$lib/server/auth';
 import { clearance, verifyClearance } from '$lib/server/clearance';
 
-const security: Handle = async ({ event, resolve }) => {
+const securityHeaders: Handle = async ({ event, resolve }) => {
     const response = await resolve(event);
     const headers = new Headers(response.headers);
 
@@ -26,10 +26,10 @@ const security: Handle = async ({ event, resolve }) => {
     });
 };
 
-const route: Handle = async ({ event, resolve }) => {
+const routeAccess: Handle = async ({ event, resolve }) => {
     const id = event.route.id;
     const path = event.url.pathname;
-    const isAuth = path.startsWith('/api/auth');
+    const isAuth = path === '/api/auth' || path.startsWith('/api/auth/');
     const isApi = id?.startsWith('/api/') === true;
 
     if (event.cookies.get('arc_user')) {
@@ -98,4 +98,4 @@ const route: Handle = async ({ event, resolve }) => {
     return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle = sequence(security, route);
+export const handle = sequence(securityHeaders, routeAccess);

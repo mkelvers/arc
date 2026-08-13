@@ -9,7 +9,25 @@
     "arrowParens": "always",
     "endOfLine": "lf",
     "proseWrap": "never",
-    "htmlWhitespaceSensitivity": "css",
+    "htmlWhitespaceSensitivity": "ignore",
+    "ignorePatterns": [
+        ".svelte-kit/**",
+        "build/**",
+        "drizzle/**",
+        "node_modules/**",
+        "**/generated/**",
+        "**/generated.ts"
+    ],
+    "objectWrap": "preserve",
+    "singleAttributePerLine": false,
+    "overrides": [
+        {
+            "files": ["*.svelte"],
+            "options": {
+                "printWidth": 115
+            }
+        }
+    ],
     "vueIndentScriptAndStyle": false,
     "svelte": {
         "allowShorthand": false
