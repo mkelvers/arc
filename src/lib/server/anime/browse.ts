@@ -21,6 +21,7 @@ import {
 } from './anilist/browse';
 import type { MediaSeason, MediaSource } from '$lib/graphql/anilist/generated/graphql';
 import { enrichAnimeCards } from './card-enrichment';
+import { createAnimeSearchIndex } from './search-index';
 
 type CatalogCachePage = {
     animeIds: number[];
@@ -92,6 +93,26 @@ async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, p
                         updatedAt: fetchedAt,
                     },
                 });
+
+            await createAnimeSearchIndex(tx).store(
+                result.anime.map((entry) => ({
+                    id: entry.anilistId,
+                    href: `/anime/${entry.anilistId}`,
+                    link: `/anime/${entry.anilistId}`,
+                    title: entry.title,
+                    titles: entry.searchText.split('\n'),
+                    image: entry.imageUrl,
+                    audioLabel: '',
+                    score: entry.averageScore ?? 0,
+                    genres: entry.genres,
+                    synopsis: entry.synopsis,
+                    format: entry.format,
+                    popularity: entry.popularity ?? 0,
+                    backdrop: null,
+                    artworkGroup: null,
+                    relatedIds: [],
+                }))
+            );
         }
 
         await tx
