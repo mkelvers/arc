@@ -200,7 +200,7 @@
                     id="watchlist-filter"
                     ariaLabel={`Filter watchlist${selectedFilterCount ? `, ${selectedFilterCount} selected` : ''}`}
                     menuClass="mt-2 w-64 shadow-xl"
-                    triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+                    triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
                 >
                     {#snippet trigger()}
                         <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
@@ -321,7 +321,7 @@
                     id="watchlist-sort"
                     ariaLabel={`Sort watchlist. ${selectedSortLabel}, ${data.selection.order} selected`}
                     menuClass="mt-2 w-56 shadow-xl"
-                    triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+                    triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
                 >
                     {#snippet trigger()}
                         <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
