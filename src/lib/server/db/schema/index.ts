@@ -21,8 +21,6 @@ import type { AnimeSearchResult } from '$lib/anime/search';
 import type { AnimeCard } from '$lib/anime/types';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
-type AniListAnime = NonNullable<AnimeQuery['Media']>;
-
 export const externalProvider = pgEnum('external_provider', ['anilist', 'tmdb']);
 
 export const externalMediaType = pgEnum('external_media_type', ['anime', 'movie', 'tv']);
@@ -338,7 +336,7 @@ export const animeSynopsisCache = pgTable('anime_synopsis_cache', {
 
 export const animeDetailsCache = pgTable('anime_details_cache', {
     anilistId: integer('anilist_id').primaryKey(),
-    data: jsonb('data').$type<AniListAnime>().notNull(),
+    data: jsonb('data').$type<NonNullable<AnimeQuery['Media']>>().notNull(),
     version: integer('version').notNull().default(1),
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });

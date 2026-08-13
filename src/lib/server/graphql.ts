@@ -100,7 +100,7 @@ export async function graphql<TResult, TVariables>(
             let body: unknown = null;
             if (responseText) {
                 try {
-                    body = JSON.parse(responseText) as unknown;
+                    body = JSON.parse(responseText);
                 } catch {
                     // The validation below reports non-JSON responses with HTTP context.
                 }
