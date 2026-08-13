@@ -3,8 +3,10 @@
     import { CaretDownIcon } from 'phosphor-svelte';
 
     import { isAnimeCardPage, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import emptyArtwork from '$lib/assets/simulcast-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import EmptyState from '$lib/components/EmptyState.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -148,9 +150,13 @@
                 {/each}
             </div>
         {:else}
-            <p class="border border-border px-6 py-16 text-center text-sm text-muted">
-                No anime were found for {data.label}.
-            </p>
+            <EmptyState
+                artwork={emptyArtwork}
+                artworkWidth={1254}
+                artworkHeight={1254}
+                id="empty-simulcast-message"
+                body={`${data.label} is a little quiet. Try another season to see what was airing.`}
+            />
         {/if}
 
         {#if nextPage !== null}
