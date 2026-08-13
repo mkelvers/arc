@@ -8,6 +8,8 @@
         isAnimeSearchResults,
         type AnimeSearchResult,
     } from '$lib/anime/search';
+    import emptyArtwork from '$lib/assets/search-empty.png';
+    import EmptyState from '$lib/components/EmptyState.svelte';
     import SearchResultSection from '$lib/components/SearchResultSection.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
@@ -162,7 +164,13 @@
             {:else if failed}
                 <p class="text-sm text-muted">Search could not be loaded. Please try again.</p>
             {:else}
-                <p class="text-sm text-muted">No anime found for “{resultQuery}”.</p>
+                <EmptyState
+                    artwork={emptyArtwork}
+                    artworkWidth={1254}
+                    artworkHeight={1254}
+                    id="empty-search-message"
+                    body="Sorry, no results were found. Check your spelling or try searching for something else."
+                />
             {/if}
         {:else if recent.results.length}
             <section aria-labelledby="recent-results-title">
