@@ -1,9 +1,16 @@
-import { WatchlistEntriesSchema, type WatchlistState } from '$lib/watchlist';
+import { z } from 'zod';
+
+import { WatchlistStateSchema, type WatchlistState } from '$lib/watchlist';
+
+const WatchlistEntrySchema = z.object({
+    animeId: z.number().int().positive(),
+    state: WatchlistStateSchema,
+});
 
 export class WatchlistAuthenticationError extends Error {}
 
 class WatchlistClient {
-    states = $state<Record<number, WatchlistState>>({});
+    private states = $state<Partial<Record<number, WatchlistState>>>({});
     loaded = $state(false);
     private activeLoad: Promise<void> | null = null;
 
@@ -21,12 +28,13 @@ class WatchlistClient {
         if (this.loaded) {
             return;
         }
+
         if (this.activeLoad) {
             return this.activeLoad;
         }
 
         const request = this.request('/api/watchlist').then(async (response) => {
-            const entries = WatchlistEntriesSchema.parse(await response.json());
+            const entries = z.array(WatchlistEntrySchema).parse(await response.json());
             this.states = Object.fromEntries(entries.map(({ animeId, state }) => [animeId, state]));
             this.loaded = true;
         });
@@ -47,7 +55,7 @@ class WatchlistClient {
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ state }),
         });
-        const result = WatchlistEntriesSchema.element.parse({
+        const result = WatchlistEntrySchema.parse({
             animeId,
             ...(await response.json()),
         });
@@ -87,6 +95,7 @@ class WatchlistClient {
         if (response.status === 401) {
             throw new WatchlistAuthenticationError('Authentication required');
         }
+
         if (!response.ok) {
             throw new Error(`Watchlist request failed with ${response.status}`);
         }

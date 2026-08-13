@@ -30,8 +30,10 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
     }
 
     try {
-        const state = await setWatchlistState(locals.user.id, id, parsed.data);
-        return json({ state }, { headers: { 'cache-control': 'no-store' } });
+        return json(
+            { state: await setWatchlistState(locals.user.id, id, parsed.data) },
+            { headers: { 'cache-control': 'no-store' } }
+        );
     } catch (cause) {
         console.error(`Watchlist status update failed for AniList ${id}`, cause);
         return json({ message: 'Watchlist could not be updated' }, { status: 500 });

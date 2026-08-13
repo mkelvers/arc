@@ -14,26 +14,21 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
     import EmptyState from '$lib/components/EmptyState.svelte';
-    import type {
-        WatchlistLanguage,
-        WatchlistMedia,
-        WatchlistOrder,
-        WatchlistSort,
-        WatchlistState,
-        WatchlistType,
+    import {
+        watchlistStates,
+        type WatchlistLanguage,
+        type WatchlistMedia,
+        type WatchlistOrder,
+        type WatchlistSort,
+        type WatchlistState,
+        type WatchlistType,
     } from '$lib/watchlist';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
 
-    const filters = [
-        { value: 'all', label: 'All' },
-        { value: 'watching', label: 'Watching' },
-        { value: 'plan_to_watch', label: 'Plan to Watch' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'dropped', label: 'Dropped' },
-    ] as const satisfies ReadonlyArray<{
+    const filters = [{ value: 'all', label: 'All' }, ...watchlistStates] as const satisfies ReadonlyArray<{
         value: WatchlistState | 'all';
         label: string;
     }>;
@@ -84,9 +79,7 @@
             Number(data.selection.media !== 'all') +
             Number(data.selection.type !== 'all')
     );
-    const selectedTypeLabel = $derived(
-        types.find(({ value }) => value === data.selection.type)?.label ?? 'All'
-    );
+    const selectedTypeLabel = $derived(types.find(({ value }) => value === data.selection.type)?.label ?? 'All');
     let filterView = $state<'main' | 'type'>('main');
     const filteredEmptyCopy = $derived.by(() => {
         switch (data.selection.state) {
@@ -170,9 +163,7 @@
                                 class:border-transparent={data.selection.state !== filter.value}
                                 class:text-foreground={data.selection.state === filter.value}
                                 class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                                aria-current={data.selection.state === filter.value
-                                    ? 'page'
-                                    : undefined}
+                                aria-current={data.selection.state === filter.value ? 'page' : undefined}
                             >
                                 {filter.label}
                             </a>
@@ -191,9 +182,11 @@
                     {#snippet trigger()}
                         <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
                         <span class="hidden sm:inline">Filter</span>
-                        {#if selectedFilterCount}<span class="text-accent"
-                                >{selectedFilterCount}</span
-                            >{/if}
+                        {#if selectedFilterCount}
+                            <span class="text-accent">
+                                {selectedFilterCount}
+                            </span>
+                        {/if}
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
 
@@ -214,18 +207,12 @@
                                     <span>Type</span>
                                     <span class="flex items-center gap-1 text-foreground">
                                         {selectedTypeLabel}
-                                        <CaretRightIcon
-                                            size="0.85rem"
-                                            weight="bold"
-                                            aria-hidden="true"
-                                        />
+                                        <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                                     </span>
                                 </button>
 
                                 {#each filterGroups as group}
-                                    <p
-                                        class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase"
-                                    >
+                                    <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
                                         {group.label}
                                     </p>
                                     {#each group.options as option}
@@ -233,10 +220,7 @@
                                             role="menuitemradio"
                                             aria-checked={filterSelected(group.key, option.value)}
                                             href={filterHref(group.key, option.value)}
-                                            class:text-foreground={filterSelected(
-                                                group.key,
-                                                option.value
-                                            )}
+                                            class:text-foreground={filterSelected(group.key, option.value)}
                                             class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                         >
                                             {#if filterSelected(group.key, option.value)}
@@ -247,11 +231,7 @@
                                                     aria-hidden="true"
                                                 />
                                             {:else}
-                                                <CircleIcon
-                                                    size="1.25rem"
-                                                    weight="regular"
-                                                    aria-hidden="true"
-                                                />
+                                                <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
                                             {/if}
                                             {option.label}
                                         </a>
@@ -267,11 +247,7 @@
                                         filterView = 'main';
                                     }}
                                 >
-                                    <CaretLeftIcon
-                                        size="0.95rem"
-                                        weight="bold"
-                                        aria-hidden="true"
-                                    />
+                                    <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
                                     Type
                                 </button>
                                 {#each types as option}
@@ -290,11 +266,7 @@
                                                 aria-hidden="true"
                                             />
                                         {:else}
-                                            <CircleIcon
-                                                size="1.25rem"
-                                                weight="regular"
-                                                aria-hidden="true"
-                                            />
+                                            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
                                         {/if}
                                         {option.label}
                                     </a>
@@ -333,19 +305,13 @@
                                             aria-hidden="true"
                                         />
                                     {:else}
-                                        <CircleIcon
-                                            size="1.25rem"
-                                            weight="regular"
-                                            aria-hidden="true"
-                                        />
+                                        <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
                                     {/if}
                                     {sort.label}
                                 </a>
                             {/each}
 
-                            <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">
-                                Sort Order
-                            </p>
+                            <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">Sort Order</p>
                             {#each orders as order}
                                 <a
                                     role="menuitemradio"
@@ -362,11 +328,7 @@
                                             aria-hidden="true"
                                         />
                                     {:else}
-                                        <CircleIcon
-                                            size="1.25rem"
-                                            weight="regular"
-                                            aria-hidden="true"
-                                        />
+                                        <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
                                     {/if}
                                     {order.label}
                                 </a>
