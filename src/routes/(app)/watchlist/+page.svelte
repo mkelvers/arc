@@ -13,6 +13,7 @@
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import EmptyState from '$lib/components/EmptyState.svelte';
     import type {
         WatchlistLanguage,
         WatchlistMedia,
@@ -90,30 +91,15 @@
     const filteredEmptyCopy = $derived.by(() => {
         switch (data.selection.state) {
             case 'watching':
-                return {
-                    title: 'Ready when you are.',
-                    body: 'Start watching something and it’ll appear here.',
-                };
+                return 'It’s quiet here for now. Start watching something and it’ll appear here.';
             case 'plan_to_watch':
-                return {
-                    title: 'No plans queued up.',
-                    body: 'Bookmark something for later and it’ll show up here.',
-                };
+                return 'No plans yet. Save something for later and it’ll be waiting here.';
             case 'completed':
-                return {
-                    title: 'Your finished shelf is waiting.',
-                    body: 'Anime you finish will take its place here.',
-                };
+                return 'Your finished shelf is waiting. Anime you complete will appear here.';
             case 'dropped':
-                return {
-                    title: 'Nothing left behind.',
-                    body: 'Anything you choose to drop will appear here.',
-                };
+                return 'Nothing has been set aside. Anime you drop will appear here.';
             default:
-                return {
-                    title: 'No matching anime.',
-                    body: 'Try another watchlist status to find what you’re looking for.',
-                };
+                return 'Sorry, nothing matched your filters. Try another status or clear a few filters.';
         }
     });
 
@@ -392,62 +378,29 @@
         </div>
 
         {#if data.totalEntries === 0}
-            <section
-                class="mt-10 grid min-h-120 place-items-center border border-dashed border-border px-6 py-12 text-center sm:mt-12"
-                aria-labelledby="empty-watchlist-title"
-            >
-                <div class="flex max-w-md flex-col items-center">
-                    <img
-                        src={emptyArtwork}
-                        alt=""
-                        width="566"
-                        height="720"
-                        class="h-auto w-48 sm:w-56"
-                    />
-                    <h2 id="empty-watchlist-title" class="mt-1 text-lg font-semibold">
-                        Your watchlist needs some love.
-                    </h2>
-                    <p class="mt-2 text-sm leading-6 text-muted">
-                        Let’s fill it with some awesome anime.
-                    </p>
-                    <a
-                        href="/"
-                        class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-opacity hover:opacity-85 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >
-                        Go to Home Feed
-                    </a>
-                </div>
-            </section>
+            <EmptyState
+                artwork={emptyArtwork}
+                artworkWidth={566}
+                artworkHeight={720}
+                id="empty-watchlist-title"
+                title="Your Watchlist needs some love."
+                body="Let’s fill it up with awesome anime."
+                actionHref="/"
+                actionLabel="Explore Anime"
+            />
         {:else}
             <section class="mt-8" aria-label={`${selectedStateLabel} anime`}>
                 {#await data.entries then entries}
                     {#if entries.length === 0}
-                        <section
-                            class="mt-10 grid min-h-96 place-items-center border border-dashed border-border px-6 py-10 text-center sm:mt-12"
-                            aria-labelledby="empty-filter-title"
-                        >
-                            <div class="flex max-w-sm flex-col items-center">
-                                <img
-                                    src={filteredEmptyArtwork}
-                                    alt=""
-                                    width="622"
-                                    height="640"
-                                    class="h-auto w-40 sm:w-44"
-                                />
-                                <h2 id="empty-filter-title" class="mt-2 text-lg font-semibold">
-                                    {filteredEmptyCopy.title}
-                                </h2>
-                                <p class="mt-2 text-sm leading-6 text-muted">
-                                    {filteredEmptyCopy.body}
-                                </p>
-                                <a
-                                    href={selectionHref({ state: 'all' })}
-                                    class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-opacity hover:opacity-85 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                                >
-                                    View All Watchlist
-                                </a>
-                            </div>
-                        </section>
+                        <EmptyState
+                            artwork={filteredEmptyArtwork}
+                            artworkWidth={622}
+                            artworkHeight={640}
+                            id="empty-filter-message"
+                            body={filteredEmptyCopy}
+                            actionHref={selectionHref({ state: 'all' })}
+                            actionLabel="View All Statuses"
+                        />
                     {:else}
                         <div
                             class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 2xl:gap-x-5"
