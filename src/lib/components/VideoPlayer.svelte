@@ -671,7 +671,9 @@
                             skipSaving={skipSaving}
                             subtitleMode={media.subtitleMode}
                             subtitleOptions={media.subtitleOptions}
+                            subtitleSize={media.subtitleSize}
                             onsubtitlemode={(mode) => media.switchSubtitleMode(mode)}
+                            onsubtitlesize={(size) => media.switchSubtitleSize(size)}
                         />
                     {/if}
                 </div>

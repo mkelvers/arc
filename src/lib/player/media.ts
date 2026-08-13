@@ -19,6 +19,7 @@ export type SettingsView =
     | 'main'
     | 'audio'
     | 'subtitles'
+    | 'subtitle-size'
     | 'quality'
     | 'segments'
     | 'segment-opening'
