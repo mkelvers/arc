@@ -2,6 +2,7 @@
     import { audioAvailabilityLabel } from '$lib/anime/audio';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
+    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import WatchPlayer from '$lib/components/WatchPlayer.svelte';
     import { availableModes } from '$lib/player/media';
     import { formatDate } from '$lib/utils';
@@ -12,11 +13,14 @@
     let episodeDialogOpen = $state(false);
     let renderedEpisodeId = $state<string>();
 
+    const movie = $derived(data.anime.format === 'Movie');
     const poster = $derived(data.currentEpisode.image ?? data.fallbackImage);
     const heading = $derived(
-        data.currentEpisode.title
-            ? `${data.currentEpisode.label} – ${data.currentEpisode.title}`
-            : data.currentEpisode.label
+        movie
+            ? data.anime.title
+            : data.currentEpisode.title
+              ? `${data.currentEpisode.label} – ${data.currentEpisode.title}`
+              : data.currentEpisode.label
     );
 
     $effect(() => {
@@ -50,6 +54,28 @@
     <div
         class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12"
     >
+        {#if movie && data.poster}
+            <a
+                href={`/anime/${data.anime.id}`}
+                aria-label={`View ${data.anime.title}`}
+                class="group mx-auto aspect-2/3 w-48 shrink-0 overflow-hidden bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:mx-0 lg:w-56"
+            >
+                <div class="relative size-full">
+                    <ProgressiveImage
+                        src={data.poster}
+                        alt=""
+                        loading="eager"
+                        imageClass="transition-[filter] duration-150 group-hover:brightness-50 group-focus-visible:brightness-50"
+                    />
+                    <span
+                        class="pointer-events-none absolute inset-0 grid place-items-center bg-black/20 text-sm font-bold text-white uppercase opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                    >
+                        To series
+                    </span>
+                </div>
+            </a>
+        {/if}
+
         <article class="min-w-0 flex-1">
             <a
                 href={`/anime/${data.anime.id}`}
@@ -89,41 +115,43 @@
             {/if}
         </article>
 
-        <aside class="space-y-7 lg:w-72 lg:shrink-0">
-            {#if data.nextEpisode}
-                <section>
-                    <h2 class="mb-3 text-xs font-bold uppercase">Next episode</h2>
-                    <EpisodeGridCard
-                        context="watch"
-                        title={data.anime.title}
-                        episode={data.nextEpisode}
-                        image={data.fallbackImage}
-                    />
-                </section>
-            {/if}
+        {#if !movie}
+            <aside class="space-y-7 lg:w-72 lg:shrink-0">
+                {#if data.nextEpisode}
+                    <section>
+                        <h2 class="mb-3 text-xs font-bold uppercase">Next episode</h2>
+                        <EpisodeGridCard
+                            context="watch"
+                            title={data.anime.title}
+                            episode={data.nextEpisode}
+                            image={data.fallbackImage}
+                        />
+                    </section>
+                {/if}
 
-            {#if data.previousEpisode}
-                <section>
-                    <h2 class="mb-3 text-xs font-bold uppercase">Previous episode</h2>
-                    <EpisodeGridCard
-                        context="watch"
-                        title={data.anime.title}
-                        episode={data.previousEpisode}
-                        image={data.fallbackImage}
-                    />
-                </section>
-            {/if}
+                {#if data.previousEpisode}
+                    <section>
+                        <h2 class="mb-3 text-xs font-bold uppercase">Previous episode</h2>
+                        <EpisodeGridCard
+                            context="watch"
+                            title={data.anime.title}
+                            episode={data.previousEpisode}
+                            image={data.fallbackImage}
+                        />
+                    </section>
+                {/if}
 
-            <button
-                type="button"
-                class="flex min-h-10 w-fit items-center gap-2.5 border-2 border-watch-secondary px-4 text-xs font-bold text-watch-primary uppercase hover:border-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                aria-haspopup="dialog"
-                onclick={() => (episodeDialogOpen = true)}
-            >
-                <ArchiveIcon size="1.6rem" weight="bold" aria-hidden="true" />
-                See more episodes
-            </button>
-        </aside>
+                <button
+                    type="button"
+                    class="flex min-h-10 w-fit items-center gap-2.5 border-2 border-watch-secondary px-4 text-xs font-bold text-watch-primary uppercase hover:border-white hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    aria-haspopup="dialog"
+                    onclick={() => (episodeDialogOpen = true)}
+                >
+                    <ArchiveIcon size="1.6rem" weight="bold" aria-hidden="true" />
+                    See more episodes
+                </button>
+            </aside>
+        {/if}
     </div>
 </main>
 
