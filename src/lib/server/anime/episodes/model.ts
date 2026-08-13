@@ -1,6 +1,7 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
+import type { AudioMode } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
@@ -8,10 +9,8 @@ import { formatDuration } from '$lib/utils';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 
-type StoredEpisode = typeof animeEpisode.$inferSelect;
-
 function episodeModel(
-    episode: StoredEpisode,
+    episode: typeof animeEpisode.$inferSelect,
     fallbackDuration: number | null | undefined,
     displayNumber: number
 ): AnimeEpisode {
@@ -80,6 +79,27 @@ export async function storedRelatedReleaseTitles(anilistIds: number[]) {
     return [...releases]
         .map(([anilistId, episodes]) => ({ anilistId, episodes }))
         .filter(({ episodes }) => episodes.length);
+}
+
+export async function storedAudioModes(anilistIds: number[]) {
+    const ids = [...new Set(anilistIds)];
+    if (!ids.length) {
+        return new Map<number, Set<AudioMode>>();
+    }
+
+    const rows = await db
+        .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
+        .from(animeEpisode)
+        .where(inArray(animeEpisode.anilistId, ids));
+    const audioByAnime = new Map<number, Set<AudioMode>>();
+
+    for (const row of rows) {
+        const audio = audioByAnime.get(row.anilistId) ?? new Set<AudioMode>();
+        row.audio.forEach((mode) => audio.add(mode));
+        audioByAnime.set(row.anilistId, audio);
+    }
+
+    return audioByAnime;
 }
 
 export function sourceRevision(episodes: ProviderEpisode[]) {

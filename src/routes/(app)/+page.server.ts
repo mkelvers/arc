@@ -1,15 +1,13 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { inArray } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '$lib/anime/audio';
 import { currentAnimeSeason } from '$lib/anime/season';
 import { getHomepage } from '$lib/server/anime/anilist/home';
 import { getPopularAudioLabels } from '$lib/server/anime/allanime/catalog';
 import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
+import { storedAudioModes } from '$lib/server/anime/episodes/model';
 import { getHomeHero } from '$lib/server/anime/home';
 import { animeId } from '$lib/server/anime/route';
-import { db } from '$lib/server/db';
-import { animeEpisode } from '$lib/server/db/schema';
 import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
 import { dismissPlaybackProgress } from '$lib/server/playback-progress/store';
 import type { Actions, PageServerLoad } from './$types';
@@ -30,27 +28,11 @@ export const load: PageServerLoad = async ({ locals }) => {
     });
 
     const animeIds = [...new Set([...homepage.season, ...homepage.popular].map(({ id }) => id))];
-    const [homeHero, episodeRows, popularAudio] = await Promise.all([
+    const [homeHero, audioByAnime, popularAudio] = await Promise.all([
         highlights,
-        animeIds.length
-            ? db
-                  .select({
-                      anilistId: animeEpisode.anilistId,
-                      audio: animeEpisode.audio,
-                  })
-                  .from(animeEpisode)
-                  .where(inArray(animeEpisode.anilistId, animeIds))
-            : [],
+        storedAudioModes(animeIds),
         getPopularAudioLabels().catch(() => new Map()),
     ]);
-    const audioByAnime = new Map<number, Set<'sub' | 'dub' | 'raw'>>();
-
-    for (const episode of episodeRows) {
-        const audio = audioByAnime.get(episode.anilistId) ?? new Set<'sub' | 'dub' | 'raw'>();
-        episode.audio.forEach((mode) => audio.add(mode));
-        audioByAnime.set(episode.anilistId, audio);
-    }
-
     const withAudio = (card: (typeof homepage.season)[number]) => ({
         ...card,
         audioLabel: audioAvailabilityLabel([
