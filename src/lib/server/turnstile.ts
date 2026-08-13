@@ -1,11 +1,10 @@
 import { env } from '$env/dynamic/private';
-
-interface TurnstileResponse {
-    success: boolean;
-}
+import { isRecord } from '$lib/utils';
 
 export async function verifyTurnstile(token: FormDataEntryValue | null, remoteIp?: string) {
-    if (typeof token !== 'string' || !token || !env.TURNSTILE_SECRET) return false;
+    if (typeof token !== 'string' || !token || !env.TURNSTILE_SECRET) {
+        return false;
+    }
 
     try {
         const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
@@ -17,8 +16,12 @@ export async function verifyTurnstile(token: FormDataEntryValue | null, remoteIp
                 ...(remoteIp ? { remoteip: remoteIp } : {}),
             }),
         });
-        if (!response.ok) return false;
-        return ((await response.json()) as TurnstileResponse).success === true;
+        if (!response.ok) {
+            return false;
+        }
+
+        const result: unknown = await response.json();
+        return isRecord(result) && result.success === true;
     } catch {
         return false;
     }

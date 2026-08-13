@@ -22,7 +22,9 @@ export const load: PageServerLoad = async () => ({
 export const actions: Actions = {
     default: async (event) => {
         const form = await superValidate(event.request, schema);
-        if (!form.valid) return setError(form, 'Check the highlighted account details.');
+        if (!form.valid) {
+            return setError(form, 'Check the highlighted account details.');
+        }
 
         if (
             !(await verifyTurnstile(
@@ -54,10 +56,13 @@ export const actions: Actions = {
                 },
             });
             userId = result.user.id;
-            if (!(await completeInvitation(claim, userId)))
+            if (!(await completeInvitation(claim, userId))) {
                 throw new Error('Invitation claim lost.');
+            }
         } catch {
-            if (userId) await db.delete(users).where(eq(users.id, userId));
+            if (userId) {
+                await db.delete(users).where(eq(users.id, userId));
+            }
             await restoreInvitation(claim);
             return setError(form, 'username', 'That username is unavailable.');
         }

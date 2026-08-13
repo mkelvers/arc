@@ -54,7 +54,9 @@ export const auth = betterAuth({
     },
     hooks: {
         before: createAuthMiddleware(async (context) => {
-            if (context.path !== '/sign-up/email') return;
+            if (context.path !== '/sign-up/email') {
+                return;
+            }
 
             // Only the registration action can create this opaque database claim.
             const claim = context.headers?.get('x-arc-invitation-reservation');

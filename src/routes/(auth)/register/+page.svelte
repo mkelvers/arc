@@ -4,8 +4,9 @@
     import { superForm } from 'sveltekit-superforms';
 
     import AuthInput from '$lib/components/AuthInput.svelte';
+    import type { PageProps } from './$types';
 
-    let { data } = $props();
+    let { data }: PageProps = $props();
     let reset = $state<() => void>();
 
     const { form, errors, constraints, enhance, submitting, message } = superForm(

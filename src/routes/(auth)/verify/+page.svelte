@@ -1,7 +1,8 @@
 <script lang="ts">
     import { Turnstile } from 'svelte-turnstile';
+    import type { PageProps } from './$types';
 
-    let { data, form } = $props();
+    let { data, form }: PageProps = $props();
 </script>
 
 <svelte:head>

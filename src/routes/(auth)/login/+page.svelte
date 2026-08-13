@@ -15,7 +15,9 @@
 
     async function login(event: SubmitEvent) {
         event.preventDefault();
-        if (pending || !token || !(event.currentTarget as HTMLFormElement).reportValidity()) return;
+        if (pending || !token || !(event.currentTarget as HTMLFormElement).reportValidity()) {
+            return;
+        }
 
         pending = true;
         message = '';

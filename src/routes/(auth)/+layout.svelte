@@ -1,7 +1,8 @@
 <script lang="ts">
     import Logo from '$lib/components/Logo.svelte';
+    import type { LayoutProps } from './$types';
 
-    let { children } = $props();
+    let { children }: LayoutProps = $props();
 </script>
 
 <div class="flex min-h-dvh flex-col bg-canvas text-foreground">

@@ -14,7 +14,9 @@ export async function createClearance(secret: string, now = Date.now()) {
 }
 
 export async function verifyClearance(value: string | undefined, secret: string, now = Date.now()) {
-    if (!value || !secret) return false;
+    if (!value || !secret) {
+        return false;
+    }
 
     const [expiry, mac, extra] = value.split('.');
     const expires = Number(expiry);
