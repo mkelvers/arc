@@ -4,6 +4,9 @@ import { episodeTitleKey, episodeTitleScore, isSpecialEpisodeReference } from '.
 import { isSpecialRelease, titlesFor } from './title';
 import type { EpisodeCandidate } from './types';
 
+const day = 24 * 60 * 60 * 1_000;
+const maximumBroadcastDelay = 14 * day;
+
 function animeDate(
     value:
         | {
@@ -31,7 +34,7 @@ function dateTime(value: string | null) {
 }
 
 function daysBetween(left: number, right: number) {
-    return Math.abs(left - right) / (24 * 60 * 60 * 1_000);
+    return Math.abs(left - right) / day;
 }
 
 function dateScore(
@@ -178,6 +181,113 @@ function candidateOrder(left: EpisodeCandidate, right: EpisodeCandidate) {
     return left.seasonNumber - right.seasonNumber || left.episodeNumber - right.episodeNumber;
 }
 
+function releaseEpisodeNumber(candidate: EpisodeCandidate) {
+    return candidate.releaseEpisodeNumber ?? candidate.episodeNumber;
+}
+
+function airingDay(airingAt: number | null | undefined) {
+    if (!airingAt) {
+        return null;
+    }
+
+    const date = new Date(airingAt * 1_000);
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function displayDate(timestamp: number) {
+    const date = new Date(timestamp);
+    return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`;
+}
+
+function releaseScheduleMetadata(
+    anime: AniListAnime,
+    source: ProviderEpisode[],
+    candidates: EpisodeCandidate[],
+    matches: Map<number, number>
+) {
+    // TMDB may date terrestrial broadcasts while AniList and provider inventory follow an
+    // earlier exclusive stream. Require a second matching schedule anchor before changing
+    // the user-facing date, and retain rawAirDate as TMDB provenance.
+    const firstSourceIndex = source.findIndex(({ number }) => number === 1);
+    const firstCandidateIndex = matches.get(firstSourceIndex);
+    const firstCandidate =
+        firstCandidateIndex === undefined ? undefined : candidates[firstCandidateIndex];
+    const start = dateTime(animeDate(anime.startDate));
+    const firstBroadcast = dateTime(firstCandidate?.rawAirDate ?? null);
+
+    if (
+        !firstCandidate ||
+        firstCandidate.seasonNumber <= 0 ||
+        releaseEpisodeNumber(firstCandidate) !== 1 ||
+        start === null ||
+        firstBroadcast === null
+    ) {
+        return null;
+    }
+
+    const offset = firstBroadcast - start;
+    if (offset < day || offset > maximumBroadcastDelay || offset % day !== 0) {
+        return null;
+    }
+
+    const scheduledCandidate = (episode: number) =>
+        candidates.find(
+            (candidate) =>
+                candidate.seasonNumber === firstCandidate.seasonNumber &&
+                releaseEpisodeNumber(candidate) === episode
+        );
+    const confirmations: boolean[] = [];
+    const expectedEpisodes = anime.episodes;
+    const end = dateTime(animeDate(anime.endDate));
+
+    if (expectedEpisodes && end !== null) {
+        const finale = dateTime(scheduledCandidate(expectedEpisodes)?.rawAirDate ?? null);
+        if (finale !== null) {
+            confirmations.push(finale - end === offset);
+        }
+    }
+
+    const nextEpisode = anime.nextAiringEpisode?.episode;
+    const nextAiring = airingDay(anime.nextAiringEpisode?.airingAt);
+    if (nextEpisode && nextAiring !== null) {
+        const nextBroadcast = dateTime(scheduledCandidate(nextEpisode)?.rawAirDate ?? null);
+        if (nextBroadcast !== null) {
+            confirmations.push(nextBroadcast - nextAiring === offset);
+        }
+    }
+
+    if (!confirmations.length || confirmations.some((confirmed) => !confirmed)) {
+        return null;
+    }
+
+    return {
+        offset,
+        seasonNumber: firstCandidate.seasonNumber,
+    };
+}
+
+function matchedMetadata(
+    anime: AniListAnime,
+    source: ProviderEpisode[],
+    candidates: EpisodeCandidate[],
+    matches: Map<number, number>
+) {
+    const schedule = releaseScheduleMetadata(anime, source, candidates, matches);
+
+    return new Map(
+        [...matches.entries()].map(([sourceIndex, candidateIndex]) => {
+            const candidate = candidates[candidateIndex];
+            const broadcast = dateTime(candidate.rawAirDate);
+            const metadata =
+                schedule && candidate.seasonNumber === schedule.seasonNumber && broadcast !== null
+                    ? { ...candidate, airDate: displayDate(broadcast - schedule.offset) }
+                    : candidate;
+
+            return [source[sourceIndex].id, metadata];
+        })
+    );
+}
+
 export function matchEpisodeMetadata(
     anime: AniListAnime,
     source: ProviderEpisode[],
@@ -307,12 +417,7 @@ export function matchEpisodeMetadata(
         }
     }
 
-    return new Map(
-        [...matches.entries()].map(([sourceIndex, candidateIndex]) => [
-            source[sourceIndex].id,
-            candidates[candidateIndex],
-        ])
-    );
+    return matchedMetadata(anime, source, candidates, matches);
 }
 
 export function matchBestEpisodeMetadata(
