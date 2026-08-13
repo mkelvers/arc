@@ -6,7 +6,5 @@ export const load: LayoutServerLoad = async ({ locals }) => {
         return { account: null };
     }
 
-    const account = await getAccount(locals.user.id);
-
-    return { account };
+    return { account: await getAccount(locals.user.id) };
 };

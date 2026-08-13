@@ -14,8 +14,9 @@
     import AccountAvatar from '$lib/components/AccountAvatar.svelte';
     import Logo from '$lib/components/Logo.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import type { LayoutProps } from './$types';
 
-    let { data, children } = $props();
+    let { data, children }: LayoutProps = $props();
     let hasUnreadNotifications = $state(false);
     let unreadRequest: AbortController | undefined;
 
@@ -58,10 +59,7 @@
 </script>
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header/95 backdrop-blur">
-    <nav
-        class="flex h-full items-center justify-between pl-3 md:pl-6"
-        aria-label="Primary navigation"
-    >
+    <nav class="flex h-full items-center justify-between pl-3 md:pl-6" aria-label="Primary navigation">
         <div class="flex h-full items-center gap-2">
             <a
                 href="/"
@@ -109,9 +107,7 @@
             {#if data.account}
                 <Dropdown
                     id="account-menu"
-                    ariaLabel={hasUnreadNotifications
-                        ? 'Account menu, unread notifications'
-                        : 'Account menu'}
+                    ariaLabel={hasUnreadNotifications ? 'Account menu, unread notifications' : 'Account menu'}
                     modal
                     menuClass="w-[min(21rem,calc(100vw-1rem))]"
                     triggerClass="flex h-14 cursor-pointer items-center gap-2 px-3 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted"
@@ -135,13 +131,8 @@
                     {#snippet content()}
                         <div class="bg-panel-strong">
                             <div class="flex min-h-20 items-center gap-3 px-5 py-3">
-                                <AccountAvatar
-                                    username={data.account.username}
-                                    class="size-11 text-lg"
-                                />
-                                <span
-                                    class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground"
-                                >
+                                <AccountAvatar username={data.account.username} class="size-11 text-lg" />
+                                <span class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                                     {data.account.name}
                                 </span>
                             </div>

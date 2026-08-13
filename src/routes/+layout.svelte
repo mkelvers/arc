@@ -2,13 +2,13 @@
     import { page } from '$app/state';
     import './layout.css';
     import favicon from '$lib/assets/favicon.ico';
+    import type { LayoutProps } from './$types';
 
-    let { children } = $props();
-    const title = $derived(page.data.pageTitle ? `Arc — ${page.data.pageTitle}` : 'Arc');
+    let { children }: LayoutProps = $props();
 </script>
 
 <svelte:head>
-    <title>{title}</title>
+    <title>{page.data.pageTitle ? `Arc — ${page.data.pageTitle}` : 'Arc'}</title>
     <link rel="icon" href={favicon} type="image/png" sizes="512x512" />
     <link rel="apple-touch-icon" href={favicon} />
 </svelte:head>
