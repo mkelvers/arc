@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { afterNavigate, goto } from '$app/navigation';
-    import { onDestroy } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
     import {
         BookmarkSimpleIcon,
         BellIcon,
@@ -20,7 +20,7 @@
     let hasUnreadNotifications = $state(false);
     let unreadRequest: AbortController | undefined;
 
-    afterNavigate(() => {
+    onMount(() => {
         unreadRequest?.abort();
 
         if (!data.account) {
@@ -45,9 +45,9 @@
                     result.hasUnreadNotifications === true;
             })
             .catch(() => undefined);
-    });
 
-    onDestroy(() => unreadRequest?.abort());
+        return () => controller.abort();
+    });
 
     async function signOut() {
         await authClient.signOut({
