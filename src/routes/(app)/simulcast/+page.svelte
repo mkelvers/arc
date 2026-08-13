@@ -2,7 +2,7 @@
     import { onDestroy, untrack } from 'svelte';
     import { CaretDownIcon } from 'phosphor-svelte';
 
-    import { isAnimeCardPage, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
     import emptyArtwork from '$lib/assets/simulcast-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
@@ -10,19 +10,13 @@
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
-    let loadedSelection = $state(untrack(() => `${data.season}:${data.year}`));
+    let loadedSelection = untrack(() => `${data.season}:${data.year}`);
     let anime = $state<AnimeCardModel[]>(untrack(() => data.page.anime));
-    let nextPage = $state<number | null>(
-        untrack(() => (data.page.hasNextPage ? data.page.page + 1 : null))
-    );
+    let nextPage = $state<number | null>(untrack(() => (data.page.hasNextPage ? data.page.page + 1 : null)));
     let loading = $state(false);
     let failure = $state('');
     let sentinel = $state<HTMLDivElement>();
     let activeRequest: AbortController | undefined;
-
-    function responsePage(value: unknown, expectedPage: number) {
-        return isAnimeCardPage(value) && value.page === expectedPage ? value : null;
-    }
 
     async function loadMore() {
         const page = nextPage;
@@ -50,8 +44,8 @@
                 throw new Error(`Simulcast page request returned ${response.status}`);
             }
 
-            const result = responsePage(await response.json(), page);
-            if (!result) {
+            const result = AnimeCardPageSchema.safeParse(await response.json());
+            if (!result.success || result.data.page !== page) {
                 throw new TypeError('Simulcast page request returned an invalid response');
             }
             if (loadedSelection !== requestSelection) {
@@ -59,8 +53,8 @@
             }
 
             const existing = new Set(anime.map(({ id }) => id));
-            anime = [...anime, ...result.anime.filter(({ id }) => !existing.has(id))];
-            nextPage = result.hasNextPage ? page + 1 : null;
+            anime = [...anime, ...result.data.anime.filter(({ id }) => !existing.has(id))];
+            nextPage = result.data.hasNextPage ? page + 1 : null;
         } catch (cause) {
             if (!(cause instanceof DOMException) || cause.name !== 'AbortError') {
                 failure = 'More simulcast releases could not be loaded.';
@@ -71,11 +65,6 @@
                 loading = false;
             }
         }
-    }
-
-    function retry() {
-        failure = '';
-        void loadMore();
     }
 
     $effect(() => {
@@ -93,8 +82,7 @@
     });
 
     $effect(() => {
-        const target = sentinel;
-        if (!target || nextPage === null || failure) {
+        if (!sentinel || nextPage === null || failure) {
             return;
         }
 
@@ -106,7 +94,7 @@
             },
             { rootMargin: '600px 0px' }
         );
-        observer.observe(target);
+        observer.observe(sentinel);
 
         return () => observer.disconnect();
     });
@@ -130,12 +118,7 @@
                 triggerClass="flex h-11 min-w-44 cursor-pointer items-center gap-3 px-3 text-sm font-semibold tracking-wide text-muted uppercase transition-colors hover:text-foreground peer-checked:text-foreground"
             >
                 {#snippet trigger()}
-                    <CaretDownIcon
-                        size="1rem"
-                        weight="bold"
-                        class="text-muted"
-                        aria-hidden="true"
-                    />
+                    <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
                     <span>{data.label}</span>
                 {/snippet}
             </Dropdown>
@@ -160,11 +143,7 @@
         {/if}
 
         {#if nextPage !== null}
-            <div
-                bind:this={sentinel}
-                class="flex min-h-24 items-center justify-center"
-                aria-live="polite"
-            >
+            <div bind:this={sentinel} class="flex min-h-24 items-center justify-center" aria-live="polite">
                 {#if loading}
                     <p class="text-sm text-muted" role="status">Loading more releases…</p>
                 {:else if failure}
@@ -173,13 +152,16 @@
                         <button
                             type="button"
                             class="min-h-11 px-4 text-sm font-semibold text-accent hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            onclick={retry}
+                            onclick={() => {
+                                failure = '';
+                                void loadMore();
+                            }}
                         >
                             Try again
                         </button>
                     </div>
                 {:else}
-                    <span class="sr-only"> More releases load automatically while scrolling. </span>
+                    <span class="sr-only">More releases load automatically while scrolling.</span>
                 {/if}
             </div>
         {/if}

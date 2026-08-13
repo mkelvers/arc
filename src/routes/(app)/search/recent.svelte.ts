@@ -48,13 +48,10 @@ export class RecentSearches {
     }
 
     remember(anime: AnimeCard) {
-        const result = {
-            id: anime.id,
-            href: anime.href,
-            title: anime.title,
-        };
-
-        this.save([result, ...this.results.filter(({ id }) => id !== anime.id)]);
+        this.save([
+            { id: anime.id, href: anime.href, title: anime.title },
+            ...this.results.filter(({ id }) => id !== anime.id),
+        ]);
     }
 
     remove(id: number) {

@@ -3,11 +3,7 @@
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import {
-        distinctSearchArtwork,
-        isAnimeSearchResults,
-        type AnimeSearchResult,
-    } from '$lib/anime/search';
+    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '$lib/anime/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import EmptyState from '$lib/components/EmptyState.svelte';
     import SearchResultSection from '$lib/components/SearchResultSection.svelte';
@@ -29,9 +25,7 @@
 
     const searchableResults = $derived(results.filter(({ format }) => format !== 'MUSIC'));
     const topResults = $derived(distinctSearchArtwork(searchableResults, 4));
-    const series = $derived(
-        searchableResults.filter(({ format }) => format !== 'MOVIE' && format !== 'MUSIC')
-    );
+    const series = $derived(searchableResults.filter(({ format }) => format !== 'MOVIE' && format !== 'MUSIC'));
     const movies = $derived(searchableResults.filter(({ format }) => format === 'MOVIE'));
 
     onMount(() => {
@@ -80,12 +74,12 @@
                         throw new Error(`Search request returned ${response.status}`);
                     }
 
-                    const responseResults: unknown = await response.json();
-                    if (!isAnimeSearchResults(responseResults)) {
+                    const responseResults = AnimeSearchResultSchema.array().safeParse(await response.json());
+                    if (!responseResults.success) {
                         throw new TypeError('Search request returned an invalid response');
                     }
 
-                    results = responseResults;
+                    results = responseResults.data;
                     resultQuery = next;
                 })
                 .catch((cause) => {
@@ -106,10 +100,6 @@
 
         return () => clearTimeout(timeout);
     });
-
-    function remember(anime: AnimeSearchResult) {
-        recent.remember(anime);
-    }
 </script>
 
 <main class="min-h-dvh bg-canvas text-foreground">
@@ -138,11 +128,7 @@
                     <h1 id="top-results-title" class="mb-4 text-xl font-bold">Top Results</h1>
                     <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                         {#each topResults as result (result.id)}
-                            <AnimeCard
-                                anime={result}
-                                variant="top"
-                                onselect={() => remember(result)}
-                            />
+                            <AnimeCard anime={result} variant="top" onselect={() => recent.remember(result)} />
                         {/each}
                     </div>
                 </section>
@@ -152,13 +138,13 @@
                         id="series-results"
                         title="Series"
                         results={series}
-                        onselect={remember}
+                        onselect={(anime) => recent.remember(anime)}
                     />
                     <SearchResultSection
                         id="movie-results"
                         title="Movies"
                         results={movies}
-                        onselect={remember}
+                        onselect={(anime) => recent.remember(anime)}
                     />
                 {/key}
             {:else if failed}
@@ -175,9 +161,7 @@
         {:else if recent.results.length}
             <section aria-labelledby="recent-results-title">
                 <div class="mb-3 flex items-center justify-between gap-6">
-                    <h1 id="recent-results-title" class="text-base font-semibold">
-                        Recent searches
-                    </h1>
+                    <h1 id="recent-results-title" class="text-base font-semibold">Recent searches</h1>
                     <button
                         type="button"
                         class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -189,9 +173,7 @@
 
                 <ul class="flex flex-wrap gap-1.5">
                     {#each recent.results as result (result.id)}
-                        <li
-                            class="flex min-w-0 max-w-full items-stretch bg-surface/70 text-xs font-semibold"
-                        >
+                        <li class="flex min-w-0 max-w-full items-stretch bg-surface/70 text-xs font-semibold">
                             <a
                                 href={result.href}
                                 class="min-w-0 truncate px-2.5 py-2 hover:bg-surface focus-visible:outline-1 focus-visible:outline-accent"

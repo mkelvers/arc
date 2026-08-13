@@ -18,13 +18,8 @@
         TagIcon,
     } from 'phosphor-svelte';
 
-    import {
-        browseEnumLabel,
-        browseFormatLabel,
-        browseSearchParams,
-        type BrowseFilters,
-    } from '$lib/anime/browse';
-    import { isAnimeCardPage, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import { animeFormatLabel, browseSearchParams, metadataLabel, type BrowseFilters } from '$lib/anime/browse';
+    import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
     import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
@@ -33,7 +28,7 @@
 
     let { data }: PageProps = $props();
     let query = $state(untrack(() => data.filters.query));
-    let loadedSelection = $state(untrack(() => browseSearchParams(data.filters).toString()));
+    let loadedSelection = untrack(() => browseSearchParams(data.filters).toString());
     let anime = $state<AnimeCardModel[]>(untrack(() => data.anime));
     let nextPage = $state<number | null>(untrack(() => (data.hasNextPage ? data.page + 1 : null)));
     let loading = $state(false);
@@ -41,13 +36,11 @@
     let activeRequest: AbortController | undefined;
     let categoryQuery = $state('');
     let safe = $state(untrack(() => data.filters.safe));
-    let categoryNeedle = $derived(categoryQuery.trim().toLocaleLowerCase('en'));
-    let visibleGenres = $derived(
-        data.taxonomy.genres.filter((value) =>
-            value.toLocaleLowerCase('en').includes(categoryNeedle)
-        )
+    const categoryNeedle = $derived(categoryQuery.trim().toLocaleLowerCase('en'));
+    const visibleGenres = $derived(
+        data.taxonomy.genres.filter((value) => value.toLocaleLowerCase('en').includes(categoryNeedle))
     );
-    let visibleTags = $derived(
+    const visibleTags = $derived(
         data.taxonomy.tags.filter((value) => value.toLocaleLowerCase('en').includes(categoryNeedle))
     );
     const browseOrderings = [
@@ -56,7 +49,7 @@
         { label: 'Highest score', sort: 'score', order: 'desc' },
         { label: 'Lowest score', sort: 'score', order: 'asc' },
     ] as const;
-    let ordering = $derived(
+    const ordering = $derived(
         browseOrderings.find(
             (option) => option.sort === data.filters.sort && option.order === data.filters.order
         ) ?? browseOrderings[0]
@@ -103,27 +96,19 @@
         return value ? label(value) : fallback;
     }
 
-    function selectFilter(patch: Partial<BrowseFilters>) {
-        return goto(filterHref(patch), {
-            keepFocus: true,
-            noScroll: true,
-        });
-    }
-
     async function toggleSafe() {
         const next = !safe;
         safe = next;
 
         try {
-            await selectFilter({ safe: next });
+            await goto(filterHref({ safe: next }), {
+                keepFocus: true,
+                noScroll: true,
+            });
         } catch (cause) {
             safe = data.filters.safe;
             console.warn('Safe mode could not be updated', cause);
         }
-    }
-
-    function responsePage(value: unknown, expectedPage: number) {
-        return isAnimeCardPage(value) && value.page === expectedPage ? value : null;
     }
 
     async function loadMore() {
@@ -150,8 +135,8 @@
                 throw new Error(`Browse page request returned ${response.status}`);
             }
 
-            const result = responsePage(await response.json(), page);
-            if (!result) {
+            const result = AnimeCardPageSchema.safeParse(await response.json());
+            if (!result.success || result.data.page !== page) {
                 throw new TypeError('Browse page request returned an invalid response');
             }
             if (loadedSelection !== requestSelection) {
@@ -159,8 +144,8 @@
             }
 
             const existing = new Set(anime.map(({ id }) => id));
-            anime = [...anime, ...result.anime.filter(({ id }) => !existing.has(id))];
-            hasNextPage = result.hasNextPage;
+            anime = [...anime, ...result.data.anime.filter(({ id }) => !existing.has(id))];
+            hasNextPage = result.data.hasNextPage;
         } catch (cause) {
             if (!(cause instanceof DOMException) || cause.name !== 'AbortError') {
                 console.warn(`Browse page ${page} could not be loaded`, cause);
@@ -216,8 +201,7 @@
     });
 
     $effect(() => {
-        const target = sentinel;
-        if (!target || nextPage === null) {
+        if (!sentinel || nextPage === null) {
             return;
         }
 
@@ -229,7 +213,7 @@
             },
             { rootMargin: '600px 0px' }
         );
-        observer.observe(target);
+        observer.observe(sentinel);
 
         return () => observer.disconnect();
     });
@@ -252,18 +236,14 @@
             <label
                 class="flex h-14 w-full items-center gap-4 border-b-2 border-border text-muted transition-colors focus-within:border-accent focus-within:text-foreground"
             >
-                <MagnifyingGlassIcon
-                    size="1.35rem"
-                    weight="regular"
-                    class="shrink-0"
-                    aria-hidden="true"
-                />
+                <MagnifyingGlassIcon size="1.35rem" weight="regular" class="shrink-0" aria-hidden="true" />
                 <span class="sr-only">Search anime</span>
                 <input
                     name="q"
                     type="search"
                     placeholder="Search the anime catalog…"
                     autocomplete="off"
+                    maxlength="200"
                     bind:value={query}
                     class="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-subtle"
                 />
@@ -290,11 +270,7 @@
                                 <label
                                     class="flex h-9 items-center gap-2 px-2 text-muted focus-within:text-foreground"
                                 >
-                                    <MagnifyingGlassIcon
-                                        size="1rem"
-                                        weight="regular"
-                                        aria-hidden="true"
-                                    />
+                                    <MagnifyingGlassIcon size="1rem" weight="regular" aria-hidden="true" />
                                     <span class="sr-only">Search genres and tags</span>
                                     <input
                                         type="search"
@@ -308,9 +284,7 @@
                             <a
                                 role="menuitem"
                                 href={filterHref({ genre: null, tag: null })}
-                                aria-current={!data.filters.genre && !data.filters.tag
-                                    ? 'page'
-                                    : undefined}
+                                aria-current={!data.filters.genre && !data.filters.tag ? 'page' : undefined}
                                 class:text-accent={!data.filters.genre && !data.filters.tag}
                                 class:text-muted={Boolean(data.filters.genre || data.filters.tag)}
                                 class="block whitespace-nowrap px-5 py-3 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -327,9 +301,7 @@
                                     <a
                                         role="menuitem"
                                         href={filterHref({ genre, tag: null })}
-                                        aria-current={data.filters.genre === genre
-                                            ? 'page'
-                                            : undefined}
+                                        aria-current={data.filters.genre === genre ? 'page' : undefined}
                                         class:text-accent={data.filters.genre === genre}
                                         class:text-muted={data.filters.genre !== genre}
                                         class="block whitespace-nowrap px-5 py-2.5 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -358,9 +330,7 @@
                                 {/each}
                             {/if}
                             {#if !visibleGenres.length && !visibleTags.length}
-                                <p class="px-5 py-5 text-sm text-muted">
-                                    No matching genres or tags.
-                                </p>
+                                <p class="px-5 py-5 text-sm text-muted">No matching genres or tags.</p>
                             {/if}
                         </div>
                     {/snippet}
@@ -373,7 +343,7 @@
                         data.taxonomy.statuses,
                         data.filters.status,
                         'All statuses',
-                        browseEnumLabel
+                        metadataLabel
                     )}
                     ariaLabel="Filter by release status"
                     menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
@@ -382,7 +352,7 @@
                     {#snippet trigger()}
                         <PulseIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-32 truncate">
-                            {selectedLabel(data.filters.status, 'Status', browseEnumLabel)}
+                            {selectedLabel(data.filters.status, 'Status', metadataLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -395,7 +365,7 @@
                         data.taxonomy.formats,
                         data.filters.format,
                         'All types',
-                        browseFormatLabel
+                        animeFormatLabel
                     )}
                     ariaLabel="Filter by anime type"
                     menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
@@ -404,7 +374,7 @@
                     {#snippet trigger()}
                         <MonitorPlayIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-28 truncate">
-                            {selectedLabel(data.filters.format, 'Type', browseFormatLabel)}
+                            {selectedLabel(data.filters.format, 'Type', animeFormatLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -442,7 +412,7 @@
                         data.taxonomy.seasons,
                         data.filters.season,
                         'All seasons',
-                        browseEnumLabel
+                        metadataLabel
                     )}
                     ariaLabel="Filter by release season"
                     menuClass="mt-2 min-w-44 shadow-xl"
@@ -450,7 +420,7 @@
                 >
                     {#snippet trigger()}
                         <SunHorizonIcon size="1.1rem" weight="regular" aria-hidden="true" />
-                        <span>{selectedLabel(data.filters.season, 'Season', browseEnumLabel)}</span>
+                        <span>{selectedLabel(data.filters.season, 'Season', metadataLabel)}</span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                 </Dropdown>
@@ -487,7 +457,7 @@
                         data.taxonomy.sources,
                         data.filters.source,
                         'All source materials',
-                        browseEnumLabel
+                        metadataLabel
                     )}
                     ariaLabel="Filter by source material"
                     menuClass="mt-2 max-h-80 min-w-56 overflow-y-auto shadow-xl"
@@ -496,7 +466,7 @@
                     {#snippet trigger()}
                         <BookOpenTextIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-36 truncate">
-                            {selectedLabel(data.filters.source, 'Source', browseEnumLabel)}
+                            {selectedLabel(data.filters.source, 'Source', metadataLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -516,11 +486,7 @@
                     triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.country ? 'text-accent' : 'text-muted'}`}
                 >
                     {#snippet trigger()}
-                        <GlobeHemisphereWestIcon
-                            size="1.1rem"
-                            weight="regular"
-                            aria-hidden="true"
-                        />
+                        <GlobeHemisphereWestIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-32 truncate">
                             {selectedLabel(data.filters.country, 'Country', countryLabel)}
                         </span>
@@ -567,17 +533,11 @@
                     class:text-accent={safe}
                     class:text-muted={!safe}
                     class="inline-flex h-11 items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
-                    aria-label={safe
-                        ? 'Disable safe for work filtering'
-                        : 'Enable safe for work filtering'}
+                    aria-label={safe ? 'Disable safe for work filtering' : 'Enable safe for work filtering'}
                     aria-pressed={safe}
                     onclick={() => void toggleSafe()}
                 >
-                    <ShieldCheckIcon
-                        size="1.25rem"
-                        weight={safe ? 'fill' : 'regular'}
-                        aria-hidden="true"
-                    />
+                    <ShieldCheckIcon size="1.25rem" weight={safe ? 'fill' : 'regular'} aria-hidden="true" />
                     <span>Safe mode</span>
                 </button>
             </div>
