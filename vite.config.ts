@@ -28,6 +28,10 @@ export default defineConfig(({ command }) => ({
                         'sha256-DV44IKgITwDAfvthDHThPRsyNopVAzUXfpIRO1uDQDI=',
                         ...(command === 'serve' ? (['unsafe-eval'] as const) : []),
                     ],
+                    'script-src-attr': [
+                        'unsafe-hashes',
+                        'sha256-7dQwUgLau1NFCCGjfn9FsYptB6ZtWxJin6VohGIu20I=',
+                    ],
                     ...(command === 'serve'
                         ? {
                               'script-src-elem': [
