@@ -49,7 +49,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         selection.state === 'all'
             ? stored
             : stored.filter(({ state }) => state === selection.state);
-    const entries = (async () => {
+    const entries = await (async () => {
         const cards = await getWatchlistAnime(filtered.map(({ anilistId }) => anilistId));
         const cardIds = cards.map(({ id }) => id);
         const episodeRows = cardIds.length
