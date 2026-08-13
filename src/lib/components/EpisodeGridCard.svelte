@@ -16,11 +16,10 @@
 
     let { episode, title, image = null, current = false, context = 'detail' }: Props = $props();
     const dialog = $derived(context === 'dialog');
-    const watch = $derived(context === 'watch');
     const heading = $derived(episode.title ? `${episode.label} – ${episode.title}` : episode.label);
 </script>
 
-{#if watch}
+{#if context === 'watch'}
     <a
         href={episode.href}
         class="group flex gap-3 focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-white"
@@ -34,9 +33,7 @@
                 />
             {/if}
             {#if episode.duration}
-                <span
-                    class="absolute right-1.5 bottom-1.5 bg-black/75 px-1.5 py-0.5 text-sm font-bold text-white"
-                >
+                <span class="absolute right-1.5 bottom-1.5 bg-black/75 px-1.5 py-0.5 text-sm font-bold text-white">
                     {episode.duration}
                 </span>
             {/if}
@@ -58,26 +55,17 @@
             current && 'bg-panel-selected'
         )}
     >
-        <div
-            class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0"
-        >
-            <div
-                class={cn(
-                    'relative aspect-video overflow-hidden',
-                    dialog ? 'bg-media-tile' : 'bg-surface'
-                )}
-            >
+        <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
+            <div class={cn('relative aspect-video overflow-hidden', dialog ? 'bg-media-tile' : 'bg-surface')}>
                 {#if episode.image || image}
                     <ProgressiveImage
                         src={episode.image ?? image ?? ''}
                         alt=""
-                        imageClass={cn(!dialog && 'brightness-75')}
+                        imageClass={dialog ? undefined : 'brightness-75'}
                     />
                 {/if}
                 {#if current}
-                    <span
-                        class="absolute top-2 left-2 bg-accent px-2 py-1 text-xs font-bold text-black uppercase"
-                    >
+                    <span class="absolute top-2 left-2 bg-accent px-2 py-1 text-xs font-bold text-black uppercase">
                         Now playing
                     </span>
                 {/if}
@@ -93,7 +81,7 @@
                 {/if}
             </div>
 
-            <div class={cn(!dialog && 'mt-3 min-w-0')}>
+            <div class={dialog ? undefined : 'mt-3 min-w-0'}>
                 <p
                     class={cn(
                         'line-clamp-1 text-xs uppercase',
@@ -135,9 +123,7 @@
             <h3
                 class={cn(
                     'mt-2 line-clamp-2 font-bold',
-                    dialog
-                        ? 'text-base leading-snug text-white'
-                        : 'text-sm leading-snug text-foreground'
+                    dialog ? 'text-base leading-snug text-white' : 'text-sm leading-snug text-foreground'
                 )}
             >
                 {heading}
@@ -165,9 +151,7 @@
                     {episode.overview}
                 </p>
             {/if}
-            <span
-                class="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-bold text-accent uppercase"
-            >
+            <span class="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-bold text-accent uppercase">
                 <PlayIcon size="1.25rem" weight="bold" aria-hidden="true" />
                 Play {episode.label}
             </span>

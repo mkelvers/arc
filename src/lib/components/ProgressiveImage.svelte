@@ -38,38 +38,31 @@
     const ready = $derived(loadedSrc === src);
 </script>
 
-<figure
-    class={cn('relative size-full overflow-hidden', className)}
-    ontransitionend={ontransitionend}
->
+<div class={cn('relative size-full overflow-hidden', className)} ontransitionend={ontransitionend}>
     <div class="absolute inset-0 transition-opacity duration-300" class:opacity-0={ready}>
-        <picture>
-            <img
-                src={preview}
-                alt=""
-                class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
-                loading={previewLoading}
-                aria-hidden="true"
-            />
-        </picture>
+        <img
+            src={preview}
+            alt=""
+            class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
+            loading={previewLoading}
+            aria-hidden="true"
+        />
     </div>
     {#if loadFull}
-        <picture>
-            <img
-                src={src}
-                alt={alt}
-                class={cn(
-                    'absolute inset-0 size-full object-cover transition-opacity duration-300',
-                    imageClass,
-                    ready ? 'opacity-100' : 'opacity-0'
-                )}
-                loading={loading}
-                fetchpriority={fetchpriority}
-                onload={() => {
-                    loadedSrc = src;
-                    onready?.();
-                }}
-            />
-        </picture>
+        <img
+            src={src}
+            alt={alt}
+            class={cn(
+                'absolute inset-0 size-full object-cover transition-opacity duration-300',
+                imageClass,
+                ready ? 'opacity-100' : 'opacity-0'
+            )}
+            loading={loading}
+            fetchpriority={fetchpriority}
+            onload={() => {
+                loadedSrc = src;
+                onready?.();
+            }}
+        />
     {/if}
-</figure>
+</div>

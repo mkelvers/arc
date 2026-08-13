@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { prefersReducedMotion } from 'svelte/motion';
     import { CaretLeftIcon, CaretRightIcon, PlayIcon } from 'phosphor-svelte';
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
@@ -28,42 +28,38 @@
     type ProgressMode = 'animated' | 'complete';
 
     let { highlights }: Props = $props();
-    let active = $state(0);
-    let previous = $state<number | null>(null);
-    let progression = $state(0);
-    let progressMode = $state<ProgressMode>('animated');
-    let reducedMotion = $state(false);
-    let readyBackdrops = $state(new Set<number>());
-    let readyLogos = $state(new Set<number>());
-    const activeAnime = $derived(highlights[active]);
-    const autoRotate = $derived(highlights.length > 1 && !reducedMotion);
-    const next = $derived((active + 1) % highlights.length);
-
-    const slideDuration = 15_000;
+    let carousel = $state({
+        active: 0,
+        previous: null as number | null,
+        progression: 0,
+        progressMode: 'animated' as ProgressMode,
+    });
+    let ready = $state({
+        backdrops: new Set<number>(),
+        logos: new Set<number>(),
+    });
+    const activeAnime = $derived(highlights[carousel.active]);
+    const autoRotate = $derived(highlights.length > 1 && !prefersReducedMotion.current);
+    const upcoming = $derived((carousel.active + 1) % highlights.length);
 
     function select(index: number, mode: ProgressMode = 'animated') {
         if (!highlights.length) {
             return;
         }
 
-        const next = (index + highlights.length) % highlights.length;
-        previous = next === active || reducedMotion ? null : active;
-        active = next;
-        progressMode = mode;
-        progression += 1;
+        const selected = (index + highlights.length) % highlights.length;
+        carousel.previous = selected === carousel.active || prefersReducedMotion.current ? null : carousel.active;
+        carousel.active = selected;
+        carousel.progressMode = mode;
+        carousel.progression += 1;
     }
 
-    onMount(() => {
-        reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    });
-
     $effect(() => {
-        if (!autoRotate || progressMode !== 'complete') {
+        if (!autoRotate || carousel.progressMode !== 'complete') {
             return;
         }
 
-        const next = active + 1;
-        const timeout = window.setTimeout(() => select(next), slideDuration);
+        const timeout = window.setTimeout(() => select(carousel.active + 1), 15_000);
 
         return () => window.clearTimeout(timeout);
     });
@@ -76,9 +72,7 @@
         aria-label="Trending anime now"
     >
         {#if activeAnime}
-            <article
-                class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden"
-            >
+            <article class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden">
                 <a
                     href={activeAnime.href}
                     class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
@@ -87,23 +81,25 @@
                     {#each highlights as anime, index (anime.id)}
                         <ProgressiveImage
                             src={anime.image}
-                            alt=""
+                            alt={index === carousel.active ? anime.title : ''}
                             previewSize="w300"
                             class={cn(
                                 'col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none',
-                                index === active ? 'opacity-100' : 'opacity-0'
+                                index === carousel.active ? 'opacity-100' : 'opacity-0'
                             )}
                             imageClass="object-center"
                             previewLoading="eager"
                             loading="eager"
-                            fetchpriority={index === active ? 'high' : 'low'}
-                            loadFull={index === active || index === previous || index === next}
+                            fetchpriority={index === carousel.active ? 'high' : 'low'}
+                            loadFull={index === carousel.active ||
+                                index === carousel.previous ||
+                                index === upcoming}
                             onready={() => {
-                                readyBackdrops = new Set(readyBackdrops).add(anime.id);
+                                ready.backdrops = new Set(ready.backdrops).add(anime.id);
                             }}
                             ontransitionend={(event) => {
-                                if (event.propertyName === 'opacity' && index === previous) {
-                                    previous = null;
+                                if (event.propertyName === 'opacity' && index === carousel.previous) {
+                                    carousel.previous = null;
                                 }
                             }}
                         />
@@ -120,27 +116,25 @@
                             aria-label={`View ${activeAnime.title}`}
                         >
                             {#each highlights as anime, index (anime.id)}
-                                {#if index === active || index === next}
+                                {#if index === carousel.active || index === upcoming}
                                     <img
                                         src={anime.logo.url}
-                                        alt={index === active ? anime.title : ''}
-                                        aria-hidden={index !== active}
+                                        alt={index === carousel.active ? anime.title : ''}
+                                        aria-hidden={index !== carousel.active}
                                         loading="eager"
-                                        fetchpriority={index === active ? 'high' : 'low'}
+                                        fetchpriority={index === carousel.active ? 'high' : 'low'}
                                         style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
                                         class={cn(
                                             'max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl',
-                                            index === active
-                                                ? 'block'
-                                                : 'absolute inset-0 opacity-0',
-                                            index === active &&
-                                                readyBackdrops.has(anime.id) &&
-                                                readyLogos.has(anime.id)
+                                            index === carousel.active ? 'block' : 'absolute inset-0 opacity-0',
+                                            index === carousel.active &&
+                                                ready.backdrops.has(anime.id) &&
+                                                ready.logos.has(anime.id)
                                                 ? 'opacity-100'
                                                 : 'opacity-0'
                                         )}
                                         onload={() => {
-                                            readyLogos = new Set(readyLogos).add(anime.id);
+                                            ready.logos = new Set(ready.logos).add(anime.id);
                                         }}
                                     />
                                 {/if}
@@ -152,7 +146,7 @@
                                 type="button"
                                 class="pointer-events-auto absolute top-1/2 -left-4 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-left-7 lg:-left-11"
                                 aria-label="Previous anime"
-                                onclick={() => select(active - 1, 'complete')}
+                                onclick={() => select(carousel.active - 1, 'complete')}
                             >
                                 <CaretLeftIcon size="1.7rem" weight="bold" aria-hidden="true" />
                             </button>
@@ -160,7 +154,7 @@
                                 type="button"
                                 class="pointer-events-auto absolute top-1/2 -right-4 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-right-7 lg:-right-11"
                                 aria-label="Next anime"
-                                onclick={() => select(active + 1, 'complete')}
+                                onclick={() => select(carousel.active + 1, 'complete')}
                             >
                                 <CaretRightIcon size="1.7rem" weight="bold" aria-hidden="true" />
                             </button>
@@ -174,9 +168,9 @@
                             <span class="hero-metadata__tag">{activeAnime.audioLabel}</span>
                         {/if}
                         {#if activeAnime.genres.length}
-                            <span class="hero-metadata__tag"
-                                >{activeAnime.genres.slice(0, 4).join(', ')}</span
-                            >
+                            <span class="hero-metadata__tag">
+                                {activeAnime.genres.slice(0, 4).join(', ')}
+                            </span>
                         {/if}
                     </p>
 
@@ -207,33 +201,31 @@
                     </div>
 
                     {#if highlights.length > 1}
-                        <div
-                            class="pointer-events-auto relative z-30 mt-6 flex items-center gap-2 2xl:mt-7"
-                        >
+                        <div class="pointer-events-auto relative z-30 mt-6 flex items-center gap-2 2xl:mt-7">
                             {#each highlights as item, itemIndex (item.id)}
                                 <button
                                     type="button"
                                     class={cn(
                                         'relative h-2 overflow-hidden rounded-full bg-white/50 transition-[width,background-color] duration-300 ease-out motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
-                                        itemIndex === active
+                                        itemIndex === carousel.active
                                             ? 'w-12'
                                             : 'w-6 hover:bg-accent/60 focus-visible:bg-accent/60'
                                     )}
                                     aria-label={`Show ${item.title}`}
-                                    aria-current={itemIndex === active ? 'true' : undefined}
+                                    aria-current={itemIndex === carousel.active ? 'true' : undefined}
                                     onclick={() => select(itemIndex, 'complete')}
                                 >
-                                    {#if itemIndex === active}
-                                        {#key progression}
+                                    {#if itemIndex === carousel.active}
+                                        {#key carousel.progression}
                                             <span
                                                 class={cn(
                                                     'absolute inset-y-0 left-0 bg-accent',
-                                                    autoRotate && progressMode === 'animated'
+                                                    autoRotate && carousel.progressMode === 'animated'
                                                         ? 'hero-pagination__progress'
                                                         : 'w-full'
                                                 )}
-                                                style:animation-duration={`${slideDuration}ms`}
-                                                onanimationend={() => select(active + 1)}
+                                                style:animation-duration="15s"
+                                                onanimationend={() => select(carousel.active + 1)}
                                             ></span>
                                         {/key}
                                     {/if}
