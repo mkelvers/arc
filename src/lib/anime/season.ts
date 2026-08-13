@@ -1,6 +1,6 @@
-const animeSeasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
+const seasonOrder = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
 
-export type AnimeSeason = (typeof animeSeasons)[number];
+export type AnimeSeason = (typeof seasonOrder)[number];
 
 export interface AnimeSeasonSelection {
     season: AnimeSeason;
@@ -12,12 +12,12 @@ export type AnimeSeasonStartYears = Partial<Record<AnimeSeason, number>>;
 export function parseAnimeSeason(value: string | null | undefined) {
     const season = value?.trim().toUpperCase();
 
-    return animeSeasons.find((candidate) => candidate === season);
+    return seasonOrder.find((candidate) => candidate === season);
 }
 
 export function currentAnimeSeason(now = new Date()): AnimeSeasonSelection {
     return {
-        season: animeSeasons[Math.floor(now.getUTCMonth() / 3)],
+        season: seasonOrder[Math.floor(now.getUTCMonth() / 3)],
         year: now.getUTCFullYear(),
     };
 }
@@ -25,13 +25,13 @@ export function currentAnimeSeason(now = new Date()): AnimeSeasonSelection {
 export function compareAnimeSeasons(left: AnimeSeasonSelection, right: AnimeSeasonSelection) {
     return (
         left.year - right.year ||
-        animeSeasons.indexOf(left.season) - animeSeasons.indexOf(right.season)
+        seasonOrder.indexOf(left.season) - seasonOrder.indexOf(right.season)
     );
 }
 
 export function availableAnimeSeasons(starts: AnimeSeasonStartYears, latest: AnimeSeasonSelection) {
     const firstYear = Math.min(
-        ...animeSeasons.flatMap((season) => {
+        ...seasonOrder.flatMap((season) => {
             const year = starts[season];
             return year && year > 0 ? [year] : [];
         })
@@ -42,7 +42,7 @@ export function availableAnimeSeasons(starts: AnimeSeasonStartYears, latest: Ani
 
     const options: AnimeSeasonSelection[] = [];
     for (let year = firstYear; year <= latest.year; year++) {
-        for (const season of animeSeasons) {
+        for (const season of seasonOrder) {
             const firstSeasonYear = starts[season];
             const option = { season, year };
             if (

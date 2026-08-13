@@ -1,16 +1,14 @@
-const audioModes = ['sub', 'dub', 'raw'] as const;
+const audioModeOrder = ['sub', 'dub', 'raw'] as const;
 
-export type AudioMode = (typeof audioModes)[number];
-
-const audioRank = new Map<AudioMode, number>(audioModes.map((mode, index) => [mode, index]));
+export type AudioMode = (typeof audioModeOrder)[number];
 
 function orderedAudio(modes: readonly AudioMode[]) {
     return [...new Set(modes)].toSorted(
-        (left, right) => audioRank.get(left)! - audioRank.get(right)!
+        (left, right) => audioModeOrder.indexOf(left) - audioModeOrder.indexOf(right)
     );
 }
 
-export function audioAvailabilityLabel<const Modes extends readonly AudioMode[]>(modes: Modes) {
+export function audioAvailabilityLabel(modes: readonly AudioMode[]) {
     const ordered = orderedAudio(modes).map((mode) => (mode === 'raw' ? 'sub' : mode));
     const available = [...new Set(ordered)];
     if (available.length === 1 && available[0] === 'sub') {
@@ -27,8 +25,8 @@ export function audioAvailabilityLabel<const Modes extends readonly AudioMode[]>
         .join(' | ');
 }
 
-export function episodeAudioAvailabilityLabel<Episode extends { audio: readonly AudioMode[] }>(
-    episodes: readonly Episode[]
+export function episodeAudioAvailabilityLabel(
+    episodes: readonly { audio: readonly AudioMode[] }[]
 ) {
     return audioAvailabilityLabel(episodes.flatMap((episode) => episode.audio));
 }

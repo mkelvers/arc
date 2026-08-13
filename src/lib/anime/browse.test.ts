@@ -70,10 +70,29 @@ describe('browse filters', () => {
         expect(parseBrowseFilters(new URLSearchParams({ q: 'a'.repeat(201) }))).toBeNull();
     });
 
-    test('formats provider status and type values for display', async () => {
-        const { browseEnumLabel, browseFormatLabel } = await import('./browse');
+    test('serializes typed search state without exceeding the URL boundary', () => {
+        const filters = parseBrowseFilters(new URLSearchParams());
+        expect(filters).not.toBeNull();
+        if (!filters) {
+            throw new Error('Default browse filters failed to parse');
+        }
 
-        expect(browseEnumLabel('NOT_YET_RELEASED')).toBe('Not Yet Released');
-        expect(browseFormatLabel('TV_SHORT')).toBe('TV Short');
+        const searchParams = browseSearchParams({ ...filters, query: `  ${'a'.repeat(201)}  ` });
+
+        expect(searchParams.get('q')).toBe('a'.repeat(200));
+        expect(parseBrowseFilters(searchParams)?.query).toBe('a'.repeat(200));
+    });
+
+    test('uses the first value when a query parameter is repeated', () => {
+        const filters = parseBrowseFilters(new URLSearchParams('sort=score&sort=unknown'));
+
+        expect(filters?.sort).toBe('score');
+    });
+
+    test('formats provider status and type values for display', async () => {
+        const { metadataLabel, animeFormatLabel } = await import('./browse');
+
+        expect(metadataLabel('NOT_YET_RELEASED')).toBe('Not Yet Released');
+        expect(animeFormatLabel('TV_SHORT')).toBe('TV Short');
     });
 });

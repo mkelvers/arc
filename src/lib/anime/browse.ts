@@ -1,9 +1,65 @@
-export const browseSorts = [
-    { label: 'Popularity', value: 'popularity' },
-    { label: 'Score', value: 'score' },
-] as const;
+import { z } from 'zod';
 
-export const browsePageSize = 42;
+const metadataSchema = z.string().trim().min(1).max(64).nullable();
+const browseMetadata = {
+    genre: metadataSchema,
+    tag: metadataSchema,
+    status: metadataSchema,
+    format: metadataSchema,
+    source: metadataSchema,
+    season: metadataSchema,
+} as const;
+const BrowseSearchSchema = z.object({
+    q: z.string().trim().max(200).nullable(),
+    sfw: z.stringbool({ truthy: ['1'], falsy: ['0'] }).nullable(),
+    ...browseMetadata,
+    year: z
+        .string()
+        .regex(/^\d{4}$/)
+        .nullable(),
+    country: z
+        .string()
+        .trim()
+        .regex(/^[A-Z]{2}$/)
+        .nullable(),
+    audio: z.literal('dub').nullable(),
+    sort: z.enum(['popularity', 'score']).nullable(),
+    order: z.enum(['asc', 'desc']).nullable(),
+});
+const BrowseFiltersSchema = z
+    .object({
+        query: z.string().max(200),
+        safe: z.boolean(),
+        ...browseMetadata,
+        year: z.number().int().min(1900).nullable(),
+        country: z
+            .string()
+            .trim()
+            .regex(/^[A-Z]{2}$/)
+            .nullable(),
+        audio: z.literal('dub').nullable(),
+        sort: z.enum(['popularity', 'score']),
+        order: z.enum(['asc', 'desc']),
+    })
+    .refine(({ genre, tag }) => genre === null || tag === null);
+const BrowseFiltersCodec = z.codec(BrowseSearchSchema, BrowseFiltersSchema, {
+    decode: ({ q, sfw, year, sort, order, ...filters }) => ({
+        ...filters,
+        query: q ?? '',
+        safe: sfw ?? true,
+        year: year === null ? null : Number(year),
+        sort: sort ?? 'popularity',
+        order: order ?? 'desc',
+    }),
+    encode: ({ query, safe, year, sort, order, ...filters }) => ({
+        ...filters,
+        q: query || null,
+        sfw: safe ? null : false,
+        year: year?.toString() ?? null,
+        sort: sort === 'popularity' ? null : sort,
+        order: order === 'desc' ? null : order,
+    }),
+});
 
 export interface BrowseTaxonomy {
     genres: string[];
@@ -16,157 +72,45 @@ export interface BrowseTaxonomy {
     countries: string[];
 }
 
-export interface BrowseFilters {
-    query: string;
-    safe: boolean;
-    genre: string | null;
-    tag: string | null;
-    status: string | null;
-    format: string | null;
-    source: string | null;
-    season: string | null;
-    year: number | null;
-    country: string | null;
-    audio: 'dub' | null;
-    sort: (typeof browseSorts)[number]['value'];
-    order: 'asc' | 'desc';
-}
+export type BrowseFilters = z.output<typeof BrowseFiltersCodec>;
 
-export function parseBrowseFilters(searchParams: URLSearchParams) {
-    const query = searchParams.get('q')?.trim() ?? '';
-    const safeValue = searchParams.get('sfw');
-    const safe = safeValue === null || safeValue === '1' ? true : safeValue === '0' ? false : null;
-    const metadataValue = (name: string) => {
-        const value = searchParams.get(name);
-        if (value === null) {
-            return null;
-        }
+export function parseBrowseFilters(searchParams: URLSearchParams): BrowseFilters | null {
+    const result = BrowseFiltersCodec.safeParse(
+        Object.fromEntries(
+            Object.keys(BrowseSearchSchema.shape).map((name) => [name, searchParams.get(name)])
+        )
+    );
 
-        const trimmed = value.trim();
-        return trimmed && trimmed.length <= 64 ? trimmed : undefined;
-    };
-    const genre = metadataValue('genre');
-    const tag = metadataValue('tag');
-    const status = metadataValue('status');
-    const format = metadataValue('format');
-    const source = metadataValue('source');
-    const season = metadataValue('season');
-    const country = metadataValue('country');
-    const yearValue = searchParams.get('year');
-    const year =
-        yearValue === null
-            ? null
-            : /^\d{4}$/.test(yearValue) && Number(yearValue) >= 1900
-              ? Number(yearValue)
-              : undefined;
-    const audioValue = searchParams.get('audio');
-    const audio = audioValue === null ? null : audioValue === 'dub' ? audioValue : undefined;
-    const sortValue = searchParams.get('sort');
-    const sort =
-        sortValue === null
-            ? 'popularity'
-            : (browseSorts.find(({ value }) => value === sortValue)?.value ?? null);
-    const orderValue = searchParams.get('order');
-    const order =
-        orderValue === null
-            ? 'desc'
-            : orderValue === 'asc' || orderValue === 'desc'
-              ? orderValue
-              : null;
-
-    if (
-        query.length > 200 ||
-        safe === null ||
-        genre === undefined ||
-        tag === undefined ||
-        status === undefined ||
-        format === undefined ||
-        source === undefined ||
-        season === undefined ||
-        year === undefined ||
-        country === undefined ||
-        audio === undefined ||
-        (country !== null && !/^[A-Z]{2}$/.test(country)) ||
-        sort === null ||
-        order === null ||
-        (genre !== null && tag !== null)
-    ) {
-        return null;
-    }
-
-    return {
-        query,
-        safe,
-        genre,
-        tag,
-        status,
-        format,
-        source,
-        season,
-        year,
-        country,
-        audio,
-        sort,
-        order,
-    } satisfies BrowseFilters;
+    return result.success ? result.data : null;
 }
 
 export function browseSearchParams(filters: BrowseFilters) {
-    const searchParams = new URLSearchParams();
+    const encoded = z.encode(BrowseFiltersCodec, {
+        ...filters,
+        query: filters.query.trim().slice(0, 200),
+    });
 
-    if (filters.query) {
-        searchParams.set('q', filters.query);
-    }
-    if (!filters.safe) {
-        searchParams.set('sfw', '0');
-    }
-    if (filters.genre) {
-        searchParams.set('genre', filters.genre);
-    }
-    if (filters.tag) {
-        searchParams.set('tag', filters.tag);
-    }
-    if (filters.status) {
-        searchParams.set('status', filters.status);
-    }
-    if (filters.format) {
-        searchParams.set('format', filters.format);
-    }
-    if (filters.source) {
-        searchParams.set('source', filters.source);
-    }
-    if (filters.season) {
-        searchParams.set('season', filters.season);
-    }
-    if (filters.year) {
-        searchParams.set('year', String(filters.year));
-    }
-    if (filters.country) {
-        searchParams.set('country', filters.country);
-    }
-    if (filters.audio) {
-        searchParams.set('audio', filters.audio);
-    }
-    if (filters.sort !== 'popularity') {
-        searchParams.set('sort', filters.sort);
-    }
-    if (filters.order !== 'desc') {
-        searchParams.set('order', filters.order);
-    }
-
-    return searchParams;
+    return new URLSearchParams(
+        Object.entries(encoded).flatMap(([name, value]) =>
+            value === null ? [] : [[name, String(value)]]
+        )
+    );
 }
 
-export function browseEnumLabel(value: string) {
+export function metadataLabel(value: string) {
     return value
         .split('_')
-        .map((part) => `${part[0]?.toUpperCase()}${part.slice(1).toLowerCase()}`)
+        .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
         .join(' ');
 }
 
-export function browseFormatLabel(value: string) {
+export function animeFormatLabel(value: string) {
     return value
         .split('_')
-        .map((part) => (part.length <= 3 ? part.toUpperCase() : browseEnumLabel(part)))
+        .map((part) =>
+            part.length <= 3
+                ? part.toUpperCase()
+                : `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`
+        )
         .join(' ');
 }
