@@ -1,21 +1,21 @@
 import { episodeTitleScore } from '../providers/match';
 import type { EpisodeCandidate } from './types';
 
-export interface EpisodeDetail {
+interface EpisodeDetail {
     name?: string | null;
     overview?: string | null;
     runtime?: number | null;
     stillPath?: string | null;
 }
 
-export interface EpisodeTranslation {
+interface EpisodeTranslation {
     country?: string;
     language?: string;
     name?: string | null;
     overview?: string | null;
 }
 
-export interface EpisodeStill {
+interface EpisodeStill {
     filePath?: string | null;
     voteAverage: number;
     voteCount: number;
