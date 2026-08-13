@@ -9,8 +9,11 @@
         class?: string;
         imageClass?: string;
         loading?: 'eager' | 'lazy';
+        previewLoading?: 'eager' | 'lazy';
         fetchpriority?: 'high' | 'low' | 'auto';
+        loadFull?: boolean;
         ontransitionend?: (event: TransitionEvent) => void;
+        onready?: () => void;
     }
 
     let {
@@ -21,8 +24,11 @@
         class: className,
         imageClass,
         loading = 'lazy',
+        previewLoading = loading,
         fetchpriority = 'auto',
+        loadFull = true,
         ontransitionend,
+        onready,
     }: Props = $props();
 
     let loadedSrc = $state<string | null>(null);
@@ -42,23 +48,28 @@
                 src={preview}
                 alt=""
                 class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
-                loading={loading}
+                loading={previewLoading}
                 aria-hidden="true"
             />
         </picture>
     </div>
-    <picture>
-        <img
-            src={src}
-            alt={alt}
-            class={cn(
-                'absolute inset-0 size-full object-cover transition-opacity duration-300',
-                imageClass,
-                ready ? 'opacity-100' : 'opacity-0'
-            )}
-            loading={loading}
-            fetchpriority={fetchpriority}
-            onload={() => (loadedSrc = src)}
-        />
-    </picture>
+    {#if loadFull}
+        <picture>
+            <img
+                src={src}
+                alt={alt}
+                class={cn(
+                    'absolute inset-0 size-full object-cover transition-opacity duration-300',
+                    imageClass,
+                    ready ? 'opacity-100' : 'opacity-0'
+                )}
+                loading={loading}
+                fetchpriority={fetchpriority}
+                onload={() => {
+                    loadedSrc = src;
+                    onready?.();
+                }}
+            />
+        </picture>
+    {/if}
 </figure>
