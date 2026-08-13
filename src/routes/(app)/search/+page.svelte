@@ -10,9 +10,9 @@
     } from '$lib/anime/search';
     import SearchResultSection from '$lib/components/SearchResultSection.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import DataSpinner from '$lib/components/DataSpinner.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
     import { RecentSearches } from './recent.svelte';
+    import SearchSkeleton from './SearchSkeleton.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -100,7 +100,7 @@
                         loading = false;
                     }
                 });
-        }, 175);
+        }, 120);
 
         return () => clearTimeout(timeout);
     });
@@ -129,12 +129,7 @@
 
     <div class="mx-auto w-full max-w-6xl px-5 py-7 sm:px-10 sm:py-9 lg:px-0 lg:py-10">
         {#if loading}
-            <section aria-label="Searching" aria-live="polite">
-                <span class="sr-only">Searching for anime</span>
-                <div class="flex justify-center py-20">
-                    <DataSpinner label="Searching" />
-                </div>
-            </section>
+            <SearchSkeleton />
         {:else if resultQuery}
             {#if results.length}
                 <section aria-labelledby="top-results-title">
@@ -166,6 +161,8 @@
                 {/key}
             {:else if failed}
                 <p class="text-sm text-muted">Search could not be loaded. Please try again.</p>
+            {:else}
+                <p class="text-sm text-muted">No anime found for “{resultQuery}”.</p>
             {/if}
         {:else if recent.results.length}
             <section aria-labelledby="recent-results-title">
