@@ -125,16 +125,16 @@
                 items={data.options}
                 ariaLabel={`Choose simulcast season. ${data.label} selected`}
                 menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
-                triggerClass="flex h-11 min-w-44 cursor-pointer items-center justify-between gap-3 bg-surface px-4 text-sm font-medium text-foreground transition-colors hover:bg-header-hover peer-checked:bg-header-hover"
+                triggerClass="flex h-11 min-w-44 cursor-pointer items-center gap-3 px-3 text-sm font-semibold tracking-wide text-muted uppercase transition-colors hover:text-foreground peer-checked:text-foreground"
             >
                 {#snippet trigger()}
-                    <span>{data.label}</span>
                     <CaretDownIcon
                         size="1rem"
                         weight="bold"
                         class="text-muted"
                         aria-hidden="true"
                     />
+                    <span>{data.label}</span>
                 {/snippet}
             </Dropdown>
         </div>
