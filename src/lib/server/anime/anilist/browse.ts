@@ -156,11 +156,3 @@ export async function getBrowseTaxonomy() {
 
     return taxonomy;
 }
-
-export function isMediaFormat(taxonomy: BrowseSourceTaxonomy, value: string): value is MediaFormat {
-    return taxonomy.formats.includes(value);
-}
-
-export function isMediaStatus(taxonomy: BrowseSourceTaxonomy, value: string): value is MediaStatus {
-    return taxonomy.statuses.includes(value);
-}

@@ -1,8 +1,14 @@
 import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
 
-import { browsePageSize, type BrowseFilters, type BrowseTaxonomy } from '$lib/anime/browse';
+import type { BrowseFilters, BrowseTaxonomy } from '$lib/anime/browse';
 import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
 import type { AnimeCard } from '$lib/anime/types';
+import type {
+    MediaFormat,
+    MediaSeason,
+    MediaSource,
+    MediaStatus,
+} from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import {
     animeCatalog,
@@ -14,12 +20,9 @@ import {
 import {
     getBrowsePage,
     getBrowseTaxonomy,
-    isMediaFormat,
-    isMediaStatus,
     type AniListBrowseFilters,
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
-import type { MediaSeason, MediaSource } from '$lib/graphql/anilist/generated/graphql';
 import { enrichAnimeCards } from './card-enrichment';
 import { createAnimeSearchIndex } from './search-index';
 
@@ -54,7 +57,7 @@ function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
 }
 
 async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, pageNumber: number) {
-    const result = await getBrowsePage(filters, pageNumber, browsePageSize);
+    const result = await getBrowsePage(filters, pageNumber, 42);
     const fetchedAt = new Date();
     const cachePage = {
         animeIds: result.anime.map(({ anilistId }) => anilistId),
@@ -245,25 +248,12 @@ function validatedFilters(
         throw new BrowseFilterError('Unknown anime tag');
     }
 
-    const format = (() => {
-        if (!filters.format) {
-            return null;
-        }
-        if (!isMediaFormat(taxonomy, filters.format)) {
-            throw new BrowseFilterError('Unknown anime format');
-        }
-        return filters.format;
-    })();
-    const status = (() => {
-        if (!filters.status) {
-            return null;
-        }
-        if (!isMediaStatus(taxonomy, filters.status)) {
-            throw new BrowseFilterError('Unknown anime status');
-        }
-        return filters.status;
-    })();
-
+    if (filters.format && !taxonomy.formats.includes(filters.format)) {
+        throw new BrowseFilterError('Unknown anime format');
+    }
+    if (filters.status && !taxonomy.statuses.includes(filters.status)) {
+        throw new BrowseFilterError('Unknown anime status');
+    }
     if (filters.source && !taxonomy.sources.includes(filters.source)) {
         throw new BrowseFilterError('Unknown source material');
     }
@@ -275,8 +265,9 @@ function validatedFilters(
 
     return {
         ...sourceFilters,
-        format,
-        status,
+        // AniList introspection is the runtime allowlist for these generated unions.
+        format: filters.format as MediaFormat | null,
+        status: filters.status as MediaStatus | null,
         source: filters.source as MediaSource | null,
         season: filters.season as MediaSeason | null,
     };
@@ -427,8 +418,8 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
             )
         )
         .orderBy(...catalogOrder(filters))
-        .limit(browsePageSize)
-        .offset(animeIds ? 0 : (page - 1) * browsePageSize);
+        .limit(42)
+        .offset(animeIds ? 0 : (page - 1) * 42);
 
     const orderedRows = animeIds
         ? animeIds.flatMap((id) => {
@@ -438,15 +429,13 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
         : rows;
 
     const cards: AnimeCard[] = orderedRows.map((row) => {
-        const label = audioAvailabilityLabel(audioModes(row));
-
         return {
             id: row.id,
             href: `/anime/${row.id}`,
             link: `/anime/${row.id}`,
             title: row.title,
             image: row.image,
-            audioLabel: label || 'Audio not indexed',
+            audioLabel: audioAvailabilityLabel(audioModes(row)) || 'Audio not indexed',
             score: row.score ?? 0,
             genres: row.genres,
             synopsis: row.synopsis,
@@ -480,7 +469,7 @@ async function loadPage(filters: BrowseFilters, page: number) {
 
     return {
         anime,
-        hasNextPage: cachePage?.hasNextPage ?? anime.length === browsePageSize,
+        hasNextPage: cachePage?.hasNextPage ?? anime.length === 42,
         page,
         stale: refreshFailed || cachePage?.stale === true,
         sourceTaxonomy: taxonomy,
