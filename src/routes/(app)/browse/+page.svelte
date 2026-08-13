@@ -25,8 +25,10 @@
         type BrowseFilters,
     } from '$lib/anime/browse';
     import { isAnimeCardPage, type AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/Dropdown.svelte';
+    import EmptyState from '$lib/components/EmptyState.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -596,9 +598,15 @@
                 {/each}
             </div>
         {:else}
-            <p class="border border-border px-6 py-16 text-center text-sm text-muted">
-                No anime match these filters.
-            </p>
+            <EmptyState
+                artwork={emptyArtwork}
+                artworkWidth={1254}
+                artworkHeight={1254}
+                id="empty-browse-message"
+                body="Sorry, nothing matched those filters. Try widening your search or clearing a few filters."
+                actionHref="/browse"
+                actionLabel="Clear Filters"
+            />
         {/if}
 
         {#if nextPage !== null}
