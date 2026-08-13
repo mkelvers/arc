@@ -9,63 +9,60 @@ interface RequestCacheOptions {
 }
 
 export class RequestCache<Key, Value> {
+    readonly #lifetimeMs: number;
     readonly #values = new Map<Key, Cached<Value>>();
     readonly #requests = new Map<Key, Promise<Value>>();
 
-    constructor(readonly lifetime: number) {
-        if (!Number.isSafeInteger(lifetime) || lifetime <= 0) {
+    constructor(lifetimeMs: number) {
+        if (!Number.isSafeInteger(lifetimeMs) || lifetimeMs <= 0) {
             throw new RangeError('Cache lifetime must be a positive integer');
         }
+
+        this.#lifetimeMs = lifetimeMs;
     }
 
     get(key: Key, load: () => Promise<Value>, options: RequestCacheOptions = {}) {
-        const now = Date.now();
         const cached = this.#values.get(key);
-        if (cached && cached.expiresAt > now) {
+        if (cached && cached.expiresAt > Date.now()) {
             return Promise.resolve(cached.value);
         }
 
-        const staleIfError = (request: Promise<Value>) =>
-            options.staleIfError && cached ? request.catch(() => cached.value) : request;
+        let request = this.#requests.get(key);
+        if (!request) {
+            request = Promise.resolve()
+                .then(load)
+                .then((value) => {
+                    const completedAt = Date.now();
+                    for (const [storedKey, stored] of this.#values) {
+                        if (stored.expiresAt <= completedAt) {
+                            this.#values.delete(storedKey);
+                        }
+                    }
+                    this.#values.set(key, {
+                        value,
+                        expiresAt: completedAt + this.#lifetimeMs,
+                    });
+                    return value;
+                });
+            this.#requests.set(key, request);
 
-        const cachedOrRequest = (request: Promise<Value>) => {
-            if (!cached || !options.staleWhileRevalidate) {
-                return staleIfError(request);
-            }
+            const cleanup = () => {
+                if (this.#requests.get(key) === request) {
+                    this.#requests.delete(key);
+                }
+            };
+            request.then(cleanup, cleanup);
+        }
 
+        if (cached && options.staleWhileRevalidate) {
             void request.catch(() => undefined);
             return Promise.resolve(cached.value);
-        };
-
-        const active = this.#requests.get(key);
-        if (active) {
-            return cachedOrRequest(active);
         }
 
-        const request = Promise.resolve()
-            .then(load)
-            .then((value) => {
-                const completedAt = Date.now();
-                for (const [storedKey, stored] of this.#values) {
-                    if (stored.expiresAt <= completedAt) {
-                        this.#values.delete(storedKey);
-                    }
-                }
-                this.#values.set(key, {
-                    value,
-                    expiresAt: completedAt + this.lifetime,
-                });
-                return value;
-            });
-        this.#requests.set(key, request);
+        if (cached && options.staleIfError) {
+            return request.catch(() => cached.value);
+        }
 
-        const cleanup = () => {
-            if (this.#requests.get(key) === request) {
-                this.#requests.delete(key);
-            }
-        };
-        request.then(cleanup, cleanup);
-
-        return cachedOrRequest(request);
+        return request;
     }
 }
