@@ -36,6 +36,19 @@ function searchTokens(value: string) {
         .filter(Boolean);
 }
 
+export function animeSearchText(titles: readonly string[]) {
+    return [
+        ...titles.map((title) => searchTokens(title).join(' ')),
+        ...titles.map((title) =>
+            searchTokens(title)
+                .map((word) => word[0])
+                .join('')
+        ),
+    ]
+        .filter((value, index, values) => value.length >= 2 && values.indexOf(value) === index)
+        .join('\n');
+}
+
 function editDistance(left: string, right: string) {
     const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
 
