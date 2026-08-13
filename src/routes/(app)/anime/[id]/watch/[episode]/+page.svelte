@@ -1,20 +1,35 @@
 <script lang="ts">
+    import { ArchiveIcon } from 'phosphor-svelte';
+
     import { audioAvailabilityLabel } from '$lib/anime/audio';
     import EpisodeDialog from '$lib/components/EpisodeDialog.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import WatchPlayer from '$lib/components/WatchPlayer.svelte';
     import { availableModes } from '$lib/player/media';
-    import { formatDate } from '$lib/utils';
     import type { PageProps } from './$types';
-    import { ArchiveIcon } from 'phosphor-svelte';
+
+    function releaseDate(value: string) {
+        const parts = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        const date = parts
+            ? new Date(Date.UTC(Number(parts[3]), Number(parts[1]) - 1, Number(parts[2])))
+            : new Date(`${value}T00:00:00Z`);
+
+        return Number.isNaN(date.valueOf())
+            ? value
+            : new Intl.DateTimeFormat('en', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  timeZone: 'UTC',
+              }).format(date);
+    }
 
     let { data }: PageProps = $props();
     let episodeDialogOpen = $state(false);
-    let renderedEpisodeId = $state<string>();
+    let renderedEpisodeId: string | undefined;
 
     const movie = $derived(data.anime.format === 'Movie');
-    const poster = $derived(data.currentEpisode.image ?? data.fallbackImage);
     const heading = $derived(
         movie
             ? data.anime.title
@@ -44,16 +59,14 @@
         episodeId={data.currentEpisode.id}
         episodeNumber={data.currentEpisode.number}
         label={heading}
-        poster={poster}
+        poster={data.currentEpisode.image ?? data.fallbackImage}
         next={data.nextEpisode?.href}
         startAt={data.startAt}
         progressEventAt={data.progressEventAt}
         segments={data.segments}
     />
 
-    <div
-        class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12"
-    >
+    <div class="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-11 sm:px-8 lg:flex-row lg:px-0 lg:py-12">
         {#if movie && data.poster}
             <a
                 href={`/anime/${data.anime.id}`}
@@ -77,10 +90,7 @@
         {/if}
 
         <article class="min-w-0 flex-1">
-            <a
-                href={`/anime/${data.anime.id}`}
-                class="text-sm font-bold text-accent hover:underline"
-            >
+            <a href={`/anime/${data.anime.id}`} class="text-sm font-bold text-accent hover:underline">
                 {data.anime.title}
             </a>
             <h1 class="mt-4 text-xl leading-tight font-bold">
@@ -98,13 +108,13 @@
                     )}
                 {/await}
                 {#if data.currentEpisode.duration}
-                    <span aria-hidden="true"> · </span>
+                    <span aria-hidden="true">{' · '}</span>
                     {data.currentEpisode.duration}
                 {/if}
             </p>
             {#if data.currentEpisode.releaseDate}
                 <p class="mt-2 text-sm text-watch-secondary">
-                    Released on {formatDate(data.currentEpisode.releaseDate)}
+                    Released on {releaseDate(data.currentEpisode.releaseDate)}
                 </p>
             {/if}
 

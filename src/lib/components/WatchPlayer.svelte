@@ -61,6 +61,9 @@
     let transitioning = $state(true);
     let retrying = $state(false);
 
+    // Start playback as soon as its sources resolve. Skip data is optional and
+    // may fill in later, while the request snapshots prevent an older episode
+    // from replacing the persistent player after navigation.
     $effect(() => {
         const playbackRequest = playback;
         const skipTimesRequest = segments.times;

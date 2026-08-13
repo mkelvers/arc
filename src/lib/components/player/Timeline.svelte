@@ -1,46 +1,44 @@
 <script lang="ts">
+    import type { Player } from '$lib/player/controller.svelte';
     import { formatTime } from '$lib/player/media';
 
     interface Props {
-        buffered: number;
-        current: number;
-        duration: number;
-        onactivity: () => void;
-        ondone: () => void;
-        onscrub: (active: boolean) => void;
-        onseek: (seconds: number) => void;
+        player: Player;
     }
 
-    let { buffered, current, duration, onactivity, ondone, onscrub, onseek }: Props = $props();
+    let { player }: Props = $props();
+    let pointer = $state({
+        preview: null as number | null,
+        position: 0,
+        scrubbing: false,
+    });
 
-    let preview = $state<number | null>(null);
-    let position = $state(0);
-    let scrubbing = $state(false);
+    const progress = $derived({
+        played: player.media.duration
+            ? Math.max(0, Math.min(100, (player.media.currentTime / player.media.duration) * 100))
+            : 0,
+        buffered: player.media.duration
+            ? Math.max(0, Math.min(100, (player.media.buffered / player.media.duration) * 100))
+            : 0,
+    });
 
-    const progress = $derived(
-        duration ? Math.max(0, Math.min(100, (current / duration) * 100)) : 0
-    );
-    const bufferedProgress = $derived(
-        duration ? Math.max(0, Math.min(100, (buffered / duration) * 100)) : 0
-    );
-
-    function move(event: PointerEvent, seek = scrubbing) {
+    function move(event: PointerEvent, seek = pointer.scrubbing) {
         const input = event.currentTarget as HTMLInputElement;
         const bounds = input.getBoundingClientRect();
 
-        if (!duration || !bounds.width) {
+        if (!player.media.duration || !bounds.width) {
             return;
         }
 
         const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        preview = ratio * duration;
+        pointer.preview = ratio * player.media.duration;
 
         // Keep the wider hour-format tooltip inside the timeline.
-        position = Math.max(42, Math.min(bounds.width - 42, ratio * bounds.width));
+        pointer.position = Math.max(42, Math.min(bounds.width - 42, ratio * bounds.width));
 
         if (seek) {
-            onseek(preview);
-            onactivity();
+            player.media.seek(pointer.preview);
+            player.showControls();
         }
     }
 
@@ -50,55 +48,53 @@
         }
 
         const input = event.currentTarget as HTMLInputElement;
-        scrubbing = true;
-        onscrub(true);
+        pointer.scrubbing = true;
+        player.media.setScrubbing(true);
         input.setPointerCapture(event.pointerId);
         move(event, true);
-        onactivity();
+        player.showControls();
     }
 
     function end(event: PointerEvent) {
         const input = event.currentTarget as HTMLInputElement;
         move(event, true);
-        scrubbing = false;
-        onscrub(false);
+        pointer.scrubbing = false;
+        player.media.setScrubbing(false);
 
         if (input.hasPointerCapture(event.pointerId)) {
             input.releasePointerCapture(event.pointerId);
         }
 
-        ondone();
-        onactivity();
+        player.focus();
+        player.showControls();
     }
 
     function cancel() {
-        scrubbing = false;
-        preview = null;
-        onscrub(false);
+        pointer.scrubbing = false;
+        pointer.preview = null;
+        player.media.setScrubbing(false);
     }
 </script>
 
 <div class="mt-2 flex items-center gap-3 px-1 text-xs font-medium sm:mt-3 sm:gap-4">
     <span class="w-18 shrink-0 pl-1 text-left whitespace-nowrap tabular-nums">
-        {formatTime(current)}
+        {formatTime(player.media.currentTime)}
     </span>
 
     <div class="group/timeline relative flex h-7 min-w-0 flex-1 items-center">
-        {#if preview !== null}
+        {#if pointer.preview !== null}
             <div
                 class="pointer-events-none absolute bottom-full z-30 mb-2 min-w-max -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-black shadow-md"
-                data-timeline-position={`${position}px`}
-                style={`--timeline-position: ${position}px;`}
+                style:--timeline-position={`${pointer.position}px`}
             >
-                {formatTime(preview)}
+                {formatTime(pointer.preview)}
             </div>
         {/if}
 
         <div
             class="timeline-progress relative h-1 w-full rounded-full bg-white/25 transition-all group-hover/timeline:h-1.5"
-            data-buffered-progress
-            data-progress
-            style={`--buffered-progress: ${bufferedProgress}%; --progress: ${progress}%;`}
+            style:--buffered-progress={`${progress.buffered}%`}
+            style:--progress={`${progress.played}%`}
             aria-hidden="true"
         >
             <span class="sr-only">Playback progress</span>
@@ -107,17 +103,17 @@
         <input
             type="range"
             min="0"
-            max={duration || 0}
+            max={player.media.duration || 0}
             step="0.1"
-            value={current}
+            value={player.media.currentTime}
             aria-label="Seek video"
             class="absolute inset-0 z-20 cursor-pointer opacity-0"
-            oninput={(event) => onseek(Number(event.currentTarget.value))}
+            oninput={(event) => player.media.seek(Number(event.currentTarget.value))}
             onpointerdown={start}
             onpointermove={move}
             onpointerleave={() => {
-                if (!scrubbing) {
-                    preview = null;
+                if (!pointer.scrubbing) {
+                    pointer.preview = null;
                 }
             }}
             onpointerup={end}
@@ -126,6 +122,6 @@
     </div>
 
     <span class="w-18 shrink-0 pr-1 text-right whitespace-nowrap tabular-nums">
-        {formatTime(duration)}
+        {formatTime(player.media.duration)}
     </span>
 </div>

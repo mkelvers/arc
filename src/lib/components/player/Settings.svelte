@@ -1,113 +1,20 @@
 <script lang="ts">
-    import type { AudioMode } from '$lib/anime/audio';
-    import {
-        audioLabel,
-        formatTime,
-        isHd,
-        subtitleSizeOrder,
-        subtitleSizes,
-        type SettingsView,
-        type SubtitleMode,
-        type SubtitleOption,
-        type SubtitleSize,
-    } from '$lib/player/media';
-    import type { SegmentTemplates, SkipKind, SkipTimesDraft } from '$lib/player/skip-times';
+    import type { Player } from '$lib/player/controller.svelte';
+    import { audioLabel, formatTime, isHd, subtitleSizeOrder, subtitleSizes } from '$lib/player/media';
+    import type { SkipKind } from '$lib/player/skip-times';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     interface Props {
-        audioModes: AudioMode[];
-        autoplay: boolean;
-        bestQuality: string | null;
-        creatingTemplate: SkipKind | null;
-        episodeNumber: number;
-        mode: AudioMode;
-        onautoplay: () => void;
-        onmode: (mode: AudioMode) => void;
-        onquality: (quality: string) => void;
-        onskipclear: (kind: SkipKind) => void;
-        onskipmark: (kind: SkipKind, edge: 'start' | 'end') => void;
-        onskiptemplatecancel: (kind: SkipKind) => void;
-        onskiptemplatenew: (kind: SkipKind) => void;
-        qualities: string[];
-        quality: string;
-        qualityText: string;
-        skipDraft: SkipTimesDraft;
-        skipError: string | null;
-        skipSaving: boolean;
-        segments: {
-            canEdit: boolean;
-            templates: SegmentTemplates;
-        };
-        subtitleMode: SubtitleMode;
-        subtitleOptions: SubtitleOption[];
-        subtitleSize: SubtitleSize;
-        onsubtitlemode: (mode: SubtitleMode) => void;
-        onsubtitlesize: (size: SubtitleSize) => void;
-        view?: SettingsView;
+        player: Player;
     }
 
-    let {
-        audioModes,
-        autoplay,
-        bestQuality,
-        creatingTemplate,
-        episodeNumber,
-        mode,
-        onautoplay,
-        onmode,
-        onquality,
-        onskipclear,
-        onskipmark,
-        onskiptemplatecancel,
-        onskiptemplatenew,
-        qualities,
-        quality,
-        qualityText,
-        skipDraft,
-        skipError,
-        skipSaving,
-        segments,
-        subtitleMode,
-        subtitleOptions,
-        subtitleSize,
-        onsubtitlemode,
-        onsubtitlesize,
-        view = $bindable('main'),
-    }: Props = $props();
+    const skipLabels: Record<SkipKind, string> = {
+        opening: 'Opening',
+        ending: 'Ending',
+    };
 
-    const skipKinds: SkipKind[] = ['opening', 'ending'];
-    const skipEdges = ['start', 'end'] as const;
-
-    // The main menu shows the active caption choice (English CC, Original,
-    // Signs & Songs, or None).
-    let subtitleLanguageLabel = $derived(
-        subtitleOptions.find((option) => option.mode === subtitleMode)?.label ??
-            subtitleOptions[0]?.label ??
-            'None'
-    );
-
-    function skipLabel(kind: SkipKind) {
-        return kind === 'opening' ? 'Opening' : 'Ending';
-    }
-
-    function skipRange(kind: SkipKind) {
-        const { start, end } = skipDraft[kind];
-        if (start === null || end === null) {
-            return 'Not set';
-        }
-
-        return `${formatTime(start)} – ${formatTime(end)}`;
-    }
-
-    function skipEdgeTime(kind: SkipKind, edge: (typeof skipEdges)[number]) {
-        const value = skipDraft[kind][edge];
-        return value === null ? 'Not set' : formatTime(value);
-    }
-
-    function openSkip(kind: SkipKind) {
-        view = kind === 'opening' ? 'segment-opening' : 'segment-ending';
-    }
+    let { player }: Props = $props();
 </script>
 
 {#snippet radio(selected: boolean)}
@@ -130,23 +37,23 @@
     aria-label="Playback settings"
     class={cn(
         'absolute right-0 bottom-full z-40 mb-2 overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8',
-        view.startsWith('segment') ? 'w-64' : 'w-60'
+        player.settingsView.startsWith('segment') ? 'w-64' : 'w-60'
     )}
 >
-    {#if view === 'main'}
+    {#if player.settingsView === 'main'}
         <button
             type="button"
             role="menuitemcheckbox"
-            aria-checked={autoplay}
+            aria-checked={player.media.autoplay}
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={onautoplay}
+            onclick={() => player.media.toggleAutoplay()}
         >
             <span>Autoplay</span>
             <span
                 aria-hidden="true"
                 class={cn(
                     'relative h-3.5 w-7 rounded-full border transition-colors',
-                    autoplay
+                    player.media.autoplay
                         ? 'border-player-accent bg-player-accent/20'
                         : 'border-white/55 bg-white/12'
                 )}
@@ -154,7 +61,7 @@
                 <span
                     class={cn(
                         'absolute top-0.5 left-0.5 size-2 rounded-full transition-all',
-                        autoplay ? 'translate-x-4 bg-player-accent' : 'bg-white'
+                        player.media.autoplay ? 'translate-x-4 bg-player-accent' : 'bg-white'
                     )}
                 ></span>
             </span>
@@ -164,11 +71,11 @@
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() => (view = 'audio')}
+            onclick={() => (player.settingsView = 'audio')}
         >
             <span>Audio</span>
             <span class="flex items-center gap-1 text-white/85">
-                {audioLabel(mode)}
+                {audioLabel(player.media.mode)}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </button>
@@ -177,26 +84,29 @@
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() => (view = 'subtitles')}
+            onclick={() => (player.settingsView = 'subtitles')}
         >
             <span>Subtitles/CC</span>
             <span class="flex items-center gap-1 text-white/85">
-                {subtitleLanguageLabel}
+                {player.media.captions.options.find((option) => option.mode === player.media.captions.mode)
+                    ?.label ??
+                    player.media.captions.options[0]?.label ??
+                    'None'}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </button>
 
-        {#if qualities.length > 1}
+        {#if player.media.qualities.length > 1}
             <button
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                onclick={() => (view = 'quality')}
+                onclick={() => (player.settingsView = 'quality')}
             >
                 <span>Quality</span>
                 <span class="flex items-center gap-1 text-white/85">
-                    <span>{qualityText}</span>
-                    {#if isHd(quality === 'best' ? bestQuality : quality)}
+                    <span>{player.media.qualityText}</span>
+                    {#if isHd(player.media.quality === 'best' ? player.media.bestQuality : player.media.quality)}
                         <span class="font-bold text-accent">HD</span>
                     {/if}
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
@@ -204,12 +114,12 @@
             </button>
         {/if}
 
-        {#if segments.canEdit}
+        {#if player.segments.canEdit}
             <button
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                onclick={() => (view = 'segments')}
+                onclick={() => (player.settingsView = 'segments')}
             >
                 <span>Segments</span>
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
@@ -217,54 +127,49 @@
         {/if}
     {:else}
         {@const editingKind =
-            view === 'segment-opening' ? 'opening' : view === 'segment-ending' ? 'ending' : null}
+            player.settingsView === 'segment-opening'
+                ? 'opening'
+                : player.settingsView === 'segment-ending'
+                  ? 'ending'
+                  : null}
         <button
             type="button"
             role="menuitem"
-            aria-label={view === 'subtitle-size'
+            aria-label={player.settingsView === 'subtitle-size'
                 ? 'Back to Subtitles/CC'
                 : editingKind
                   ? 'Back to segments'
                   : 'Back to playback settings'}
             class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
             onclick={() =>
-                (view = view === 'subtitle-size' ? 'subtitles' : editingKind ? 'segments' : 'main')}
+                (player.settingsView =
+                    player.settingsView === 'subtitle-size' ? 'subtitles' : editingKind ? 'segments' : 'main')}
         >
             <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
-            {view === 'quality'
-                ? 'Quality'
-                : view === 'audio'
-                  ? 'Audio'
-                  : view === 'subtitle-size'
-                    ? 'Size'
-                    : view === 'subtitles'
-                      ? 'Subtitles/CC'
-                      : editingKind
-                        ? skipLabel(editingKind)
-                        : 'Segments'}
+            Back
         </button>
 
-        {#if view === 'quality'}
+        {#if player.settingsView === 'quality'}
             <button
                 type="button"
                 role="menuitemradio"
-                aria-checked={quality === 'best'}
+                aria-checked={player.media.quality === 'best'}
                 class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                onclick={() => onquality('best')}
+                onclick={() => player.media.switchQuality('best')}
             >
-                {@render radio(quality === 'best')}
+                {@render radio(player.media.quality === 'best')}
                 Auto
             </button>
 
-            {#each qualities as option}
+            {#each player.media.qualities as option}
                 <button
                     type="button"
                     role="menuitemradio"
-                    aria-checked={quality === option}
+                    aria-checked={player.media.quality === option}
                     class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => onquality(option)}
+                    onclick={() => player.media.switchQuality(option)}
                 >
-                    {@render radio(quality === option)}
+                    {@render radio(player.media.quality === option)}
                     <span>
                         {option}
                         {#if isHd(option)}
@@ -273,139 +178,138 @@
                     </span>
                 </button>
             {/each}
-        {:else if view === 'audio'}
-            {#each audioModes as option}
+        {:else if player.settingsView === 'audio'}
+            {#each player.media.audioModes as option}
                 <button
                     type="button"
                     role="menuitemradio"
-                    aria-checked={mode === option}
+                    aria-checked={player.media.mode === option}
                     class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => onmode(option)}
+                    onclick={() => player.media.switchMode(option)}
                 >
-                    {@render radio(mode === option)}
+                    {@render radio(player.media.mode === option)}
                     {audioLabel(option)}
                 </button>
             {/each}
-        {:else if view === 'subtitles'}
+        {:else if player.settingsView === 'subtitles'}
             <button
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                onclick={() => (view = 'subtitle-size')}
+                onclick={() => (player.settingsView = 'subtitle-size')}
             >
                 <span>Size</span>
                 <span class="flex items-center gap-1 text-white/85">
-                    {subtitleSizes[subtitleSize].label}
+                    {subtitleSizes[player.media.captions.size].label}
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                 </span>
             </button>
 
-            {#each subtitleOptions as option}
+            {#each player.media.captions.options as option}
                 <button
                     type="button"
                     role="menuitemradio"
-                    aria-checked={subtitleMode === option.mode}
+                    aria-checked={player.media.captions.mode === option.mode}
                     class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => onsubtitlemode(option.mode)}
+                    onclick={() => player.media.switchSubtitleMode(option.mode)}
                 >
-                    {@render radio(subtitleMode === option.mode)}
+                    {@render radio(player.media.captions.mode === option.mode)}
                     {option.label}
                 </button>
             {/each}
-        {:else if view === 'subtitle-size'}
+        {:else if player.settingsView === 'subtitle-size'}
             {#each subtitleSizeOrder as option}
                 <button
                     type="button"
                     role="menuitemradio"
-                    aria-checked={subtitleSize === option}
+                    aria-checked={player.media.captions.size === option}
                     class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => onsubtitlesize(option)}
+                    onclick={() => player.media.captions.switchSize(option)}
                 >
-                    {@render radio(subtitleSize === option)}
+                    {@render radio(player.media.captions.size === option)}
                     {subtitleSizes[option].label}
                 </button>
             {/each}
-        {:else if view === 'segments'}
-            {#each skipKinds as kind}
+        {:else if player.settingsView === 'segments'}
+            {#each ['opening', 'ending'] satisfies SkipKind[] as kind (kind)}
+                {@const interval = player.segments.draft[kind]}
                 <button
                     type="button"
                     role="menuitem"
                     class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => openSkip(kind)}
+                    onclick={() =>
+                        (player.settingsView = kind === 'opening' ? 'segment-opening' : 'segment-ending')}
                 >
-                    <span class="font-medium">{skipLabel(kind)}</span>
+                    <span class="font-medium">{skipLabels[kind]}</span>
                     <span class="ml-auto text-[0.7rem] text-white/60 tabular-nums">
-                        {skipRange(kind)}
+                        {interval.start === null || interval.end === null
+                            ? 'Not set'
+                            : `${formatTime(interval.start)} – ${formatTime(interval.end)}`}
                     </span>
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                 </button>
             {/each}
         {:else if editingKind}
-            {@const template = segments.templates[editingKind]}
-            {#each skipEdges as edge}
+            {@const template = player.segments.templates[editingKind]}
+            {#each ['start', 'end'] satisfies Array<'start' | 'end'> as edge (edge)}
+                {@const edgeTime = player.segments.draft[editingKind][edge]}
                 <button
                     type="button"
                     role="menuitem"
-                    aria-label={`Set ${skipLabel(editingKind).toLowerCase()} ${edge} to current playback position`}
+                    aria-label={`Set ${skipLabels[editingKind].toLowerCase()} ${edge} to current playback position`}
                     title="Set to current playback position"
-                    disabled={skipSaving}
+                    disabled={player.segments.saving}
                     class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
-                    onclick={() => onskipmark(editingKind, edge)}
+                    onclick={() => player.segments.mark(editingKind, edge, player.media.video.currentTime)}
                 >
                     <span class="font-medium capitalize">{edge}</span>
                     <span class="ml-auto text-white/65 tabular-nums">
-                        {skipEdgeTime(editingKind, edge)}
+                        {edgeTime === null ? 'Not set' : formatTime(edgeTime)}
                     </span>
                     <span class="font-semibold text-player-accent">Set here</span>
                 </button>
             {/each}
 
-            {#if Number.isSafeInteger(episodeNumber) && episodeNumber > 0}
+            {#if Number.isSafeInteger(player.segments.episodeNumber) && player.segments.episodeNumber > 0}
                 <button
                     type="button"
                     role="menuitem"
-                    disabled={skipSaving}
+                    disabled={player.segments.saving}
                     class="flex min-h-9 w-full items-center px-4 text-left font-semibold text-player-accent hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
                     onclick={() =>
-                        creatingTemplate === editingKind
-                            ? onskiptemplatecancel(editingKind)
-                            : onskiptemplatenew(editingKind)}
+                        player.segments.creatingTemplate === editingKind
+                            ? player.segments.cancelTemplate(editingKind)
+                            : player.segments.startTemplate(editingKind)}
                 >
-                    {creatingTemplate === editingKind
+                    {player.segments.creatingTemplate === editingKind
                         ? 'Cancel new template'
                         : template
-                          ? `New ${skipLabel(editingKind).toLowerCase()}`
+                          ? `New ${skipLabels[editingKind].toLowerCase()}`
                           : 'Start new template'}
                 </button>
             {/if}
 
-            {#if skipDraft[editingKind].start !== null || skipDraft[editingKind].end !== null}
+            {#if player.segments.draft[editingKind].start !== null || player.segments.draft[editingKind].end !== null}
                 <button
                     type="button"
                     role="menuitem"
-                    disabled={skipSaving}
+                    disabled={player.segments.saving}
                     class="flex min-h-9 w-full items-center px-4 text-left text-white/55 hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:outline-none disabled:opacity-40"
-                    onclick={() => onskipclear(editingKind)}
+                    onclick={() => player.segments.clear(editingKind)}
                 >
                     Clear segment
                 </button>
             {/if}
 
-            {#if skipSaving}
-                <p
-                    aria-live="polite"
-                    class="border-t border-white/8 px-4 py-2 text-[0.7rem] text-white/60"
-                >
+            {#if player.segments.saving}
+                <p aria-live="polite" class="border-t border-white/8 px-4 py-2 text-[0.7rem] text-white/60">
                     Saving…
                 </p>
             {/if}
 
-            {#if skipError}
-                <p
-                    role="alert"
-                    class="border-t border-white/8 px-4 py-2.5 text-[0.7rem] leading-4 text-red-300"
-                >
-                    {skipError}
+            {#if player.segments.error}
+                <p role="alert" class="border-t border-white/8 px-4 py-2.5 text-[0.7rem] leading-4 text-red-300">
+                    {player.segments.error}
                 </p>
             {/if}
         {/if}

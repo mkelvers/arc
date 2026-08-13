@@ -37,18 +37,23 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
         return json({ message: 'Invalid segments' }, { status: 400 });
     }
 
-    const interval = operation === 'set' ? validSkipInterval(body.interval) : null;
-    const save =
-        operation === 'clear'
-            ? ({ kind, operation } as const)
-            : operation === 'apply-template' &&
-                typeof body.start === 'number' &&
-                Number.isFinite(body.start) &&
-                body.start >= 0
-              ? ({ kind, operation, start: body.start } as const)
-              : operation === 'set' && interval && typeof body.createTemplate === 'boolean'
-                ? ({ kind, operation, interval, createTemplate: body.createTemplate } as const)
-                : null;
+    let save: Parameters<typeof saveEpisodeSegment>[2] | null = null;
+    if (operation === 'clear') {
+        save = { kind, operation };
+    } else if (
+        operation === 'apply-template' &&
+        typeof body.start === 'number' &&
+        Number.isFinite(body.start) &&
+        body.start >= 0
+    ) {
+        save = { kind, operation, start: body.start };
+    } else if (operation === 'set' && typeof body.createTemplate === 'boolean') {
+        const interval = validSkipInterval(body.interval);
+        if (interval) {
+            save = { kind, operation, interval, createTemplate: body.createTemplate };
+        }
+    }
+
     if (!save) {
         return json({ message: 'Invalid segments' }, { status: 400 });
     }
