@@ -223,8 +223,12 @@
     </section>
 
     <div class="px-5 sm:px-10 lg:px-16">
-        {#await data.episodes then episodes}
-            {#await data.artwork then artwork}
+        {#await data.episodes}
+            <EpisodeList loading title={data.anime.title} />
+        {:then episodes}
+            {#await data.artwork}
+                <EpisodeList loading title={data.anime.title} />
+            {:then artwork}
                 <EpisodeList
                     episodes={episodes}
                     title={data.anime.title}
