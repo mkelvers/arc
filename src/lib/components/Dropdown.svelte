@@ -150,7 +150,7 @@
                         role="menuitem"
                         href={item.href}
                         aria-current={item.current ? 'page' : undefined}
-                        class:text-accent={item.current}
+                        class:text-foreground={item.current}
                         class:text-muted={!item.current}
                         class="block whitespace-nowrap px-5 py-3 text-sm leading-tight font-normal hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                     >
