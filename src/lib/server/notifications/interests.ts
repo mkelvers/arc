@@ -5,7 +5,7 @@ export interface RelatedAnime {
     relations: Array<{ id: number; type: string | null }>;
 }
 
-export interface ResolvedNotificationInterest {
+interface ResolvedNotificationInterest {
     anilistId: number;
     sourceAnilistId: number;
 }

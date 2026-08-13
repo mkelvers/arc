@@ -1,7 +1,7 @@
 import { mergeAudioModes, type AudioMode } from '$lib/anime/audio';
 import type { EpisodeAvailabilityTransition } from '$lib/server/anime/episodes/policy';
 
-export interface NotificationInterestRecipient {
+interface NotificationInterestRecipient {
     userId: string;
     sourceAnilistId: number;
 }

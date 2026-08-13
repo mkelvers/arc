@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 
-import { getNotificationInbox, markNotificationsRead } from '$lib/server/notifications';
+import { getNotificationInbox, markNotificationsRead } from '$lib/server/notifications/store';
 import { positiveInteger } from '$lib/utils';
 import type { PageServerLoad } from './$types';
 

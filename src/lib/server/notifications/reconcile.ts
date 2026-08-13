@@ -20,7 +20,6 @@ import { resolveNotificationInterests, type RelatedAnime } from './interests';
 import { persistNotificationEvents } from './persist';
 
 const relationshipCacheLifetimeMs = 6 * 60 * 60 * 1_000;
-const databaseBatchSize = 1_000;
 
 interface TargetMedia extends RelatedAnime {
     title: string;
@@ -232,7 +231,7 @@ async function currentSeasonAvailability(
     });
 }
 
-export async function reconcileNotificationInterests(userId: string) {
+async function reconcileNotificationInterests(userId: string) {
     const [roots, existing] = await Promise.all([
         notificationRoots(userId),
         db
@@ -301,7 +300,7 @@ export async function reconcileNotificationInterests(userId: string) {
                 )
             );
 
-        for (const batch of batches(resolved, databaseBatchSize)) {
+        for (const batch of batches(resolved, 1_000)) {
             await tx
                 .insert(notificationInterest)
                 .values(batch.map((interest) => ({ userId, ...interest, updatedAt: now })))
@@ -349,7 +348,7 @@ export async function reconcileAllNotificationInterests() {
             results.push(await reconcileNotificationInterests(userId));
         } catch (cause) {
             failures.push(cause);
-            console.error(`Notification interest reconciliation failed for ${userId}`, cause);
+            console.error('Notification interest reconciliation failed', cause);
         }
     }
 

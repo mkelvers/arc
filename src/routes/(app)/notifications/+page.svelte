@@ -18,9 +18,7 @@
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-6xl px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
-        <h1 class="border-b border-border pb-5 text-center text-2xl font-semibold">
-            Notification Center
-        </h1>
+        <h1 class="border-b border-border pb-5 text-center text-2xl font-semibold">Notification Center</h1>
 
         {#if data.unavailable}
             <section class="mt-10 border border-border px-6 py-16 text-center">
@@ -29,8 +27,9 @@
                 <a
                     href="/notifications"
                     class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-opacity hover:opacity-85 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >Retry</a
                 >
+                    Retry
+                </a>
             </section>
         {:else if data.result}
             {#if data.result.notifications.length}
@@ -58,16 +57,12 @@
                                 <span class="sr-only">View {notification.title}</span>
                             </a>
 
-                            <div
-                                class="pointer-events-none relative z-10 min-w-0 px-5 py-6 sm:px-6 sm:py-5"
-                            >
+                            <div class="pointer-events-none relative z-10 min-w-0 px-5 py-6 sm:px-6 sm:py-5">
                                 <h2 class="text-xl font-semibold sm:text-2xl">
                                     {notification.title}
                                 </h2>
                                 {#if notification.audioLabel}
-                                    <p
-                                        class="mt-2 text-xs font-medium tracking-wide text-foreground uppercase"
-                                    >
+                                    <p class="mt-2 text-xs font-medium tracking-wide text-foreground uppercase">
                                         {notification.audioLabel}
                                     </p>
                                 {/if}
@@ -80,11 +75,7 @@
                                         class="pointer-events-auto mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-bold text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                                     >
                                         {notification.actionLabel}
-                                        <CaretRightIcon
-                                            size="1rem"
-                                            weight="bold"
-                                            aria-hidden="true"
-                                        />
+                                        <CaretRightIcon size="1rem" weight="bold" aria-hidden="true" />
                                     </a>
                                 {/if}
                             </div>
@@ -103,18 +94,19 @@
             {/if}
 
             {#if data.page > 1 || data.result.hasNextPage}
-                <nav class="mt-8 flex items-center justify-between" aria-label="Notification pages">
+                <nav
+                    class="mt-8 flex items-center"
+                    class:justify-between={data.page > 1}
+                    class:justify-end={data.page === 1}
+                    aria-label="Notification pages"
+                >
                     {#if data.page > 1}
                         <a
-                            href={data.page === 2
-                                ? '/notifications'
-                                : `/notifications?page=${data.page - 1}`}
+                            href={data.page === 2 ? '/notifications' : `/notifications?page=${data.page - 1}`}
                             class="inline-flex min-h-10 items-center gap-1 px-3 text-sm font-medium text-muted hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         >
                             <CaretLeftIcon size="1rem" weight="bold" aria-hidden="true" /> Previous
                         </a>
-                    {:else}
-                        <span></span>
                     {/if}
 
                     {#if data.result.hasNextPage}

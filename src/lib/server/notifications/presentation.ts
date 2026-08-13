@@ -1,46 +1,42 @@
 import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
+import type { NotificationEventInput } from './events';
 
-export type NotificationKind =
-    | 'season_announced'
-    | 'season_available'
-    | 'episode_available'
-    | 'audio_available';
-
-export interface NotificationFacts {
-    kind: NotificationKind;
+interface NotificationFacts {
+    kind: NotificationEventInput['kind'];
     anilistId: number;
     episodeId: string | null;
     episodeNumber: number | null;
     audio: readonly AudioMode[];
 }
 
-export function notificationAudioLabel(audio: readonly AudioMode[]) {
-    return audio.length ? audioAvailabilityLabel(audio) : null;
-}
-
-export function notificationBody(facts: NotificationFacts) {
+export function presentNotification(facts: NotificationFacts) {
     const episode = facts.episodeNumber === null ? null : `Episode ${facts.episodeNumber}`;
+    let body: string;
 
     switch (facts.kind) {
         case 'season_announced':
-            return 'A new season has been announced for an anime in your library.';
+            body = 'A new season has been announced for an anime in your library.';
+            break;
         case 'season_available':
-            return episode
+            body = episode
                 ? `${episode} from the new season is now available to watch.`
                 : 'The new season is now available to watch.';
+            break;
         case 'episode_available':
-            return `${episode ?? 'A new episode'} is now ready to watch.`;
+            body = `${episode ?? 'A new episode'} is now ready to watch.`;
+            break;
         case 'audio_available':
-            return `A new audio option is available for ${episode ?? 'this episode'}.`;
+            body = `A new audio option is available for ${episode ?? 'this episode'}.`;
+            break;
     }
-}
 
-export function notificationHref(facts: Pick<NotificationFacts, 'anilistId'>) {
-    return `/anime/${facts.anilistId}`;
-}
-
-export function notificationWatchHref(facts: Pick<NotificationFacts, 'anilistId' | 'episodeId'>) {
-    return facts.episodeId
-        ? `/anime/${facts.anilistId}/watch/${encodeURIComponent(facts.episodeId)}`
-        : null;
+    return {
+        body,
+        audioLabel: facts.audio.length ? audioAvailabilityLabel(facts.audio) : null,
+        href: `/anime/${facts.anilistId}`,
+        watchHref: facts.episodeId
+            ? `/anime/${facts.anilistId}/watch/${encodeURIComponent(facts.episodeId)}`
+            : null,
+        actionLabel: facts.episodeId ? 'Watch Now' : null,
+    };
 }

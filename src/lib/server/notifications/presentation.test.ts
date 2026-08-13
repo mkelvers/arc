@@ -1,11 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-    notificationAudioLabel,
-    notificationBody,
-    notificationHref,
-    notificationWatchHref,
-} from './presentation';
+import { presentNotification } from './presentation';
 
 describe('notification presentation', () => {
     test('keeps the audio fact separate from the availability description', () => {
@@ -17,21 +12,24 @@ describe('notification presentation', () => {
             audio: ['dub', 'sub'] as const,
         };
 
-        expect(notificationAudioLabel(facts.audio)).toBe('Dub | Sub');
-        expect(notificationBody(facts)).toBe('Episode 7 is now ready to watch.');
-        expect(notificationHref(facts)).toBe('/anime/21');
-        expect(notificationWatchHref(facts)).toBe('/anime/21/watch/episode%2F7');
+        expect(presentNotification(facts)).toEqual({
+            body: 'Episode 7 is now ready to watch.',
+            audioLabel: 'Dub | Sub',
+            href: '/anime/21',
+            watchHref: '/anime/21/watch/episode%2F7',
+            actionLabel: 'Watch Now',
+        });
     });
 
     test('describes a new dub without claiming it is a new episode', () => {
         expect(
-            notificationBody({
+            presentNotification({
                 kind: 'audio_available',
                 anilistId: 21,
                 episodeId: '7',
                 episodeNumber: 7,
                 audio: ['dub'],
-            })
+            }).body
         ).toBe('A new audio option is available for Episode 7.');
     });
 
@@ -44,8 +42,12 @@ describe('notification presentation', () => {
             audio: [] as const,
         };
 
-        expect(notificationAudioLabel(facts.audio)).toBeNull();
-        expect(notificationHref(facts)).toBe('/anime/34');
-        expect(notificationWatchHref(facts)).toBeNull();
+        expect(presentNotification(facts)).toEqual({
+            body: 'A new season has been announced for an anime in your library.',
+            audioLabel: null,
+            href: '/anime/34',
+            watchHref: null,
+            actionLabel: null,
+        });
     });
 });

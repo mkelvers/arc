@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 
-import { getUnreadNotificationCount } from '$lib/server/notifications';
+import { getUnreadNotificationCount } from '$lib/server/notifications/store';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals }) => {
@@ -11,8 +11,10 @@ export const GET: RequestHandler = async ({ locals }) => {
     }
 
     try {
-        const count = await getUnreadNotificationCount(locals.user.id);
-        return json({ hasUnreadNotifications: count > 0 }, { headers });
+        return json(
+            { hasUnreadNotifications: (await getUnreadNotificationCount(locals.user.id)) > 0 },
+            { headers }
+        );
     } catch (cause) {
         console.error('Unread notification count could not be loaded', cause);
         return json({ hasUnreadNotifications: false }, { status: 503, headers });
