@@ -33,10 +33,13 @@
     let progression = $state(0);
     let progressMode = $state<ProgressMode>('animated');
     let reducedMotion = $state(false);
+    let readyBackdrops = $state(new Set<number>());
+    let readyLogos = $state(new Set<number>());
     const activeAnime = $derived(highlights[active]);
     const autoRotate = $derived(highlights.length > 1 && !reducedMotion);
+    const next = $derived((active + 1) % highlights.length);
 
-    const slideDuration = 10_000;
+    const slideDuration = 15_000;
 
     function select(index: number, mode: ProgressMode = 'animated') {
         if (!highlights.length) {
@@ -82,25 +85,28 @@
                     aria-label={`View ${activeAnime.title}`}
                 >
                     {#each highlights as anime, index (anime.id)}
-                        {#if index === active || index === previous}
-                            <ProgressiveImage
-                                src={anime.image}
-                                alt=""
-                                previewSize="w300"
-                                class={cn(
-                                    'col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none',
-                                    index === active ? 'opacity-100' : 'opacity-0'
-                                )}
-                                imageClass="object-center"
-                                loading={index === 0 ? 'eager' : 'lazy'}
-                                fetchpriority={index === 0 ? 'high' : 'auto'}
-                                ontransitionend={(event) => {
-                                    if (event.propertyName === 'opacity' && index === previous) {
-                                        previous = null;
-                                    }
-                                }}
-                            />
-                        {/if}
+                        <ProgressiveImage
+                            src={anime.image}
+                            alt=""
+                            previewSize="w300"
+                            class={cn(
+                                'col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none',
+                                index === active ? 'opacity-100' : 'opacity-0'
+                            )}
+                            imageClass="object-center"
+                            previewLoading="eager"
+                            loading="eager"
+                            fetchpriority={index === active ? 'high' : 'low'}
+                            loadFull={index === active || index === previous || index === next}
+                            onready={() => {
+                                readyBackdrops = new Set(readyBackdrops).add(anime.id);
+                            }}
+                            ontransitionend={(event) => {
+                                if (event.propertyName === 'opacity' && index === previous) {
+                                    previous = null;
+                                }
+                            }}
+                        />
                     {/each}
                 </a>
 
@@ -113,12 +119,32 @@
                             class="pointer-events-auto relative z-10 block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
                             aria-label={`View ${activeAnime.title}`}
                         >
-                            <img
-                                src={activeAnime.logo.url}
-                                alt={activeAnime.title}
-                                style:height={`clamp(${(5 * activeAnime.logo.size) / 100}rem, ${(6.4 * activeAnime.logo.size) / 100}vw, ${(8 * activeAnime.logo.size) / 100}rem)`}
-                                class="block max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
-                            />
+                            {#each highlights as anime, index (anime.id)}
+                                {#if index === active || index === next}
+                                    <img
+                                        src={anime.logo.url}
+                                        alt={index === active ? anime.title : ''}
+                                        aria-hidden={index !== active}
+                                        loading="eager"
+                                        fetchpriority={index === active ? 'high' : 'low'}
+                                        style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
+                                        class={cn(
+                                            'max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl',
+                                            index === active
+                                                ? 'block'
+                                                : 'absolute inset-0 opacity-0',
+                                            index === active &&
+                                                readyBackdrops.has(anime.id) &&
+                                                readyLogos.has(anime.id)
+                                                ? 'opacity-100'
+                                                : 'opacity-0'
+                                        )}
+                                        onload={() => {
+                                            readyLogos = new Set(readyLogos).add(anime.id);
+                                        }}
+                                    />
+                                {/if}
+                            {/each}
                         </a>
 
                         {#if highlights.length > 1}
