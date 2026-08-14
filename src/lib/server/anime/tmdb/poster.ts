@@ -6,7 +6,12 @@ import { animeExternalId, animeExternalIdLink, animeReleasePoster } from '$lib/s
 import { isRecord } from '$lib/utils';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
-import { selectPoster, selectReleaseSeason, type PosterCandidate } from './poster-selection';
+import { findMapping } from './mapping-store';
+import {
+    selectPoster as choosePoster,
+    selectReleaseSeason,
+    type PosterCandidate,
+} from './poster-selection';
 import type { ArtworkImage, StoredMapping } from './types';
 
 const requests = new Map<string, Promise<ArtworkImage | null>>();
@@ -140,7 +145,7 @@ async function saveAvailablePoster(
     const unavailable = await usedPosterPaths(match);
 
     while (true) {
-        const poster = selectPoster(candidates, unavailable);
+        const poster = choosePoster(candidates, unavailable);
         if (!poster) {
             return savePoster(match, null, seasonNumber);
         }
@@ -175,7 +180,7 @@ function posterCandidates(
         .filter((candidate): candidate is PosterCandidate => candidate !== null);
 }
 
-async function fetchPoster(anime: AniListAnime, match: StoredMapping) {
+async function fetchPosterCandidates(anime: AniListAnime, match: StoredMapping) {
     const client = create();
 
     if (match.mediaType === 'movie') {
@@ -183,68 +188,76 @@ async function fetchPoster(anime: AniListAnime, match: StoredMapping) {
             params: { path: { movie_id: match.id } },
         });
         if (!data) {
-            throw new Error('TMDB movie poster request failed', {
-                cause: error,
-            });
+            throw new Error('TMDB movie poster request failed', { cause: error });
         }
 
-        return saveAvailablePoster(match, posterCandidates(data.posters), null);
+        return { candidates: posterCandidates(data.posters), seasonNumber: null };
     }
 
     const { data: series, error } = await client.GET('/3/tv/{series_id}', {
-        params: {
-            path: { series_id: match.id },
-            query: { language: 'en-US' },
-        },
+        params: { path: { series_id: match.id }, query: { language: 'en-US' } },
     });
     if (!series) {
-        throw new Error('TMDB series poster request failed', {
-            cause: error,
-        });
+        throw new Error('TMDB series poster request failed', { cause: error });
     }
 
     const selection = selectReleaseSeason(anime, series.seasons ?? []);
     if (!selection) {
-        return savePoster(match, null, null);
+        return { candidates: [], seasonNumber: null };
     }
 
     if (selection.aggregate) {
         const { data, error: imagesError } = await client.GET('/3/tv/{series_id}/images', {
-            params: {
-                path: { series_id: match.id },
-            },
+            params: { path: { series_id: match.id } },
         });
         if (!data) {
-            throw new Error('TMDB series images request failed', {
-                cause: imagesError,
-            });
+            throw new Error('TMDB series images request failed', { cause: imagesError });
         }
 
-        return saveAvailablePoster(match, posterCandidates(data.posters), null);
+        return { candidates: posterCandidates(data.posters), seasonNumber: null };
     }
 
     const { data, error: imagesError } = await client.GET(
         '/3/tv/{series_id}/season/{season_number}/images',
-        {
-            params: {
-                path: {
-                    series_id: match.id,
-                    season_number: selection.season.season_number,
-                },
-            },
-        }
+        { params: { path: { series_id: match.id, season_number: selection.season.season_number } } }
     );
     if (!data) {
-        throw new Error('TMDB season poster request failed', {
-            cause: imagesError,
-        });
+        throw new Error('TMDB season poster request failed', { cause: imagesError });
     }
 
-    return saveAvailablePoster(
-        match,
-        posterCandidates(data.posters),
-        selection.season.season_number
-    );
+    return {
+        candidates: posterCandidates(data.posters),
+        seasonNumber: selection.season.season_number,
+    };
+}
+
+async function fetchSeriesPosterCandidates(match: StoredMapping) {
+    const client = create();
+    const { data, error } = await client.GET('/3/tv/{series_id}/images', {
+        params: { path: { series_id: match.id } },
+    });
+    if (!data) {
+        throw new Error('TMDB series images request failed', { cause: error });
+    }
+
+    return posterCandidates(data.posters);
+}
+
+async function posterOptions(anime: AniListAnime, match: StoredMapping) {
+    const { candidates } = await fetchPosterCandidates(anime, match);
+    if (match.mediaType === 'movie') {
+        return candidates;
+    }
+
+    const series = await fetchSeriesPosterCandidates(match);
+    return [
+        ...new Map([...candidates, ...series].map((poster) => [poster.filePath, poster])).values(),
+    ];
+}
+
+async function fetchPoster(anime: AniListAnime, match: StoredMapping) {
+    const { candidates, seasonNumber } = await fetchPosterCandidates(anime, match);
+    return saveAvailablePoster(match, candidates, seasonNumber);
 }
 
 export async function readPoster(match: StoredMapping) {
@@ -289,6 +302,40 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
     request.then(cleanup, cleanup);
 
     return request;
+}
+
+export async function getPosterOptions(anime: AniListAnime) {
+    const match = await findMapping(anime.id);
+    if (!match) {
+        return [];
+    }
+
+    return (await posterOptions(anime, match)).map((poster) => ({
+        ...poster,
+        url: imageUrl(poster.filePath),
+    }));
+}
+
+export async function selectPosterImage(anime: AniListAnime, filePath: string) {
+    const match = await findMapping(anime.id);
+    if (!match) {
+        throw new Error('No stored TMDB mapping for this anime');
+    }
+
+    const selected = await fetchPosterCandidates(anime, match);
+    const candidates =
+        match.mediaType === 'movie'
+            ? selected.candidates
+            : [...selected.candidates, ...(await fetchSeriesPosterCandidates(match))].filter(
+                  (candidate, index, all) =>
+                      all.findIndex(({ filePath }) => filePath === candidate.filePath) === index
+              );
+    const poster = candidates.find((candidate) => candidate.filePath === filePath);
+    if (!poster) {
+        throw new Error('Poster does not belong to this anime');
+    }
+
+    return savePoster(match, poster, selected.seasonNumber);
 }
 
 export async function getStoredPosters(anilistIds: number[]) {

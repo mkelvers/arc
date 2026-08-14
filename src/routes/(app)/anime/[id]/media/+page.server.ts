@@ -9,6 +9,7 @@ import {
     selectArtwork,
     setLogoSize,
 } from '$lib/server/anime/tmdb/media';
+import { getPosterOptions, selectPosterImage } from '$lib/server/anime/tmdb/poster';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -23,8 +24,16 @@ export const load: PageServerLoad = async ({ params }) => {
     });
 
     if (stored) {
+        const posterOptions = await loadAnime(id)
+            .then((anime) => getPosterOptions(anime))
+            .catch((cause) => {
+                console.warn(`TMDB poster options load failed for AniList ${id}`, cause);
+                return [];
+            });
+
         return {
             ...stored,
+            posterOptions,
             pageTitle: `${stored.anime.title} artwork`,
         };
     }
@@ -33,10 +42,19 @@ export const load: PageServerLoad = async ({ params }) => {
     const details = toAnimeDetails(result);
 
     try {
+        const [artwork, posterOptions] = await Promise.all([
+            getArtwork(result),
+            getPosterOptions(result).catch((cause) => {
+                console.warn(`TMDB poster options load failed for AniList ${id}`, cause);
+                return [];
+            }),
+        ]);
+
         return {
             pageTitle: `${details.title} artwork`,
             anime: details,
-            artwork: await getArtwork(result),
+            artwork,
+            posterOptions,
         };
     } catch (cause) {
         console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
@@ -77,6 +95,22 @@ export const actions: Actions = {
             } catch (cause) {
                 return fail(400, {
                     message: cause instanceof Error ? cause.message : 'Logo size update failed',
+                });
+            }
+        }
+
+        if (intent === 'poster') {
+            const value = data.get('filePath');
+            if (typeof value !== 'string' || !value) {
+                return fail(400, { message: 'Invalid poster selection' });
+            }
+
+            try {
+                await selectPosterImage(await loadAnime(id), value);
+                return { success: true };
+            } catch (cause) {
+                return fail(400, {
+                    message: cause instanceof Error ? cause.message : 'Poster selection failed',
                 });
             }
         }
