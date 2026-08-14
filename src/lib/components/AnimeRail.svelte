@@ -29,7 +29,7 @@
 
     function move(direction: -1 | 1) {
         rail?.scrollBy({
-            left: direction * rail.clientWidth * 0.82,
+            left: direction * rail.clientWidth,
             behavior: 'smooth',
         });
     }
@@ -64,10 +64,10 @@
             <div
                 bind:this={rail}
                 onscroll={updateScroll}
-                class="-mx-2 grid snap-x snap-mandatory grid-flow-col auto-cols-franchise gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
+                class="-mx-2 grid grid-flow-col auto-cols-franchise gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
             >
                 {#each anime as entry (entry.id)}
-                    <div class="min-w-0 snap-start">
+                    <div class="min-w-0">
                         <AnimeCard anime={entry} compact />
                     </div>
                 {/each}
