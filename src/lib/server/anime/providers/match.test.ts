@@ -158,11 +158,7 @@ describe('playback episode identity matching', () => {
         const episode = { id: '18', number: 18, title: 'Turbulence in the West' };
 
         expect(
-            matchProviderStreamEpisode(
-                [{ number: 18, title: 'Westliches Chaos' }],
-                episode,
-                18
-            )
+            matchProviderStreamEpisode([{ number: 18, title: 'Westliches Chaos' }], episode, 18)
         ).toEqual({ number: 18, title: 'Westliches Chaos' });
     });
 
