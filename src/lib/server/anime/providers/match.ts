@@ -361,7 +361,11 @@ export function matchProviderStreamEpisode<T extends { number: number; title: st
         }
     }
 
-    if (Number.isInteger(reference.number) && reference.number > 0 && episodes.length > 1) {
+    if (
+        Number.isInteger(reference.number) &&
+        reference.number > 0 &&
+        (episodes.length > 1 || reference.number > 1)
+    ) {
         const numbered = episodes.find((episode) => episode.number === reference.number);
         if (numbered) {
             return numbered;
