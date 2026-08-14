@@ -1,4 +1,5 @@
-@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/dm-sans/wght.css';
+@import '@fontsource-variable/manrope/wght.css';
 @import 'tailwindcss';
 
 [data-buffered-progress]::before,
@@ -141,8 +142,16 @@
     }
 
     html {
-        font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+        font-family: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
         overflow-wrap: anywhere;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        font-family: 'Manrope Variable', 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: -0.025em;
     }
 
     button,
