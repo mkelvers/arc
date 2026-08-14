@@ -138,7 +138,7 @@
                 artworkWidth={1254}
                 artworkHeight={1254}
                 id="empty-simulcast-message"
-                body={`${data.label} is a little quiet. Try another season to see what was airing.`}
+                body={`${data.label} is taking a little breather. Try another season to see what was airing.`}
             />
         {/if}
 

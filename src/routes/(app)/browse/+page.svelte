@@ -543,12 +543,6 @@
             </div>
         </div>
 
-        {#if data.stale}
-            <p class="mb-5 text-sm text-muted" role="status">
-                The catalog could not be refreshed. Showing saved results.
-            </p>
-        {/if}
-
         {#if anime.length}
             <div
                 class="grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-3 sm:gap-x-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
@@ -563,7 +557,7 @@
                 artworkWidth={1254}
                 artworkHeight={1254}
                 id="empty-browse-message"
-                body="Sorry, nothing matched those filters. Try widening your search or clearing a few filters."
+                body="Nothing matched those filters this time. Try widening the search or clearing a few filters to let something new in."
                 actionHref="/browse"
                 actionLabel="Clear Filters"
             />

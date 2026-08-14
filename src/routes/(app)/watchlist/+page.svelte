@@ -84,15 +84,15 @@
     const filteredEmptyCopy = $derived.by(() => {
         switch (data.selection.state) {
             case 'watching':
-                return 'It’s quiet here for now. Start watching something and it’ll appear here.';
+                return 'Your next great watch is still out there. Add something and it’ll appear here.';
             case 'plan_to_watch':
-                return 'No plans yet. Save something for later and it’ll be waiting here.';
+                return 'Future-you will be glad you saved something. Add an anime and it’ll wait here.';
             case 'completed':
-                return 'Your finished shelf is waiting. Anime you complete will appear here.';
+                return 'A shelf for your victories is waiting. Finish an anime and it’ll proudly appear here.';
             case 'dropped':
-                return 'Nothing has been set aside. Anime you drop will appear here.';
+                return 'Even dropped anime deserve a little shelf space. They’ll be here if you change your mind.';
             default:
-                return 'Sorry, nothing matched your filters. Try another status or clear a few filters.';
+                return 'Nothing matched those filters this time. Try another status or give them a little breathing room.';
         }
     });
 

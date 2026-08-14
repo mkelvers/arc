@@ -96,7 +96,7 @@
                         loading = false;
                     }
                 });
-        }, 120);
+        }, 250);
 
         return () => clearTimeout(timeout);
     });
@@ -122,7 +122,7 @@
     <div class="mx-auto w-full max-w-6xl px-5 py-7 sm:px-10 sm:py-9 lg:px-0 lg:py-10">
         {#if loading}
             <SearchSkeleton />
-        {:else if resultQuery}
+        {:else if resultQuery && query.trim().length >= 2}
             {#if results.length}
                 <section aria-labelledby="top-results-title">
                     <h1 id="top-results-title" class="mb-4 text-xl font-bold">Top Results</h1>
@@ -155,10 +155,10 @@
                     artworkWidth={1254}
                     artworkHeight={1254}
                     id="empty-search-message"
-                    body="Sorry, no results were found. Check your spelling or try searching for something else."
+                    body="No anime turned up this time. Try another title, character, or a brave guess."
                 />
             {/if}
-        {:else if recent.results.length}
+        {:else if !query.trim() && recent.results.length}
             <section aria-labelledby="recent-results-title">
                 <div class="mb-3 flex items-center justify-between gap-6">
                     <h1 id="recent-results-title" class="text-base font-semibold">Recent searches</h1>
