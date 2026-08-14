@@ -132,8 +132,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         getEpisodes(result).catch(() => []),
         getRelatedReleaseTitles(relatedIds),
         getPlaybackProgress(locals.user?.id, id),
-        recordAnimeVisit(locals.user?.id, id),
     ]);
+    await recordAnimeVisit(locals.user?.id, id);
     let currentIndex = episodes.findIndex((episode) => episode.id === params.episode);
 
     if (currentIndex < 0) {
