@@ -99,13 +99,13 @@
                     {#if data.anime.genres.length}
                         <span class="anime-hero-metadata__tag">
                             {#each data.anime.genres as genre, index}
+                                {#if index > 0}<span aria-hidden="true">,</span>{/if}
                                 <a
                                     class="underline underline-offset-2"
                                     href={`/browse?genre=${encodeURIComponent(genre)}`}
                                 >
                                     {genre}
                                 </a>
-                                {index < data.anime.genres.length - 1 ? ', ' : ''}
                             {/each}
                         </span>
                     {/if}
@@ -196,13 +196,13 @@
                         <p>
                             <strong class="font-normal text-foreground">Genres:</strong>
                             {#each data.anime.genres as genre, index}
+                                {#if index > 0}<span aria-hidden="true">,</span>{/if}
                                 <a
                                     class="underline underline-offset-2"
                                     href={`/browse?genre=${encodeURIComponent(genre)}`}
                                 >
                                     {genre}
                                 </a>
-                                {index < data.anime.genres.length - 1 ? ', ' : ''}
                             {/each}
                         </p>
                     </div>
