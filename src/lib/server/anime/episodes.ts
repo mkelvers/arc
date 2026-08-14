@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
-import { animeEpisodeSync } from '$lib/server/db/schema';
+import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import {
@@ -109,23 +109,37 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
 }
 
 export async function getStoredAiringSchedule(anilistId: number) {
-    return db
-        .select({
-            airingAt: animeEpisodeSync.nextAiringAt,
-            episode: animeEpisodeSync.nextAiringEpisode,
-        })
-        .from(animeEpisodeSync)
-        .where(eq(animeEpisodeSync.anilistId, anilistId))
-        .limit(1)
-        .then((rows) => {
-            const schedule = rows[0];
-            return schedule?.airingAt && schedule.episode
-                ? {
-                      airingAt: Math.floor(schedule.airingAt.getTime() / 1_000),
-                      episode: schedule.episode,
-                  }
-                : null;
-        });
+    const [rows, confirmed] = await Promise.all([
+        db
+            .select({
+                airingAt: animeEpisodeSync.nextAiringAt,
+                episode: animeEpisodeSync.nextAiringEpisode,
+            })
+            .from(animeEpisodeSync)
+            .where(eq(animeEpisodeSync.anilistId, anilistId))
+            .limit(1),
+        db
+            .select({ episodeId: animeEpisode.episodeId })
+            .from(animeEpisode)
+            .innerJoin(animeEpisodeSync, eq(animeEpisodeSync.anilistId, animeEpisode.anilistId))
+            .where(
+                and(
+                    eq(animeEpisode.anilistId, anilistId),
+                    eq(animeEpisode.number, animeEpisodeSync.nextAiringEpisode)
+                )
+            )
+            .limit(1),
+    ]);
+    const schedule = rows[0];
+
+    if (!schedule?.airingAt || !schedule.episode || confirmed.length) {
+        return null;
+    }
+
+    return {
+        airingAt: Math.floor(schedule.airingAt.getTime() / 1_000),
+        episode: schedule.episode,
+    };
 }
 
 export async function getEpisodeRevision(anilistId: number) {
