@@ -1,4 +1,4 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, or } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
 import { animeEpisode, animeEpisodeSync, notificationInterest } from '$lib/server/db/schema';
@@ -39,28 +39,27 @@ export async function scanAiringAnime() {
     const proactiveIds = await getProactiveAnimeIds();
     const airing = await getAiringAnime(proactiveIds);
 
-    for (const anime of airing) {
-        await db
-            .insert(animeEpisodeSync)
-            .values({
-                anilistId: anime.id,
-                mediaStatus: 'RELEASING',
-                nextAiringAt: anime.airingAt ? new Date(anime.airingAt * 1_000) : null,
-                nextAiringEpisode: anime.episode,
-            })
-            .onConflictDoUpdate({
-                target: animeEpisodeSync.anilistId,
-                set: {
-                    mediaStatus: 'RELEASING',
-                    nextAiringAt: anime.airingAt ? new Date(anime.airingAt * 1_000) : null,
-                    nextAiringEpisode: anime.episode,
-                },
-            });
-    }
+    const syncRows = proactiveIds.length
+        ? await db
+              .select({
+                  anilistId: animeEpisodeSync.anilistId,
+                  nextAiringAt: animeEpisodeSync.nextAiringAt,
+                  nextAiringEpisode: animeEpisodeSync.nextAiringEpisode,
+              })
+              .from(animeEpisodeSync)
+              .where(inArray(animeEpisodeSync.anilistId, proactiveIds))
+        : [];
+    const syncByAnime = new Map(syncRows.map((row) => [row.anilistId, row]));
 
-    const targetEpisodes = airing.flatMap(({ id, episode }) =>
-        episode && episode > 1 ? [{ anilistId: id, number: episode - 1 }] : []
-    );
+    const targetEpisodes = airing.flatMap(({ id, episode }) => {
+        const pendingEpisode = syncByAnime.get(id)?.nextAiringEpisode;
+        return [
+            ...(episode && episode > 1 ? [{ anilistId: id, number: episode - 1 }] : []),
+            ...(pendingEpisode && pendingEpisode < (episode ?? Infinity)
+                ? [{ anilistId: id, number: pendingEpisode }]
+                : []),
+        ];
+    });
     const storedTargets = targetEpisodes.length
         ? await db
               .select({
@@ -69,14 +68,12 @@ export async function scanAiringAnime() {
               })
               .from(animeEpisode)
               .where(
-                  and(
-                      inArray(
-                          animeEpisode.anilistId,
-                          targetEpisodes.map(({ anilistId }) => anilistId)
-                      ),
-                      inArray(
-                          animeEpisode.number,
-                          targetEpisodes.map(({ number }) => number)
+                  or(
+                      ...targetEpisodes.map(({ anilistId, number }) =>
+                          and(
+                              eq(animeEpisode.anilistId, anilistId),
+                              eq(animeEpisode.number, number)
+                          )
                       )
                   )
               )
@@ -85,11 +82,63 @@ export async function scanAiringAnime() {
         storedTargets.map(({ anilistId, number }) => `${anilistId}:${number}`)
     );
 
+    for (const anime of airing) {
+        const stored = syncByAnime.get(anime.id);
+        const pendingEpisode =
+            stored?.nextAiringEpisode &&
+            anime.episode &&
+            stored.nextAiringEpisode < anime.episode &&
+            !available.has(`${anime.id}:${stored.nextAiringEpisode}`)
+                ? stored.nextAiringEpisode
+                : null;
+
+        await db
+            .insert(animeEpisodeSync)
+            .values({
+                anilistId: anime.id,
+                mediaStatus: 'RELEASING',
+                nextAiringAt:
+                    pendingEpisode && stored?.nextAiringAt
+                        ? stored.nextAiringAt
+                        : anime.airingAt
+                          ? new Date(anime.airingAt * 1_000)
+                          : null,
+                nextAiringEpisode: pendingEpisode ?? anime.episode,
+            })
+            .onConflictDoUpdate({
+                target: animeEpisodeSync.anilistId,
+                set: {
+                    mediaStatus: 'RELEASING',
+                    nextAiringAt:
+                        pendingEpisode && stored?.nextAiringAt
+                            ? stored.nextAiringAt
+                            : anime.airingAt
+                              ? new Date(anime.airingAt * 1_000)
+                              : null,
+                    nextAiringEpisode: pendingEpisode ?? anime.episode,
+                },
+            });
+    }
+
     const scheduled = airing.map((anime) => {
-        const refreshEpisode = anime.episode && anime.episode > 1 ? anime.episode - 1 : null;
+        const stored = syncByAnime.get(anime.id);
+        const pendingEpisode =
+            stored?.nextAiringEpisode &&
+            anime.episode &&
+            stored.nextAiringEpisode < anime.episode &&
+            !available.has(`${anime.id}:${stored.nextAiringEpisode}`)
+                ? stored.nextAiringEpisode
+                : null;
+        const refreshEpisode =
+            pendingEpisode ?? (anime.episode && anime.episode > 1 ? anime.episode - 1 : null);
 
         return {
             ...anime,
+            airingAt:
+                pendingEpisode && stored?.nextAiringAt
+                    ? Math.floor(stored.nextAiringAt.getTime() / 1_000)
+                    : anime.airingAt,
+            episode: pendingEpisode ?? anime.episode,
             refreshNow: refreshEpisode !== null && !available.has(`${anime.id}:${refreshEpisode}`),
             refreshEpisode,
         };
