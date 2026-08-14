@@ -9,8 +9,7 @@
 
 <svelte:head>
     <title>{page.data.pageTitle ? `Arc — ${page.data.pageTitle}` : 'Arc'}</title>
-    <link rel="icon" href={favicon} type="image/png" sizes="512x512" />
-    <link rel="apple-touch-icon" href={favicon} />
+    <link rel="icon" href={favicon} type="image/x-icon" sizes="16x16" />
 </svelte:head>
 
 {@render children()}
