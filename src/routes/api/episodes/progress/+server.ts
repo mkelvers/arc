@@ -22,7 +22,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
     }
 
     try {
-        await savePlaybackProgress(locals.user.id, progress);
+        if (!(await savePlaybackProgress(locals.user.id, progress))) {
+            return json({ message: 'Invalid playback progress' }, { status: 400 });
+        }
     } catch (cause) {
         console.error('Playback progress save failed', cause);
 

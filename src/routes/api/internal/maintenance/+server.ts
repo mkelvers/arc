@@ -1,13 +1,9 @@
-import { env } from '$env/dynamic/private';
-
+import { hasMaintenanceToken } from '$lib/server/maintenance-auth';
 import { runMaintenance } from '$lib/server/maintenance';
 import type { RequestHandler } from './$types';
 
-const handle: RequestHandler = async ({ request }) => {
-    if (
-        !env.ARC_MAINTENANCE_TOKEN ||
-        request.headers.get('authorization') !== `Bearer ${env.ARC_MAINTENANCE_TOKEN}`
-    ) {
+export const POST: RequestHandler = async ({ request }) => {
+    if (!hasMaintenanceToken(request)) {
         return new Response('Unauthorized', { status: 401 });
     }
 
@@ -17,6 +13,3 @@ const handle: RequestHandler = async ({ request }) => {
         headers: { 'Cache-Control': 'no-store' },
     });
 };
-
-export const GET = handle;
-export const POST = handle;

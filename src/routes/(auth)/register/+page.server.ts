@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { isAPIError } from 'better-auth/api';
 import { eq } from 'drizzle-orm';
 import { setError, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
@@ -44,6 +45,7 @@ export const actions: Actions = {
         headers.set('x-arc-invitation-reservation', claim);
 
         let userId: string | undefined;
+        let invitationCompletionFailed = false;
         try {
             const result = await auth.api.signUpEmail({
                 headers,
@@ -57,14 +59,44 @@ export const actions: Actions = {
             });
             userId = result.user.id;
             if (!(await completeInvitation(claim, userId))) {
-                throw new Error('Invitation claim lost.');
+                invitationCompletionFailed = true;
+                throw new Error('Invitation completion failed');
             }
-        } catch {
+        } catch (cause) {
             if (userId) {
-                await db.delete(users).where(eq(users.id, userId));
+                try {
+                    await db.delete(users).where(eq(users.id, userId));
+                } catch {
+                    // Keep the registration response useful even if cleanup is unavailable.
+                }
             }
-            await restoreInvitation(claim);
-            return setError(form, 'username', 'That username is unavailable.');
+
+            try {
+                await restoreInvitation(claim);
+            } catch {
+                // Keep the registration response useful even if cleanup is unavailable.
+            }
+
+            if (
+                isAPIError(cause) &&
+                (cause.body?.code === 'USERNAME_IS_ALREADY_TAKEN' ||
+                    cause.body?.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL')
+            ) {
+                return setError(
+                    form,
+                    'username',
+                    'That username is already in use. Choose another.'
+                );
+            }
+
+            if (invitationCompletionFailed) {
+                return setError(
+                    form,
+                    'We could not finish setting up your invitation. Please contact the administrator.'
+                );
+            }
+
+            return setError(form, 'We could not create your account. Please try again.');
         }
 
         redirect(303, '/');

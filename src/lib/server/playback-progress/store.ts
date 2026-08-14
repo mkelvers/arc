@@ -5,6 +5,7 @@ import { db } from '$lib/server/db';
 import {
     anime as animeTable,
     animeDetailsCache,
+    animeEpisode,
     animeExternalId,
     animeExternalIdLink,
     playbackProgress,
@@ -14,6 +15,22 @@ import { requestAniListPublication } from '$lib/server/sync/publication-request'
 import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
+    const [episode] = await db
+        .select({ episodeId: animeEpisode.episodeId })
+        .from(animeEpisode)
+        .where(
+            and(
+                eq(animeEpisode.anilistId, input.animeId),
+                eq(animeEpisode.episodeId, input.episodeId),
+                eq(animeEpisode.number, input.episodeNumber)
+            )
+        )
+        .limit(1);
+
+    if (!episode) {
+        return false;
+    }
+
     const animeId = await ensureInternalAnimeId(input.animeId);
     const now = new Date();
 
@@ -63,6 +80,8 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
 
     await updateWatchlistAfterPlayback(userId, animeId, input);
     await requestAniListPublication(userId);
+
+    return true;
 }
 
 export async function getPlaybackProgress(userId: string | undefined, anilistId: number) {
