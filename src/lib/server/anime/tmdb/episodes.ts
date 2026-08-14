@@ -3,6 +3,7 @@ import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import { isRecord } from '$lib/utils';
 import { create, imageUrl } from './client';
+import { getEpisodeEnglishOverview } from './episode-changes';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
@@ -101,6 +102,7 @@ function featuredEpisode(value: unknown) {
 function episodeCandidate(episode: {
     air_date?: string;
     episode_number: number;
+    id?: number;
     name?: string;
     overview?: string;
     runtime?: unknown;
@@ -110,6 +112,7 @@ function episodeCandidate(episode: {
     const stillPath = typeof episode.still_path === 'string' ? episode.still_path : null;
 
     return {
+        tmdbEpisodeId: episode.id,
         episodeNumber: episode.episode_number,
         seasonNumber: episode.season_number,
         title: episode.name?.trim() ?? '',
@@ -393,16 +396,6 @@ export async function getEpisodeMetadata(
             series.original_language
         );
         const needed = episodeDetailsNeeded(candidate, localizedText);
-        const previous = storedText.get(sourceId);
-        const storedTextComplete = Boolean(
-            previous?.titleSource &&
-            previous.title?.trim() &&
-            previous.overviewSource &&
-            previous.overview?.trim()
-        );
-        if (storedTextComplete) {
-            needed.translations = false;
-        }
         const needsFallback = needed.details || needed.translations || needed.images;
         const fetchFallback = needsFallback && fallbacks < episodeFallbackBudget;
         if (fetchFallback) {
@@ -466,10 +459,16 @@ export async function getEpisodeMetadata(
                       .then(({ data }) => data?.stills)
                       .catch(() => undefined)
                 : Promise.resolve(undefined);
-            const [details, translations, stills] = await Promise.all([
+            const changesRequest = needed.translations
+                ? getEpisodeEnglishOverview(candidate.tmdbEpisodeId, candidate.rawAirDate).catch(
+                      () => null
+                  )
+                : Promise.resolve(null);
+            const [details, translations, stills, englishOverview] = await Promise.all([
                 detailsRequest,
                 translationsRequest,
                 imagesRequest,
+                changesRequest,
             ]);
             const featured = [series.last_episode_to_air, series.next_episode_to_air]
                 .map(featuredEpisode)
@@ -479,12 +478,23 @@ export async function getEpisodeMetadata(
                         episode.episodeNumber === candidate.episodeNumber
                 );
 
-            const localized = translations?.map((translation) => ({
+            const localized = (translations ?? []).map((translation) => ({
                 country: translation.iso_3166_1,
                 language: translation.iso_639_1,
                 name: translation.data?.name,
                 overview: translation.data?.overview,
             }));
+            if (
+                englishOverview &&
+                !localized.some(({ language, overview }) => language === 'en' && overview?.trim())
+            ) {
+                localized.unshift({
+                    country: 'US',
+                    language: 'en',
+                    name: undefined,
+                    overview: englishOverview,
+                });
+            }
 
             return {
                 id: sourceId,

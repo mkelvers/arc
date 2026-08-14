@@ -58,6 +58,7 @@ export interface StoredEpisodeText {
 }
 
 export interface EpisodeCandidate extends EpisodeMetadata {
+    tmdbEpisodeId?: number;
     episodeNumber: number;
     releaseEpisodeNumber?: number;
     seasonNumber: number;
