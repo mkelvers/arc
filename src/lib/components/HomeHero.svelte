@@ -67,7 +67,7 @@
 
 {#if highlights.length}
     <section
-        class="relative h-[calc(100svh+6rem)] min-h-180 overflow-hidden bg-black 2xl:h-svh"
+        class="relative h-[calc(100svh+6rem)] min-h-180 max-h-192 overflow-hidden bg-black 2xl:h-svh 2xl:max-h-none"
         aria-roledescription="carousel"
         aria-label="Trending anime now"
     >
@@ -125,7 +125,7 @@
                                         fetchpriority={index === carousel.active ? 'high' : 'low'}
                                         style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
                                         class={cn(
-                                            'max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl',
+                                            'max-w-[55vw] object-contain object-left sm:max-w-sm lg:max-w-lg 2xl:max-w-2xl',
                                             index === carousel.active ? 'block' : 'absolute inset-0 opacity-0',
                                             index === carousel.active &&
                                                 ready.backdrops.has(anime.id) &&
@@ -144,25 +144,35 @@
                         {#if highlights.length > 1}
                             <button
                                 type="button"
-                                class="pointer-events-auto absolute top-1/2 -left-4 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-left-7 lg:-left-11"
+                                class="pointer-events-auto absolute top-1/2 -left-3 z-30 grid size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-left-5 lg:-left-11 lg:size-11"
                                 aria-label="Previous anime"
                                 onclick={() => select(carousel.active - 1, 'complete')}
                             >
-                                <CaretLeftIcon size="1.7rem" weight="bold" aria-hidden="true" />
+                                <CaretLeftIcon
+                                    size="1.45rem"
+                                    weight="bold"
+                                    aria-hidden="true"
+                                    class="lg:size-[1.7rem]"
+                                />
                             </button>
                             <button
                                 type="button"
-                                class="pointer-events-auto absolute top-1/2 -right-4 z-30 grid size-11 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-right-7 lg:-right-11"
+                                class="pointer-events-auto absolute top-1/2 -right-3 z-30 grid size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-right-5 lg:-right-11 lg:size-11"
                                 aria-label="Next anime"
                                 onclick={() => select(carousel.active + 1, 'complete')}
                             >
-                                <CaretRightIcon size="1.7rem" weight="bold" aria-hidden="true" />
+                                <CaretRightIcon
+                                    size="1.45rem"
+                                    weight="bold"
+                                    aria-hidden="true"
+                                    class="lg:size-[1.7rem]"
+                                />
                             </button>
                         {/if}
                     </div>
 
                     <p
-                        class="mt-7 flex max-w-[min(100%,46rem)] flex-wrap items-center gap-y-1 text-xs font-normal text-white/50 sm:text-sm 2xl:mt-8 2xl:text-sm"
+                        class="mt-5 flex max-w-[min(100%,36rem)] flex-wrap items-center gap-y-1 text-xs font-normal text-white/50 lg:mt-7 lg:max-w-[min(100%,46rem)] lg:text-sm 2xl:mt-8"
                     >
                         {#if activeAnime.audioLabel}
                             <span class="hero-metadata__tag">{activeAnime.audioLabel}</span>
@@ -176,14 +186,14 @@
 
                     {#if activeAnime.description}
                         <p
-                            class="mt-3 line-clamp-4 max-w-[min(100%,46rem)] text-sm leading-6 text-[#bbb] sm:text-base 2xl:text-base 2xl:leading-7"
+                            class="mt-2 line-clamp-3 max-w-[min(100%,36rem)] text-xs leading-5 text-[#bbb] lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:text-base lg:leading-6 2xl:leading-7"
                         >
                             {activeAnime.description}
                         </p>
                     {/if}
 
                     <div
-                        class="pointer-events-auto mt-7 flex flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm"
+                        class="pointer-events-auto mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-accent lg:mt-7 lg:text-sm"
                     >
                         <a
                             href={activeAnime.link}
