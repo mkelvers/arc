@@ -1,6 +1,6 @@
 <script lang="ts">
     import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
-    import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
+    import { CaretLeftIcon, CaretRightIcon, TrashIcon } from 'phosphor-svelte';
 
     import emptyArtwork from '$lib/assets/notifications-empty.png';
     import EmptyState from '$lib/components/EmptyState.svelte';
@@ -18,7 +18,7 @@
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-6xl px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
-        <h1 class="border-b border-border pb-5 text-center text-2xl font-semibold">Notification Center</h1>
+        <h1 class="text-center text-2xl font-semibold">Notification Center</h1>
 
         {#if data.unavailable}
             <section class="mt-10 border border-border px-6 py-16 text-center">
@@ -32,8 +32,22 @@
                 </a>
             </section>
         {:else if data.result}
+            <header class="mt-10 flex items-center justify-between gap-4 border-b border-border pb-5">
+                <h2 class="text-lg font-semibold sm:text-xl">Past Notifications</h2>
+                <form method="POST">
+                    <input type="hidden" name="intent" value="clearAll" />
+                    <button
+                        type="submit"
+                        class="inline-flex min-h-10 items-center gap-2 px-2 text-xs font-bold text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                        <TrashIcon size="1rem" weight="bold" aria-hidden="true" />
+                        Clear All
+                    </button>
+                </form>
+            </header>
+
             {#if data.result.notifications.length}
-                <section class="mx-auto mt-10 grid max-w-6xl gap-3" aria-label="Notifications">
+                <section class="mx-auto mt-5 grid max-w-6xl gap-3" aria-label="Past notifications">
                     {#each data.result.notifications as notification (notification.id)}
                         <article
                             class="group relative grid overflow-hidden bg-canvas transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[20rem_minmax(0,1fr)]"
@@ -88,8 +102,8 @@
                     artworkWidth={1254}
                     artworkHeight={1254}
                     id="empty-notifications-title"
-                    title="You’re all caught up."
-                    body="We’ll let you know when something new arrives."
+                    title="You don’t have any notifications."
+                    body="We’ll send you a notification when we have something new to share!"
                 />
             {/if}
 

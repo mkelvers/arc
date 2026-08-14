@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 
 import { getStoredBackdrops } from '$lib/server/anime/tmdb/media';
 import { db } from '$lib/server/db';
@@ -20,21 +20,24 @@ export async function getUnreadNotificationCount(userId: string) {
     return row?.count ?? 0;
 }
 
-export async function markNotificationsRead(userId: string, ids: readonly string[]) {
-    if (!ids.length) {
-        return;
-    }
-
+export async function markAllNotificationsRead(userId: string) {
     await db
         .update(notification)
         .set({ readAt: new Date() })
         .where(
             and(
                 eq(notification.userId, userId),
-                inArray(notification.id, [...ids]),
-                isNull(notification.readAt)
+                isNull(notification.readAt),
+                isNull(notification.dismissedAt)
             )
         );
+}
+
+export async function dismissAllNotifications(userId: string) {
+    await db
+        .update(notification)
+        .set({ dismissedAt: new Date() })
+        .where(and(eq(notification.userId, userId), isNull(notification.dismissedAt)));
 }
 
 export async function getNotificationInbox(userId: string, page: number) {
