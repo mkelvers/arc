@@ -176,7 +176,10 @@ export class SegmentEditor {
             this.draft = skipTimesDraft(saved.data.times);
             this.creatingTemplate = null;
         } catch (cause) {
-            this.error = cause instanceof Error ? cause.message : 'Segments could not be saved.';
+            this.error =
+                cause instanceof Error && cause.message === 'Sign in to edit segments.'
+                    ? cause.message
+                    : 'Segments could not be saved. Please try again.';
         } finally {
             this.saving = false;
         }

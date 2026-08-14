@@ -12,7 +12,7 @@
     let { message, tone = 'success', ondismiss }: Props = $props();
 
     $effect(() => {
-        if (!message) {
+        if (!message || tone === 'error') {
             return;
         }
 
@@ -30,6 +30,7 @@
         out:fly={{ y: -48, duration: 180 }}
         role={tone === 'error' ? 'alert' : 'status'}
         aria-live={tone === 'error' ? 'assertive' : 'polite'}
+        aria-atomic="true"
     >
         <p class="text-center">{message}</p>
         <button
