@@ -85,6 +85,7 @@
         {#if pointer.preview !== null}
             <div
                 class="pointer-events-none absolute bottom-full z-30 mb-2 min-w-max -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-black shadow-md"
+                data-timeline-position
                 style:--timeline-position={`${pointer.position}px`}
             >
                 {formatTime(pointer.preview)}
@@ -93,6 +94,8 @@
 
         <div
             class="timeline-progress relative h-1 w-full rounded-full bg-white/25 transition-all group-hover/timeline:h-1.5"
+            data-buffered-progress
+            data-progress
             style:--buffered-progress={`${progress.buffered}%`}
             style:--progress={`${progress.played}%`}
             aria-hidden="true"
