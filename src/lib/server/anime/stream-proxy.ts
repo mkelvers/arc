@@ -6,7 +6,6 @@ const allowedHosts = [
     'video.wixstatic.com',
     'mp4upload.com',
     'sharepoint.com',
-    'hls.anidb.app',
     'ninstream.com',
     'ninjstream.xyz',
     'ibyteimg.com',
@@ -308,9 +307,6 @@ function streamReferer(target: URL) {
     const group = refererHostGroups.find(({ hosts }) => matchesHost(hostname, hosts));
     if (group) {
         return group.referer;
-    }
-    if (hostname === 'hls.anidb.app') {
-        return 'https://anidb.app/';
     }
     if (hostname.startsWith('megap.') || hostname.endsWith('.lostproject.club')) {
         return 'https://megaplay.buzz/';

@@ -97,19 +97,23 @@ function sourceRank(source: Source) {
 async function playableSources(sources: Source[], mode: AudioMode) {
     const ordered = sources.toSorted((left, right) => sourceRank(left) - sourceRank(right));
     const supported = ordered.filter((source) => priority.includes(source.name.toLowerCase()));
-    const resolved = (
-        await Promise.all(
-            (supported.length ? supported : ordered).map((source) => {
-                const decoded = decodeSourceUrl(source.url);
-                const target = /^https?:\/\//.test(decoded)
-                    ? decoded
-                    : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
+    const candidates = supported.length ? supported : ordered;
+    const results = await Promise.all(
+        candidates.map(async (source) => {
+            const decoded = decodeSourceUrl(source.url);
+            const target = /^https?:\/\//.test(decoded)
+                ? decoded
+                : `${site}${decoded.startsWith('/') ? '' : '/'}${decoded}`;
 
-                return resolveTarget(target).catch(() => []);
-            })
-        )
-    )
-        .flat()
+            try {
+                return { source, streams: await resolveTarget(target), error: null };
+            } catch (cause) {
+                return { source, streams: [], error: cause };
+            }
+        })
+    );
+    const resolved = results
+        .flatMap(({ streams }) => streams)
         .filter(
             (stream, index, values) => values.findIndex(({ url }) => url === stream.url) === index
         )
@@ -119,10 +123,18 @@ async function playableSources(sources: Source[], mode: AudioMode) {
         );
 
     if (!resolved.length) {
+        const failures = results
+            .filter(({ error }) => error)
+            .map(
+                ({ source, error }) =>
+                    `${source.name}: ${error instanceof Error ? error.message : String(error)}`
+            );
         throw new Error(
-            `AllAnime ${mode} sources could not be resolved: ${ordered
-                .map(({ name, url }) => `${name} (${url})`)
-                .join(', ')}`
+            `AllAnime ${mode} sources could not be resolved: ${
+                failures.length
+                    ? failures.join('; ')
+                    : candidates.map(({ name, url }) => `${name} (${url})`).join(', ')
+            }`
         );
     }
 
@@ -191,7 +203,14 @@ async function resolveStreams(anime: AniListAnime, episode: string, modes: Audio
         return streams;
     }
 
-    throw new AggregateError(errors, `AllAnime returned no playable source for episode ${episode}`);
+    const details = errors
+        .map((error) => (error instanceof Error ? error.message : String(error)))
+        .filter(Boolean)
+        .join('; ');
+    throw new AggregateError(
+        errors,
+        `AllAnime returned no playable source for episode ${episode}${details ? `: ${details}` : ''}`
+    );
 }
 
 export async function getStreams(anime: AniListAnime, episode: string, modes: AudioMode[]) {

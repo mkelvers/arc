@@ -183,7 +183,7 @@ export async function resolveTarget(
     const host = url.hostname.toLowerCase();
     const direct = host === 'tools.fast4speed.rsvp' || host.endsWith('.sharepoint.com');
 
-    if (direct || /\.mp4(?:[?#]|$)/i.test(url.pathname)) {
+    if (direct || /\.(?:m3u8|mp4)(?:[?#]|$)/i.test(url.pathname)) {
         const pathQuality = url.pathname.match(/(?:^|\/)(\d{3,4})p(?:\/|$)/i)?.[1];
 
         return [
@@ -201,10 +201,18 @@ export async function resolveTarget(
     });
 
     if (!response.ok) {
-        return [];
+        throw new Error(`AllAnime source endpoint returned ${response.status}`);
+    }
+
+    if (/mpegurl|vnd\.apple\.mpegurl/i.test(response.headers.get('content-type') ?? '')) {
+        return [{ url: target, quality, audioDelay: 0 }];
     }
 
     const text = await response.text();
+
+    if (/^\s*#EXTM3U\b/i.test(text)) {
+        return [{ url: target, quality, audioDelay: 0 }];
+    }
 
     try {
         const references = mediaReferences(JSON.parse(text), quality).filter(
@@ -212,7 +220,7 @@ export async function resolveTarget(
         );
         const streams = await Promise.all(
             references.map((reference) =>
-                resolveTarget(reference.url, reference.quality, depth + 1).catch(() => [])
+                resolveTarget(reference.url, reference.quality, depth + 1)
             )
         );
 
