@@ -108,6 +108,26 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
     return stored;
 }
 
+export async function getStoredAiringSchedule(anilistId: number) {
+    return db
+        .select({
+            airingAt: animeEpisodeSync.nextAiringAt,
+            episode: animeEpisodeSync.nextAiringEpisode,
+        })
+        .from(animeEpisodeSync)
+        .where(eq(animeEpisodeSync.anilistId, anilistId))
+        .limit(1)
+        .then((rows) => {
+            const schedule = rows[0];
+            return schedule?.airingAt && schedule.episode
+                ? {
+                      airingAt: Math.floor(schedule.airingAt.getTime() / 1_000),
+                      episode: schedule.episode,
+                  }
+                : null;
+        });
+}
+
 export async function getEpisodeRevision(anilistId: number) {
     return db
         .select({ revision: animeEpisodeSync.sourceRevision })

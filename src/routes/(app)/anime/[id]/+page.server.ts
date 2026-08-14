@@ -2,7 +2,11 @@ import { error } from '@sveltejs/kit';
 
 import { episodeAudioAvailabilityLabel } from '$lib/anime/audio';
 import { toAnimeDetails } from '$lib/server/anime/details';
-import { getEpisodeRevision, getEpisodes } from '$lib/server/anime/episodes';
+import {
+    getEpisodeRevision,
+    getEpisodes,
+    getStoredAiringSchedule,
+} from '$lib/server/anime/episodes';
 import { getFranchiseOrder } from '$lib/server/anime/franchise';
 import { recordAnimeVisit } from '$lib/server/anime/interest';
 import { animeId, loadAnime } from '$lib/server/anime/route';
@@ -23,12 +27,13 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
     const userId = locals.user?.id;
 
     const result = await loadAnime(id);
-    const [synopsis, watchlistState] = await Promise.all([
+    const [synopsis, watchlistState, , storedAiringSchedule] = await Promise.all([
         resolveAnimeSynopsis(result),
         getWatchlistState(userId, id),
         recordAnimeVisit(userId, id),
+        getStoredAiringSchedule(id),
     ]);
-    const details = toAnimeDetails(result, synopsis);
+    const details = toAnimeDetails(result, synopsis, storedAiringSchedule);
 
     const artwork = getArtwork(result).catch((cause) => {
         console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);

@@ -30,4 +30,25 @@ describe('anime details airing state', () => {
 
         expect(details.nextAiringEpisode).toEqual(nextAiringEpisode);
     });
+
+    test('keeps a provider-unconfirmed airing event after its scheduled time', () => {
+        const nextAiringEpisode = {
+            episode: 18,
+            airingAt: Math.floor(Date.now() / 1_000) - 1,
+        };
+        const details = toAnimeDetails(
+            {
+                id: 196187,
+                status: 'RELEASING',
+                nextAiringEpisode: {
+                    episode: 19,
+                    airingAt: nextAiringEpisode.airingAt + 7 * 86400,
+                },
+            } as AniListAnime,
+            undefined,
+            nextAiringEpisode
+        );
+
+        expect(details.nextAiringEpisode).toEqual(nextAiringEpisode);
+    });
 });

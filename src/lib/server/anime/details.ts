@@ -74,14 +74,19 @@ function formatRankings(media: AniListAnime) {
     ].filter((ranking): ranking is string => Boolean(ranking));
 }
 
-export function toAnimeDetails(media: AniListAnime, description = media.description) {
+export function toAnimeDetails(
+    media: AniListAnime,
+    description = media.description,
+    storedAiringEpisode?: { episode: number; airingAt: number } | null
+) {
     const nextAiringEpisode =
-        media.nextAiringEpisode && media.nextAiringEpisode.airingAt * 1_000 > Date.now()
+        storedAiringEpisode ??
+        (media.nextAiringEpisode && media.nextAiringEpisode.airingAt * 1_000 > Date.now()
             ? {
                   episode: media.nextAiringEpisode.episode,
                   airingAt: media.nextAiringEpisode.airingAt,
               }
-            : null;
+            : null);
 
     return {
         id: media.id,
