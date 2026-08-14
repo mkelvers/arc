@@ -221,13 +221,27 @@ async function refreshScheduledEpisode({ anilistId, targetEpisode }: EpisodeRefr
         return (await refreshAiringAnime(anilistId)).episodeAvailable;
     }
 
-    const stored = await db
-        .select({ episodeId: animeEpisode.episodeId })
-        .from(animeEpisode)
-        .where(and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.number, targetEpisode)))
-        .limit(1);
+    const [stored, sync] = await Promise.all([
+        db
+            .select({ episodeId: animeEpisode.episodeId })
+            .from(animeEpisode)
+            .where(
+                and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.number, targetEpisode))
+            )
+            .limit(1),
+        db
+            .select({ nextAiringEpisode: animeEpisodeSync.nextAiringEpisode })
+            .from(animeEpisodeSync)
+            .where(eq(animeEpisodeSync.anilistId, anilistId))
+            .limit(1)
+            .then((rows) => rows[0] ?? null),
+    ]);
 
     if (stored.length) {
+        if (sync?.nextAiringEpisode === targetEpisode) {
+            return (await refreshAiringAnime(anilistId, targetEpisode)).episodeAvailable;
+        }
+
         return true;
     }
 
