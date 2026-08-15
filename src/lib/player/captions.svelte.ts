@@ -11,7 +11,6 @@ import {
     subtitleOptionsFor,
     subtitleReferenceTracks,
     subtitleTracks,
-    subtitlesAt,
     type Sources,
     type Stream,
     type SubtitleBackground,
@@ -41,10 +40,6 @@ export class Captions {
     private request: AbortController | null = null;
     private source = '';
     private loaded: Partial<Record<Exclude<SubtitleMode, 'off'>, SubtitleCue[]>> = {};
-
-    at(seconds: number) {
-        return subtitlesAt(this.cues, seconds);
-    }
 
     clear() {
         this.request?.abort();

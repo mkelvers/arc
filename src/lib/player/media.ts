@@ -1,4 +1,4 @@
-import type { AudioMode } from '$lib/anime/audio';
+import { audioModeOrder, type AudioMode } from '$lib/anime/audio';
 
 export interface Stream {
     url: string;
@@ -420,7 +420,7 @@ export function orderStreams(streams: Stream[], quality: string) {
 }
 
 export function availableModes(sources: Sources) {
-    return (['sub', 'dub', 'raw'] as const).filter((mode) => Boolean(sources[mode]?.length));
+    return audioModeOrder.filter((mode) => Boolean(sources[mode]?.length));
 }
 
 export function audioLabel(mode: AudioMode) {

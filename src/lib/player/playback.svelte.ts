@@ -10,6 +10,7 @@ import {
     isHlsSource,
     orderStreams,
     streamsFor,
+    subtitlesAt,
     type Sources,
     type Stream,
     type SubtitleMode,
@@ -103,7 +104,7 @@ export class Playback {
     }
 
     get subtitles() {
-        return this.captions.at(this.currentTime);
+        return subtitlesAt(this.captions.cues, this.currentTime);
     }
 
     get bestQuality() {
@@ -120,10 +121,6 @@ export class Playback {
                 ? `Auto ${this.bestQuality}`
                 : 'Auto'
             : this.quality;
-    }
-
-    get volumeProgress() {
-        return (this.muted ? 0 : this.volume) * 100;
     }
 
     syncAudio(reset = false) {
