@@ -160,6 +160,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
                   }`,
         anime: details,
         poster: storedMedia?.artwork.selectedPoster?.url ?? null,
+        logo: storedMedia?.artwork.selectedLogo
+            ? {
+                  url: storedMedia.artwork.selectedLogo.url,
+                  size: storedMedia.artwork.logoSize,
+              }
+            : null,
         episodes,
         currentEpisode,
         previousEpisode: episodes[currentIndex - 1] ?? null,
