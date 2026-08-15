@@ -3,12 +3,6 @@ import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
 import type { BrowseFilters, BrowseTaxonomy } from '$lib/anime/browse';
 import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
 import type { AnimeCard } from '$lib/anime/types';
-import type {
-    MediaFormat,
-    MediaSeason,
-    MediaSource,
-    MediaStatus,
-} from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { excluded } from '$lib/server/db/sql';
 import {
@@ -249,14 +243,9 @@ function validatedFilters(
 
     const { audio: _, ...sourceFilters } = filters;
 
-    return {
-        ...sourceFilters,
-        // AniList introspection is the runtime allowlist for these generated unions.
-        format: filters.format as MediaFormat | null,
-        status: filters.status as MediaStatus | null,
-        source: filters.source as MediaSource | null,
-        season: filters.season as MediaSeason | null,
-    };
+    // AniList introspection is the runtime allowlist for these generated unions,
+    // and every value was validated against it above.
+    return sourceFilters as AniListBrowseFilters;
 }
 
 async function observedFormats(taxonomy: BrowseSourceTaxonomy) {
