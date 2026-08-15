@@ -6,11 +6,17 @@ import { verifyTurnstile } from '$lib/server/turnstile';
 
 import type { Actions, PageServerLoad } from './$types';
 
+function safeReturnTo(value: string | null | undefined) {
+    return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+        ? value
+        : '/';
+}
+
 export const load: PageServerLoad = ({ url }) => {
     const value = url.searchParams.get('returnTo');
     return {
         pageTitle: 'Verify',
-        returnTo: value?.startsWith('/') && !value.startsWith('//') ? value : '/',
+        returnTo: safeReturnTo(value),
     };
 };
 
@@ -39,11 +45,6 @@ export const actions: Actions = {
         });
 
         const value = form.get('returnTo');
-        redirect(
-            303,
-            typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
-                ? value
-                : '/'
-        );
+        redirect(303, safeReturnTo(typeof value === 'string' ? value : null));
     },
 };
