@@ -17,6 +17,7 @@
         played: player.media.duration
             ? Math.max(0, Math.min(100, (player.media.currentTime / player.media.duration) * 100))
             : 0,
+
         buffered: player.media.duration
             ? Math.max(0, Math.min(100, (player.media.buffered / player.media.duration) * 100))
             : 0,
