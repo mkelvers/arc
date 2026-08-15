@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
     import {
+        ArchiveIcon,
         CornersInIcon,
         CornersOutIcon,
         GearIcon,
@@ -14,15 +15,17 @@
 
     interface Props {
         player: Player;
+        hasMultipleEpisodes?: boolean;
+        onopenepisodes?: () => void;
     }
 
-    let { player }: Props = $props();
+    let { player, hasMultipleEpisodes = false, onopenepisodes }: Props = $props();
 </script>
 
 <div
     class:pointer-events-none={!player.controlsVisible && player.media.playing}
     class:opacity-0={!player.controlsVisible && player.media.playing}
-    class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/90 via-black/45 to-transparent px-4 pt-16 pb-4 text-white transition-opacity duration-300 sm:px-6 sm:pb-5"
+    class="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/95 via-black/50 to-transparent px-4 pt-20 pb-4 text-white transition-opacity duration-300 sm:px-6 sm:pb-5"
 >
     <div class="flex items-center justify-between px-1">
         <div class="flex items-center gap-4">
@@ -82,6 +85,18 @@
         </div>
 
         <div class="flex items-center gap-4">
+            {#if hasMultipleEpisodes && onopenepisodes}
+                <button
+                    type="button"
+                    aria-label="Episodes"
+                    aria-haspopup="dialog"
+                    class="grid size-8 place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+                    onclick={onopenepisodes}
+                >
+                    <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                </button>
+            {/if}
+
             <div class="relative">
                 <button
                     type="button"
