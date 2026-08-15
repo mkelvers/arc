@@ -3,6 +3,7 @@ import { and, eq, notInArray, sql } from 'drizzle-orm';
 import { mergeAudioModes } from '$lib/anime/audio';
 import type { AnimeEpisode } from '$lib/anime/types';
 import { db } from '$lib/server/db';
+import { excluded } from '$lib/server/db/sql';
 import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
 import { recordProviderEpisodeChanges } from '$lib/server/notifications/provider';
 import type { AniListAnime } from '../anilist/types';
@@ -201,18 +202,16 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
             .onConflictDoUpdate({
                 target: [animeEpisode.anilistId, animeEpisode.episodeId],
                 set: {
-                    number: sql.raw(`excluded.${animeEpisode.number.name}`),
-                    providerTitle: sql.raw(`excluded.${animeEpisode.providerTitle.name}`),
-                    metadataTitle: sql.raw(`excluded.${animeEpisode.metadataTitle.name}`),
-                    metadataTitleSource: sql.raw(
-                        `excluded.${animeEpisode.metadataTitleSource.name}`
-                    ),
-                    audio: sql.raw(`excluded.${animeEpisode.audio.name}`),
-                    imageUrl: sql.raw(`excluded.${animeEpisode.imageUrl.name}`),
-                    runtimeMinutes: sql.raw(`excluded.${animeEpisode.runtimeMinutes.name}`),
-                    airDate: sql.raw(`excluded.${animeEpisode.airDate.name}`),
-                    overview: sql.raw(`excluded.${animeEpisode.overview.name}`),
-                    overviewSource: sql.raw(`excluded.${animeEpisode.overviewSource.name}`),
+                    number: excluded(animeEpisode.number),
+                    providerTitle: excluded(animeEpisode.providerTitle),
+                    metadataTitle: excluded(animeEpisode.metadataTitle),
+                    metadataTitleSource: excluded(animeEpisode.metadataTitleSource),
+                    audio: excluded(animeEpisode.audio),
+                    imageUrl: excluded(animeEpisode.imageUrl),
+                    runtimeMinutes: excluded(animeEpisode.runtimeMinutes),
+                    airDate: excluded(animeEpisode.airDate),
+                    overview: excluded(animeEpisode.overview),
+                    overviewSource: excluded(animeEpisode.overviewSource),
                     lastSeenAt: now,
                     lastVerifiedAt: now,
                 },

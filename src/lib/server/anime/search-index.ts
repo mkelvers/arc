@@ -8,14 +8,11 @@ import {
     searchRelevance,
     type AnimeSearchResult,
 } from '$lib/anime/search';
+import { excluded } from '$lib/server/db/sql';
 import type * as schema from '$lib/server/db/schema';
 import { animeSearchIndex as animeSearchIndexTable } from '$lib/server/db/schema';
 
 type SearchDatabase = Pick<PostgresJsDatabase<typeof schema>, 'insert' | 'select'>;
-
-function excluded(column: { name: string }) {
-    return sql.raw(`excluded."${column.name}"`);
-}
 
 export function createAnimeSearchIndex(database: SearchDatabase) {
     return {
