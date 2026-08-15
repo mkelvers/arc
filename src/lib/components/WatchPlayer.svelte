@@ -1,7 +1,8 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
+    import type { AnimeEpisode } from '$lib/anime/types';
     import type { Sources } from '$lib/player/media';
+    import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
     import { SpinnerGapIcon } from 'phosphor-svelte';
     import ProgressiveImage from './ProgressiveImage.svelte';
     import VideoPlayer from './VideoPlayer.svelte';
@@ -11,12 +12,25 @@
         error: boolean;
     }
 
+    interface AnimeInfo {
+        id: number;
+        title: string;
+        format?: string | null;
+    }
+
+    interface LogoInfo {
+        url: string;
+        size: number;
+    }
+
     interface Props {
-        animeId: number;
-        episodeId: string;
-        episodeNumber: number;
-        label: string;
-        next?: string | null;
+        anime: AnimeInfo;
+        logo?: LogoInfo | null;
+        currentEpisode: AnimeEpisode;
+        episodes: AnimeEpisode[];
+        previousEpisode?: AnimeEpisode | null;
+        nextEpisode?: AnimeEpisode | null;
+        fallbackImage?: string | null;
         playback: Promise<Playback>;
         poster?: string | null;
         segments: {
@@ -29,11 +43,13 @@
     }
 
     interface ActiveEpisode {
-        animeId: number;
-        episodeId: string;
-        episodeNumber: number;
-        label: string;
-        next: string | null;
+        anime: AnimeInfo;
+        logo: LogoInfo | null;
+        currentEpisode: AnimeEpisode;
+        episodes: AnimeEpisode[];
+        previousEpisode: AnimeEpisode | null;
+        nextEpisode: AnimeEpisode | null;
+        fallbackImage: string | null;
         poster: string | null;
         result: Playback;
         segments: {
@@ -46,11 +62,13 @@
     }
 
     let {
-        animeId,
-        episodeId,
-        episodeNumber,
-        label,
-        next = null,
+        anime,
+        logo = null,
+        currentEpisode,
+        episodes,
+        previousEpisode = null,
+        nextEpisode = null,
+        fallbackImage = null,
         playback,
         poster = null,
         segments,
@@ -69,11 +87,13 @@
         const skipTimesRequest = segments.times;
         const segmentTemplatesRequest = segments.templates;
         const pending = {
-            animeId,
-            episodeId,
-            episodeNumber,
-            label,
-            next,
+            anime,
+            logo,
+            currentEpisode,
+            episodes,
+            previousEpisode,
+            nextEpisode,
+            fallbackImage,
             poster,
             startAt,
             progressEventAt,
@@ -101,8 +121,8 @@
                 .then((resolved) => {
                     if (
                         cancelled ||
-                        active?.animeId !== pending.animeId ||
-                        active.episodeId !== pending.episodeId
+                        active?.anime.id !== pending.anime.id ||
+                        active.currentEpisode.id !== pending.currentEpisode.id
                     ) {
                         return;
                     }
@@ -115,8 +135,8 @@
                 .then((resolved) => {
                     if (
                         cancelled ||
-                        active?.animeId !== pending.animeId ||
-                        active.episodeId !== pending.episodeId
+                        active?.anime.id !== pending.anime.id ||
+                        active.currentEpisode.id !== pending.currentEpisode.id
                     ) {
                         return;
                     }
@@ -144,13 +164,16 @@
 
 {#if active}
     <VideoPlayer
-        animeId={active.animeId}
-        episodeId={active.episodeId}
-        episodeNumber={active.episodeNumber}
+        anime={active.anime}
+        logo={active.logo}
+        currentEpisode={active.currentEpisode}
+        episodes={active.episodes}
+        previousEpisode={active.previousEpisode}
+        nextEpisode={active.nextEpisode}
+        fallbackImage={active.fallbackImage}
         sources={active.result.streams}
-        label={active.label}
         poster={active.poster}
-        next={active.next}
+        next={active.nextEpisode?.href}
         startAt={active.startAt}
         progressEventAt={active.progressEventAt}
         segments={active.segments}
@@ -162,9 +185,9 @@
     />
 {:else}
     <section
-        aria-label={`${label} player`}
+        aria-label={`${anime.title} player`}
         aria-busy="true"
-        class="relative grid aspect-21/9 w-full place-items-center overflow-hidden bg-black px-6 text-center"
+        class="fixed inset-0 grid size-full place-items-center overflow-hidden bg-black px-6 text-center"
     >
         {#if poster}
             <ProgressiveImage
