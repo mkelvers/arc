@@ -1,28 +1,10 @@
+import { animeDate, dateTimestamp } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
 import type { AniListAnime } from '../anilist/types';
 
 const day = 24 * 60 * 60 * 1_000;
 const releaseDateGrace = 14 * day;
-
-function animeDate(
-    value:
-        | {
-              year?: number | null;
-              month?: number | null;
-              day?: number | null;
-          }
-        | null
-        | undefined
-) {
-    const { year, month, day: date } = value ?? {};
-
-    if (!year || !month || !date) {
-        return null;
-    }
-
-    return Date.UTC(year, month - 1, date);
-}
 
 function metadataDate(metadata: EpisodeMetadata | undefined) {
     if (!metadata) {
@@ -62,8 +44,8 @@ export function episodesForRelease(
         selected = confirmed;
     }
 
-    const start = animeDate(anime.startDate);
-    const end = animeDate(anime.endDate);
+    const start = dateTimestamp(animeDate(anime.startDate));
+    const end = dateTimestamp(animeDate(anime.endDate));
 
     if (start !== null || end !== null) {
         const inReleaseWindow = selected.filter((episode) => {
