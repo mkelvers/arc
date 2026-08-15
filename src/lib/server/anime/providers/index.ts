@@ -3,8 +3,10 @@ import { env } from '$env/dynamic/private';
 import { allanimeProvider } from './allanime';
 import { anikotoProvider } from './anikoto';
 import { aninekoProvider } from './anineko';
+import { animeggProvider } from './animegg';
 import { animepaheProvider } from './animepahe';
 import { anipubProvider } from './anipub';
+import { anizoneProvider } from './anizone';
 import { createProviderFallback } from './fallback';
 import { senshiProvider } from './senshi';
 
@@ -12,11 +14,14 @@ const defaultProviders = [
     allanimeProvider,
     anikotoProvider,
     aninekoProvider,
+    animeggProvider,
     senshiProvider,
+    anipubProvider,
+    animepaheProvider,
+    anizoneProvider,
 ] as const;
-const availableProviders = [...defaultProviders, anipubProvider, animepaheProvider] as const;
 const providers = new Map(
-    availableProviders.map((provider) => [provider.name.toLowerCase(), provider])
+    defaultProviders.map((provider) => [provider.name.toLowerCase(), provider])
 );
 
 function providerOrder() {
