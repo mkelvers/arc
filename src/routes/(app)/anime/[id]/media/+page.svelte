@@ -6,7 +6,6 @@
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
-    let activeTab = $state<'poster' | 'logo' | 'backdrop'>('poster');
     const logos = $derived(
         [...(data.artwork?.logos ?? [])].sort(
             (left, right) => right.width * right.height - left.width * left.height
@@ -17,11 +16,7 @@
             (left, right) => right.width * right.height - left.width * left.height
         )
     );
-    const posters = $derived(
-        [...(data.posterOptions ?? [])].sort(
-            (left, right) => right.width * right.height - left.width * left.height
-        )
-    );
+    let activeTab = $state<'logo' | 'backdrop'>('logo');
 </script>
 
 <main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
@@ -63,7 +58,7 @@
     {:else}
         <nav class="mb-8 overflow-x-auto border-b border-border" aria-label="Media types">
             <div class="flex min-w-max gap-6" role="tablist">
-                {#each [{ value: 'poster', label: 'Poster', count: data.posterOptions.length }, { value: 'logo', label: 'Logos', count: data.artwork.logos.length }, { value: 'backdrop', label: 'Backdrops', count: data.artwork.backdrops.length }] as tab}
+                {#each [{ value: 'logo', label: 'Logos', count: data.artwork.logos.length }, { value: 'backdrop', label: 'Backdrops', count: data.artwork.backdrops.length }] as tab}
                     <button
                         type="button"
                         role="tab"
@@ -81,39 +76,7 @@
             </div>
         </nav>
 
-        {#if activeTab === 'poster'}
-            <section>
-                <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {#each posters as image}
-                        <form method="POST" use:enhance>
-                            <input type="hidden" name="intent" value="poster" />
-                            <input type="hidden" name="filePath" value={image.filePath} />
-                            <button
-                                type="submit"
-                                aria-pressed={data.artwork.selectedPoster?.filePath === image.filePath}
-                                class:border-accent={data.artwork.selectedPoster?.filePath === image.filePath}
-                                class:border-border={data.artwork.selectedPoster?.filePath !== image.filePath}
-                                class="w-full overflow-hidden border bg-surface text-left"
-                            >
-                                <ProgressiveImage
-                                    src={image.url}
-                                    alt={`${data.anime.title} poster`}
-                                    previewSize="w300"
-                                    class="aspect-[2/3] w-full"
-                                />
-                                <span class="block px-3 py-2 text-xs text-subtle">
-                                    {image.width} × {image.height}
-                                </span>
-                            </button>
-                        </form>
-                    {:else}
-                        <p class="col-span-full py-10 text-muted">
-                            No poster options are available for this release.
-                        </p>
-                    {/each}
-                </div>
-            </section>
-        {:else if activeTab === 'logo'}
+        {#if activeTab === 'logo'}
             <section>
                 <div class="mb-5 flex justify-end">
                     <form method="POST" use:enhance class="flex items-center gap-4">
