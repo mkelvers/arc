@@ -7,6 +7,7 @@ import { recordAnimeVisit } from '$lib/server/anime/interest';
 import { playback } from '$lib/server/anime/providers';
 import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getEpisodeSkipTimes, getSegmentTemplates } from '$lib/server/anime/skip-times';
+import { StreamProxyError, verifyStreamSource } from '$lib/server/anime/stream-proxy';
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import { resumePosition } from '$lib/server/playback-progress/continue';
 import { getPlaybackProgress } from '$lib/server/playback-progress/store';
@@ -36,13 +37,42 @@ function playbackFailureSummary(cause: AggregateError) {
 async function getPlayback(
     animeData: Parameters<typeof playback.getStreams>[0],
     episode: Parameters<typeof playback.getStreams>[1],
-    modes: AudioMode[]
+    modes: AudioMode[],
+    fetchStream: typeof fetch
 ) {
     let remoteStreams: Awaited<ReturnType<typeof playback.getStreams>> = {};
     let failed = false;
 
     try {
         remoteStreams = await playback.getStreams(animeData, episode, modes);
+        const verified = await Promise.all(
+            Object.entries(remoteStreams).map(async ([mode, sources]) => [
+                mode,
+                (
+                    await Promise.all(
+                        (sources ?? []).map(async (source) => {
+                            try {
+                                await verifyStreamSource(source.url, fetchStream);
+                                return source;
+                            } catch (cause) {
+                                const detail =
+                                    cause instanceof StreamProxyError
+                                        ? cause.reason.kind
+                                        : cause instanceof Error
+                                          ? cause.message
+                                          : String(cause);
+                                console.warn(
+                                    `Discarded unplayable ${source.provider ?? 'unknown'} ${mode} stream for AniList ${animeData.id}, episode ${episode.id}: ${detail}`
+                                );
+                                return null;
+                            }
+                        })
+                    )
+                ).filter((source) => source !== null),
+            ])
+        );
+        remoteStreams = Object.fromEntries(verified);
+        failed = !Object.values(remoteStreams).some((sources) => sources?.length);
     } catch (cause) {
         failed = true;
         if (cause instanceof AggregateError) {
@@ -76,7 +106,7 @@ async function getPlayback(
     };
 }
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, fetch }) => {
     const id = animeId(params.id);
     if (!id) {
         error(400, 'Invalid anime ID');
@@ -142,11 +172,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             malId: result.idMal,
         }),
         getSegmentTemplates(id, currentEpisode.number),
-        getPlayback(result, playbackEpisode, [
-            'sub',
-            'dub',
-            ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : []),
-        ]),
+        getPlayback(
+            result,
+            playbackEpisode,
+            ['sub', 'dub', ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : [])],
+            fetch
+        ),
     ]);
 
     return {
