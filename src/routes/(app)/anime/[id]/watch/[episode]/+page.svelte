@@ -101,11 +101,8 @@
                 {#await data.playback}
                     {audioAvailabilityLabel(data.currentEpisode.audio)}
                 {:then playback}
-                    {audioAvailabilityLabel(
-                        availableModes(playback.streams).length
-                            ? availableModes(playback.streams)
-                            : data.currentEpisode.audio
-                    )}
+                    {@const modes = availableModes(playback.streams)}
+                    {audioAvailabilityLabel(modes.length ? modes : data.currentEpisode.audio)}
                 {/await}
                 {#if data.currentEpisode.duration}
                     <span aria-hidden="true">{' · '}</span>

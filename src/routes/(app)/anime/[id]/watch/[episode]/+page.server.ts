@@ -39,50 +39,22 @@ async function getPlayback(
     modes: AudioMode[]
 ) {
     let remoteStreams: Awaited<ReturnType<typeof playback.getStreams>> = {};
-    let error = false;
-    let lastFailure: unknown;
+    let failed = false;
 
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            remoteStreams = await playback.getStreams(animeData, episode, modes);
-            error = false;
-            lastFailure = undefined;
-            break;
-        } catch (cause) {
-            error = true;
-            lastFailure = cause;
-
-            if (attempt === 0) {
-                const errors = cause instanceof AggregateError ? cause.errors : [cause];
-                const retryAfter = Math.max(
-                    0,
-                    ...errors.map((error) =>
-                        error instanceof Error
-                            ? Number(error.message.match(/try again in (\d+) seconds?/i)?.[1] ?? 0)
-                            : 0
-                    )
-                );
-
-                if (retryAfter) {
-                    await new Promise((resolve) =>
-                        setTimeout(resolve, Math.min(retryAfter, 5) * 1_000)
-                    );
-                } else {
-                    break;
-                }
-            }
+    try {
+        remoteStreams = await playback.getStreams(animeData, episode, modes);
+    } catch (cause) {
+        failed = true;
+        if (cause instanceof AggregateError) {
+            console.warn(
+                `Playback unavailable for AniList ${animeData.id}, episode ${episode.id}: ${playbackFailureSummary(cause)}`
+            );
+        } else {
+            console.error(
+                `Unexpected playback failure for AniList ${animeData.id}, episode ${episode.id}`,
+                cause
+            );
         }
-    }
-
-    if (lastFailure instanceof AggregateError) {
-        console.warn(
-            `Playback unavailable for AniList ${animeData.id}, episode ${episode.id}: ${playbackFailureSummary(lastFailure)}`
-        );
-    } else if (lastFailure !== undefined) {
-        console.error(
-            `Unexpected playback failure for AniList ${animeData.id}, episode ${episode.id}`,
-            lastFailure
-        );
     }
 
     return {
@@ -90,23 +62,17 @@ async function getPlayback(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
                 (sources ?? []).map(({ url, quality, audioDelay, subtitleUrl, provider }) => ({
-                    url: `/api/episodes/stream?${new URLSearchParams({
-                        url,
-                        v: '2',
-                    })}`,
+                    url: `/api/episodes/stream?${new URLSearchParams({ url })}`,
                     quality,
                     audioDelay,
                     provider,
                     subtitleUrl: subtitleUrl
-                        ? `/api/episodes/stream?${new URLSearchParams({
-                              url: subtitleUrl,
-                              v: '2',
-                          })}`
+                        ? `/api/episodes/stream?${new URLSearchParams({ url: subtitleUrl })}`
                         : null,
                 })),
             ])
         ),
-        error,
+        error: failed,
     };
 }
 
