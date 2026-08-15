@@ -14,15 +14,15 @@ Prefer code that does the thing over code that describes another function which 
 
 ```ts
 // Avoid.
-const isApi = event.url.pathname.startsWith("/api/");
+const isApi = event.url.pathname.startsWith('/api/');
 
 if (isApi) {
-  return handleApi(event);
+    return handleApi(event);
 }
 
 // Prefer when the distinction has no independent meaning.
-if (event.url.pathname.startsWith("/api/")) {
-  return new Response("Unauthorized", { status: 401 });
+if (event.url.pathname.startsWith('/api/')) {
+    return new Response('Unauthorized', { status: 401 });
 }
 ```
 
@@ -30,14 +30,14 @@ Do not introduce a symbol merely to make the next line shorter.
 
 Do not create:
 
-* one-use aliases for properties;
-* one-use helpers for obvious expressions;
-* pass-through functions;
-* object facades around ordinary functions;
-* handlers whose only job is calling another handler;
-* files whose only purpose is hiding three obvious lines;
-* abstractions justified by possible future reuse;
-* configuration expressed as runtime application code when the platform already owns it.
+- one-use aliases for properties;
+- one-use helpers for obvious expressions;
+- pass-through functions;
+- object facades around ordinary functions;
+- handlers whose only job is calling another handler;
+- files whose only purpose is hiding three obvious lines;
+- abstractions justified by possible future reuse;
+- configuration expressed as runtime application code when the platform already owns it.
 
 Every abstraction introduces another concept the reader must understand. It must remove more complexity than it adds.
 
@@ -69,14 +69,14 @@ route
 
 A layer is justified when it hides real knowledge such as:
 
-* authentication or authorization policy;
-* provider protocol behavior;
-* persistence invariants;
-* cache or retry policy;
-* transport translation;
-* validation of untrusted data;
-* lifecycle or resource ownership;
-* a substantial algorithm.
+- authentication or authorization policy;
+- provider protocol behavior;
+- persistence invariants;
+- cache or retry policy;
+- transport translation;
+- validation of untrusted data;
+- lifecycle or resource ownership;
+- a substantial algorithm.
 
 A layer is not justified because its name sounds architectural.
 
@@ -114,7 +114,7 @@ const requestedEpisode = episode.id;
 const response = await loadEpisode();
 
 if (requestedEpisode !== episode.id) {
-  return;
+    return;
 }
 ```
 
@@ -138,8 +138,8 @@ if (isApi && !isLoggedIn) {
 Prefer keeping simple conditions where their consequences are visible:
 
 ```ts
-if (event.url.pathname.startsWith("/api/") && !session) {
-  return new Response("Unauthorized", { status: 401 });
+if (event.url.pathname.startsWith('/api/') && !session) {
+    return new Response('Unauthorized', { status: 401 });
 }
 ```
 
@@ -147,8 +147,7 @@ Name a condition when the name communicates domain meaning that the expression d
 
 ```ts
 const episodeChanged =
-  current.animeId !== incoming.animeId ||
-  current.episodeId !== incoming.episodeId;
+    current.animeId !== incoming.animeId || current.episodeId !== incoming.episodeId;
 ```
 
 The goal is not to eliminate variables. The goal is to eliminate vocabulary that adds no knowledge.
@@ -159,7 +158,7 @@ Use guard clauses and early returns for exceptional, terminal, and disallowed ca
 
 ```ts
 if (!session) {
-  redirect(303, "/login");
+    redirect(303, '/login');
 }
 
 return loadApplication();
@@ -170,11 +169,11 @@ Prefer this over nesting the main behavior inside increasingly deep branches.
 ```ts
 // Avoid.
 if (session) {
-  if (user.active) {
-    if (user.canWatch) {
-      return loadApplication();
+    if (user.active) {
+        if (user.canWatch) {
+            return loadApplication();
+        }
     }
-  }
 }
 ```
 
@@ -184,15 +183,15 @@ Independent decisions should appear as independent guards:
 
 ```ts
 if (invalidRequest) {
-  return badRequest();
+    return badRequest();
 }
 
 if (!session) {
-  return unauthorized();
+    return unauthorized();
 }
 
 if (!permission) {
-  return forbidden();
+    return forbidden();
 }
 
 return performOperation();
@@ -252,21 +251,16 @@ over maintaining lists of special route IDs in a central hook.
 Then authorization can remain structural:
 
 ```ts
-if (event.route.id?.startsWith("/(app)/") && !session) {
-  redirect(303, "/login");
+if (event.route.id?.startsWith('/(app)/') && !session) {
+    redirect(303, '/login');
 }
 ```
 
 rather than:
 
 ```ts
-if (
-  route !== "/home" &&
-  route !== "/anime/[id]" &&
-  route !== "/about" &&
-  !session
-) {
-  redirect(303, "/login");
+if (route !== '/home' && route !== '/anime/[id]' && route !== '/about' && !session) {
+    redirect(303, '/login');
 }
 ```
 
@@ -274,10 +268,10 @@ Prefer making invalid architecture difficult to express instead of compensating 
 
 This principle applies beyond routes:
 
-* use server-only directories instead of repeatedly checking whether code may access secrets;
-* use database constraints instead of relying only on UI checks;
-* use types for closed application states instead of repeatedly validating internal combinations;
-* use framework lifecycle boundaries instead of recreating lifecycle management manually.
+- use server-only directories instead of repeatedly checking whether code may access secrets;
+- use database constraints instead of relying only on UI checks;
+- use types for closed application states instead of repeatedly validating internal combinations;
+- use framework lifecycle boundaries instead of recreating lifecycle management manually.
 
 ## Use the framework and platform
 
@@ -309,11 +303,11 @@ The security policy remains important. The unnecessary runtime machinery does no
 
 Likewise:
 
-* prefer native redirects over redirect wrappers;
-* prefer framework form handling over custom form infrastructure;
-* prefer authentication-library session handling over local session abstractions;
-* prefer database constraints over application-only consistency checks;
-* prefer existing provider clients over pass-through client wrappers.
+- prefer native redirects over redirect wrappers;
+- prefer framework form handling over custom form infrastructure;
+- prefer authentication-library session handling over local session abstractions;
+- prefer database constraints over application-only consistency checks;
+- prefer existing provider clients over pass-through client wrappers.
 
 Remove machinery without removing the invariant it protected.
 
@@ -347,12 +341,12 @@ when each contains only an obvious expression or forwards directly to another op
 
 Do not extract a function solely because:
 
-* the code is three lines long;
-* the expression appears once;
-* the parent function looks visually large;
-* the helper can be unit tested;
-* an analyzer reported complexity;
-* the helper name sounds cleaner in isolation.
+- the code is three lines long;
+- the expression appears once;
+- the parent function looks visually large;
+- the helper can be unit tested;
+- an analyzer reported complexity;
+- the helper name sounds cleaner in isolation.
 
 Extraction should make the **system** easier to understand, not merely make one function shorter.
 
@@ -418,12 +412,12 @@ Abstraction should hide complexity, not hide code.
 
 External effects should remain visible where they are owned:
 
-* redirects at route boundaries;
-* database writes at persistence boundaries;
-* cookies at request boundaries;
-* media operations in the player owner;
-* DOM subscriptions in component lifecycle;
-* provider headers and retry policy in provider clients.
+- redirects at route boundaries;
+- database writes at persistence boundaries;
+- cookies at request boundaries;
+- media operations in the player owner;
+- DOM subscriptions in component lifecycle;
+- provider headers and retry policy in provider clients.
 
 Do not send a simple effect through several generic functions unless those layers enforce real policy.
 
@@ -435,13 +429,13 @@ Solve the problem that exists.
 
 Do not introduce:
 
-* generic factories for one implementation;
-* interfaces with one implementation and no boundary reason;
-* option objects for functions with two obvious arguments;
-* plugin systems for fixed behavior;
-* dependency injection merely to make tests convenient;
-* configurable policies that the product does not currently configure;
-* compatibility paths without existing compatibility requirements.
+- generic factories for one implementation;
+- interfaces with one implementation and no boundary reason;
+- option objects for functions with two obvious arguments;
+- plugin systems for fixed behavior;
+- dependency injection merely to make tests convenient;
+- configurable policies that the product does not currently configure;
+- compatibility paths without existing compatibility requirements.
 
 Generalize after the code has demonstrated what actually varies.
 
@@ -454,13 +448,13 @@ Duplicated syntax is not automatically duplicated knowledge.
 These may remain separate:
 
 ```ts
-return new Response("Unauthorized", { status: 401 });
+return new Response('Unauthorized', { status: 401 });
 ```
 
 and:
 
 ```ts
-return new Response("Human verification required", { status: 403 });
+return new Response('Human verification required', { status: 403 });
 ```
 
 even if a generic response helper could technically remove a few characters.
@@ -480,14 +474,14 @@ A value should move away from its operation only when several operations must ag
 Prefer:
 
 ```ts
-redirect(303, "/login");
+redirect(303, '/login');
 ```
 
 over:
 
 ```ts
 const LOGIN_REDIRECT_STATUS = 303;
-const LOGIN_ROUTE = "/login";
+const LOGIN_ROUTE = '/login';
 
 redirect(LOGIN_REDIRECT_STATUS, LOGIN_ROUTE);
 ```
@@ -543,14 +537,14 @@ Arc should reward reading rather than navigation.
 
 When choosing between two equivalent designs, prefer the one that requires:
 
-* fewer files opened;
-* fewer symbols remembered;
-* fewer aliases resolved;
-* fewer callbacks traced;
-* fewer configuration objects decoded;
-* fewer generic types mentally substituted;
-* fewer layers traversed;
-* fewer exceptional cases remembered.
+- fewer files opened;
+- fewer symbols remembered;
+- fewer aliases resolved;
+- fewer callbacks traced;
+- fewer configuration objects decoded;
+- fewer generic types mentally substituted;
+- fewer layers traversed;
+- fewer exceptional cases remembered.
 
 This does not mean putting everything in one file.
 
@@ -562,18 +556,18 @@ Minimalism never means deleting complexity merely because it looks ugly.
 
 Retain complexity that protects:
 
-* security;
-* authentication;
-* authorization;
-* persistence ordering;
-* concurrency;
-* lifecycle cleanup;
-* caching semantics;
-* protocol behavior;
-* accessibility;
-* provider compatibility;
-* data validation;
-* established product behavior.
+- security;
+- authentication;
+- authorization;
+- persistence ordering;
+- concurrency;
+- lifecycle cleanup;
+- caching semantics;
+- protocol behavior;
+- accessibility;
+- provider compatibility;
+- data validation;
+- established product behavior.
 
 The correct target is not the fewest lines.
 
