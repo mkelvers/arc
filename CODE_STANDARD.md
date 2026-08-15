@@ -294,7 +294,7 @@ Use JSDoc for exported contracts that need usage or invariant documentation. Use
 
 For cleanup and review, use this order:
 
-1. Inventory handwritten production files, tests, generated code, framework entry points, and scoped `AGENTS.md` files.
+1. Inventory handwritten production files, tests, generated code, and framework entry points.
 2. Trace production consumers separately from tests.
 3. Delete dead files, exports, dependencies, compatibility paths, and comments.
 4. Inline one-use aliases, literals, wrappers, and mechanics that own no rule.
