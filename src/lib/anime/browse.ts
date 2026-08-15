@@ -9,6 +9,7 @@ const browseMetadata = {
     source: metadataSchema,
     season: metadataSchema,
 } as const;
+
 const BrowseSearchSchema = z.object({
     q: z.string().trim().max(200).nullable(),
     sfw: z.stringbool({ truthy: ['1'], falsy: ['0'] }).nullable(),
@@ -26,6 +27,7 @@ const BrowseSearchSchema = z.object({
     sort: z.enum(['popularity', 'score']).nullable(),
     order: z.enum(['asc', 'desc']).nullable(),
 });
+
 const BrowseFiltersSchema = z
     .object({
         query: z.string().max(200),
@@ -42,6 +44,7 @@ const BrowseFiltersSchema = z
         order: z.enum(['asc', 'desc']),
     })
     .refine(({ genre, tag }) => genre === null || tag === null);
+
 const BrowseFiltersCodec = z.codec(BrowseSearchSchema, BrowseFiltersSchema, {
     decode: ({ q, sfw, year, sort, order, ...filters }) => ({
         ...filters,
