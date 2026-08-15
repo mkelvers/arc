@@ -1,15 +1,12 @@
 import { error } from '@sveltejs/kit';
 
-import { searchAnime } from '$lib/server/anime/anilist/search';
+import { parseSearchQuery, searchAnime } from '$lib/server/anime/anilist/search';
 import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { withAnimeSearchMetadata } from '$lib/server/anime/search-enrichment';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
-    const query = url.searchParams.get('q')?.trim() ?? '';
-    if (query.length > 200) {
-        error(400, 'Search queries cannot exceed 200 characters');
-    }
+    const query = parseSearchQuery(url.searchParams.get('q'));
 
     if (query.length < 2) {
         return { pageTitle: 'Search anime', query, results: [] };

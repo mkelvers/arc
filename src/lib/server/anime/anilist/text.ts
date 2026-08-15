@@ -1,22 +1,5 @@
-import type { AniListAnime } from './types';
-
 export function present<T>(values: ReadonlyArray<T | null> | null | undefined): T[] {
     return values?.filter((value): value is T => value !== null) ?? [];
-}
-
-export function enumLabel(value: string | null | undefined, fallback = 'Unknown') {
-    if (!value) {
-        return fallback;
-    }
-
-    if (value === 'TV' || value === 'OVA' || value === 'ONA') {
-        return value;
-    }
-
-    return value
-        .toLowerCase()
-        .replaceAll('_', ' ')
-        .replace(/^./, (character) => character.toUpperCase());
 }
 
 export function mediaTitle(media: {
@@ -32,7 +15,14 @@ export function mediaTitle(media: {
     );
 }
 
-export function animeTitles(anime: AniListAnime) {
+export function animeTitles(anime: {
+    title?: {
+        english?: string | null;
+        romaji?: string | null;
+        native?: string | null;
+    } | null;
+    synonyms?: ReadonlyArray<string | null> | null;
+}) {
     return [
         anime.title?.english,
         anime.title?.romaji,

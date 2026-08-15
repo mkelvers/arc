@@ -1,3 +1,5 @@
+import { error } from '@sveltejs/kit';
+
 import { rankAnimeSearch, type AnimeSearchResult } from '$lib/anime/search';
 import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
@@ -5,10 +7,19 @@ import { RequestCache } from '$lib/server/request-cache';
 import { createAnimeSearchIndex } from '$lib/server/anime/search-index';
 import { request } from './client';
 import { animeCard } from './models';
-import { present } from './text';
+import { animeTitles, present } from './text';
 
 const cache = new RequestCache<string, AnimeSearchResult[]>(5 * 60 * 1_000);
 const searchIndex = createAnimeSearchIndex(db);
+
+export function parseSearchQuery(value: string | null) {
+    const query = value?.trim() ?? '';
+    if (query.length > 200) {
+        error(400, 'Search queries cannot exceed 200 characters');
+    }
+
+    return query;
+}
 
 async function requestSearch(search: string) {
     const response = await request(
@@ -27,15 +38,7 @@ async function requestSearch(search: string) {
             return [];
         }
 
-        const titles = [
-            entry.title?.english,
-            entry.title?.romaji,
-            entry.title?.native,
-            ...present(entry.synonyms),
-        ].filter(
-            (title, index, values): title is string =>
-                Boolean(title) && values.indexOf(title) === index
-        );
+        const titles = animeTitles(entry);
         const relatedIds = present(entry.relations?.edges).flatMap((edge) =>
             (edge?.relationType === 'PREQUEL' || edge?.relationType === 'SEQUEL') && edge.node
                 ? [edge.node.id]

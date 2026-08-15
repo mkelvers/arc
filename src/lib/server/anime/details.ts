@@ -1,10 +1,25 @@
 import type { AniListAnime } from './anilist/types';
-import { enumLabel, present } from './anilist/text';
+import { present } from './anilist/text';
 
 const count = new Intl.NumberFormat('en', {
     maximumFractionDigits: 1,
     notation: 'compact',
 });
+
+function enumLabel(value: string | null | undefined, fallback = 'Unknown') {
+    if (!value) {
+        return fallback;
+    }
+
+    if (value === 'TV' || value === 'OVA' || value === 'ONA') {
+        return value;
+    }
+
+    return value
+        .toLowerCase()
+        .replaceAll('_', ' ')
+        .replace(/^./, (character) => character.toUpperCase());
+}
 
 const staffRoles = new Map([
     ['Original Creator', 'Original creator'],
