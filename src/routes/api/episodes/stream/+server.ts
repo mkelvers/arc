@@ -28,10 +28,17 @@ export const GET: RequestHandler = async ({ request, fetch }) => {
                 error(502, 'Episode stream redirected to an unsupported host');
             case 'no-response':
                 error(502, 'Episode stream did not respond');
+            case 'invalid-playlist':
+                error(502, 'Episode playlist did not contain playable media');
             case 'body-too-large':
             case 'body-timeout':
             case 'body-read': {
-                const label = reason.body === 'playlist' ? 'Episode playlist' : 'Episode segment';
+                const label =
+                    reason.body === 'playlist'
+                        ? 'Episode playlist'
+                        : reason.body === 'subtitle'
+                          ? 'Episode subtitle'
+                          : 'Episode segment';
                 if (reason.kind === 'body-too-large') {
                     error(502, `${label} was unexpectedly large`);
                 }
