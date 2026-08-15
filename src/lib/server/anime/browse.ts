@@ -10,6 +10,7 @@ import type {
     MediaStatus,
 } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
+import { excluded } from '$lib/server/db/sql';
 import {
     animeCatalog,
     animeCatalogRefresh,
@@ -32,26 +33,11 @@ type CatalogCachePage = {
 };
 const activeRefreshes = new Map<string, Promise<CatalogCachePage>>();
 let activeTaxonomyRefresh: Promise<BrowseSourceTaxonomy> | null = null;
-const taxonomyProvider = 'anilist';
-
-function excluded(column: { name: string }) {
-    return sql.raw(`excluded."${column.name}"`);
-}
 
 function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     return JSON.stringify({
+        ...filters,
         query: filters.query.toLocaleLowerCase('en'),
-        safe: filters.safe,
-        genre: filters.genre,
-        tag: filters.tag,
-        status: filters.status,
-        format: filters.format,
-        source: filters.source,
-        season: filters.season,
-        year: filters.year,
-        country: filters.country,
-        sort: filters.sort,
-        order: filters.order,
         page,
     });
 }
@@ -181,7 +167,7 @@ async function refreshTaxonomy() {
     await db
         .insert(animeCatalogTaxonomy)
         .values({
-            provider: taxonomyProvider,
+            provider: "anilist",
             ...taxonomy,
             fetchedAt,
         })
@@ -205,7 +191,7 @@ async function sourceTaxonomy() {
             fetchedAt: animeCatalogTaxonomy.fetchedAt,
         })
         .from(animeCatalogTaxonomy)
-        .where(eq(animeCatalogTaxonomy.provider, taxonomyProvider))
+        .where(eq(animeCatalogTaxonomy.provider, "anilist"))
         .limit(1);
 
     if (
@@ -335,10 +321,6 @@ function hasAudio(mode: AudioMode) {
     )`;
 }
 
-const hasSub = hasAudio('sub');
-const hasDub = hasAudio('dub');
-const hasRaw = hasAudio('raw');
-
 function catalogConditions(filters: BrowseFilters) {
     return and(
         filters.query
@@ -353,7 +335,7 @@ function catalogConditions(filters: BrowseFilters) {
         filters.season ? eq(animeCatalog.season, filters.season) : undefined,
         filters.year ? eq(animeCatalog.seasonYear, filters.year) : undefined,
         filters.country ? eq(animeCatalog.countryOfOrigin, filters.country) : undefined,
-        filters.audio === 'dub' ? hasDub : undefined
+        filters.audio === 'dub' ? hasAudio('dub') : undefined
     );
 }
 
@@ -406,9 +388,9 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
             score: animeCatalog.averageScore,
             genres: animeCatalog.genres,
             synopsis: animeCatalog.synopsis,
-            hasSub,
-            hasDub,
-            hasRaw,
+            hasSub: hasAudio('sub'),
+            hasDub: hasAudio('dub'),
+            hasRaw: hasAudio('raw'),
         })
         .from(animeCatalog)
         .where(
