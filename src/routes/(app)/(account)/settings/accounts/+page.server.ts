@@ -11,6 +11,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     }
 
     return {
+        pageTitle: 'Anime Accounts',
         anilistConnected: Boolean(
             await db.query.accounts.findFirst({
                 columns: { id: true },

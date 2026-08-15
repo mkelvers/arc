@@ -50,7 +50,6 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Log in</title>
     <meta name="robots" content="noindex" />
     <link rel="preconnect" href="https://challenges.cloudflare.com" />
 </svelte:head>

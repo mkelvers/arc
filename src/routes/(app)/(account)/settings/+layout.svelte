@@ -28,10 +28,6 @@
     );
 </script>
 
-<svelte:head>
-    <title>Arc — {currentPage.title}</title>
-</svelte:head>
-
 <main
     class="mx-auto grid min-h-[calc(100vh-3.5rem)] max-w-5xl gap-8 px-5 py-8 md:grid-cols-[16rem_minmax(0,1fr)] md:gap-12 md:px-8 md:py-12"
 >

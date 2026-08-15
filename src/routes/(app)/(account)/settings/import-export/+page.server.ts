@@ -10,9 +10,13 @@ import {
     parseWatchlistImport,
     WatchlistImportError,
 } from '$lib/server/watchlist-transfer';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 const maximumFileSize = 2 * 1_024 * 1_024;
+
+export const load: PageServerLoad = () => ({
+    pageTitle: 'Import & Export',
+});
 
 async function importFile(
     userId: string,
