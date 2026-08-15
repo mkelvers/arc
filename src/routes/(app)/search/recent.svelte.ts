@@ -3,7 +3,6 @@ import { isRecord } from '$lib/utils';
 
 interface RecentResult {
     id: number;
-    href: string;
     title: string;
 }
 
@@ -15,11 +14,7 @@ function isRecent(value: unknown): value is RecentResult {
     }
 
     return (
-        Number.isSafeInteger(value.id) &&
-        typeof value.href === 'string' &&
-        value.href.startsWith('/anime/') &&
-        typeof value.title === 'string' &&
-        value.title.length > 0
+        Number.isSafeInteger(value.id) && typeof value.title === 'string' && value.title.length > 0
     );
 }
 
@@ -38,7 +33,6 @@ export class RecentSearches {
             if (Array.isArray(stored)) {
                 this.results = stored.filter(isRecent).map(({ id, title }) => ({
                     id,
-                    href: `/anime/${id}`,
                     title,
                 }));
             }
@@ -49,7 +43,7 @@ export class RecentSearches {
 
     remember(anime: AnimeCard) {
         this.save([
-            { id: anime.id, href: anime.href, title: anime.title },
+            { id: anime.id, title: anime.title },
             ...this.results.filter(({ id }) => id !== anime.id),
         ]);
     }

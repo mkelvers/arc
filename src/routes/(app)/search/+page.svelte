@@ -175,7 +175,7 @@
                     {#each recent.results as result (result.id)}
                         <li class="flex min-w-0 max-w-full items-stretch bg-surface/70 text-xs font-semibold">
                             <a
-                                href={result.href}
+                                href={`/anime/${result.id}`}
                                 class="min-w-0 truncate px-2.5 py-2 hover:bg-surface focus-visible:outline-1 focus-visible:outline-accent"
                             >
                                 {result.title}
