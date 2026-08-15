@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { proxyStreamRequest } from './stream-proxy';
+import { proxyStreamRequest, verifyStreamSource } from './stream-proxy';
 
 describe('stream proxy', () => {
     test('only accepts HTTPS provider media hosts', async () => {
@@ -84,6 +84,29 @@ describe('stream proxy', () => {
         });
     });
 
+    test('follows an AnimeGG redirect to its rotating media host', async () => {
+        const requests: URL[] = [];
+        await expect(
+            verifyStreamSource('https://www.animegg.org/play/7/video.mp4', async (target) => {
+                requests.push(target);
+                if (target.hostname === 'www.animegg.org') {
+                    return new Response(null, {
+                        status: 302,
+                        headers: { location: 'https://s169.vidcache.net:8166/play/7/video.mp4' },
+                    });
+                }
+                return new Response(new Uint8Array([0]), {
+                    status: 206,
+                    headers: { 'content-type': 'video/mp4' },
+                });
+            })
+        ).resolves.toBeUndefined();
+        expect(requests.map(({ hostname }) => hostname)).toEqual([
+            'www.animegg.org',
+            's169.vidcache.net',
+        ]);
+    });
+
     test('rejects an oversized provider playlist', async () => {
         const request = new Request(
             'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.kotocdn.site%2Fshow%2Fmaster.m3u8'
@@ -153,7 +176,7 @@ describe('stream proxy', () => {
         });
     });
 
-    test('keeps TikTok ad references direct without warning about an unlisted host', async () => {
+    test('proxies rotating image-wrapped TikTok segment references', async () => {
         const request = new Request(
             'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.shiora.site%2Fshow%2Fmaster.m3u8'
         );
@@ -166,27 +189,21 @@ describe('stream proxy', () => {
                 ].join('\n'),
                 { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
             );
-        const warning = console.warn;
-        const warnings: string[] = [];
-        console.warn = (message: string) => warnings.push(message);
+        const response = await proxyStreamRequest(request, fetchStream);
+        const references = (await response.text()).split('\n').slice(1);
 
-        try {
-            const response = await proxyStreamRequest(request, fetchStream);
-
-            expect(await response.text()).toBe(
-                [
-                    '#EXTM3U',
-                    'https://p16-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
-                    'https://p19-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
-                ].join('\n')
-            );
-            expect(warnings).toEqual([]);
-        } finally {
-            console.warn = warning;
-        }
+        expect(
+            references.map((reference) => {
+                const source = new URL(reference, 'https://arc.local').searchParams.get('src');
+                return source ? Buffer.from(source, 'base64url').toString('utf8') : null;
+            })
+        ).toEqual([
+            'https://p16-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
+            'https://p19-ad-site-sign-sg.tiktokcdn.com/video/ad.mp4',
+        ]);
     });
 
-    test('keeps rotating IByte ad references direct', async () => {
+    test('proxies rotating image-wrapped IByte segment references', async () => {
         const target = 'https://p16-ad-sg.ibyteimg.com/obj/ad-site-i18n-sg/ad.image';
         const request = new Request(
             'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.shiora.site%2Fshow%2Fmaster.m3u8'
@@ -198,7 +215,10 @@ describe('stream proxy', () => {
 
         const response = await proxyStreamRequest(request, fetchStream);
 
-        expect(await response.text()).toBe(target);
+        const reference = await response.text();
+        const source = new URL(reference, 'https://arc.local').searchParams.get('src');
+
+        expect(source ? Buffer.from(source, 'base64url').toString('utf8') : null).toBe(target);
     });
 
     test('unwraps image-disguised transport-stream segments', async () => {
@@ -222,5 +242,133 @@ describe('stream proxy', () => {
             contentLength: '3',
             contentType: 'video/mp2t',
         });
+    });
+
+    test('unwraps image-disguised TikTok transport-stream segments', async () => {
+        const request = new Request(
+            'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fp16-ad-site-sign-sg.tiktokcdn.com%2Fshow%2Fsegment.image'
+        );
+        const wrapped = new Uint8Array([
+            0x89, 0x50, 0x4e, 0x47, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, 0x47, 0x40,
+            0x11,
+        ]);
+
+        const response = await proxyStreamRequest(request, async () => new Response(wrapped));
+
+        expect({
+            body: [...new Uint8Array(await response.arrayBuffer())],
+            contentLength: response.headers.get('content-length'),
+            contentType: response.headers.get('content-type'),
+        }).toEqual({
+            body: [0x47, 0x40, 0x11],
+            contentLength: '3',
+            contentType: 'video/mp2t',
+        });
+    });
+
+    test('converts AniZone ASS dialogue into WebVTT cues', async () => {
+        const response = await proxyStreamRequest(
+            new Request(
+                `https://arc.local/api/episodes/stream?${new URLSearchParams({
+                    url: 'https://seiryuu.vid-cdn.xyz/show/subtitles/0_en.ass',
+                })}`
+            ),
+            async () =>
+                new Response(
+                    `[Script Info]\nTitle: Example\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:01.20,0:00:03.45,Default,,0,0,0,,{\\i1}Hello, world!{\\i0}\\NSecond line\nDialogue: 0,0:00:01.20,0:00:03.45,Default,,0,0,0,,{\\i1}Hello, world!{\\i0}\\NSecond line\nDialogue: 0,0:00:01.20,0:00:03.45,Effect,,0,0,0,fx,Decorative duplicate\nDialogue: 0,invalid,0:00:04.00,Default,,0,0,0,,Ignored`,
+                    { headers: { 'content-type': 'text/plain' } }
+                )
+        );
+
+        expect(response.headers.get('content-type')).toBe('text/vtt; charset=utf-8');
+        expect(await response.text()).toBe(
+            'WEBVTT\n\n00:00:01.200 --> 00:00:03.450\nHello, world!\nSecond line\n'
+        );
+    });
+
+    test('rejects an oversized AniZone subtitle before reading its body', async () => {
+        await expect(
+            proxyStreamRequest(
+                new Request(
+                    `https://arc.local/api/episodes/stream?${new URLSearchParams({
+                        url: 'https://seiryuu.vid-cdn.xyz/show/subtitles/0_en.ass',
+                    })}`
+                ),
+                async () =>
+                    new Response('not read', {
+                        headers: { 'content-length': String(8 * 1024 * 1024 + 1) },
+                    })
+            )
+        ).rejects.toMatchObject({
+            reason: { kind: 'body-too-large', body: 'subtitle' },
+        });
+    });
+
+    test('verifies an HLS source through its variant and first media segment', async () => {
+        const requests: { target: string; range: string | null }[] = [];
+        const fetchStream = async (target: URL, init: RequestInit) => {
+            requests.push({
+                target: target.toString(),
+                range: new Headers(init.headers).get('range'),
+            });
+            if (target.pathname.endsWith('/master.m3u8')) {
+                return new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\n720/index.m3u8', {
+                    headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+                });
+            }
+            if (target.pathname.endsWith('/720/index.m3u8')) {
+                return new Response(
+                    '#EXTM3U\n#EXTINF:8.0,\nhttps://p16-ad-site-sign-sg.tiktokcdn.com/show/segment.image',
+                    { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                );
+            }
+
+            return new Response(null, { status: 206 });
+        };
+
+        await expect(
+            verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
+        ).resolves.toBeUndefined();
+        expect(requests).toEqual([
+            {
+                target: 'https://megap.shiora.site/show/master.m3u8',
+                range: null,
+            },
+            {
+                target: 'https://megap.shiora.site/show/720/index.m3u8',
+                range: null,
+            },
+            {
+                target: 'https://p16-ad-site-sign-sg.tiktokcdn.com/show/segment.image',
+                range: 'bytes=0-0',
+            },
+        ]);
+    });
+
+    test('rejects an HLS source whose first media segment is unavailable', async () => {
+        const fetchStream = async (target: URL) => {
+            if (target.pathname.endsWith('/master.m3u8')) {
+                return new Response('#EXTM3U\n#EXTINF:8.0,\nsegment.ts', {
+                    headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+                });
+            }
+
+            return new Response(null, { status: 403 });
+        };
+
+        await expect(
+            verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
+        ).rejects.toMatchObject({ reason: { kind: 'upstream', status: 403 } });
+    });
+
+    test('rejects an HLS source with no playable variant or segment', async () => {
+        const fetchStream = async () =>
+            new Response('#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-ENDLIST', {
+                headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+            });
+
+        await expect(
+            verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
+        ).rejects.toMatchObject({ reason: { kind: 'invalid-playlist' } });
     });
 });

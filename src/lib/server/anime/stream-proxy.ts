@@ -4,15 +4,20 @@ const allowedHosts = [
     'tools.fast4speed.rsvp',
     'repackager.wixmp.com',
     'video.wixstatic.com',
+    'vidcache.net',
     'mp4upload.com',
     'sharepoint.com',
     'ninstream.com',
     'ninjstream.xyz',
     'ibyteimg.com',
+    'tiktokcdn.com',
+    'watching.onl',
     'vibevibe.workers.dev',
     'vivibebe.site',
     'lostproject.club',
     'anizara.store',
+    'animegg.org',
+    'vid-cdn.xyz',
     'kwik.cx',
     'uwucdn.top',
     'streampeaker.org',
@@ -21,16 +26,19 @@ const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
 const responseTimeout = 10_000;
 const maximumPlaylistSize = 1024 * 1024;
+const maximumSubtitleSize = 8 * 1024 * 1024;
 const maximumWrappedSegmentSize = 32 * 1024 * 1024;
 const refererHostGroups = [
     { hosts: ['mp4upload.com'], referer: 'https://www.mp4upload.com' },
     { hosts: ['ninstream.com', 'ninjstream.xyz'], referer: 'https://senshi.live/' },
+    { hosts: ['watching.onl'], referer: 'https://megaplay.buzz/' },
+    { hosts: ['animegg.org', 'vidcache.net'], referer: 'https://www.animegg.org/' },
+    { hosts: ['vid-cdn.xyz'], referer: 'https://anizone.to/' },
     { hosts: ['kwik.cx', 'uwucdn.top', 'streampeaker.org'], referer: 'https://kwik.cx/' },
 ] as const;
-const directPlaylistHost = /^p\d+-(?:ad-site-sign-sg\.tiktokcdn\.com|ad-sg\.ibyteimg\.com)$/;
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
-type StreamBody = 'playlist' | 'segment';
+type StreamBody = 'playlist' | 'segment' | 'subtitle';
 type StreamProxyFailure =
     | { kind: 'missing-source' }
     | { kind: 'invalid-source' }
@@ -40,6 +48,7 @@ type StreamProxyFailure =
     | { kind: 'redirect-limit' }
     | { kind: 'unsupported-redirect' }
     | { kind: 'no-response' }
+    | { kind: 'invalid-playlist' }
     | { kind: 'body-too-large'; body: StreamBody }
     | { kind: 'body-timeout'; body: StreamBody }
     | { kind: 'body-read'; body: StreamBody };
@@ -109,7 +118,20 @@ async function proxiedResponse(target: URL, response: Response) {
         });
     }
 
-    if (target.hostname.endsWith('.ibyteimg.com')) {
+    if (target.pathname.toLowerCase().endsWith('.ass')) {
+        headers.set('cache-control', 'no-store');
+        headers.set('content-type', 'text/vtt; charset=utf-8');
+        const body = new TextDecoder().decode(
+            await boundedResponseBytes(response, maximumSubtitleSize, responseTimeout, 'subtitle')
+        );
+
+        return new Response(assToWebVtt(body), {
+            status: response.status,
+            headers,
+        });
+    }
+
+    if (imageWrappedHost(target.hostname)) {
         const body = Uint8Array.from(
             unwrapPngSegment(
                 await boundedResponseBytes(
@@ -149,6 +171,78 @@ async function proxiedResponse(target: URL, response: Response) {
         status: response.status,
         headers,
     });
+}
+
+function assTime(value: string) {
+    const match = value.trim().match(/^(\d+):(\d{2}):(\d{2})[.](\d{2})$/);
+    if (!match) {
+        return null;
+    }
+
+    return `${match[1].padStart(2, '0')}:${match[2]}:${match[3]}.${match[4]}0`;
+}
+
+function assToWebVtt(value: string) {
+    const lines = value.split(/\r?\n/);
+    let events = false;
+    let fields: string[] = [];
+    const cues: string[] = [];
+    const seen = new Set<string>();
+
+    for (const line of lines) {
+        if (/^\s*\[Events\]\s*$/i.test(line)) {
+            events = true;
+            continue;
+        }
+        if (/^\s*\[/.test(line)) {
+            events = false;
+            continue;
+        }
+        if (!events) {
+            continue;
+        }
+        if (/^\s*Format\s*:/i.test(line)) {
+            fields = line
+                .replace(/^\s*Format\s*:\s*/i, '')
+                .split(',')
+                .map((field) => field.trim().toLowerCase());
+            continue;
+        }
+        if (!fields.length || !/^\s*Dialogue\s*:/i.test(line)) {
+            continue;
+        }
+
+        const dialogue = line.replace(/^\s*Dialogue\s*:\s*/i, '');
+        const values: string[] = [];
+        let offset = 0;
+        for (let index = 1; index < fields.length; index += 1) {
+            const comma = dialogue.indexOf(',', offset);
+            if (comma < 0) {
+                break;
+            }
+            values.push(dialogue.slice(offset, comma));
+            offset = comma + 1;
+        }
+        values.push(dialogue.slice(offset));
+        if (values.length !== fields.length || fields.at(-1) !== 'text') {
+            continue;
+        }
+        const start = assTime(values[fields.indexOf('start')] ?? '');
+        const end = assTime(values[fields.indexOf('end')] ?? '');
+        const effect = values[fields.indexOf('effect')]?.trim() ?? '';
+        const text = (values[fields.indexOf('text')] ?? '')
+            .replace(/\{[^}]*\}/g, '')
+            .replace(/\\[Nn]/g, '\n')
+            .replace(/\\h/g, ' ')
+            .trim();
+        const key = `${start}\n${end}\n${text}`;
+        if (start && end && text && !effect && !seen.has(key)) {
+            seen.add(key);
+            cues.push(`${start} --> ${end}\n${text}`);
+        }
+    }
+
+    return `WEBVTT\n\n${cues.join('\n\n')}${cues.length ? '\n' : ''}`;
 }
 
 async function followProviderRedirects(
@@ -203,6 +297,48 @@ export async function proxyStreamRequest(request: Request, fetchStream: StreamFe
         fetchStream
     );
     return proxiedResponse(provider.target, provider.response);
+}
+
+/** Reject provider sources that expose a playlist but cannot serve its first
+ * media segment. This keeps expired signed playlists out of the browser's
+ * fallback order. */
+export async function verifyStreamSource(source: string, fetchStream: StreamFetch) {
+    let provider = await followProviderRedirects(streamTarget(source), null, fetchStream);
+
+    for (let depth = 0; depth < 3; depth += 1) {
+        const contentType = provider.response.headers.get('content-type')?.toLowerCase();
+        const playlist =
+            provider.target.pathname.toLowerCase().endsWith('.m3u8') ||
+            contentType?.includes('mpegurl');
+        if (!playlist) {
+            await provider.response.body?.cancel().catch(() => undefined);
+            return;
+        }
+
+        const body = new TextDecoder().decode(
+            await boundedResponseBytes(
+                provider.response,
+                maximumPlaylistSize,
+                responseTimeout,
+                'playlist'
+            )
+        );
+        const reference = firstHlsReference(body);
+        if (!reference) {
+            throw new StreamProxyError({ kind: 'invalid-playlist' });
+        }
+
+        const target = streamTarget(new URL(reference.url, provider.target).toString());
+        if (reference.kind === 'segment') {
+            const segment = await followProviderRedirects(target, 'bytes=0-0', fetchStream);
+            await segment.response.body?.cancel().catch(() => undefined);
+            return;
+        }
+
+        provider = await followProviderRedirects(target, null, fetchStream);
+    }
+
+    throw new StreamProxyError({ kind: 'invalid-playlist' });
 }
 
 async function boundedResponseBytes(
@@ -279,6 +415,13 @@ function allowedHost(hostname: string) {
     return hostname.startsWith('megap.') || matchesHost(hostname, allowedHosts);
 }
 
+function imageWrappedHost(hostname: string) {
+    return (
+        hostname.endsWith('.ibyteimg.com') ||
+        /^p\d+-ad-site-sign-sg\.tiktokcdn\.com$/.test(hostname)
+    );
+}
+
 function matchesHost(hostname: string, hosts: readonly string[]) {
     return hosts.some((host) => hostname === host || hostname.endsWith(`.${host}`));
 }
@@ -335,12 +478,6 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
         return reference;
     }
 
-    // MegaPlay playlists include optional ad assets. Keep them direct instead
-    // of proxying them during stream startup.
-    if (directPlaylistHost.test(target.hostname)) {
-        return reference;
-    }
-
     try {
         const allowedTarget = streamTarget(target.toString());
         return `/api/episodes/stream?${new URLSearchParams({
@@ -362,6 +499,28 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
         }
         return reference;
     }
+}
+
+function firstHlsReference(value: string) {
+    const lines = value.split(/\r?\n/).map((line) => line.trim());
+    for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index];
+        if (!line.startsWith('#EXTINF:') && !line.startsWith('#EXT-X-STREAM-INF:')) {
+            continue;
+        }
+
+        const url = lines
+            .slice(index + 1)
+            .find((candidate) => candidate && !candidate.startsWith('#'));
+        if (url) {
+            return {
+                kind: line.startsWith('#EXTINF:') ? ('segment' as const) : ('variant' as const),
+                url,
+            };
+        }
+    }
+
+    return null;
 }
 
 function rewriteHlsPlaylist(value: string, playlist: URL) {
