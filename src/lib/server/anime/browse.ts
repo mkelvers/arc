@@ -167,7 +167,7 @@ async function refreshTaxonomy() {
     await db
         .insert(animeCatalogTaxonomy)
         .values({
-            provider: "anilist",
+            provider: 'anilist',
             ...taxonomy,
             fetchedAt,
         })
@@ -191,7 +191,7 @@ async function sourceTaxonomy() {
             fetchedAt: animeCatalogTaxonomy.fetchedAt,
         })
         .from(animeCatalogTaxonomy)
-        .where(eq(animeCatalogTaxonomy.provider, "anilist"))
+        .where(eq(animeCatalogTaxonomy.provider, 'anilist'))
         .limit(1);
 
     if (
