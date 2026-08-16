@@ -371,4 +371,148 @@ describe('stream proxy', () => {
             verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
         ).rejects.toMatchObject({ reason: { kind: 'invalid-playlist' } });
     });
+
+    test('verifies an AniPub source whose segments rotate to a cloudbuzz media host', async () => {
+        const requests: { target: string; referer: string | null; range: string | null }[] = [];
+        const fetchStream = async (target: URL, init: RequestInit) => {
+            requests.push({
+                target: target.toString(),
+                referer: new Headers(init.headers).get('referer'),
+                range: new Headers(init.headers).get('range'),
+            });
+            if (target.pathname.endsWith('/master.m3u8')) {
+                return new Response(
+                    '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=2000000\nindex-f1-v1-a1.m3u8',
+                    { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                );
+            }
+            if (target.pathname.endsWith('/index-f1-v1-a1.m3u8')) {
+                return new Response(
+                    '#EXTM3U\n#EXTINF:8.0,\nhttps://q1bog.cloudbuzz.lol/anime/abc/seg-1-f1-v1-a1.css',
+                    { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                );
+            }
+            return new Response(new Uint8Array([0x47]), { status: 200 });
+        };
+
+        await expect(
+            verifyStreamSource('https://cdn.watching.onl/anime/abc/master.m3u8', fetchStream)
+        ).resolves.toBeUndefined();
+        expect(requests).toEqual([
+            {
+                target: 'https://cdn.watching.onl/anime/abc/master.m3u8',
+                referer: 'https://megaplay.buzz/',
+                range: null,
+            },
+            {
+                target: 'https://cdn.watching.onl/anime/abc/index-f1-v1-a1.m3u8',
+                referer: 'https://megaplay.buzz/',
+                range: null,
+            },
+            {
+                target: 'https://q1bog.cloudbuzz.lol/anime/abc/seg-1-f1-v1-a1.css',
+                referer: 'https://megaplay.buzz/',
+                range: 'bytes=0-0',
+            },
+        ]);
+    });
+
+    test('serves MegaPlay static-disguised MPEG-TS segments as video/mp2t', async () => {
+        const request = new Request(
+            'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fq1bog.cloudbuzz.lol%2Fanime%2Fabc%2Fseg-1-f1-v1-a1.css'
+        );
+        let providerInit: RequestInit | undefined;
+        const fetchStream = async (_target: URL, init: RequestInit) => {
+            providerInit = init;
+            return new Response(new Uint8Array([0x47, 0x40, 0x11]), {
+                headers: { 'content-type': 'text/css' },
+            });
+        };
+
+        const response = await proxyStreamRequest(request, fetchStream);
+
+        expect({
+            body: [...new Uint8Array(await response.arrayBuffer())],
+            contentType: response.headers.get('content-type'),
+            referer: new Headers(providerInit?.headers).get('referer'),
+        }).toEqual({
+            body: [0x47, 0x40, 0x11],
+            contentType: 'video/mp2t',
+            referer: 'https://megaplay.buzz/',
+        });
+    });
+
+    test('serves every MegaPlay segment CDN as disguised MPEG-TS with its referer', async () => {
+        const hosts = [
+            'livedns.my',
+            'cloudbuzz.lol',
+            'sugevideo.xyz',
+            'anivideo.sbs',
+            'cloudvideo.lat',
+            'trycloud.pro',
+        ];
+        for (const host of hosts) {
+            const request = new Request(
+                `https://arc.local/api/episodes/stream?url=https%3A%2F%2Fabc.${host}%2Fanime%2Fx%2Fseg-1-f1-v1-a1.jpg`
+            );
+            let providerInit: RequestInit | undefined;
+            const response = await proxyStreamRequest(request, async (_target, init) => {
+                providerInit = init;
+                return new Response(new Uint8Array([0x47, 0x40, 0x11]), {
+                    headers: { 'content-type': 'image/jpeg' },
+                });
+            });
+
+            expect({
+                contentType: response.headers.get('content-type'),
+                referer: new Headers(providerInit?.headers).get('referer'),
+            }).toEqual({
+                contentType: 'video/mp2t',
+                referer: 'https://megaplay.buzz/',
+            });
+        }
+    });
+
+    test('allows otakuhg StreamHG hosts with the otakuhg referer', async () => {
+        for (const host of ['otakuhg.site', 'abc.premilkyway.com', 'xyz.cdn-centaurus.com']) {
+            const request = new Request(
+                `https://arc.local/api/episodes/stream?url=https%3A%2F%2F${host}%2Fmaster.m3u8`
+            );
+            let providerInit: RequestInit | undefined;
+            const response = await proxyStreamRequest(request, async (_target, init) => {
+                providerInit = init;
+                return new Response('#EXTM3U', {
+                    headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+                });
+            });
+
+            expect({
+                status: response.status,
+                referer: new Headers(providerInit?.headers).get('referer'),
+            }).toEqual({ status: 200, referer: 'https://otakuhg.site/' });
+        }
+    });
+
+    test('allows AniZone rotated xin-cdn hosts with the AniZone referer', async () => {
+        const request = new Request(
+            'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fsuzaku.xin-cdn.xyz%2Fabc%2Fmaster.m3u8'
+        );
+        let providerInit: RequestInit | undefined;
+        const fetchStream = async (_target: URL, init: RequestInit) => {
+            providerInit = init;
+            return new Response('#EXTM3U\n#EXT-X-ENDLIST', {
+                headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+            });
+        };
+
+        const response = await proxyStreamRequest(request, fetchStream);
+
+        expect({
+            contentType: response.headers.get('content-type'),
+            referer: new Headers(providerInit?.headers).get('referer'),
+        }).toEqual({
+            contentType: 'application/vnd.apple.mpegurl',
+            referer: 'https://anizone.to/',
+        });
+    });
 });

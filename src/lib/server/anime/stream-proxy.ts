@@ -1,41 +1,72 @@
 import { Buffer } from 'node:buffer';
 
-const allowedHosts = [
-    'tools.fast4speed.rsvp',
-    'repackager.wixmp.com',
-    'video.wixstatic.com',
-    'vidcache.net',
-    'mp4upload.com',
-    'sharepoint.com',
-    'ninstream.com',
-    'ninjstream.xyz',
-    'ibyteimg.com',
-    'tiktokcdn.com',
-    'watching.onl',
-    'vibevibe.workers.dev',
-    'vivibebe.site',
-    'lostproject.club',
-    'anizara.store',
-    'animegg.org',
-    'vid-cdn.xyz',
-    'kwik.cx',
-    'uwucdn.top',
-    'streampeaker.org',
+// Single registry of provider CDN hosts. Allowlist membership, request
+// referer, and segment handling all derive from it, so a provider CDN is
+// described in exactly one place. Hosts match exactly or by `.<host>`
+// suffix; `prefix` entries match `hostname.startsWith(host)` instead.
+type ProviderHostGroup = {
+    hosts: readonly string[];
+    referer?: string;
+    prefix?: boolean;
+    disguisedTs?: boolean;
+};
+
+const providerHostGroups: readonly ProviderHostGroup[] = [
+    {
+        hosts: [
+            'tools.fast4speed.rsvp',
+            'repackager.wixmp.com',
+            'video.wixstatic.com',
+            'sharepoint.com',
+            'tiktokcdn.com',
+        ],
+    },
+    { hosts: ['mp4upload.com'], referer: 'https://www.mp4upload.com' },
+    {
+        // Senshi serves MPEG-TS segments disguised as static assets.
+        hosts: ['ninstream.com', 'ninjstream.xyz'],
+        referer: 'https://senshi.live/',
+        disguisedTs: true,
+    },
+    {
+        // MegaPlay serves playlists on watching.onl and rotates its segment
+        // CDNs; the family serves MPEG-TS disguised as static assets and
+        // demands the MegaPlay referer.
+        hosts: [
+            'watching.onl',
+            'livedns.my',
+            'cloudbuzz.lol',
+            'sugevideo.xyz',
+            'anivideo.sbs',
+            'cloudvideo.lat',
+            'trycloud.pro',
+        ],
+        referer: 'https://megaplay.buzz/',
+        disguisedTs: true,
+    },
+    { hosts: ['megap.'], prefix: true, referer: 'https://megaplay.buzz/' },
+    { hosts: ['lostproject.club'], referer: 'https://megaplay.buzz/' },
+    { hosts: ['animegg.org', 'vidcache.net'], referer: 'https://www.animegg.org/' },
+    { hosts: ['vid-cdn.xyz', 'xin-cdn.xyz'], referer: 'https://anizone.to/' },
+    { hosts: ['kwik.cx', 'uwucdn.top', 'streampeaker.org'], referer: 'https://kwik.cx/' },
+    {
+        hosts: ['vibevibe.workers.dev', 'vivibebe.site', 'anizara.store', 'ibyteimg.com'],
+        referer: 'https://anineko.to/',
+    },
+    {
+        // AniNeko's StreamHG embeds serve hls4 playlists from otakuhg.site
+        // and signed hls2 masters from these rotated CDN roots.
+        hosts: ['otakuhg.site', 'premilkyway.com', 'cdn-centaurus.com'],
+        referer: 'https://otakuhg.site/',
+    },
 ];
+
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
 const responseTimeout = 10_000;
 const maximumPlaylistSize = 1024 * 1024;
 const maximumSubtitleSize = 8 * 1024 * 1024;
 const maximumWrappedSegmentSize = 32 * 1024 * 1024;
-const refererHostGroups = [
-    { hosts: ['mp4upload.com'], referer: 'https://www.mp4upload.com' },
-    { hosts: ['ninstream.com', 'ninjstream.xyz'], referer: 'https://senshi.live/' },
-    { hosts: ['watching.onl'], referer: 'https://megaplay.buzz/' },
-    { hosts: ['animegg.org', 'vidcache.net'], referer: 'https://www.animegg.org/' },
-    { hosts: ['vid-cdn.xyz'], referer: 'https://anizone.to/' },
-    { hosts: ['kwik.cx', 'uwucdn.top', 'streampeaker.org'], referer: 'https://kwik.cx/' },
-] as const;
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
 type StreamBody = 'playlist' | 'segment' | 'subtitle';
@@ -131,7 +162,11 @@ async function proxiedResponse(target: URL, response: Response) {
         });
     }
 
-    if (imageWrappedHost(target.hostname)) {
+    // ibyteimg and TikTok wrap MPEG-TS segments in a PNG payload.
+    if (
+        target.hostname.endsWith('.ibyteimg.com') ||
+        /^p\d+-ad-site-sign-sg\.tiktokcdn\.com$/.test(target.hostname)
+    ) {
         const body = Uint8Array.from(
             unwrapPngSegment(
                 await boundedResponseBytes(
@@ -159,10 +194,7 @@ async function proxiedResponse(target: URL, response: Response) {
         !contentType || contentType === 'application/octet-stream' ? 'video/mp4' : contentType;
     if (target.pathname.toLowerCase().endsWith('.vtt')) {
         mediaType = 'text/vtt; charset=utf-8';
-    } else if (
-        target.hostname.endsWith('ninstream.com') &&
-        /\.(?:jpe?g|png)$/i.test(target.pathname)
-    ) {
+    } else if (hostGroup(target.hostname)?.disguisedTs) {
         mediaType = 'video/mp2t';
     }
     headers.set('content-type', mediaType);
@@ -409,21 +441,14 @@ async function boundedResponseBytes(
     return body;
 }
 
-function allowedHost(hostname: string) {
-    // MegaPlay rotates per-series CDN hosts that all share the `megap.`
-    // prefix; the rest of the list is exact-or-`.<host>` suffix matched.
-    return hostname.startsWith('megap.') || matchesHost(hostname, allowedHosts);
-}
-
-function imageWrappedHost(hostname: string) {
-    return (
-        hostname.endsWith('.ibyteimg.com') ||
-        /^p\d+-ad-site-sign-sg\.tiktokcdn\.com$/.test(hostname)
+function hostGroup(hostname: string) {
+    return providerHostGroups.find((group) =>
+        group.hosts.some((host) =>
+            group.prefix
+                ? hostname.startsWith(host)
+                : hostname === host || hostname.endsWith(`.${host}`)
+        )
     );
-}
-
-function matchesHost(hostname: string, hosts: readonly string[]) {
-    return hosts.some((host) => hostname === host || hostname.endsWith(`.${host}`));
 }
 
 function streamTarget(value: string | null) {
@@ -438,7 +463,7 @@ function streamTarget(value: string | null) {
         throw new StreamProxyError({ kind: 'invalid-source' });
     }
 
-    if (target.protocol !== 'https:' || !allowedHost(target.hostname)) {
+    if (target.protocol !== 'https:' || !hostGroup(target.hostname)) {
         throw new StreamProxyError({ kind: 'unsupported-host', hostname: target.hostname });
     }
 
@@ -446,24 +471,7 @@ function streamTarget(value: string | null) {
 }
 
 function streamReferer(target: URL) {
-    const hostname = target.hostname;
-    const group = refererHostGroups.find(({ hosts }) => matchesHost(hostname, hosts));
-    if (group) {
-        return group.referer;
-    }
-    if (hostname.startsWith('megap.') || hostname.endsWith('.lostproject.club')) {
-        return 'https://megaplay.buzz/';
-    }
-    if (
-        hostname === 'vivibebe.site' ||
-        hostname.endsWith('.vibevibe.workers.dev') ||
-        hostname.endsWith('.anizara.store') ||
-        hostname.endsWith('.ibyteimg.com')
-    ) {
-        return 'https://anineko.to/';
-    }
-
-    return 'https://youtu-chan.com';
+    return hostGroup(target.hostname)?.referer ?? 'https://youtu-chan.com';
 }
 
 function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<string>) {
