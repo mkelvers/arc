@@ -46,30 +46,39 @@ async function getPlayback(
     try {
         remoteStreams = await playback.getStreams(animeData, episode, modes);
         const verified = await Promise.all(
-            Object.entries(remoteStreams).map(async ([mode, sources]) => [
-                mode,
-                (
-                    await Promise.all(
-                        (sources ?? []).map(async (source) => {
-                            try {
-                                await verifyStreamSource(source.url, fetchStream);
-                                return source;
-                            } catch (cause) {
-                                const detail =
+            Object.entries(remoteStreams).map(async ([mode, sources]) => {
+                const results = await Promise.all(
+                    (sources ?? []).map(async (source) => {
+                        try {
+                            await verifyStreamSource(source.url, fetchStream);
+                            return { source, error: null };
+                        } catch (cause) {
+                            return {
+                                source,
+                                error:
                                     cause instanceof StreamProxyError
                                         ? cause.reason.kind
                                         : cause instanceof Error
                                           ? cause.message
-                                          : String(cause);
-                                console.warn(
-                                    `Discarded unplayable ${source.provider ?? 'unknown'} ${mode} stream for AniList ${animeData.id}, episode ${episode.id}: ${detail}`
-                                );
-                                return null;
-                            }
-                        })
-                    )
-                ).filter((source) => source !== null),
-            ])
+                                          : String(cause),
+                            };
+                        }
+                    })
+                );
+                const surviving = results.flatMap(({ source, error }) => (error ? [] : [source]));
+                for (const { source, error } of results) {
+                    if (!error) {
+                        continue;
+                    }
+                    const message = `Discarded unplayable ${source.provider ?? 'unknown'} ${mode} stream for AniList ${animeData.id}, episode ${episode.id}: ${error}`;
+                    if (surviving.length) {
+                        console.debug(message);
+                    } else {
+                        console.warn(message);
+                    }
+                }
+                return [mode, surviving];
+            })
         );
         remoteStreams = Object.fromEntries(verified);
         failed = !Object.values(remoteStreams).some((sources) => sources?.length);
