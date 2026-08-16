@@ -91,6 +91,12 @@ function embedPage() {
     return `<script>const src = "https://vibevibe.workers.dev/jjk/master.m3u8";</script>`;
 }
 
+function packedEmbedPage() {
+    // A minimal Dean Edwards packed script. With count 0 the payload is
+    // returned unchanged, so the test asserts the unpacker itself.
+    return `<script>eval(function(p,a,c,k,e,d){while(c--)if(k[c])p=p.replace(new RegExp('\\\\b'+c.toString(a)+'\\\\b','g'),k[c]);return p}('var links={"hls4":"/stream/tok/master.m3u8","hls2":"https://cdn-centaurus.example/master.m3u8?t=x","hls3":"https://x.ephemeral.root/master.txt"};',36,0,''.split('|')))</script>`;
+}
+
 describe('AniNeko provider', () => {
     test('matches a title with a (TV) disambiguator and resolves streams', async () => {
         globalThis.fetch = mock(async (input: string | URL | Request) => {
@@ -141,6 +147,42 @@ describe('AniNeko provider', () => {
                     quality: null,
                     audioDelay: 0,
                     subtitleUrl: null,
+                },
+            ],
+        });
+    });
+
+    test('resolves an otakuhg StreamHG embed to its self-hosted hls4 source', async () => {
+        globalThis.fetch = mock(async (input: string | URL | Request) => {
+            const url = new URL(input instanceof Request ? input.url : input.toString());
+            if (url.hostname === 'anineko.to' && url.pathname === '/ajax/search') {
+                return response(searchPayload());
+            }
+            if (url.hostname === 'anineko.to' && url.pathname === '/watch/jujutsu-kaisen-tv') {
+                return response(watchPage());
+            }
+            if (url.hostname === 'anineko.to' && url.pathname === '/watch/jujutsu-kaisen-tv/ep-2') {
+                return response(`
+                    <div class="lang-group" data-id="sub">
+                        <div data-video="https://otakuhg.site/e/abc?caption_1=https://cdn.anizara.store/subtitles/x.vtt"></div>
+                    </div>
+                `);
+            }
+            if (url.hostname === 'otakuhg.site' && url.pathname === '/e/abc') {
+                return response(packedEmbedPage());
+            }
+            throw new Error(`Unexpected request: ${url}`);
+        }) as unknown as typeof fetch;
+
+        const streams = await aninekoProvider.getStreams(anime, { id: '2', number: 2 }, ['sub']);
+
+        expect(streams).toEqual({
+            sub: [
+                {
+                    url: 'https://otakuhg.site/stream/tok/master.m3u8',
+                    quality: null,
+                    audioDelay: 0,
+                    subtitleUrl: 'https://cdn.anizara.store/subtitles/x.vtt',
                 },
             ],
         });

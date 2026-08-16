@@ -265,22 +265,23 @@ function embedUrls(html: string, mode: AudioMode) {
     return urls;
 }
 
-function supportedEmbed(url: URL) {
-    return (
+function embedKind(url: URL) {
+    if (url.hostname === 'otakuhg.site' || url.hostname.endsWith('.otakuhg.site')) {
+        return 'otakuhg';
+    }
+    if (
         url.hostname === 'bibiemb.xyz' ||
         url.hostname.endsWith('.bibiemb.xyz') ||
         url.hostname === 'vivibebe.site' ||
         url.hostname.endsWith('.vivibebe.site')
-    );
-}
-
-async function resolveEmbed(value: string) {
-    const embed = new URL(value);
-    if (embed.protocol !== 'https:' || !supportedEmbed(embed)) {
-        throw new Error('AniNeko returned an unsupported embed host');
+    ) {
+        return 'vibevibe';
     }
 
-    const html = await requestText(embed, `${baseUrl}/`);
+    return null;
+}
+
+function vibevibeStream(html: string) {
     const match = html
         .replaceAll('\\/', '/')
         .match(/const\s+src\s*=\s*["'](https:\/\/[^"'\\\s]+\/master\.m3u8(?:\?[^"'\\\s]*)?)["']/i);
@@ -288,12 +289,71 @@ async function resolveEmbed(value: string) {
         throw new Error('AniNeko embed returned no HLS stream');
     }
 
-    const stream = new URL(match[1]);
+    return new URL(match[1]);
+}
+
+// otakuhg embeds run the StreamHG player, which ships its sources in a
+// Dean Edwards packed script. Take the first live source: hls4 is served by
+// otakuhg.site itself and hls2 is a signed master on rotated CDN roots; hls3
+// rotates ephemeral roots and is not allowed.
+function unpackPackedScript(html: string) {
+    const match = html.match(
+        /eval\(function\s*\(p,a,c,k,e,d\)\{.*?\}\('((?:[^'\\]|\\.)*)',\s*(\d+),\s*(\d+),\s*'((?:[^'\\]|\\.)*)'\.split\('\|'\)/s
+    );
+    if (!match) {
+        return null;
+    }
+
+    const [, payload, a, c, dictionary] = match;
+    const keys = dictionary.split('|');
+    const radix = Number(a);
+    let unpacked = payload;
+    for (let index = Number(c) - 1; index >= 0; index -= 1) {
+        const word = keys[index];
+        if (word) {
+            unpacked = unpacked.replace(new RegExp(`\\b${index.toString(radix)}\\b`, 'g'), word);
+        }
+    }
+    return unpacked;
+}
+
+function otakuhgStream(html: string, embed: URL) {
+    const unpacked = unpackPackedScript(html);
+    if (!unpacked) {
+        throw new Error('AniNeko embed returned no HLS stream');
+    }
+
+    const match = unpacked.match(/var\s+links\s*=\s*(\{[\s\S]*?\})\s*;/);
+    if (!match) {
+        throw new Error('AniNeko embed returned no HLS stream');
+    }
+
+    const links = JSON.parse(match[1]) as { hls2?: string; hls3?: string; hls4?: string };
+    const source = links.hls4 ?? links.hls2;
+    if (!source) {
+        throw new Error('AniNeko embed returned no HLS stream');
+    }
+
+    return new URL(source, embed);
+}
+
+async function resolveEmbed(value: string) {
+    const embed = new URL(value);
+    const kind = embedKind(embed);
+    if (embed.protocol !== 'https:' || !kind) {
+        throw new Error('AniNeko returned an unsupported embed host');
+    }
+
+    const html = await requestText(embed, `${baseUrl}/`);
+    const stream = kind === 'otakuhg' ? otakuhgStream(html, embed) : vibevibeStream(html);
     if (stream.protocol !== 'https:') {
         throw new Error('AniNeko returned an unsupported stream URL');
     }
 
-    const subtitle = embed.searchParams.get('sub');
+    const subtitle =
+        embed.searchParams.get('sub') ??
+        embed.searchParams.get('caption_1') ??
+        embed.searchParams.get('c1_file');
     return {
         url: stream.toString(),
         quality: null,
