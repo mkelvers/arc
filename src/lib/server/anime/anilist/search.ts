@@ -29,7 +29,7 @@ async function requestSearch(search: string) {
             page: 1,
             perPage: 50,
         },
-        { cacheForMs: 6 * 60 * 60 * 1_000 }
+        { cacheForMs: 24 * 60 * 60 * 1_000 }
     );
 
     const results = present(response.Page?.media).flatMap((entry) => {
@@ -73,5 +73,5 @@ export async function searchAnime(search: string) {
     return cache.get(key, async () => {
         const stored = await searchIndex.find(search);
         return stored.length ? stored : requestSearch(search.trim());
-    });
+    }, { staleIfError: true, staleWhileRevalidate: true });
 }

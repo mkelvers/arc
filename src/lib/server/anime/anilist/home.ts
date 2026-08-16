@@ -15,7 +15,7 @@ async function requestHomepage(season: MediaSeason, seasonYear: number) {
         HomeAnimeDocument,
         { season, seasonYear },
         {
-            cacheForMs: 6 * 60 * 60 * 1_000,
+            cacheForMs: 24 * 60 * 60 * 1_000,
         }
     );
 

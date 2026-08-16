@@ -76,7 +76,7 @@ export function getWatchlistAnime(ids: number[]) {
                         ({ data, fetchedAt }) =>
                             data.format == null ||
                             data.status == null ||
-                            now - fetchedAt.getTime() >= 6 * 60 * 60 * 1_000
+                            now - fetchedAt.getTime() >= 24 * 60 * 60 * 1_000
                     )
                     .map(({ id }) => id);
                 const missingIds = uniqueIds.filter((id) => !stored.has(id));

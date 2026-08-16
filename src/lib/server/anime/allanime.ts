@@ -21,7 +21,7 @@ import {
 } from './allanime/sources';
 import type { Source, Stream, StreamCrypto, Streams } from './allanime/types';
 
-const cache = new RequestCache<string, Streams>(5 * 60 * 1_000);
+const cache = new RequestCache<string, Streams>(2 * 60 * 1_000);
 const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
 
 async function encryptedSources(
