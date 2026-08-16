@@ -58,16 +58,18 @@ async function saveOrder(malId: number, data: FranchiseOrder) {
     const cached = verifiedFranchiseCache(data, fetchedAt);
 
     try {
+        // Concurrent refreshes of the same franchise upsert this identical row set; insert in a
+        // deterministic order so they lock the same tuples in the same order instead of deadlocking.
         await db
             .insert(animeFranchiseCache)
             .values(
-                [...new Set([malId, ...data.entries.map((entry) => entry.malId)])].map(
-                    (entryMalId) => ({
+                [...new Set([malId, ...data.entries.map((entry) => entry.malId)])]
+                    .sort((left, right) => left - right)
+                    .map((entryMalId) => ({
                         malId: entryMalId,
                         data: cached,
                         fetchedAt,
-                    })
-                )
+                    }))
             )
             .onConflictDoUpdate({
                 target: animeFranchiseCache.malId,
