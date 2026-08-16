@@ -11,11 +11,16 @@ const version = 2;
 const requests = new Map<number, Promise<AniListAnime>>();
 const backgroundRefreshes = new Set<number>();
 const retryAt = new Map<number, number>();
+const retryAttempts = new Map<number, number>();
 
-function refreshRetryDelay(cause: unknown) {
-    return cause instanceof GraphQLRequestError && cause.status === 404
-        ? 6 * 60 * 60 * 1_000
-        : 5 * 60 * 1_000;
+function refreshRetryDelay(cause: unknown, attempt = 1) {
+    if (cause instanceof GraphQLRequestError && cause.status === 404) {
+        return 6 * 60 * 60 * 1_000;
+    }
+    const base = 60_000;
+    const max = 30 * 60 * 1_000;
+    const delay = Math.min(base * 2 ** (attempt - 1), max);
+    return Math.floor(delay / 2 + Math.random() * delay / 2);
 }
 
 async function requestAnime(id: number) {
@@ -98,9 +103,14 @@ export async function getAnime(id: number) {
             stored.data.nextAiringEpisode.airingAt * 1_000 <= Date.now();
         if (airingPassed && (retryAt.get(id) ?? 0) <= Date.now()) {
             try {
-                return await refreshAnime(id);
+                const anime = await refreshAnime(id);
+                retryAt.delete(id);
+                retryAttempts.delete(id);
+                return anime;
             } catch (cause) {
-                retryAt.set(id, Date.now() + refreshRetryDelay(cause));
+                const attempt = (retryAttempts.get(id) ?? 0) + 1;
+                retryAttempts.set(id, attempt);
+                retryAt.set(id, Date.now() + refreshRetryDelay(cause, attempt));
                 console.warn(
                     `AniList airing refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
                 );
@@ -109,22 +119,30 @@ export async function getAnime(id: number) {
         }
 
         if (
-            Date.now() - stored.fetchedAt.getTime() > 6 * 60 * 60 * 1_000 &&
+            Date.now() - stored.fetchedAt.getTime() > 24 * 60 * 60 * 1_000 &&
             (retryAt.get(id) ?? 0) <= Date.now() &&
             !backgroundRefreshes.has(id)
         ) {
             backgroundRefreshes.add(id);
-            void refreshAnime(id)
-                .then(
-                    () => retryAt.delete(id),
-                    (cause) => {
-                        retryAt.set(id, Date.now() + refreshRetryDelay(cause));
-                        console.warn(
-                            `AniList cached details refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
-                        );
-                    }
-                )
-                .finally(() => backgroundRefreshes.delete(id));
+            const jitter = Math.floor(Math.random() * 5 * 60 * 1_000);
+            setTimeout(() => {
+                void refreshAnime(id)
+                    .then(
+                        () => {
+                            retryAt.delete(id);
+                            retryAttempts.delete(id);
+                        },
+                        (cause) => {
+                            const attempt = (retryAttempts.get(id) ?? 0) + 1;
+                            retryAttempts.set(id, attempt);
+                            retryAt.set(id, Date.now() + refreshRetryDelay(cause, attempt));
+                            console.warn(
+                                `AniList cached details refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
+                            );
+                        }
+                    )
+                    .finally(() => backgroundRefreshes.delete(id));
+            }, jitter);
         }
 
         return stored.data;
