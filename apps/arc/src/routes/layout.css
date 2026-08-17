@@ -1,0 +1,260 @@
+@import '@fontsource-variable/dm-sans/wght.css';
+@import '@fontsource-variable/manrope/wght.css';
+@import 'tailwindcss';
+
+[data-buffered-progress]::before,
+[data-progress]::after {
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    content: '';
+}
+
+[data-buffered-progress]::before {
+    width: var(--buffered-progress);
+    background: rgb(255 255 255 / 0.6);
+}
+
+[data-progress]::after {
+    width: var(--progress);
+    background: var(--theme-accent);
+}
+
+[data-timeline-position]::after {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-inline: 0.25rem solid transparent;
+    border-top: 0.25rem solid white;
+    content: '';
+    transform: translateX(-50%);
+}
+
+[data-timeline-position] {
+    left: var(--timeline-position);
+}
+
+[data-subtitle-size] {
+    font-size: attr(data-subtitle-size);
+}
+
+:root {
+    color-scheme: light dark;
+
+    --theme-canvas: light-dark(oklch(0.985 0.002 75), #000);
+    --theme-header: light-dark(#f7f7f7, #232427);
+    --theme-header-hover: light-dark(#ececec, #303136);
+    --theme-search: light-dark(#f1f1f1, #161719);
+    --theme-foreground: light-dark(oklch(0.16 0.006 285), oklch(0.97 0.002 75));
+    --theme-surface: light-dark(oklch(0.955 0.004 75), oklch(0.17 0.006 285));
+    --theme-muted: light-dark(oklch(0.43 0.008 285), oklch(0.71 0.008 285));
+    --theme-subtle: light-dark(oklch(0.55 0.008 285), oklch(0.57 0.008 285));
+    --theme-border: light-dark(oklch(0.78 0.006 285), oklch(0.35 0.008 285));
+    --theme-border-strong: light-dark(oklch(0.54 0.008 285), oklch(0.5 0.008 285));
+    --theme-accent: oklch(58.163% 0.19361 261.343);
+    --theme-on-accent: oklch(0.13 0.01 48);
+    --theme-status-error: #f04427;
+    --theme-status-success: #2ca66f;
+    --theme-on-status: oklch(0.13 0.01 48);
+    --theme-panel: oklch(0.26 0.004 285);
+    --theme-panel-strong: oklch(0.23 0.004 285);
+    --theme-panel-selected: oklch(0.2 0.004 285);
+    --theme-panel-hover: oklch(0.15 0.004 285);
+    --theme-media-tile: oklch(0.17 0.004 285);
+    --theme-watch-primary: oklch(0.9 0.004 285);
+    --theme-watch-secondary: oklch(0.74 0.004 285);
+    --theme-watch-muted: oklch(0.63 0.004 285);
+    --theme-player-panel: oklch(0.18 0.012 285);
+    --theme-player-accent: oklch(0.72 0.13 205);
+    --theme-tooltip: #414141;
+    --theme-tooltip-foreground: #ececec;
+
+    --theme-hero-scrim-inline-start: light-dark(rgb(255 255 255 / 0.68), rgb(0 0 0 / 0.52));
+    --theme-hero-scrim-inline-end: light-dark(rgb(255 255 255 / 0.42), rgb(0 0 0 / 0.28));
+    --theme-hero-scrim-top: light-dark(rgb(255 255 255 / 0.2), rgb(0 0 0 / 0.12));
+    --theme-hero-scrim-bottom: light-dark(rgb(255 255 255 / 1), rgb(0 0 0 / 1));
+    --theme-hero-scrim-bottom-soft: light-dark(rgb(255 255 255 / 0.78), rgb(0 0 0 / 0.72));
+    --theme-hero-scrim-corner: light-dark(rgb(255 255 255 / 0.58), rgb(0 0 0 / 0.42));
+    --theme-hero-scrim-corner-alt: light-dark(rgb(255 255 255 / 0.52), rgb(0 0 0 / 0.38));
+}
+
+@theme inline {
+    --color-canvas: var(--theme-canvas);
+    --color-header: var(--theme-header);
+    --color-header-hover: var(--theme-header-hover);
+    --color-search: var(--theme-search);
+    --color-foreground: var(--theme-foreground);
+    --color-surface: var(--theme-surface);
+    --color-muted: var(--theme-muted);
+    --color-subtle: var(--theme-subtle);
+    --color-border: var(--theme-border);
+    --color-border-strong: var(--theme-border-strong);
+    --color-accent: var(--theme-accent);
+    --color-on-accent: var(--theme-on-accent);
+    --color-status-error: var(--theme-status-error);
+    --color-status-success: var(--theme-status-success);
+    --color-on-status: var(--theme-on-status);
+    --color-panel: var(--theme-panel);
+    --color-panel-strong: var(--theme-panel-strong);
+    --color-panel-selected: var(--theme-panel-selected);
+    --color-panel-hover: var(--theme-panel-hover);
+    --color-media-tile: var(--theme-media-tile);
+    --color-watch-primary: var(--theme-watch-primary);
+    --color-watch-secondary: var(--theme-watch-secondary);
+    --color-watch-muted: var(--theme-watch-muted);
+    --color-player-panel: var(--theme-player-panel);
+    --color-player-accent: var(--theme-player-accent);
+    --color-tooltip: var(--theme-tooltip);
+    --color-tooltip-foreground: var(--theme-tooltip-foreground);
+}
+
+@utility auto-cols-franchise {
+    grid-auto-columns: 46%;
+}
+
+@utility auto-cols-franchise-md {
+    grid-auto-columns: calc((100% - 6.25rem) / 5.2);
+}
+
+@utility auto-cols-franchise-2xl {
+    grid-auto-columns: calc((100% - 8.75rem) / 7.2);
+}
+
+@utility subtitle-outline {
+    -webkit-text-stroke: 0.25em #000;
+    paint-order: stroke fill;
+}
+
+@layer base {
+    * {
+        scrollbar-width: none;
+    }
+
+    *::-webkit-scrollbar {
+        display: none;
+    }
+
+    html,
+    body {
+        @apply min-w-0 bg-canvas text-foreground;
+    }
+
+    html {
+        font-family: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+        overflow-wrap: anywhere;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        font-family: 'Manrope Variable', 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: -0.025em;
+    }
+
+    button,
+    a,
+    input {
+        touch-action: manipulation;
+    }
+}
+
+@layer components {
+    .home-hero-slide {
+        &::before {
+            content: '';
+            z-index: 10;
+            grid-column: 1;
+            grid-row: 1;
+            pointer-events: none;
+            background-image:
+                linear-gradient(
+                    to right,
+                    rgb(0 0 0 / 0.88) 0%,
+                    rgb(0 0 0 / 0.5) 34%,
+                    transparent 68%
+                ),
+                linear-gradient(to left, rgb(0 0 0 / 0.18), transparent 28%);
+        }
+
+        &::after {
+            content: '';
+            z-index: 10;
+            grid-column: 1;
+            grid-row: 1;
+            pointer-events: none;
+            background-image: linear-gradient(
+                to top,
+                var(--theme-canvas) 0%,
+                rgb(0 0 0 / 0.62) 15%,
+                transparent 54%
+            );
+        }
+    }
+
+    .anime-hero {
+        &::before {
+            background-image:
+                linear-gradient(to right, var(--theme-hero-scrim-inline-start), transparent 26%),
+                linear-gradient(to left, var(--theme-hero-scrim-inline-end), transparent 18%),
+                linear-gradient(to bottom, var(--theme-hero-scrim-top), transparent 12%);
+        }
+
+        &::after {
+            background-image:
+                linear-gradient(
+                    to top,
+                    var(--theme-hero-scrim-bottom) 0%,
+                    var(--theme-hero-scrim-bottom-soft) 12%,
+                    transparent 54%
+                ),
+                linear-gradient(to top right, var(--theme-hero-scrim-corner), transparent 42%),
+                linear-gradient(to top left, var(--theme-hero-scrim-corner-alt), transparent 40%);
+        }
+    }
+
+    .details-fade {
+        mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+    }
+
+    .volume-input {
+        writing-mode: vertical-lr;
+        direction: rtl;
+    }
+
+    @media (width < 40rem) {
+        .home-hero-slide {
+            &::before {
+                background-image: linear-gradient(to right, rgb(0 0 0 / 0.74), transparent 88%);
+            }
+
+            &::after {
+                background-image: linear-gradient(
+                    to top,
+                    var(--theme-canvas) 0%,
+                    rgb(0 0 0 / 0.76) 38%,
+                    transparent 82%
+                );
+            }
+        }
+
+        .anime-hero {
+            &::before {
+                background-image:
+                    linear-gradient(to bottom, var(--theme-hero-scrim-top), transparent 24%),
+                    linear-gradient(to right, var(--theme-hero-scrim-inline-start), transparent 70%);
+            }
+
+            &::after {
+                background-image: linear-gradient(
+                    to top,
+                    var(--theme-hero-scrim-bottom) 0%,
+                    var(--theme-hero-scrim-bottom-soft) 55%,
+                    transparent 88%
+                );
+            }
+        }
+    }
+}

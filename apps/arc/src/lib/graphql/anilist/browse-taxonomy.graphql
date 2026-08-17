@@ -1,0 +1,27 @@
+query BrowseAnimeTaxonomy {
+    GenreCollection
+    tags: MediaTagCollection {
+        name
+        isAdult
+    }
+    formats: __type(name: "MediaFormat") {
+        enumValues {
+            name
+        }
+    }
+    statuses: __type(name: "MediaStatus") {
+        enumValues {
+            name
+        }
+    }
+    sources: __type(name: "MediaSource") {
+        enumValues {
+            name
+        }
+    }
+    seasons: __type(name: "MediaSeason") {
+        enumValues {
+            name
+        }
+    }
+}
