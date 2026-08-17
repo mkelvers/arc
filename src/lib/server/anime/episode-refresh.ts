@@ -24,9 +24,18 @@ export function createEpisodeRefreshQueue(database: typeof db) {
             return;
         }
 
+        const deduped = new Map<string, ScheduledEpisodeRefresh>();
+        for (const refresh of refreshes) {
+            const key = `${refresh.anilistId}:${refresh.targetEpisode}`;
+            const existing = deduped.get(key);
+            if (!existing || refresh.runAt < existing.runAt) {
+                deduped.set(key, refresh);
+            }
+        }
+
         await database
             .insert(animeEpisodeRefresh)
-            .values(refreshes)
+            .values([...deduped.values()])
             .onConflictDoUpdate({
                 target: [animeEpisodeRefresh.anilistId, animeEpisodeRefresh.targetEpisode],
                 set: {
