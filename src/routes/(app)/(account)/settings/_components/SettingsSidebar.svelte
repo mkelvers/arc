@@ -4,7 +4,10 @@
     const sections = [
         {
             title: 'Playback',
-            links: [{ label: 'Subtitles', href: '/settings/subtitles' }],
+            links: [
+                { label: 'Playback', href: '/settings/playback' },
+                { label: 'Subtitles', href: '/settings/subtitles' },
+            ],
         },
         {
             title: 'Connections',

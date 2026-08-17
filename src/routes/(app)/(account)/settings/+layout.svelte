@@ -6,6 +6,10 @@
     let { children }: LayoutProps = $props();
 
     const pages = {
+        '/settings/playback': {
+            title: 'Playback',
+            synopsis: 'Choose which playback sources Arc may use.',
+        },
         '/settings/subtitles': {
             title: 'Subtitles',
             synopsis: 'Manage subtitle display preferences.',
