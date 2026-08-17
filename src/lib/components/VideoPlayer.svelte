@@ -158,13 +158,23 @@
     class:cursor-none={player.media.playing && !player.controlsVisible}
     class="group fixed inset-0 size-full overflow-hidden bg-black select-none focus:outline-none"
 >
-    <video
-        bind:this={player.media.video}
-        class="size-full bg-black object-cover"
-        playsinline
-        preload="metadata"
-        poster={poster}
-    ></video>
+    {#if player.media.sourceKind === 'iframe'}
+        <iframe
+            src={player.media.src}
+            title={`${anime.title} ${episodeTitle}`}
+            class="size-full border-0 bg-black"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowfullscreen
+        ></iframe>
+    {:else}
+        <video
+            bind:this={player.media.video}
+            class="size-full bg-black object-cover"
+            playsinline
+            preload="metadata"
+            poster={poster}
+        ></video>
+    {/if}
 
     <!-- Top header bar with back navigation and centered show title/episode subtitle -->
     <div
@@ -348,11 +358,13 @@
         {/if}
     {/if}
 
-    <Controls
-        player={player}
-        hasMultipleEpisodes={episodes.length > 1}
-        onopenepisodes={() => (episodeDialogOpen = true)}
-    />
+    {#if player.media.sourceKind !== 'iframe'}
+        <Controls
+            player={player}
+            hasMultipleEpisodes={episodes.length > 1}
+            onopenepisodes={() => (episodeDialogOpen = true)}
+        />
+    {/if}
 </div>
 
 <EpisodeDialog

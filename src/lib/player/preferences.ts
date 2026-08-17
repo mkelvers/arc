@@ -23,7 +23,8 @@ type Key =
     | 'subtitle-text-color'
     | 'subtitle-background'
     | 'subtitle-background-opacity'
-    | 'subtitle-edge-style';
+    | 'subtitle-edge-style'
+    | 'iframes';
 
 const storageKey = 'arc:preferences';
 const preferenceKeys: readonly Key[] = [
@@ -38,6 +39,7 @@ const preferenceKeys: readonly Key[] = [
     'subtitle-background',
     'subtitle-background-opacity',
     'subtitle-edge-style',
+    'iframes',
 ];
 
 function readValues() {
@@ -115,6 +117,7 @@ export function load(sources: Sources, qualities: string[]) {
                 rawSubtitles === 'sub'
               ? true
               : null;
+    const rawIframes = values.iframes ?? null;
     const rawSize = values['subtitle-size'] ?? null;
     const parsedSize = rawSize !== null ? Number(rawSize) : NaN;
     // Preset names save directly; px numbers from the old size slider resolve
@@ -156,6 +159,7 @@ export function load(sources: Sources, qualities: string[]) {
                 : null,
         mode,
         autoplay,
+        iframes: rawIframes === 'true' ? true : rawIframes === 'false' ? false : null,
         quality,
         subtitleEnabled,
         subtitleMode,

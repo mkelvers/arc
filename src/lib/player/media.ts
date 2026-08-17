@@ -2,6 +2,7 @@ import { audioModeOrder, type AudioMode } from '$lib/anime/audio';
 
 export interface Stream {
     url: string;
+    kind?: 'direct' | 'iframe';
     quality: string | null;
     audioDelay: number;
     subtitleUrl?: string | null;

@@ -33,6 +33,7 @@ export class Playback {
     volume = $state(1);
     autoplay = $state(true);
     quality = $state('best');
+    iframeEnabled = $state(false);
     hlsQualities = $state<HlsQuality[]>([]);
     hlsCurrentQuality = $state<string | null>(null);
     sourceIndex = $state(0);
@@ -52,13 +53,32 @@ export class Playback {
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
     private readonly audio = new AudioDelay();
 
+    private allSources: Sources;
+
     constructor(
-        private sources: Sources,
+        sources: Sources,
         private next: string | null
-    ) {}
+    ) {
+        this.allSources = sources;
+        this.sources = sources;
+    }
+
+    private sources: Sources;
+
+    private applySourcePreference() {
+        this.sources = Object.fromEntries(
+            Object.entries(this.allSources).map(([mode, streams]) => [
+                mode,
+                this.iframeEnabled
+                    ? streams
+                    : streams?.filter((stream) => stream.kind !== 'iframe'),
+            ])
+        );
+    }
 
     sync(sources: Sources, next: string | null) {
-        this.sources = sources;
+        this.allSources = sources;
+        this.applySourcePreference();
         this.next = next;
     }
 
@@ -97,6 +117,10 @@ export class Playback {
 
     get src() {
         return this.activeSources[this.sourceIndex]?.url ?? '';
+    }
+
+    get sourceKind() {
+        return this.activeSources[this.sourceIndex]?.kind ?? 'direct';
     }
 
     get audioDelay() {
@@ -181,6 +205,14 @@ export class Playback {
         preferences.save('autoplay', this.autoplay);
     }
 
+    async toggleIframes() {
+        this.iframeEnabled = !this.iframeEnabled;
+        preferences.save('iframes', this.iframeEnabled);
+        this.applySourcePreference();
+        this.resetSource();
+        await this.reloadSource();
+    }
+
     private rememberPlayback() {
         this.resumeAt = this.video.currentTime;
         this.resumePlayback = !this.video.paused;
@@ -238,6 +270,11 @@ export class Playback {
         video.load();
 
         if (!source) {
+            return;
+        }
+
+        if (this.sourceKind === 'iframe') {
+            this.loading = false;
             return;
         }
 
@@ -554,11 +591,14 @@ export class Playback {
     }
 
     mount() {
+        const saved = preferences.load(this.sources, this.qualities);
+        this.iframeEnabled = saved.iframes ?? false;
+        this.applySourcePreference();
+
         if (!this.sources[this.mode]?.length) {
             this.mode = this.audioModes[0] ?? 'sub';
         }
 
-        const saved = preferences.load(this.sources, this.qualities);
         if (saved.volume !== null) {
             this.video.volume = saved.volume;
 
