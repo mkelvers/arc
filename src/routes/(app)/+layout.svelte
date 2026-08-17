@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
+    import { afterNavigate, goto } from '$app/navigation';
     import { onMount } from 'svelte';
     import {
         BookmarkSimpleIcon,
@@ -20,7 +20,7 @@
     let hasUnreadNotifications = $state(false);
     let unreadRequest: AbortController | undefined;
 
-    onMount(() => {
+    function refreshUnreadNotifications() {
         unreadRequest?.abort();
 
         if (!data.account) {
@@ -45,8 +45,24 @@
                     result.hasUnreadNotifications === true;
             })
             .catch(() => undefined);
+    }
 
-        return () => controller.abort();
+    afterNavigate(refreshUnreadNotifications);
+
+    onMount(() => {
+        const refreshWhenVisible = () => {
+            if (!document.hidden) {
+                refreshUnreadNotifications();
+            }
+        };
+        const interval = window.setInterval(refreshWhenVisible, 5 * 60 * 1_000);
+        document.addEventListener('visibilitychange', refreshWhenVisible);
+
+        return () => {
+            window.clearInterval(interval);
+            document.removeEventListener('visibilitychange', refreshWhenVisible);
+            unreadRequest?.abort();
+        };
     });
 
     async function signOut() {

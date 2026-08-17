@@ -264,7 +264,8 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         await recordProviderEpisodeChanges(
             tx,
             anime,
-            sync?.lastSuccessAt !== null && sync?.lastSuccessAt !== undefined,
+            (sync?.lastSuccessAt !== null && sync?.lastSuccessAt !== undefined) ||
+                existing.some(({ number }) => Number.isInteger(number) && number > 0),
             transitions,
             latestEpisode
                 ? {

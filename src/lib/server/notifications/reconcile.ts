@@ -160,7 +160,11 @@ async function loadTargetMedia(ids: number[]) {
 
 async function currentSeasonAvailability(
     userId: string,
-    targets: readonly { anilistId: number; sourceAnilistId: number }[],
+    targets: readonly {
+        anilistId: number;
+        sourceAnilistId: number;
+        createdAt: Date;
+    }[],
     mediaById: ReadonlyMap<number, TargetMedia>
 ) {
     const releasing = targets.filter(
@@ -211,7 +215,9 @@ async function currentSeasonAvailability(
     return releasing.flatMap((interest): NotificationEventInput[] => {
         const media = mediaById.get(interest.anilistId);
         const episode = latestById.get(interest.anilistId);
-        if (!media || !episode) {
+
+        // Do not backfill a notification for an episode that predates the interest.
+        if (!media || !episode || episode.firstSeenAt <= interest.createdAt) {
             return [];
         }
 
@@ -238,6 +244,7 @@ async function reconcileNotificationInterests(userId: string) {
             .select({
                 anilistId: notificationInterest.anilistId,
                 sourceAnilistId: notificationInterest.sourceAnilistId,
+                createdAt: notificationInterest.createdAt,
             })
             .from(notificationInterest)
             .where(eq(notificationInterest.userId, userId)),
@@ -256,13 +263,18 @@ async function reconcileNotificationInterests(userId: string) {
         }
         return media;
     });
-    const resolvedIds = resolved.map(({ anilistId }) => anilistId);
-    const previousIds = new Set(existing.map(({ anilistId }) => anilistId));
     const now = new Date();
-    const availability = await currentSeasonAvailability(userId, resolved, mediaById);
+    const existingById = new Map(existing.map((interest) => [interest.anilistId, interest]));
+    const resolvedWithCreation = resolved.map((interest) => ({
+        ...interest,
+        createdAt: existingById.get(interest.anilistId)?.createdAt ?? now,
+    }));
+    const resolvedIds = resolvedWithCreation.map(({ anilistId }) => anilistId);
+    const previousIds = new Set(existing.map(({ anilistId }) => anilistId));
+    const availability = await currentSeasonAvailability(userId, resolvedWithCreation, mediaById);
     const availableIds = new Set(availability.map(({ anilistId }) => anilistId));
     const announcements: NotificationEventInput[] = existing.length
-        ? resolved.flatMap((interest): NotificationEventInput[] => {
+        ? resolvedWithCreation.flatMap((interest): NotificationEventInput[] => {
               const media = mediaById.get(interest.anilistId);
               if (
                   previousIds.has(interest.anilistId) ||
@@ -303,7 +315,14 @@ async function reconcileNotificationInterests(userId: string) {
         for (const batch of batches(resolved, 1_000)) {
             await tx
                 .insert(notificationInterest)
-                .values(batch.map((interest) => ({ userId, ...interest, updatedAt: now })))
+                .values(
+                    batch.map(({ anilistId, sourceAnilistId }) => ({
+                        userId,
+                        anilistId,
+                        sourceAnilistId,
+                        updatedAt: now,
+                    }))
+                )
                 .onConflictDoUpdate({
                     target: [notificationInterest.userId, notificationInterest.anilistId],
                     set: {
