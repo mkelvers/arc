@@ -24,9 +24,18 @@ export function createEpisodeRefreshQueue(database: typeof db) {
             return;
         }
 
+        const unique = new Map<string, ScheduledEpisodeRefresh>();
+        for (const refresh of refreshes) {
+            const key = `${refresh.anilistId}:${refresh.targetEpisode}`;
+            const current = unique.get(key);
+            if (!current || refresh.runAt < current.runAt) {
+                unique.set(key, refresh);
+            }
+        }
+
         await database
             .insert(animeEpisodeRefresh)
-            .values(refreshes)
+            .values([...unique.values()])
             .onConflictDoUpdate({
                 target: [animeEpisodeRefresh.anilistId, animeEpisodeRefresh.targetEpisode],
                 set: {
