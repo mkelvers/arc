@@ -1,1 +1,0 @@
-TRUNCATE TABLE "anime_release_poster" CASCADE;

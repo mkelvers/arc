@@ -1,1 +1,0 @@
-ALTER TABLE "playback_progress" ADD COLUMN "event_at" timestamp with time zone DEFAULT now() NOT NULL;

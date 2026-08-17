@@ -1,1 +1,0 @@
-ALTER TABLE "anime" ADD COLUMN "logo_size" integer DEFAULT 100 NOT NULL;

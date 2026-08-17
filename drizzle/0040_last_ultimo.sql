@@ -1,1 +1,0 @@
-ALTER TABLE "playback_progress" ADD COLUMN "dismissed_at" timestamp with time zone;
