@@ -70,8 +70,12 @@ export async function searchAnime(search: string) {
         return [];
     }
 
-    return cache.get(key, async () => {
-        const stored = await searchIndex.find(search);
-        return stored.length ? stored : requestSearch(search.trim());
-    }, { staleIfError: true, staleWhileRevalidate: true });
+    return cache.get(
+        key,
+        async () => {
+            const stored = await searchIndex.find(search);
+            return stored.length ? stored : requestSearch(search.trim());
+        },
+        { staleIfError: true, staleWhileRevalidate: true }
+    );
 }

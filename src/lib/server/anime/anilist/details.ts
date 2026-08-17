@@ -20,7 +20,7 @@ function refreshRetryDelay(cause: unknown, attempt = 1) {
     const base = 60_000;
     const max = 30 * 60 * 1_000;
     const delay = Math.min(base * 2 ** (attempt - 1), max);
-    return Math.floor(delay / 2 + Math.random() * delay / 2);
+    return Math.floor(delay / 2 + (Math.random() * delay) / 2);
 }
 
 async function requestAnime(id: number) {

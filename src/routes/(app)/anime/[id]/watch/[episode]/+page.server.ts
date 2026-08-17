@@ -193,11 +193,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         opening: null,
         ending: null,
     }));
-    const playbackPromise = getPlayback(
-        result,
-        playbackEpisode,
-        ['sub', 'dub', ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : [])]
-    );
+    const playbackPromise = getPlayback(result, playbackEpisode, [
+        'sub',
+        'dub',
+        ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : []),
+    ]);
 
     return {
         pageTitle:
