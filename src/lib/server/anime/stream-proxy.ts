@@ -104,13 +104,10 @@ async function providerResponse(target: URL, range: string | null, fetchStream: 
             redirect: 'manual',
             signal: controller.signal,
         });
-    } catch (cause) {
+    } catch {
         if (controller.signal.aborted) {
             throw new StreamProxyError({ kind: 'request-timeout' });
         }
-        console.warn(
-            `Episode stream request failed for ${target.hostname}: ${cause instanceof Error ? cause.message : String(cause)}`
-        );
         throw new StreamProxyError({ kind: 'upstream', status: null });
     } finally {
         clearTimeout(timeout);

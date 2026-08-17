@@ -81,24 +81,6 @@ async function getPlayback(
                         error && canRetryStreamVerification(error) ? [source] : []
                     ),
                 ];
-                for (const { source, error } of results) {
-                    if (!error) {
-                        continue;
-                    }
-                    const action = canRetryStreamVerification(error) ? 'Retained' : 'Discarded';
-                    const detail =
-                        error instanceof StreamProxyError
-                            ? error.reason.kind
-                            : error instanceof Error
-                              ? error.message
-                              : String(error);
-                    const message = `${action} unavailable ${source.provider ?? 'unknown'} ${mode} stream for AniList ${animeData.id}, episode ${episode.id}: ${detail}`;
-                    if (canRetryStreamVerification(error)) {
-                        console.debug(message);
-                    } else {
-                        console.warn(message);
-                    }
-                }
                 return [mode, surviving];
             })
         );
