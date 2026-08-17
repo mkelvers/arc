@@ -36,7 +36,7 @@
                 </span>
             </span>
             <span>
-                <span class="block font-medium">Allow embedded players</span>
+                <span class="block font-medium text-foreground">Allow embedded players</span>
                 <span class="mt-1 block text-muted">
                     Use provider iframe players when direct video sources are unavailable. Embedded players may
                     have separate controls, ads, or redirects.
