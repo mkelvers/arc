@@ -140,10 +140,24 @@ describe('AniNeko provider', () => {
                     audioDelay: 0,
                     subtitleUrl: null,
                 },
+                {
+                    url: 'https://bibiemb.xyz/v/1',
+                    kind: 'iframe',
+                    quality: null,
+                    audioDelay: 0,
+                    subtitleUrl: null,
+                },
             ],
             dub: [
                 {
                     url: 'https://vibevibe.workers.dev/jjk/master.m3u8',
+                    quality: null,
+                    audioDelay: 0,
+                    subtitleUrl: null,
+                },
+                {
+                    url: 'https://bibiemb.xyz/v/2',
+                    kind: 'iframe',
                     quality: null,
                     audioDelay: 0,
                     subtitleUrl: null,
@@ -189,6 +203,13 @@ describe('AniNeko provider', () => {
                     quality: null,
                     audioDelay: 0,
                     subtitleUrl: 'https://cdn.anizara.store/subtitles/x.vtt',
+                },
+                {
+                    url: 'https://otakuhg.site/e/abc?caption_1=https://cdn.anizara.store/subtitles/x.vtt',
+                    kind: 'iframe',
+                    quality: null,
+                    audioDelay: 0,
+                    subtitleUrl: null,
                 },
             ],
         });

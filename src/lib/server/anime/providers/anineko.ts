@@ -371,7 +371,7 @@ async function resolveEmbed(value: string) {
             quality: null,
             audioDelay: 0,
             subtitleUrl: null,
-        },
+        } satisfies ProviderStream,
     ];
 }
 
