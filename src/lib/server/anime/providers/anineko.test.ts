@@ -94,7 +94,7 @@ function embedPage() {
 function packedEmbedPage() {
     // A minimal Dean Edwards packed script. With count 0 the payload is
     // returned unchanged, so the test asserts the unpacker itself.
-    return `<script>eval(function(p,a,c,k,e,d){while(c--)if(k[c])p=p.replace(new RegExp('\\\\b'+c.toString(a)+'\\\\b','g'),k[c]);return p}('var links={"hls4":"/stream/tok/master.m3u8","hls2":"https://cdn-centaurus.example/master.m3u8?t=x","hls3":"https://x.ephemeral.root/master.txt"};',36,0,''.split('|')))</script>`;
+    return `<script>eval(function(p,a,c,k,e,d){while(c--)if(k[c])p=p.replace(new RegExp('\\\\b'+c.toString(a)+'\\\\b','g'),k[c]);return p}('var links={"hls4":"/stream/tok/master.m3u8","hls2":"https://cdn-centaurus.com/master.m3u8?t=x","hls3":"https://x.ephemeral.root/master.txt"};',36,0,''.split('|')))</script>`;
 }
 
 describe('AniNeko provider', () => {
@@ -180,6 +180,12 @@ describe('AniNeko provider', () => {
             sub: [
                 {
                     url: 'https://otakuhg.site/stream/tok/master.m3u8',
+                    quality: null,
+                    audioDelay: 0,
+                    subtitleUrl: 'https://cdn.anizara.store/subtitles/x.vtt',
+                },
+                {
+                    url: 'https://cdn-centaurus.com/master.m3u8?t=x',
                     quality: null,
                     audioDelay: 0,
                     subtitleUrl: 'https://cdn.anizara.store/subtitles/x.vtt',

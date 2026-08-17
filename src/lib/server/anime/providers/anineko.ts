@@ -317,7 +317,7 @@ function unpackPackedScript(html: string) {
     return unpacked;
 }
 
-function otakuhgStream(html: string, embed: URL) {
+function otakuhgStreams(html: string, embed: URL) {
     const unpacked = unpackPackedScript(html);
     if (!unpacked) {
         throw new Error('AniNeko embed returned no HLS stream');
@@ -329,12 +329,15 @@ function otakuhgStream(html: string, embed: URL) {
     }
 
     const links = JSON.parse(match[1]) as { hls2?: string; hls3?: string; hls4?: string };
-    const source = links.hls4 ?? links.hls2;
-    if (!source) {
+    const sources = [links.hls4, links.hls2]
+        .filter((source): source is string => Boolean(source))
+        .map((source) => new URL(source, embed).toString())
+        .filter((source, index, values) => values.indexOf(source) === index);
+    if (!sources.length) {
         throw new Error('AniNeko embed returned no HLS stream');
     }
 
-    return new URL(source, embed);
+    return sources;
 }
 
 async function resolveEmbed(value: string) {
@@ -345,8 +348,9 @@ async function resolveEmbed(value: string) {
     }
 
     const html = await requestText(embed, `${baseUrl}/`);
-    const stream = kind === 'otakuhg' ? otakuhgStream(html, embed) : vibevibeStream(html);
-    if (stream.protocol !== 'https:') {
+    const streams =
+        kind === 'otakuhg' ? otakuhgStreams(html, embed) : [vibevibeStream(html).toString()];
+    if (streams.some((stream) => new URL(stream).protocol !== 'https:')) {
         throw new Error('AniNeko returned an unsupported stream URL');
     }
 
@@ -354,12 +358,21 @@ async function resolveEmbed(value: string) {
         embed.searchParams.get('sub') ??
         embed.searchParams.get('caption_1') ??
         embed.searchParams.get('c1_file');
-    return {
-        url: stream.toString(),
-        quality: null,
-        audioDelay: 0,
-        subtitleUrl: subtitle,
-    } satisfies ProviderStream;
+    return [
+        ...streams.map((stream): ProviderStream => ({
+            url: stream,
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: subtitle,
+        })),
+        {
+            url: embed.toString(),
+            kind: 'iframe',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: null,
+        },
+    ];
 }
 
 async function getStreams(
@@ -408,7 +421,7 @@ async function getStreams(
         const results = await Promise.allSettled(candidates.map(resolveEmbed));
         const resolved = results.flatMap((result) => {
             if (result.status === 'fulfilled') {
-                return [result.value];
+                return result.value;
             }
 
             errors.push(result.reason);
