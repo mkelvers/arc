@@ -34,6 +34,19 @@ function playbackFailureSummary(cause: AggregateError) {
     ].join('; ');
 }
 
+function canRetryStreamVerification(cause: unknown) {
+    if (!(cause instanceof StreamProxyError)) {
+        return false;
+    }
+
+    return (
+        ['request-timeout', 'no-response', 'body-timeout', 'body-read'].includes(
+            cause.reason.kind
+        ) ||
+        (cause.reason.kind === 'upstream' && cause.reason.status === null)
+    );
+}
+
 async function getPlayback(
     animeData: Parameters<typeof playback.getStreams>[0],
     episode: Parameters<typeof playback.getStreams>[1],
@@ -50,28 +63,37 @@ async function getPlayback(
                 const results = await Promise.all(
                     (sources ?? []).map(async (source) => {
                         try {
-                            await verifyStreamSource(source.url, fetchStream);
+                            if (source.kind !== 'iframe') {
+                                await verifyStreamSource(source.url, fetchStream);
+                            }
                             return { source, error: null };
                         } catch (cause) {
                             return {
                                 source,
-                                error:
-                                    cause instanceof StreamProxyError
-                                        ? cause.reason.kind
-                                        : cause instanceof Error
-                                          ? cause.message
-                                          : String(cause),
+                                error: cause,
                             };
                         }
                     })
                 );
-                const surviving = results.flatMap(({ source, error }) => (error ? [] : [source]));
+                const surviving = [
+                    ...results.flatMap(({ source, error }) => (!error ? [source] : [])),
+                    ...results.flatMap(({ source, error }) =>
+                        error && canRetryStreamVerification(error) ? [source] : []
+                    ),
+                ];
                 for (const { source, error } of results) {
                     if (!error) {
                         continue;
                     }
-                    const message = `Discarded unplayable ${source.provider ?? 'unknown'} ${mode} stream for AniList ${animeData.id}, episode ${episode.id}: ${error}`;
-                    if (surviving.length) {
+                    const action = canRetryStreamVerification(error) ? 'Retained' : 'Discarded';
+                    const detail =
+                        error instanceof StreamProxyError
+                            ? error.reason.kind
+                            : error instanceof Error
+                              ? error.message
+                              : String(error);
+                    const message = `${action} unavailable ${source.provider ?? 'unknown'} ${mode} stream for AniList ${animeData.id}, episode ${episode.id}: ${detail}`;
+                    if (canRetryStreamVerification(error)) {
                         console.debug(message);
                     } else {
                         console.warn(message);
@@ -100,8 +122,12 @@ async function getPlayback(
         streams: Object.fromEntries(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
-                (sources ?? []).map(({ url, quality, audioDelay, subtitleUrl, provider }) => ({
-                    url: `/api/episodes/stream?${new URLSearchParams({ url })}`,
+                (sources ?? []).map(({ url, kind, quality, audioDelay, subtitleUrl, provider }) => ({
+                    url:
+                        kind === 'iframe'
+                            ? url
+                            : `/api/episodes/stream?${new URLSearchParams({ url })}`,
+                    kind,
                     quality,
                     audioDelay,
                     provider,
