@@ -4,7 +4,6 @@ import type { AudioMode } from '$lib/anime/audio';
 import { record } from '$lib/utils';
 import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
-import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
 import { normalizedProviderTitle } from './match';
 import type { AniListAnime } from '../anilist/types';
@@ -173,69 +172,84 @@ async function resolveStream(id: string, mode: AudioMode) {
 
     const page = new URL(`/stream/s-2/${id}/${mode}`, megaplayUrl);
     const $ = load(await requestText(page, `${baseUrl}/`));
-    const sourceId = $('[data-id]')
+    const sourceIds = $('[data-id]')
         .map((_, element) => $(element).attr('data-id'))
         .get()
-        .find((value) => /^\d+$/.test(value ?? ''));
-    if (!sourceId) {
+        .filter((value): value is string => /^\d+$/.test(value ?? ''))
+        .filter((value, index, values) => values.indexOf(value) === index);
+    if (!sourceIds.length) {
         throw new Error('AniPub MegaPlay embed returned no source ID');
     }
 
-    const payload = record(
-        await requestJson(
-            new URL(`/stream/getSources?id=${sourceId}`, megaplayUrl),
-            page.toString()
-        )
-    );
-    const sources = record(payload?.sources);
-    const file = sources?.file;
-    if (typeof file !== 'string') {
-        throw new Error('AniPub MegaPlay embed returned no HLS stream');
+    const streams: ProviderStream[] = [];
+    const errors: unknown[] = [];
+    for (const sourceId of sourceIds) {
+        try {
+            const payload = record(
+                await requestJson(
+                    new URL(`/stream/getSources?id=${sourceId}`, megaplayUrl),
+                    page.toString()
+                )
+            );
+            const file = record(payload?.sources)?.file;
+            if (typeof file !== 'string') {
+                throw new Error('AniPub MegaPlay embed returned no HLS stream');
+            }
+
+            const url = new URL(file);
+            if (url.protocol !== 'https:') {
+                throw new Error('AniPub returned an unsupported stream URL');
+            }
+
+            const captions = Array.isArray(payload?.tracks)
+                ? payload.tracks.flatMap((item) => {
+                      const track = record(item);
+                      const file = track?.file;
+                      const label =
+                          typeof track?.label === 'string' ? track.label.toLowerCase() : '';
+                      if (
+                          typeof file !== 'string' ||
+                          String(track?.kind).toLowerCase() !== 'captions' ||
+                          !/\b(?:eng|english)\b/.test(label)
+                      ) {
+                          return [];
+                      }
+
+                      try {
+                          const url = new URL(file);
+                          return url.protocol === 'https:'
+                              ? [{ url: url.toString(), preferred: track?.default === true }]
+                              : [];
+                      } catch {
+                          return [];
+                      }
+                  })
+                : [];
+            streams.push({
+                url: url.toString(),
+                quality: null,
+                audioDelay: 0,
+                subtitleUrl: await fullestCaption(captions, (subtitle) =>
+                    requestText(new URL(subtitle), `${megaplayUrl}/`)
+                ),
+            });
+        } catch (cause) {
+            errors.push(cause);
+        }
     }
 
-    const url = new URL(file);
-    if (url.protocol !== 'https:') {
-        throw new Error('AniPub returned an unsupported stream URL');
+    if (!streams.length) {
+        throw new AggregateError(errors, 'AniPub MegaPlay returned no playable HLS source');
     }
 
-    const captions = Array.isArray(payload?.tracks)
-        ? payload.tracks.flatMap((item) => {
-              const track = record(item);
-              const file = track?.file;
-              const label = typeof track?.label === 'string' ? track.label.toLowerCase() : '';
-              if (
-                  typeof file !== 'string' ||
-                  String(track?.kind).toLowerCase() !== 'captions' ||
-                  !/\b(?:eng|english)\b/.test(label)
-              ) {
-                  return [];
-              }
-
-              try {
-                  const url = new URL(file);
-                  return url.protocol === 'https:'
-                      ? [
-                            {
-                                url: url.toString(),
-                                preferred: track?.default === true,
-                            },
-                        ]
-                      : [];
-              } catch {
-                  return [];
-              }
-          })
-        : [];
-    const subtitleUrl = await fullestCaption(captions, (subtitle) =>
-        requestText(new URL(subtitle), `${megaplayUrl}/`)
-    );
-
-    return {
-        url: url.toString(),
+    streams.push({
+        url: page.toString(),
+        kind: 'iframe',
         quality: null,
         audioDelay: 0,
-        subtitleUrl,
-    } satisfies ProviderStream;
+        subtitleUrl: null,
+    });
+    return streams;
 }
 
 async function getStreams(
@@ -254,13 +268,25 @@ async function getStreams(
     }
 
     const id = embedId(link);
-    return settledStreams(
+    const results = await Promise.allSettled(
         [...new Set(modes)].map(async (mode) => ({
             mode,
-            stream: await resolveStream(id, mode),
-        })),
-        `AniPub returned no ${modes.join('/')} stream for episode ${episode.id}`
+            streams: await resolveStream(id, mode),
+        }))
     );
+    const streams = Object.fromEntries(
+        results.flatMap((result) =>
+            result.status === 'fulfilled' ? [[result.value.mode, result.value.streams]] : []
+        )
+    );
+    if (!Object.keys(streams).length) {
+        throw new AggregateError(
+            results.flatMap((result) => (result.status === 'rejected' ? [result.reason] : [])),
+            `AniPub returned no ${modes.join('/')} stream for episode ${episode.id}`
+        );
+    }
+
+    return streams;
 }
 
 export const anipubProvider: PlaybackProvider = {
