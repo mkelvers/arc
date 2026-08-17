@@ -331,7 +331,7 @@ export async function proxyStreamRequest(request: Request, fetchStream: StreamFe
 /** Reject provider sources that expose a playlist but cannot serve its first
  * media segment. This keeps expired signed playlists out of the browser's
  * fallback order. */
-export async function verifyStreamSource(source: string, fetchStream: StreamFetch) {
+export async function verifyStreamSource(source: string, fetchStream: StreamFetch = fetch) {
     let provider = await followProviderRedirects(streamTarget(source), null, fetchStream);
 
     for (let depth = 0; depth < 3; depth += 1) {

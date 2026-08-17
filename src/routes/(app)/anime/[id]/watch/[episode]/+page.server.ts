@@ -50,8 +50,7 @@ function canRetryStreamVerification(cause: unknown) {
 async function getPlayback(
     animeData: Parameters<typeof playback.getStreams>[0],
     episode: Parameters<typeof playback.getStreams>[1],
-    modes: AudioMode[],
-    fetchStream: typeof fetch
+    modes: AudioMode[]
 ) {
     let remoteStreams: Awaited<ReturnType<typeof playback.getStreams>> = {};
     let failed = false;
@@ -64,7 +63,7 @@ async function getPlayback(
                     (sources ?? []).map(async (source) => {
                         try {
                             if (source.kind !== 'iframe') {
-                                await verifyStreamSource(source.url, fetchStream);
+                                await verifyStreamSource(source.url);
                             }
                             return { source, error: null };
                         } catch (cause) {
@@ -125,7 +124,7 @@ async function getPlayback(
     };
 }
 
-export const load: PageServerLoad = async ({ params, locals, fetch }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
     const id = animeId(params.id);
     if (!id) {
         error(400, 'Invalid anime ID');
@@ -181,23 +180,24 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
                   specialIndex: specialIndex + 1,
                   specialCount: specials.length,
               };
-    // These requests may reach fetch after their initial cache/DB reads. Settle
-    // them in load so they cannot start network work during component SSR.
-    const [skipTimes, segmentTemplates, playback] = await Promise.all([
-        getEpisodeSkipTimes({
-            anilistId: id,
-            episodeId: currentEpisode.id,
-            episodeNumber: currentEpisode.number,
-            malId: result.idMal,
-        }),
-        getSegmentTemplates(id, currentEpisode.number),
-        getPlayback(
-            result,
-            playbackEpisode,
-            ['sub', 'dub', ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : [])],
-            fetch
-        ),
-    ]);
+    // Keep the watch shell and player transition independent from enrichment
+    // and stream verification. WatchPlayer consumes these promises as they
+    // settle, so none of them should delay the initial response.
+    const skipTimes = getEpisodeSkipTimes({
+        anilistId: id,
+        episodeId: currentEpisode.id,
+        episodeNumber: currentEpisode.number,
+        malId: result.idMal,
+    }).catch(() => ({ opening: null, ending: null, source: null }));
+    const segmentTemplates = getSegmentTemplates(id, currentEpisode.number).catch(() => ({
+        opening: null,
+        ending: null,
+    }));
+    const playbackPromise = getPlayback(
+        result,
+        playbackEpisode,
+        ['sub', 'dub', ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : [])]
+    );
 
     return {
         pageTitle:
@@ -224,11 +224,11 @@ export const load: PageServerLoad = async ({ params, locals, fetch }) => {
         // WatchPlayer keeps promise props to coordinate client transitions.
         segments: {
             canEdit: Boolean(locals.user),
-            times: Promise.resolve(skipTimes),
-            templates: Promise.resolve(segmentTemplates),
+            times: skipTimes,
+            templates: segmentTemplates,
         },
         startAt: resumePosition(progress, currentEpisode.id),
         progressEventAt: Math.max(Date.now(), progress?.eventAt.getTime() ?? 0),
-        playback: Promise.resolve(playback),
+        playback: playbackPromise,
     };
 };
