@@ -52,6 +52,37 @@ async function withQueue(
 }
 
 describe('PostgreSQL episode refresh lifecycle', () => {
+    databaseTest('deduplicates the same refresh target and keeps the earliest run time', async () => {
+        await withQueue(async ({ queue, sql }) => {
+            await queue.schedule([
+                {
+                    anilistId: 1,
+                    targetEpisode: 2,
+                    runAt: new Date('2026-08-17T12:00:00Z'),
+                },
+                {
+                    anilistId: 1,
+                    targetEpisode: 2,
+                    runAt: new Date('2026-08-17T11:00:00Z'),
+                },
+                {
+                    anilistId: 1,
+                    targetEpisode: 2,
+                    runAt: new Date('2026-08-17T13:00:00Z'),
+                },
+            ]);
+
+            const rows = await sql`
+                select anilist_id, target_episode, run_at
+                from anime_episode_refresh
+            `;
+
+            expect(rows).toHaveLength(1);
+            expect(rows[0]).toMatchObject({ anilist_id: 1, target_episode: 2 });
+            expect(new Date(rows[0].run_at).toISOString()).toBe('2026-08-17T11:00:00.000Z');
+        });
+    });
+
     databaseTest('claims a row only once across concurrent drainers', async () => {
         await withQueue(async ({ queue }) => {
             await queue.schedule([{ anilistId: 1, targetEpisode: 2, runAt: new Date(0) }]);
