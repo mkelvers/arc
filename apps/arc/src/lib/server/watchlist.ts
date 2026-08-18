@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 
-import type { PlaybackProgressInput } from '$lib/server/playback-progress/input';
+import type { PlaybackProgressInput } from '$lib/server/progress/input';
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
 import { db } from '$lib/server/db';
 import {

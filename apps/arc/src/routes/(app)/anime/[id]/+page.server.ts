@@ -12,8 +12,8 @@ import { recordAnimeVisit } from '$lib/server/anime/interest';
 import { animeId, loadAnime } from '$lib/server/anime/route';
 import { resolveAnimeSynopsis } from '$lib/server/anime/synopsis';
 import { getArtwork } from '$lib/server/anime/tmdb/artwork';
-import { continuationEpisode } from '$lib/server/playback-progress/continue';
-import { getPlaybackProgress } from '$lib/server/playback-progress/store';
+import { continuationEpisode } from '$lib/server/progress/continue';
+import { getPlaybackProgress } from '$lib/server/progress/store';
 import { getWatchlistState } from '$lib/server/watchlist';
 import type { PageServerLoad } from './$types';
 

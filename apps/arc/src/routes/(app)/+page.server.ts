@@ -8,8 +8,8 @@ import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { storedAudioModes } from '$lib/server/anime/episodes/model';
 import { getHomeHero } from '$lib/server/anime/home';
 import { animeId } from '$lib/server/anime/route';
-import { getContinueWatchingCards } from '$lib/server/playback-progress/home';
-import { dismissPlaybackProgress } from '$lib/server/playback-progress/store';
+import { getContinueWatchingCards } from '$lib/server/progress/home';
+import { dismissPlaybackProgress } from '$lib/server/progress/store';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

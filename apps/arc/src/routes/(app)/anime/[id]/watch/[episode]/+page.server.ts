@@ -9,8 +9,8 @@ import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getEpisodeSkipTimes, getSegmentTemplates } from '$lib/server/anime/skip-times';
 import { StreamProxyError, verifyStreamSource } from '$lib/server/anime/stream-proxy';
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
-import { resumePosition } from '$lib/server/playback-progress/continue';
-import { getPlaybackProgress } from '$lib/server/playback-progress/store';
+import { resumePosition } from '$lib/server/progress/continue';
+import { getPlaybackProgress } from '$lib/server/progress/store';
 import type { PageServerLoad } from './$types';
 
 // Watch links used title slugs before episode IDs became canonical. Keep this

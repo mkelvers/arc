@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 
-import { parsePlaybackProgress } from '$lib/server/playback-progress/input';
-import { savePlaybackProgress } from '$lib/server/playback-progress/store';
+import { parsePlaybackProgress } from '$lib/server/progress/input';
+import { savePlaybackProgress } from '$lib/server/progress/store';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
