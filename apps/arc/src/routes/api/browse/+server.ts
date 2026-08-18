@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 
-import { parseBrowseFilters } from '$lib/anime/browse';
+import { parseBrowseFilters } from '$lib/browse';
 import { browsePage, BrowseFilterError } from '$lib/server/anime/browse';
 import { positiveInteger } from '$lib/utils';
 import type { RequestHandler } from './$types';
