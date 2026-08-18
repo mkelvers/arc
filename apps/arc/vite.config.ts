@@ -1,5 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
@@ -22,7 +22,6 @@ export default defineConfig(({ command }) => ({
                               'default-src': ['self'],
                               'script-src': [
                                   'self',
-                                  'https://challenges.cloudflare.com',
                                   'sha256-uP++nI0YQearma9Hc2G0q99ClgaYxxtiO48R2lvXePk=',
                                   'sha256-DV44IKgITwDAfvthDHThPRsyNopVAzUXfpIRO1uDQDI=',
                               ],
@@ -45,7 +44,6 @@ export default defineConfig(({ command }) => ({
                               'base-uri': ['self'],
                               'form-action': ['self'],
                               'frame-ancestors': ['none'],
-                              'frame-src': ['https://challenges.cloudflare.com'],
                           },
                       },
                   }
