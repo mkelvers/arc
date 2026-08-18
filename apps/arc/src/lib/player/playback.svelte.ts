@@ -112,7 +112,8 @@ export class Playback {
                   .filter(
                       (quality, index, qualities): quality is string =>
                           Boolean(quality) && qualities.indexOf(quality) === index
-                  );
+                  )
+                  .toSorted((left, right) => Number.parseInt(right) - Number.parseInt(left));
     }
 
     get src() {
