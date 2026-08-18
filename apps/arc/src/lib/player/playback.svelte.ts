@@ -1,5 +1,5 @@
 import { goto } from '$app/navigation';
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { AudioDelay } from './audio';
