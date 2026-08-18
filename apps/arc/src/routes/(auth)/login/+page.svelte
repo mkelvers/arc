@@ -3,8 +3,8 @@
     import { Turnstile } from 'svelte-turnstile';
 
     import { authClient } from '$lib/auth-client';
-    import AuthInput from '$lib/components/AuthInput.svelte';
-    import StatusBanner from '$lib/components/StatusBanner.svelte';
+    import AuthInput from '../_components/AuthInput.svelte';
+    import StatusBanner from '../_components/StatusBanner.svelte';
 
     let username = $state('');
     let password = $state('');

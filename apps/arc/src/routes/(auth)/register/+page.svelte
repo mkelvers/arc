@@ -3,7 +3,7 @@
     import { untrack } from 'svelte';
     import { superForm } from 'sveltekit-superforms';
 
-    import AuthInput from '$lib/components/AuthInput.svelte';
+    import AuthInput from '../_components/AuthInput.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
