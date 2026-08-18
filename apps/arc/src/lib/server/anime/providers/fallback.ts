@@ -14,6 +14,12 @@ class ProviderAttemptError extends Error {
     }
 }
 
+interface StreamAttempt {
+    provider: PlaybackProvider;
+    streams: ProviderStreams;
+    errors: ProviderAttemptError[];
+}
+
 function timed<T>(
     provider: PlaybackProvider,
     capability: 'episodes' | 'streams',
@@ -293,7 +299,8 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         }
 
         const streams: ProviderStreams = Object.fromEntries(requested.map((mode) => [mode, []]));
-        const attempts = providers.map(async (provider) => {
+        const settledResults = new Map<PlaybackProvider, StreamAttempt>();
+        const attempts = providers.map(async (provider): Promise<StreamAttempt> => {
             try {
                 assertAvailable(provider, 'streams');
                 const result = await timed(provider, 'streams', timeoutMs, () =>
@@ -312,7 +319,7 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                 markHealthy(provider, 'streams');
 
                 const missing = requested.filter((mode) => !result[mode]?.length);
-                return {
+                const attempt = {
                     provider,
                     streams: result,
                     errors: missing.length
@@ -325,13 +332,17 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                           ]
                         : [],
                 };
+                settledResults.set(provider, attempt);
+                return attempt;
             } catch (cause) {
                 markFailure(provider, 'streams', cause);
-                return {
+                const attempt = {
                     provider,
-                    streams: {},
+                    streams: {} satisfies ProviderStreams,
                     errors: [new ProviderAttemptError(provider.name, 'streams', cause)],
                 };
+                settledResults.set(provider, attempt);
+                return attempt;
             }
         });
         const allResults = Promise.all(attempts);
@@ -356,7 +367,10 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
          * playback. When providers split the modes, retain the old unioning
          * behavior and wait for all attempts.
          */
-        const mergedResults = result.kind === 'complete' ? [result.result] : result.results;
+        const mergedResults =
+            result.kind === 'complete'
+                ? providers.flatMap((provider) => settledResults.get(provider) ?? [])
+                : result.results;
         const errors = mergedResults.flatMap((attempt) => attempt.errors);
 
         for (const result of mergedResults) {
