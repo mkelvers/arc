@@ -13,6 +13,7 @@ import {
     orderStreams,
     parseWebVtt,
     sameSubtitleCues,
+    seekTarget,
     subtitleOptionsFor,
     subtitleReferenceTracks,
     subtitlesAt,
@@ -35,6 +36,31 @@ describe('player media helpers', () => {
     test('moves a selected quality ahead of fallbacks', () => {
         expect(orderStreams(streams, '720p').map(({ url }) => url)).toEqual(['/720', '/1080']);
         expect(orderStreams(streams, 'best')).toBe(streams);
+
+        expect(
+            orderStreams(
+                [
+                    { url: '/slow.mp4', quality: '480p', audioDelay: 0 },
+                    { url: '/adaptive.m3u8', quality: null, audioDelay: 0 },
+                ],
+                'best'
+            ).map(({ url }) => url)
+        ).toEqual(['/adaptive.m3u8', '/slow.mp4']);
+    });
+
+    test('bases rapid seeks on the latest logical target', () => {
+        let currentTime = 120;
+
+        for (const delta of [-10, -10, 10, -10, 10, 10]) {
+            currentTime = seekTarget(currentTime, delta, 1_420);
+        }
+
+        expect(currentTime).toBe(120);
+    });
+
+    test('clamps seek targets to the media duration', () => {
+        expect(seekTarget(5, -10, 100)).toBe(0);
+        expect(seekTarget(95, 10, 100)).toBe(100);
     });
 
     test('derives concise labels', () => {

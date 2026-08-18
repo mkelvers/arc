@@ -172,7 +172,7 @@ export class Player {
                 break;
             default:
                 if ('seek' in action) {
-                    this.media.seek(this.media.video.currentTime + action.seek);
+                    this.media.seekBy(action.seek);
                 } else if ('volume' in action) {
                     this.media.changeVolume(action.volume);
                 } else {
@@ -259,6 +259,7 @@ export class Player {
         video.addEventListener('durationchange', () => (this.media.duration = video.duration), {
             signal,
         });
+        video.addEventListener('seeked', () => this.media.handleSeeked(), { signal });
         video.addEventListener('timeupdate', () => this.progress.timeUpdated(), { signal });
         video.addEventListener('progress', () => this.media.updateBuffered(), { signal });
         video.addEventListener('waiting', () => this.media.handleWaiting(), { signal });
