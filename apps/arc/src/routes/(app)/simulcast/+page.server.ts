@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 
-import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '$lib/anime/season';
+import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '$lib/season';
 import { getSimulcastSeasonStarts } from '$lib/server/anime/anilist/simulcast';
 import { requestedSimulcastSeason, simulcastPage } from '$lib/server/anime/simulcast';
 import type { PageServerLoad } from './$types';

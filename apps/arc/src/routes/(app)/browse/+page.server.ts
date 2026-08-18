@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 
-import { parseBrowseFilters } from '$lib/anime/browse';
+import { parseBrowseFilters } from '$lib/browse';
 import { BrowseFilterError, initialBrowsePage } from '$lib/server/anime/browse';
 import type { PageServerLoad } from './$types';
 

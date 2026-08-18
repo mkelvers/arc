@@ -3,7 +3,7 @@
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import { distinctSearchArtwork, AnimeSearchResultSchema } from '$lib/anime/search';
+    import { distinctSearchArtwork, AnimeSearchResultSchema } from '$lib/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import EmptyState from '$lib/components/EmptyState.svelte';
     import SearchResultSection from '$lib/components/SearchResultSection.svelte';

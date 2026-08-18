@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 
-import { audioAvailabilityLabel } from '$lib/anime/audio';
-import { currentAnimeSeason } from '$lib/anime/season';
+import { audioAvailabilityLabel } from '$lib/audio';
+import { currentAnimeSeason } from '$lib/season';
 import { getHomepage } from '$lib/server/anime/anilist/home';
 import { getPopularAudioLabels } from '$lib/server/anime/allanime/catalog';
 import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';

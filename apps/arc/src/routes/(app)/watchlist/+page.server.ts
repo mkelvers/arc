@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 
-import { audioAvailabilityLabel } from '$lib/anime/audio';
+import { audioAvailabilityLabel } from '$lib/audio';
 import { getWatchlistAnime } from '$lib/server/anime/anilist/watchlist';
 import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { storedAudioModes } from '$lib/server/anime/episodes/model';

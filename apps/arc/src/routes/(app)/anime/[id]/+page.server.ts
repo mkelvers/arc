@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 
-import { episodeAudioAvailabilityLabel } from '$lib/anime/audio';
+import { episodeAudioAvailabilityLabel } from '$lib/audio';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import {
     getEpisodeRevision,

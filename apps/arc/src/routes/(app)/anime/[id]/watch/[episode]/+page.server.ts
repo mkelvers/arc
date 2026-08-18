@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { getEpisodes, getRelatedReleaseTitles } from '$lib/server/anime/episodes';
 import { recordAnimeVisit } from '$lib/server/anime/interest';
