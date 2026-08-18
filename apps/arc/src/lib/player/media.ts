@@ -410,7 +410,10 @@ export function alignSubtitleCues(cues: SubtitleCue[], offsets: TimelineOffset[]
 
 export function orderStreams(streams: Stream[], quality: string) {
     if (quality === 'best') {
-        return streams;
+        const hls = streams.filter((stream) => isHlsSource(stream.url));
+        return hls.length
+            ? [...hls, ...streams.filter((stream) => !hls.includes(stream))]
+            : streams;
     }
 
     const selected = streams.find((stream) => stream.quality === quality);
@@ -419,6 +422,14 @@ export function orderStreams(streams: Stream[], quality: string) {
     }
 
     return [selected, ...streams.filter((stream) => stream !== selected)];
+}
+
+export function seekTarget(currentTime: number, delta: number, duration: number) {
+    if (!Number.isFinite(duration)) {
+        return currentTime;
+    }
+
+    return Math.max(0, Math.min(duration, currentTime + delta));
 }
 
 export function availableModes(sources: Sources) {

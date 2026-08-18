@@ -171,7 +171,7 @@
             bind:this={player.media.video}
             class="size-full bg-black object-cover"
             playsinline
-            preload="metadata"
+            preload="auto"
             poster={poster}
         ></video>
     {/if}

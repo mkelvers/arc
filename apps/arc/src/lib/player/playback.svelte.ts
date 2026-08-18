@@ -9,6 +9,7 @@ import {
     hasSubtitleTrack,
     isHlsSource,
     orderStreams,
+    seekTarget,
     streamsFor,
     subtitlesAt,
     type Sources,
@@ -48,6 +49,7 @@ export class Playback {
     private autoplayAttempted = false;
     private changingSource = false;
     private pendingSourceFailure: string | null = null;
+    private pendingSeekTarget: number | null = null;
     private sourceChain: Stream[] = [];
     private hls: HlsType | null = null;
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
@@ -157,7 +159,13 @@ export class Playback {
 
         if (active) {
             this.syncAudio(true);
+            return;
         }
+
+        // Flush audio queued while the timeline was being dragged to the
+        // final video position.
+        this.syncAudio(true);
+        this.hls?.startLoad(this.video.currentTime);
     }
 
     private resumeAudio() {
@@ -292,12 +300,24 @@ export class Playback {
             return;
         }
 
+        // Safari's native HLS pipeline handles these multi-audio masters more
+        // reliably than routing them through MSE when both are available.
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = source;
+            video.load();
+            return;
+        }
+
         const { default: Hls } = await import('hls.js');
         if (video !== this.video || source !== this.src) {
             return;
         }
         if (Hls.isSupported()) {
-            const hls = new Hls();
+            const hls = new Hls({
+                capLevelToPlayerSize: true,
+                ignoreDevicePixelRatio: true,
+                startLevel: 0,
+            });
             let recoveredMediaError = false;
             this.hls = hls;
             hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
@@ -354,12 +374,6 @@ export class Playback {
             });
             hls.loadSource(source);
             hls.attachMedia(video);
-            return;
-        }
-
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = source;
-            video.load();
             return;
         }
 
@@ -465,14 +479,49 @@ export class Playback {
             return;
         }
 
+        this.pendingSeekTarget = null;
         const time = Math.max(0, Math.min(this.duration, seconds));
         this.currentTime = time;
+
+        this.video.currentTime = time;
+
+        // HLS.js normally infers this from the media element. Supplying the
+        // target explicitly avoids it continuing from the old fragment after
+        // a seek, especially when the requested time is outside its buffer.
+        if (!this.scrubbing) {
+            this.hls?.startLoad(time);
+        }
+    }
+
+    seekBy(delta: number) {
+        this.pendingSeekTarget = seekTarget(
+            this.pendingSeekTarget ?? this.currentTime,
+            delta,
+            this.duration
+        );
+
+        if (this.video.seeking) {
+            return;
+        }
+
+        const target = this.pendingSeekTarget;
+        this.pendingSeekTarget = null;
+        if (target !== null) {
+            this.seek(target);
+        }
+    }
+
+    handleSeeked() {
+        if (this.pendingSeekTarget !== null) {
+            const target = this.pendingSeekTarget;
+            this.pendingSeekTarget = null;
+            this.seek(target);
+            return;
+        }
 
         if (!this.scrubbing) {
             this.syncAudio(true);
         }
-
-        this.video.currentTime = time;
     }
 
     handleMetadata(startAt = 0) {
@@ -562,6 +611,7 @@ export class Playback {
         this.autoplayAttempted = false;
         this.changingSource = false;
         this.pendingSourceFailure = null;
+        this.pendingSeekTarget = null;
         this.currentTime = 0;
         this.duration = 0;
         this.buffered = 0;
