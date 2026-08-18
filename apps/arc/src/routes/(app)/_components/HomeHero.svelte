@@ -67,7 +67,7 @@
 
 {#if highlights.length}
     <section
-        class="relative h-[calc(100svh-3.5rem)] min-h-180 max-h-192 overflow-hidden bg-black xl:h-[calc(100svh-3.5rem)] xl:max-h-none"
+        class="relative h-[calc(100svh-3.5rem)] min-h-180 max-h-192 overflow-hidden bg-black xl:h-[calc(100svh-9.125rem)] xl:max-h-none 2xl:h-[calc(100svh-16rem)]"
         aria-roledescription="carousel"
         aria-label="Trending anime now"
     >

@@ -16,7 +16,7 @@
 
 {#if anime.length}
     <section
-        class="relative z-20 col-start-1 row-start-2 row-end-3 self-end px-5 sm:px-10 lg:px-16 min-[1440px]:row-start-1 min-[1440px]:row-end-3"
+        class="continue-watching-section relative z-20 col-start-1 row-start-2 row-end-3 self-end px-5 sm:px-10 lg:px-16 min-[1440px]:row-start-1 min-[1440px]:row-end-3"
         aria-labelledby="continue-watching"
     >
         <h2 id="continue-watching" class="mb-5 text-xl font-bold sm:text-2xl">Continue Watching</h2>

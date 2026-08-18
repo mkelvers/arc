@@ -17,7 +17,7 @@
 
 <main class="min-h-dvh bg-canvas text-foreground">
     <div
-        class="grid grid-cols-1 grid-rows-[auto_auto] min-[1440px]:grid-rows-[auto_13rem] [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
+        class="home-layout grid grid-cols-1 grid-rows-[auto] [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
     >
         <HomeHero highlights={data.highlights} />
         {#await data.continueWatching then anime}
@@ -29,6 +29,7 @@
         heading="New Anime from the Current Season"
         headingId="new-this-season"
         emptyMessage="No seasonal anime are available right now."
+        topSpacing={false}
     />
     <AnimeRail
         anime={data.popular}
@@ -38,3 +39,11 @@
         topSpacing={false}
     />
 </main>
+
+<style>
+    @media (min-width: 1440px) {
+        :global(.home-layout:has(> .continue-watching-section)) {
+            grid-template-rows: auto 13rem;
+        }
+    }
+</style>
