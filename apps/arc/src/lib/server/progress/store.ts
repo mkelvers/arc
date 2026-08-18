@@ -74,7 +74,9 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
         .returning({ id: playbackProgress.id });
 
     if (!saved) {
-        return;
+        // A newer progress event already won at the database boundary. The
+        // stale request was valid and needs no retry or user-facing failure.
+        return true;
     }
 
     await updateWatchlistAfterPlayback(userId, animeId, input);
