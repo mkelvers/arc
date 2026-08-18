@@ -16,6 +16,8 @@
 </script>
 
 <svelte:head>
+    <title>Arc — Create account</title>
+    <meta name="description" content="Create an Arc account to watch anime and build your watchlist." />
     <meta name="robots" content="noindex" />
     <link rel="preconnect" href="https://challenges.cloudflare.com" />
 </svelte:head>

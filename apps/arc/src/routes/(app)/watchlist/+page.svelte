@@ -148,6 +148,14 @@
     }
 </script>
 
+<svelte:head>
+    <title>Arc — Watchlist</title>
+    <meta
+        name="description"
+        content="Keep track of the anime you want to watch, are watching, and have finished."
+    />
+</svelte:head>
+
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
         <h1 class="text-2xl font-semibold">Watchlist</h1>

@@ -6,6 +6,8 @@
 </script>
 
 <svelte:head>
+    <title>Arc — Verify</title>
+    <meta name="description" content="Complete human verification to continue to Arc." />
     <meta name="robots" content="noindex" />
     <link rel="preconnect" href="https://challenges.cloudflare.com" />
 </svelte:head>

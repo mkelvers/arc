@@ -50,6 +50,8 @@
 </script>
 
 <svelte:head>
+    <title>Arc — Log in</title>
+    <meta name="description" content="Log in to continue watching anime on Arc." />
     <meta name="robots" content="noindex" />
     <link rel="preconnect" href="https://challenges.cloudflare.com" />
 </svelte:head>

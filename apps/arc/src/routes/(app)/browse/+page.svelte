@@ -222,6 +222,7 @@
 </script>
 
 <svelte:head>
+    <title>Arc — Browse anime</title>
     <meta
         name="description"
         content="Browse anime by genre, tag, status, type, audio, season, year, source material, country, popularity, and score."

@@ -13,6 +13,7 @@
 
 <svelte:head>
     <title>Arc — {heading}</title>
+    <meta name="description" content={description} />
     <meta name="robots" content="noindex" />
 </svelte:head>
 

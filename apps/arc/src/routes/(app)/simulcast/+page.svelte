@@ -103,6 +103,7 @@
 </script>
 
 <svelte:head>
+    <title>Arc — {data.label} simulcast</title>
     <meta name="description" content={`Browse anime from the ${data.label} simulcast season.`} />
 </svelte:head>
 

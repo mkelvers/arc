@@ -103,6 +103,11 @@
     });
 </script>
 
+<svelte:head>
+    <title>Arc — Search anime</title>
+    <meta name="description" content="Search Arc’s anime catalog by title." />
+</svelte:head>
+
 <main class="min-h-dvh bg-canvas text-foreground">
     <section class="bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
         <form action="/search" class="mx-auto max-w-6xl" role="search">

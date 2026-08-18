@@ -8,6 +8,7 @@
 </script>
 
 <svelte:head>
+    <title>Arc — Watch anime</title>
     <meta
         name="description"
         content="Discover the anime everyone is watching and explore popular new releases this season."
