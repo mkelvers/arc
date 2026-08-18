@@ -107,57 +107,64 @@
                 </a>
 
                 <div
-                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 xl:self-center xl:pb-0"
+                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-80 xl:self-center xl:pb-0"
                 >
                     <div class="relative">
-                        <a
-                            href={activeAnime.href}
-                            class="pointer-events-auto relative z-10 block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
-                            aria-label={`View ${activeAnime.title}`}
-                        >
-                            {#each highlights as anime, index (anime.id)}
-                                {#if index === carousel.active || index === upcoming}
-                                    <img
-                                        src={anime.logo.url}
-                                        alt={index === carousel.active ? anime.title : ''}
-                                        aria-hidden={index !== carousel.active}
-                                        loading="eager"
-                                        fetchpriority={index === carousel.active ? 'high' : 'low'}
-                                        style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
-                                        class={cn(
-                                            'max-w-[55vw] object-contain object-left sm:max-w-sm lg:max-w-lg 2xl:max-w-2xl',
-                                            index === carousel.active ? 'block' : 'absolute inset-0 opacity-0',
-                                            index === carousel.active &&
-                                                ready.backdrops.has(anime.id) &&
-                                                ready.logos.has(anime.id)
-                                                ? 'opacity-100'
-                                                : 'opacity-0'
-                                        )}
-                                        onload={() => {
-                                            ready.logos = new Set(ready.logos).add(anime.id);
-                                        }}
+                        <div class="px-5 sm:px-10 lg:px-16">
+                            <div class="relative w-fit">
+                                <a
+                                    href={activeAnime.href}
+                                    class="pointer-events-auto relative z-10 block w-fit focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                                    aria-label={`View ${activeAnime.title}`}
+                                >
+                                    {#each highlights as anime, index (anime.id)}
+                                        {#if index === carousel.active || index === upcoming}
+                                            <img
+                                                src={anime.logo.url}
+                                                alt={index === carousel.active ? anime.title : ''}
+                                                aria-hidden={index !== carousel.active}
+                                                loading="eager"
+                                                fetchpriority={index === carousel.active ? 'high' : 'low'}
+                                                style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
+                                                class={cn(
+                                                    'max-w-[55vw] object-contain object-left sm:max-w-sm lg:max-w-lg 2xl:max-w-2xl',
+                                                    index === carousel.active
+                                                        ? 'block'
+                                                        : 'absolute inset-0 opacity-0',
+                                                    index === carousel.active &&
+                                                        ready.backdrops.has(anime.id) &&
+                                                        ready.logos.has(anime.id)
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0'
+                                                )}
+                                                onload={() => {
+                                                    ready.logos = new Set(ready.logos).add(anime.id);
+                                                }}
+                                            />
+                                        {/if}
+                                    {/each}
+                                </a>
+
+                                <button
+                                    type="button"
+                                    class="pointer-events-auto absolute inset-y-0 right-full z-30 my-auto mr-2 grid size-9 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white lg:size-11"
+                                    aria-label="Previous anime"
+                                    onclick={() => select(carousel.active - 1, 'complete')}
+                                >
+                                    <CaretLeftIcon
+                                        size="1.45rem"
+                                        weight="bold"
+                                        aria-hidden="true"
+                                        class="lg:size-[1.7rem]"
                                     />
-                                {/if}
-                            {/each}
-                        </a>
+                                </button>
+                            </div>
+                        </div>
 
                         {#if highlights.length > 1}
                             <button
                                 type="button"
-                                class="pointer-events-auto absolute top-1/2 -left-3 z-30 grid size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-left-5 lg:-left-11 lg:size-11"
-                                aria-label="Previous anime"
-                                onclick={() => select(carousel.active - 1, 'complete')}
-                            >
-                                <CaretLeftIcon
-                                    size="1.45rem"
-                                    weight="bold"
-                                    aria-hidden="true"
-                                    class="lg:size-[1.7rem]"
-                                />
-                            </button>
-                            <button
-                                type="button"
-                                class="pointer-events-auto absolute top-1/2 -right-3 z-30 grid size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:-right-5 lg:-right-11 lg:size-11"
+                                class="pointer-events-auto absolute inset-y-0 right-0 z-30 my-auto grid size-9 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white lg:size-11"
                                 aria-label="Next anime"
                                 onclick={() => select(carousel.active + 1, 'complete')}
                             >
@@ -172,7 +179,7 @@
                     </div>
 
                     <p
-                        class="mt-5 flex max-w-[min(100%,36rem)] flex-wrap items-center gap-y-1 text-xs font-normal text-white/50 lg:mt-7 lg:max-w-[min(100%,46rem)] lg:text-sm 2xl:mt-8"
+                        class="mt-5 flex max-w-[min(100%,36rem)] flex-wrap items-center gap-y-1 px-5 text-xs font-normal text-white/50 sm:px-10 lg:mt-7 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-sm 2xl:mt-8"
                     >
                         {#if activeAnime.audioLabel}
                             <span class="hero-metadata__tag">{activeAnime.audioLabel}</span>
@@ -186,14 +193,14 @@
 
                     {#if activeAnime.description}
                         <p
-                            class="mt-2 line-clamp-3 max-w-[min(100%,36rem)] text-xs leading-5 text-[#bbb] lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:text-base lg:leading-6 2xl:leading-7"
+                            class="mt-2 line-clamp-3 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-[#bbb] sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
                         >
                             {activeAnime.description}
                         </p>
                     {/if}
 
                     <div
-                        class="pointer-events-auto mt-5 flex flex-wrap items-center gap-2 text-xs font-bold text-accent lg:mt-7 lg:text-sm"
+                        class="pointer-events-auto mt-5 flex flex-wrap items-center gap-2 px-5 text-xs font-bold text-accent sm:px-10 lg:mt-7 lg:px-16 lg:text-sm"
                     >
                         <a
                             href={activeAnime.link}
@@ -211,7 +218,9 @@
                     </div>
 
                     {#if highlights.length > 1}
-                        <div class="pointer-events-auto relative z-30 mt-6 flex items-center gap-2 2xl:mt-7">
+                        <div
+                            class="pointer-events-auto relative z-30 mt-6 flex items-center gap-2 px-5 2xl:mt-7 sm:px-10 lg:px-16"
+                        >
                             {#each highlights as item, itemIndex (item.id)}
                                 <button
                                     type="button"
