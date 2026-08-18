@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 
-import { rankAnimeSearch, type AnimeSearchResult } from '$lib/anime/search';
+import { rankAnimeSearch, type AnimeSearchResult } from '$lib/search';
 import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { RequestCache } from '$lib/server/request-cache';

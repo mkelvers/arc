@@ -1,4 +1,4 @@
-import type { AnimeSeason, AnimeSeasonStartYears } from '$lib/anime/season';
+import type { AnimeSeason, AnimeSeasonStartYears } from '$lib/season';
 import { SimulcastSeasonStartsDocument } from '$lib/graphql/anilist/generated/graphql';
 import { RequestCache } from '$lib/server/request-cache';
 import { request } from './client';

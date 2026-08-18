@@ -1,4 +1,4 @@
-import type { AnimeCard } from '$lib/anime/types';
+import type { AnimeCard } from '$lib/types';
 import { WatchlistAnimeDocument } from '$lib/graphql/anilist/generated/graphql';
 import { inArray, sql } from 'drizzle-orm';
 import { batches } from '$lib/utils';

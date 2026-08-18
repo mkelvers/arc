@@ -1,4 +1,4 @@
-import type { AnimeCard } from '$lib/anime/types';
+import type { AnimeCard } from '$lib/types';
 import { HomeAnimeDocument, type MediaSeason } from '$lib/graphql/anilist/generated/graphql';
 import { RequestCache } from '$lib/server/request-cache';
 import { request } from './client';

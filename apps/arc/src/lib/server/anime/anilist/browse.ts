@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '$lib/anime/browse';
+import type { BrowseFilters } from '$lib/browse';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
