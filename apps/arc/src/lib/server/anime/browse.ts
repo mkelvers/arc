@@ -134,6 +134,14 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
 
         const refresh = refreshCatalog(filters, queryKey, page);
         activeRefreshes.set(queryKey, refresh);
+        if (stored) {
+            void refresh.catch((cause) => {
+                console.warn(
+                    `AniList browse page ${page} refresh failed; using stored values`,
+                    cause
+                );
+            });
+        }
         const cleanup = () => {
             if (activeRefreshes.get(queryKey) === refresh) {
                 activeRefreshes.delete(queryKey);
@@ -145,9 +153,6 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
 
     const refresh = startRefresh();
     if (stored) {
-        void refresh.catch((cause) => {
-            console.warn(`AniList browse page ${page} refresh failed; using stored values`, cause);
-        });
         return { ...stored, stale: true };
     }
 
