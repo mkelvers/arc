@@ -8,7 +8,6 @@ import { auth } from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import { users } from '$lib/server/db/schema';
 import { claimInvitation, completeInvitation, restoreInvitation } from '$lib/server/invitations';
-import { verifyTurnstile } from '$lib/server/turnstile';
 
 import { registerSchema } from './schema';
 import type { Actions, PageServerLoad } from './$types';
@@ -24,15 +23,6 @@ export const actions: Actions = {
         const form = await superValidate(event.request, schema);
         if (!form.valid) {
             return setError(form, 'Check the highlighted account details.');
-        }
-
-        if (
-            !(await verifyTurnstile(
-                form.data['cf-turnstile-response'],
-                event.request.headers.get('cf-connecting-ip') ?? undefined
-            ))
-        ) {
-            return setError(form, 'cf-turnstile-response', 'Human verification failed. Try again.');
         }
 
         const claim = crypto.randomUUID();

@@ -11,7 +11,6 @@ export const registerSchema = z
         password: z.string().min(12, 'Use at least 12 characters.').max(128),
         confirmPassword: z.string(),
         invitationCode: z.string().trim().min(1, 'Enter an invitation code.').max(256),
-        'cf-turnstile-response': z.string().min(1, 'Please prove that you’re human.'),
     })
     .refine(({ password, confirmPassword }) => password === confirmPassword, {
         message: 'Passwords do not match.',

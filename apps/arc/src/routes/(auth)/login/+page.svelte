@@ -1,6 +1,5 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { Turnstile } from 'svelte-turnstile';
 
     import { authClient } from '$lib/auth-client';
     import AuthInput from '../_components/AuthInput.svelte';
@@ -8,14 +7,12 @@
 
     let username = $state('');
     let password = $state('');
-    let token = $state('');
     let message = $state('');
     let pending = $state(false);
-    let reset = $state<() => void>();
 
     async function login(event: SubmitEvent) {
         event.preventDefault();
-        if (pending || !token || !(event.currentTarget as HTMLFormElement).reportValidity()) {
+        if (pending || !(event.currentTarget as HTMLFormElement).reportValidity()) {
             return;
         }
 
@@ -26,7 +23,6 @@
             const result = await authClient.signIn.username({
                 username: username.trim(),
                 password,
-                fetchOptions: { headers: { 'x-captcha-response': token } },
             });
             if (!result.error) {
                 await goto('/', { invalidateAll: true });
@@ -41,8 +37,6 @@
         } finally {
             if (message) {
                 password = '';
-                token = '';
-                reset?.();
             }
             pending = false;
         }
@@ -53,7 +47,6 @@
     <title>Arc — Log in</title>
     <meta name="description" content="Log in to continue watching anime on Arc." />
     <meta name="robots" content="noindex" />
-    <link rel="preconnect" href="https://challenges.cloudflare.com" />
 </svelte:head>
 
 <StatusBanner message={message} tone="error" ondismiss={() => (message = '')} />
@@ -81,24 +74,10 @@
         />
     </div>
 
-    <div class="mt-10">
-        <p class="mb-4 text-center text-sm text-muted">Please prove that you’re human.</p>
-        <Turnstile
-            siteKey="0x4AAAAAAEKbxDJG1VlC9MEq"
-            action="turnstile-spin-v2"
-            size="flexible"
-            responseField={false}
-            bind:reset={reset}
-            on:callback={(event) => (token = event.detail.token)}
-            on:expired={() => (token = '')}
-            on:error={() => (token = '')}
-        />
-    </div>
-
     <button
         class="mt-10 min-h-11 w-full rounded-full border border-accent bg-accent px-4 text-xs font-bold text-on-accent transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         type="submit"
-        disabled={pending || !token}
+        disabled={pending}
     >
         {pending ? 'LOGGING IN…' : 'LOG IN'}
     </button>

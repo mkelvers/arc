@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { Turnstile } from 'svelte-turnstile';
     import { untrack } from 'svelte';
     import { superForm } from 'sveltekit-superforms';
 
@@ -7,19 +6,14 @@
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
-    let reset = $state<() => void>();
 
-    const { form, errors, constraints, enhance, submitting, message } = superForm(
-        untrack(() => data.form),
-        { onUpdated: () => reset?.() }
-    );
+    const { form, errors, constraints, enhance, submitting, message } = superForm(untrack(() => data.form));
 </script>
 
 <svelte:head>
     <title>Arc — Create account</title>
     <meta name="description" content="Create an Arc account to watch anime and build your watchlist." />
     <meta name="robots" content="noindex" />
-    <link rel="preconnect" href="https://challenges.cloudflare.com" />
 </svelte:head>
 
 <form class="w-full max-w-104" method="POST" use:enhance>
@@ -68,21 +62,6 @@
             error={$errors.invitationCode?.[0]}
             bind:value={$form.invitationCode}
         />
-    </div>
-
-    <div class="mt-10">
-        <p class="mb-4 text-center text-sm text-muted">Please prove that you’re human.</p>
-        <Turnstile
-            siteKey="0x4AAAAAAEKbxDJG1VlC9MEq"
-            action="turnstile-spin-v2"
-            size="flexible"
-            bind:reset={reset}
-        />
-        {#if $errors['cf-turnstile-response']?.[0]}
-            <p class="mt-2 text-sm text-status-error" role="alert">
-                {$errors['cf-turnstile-response'][0]}
-            </p>
-        {/if}
     </div>
 
     <button

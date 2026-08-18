@@ -7,7 +7,6 @@ const registration = {
     password: 'correct horse battery staple',
     confirmPassword: 'correct horse battery staple',
     invitationCode: 'invite',
-    'cf-turnstile-response': 'token',
 };
 
 describe('registration', () => {
