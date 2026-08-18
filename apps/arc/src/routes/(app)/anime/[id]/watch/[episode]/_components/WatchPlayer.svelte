@@ -4,8 +4,8 @@
     import type { Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
     import { SpinnerGapIcon } from 'phosphor-svelte';
-    import ProgressiveImage from './ProgressiveImage.svelte';
-    import VideoPlayer from './VideoPlayer.svelte';
+    import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
+    import VideoPlayer from '$lib/components/VideoPlayer.svelte';
 
     interface Playback {
         streams: Sources;

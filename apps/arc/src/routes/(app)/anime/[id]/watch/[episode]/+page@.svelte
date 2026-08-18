@@ -1,5 +1,5 @@
 <script lang="ts">
-    import WatchPlayer from '$lib/components/WatchPlayer.svelte';
+    import WatchPlayer from './_components/WatchPlayer.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
