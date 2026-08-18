@@ -1,4 +1,4 @@
-import { mergeAudioModes, type AudioMode } from '$lib/anime/audio';
+import { mergeAudioModes, type AudioMode } from '$lib/audio';
 import { availableEpisodeCount } from '../episodes/policy';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
 import { coversExpectedEpisodes, matchProviderEpisode } from './match';

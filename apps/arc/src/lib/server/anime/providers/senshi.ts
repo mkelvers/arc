@@ -1,4 +1,4 @@
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 import { record } from '$lib/utils';
 import { fullestCaption } from './captions';
 import { matchProviderStreamEpisode } from './match';

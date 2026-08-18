@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { load } from 'cheerio';
 
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 import { record } from '$lib/utils';
 import { animeTitles } from '../anilist/text';
 import { settledStreams } from './fallback';
