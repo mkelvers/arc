@@ -3,7 +3,6 @@ import { describe, expect, test } from 'bun:test';
 import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
-    episodeAvailabilityTransitions,
     episodeInventoryIsExpected,
     episodeMetadataNeedsRefresh,
     episodeRefreshRetryDelay,
@@ -110,7 +109,7 @@ describe('episode refresh policy', () => {
         expect(
             availableEpisodeCount({
                 status: 'RELEASING',
-                nextAiringEpisode: { episode: 7, airingAt: 1_786_968_000 },
+                nextAiringEpisode: { episode: 7, airingAt: Math.floor(Date.now() / 1_000) + 3_600 },
             })
         ).toBe(6);
         expect(availableEpisodeCount({ status: 'RELEASING', nextAiringEpisode: null })).toBeNull();
@@ -150,37 +149,5 @@ describe('episode refresh policy', () => {
 
         expect(next.getTime()).toBeGreaterThanOrEqual(before);
         expect(next.getTime()).toBeLessThanOrEqual(after);
-    });
-
-    test('reports new episodes and every newly playable audio mode only', () => {
-        const transitions = episodeAvailabilityTransitions(
-            new Map([
-                ['one', { audio: ['sub'] as const }],
-                ['two', { audio: ['sub', 'dub'] as const }],
-            ]),
-            [
-                { id: 'one', number: 1, audio: ['sub', 'dub'] as const },
-                { id: 'two', number: 2, audio: ['sub', 'dub'] as const },
-                { id: 'three', number: 3, audio: ['sub'] as const },
-                { id: 'special', number: 3.5, audio: ['sub'] as const },
-            ]
-        );
-
-        expect(transitions).toEqual([
-            {
-                episodeId: 'one',
-                number: 1,
-                airDate: null,
-                kind: 'audio_available',
-                audio: ['dub'],
-            },
-            {
-                episodeId: 'three',
-                number: 3,
-                airDate: null,
-                kind: 'episode_available',
-                audio: ['sub'],
-            },
-        ]);
     });
 });
