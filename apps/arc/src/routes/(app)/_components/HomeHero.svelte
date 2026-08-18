@@ -2,7 +2,7 @@
     import { prefersReducedMotion } from 'svelte/motion';
     import { CaretLeftIcon, CaretRightIcon, PlayIcon } from 'phosphor-svelte';
     import { cn } from '$lib/utils';
-    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
+    import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
 
     interface Highlight {

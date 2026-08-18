@@ -2,8 +2,10 @@
     import { enhance } from '$app/forms';
     import { XIcon } from 'phosphor-svelte';
     import type { ContinueWatchingCard } from '$lib/types';
-    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
-    import Tooltip from '$lib/components/Tooltip.svelte';
+    import Card from '$lib/components/ui/card/Card.svelte';
+    import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
+    import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
+    import Tooltip from '$lib/components/ui/Tooltip.svelte';
 
     interface Props {
         anime: ContinueWatchingCard[];
@@ -23,15 +25,13 @@
             class="-mx-2 grid grid-cols-1 gap-x-2 gap-y-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
         >
             {#each anime as entry (entry.animeId)}
-                <article
-                    class="group relative min-w-0 p-2 transition-colors hover:bg-surface focus-within:bg-surface"
-                >
+                <Card variant="compact" class="p-2">
                     <a
                         href={entry.link}
                         class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         aria-label={`Continue watching ${entry.title}, ${entry.episodeLabel}`}
                     >
-                        <div class="relative aspect-video overflow-hidden bg-surface">
+                        <CardMedia aspect="video">
                             <ProgressiveImage
                                 src={entry.backdrop}
                                 alt=""
@@ -50,7 +50,7 @@
                                     {entry.duration}
                                 </span>
                             {/if}
-                        </div>
+                        </CardMedia>
 
                         <div class="flex min-h-24 flex-col pt-3">
                             <h3 class="line-clamp-2 text-sm leading-snug font-semibold">
@@ -84,7 +84,7 @@
                             </button>
                         </Tooltip>
                     </form>
-                </article>
+                </Card>
             {/each}
         </div>
     </section>

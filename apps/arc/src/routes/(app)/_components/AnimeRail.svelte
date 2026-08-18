@@ -2,7 +2,7 @@
     import type { AnimeCard as AnimeCardModel } from '$lib/types';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
-    import AnimeCard from './AnimeCard.svelte';
+    import AnimeCard from '$lib/components/AnimeCard.svelte';
 
     interface Props {
         anime: AnimeCardModel[];

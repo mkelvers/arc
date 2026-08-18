@@ -1,7 +1,7 @@
 <script lang="ts">
-    import AnimeRail from '$lib/components/AnimeRail.svelte';
-    import ContinueWatchingGrid from '$lib/components/ContinueWatchingGrid.svelte';
-    import HomeHero from '$lib/components/HomeHero.svelte';
+    import AnimeRail from './_components/AnimeRail.svelte';
+    import ContinueWatchingGrid from './_components/ContinueWatchingGrid.svelte';
+    import HomeHero from './_components/HomeHero.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
