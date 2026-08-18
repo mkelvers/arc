@@ -53,6 +53,7 @@ export class Playback {
     private sourceChain: Stream[] = [];
     private hls: HlsType | null = null;
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
+    private waitingTimer: ReturnType<typeof setTimeout> | undefined;
     private readonly audio = new AudioDelay();
 
     private allSources: Sources;
@@ -165,7 +166,6 @@ export class Playback {
         // Flush audio queued while the timeline was being dragged to the
         // final video position.
         this.syncAudio(true);
-        this.hls?.startLoad(this.video.currentTime);
     }
 
     private resumeAudio() {
@@ -248,6 +248,11 @@ export class Playback {
         this.sourceWatchdog = undefined;
     }
 
+    private clearWaitingTimer() {
+        clearTimeout(this.waitingTimer);
+        this.waitingTimer = undefined;
+    }
+
     private watchSource() {
         this.clearSourceWatchdog();
         const source = this.src;
@@ -270,6 +275,7 @@ export class Playback {
             return;
         }
 
+        this.clearWaitingTimer();
         this.destroyHls();
         this.captions.clear();
         this.watchSource();
@@ -300,20 +306,13 @@ export class Playback {
             return;
         }
 
-        // Safari's native HLS pipeline handles these multi-audio masters more
-        // reliably than routing them through MSE when both are available.
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = source;
-            video.load();
-            return;
-        }
-
         const { default: Hls } = await import('hls.js');
         if (video !== this.video || source !== this.src) {
             return;
         }
         if (Hls.isSupported()) {
             const hls = new Hls({
+                audioPreference: { lang: this.mode === 'dub' ? 'en' : 'ja' },
                 capLevelToPlayerSize: true,
                 ignoreDevicePixelRatio: true,
                 startLevel: 0,
@@ -377,11 +376,51 @@ export class Playback {
             return;
         }
 
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = source;
+            video.load();
+            return;
+        }
+
         await this.tryNextSource(source);
     }
 
     async switchMode(mode: AudioMode) {
         if (!this.sources[mode] || mode === this.mode) {
+            return;
+        }
+
+        const current = this.activeSources[this.sourceIndex];
+        const hls = this.hls;
+        const language = mode === 'dub' ? /^(?:en(?:-|$)|english$)/i : /^(?:ja(?:-|$)|japanese$)/i;
+        const audioTrack = hls?.audioTracks.findIndex(
+            (track) => language.test(track.lang ?? '') || language.test(track.name)
+        );
+        if (
+            current &&
+            audioTrack !== undefined &&
+            audioTrack >= 0 &&
+            streamsFor(this.sources, mode).some(
+                (stream) => stream.url === current.url && stream.provider === current.provider
+            )
+        ) {
+            this.mode = mode;
+            this.sourceChain = this.preferredSources;
+            this.sourceIndex = Math.max(
+                0,
+                this.sourceChain.findIndex(
+                    (stream) => stream.url === current.url && stream.provider === current.provider
+                )
+            );
+            hls.audioTrack = audioTrack;
+            this.syncAudio(true);
+            preferences.save('audio-mode', mode);
+            void this.captions.load(
+                this.sources,
+                mode,
+                this.sourceChain[this.sourceIndex],
+                current.url
+            );
             return;
         }
 
@@ -483,14 +522,10 @@ export class Playback {
         const time = Math.max(0, Math.min(this.duration, seconds));
         this.currentTime = time;
 
-        this.video.currentTime = time;
-
-        // HLS.js normally infers this from the media element. Supplying the
-        // target explicitly avoids it continuing from the old fragment after
-        // a seek, especially when the requested time is outside its buffer.
         if (!this.scrubbing) {
-            this.hls?.startLoad(time);
+            this.syncAudio(true);
         }
+        this.video.currentTime = time;
     }
 
     seekBy(delta: number) {
@@ -517,10 +552,6 @@ export class Playback {
             this.pendingSeekTarget = null;
             this.seek(target);
             return;
-        }
-
-        if (!this.scrubbing) {
-            this.syncAudio(true);
         }
     }
 
@@ -570,16 +601,23 @@ export class Playback {
     }
 
     handleWaiting() {
-        this.loading = true;
-        this.watchSource();
+        this.clearWaitingTimer();
+        this.waitingTimer = setTimeout(() => {
+            if (this.video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+                this.loading = true;
+                this.watchSource();
+            }
+        }, 250);
     }
 
     handleCanPlay() {
+        this.clearWaitingTimer();
         this.loading = false;
         this.clearSourceWatchdog();
     }
 
     handlePlaying() {
+        this.clearWaitingTimer();
         this.playing = true;
         this.loading = false;
         this.clearSourceWatchdog();
@@ -602,6 +640,7 @@ export class Playback {
 
     async changeEpisode() {
         this.clearSourceWatchdog();
+        this.clearWaitingTimer();
         this.captions.clear();
         this.destroyHls();
         this.audio.sync(this.video, 0, true);
@@ -700,6 +739,7 @@ export class Playback {
 
         return () => {
             this.clearSourceWatchdog();
+            this.clearWaitingTimer();
             this.captions.clear();
             this.destroyHls();
             this.audio.close();
