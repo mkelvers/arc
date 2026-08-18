@@ -16,6 +16,11 @@
     let loadedBackdrop = $state<string | null>(null);
 </script>
 
+<svelte:head>
+    <title>Arc — Watch {data.anime.title}</title>
+    <meta name="description" content={data.anime.description} />
+</svelte:head>
+
 <main class="bg-canvas text-foreground">
     <section class="min-h-dvh">
         <figure

@@ -19,6 +19,11 @@
     let activeTab = $state<'logo' | 'backdrop'>('logo');
 </script>
 
+<svelte:head>
+    <title>Arc — {data.anime.title} artwork</title>
+    <meta name="description" content={`Choose artwork for ${data.anime.title} on Arc.`} />
+</svelte:head>
+
 <main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
     <header class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">

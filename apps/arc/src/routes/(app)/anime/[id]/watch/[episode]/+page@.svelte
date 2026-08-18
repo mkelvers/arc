@@ -5,6 +5,15 @@
     let { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+    <title>
+        Arc — Watch {data.anime.title}{data.anime.format === 'Movie'
+            ? ''
+            : ` — ${data.currentEpisode.title ? `${data.currentEpisode.label} – ${data.currentEpisode.title}` : data.currentEpisode.label}`}
+    </title>
+    <meta name="description" content={`Watch ${data.anime.title} on Arc.`} />
+</svelte:head>
+
 <main class="fixed inset-0 size-full overflow-hidden bg-black select-none">
     <WatchPlayer
         anime={data.anime}
