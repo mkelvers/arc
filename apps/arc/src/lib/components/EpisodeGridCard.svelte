@@ -1,8 +1,8 @@
 <script lang="ts">
     import { CalendarBlankIcon, PlayIcon } from 'phosphor-svelte';
 
-    import { audioAvailabilityLabel } from '$lib/anime/audio';
-    import type { AnimeEpisode } from '$lib/anime/types';
+    import { audioAvailabilityLabel } from '$lib/audio';
+    import type { AnimeEpisode } from '$lib/types';
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
 

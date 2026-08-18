@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime/types';
+    import type { AnimeEpisode } from '$lib/types';
     import EpisodeDialog from './EpisodeDialog.svelte';
     import { Player } from '$lib/player/controller.svelte';
     import { subtitleBackgrounds, subtitleSizes, subtitleTextColors, type Sources } from '$lib/player/media';

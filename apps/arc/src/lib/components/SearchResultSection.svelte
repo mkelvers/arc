@@ -1,7 +1,7 @@
 <script lang="ts">
     import { CaretRightIcon } from 'phosphor-svelte';
 
-    import type { AnimeSearchResult } from '$lib/anime/search';
+    import type { AnimeSearchResult } from '$lib/search';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
 
     interface Props {

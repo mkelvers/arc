@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeCard as AnimeCardModel } from '$lib/anime/types';
+    import type { AnimeCard as AnimeCardModel } from '$lib/types';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import AnimeCard from './AnimeCard.svelte';

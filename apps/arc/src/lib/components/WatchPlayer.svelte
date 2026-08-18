@@ -1,6 +1,6 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import type { AnimeEpisode } from '$lib/anime/types';
+    import type { AnimeEpisode } from '$lib/types';
     import type { Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
     import { SpinnerGapIcon } from 'phosphor-svelte';

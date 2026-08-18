@@ -1,7 +1,7 @@
 <script lang="ts">
     import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
-    import type { AnimeCard } from '$lib/anime/types';
+    import type { AnimeCard } from '$lib/types';
     import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';

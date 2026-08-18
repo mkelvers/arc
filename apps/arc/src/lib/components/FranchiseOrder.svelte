@@ -2,7 +2,7 @@
     import { onMount, tick } from 'svelte';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
-    import type { FranchiseOrder as FranchiseOrderData } from '$lib/anime/types';
+    import type { FranchiseOrder as FranchiseOrderData } from '$lib/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
 
     interface Props {

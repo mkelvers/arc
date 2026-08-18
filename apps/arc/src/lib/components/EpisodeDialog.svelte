@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime/types';
+    import type { AnimeEpisode } from '$lib/types';
     import Modal from './Modal.svelte';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
 

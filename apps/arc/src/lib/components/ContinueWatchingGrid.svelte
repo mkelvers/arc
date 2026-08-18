@@ -1,7 +1,7 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { XIcon } from 'phosphor-svelte';
-    import type { ContinueWatchingCard } from '$lib/anime/types';
+    import type { ContinueWatchingCard } from '$lib/types';
     import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
 

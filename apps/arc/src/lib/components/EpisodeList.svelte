@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '$lib/anime/types';
+    import type { AnimeEpisode } from '$lib/types';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
 
     interface Props {
