@@ -48,7 +48,7 @@
 
             <div class="group/volume relative">
                 <div
-                    class="pointer-events-none absolute bottom-full left-1/2 flex h-40 w-12 -translate-x-1/2 items-end justify-center pb-3 opacity-0 transition-opacity group-hover/volume:pointer-events-auto group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:opacity-100"
+                    class="pointer-events-none absolute inset-x-0 bottom-full mx-auto flex h-40 w-12 items-end justify-center pb-3 opacity-0 transition-opacity group-hover/volume:pointer-events-auto group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:opacity-100"
                 >
                     <div class="relative h-28 w-8 py-1.5">
                         <input

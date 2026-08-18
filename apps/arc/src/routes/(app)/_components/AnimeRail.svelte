@@ -62,7 +62,7 @@
             <div
                 bind:this={rail}
                 onscroll={updateScroll}
-                class="-mx-2 grid grid-flow-col auto-cols-franchise gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
+                class="grid grid-flow-col auto-cols-franchise gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
             >
                 {#each anime as entry (entry.id)}
                     <div class="min-w-0">
@@ -74,7 +74,7 @@
             {#if canScrollLeft}
                 <button
                     type="button"
-                    class="absolute top-[42%] -left-3 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+                    class="absolute inset-y-0 left-0 z-30 my-auto grid size-12 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`Scroll ${heading.toLocaleLowerCase()} left`}
                     onclick={() => move(-1)}
                 >
@@ -85,7 +85,7 @@
             {#if canScrollRight}
                 <button
                     type="button"
-                    class="absolute top-[42%] -right-3 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+                    class="absolute inset-y-0 right-0 z-30 my-auto grid size-12 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`Scroll ${heading.toLocaleLowerCase()} right`}
                     onclick={() => move(1)}
                 >

@@ -143,7 +143,7 @@
                     {#each ['Series', 'Movies'] as title}
                         <section class="mt-10">
                             <h2 class="mb-3 text-xl font-bold">{title}</h2>
-                            <div class="-mx-2 grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+                            <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
                                 {#each Array.from({ length: 6 }) as _, index (index)}
                                     <div class="flex min-h-28 gap-3 p-2">
                                         <div class="aspect-2/3 h-24 shrink-0 bg-surface"></div>

@@ -93,7 +93,7 @@
             <div
                 id="franchise-order-list"
                 bind:this={track}
-                class="-mx-2 grid snap-x snap-mandatory auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-5 2xl:auto-cols-franchise-2xl"
+                class="grid snap-x snap-mandatory auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-5 2xl:auto-cols-franchise-2xl"
                 onscroll={updateScrollState}
             >
                 {#each visibleEntries as entry}
@@ -106,7 +106,7 @@
             {#if canScrollBack}
                 <button
                     type="button"
-                    class="absolute top-1/2 left-10 z-20 hidden size-10 -translate-y-1/2 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:left-12"
+                    class="absolute inset-y-0 left-10 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:left-12"
                     aria-label="Previous franchise titles"
                     onclick={() => scrollByPage(-1)}
                 >
@@ -117,7 +117,7 @@
             {#if canScrollForward}
                 <button
                     type="button"
-                    class="absolute top-1/2 right-10 z-20 hidden size-10 -translate-y-1/2 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:right-12"
+                    class="absolute inset-y-0 right-10 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:right-12"
                     aria-label="Next franchise titles"
                     onclick={() => scrollByPage(1)}
                 >

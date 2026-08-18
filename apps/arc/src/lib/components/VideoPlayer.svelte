@@ -189,7 +189,7 @@
             <CaretLeftIcon size="2rem" weight="bold" aria-hidden="true" />
         </a>
 
-        <div class="pointer-events-none absolute left-1/2 max-w-[60vw] -translate-x-1/2 text-center">
+        <div class="pointer-events-none absolute inset-x-0 mx-auto max-w-[60vw] text-center">
             <p class="truncate text-sm font-bold tracking-wide text-white drop-shadow sm:text-base">
                 {anime.title}
             </p>
@@ -213,7 +213,7 @@
     <!-- Show / Episode Info Overlay: vertically centered on Y-axis, only shown when paused -->
     {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
         <div
-            class="pointer-events-none absolute top-1/2 left-8 z-20 max-w-xl -translate-y-1/2 text-white transition-opacity duration-300 sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
+            class="pointer-events-none absolute inset-y-0 left-8 z-20 flex max-w-xl items-center text-white transition-opacity duration-300 sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
             class:opacity-100={isPaused}
             class:opacity-0={!isPaused}
         >
