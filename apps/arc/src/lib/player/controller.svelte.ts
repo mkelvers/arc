@@ -143,10 +143,6 @@ export class Player {
             return;
         }
 
-        if (this.media.loading) {
-            return;
-        }
-
         const action = shortcut(event);
         if (!action) {
             return;

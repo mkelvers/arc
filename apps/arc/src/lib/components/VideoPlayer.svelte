@@ -66,6 +66,7 @@
 
     let episodeDialogOpen = $state(false);
     let renderedEpisodeId: string | undefined;
+    let video = $state<HTMLVideoElement>();
 
     function releaseDate(value: string | null | undefined) {
         if (!value) {
@@ -146,7 +147,14 @@
         });
     });
 
-    onMount(() => player.mount());
+    onMount(() => {
+        if (!video) {
+            return;
+        }
+
+        player.media.video = video;
+        return player.mount();
+    });
 </script>
 
 <!-- The focusable section owns player-wide shortcuts and surface clicks. -->
@@ -168,7 +176,7 @@
         ></iframe>
     {:else}
         <video
-            bind:this={player.media.video}
+            bind:this={video}
             class="size-full bg-black object-cover"
             playsinline
             preload="auto"
