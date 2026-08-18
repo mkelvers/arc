@@ -293,52 +293,73 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         }
 
         const streams: ProviderStreams = Object.fromEntries(requested.map((mode) => [mode, []]));
-        const results = await Promise.all(
-            providers.map(async (provider) => {
-                try {
-                    assertAvailable(provider, 'streams');
-                    const result = await timed(provider, 'streams', timeoutMs, () =>
-                        shared(
-                            streamRequests,
-                            [
-                                provider.name,
-                                anime.id,
-                                episode.id,
-                                episode.number,
-                                requested.join(','),
-                            ].join(':'),
-                            () => provider.getStreams(anime, episode, requested)
-                        )
-                    );
-                    markHealthy(provider, 'streams');
+        const attempts = providers.map(async (provider) => {
+            try {
+                assertAvailable(provider, 'streams');
+                const result = await timed(provider, 'streams', timeoutMs, () =>
+                    shared(
+                        streamRequests,
+                        [
+                            provider.name,
+                            anime.id,
+                            episode.id,
+                            episode.number,
+                            requested.join(','),
+                        ].join(':'),
+                        () => provider.getStreams(anime, episode, requested)
+                    )
+                );
+                markHealthy(provider, 'streams');
 
-                    const missing = requested.filter((mode) => !result[mode]?.length);
-                    return {
-                        provider,
-                        streams: result,
-                        errors: missing.length
-                            ? [
-                                  new ProviderAttemptError(
-                                      provider.name,
-                                      'streams',
-                                      new Error(`no ${missing.join('/')} stream was returned`)
-                                  ),
-                              ]
-                            : [],
-                    };
-                } catch (cause) {
-                    markFailure(provider, 'streams', cause);
-                    return {
-                        provider,
-                        streams: {},
-                        errors: [new ProviderAttemptError(provider.name, 'streams', cause)],
-                    };
-                }
-            })
-        );
-        const errors = results.flatMap((result) => result.errors);
+                const missing = requested.filter((mode) => !result[mode]?.length);
+                return {
+                    provider,
+                    streams: result,
+                    errors: missing.length
+                        ? [
+                              new ProviderAttemptError(
+                                  provider.name,
+                                  'streams',
+                                  new Error(`no ${missing.join('/')} stream was returned`)
+                              ),
+                          ]
+                        : [],
+                };
+            } catch (cause) {
+                markFailure(provider, 'streams', cause);
+                return {
+                    provider,
+                    streams: {},
+                    errors: [new ProviderAttemptError(provider.name, 'streams', cause)],
+                };
+            }
+        });
+        const allResults = Promise.all(attempts);
+        const result = await Promise.race([
+            Promise.any(
+                attempts.map(async (attempt) => {
+                    const result = await attempt;
+                    if (requested.every((mode) => result.streams[mode]?.length)) {
+                        return result;
+                    }
 
-        for (const result of results) {
+                    throw new Error('Provider returned incomplete audio modes');
+                })
+            ).then(
+                (complete) => ({ kind: 'complete' as const, result: complete }),
+                () => new Promise<never>(() => undefined)
+            ),
+            allResults.then((results) => ({ kind: 'all' as const, results })),
+        ]);
+        /*
+         * A provider that has every requested mode is enough to start
+         * playback. When providers split the modes, retain the old unioning
+         * behavior and wait for all attempts.
+         */
+        const mergedResults = result.kind === 'complete' ? [result.result] : result.results;
+        const errors = mergedResults.flatMap((attempt) => attempt.errors);
+
+        for (const result of mergedResults) {
             for (const mode of requested) {
                 const existing = streams[mode] ?? [];
                 const additions = (result.streams[mode] ?? []).map((stream): ProviderStream => ({

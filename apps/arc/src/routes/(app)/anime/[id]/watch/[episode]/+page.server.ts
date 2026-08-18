@@ -7,7 +7,6 @@ import { recordAnimeVisit } from '$lib/server/anime/interest';
 import { playback } from '$lib/server/anime/providers';
 import { animeId, loadAnime } from '$lib/server/anime/route';
 import { getEpisodeSkipTimes, getSegmentTemplates } from '$lib/server/anime/skip-times';
-import { StreamProxyError, verifyStreamSource } from '$lib/server/anime/stream-proxy';
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import { resumePosition } from '$lib/server/progress/continue';
 import { getPlaybackProgress } from '$lib/server/progress/store';
@@ -34,59 +33,16 @@ function playbackFailureSummary(cause: AggregateError) {
     ].join('; ');
 }
 
-function canRetryStreamVerification(cause: unknown) {
-    if (!(cause instanceof StreamProxyError)) {
-        return false;
-    }
-
-    return (
-        ['request-timeout', 'no-response', 'body-timeout', 'body-read'].includes(
-            cause.reason.kind
-        ) ||
-        (cause.reason.kind === 'upstream' && cause.reason.status === null)
-    );
-}
-
 async function getPlayback(
     animeData: Parameters<typeof playback.getStreams>[0],
     episode: Parameters<typeof playback.getStreams>[1],
     modes: AudioMode[]
 ) {
     let remoteStreams: Awaited<ReturnType<typeof playback.getStreams>> = {};
-    let failed = false;
 
     try {
         remoteStreams = await playback.getStreams(animeData, episode, modes);
-        const verified = await Promise.all(
-            Object.entries(remoteStreams).map(async ([mode, sources]) => {
-                const results = await Promise.all(
-                    (sources ?? []).map(async (source) => {
-                        try {
-                            if (source.kind !== 'iframe') {
-                                await verifyStreamSource(source.url);
-                            }
-                            return { source, error: null };
-                        } catch (cause) {
-                            return {
-                                source,
-                                error: cause,
-                            };
-                        }
-                    })
-                );
-                const surviving = [
-                    ...results.flatMap(({ source, error }) => (!error ? [source] : [])),
-                    ...results.flatMap(({ source, error }) =>
-                        error && canRetryStreamVerification(error) ? [source] : []
-                    ),
-                ];
-                return [mode, surviving];
-            })
-        );
-        remoteStreams = Object.fromEntries(verified);
-        failed = !Object.values(remoteStreams).some((sources) => sources?.length);
     } catch (cause) {
-        failed = true;
         if (cause instanceof AggregateError) {
             console.warn(
                 `Playback unavailable for AniList ${animeData.id}, episode ${episode.id}: ${playbackFailureSummary(cause)}`
@@ -98,6 +54,8 @@ async function getPlayback(
             );
         }
     }
+
+    const failed = !Object.values(remoteStreams).some((sources) => sources?.length);
 
     return {
         streams: Object.fromEntries(

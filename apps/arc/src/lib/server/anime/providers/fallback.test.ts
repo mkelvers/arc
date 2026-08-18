@@ -91,6 +91,28 @@ describe('playback provider fallback', () => {
         expect(attempts).toEqual(['first', 'second', 'third']);
     });
 
+    test('returns complete stream modes without waiting for slow providers', async () => {
+        const playback = createProviderFallback([
+            provider('fast', {
+                getStreams: async () => ({ sub: [stream], dub: [alternateStream] }),
+            }),
+            provider('slow', {
+                getStreams: async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 150));
+                    return { sub: [alternateStream], dub: [stream] };
+                },
+            }),
+        ]);
+        const started = performance.now();
+
+        const result = await playback.getStreams(anime, episode, ['sub', 'dub']);
+
+        expect(performance.now() - started).toBeLessThan(100);
+        expect(result.sub).toHaveLength(1);
+        expect(result.dub).toHaveLength(1);
+        expect(result.sub?.[0].provider).toBe('fast');
+    });
+
     test('uses the freshest provider inventory through the next airing episode', async () => {
         const episodes = (providerName: string, count: number) =>
             Array.from({ length: count }, (_, index) => ({
