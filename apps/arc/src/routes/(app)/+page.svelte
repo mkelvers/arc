@@ -16,13 +16,19 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas text-foreground">
-    <HomeHero highlights={data.highlights} />
+    <div
+        class="grid grid-cols-1 grid-rows-[auto_auto] min-[1440px]:grid-rows-[auto_13rem] [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
+    >
+        <HomeHero highlights={data.highlights} />
+        {#await data.continueWatching then anime}
+            <ContinueWatchingGrid anime={anime} />
+        {/await}
+    </div>
     <AnimeRail
         anime={data.season}
         heading="New Anime from the Current Season"
         headingId="new-this-season"
         emptyMessage="No seasonal anime are available right now."
-        overlap={Boolean(data.highlights.length)}
     />
     <AnimeRail
         anime={data.popular}
@@ -31,7 +37,4 @@
         emptyMessage="No popular anime are available right now."
         topSpacing={false}
     />
-    {#await data.continueWatching then anime}
-        <ContinueWatchingGrid anime={anime} />
-    {/await}
 </main>

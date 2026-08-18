@@ -9,11 +9,10 @@
         heading: string;
         headingId: string;
         emptyMessage: string;
-        overlap?: boolean;
         topSpacing?: boolean;
     }
 
-    let { anime, heading, headingId, emptyMessage, overlap = false, topSpacing = true }: Props = $props();
+    let { anime, heading, headingId, emptyMessage, topSpacing = true }: Props = $props();
     let rail = $state<HTMLDivElement>();
     let canScrollLeft = $state(false);
     let canScrollRight = $state(false);
@@ -50,8 +49,7 @@
 <section
     class={cn(
         'relative z-20 px-5 pb-10 sm:px-10 sm:pb-12 lg:px-16 lg:pb-16',
-        topSpacing && 'pt-10 sm:pt-12 lg:pt-16',
-        overlap && '-mt-72'
+        topSpacing && 'pt-10 sm:pt-12 lg:pt-16'
     )}
     aria-labelledby={headingId}
 >

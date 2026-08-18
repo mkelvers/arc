@@ -67,7 +67,7 @@
 
 {#if highlights.length}
     <section
-        class="relative h-[calc(100svh+6rem)] min-h-180 max-h-192 overflow-hidden bg-black 2xl:h-svh 2xl:max-h-none"
+        class="relative h-[calc(100svh-3.5rem)] min-h-180 max-h-192 overflow-hidden bg-black xl:h-[calc(100svh-3.5rem)] xl:max-h-none"
         aria-roledescription="carousel"
         aria-label="Trending anime now"
     >
@@ -87,7 +87,7 @@
                                 'col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none',
                                 index === carousel.active ? 'opacity-100' : 'opacity-0'
                             )}
-                            imageClass="object-center"
+                            imageClass="object-top"
                             previewLoading="eager"
                             loading="eager"
                             fetchpriority={index === carousel.active ? 'high' : 'low'}
@@ -107,7 +107,7 @@
                 </a>
 
                 <div
-                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 2xl:self-center 2xl:pb-0"
+                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end px-5 pb-80 sm:px-10 lg:px-16 xl:self-center xl:pb-0"
                 >
                     <div class="relative">
                         <a
