@@ -1,8 +1,8 @@
 <script lang="ts">
-    import Dropdown from '$lib/components/Dropdown.svelte';
-    import EpisodeList from '$lib/components/EpisodeList.svelte';
-    import FranchiseOrder from '$lib/components/FranchiseOrder.svelte';
-    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
+    import FranchiseOrder from './_components/FranchiseOrder.svelte';
+    import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import AiringStatus from './_components/AiringStatus.svelte';
     import WatchlistStatusMenu from './_components/WatchlistStatusMenu.svelte';
@@ -227,17 +227,41 @@
     </section>
 
     <div class="px-5 sm:px-10 lg:px-16">
+        {#snippet loadingEpisodes()}
+            <section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16" aria-busy="true" aria-live="polite">
+                <span class="sr-only">Loading episodes</span>
+                <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
+                    {#each Array.from({ length: 5 }) as _}
+                        <div class="min-h-56 animate-pulse motion-reduce:animate-none" aria-hidden="true">
+                            <div class="aspect-video bg-surface"></div>
+                            <div class="mt-3 h-3 w-2/3 rounded-full bg-surface"></div>
+                            <div class="mt-2 h-4 w-4/5 rounded-full bg-surface"></div>
+                            <div class="mt-3 h-4 w-1/3 rounded-full bg-surface"></div>
+                        </div>
+                    {/each}
+                </div>
+            </section>
+        {/snippet}
+
         {#await data.episodes}
-            <EpisodeList loading title={data.anime.title} />
+            {@render loadingEpisodes()}
         {:then episodes}
             {#await data.artwork}
-                <EpisodeList loading title={data.anime.title} />
+                {@render loadingEpisodes()}
             {:then artwork}
-                <EpisodeList
-                    episodes={episodes}
-                    title={data.anime.title}
-                    image={artwork?.selectedBackdrop?.url ?? null}
-                />
+                <section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16" aria-live="polite">
+                    {#if episodes.length}
+                        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
+                            {#each episodes as episode}
+                                <EpisodeGridCard
+                                    episode={episode}
+                                    title={data.anime.title}
+                                    image={artwork?.selectedBackdrop?.url ?? null}
+                                />
+                            {/each}
+                        </div>
+                    {/if}
+                </section>
             {/await}
         {/await}
 

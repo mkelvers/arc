@@ -5,7 +5,7 @@
 
     import { cn } from '$lib/utils';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
-    import Tooltip from './Tooltip.svelte';
+    import Tooltip from './ui/Tooltip.svelte';
 
     interface Props {
         animeId: number;

@@ -5,8 +5,8 @@
 
     import { watchlistStates, type WatchlistState } from '$lib/watchlist';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
-    import Dropdown from '$lib/components/Dropdown.svelte';
-    import Tooltip from '$lib/components/Tooltip.svelte';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Tooltip from '$lib/components/ui/Tooltip.svelte';
 
     interface Props {
         animeId: number;

@@ -5,8 +5,8 @@
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '$lib/types';
     import emptyArtwork from '$lib/assets/simulcast-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import Dropdown from '$lib/components/Dropdown.svelte';
-    import EmptyState from '$lib/components/EmptyState.svelte';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();

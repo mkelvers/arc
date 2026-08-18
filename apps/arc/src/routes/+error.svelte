@@ -1,6 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import Logo from '$lib/components/Logo.svelte';
+    import Logo from '$lib/components/ui/Logo.svelte';
 
     const error = $derived(page.status !== 404);
     const heading = $derived(error ? 'Something went wrong.' : 'Page not found.');

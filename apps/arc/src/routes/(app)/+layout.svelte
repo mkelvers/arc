@@ -8,9 +8,9 @@
         UserCircleIcon,
     } from 'phosphor-svelte';
     import { authClient } from '$lib/auth-client';
-    import AccountAvatar from '$lib/components/AccountAvatar.svelte';
-    import Logo from '$lib/components/Logo.svelte';
-    import Dropdown from '$lib/components/Dropdown.svelte';
+    import Logo from '$lib/components/ui/Logo.svelte';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import AccountAvatar from './_components/AccountAvatar.svelte';
     import type { LayoutProps } from './$types';
 
     let { data, children }: LayoutProps = $props();

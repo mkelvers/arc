@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { AnimeEpisode } from '$lib/types';
-    import Modal from './Modal.svelte';
+    import Modal from './ui/Modal.svelte';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
 
     interface Props {

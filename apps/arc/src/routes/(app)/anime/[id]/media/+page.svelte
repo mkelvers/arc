@@ -2,7 +2,7 @@
     import { ArrowClockwiseIcon } from 'phosphor-svelte';
     import { enhance } from '$app/forms';
 
-    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
+    import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();

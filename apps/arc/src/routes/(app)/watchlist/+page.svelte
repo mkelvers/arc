@@ -12,8 +12,8 @@
     import emptyArtwork from '$lib/assets/watchlist-empty.png';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import Dropdown from '$lib/components/Dropdown.svelte';
-    import EmptyState from '$lib/components/EmptyState.svelte';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import {
         watchlistStates,
         type WatchlistLanguage,

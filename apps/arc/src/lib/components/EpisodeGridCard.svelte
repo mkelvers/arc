@@ -4,7 +4,7 @@
     import { audioAvailabilityLabel } from '$lib/audio';
     import type { AnimeEpisode } from '$lib/types';
     import { cn } from '$lib/utils';
-    import ProgressiveImage from '$lib/components/ProgressiveImage.svelte';
+    import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
 
     interface Props {
         episode: AnimeEpisode;
