@@ -61,12 +61,13 @@ export function subtitleTracks(
         return { own, sub: null };
     }
 
-    // A subtitle URL only has a trustworthy timing relationship with the
-    // encode/provider that exposed it. Pair dubs with their provider's sub
-    // encode; never borrow a track from an unrelated source.
-    const subSource = sources.sub?.find(
-        (candidate) => candidate.provider === stream.provider && candidate.subtitleUrl
-    );
+    // Prefer the same provider because its subtitle timing is more likely to
+    // match the dub. If it has no track, use another provider's Original track
+    // rather than leaving the user without subtitles.
+    const subSource =
+        sources.sub?.find(
+            (candidate) => candidate.provider === stream.provider && candidate.subtitleUrl
+        ) ?? sources.sub?.find((candidate) => candidate.subtitleUrl);
     const sub = subSource?.subtitleUrl ? { url: subSource.subtitleUrl, source: subSource } : null;
 
     // MegaPlay sometimes repeats the Japanese VTT in the dub payload. It is

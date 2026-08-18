@@ -255,24 +255,31 @@ export class Captions {
                 kinds.push(kind);
             }
 
-            // A translated track is offered on a dub only when it can be
-            // calibrated to the selected provider encode.
+            // Prefer calibrated timing, but still offer the provider's
+            // original track when the timelines cannot be aligned.
             if (mode === 'dub' && sub && subCues) {
-                const offsets = await this.fallbackOffsets(
-                    sources,
-                    sub,
-                    active,
-                    subCues,
-                    request.signal
-                );
+                let offsets: Awaited<ReturnType<Captions['fallbackOffsets']>> = null;
+                try {
+                    offsets = await this.fallbackOffsets(
+                        sources,
+                        sub,
+                        active,
+                        subCues,
+                        request.signal
+                    );
+                } catch {
+                    offsets = null;
+                }
                 if (stale()) {
                     return;
                 }
                 if (offsets?.length) {
                     this.loaded.sub = alignSubtitleCues(subCues, offsets);
-                    if (!kinds.includes('translated')) {
-                        kinds.push('translated');
-                    }
+                } else {
+                    this.loaded.sub = subCues;
+                }
+                if (!kinds.includes('translated')) {
+                    kinds.push('translated');
                 }
             }
 

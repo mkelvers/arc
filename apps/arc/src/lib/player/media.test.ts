@@ -72,7 +72,7 @@ Cheers!
         expect(subtitlesAt(cues, 113)).toEqual(['Yeah & cheers!', 'Cheers!']);
     });
 
-    test('pairs fallback subtitles only within the active provider', () => {
+    test('prefers fallback subtitles from the active provider', () => {
         const sub: Stream = {
             url: '/anikoto-sub.m3u8',
             quality: null,
@@ -100,10 +100,32 @@ Cheers!
         });
         expect(subtitleTracks(sources, 'dub', unrelated)).toEqual({
             own: null,
-            sub: null,
+            sub: { url: '/sub.vtt', source: sub },
         });
         expect(hasSubtitleTrack(sources, 'dub', dub)).toBe(true);
-        expect(hasSubtitleTrack(sources, 'dub', unrelated)).toBe(false);
+        expect(hasSubtitleTrack(sources, 'dub', unrelated)).toBe(true);
+    });
+
+    test('falls back to an Original track from another provider', () => {
+        const sub: Stream = {
+            url: '/anineko-sub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: '/sub.vtt',
+            provider: 'AniNeko',
+        };
+        const dub: Stream = {
+            url: '/anikoto-dub.m3u8',
+            quality: null,
+            audioDelay: 0,
+            subtitleUrl: null,
+            provider: 'AniKoto',
+        };
+
+        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub)).toEqual({
+            own: null,
+            sub: { url: '/sub.vtt', source: sub },
+        });
     });
 
     test('recognizes a repeated sub VTT in a dub payload', () => {
