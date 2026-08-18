@@ -1,4 +1,4 @@
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 import { RequestCache } from '$lib/server/request-cache';
 import { record } from '$lib/utils';
 import type { AniListAnime } from './anilist/types';
