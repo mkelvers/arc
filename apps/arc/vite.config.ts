@@ -14,49 +14,42 @@ export default defineConfig(({ command }) => ({
             },
 
             adapter: adapter(),
-            csp: {
-                mode: 'auto',
-                directives: {
-                    'default-src': ['self'],
-                    'script-src': [
-                        'self',
-                        'https://challenges.cloudflare.com',
-                        'sha256-uP++nI0YQearma9Hc2G0q99ClgaYxxtiO48R2lvXePk=',
-                        'sha256-DV44IKgITwDAfvthDHThPRsyNopVAzUXfpIRO1uDQDI=',
-                        ...(command === 'serve' ? ['unsafe-eval' as const] : []),
-                    ],
-                    'script-src-attr': [
-                        'unsafe-hashes',
-                        'sha256-7dQwUgLau1NFCCGjfn9FsYptB6ZtWxJin6VohGIu20I=',
-                    ],
-                    ...(command === 'serve'
-                        ? {
-                              'script-src-elem': [
+            ...(command === 'build'
+                ? {
+                      csp: {
+                          mode: 'auto' as const,
+                          directives: {
+                              'default-src': ['self'],
+                              'script-src': [
                                   'self',
                                   'https://challenges.cloudflare.com',
-                                  'unsafe-inline',
+                                  'sha256-uP++nI0YQearma9Hc2G0q99ClgaYxxtiO48R2lvXePk=',
+                                  'sha256-DV44IKgITwDAfvthDHThPRsyNopVAzUXfpIRO1uDQDI=',
                               ],
-                          }
-                        : {}),
-                    'style-src': ['self', 'unsafe-inline'],
-                    'img-src': ['self', 'data:', 'https:'],
-                    'font-src': ['self'],
-                    'connect-src': [
-                        'self',
-                        'https://*.tiktokcdn.com',
-                        'https://p16-ad-sg.ibyteimg.com',
-                        'https://p19-ad-sg.ibyteimg.com',
-                        ...(command === 'serve' ? ['ws:' as const] : []),
-                    ],
-                    'worker-src': ['self', 'blob:'],
-                    'media-src': ['self', 'blob:'],
-                    'object-src': ['none'],
-                    'base-uri': ['self'],
-                    'form-action': ['self'],
-                    'frame-ancestors': ['none'],
-                    'frame-src': ['https://challenges.cloudflare.com'],
-                },
-            },
+                              'script-src-attr': [
+                                  'unsafe-hashes',
+                                  'sha256-7dQwUgLau1NFCCGjfn9FsYptB6ZtWxJin6VohGIu20I=',
+                              ],
+                              'style-src': ['self', 'unsafe-inline'],
+                              'img-src': ['self', 'data:', 'https:'],
+                              'font-src': ['self'],
+                              'connect-src': [
+                                  'self',
+                                  'https://*.tiktokcdn.com',
+                                  'https://p16-ad-sg.ibyteimg.com',
+                                  'https://p19-ad-sg.ibyteimg.com',
+                              ],
+                              'worker-src': ['self', 'blob:'],
+                              'media-src': ['self', 'blob:'],
+                              'object-src': ['none'],
+                              'base-uri': ['self'],
+                              'form-action': ['self'],
+                              'frame-ancestors': ['none'],
+                              'frame-src': ['https://challenges.cloudflare.com'],
+                          },
+                      },
+                  }
+                : {}),
         }),
     ],
 }));
