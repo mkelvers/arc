@@ -112,6 +112,11 @@ describe('AniZone provider', () => {
                     })}'))`
                 );
             }
+            if (url.pathname === '/show/master.m3u8') {
+                return response(
+                    '#EXTM3U\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Japanese",LANGUAGE="ja",URI="ja.m3u8"\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="English",LANGUAGE="en",URI="en.m3u8"'
+                );
+            }
             throw new Error(`Unexpected request: ${url}`);
         }) as unknown as typeof fetch;
 
@@ -126,11 +131,39 @@ describe('AniZone provider', () => {
                     audioDelay: 0,
                 },
             ],
+            dub: [
+                {
+                    url: 'https://video.vid-cdn.xyz/show/master.m3u8',
+                    subtitleUrl: null,
+                    quality: null,
+                    audioDelay: 0,
+                },
+            ],
         });
     });
 
-    test('does not claim dub availability from an alternate HLS audio rendition', async () => {
+    test('does not claim dub availability without an English HLS rendition', async () => {
         storedSlug = 'slime';
+        globalThis.fetch = mock(async (input: string | URL | Request) => {
+            const url = new URL(input instanceof Request ? input.url : input.toString());
+            if (url.pathname === '/anime/slime') {
+                return response(seriesPage);
+            }
+            if (url.pathname === '/anime/slime/1') {
+                return response(
+                    `vidstackPlayer(JSON.parse('${argument({
+                        src: 'https://video.vid-cdn.xyz/show/master.m3u8',
+                        subtitles: [],
+                    })}'))`
+                );
+            }
+            if (url.pathname === '/show/master.m3u8') {
+                return response(
+                    '#EXTM3U\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="Japanese",LANGUAGE="ja",URI="ja.m3u8"'
+                );
+            }
+            throw new Error(`Unexpected request: ${url}`);
+        }) as unknown as typeof fetch;
 
         await expect(
             anizoneProvider.getStreams(anime, { id: '1', number: 1 }, ['dub'])

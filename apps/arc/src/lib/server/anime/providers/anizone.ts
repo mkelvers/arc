@@ -1,5 +1,6 @@
 import { load } from 'cheerio';
 
+import type { AudioMode } from '$lib/audio';
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -14,7 +15,7 @@ const userAgent =
 async function requestText(url: URL) {
     const response = await fetch(url, {
         headers: {
-            Accept: 'text/html,application/xhtml+xml',
+            Accept: 'application/vnd.apple.mpegurl,text/html,application/xhtml+xml',
             Referer: `${baseUrl}/`,
             'User-Agent': userAgent,
         },
@@ -200,12 +201,53 @@ function player(html: string) {
     try {
         const url = new URL(src);
         const subtitleUrl = typeof english?.file === 'string' ? new URL(english.file) : null;
-        return url.protocol === 'https:' && (!subtitleUrl || subtitleUrl.protocol === 'https:')
+        const videoHost =
+            url.hostname === 'vid-cdn.xyz' ||
+            url.hostname.endsWith('.vid-cdn.xyz') ||
+            url.hostname === 'xin-cdn.xyz' ||
+            url.hostname.endsWith('.xin-cdn.xyz');
+        const subtitleHost =
+            !subtitleUrl ||
+            subtitleUrl.hostname === 'vid-cdn.xyz' ||
+            subtitleUrl.hostname.endsWith('.vid-cdn.xyz') ||
+            subtitleUrl.hostname === 'xin-cdn.xyz' ||
+            subtitleUrl.hostname.endsWith('.xin-cdn.xyz');
+        return url.protocol === 'https:' &&
+            videoHost &&
+            (!subtitleUrl || subtitleUrl.protocol === 'https:') &&
+            subtitleHost
             ? { url: url.toString(), subtitleUrl: subtitleUrl?.toString() ?? null }
             : null;
     } catch {
         return null;
     }
+}
+
+function hlsAudioModes(playlist: string) {
+    const modes = new Set<AudioMode>();
+
+    for (const line of playlist.split(/\r?\n/)) {
+        if (!line.startsWith('#EXT-X-MEDIA:') || !/\bTYPE=AUDIO\b/i.test(line)) {
+            continue;
+        }
+
+        const language = line
+            .match(/\bLANGUAGE=(?:"([^"]+)"|([^,]+))/i)
+            ?.slice(1)
+            .find(Boolean);
+        const name = line
+            .match(/\bNAME=(?:"([^"]+)"|([^,]+))/i)
+            ?.slice(1)
+            .find(Boolean);
+        if (/^ja(?:-|$)/i.test(language ?? '') || /japanese/i.test(name ?? '')) {
+            modes.add('sub');
+        }
+        if (/^en(?:-|$)/i.test(language ?? '') || /english/i.test(name ?? '')) {
+            modes.add('dub');
+        }
+    }
+
+    return modes;
 }
 
 export const anizoneProvider: PlaybackProvider = {
@@ -232,8 +274,29 @@ export const anizoneProvider: PlaybackProvider = {
             throw new Error(`AniZone returned no stream for AniList ${anime.id}`);
         }
 
-        return {
-            sub: [{ ...stream, quality: null, audioDelay: 0 }],
-        };
+        const audio = hlsAudioModes(await requestText(new URL(stream.url)));
+        if (!audio.size) {
+            audio.add('sub');
+        }
+
+        return Object.fromEntries(
+            modes.flatMap((mode) =>
+                audio.has(mode)
+                    ? [
+                          [
+                              mode,
+                              [
+                                  {
+                                      ...stream,
+                                      subtitleUrl: mode === 'sub' ? stream.subtitleUrl : null,
+                                      quality: null,
+                                      audioDelay: 0,
+                                  },
+                              ],
+                          ],
+                      ]
+                    : []
+            )
+        );
     },
 };
