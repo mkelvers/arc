@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     });
 
     if (!stored.length) {
-        return { pageTitle: 'Watchlist', entries: [], totalEntries: 0, selection };
+        return { entries: [], totalEntries: 0, selection };
     }
 
     const filtered =
@@ -78,7 +78,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
             .map(({ addedAt: _addedAt, updatedAt: _updatedAt, ...entry }) => entry);
 
         return {
-            pageTitle: 'Watchlist',
             entries,
             totalEntries: stored.length,
             selection,

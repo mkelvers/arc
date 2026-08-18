@@ -45,7 +45,6 @@ export const load: PageServerLoad = async ({ locals }) => {
     const cards = await enrichAnimeCards([...seasonCards, ...homepage.popular.map(withAudio)]);
 
     return {
-        pageTitle: 'Watch anime',
         highlights: homeHero,
         season: cards.slice(0, seasonCards.length),
         popular: cards.slice(seasonCards.length),

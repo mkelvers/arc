@@ -15,7 +15,6 @@ function safeReturnTo(value: string | null | undefined) {
 export const load: PageServerLoad = ({ url }) => {
     const value = url.searchParams.get('returnTo');
     return {
-        pageTitle: 'Verify',
         returnTo: safeReturnTo(value),
     };
 };

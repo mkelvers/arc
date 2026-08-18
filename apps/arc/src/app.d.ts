@@ -8,10 +8,6 @@ declare global {
             session?: AuthSession['session'];
             user?: AuthSession['user'];
         }
-
-        interface PageData {
-            pageTitle?: string;
-        }
     }
 }
 

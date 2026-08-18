@@ -16,7 +16,6 @@ import type { Actions, PageServerLoad } from './$types';
 const schema = zod4(registerSchema);
 
 export const load: PageServerLoad = async () => ({
-    pageTitle: 'Create account',
     form: await superValidate(schema),
 });
 

@@ -30,7 +30,6 @@ export const load: PageServerLoad = async ({ url }) => {
     const label = `${selected.season[0]}${selected.season.slice(1).toLowerCase()} ${selected.year}`;
 
     return {
-        pageTitle: `${label} simulcast`,
         season: selected.season,
         year: selected.year,
         label,

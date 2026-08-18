@@ -200,14 +200,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     ]);
 
     return {
-        pageTitle:
-            details.format === 'Movie'
-                ? `Watch ${details.title}`
-                : `Watch ${details.title} — ${
-                      currentEpisode.title
-                          ? `${currentEpisode.label} – ${currentEpisode.title}`
-                          : currentEpisode.label
-                  }`,
         anime: details,
         poster: storedMedia?.artwork.selectedPoster?.url ?? null,
         logo: storedMedia?.artwork.selectedLogo

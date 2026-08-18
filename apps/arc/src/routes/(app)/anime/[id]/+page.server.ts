@@ -68,7 +68,6 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
         : Promise.resolve(null);
 
     return {
-        pageTitle: `Watch ${details.title}`,
         anime: details,
         artwork,
         episodes,

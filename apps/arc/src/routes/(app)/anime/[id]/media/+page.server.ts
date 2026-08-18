@@ -25,7 +25,6 @@ export const load: PageServerLoad = async ({ params }) => {
     if (stored) {
         return {
             ...stored,
-            pageTitle: `${stored.anime.title} artwork`,
         };
     }
 
@@ -36,14 +35,12 @@ export const load: PageServerLoad = async ({ params }) => {
         const artwork = await getArtwork(result);
 
         return {
-            pageTitle: `${details.title} artwork`,
             anime: details,
             artwork,
         };
     } catch (cause) {
         console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
         return {
-            pageTitle: `${details.title} artwork`,
             anime: details,
             artwork: null,
         };

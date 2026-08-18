@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ url }) => {
     const query = parseSearchQuery(url.searchParams.get('q'));
 
     if (query.length < 2) {
-        return { pageTitle: 'Search anime', query, results: [] };
+        return { query, results: [] };
     }
 
     const results = await searchAnime(query).catch((cause) => {
@@ -18,7 +18,6 @@ export const load: PageServerLoad = async ({ url }) => {
     });
 
     return {
-        pageTitle: 'Search anime',
         query,
         results: await withAnimeSearchMetadata(await enrichAnimeCards(results)),
     };

@@ -1,5 +1,3 @@
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = () => ({
-    pageTitle: 'Log in',
-});
+export const load: PageServerLoad = () => ({});
