@@ -1,7 +1,7 @@
 import { asc, inArray } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '$lib/anime/audio';
-import type { ContinueWatchingCard } from '$lib/anime/types';
+import { audioAvailabilityLabel } from '$lib/audio';
+import type { ContinueWatchingCard } from '$lib/types';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
 import { db } from '$lib/server/db';

@@ -1,4 +1,4 @@
-import type { AnimeEpisode } from '$lib/anime/types';
+import type { AnimeEpisode } from '$lib/types';
 
 interface Progress {
     episodeId: string;

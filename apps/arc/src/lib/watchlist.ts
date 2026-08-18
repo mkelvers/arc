@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 
 export const watchlistStates = [
     { value: 'watching', label: 'Watching' },
