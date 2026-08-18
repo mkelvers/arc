@@ -17,8 +17,8 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { FranchiseCacheData } from '$lib/server/anime/franchise/cache';
-import type { AnimeSearchResult } from '$lib/anime/search';
-import type { AnimeCard } from '$lib/anime/types';
+import type { AnimeSearchResult } from '$lib/search';
+import type { AnimeCard } from '$lib/types';
 import type { AnimeQuery } from '$lib/graphql/anilist/generated/graphql';
 
 export const externalProvider = pgEnum('external_provider', ['anilist', 'tmdb']);
