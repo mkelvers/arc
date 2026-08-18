@@ -1,11 +1,8 @@
 <script lang="ts">
-    import { afterNavigate, goto } from '$app/navigation';
-    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
     import {
         BookmarkSimpleIcon,
-        BellIcon,
         CaretDownIcon,
-        GearIcon,
         MagnifyingGlassIcon,
         SignOutIcon,
         UserCircleIcon,
@@ -17,54 +14,6 @@
     import type { LayoutProps } from './$types';
 
     let { data, children }: LayoutProps = $props();
-    let hasUnreadNotifications = $state(false);
-    let unreadRequest: AbortController | undefined;
-
-    function refreshUnreadNotifications() {
-        unreadRequest?.abort();
-
-        if (!data.account) {
-            hasUnreadNotifications = false;
-            return;
-        }
-
-        const controller = new AbortController();
-        unreadRequest = controller;
-
-        void fetch('/api/notifications/unread', { signal: controller.signal })
-            .then(async (response) => (response.ok ? ((await response.json()) as unknown) : null))
-            .then((result) => {
-                if (unreadRequest !== controller) {
-                    return;
-                }
-
-                hasUnreadNotifications =
-                    typeof result === 'object' &&
-                    result !== null &&
-                    'hasUnreadNotifications' in result &&
-                    result.hasUnreadNotifications === true;
-            })
-            .catch(() => undefined);
-    }
-
-    afterNavigate(refreshUnreadNotifications);
-
-    onMount(() => {
-        const refreshWhenVisible = () => {
-            if (!document.hidden) {
-                refreshUnreadNotifications();
-            }
-        };
-        const interval = window.setInterval(refreshWhenVisible, 5 * 60 * 1_000);
-        document.addEventListener('visibilitychange', refreshWhenVisible);
-
-        return () => {
-            window.clearInterval(interval);
-            document.removeEventListener('visibilitychange', refreshWhenVisible);
-            unreadRequest?.abort();
-        };
-    });
-
     async function signOut() {
         await authClient.signOut({
             fetchOptions: {
@@ -123,24 +72,16 @@
             {#if data.account}
                 <Dropdown
                     id="account-menu"
-                    ariaLabel={hasUnreadNotifications ? 'Account menu, unread notifications' : 'Account menu'}
+                    ariaLabel="Account menu"
                     modal
                     menuClass="w-[min(21rem,calc(100vw-1rem))]"
                     triggerClass="flex h-14 cursor-pointer items-center gap-2 px-3 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted"
                 >
                     {#snippet trigger()}
-                        <span class="relative">
-                            <AccountAvatar
-                                username={data.account.username}
-                                class="size-8 text-sm ring-1 ring-white/20"
-                            />
-                            {#if hasUnreadNotifications}
-                                <span
-                                    class="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-status-error ring-2 ring-header"
-                                    aria-hidden="true"
-                                ></span>
-                            {/if}
-                        </span>
+                        <AccountAvatar
+                            username={data.account.username}
+                            class="size-8 text-sm ring-1 ring-white/20"
+                        />
                         <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
                     {/snippet}
 
@@ -153,29 +94,6 @@
                                 </span>
                             </div>
                         </div>
-
-                        <a
-                            href="/settings"
-                            class="flex min-h-12 items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-                        >
-                            <GearIcon size={21} aria-hidden="true" />
-                            <span>Settings</span>
-                        </a>
-
-                        <a
-                            href="/notifications"
-                            class="flex min-h-12 items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-                        >
-                            <BellIcon size={21} aria-hidden="true" />
-                            <span>Notifications</span>
-                            {#if hasUnreadNotifications}
-                                <span
-                                    class="ml-auto size-2 rounded-full bg-status-error"
-                                    aria-hidden="true"
-                                ></span>
-                                <span class="sr-only">Unread notifications</span>
-                            {/if}
-                        </a>
 
                         <a
                             href="/watchlist"
