@@ -3,7 +3,7 @@
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '$lib/anime/search';
+    import { distinctSearchArtwork, AnimeSearchResultSchema } from '$lib/anime/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import EmptyState from '$lib/components/EmptyState.svelte';
     import SearchResultSection from '$lib/components/SearchResultSection.svelte';
@@ -16,89 +16,90 @@
     let { data }: PageProps = $props();
     const recent = new RecentSearches();
     let query = $state(untrack(() => data.query));
-    let results = $state<AnimeSearchResult[]>(untrack(() => data.results));
-    let resultQuery = $state(untrack(() => data.query));
-    let loading = $state(false);
-    let failed = $state(false);
-    let searchInput = $state<HTMLInputElement>();
-    let activeRequest: AbortController | undefined;
+    let searchState = $state({
+        query: untrack(() => data.query),
+        results: untrack(() => data.results),
+        failed: false,
+    });
+    const loading = $derived(query.trim() !== searchState.query);
 
-    const searchableResults = $derived(results.filter(({ format }) => format !== 'MUSIC'));
-    const topResults = $derived(distinctSearchArtwork(searchableResults, 4));
-    const series = $derived(searchableResults.filter(({ format }) => format !== 'MOVIE' && format !== 'MUSIC'));
-    const movies = $derived(searchableResults.filter(({ format }) => format === 'MOVIE'));
+    const topResults = $derived(
+        distinctSearchArtwork(
+            searchState.results.filter(({ format }) => format !== 'MUSIC'),
+            4
+        )
+    );
+    const resultSections = $derived([
+        {
+            id: 'series-results',
+            title: 'Series',
+            results: searchState.results.filter(({ format }) => format !== 'MOVIE' && format !== 'MUSIC'),
+        },
+        {
+            id: 'movie-results',
+            title: 'Movies',
+            results: searchState.results.filter(({ format }) => format === 'MOVIE'),
+        },
+    ]);
+
+    async function loadResults(next: string, controller: AbortController) {
+        try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(next)}`, {
+                headers: { Accept: 'application/json' },
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Search request returned ${response.status}`);
+            }
+
+            const parsed = AnimeSearchResultSchema.array().safeParse(await response.json());
+            if (!parsed.success) {
+                throw new TypeError('Search request returned an invalid response');
+            }
+
+            searchState = { query: next, results: parsed.data, failed: false };
+        } catch (cause) {
+            if (cause instanceof DOMException && cause.name === 'AbortError') {
+                return;
+            }
+
+            console.warn('Anime search could not be loaded', cause);
+            searchState = { query: next, results: [], failed: true };
+        }
+    }
 
     onMount(() => {
-        searchInput?.focus();
         recent.load();
     });
 
     afterNavigate(({ type }) => {
         if (type === 'popstate') {
             query = data.query;
-            results = data.results;
-            resultQuery = data.query;
-            loading = false;
-            failed = false;
+            searchState = { query: data.query, results: data.results, failed: false };
         }
     });
 
     $effect(() => {
         const next = query.trim();
-        if (next === resultQuery) {
+        if (next === searchState.query) {
             return;
         }
 
-        activeRequest?.abort();
-        failed = false;
         replaceState(next ? `/search?q=${encodeURIComponent(next)}` : '/search', {});
 
         if (next.length < 2) {
-            results = [];
-            resultQuery = next;
-            loading = false;
+            searchState = { query: next, results: [], failed: false };
             return;
         }
 
-        loading = true;
-        const timeout = setTimeout(() => {
-            const controller = new AbortController();
-            activeRequest = controller;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => void loadResults(next, controller), 250);
 
-            void fetch(`/api/search?q=${encodeURIComponent(next)}`, {
-                headers: { Accept: 'application/json' },
-                signal: controller.signal,
-            })
-                .then(async (response) => {
-                    if (!response.ok) {
-                        throw new Error(`Search request returned ${response.status}`);
-                    }
-
-                    const responseResults = AnimeSearchResultSchema.array().safeParse(await response.json());
-                    if (!responseResults.success) {
-                        throw new TypeError('Search request returned an invalid response');
-                    }
-
-                    results = responseResults.data;
-                    resultQuery = next;
-                })
-                .catch((cause) => {
-                    if (!(cause instanceof DOMException) || cause.name !== 'AbortError') {
-                        console.warn('Anime search could not be loaded', cause);
-                        results = [];
-                        resultQuery = next;
-                        failed = true;
-                    }
-                })
-                .finally(() => {
-                    if (activeRequest === controller) {
-                        activeRequest = undefined;
-                        loading = false;
-                    }
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
+        return () => {
+            clearTimeout(timeout);
+            controller.abort();
+        };
     });
 </script>
 
@@ -112,8 +113,8 @@
                 type="search"
                 placeholder="Search…"
                 autocomplete="off"
+                autofocus
                 bind:value={query}
-                bind:this={searchInput}
                 class="h-14 w-full border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
             />
         </form>
@@ -122,8 +123,8 @@
     <div class="mx-auto w-full max-w-6xl px-5 py-7 sm:px-10 sm:py-9 lg:px-0 lg:py-10">
         {#if loading}
             <SearchSkeleton />
-        {:else if resultQuery && query.trim().length >= 2}
-            {#if results.length}
+        {:else if query.trim().length >= 2}
+            {#if searchState.results.length}
                 <section aria-labelledby="top-results-title">
                     <h1 id="top-results-title" class="mb-4 text-xl font-bold">Top Results</h1>
                     <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -133,21 +134,17 @@
                     </div>
                 </section>
 
-                {#key resultQuery}
-                    <SearchResultSection
-                        id="series-results"
-                        title="Series"
-                        results={series}
-                        onselect={(anime) => recent.remember(anime)}
-                    />
-                    <SearchResultSection
-                        id="movie-results"
-                        title="Movies"
-                        results={movies}
-                        onselect={(anime) => recent.remember(anime)}
-                    />
+                {#key searchState.query}
+                    {#each resultSections as section (section.id)}
+                        <SearchResultSection
+                            id={section.id}
+                            title={section.title}
+                            results={section.results}
+                            onselect={(anime) => recent.remember(anime)}
+                        />
+                    {/each}
                 {/key}
-            {:else if failed}
+            {:else if searchState.failed}
                 <p class="text-sm text-muted">Search could not be loaded. Please try again.</p>
             {:else}
                 <EmptyState
