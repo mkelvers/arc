@@ -6,38 +6,31 @@ interface RecentResult {
     title: string;
 }
 
-const key = 'arc:recent-search-results';
-
-function isRecent(value: unknown): value is RecentResult {
-    if (!isRecord(value)) {
-        return false;
-    }
-
-    return (
-        Number.isSafeInteger(value.id) && typeof value.title === 'string' && value.title.length > 0
-    );
-}
-
 export class RecentSearches {
     results = $state<RecentResult[]>([]);
 
     private save(results: RecentResult[]) {
         this.results = results;
-        localStorage.setItem(key, JSON.stringify(results));
+        localStorage.setItem('arc:recent-search-results', JSON.stringify(results));
     }
 
     load() {
         try {
-            const stored = JSON.parse(localStorage.getItem(key) ?? '[]');
+            const stored = JSON.parse(localStorage.getItem('arc:recent-search-results') ?? '[]');
 
             if (Array.isArray(stored)) {
-                this.results = stored.filter(isRecent).map(({ id, title }) => ({
-                    id,
-                    title,
-                }));
+                this.results = stored
+                    .filter(
+                        (value): value is RecentResult =>
+                            isRecord(value) &&
+                            Number.isSafeInteger(value.id) &&
+                            typeof value.title === 'string' &&
+                            value.title.length > 0
+                    )
+                    .map(({ id, title }) => ({ id, title }));
             }
         } catch {
-            localStorage.removeItem(key);
+            localStorage.removeItem('arc:recent-search-results');
         }
     }
 
