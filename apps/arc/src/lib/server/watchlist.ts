@@ -1,10 +1,9 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import type { PlaybackProgressInput } from '$lib/server/playback-progress/input';
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
 import { db } from '$lib/server/db';
 import {
-    anime,
     animeEpisode,
     animeEpisodeSync,
     animeExternalId,
@@ -12,20 +11,7 @@ import {
     watchlist,
     type WatchlistState,
 } from '$lib/server/db/schema';
-import { batches } from '$lib/utils';
 import { watchlistStateAfterPlayback } from './watchlist-completion';
-import { requestAniListPublication } from './sync/publication-request';
-
-const databaseBatchSize = 1_000;
-
-export type WatchlistImportMode = 'add' | 'merge' | 'replace';
-
-export interface WatchlistEntryInput {
-    anilistId: number;
-    state: WatchlistState;
-    addedAt?: Date;
-    updatedAt?: Date;
-}
 
 export async function getWatchlistState(userId: string | undefined, anilistId: number) {
     if (!userId) {
@@ -124,7 +110,6 @@ export async function setWatchlistState(userId: string, anilistId: number, state
         await ensureInternalAnimeId(anilistId),
         state
     );
-    await requestAniListPublication(userId);
     return result;
 }
 
@@ -137,173 +122,6 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
     await db
         .delete(watchlist)
         .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
-    await requestAniListPublication(userId);
-}
-
-export async function applyWatchlistEntries(
-    userId: string,
-    entries: WatchlistEntryInput[],
-    mode: WatchlistImportMode = 'merge'
-) {
-    const result = await db.transaction(async (tx) => {
-        const anilistIds = [...new Set(entries.map(({ anilistId }) => anilistId))];
-
-        for (const batch of batches(anilistIds, databaseBatchSize)) {
-            await tx
-                .insert(animeExternalId)
-                .values(
-                    batch.map((externalId) => ({
-                        provider: 'anilist' as const,
-                        mediaType: 'anime' as const,
-                        externalId,
-                    }))
-                )
-                .onConflictDoNothing();
-        }
-
-        const externalIds: Array<{ id: number; externalId: number }> = [];
-        for (const batch of batches(anilistIds, databaseBatchSize)) {
-            externalIds.push(
-                ...(await tx
-                    .select({ id: animeExternalId.id, externalId: animeExternalId.externalId })
-                    .from(animeExternalId)
-                    .where(
-                        and(
-                            eq(animeExternalId.provider, 'anilist'),
-                            eq(animeExternalId.mediaType, 'anime'),
-                            inArray(animeExternalId.externalId, batch)
-                        )
-                    ))
-            );
-        }
-
-        const links: Array<{ animeId: number; externalIdId: number }> = [];
-        for (const batch of batches(
-            externalIds.map(({ id }) => id),
-            databaseBatchSize
-        )) {
-            links.push(
-                ...(await tx
-                    .select({
-                        animeId: animeExternalIdLink.animeId,
-                        externalIdId: animeExternalIdLink.externalIdId,
-                    })
-                    .from(animeExternalIdLink)
-                    .where(inArray(animeExternalIdLink.externalIdId, batch)))
-            );
-        }
-
-        const linkedExternalIds = new Set(links.map(({ externalIdId }) => externalIdId));
-        const missing = externalIds.filter(({ id }) => !linkedExternalIds.has(id));
-
-        for (const batch of batches(missing, databaseBatchSize)) {
-            const created = await tx
-                .insert(anime)
-                .values(batch.map(() => ({})))
-                .returning({ id: anime.id });
-            if (created.length !== batch.length) {
-                throw new Error('Failed to store imported anime');
-            }
-
-            const createdLinks = batch.map(({ id }, index) => ({
-                animeId: created[index].id,
-                externalIdId: id,
-            }));
-            await tx.insert(animeExternalIdLink).values(createdLinks);
-            links.push(...createdLinks);
-        }
-
-        const animeIdByExternalId = new Map(
-            links.map(({ animeId, externalIdId }) => [externalIdId, animeId])
-        );
-        const animeIdByAniListId = new Map(
-            externalIds.map(({ id, externalId }) => [externalId, animeIdByExternalId.get(id)])
-        );
-        const now = new Date();
-        const rows = entries.map((entry) => {
-            const animeId = animeIdByAniListId.get(entry.anilistId);
-            if (!animeId) {
-                throw new Error(`Failed to store anime identity ${entry.anilistId}`);
-            }
-
-            return {
-                userId,
-                animeId,
-                state: entry.state,
-                createdAt: entry.addedAt ?? now,
-                updatedAt: entry.updatedAt ?? entry.addedAt ?? now,
-            };
-        });
-        const current = await tx
-            .select({ animeId: watchlist.animeId, state: watchlist.state })
-            .from(watchlist)
-            .where(eq(watchlist.userId, userId));
-        const currentByAnimeId = new Map(current.map((entry) => [entry.animeId, entry.state]));
-        const importedAnimeIds = new Set(rows.map(({ animeId }) => animeId));
-
-        if (mode === 'replace') {
-            await tx.delete(watchlist).where(eq(watchlist.userId, userId));
-            for (const batch of batches(rows, databaseBatchSize)) {
-                await tx.insert(watchlist).values(batch);
-            }
-
-            return {
-                added: rows.length,
-                updated: 0,
-                unchanged: 0,
-                removed: current.filter(({ animeId }) => !importedAnimeIds.has(animeId)).length,
-            };
-        }
-
-        const added = rows.filter(({ animeId }) => !currentByAnimeId.has(animeId));
-        const existing = rows.filter(({ animeId }) => currentByAnimeId.has(animeId));
-        const updated = rows.filter(
-            ({ animeId, state }) =>
-                currentByAnimeId.has(animeId) && currentByAnimeId.get(animeId) !== state
-        );
-
-        if (mode === 'add') {
-            for (const batch of batches(added, databaseBatchSize)) {
-                await tx.insert(watchlist).values(batch);
-            }
-
-            return {
-                added: added.length,
-                updated: 0,
-                unchanged: rows.length - added.length,
-                removed: 0,
-            };
-        }
-
-        for (const batch of batches(added, databaseBatchSize)) {
-            await tx.insert(watchlist).values(batch);
-        }
-        // An explicit import also reapplies the file's ordering to entries whose
-        // status is already current, so re-importing can repair a previous order.
-        for (const batch of batches(existing, databaseBatchSize)) {
-            await tx
-                .insert(watchlist)
-                .values(batch)
-                .onConflictDoUpdate({
-                    target: [watchlist.userId, watchlist.animeId],
-                    set: {
-                        state: sql`excluded.state`,
-                        updatedAt: sql`excluded.updated_at`,
-                    },
-                });
-        }
-
-        return {
-            added: added.length,
-            updated: updated.length,
-            unchanged: rows.length - added.length - updated.length,
-            removed: 0,
-        };
-    });
-
-    await requestAniListPublication(userId);
-
-    return result;
 }
 
 export async function updateWatchlistAfterPlayback(
