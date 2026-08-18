@@ -19,17 +19,17 @@
     aria-describedby={title ? undefined : id}
 >
     <div class="flex max-w-md flex-col items-center">
-        <div class="grid size-72 place-items-center sm:size-80">
+        <div class="mb-6 grid w-72 place-items-center sm:w-80">
             <img
                 src={artwork}
                 alt=""
                 width={artworkWidth}
                 height={artworkHeight}
-                class="max-h-full max-w-full object-contain"
+                class="block h-auto w-full object-contain"
             />
         </div>
         {#if title}
-            <h2 id={id} class="mt-1 text-xl font-semibold">{title}</h2>
+            <h2 id={id} class="text-xl font-semibold">{title}</h2>
         {/if}
         <p id={title ? undefined : id} class="mt-2 max-w-md text-base leading-7 text-muted">{body}</p>
         {#if actionHref && actionLabel}
