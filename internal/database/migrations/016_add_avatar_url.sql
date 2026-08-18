@@ -1,3 +1,0 @@
--- +goose Up
-ALTER TABLE user ADD COLUMN avatar_url TEXT NOT NULL DEFAULT '';
--- +goose Down

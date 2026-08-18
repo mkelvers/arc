@@ -1,52 +1,26 @@
-# dependencies (bun install)
 node_modules
+/.cache
 
-# output
-out
-dist
-*.tgz
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+**/.svelte-kit
+**/build
+**/dist
+**/.turbo
 
-# code coverage
-coverage
-*.lcov
-playwright-report/
-test-results/
-blob-report/
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
-.idea
-
-# Finder (MacOS) folder config
+# OS
 .DS_Store
-**/.DS_Store
+Thumbs.db
 
-# Go
-main_server
-create_user
-malago
-*.db
-*.db-shm
-*.db-wal
-tmp/
-/server
-*.log
-*.pid
-*_templ.go
-user.sh
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

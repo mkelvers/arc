@@ -1,9 +1,0 @@
--- +goose Up
-CREATE TABLE IF NOT EXISTS jikan_cache (
-    key TEXT PRIMARY KEY,
-    data TEXT NOT NULL,
-    expires_at DATETIME NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- +goose Down

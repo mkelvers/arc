@@ -1,0 +1,99 @@
+<script lang="ts">
+    import type { AnimeCard as AnimeCardModel } from '$lib/types';
+    import { cn } from '$lib/utils';
+    import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
+    import AnimeCard from '$lib/components/AnimeCard.svelte';
+
+    interface Props {
+        anime: AnimeCardModel[];
+        heading: string;
+        headingId: string;
+        emptyMessage: string;
+        topSpacing?: boolean;
+    }
+
+    let { anime, heading, headingId, emptyMessage, topSpacing = true }: Props = $props();
+    let rail = $state<HTMLDivElement>();
+    let canScrollLeft = $state(false);
+    let canScrollRight = $state(false);
+
+    function updateScroll() {
+        if (!rail) {
+            return;
+        }
+
+        canScrollLeft = rail.scrollLeft > 2;
+        canScrollRight = rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 2;
+    }
+
+    function move(direction: -1 | 1) {
+        rail?.scrollBy({
+            left: direction * rail.clientWidth,
+            behavior: 'smooth',
+        });
+    }
+
+    $effect(() => {
+        if (!rail) {
+            return;
+        }
+
+        updateScroll();
+        const observer = new ResizeObserver(updateScroll);
+        observer.observe(rail);
+
+        return () => observer.disconnect();
+    });
+</script>
+
+<section
+    class={cn(
+        'relative z-20 px-5 pb-10 sm:px-10 sm:pb-12 lg:px-16 lg:pb-16',
+        topSpacing && 'pt-10 sm:pt-12 lg:pt-16'
+    )}
+    aria-labelledby={headingId}
+>
+    <h2 id={headingId} class="mb-5 text-xl font-bold sm:text-2xl">
+        {heading}
+    </h2>
+
+    {#if anime.length}
+        <div class="relative">
+            <div
+                bind:this={rail}
+                onscroll={updateScroll}
+                class="grid grid-flow-col auto-cols-franchise gap-2 overflow-x-auto overscroll-x-contain scroll-smooth sm:auto-cols-[30%] sm:gap-3 md:auto-cols-[23%] lg:auto-cols-[18%] xl:auto-cols-[15%]"
+            >
+                {#each anime as entry (entry.id)}
+                    <div class="min-w-0">
+                        <AnimeCard anime={entry} compact />
+                    </div>
+                {/each}
+            </div>
+
+            {#if canScrollLeft}
+                <button
+                    type="button"
+                    class="absolute inset-y-0 left-0 z-30 my-auto grid size-12 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+                    aria-label={`Scroll ${heading.toLocaleLowerCase()} left`}
+                    onclick={() => move(-1)}
+                >
+                    <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
+                </button>
+            {/if}
+
+            {#if canScrollRight}
+                <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 z-30 my-auto grid size-12 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+                    aria-label={`Scroll ${heading.toLocaleLowerCase()} right`}
+                    onclick={() => move(1)}
+                >
+                    <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />
+                </button>
+            {/if}
+        </div>
+    {:else}
+        <p class="text-sm text-muted">{emptyMessage}</p>
+    {/if}
+</section>

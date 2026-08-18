@@ -1,0 +1,1 @@
+ALTER TABLE "anime" ADD COLUMN "tmdb_mapping_version" integer DEFAULT 0 NOT NULL;
