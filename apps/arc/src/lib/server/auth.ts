@@ -4,17 +4,22 @@ import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { betterAuth } from 'better-auth';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { captcha, username } from 'better-auth/plugins';
+import { username } from 'better-auth/plugins';
 
 import { db } from '$lib/server/db';
 import * as schema from '$lib/server/db/schema';
 import { hasInvitationClaim } from '$lib/server/invitations';
 
+const trustedOrigins = (env.BETTER_AUTH_TRUSTED_ORIGINS ?? env.BETTER_AUTH_URL)
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 export const auth = betterAuth({
     appName: 'Arc',
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: [env.BETTER_AUTH_URL],
+    trustedOrigins,
     database: drizzleAdapter(db, {
         provider: 'pg',
         schema,
@@ -66,12 +71,6 @@ export const auth = betterAuth({
         }),
     },
     plugins: [
-        captcha({
-            provider: 'cloudflare-turnstile',
-            secretKey: env.TURNSTILE_SECRET ?? '',
-            endpoints: ['/sign-in/username'],
-            expectedAction: 'turnstile-spin-v2',
-        }),
         username({
             minUsernameLength: 3,
             maxUsernameLength: 30,
