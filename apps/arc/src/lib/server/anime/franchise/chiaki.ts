@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 
-import type { FranchiseOrder } from '$lib/anime/types';
+import type { FranchiseOrder } from '$lib/types';
 import { positiveInteger } from '$lib/utils';
 
 const baseUrl = 'https://chiaki.site';

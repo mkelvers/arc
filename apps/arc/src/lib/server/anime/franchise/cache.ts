@@ -1,4 +1,4 @@
-import type { FranchiseOrder } from '$lib/anime/types';
+import type { FranchiseOrder } from '$lib/types';
 
 export type FranchiseCacheData =
     | FranchiseOrder

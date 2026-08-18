@@ -1,4 +1,4 @@
-import type { AudioMode } from '$lib/anime/audio';
+import type { AudioMode } from '$lib/audio';
 
 export interface Stream {
     url: string;

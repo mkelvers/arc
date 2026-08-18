@@ -1,8 +1,8 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
-import type { AudioMode } from '$lib/anime/audio';
-import type { AnimeEpisode } from '$lib/anime/types';
+import type { AudioMode } from '$lib/audio';
+import type { AnimeEpisode } from '$lib/types';
 import { db } from '$lib/server/db';
 import { animeEpisode } from '$lib/server/db/schema';
 import { formatDuration } from '$lib/utils';

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { FranchiseOrder } from '$lib/anime/types';
+import type { FranchiseOrder } from '$lib/types';
 import { type FranchisePlaybackEpisode, withFranchisePlayback } from './playback';
 
 function entry(anilistId: number, audioLabel: string): FranchiseOrder['entries'][number] {

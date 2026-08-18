@@ -1,6 +1,6 @@
 import { asc, desc, eq, lt } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '$lib/anime/audio';
+import { audioAvailabilityLabel } from '$lib/audio';
 import { db } from '$lib/server/db';
 import { homeHeroSelection } from '$lib/server/db/schema';
 import { getAnime } from './anilist/details';

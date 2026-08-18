@@ -1,4 +1,4 @@
-import { parseAnimeSeason, type AnimeSeasonSelection } from '$lib/anime/season';
+import { parseAnimeSeason, type AnimeSeasonSelection } from '$lib/season';
 import { positiveInteger } from '$lib/utils';
 import { getSimulcastPage as fetchSimulcastPage } from './allanime/catalog';
 import { enrichAnimeCards } from './card-enrichment';

@@ -1,5 +1,5 @@
-import { episodeAudioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
-import type { FranchiseOrder } from '$lib/anime/types';
+import { episodeAudioAvailabilityLabel, type AudioMode } from '$lib/audio';
+import type { FranchiseOrder } from '$lib/types';
 
 export type FranchisePlaybackEpisode = {
     anilistId: number;

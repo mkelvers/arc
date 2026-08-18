@@ -1,6 +1,6 @@
-import { audioAvailabilityLabel, type AudioMode } from '$lib/anime/audio';
-import type { AnimeSeasonSelection } from '$lib/anime/season';
-import type { AnimeCard } from '$lib/anime/types';
+import { audioAvailabilityLabel, type AudioMode } from '$lib/audio';
+import type { AnimeSeasonSelection } from '$lib/season';
+import type { AnimeCard } from '$lib/types';
 import { and, eq } from 'drizzle-orm';
 import {
     AllAnimeAvailableEpisodesDocument,
@@ -19,7 +19,7 @@ import { animeTitles, plainText } from '../anilist/text';
 import { request } from './client';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
-import { AnimeCardPageSchema } from '$lib/anime/types';
+import { AnimeCardPageSchema } from '$lib/types';
 
 const providerName = 'allanime';
 const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();

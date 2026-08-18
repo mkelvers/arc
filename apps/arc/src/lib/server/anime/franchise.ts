@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 
-import type { FranchiseOrder } from '$lib/anime/types';
+import type { FranchiseOrder } from '$lib/types';
 import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
