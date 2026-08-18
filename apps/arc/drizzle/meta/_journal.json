@@ -330,6 +330,13 @@
             "when": 1786617134698,
             "tag": "0046_rainy_shiva",
             "breakpoints": true
+        },
+        {
+            "idx": 47,
+            "version": "7",
+            "when": 1787044027330,
+            "tag": "0047_safe_absorbing_man",
+            "breakpoints": true
         }
     ]
 }

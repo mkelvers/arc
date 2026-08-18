@@ -37,13 +37,6 @@ export const watchlistState = pgEnum('watchlist_state', [
     'dropped',
 ]);
 
-export const notificationKind = pgEnum('notification_kind', [
-    'season_announced',
-    'season_available',
-    'episode_available',
-    'audio_available',
-]);
-
 export const users = pgTable(
     'users',
     {
@@ -97,35 +90,6 @@ export const accounts = pgTable(
         index('accounts_user_id_idx').on(table.userId),
     ]
 );
-
-export const anilistPublication = pgTable(
-    'anilist_publication',
-    {
-        userId: uuid('user_id')
-            .primaryKey()
-            .references(() => users.id, { onDelete: 'cascade' }),
-        version: integer('version').notNull().default(1),
-        nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
-        attempts: integer('attempts').notNull().default(0),
-        leaseUntil: timestamp('lease_until', { withTimezone: true }),
-        lastError: text('last_error'),
-    },
-    (table) => [index('anilist_publication_due_idx').on(table.nextAttemptAt, table.leaseUntil)]
-);
-
-export const maintenanceTask = pgTable('maintenance_task', {
-    name: text('name').primaryKey(),
-    nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull().defaultNow(),
-    leaseUntil: timestamp('lease_until', { withTimezone: true }),
-    lastError: text('last_error'),
-});
-
-export const maintenanceHeartbeat = pgTable('maintenance_heartbeat', {
-    name: text('name').primaryKey(),
-    startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
-    completedAt: timestamp('completed_at', { withTimezone: true }),
-    lastError: text('last_error'),
-});
 
 export const sessions = pgTable(
     'sessions',
@@ -371,14 +335,6 @@ export const animeSearchIndex = pgTable(
     ]
 );
 
-export const anilistNotificationTarget = pgTable('anilist_notification_target', {
-    anilistId: integer('anilist_id').primaryKey(),
-    title: text('title').notNull(),
-    status: varchar('status', { length: 32 }),
-    sequelIds: integer('sequel_ids').array().notNull().default([]),
-    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
 export const animeCardCache = pgTable('anime_card_cache', {
     anilistId: integer('anilist_id').primaryKey(),
     data: jsonb('data').$type<AnimeCard>().notNull(),
@@ -550,28 +506,6 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     lastError: text('last_error'),
 });
 
-export const animeEpisodeRefresh = pgTable(
-    'anime_episode_refresh',
-    {
-        anilistId: integer('anilist_id')
-            .notNull()
-            .references(() => animeEpisodeSync.anilistId, { onDelete: 'cascade' }),
-        targetEpisode: integer('target_episode').notNull(),
-        runAt: timestamp('run_at', { withTimezone: true }).notNull(),
-        firstScheduledAt: timestamp('first_scheduled_at', { withTimezone: true })
-            .notNull()
-            .defaultNow(),
-        attempts: integer('attempts').notNull().default(0),
-        leaseUntil: timestamp('lease_until', { withTimezone: true }),
-        retiredAt: timestamp('retired_at', { withTimezone: true }),
-        lastError: text('last_error'),
-    },
-    (table) => [
-        primaryKey({ columns: [table.anilistId, table.targetEpisode] }),
-        index('anime_episode_refresh_due_idx').on(table.runAt, table.leaseUntil),
-    ]
-);
-
 export const animeRecentVisit = pgTable(
     'anime_recent_visit',
     {
@@ -584,53 +518,6 @@ export const animeRecentVisit = pgTable(
     (table) => [
         primaryKey({ columns: [table.userId, table.anilistId] }),
         index('anime_recent_visit_time_idx').on(table.visitedAt),
-    ]
-);
-
-export const notificationInterest = pgTable(
-    'notification_interest',
-    {
-        userId: uuid('user_id')
-            .notNull()
-            .references(() => users.id, { onDelete: 'cascade' }),
-        anilistId: integer('anilist_id').notNull(),
-        sourceAnilistId: integer('source_anilist_id').notNull(),
-        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        updatedAt: timestamp('updated_at', { withTimezone: true })
-            .notNull()
-            .defaultNow()
-            .$onUpdate(() => new Date()),
-    },
-    (table) => [
-        primaryKey({ columns: [table.userId, table.anilistId] }),
-        index('notification_interest_anilist_idx').on(table.anilistId),
-    ]
-);
-
-export const notification = pgTable(
-    'notification',
-    {
-        id: uuid('id').primaryKey().defaultRandom(),
-        userId: uuid('user_id')
-            .notNull()
-            .references(() => users.id, { onDelete: 'cascade' }),
-        kind: notificationKind('kind').notNull(),
-        anilistId: integer('anilist_id').notNull(),
-        sourceAnilistId: integer('source_anilist_id').notNull(),
-        title: text('title').notNull(),
-        episodeId: text('episode_id'),
-        episodeNumber: doublePrecision('episode_number'),
-        audio: episodeAudio('audio').array().notNull().default([]),
-        dedupeKey: text('dedupe_key').notNull(),
-        occurredAt: timestamp('occurred_at', { withTimezone: true }),
-        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        readAt: timestamp('read_at', { withTimezone: true }),
-        dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
-    },
-    (table) => [
-        unique('notification_user_dedupe_unique').on(table.userId, table.dedupeKey),
-        index('notification_user_created_idx').on(table.userId, table.createdAt),
-        index('notification_user_unread_idx').on(table.userId, table.readAt),
     ]
 );
 
