@@ -107,6 +107,47 @@ describe('stream proxy', () => {
         ]);
     });
 
+    test('reuses a resolved media redirect for later range requests', async () => {
+        const requests: { hostname: string; range: string | null }[] = [];
+        const source = 'https://www.animegg.org/play/redirect-cache/video.mp4?token=one';
+        const fetchStream = async (target: URL, init: RequestInit) => {
+            requests.push({
+                hostname: target.hostname,
+                range: new Headers(init.headers).get('range'),
+            });
+            if (target.hostname === 'www.animegg.org') {
+                return new Response(null, {
+                    status: 302,
+                    headers: {
+                        location:
+                            'https://s170.vidcache.net/play/redirect-cache/video.mp4?token=one',
+                    },
+                });
+            }
+
+            return new Response('video', {
+                status: 206,
+                headers: { 'content-type': 'video/mp4' },
+            });
+        };
+
+        for (const range of ['bytes=0-', 'bytes=100-']) {
+            await proxyStreamRequest(
+                new Request(
+                    `https://arc.local/api/episodes/stream?${new URLSearchParams({ url: source })}`,
+                    { headers: { range } }
+                ),
+                fetchStream
+            );
+        }
+
+        expect(requests).toEqual([
+            { hostname: 'www.animegg.org', range: 'bytes=0-' },
+            { hostname: 's170.vidcache.net', range: 'bytes=0-' },
+            { hostname: 's170.vidcache.net', range: 'bytes=100-' },
+        ]);
+    });
+
     test('rejects an oversized provider playlist', async () => {
         const request = new Request(
             'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fmegap.kotocdn.site%2Fshow%2Fmaster.m3u8'

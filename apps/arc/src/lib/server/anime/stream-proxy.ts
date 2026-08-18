@@ -67,6 +67,7 @@ const responseTimeout = 10_000;
 const maximumPlaylistSize = 1024 * 1024;
 const maximumSubtitleSize = 8 * 1024 * 1024;
 const maximumWrappedSegmentSize = 32 * 1024 * 1024;
+const resolvedRedirects = new Map<string, { target: URL; expiresAt: number }>();
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
 type StreamBody = 'playlist' | 'segment' | 'subtitle';
@@ -307,6 +308,40 @@ async function followProviderRedirects(
     throw new StreamProxyError({ kind: 'no-response' });
 }
 
+async function providerMediaResponse(
+    initialTarget: URL,
+    range: string | null,
+    fetchStream: StreamFetch
+) {
+    const key = initialTarget.toString();
+    const cached = resolvedRedirects.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+        try {
+            return await followProviderRedirects(cached.target, range, fetchStream);
+        } catch {
+            resolvedRedirects.delete(key);
+        }
+    } else if (cached) {
+        resolvedRedirects.delete(key);
+    }
+
+    const provider = await followProviderRedirects(initialTarget, range, fetchStream);
+    if (provider.target.toString() !== key) {
+        const now = Date.now();
+        for (const [source, redirect] of resolvedRedirects) {
+            if (redirect.expiresAt <= now) {
+                resolvedRedirects.delete(source);
+            }
+        }
+        if (resolvedRedirects.size >= 512) {
+            resolvedRedirects.delete(resolvedRedirects.keys().next().value ?? '');
+        }
+        resolvedRedirects.set(key, { target: provider.target, expiresAt: now + 5 * 60_000 });
+    }
+
+    return provider;
+}
+
 export async function proxyStreamRequest(request: Request, fetchStream: StreamFetch) {
     const url = new URL(request.url);
     const encoded = url.searchParams.get('src');
@@ -320,11 +355,7 @@ export async function proxyStreamRequest(request: Request, fetchStream: StreamFe
     }
 
     const target = streamTarget(source);
-    const provider = await followProviderRedirects(
-        target,
-        request.headers.get('range'),
-        fetchStream
-    );
+    const provider = await providerMediaResponse(target, request.headers.get('range'), fetchStream);
     return proxiedResponse(provider.target, provider.response);
 }
 
