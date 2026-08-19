@@ -173,7 +173,9 @@
                     id="anime-details"
                     class={cn(
                         'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
-                        detailsExpanded ? 'max-h-320' : 'details-fade max-h-24'
+                        detailsExpanded
+                            ? 'max-h-320'
+                            : 'max-h-24 [mask-image:linear-gradient(to_bottom,black_45%,transparent_100%)]'
                     )}
                 >
                     <p class="max-w-3xl text-foreground">{data.anime.description}</p>
