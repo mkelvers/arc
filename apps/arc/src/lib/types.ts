@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { AudioMode } from './audio';
+import type { MediaFormat, MediaRelation, MediaStatus } from './graphql/anilist/generated/graphql';
 
 export const AnimeCardSchema = z.object({
     id: z.number().int(),
@@ -59,6 +60,12 @@ export type FranchiseOrder = {
             malId: number;
             anilistId: number;
             type: string;
+            format: MediaFormat | null;
+            status: MediaStatus | null;
+            episodes: number | null;
+            duration: number | null;
+            popularity: number | null;
+            relations: Array<{ type: MediaRelation; malId: number }>;
             secondary: boolean;
             primary: boolean;
         }

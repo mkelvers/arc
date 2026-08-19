@@ -1,7 +1,10 @@
 import { eq, inArray } from 'drizzle-orm';
 
 import type { FranchiseOrder } from '$lib/types';
-import { FranchiseMediaDocument } from '$lib/graphql/anilist/generated/graphql';
+import {
+    FranchiseMediaDocument,
+    type FranchiseMediaQuery,
+} from '$lib/graphql/anilist/generated/graphql';
 import { db } from '$lib/server/db';
 import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
 import { request } from './anilist/client';
@@ -14,24 +17,34 @@ import {
     type FranchiseCacheData,
 } from './franchise/cache';
 import { withFranchisePlayback } from './franchise/playback';
-import { primaryFranchiseIds, type FranchiseSelectionEntry } from './franchise/selection';
+import {
+    isFranchiseEntryEligible,
+    primaryFranchiseIds,
+    type FranchiseSelectionEntry,
+} from './franchise/selection';
 
 const requests = new Map<number, Promise<FranchiseOrder>>();
+type FranchiseMedia = NonNullable<NonNullable<FranchiseMediaQuery['Page']>['media']>[number];
 
 async function fetchMetadata(entries: ChiakiEntry[]) {
-    const result = await request(
-        FranchiseMediaDocument,
-        {
-            malIds: entries.map(({ malId }) => malId),
-        },
-        { cacheForMs: 7 * 24 * 60 * 60 * 1_000 }
-    );
+    const malIds = [...new Set(entries.map(({ malId }) => malId))];
+    const metadata = new Map<number, FranchiseMedia>();
 
-    return new Map(
-        present(result.Page?.media).flatMap((media) =>
-            media.idMal ? [[media.idMal, media] as const] : []
-        )
-    );
+    for (let offset = 0; offset < malIds.length; offset += 50) {
+        const result = await request(
+            FranchiseMediaDocument,
+            { malIds: malIds.slice(offset, offset + 50) },
+            { cacheForMs: 7 * 24 * 60 * 60 * 1_000 }
+        );
+
+        for (const media of present(result.Page?.media)) {
+            if (media && media.idMal) {
+                metadata.set(media.idMal, media);
+            }
+        }
+    }
+
+    return metadata;
 }
 
 async function currentPlayback(entries: FranchiseOrder['entries']) {
@@ -51,6 +64,24 @@ async function currentPlayback(entries: FranchiseOrder['entries']) {
         .where(inArray(animeEpisode.anilistId, anilistIds));
 
     return withFranchisePlayback(entries, episodes);
+}
+
+function currentPrimaryFlags(entries: FranchiseOrder['entries']) {
+    const primaryIds = primaryFranchiseIds(
+        entries.map((entry) => ({
+            malId: entry.malId,
+            title: entry.title,
+            format: entry.format,
+            status: entry.status,
+            episodes: entry.episodes,
+            duration: entry.duration,
+            popularity: entry.popularity,
+            secondary: entry.secondary,
+            relations: entry.relations,
+        }))
+    );
+
+    return entries.map((entry) => ({ ...entry, primary: primaryIds.has(entry.malId) }));
 }
 
 async function saveOrder(malId: number, data: FranchiseOrder) {
@@ -87,7 +118,7 @@ async function refresh(malId: number) {
     const primaryIds = primaryFranchiseIds(
         entries.flatMap((entry): FranchiseSelectionEntry[] => {
             const media = metadata.get(entry.malId);
-            if (!media) {
+            if (!media || !isFranchiseEntryEligible(media)) {
                 return [];
             }
 
@@ -101,6 +132,7 @@ async function refresh(malId: number) {
                         media.title?.native ||
                         entry.title,
                     format: media.format,
+                    status: media.status,
                     episodes: media.episodes,
                     duration: media.duration,
                     popularity: media.popularity,
@@ -126,7 +158,7 @@ async function refresh(malId: number) {
             const anilistId = media?.id;
             const type = typeLabels.get(entry.typeId);
 
-            if (!anilistId || !type) {
+            if (!anilistId || !type || (media && !isFranchiseEntryEligible(media))) {
                 return [];
             }
 
@@ -145,6 +177,16 @@ async function refresh(malId: number) {
                     image: media?.coverImage?.extraLarge ?? media?.coverImage?.large ?? entry.image,
                     audioLabel: '',
                     score: media?.averageScore ?? 0,
+                    format: media?.format,
+                    status: media?.status,
+                    episodes: media?.episodes,
+                    duration: media?.duration,
+                    popularity: media?.popularity,
+                    relations: (media?.relations?.edges ?? []).flatMap((relation) =>
+                        relation?.relationType && relation.node?.idMal
+                            ? [{ type: relation.relationType, malId: relation.node.idMal }]
+                            : []
+                    ),
                     genres: (media?.genres ?? []).flatMap((genre) => (genre ? [genre] : [])),
                     synopsis: plainText(media?.description),
                     secondary: entry.secondary,
@@ -230,7 +272,7 @@ async function cachedFranchiseOrder(malId: number) {
 
 export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
     const order = await cachedFranchiseOrder(malId);
-    const entries = await currentPlayback(order.entries);
+    const entries = await currentPlayback(currentPrimaryFlags(order.entries));
 
     return {
         ...order,
