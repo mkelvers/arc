@@ -24,7 +24,9 @@
         { value: 'side-stories', label: 'Side stories' },
     ];
     const selectedFilterLabel = $derived(filters.find(({ value }) => value === filter)?.label ?? 'Main story');
-    const visibleEntries = $derived(order.entries.filter((entry) => matchesFranchiseFilter(entry, filter)));
+    const visibleEntries = $derived(
+        order.entries.filter((entry) => matchesFranchiseFilter(entry, filter, currentAnimeId))
+    );
 
     function updateScrollState() {
         if (!track) {
