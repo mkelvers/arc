@@ -86,8 +86,7 @@
     <div class="group/timeline relative flex h-7 min-w-0 flex-1 items-center">
         {#if pointer.preview !== null}
             <div
-                class="pointer-events-none absolute bottom-full z-30 mb-2 min-w-max -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-black shadow-md"
-                data-timeline-position
+                class="pointer-events-none absolute bottom-full left-(--timeline-position) z-30 mb-2 min-w-max -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-black shadow-md after:absolute after:top-full after:left-1/2 after:size-0 after:-translate-x-1/2 after:border-x-1 after:border-x-transparent after:border-t-1 after:border-t-white after:content-['']"
                 style:--timeline-position={`${pointer.position}px`}
             >
                 {formatTime(pointer.preview)}
@@ -95,9 +94,7 @@
         {/if}
 
         <div
-            class="timeline-progress relative h-1 w-full rounded-full bg-white/25 transition-all group-hover/timeline:h-1.5"
-            data-buffered-progress
-            data-progress
+            class="timeline-progress relative h-1 w-full rounded-full bg-white/25 transition-all before:absolute before:inset-y-0 before:left-0 before:w-(--buffered-progress) before:rounded-l-full before:bg-white/60 before:content-[''] after:absolute after:inset-y-0 after:left-0 after:w-(--progress) after:rounded-l-full after:bg-accent after:content-[''] group-hover/timeline:h-1.5"
             style:--buffered-progress={`${progress.buffered}%`}
             style:--progress={`${progress.played}%`}
             aria-hidden="true"

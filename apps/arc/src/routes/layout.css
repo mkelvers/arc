@@ -2,44 +2,6 @@
 @import '@fontsource-variable/manrope/wght.css';
 @import 'tailwindcss';
 
-[data-buffered-progress]::before,
-[data-progress]::after {
-    position: absolute;
-    inset-block: 0;
-    left: 0;
-    content: '';
-}
-
-[data-buffered-progress]::before {
-    width: var(--buffered-progress);
-    background: rgb(255 255 255 / 0.6);
-}
-
-[data-progress]::after {
-    width: var(--progress);
-    background: var(--theme-accent);
-}
-
-[data-timeline-position]::after {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-inline: 0.25rem solid transparent;
-    border-top: 0.25rem solid white;
-    content: '';
-    transform: translateX(-50%);
-}
-
-[data-timeline-position] {
-    left: var(--timeline-position);
-}
-
-[data-subtitle-size] {
-    font-size: attr(data-subtitle-size);
-}
-
 :root {
     color-scheme: light dark;
 
