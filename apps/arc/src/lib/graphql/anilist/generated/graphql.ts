@@ -213,7 +213,7 @@ export type FranchiseMediaQueryVariables = Exact<{
 }>;
 
 
-export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: number | null, format: MediaFormat | null, episodes: number | null, duration: number | null, popularity: number | null, averageScore: number | null, description: string | null, genres: Array<string | null> | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { idMal: number | null } | null } | null> | null } | null } | null> | null } | null };
+export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: number | null, format: MediaFormat | null, status: MediaStatus | null, episodes: number | null, duration: number | null, popularity: number | null, averageScore: number | null, description: string | null, genres: Array<string | null> | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { idMal: number | null } | null } | null> | null } | null } | null> | null } | null };
 
 export type HomeAnimeQueryVariables = Exact<{
   season: MediaSeason;
@@ -471,6 +471,7 @@ export const FranchiseMediaDocument = new TypedDocumentString(`
         large
       }
       format
+      status
       episodes
       duration
       popularity

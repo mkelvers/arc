@@ -13,6 +13,7 @@ query FranchiseMedia($malIds: [Int]) {
                 large
             }
             format
+            status
             episodes
             duration
             popularity
