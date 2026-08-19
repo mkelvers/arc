@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { FranchiseSelectionEntry } from './selection';
-import { primaryFranchiseIds } from './selection';
+import { isFranchiseEntryEligible, primaryFranchiseIds } from './selection';
 
 function entry(
     malId: number,
@@ -11,6 +11,7 @@ function entry(
         malId,
         title: `Anime ${malId}`,
         format: 'TV',
+        status: 'FINISHED',
         episodes: 12,
         duration: 24,
         popularity: 10_000,
@@ -93,7 +94,7 @@ describe('primaryFranchiseIds', () => {
             }),
         ]);
 
-        expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 6, 7, 8, 9, 10]);
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 7, 8, 10]);
     });
 
     test('uses Attack on Titan continuity instead of recap and side-story branches', () => {
@@ -163,7 +164,7 @@ describe('primaryFranchiseIds', () => {
             }),
         ]);
 
-        expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4]);
     });
 
     test('keeps an unlinked future season but not unrelated television spin-offs', () => {
@@ -184,5 +185,177 @@ describe('primaryFranchiseIds', () => {
         ]);
 
         expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 2]);
+    });
+
+    test('keeps a Solo Leveling recap movie out of the main story', () => {
+        const selected = primaryFranchiseIds([
+            entry(151807, {
+                title: 'Solo Leveling',
+                popularity: 900_000,
+                relations: [relation('SEQUEL', 176496), relation('SUMMARY', 184694)],
+            }),
+            entry(184694, {
+                title: 'Solo Leveling -ReAwakening-',
+                format: 'MOVIE',
+                episodes: 1,
+                duration: 114,
+                popularity: 250_000,
+                relations: [relation('SEQUEL', 176496), relation('PARENT', 151807)],
+            }),
+            entry(176496, {
+                title: 'Solo Leveling Season 2',
+                popularity: 700_000,
+                relations: [relation('PREQUEL', 151807), relation('PREQUEL', 184694)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([151807, 176496]);
+    });
+
+    test('keeps a standalone Attack on Titan OVA out of the main story', () => {
+        const selected = primaryFranchiseIds([
+            entry(16498, {
+                title: 'Attack on Titan',
+                popularity: 1_000_000,
+                relations: [relation('SEQUEL', 25781), relation('SEQUEL', 9910)],
+            }),
+            entry(25781, {
+                title: 'Attack on Titan: No Regrets',
+                format: 'OVA',
+                episodes: 2,
+                duration: 28,
+                popularity: 151_964,
+                relations: [relation('SEQUEL', 16498)],
+            }),
+            entry(9910, {
+                title: 'Attack on Titan Season 2',
+                popularity: 700_000,
+                relations: [relation('PREQUEL', 16498)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([9910, 16498]);
+    });
+
+    test('uses a side-story OVA as a continuity bridge without selecting it', () => {
+        const selected = primaryFranchiseIds([
+            entry(1, {
+                title: 'Main series',
+                popularity: 100_000,
+                relations: [],
+            }),
+            entry(2, {
+                title: 'Bridge OVA',
+                format: 'OVA',
+                episodes: 3,
+                duration: 24,
+                relations: [relation('PREQUEL', 1), relation('SEQUEL', 3)],
+            }),
+            entry(3, {
+                title: 'Main series continuation',
+                popularity: 90_000,
+                relations: [relation('PREQUEL', 2)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 3]);
+    });
+
+    test('keeps My Hero Academia side content and Vigilantes out of the main story', () => {
+        const selected = primaryFranchiseIds([
+            entry(31964, {
+                title: 'My Hero Academia',
+                popularity: 866_699,
+                relations: [
+                    relation('SEQUEL', 33486),
+                    relation('SIDE_STORY', 36896),
+                    relation('SPIN_OFF', 60593),
+                ],
+            }),
+            entry(33486, {
+                title: 'My Hero Academia Season 2',
+                popularity: 650_784,
+                relations: [relation('PREQUEL', 31964), relation('SEQUEL', 36456)],
+            }),
+            entry(36456, {
+                title: 'My Hero Academia Season 3',
+                popularity: 596_710,
+                relations: [relation('PREQUEL', 33486), relation('SIDE_STORY', 36896)],
+            }),
+            entry(36896, {
+                title: 'My Hero Academia: Two Heroes',
+                format: 'MOVIE',
+                episodes: 1,
+                duration: 96,
+                popularity: 220_935,
+                relations: [relation('PARENT', 36456)],
+            }),
+            entry(60593, {
+                title: 'My Hero Academia: Vigilantes',
+                popularity: 72_715,
+                relations: [relation('PARENT', 31964), relation('SEQUEL', 61942)],
+            }),
+            entry(61942, {
+                title: 'My Hero Academia: Vigilantes Season 2',
+                popularity: 39_044,
+                relations: [relation('PREQUEL', 60593)],
+            }),
+            entry(63130, {
+                title: 'My Hero Academia: More',
+                format: 'SPECIAL',
+                episodes: 1,
+                duration: 23,
+                popularity: 37_708,
+                relations: [relation('PREQUEL', 36456)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([31964, 33486, 36456]);
+    });
+});
+
+describe('isFranchiseEntryEligible', () => {
+    test('rejects unreleased and music media', () => {
+        for (const status of ['FINISHED', 'RELEASING', 'HIATUS', 'CANCELLED', null] as const) {
+            expect(isFranchiseEntryEligible({ status, format: 'TV' })).toBe(true);
+        }
+
+        expect(isFranchiseEntryEligible({ status: 'NOT_YET_RELEASED', format: 'TV' })).toBe(false);
+        expect(isFranchiseEntryEligible({ status: 'FINISHED', format: 'MUSIC' })).toBe(false);
+    });
+
+    test('handles varied franchise inventory without relying on format', () => {
+        const inventory = [
+            { status: 'FINISHED', format: 'MOVIE' },
+            { status: 'RELEASING', format: 'ONA' },
+            { status: 'HIATUS', format: 'OVA' },
+            { status: 'CANCELLED', format: 'SPECIAL' },
+            { status: 'NOT_YET_RELEASED', format: 'MOVIE' },
+            { status: null, format: null },
+        ] as const;
+
+        expect(inventory.filter(isFranchiseEntryEligible)).toHaveLength(5);
+    });
+
+    test('keeps the availability rule stable across seeded random inventory', () => {
+        const statuses = [
+            'FINISHED',
+            'RELEASING',
+            'HIATUS',
+            'CANCELLED',
+            'NOT_YET_RELEASED',
+            null,
+        ] as const;
+        let seed = 0xa7c0;
+        const inventory = Array.from({ length: 256 }, () => {
+            seed = (seed * 1_664_525 + 1_013_904_223) >>> 0;
+            return { status: statuses[seed % statuses.length], format: 'TV' as const };
+        });
+
+        expect(
+            inventory.every(
+                (entry) => isFranchiseEntryEligible(entry) === (entry.status !== 'NOT_YET_RELEASED')
+            )
+        ).toBe(true);
     });
 });

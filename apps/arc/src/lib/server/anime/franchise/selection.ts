@@ -1,9 +1,14 @@
-import type { MediaFormat, MediaRelation } from '$lib/graphql/anilist/generated/graphql';
+import type {
+    MediaFormat,
+    MediaRelation,
+    MediaStatus,
+} from '$lib/graphql/anilist/generated/graphql';
 
 export type FranchiseSelectionEntry = {
     malId: number;
     title: string;
     format: MediaFormat | null;
+    status: MediaStatus | null;
     episodes: number | null;
     duration: number | null;
     popularity: number | null;
@@ -14,12 +19,20 @@ export type FranchiseSelectionEntry = {
     }>;
 };
 
+export function isFranchiseEntryEligible(
+    entry: Pick<FranchiseSelectionEntry, 'status' | 'format'>
+) {
+    return entry.status !== 'NOT_YET_RELEASED' && entry.format !== 'MUSIC';
+}
+
 const continuityRelations = new Set<MediaRelation>(['PREQUEL', 'SEQUEL']);
 const replacementRelations = new Set<MediaRelation>([
     'ALTERNATIVE',
     'COMPILATION',
     'CONTAINS',
     'SUMMARY',
+    'SIDE_STORY',
+    'SPIN_OFF',
 ]);
 
 const formatWeight: Partial<Record<MediaFormat, number>> = {
@@ -44,7 +57,10 @@ function entryWeight(entry: FranchiseSelectionEntry) {
     return entry.secondary ? weight / 4 : weight;
 }
 
-function continuityComponents(entries: FranchiseSelectionEntry[]) {
+function continuityComponents(
+    entries: FranchiseSelectionEntry[],
+    includedIds = new Set(entries.map(({ malId }) => malId))
+) {
     const ids = new Set(entries.map(({ malId }) => malId));
     const adjacent = new Map<number, Set<number>>(entries.map(({ malId }) => [malId, new Set()]));
 
@@ -75,7 +91,9 @@ function continuityComponents(entries: FranchiseSelectionEntry[]) {
                 continue;
             }
 
-            component.push(malId);
+            if (includedIds.has(malId)) {
+                component.push(malId);
+            }
             for (const relatedId of adjacent.get(malId) ?? []) {
                 if (!visited.has(relatedId)) {
                     visited.add(relatedId);
@@ -87,7 +105,7 @@ function continuityComponents(entries: FranchiseSelectionEntry[]) {
         components.push(component);
     }
 
-    return components;
+    return components.filter((component) => component.length);
 }
 
 function isSeasonContinuation(entry: FranchiseSelectionEntry) {
@@ -98,6 +116,27 @@ function isSeasonContinuation(entry: FranchiseSelectionEntry) {
             entry.title
         )
     );
+}
+
+function isBranchContinuation(
+    entry: FranchiseSelectionEntry,
+    primaryIds: Set<number>,
+    entries: FranchiseSelectionEntry[]
+) {
+    return entry.relations.some((relation) => {
+        if (relation.type !== 'PREQUEL') {
+            return false;
+        }
+
+        const predecessor = entries.find(({ malId }) => malId === relation.malId);
+        return predecessor?.relations.some(
+            (parent) =>
+                primaryIds.has(parent.malId) &&
+                (parent.type === 'PARENT' ||
+                    parent.type === 'SIDE_STORY' ||
+                    parent.type === 'SPIN_OFF')
+        );
+    });
 }
 
 function hasRelationBetween(
@@ -135,9 +174,32 @@ function isNarrativeMovie(
         entry.format === 'MOVIE' &&
         !entry.secondary &&
         totalRuntime(entry) >= 40 &&
-        hasRelationBetween(primaryIds, entry.malId, entries) &&
+        hasRelationBetween(primaryIds, entry.malId, entries, continuityRelations) &&
         !hasRelationBetween(primaryIds, entry.malId, entries, replacementRelations)
     );
+}
+
+function isReplacementEntry(entry: FranchiseSelectionEntry, entries: FranchiseSelectionEntry[]) {
+    return (
+        entry.format === 'MOVIE' &&
+        entries.some(
+            (candidate) =>
+                candidate.relations.some(
+                    (relation) =>
+                        relation.malId === entry.malId && replacementRelations.has(relation.type)
+                ) ||
+                (candidate.malId === entry.malId &&
+                    candidate.relations.some((relation) => replacementRelations.has(relation.type)))
+        )
+    );
+}
+
+function isContinuityEntry(entry: FranchiseSelectionEntry) {
+    if (entry.format === 'OVA' || entry.format === 'ONA') {
+        return false;
+    }
+
+    return entry.format !== 'SPECIAL' && entry.format !== 'TV_SHORT';
 }
 
 export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
@@ -145,8 +207,13 @@ export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
         return new Set<number>();
     }
 
-    const byId = new Map(entries.map((entry) => [entry.malId, entry]));
-    const components = continuityComponents(entries);
+    const continuityGraphEntries = entries.filter((entry) => !isReplacementEntry(entry, entries));
+    const continuityEntries = continuityGraphEntries.filter((entry) => isContinuityEntry(entry));
+    const components = continuityComponents(
+        continuityGraphEntries,
+        new Set(continuityEntries.map(({ malId }) => malId))
+    );
+    const byId = new Map(continuityEntries.map((entry) => [entry.malId, entry]));
     const primaryComponent = components.toSorted((left, right) => {
         const score = (component: number[]) =>
             component.reduce((total, malId) => {
@@ -163,7 +230,10 @@ export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
     const primaryIds = new Set(primaryComponent);
 
     for (const entry of entries) {
-        if (isSeasonContinuation(entry) || isNarrativeMovie(entry, primaryIds, entries)) {
+        if (
+            (isSeasonContinuation(entry) && !isBranchContinuation(entry, primaryIds, entries)) ||
+            isNarrativeMovie(entry, primaryIds, entries)
+        ) {
             primaryIds.add(entry.malId);
         }
     }

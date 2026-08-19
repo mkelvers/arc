@@ -22,5 +22,24 @@ export function verifiedFranchiseOrder(data: FranchiseCacheData) {
         return null;
     }
 
-    return Number.isNaN(Date.parse(data.anilistVerifiedAt)) ? null : data.order;
+    if (Number.isNaN(Date.parse(data.anilistVerifiedAt))) {
+        return null;
+    }
+
+    // Force refreshes of orders written before availability and format were cached.
+    if (
+        data.order.entries.some(
+            (entry) =>
+                !Object.hasOwn(entry, 'format') ||
+                !Object.hasOwn(entry, 'status') ||
+                !Object.hasOwn(entry, 'relations') ||
+                !Object.hasOwn(entry, 'episodes') ||
+                !Object.hasOwn(entry, 'duration') ||
+                !Object.hasOwn(entry, 'popularity')
+        )
+    ) {
+        return null;
+    }
+
+    return data.order;
 }
