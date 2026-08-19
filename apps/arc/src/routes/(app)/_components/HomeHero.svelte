@@ -38,6 +38,7 @@
         backdrops: new Set<number>(),
         logos: new Set<number>(),
     });
+    let lastManualSelection = 0;
     const activeAnime = $derived(highlights[carousel.active]);
     const autoRotate = $derived(highlights.length > 1 && !prefersReducedMotion.current);
     const upcoming = $derived((carousel.active + 1) % highlights.length);
@@ -45,6 +46,14 @@
     function select(index: number, mode: ProgressMode = 'animated') {
         if (!highlights.length) {
             return;
+        }
+
+        if (mode === 'complete') {
+            const now = Date.now();
+            if (now - lastManualSelection < 300) {
+                return;
+            }
+            lastManualSelection = now;
         }
 
         const selected = (index + highlights.length) % highlights.length;
@@ -244,7 +253,11 @@
                                                         : 'w-full'
                                                 )}
                                                 style:animation-duration="15s"
-                                                onanimationend={() => select(carousel.active + 1)}
+                                                onanimationend={() => {
+                                                    if (carousel.progressMode === 'animated') {
+                                                        select(carousel.active + 1);
+                                                    }
+                                                }}
                                             ></span>
                                         {/key}
                                     {/if}
