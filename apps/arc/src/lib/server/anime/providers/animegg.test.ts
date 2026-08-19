@@ -104,13 +104,11 @@ describe('AnimeGG provider', () => {
                 {
                     url: 'https://www.animegg.org/play/one.mp4',
                     quality: '480p',
-                    audioDelay: 0,
                     subtitleUrl: null,
                 },
                 {
                     url: 'https://www.animegg.org/play/two.mp4',
                     quality: '720p',
-                    audioDelay: 0,
                     subtitleUrl: null,
                 },
             ],

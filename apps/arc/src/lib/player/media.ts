@@ -4,7 +4,6 @@ export interface Stream {
     url: string;
     kind?: 'direct' | 'iframe';
     quality: string | null;
-    audioDelay: number;
     subtitleUrl?: string | null;
     provider?: string;
 }

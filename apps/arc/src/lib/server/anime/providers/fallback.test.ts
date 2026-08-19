@@ -9,12 +9,10 @@ const episode = { id: '1', number: 1 };
 const stream: ProviderStream = {
     url: 'https://media.example/episode.m3u8',
     quality: null,
-    audioDelay: 0,
 };
 const alternateStream: ProviderStream = {
     url: 'https://fallback.example/episode.m3u8',
     quality: '720p',
-    audioDelay: 0,
 };
 const from = (provider: string, value: ProviderStream) => ({
     ...value,

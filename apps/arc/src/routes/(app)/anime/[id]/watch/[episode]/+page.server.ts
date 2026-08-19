@@ -61,21 +61,18 @@ async function getPlayback(
         streams: Object.fromEntries(
             Object.entries(remoteStreams).map(([mode, sources]) => [
                 mode,
-                (sources ?? []).map(
-                    ({ url, kind, quality, audioDelay, subtitleUrl, provider }) => ({
-                        url:
-                            kind === 'iframe'
-                                ? url
-                                : `/api/episodes/stream?${new URLSearchParams({ url })}`,
-                        kind,
-                        quality,
-                        audioDelay,
-                        provider,
-                        subtitleUrl: subtitleUrl
-                            ? `/api/episodes/stream?${new URLSearchParams({ url: subtitleUrl })}`
-                            : null,
-                    })
-                ),
+                (sources ?? []).map(({ url, kind, quality, subtitleUrl, provider }) => ({
+                    url:
+                        kind === 'iframe'
+                            ? url
+                            : `/api/episodes/stream?${new URLSearchParams({ url })}`,
+                    kind,
+                    quality,
+                    provider,
+                    subtitleUrl: subtitleUrl
+                        ? `/api/episodes/stream?${new URLSearchParams({ url: subtitleUrl })}`
+                        : null,
+                })),
             ])
         ),
         error: failed,

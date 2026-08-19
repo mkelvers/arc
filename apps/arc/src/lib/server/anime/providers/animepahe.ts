@@ -318,7 +318,6 @@ async function getStreams(
             stream: {
                 url: await resolveKwik(embed.url),
                 quality: embed.quality,
-                audioDelay: 0,
                 subtitleUrl: null,
             } satisfies ProviderStream,
         })),

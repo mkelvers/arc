@@ -362,14 +362,12 @@ async function resolveEmbed(value: string) {
         ...streams.map((stream): ProviderStream => ({
             url: stream,
             quality: null,
-            audioDelay: 0,
             subtitleUrl: subtitle,
         })),
         {
             url: embed.toString(),
             kind: 'iframe',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: null,
         } satisfies ProviderStream,
     ];

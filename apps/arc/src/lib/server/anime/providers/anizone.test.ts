@@ -128,7 +128,6 @@ describe('AniZone provider', () => {
                     url: 'https://video.vid-cdn.xyz/show/master.m3u8',
                     subtitleUrl: 'https://video.vid-cdn.xyz/show/dialogue.ass',
                     quality: null,
-                    audioDelay: 0,
                 },
             ],
             dub: [
@@ -136,7 +135,6 @@ describe('AniZone provider', () => {
                     url: 'https://video.vid-cdn.xyz/show/master.m3u8',
                     subtitleUrl: null,
                     quality: null,
-                    audioDelay: 0,
                 },
             ],
         });

@@ -13,12 +13,7 @@ import {
     userAgent,
 } from './allanime/client';
 import { decrypt, getCrypto, lease } from './allanime/crypto';
-import {
-    decodeSourceUrl,
-    detectAudioDelay,
-    resolveTarget,
-    sourceReferences,
-} from './allanime/sources';
+import { decodeSourceUrl, resolveTarget, sourceReferences } from './allanime/sources';
 import type { Source, Stream, StreamCrypto, Streams } from './allanime/types';
 
 const cache = new RequestCache<string, Streams>(2 * 60 * 1_000);
@@ -138,11 +133,8 @@ async function playableSources(sources: Source[], mode: AudioMode) {
         );
     }
 
-    const audioDelay = mode === 'dub' ? await detectAudioDelay(resolved[0].url).catch(() => 0) : 0;
-
     return resolved.map((stream): Stream => ({
         ...stream,
-        audioDelay,
     }));
 }
 

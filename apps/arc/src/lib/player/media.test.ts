@@ -22,8 +22,8 @@ import {
 } from './media';
 
 const streams: Stream[] = [
-    { url: '/1080', quality: '1080p', audioDelay: 0 },
-    { url: '/720', quality: '720p', audioDelay: 0 },
+    { url: '/1080', quality: '1080p' },
+    { url: '/720', quality: '720p' },
 ];
 
 describe('player media helpers', () => {
@@ -40,8 +40,8 @@ describe('player media helpers', () => {
         expect(
             orderStreams(
                 [
-                    { url: '/slow.mp4', quality: '480p', audioDelay: 0 },
-                    { url: '/adaptive.m3u8', quality: null, audioDelay: 0 },
+                    { url: '/slow.mp4', quality: '480p' },
+                    { url: '/adaptive.m3u8', quality: null },
                 ],
                 'best'
             ).map(({ url }) => url)
@@ -102,14 +102,12 @@ Cheers!
         const sub: Stream = {
             url: '/anikoto-sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/sub.vtt',
             provider: 'AniKoto',
         };
         const dub: Stream = {
             url: '/anikoto-dub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: null,
             provider: 'AniKoto',
         };
@@ -136,14 +134,12 @@ Cheers!
         const sub: Stream = {
             url: '/anineko-sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/sub.vtt',
             provider: 'AniNeko',
         };
         const dub: Stream = {
             url: '/anikoto-dub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: null,
             provider: 'AniKoto',
         };
@@ -158,14 +154,12 @@ Cheers!
         const sub: Stream = {
             url: '/sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/shared.vtt',
             provider: 'AniKoto',
         };
         const dub: Stream = {
             url: '/sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/shared.vtt',
             provider: 'AniKoto',
         };
@@ -180,14 +174,12 @@ Cheers!
         const sub: Stream = {
             url: '/sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/sub.vtt',
             provider: 'AniKoto',
         };
         const dub: Stream = {
             url: '/dub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/dub.vtt',
             provider: 'AniKoto',
         };
@@ -202,14 +194,12 @@ Cheers!
         const primary: Stream = {
             url: '/anikoto-sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/anikoto.vtt',
             provider: 'AniKoto',
         };
         const alternative: Stream = {
             url: '/anineko-sub.m3u8',
             quality: null,
-            audioDelay: 0,
             subtitleUrl: '/anineko.vtt',
             provider: 'AniNeko',
         };

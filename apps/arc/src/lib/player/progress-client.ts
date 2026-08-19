@@ -3,7 +3,8 @@ import { nextProgressEventAt, ProgressSchedule } from './progress';
 interface ProgressMedia {
     currentTime: number;
     playing: boolean;
-    video: Pick<HTMLVideoElement, 'currentTime' | 'duration'>;
+    video: Pick<HTMLVideoElement, 'currentTime' | 'duration' | 'seeking'>;
+    seeking: boolean;
 }
 
 interface Episode {
@@ -82,7 +83,9 @@ export class PlaybackProgress {
     }
 
     timeUpdated() {
-        this.media.currentTime = this.media.video.currentTime;
+        if (!this.media.seeking) {
+            this.media.currentTime = this.media.video.currentTime;
+        }
 
         const reason = this.schedule.update({
             currentTime: this.media.video.currentTime,

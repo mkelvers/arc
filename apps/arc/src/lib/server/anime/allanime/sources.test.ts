@@ -24,7 +24,6 @@ describe('AllAnime source URLs', () => {
             {
                 url: 'https://media.example/video/master.m3u8',
                 quality: null,
-                audioDelay: 0,
             },
         ]);
     });

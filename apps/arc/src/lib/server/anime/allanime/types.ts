@@ -3,7 +3,6 @@ import type { AudioMode } from '$lib/audio';
 export interface Stream {
     url: string;
     quality: string | null;
-    audioDelay: number;
 }
 
 export type Streams = Partial<Record<AudioMode, Stream[]>>;

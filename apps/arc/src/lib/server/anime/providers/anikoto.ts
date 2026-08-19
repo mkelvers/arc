@@ -456,7 +456,6 @@ async function resolveStream(embed: URL) {
     return {
         url: streamUrl.toString(),
         quality: null,
-        audioDelay: 0,
         subtitleUrl: await englishSubtitle(payload),
     } satisfies ProviderStream;
 }

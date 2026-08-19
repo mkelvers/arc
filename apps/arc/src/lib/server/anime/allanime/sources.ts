@@ -1,4 +1,3 @@
-import { audioDelayFromMp4 } from '$lib/server/anime/mp4';
 import { record } from '$lib/utils';
 import { referer, userAgent } from './client';
 import type { Source, Stream } from './types';
@@ -52,61 +51,6 @@ export function decodeSourceUrl(value: string) {
     return decoded.replace('/clock', '/clock.json');
 }
 
-async function responsePrefix(response: Response, limit: number) {
-    const reader = response.body?.getReader();
-    if (!reader) {
-        return new Uint8Array();
-    }
-
-    const chunks: Uint8Array[] = [];
-    let length = 0;
-
-    try {
-        while (length < limit) {
-            const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
-
-            const remaining = limit - length;
-            const chunk = value.length > remaining ? value.subarray(0, remaining) : value;
-            chunks.push(chunk);
-            length += chunk.length;
-        }
-    } finally {
-        await reader.cancel().catch(() => undefined);
-    }
-
-    const result = new Uint8Array(length);
-    let offset = 0;
-
-    for (const chunk of chunks) {
-        result.set(chunk, offset);
-        offset += chunk.length;
-    }
-
-    return result;
-}
-
-export async function detectAudioDelay(target: string) {
-    const response = await fetch(target, {
-        headers: {
-            Range: 'bytes=0-2097151',
-            Referer: new URL(target).hostname.endsWith('.mp4upload.com')
-                ? 'https://www.mp4upload.com'
-                : referer,
-            'User-Agent': userAgent,
-        },
-        signal: AbortSignal.timeout(8_000),
-    });
-
-    if (!response.ok && response.status !== 206) {
-        return 0;
-    }
-
-    return audioDelayFromMp4(await responsePrefix(response, 2_097_152));
-}
-
 function streamQuality(value: unknown) {
     const normalized = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
     const match = normalized.match(/^(\d{3,4})p?$/i);
@@ -158,7 +102,6 @@ function wixStreams(target: string): Stream[] {
                   {
                       url: `https://${match[1]}/${quality}/${match[3]}`,
                       quality,
-                      audioDelay: 0,
                   },
               ]
             : [];
@@ -190,7 +133,6 @@ export async function resolveTarget(
             {
                 url: url.toString(),
                 quality: quality ?? streamQuality(pathQuality),
-                audioDelay: 0,
             },
         ];
     }
@@ -205,13 +147,13 @@ export async function resolveTarget(
     }
 
     if (/mpegurl|vnd\.apple\.mpegurl/i.test(response.headers.get('content-type') ?? '')) {
-        return [{ url: target, quality, audioDelay: 0 }];
+        return [{ url: target, quality }];
     }
 
     const text = await response.text();
 
     if (/^\s*#EXTM3U\b/i.test(text)) {
-        return [{ url: target, quality, audioDelay: 0 }];
+        return [{ url: target, quality }];
     }
 
     try {

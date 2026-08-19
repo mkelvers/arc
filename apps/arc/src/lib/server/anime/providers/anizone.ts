@@ -290,7 +290,6 @@ export const anizoneProvider: PlaybackProvider = {
                                       ...stream,
                                       subtitleUrl: mode === 'sub' ? stream.subtitleUrl : null,
                                       quality: null,
-                                      audioDelay: 0,
                                   },
                               ],
                           ],

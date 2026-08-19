@@ -225,7 +225,6 @@ async function getStreams(
                         await requestText(new URL(`/embed/${id}`, baseUrl), page.toString())
                     ).map((source): ProviderStream => ({
                         ...source,
-                        audioDelay: 0,
                         subtitleUrl: null,
                     }))
                 )

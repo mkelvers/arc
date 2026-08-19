@@ -183,7 +183,6 @@ describe('AniKoto provider', () => {
                 {
                     url: 'https://megap.kotocdn.site/sub/master.m3u8',
                     quality: null,
-                    audioDelay: 0,
                     subtitleUrl: 'https://cc.lostproject.club/sub.vtt',
                 },
             ],
@@ -191,7 +190,6 @@ describe('AniKoto provider', () => {
                 {
                     url: 'https://megap.kotocdn.site/dub/master.m3u8',
                     quality: null,
-                    audioDelay: 0,
                     subtitleUrl: 'https://cc.lostproject.club/dub.vtt',
                 },
             ],
@@ -232,7 +230,6 @@ describe('AniKoto provider', () => {
                 {
                     url: 'https://megap.shiora.site/jjk/master.m3u8',
                     quality: null,
-                    audioDelay: 0,
                     subtitleUrl: 'https://cc.lostproject.club/jjk.vtt',
                 },
             ],
@@ -293,7 +290,6 @@ describe('AniKoto provider', () => {
             {
                 url: 'https://megap.kotocdn.site/dub/master.m3u8',
                 quality: null,
-                audioDelay: 0,
                 subtitleUrl: 'https://cc.lostproject.club/eng-3.vtt',
             },
         ]);
@@ -333,7 +329,6 @@ describe('AniKoto provider', () => {
             {
                 url: 'https://megap.kotocdn.site/dub/master.m3u8',
                 quality: null,
-                audioDelay: 0,
                 subtitleUrl: 'https://cc.lostproject.club/english-ai.vtt',
             },
         ]);

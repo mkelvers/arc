@@ -2,7 +2,6 @@ import { goto } from '$app/navigation';
 import type { AudioMode } from '$lib/audio';
 import type HlsType from 'hls.js';
 import { tick } from 'svelte';
-import { AudioDelay } from './audio';
 import { Captions } from './captions.svelte';
 import {
     availableModes,
@@ -50,12 +49,13 @@ export class Playback {
     private changingSource = false;
     private pendingSourceFailure: string | null = null;
     private pendingSeekTarget: number | null = null;
+    private resumeAfterSeek = false;
+    private seekInFlight = false;
+    private logicalSeekTime: number | null = null;
     private sourceChain: Stream[] = [];
     private hls: HlsType | null = null;
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
     private waitingTimer: ReturnType<typeof setTimeout> | undefined;
-    private readonly audio = new AudioDelay();
-
     private allSources: Sources;
 
     constructor(
@@ -127,12 +127,12 @@ export class Playback {
         return this.activeSources[this.sourceIndex]?.kind ?? 'direct';
     }
 
-    get audioDelay() {
-        return this.activeSources[this.sourceIndex]?.audioDelay ?? 0;
-    }
-
     get subtitles() {
         return subtitlesAt(this.captions.cues, this.currentTime);
+    }
+
+    get seeking() {
+        return this.seekInFlight || this.video.seeking;
     }
 
     get bestQuality() {
@@ -151,29 +151,12 @@ export class Playback {
             : this.quality;
     }
 
-    syncAudio(reset = false) {
-        this.audio.sync(this.video, this.audioDelay, reset);
-    }
-
     setScrubbing(active: boolean) {
         this.scrubbing = active;
-
-        if (active) {
-            return;
-        }
-
-        if (!this.video.seeking) {
-            this.syncAudio(true);
-        }
-    }
-
-    private resumeAudio() {
-        this.audio.resume(this.video, this.audioDelay);
     }
 
     togglePlayback() {
         if (this.video.paused) {
-            this.resumeAudio();
             this.video.play().catch(() => undefined);
             return;
         }
@@ -182,8 +165,6 @@ export class Playback {
     }
 
     toggleMute() {
-        this.resumeAudio();
-
         if (this.video.muted || this.video.volume === 0) {
             this.video.muted = false;
             this.video.volume = this.lastVolume;
@@ -195,7 +176,6 @@ export class Playback {
     }
 
     setVolume(value: number) {
-        this.resumeAudio();
         this.video.volume = value;
         this.video.muted = value === 0;
 
@@ -278,8 +258,6 @@ export class Playback {
         this.destroyHls();
         this.captions.clear();
         this.watchSource();
-        this.syncAudio(true);
-        this.resumeAudio();
         video.removeAttribute('src');
         video.load();
 
@@ -300,6 +278,12 @@ export class Playback {
         );
 
         if (!isHlsSource(source)) {
+            video.src = source;
+            video.load();
+            return;
+        }
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = source;
             video.load();
             return;
@@ -379,12 +363,6 @@ export class Playback {
             return;
         }
 
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = source;
-            video.load();
-            return;
-        }
-
         await this.tryNextSource(source);
     }
 
@@ -417,7 +395,6 @@ export class Playback {
                 )
             );
             hls.audioTrack = audioTrack;
-            this.syncAudio(true);
             preferences.save('audio-mode', mode);
             void this.captions.load(
                 this.sources,
@@ -517,61 +494,77 @@ export class Playback {
         }
     }
 
+    private beginSeek(time: number) {
+        this.seekInFlight = true;
+        this.logicalSeekTime = time;
+        this.currentTime = time;
+        if (!this.video.paused) {
+            this.resumeAfterSeek = true;
+            this.video.pause();
+        }
+        this.loading = true;
+        this.video.currentTime = time;
+    }
+
     seek(seconds: number) {
         if (!Number.isFinite(this.duration)) {
             return;
         }
 
-        this.pendingSeekTarget = null;
         const time = Math.max(0, Math.min(this.duration, seconds));
-        this.currentTime = time;
+        if (this.seekInFlight || this.video.seeking) {
+            this.pendingSeekTarget = time;
+            this.logicalSeekTime = time;
+            this.currentTime = time;
+            return;
+        }
 
-        this.syncAudio(true);
-        this.video.currentTime = time;
+        this.beginSeek(time);
     }
 
     seekBy(delta: number) {
-        this.pendingSeekTarget = seekTarget(
-            this.pendingSeekTarget ?? this.currentTime,
-            delta,
-            this.duration
-        );
+        const base = this.pendingSeekTarget ?? this.logicalSeekTime ?? this.video.currentTime;
+        this.pendingSeekTarget = seekTarget(base, delta, this.duration);
 
-        if (this.video.seeking) {
+        if (this.seekInFlight || this.video.seeking) {
+            this.logicalSeekTime = this.pendingSeekTarget;
+            this.currentTime = this.pendingSeekTarget;
             return;
         }
 
         const target = this.pendingSeekTarget;
         this.pendingSeekTarget = null;
         if (target !== null) {
-            this.seek(target);
+            this.beginSeek(target);
         }
     }
 
     handleSeeked() {
+        this.seekInFlight = false;
         if (this.pendingSeekTarget !== null) {
             const target = this.pendingSeekTarget;
             this.pendingSeekTarget = null;
-            this.seek(target);
+            this.beginSeek(target);
             return;
         }
 
-        this.syncAudio(true);
+        if (this.resumeAfterSeek && this.video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+            this.resumeAfterSeek = false;
+            this.video.play().catch(() => undefined);
+        }
+        this.logicalSeekTime = null;
     }
 
     handleMetadata(startAt = 0) {
         const video = this.video;
         this.duration = video.duration;
         this.error = false;
-        this.syncAudio(true);
-
         if (this.resumeAt !== null) {
             this.currentTime = Math.min(this.resumeAt, this.duration);
             video.currentTime = this.currentTime;
             this.resumeAt = null;
 
             if (this.resumePlayback) {
-                this.resumeAudio();
                 video.play().catch(() => undefined);
             }
 
@@ -593,7 +586,6 @@ export class Playback {
             return;
         }
 
-        this.resumeAudio();
         video.play().catch(() => {
             if (this.video !== video) {
                 return;
@@ -618,6 +610,11 @@ export class Playback {
         this.clearWaitingTimer();
         this.loading = false;
         this.clearSourceWatchdog();
+
+        if (this.resumeAfterSeek && !this.video.seeking) {
+            this.resumeAfterSeek = false;
+            this.video.play().catch(() => undefined);
+        }
     }
 
     handlePlaying() {
@@ -665,7 +662,6 @@ export class Playback {
         this.clearWaitingTimer();
         this.captions.clear();
         this.destroyHls();
-        this.audio.sync(this.video, 0, true);
 
         this.resumeAt = null;
         this.resumePlayback = false;
@@ -673,6 +669,9 @@ export class Playback {
         this.changingSource = false;
         this.pendingSourceFailure = null;
         this.pendingSeekTarget = null;
+        this.resumeAfterSeek = false;
+        this.seekInFlight = false;
+        this.logicalSeekTime = null;
         this.currentTime = 0;
         this.duration = 0;
         this.buffered = 0;
@@ -764,7 +763,6 @@ export class Playback {
             this.clearWaitingTimer();
             this.captions.clear();
             this.destroyHls();
-            this.audio.close();
         };
     }
 }

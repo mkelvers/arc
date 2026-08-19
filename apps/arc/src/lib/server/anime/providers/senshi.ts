@@ -209,7 +209,6 @@ async function getStreams(
         const stream: ProviderStream = {
             url,
             quality: null,
-            audioDelay: 0,
             subtitleUrl: await senshiSubtitle(item),
         };
         streams[mode] = [...(streams[mode] ?? []), stream];

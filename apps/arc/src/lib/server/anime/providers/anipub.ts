@@ -228,7 +228,6 @@ async function resolveStream(id: string, mode: AudioMode) {
             streams.push({
                 url: url.toString(),
                 quality: null,
-                audioDelay: 0,
                 subtitleUrl: await fullestCaption(captions, (subtitle) =>
                     requestText(new URL(subtitle), `${megaplayUrl}/`)
                 ),
@@ -246,7 +245,6 @@ async function resolveStream(id: string, mode: AudioMode) {
         url: page.toString(),
         kind: 'iframe',
         quality: null,
-        audioDelay: 0,
         subtitleUrl: null,
     });
     return streams;
