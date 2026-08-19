@@ -1,9 +1,11 @@
 <script lang="ts">
     import { onMount, tick } from 'svelte';
-    import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
+    import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, ListBulletsIcon } from 'phosphor-svelte';
 
     import type { FranchiseOrder as FranchiseOrderData } from '$lib/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import { matchesFranchiseFilter, type FranchiseFilter } from '$lib/franchise';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
 
     interface Props {
         order: FranchiseOrderData;
@@ -15,12 +17,14 @@
     let track = $state<HTMLDivElement>();
     let canScrollBack = $state(false);
     let canScrollForward = $state(false);
-    let showAll = $state(false);
-    const mainEntries = $derived(
-        order.entries.filter((entry) => entry.primary || entry.anilistId === currentAnimeId)
-    );
-    const hiddenCount = $derived(order.entries.length - mainEntries.length);
-    const visibleEntries = $derived(showAll ? order.entries : mainEntries);
+    let filter = $state<FranchiseFilter>('main');
+    const filters: Array<{ value: FranchiseFilter; label: string }> = [
+        { value: 'main', label: 'Main story' },
+        { value: 'movies', label: 'Movies' },
+        { value: 'side-stories', label: 'Side stories' },
+    ];
+    const selectedFilterLabel = $derived(filters.find(({ value }) => value === filter)?.label ?? 'Main story');
+    const visibleEntries = $derived(order.entries.filter((entry) => matchesFranchiseFilter(entry, filter)));
 
     function updateScrollState() {
         if (!track) {
@@ -75,17 +79,35 @@
     <div class="mb-6 flex min-h-9 items-center justify-between gap-4">
         <h2 id="franchise-order-title" class="text-lg font-semibold">Franchise Order</h2>
 
-        {#if hiddenCount}
-            <button
-                type="button"
-                class="min-h-9 shrink-0 text-xs font-semibold text-accent uppercase focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                aria-expanded={showAll}
-                aria-controls="franchise-order-list"
-                onclick={() => (showAll = !showAll)}
-            >
-                {showAll ? 'Show main' : `Show all (+${hiddenCount})`}
-            </button>
-        {/if}
+        <Dropdown
+            id="franchise-order-filter"
+            ariaLabel={`Filter franchise order, ${selectedFilterLabel}`}
+            menuClass="mt-2 w-48 shadow-xl"
+            triggerClass="flex min-h-9 cursor-pointer items-center gap-2 px-2 text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+        >
+            {#snippet trigger()}
+                <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />
+                <span>{selectedFilterLabel}</span>
+                <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+            {/snippet}
+
+            {#snippet content()}
+                <div role="menu" aria-label="Franchise order filters" class="py-2">
+                    {#each filters as option}
+                        <button
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={filter === option.value}
+                            class:text-foreground={filter === option.value}
+                            class="flex min-h-11 w-full items-center px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            onclick={() => (filter = option.value)}
+                        >
+                            {option.label}
+                        </button>
+                    {/each}
+                </div>
+            {/snippet}
+        </Dropdown>
     </div>
 
     {#if visibleEntries.length}
