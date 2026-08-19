@@ -12,18 +12,19 @@
         position: 0,
         scrubbing: false,
     });
+    const position = $derived(
+        pointer.scrubbing && pointer.preview !== null ? pointer.preview : player.media.currentTime
+    );
 
     const progress = $derived({
-        played: player.media.duration
-            ? Math.max(0, Math.min(100, (player.media.currentTime / player.media.duration) * 100))
-            : 0,
+        played: player.media.duration ? Math.max(0, Math.min(100, (position / player.media.duration) * 100)) : 0,
 
         buffered: player.media.duration
             ? Math.max(0, Math.min(100, (player.media.buffered / player.media.duration) * 100))
             : 0,
     });
 
-    function move(event: PointerEvent, seek = pointer.scrubbing) {
+    function move(event: PointerEvent) {
         const input = event.currentTarget as HTMLInputElement;
         const bounds = input.getBoundingClientRect();
 
@@ -37,10 +38,7 @@
         // Keep the wider hour-format tooltip inside the timeline.
         pointer.position = Math.max(42, Math.min(bounds.width - 42, ratio * bounds.width));
 
-        if (seek) {
-            player.media.seek(pointer.preview);
-            player.showControls();
-        }
+        player.showControls();
     }
 
     function start(event: PointerEvent) {
@@ -52,13 +50,16 @@
         pointer.scrubbing = true;
         player.media.setScrubbing(true);
         input.setPointerCapture(event.pointerId);
-        move(event, true);
+        move(event);
         player.showControls();
     }
 
     function end(event: PointerEvent) {
         const input = event.currentTarget as HTMLInputElement;
-        move(event, true);
+        move(event);
+        if (pointer.preview !== null) {
+            player.media.seek(pointer.preview);
+        }
         pointer.scrubbing = false;
         player.media.setScrubbing(false);
 
@@ -109,10 +110,14 @@
             min="0"
             max={player.media.duration || 0}
             step="0.1"
-            value={player.media.currentTime}
+            value={position}
             aria-label="Seek video"
             class="absolute inset-0 z-20 cursor-pointer opacity-0"
-            oninput={(event) => player.media.seek(Number(event.currentTarget.value))}
+            oninput={(event) => {
+                if (!pointer.scrubbing) {
+                    player.media.seek(Number(event.currentTarget.value));
+                }
+            }}
             onpointerdown={start}
             onpointermove={move}
             onpointerleave={() => {
