@@ -33,12 +33,19 @@ export function episodeMetadataNeedsRefresh(
 ) {
     return (
         hasMetadataSource &&
-        episodes.some(({ image, title, overview }) => image !== null && (!title || !overview))
+        (episodes.every(({ image, title, overview }) => image === null && !title && !overview) ||
+            episodes.some(({ image, title, overview }) => image !== null && (!title || !overview)))
     );
 }
 
 export function episodeInventoryIsExpected(status: AniListAnime['status']) {
     return status !== 'NOT_YET_RELEASED';
+}
+
+export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episodes'>) {
+    // AniList counts the individual short segments for TV_SHORT releases;
+    // playback providers generally expose their packaged broadcast episodes.
+    return anime.format === 'TV_SHORT' ? null : anime.episodes;
 }
 
 export function availableEpisodeCount(anime: Pick<AniListAnime, 'status' | 'nextAiringEpisode'>) {

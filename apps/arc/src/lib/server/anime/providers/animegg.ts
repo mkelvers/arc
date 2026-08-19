@@ -1,6 +1,7 @@
 import { load } from 'cheerio';
 
 import { animeTitles } from '../anilist/text';
+import { providerEpisodeCount } from '../episodes/policy';
 import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
 import {
@@ -138,7 +139,8 @@ async function findAnimeSlug(anime: AniListAnime, refresh = false) {
         const episodes = await loadSeries(slug);
         if (
             episodes.length &&
-            (anime.status !== 'FINISHED' || coversExpectedEpisodes(episodes, anime.episodes))
+            (anime.status !== 'FINISHED' ||
+                coversExpectedEpisodes(episodes, providerEpisodeCount(anime)))
         ) {
             await saveProviderMediaId(anime.id, providerName, slug);
             return slug;

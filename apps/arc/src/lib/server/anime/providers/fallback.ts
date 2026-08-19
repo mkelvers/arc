@@ -1,5 +1,5 @@
 import { mergeAudioModes, type AudioMode } from '$lib/audio';
-import { availableEpisodeCount } from '../episodes/policy';
+import { availableEpisodeCount, providerEpisodeCount } from '../episodes/policy';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
 import { coversExpectedEpisodes, matchProviderEpisode } from './match';
 
@@ -193,7 +193,7 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                 error: null;
             } => Boolean(result.episodes.length)
         );
-        const expected = anime.episodes;
+        const expected = providerEpisodeCount(anime);
         const availableEpisodes = availableEpisodeCount(anime) ?? expected;
         const eligible =
             anime.status === 'FINISHED' && expected && expected > 0

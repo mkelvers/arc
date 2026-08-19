@@ -8,6 +8,7 @@ import {
     episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
+    providerEpisodeCount,
 } from './policy';
 import type { AniListAnime } from '../anilist/types';
 
@@ -80,6 +81,9 @@ describe('episode refresh policy', () => {
             )
         ).toBeTrue();
         expect(
+            episodeMetadataNeedsRefresh([{ image: null, title: '', overview: '' }], true)
+        ).toBeTrue();
+        expect(
             episodeMetadataNeedsRefresh(
                 [
                     {
@@ -103,6 +107,11 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
         expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
         expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
+    });
+
+    test('does not use AniList segment totals as provider episode counts', () => {
+        expect(providerEpisodeCount({ format: 'TV_SHORT', episodes: 120 })).toBeNull();
+        expect(providerEpisodeCount({ format: 'TV', episodes: 24 })).toBe(24);
     });
 
     test('expects all episodes before the next airing episode', () => {

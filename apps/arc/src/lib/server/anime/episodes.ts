@@ -9,6 +9,7 @@ import {
     availableEpisodeCount,
     episodeMetadataNeedsRefresh,
     episodeRefreshReason,
+    providerEpisodeCount,
 } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import { coversExpectedEpisodes } from './providers/match';
@@ -33,7 +34,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
     ]);
 
     const incompleteFinishedRelease =
-        anime.status === 'FINISHED' && !coversExpectedEpisodes(stored, anime.episodes);
+        anime.status === 'FINISHED' && !coversExpectedEpisodes(stored, providerEpisodeCount(anime));
     const persistedAiredEpisodes =
         anime.status === 'RELEASING' &&
         sync?.nextAiringAt &&

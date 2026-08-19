@@ -2,6 +2,7 @@ import { load } from 'cheerio';
 
 import type { AudioMode } from '$lib/audio';
 import { animeTitles } from '../anilist/text';
+import { providerEpisodeCount } from '../episodes/policy';
 import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
 import { normalizedProviderTitle } from './match';
@@ -136,8 +137,8 @@ async function findSlug(anime: AniListAnime, refresh = false) {
             const exactYear = !anime.startDate?.year || candidate.year === anime.startDate.year;
             const complete =
                 anime.status !== 'FINISHED' ||
-                !anime.episodes ||
-                candidate.episodes === anime.episodes;
+                !providerEpisodeCount(anime) ||
+                candidate.episodes === providerEpisodeCount(anime);
             if (exactTitle && exactYear && complete) {
                 matches.set(candidate.slug, candidate);
             }
