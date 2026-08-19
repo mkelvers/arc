@@ -172,9 +172,9 @@
             background-image:
                 linear-gradient(
                     to right,
-                    rgb(0 0 0 / 0.88) 0%,
-                    rgb(0 0 0 / 0.5) 34%,
-                    transparent 68%
+                    rgb(0 0 0 / 0.6) 0%,
+                    rgb(0 0 0 / 0.24) 32%,
+                    transparent 62%
                 ),
                 linear-gradient(to left, rgb(0 0 0 / 0.18), transparent 28%);
         }
@@ -227,7 +227,7 @@
     @media (width < 40rem) {
         .home-hero-slide {
             &::before {
-                background-image: linear-gradient(to right, rgb(0 0 0 / 0.74), transparent 88%);
+                background-image: linear-gradient(to right, rgb(0 0 0 / 0.42), transparent 80%);
             }
 
             &::after {

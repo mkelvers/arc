@@ -81,21 +81,38 @@
         aria-label="Trending anime now"
     >
         {#if activeAnime}
-            <article class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden">
-                <a
-                    href={activeAnime.href}
-                    class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label={`View ${activeAnime.title}`}
+            {#each highlights as anime, index (anime.id)}
+                <article
+                    class={cn(
+                        'home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden transition-opacity duration-500 ease-out motion-reduce:transition-none',
+                        index === carousel.active
+                            ? 'opacity-100'
+                            : index === carousel.previous
+                              ? 'pointer-events-none opacity-0'
+                              : 'pointer-events-none hidden opacity-0'
+                    )}
+                    aria-hidden={index !== carousel.active}
+                    ontransitionend={(event) => {
+                        if (
+                            event.target === event.currentTarget &&
+                            event.propertyName === 'opacity' &&
+                            index === carousel.previous
+                        ) {
+                            carousel.previous = null;
+                        }
+                    }}
                 >
-                    {#each highlights as anime, index (anime.id)}
+                    <a
+                        href={anime.href}
+                        class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
+                        aria-label={`View ${anime.title}`}
+                        tabindex={index === carousel.active ? undefined : -1}
+                    >
                         <ProgressiveImage
                             src={anime.image}
                             alt={index === carousel.active ? anime.title : ''}
                             previewSize="w300"
-                            class={cn(
-                                'col-start-1 row-start-1 transition-opacity duration-500 ease-out motion-reduce:transition-none',
-                                index === carousel.active ? 'opacity-100' : 'opacity-0'
-                            )}
+                            class="col-start-1 row-start-1"
                             imageClass="object-top"
                             previewLoading="eager"
                             loading="eager"
@@ -106,15 +123,12 @@
                             onready={() => {
                                 ready.backdrops = new Set(ready.backdrops).add(anime.id);
                             }}
-                            ontransitionend={(event) => {
-                                if (event.propertyName === 'opacity' && index === carousel.previous) {
-                                    carousel.previous = null;
-                                }
-                            }}
                         />
-                    {/each}
-                </a>
+                    </a>
+                </article>
+            {/each}
 
+            <article class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden">
                 <div
                     class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-8 sm:pb-80 xl:h-[32rem] xl:self-center xl:pb-0"
                 >
