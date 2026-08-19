@@ -107,12 +107,12 @@
                 </a>
 
                 <div
-                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-8 sm:pb-80 xl:self-center xl:pb-0"
+                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-8 sm:pb-80 xl:h-[32rem] xl:self-center xl:pb-0"
                 >
                     <div class="relative">
                         <div class="px-5 sm:px-10 lg:px-16">
                             <div
-                                class="relative h-24 w-[min(100%,20rem)] sm:h-28 sm:w-[min(100%,32rem)] xl:h-auto xl:w-fit"
+                                class="relative h-24 w-[min(100%,20rem)] sm:h-28 sm:w-[min(100%,32rem)] lg:h-48 xl:w-fit"
                             >
                                 <a
                                     href={activeAnime.href}
@@ -129,7 +129,7 @@
                                                 fetchpriority={index === carousel.active ? 'high' : 'low'}
                                                 style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
                                                 class={cn(
-                                                    'max-h-24 max-w-[calc(100%_-_5rem)] object-contain object-left sm:max-h-28 sm:max-w-sm lg:max-h-none lg:max-w-lg 2xl:max-w-2xl',
+                                                    'max-h-24 max-w-[calc(100%_-_5rem)] object-contain object-left sm:max-h-28 sm:max-w-sm lg:max-h-48 lg:max-w-lg 2xl:max-w-2xl',
                                                     index === carousel.active
                                                         ? 'block'
                                                         : 'absolute inset-0 opacity-0',
