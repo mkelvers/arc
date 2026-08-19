@@ -7,7 +7,7 @@ const entries = [
     { anilistId: 2, primary: true, format: 'MOVIE' },
     { anilistId: 3, primary: false, format: 'MOVIE' },
     { anilistId: 4, primary: false, format: 'TV' },
-    { anilistId: 5, primary: false, format: 'OVA' },
+    { anilistId: 5, primary: false, format: 'OVA', secondary: true },
     { anilistId: 6, primary: false, format: 'SPECIAL' },
     { anilistId: 7, primary: false, format: null },
     { anilistId: 8, primary: false, format: 'MUSIC' },
@@ -41,8 +41,13 @@ describe('franchise filters', () => {
         );
     });
 
-    test('does not inject a current side story into Main story context', () => {
-        expect(matchesFranchiseFilter(entries[4], 'main')).toBe(false);
+    test('includes the current main-story title when classification missed it', () => {
+        expect(matchesFranchiseFilter(entries[3], 'main', entries[3].anilistId)).toBe(true);
+    });
+
+    test('does not inject a current side story or movie into Main story context', () => {
+        expect(matchesFranchiseFilter(entries[4], 'main', entries[4].anilistId)).toBe(false);
         expect(matchesFranchiseFilter(entries[4], 'side-stories')).toBe(true);
+        expect(matchesFranchiseFilter(entries[2], 'main', entries[2].anilistId)).toBe(false);
     });
 });
