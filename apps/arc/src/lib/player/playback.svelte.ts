@@ -165,7 +165,11 @@ export class Playback {
 
         // Flush audio queued while the timeline was being dragged to the
         // final video position.
-        this.syncAudio(true);
+        this.hls?.startLoad(this.video.currentTime);
+
+        if (!this.video.seeking) {
+            this.syncAudio(true);
+        }
     }
 
     private resumeAudio() {
@@ -313,9 +317,15 @@ export class Playback {
         if (Hls.isSupported()) {
             const hls = new Hls({
                 audioPreference: { lang: this.mode === 'dub' ? 'en' : 'ja' },
+                autoStartLoad: true,
+                backBufferLength: 30,
                 capLevelToPlayerSize: true,
                 ignoreDevicePixelRatio: true,
+                maxBufferLength: 18,
+                maxBufferSize: 20 * 1000 * 1000,
+                maxMaxBufferLength: 30,
                 startLevel: 0,
+                startFragPrefetch: false,
             });
             let recoveredMediaError = false;
             this.hls = hls;
@@ -397,6 +407,7 @@ export class Playback {
             (track) => language.test(track.lang ?? '') || language.test(track.name)
         );
         if (
+            hls &&
             current &&
             audioTrack !== undefined &&
             audioTrack >= 0 &&
@@ -523,7 +534,7 @@ export class Playback {
         this.currentTime = time;
 
         if (!this.scrubbing) {
-            this.syncAudio(true);
+            this.hls?.startLoad(time);
         }
         this.video.currentTime = time;
     }
@@ -629,7 +640,25 @@ export class Playback {
             return;
         }
 
-        this.buffered = this.video.buffered.end(this.video.buffered.length - 1);
+        const currentTime = this.video.currentTime;
+        for (let index = 0; index < this.video.buffered.length; index += 1) {
+            if (
+                this.video.buffered.start(index) <= currentTime &&
+                this.video.buffered.end(index) >= currentTime
+            ) {
+                this.buffered = this.video.buffered.end(index);
+                return;
+            }
+        }
+
+        this.buffered = 0;
+        for (let index = 0; index < this.video.buffered.length; index += 1) {
+            const end = this.video.buffered.end(index);
+            if (end > currentTime) {
+                this.buffered = end;
+                break;
+            }
+        }
     }
 
     async retry() {
