@@ -81,6 +81,8 @@
 }
 
 @theme inline {
+    --breakpoint-wide: 90rem;
+    --breakpoint-hero: 120rem;
     --color-canvas: var(--theme-canvas);
     --color-header: var(--theme-header);
     --color-header-hover: var(--theme-header-hover);
@@ -224,7 +226,7 @@
         direction: rtl;
     }
 
-    @media (width < 40rem) {
+    @variant max-sm {
         .home-hero-slide {
             &::before {
                 background-image: linear-gradient(to right, rgb(0 0 0 / 0.42), transparent 80%);
