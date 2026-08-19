@@ -4,6 +4,7 @@
         BookmarkSimpleIcon,
         CaretDownIcon,
         MagnifyingGlassIcon,
+        ListIcon,
         SignOutIcon,
         UserCircleIcon,
     } from 'phosphor-svelte';
@@ -37,23 +38,23 @@
 
             <a
                 href="/browse"
-                class="inline-flex h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
             >
                 Browse
             </a>
 
             <a
                 href="/simulcast"
-                class="inline-flex h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
             >
                 Simulcast
             </a>
         </div>
 
-        <div class="flex h-full items-center">
+        <div class="hidden h-full items-center sm:flex">
             <a
                 href="/search"
-                class="inline-flex h-full w-14 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:w-14"
                 aria-label="Search"
                 title="Search"
             >
@@ -62,7 +63,7 @@
 
             <a
                 href="/watchlist"
-                class="inline-flex h-full w-14 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:w-14"
                 aria-label="Watchlist"
                 title="Watchlist"
             >
@@ -75,7 +76,7 @@
                     ariaLabel="Account menu"
                     modal
                     menuClass="w-[min(21rem,calc(100vw-1rem))]"
-                    triggerClass="flex h-14 cursor-pointer items-center gap-2 px-3 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted"
+                    triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted sm:gap-2 sm:px-3"
                 >
                     {#snippet trigger()}
                         <AccountAvatar
@@ -116,13 +117,70 @@
             {:else}
                 <a
                     href="/login"
-                    class="inline-flex h-full w-14 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                    class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:w-14"
                     aria-label="Log in"
                     title="Log in"
                 >
                     <UserCircleIcon size={30} weight="fill" aria-hidden="true" />
                 </a>
             {/if}
+        </div>
+
+        <div class="sm:hidden">
+            <Dropdown
+                id="mobile-navigation"
+                ariaLabel="Open navigation"
+                menuClass="w-52"
+                modal
+                triggerClass="grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+            >
+                {#snippet trigger()}
+                    <ListIcon size={25} aria-hidden="true" />
+                {/snippet}
+
+                {#snippet content()}
+                    <a
+                        href="/browse"
+                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                    >
+                        Browse
+                    </a>
+                    <a
+                        href="/simulcast"
+                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                    >
+                        Simulcast
+                    </a>
+                    <a
+                        href="/search"
+                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                    >
+                        Search
+                    </a>
+                    <a
+                        href="/watchlist"
+                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                    >
+                        Watchlist
+                    </a>
+                    {#if data.account}
+                        <button
+                            type="button"
+                            class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            onclick={signOut}
+                        >
+                            Log out
+                        </button>
+                    {:else}
+                        <a
+                            href="/login"
+                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        >
+                            Log in
+                        </a>
+                    {/if}
+                {/snippet}
+            </Dropdown>
         </div>
     </nav>
 </header>
