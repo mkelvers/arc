@@ -79,12 +79,19 @@ export function coversExpectedEpisodes(
         return true;
     }
 
-    const covered = new Set(
+    const regular = new Set(
         episodes.flatMap(({ number }) =>
             Number.isInteger(number) && number > 0 && number <= expected ? [number] : []
         )
     );
-    return covered.size === expected;
+    const specials = episodes.filter(({ number }) => number <= 0 || !Number.isInteger(number));
+    const regularCount = regular.size;
+    const completeRegularRelease = regularCount === expected;
+    const completeSpecialInclusiveRelease =
+        regularCount + specials.length === expected &&
+        [...regular].every((number) => number <= regularCount);
+
+    return completeRegularRelease || completeSpecialInclusiveRelease;
 }
 
 type ReleaseInventoryEvidence = 'aligned' | 'conflicting' | 'unknown';

@@ -22,6 +22,21 @@ describe('playback episode identity matching', () => {
         ).toBe(true);
     });
 
+    test('accepts AniList totals that include a special episode', () => {
+        expect(
+            coversExpectedEpisodes(
+                [
+                    { number: 0 },
+                    ...Array.from({ length: 12 }, (_, index) => ({ number: index + 1 })),
+                ],
+                13
+            )
+        ).toBe(true);
+        expect(coversExpectedEpisodes([{ number: 0 }, { number: 1 }, { number: 2 }], 4)).toBe(
+            false
+        );
+    });
+
     test('matches provider numbering by title before ordinal position', () => {
         const episodes = [
             {
