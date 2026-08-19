@@ -17,7 +17,7 @@
 
 <main class="min-h-dvh bg-canvas text-foreground">
     <div
-        class="home-layout grid grid-cols-1 grid-rows-[auto] min-[90rem]:has-[>_.continue-watching-section]:grid-rows-[auto_15rem] min-[90rem]:has-[>_.continue-watching-section]:pb-8 min-[120rem]:has-[>_.continue-watching-section]:grid-rows-[auto_16rem] min-[120rem]:has-[>_.continue-watching-section]:pb-12 [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
+        class="home-layout grid grid-cols-1 grid-rows-[auto] min-[90rem]:has-[>_.continue-watching-section]:grid-rows-[auto_15rem] min-[90rem]:has-[>_.continue-watching-section]:pb-8 min-[120rem]:has-[>_.continue-watching-section]:grid-rows-[auto_16rem] min-[120rem]:has-[>_.continue-watching-section]:pb-12 min-[120rem]:has-[>section:first-child]:not-has-[>_.continue-watching-section]:grid-rows-[calc(100svh-16rem)] [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
     >
         <HomeHero highlights={data.highlights} />
         {#await data.continueWatching then anime}
