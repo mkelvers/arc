@@ -159,13 +159,8 @@ export class Playback {
         this.scrubbing = active;
 
         if (active) {
-            this.syncAudio(true);
             return;
         }
-
-        // Flush audio queued while the timeline was being dragged to the
-        // final video position.
-        this.hls?.startLoad(this.video.currentTime);
 
         if (!this.video.seeking) {
             this.syncAudio(true);
@@ -317,15 +312,13 @@ export class Playback {
         if (Hls.isSupported()) {
             const hls = new Hls({
                 audioPreference: { lang: this.mode === 'dub' ? 'en' : 'ja' },
-                autoStartLoad: true,
                 backBufferLength: 30,
                 capLevelToPlayerSize: true,
                 ignoreDevicePixelRatio: true,
-                maxBufferLength: 18,
-                maxBufferSize: 20 * 1000 * 1000,
-                maxMaxBufferLength: 30,
-                startLevel: 0,
-                startFragPrefetch: false,
+                maxBufferLength: 30,
+                maxBufferSize: 60 * 1000 * 1000,
+                maxMaxBufferLength: 600,
+                startLevel: -1,
             });
             let recoveredMediaError = false;
             this.hls = hls;
@@ -533,9 +526,7 @@ export class Playback {
         const time = Math.max(0, Math.min(this.duration, seconds));
         this.currentTime = time;
 
-        if (!this.scrubbing) {
-            this.hls?.startLoad(time);
-        }
+        this.syncAudio(true);
         this.video.currentTime = time;
     }
 
@@ -564,6 +555,8 @@ export class Playback {
             this.seek(target);
             return;
         }
+
+        this.syncAudio(true);
     }
 
     handleMetadata(startAt = 0) {
