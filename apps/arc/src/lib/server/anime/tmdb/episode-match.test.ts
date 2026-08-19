@@ -46,6 +46,30 @@ function candidate(
 }
 
 describe('TMDB episode identity matching', () => {
+    test('maps packaged TV_SHORT episodes to their matching TMDB season', () => {
+        const episodes = source([
+            ['one', 1, 'Segment One'],
+            ['two', 2, 'Segment Two'],
+        ]);
+        const metadata = matchEpisodeMetadata(
+            anime({
+                format: 'TV_SHORT',
+                startDate: { year: 2016, month: 7, day: 4 },
+                endDate: { year: 2016, month: 7, day: 11 },
+            }),
+            episodes,
+            [
+                candidate(1, 1, 'Segment One + Segment Two', '2016-07-11'),
+                candidate(1, 2, 'Next Package', '2016-07-18'),
+                candidate(2, 1, 'Other Season', '2018-01-17'),
+                candidate(2, 2, 'Other Season 2', '2018-01-24'),
+            ]
+        );
+
+        expect(metadata.get('one')?.episodeNumber).toBe(1);
+        expect(metadata.get('two')?.episodeNumber).toBe(2);
+    });
+
     test('maps a TV finale special instead of leaking into the next season', () => {
         const episodes = source([
             ...Array.from(

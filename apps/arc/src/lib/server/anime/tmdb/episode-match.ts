@@ -264,12 +264,54 @@ function matchedMetadata(
     );
 }
 
+function packagedShortMetadata(
+    anime: AniListAnime,
+    source: ProviderEpisode[],
+    candidates: EpisodeCandidate[]
+) {
+    if (anime.format !== 'TV_SHORT') {
+        return null;
+    }
+
+    const seasons = new Map<number, EpisodeCandidate[]>();
+    for (const candidate of candidates) {
+        if (candidate.seasonNumber <= 0) {
+            continue;
+        }
+
+        const season = seasons.get(candidate.seasonNumber) ?? [];
+        season.push(candidate);
+        seasons.set(candidate.seasonNumber, season);
+    }
+
+    const start = animeDate(anime.startDate);
+    const matches = [...seasons.values()]
+        .filter((season) => season.length === source.length)
+        .sort((left, right) => {
+            const leftStart = left[0]?.rawAirDate ?? '';
+            const rightStart = right[0]?.rawAirDate ?? '';
+            return (
+                Number(rightStart === start) - Number(leftStart === start) ||
+                Number(rightStart.startsWith(String(anime.startDate?.year ?? ''))) -
+                    Number(leftStart.startsWith(String(anime.startDate?.year ?? '')))
+            );
+        });
+    const [season] = matches;
+
+    return season ? new Map(source.map(({ id }, index) => [id, season[index]] as const)) : null;
+}
+
 export function matchEpisodeMetadata(
     anime: AniListAnime,
     source: ProviderEpisode[],
     available: EpisodeCandidate[]
 ): Map<string, EpisodeCandidate> {
     const candidates = available.toSorted(candidateOrder);
+    const packaged = packagedShortMetadata(anime, source, candidates);
+    if (packaged) {
+        return packaged;
+    }
+
     const titleCounts = new Map<string, number>();
     source.forEach(({ title }) => {
         const key = episodeTitleKey(title);
