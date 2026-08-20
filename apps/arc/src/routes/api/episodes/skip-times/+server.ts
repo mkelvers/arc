@@ -1,55 +1,52 @@
 import { json } from '@sveltejs/kit';
+import { z } from 'zod';
 
 import { SkipIntervalInputSchema, validSkipInterval } from '$lib/server/anime/aniskip';
 import { saveEpisodeSegment } from '$lib/server/anime/skip-times';
-import { isRecord } from '$lib/utils';
 import type { RequestHandler } from './$types';
+
+const segmentRequestSchema = z.object({
+    anilistId: z.number().finite().int().positive(),
+    episodeId: z.string().trim().min(1).max(512),
+    kind: z.enum(['opening', 'ending']),
+    operation: z.enum(['clear', 'apply-template', 'set']),
+    start: z.number().finite().nonnegative().optional(),
+    interval: SkipIntervalInputSchema.optional(),
+    createTemplate: z.boolean().optional(),
+});
 
 export const PUT: RequestHandler = async ({ locals, request }) => {
     if (!locals.user) {
         return json({ message: 'Authentication required' }, { status: 401 });
     }
 
-    let body: unknown;
+    let body: z.infer<typeof segmentRequestSchema>;
     try {
-        body = await request.json();
+        const parsed = segmentRequestSchema.safeParse(await request.json());
+        if (!parsed.success) {
+            return json({ message: 'Invalid segments' }, { status: 400 });
+        }
+        body = parsed.data;
     } catch {
         return json({ message: 'Invalid JSON body' }, { status: 400 });
     }
 
-    if (!isRecord(body)) {
-        return json({ message: 'Invalid segments' }, { status: 400 });
-    }
-
     const anilistId = body.anilistId;
-    const episodeId = typeof body.episodeId === 'string' ? body.episodeId.trim() : '';
-    const kind = body.kind === 'opening' || body.kind === 'ending' ? body.kind : null;
+    const episodeId = body.episodeId;
+    const kind = body.kind;
     const operation = body.operation;
-
-    if (
-        typeof anilistId !== 'number' ||
-        !Number.isSafeInteger(anilistId) ||
-        anilistId <= 0 ||
-        !episodeId ||
-        episodeId.length > 512 ||
-        !kind
-    ) {
-        return json({ message: 'Invalid segments' }, { status: 400 });
-    }
 
     let save: Parameters<typeof saveEpisodeSegment>[2] | null = null;
     if (operation === 'clear') {
         save = { kind, operation };
-    } else if (
-        operation === 'apply-template' &&
-        typeof body.start === 'number' &&
-        Number.isFinite(body.start) &&
-        body.start >= 0
-    ) {
+    } else if (operation === 'apply-template' && body.start !== undefined) {
         save = { kind, operation, start: body.start };
-    } else if (operation === 'set' && typeof body.createTemplate === 'boolean') {
-        const parsedInterval = SkipIntervalInputSchema.safeParse(body.interval);
-        const interval = parsedInterval.success ? validSkipInterval(parsedInterval.data) : null;
+    } else if (
+        operation === 'set' &&
+        body.createTemplate !== undefined &&
+        body.interval !== undefined
+    ) {
+        const interval = validSkipInterval(body.interval);
         if (interval) {
             save = { kind, operation, interval, createTemplate: body.createTemplate };
         }
