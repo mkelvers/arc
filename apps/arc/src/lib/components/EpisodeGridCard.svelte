@@ -17,6 +17,13 @@
     let { episode, title, image = null, current = false, context = 'detail' }: Props = $props();
     const dialog = $derived(context === 'dialog');
     const heading = $derived(episode.title ? `${episode.label} – ${episode.title}` : episode.label);
+    const classificationBanner = $derived(
+        episode.type === 'filler'
+            ? { label: 'Filler episode', class: 'bg-filler text-on-filler' }
+            : episode.type === 'recap'
+              ? { label: 'Recap episode', class: 'bg-black/80 text-white' }
+              : null
+    );
 </script>
 
 {#if context === 'watch'}
@@ -31,6 +38,16 @@
                     alt=""
                     imageClass="transition-transform duration-200 group-hover:scale-105"
                 />
+            {/if}
+            {#if classificationBanner}
+                <span
+                    class={cn(
+                        'absolute inset-x-0 top-0 z-10 px-1.5 py-0.5 text-center text-[0.625rem] font-bold uppercase',
+                        classificationBanner.class
+                    )}
+                >
+                    {classificationBanner.label}
+                </span>
             {/if}
             {#if episode.duration}
                 <span class="absolute right-1.5 bottom-1.5 bg-black/75 px-1.5 py-0.5 text-sm font-bold text-white">
@@ -55,6 +72,17 @@
             current && 'bg-panel-selected'
         )}
     >
+        {#if classificationBanner}
+            <span
+                class={cn(
+                    'pointer-events-none absolute z-20 px-2 py-1.5 text-center text-xs font-bold uppercase',
+                    classificationBanner.class,
+                    dialog ? 'top-3 right-3 left-3' : 'inset-x-0 top-0'
+                )}
+            >
+                {classificationBanner.label}
+            </span>
+        {/if}
         <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
             <div class={cn('relative aspect-video overflow-hidden', dialog ? 'bg-media-tile' : 'bg-surface')}>
                 {#if episode.image || image}
@@ -65,7 +93,12 @@
                     />
                 {/if}
                 {#if current}
-                    <span class="absolute top-2 left-2 bg-accent px-2 py-1 text-xs font-bold text-black uppercase">
+                    <span
+                        class={cn(
+                            'absolute left-2 bg-accent px-2 py-1 text-xs font-bold text-black uppercase',
+                            classificationBanner ? 'top-9' : 'top-2'
+                        )}
+                    >
                         Now playing
                     </span>
                 {/if}
