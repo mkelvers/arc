@@ -179,18 +179,23 @@ function isNarrativeMovie(
     );
 }
 
-function isReplacementEntry(entry: FranchiseSelectionEntry, entries: FranchiseSelectionEntry[]) {
+function isReplacementEntry(
+    entry: FranchiseSelectionEntry,
+    entries: FranchiseSelectionEntry[],
+    entryIds: Set<number>
+) {
     return (
         entry.format === 'MOVIE' &&
-        entries.some(
-            (candidate) =>
-                candidate.relations.some(
-                    (relation) =>
-                        relation.malId === entry.malId && replacementRelations.has(relation.type)
-                ) ||
-                (candidate.malId === entry.malId &&
-                    candidate.relations.some((relation) => replacementRelations.has(relation.type)))
-        )
+        (entries.some((candidate) =>
+            candidate.relations.some(
+                (relation) =>
+                    relation.malId === entry.malId && replacementRelations.has(relation.type)
+            )
+        ) ||
+            entry.relations.some(
+                (relation) =>
+                    entryIds.has(relation.malId) && replacementRelations.has(relation.type)
+            ))
     );
 }
 
@@ -207,7 +212,10 @@ export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
         return new Set<number>();
     }
 
-    const continuityGraphEntries = entries.filter((entry) => !isReplacementEntry(entry, entries));
+    const entryIds = new Set(entries.map(({ malId }) => malId));
+    const continuityGraphEntries = entries.filter(
+        (entry) => !isReplacementEntry(entry, entries, entryIds)
+    );
     const continuityEntries = continuityGraphEntries.filter((entry) => isContinuityEntry(entry));
     const components = continuityComponents(
         continuityGraphEntries,

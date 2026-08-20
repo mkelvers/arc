@@ -167,6 +167,54 @@ describe('primaryFranchiseIds', () => {
         expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 2, 3, 4]);
     });
 
+    test('keeps the Rascal movie bridge and named television continuation', () => {
+        const selected = primaryFranchiseIds([
+            entry(37450, {
+                title: 'Rascal Does Not Dream of Bunny Girl Senpai',
+                popularity: 881_987,
+                relations: [relation('SEQUEL', 38329)],
+            }),
+            entry(38329, {
+                title: 'Rascal Does Not Dream of a Dreaming Girl',
+                format: 'MOVIE',
+                episodes: 1,
+                duration: 90,
+                popularity: 408_638,
+                relations: [
+                    relation('PREQUEL', 37450),
+                    relation('SEQUEL', 53129),
+                    relation('ALTERNATIVE', 158943),
+                ],
+            }),
+            entry(53129, {
+                title: 'Rascal Does Not Dream of a Sister Venturing Out',
+                format: 'MOVIE',
+                episodes: 1,
+                duration: 73,
+                popularity: 112_829,
+                relations: [relation('PREQUEL', 38329), relation('SEQUEL', 54870)],
+            }),
+            entry(54870, {
+                title: 'Rascal Does Not Dream of a Knapsack Kid',
+                format: 'MOVIE',
+                episodes: 1,
+                duration: 75,
+                popularity: 102_147,
+                relations: [relation('PREQUEL', 53129), relation('SEQUEL', 57433)],
+            }),
+            entry(57433, {
+                title: 'Rascal Does Not Dream of Santa Claus',
+                episodes: 13,
+                popularity: 87_414,
+                relations: [relation('PREQUEL', 54870)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([
+            37450, 38329, 53129, 54870, 57433,
+        ]);
+    });
+
     test('keeps an unlinked future season but not unrelated television spin-offs', () => {
         const selected = primaryFranchiseIds([
             entry(1, {
