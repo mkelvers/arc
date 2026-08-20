@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
+    classificationRefreshDue,
     episodeInventoryIsExpected,
     episodeMetadataNeedsRefresh,
     episodeRefreshRetryDelay,
@@ -107,6 +108,24 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
         expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
         expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
+    });
+
+    test('refreshes filler data daily while airing and weekly otherwise', () => {
+        const now = new Date('2026-08-20T12:00:00Z').getTime();
+
+        expect(classificationRefreshDue(null, 'FINISHED', now)).toBeTrue();
+        expect(
+            classificationRefreshDue(new Date('2026-08-19T11:59:59Z'), 'RELEASING', now)
+        ).toBeTrue();
+        expect(
+            classificationRefreshDue(new Date('2026-08-19T12:00:01Z'), 'RELEASING', now)
+        ).toBeFalse();
+        expect(
+            classificationRefreshDue(new Date('2026-08-13T11:59:59Z'), 'FINISHED', now)
+        ).toBeTrue();
+        expect(
+            classificationRefreshDue(new Date('2026-08-13T12:00:01Z'), 'FINISHED', now)
+        ).toBeFalse();
     });
 
     test('does not use AniList segment totals as provider episode counts', () => {

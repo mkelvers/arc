@@ -32,6 +32,7 @@ function episodeModel(
         duration: formatDuration(episode.runtimeMinutes ?? fallbackDuration),
         releaseDate: episode.airDate ?? '',
         overview: episode.overviewSource ? (episode.overview ?? '') : '',
+        type: episode.classification,
     };
 }
 
@@ -106,11 +107,12 @@ export function sourceRevision(episodes: ProviderEpisode[]) {
     return createHash('sha256')
         .update(
             JSON.stringify(
-                episodes.map(({ id, number, title, audio }) => ({
+                episodes.map(({ id, number, title, audio, type }) => ({
                     id,
                     number,
                     title,
                     audio: audio.toSorted(),
+                    type: type ?? 'unknown',
                 }))
             )
         )

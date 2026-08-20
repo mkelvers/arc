@@ -7,6 +7,7 @@ import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import {
     availableEpisodeCount,
+    classificationRefreshDue,
     episodeMetadataNeedsRefresh,
     episodeRefreshReason,
     providerEpisodeCount,
@@ -25,6 +26,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
                 lastError: animeEpisodeSync.lastError,
                 nextAiringAt: animeEpisodeSync.nextAiringAt,
                 nextAiringEpisode: animeEpisodeSync.nextAiringEpisode,
+                classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
             })
             .from(animeEpisodeSync)
             .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -49,19 +51,23 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
         stored,
         sync?.metadataExternalIdId !== null && sync?.metadataExternalIdId !== undefined
     );
+    const classificationsNeedRefresh =
+        stored.length > 0 &&
+        classificationRefreshDue(sync?.classificationsRefreshedAt, anime.status);
     if (
         !stored.length ||
         incompleteFinishedRelease ||
         incompleteReleasingRelease ||
-        incompleteMetadata
+        incompleteMetadata ||
+        classificationsNeedRefresh
     ) {
         const refreshDeferred = sync?.nextRefreshAt && sync.nextRefreshAt.getTime() > Date.now();
-        if (incompleteMetadata) {
+        if (incompleteMetadata || classificationsNeedRefresh) {
             try {
                 return await refreshEpisodes(anime, metadataSource ?? undefined);
             } catch (cause) {
                 console.error(
-                    `Stale episode metadata refresh failed for AniList ${anime.id}`,
+                    `${classificationsNeedRefresh ? 'Episode classification' : 'Stale episode metadata'} refresh failed for AniList ${anime.id}`,
                     cause
                 );
                 return stored;

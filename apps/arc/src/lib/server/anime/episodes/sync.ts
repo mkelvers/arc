@@ -10,8 +10,14 @@ import { playback } from '../providers';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import type { StoredMapping } from '../tmdb/types';
+import { getFillerClassifications, mergeFillerClassifications } from '../filler';
 import { sourceRevision, storedEpisodes } from './model';
-import { canPreserveEpisodeMetadata, episodeInventoryIsExpected, nextRefreshAt } from './policy';
+import {
+    canPreserveEpisodeMetadata,
+    classificationRefreshDue,
+    episodeInventoryIsExpected,
+    nextRefreshAt,
+} from './policy';
 import { episodesForRelease } from './release';
 
 const requests = new Map<number, Promise<AnimeEpisode[]>>();
@@ -60,6 +66,7 @@ async function recordExpectedEmptyInventory(anime: AniListAnime) {
         metadataExternalIdId: sync?.metadataExternalIdId ?? null,
         stableSince,
         lastSuccessAt: now,
+        classificationsRefreshedAt: now,
         nextRefreshAt: nextRefreshAt(anime, stableSince),
         failureCount: 0,
         lastError: null,
@@ -86,7 +93,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         throw new Error(`No playback provider returned episodes for AniList ${anime.id}`);
     }
 
-    const [storedText, previousMetadataExternalIdId] = await Promise.all([
+    const [storedText, previousSync] = await Promise.all([
         db
             .select({
                 episodeId: animeEpisode.episodeId,
@@ -94,6 +101,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                 titleSource: animeEpisode.metadataTitleSource,
                 overview: animeEpisode.overview,
                 overviewSource: animeEpisode.overviewSource,
+                classification: animeEpisode.classification,
             })
             .from(animeEpisode)
             .where(eq(animeEpisode.anilistId, anime.id))
@@ -103,12 +111,23 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         db
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+                classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
             })
             .from(animeEpisodeSync)
             .where(eq(animeEpisodeSync.anilistId, anime.id))
             .limit(1)
-            .then((rows) => rows[0]?.metadataExternalIdId ?? null),
+            .then((rows) => rows[0] ?? null),
     ]);
+
+    const fillerClassifications = classificationRefreshDue(
+        previousSync?.classificationsRefreshedAt,
+        anime.status
+    )
+        ? await getFillerClassifications(anime, providerEpisodes).catch((cause) => {
+              console.error(`AnimeFillerList refresh failed for MAL ${anime.idMal}`, cause);
+              return null;
+          })
+        : undefined;
 
     const resolvedMetadataSource =
         metadataSource ??
@@ -125,7 +144,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
               providerEpisodes,
               resolvedMetadataSource,
               canPreserveEpisodeMetadata(
-                  previousMetadataExternalIdId,
+                  previousSync?.metadataExternalIdId ?? null,
                   resolvedMetadataSource.externalIdId
               )
                   ? storedText
@@ -135,7 +154,13 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
               return null;
           })
         : null;
-    const source = episodesForRelease(anime, providerEpisodes, metadata);
+    const source = episodesForRelease(
+        anime,
+        fillerClassifications
+            ? mergeFillerClassifications(providerEpisodes, fillerClassifications)
+            : providerEpisodes,
+        metadata
+    );
     const now = new Date();
     const revision = sourceRevision(source);
     await db.transaction(async (tx) => {
@@ -146,6 +171,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
                     lastSuccessAt: animeEpisodeSync.lastSuccessAt,
+                    classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
                 })
                 .from(animeEpisodeSync)
                 .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -154,7 +180,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
             tx.select().from(animeEpisode).where(eq(animeEpisode.anilistId, anime.id)),
         ]);
         const stored = new Map(existing.map((episode) => [episode.episodeId, episode]));
-        const values = source.map((episode) => {
+        const values = source.map((episode): typeof animeEpisode.$inferInsert => {
             const previous = stored.get(episode.id);
             const media = metadata?.get(episode.id);
             const previousMetadata = canPreserveEpisodeMetadata(
@@ -173,6 +199,14 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                 metadataTitleSource:
                     media?.titleSource ?? previousMetadata?.metadataTitleSource ?? null,
                 audio: mergeAudioModes(previous?.audio, episode.audio),
+                classification:
+                    fillerClassifications instanceof Map
+                        ? (episode.type ?? 'unknown')
+                        : episode.type === 'filler' || previous?.classification === 'filler'
+                          ? 'filler'
+                          : episode.type === 'recap'
+                            ? 'recap'
+                            : (previous?.classification ?? episode.type ?? 'unknown'),
                 imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
                 runtimeMinutes: media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
                 airDate: media?.airDate || previousMetadata?.airDate || null,
@@ -194,6 +228,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     metadataTitle: excluded(animeEpisode.metadataTitle),
                     metadataTitleSource: excluded(animeEpisode.metadataTitleSource),
                     audio: excluded(animeEpisode.audio),
+                    classification: excluded(animeEpisode.classification),
                     imageUrl: excluded(animeEpisode.imageUrl),
                     runtimeMinutes: excluded(animeEpisode.runtimeMinutes),
                     airDate: excluded(animeEpisode.airDate),
@@ -228,6 +263,9 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
                 stableSince,
                 lastSuccessAt: now,
+                classificationsRefreshedAt: !(fillerClassifications instanceof Map)
+                    ? (sync?.classificationsRefreshedAt ?? null)
+                    : now,
                 nextRefreshAt: nextRefreshAt(anime, stableSince),
                 failureCount: 0,
                 lastError: null,
@@ -242,6 +280,9 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                         resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
                     stableSince,
                     lastSuccessAt: now,
+                    classificationsRefreshedAt: !(fillerClassifications instanceof Map)
+                        ? (sync?.classificationsRefreshedAt ?? null)
+                        : now,
                     nextRefreshAt: nextRefreshAt(anime, stableSince),
                     failureCount: 0,
                     lastError: null,
