@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 
 import { eq, lte } from 'drizzle-orm';
 
-import { db } from '$lib/server/db';
-import { anilistQueryCache } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { anilistQueryCache } from '@arc/db/schema';
 import { graphql } from '$lib/server/graphql';
 import { isRecord } from '$lib/utils';
 import { anilistRequestPolicy } from './request-policy';

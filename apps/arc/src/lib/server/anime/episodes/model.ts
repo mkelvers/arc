@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 
 import type { AudioMode } from '$lib/audio';
 import type { AnimeEpisode } from '$lib/types';
-import { db } from '$lib/server/db';
-import { animeEpisode } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeEpisode } from '@arc/db/schema';
 import { formatDuration } from '$lib/utils';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';

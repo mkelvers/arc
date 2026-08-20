@@ -1,5 +1,5 @@
-import { db } from '$lib/server/db';
-import { animeRecentVisit } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeRecentVisit } from '@arc/db/schema';
 
 export async function recordAnimeVisit(userId: string | undefined, anilistId: number) {
     if (!userId) {

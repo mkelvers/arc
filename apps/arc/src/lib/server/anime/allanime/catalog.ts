@@ -12,8 +12,8 @@ import {
     type VaildTranslationTypeEnumType,
 } from '$lib/graphql/allanime/generated/graphql';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from '../providers/mapping';
-import { db } from '$lib/server/db';
-import { animeSimulcastPageCache } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeSimulcastPageCache } from '@arc/db/schema';
 import { nonEmptyText, positiveInteger, record } from '$lib/utils';
 import { animeTitles, plainText } from '../anilist/text';
 import { request } from './client';

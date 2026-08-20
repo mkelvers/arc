@@ -1,8 +1,8 @@
 import { asc, desc, eq, lt } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '$lib/audio';
-import { db } from '$lib/server/db';
-import { homeHeroSelection } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { homeHeroSelection } from '@arc/db/schema';
 import { getAnime } from './anilist/details';
 import { getHomeHeroCandidates } from './anilist/hero';
 import { mediaTitle, present } from './anilist/text';

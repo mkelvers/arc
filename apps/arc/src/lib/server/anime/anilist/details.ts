@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 
 import { AnimeDocument } from '$lib/graphql/anilist/generated/graphql';
-import { db } from '$lib/server/db';
-import { animeDetailsCache } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeDetailsCache } from '@arc/db/schema';
 import { GraphQLRequestError } from '$lib/server/graphql';
 import { request } from './client';
 import type { AniListAnime } from './types';

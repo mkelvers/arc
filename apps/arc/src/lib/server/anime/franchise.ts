@@ -5,8 +5,8 @@ import {
     FranchiseMediaDocument,
     type FranchiseMediaQuery,
 } from '$lib/graphql/anilist/generated/graphql';
-import { db } from '$lib/server/db';
-import { animeEpisode, animeFranchiseCache } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeEpisode, animeFranchiseCache } from '@arc/db/schema';
 import { request } from './anilist/client';
 import { plainText, present } from './anilist/text';
 import { enrichAnimeCards } from './card-enrichment';

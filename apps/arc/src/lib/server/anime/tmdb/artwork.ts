@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 
-import { db } from '$lib/server/db';
-import { excluded } from '$lib/server/db/sql';
-import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { excluded } from '@arc/db/sql';
+import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';

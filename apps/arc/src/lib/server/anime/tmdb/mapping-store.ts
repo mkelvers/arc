@@ -1,8 +1,8 @@
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { db } from '$lib/server/db';
-import { anime as animeTable, animeExternalId, animeExternalIdLink } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { anime as animeTable, animeExternalId, animeExternalIdLink } from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { type Mapping, type StoredMapping } from './types';

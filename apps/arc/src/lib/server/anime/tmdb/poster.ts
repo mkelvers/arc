@@ -1,8 +1,8 @@
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { db } from '$lib/server/db';
-import { animeExternalId, animeExternalIdLink, animeReleasePoster } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeExternalId, animeExternalIdLink, animeReleasePoster } from '@arc/db/schema';
 import { isRecord } from '$lib/utils';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';

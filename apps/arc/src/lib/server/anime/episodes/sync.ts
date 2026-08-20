@@ -2,9 +2,9 @@ import { and, eq, notInArray, sql } from 'drizzle-orm';
 
 import { mergeAudioModes } from '$lib/audio';
 import type { AnimeEpisode } from '$lib/types';
-import { db } from '$lib/server/db';
-import { excluded } from '$lib/server/db/sql';
-import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { excluded } from '@arc/db/sql';
+import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
 import { getEpisodeMetadata } from '../tmdb/episodes';

@@ -1,8 +1,8 @@
 import { asc, notInArray, sql } from 'drizzle-orm';
 
 import { HomeHeroCandidatesDocument } from '$lib/graphql/anilist/generated/graphql';
-import { db } from '$lib/server/db';
-import { homeHeroCandidate } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { homeHeroCandidate } from '@arc/db/schema';
 import { request } from './client';
 import { present } from './text';
 import { eligibleHomeHeroCandidates, type HomeHeroCandidate } from '../home/selection';

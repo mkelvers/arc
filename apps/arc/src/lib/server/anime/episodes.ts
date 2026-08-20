@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 
 import type { AnimeEpisode } from '$lib/types';
-import { db } from '$lib/server/db';
-import { animeEpisode, animeEpisodeSync } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import {

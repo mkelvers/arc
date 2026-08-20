@@ -8,9 +8,9 @@ import {
     searchRelevance,
     type AnimeSearchResult,
 } from '$lib/search';
-import { excluded } from '$lib/server/db/sql';
-import type * as schema from '$lib/server/db/schema';
-import { animeSearchIndex as animeSearchIndexTable } from '$lib/server/db/schema';
+import { excluded } from '@arc/db/sql';
+import type * as schema from '@arc/db/schema';
+import { animeSearchIndex as animeSearchIndexTable } from '@arc/db/schema';
 
 type SearchDatabase = Pick<PostgresJsDatabase<typeof schema>, 'insert' | 'select'>;
 

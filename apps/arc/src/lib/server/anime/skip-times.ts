@@ -7,8 +7,8 @@ import {
     type SkipInterval,
     type SkipKind,
 } from '$lib/player/skip-times';
-import { db } from '$lib/server/db';
-import { animeEpisode, animeEpisodeSegmentTemplate } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeEpisode, animeEpisodeSegmentTemplate } from '@arc/db/schema';
 import { fetchAniSkip, validSkipInterval } from './aniskip';
 
 type StoredSkipTimes = Pick<

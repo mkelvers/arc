@@ -2,8 +2,8 @@ import { inArray } from 'drizzle-orm';
 
 import { audioAvailabilityLabel, type AudioMode } from '$lib/audio';
 import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '$lib/search';
-import { db } from '$lib/server/db';
-import { animeEpisode } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeEpisode } from '@arc/db/schema';
 import { imageUrl } from './tmdb/client';
 import { getStoredBackdropCandidates } from './tmdb/media';
 

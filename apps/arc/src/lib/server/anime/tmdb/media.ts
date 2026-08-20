@@ -1,13 +1,13 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { db } from '$lib/server/db';
+import { db } from '@arc/db';
 import {
     animeArtwork,
     animeArtworkPreference,
     animeExternalId,
     animeExternalIdLink,
-} from '$lib/server/db/schema';
+} from '@arc/db/schema';
 import { fetchArtwork, readArtwork } from './artwork';
 import { imageUrl } from './client';
 import { findMapping } from './mapping-store';

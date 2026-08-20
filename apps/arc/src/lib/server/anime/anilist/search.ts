@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 
 import { rankAnimeSearch, type AnimeSearchResult } from '$lib/search';
 import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
-import { db } from '$lib/server/db';
+import { db } from '@arc/db';
 import { RequestCache } from '$lib/server/request-cache';
 import { createAnimeSearchIndex } from '$lib/server/anime/search-index';
 import { request } from './client';

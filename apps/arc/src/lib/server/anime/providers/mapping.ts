@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
-import { db } from '$lib/server/db';
-import { animeProviderMapping } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeProviderMapping } from '@arc/db/schema';
 
 export async function providerMediaId(anilistId: number, provider: string) {
     const [stored] = await db

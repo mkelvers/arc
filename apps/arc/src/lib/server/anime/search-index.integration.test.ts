@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from '$lib/server/db/schema';
+import * as schema from '@arc/db/schema';
 import { createAnimeSearchIndex } from './search-index';
 
 const databaseTest = process.env.DATABASE_URL ? test : test.skip;
