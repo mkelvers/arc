@@ -61,12 +61,6 @@ const providerHostGroups: readonly ProviderHostGroup[] = [
     },
 ];
 
-const userAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0';
-const responseTimeout = 10_000;
-const maximumPlaylistSize = 1024 * 1024;
-const maximumSubtitleSize = 8 * 1024 * 1024;
-const maximumWrappedSegmentSize = 32 * 1024 * 1024;
 const resolvedRedirects = new Map<string, { target: URL; expiresAt: number }>();
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
@@ -93,12 +87,13 @@ export class StreamProxyError extends Error {
 
 async function providerResponse(target: URL, range: string | null, fetchStream: StreamFetch) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), responseTimeout);
+    const timeout = setTimeout(() => controller.abort(), 10_000);
 
     try {
         const requestHeaders = new Headers({
-            Referer: streamReferer(target),
-            'User-Agent': userAgent,
+            Referer: hostGroup(target.hostname)?.referer ?? 'https://youtu-chan.com',
+            'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
         });
         if (range) {
             requestHeaders.set('Range', range);
@@ -141,7 +136,7 @@ async function proxiedResponse(target: URL, response: Response) {
         headers.set('cache-control', 'no-store');
         headers.set('content-type', 'application/vnd.apple.mpegurl');
         const body = new TextDecoder().decode(
-            await boundedResponseBytes(response, maximumPlaylistSize, responseTimeout, 'playlist')
+            await boundedResponseBytes(response, 1024 * 1024, 10_000, 'playlist')
         );
 
         return new Response(rewriteHlsPlaylist(body, target), {
@@ -154,7 +149,7 @@ async function proxiedResponse(target: URL, response: Response) {
         headers.set('cache-control', 'no-store');
         headers.set('content-type', 'text/vtt; charset=utf-8');
         const body = new TextDecoder().decode(
-            await boundedResponseBytes(response, maximumSubtitleSize, responseTimeout, 'subtitle')
+            await boundedResponseBytes(response, 8 * 1024 * 1024, 10_000, 'subtitle')
         );
 
         return new Response(assToWebVtt(body), {
@@ -170,12 +165,7 @@ async function proxiedResponse(target: URL, response: Response) {
     ) {
         const body = Uint8Array.from(
             unwrapPngSegment(
-                await boundedResponseBytes(
-                    response,
-                    maximumWrappedSegmentSize,
-                    responseTimeout,
-                    'segment'
-                )
+                await boundedResponseBytes(response, 32 * 1024 * 1024, 10_000, 'segment')
             )
         );
         headers.set('content-length', String(body.byteLength));
@@ -379,12 +369,7 @@ export async function verifyStreamSource(source: string, fetchStream: StreamFetc
         }
 
         const body = new TextDecoder().decode(
-            await boundedResponseBytes(
-                provider.response,
-                maximumPlaylistSize,
-                responseTimeout,
-                'playlist'
-            )
+            await boundedResponseBytes(provider.response, 1024 * 1024, 10_000, 'playlist')
         );
         const reference = firstHlsReference(body);
         if (!reference) {
@@ -501,10 +486,6 @@ function streamTarget(value: string | null) {
     return target;
 }
 
-function streamReferer(target: URL) {
-    return hostGroup(target.hostname)?.referer ?? 'https://youtu-chan.com';
-}
-
 function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<string>) {
     if (reference.startsWith('data:')) {
         return reference;
@@ -580,9 +561,8 @@ function rewriteHlsPlaylist(value: string, playlist: URL) {
         .join('\n');
 }
 
-const pngEnd = new Uint8Array([0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
-
 function unwrapPngSegment(value: Uint8Array) {
+    const pngEnd = new Uint8Array([0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
     for (let index = 0; index <= value.length - pngEnd.length; index++) {
         if (pngEnd.every((byte, offset) => value[index + offset] === byte)) {
             return value.slice(index + pngEnd.length);
