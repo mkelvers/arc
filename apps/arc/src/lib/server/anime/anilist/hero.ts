@@ -111,7 +111,10 @@ export async function getHomeHeroCandidates(now = new Date()) {
         newest.getUTCFullYear() === now.getUTCFullYear() &&
         now.getTime() - newest.getTime() < 24 * 60 * 60 * 1_000
     ) {
-        return stored.map(({ fetchedAt: _, ...candidate }) => candidate);
+        return stored.map(({ fetchedAt, ...candidate }) => {
+            void fetchedAt;
+            return candidate;
+        });
     }
 
     try {
@@ -119,7 +122,10 @@ export async function getHomeHeroCandidates(now = new Date()) {
     } catch (cause) {
         if (stored.length) {
             console.warn('AniList hero candidate refresh failed; using stored candidates', cause);
-            return stored.map(({ fetchedAt: _, ...candidate }) => candidate);
+            return stored.map(({ fetchedAt, ...candidate }) => {
+                void fetchedAt;
+                return candidate;
+            });
         }
 
         throw cause;

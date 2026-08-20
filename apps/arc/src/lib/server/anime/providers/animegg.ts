@@ -241,6 +241,10 @@ async function getStreams(
 
 export const animeggProvider: PlaybackProvider = {
     name: 'AnimeGG',
-    getEpisodes: async (anime) => (await episodes(anime)).map(({ path: _, ...episode }) => episode),
+    getEpisodes: async (anime) =>
+        (await episodes(anime)).map(({ path, ...episode }) => {
+            void path;
+            return episode;
+        }),
     getStreams,
 };

@@ -24,10 +24,10 @@ function orderedCandidates(block: EpisodeGroupBlock) {
                 left.seasonNumber - right.seasonNumber ||
                 left.episodeNumber - right.episodeNumber
         )
-        .map(({ order: _, ...episode }, index) => ({
-            ...episode,
-            releaseEpisodeNumber: index + 1,
-        }));
+        .map(({ order, ...episode }, index) => {
+            void order;
+            return { ...episode, releaseEpisodeNumber: index + 1 };
+        });
 }
 
 function titleEvidence(source: ProviderEpisode[], candidates: EpisodeCandidate[]) {

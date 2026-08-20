@@ -80,7 +80,7 @@ export type BrowseFilters = z.output<typeof BrowseFiltersCodec>;
 export function parseBrowseFilters(searchParams: URLSearchParams): BrowseFilters | null {
     const result = BrowseFiltersCodec.safeParse(
         Object.fromEntries(
-            Object.keys(BrowseSearchSchema.shape).map((name) => [name, searchParams.get(name)])
+            BrowseSearchSchema.keyof().options.map((name) => [name, searchParams.get(name)])
         )
     );
 
