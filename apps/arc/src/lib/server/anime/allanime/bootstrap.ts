@@ -1,8 +1,8 @@
-import { record, type JsonObject } from '$lib/utils';
+import { record, type JsonValue } from '$lib/utils';
 import { origin, userAgent } from './client';
 
 interface ClientData {
-    bootstrap: JsonObject | null;
+    bootstrap: Record<string, JsonValue> | null;
     buildId: string;
     mask: Buffer;
 }

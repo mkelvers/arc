@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 
 import { eq, lte } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { db } from '@arc/db';
 import { anilistQueryCache } from '@arc/db/schema';
 import { graphql } from '$lib/server/graphql';
-import { isRecord, JsonValueSchema, type JsonValue } from '$lib/utils';
+import { record, type JsonValue } from '$lib/utils';
 import { anilistRequestPolicy } from './request-policy';
 
 const endpoint = 'https://graphql.anilist.co';
@@ -23,10 +24,10 @@ function canonical(value: JsonValue): JsonValue {
     if (Array.isArray(value)) {
         return value.map(canonical);
     }
-    const object = isRecord(value);
+    const object = record(value);
     if (object) {
         return Object.fromEntries(
-            Object.entries(value)
+            Object.entries(object)
                 .sort(([left], [right]) => left.localeCompare(right))
                 .map(([key, entry]) => [key, canonical(entry)])
         );
@@ -35,7 +36,7 @@ function canonical(value: JsonValue): JsonValue {
 }
 
 function cacheKey<TVariables>(document: { toString(): string }, variables: TVariables) {
-    const parsedVariables = JsonValueSchema.parse(JSON.parse(JSON.stringify(variables)));
+    const parsedVariables = z.json().parse(JSON.parse(JSON.stringify(variables)));
     const serializedVariables = JSON.stringify(canonical(parsedVariables)) ?? 'null';
     return createHash('sha256')
         .update(document.toString())
@@ -108,11 +109,12 @@ export async function request<TResult, TVariables>(
         void removeExpiredEntries(new Date());
 
         if (stored) {
-            const parsedStored = JsonValueSchema.safeParse(stored.data);
-            if (!parsedStored.success || !isRecord(parsedStored.data)) {
+            const parsedStored = z.json().safeParse(stored.data);
+            const object = parsedStored.success ? record(parsedStored.data) : null;
+            if (!object) {
                 await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
             } else if (!options.forceRefresh && stored.expiresAt.getTime() > Date.now()) {
-                return parsedStored.data as TResult;
+                return object as TResult;
             }
         }
     } catch (cause) {

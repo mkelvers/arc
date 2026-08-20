@@ -14,7 +14,7 @@ import {
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from '../providers/mapping';
 import { db } from '@arc/db';
 import { animeSimulcastPageCache } from '@arc/db/schema';
-import { nonEmptyText, positiveInteger } from '$lib/utils';
+import { positiveInteger, text } from '$lib/utils';
 import type { JsonValue } from '$lib/utils';
 import { animeTitles, plainText } from '../anilist/text';
 import { request } from './client';
@@ -69,7 +69,7 @@ function matchesSeason(value: JsonValue, selected: AnimeSeasonSelection) {
     if (!parsed.success) {
         return false;
     }
-    const quarter = nonEmptyText(parsed.data.quarter)?.toUpperCase();
+    const quarter = text(parsed.data.quarter)?.toUpperCase();
     const year = positiveInteger(parsed.data.year);
 
     return quarter === selected.season && year === selected.year;
@@ -86,8 +86,8 @@ function simulcastCard(show: {
     thumbnail: string | null;
 }): AnimeCard | null {
     const id = positiveInteger(show.aniListId);
-    const image = nonEmptyText(show.thumbnail);
-    const title = nonEmptyText(show.englishName) ?? nonEmptyText(show.name);
+    const image = text(show.thumbnail);
+    const title = text(show.englishName) ?? text(show.name);
     if (!id || !image || !title) {
         return null;
     }

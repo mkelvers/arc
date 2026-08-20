@@ -2,37 +2,32 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { z } from 'zod';
 
-const jsonValue = z.json();
-const jsonObject = z.record(z.string(), jsonValue);
-const positiveIntegerInput = z.union([z.number(), z.string().regex(/^\d+$/)]);
-const nonEmptyTextInput = z.string().trim().min(1);
-
-export type JsonObject = z.infer<typeof jsonObject>;
-export type JsonValue = z.infer<typeof jsonValue>;
-export const JsonValueSchema = jsonValue;
-type UtilityInput = JsonValue | undefined;
+export type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | JsonValue[]
+    | { [key: string]: JsonValue };
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export function isRecord(value: UtilityInput): value is JsonObject {
-    return jsonObject.safeParse(value).success;
+export function record(value: JsonValue | undefined): Record<string, JsonValue> | null {
+    const parsed = z.record(z.string(), z.json()).safeParse(value);
+    return parsed.success ? parsed.data : null;
 }
 
-export function record(value: UtilityInput): JsonObject | null {
-    return isRecord(value) ? value : null;
-}
-
-export function positiveInteger(value: UtilityInput) {
-    const parsed = positiveIntegerInput.safeParse(value);
+export function positiveInteger(value: JsonValue | undefined) {
+    const parsed = z.union([z.number(), z.string().regex(/^\d+$/)]).safeParse(value);
     const number = parsed.success ? Number(parsed.data) : Number.NaN;
 
     return Number.isSafeInteger(number) && number > 0 ? number : undefined;
 }
 
-export function nonEmptyText(value: UtilityInput) {
-    const parsed = nonEmptyTextInput.safeParse(value);
+export function text(value: JsonValue | undefined) {
+    const parsed = z.string().trim().min(1).safeParse(value);
     return parsed.success ? parsed.data : undefined;
 }
 

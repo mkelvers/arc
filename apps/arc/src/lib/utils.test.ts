@@ -1,12 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { batches, formatDuration, isRecord, nonEmptyText, positiveInteger, record } from './utils';
+import { batches, formatDuration, positiveInteger, record, text } from './utils';
 
 describe('shared utilities', () => {
     test('narrows and parses records without accepting arrays', () => {
-        expect(isRecord({ id: 1 })).toBe(true);
-        expect(isRecord([])).toBe(false);
         expect(record({ id: 1 })).toEqual({ id: 1 });
+        expect(record([])).toBeNull();
         expect(record(null)).toBeNull();
     });
 
@@ -14,8 +13,8 @@ describe('shared utilities', () => {
         expect(positiveInteger('42')).toBe(42);
         expect(positiveInteger(-1)).toBeUndefined();
         expect(positiveInteger(true)).toBeUndefined();
-        expect(nonEmptyText('  title  ')).toBe('title');
-        expect(nonEmptyText('   ')).toBeUndefined();
+        expect(text('  title  ')).toBe('title');
+        expect(text('   ')).toBeUndefined();
     });
 
     test('splits work into validated batches', () => {
