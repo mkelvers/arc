@@ -1,5 +1,6 @@
 <script lang="ts">
     import { invalidate } from '$app/navigation';
+    import { EpisodeRevisionSchema } from '$lib/types';
 
     interface Props {
         animeId: number;
@@ -57,19 +58,14 @@
                             throw new Error(`Episode update check returned ${response.status}`);
                         }
 
-                        const result: unknown = await response.json();
-                        if (
-                            !result ||
-                            typeof result !== 'object' ||
-                            !('revision' in result) ||
-                            (result.revision !== null && typeof result.revision !== 'string')
-                        ) {
+                        const result = EpisodeRevisionSchema.safeParse(await response.json());
+                        if (!result.success) {
                             throw new Error('Episode update check returned an invalid response');
                         }
 
                         warned = false;
-                        if (result.revision !== revision) {
-                            revision = result.revision;
+                        if (result.data.revision !== revision) {
+                            revision = result.data.revision;
                             await invalidate(`arc:anime:${animeId}:episodes`);
                         }
                     } catch (cause) {

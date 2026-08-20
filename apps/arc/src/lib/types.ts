@@ -38,6 +38,10 @@ export type AnimeEpisode = {
     overview: string;
 };
 
+export const EpisodeRevisionSchema = z.object({
+    revision: z.string().nullable(),
+});
+
 export type ContinueWatchingCard = {
     animeId: number;
     title: string;
