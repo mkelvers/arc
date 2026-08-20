@@ -1,5 +1,6 @@
 import type { AudioMode } from '$lib/audio';
-import { record } from '$lib/utils';
+import type { JsonValue } from '$lib/utils';
+import { z } from 'zod';
 import { fullestCaption } from './captions';
 import { matchProviderStreamEpisode } from './match';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
@@ -7,6 +8,30 @@ import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams
 const baseUrl = 'https://senshi.live';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+
+const episodeResponseSchema = z.array(
+    z.object({
+        ep_id: z.union([z.number(), z.string()]).optional(),
+        id: z.union([z.number(), z.string()]).optional(),
+        ep_title: z.string().optional(),
+    })
+);
+const streamResponseSchema = z.array(
+    z.object({
+        status: z.string(),
+        url: z.string(),
+        serverFM: z.string().optional(),
+        masked_base_url: z.string().optional(),
+    })
+);
+const subtitleTrackSchema = z.object({
+    src: z.string(),
+    label: z.string(),
+    default: z.boolean().optional(),
+});
+const subtitleResponseSchema = z.array(subtitleTrackSchema);
+const jsonValueSchema = z.json();
+type SenshiStream = z.infer<typeof streamResponseSchema>[number];
 
 async function request(path: string) {
     return requestUrl(new URL(path, baseUrl));
@@ -26,7 +51,12 @@ async function requestUrl(url: URL) {
         throw new Error(`Senshi returned ${response.status} for ${url.pathname}`);
     }
 
-    return (await response.json()) as unknown;
+    // SAFETY: each endpoint consumer validates the provider response shape.
+    const parsed = jsonValueSchema.safeParse(await response.json());
+    if (!parsed.success) {
+        throw new Error('Senshi returned an invalid JSON response');
+    }
+    return parsed.data;
 }
 
 async function requestText(url: string) {
@@ -54,13 +84,13 @@ function malId(anime: Parameters<PlaybackProvider['getEpisodes']>[0]) {
 
 async function getEpisodes(anime: Parameters<PlaybackProvider['getEpisodes']>[0]) {
     const payload = await request(`/episodes/${malId(anime)}`);
-    if (!Array.isArray(payload)) {
+    const parsed = episodeResponseSchema.safeParse(payload);
+    if (!parsed.success) {
         throw new Error('Senshi returned an invalid episode inventory');
     }
 
     const episodes = new Map<number, ProviderEpisode>();
-    for (const value of payload) {
-        const episode = record(value);
+    for (const episode of parsed.data) {
         const number = Number(episode?.ep_id ?? episode?.id);
         if (!Number.isFinite(number) || number <= 0) {
             continue;
@@ -69,7 +99,7 @@ async function getEpisodes(anime: Parameters<PlaybackProvider['getEpisodes']>[0]
         episodes.set(number, {
             id: String(number),
             number,
-            title: typeof episode?.ep_title === 'string' ? episode.ep_title.trim() : '',
+            title: episode.ep_title?.trim() ?? '',
             // The inventory endpoint does not expose per-episode audio.
             // Playback probes sub and dub independently before rendering.
             audio: ['sub'],
@@ -83,11 +113,7 @@ async function getEpisodes(anime: Parameters<PlaybackProvider['getEpisodes']>[0]
     return [...episodes.values()].sort((left, right) => left.number - right.number);
 }
 
-function modeForStatus(status: unknown): AudioMode | null {
-    if (typeof status !== 'string') {
-        return null;
-    }
-
+function modeForStatus(status: string): AudioMode | null {
     if (status.toLowerCase() === 'dub') {
         return 'dub';
     }
@@ -95,8 +121,8 @@ function modeForStatus(status: unknown): AudioMode | null {
     return /^(?:hard)?sub$/i.test(status) ? 'sub' : null;
 }
 
-function safeUrl(value: unknown) {
-    if (typeof value !== 'string' || !value.trim()) {
+function safeUrl(value: string | null | undefined) {
+    if (!value?.trim()) {
         return null;
     }
 
@@ -107,7 +133,7 @@ function safeUrl(value: unknown) {
     }
 }
 
-function subtitleManifest(item: Record<string, unknown>) {
+function subtitleManifest(item: SenshiStream) {
     const server = safeUrl(item.serverFM);
     const fromServer = safeUrl(server?.searchParams.get('sub.info'));
     const masked = safeUrl(item.masked_base_url);
@@ -123,14 +149,14 @@ function subtitleManifest(item: Record<string, unknown>) {
         : null;
 }
 
-function subtitleTracks(value: unknown) {
-    if (!Array.isArray(value)) {
+function subtitleTracks(value: JsonValue) {
+    const parsed = subtitleResponseSchema.safeParse(value);
+    if (!parsed.success) {
         return [];
     }
 
-    const tracks = value.flatMap((item) => {
-        const track = record(item);
-        const url = safeUrl(track?.src);
+    const tracks = parsed.data.flatMap((track) => {
+        const url = safeUrl(track.src);
         if (
             !url ||
             url.protocol !== 'https:' ||
@@ -148,8 +174,8 @@ function subtitleTracks(value: unknown) {
         return [
             {
                 url: url.toString(),
-                label: typeof track?.label === 'string' ? track.label.toLowerCase() : '',
-                preferred: track?.default === true,
+                label: track.label.toLowerCase(),
+                preferred: track.default === true,
             },
         ];
     });
@@ -158,7 +184,7 @@ function subtitleTracks(value: unknown) {
     return (dialogue.length ? dialogue : english).map(({ url, preferred }) => ({ url, preferred }));
 }
 
-async function senshiSubtitle(item: Record<string, unknown>) {
+async function senshiSubtitle(item: SenshiStream) {
     const manifest = subtitleManifest(item);
     if (!manifest) {
         return null;
@@ -182,27 +208,19 @@ async function getStreams(
     }
 
     const payload = await request(`/episode-embeds/${malId(anime)}/${match.number}`);
-    if (!Array.isArray(payload)) {
+    const parsed = streamResponseSchema.safeParse(payload);
+    if (!parsed.success) {
         throw new Error('Senshi returned an invalid stream response');
     }
 
     const requested = new Set(modes);
     const streams: ProviderStreams = {};
 
-    for (const value of payload) {
-        const item = record(value);
-        if (!item) {
-            continue;
-        }
-        const mode = modeForStatus(item?.status);
-        const url = item?.url;
+    for (const item of parsed.data) {
+        const mode = modeForStatus(item.status);
+        const url = item.url;
 
-        if (
-            !mode ||
-            !requested.has(mode) ||
-            typeof url !== 'string' ||
-            !url.startsWith('https://')
-        ) {
+        if (!mode || !requested.has(mode) || !url.startsWith('https://')) {
             continue;
         }
 

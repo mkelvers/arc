@@ -1,4 +1,5 @@
 import { load } from 'cheerio';
+import { z } from 'zod';
 
 import type { AudioMode } from '$lib/audio';
 import { animeTitles } from '../anilist/text';
@@ -12,6 +13,19 @@ const baseUrl = 'https://anizone.to';
 const providerName = 'anizone';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+const argumentSchema = z.json();
+const candidateSchema = z.object({
+    slug: z.string(),
+    title_list: z.record(z.string(), z.string()),
+    start_year: z.union([z.number(), z.string()]).optional(),
+    episode_count: z.union([z.number(), z.string()]).optional(),
+});
+const playerSchema = z.object({
+    src: z.string(),
+    subtitles: z.array(
+        z.object({ language: z.string(), forced: z.string(), format: z.string(), file: z.string() })
+    ),
+});
 
 async function requestText(url: URL) {
     const response = await fetch(url, {
@@ -39,7 +53,8 @@ function parsedArgument(value: string) {
         .replace(new RegExp(`${escapedUnicode}([0-9a-f]{4})`, 'gi'), '\\u$1');
 
     try {
-        return JSON.parse(decoded) as unknown;
+        const parsed = argumentSchema.safeParse(JSON.parse(decoded));
+        return parsed.success ? parsed.data : null;
     } catch {
         return null;
     }
@@ -57,26 +72,21 @@ function candidates(html: string) {
     }
 
     return items.flatMap((value) => {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) {
-            return [];
-        }
-        const item = value as Record<string, unknown>;
-        const slug = typeof item.slug === 'string' ? item.slug : '';
-        const titles = item.title_list;
-        const year = Number(item.start_year);
-        const episodes = Number(item.episode_count);
-        if (!/^[a-z0-9-]+$/.test(slug) || !titles || typeof titles !== 'object') {
+        const parsed = candidateSchema.safeParse(value);
+        if (!parsed.success || !/^[a-z0-9-]+$/.test(parsed.data.slug)) {
             return [];
         }
 
         return [
             {
-                slug,
-                titles: Object.values(titles).filter(
-                    (title): title is string => typeof title === 'string' && Boolean(title.trim())
-                ),
-                year: Number.isSafeInteger(year) ? year : null,
-                episodes: Number.isSafeInteger(episodes) ? episodes : null,
+                slug: parsed.data.slug,
+                titles: Object.values(parsed.data.title_list).filter(Boolean),
+                year: Number.isSafeInteger(Number(parsed.data.start_year))
+                    ? Number(parsed.data.start_year)
+                    : null,
+                episodes: Number.isSafeInteger(Number(parsed.data.episode_count))
+                    ? Number(parsed.data.episode_count)
+                    : null,
             },
         ];
     });
@@ -95,12 +105,8 @@ function episodeInventory(html: string, slug: string) {
 
         const data = $(element).closest('[x-data*="epsTitles"]').attr('x-data') ?? '';
         const titles = jsonArgument(data, 'epsTitles');
-        const title =
-            titles && typeof titles === 'object' && !Array.isArray(titles)
-                ? Object.values(titles).find(
-                      (value): value is string => typeof value === 'string' && Boolean(value.trim())
-                  )
-                : null;
+        const titleData = z.record(z.string(), z.string()).safeParse(titles);
+        const title = titleData.success ? Object.values(titleData.data).find(Boolean) : null;
         episodes.push({
             id: String(number),
             number,
@@ -184,24 +190,19 @@ async function episodes(anime: AniListAnime) {
 function player(html: string) {
     const match = html.match(/vidstackPlayer\(JSON\.parse\('((?:[^'\\]|\\.)*)'\)\)/);
     const value = match ? parsedArgument(match[1]) : null;
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    const parsed = playerSchema.safeParse(value);
+    if (!parsed.success) {
         return null;
     }
-
-    const data = value as Record<string, unknown>;
-    const src = typeof data.src === 'string' ? data.src : '';
-    const subtitles = Array.isArray(data.subtitles) ? data.subtitles : [];
-    const english = subtitles.find((value) => {
-        if (!value || typeof value !== 'object' || Array.isArray(value)) {
-            return false;
-        }
-        const track = value as Record<string, unknown>;
-        return track.language === 'en' && track.forced !== 'yes' && track.format === 'ass';
-    }) as Record<string, unknown> | undefined;
+    const data = parsed.data;
+    const src = data.src;
+    const english = data.subtitles.find(
+        (track) => track.language === 'en' && track.forced !== 'yes' && track.format === 'ass'
+    );
 
     try {
         const url = new URL(src);
-        const subtitleUrl = typeof english?.file === 'string' ? new URL(english.file) : null;
+        const subtitleUrl = english ? new URL(english.file) : null;
         const videoHost =
             url.hostname === 'vid-cdn.xyz' ||
             url.hostname.endsWith('.vid-cdn.xyz') ||

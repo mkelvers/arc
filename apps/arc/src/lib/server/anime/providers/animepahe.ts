@@ -1,8 +1,9 @@
 import { env } from '$env/dynamic/private';
 import { load } from 'cheerio';
+import { z } from 'zod';
 
 import type { AudioMode } from '$lib/audio';
-import { record } from '$lib/utils';
+import { record, type JsonValue } from '$lib/utils';
 import { animeTitles } from '../anilist/text';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -14,6 +15,21 @@ const baseUrl = 'https://animepahe.pw';
 const providerName = 'animepahe';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+const searchResponseSchema = z.object({
+    data: z.array(
+        z.object({
+            id: z.union([z.number(), z.string()]),
+            title: z.string(),
+            session: z.string(),
+            year: z.union([z.number(), z.string()]).optional(),
+        })
+    ),
+});
+const inventoryEpisodeSchema = z.object({
+    episode: z.union([z.number(), z.string()]),
+    session: z.string(),
+});
+const jsonValueSchema = z.json();
 
 interface AnimePaheReference {
     releaseId: number | null;
@@ -67,7 +83,12 @@ async function requestJson(url: URL) {
     const text = await requestText(url, 'application/json');
 
     try {
-        return JSON.parse(text) as unknown;
+        // SAFETY: each endpoint consumer validates the provider response shape.
+        const parsed = jsonValueSchema.safeParse(JSON.parse(text));
+        if (!parsed.success) {
+            throw new Error('AnimePahe returned an invalid JSON response');
+        }
+        return parsed.data;
     } catch (cause) {
         throw new Error('AnimePahe returned an invalid JSON response', {
             cause,
@@ -88,29 +109,22 @@ function parseReference(value: string | null): AnimePaheReference | null {
     };
 }
 
-function searchItems(value: unknown) {
-    const payload = record(value);
-    if (!Array.isArray(payload?.data)) {
+function searchItems(value: JsonValue) {
+    const parsed = searchResponseSchema.safeParse(value);
+    if (!parsed.success) {
         return [];
     }
 
-    return payload.data.flatMap((item) => {
-        const result = record(item);
-        const id = Number(result?.id);
-        const title = result?.title;
-        const session = result?.session;
-        const year = Number(result?.year);
+    return parsed.data.data.flatMap((result) => {
+        const id = Number(result.id);
+        const year = Number(result.year);
 
-        return Number.isSafeInteger(id) &&
-            id > 0 &&
-            typeof title === 'string' &&
-            typeof session === 'string' &&
-            session
+        return Number.isSafeInteger(id) && id > 0 && result.session
             ? [
                   {
                       id,
-                      title: title.trim(),
-                      session,
+                      title: result.title.trim(),
+                      session: result.session,
                       year: Number.isSafeInteger(year) ? year : null,
                   },
               ]
@@ -171,9 +185,9 @@ async function loadEpisodes(reference: AnimePaheReference) {
         for (const item of payload.data) {
             const episode = record(item);
             const number = Number(episode?.episode);
-            const session = episode?.session;
-            if (Number.isFinite(number) && number > 0 && typeof session === 'string' && session) {
-                episodes.push({ number, session });
+            const parsed = inventoryEpisodeSchema.safeParse(episode);
+            if (parsed.success && Number.isFinite(number) && number > 0 && parsed.data.session) {
+                episodes.push({ number, session: parsed.data.session });
             }
         }
 

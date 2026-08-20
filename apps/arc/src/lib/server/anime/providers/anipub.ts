@@ -1,7 +1,8 @@
 import { load } from 'cheerio';
+import { z } from 'zod';
 
 import type { AudioMode } from '$lib/audio';
-import { record } from '$lib/utils';
+import type { JsonValue } from '$lib/utils';
 import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -14,6 +15,32 @@ const megaplayUrl = 'https://megaplay.buzz';
 const providerName = 'anipub';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+
+const searchResultSchema = z.object({ Id: z.union([z.number(), z.string()]), Name: z.string() });
+const searchPayloadSchema = z.union([searchResultSchema, z.array(searchResultSchema)]);
+const infoSchema = z.object({
+    _id: z.union([z.number(), z.string()]),
+    MALID: z.union([z.number(), z.string()]).optional(),
+});
+const episodeSchema = z.object({ link: z.string() });
+const episodePayloadSchema = z.object({
+    local: z.object({ link: z.string().optional(), ep: z.array(episodeSchema).optional() }),
+});
+const sourcePayloadSchema = z.object({
+    sources: z.object({ file: z.string() }),
+    tracks: z
+        .array(
+            z.object({
+                file: z.string(),
+                kind: z.string(),
+                label: z.string(),
+                default: z.boolean().optional(),
+            })
+        )
+        .optional(),
+});
+const jsonValueSchema = z.json();
+type AniPubSourcePayload = z.infer<typeof sourcePayloadSchema>;
 
 async function requestText(url: URL, referer = `${baseUrl}/`) {
     const response = await fetch(url, {
@@ -36,7 +63,12 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
     const text = await requestText(url, referer);
 
     try {
-        return JSON.parse(text) as unknown;
+        // SAFETY: each endpoint consumer validates the provider response shape.
+        const parsed = jsonValueSchema.safeParse(JSON.parse(text));
+        if (!parsed.success) {
+            throw new Error('AniPub returned an invalid JSON response');
+        }
+        return parsed.data;
     } catch (cause) {
         throw new Error('AniPub returned an invalid JSON response', {
             cause,
@@ -44,23 +76,26 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
     }
 }
 
-function searchResults(value: unknown) {
-    return (Array.isArray(value) ? value : [value]).flatMap((item) => {
-        const result = record(item);
-        const id = Number(result?.Id);
-        const name = result?.Name;
-        return Number.isSafeInteger(id) && id > 0 && typeof name === 'string'
-            ? [{ id, name: name.trim() }]
-            : [];
+function searchResults(value: JsonValue) {
+    const parsed = searchPayloadSchema.safeParse(value);
+    if (!parsed.success) {
+        return [];
+    }
+    return (Array.isArray(parsed.data) ? parsed.data : [parsed.data]).flatMap((result) => {
+        const id = Number(result.Id);
+        return Number.isSafeInteger(id) && id > 0 ? [{ id, name: result.Name.trim() }] : [];
     });
 }
 
 async function info(id: number) {
-    const value = record(await requestJson(new URL(`/api/info/${id}`, baseUrl)));
-    const malId = Number(value?.MALID);
+    const value = infoSchema.safeParse(await requestJson(new URL(`/api/info/${id}`, baseUrl)));
+    if (!value.success) {
+        return { id: Number.NaN, malId: null };
+    }
+    const malId = Number(value.data.MALID);
 
     return {
-        id: Number(value?._id),
+        id: Number(value.data._id),
         malId: Number.isSafeInteger(malId) ? malId : null,
     };
 }
@@ -105,18 +140,17 @@ async function findAnimeId(anime: AniListAnime, refresh = false) {
     throw new Error(`AniPub has no exact MAL match for AniList ${anime.id}`);
 }
 
-function episodeLinks(value: unknown) {
-    const payload = record(value);
-    const local = record(payload?.local);
-    const first = local?.link;
-    const rest = Array.isArray(local?.ep) ? local.ep : [];
-    const links = [
-        typeof first === 'string' ? first : '',
-        ...rest.map((item) => {
-            const episode = record(item);
-            return typeof episode?.link === 'string' ? episode.link : '';
-        }),
-    ].map((link) => link.trim().replace(/^src=/, ''));
+function episodeLinks(value: JsonValue) {
+    const parsed = episodePayloadSchema.safeParse(value);
+    if (!parsed.success) {
+        throw new Error('AniPub returned an invalid episode inventory');
+    }
+    const local = parsed.data.local;
+    const first = local.link;
+    const rest = local.ep ?? [];
+    const links = [first ?? '', ...rest.map((item) => item.link)].map((link) =>
+        link.trim().replace(/^src=/, '')
+    );
 
     if (!links.length || links.some((link) => !link)) {
         throw new Error('AniPub returned an invalid episode inventory');
@@ -185,31 +219,29 @@ async function resolveStream(id: string, mode: AudioMode) {
     const errors: unknown[] = [];
     for (const sourceId of sourceIds) {
         try {
-            const payload = record(
+            const parsed = sourcePayloadSchema.safeParse(
                 await requestJson(
                     new URL(`/stream/getSources?id=${sourceId}`, megaplayUrl),
                     page.toString()
                 )
             );
-            const file = record(payload?.sources)?.file;
-            if (typeof file !== 'string') {
+            if (!parsed.success) {
                 throw new Error('AniPub MegaPlay embed returned no HLS stream');
             }
+            const payload: AniPubSourcePayload = parsed.data;
+            const file = payload.sources.file;
 
             const url = new URL(file);
             if (url.protocol !== 'https:') {
                 throw new Error('AniPub returned an unsupported stream URL');
             }
 
-            const captions = Array.isArray(payload?.tracks)
-                ? payload.tracks.flatMap((item) => {
-                      const track = record(item);
-                      const file = track?.file;
-                      const label =
-                          typeof track?.label === 'string' ? track.label.toLowerCase() : '';
+            const captions = payload.tracks
+                ? payload.tracks.flatMap((track) => {
+                      const file = track.file;
+                      const label = track.label.toLowerCase();
                       if (
-                          typeof file !== 'string' ||
-                          String(track?.kind).toLowerCase() !== 'captions' ||
+                          track.kind.toLowerCase() !== 'captions' ||
                           !/\b(?:eng|english)\b/.test(label)
                       ) {
                           return [];
@@ -218,7 +250,7 @@ async function resolveStream(id: string, mode: AudioMode) {
                       try {
                           const url = new URL(file);
                           return url.protocol === 'https:'
-                              ? [{ url: url.toString(), preferred: track?.default === true }]
+                              ? [{ url: url.toString(), preferred: track.default === true }]
                               : [];
                       } catch {
                           return [];

@@ -1,7 +1,8 @@
 import { load } from 'cheerio';
+import { z } from 'zod';
 
 import type { AudioMode } from '$lib/audio';
-import { positiveInteger, record } from '$lib/utils';
+import { positiveInteger } from '$lib/utils';
 import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
@@ -16,6 +17,7 @@ import {
 } from './match';
 import type { AniListAnime } from '../anilist/types';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
+import type { JsonValue } from '$lib/utils';
 
 const baseUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';
@@ -23,6 +25,41 @@ const megaplayUrl = 'https://megaplay.buzz';
 const providerName = 'anikoto';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+const seriesSchema = z.object({
+    ok: z.boolean(),
+    data: z
+        .object({
+            anime: z.object({
+                id: z.union([z.number(), z.string()]),
+                ani_id: z.union([z.number(), z.string()]).nullish(),
+                mal_id: z.union([z.number(), z.string()]).nullish(),
+                title: z.string(),
+                alternative: z.string().nullish(),
+            }),
+            episodes: z.array(
+                z.object({
+                    number: z.union([z.number(), z.string()]),
+                    title: z.string(),
+                    episode_embed_id: z.string(),
+                    embed_url: z
+                        .object({ sub: z.string().nullish(), dub: z.string().nullish() })
+                        .optional(),
+                })
+            ),
+        })
+        .optional(),
+});
+const mediaUrlSchema = z.string();
+const trackSchema = z.object({
+    kind: z.string(),
+    label: z.string(),
+    file: z.string(),
+    default: z.boolean().optional(),
+});
+const sourcePayloadSchema = z.object({
+    sources: z.object({ file: z.string() }),
+    tracks: z.array(trackSchema).optional(),
+});
 
 interface AniKotoEpisode {
     embedId: string;
@@ -99,7 +136,8 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
     });
 
     try {
-        return JSON.parse(text) as unknown;
+        // SAFETY: request consumers validate this JSON with their endpoint schema.
+        return JSON.parse(text) as JsonValue;
     } catch (cause) {
         throw new Error('AniKoto returned an invalid JSON response', {
             cause,
@@ -126,45 +164,46 @@ function searchCandidates(html: string) {
     return [...candidates.values()];
 }
 
-function episodeTitle(value: unknown) {
-    if (typeof value !== 'string' || !value.trim()) {
+function episodeTitle(value: JsonValue) {
+    const parsed = z.string().safeParse(value);
+    if (!parsed.success || !parsed.data.trim()) {
         return '';
     }
 
-    return load(`<span>${value}</span>`)('span').text().trim();
+    return load(`<span>${parsed.data}</span>`)('span').text().trim();
 }
 
-function parseSeries(value: unknown): AniKotoSeries | null {
-    const payload = record(value);
-    const data = record(payload?.data);
-    const anime = record(data?.anime);
-    const id = positiveInteger(anime?.id);
-    if (!payload?.ok || !data || !anime || !id || !Array.isArray(data.episodes)) {
+function parseSeries(value: JsonValue): AniKotoSeries | null {
+    const parsed = seriesSchema.safeParse(value);
+    if (!parsed.success || !parsed.data.ok || !parsed.data.data) {
+        return null;
+    }
+    const { anime, episodes: rawEpisodes } = parsed.data.data;
+    const id = positiveInteger(anime.id);
+    if (!id) {
         return null;
     }
 
-    const episodes = data.episodes.flatMap((value) => {
-        const episode = record(value);
-        const embedUrls = record(episode?.embed_url);
-        const number = Number(episode?.number);
-        const embedId = episode?.episode_embed_id;
-        if (!Number.isFinite(number) || number <= 0 || typeof embedId !== 'string' || !embedId) {
+    const episodes = rawEpisodes.flatMap((episode) => {
+        const embedUrls = episode.embed_url;
+        const number = Number(episode.number);
+        if (!Number.isFinite(number) || number <= 0) {
             return [];
         }
 
         const embeds: AniKotoEpisode['embeds'] = {};
-        if (typeof embedUrls?.sub === 'string' && embedUrls.sub) {
+        if (embedUrls?.sub) {
             embeds.sub = embedUrls.sub;
         }
-        if (typeof embedUrls?.dub === 'string' && embedUrls.dub) {
+        if (embedUrls?.dub) {
             embeds.dub = embedUrls.dub;
         }
 
         return [
             {
-                embedId,
+                embedId: episode.episode_embed_id,
                 number,
-                title: episodeTitle(episode?.title),
+                title: episodeTitle(episode.title),
                 embeds,
             },
         ];
@@ -174,8 +213,8 @@ function parseSeries(value: unknown): AniKotoSeries | null {
         id,
         anilistId: positiveInteger(anime.ani_id) ?? null,
         malId: positiveInteger(anime.mal_id) ?? null,
-        title: typeof anime.title === 'string' ? anime.title.trim() : '',
-        alternativeTitle: typeof anime.alternative === 'string' ? anime.alternative.trim() : '',
+        title: anime.title.trim(),
+        alternativeTitle: anime.alternative?.trim() ?? '',
         episodes,
     };
 }
@@ -384,13 +423,14 @@ function sourceId(html: string) {
     return dataId ?? html.match(/<title>\s*File\s+(\d+)\s+-/i)?.[1] ?? null;
 }
 
-function supportedMediaUrl(value: unknown) {
-    if (typeof value !== 'string') {
+function supportedMediaUrl(value: JsonValue) {
+    const parsed = mediaUrlSchema.safeParse(value);
+    if (!parsed.success) {
         return null;
     }
 
     try {
-        const url = new URL(value);
+        const url = new URL(parsed.data);
         // MegaPlay serves each series from a rotated `megap.<host>` CDN
         // subdomain, so match the shared prefix rather than fixed hosts.
         const supported =
@@ -403,25 +443,24 @@ function supportedMediaUrl(value: unknown) {
     }
 }
 
-function englishCaptionTracks(payload: Record<string, unknown>) {
-    if (!Array.isArray(payload.tracks)) {
+function englishCaptionTracks(payload: z.infer<typeof sourcePayloadSchema>) {
+    if (!payload.tracks) {
         return [];
     }
 
     const candidates: { url: string; preferred: boolean }[] = [];
-    for (const value of payload.tracks) {
-        const track = record(value);
-        const kind = typeof track?.kind === 'string' ? track.kind.toLowerCase() : '';
-        const label = typeof track?.label === 'string' ? track.label.toLowerCase() : '';
+    for (const track of payload.tracks) {
+        const kind = track.kind.toLowerCase();
+        const label = track.label.toLowerCase();
         if (kind !== 'captions' || !/\benglish\b/.test(label)) {
             continue;
         }
 
-        const url = supportedMediaUrl(track?.file);
+        const url = supportedMediaUrl(track.file);
         if (url) {
             candidates.push({
                 url: url.toString(),
-                preferred: track?.default === true,
+                preferred: track.default === true,
             });
         }
     }
@@ -431,7 +470,7 @@ function englishCaptionTracks(payload: Record<string, unknown>) {
 
 /** Pick the English track with the most cues. A plain "English" label can be
  * signs-only, while an AI-labelled track can carry the only full dialogue. */
-async function englishSubtitle(payload: Record<string, unknown>) {
+async function englishSubtitle(payload: z.infer<typeof sourcePayloadSchema>) {
     const candidates = englishCaptionTracks(payload);
     return fullestCaption(candidates, (url) =>
         requestText(new URL(url), {
@@ -449,10 +488,13 @@ async function resolveStream(embed: URL) {
 
     const sourceUrl = new URL('/stream/getSources', megaplayUrl);
     sourceUrl.searchParams.set('id', id);
-    const payload = record(await requestJson(sourceUrl, embed.toString()));
-    const sources = record(payload?.sources);
-    const streamUrl = supportedMediaUrl(sources?.file);
-    if (!payload || !streamUrl || !streamUrl.pathname.endsWith('.m3u8')) {
+    const parsed = sourcePayloadSchema.safeParse(await requestJson(sourceUrl, embed.toString()));
+    if (!parsed.success) {
+        throw new Error('AniKoto MegaPlay embed returned no HLS stream');
+    }
+    const payload = parsed.data;
+    const streamUrl = supportedMediaUrl(payload.sources.file);
+    if (!streamUrl || !streamUrl.pathname.endsWith('.m3u8')) {
         throw new Error('AniKoto MegaPlay embed returned no HLS stream');
     }
 

@@ -1,7 +1,7 @@
 import { load } from 'cheerio';
+import { z } from 'zod';
 
 import type { AudioMode } from '$lib/audio';
-import { record } from '$lib/utils';
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -14,11 +14,21 @@ import {
     standaloneSpecialMatches,
 } from './match';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
+import type { JsonValue } from '$lib/utils';
 
 const baseUrl = 'https://anineko.to';
 const providerName = 'anineko';
 const userAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+const searchResponseSchema = z.object({
+    success: z.boolean(),
+    results: z.array(z.object({ title: z.string(), url: z.string() })),
+});
+const packedLinksSchema = z.object({
+    hls2: z.string().optional(),
+    hls3: z.string().optional(),
+    hls4: z.string().optional(),
+});
 
 async function requestText(url: URL, referer = `${baseUrl}/`) {
     const response = await fetch(url, {
@@ -37,20 +47,13 @@ async function requestText(url: URL, referer = `${baseUrl}/`) {
     return response.text();
 }
 
-function searchResults(value: unknown) {
-    const payload = record(value);
-    if (!payload?.success || !Array.isArray(payload.results)) {
+function searchResults(value: JsonValue) {
+    const parsed = searchResponseSchema.safeParse(value);
+    if (!parsed.success || !parsed.data.success) {
         return [];
     }
 
-    return payload.results.flatMap((item) => {
-        const result = record(item);
-        const title = result?.title;
-        const path = result?.url;
-        if (typeof title !== 'string' || typeof path !== 'string') {
-            return [];
-        }
-
+    return parsed.data.results.flatMap(({ title, url: path }) => {
         const url = new URL(path, baseUrl);
         const match = url.pathname.match(/^\/watch\/([^/?#]+)$/);
         return url.origin === baseUrl && match ? [{ title: title.trim(), slug: match[1] }] : [];
@@ -104,7 +107,8 @@ async function findSlug(anime: AniListAnime, refresh = false) {
     for (const title of titles) {
         const search = new URL('/ajax/search', baseUrl);
         search.searchParams.set('q', title);
-        const payload = JSON.parse(await requestText(search)) as unknown;
+        // SAFETY: searchResults validates the parsed provider payload before use.
+        const payload = JSON.parse(await requestText(search)) as JsonValue;
         const candidates = searchResults(payload).filter(
             (candidate) =>
                 exactTitles.has(matchableTitle(candidate.title)) && !visited.has(candidate.slug)
@@ -207,7 +211,8 @@ async function specialReleaseEpisode(
     for (const query of specialReleaseQueries(anime, episode)) {
         const search = new URL('/ajax/search', baseUrl);
         search.searchParams.set('q', query);
-        const candidates = searchResults(JSON.parse(await requestText(search)) as unknown).filter(
+        // SAFETY: searchResults validates the parsed provider payload before use.
+        const candidates = searchResults(JSON.parse(await requestText(search)) as JsonValue).filter(
             (candidate) =>
                 !visited.has(candidate.slug) &&
                 (standaloneSpecialMatches(anime, episode, [candidate.title]) ||
@@ -328,7 +333,8 @@ function otakuhgStreams(html: string, embed: URL) {
         throw new Error('AniNeko embed returned no HLS stream');
     }
 
-    const links = JSON.parse(match[1]) as { hls2?: string; hls3?: string; hls4?: string };
+    // SAFETY: packed StreamHG scripts encode the links object in JSON; packedLinksSchema validates it below.
+    const links = packedLinksSchema.parse(JSON.parse(match[1]));
     const sources = [links.hls4, links.hls2]
         .filter((source): source is string => Boolean(source))
         .map((source) => new URL(source, embed).toString())
