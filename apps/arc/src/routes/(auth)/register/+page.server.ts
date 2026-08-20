@@ -5,8 +5,8 @@ import { setError, superValidate } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 
 import { auth } from '$lib/server/auth';
-import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { users } from '@arc/db/schema';
 import { claimInvitation, completeInvitation, restoreInvitation } from '$lib/server/invitations';
 
 import { registerSchema } from './schema';
