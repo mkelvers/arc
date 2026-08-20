@@ -1,0 +1,28 @@
+{
+    "name": "@arc/db",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./schema": "./src/schema/index.ts",
+        "./sql": "./src/sql.ts"
+    },
+    "scripts": {
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:check": "drizzle-kit check",
+        "db:studio": "drizzle-kit studio",
+        "db:up": "docker compose -f ../../compose.yaml up -d --wait postgres",
+        "db:down": "docker compose -f ../../compose.yaml down"
+    },
+    "dependencies": {
+        "drizzle-orm": "^0.45.2",
+        "postgres": "^3.4.9"
+    },
+    "devDependencies": {
+        "@types/node": "^26.2.0",
+        "dotenv": "^17.4.2",
+        "drizzle-kit": "^0.31.10"
+    }
+}

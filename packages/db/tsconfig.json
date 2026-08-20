@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@arc/app/*": ["../../apps/arc/src/*"]
+        },
+        "strict": true,
+        "types": ["node"],
+        "moduleResolution": "bundler",
+        "module": "preserve",
+        "skipLibCheck": true
+    }
+}
