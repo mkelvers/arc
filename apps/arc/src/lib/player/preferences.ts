@@ -1,4 +1,5 @@
 import type { AudioMode } from '$lib/audio';
+import { z } from 'zod';
 import {
     subtitleBackgroundOpacities,
     subtitleSizeOrder,
@@ -27,6 +28,7 @@ type Key =
     | 'iframes';
 
 const storageKey = 'arc:preferences';
+const storedPreferencesSchema = z.record(z.string(), z.string());
 const preferenceKeys: readonly Key[] = [
     'audio-mode',
     'autoplay',
@@ -48,13 +50,11 @@ function readValues() {
     let validStored = stored === null;
     if (stored !== null) {
         try {
-            const parsed: unknown = JSON.parse(stored);
-            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+            const parsed = storedPreferencesSchema.safeParse(JSON.parse(stored));
+            if (parsed.success) {
                 validStored = true;
-                for (const [key, value] of Object.entries(parsed)) {
-                    if (typeof value === 'string') {
-                        values[key] = value;
-                    }
+                for (const [key, value] of Object.entries(parsed.data)) {
+                    values[key] = value;
                 }
             }
         } catch {
