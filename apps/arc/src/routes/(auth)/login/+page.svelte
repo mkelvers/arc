@@ -12,6 +12,7 @@
 
     async function login(event: SubmitEvent) {
         event.preventDefault();
+        // SAFETY: submit events from this handler originate on the form below.
         if (pending || !(event.currentTarget as HTMLFormElement).reportValidity()) {
             return;
         }

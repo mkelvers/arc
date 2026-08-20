@@ -30,8 +30,10 @@
     let { highlights }: Props = $props();
     let carousel = $state({
         active: 0,
+        // SAFETY: null is a valid empty previous-slide state.
         previous: null as number | null,
         progression: 0,
+        // SAFETY: the initial value is a member of ProgressMode.
         progressMode: 'animated' as ProgressMode,
     });
     let ready = $state({

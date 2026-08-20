@@ -139,10 +139,13 @@
     function filterHref(key: FilterKey, value: string) {
         switch (key) {
             case 'language':
+                // SAFETY: FilterKey selects the matching closed value union.
                 return selectionHref({ language: value as WatchlistLanguage });
             case 'media':
+                // SAFETY: FilterKey selects the matching closed value union.
                 return selectionHref({ media: value as WatchlistMedia });
             case 'type':
+                // SAFETY: FilterKey selects the matching closed value union.
                 return selectionHref({ type: value as WatchlistType });
         }
     }

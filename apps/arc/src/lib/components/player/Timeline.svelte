@@ -8,6 +8,7 @@
 
     let { player }: Props = $props();
     let pointer = $state({
+        // SAFETY: null is the valid initial no-preview state.
         preview: null as number | null,
         position: 0,
         scrubbing: false,
@@ -25,6 +26,7 @@
     });
 
     function move(event: PointerEvent) {
+        // SAFETY: the handler is attached directly to the range input below.
         const input = event.currentTarget as HTMLInputElement;
         const bounds = input.getBoundingClientRect();
 
@@ -46,6 +48,7 @@
             return;
         }
 
+        // SAFETY: the handler is attached directly to the range input below.
         const input = event.currentTarget as HTMLInputElement;
         pointer.scrubbing = true;
         player.media.setScrubbing(true);
@@ -55,6 +58,7 @@
     }
 
     function end(event: PointerEvent) {
+        // SAFETY: the handler is attached directly to the range input below.
         const input = event.currentTarget as HTMLInputElement;
         move(event);
         if (pointer.preview !== null) {
