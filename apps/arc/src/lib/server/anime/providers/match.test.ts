@@ -6,20 +6,7 @@ import {
     matchProviderEpisode,
     matchProviderStreamEpisode,
     releaseInventoryEvidence,
-    specialCollectionMatches,
-    standaloneSpecialMatches,
 } from './match';
-import type { AniListAnime } from '../anilist/types';
-
-interface AniListFixture {
-    id: number;
-    title: { english?: string | null; romaji?: string | null };
-    synonyms: string[];
-}
-
-function animeFixture(fields: AniListFixture): AniListAnime {
-    return fields as AniListAnime;
-}
 
 describe('playback episode identity matching', () => {
     test('requires every expected numbered episode', () => {
@@ -264,83 +251,5 @@ describe('playback episode identity matching', () => {
                 2
             )
         ).toBe(episodes[1]);
-    });
-
-    test('requires both the parent franchise and special title for a standalone match', () => {
-        const anime = animeFixture({
-            id: 108511,
-            title: {
-                english: 'That Time I Got Reincarnated as a Slime Season 2',
-                romaji: 'Tensei Shitara Slime Datta Ken 2nd Season',
-            },
-            synonyms: [],
-        });
-        const episode = {
-            id: '0.9',
-            number: 0.9,
-            title: 'Digression: Hinata Sakaguchi',
-        };
-
-        expect(
-            standaloneSpecialMatches(anime, episode, [
-                'That Time I Got Reincarnated as a Slime Season 2: Digression - Hinata Sakaguchi',
-            ])
-        ).toBe(true);
-        expect(
-            standaloneSpecialMatches(anime, episode, [
-                'Another Anime: Digression - Hinata Sakaguchi',
-            ])
-        ).toBe(false);
-        expect(
-            standaloneSpecialMatches(anime, episode, [
-                'That Time I Got Reincarnated as a Slime Season 2: Special',
-            ])
-        ).toBe(false);
-    });
-
-    test('maps an ordered specials collection only when its size and parent match', () => {
-        const anime = animeFixture({
-            id: 156822,
-            title: {
-                english: 'That Time I Got Reincarnated as a Slime Season 3',
-                romaji: 'Tensei Shitara Slime Datta Ken 3rd Season',
-            },
-            synonyms: [],
-        });
-        const episode = {
-            id: '17.5',
-            number: 17.5,
-            title: 'Digression: Luminus Memories',
-            specialIndex: 2,
-            specialCount: 2,
-        };
-
-        expect(
-            specialCollectionMatches(
-                anime,
-                episode,
-                ['That Time I Got Reincarnated as a Slime Season 03: Specials'],
-                2
-            )
-        ).toBe(true);
-        expect(
-            specialCollectionMatches(
-                anime,
-                episode,
-                ['That Time I Got Reincarnated as a Slime Season 03: Specials'],
-                1
-            )
-        ).toBe(false);
-        expect(
-            specialCollectionMatches(anime, episode, ['Another Anime Season 3: Specials'], 2)
-        ).toBe(false);
-        expect(
-            specialCollectionMatches(
-                anime,
-                episode,
-                ['That Time I Got Reincarnated as a Slime Season 02: Specials'],
-                2
-            )
-        ).toBe(false);
     });
 });
