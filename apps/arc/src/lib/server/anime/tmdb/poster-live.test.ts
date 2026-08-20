@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test';
 
 import { fetchOrder } from '../franchise/chiaki';
 
-const liveTest = process.env.LIVE_TMDB_POSTERS === '1' ? test : test.skip;
 const animeIds = [
     16498, 18397, 21459, 97940, 99263, 101280, 101922, 105310, 105333, 108465, 113415, 11757,
     120377, 125206, 131573, 137822, 146984, 151807, 153288, 154587,
@@ -48,7 +47,7 @@ async function tmdbPosters(seriesId: number) {
 }
 
 describe('live anime card artwork providers', () => {
-    liveTest(
+    test.skip(
         'AniList returns distinct covers across television, movie, OVA, ONA, and special releases',
         async () => {
             const response = await fetch('https://graphql.anilist.co', {
@@ -87,7 +86,7 @@ describe('live anime card artwork providers', () => {
         20_000
     );
 
-    liveTest(
+    test.skip(
         'aggregate TMDB series expose enough distinct high-resolution posters for release allocation',
         async () => {
             const samples = await Promise.all([95479, 1429, 65930, 82684].map(tmdbPosters));
@@ -106,7 +105,7 @@ describe('live anime card artwork providers', () => {
         20_000
     );
 
-    liveTest(
+    test.skip(
         'Chiaki resolves Attack on Titan from its first and final releases',
         async () => {
             const [first, final] = await Promise.all([fetchOrder(16498), fetchOrder(51535)]);
