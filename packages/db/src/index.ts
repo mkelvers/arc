@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
@@ -13,3 +14,7 @@ export const db = drizzle({
 });
 
 export type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export function excluded(column: { name: string }) {
+    return sql.raw(`excluded."${column.name}"`);
+}

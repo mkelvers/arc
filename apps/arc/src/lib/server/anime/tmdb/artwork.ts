@@ -1,8 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { db } from '@arc/db';
-import { excluded } from '@arc/db/sql';
+import { db, excluded } from '@arc/db';
 import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';

@@ -8,7 +8,7 @@ import {
     searchRelevance,
     type AnimeSearchResult,
 } from '$lib/search';
-import { excluded } from '@arc/db/sql';
+import { excluded } from '@arc/db';
 import type * as schema from '@arc/db/schema';
 import { animeSearchIndex as animeSearchIndexTable } from '@arc/db/schema';
 

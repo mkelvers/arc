@@ -3,8 +3,7 @@ import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
 import type { BrowseFilters, BrowseTaxonomy } from '$lib/browse';
 import { audioAvailabilityLabel, type AudioMode } from '$lib/audio';
 import type { AnimeCard } from '$lib/types';
-import { db } from '@arc/db';
-import { excluded } from '@arc/db/sql';
+import { db, excluded } from '@arc/db';
 import {
     animeCatalog,
     animeCatalogRefresh,
