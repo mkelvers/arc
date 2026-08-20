@@ -1,7 +1,7 @@
-import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
 
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
-import { db } from '@arc/db';
+import { db, excluded } from '@arc/db';
 import {
     anime as animeTable,
     animeDetailsCache,
@@ -61,13 +61,10 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
                 dismissedAt: null,
             },
             setWhere: and(
-                lt(playbackProgress.eventAt, sql.raw(`excluded.${playbackProgress.eventAt.name}`)),
+                lt(playbackProgress.eventAt, excluded(playbackProgress.eventAt)),
                 or(
                     isNull(playbackProgress.dismissedAt),
-                    lt(
-                        playbackProgress.dismissedAt,
-                        sql.raw(`excluded.${playbackProgress.eventAt.name}`)
-                    )
+                    lt(playbackProgress.dismissedAt, excluded(playbackProgress.eventAt))
                 )
             ),
         })
