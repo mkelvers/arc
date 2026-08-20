@@ -14,6 +14,7 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import WatchlistTransfer from '$lib/components/WatchlistTransfer.svelte';
     import {
         watchlistStates,
         type WatchlistLanguage,
@@ -179,6 +180,8 @@
                     {/each}
                 </ul>
             </nav>
+
+            <WatchlistTransfer />
 
             {#if data.totalEntries}
                 <Dropdown

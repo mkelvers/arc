@@ -49,6 +49,11 @@ class WatchlistClient {
         }
     }
 
+    async refresh() {
+        this.loaded = false;
+        await this.load();
+    }
+
     async set(animeId: number, state: WatchlistState) {
         const response = await this.request(`/api/watchlist/${animeId}`, {
             method: 'PUT',
