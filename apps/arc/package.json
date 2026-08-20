@@ -10,12 +10,6 @@
         "prepare": "svelte-kit sync || echo ''",
         "graphql:generate": "graphql-codegen --config codegen.ts",
         "openapi:generate": "openapi-typescript https://developer.themoviedb.org/openapi/tmdb-api.json -o src/lib/server/anime/tmdb/generated.ts",
-        "db:generate": "drizzle-kit generate",
-        "db:migrate": "drizzle-kit migrate",
-        "db:check": "drizzle-kit check",
-        "db:studio": "drizzle-kit studio",
-        "db:up": "docker compose -f ../../compose.yaml up -d --wait postgres",
-        "db:down": "docker compose -f ../../compose.yaml down",
         "test": "bun test",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -25,6 +19,7 @@
         "format:check": "oxfmt --check"
     },
     "dependencies": {
+        "@arc/db": "workspace:*",
         "@fontsource-variable/dm-sans": "^5.3.0",
         "@fontsource-variable/manrope": "^5.3.0",
         "better-auth": "1.6.26",
