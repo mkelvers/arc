@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 
-import { validSkipInterval } from '$lib/server/anime/aniskip';
+import { SkipIntervalInputSchema, validSkipInterval } from '$lib/server/anime/aniskip';
 import { saveEpisodeSegment } from '$lib/server/anime/skip-times';
 import { isRecord } from '$lib/utils';
 import type { RequestHandler } from './$types';
@@ -48,7 +48,8 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
     ) {
         save = { kind, operation, start: body.start };
     } else if (operation === 'set' && typeof body.createTemplate === 'boolean') {
-        const interval = validSkipInterval(body.interval);
+        const parsedInterval = SkipIntervalInputSchema.safeParse(body.interval);
+        const interval = parsedInterval.success ? validSkipInterval(parsedInterval.data) : null;
         if (interval) {
             save = { kind, operation, interval, createTemplate: body.createTemplate };
         }
