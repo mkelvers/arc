@@ -1,12 +1,13 @@
 <script lang="ts">
     import type { AnimeEpisode } from '$lib/types';
-    import EpisodeDialog from './EpisodeDialog.svelte';
+    import EpisodeGridCard from './EpisodeGridCard.svelte';
     import { Player } from '$lib/player/controller.svelte';
     import { subtitleBackgrounds, subtitleSizes, subtitleTextColors, type Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
     import { onMount, untrack } from 'svelte';
     import { CaretLeftIcon, SpinnerGapIcon } from 'phosphor-svelte';
     import Controls from './player/Controls.svelte';
+    import Modal from './ui/Modal.svelte';
 
     interface AnimeInfo {
         id: number;
@@ -370,16 +371,28 @@
         <Controls
             player={player}
             hasMultipleEpisodes={episodes.length > 1}
-            onopenepisodes={() => (episodeDialogOpen = true)}
+            episodesOpen={episodeDialogOpen}
+            onopenepisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
         />
     {/if}
 </div>
 
-<EpisodeDialog
-    open={episodeDialogOpen}
-    title={anime.title}
-    episodes={episodes}
-    currentId={currentEpisode.id}
-    image={fallbackImage}
-    onclose={() => (episodeDialogOpen = false)}
-/>
+{#if episodeDialogOpen}
+    <Modal id="episode-dialog" open wide title={anime.title} onclose={() => (episodeDialogOpen = false)}>
+        {#snippet children()}
+            <div class="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 lg:px-10">
+                <div class="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                    {#each episodes as episode}
+                        <EpisodeGridCard
+                            episode={episode}
+                            title={anime.title}
+                            image={fallbackImage}
+                            current={episode.id === currentEpisode.id}
+                            context="dialog"
+                        />
+                    {/each}
+                </div>
+            </div>
+        {/snippet}
+    </Modal>
+{/if}

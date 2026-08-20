@@ -28,7 +28,11 @@
     });
 
     function close() {
-        dialog?.close();
+        if (dialog?.open) {
+            dialog.close();
+        }
+
+        onclose?.();
     }
 </script>
 
@@ -36,7 +40,7 @@
     bind:this={dialog}
     aria-labelledby={`${id}-title`}
     aria-describedby={description ? `${id}-description` : undefined}
-    class={`${wide ? 'h-11/12 w-11/12 max-w-5xl' : 'w-[calc(100%-2rem)] max-w-md'} m-auto max-h-screen overflow-hidden bg-panel p-0 text-foreground backdrop:bg-black/75`}
+    class={`${wide ? 'h-11/12 w-11/12 max-w-5xl' : 'w-[calc(100%-2rem)] max-w-md'} m-auto flex max-h-screen flex-col overflow-hidden bg-panel p-0 text-foreground backdrop:bg-black/75`}
     onclick={(event) => {
         if (event.target === dialog) {
             close();
@@ -46,9 +50,8 @@
         event.preventDefault();
         close();
     }}
-    onclose={onclose}
 >
-    <header class="flex min-h-20 items-center border-b border-black/15 bg-panel-strong px-5 sm:px-8">
+    <header class="flex min-h-20 shrink-0 items-center border-b border-black/15 bg-panel-strong px-5 sm:px-8">
         <div class="min-w-0">
             <h2 id={`${id}-title`} class="line-clamp-2 text-lg font-bold sm:text-xl">{title}</h2>
             {#if description}

@@ -16,10 +16,11 @@
     interface Props {
         player: Player;
         hasMultipleEpisodes?: boolean;
+        episodesOpen?: boolean;
         onopenepisodes?: () => void;
     }
 
-    let { player, hasMultipleEpisodes = false, onopenepisodes }: Props = $props();
+    let { player, hasMultipleEpisodes = false, episodesOpen = false, onopenepisodes }: Props = $props();
 </script>
 
 <div
@@ -88,8 +89,10 @@
             {#if hasMultipleEpisodes && onopenepisodes}
                 <button
                     type="button"
-                    aria-label="Episodes"
+                    aria-label={episodesOpen ? 'Close episodes' : 'Episodes'}
                     aria-haspopup="dialog"
+                    aria-expanded={episodesOpen}
+                    aria-controls="episode-dialog"
                     class="grid size-8 cursor-pointer place-items-center transition-opacity hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
                     onclick={onopenepisodes}
                 >
