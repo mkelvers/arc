@@ -221,6 +221,11 @@ export const animeArtworkCache = pgTable('anime_artwork_cache', {
     allLanguages: boolean('all_languages').notNull().default(false),
 });
 
+export const animeArtworkSource = pgTable('anime_artwork_source', {
+    anilistId: integer('anilist_id').primaryKey(),
+    sourceAnilistId: integer('source_anilist_id').notNull(),
+});
+
 export const animeArtworkPreference = pgTable('anime_artwork_preference', {
     externalIdId: integer('external_id_id')
         .primaryKey()

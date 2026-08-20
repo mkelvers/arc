@@ -1,8 +1,13 @@
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@arc/db';
-import { anime as animeTable, animeExternalId, animeExternalIdLink } from '@arc/db/schema';
+import {
+    anime as animeTable,
+    animeArtworkSource,
+    animeExternalId,
+    animeExternalIdLink,
+} from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { type Mapping, type StoredMapping } from './types';
@@ -60,6 +65,52 @@ export async function findMapping(anilistId: number): Promise<StoredMapping | nu
     }
 
     return null;
+}
+
+export interface ArtworkMappings {
+    matches: StoredMapping[];
+    preferenceExternalIdId: number;
+}
+
+export async function findArtworkMappings(
+    anilistId: number,
+    match: StoredMapping | null = null
+): Promise<ArtworkMappings | null> {
+    match ??= await findMapping(anilistId);
+    if (!match) {
+        return null;
+    }
+
+    const [source] = await db
+        .select({
+            anilistId: animeArtworkSource.anilistId,
+            sourceAnilistId: animeArtworkSource.sourceAnilistId,
+        })
+        .from(animeArtworkSource)
+        .where(
+            or(
+                eq(animeArtworkSource.anilistId, anilistId),
+                eq(animeArtworkSource.sourceAnilistId, anilistId)
+            )
+        )
+        .limit(1);
+
+    if (!source) {
+        return { matches: [match], preferenceExternalIdId: match.externalIdId };
+    }
+
+    const otherAnilistId =
+        source.anilistId === anilistId ? source.sourceAnilistId : source.anilistId;
+    const otherMatch = await findMapping(otherAnilistId);
+    if (!otherMatch) {
+        return { matches: [match], preferenceExternalIdId: match.externalIdId };
+    }
+
+    return {
+        matches: [match, otherMatch],
+        preferenceExternalIdId:
+            source.anilistId === anilistId ? match.externalIdId : otherMatch.externalIdId,
+    };
 }
 
 export async function saveVerifiedMapping(

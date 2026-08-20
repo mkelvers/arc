@@ -344,6 +344,13 @@
             "when": 1787235880409,
             "tag": "0048_tough_eternity",
             "breakpoints": true
+        },
+        {
+            "idx": 49,
+            "version": "7",
+            "when": 1787240219782,
+            "tag": "0049_clammy_spitfire",
+            "breakpoints": true
         }
     ]
 }
