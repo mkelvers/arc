@@ -6,8 +6,8 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { username } from 'better-auth/plugins';
 
-import { db } from '$lib/server/db';
-import * as schema from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import * as schema from '@arc/db/schema';
 import { hasInvitationClaim } from '$lib/server/invitations';
 
 const trustedOrigins = (env.BETTER_AUTH_TRUSTED_ORIGINS ?? env.BETTER_AUTH_URL)

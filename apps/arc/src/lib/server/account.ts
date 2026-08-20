@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 
-import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { users } from '@arc/db/schema';
 
 export async function getAccount(userId: string) {
     const [account] = await db

@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 
 import { and, eq, gt, isNotNull, isNull, or } from 'drizzle-orm';
 
-import { db } from '$lib/server/db';
-import { invitations } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { invitations } from '@arc/db/schema';
 
 export async function claimInvitation(code: string, claim: string) {
     const now = new Date();
