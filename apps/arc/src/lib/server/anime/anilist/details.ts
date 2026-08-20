@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { AnimeDocument } from '$lib/graphql/anilist/generated/graphql';
 import { db } from '@arc/db';
@@ -97,10 +98,12 @@ export async function getAnime(id: number) {
     }
 
     if (stored?.version === version) {
+        const airingAt = stored.data.nextAiringEpisode?.airingAt;
+        const parsedAiringAt = z.number().safeParse(airingAt);
         const airingPassed =
             stored.data.status === 'RELEASING' &&
-            typeof stored.data.nextAiringEpisode?.airingAt === 'number' &&
-            stored.data.nextAiringEpisode.airingAt * 1_000 <= Date.now();
+            parsedAiringAt.success &&
+            parsedAiringAt.data * 1_000 <= Date.now();
         if (airingPassed && (retryAt.get(id) ?? 0) <= Date.now()) {
             try {
                 const anime = await refreshAnime(id);

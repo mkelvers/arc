@@ -1,4 +1,5 @@
 import type { BrowseFilters } from '$lib/browse';
+import { z } from 'zod';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
@@ -103,7 +104,7 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
                 season: media.season,
                 seasonYear: media.seasonYear,
                 countryOfOrigin:
-                    typeof media.countryOfOrigin === 'string' ? media.countryOfOrigin : null,
+                    z.string().nullable().safeParse(media.countryOfOrigin).data ?? null,
                 // Unknown classifications are excluded from safe browsing.
                 isAdult: media.isAdult !== false,
                 popularity: media.popularity,

@@ -5,7 +5,7 @@ import { eq, lte } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { anilistQueryCache } from '@arc/db/schema';
 import { graphql } from '$lib/server/graphql';
-import { isRecord } from '$lib/utils';
+import { isRecord, JsonValueSchema, type JsonValue } from '$lib/utils';
 import { anilistRequestPolicy } from './request-policy';
 
 const endpoint = 'https://graphql.anilist.co';
@@ -19,11 +19,12 @@ interface RequestOptions {
     forceRefresh?: boolean;
 }
 
-function canonical(value: unknown): unknown {
+function canonical(value: JsonValue): JsonValue {
     if (Array.isArray(value)) {
         return value.map(canonical);
     }
-    if (value && typeof value === 'object') {
+    const object = isRecord(value);
+    if (object) {
         return Object.fromEntries(
             Object.entries(value)
                 .sort(([left], [right]) => left.localeCompare(right))
@@ -33,8 +34,9 @@ function canonical(value: unknown): unknown {
     return value;
 }
 
-function cacheKey(document: { toString(): string }, variables: unknown) {
-    const serializedVariables = JSON.stringify(canonical(variables)) ?? 'null';
+function cacheKey<TVariables>(document: { toString(): string }, variables: TVariables) {
+    const parsedVariables = JsonValueSchema.parse(JSON.parse(JSON.stringify(variables)));
+    const serializedVariables = JSON.stringify(canonical(parsedVariables)) ?? 'null';
     return createHash('sha256')
         .update(document.toString())
         .update('\0')
@@ -105,10 +107,14 @@ export async function request<TResult, TVariables>(
             .limit(1);
         void removeExpiredEntries(new Date());
 
-        if (stored && !isRecord(stored.data)) {
-            await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
-        } else if (!options.forceRefresh && stored && stored.expiresAt.getTime() > Date.now()) {
-            return stored.data as TResult;
+        if (stored) {
+            const parsedStored = JsonValueSchema.safeParse(stored.data);
+            if (!parsedStored.success || !isRecord(parsedStored.data)) {
+                await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
+            } else if (!options.forceRefresh && stored.expiresAt.getTime() > Date.now()) {
+                // SAFETY: stored data was written by refresh for this typed query key.
+                return parsedStored.data as TResult;
+            }
         }
     } catch (cause) {
         console.warn('AniList query cache read failed', cause);
@@ -116,6 +122,7 @@ export async function request<TResult, TVariables>(
 
     const pending = requests.get(key);
     if (pending) {
+        // SAFETY: requests is keyed by the same typed query and returns its refresh promise.
         return pending as Promise<TResult>;
     }
 
