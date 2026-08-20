@@ -11,17 +11,26 @@ interface GraphQLOptions {
     timeoutMs?: number;
 }
 
-const payloadSchema = z.object({
-    data: z.unknown().optional(),
-    errors: z
-        .array(
-            z.object({
-                message: z.string(),
-                status: z.number().optional(),
-            })
-        )
-        .optional(),
-});
+const payloadSchema = z.preprocess(
+    (value) => {
+        try {
+            return JSON.parse(String(value));
+        } catch {
+            return undefined;
+        }
+    },
+    z.object({
+        data: z.unknown().optional(),
+        errors: z
+            .array(
+                z.object({
+                    message: z.string(),
+                    status: z.number().optional(),
+                })
+            )
+            .optional(),
+    })
+);
 
 export class GraphQLRequestError extends Error {
     readonly status?: number;
@@ -97,16 +106,7 @@ export async function graphql<TResult, TVariables>(
                 });
             }
 
-            let body = null;
-            if (responseText) {
-                try {
-                    body = JSON.parse(responseText);
-                } catch {
-                    // The validation below reports non-JSON responses with HTTP context.
-                }
-            }
-
-            const result = payloadSchema.safeParse(body);
+            const result = payloadSchema.safeParse(responseText || undefined);
             if (!result.success) {
                 if (!response.ok) {
                     const preview = responseText.replace(/\s+/g, ' ').trim().slice(0, 300);
