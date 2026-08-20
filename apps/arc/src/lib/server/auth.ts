@@ -10,16 +10,11 @@ import { db } from '@arc/db';
 import * as schema from '@arc/db/schema';
 import { hasInvitationClaim } from '$lib/server/invitations';
 
-const trustedOrigins = (env.BETTER_AUTH_TRUSTED_ORIGINS ?? env.BETTER_AUTH_URL)
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-
 export const auth = betterAuth({
     appName: 'Arc',
     baseURL: env.BETTER_AUTH_URL,
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins,
+    trustedOrigins: [env.BETTER_AUTH_URL],
     database: drizzleAdapter(db, {
         provider: 'pg',
         schema,
