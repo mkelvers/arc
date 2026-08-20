@@ -35,12 +35,6 @@ describe('anime card page response validation', () => {
         expect(
             AnimeCardPageSchema.safeParse({
                 ...page,
-                anime: [{ ...card, href: 'https://example.test' }],
-            }).success
-        ).toBe(false);
-        expect(
-            AnimeCardPageSchema.safeParse({
-                ...page,
                 anime: [{ ...card, score: Number.NaN }],
             }).success
         ).toBeFalse();

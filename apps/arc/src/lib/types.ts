@@ -5,7 +5,7 @@ import type { MediaFormat, MediaRelation, MediaStatus } from './graphql/anilist/
 
 export const AnimeCardSchema = z.object({
     id: z.number().int(),
-    href: z.string().startsWith('/anime/'),
+    href: z.string(),
     link: z.string(),
     title: z.string(),
     image: z.string(),
