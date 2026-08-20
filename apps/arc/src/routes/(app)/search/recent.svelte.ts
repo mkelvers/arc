@@ -1,10 +1,13 @@
 import type { AnimeCard } from '$lib/types';
-import { isRecord } from '$lib/utils';
+import { z } from 'zod';
 
 interface RecentResult {
     id: number;
     title: string;
 }
+
+const recentResultSchema = z.object({ id: z.number().int(), title: z.string().min(1) });
+const recentResultsSchema = z.array(recentResultSchema);
 
 export class RecentSearches {
     results = $state<RecentResult[]>([]);
@@ -16,18 +19,12 @@ export class RecentSearches {
 
     load() {
         try {
-            const stored = JSON.parse(localStorage.getItem('arc:recent-search-results') ?? '[]');
+            const stored = recentResultsSchema.safeParse(
+                JSON.parse(localStorage.getItem('arc:recent-search-results') ?? '[]')
+            );
 
-            if (Array.isArray(stored)) {
-                this.results = stored
-                    .filter(
-                        (value): value is RecentResult =>
-                            isRecord(value) &&
-                            Number.isSafeInteger(value.id) &&
-                            typeof value.title === 'string' &&
-                            value.title.length > 0
-                    )
-                    .map(({ id, title }) => ({ id, title }));
+            if (stored.success) {
+                this.results = stored.data;
             }
         } catch {
             localStorage.removeItem('arc:recent-search-results');
