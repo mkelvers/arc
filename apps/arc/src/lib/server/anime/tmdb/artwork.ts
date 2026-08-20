@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db } from '@arc/db';
@@ -7,6 +7,7 @@ import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '@arc/db
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
+import { findArtworkMappings, type ArtworkMappings } from './mapping-store';
 import { getPoster } from './poster';
 import type { Artwork, ArtworkImage, StoredMapping } from './types';
 
@@ -49,9 +50,14 @@ function storedImage(image: typeof animeArtwork.$inferSelect): ArtworkImage {
 }
 
 async function withSelections(
-    match: StoredMapping,
+    mapping: ArtworkMappings,
     artwork: Pick<Artwork, 'backdrops' | 'logos'>
 ): Promise<Artwork> {
+    const [match] = mapping.matches;
+    if (!match) {
+        throw new Error('Artwork mapping has no TMDB sources');
+    }
+
     const [preference] = await db
         .select({
             backdropFilePath: animeArtworkPreference.backdropFilePath,
@@ -60,7 +66,7 @@ async function withSelections(
             logoSize: animeArtworkPreference.logoSize,
         })
         .from(animeArtworkPreference)
-        .where(eq(animeArtworkPreference.externalIdId, match.externalIdId))
+        .where(eq(animeArtworkPreference.externalIdId, mapping.preferenceExternalIdId))
         .limit(1);
     const logoHidden = preference?.logoHidden ?? false;
 
@@ -83,8 +89,22 @@ async function withSelections(
     };
 }
 
-export async function readArtwork(match: StoredMapping): Promise<Artwork | null> {
-    const [cached] = await db
+function mergeArtwork(
+    artwork: Pick<Artwork, 'backdrops' | 'logos'>[]
+): Pick<Artwork, 'backdrops' | 'logos'> {
+    const merge = (type: 'backdrops' | 'logos') =>
+        [
+            ...new Map(
+                artwork.flatMap((images) => images[type]).map((image) => [image.filePath, image])
+            ).values(),
+        ].sort((left, right) => right.voteAverage - left.voteAverage);
+
+    return { backdrops: merge('backdrops'), logos: merge('logos') };
+}
+
+export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | null> {
+    const externalIdIds = mapping.matches.map(({ externalIdId }) => externalIdId);
+    const cached = await db
         .select({
             externalIdId: animeArtworkCache.externalIdId,
             fetchedAt: animeArtworkCache.fetchedAt,
@@ -92,41 +112,50 @@ export async function readArtwork(match: StoredMapping): Promise<Artwork | null>
         .from(animeArtworkCache)
         .where(
             and(
-                eq(animeArtworkCache.externalIdId, match.externalIdId),
+                inArray(animeArtworkCache.externalIdId, externalIdIds),
                 eq(animeArtworkCache.allLanguages, true)
             )
-        )
-        .limit(1);
+        );
 
-    if (!cached) {
+    if (cached.length !== externalIdIds.length) {
         return null;
     }
 
     const images = await db
         .select()
         .from(animeArtwork)
-        .where(eq(animeArtwork.externalIdId, match.externalIdId));
-    const forType = (type: 'backdrop' | 'logo') =>
-        images
-            .filter((image) => image.type === type)
-            .map(storedImage)
-            .sort((left, right) => right.voteAverage - left.voteAverage);
-    const backdrops = forType('backdrop');
-    const logos = forType('logo');
-    const freshFor =
-        backdrops.length && logos.length ? 30 * 24 * 60 * 60 * 1_000 : 6 * 60 * 60 * 1_000;
+        .where(inArray(animeArtwork.externalIdId, externalIdIds));
+    const artwork = mapping.matches.map((match) => {
+        const forType = (type: 'backdrop' | 'logo') =>
+            images
+                .filter((image) => image.externalIdId === match.externalIdId && image.type === type)
+                .map(storedImage);
+        const backdrops = forType('backdrop');
+        const logos = forType('logo');
+        const freshFor =
+            backdrops.length && logos.length ? 30 * 24 * 60 * 60 * 1_000 : 6 * 60 * 60 * 1_000;
+        const sourceCache = cached.find(({ externalIdId }) => externalIdId === match.externalIdId);
 
-    if (Date.now() - cached.fetchedAt.getTime() >= freshFor) {
+        return sourceCache && Date.now() - sourceCache.fetchedAt.getTime() < freshFor
+            ? { backdrops, logos }
+            : null;
+    });
+
+    if (artwork.some((source) => source === null)) {
         return null;
     }
 
-    return withSelections(match, {
-        backdrops,
-        logos,
-    });
+    return withSelections(
+        mapping,
+        mergeArtwork(
+            artwork.filter(
+                (source): source is Pick<Artwork, 'backdrops' | 'logos'> => source !== null
+            )
+        )
+    );
 }
 
-export async function fetchArtwork(match: StoredMapping) {
+async function fetchArtworkSource(match: StoredMapping) {
     const client = create();
     const response =
         match.mediaType === 'movie'
@@ -212,7 +241,12 @@ export async function fetchArtwork(match: StoredMapping) {
             });
     });
 
-    return withSelections(match, { backdrops, logos });
+    return { backdrops, logos };
+}
+
+export async function fetchArtwork(mapping: ArtworkMappings) {
+    const artwork = await Promise.all(mapping.matches.map(fetchArtworkSource));
+    return withSelections(mapping, mergeArtwork(artwork));
 }
 
 export async function getArtwork(anime: AniListAnime) {
@@ -226,8 +260,13 @@ export async function getArtwork(anime: AniListAnime) {
         throw cause;
     }
 
+    const artworkMappings = (await findArtworkMappings(anime.id, match)) ?? {
+        matches: [match],
+        preferenceExternalIdId: match.externalIdId,
+    };
+
     const [artwork, selectedPoster] = await Promise.all([
-        readArtwork(match).then((stored) => stored ?? fetchArtwork(match)),
+        readArtwork(artworkMappings).then((stored) => stored ?? fetchArtwork(artworkMappings)),
         getPoster(anime, match).catch((cause) => {
             console.warn(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
             return null;
