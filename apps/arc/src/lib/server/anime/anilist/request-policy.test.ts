@@ -12,14 +12,14 @@ test('one 429 prevents follow-up AniList requests during its retry window', asyn
         retryAfterMs: 60_000,
     });
 
-    await expect(
+    expect(
         policy.run(async () => {
             upstreamCalls += 1;
             throw rateLimited;
         })
     ).rejects.toBe(rateLimited);
 
-    await expect(
+    expect(
         policy.run(async () => {
             upstreamCalls += 1;
             return 'should not run';

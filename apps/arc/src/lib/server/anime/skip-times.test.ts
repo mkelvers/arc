@@ -26,7 +26,7 @@ describe('fetchAniSkip', () => {
             )
         );
 
-        await expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
+        expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
             opening: null,
             ending: null,
             source: 'aniskip',
@@ -38,7 +38,7 @@ describe('fetchAniSkip', () => {
             Response.json({ statusCode: 503, message: 'Service unavailable' }, { status: 503 })
         );
 
-        await expect(fetchAniSkip(62_001, 17)).rejects.toThrow('AniSkip request failed with 503');
+        expect(fetchAniSkip(62_001, 17)).rejects.toThrow('AniSkip request failed with 503');
     });
 });
 

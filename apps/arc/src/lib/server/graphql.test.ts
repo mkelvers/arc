@@ -18,7 +18,7 @@ describe('GraphQL requests', () => {
         });
 
         try {
-            await expect(graphql(server.url.href, document, {})).resolves.toEqual({
+            expect(graphql(server.url.href, document, {})).resolves.toEqual({
                 viewer: { id: 42 },
             });
         } finally {
@@ -39,8 +39,8 @@ describe('GraphQL requests', () => {
         try {
             const request = graphql(server.url.href, document, {});
 
-            await expect(request).rejects.toBeInstanceOf(GraphQLRequestError);
-            await expect(request).rejects.toMatchObject({ message: 'Rate limited', status: 429 });
+            expect(request).rejects.toBeInstanceOf(GraphQLRequestError);
+            expect(request).rejects.toMatchObject({ message: 'Rate limited', status: 429 });
         } finally {
             await server.stop(true);
         }
@@ -57,7 +57,7 @@ describe('GraphQL requests', () => {
         });
 
         try {
-            await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+            expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
                 status: 429,
                 retryAfterMs: 45_000,
             });
@@ -79,7 +79,7 @@ describe('GraphQL requests', () => {
         });
 
         try {
-            await expect(graphql(server.url.href, document, {}, { retries: 1 })).resolves.toEqual({
+            expect(graphql(server.url.href, document, {}, { retries: 1 })).resolves.toEqual({
                 viewer: { id: 42 },
             });
             expect(attempts).toBe(2);
@@ -95,7 +95,7 @@ describe('GraphQL requests', () => {
         });
 
         try {
-            await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+            expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
                 message: 'The GraphQL endpoint returned 502: <html>Unavailable</html>',
                 status: 502,
             });
@@ -111,7 +111,7 @@ describe('GraphQL requests', () => {
         });
 
         try {
-            await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+            expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
                 message: 'The GraphQL endpoint returned no data',
             });
         } finally {

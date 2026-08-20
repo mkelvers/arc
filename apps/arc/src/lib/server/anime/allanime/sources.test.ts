@@ -20,7 +20,7 @@ describe('AllAnime source URLs', () => {
     });
 
     test('accepts direct HLS playlists as playable sources', async () => {
-        await expect(resolveTarget('https://media.example/video/master.m3u8')).resolves.toEqual([
+        expect(resolveTarget('https://media.example/video/master.m3u8')).resolves.toEqual([
             {
                 url: 'https://media.example/video/master.m3u8',
                 quality: null,

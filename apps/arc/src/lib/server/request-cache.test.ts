@@ -26,8 +26,8 @@ test('request cache does not retain failures', async () => {
         return calls;
     };
 
-    await expect(cache.get('key', load)).rejects.toThrow('unavailable');
-    await expect(cache.get('key', load)).resolves.toBe(2);
+    expect(cache.get('key', load)).rejects.toThrow('unavailable');
+    expect(cache.get('key', load)).resolves.toBe(2);
 });
 
 test('request cache can retain a stale value when refresh fails', async () => {
@@ -41,7 +41,7 @@ test('request cache can retain a stale value when refresh fails', async () => {
         return calls;
     };
 
-    await expect(cache.get('key', load)).resolves.toBe(1);
+    expect(cache.get('key', load)).resolves.toBe(1);
     await Bun.sleep(5);
     const [refresh, concurrent] = await Promise.all([
         cache.get('key', load, { staleIfError: true }),
@@ -67,15 +67,15 @@ test('request cache serves stale data immediately while one refresh runs', async
         });
     };
 
-    await expect(cache.get('key', load)).resolves.toBe(1);
+    expect(cache.get('key', load)).resolves.toBe(1);
     await Bun.sleep(110);
 
-    await expect(cache.get('key', load, { staleWhileRevalidate: true })).resolves.toBe(1);
-    await expect(cache.get('key', load, { staleWhileRevalidate: true })).resolves.toBe(1);
+    expect(cache.get('key', load, { staleWhileRevalidate: true })).resolves.toBe(1);
+    expect(cache.get('key', load, { staleWhileRevalidate: true })).resolves.toBe(1);
     await Bun.sleep(1);
     expect(calls).toBe(2);
 
     finishRefresh?.(2);
     await Bun.sleep(1);
-    await expect(cache.get('key', load)).resolves.toBe(2);
+    expect(cache.get('key', load)).resolves.toBe(2);
 });

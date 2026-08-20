@@ -92,7 +92,7 @@ describe('AniZone provider', () => {
             throw new Error(`Unexpected request: ${url}`);
         });
 
-        await expect(anizoneProvider.getEpisodes(anime)).resolves.toEqual([
+        expect(anizoneProvider.getEpisodes(anime)).resolves.toEqual([
             { id: '1', number: 1, title: 'First Episode', audio: ['sub'] },
             { id: '2', number: 2, title: 'Second Episode', audio: ['sub'] },
         ]);
@@ -137,7 +137,7 @@ describe('AniZone provider', () => {
             throw new Error(`Unexpected request: ${url}`);
         });
 
-        await expect(
+        expect(
             anizoneProvider.getStreams(anime, { id: '1', number: 1 }, ['sub', 'dub'])
         ).resolves.toEqual({
             sub: [
@@ -180,9 +180,9 @@ describe('AniZone provider', () => {
             throw new Error(`Unexpected request: ${url}`);
         });
 
-        await expect(
-            anizoneProvider.getStreams(anime, { id: '1', number: 1 }, ['dub'])
-        ).resolves.toEqual({});
+        expect(anizoneProvider.getStreams(anime, { id: '1', number: 1 }, ['dub'])).resolves.toEqual(
+            {}
+        );
     });
 });
 

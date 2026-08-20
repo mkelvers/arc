@@ -16,7 +16,7 @@ describe('stream proxy', () => {
             const request = new Request(
                 `https://arc.local/api/episodes/stream?${new URLSearchParams({ url: target })}`
             );
-            await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
+            expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
                 reason: { kind: 'unsupported-host', hostname },
             });
         }
@@ -79,14 +79,14 @@ describe('stream proxy', () => {
                 headers: { Location: 'https://127.0.0.1/private' },
             });
 
-        await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
+        expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
             reason: { kind: 'unsupported-redirect' },
         });
     });
 
     test('follows an AnimeGG redirect to its rotating media host', async () => {
         const requests: URL[] = [];
-        await expect(
+        expect(
             verifyStreamSource('https://www.animegg.org/play/7/video.mp4', async (target) => {
                 requests.push(target);
                 if (target.hostname === 'www.animegg.org') {
@@ -160,7 +160,7 @@ describe('stream proxy', () => {
                 },
             });
 
-        await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
+        expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
             reason: { kind: 'body-too-large', body: 'playlist' },
         });
     });
@@ -174,7 +174,7 @@ describe('stream proxy', () => {
                 headers: { 'content-type': 'application/vnd.apple.mpegurl' },
             });
 
-        await expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
+        expect(proxyStreamRequest(request, fetchStream)).rejects.toMatchObject({
             reason: { kind: 'body-too-large', body: 'playlist' },
         });
     });
@@ -328,7 +328,7 @@ describe('stream proxy', () => {
     });
 
     test('rejects an oversized AniZone subtitle before reading its body', async () => {
-        await expect(
+        expect(
             proxyStreamRequest(
                 new Request(
                     `https://arc.local/api/episodes/stream?${new URLSearchParams({
@@ -367,7 +367,7 @@ describe('stream proxy', () => {
             return new Response(null, { status: 206 });
         };
 
-        await expect(
+        expect(
             verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
         ).resolves.toBeUndefined();
         expect(requests).toEqual([
@@ -397,7 +397,7 @@ describe('stream proxy', () => {
             return new Response(null, { status: 403 });
         };
 
-        await expect(
+        expect(
             verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
         ).rejects.toMatchObject({ reason: { kind: 'upstream', status: 403 } });
     });
@@ -408,7 +408,7 @@ describe('stream proxy', () => {
                 headers: { 'content-type': 'application/vnd.apple.mpegurl' },
             });
 
-        await expect(
+        expect(
             verifyStreamSource('https://megap.shiora.site/show/master.m3u8', fetchStream)
         ).rejects.toMatchObject({ reason: { kind: 'invalid-playlist' } });
     });
@@ -436,7 +436,7 @@ describe('stream proxy', () => {
             return new Response(new Uint8Array([0x47]), { status: 200 });
         };
 
-        await expect(
+        expect(
             verifyStreamSource('https://cdn.watching.onl/anime/abc/master.m3u8', fetchStream)
         ).resolves.toBeUndefined();
         expect(requests).toEqual([

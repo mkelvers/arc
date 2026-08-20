@@ -82,7 +82,7 @@ describe('AnimeGG provider', () => {
             throw new Error(`Unexpected request: ${url}`);
         });
 
-        await expect(animeggProvider.getEpisodes(anime)).resolves.toEqual([
+        expect(animeggProvider.getEpisodes(anime)).resolves.toEqual([
             { id: '1', number: 1, title: 'The First Episode', audio: ['sub', 'dub'] },
             { id: '2', number: 2, title: 'The Second Episode', audio: ['dub'] },
         ]);
@@ -113,22 +113,22 @@ describe('AnimeGG provider', () => {
             throw new Error(`Unexpected request: ${url}`);
         });
 
-        await expect(
-            animeggProvider.getStreams(anime, { id: '1', number: 1 }, ['sub'])
-        ).resolves.toEqual({
-            sub: [
-                {
-                    url: 'https://www.animegg.org/play/one.mp4',
-                    quality: '480p',
-                    subtitleUrl: null,
-                },
-                {
-                    url: 'https://www.animegg.org/play/two.mp4',
-                    quality: '720p',
-                    subtitleUrl: null,
-                },
-            ],
-        });
+        expect(animeggProvider.getStreams(anime, { id: '1', number: 1 }, ['sub'])).resolves.toEqual(
+            {
+                sub: [
+                    {
+                        url: 'https://www.animegg.org/play/one.mp4',
+                        quality: '480p',
+                        subtitleUrl: null,
+                    },
+                    {
+                        url: 'https://www.animegg.org/play/two.mp4',
+                        quality: '720p',
+                        subtitleUrl: null,
+                    },
+                ],
+            }
+        );
     });
 
     test('does not return a stream from the wrong audio tab', async () => {
@@ -144,9 +144,9 @@ describe('AnimeGG provider', () => {
             throw new Error(`Unexpected request: ${url}`);
         });
 
-        await expect(
-            animeggProvider.getStreams(anime, { id: '1', number: 1 }, ['sub'])
-        ).resolves.toEqual({ sub: [] });
+        expect(animeggProvider.getStreams(anime, { id: '1', number: 1 }, ['sub'])).resolves.toEqual(
+            { sub: [] }
+        );
     });
 });
 

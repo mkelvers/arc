@@ -246,7 +246,7 @@ describe('playback provider fallback', () => {
             }),
         ]);
 
-        await expect(
+        expect(
             playback.getEpisodes({
                 ...anime,
                 status: 'FINISHED',
@@ -447,12 +447,8 @@ describe('playback provider fallback', () => {
             }),
         ]);
 
-        await expect(playback.getStreams(anime, episode, ['sub'])).rejects.toBeInstanceOf(
-            AggregateError
-        );
-        await expect(playback.getStreams(anime, episode, ['sub'])).rejects.toBeInstanceOf(
-            AggregateError
-        );
+        expect(playback.getStreams(anime, episode, ['sub'])).rejects.toBeInstanceOf(AggregateError);
+        expect(playback.getStreams(anime, episode, ['sub'])).rejects.toBeInstanceOf(AggregateError);
         expect(attempts).toBe(1);
     });
 });
