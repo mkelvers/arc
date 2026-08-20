@@ -19,6 +19,37 @@ describe('TMDB title matching', () => {
         expect(seriesTitle('ラブライブ！スーパースター!! 3期')).toBe('ラフライフ スーハースター');
     });
 
+    test('removes an AniList TV disambiguator from searchable titles', () => {
+        const anime = {
+            format: 'TV',
+            title: {
+                english: "JoJo's Bizarre Adventure (TV)",
+                romaji: 'JoJo no Kimyou na Bouken (TV)',
+                native: 'ジョジョの奇妙な冒険 (TV)',
+            },
+            startDate: {
+                year: 2012,
+                month: 10,
+                day: 6,
+            },
+        } as AniListAnime;
+
+        expect(seriesTitle("JoJo's Bizarre Adventure (TV)")).toBe('jojo s bizarre adventure');
+        expect(
+            candidateScore(
+                {
+                    id: 45790,
+                    mediaType: 'tv',
+                    name: "JoJo's Bizarre Adventure",
+                    originalName: 'ジョジョの奇妙な冒険',
+                    date: '2012-10-06',
+                    popularity: 100,
+                },
+                anime
+            )
+        ).toBeGreaterThanOrEqual(85);
+    });
+
     test('matches stylized spacing differences for a later season', () => {
         expect(
             candidateScore(
