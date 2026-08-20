@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 
-import { parsePlaybackProgress } from '$lib/server/progress/input';
+import { parsePlaybackProgress, type JsonValue } from '$lib/server/progress/input';
 import { savePlaybackProgress } from '$lib/server/progress/store';
 import type { RequestHandler } from './$types';
 
@@ -9,7 +9,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
         return json({ message: 'Authentication required' }, { status: 401 });
     }
 
-    let body: unknown;
+    let body: JsonValue;
     try {
         body = await request.json();
     } catch {

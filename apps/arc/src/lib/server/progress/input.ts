@@ -1,4 +1,4 @@
-import { isRecord } from '$lib/utils';
+import { z } from 'zod';
 
 export interface PlaybackProgressInput {
     animeId: number;
@@ -10,51 +10,44 @@ export interface PlaybackProgressInput {
     eventAt: Date;
 }
 
-function finiteNumber(value: unknown) {
-    return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
+export type JsonValue =
+    | boolean
+    | number
+    | string
+    | null
+    | JsonValue[]
+    | { [key: string]: JsonValue };
 
-export function parsePlaybackProgress(value: unknown): PlaybackProgressInput | null {
-    if (!isRecord(value)) {
-        return null;
-    }
+const playbackProgressSchema = z.object({
+    animeId: z.number().finite().int().positive(),
+    episodeId: z.string().trim().min(1).max(512),
+    episodeNumber: z
+        .number()
+        .finite()
+        .refine((value) => Math.abs(value) <= 1_000_000),
+    positionSeconds: z.number().finite().nonnegative(),
+    durationSeconds: z
+        .number()
+        .finite()
+        .positive()
+        .max(7 * 24 * 60 * 60),
+    completed: z.boolean(),
+    eventAt: z.number().finite().int().nonnegative(),
+});
 
-    const animeId = finiteNumber(value.animeId);
-    const episodeNumber = finiteNumber(value.episodeNumber);
-    const positionSeconds = finiteNumber(value.positionSeconds);
-    const durationSeconds = finiteNumber(value.durationSeconds);
-    const eventAt = finiteNumber(value.eventAt);
-    const episodeId = typeof value.episodeId === 'string' ? value.episodeId.trim() : '';
-
-    if (
-        animeId === null ||
-        !Number.isSafeInteger(animeId) ||
-        animeId <= 0 ||
-        episodeNumber === null ||
-        Math.abs(episodeNumber) > 1_000_000 ||
-        positionSeconds === null ||
-        positionSeconds < 0 ||
-        durationSeconds === null ||
-        durationSeconds <= 0 ||
-        durationSeconds > 7 * 24 * 60 * 60 ||
-        eventAt === null ||
-        !Number.isSafeInteger(eventAt) ||
-        eventAt < 0 ||
-        eventAt > Date.now() + 5 * 60 * 1_000 ||
-        !episodeId ||
-        episodeId.length > 512 ||
-        typeof value.completed !== 'boolean'
-    ) {
+export function parsePlaybackProgress(value: JsonValue): PlaybackProgressInput | null {
+    const parsed = playbackProgressSchema.safeParse(value);
+    if (!parsed.success || parsed.data.eventAt > Date.now() + 5 * 60 * 1_000) {
         return null;
     }
 
     return {
-        animeId,
-        episodeId,
-        episodeNumber,
-        positionSeconds: Math.min(positionSeconds, durationSeconds),
-        durationSeconds,
-        completed: value.completed,
-        eventAt: new Date(eventAt),
+        animeId: parsed.data.animeId,
+        episodeId: parsed.data.episodeId,
+        episodeNumber: parsed.data.episodeNumber,
+        positionSeconds: Math.min(parsed.data.positionSeconds, parsed.data.durationSeconds),
+        durationSeconds: parsed.data.durationSeconds,
+        completed: parsed.data.completed,
+        eventAt: new Date(parsed.data.eventAt),
     };
 }
