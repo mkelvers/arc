@@ -11,6 +11,7 @@ export const watchlistStates = [
 
 export const WatchlistStateSchema = z.enum(watchlistStates.map(({ value }) => value));
 export type WatchlistState = z.infer<typeof WatchlistStateSchema>;
+export const WatchlistUpdateSchema = z.object({ state: WatchlistStateSchema });
 
 export const WatchlistSelectionSchema = z.object({
     state: WatchlistStateSchema.or(z.literal('all')).catch('all'),

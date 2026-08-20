@@ -1,4 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
+import { z } from 'zod';
 
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
@@ -86,12 +87,13 @@ export const actions: Actions = {
         if (type !== 'backdrop' && type !== 'logo') {
             return fail(400, { message: 'Invalid artwork type' });
         }
-        if (typeof value !== 'string') {
+        const parsedValue = z.string().safeParse(value);
+        if (!parsedValue.success) {
             return fail(400, { message: 'Invalid artwork selection' });
         }
 
         try {
-            await selectArtwork(id, type, value === '' ? null : value);
+            await selectArtwork(id, type, parsedValue.data === '' ? null : parsedValue.data);
             return { success: true };
         } catch (cause) {
             return fail(400, {

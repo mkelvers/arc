@@ -96,12 +96,15 @@ async function providerResponse(target: URL, range: string | null, fetchStream: 
     const timeout = setTimeout(() => controller.abort(), responseTimeout);
 
     try {
+        const requestHeaders = new Headers({
+            Referer: streamReferer(target),
+            'User-Agent': userAgent,
+        });
+        if (range) {
+            requestHeaders.set('Range', range);
+        }
         return await fetchStream(target, {
-            headers: {
-                Referer: streamReferer(target),
-                'User-Agent': userAgent,
-                ...(range ? { Range: range } : {}),
-            },
+            headers: requestHeaders,
             redirect: 'manual',
             signal: controller.signal,
         });

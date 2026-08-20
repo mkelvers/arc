@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 
 import { animeId } from '$lib/server/anime/route';
 import { removeFromWatchlist, setWatchlistState } from '$lib/server/watchlist';
-import { WatchlistStateSchema } from '$lib/watchlist';
+import { WatchlistUpdateSchema } from '$lib/watchlist';
 import type { RequestHandler } from './$types';
 
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
@@ -15,28 +15,23 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
         return json({ message: 'Invalid anime ID' }, { status: 400 });
     }
 
-    let body: unknown;
     try {
-        body = await request.json();
+        const parsed = WatchlistUpdateSchema.safeParse(await request.json());
+        if (!parsed.success) {
+            return json({ message: 'Invalid watchlist status' }, { status: 400 });
+        }
+
+        try {
+            return json(
+                { state: await setWatchlistState(locals.user.id, id, parsed.data.state) },
+                { headers: { 'cache-control': 'no-store' } }
+            );
+        } catch (cause) {
+            console.error(`Watchlist status update failed for AniList ${id}`, cause);
+            return json({ message: 'Watchlist could not be updated' }, { status: 500 });
+        }
     } catch {
         return json({ message: 'Invalid JSON body' }, { status: 400 });
-    }
-
-    const parsed = WatchlistStateSchema.safeParse(
-        typeof body === 'object' && body !== null && 'state' in body ? body.state : undefined
-    );
-    if (!parsed.success) {
-        return json({ message: 'Invalid watchlist status' }, { status: 400 });
-    }
-
-    try {
-        return json(
-            { state: await setWatchlistState(locals.user.id, id, parsed.data) },
-            { headers: { 'cache-control': 'no-store' } }
-        );
-    } catch (cause) {
-        console.error(`Watchlist status update failed for AniList ${id}`, cause);
-        return json({ message: 'Watchlist could not be updated' }, { status: 500 });
     }
 };
 

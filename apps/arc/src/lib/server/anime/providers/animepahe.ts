@@ -26,13 +26,18 @@ interface AnimePaheEpisode {
 }
 
 function headers(accept: string) {
-    return {
+    const requestHeaders = new Headers({
         Accept: accept,
         Referer: `${baseUrl}/`,
         'User-Agent': userAgent,
-        ...(accept === 'application/json' ? { 'X-Requested-With': 'XMLHttpRequest' } : {}),
-        ...(env.ANIMEPAHE_COOKIE ? { Cookie: env.ANIMEPAHE_COOKIE.trim() } : {}),
-    };
+    });
+    if (accept === 'application/json') {
+        requestHeaders.set('X-Requested-With', 'XMLHttpRequest');
+    }
+    if (env.ANIMEPAHE_COOKIE) {
+        requestHeaders.set('Cookie', env.ANIMEPAHE_COOKIE.trim());
+    }
+    return requestHeaders;
 }
 
 async function requestText(url: URL, accept: string) {

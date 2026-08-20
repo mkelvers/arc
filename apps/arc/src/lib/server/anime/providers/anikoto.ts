@@ -67,13 +67,16 @@ async function requestText(
         xhr?: boolean;
     } = {}
 ) {
+    const requestHeaders = new Headers({
+        Accept: accept,
+        Referer: referer,
+        'User-Agent': userAgent,
+    });
+    if (xhr) {
+        requestHeaders.set('X-Requested-With', 'XMLHttpRequest');
+    }
     const response = await fetch(url, {
-        headers: {
-            Accept: accept,
-            Referer: referer,
-            'User-Agent': userAgent,
-            ...(xhr ? { 'X-Requested-With': 'XMLHttpRequest' } : {}),
-        },
+        headers: requestHeaders,
         signal: AbortSignal.timeout(8_000),
     });
     const text = await response.text();
