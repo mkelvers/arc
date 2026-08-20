@@ -1,6 +1,12 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
     "plugins": ["import", "typescript", "unicorn"],
+    "jsPlugins": [
+        {
+            "name": "anti-slop",
+            "specifier": "./vendor/oxlint/anti-slop/index.ts"
+        }
+    ],
     "categories": {
         "correctness": "error"
     },
@@ -15,7 +21,8 @@
         "drizzle/**",
         "node_modules/**",
         "**/generated/**",
-        "**/generated.ts"
+        "**/generated.ts",
+        "vendor/oxlint/anti-slop/**"
     ],
     "rules": {
         "import/no-cycle": ["error", { "ignoreTypes": false }],
@@ -23,6 +30,21 @@
         "typescript/consistent-type-imports": "error",
         "typescript/no-explicit-any": "error",
         "typescript/no-unnecessary-template-expression": "error",
-        "typescript/no-unnecessary-type-assertion": "error"
+        "typescript/no-unnecessary-type-assertion": "error",
+        "anti-slop/no-chained-type-assertions": "error",
+        "anti-slop/no-conditional-empty-object-spread": "error",
+        "anti-slop/no-known-value-widening": "error",
+        "anti-slop/no-module-mocking": "error",
+        "anti-slop/no-object-parameters": "error",
+        "anti-slop/no-reflect-apply": "error",
+        "anti-slop/no-reflect-get": "error",
+        "anti-slop/no-runtime-typeof": "error",
+        "anti-slop/no-shape-in-symbol-names": "error",
+        "anti-slop/no-unknown-parameters": "error",
+        "anti-slop/no-unknown-returns": "error",
+        "anti-slop/no-unknown-type-aliases": "error",
+        "anti-slop/no-unsafe-dictionary-type": "error",
+        "anti-slop/no-widen-then-assert": "error",
+        "anti-slop/require-safety-comment-for-type-assertion": "error"
     }
 }
