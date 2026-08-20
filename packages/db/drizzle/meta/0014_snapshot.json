@@ -1,0 +1,1218 @@
+{
+    "id": "bacaf472-222e-4df6-ae5f-5b196bbf3e97",
+    "prevId": "55d741fc-e483-48db-808b-64d9608c6fe7",
+    "version": "7",
+    "dialect": "postgresql",
+    "tables": {
+        "public.accounts": {
+            "name": "accounts",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "gen_random_uuid()"
+                },
+                "account_id": {
+                    "name": "account_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "provider_id": {
+                    "name": "provider_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "access_token": {
+                    "name": "access_token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "refresh_token": {
+                    "name": "refresh_token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "id_token": {
+                    "name": "id_token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "access_token_expires_at": {
+                    "name": "access_token_expires_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "refresh_token_expires_at": {
+                    "name": "refresh_token_expires_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "scope": {
+                    "name": "scope",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "password": {
+                    "name": "password",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "accounts_user_id_idx": {
+                    "name": "accounts_user_id_idx",
+                    "columns": [
+                        {
+                            "expression": "user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "accounts_user_id_users_id_fk": {
+                    "name": "accounts_user_id_users_id_fk",
+                    "tableFrom": "accounts",
+                    "tableTo": "users",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "accounts_provider_account_unique": {
+                    "name": "accounts_provider_account_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["provider_id", "account_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime": {
+            "name": "anime",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "identity": {
+                        "type": "always",
+                        "name": "anime_id_seq",
+                        "schema": "public",
+                        "increment": "1",
+                        "startWith": "1",
+                        "minValue": "1",
+                        "maxValue": "2147483647",
+                        "cache": "1",
+                        "cycle": false
+                    }
+                },
+                "title": {
+                    "name": "title",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_artwork": {
+            "name": "anime_artwork",
+            "schema": "",
+            "columns": {
+                "external_id_id": {
+                    "name": "external_id_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "type": {
+                    "name": "type",
+                    "type": "artwork_type",
+                    "typeSchema": "public",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "file_path": {
+                    "name": "file_path",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "aspect_ratio": {
+                    "name": "aspect_ratio",
+                    "type": "double precision",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "height": {
+                    "name": "height",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "language": {
+                    "name": "language",
+                    "type": "varchar(16)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "vote_average": {
+                    "name": "vote_average",
+                    "type": "double precision",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "width": {
+                    "name": "width",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "anime_artwork_external_id_id_anime_external_id_id_fk": {
+                    "name": "anime_artwork_external_id_id_anime_external_id_id_fk",
+                    "tableFrom": "anime_artwork",
+                    "tableTo": "anime_external_id",
+                    "columnsFrom": ["external_id_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {
+                "anime_artwork_external_id_id_type_file_path_pk": {
+                    "name": "anime_artwork_external_id_id_type_file_path_pk",
+                    "columns": ["external_id_id", "type", "file_path"]
+                }
+            },
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_artwork_cache": {
+            "name": "anime_artwork_cache",
+            "schema": "",
+            "columns": {
+                "external_id_id": {
+                    "name": "external_id_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "fetched_at": {
+                    "name": "fetched_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "all_languages": {
+                    "name": "all_languages",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "anime_artwork_cache_external_id_id_anime_external_id_id_fk": {
+                    "name": "anime_artwork_cache_external_id_id_anime_external_id_id_fk",
+                    "tableFrom": "anime_artwork_cache",
+                    "tableTo": "anime_external_id",
+                    "columnsFrom": ["external_id_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_artwork_preference": {
+            "name": "anime_artwork_preference",
+            "schema": "",
+            "columns": {
+                "external_id_id": {
+                    "name": "external_id_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "backdrop_file_path": {
+                    "name": "backdrop_file_path",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "logo_file_path": {
+                    "name": "logo_file_path",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "logo_hidden": {
+                    "name": "logo_hidden",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "logo_size": {
+                    "name": "logo_size",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 100
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "anime_artwork_preference_external_id_id_anime_external_id_id_fk": {
+                    "name": "anime_artwork_preference_external_id_id_anime_external_id_id_fk",
+                    "tableFrom": "anime_artwork_preference",
+                    "tableTo": "anime_external_id",
+                    "columnsFrom": ["external_id_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_details_cache": {
+            "name": "anime_details_cache",
+            "schema": "",
+            "columns": {
+                "anilist_id": {
+                    "name": "anilist_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "data": {
+                    "name": "data",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "version": {
+                    "name": "version",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 1
+                },
+                "fetched_at": {
+                    "name": "fetched_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_episode": {
+            "name": "anime_episode",
+            "schema": "",
+            "columns": {
+                "anilist_id": {
+                    "name": "anilist_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "episode_id": {
+                    "name": "episode_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "number": {
+                    "name": "number",
+                    "type": "double precision",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "provider_title": {
+                    "name": "provider_title",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "metadata_title": {
+                    "name": "metadata_title",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "audio": {
+                    "name": "audio",
+                    "type": "episode_audio[]",
+                    "typeSchema": "public",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "image_url": {
+                    "name": "image_url",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "runtime_minutes": {
+                    "name": "runtime_minutes",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "air_date": {
+                    "name": "air_date",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "overview": {
+                    "name": "overview",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "first_seen_at": {
+                    "name": "first_seen_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "last_seen_at": {
+                    "name": "last_seen_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "last_verified_at": {
+                    "name": "last_verified_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "anime_episode_anilist_number_idx": {
+                    "name": "anime_episode_anilist_number_idx",
+                    "columns": [
+                        {
+                            "expression": "anilist_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "number",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {
+                "anime_episode_anilist_id_episode_id_pk": {
+                    "name": "anime_episode_anilist_id_episode_id_pk",
+                    "columns": ["anilist_id", "episode_id"]
+                }
+            },
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_episode_sync": {
+            "name": "anime_episode_sync",
+            "schema": "",
+            "columns": {
+                "anilist_id": {
+                    "name": "anilist_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "media_status": {
+                    "name": "media_status",
+                    "type": "varchar(32)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "expected_episodes": {
+                    "name": "expected_episodes",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "source_revision": {
+                    "name": "source_revision",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "stable_since": {
+                    "name": "stable_since",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "last_success_at": {
+                    "name": "last_success_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "next_refresh_at": {
+                    "name": "next_refresh_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "failure_count": {
+                    "name": "failure_count",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 0
+                },
+                "last_error": {
+                    "name": "last_error",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "version": {
+                    "name": "version",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 1
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_external_id": {
+            "name": "anime_external_id",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "identity": {
+                        "type": "always",
+                        "name": "anime_external_id_id_seq",
+                        "schema": "public",
+                        "increment": "1",
+                        "startWith": "1",
+                        "minValue": "1",
+                        "maxValue": "2147483647",
+                        "cache": "1",
+                        "cycle": false
+                    }
+                },
+                "provider": {
+                    "name": "provider",
+                    "type": "external_provider",
+                    "typeSchema": "public",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "media_type": {
+                    "name": "media_type",
+                    "type": "external_media_type",
+                    "typeSchema": "public",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "external_id": {
+                    "name": "external_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "anime_external_id_identity": {
+                    "name": "anime_external_id_identity",
+                    "nullsNotDistinct": false,
+                    "columns": ["provider", "media_type", "external_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_external_id_link": {
+            "name": "anime_external_id_link",
+            "schema": "",
+            "columns": {
+                "anime_id": {
+                    "name": "anime_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "external_id_id": {
+                    "name": "external_id_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "verified_at": {
+                    "name": "verified_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "anime_external_id_link_anime_id_anime_id_fk": {
+                    "name": "anime_external_id_link_anime_id_anime_id_fk",
+                    "tableFrom": "anime_external_id_link",
+                    "tableTo": "anime",
+                    "columnsFrom": ["anime_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                },
+                "anime_external_id_link_external_id_id_anime_external_id_id_fk": {
+                    "name": "anime_external_id_link_external_id_id_anime_external_id_id_fk",
+                    "tableFrom": "anime_external_id_link",
+                    "tableTo": "anime_external_id",
+                    "columnsFrom": ["external_id_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {
+                "anime_external_id_link_anime_id_external_id_id_pk": {
+                    "name": "anime_external_id_link_anime_id_external_id_id_pk",
+                    "columns": ["anime_id", "external_id_id"]
+                }
+            },
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_playback_provider": {
+            "name": "anime_playback_provider",
+            "schema": "",
+            "columns": {
+                "anilist_id": {
+                    "name": "anilist_id",
+                    "type": "integer",
+                    "primaryKey": true,
+                    "notNull": true
+                },
+                "allanime_show_id": {
+                    "name": "allanime_show_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "discovered_at": {
+                    "name": "discovered_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "verified_at": {
+                    "name": "verified_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.anime_provider_mapping": {
+            "name": "anime_provider_mapping",
+            "schema": "",
+            "columns": {
+                "anilist_id": {
+                    "name": "anilist_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "provider": {
+                    "name": "provider",
+                    "type": "varchar(32)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "provider_media_id": {
+                    "name": "provider_media_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "discovered_at": {
+                    "name": "discovered_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "verified_at": {
+                    "name": "verified_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {
+                "anime_provider_mapping_anilist_id_provider_pk": {
+                    "name": "anime_provider_mapping_anilist_id_provider_pk",
+                    "columns": ["anilist_id", "provider"]
+                }
+            },
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.playback_progress": {
+            "name": "playback_progress",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "gen_random_uuid()"
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "anime_id": {
+                    "name": "anime_id",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "episode_id": {
+                    "name": "episode_id",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "episode_number": {
+                    "name": "episode_number",
+                    "type": "double precision",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "position_seconds": {
+                    "name": "position_seconds",
+                    "type": "double precision",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "duration_seconds": {
+                    "name": "duration_seconds",
+                    "type": "double precision",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "completed": {
+                    "name": "completed",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "last_watched_at": {
+                    "name": "last_watched_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "playback_progress_user_watched_idx": {
+                    "name": "playback_progress_user_watched_idx",
+                    "columns": [
+                        {
+                            "expression": "user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "last_watched_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "playback_progress_user_id_users_id_fk": {
+                    "name": "playback_progress_user_id_users_id_fk",
+                    "tableFrom": "playback_progress",
+                    "tableTo": "users",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                },
+                "playback_progress_anime_id_anime_id_fk": {
+                    "name": "playback_progress_anime_id_anime_id_fk",
+                    "tableFrom": "playback_progress",
+                    "tableTo": "anime",
+                    "columnsFrom": ["anime_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "playback_progress_user_anime_unique": {
+                    "name": "playback_progress_user_anime_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["user_id", "anime_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.sessions": {
+            "name": "sessions",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "gen_random_uuid()"
+                },
+                "expires_at": {
+                    "name": "expires_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "token": {
+                    "name": "token",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "ip_address": {
+                    "name": "ip_address",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "user_agent": {
+                    "name": "user_agent",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {
+                "sessions_user_id_idx": {
+                    "name": "sessions_user_id_idx",
+                    "columns": [
+                        {
+                            "expression": "user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "sessions_user_id_users_id_fk": {
+                    "name": "sessions_user_id_users_id_fk",
+                    "tableFrom": "sessions",
+                    "tableTo": "users",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "sessions_token_unique": {
+                    "name": "sessions_token_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["token"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.users": {
+            "name": "users",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "gen_random_uuid()"
+                },
+                "name": {
+                    "name": "name",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "email": {
+                    "name": "email",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "email_verified": {
+                    "name": "email_verified",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "image": {
+                    "name": "image",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "username": {
+                    "name": "username",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "display_username": {
+                    "name": "display_username",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "users_email_unique": {
+                    "name": "users_email_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["email"]
+                },
+                "users_username_unique": {
+                    "name": "users_username_unique",
+                    "nullsNotDistinct": false,
+                    "columns": ["username"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "public.verifications": {
+            "name": "verifications",
+            "schema": "",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "gen_random_uuid()"
+                },
+                "identifier": {
+                    "name": "identifier",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "value": {
+                    "name": "value",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "expires_at": {
+                    "name": "expires_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "verifications_identifier_idx": {
+                    "name": "verifications_identifier_idx",
+                    "columns": [
+                        {
+                            "expression": "identifier",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        }
+    },
+    "enums": {
+        "public.artwork_type": {
+            "name": "artwork_type",
+            "schema": "public",
+            "values": ["backdrop", "logo"]
+        },
+        "public.episode_audio": {
+            "name": "episode_audio",
+            "schema": "public",
+            "values": ["sub", "dub", "raw"]
+        },
+        "public.external_media_type": {
+            "name": "external_media_type",
+            "schema": "public",
+            "values": ["anime", "movie", "tv"]
+        },
+        "public.external_provider": {
+            "name": "external_provider",
+            "schema": "public",
+            "values": ["anilist", "tmdb"]
+        }
+    },
+    "schemas": {},
+    "sequences": {},
+    "roles": {},
+    "policies": {},
+    "views": {},
+    "_meta": {
+        "columns": {},
+        "schemas": {},
+        "tables": {}
+    }
+}

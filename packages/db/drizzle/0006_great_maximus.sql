@@ -1,0 +1,1 @@
+ALTER TABLE "anime_artwork_cache" ADD COLUMN "all_languages" boolean DEFAULT false NOT NULL;
