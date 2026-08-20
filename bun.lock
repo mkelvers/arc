@@ -14,6 +14,7 @@
       "name": "arc",
       "version": "0.0.1",
       "dependencies": {
+        "@arc/db": "workspace:*",
         "@fontsource-variable/dm-sans": "^5.3.0",
         "@fontsource-variable/manrope": "^5.3.0",
         "better-auth": "1.6.26",
@@ -50,8 +51,23 @@
         "vite": "^8.2.1",
       },
     },
+    "packages/db": {
+      "name": "@arc/db",
+      "version": "0.0.1",
+      "dependencies": {
+        "drizzle-orm": "^0.45.2",
+        "postgres": "^3.4.9",
+      },
+      "devDependencies": {
+        "@types/node": "^26.2.0",
+        "dotenv": "^17.4.2",
+        "drizzle-kit": "^0.31.10",
+      },
+    },
   },
   "packages": {
+    "@arc/db": ["@arc/db@workspace:packages/db"],
+
     "@ardatan/relay-compiler": ["@ardatan/relay-compiler@13.0.2", "", { "dependencies": { "@babel/runtime": "^8.0.0", "immutable": "^5.1.9", "invariant": "^2.2.4" }, "peerDependencies": { "graphql": "*" } }, "sha512-VFpv9UP820SiwDUPYtq7PmD3jifzZlevkQ26bhbSzFeruSTys0eHzQCZyKg+IhgmZzwPI9AFjPe26ABNjGeIKg=="],
 
     "@ark/schema": ["@ark/schema@0.56.2", "", { "dependencies": { "@ark/util": "0.56.2" } }, "sha512-Qx4D2JFbBWpntiHZaTv7bGG4H/M2rigiknezKg/WVyDSaLdE4YCcWAOoFB7pjjDqHbbV2OqRfntm1nnXvwMexg=="],
