@@ -19,20 +19,16 @@ export type JsonValue =
     | { [key: string]: JsonValue };
 
 const playbackProgressSchema = z.object({
-    animeId: z.number().finite().int().positive(),
+    animeId: z.number().int().positive(),
     episodeId: z.string().trim().min(1).max(512),
-    episodeNumber: z
-        .number()
-        .finite()
-        .refine((value) => Math.abs(value) <= 1_000_000),
-    positionSeconds: z.number().finite().nonnegative(),
+    episodeNumber: z.number().refine((value) => Math.abs(value) <= 1_000_000),
+    positionSeconds: z.number().nonnegative(),
     durationSeconds: z
         .number()
-        .finite()
         .positive()
         .max(7 * 24 * 60 * 60),
     completed: z.boolean(),
-    eventAt: z.number().finite().int().nonnegative(),
+    eventAt: z.number().int().nonnegative(),
 });
 
 export function parsePlaybackProgress(value: JsonValue): PlaybackProgressInput | null {
