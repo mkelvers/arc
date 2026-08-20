@@ -19,15 +19,14 @@ export const AnimeSearchResultSchema = AnimeCardSchema.extend({
 export type AnimeSearchResult = z.infer<typeof AnimeSearchResultSchema>;
 
 function searchTokens(value: string) {
-    const normalized = value
-        .normalize('NFKD')
-        .toLocaleLowerCase('en')
-        .replace(/\p{M}/gu, '')
-        .replace(/\bzero\b/gu, '0')
-        .replace(/[^\p{L}\p{N}]+/gu, ' ')
-        .trim();
-
-    return normalized ? normalized.split(/\s+/) : [];
+    return (
+        value
+            .normalize('NFKD')
+            .toLocaleLowerCase('en')
+            .replace(/\p{M}/gu, '')
+            .replace(/\bzero\b/gu, '0')
+            .match(/[\p{L}\p{N}]+/gu) ?? []
+    );
 }
 
 interface SearchPhrase {
