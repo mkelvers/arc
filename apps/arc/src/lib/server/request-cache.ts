@@ -21,7 +21,7 @@ export class RequestCache<Key, Value> {
         this.#lifetimeMs = lifetimeMs;
     }
 
-    get(key: Key, load: () => Promise<Value>, options: RequestCacheOptions = {}) {
+    async get(key: Key, load: () => Promise<Value>, options: RequestCacheOptions = {}) {
         const cached = this.#values.get(key);
         if (cached && cached.expiresAt > Date.now()) {
             return Promise.resolve(cached.value);
