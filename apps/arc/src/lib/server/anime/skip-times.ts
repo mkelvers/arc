@@ -53,7 +53,7 @@ interface EpisodeIdentity {
     malId: number | null | undefined;
 }
 
-function storedEpisodeTimes(anilistId: number, episodeId: string) {
+async function storedEpisodeTimes(anilistId: number, episodeId: string) {
     return db
         .select({
             openingStartSeconds: animeEpisode.openingStartSeconds,
