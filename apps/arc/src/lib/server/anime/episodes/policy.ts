@@ -45,9 +45,10 @@ export function episodeInventoryIsExpected(status: AniListAnime['status']) {
 export function classificationRefreshDue(
     refreshedAt: Date | null | undefined,
     status: AniListAnime['status'],
+    revision: string | null | undefined,
     now = Date.now()
 ) {
-    if (!refreshedAt) {
+    if (revision !== 'animefillerlist-v1' || !refreshedAt) {
         return true;
     }
 

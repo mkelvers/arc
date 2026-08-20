@@ -1175,6 +1175,12 @@
                     "primaryKey": false,
                     "notNull": false
                 },
+                "classification_revision": {
+                    "name": "classification_revision",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
                 "classifications_refreshed_at": {
                     "name": "classifications_refreshed_at",
                     "type": "timestamp with time zone",

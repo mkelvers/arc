@@ -26,6 +26,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
                 lastError: animeEpisodeSync.lastError,
                 nextAiringAt: animeEpisodeSync.nextAiringAt,
                 nextAiringEpisode: animeEpisodeSync.nextAiringEpisode,
+                classificationRevision: animeEpisodeSync.classificationRevision,
                 classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
             })
             .from(animeEpisodeSync)
@@ -53,7 +54,11 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
     );
     const classificationsNeedRefresh =
         stored.length > 0 &&
-        classificationRefreshDue(sync?.classificationsRefreshedAt, anime.status);
+        classificationRefreshDue(
+            sync?.classificationsRefreshedAt,
+            anime.status,
+            sync?.classificationRevision
+        );
     if (
         !stored.length ||
         incompleteFinishedRelease ||

@@ -510,6 +510,7 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     }),
     stableSince: timestamp('stable_since', { withTimezone: true }),
     lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+    classificationRevision: text('classification_revision'),
     classificationsRefreshedAt: timestamp('classifications_refreshed_at', { withTimezone: true }),
     nextRefreshAt: timestamp('next_refresh_at', { withTimezone: true }),
     failureCount: integer('failure_count').notNull().default(0),

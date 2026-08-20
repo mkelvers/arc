@@ -111,6 +111,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         db
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+                classificationRevision: animeEpisodeSync.classificationRevision,
                 classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
             })
             .from(animeEpisodeSync)
@@ -121,7 +122,8 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
 
     const fillerClassifications = classificationRefreshDue(
         previousSync?.classificationsRefreshedAt,
-        anime.status
+        anime.status,
+        previousSync?.classificationRevision
     )
         ? await getFillerClassifications(anime, providerEpisodes).catch((cause) => {
               console.error(`AnimeFillerList refresh failed for MAL ${anime.idMal}`, cause);
@@ -171,6 +173,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
                     lastSuccessAt: animeEpisodeSync.lastSuccessAt,
+                    classificationRevision: animeEpisodeSync.classificationRevision,
                     classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
                 })
                 .from(animeEpisodeSync)
@@ -266,6 +269,10 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                 classificationsRefreshedAt: !(fillerClassifications instanceof Map)
                     ? (sync?.classificationsRefreshedAt ?? null)
                     : now,
+                classificationRevision:
+                    fillerClassifications instanceof Map
+                        ? 'animefillerlist-v1'
+                        : (sync?.classificationRevision ?? null),
                 nextRefreshAt: nextRefreshAt(anime, stableSince),
                 failureCount: 0,
                 lastError: null,
@@ -283,6 +290,10 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     classificationsRefreshedAt: !(fillerClassifications instanceof Map)
                         ? (sync?.classificationsRefreshedAt ?? null)
                         : now,
+                    classificationRevision:
+                        fillerClassifications instanceof Map
+                            ? 'animefillerlist-v1'
+                            : (sync?.classificationRevision ?? null),
                     nextRefreshAt: nextRefreshAt(anime, stableSince),
                     failureCount: 0,
                     lastError: null,
