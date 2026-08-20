@@ -1,9 +1,10 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import type { PlaybackProgressInput } from '$lib/server/progress/input';
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
 import { db } from '@arc/db';
 import {
+    anime,
     animeEpisode,
     animeEpisodeSync,
     animeExternalId,
@@ -11,7 +12,19 @@ import {
     watchlist,
     type WatchlistState,
 } from '@arc/db/schema';
+import { batches } from '$lib/utils';
 import { watchlistStateAfterPlayback } from './watchlist-completion';
+
+const databaseBatchSize = 1_000;
+
+export type WatchlistImportMode = 'add' | 'replace';
+
+export interface WatchlistEntryInput {
+    anilistId: number;
+    state: WatchlistState;
+    addedAt: Date;
+    updatedAt: Date;
+}
 
 export async function getWatchlistState(userId: string | undefined, anilistId: number) {
     if (!userId) {
@@ -68,7 +81,11 @@ export async function getWatchlistEntries(userId: string) {
                 eq(animeExternalId.mediaType, 'anime')
             )
         )
-        .orderBy(desc(watchlist.updatedAt));
+        .orderBy(
+            desc(watchlist.updatedAt),
+            desc(watchlist.createdAt),
+            desc(animeExternalId.externalId)
+        );
 }
 
 async function setInternalWatchlistState(userId: string, animeId: number, state: WatchlistState) {
@@ -122,6 +139,119 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
     await db
         .delete(watchlist)
         .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
+}
+
+export async function applyWatchlistEntries(
+    userId: string,
+    entries: WatchlistEntryInput[],
+    mode: WatchlistImportMode
+) {
+    return db.transaction(async (tx) => {
+        const anilistIds = [...new Set(entries.map(({ anilistId }) => anilistId))];
+
+        for (const batch of batches(anilistIds, databaseBatchSize)) {
+            await tx
+                .insert(animeExternalId)
+                .values(
+                    batch.map((externalId) => ({
+                        provider: 'anilist' as const,
+                        mediaType: 'anime' as const,
+                        externalId,
+                    }))
+                )
+                .onConflictDoNothing();
+        }
+
+        const externalIds: Array<{ id: number; externalId: number }> = [];
+        for (const batch of batches(anilistIds, databaseBatchSize)) {
+            externalIds.push(
+                ...(await tx
+                    .select({ id: animeExternalId.id, externalId: animeExternalId.externalId })
+                    .from(animeExternalId)
+                    .where(
+                        and(
+                            eq(animeExternalId.provider, 'anilist'),
+                            eq(animeExternalId.mediaType, 'anime'),
+                            inArray(animeExternalId.externalId, batch)
+                        )
+                    ))
+            );
+        }
+
+        const links: Array<{ animeId: number; externalIdId: number }> = [];
+        for (const batch of batches(
+            externalIds.map(({ id }) => id),
+            databaseBatchSize
+        )) {
+            links.push(
+                ...(await tx
+                    .select({
+                        animeId: animeExternalIdLink.animeId,
+                        externalIdId: animeExternalIdLink.externalIdId,
+                    })
+                    .from(animeExternalIdLink)
+                    .where(inArray(animeExternalIdLink.externalIdId, batch)))
+            );
+        }
+
+        const linkedExternalIds = new Set(links.map(({ externalIdId }) => externalIdId));
+        const missing = externalIds.filter(({ id }) => !linkedExternalIds.has(id));
+        for (const batch of batches(missing, databaseBatchSize)) {
+            const created = await tx
+                .insert(anime)
+                .values(batch.map(() => ({})))
+                .returning({ id: anime.id });
+            if (created.length !== batch.length) {
+                throw new Error('Failed to store imported anime');
+            }
+
+            const createdLinks = batch.map(({ id }, index) => ({
+                animeId: created[index].id,
+                externalIdId: id,
+            }));
+            await tx.insert(animeExternalIdLink).values(createdLinks);
+            links.push(...createdLinks);
+        }
+
+        const animeIdByExternalId = new Map(
+            links.map(({ animeId, externalIdId }) => [externalIdId, animeId])
+        );
+        const animeIdByAniListId = new Map(
+            externalIds.map(({ id, externalId }) => [externalId, animeIdByExternalId.get(id)])
+        );
+        const rows = entries.map((entry) => {
+            const animeId = animeIdByAniListId.get(entry.anilistId);
+            if (!animeId) {
+                throw new Error(`Failed to store anime identity ${entry.anilistId}`);
+            }
+            return {
+                userId,
+                animeId,
+                state: entry.state,
+                createdAt: entry.addedAt,
+                updatedAt: entry.updatedAt,
+            };
+        });
+        const current = await tx
+            .select({ animeId: watchlist.animeId })
+            .from(watchlist)
+            .where(eq(watchlist.userId, userId));
+        const currentAnimeIds = new Set(current.map(({ animeId }) => animeId));
+
+        if (mode === 'replace') {
+            await tx.delete(watchlist).where(eq(watchlist.userId, userId));
+            for (const batch of batches(rows, databaseBatchSize)) {
+                await tx.insert(watchlist).values(batch);
+            }
+            return { added: rows.length, skipped: 0 };
+        }
+
+        const added = rows.filter(({ animeId }) => !currentAnimeIds.has(animeId));
+        for (const batch of batches(added, databaseBatchSize)) {
+            await tx.insert(watchlist).values(batch).onConflictDoNothing();
+        }
+        return { added: added.length, skipped: rows.length - added.length };
+    });
 }
 
 export async function updateWatchlistAfterPlayback(
