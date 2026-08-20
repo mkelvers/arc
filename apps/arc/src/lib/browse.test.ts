@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { browseSearchParams, parseBrowseFilters, type BrowseFilters } from './browse';
+import {
+    animeFormatLabel,
+    browseSearchParams,
+    metadataLabel,
+    parseBrowseFilters,
+    type BrowseFilters,
+} from './browse';
 
 describe('browse filters', () => {
     test('uses safe popularity defaults for a clean URL', () => {
@@ -89,9 +95,7 @@ describe('browse filters', () => {
         expect(filters?.sort).toBe('score');
     });
 
-    test('formats provider status and type values for display', async () => {
-        const { metadataLabel, animeFormatLabel } = await import('./browse');
-
+    test('formats provider status and type values for display', () => {
         expect(metadataLabel('NOT_YET_RELEASED')).toBe('Not Yet Released');
         expect(animeFormatLabel('TV_SHORT')).toBe('TV Short');
     });
