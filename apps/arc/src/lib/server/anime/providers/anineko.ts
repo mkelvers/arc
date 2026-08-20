@@ -107,7 +107,6 @@ async function findSlug(anime: AniListAnime, refresh = false) {
     for (const title of titles) {
         const search = new URL('/ajax/search', baseUrl);
         search.searchParams.set('q', title);
-        // SAFETY: searchResults validates the parsed provider payload before use.
         const payload = JSON.parse(await requestText(search)) as JsonValue;
         const candidates = searchResults(payload).filter(
             (candidate) =>
@@ -211,7 +210,6 @@ async function specialReleaseEpisode(
     for (const query of specialReleaseQueries(anime, episode)) {
         const search = new URL('/ajax/search', baseUrl);
         search.searchParams.set('q', query);
-        // SAFETY: searchResults validates the parsed provider payload before use.
         const candidates = searchResults(JSON.parse(await requestText(search)) as JsonValue).filter(
             (candidate) =>
                 !visited.has(candidate.slug) &&
@@ -333,7 +331,6 @@ function otakuhgStreams(html: string, embed: URL) {
         throw new Error('AniNeko embed returned no HLS stream');
     }
 
-    // SAFETY: packed StreamHG scripts encode the links object in JSON; packedLinksSchema validates it below.
     const links = packedLinksSchema.parse(JSON.parse(match[1]));
     const sources = [links.hls4, links.hls2]
         .filter((source): source is string => Boolean(source))

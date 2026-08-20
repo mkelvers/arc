@@ -149,7 +149,6 @@ export async function graphql<TResult, TVariables>(
                 });
             }
 
-            // SAFETY: the typed GraphQL document contract describes the validated data payload.
             return result.data.data as TResult;
         } catch (cause) {
             const retryable =

@@ -83,7 +83,6 @@ async function requestJson(url: URL) {
     const text = await requestText(url, 'application/json');
 
     try {
-        // SAFETY: each endpoint consumer validates the provider response shape.
         const parsed = jsonValueSchema.safeParse(JSON.parse(text));
         if (!parsed.success) {
             throw new Error('AnimePahe returned an invalid JSON response');

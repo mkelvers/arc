@@ -63,7 +63,6 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
     const text = await requestText(url, referer);
 
     try {
-        // SAFETY: each endpoint consumer validates the provider response shape.
         const parsed = jsonValueSchema.safeParse(JSON.parse(text));
         if (!parsed.success) {
             throw new Error('AniPub returned an invalid JSON response');

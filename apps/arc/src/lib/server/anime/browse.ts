@@ -250,7 +250,6 @@ function validatedFilters(
 
     // AniList introspection is the runtime allowlist for these generated unions,
     // and every value was validated against it above.
-    // SAFETY: every union-valued filter was checked against the AniList taxonomy above.
     return sourceFilters as AniListBrowseFilters;
 }
 

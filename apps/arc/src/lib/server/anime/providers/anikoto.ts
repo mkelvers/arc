@@ -136,7 +136,6 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
     });
 
     try {
-        // SAFETY: request consumers validate this JSON with their endpoint schema.
         return JSON.parse(text) as JsonValue;
     } catch (cause) {
         throw new Error('AniKoto returned an invalid JSON response', {

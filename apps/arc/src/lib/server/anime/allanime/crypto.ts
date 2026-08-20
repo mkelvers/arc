@@ -130,7 +130,6 @@ export function decrypt(value: string, key: Buffer) {
     const decipher = createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
 
-    // SAFETY: AES-GCM authentication succeeded, so the decrypted bytes are the provider JSON payload.
     return JSON.parse(
         Buffer.concat([decipher.update(encrypted.subarray(13, -16)), decipher.final()]).toString(
             'utf8'

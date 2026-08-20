@@ -67,7 +67,6 @@ async function encryptedSources(
         },
         signal: AbortSignal.timeout(6_000),
     });
-    // SAFETY: Fetch JSON is parsed by responseSchema before any field access.
     const json = jsonValueSchema.safeParse(await response.json());
     const rawPayload = json.success ? json.data : null;
     const parsed = responseSchema.safeParse(rawPayload);

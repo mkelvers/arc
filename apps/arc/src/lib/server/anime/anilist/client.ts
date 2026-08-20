@@ -112,7 +112,6 @@ export async function request<TResult, TVariables>(
             if (!parsedStored.success || !isRecord(parsedStored.data)) {
                 await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
             } else if (!options.forceRefresh && stored.expiresAt.getTime() > Date.now()) {
-                // SAFETY: stored data was written by refresh for this typed query key.
                 return parsedStored.data as TResult;
             }
         }
@@ -122,7 +121,6 @@ export async function request<TResult, TVariables>(
 
     const pending = requests.get(key);
     if (pending) {
-        // SAFETY: requests is keyed by the same typed query and returns its refresh promise.
         return pending as Promise<TResult>;
     }
 

@@ -51,7 +51,6 @@ async function requestUrl(url: URL) {
         throw new Error(`Senshi returned ${response.status} for ${url.pathname}`);
     }
 
-    // SAFETY: each endpoint consumer validates the provider response shape.
     const parsed = jsonValueSchema.safeParse(await response.json());
     if (!parsed.success) {
         throw new Error('Senshi returned an invalid JSON response');
