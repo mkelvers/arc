@@ -4,6 +4,7 @@ import { createProviderFallback } from './fallback';
 import type { AniListAnime } from '../anilist/types';
 import type { PlaybackProvider, ProviderStream } from './types';
 
+// SAFETY: Fallback tests only read the AniList id from this fixture.
 const anime = { id: 1 } as AniListAnime;
 const episode = { id: '1', number: 1 };
 const stream: ProviderStream = {
@@ -427,7 +428,9 @@ describe('playback provider fallback', () => {
             throw new Error('Expected playback fallback to fail');
         } catch (cause) {
             expect(cause).toBeInstanceOf(AggregateError);
+            // SAFETY: The preceding instanceof check establishes the AggregateError shape.
             expect((cause as AggregateError).errors).toHaveLength(2);
+            // SAFETY: The preceding instanceof check establishes the AggregateError shape.
             expect((cause as AggregateError).errors.map(String)).toEqual([
                 'Error: first streams failed: offline',
                 'Error: second streams failed: no sub stream was returned',

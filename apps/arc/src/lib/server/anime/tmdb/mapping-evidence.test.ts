@@ -7,6 +7,7 @@ import {
 } from './mapping-evidence';
 import type { AniListAnime } from '../anilist/types';
 
+// SAFETY: This partial AniList fixture contains the fields used by mapping evidence.
 const anime = {
     duration: 24,
     endDate: { year: 2023, month: 11, day: 1 },

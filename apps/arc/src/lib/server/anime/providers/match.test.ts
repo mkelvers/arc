@@ -11,6 +11,17 @@ import {
 } from './match';
 import type { AniListAnime } from '../anilist/types';
 
+interface AniListFixture {
+    id: number;
+    title: { english?: string | null; romaji?: string | null };
+    synonyms: string[];
+}
+
+function animeFixture(fields: AniListFixture): AniListAnime {
+    // SAFETY: The matching functions read only the fields represented by this fixture contract.
+    return fields as AniListAnime;
+}
+
 describe('playback episode identity matching', () => {
     test('requires every expected numbered episode', () => {
         expect(coversExpectedEpisodes([{ number: 1 }, { number: 2 }], 3)).toBe(false);
@@ -257,14 +268,14 @@ describe('playback episode identity matching', () => {
     });
 
     test('requires both the parent franchise and special title for a standalone match', () => {
-        const anime = {
+        const anime = animeFixture({
             id: 108511,
             title: {
                 english: 'That Time I Got Reincarnated as a Slime Season 2',
                 romaji: 'Tensei Shitara Slime Datta Ken 2nd Season',
             },
             synonyms: [],
-        } as unknown as AniListAnime;
+        });
         const episode = {
             id: '0.9',
             number: 0.9,
@@ -289,14 +300,14 @@ describe('playback episode identity matching', () => {
     });
 
     test('maps an ordered specials collection only when its size and parent match', () => {
-        const anime = {
+        const anime = animeFixture({
             id: 156822,
             title: {
                 english: 'That Time I Got Reincarnated as a Slime Season 3',
                 romaji: 'Tensei Shitara Slime Datta Ken 3rd Season',
             },
             synonyms: [],
-        } as unknown as AniListAnime;
+        });
         const episode = {
             id: '17.5',
             number: 17.5,

@@ -5,6 +5,7 @@ import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number | null, start: [number, number, number]) {
+    // SAFETY: The helper supplies the AniList fields required by episode grouping.
     return {
         episodes,
         startDate: {
@@ -67,6 +68,7 @@ describe('TMDB episode groups', () => {
             imageUrl: index === 11 ? '/wCls3YU2fX7Lfy0Cjf3s1H3PnM2.jpg' : null,
             runtime: 24,
         }));
+        // SAFETY: This partial AniList fixture contains the fields used by releaseEpisodeGroup.
         const selected = releaseEpisodeGroup(
             {
                 episodes: 19,
@@ -89,6 +91,7 @@ describe('TMDB episode groups', () => {
     });
 
     test('selects a separately released second season from one absolute season', () => {
+        // SAFETY: This partial AniList fixture contains the fields used by releaseEpisodeGroup.
         const selected = releaseEpisodeGroup(
             anime(13, [2026, 7, 5]),
             source(['Episode 1', 'Episode 2', 'Episode 3', 'Episode 4']),
@@ -149,6 +152,7 @@ describe('TMDB episode groups', () => {
 
     test('uses an explicit season number when group dates are absent', () => {
         const selected = releaseEpisodeGroup(
+            // SAFETY: This partial AniList fixture contains the fields used by releaseEpisodeGroup.
             {
                 ...anime(2, [2024, 1, 1]),
                 title: {
@@ -180,6 +184,7 @@ describe('TMDB episode groups', () => {
         const arc = block(1, 10, [2015, 10, 4]);
 
         expect(
+            // SAFETY: This partial AniList fixture contains the fields used by releaseEpisodeGroup.
             releaseEpisodeGroup(
                 {
                     ...anime(10, [2016, 10, 8]),

@@ -15,7 +15,25 @@ mock.module('./mapping', () => ({
 const { anizoneProvider } = await import('./anizone');
 const nativeFetch = globalThis.fetch;
 
-const anime = {
+interface AniListFixture {
+    id: number;
+    episodes?: number | null;
+    status?: AniListAnime['status'];
+    startDate?: { year?: number | null };
+    title: { english?: string | null; romaji?: string | null; native?: string | null };
+    synonyms: string[];
+}
+
+function animeFixture(fields: AniListFixture): AniListAnime {
+    // SAFETY: The provider reads only the fields represented by this test fixture contract.
+    return fields as AniListAnime;
+}
+
+function mockFetch(handler: (input: string | URL | Request) => Promise<Response>): typeof fetch {
+    return Object.assign(mock(handler), { preconnect: globalThis.fetch.preconnect });
+}
+
+const anime = animeFixture({
     id: 101280,
     episodes: 2,
     status: 'FINISHED',
@@ -26,9 +44,9 @@ const anime = {
         native: null,
     },
     synonyms: [],
-} as unknown as AniListAnime;
+});
 
-function argument(value: unknown) {
+function argument(value: Parameters<typeof JSON.stringify>[0]) {
     return JSON.stringify(value).replaceAll('"', '\\u0022');
 }
 
@@ -64,7 +82,8 @@ function response(body: string, status = 200) {
 
 describe('AniZone provider', () => {
     test('matches the exact title, release year, and finished episode count', async () => {
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/anime' && url.searchParams.has('search')) {
                 return response(searchPage);
@@ -73,7 +92,7 @@ describe('AniZone provider', () => {
                 return response(seriesPage);
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         await expect(anizoneProvider.getEpisodes(anime)).resolves.toEqual([
             { id: '1', number: 1, title: 'First Episode', audio: ['sub'] },
@@ -84,7 +103,8 @@ describe('AniZone provider', () => {
 
     test('returns the HLS source and full English subtitle track', async () => {
         storedSlug = 'slime';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/anime/slime') {
                 return response(seriesPage);
@@ -118,7 +138,7 @@ describe('AniZone provider', () => {
                 );
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         await expect(
             anizoneProvider.getStreams(anime, { id: '1', number: 1 }, ['sub', 'dub'])
@@ -142,7 +162,8 @@ describe('AniZone provider', () => {
 
     test('does not claim dub availability without an English HLS rendition', async () => {
         storedSlug = 'slime';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/anime/slime') {
                 return response(seriesPage);
@@ -161,7 +182,7 @@ describe('AniZone provider', () => {
                 );
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         await expect(
             anizoneProvider.getStreams(anime, { id: '1', number: 1 }, ['dub'])

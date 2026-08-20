@@ -15,7 +15,24 @@ mock.module('./mapping', () => ({
 const { animeggProvider } = await import('./animegg');
 const nativeFetch = globalThis.fetch;
 
-const anime = {
+interface AniListFixture {
+    id: number;
+    episodes?: number | null;
+    status?: AniListAnime['status'];
+    title: { english?: string | null; romaji?: string | null; native?: string | null };
+    synonyms: string[];
+}
+
+function animeFixture(fields: AniListFixture): AniListAnime {
+    // SAFETY: The provider reads only the fields represented by this test fixture contract.
+    return fields as AniListAnime;
+}
+
+function mockFetch(handler: (input: string | URL | Request) => Promise<Response>): typeof fetch {
+    return Object.assign(mock(handler), { preconnect: globalThis.fetch.preconnect });
+}
+
+const anime = animeFixture({
     id: 101280,
     episodes: 2,
     status: 'FINISHED',
@@ -25,7 +42,7 @@ const anime = {
         native: null,
     },
     synonyms: [],
-} as unknown as AniListAnime;
+});
 
 const searchPage = `
     <a href="/series/wrong-season" class="mse">
@@ -55,7 +72,8 @@ function response(body: string, status = 200) {
 
 describe('AnimeGG provider', () => {
     test('requires an exact release title and a complete finished inventory', async () => {
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/search/') {
                 return response(searchPage);
@@ -64,7 +82,7 @@ describe('AnimeGG provider', () => {
                 return response(seriesPage);
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         await expect(animeggProvider.getEpisodes(anime)).resolves.toEqual([
             { id: '1', number: 1, title: 'The First Episode', audio: ['sub', 'dub'] },
@@ -75,7 +93,8 @@ describe('AnimeGG provider', () => {
 
     test('resolves every direct source for the requested audio mode', async () => {
         storedSlug = 'slime';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/series/slime') {
                 return response(seriesPage);
@@ -95,7 +114,7 @@ describe('AnimeGG provider', () => {
                 `);
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         await expect(
             animeggProvider.getStreams(anime, { id: '1', number: 1 }, ['sub'])
@@ -117,7 +136,8 @@ describe('AnimeGG provider', () => {
 
     test('does not return a stream from the wrong audio tab', async () => {
         storedSlug = 'slime';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/series/slime') {
                 return response(seriesPage);
@@ -126,7 +146,7 @@ describe('AnimeGG provider', () => {
                 return response('<a data-toggle="tab" data-id="12" data-version="dubbed"></a>');
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         await expect(
             animeggProvider.getStreams(anime, { id: '1', number: 1 }, ['sub'])

@@ -14,7 +14,25 @@ mock.module('./mapping', () => ({
 
 const { anikotoProvider } = await import('./anikoto');
 const nativeFetch = globalThis.fetch;
-const anime = {
+
+interface AniListFixture {
+    id: number;
+    idMal?: number | null;
+    episodes?: number | null;
+    title: { english?: string | null; romaji?: string | null; native?: string | null };
+    synonyms: string[];
+}
+
+function animeFixture(fields: AniListFixture): AniListAnime {
+    // SAFETY: The provider reads only the fields represented by this test fixture contract.
+    return fields as AniListAnime;
+}
+
+function mockFetch(handler: (input: string | URL | Request) => Promise<Response>): typeof fetch {
+    return Object.assign(mock(handler), { preconnect: globalThis.fetch.preconnect });
+}
+
+const anime = animeFixture({
     id: 154587,
     idMal: 52991,
     title: {
@@ -23,8 +41,8 @@ const anime = {
         native: '葬送のフリーレン',
     },
     synonyms: [],
-} as unknown as AniListAnime;
-const slimeSeason = {
+});
+const slimeSeason = animeFixture({
     id: 108511,
     idMal: 39551,
     episodes: 12,
@@ -34,8 +52,8 @@ const slimeSeason = {
         native: '転生したらスライムだった件 第2期',
     },
     synonyms: [],
-} as unknown as AniListAnime;
-const slimeSeasonThree = {
+});
+const slimeSeasonThree = animeFixture({
     id: 156822,
     idMal: 53580,
     episodes: 24,
@@ -45,8 +63,8 @@ const slimeSeasonThree = {
         native: '転生したらスライムだった件 第3期',
     },
     synonyms: [],
-} as unknown as AniListAnime;
-const reawakening = {
+});
+const reawakening = animeFixture({
     id: 184694,
     idMal: 59841,
     episodes: 1,
@@ -56,10 +74,10 @@ const reawakening = {
         native: '俺だけレベルアップな件 -ReAwakening-',
     },
     synonyms: [],
-} as unknown as AniListAnime;
+});
 
-function response(value: unknown, status = 200) {
-    return new Response(typeof value === 'string' ? value : JSON.stringify(value), { status });
+function response(value: string | Parameters<typeof JSON.stringify>[0], status = 200) {
+    return new Response(value instanceof Object ? JSON.stringify(value) : value, { status });
 }
 
 function seriesPayload() {
@@ -103,7 +121,8 @@ afterEach(() => {
 
 describe('AniKoto provider', () => {
     test('maps the exact AniList identity and keeps per-episode audio availability', async () => {
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikototv.to') {
                 return response(`
@@ -121,7 +140,7 @@ describe('AniKoto provider', () => {
                 return response(seriesPayload());
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const episodes = await anikotoProvider.getEpisodes(anime);
 
@@ -144,7 +163,8 @@ describe('AniKoto provider', () => {
 
     test('resolves independent sub and dub HLS sources with per-mode captions', async () => {
         storedMediaId = '6351';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
                 return response(seriesPayload());
@@ -171,7 +191,7 @@ describe('AniKoto provider', () => {
                 });
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(anime, { id: '1', number: 1 }, [
             'sub',
@@ -198,7 +218,8 @@ describe('AniKoto provider', () => {
 
     test('resolves HLS from a rotated megap CDN host', async () => {
         storedMediaId = '6351';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
                 return response(seriesPayload());
@@ -221,7 +242,7 @@ describe('AniKoto provider', () => {
                 });
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(anime, { id: '1', number: 1 }, ['sub']);
 
@@ -238,7 +259,8 @@ describe('AniKoto provider', () => {
 
     test('prefers the fullest dub caption track', async () => {
         storedMediaId = '6351';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
                 return response(seriesPayload());
@@ -273,16 +295,18 @@ describe('AniKoto provider', () => {
             }
             if (url.hostname === 'cc.lostproject.club') {
                 const file = url.pathname.split('/').pop() ?? '';
-                const cues: Record<string, string> = {
-                    'english-ai.vtt': 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\na line\n',
-                    'eng-2.vtt': 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\na title\n',
-                    'eng-3.vtt':
+                const cues = new Map([
+                    ['english-ai.vtt', 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\na line\n'],
+                    ['eng-2.vtt', 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\na title\n'],
+                    [
+                        'eng-3.vtt',
                         'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nline one\n\n00:00:03.000 --> 00:00:04.000\nline two\n',
-                };
-                return response(cues[file] ?? 'WEBVTT\n');
+                    ],
+                ]);
+                return response(cues.get(file) ?? 'WEBVTT\n');
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(anime, { id: '1', number: 1 }, ['dub']);
 
@@ -297,7 +321,8 @@ describe('AniKoto provider', () => {
 
     test('keeps an AI-labeled captions track when it is the only one', async () => {
         storedMediaId = '6351';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
                 return response(seriesPayload());
@@ -321,7 +346,7 @@ describe('AniKoto provider', () => {
                 });
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(anime, { id: '1', number: 1 }, ['dub']);
 
@@ -336,7 +361,8 @@ describe('AniKoto provider', () => {
 
     test('finds a fractional special stored as a standalone provider release', async () => {
         storedMediaId = '5665';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/5665') {
                 return response({
@@ -417,7 +443,7 @@ describe('AniKoto provider', () => {
                 });
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(
             slimeSeason,
@@ -436,7 +462,8 @@ describe('AniKoto provider', () => {
 
     test('uses the sole provider episode for an exact one-episode movie', async () => {
         storedMediaId = '8323';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/8323') {
                 return response({
@@ -474,7 +501,7 @@ describe('AniKoto provider', () => {
                 });
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(
             reawakening,
@@ -491,7 +518,8 @@ describe('AniKoto provider', () => {
 
     test('maps fractional episodes by position in a provider specials collection', async () => {
         storedMediaId = '6052';
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6052') {
                 return response({
@@ -577,7 +605,7 @@ describe('AniKoto provider', () => {
                 });
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await anikotoProvider.getStreams(
             slimeSeasonThree,

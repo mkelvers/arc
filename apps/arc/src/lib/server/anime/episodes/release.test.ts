@@ -6,6 +6,7 @@ import { episodesForRelease } from './release';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
+    // SAFETY: The helper supplies the AniList fields required by release mapping.
     return {
         episodes,
         startDate: {

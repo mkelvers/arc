@@ -11,6 +11,7 @@ function anime(
         endDate: AniListAnime['endDate'];
     }
 ) {
+    // SAFETY: The helper supplies the AniList fields required by episode matching.
     return {
         duration: 24,
         ...value,
@@ -75,6 +76,7 @@ describe('TMDB episode identity matching', () => {
             ...Array.from(
                 { length: 12 },
                 (_, index) =>
+                    // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                     [String(index + 1), index + 1, `Regular ${index + 1}`] as [
                         string,
                         number,
@@ -116,6 +118,7 @@ describe('TMDB episode identity matching', () => {
             ...Array.from(
                 { length: 24 },
                 (_, index) =>
+                    // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                     [String(index + 1), index + 1, `Regular ${index + 1}`] as [
                         string,
                         number,
@@ -247,6 +250,7 @@ describe('TMDB episode identity matching', () => {
                 Array.from(
                     { length: 4 },
                     (_, index) =>
+                        // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                         [String(index + 1), index + 1, `Episode ${index + 1}`] as [
                             string,
                             number,
@@ -287,6 +291,7 @@ describe('TMDB episode identity matching', () => {
                 Array.from(
                     { length: 6 },
                     (_, index) =>
+                        // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                         [String(index + 1), index + 1, `Episode ${index + 1}`] as [
                             string,
                             number,
@@ -340,6 +345,7 @@ describe('TMDB episode identity matching', () => {
             Array.from(
                 { length: 8 },
                 (_, index) =>
+                    // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                     [
                         String(index + 1),
                         index + 1,
@@ -370,6 +376,7 @@ describe('TMDB episode identity matching', () => {
             ...Array.from(
                 { length: 25 },
                 (_, index) =>
+                    // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                     [
                         String(index + 1),
                         index + 1,
@@ -454,6 +461,7 @@ describe('TMDB episode identity matching', () => {
             source(
                 staleTitles.map(
                     (title, index) =>
+                        // SAFETY: The mapped tuple always contains id, episode number, and title in order.
                         [String(index + 1), index + 1, title] as [string, number, string]
                 )
             ),

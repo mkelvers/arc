@@ -4,13 +4,18 @@ import { fetchAniSkip, parseAniSkipResponse, validSkipInterval } from './aniskip
 
 const nativeFetch = globalThis.fetch;
 
+function mockFetch(handler: () => Promise<Response>): typeof fetch {
+    return Object.assign(mock(handler), { preconnect: globalThis.fetch.preconnect });
+}
+
 afterEach(() => {
     globalThis.fetch = nativeFetch;
 });
 
 describe('fetchAniSkip', () => {
     test('treats a valid not-found response as empty AniSkip data', async () => {
-        globalThis.fetch = mock(async () =>
+        // SAFETY: The mock returns a Response for every fetch request, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async () =>
             Response.json(
                 {
                     found: false,
@@ -20,7 +25,7 @@ describe('fetchAniSkip', () => {
                 },
                 { status: 404 }
             )
-        ) as unknown as typeof fetch;
+        );
 
         await expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
             opening: null,
@@ -30,9 +35,10 @@ describe('fetchAniSkip', () => {
     });
 
     test('still rejects upstream failures', async () => {
-        globalThis.fetch = mock(async () =>
+        // SAFETY: The mock returns a Response for every fetch request, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async () =>
             Response.json({ statusCode: 503, message: 'Service unavailable' }, { status: 503 })
-        ) as unknown as typeof fetch;
+        );
 
         await expect(fetchAniSkip(62_001, 17)).rejects.toThrow('AniSkip request failed with 503');
     });

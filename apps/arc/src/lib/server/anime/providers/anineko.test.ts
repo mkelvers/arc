@@ -15,7 +15,25 @@ mock.module('./mapping', () => ({
 const { aninekoProvider } = await import('./anineko');
 const nativeFetch = globalThis.fetch;
 
-const anime = {
+interface AniListFixture {
+    id: number;
+    idMal?: number | null;
+    episodes?: number | null;
+    startDate?: { year?: number | null };
+    title: { english?: string | null; romaji?: string | null; native?: string | null };
+    synonyms: string[];
+}
+
+function animeFixture(fields: AniListFixture): AniListAnime {
+    // SAFETY: The provider reads only the fields represented by this test fixture contract.
+    return fields as AniListAnime;
+}
+
+function mockFetch(handler: (input: string | URL | Request) => Promise<Response>): typeof fetch {
+    return Object.assign(mock(handler), { preconnect: globalThis.fetch.preconnect });
+}
+
+const anime = animeFixture({
     id: 113415,
     idMal: 40748,
     episodes: 24,
@@ -26,10 +44,10 @@ const anime = {
         native: '呪術廻戦',
     },
     synonyms: [],
-} as unknown as AniListAnime;
+});
 
-function response(value: unknown, status = 200) {
-    return new Response(typeof value === 'string' ? value : JSON.stringify(value), { status });
+function response(value: string | Parameters<typeof JSON.stringify>[0], status = 200) {
+    return new Response(value instanceof Object ? JSON.stringify(value) : value, { status });
 }
 
 function searchPayload() {
@@ -99,7 +117,8 @@ function packedEmbedPage() {
 
 describe('AniNeko provider', () => {
     test('matches a title with a (TV) disambiguator and resolves streams', async () => {
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anineko.to' && url.pathname === '/ajax/search') {
                 return response(searchPayload());
@@ -117,7 +136,7 @@ describe('AniNeko provider', () => {
                 return response(embedPage());
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const episodes = await aninekoProvider.getEpisodes(anime);
 
@@ -163,7 +182,8 @@ describe('AniNeko provider', () => {
     });
 
     test('resolves an otakuhg StreamHG embed to its self-hosted hls4 source', async () => {
-        globalThis.fetch = mock(async (input: string | URL | Request) => {
+        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
+        globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anineko.to' && url.pathname === '/ajax/search') {
                 return response(searchPayload());
@@ -182,7 +202,7 @@ describe('AniNeko provider', () => {
                 return response(packedEmbedPage());
             }
             throw new Error(`Unexpected request: ${url}`);
-        }) as unknown as typeof fetch;
+        });
 
         const streams = await aninekoProvider.getStreams(anime, { id: '2', number: 2 }, ['sub']);
 

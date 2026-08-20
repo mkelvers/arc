@@ -4,6 +4,7 @@ import { selectPoster, selectReleaseSeason } from './poster-selection';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(values: Partial<AniListAnime> = {}): AniListAnime {
+    // SAFETY: The helper supplies the AniList fields required by poster selection.
     return {
         id: 1,
         format: 'TV',

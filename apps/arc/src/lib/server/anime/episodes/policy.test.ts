@@ -153,6 +153,7 @@ describe('episode refresh policy', () => {
 
     test('backs off stable finished titles even when optional fields are absent', () => {
         const before = Date.now() + 30 * 24 * 60 * 60 * 1_000;
+        // SAFETY: The policy only reads the AniList status field in this fixture.
         const next = nextRefreshAt({ status: 'FINISHED' } as AniListAnime, new Date(0));
         const after = Date.now() + 30 * 24 * 60 * 60 * 1_000;
 
