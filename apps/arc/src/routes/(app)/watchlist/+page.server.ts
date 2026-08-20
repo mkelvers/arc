@@ -5,11 +5,7 @@ import { getWatchlistAnime } from '$lib/server/anime/anilist/watchlist';
 import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
 import { storedAudioModes } from '$lib/server/anime/episodes/model';
 import { getWatchlistEntries } from '$lib/server/watchlist';
-import {
-    watchlistActivityTimestamp,
-    watchlistMatchesFilters,
-    WatchlistSelectionSchema,
-} from '$lib/watchlist';
+import { watchlistMatchesFilters, WatchlistSelectionSchema } from '$lib/watchlist';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -61,11 +57,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
                 const leftValue =
                     selection.sort === 'updated'
-                        ? watchlistActivityTimestamp(left.updatedAt, left.addedAt)
+                        ? Math.max(left.updatedAt ?? 0, left.addedAt ?? 0)
                         : (left.addedAt ?? 0);
                 const rightValue =
                     selection.sort === 'updated'
-                        ? watchlistActivityTimestamp(right.updatedAt, right.addedAt)
+                        ? Math.max(right.updatedAt ?? 0, right.addedAt ?? 0)
                         : (right.addedAt ?? 0);
 
                 const time = leftValue - rightValue;

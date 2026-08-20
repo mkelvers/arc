@@ -25,43 +25,15 @@ export const WatchlistSelectionSchema = z.object({
 });
 
 type WatchlistSelection = z.infer<typeof WatchlistSelectionSchema>;
-export type WatchlistSort = WatchlistSelection['sort'];
-export type WatchlistOrder = WatchlistSelection['order'];
-export type WatchlistLanguage = WatchlistSelection['language'];
-export type WatchlistMedia = WatchlistSelection['media'];
-export type WatchlistType = WatchlistSelection['type'];
 
 export function watchlistMatchesFilters(
     card: { format?: string | null; status?: string | null },
     audio: ReadonlySet<AudioMode>,
-    filters: {
-        language: WatchlistLanguage;
-        media: WatchlistMedia;
-        type: WatchlistType;
-    }
+    { language, media, type }: Pick<WatchlistSelection, 'language' | 'media' | 'type'>
 ) {
-    const languageMatches =
-        filters.language === 'all' ||
-        (filters.language === 'dub' && audio.has('dub')) ||
-        (filters.language === 'sub' && !audio.has('dub'));
-
-    const mediaMatches =
-        filters.media === 'all' ||
-        (filters.media === 'movie' && card.format === 'MOVIE') ||
-        (filters.media === 'series' && card.format !== 'MOVIE');
-
-    const typeMatches =
-        filters.type === 'all' ||
-        (filters.type === 'airing' && card.status === 'RELEASING') ||
-        (filters.type === 'finished' && card.status === 'FINISHED') ||
-        (filters.type === 'not_yet_released' && card.status === 'NOT_YET_RELEASED') ||
-        (filters.type === 'cancelled' && card.status === 'CANCELLED') ||
-        (filters.type === 'hiatus' && card.status === 'HIATUS');
-
-    return languageMatches && mediaMatches && typeMatches;
-}
-
-// A newly synced entry can have an old provider update time but a current local add time.
-export function watchlistActivityTimestamp(updatedAt: number | null, addedAt: number | null) {
-    return Math.max(updatedAt ?? 0, addedAt ?? 0);
+    return (
+        (language === 'all' || language === (audio.has('dub') ? 'dub' : 'sub')) &&
+        (media === 'all' || media === (card.format === 'MOVIE' ? 'movie' : 'series')) &&
+        (type === 'all' || card.status === (type === 'airing' ? 'RELEASING' : type.toUpperCase()))
+    );
 }

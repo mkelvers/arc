@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-    watchlistActivityTimestamp,
-    watchlistMatchesFilters,
-    WatchlistSelectionSchema,
-} from './watchlist';
+import { watchlistMatchesFilters, WatchlistSelectionSchema } from './watchlist';
 
 describe('watchlist URL selection', () => {
     test('accepts supported state, sort, and order values', () => {
@@ -45,11 +41,6 @@ describe('watchlist URL selection', () => {
 
     test.each(['recent_activity', 'watched'])('rejects playback ordering %s', (sort) => {
         expect(WatchlistSelectionSchema.parse({ sort }).sort).toBe('updated');
-    });
-
-    test('uses local add time when provider update time is older', () => {
-        expect(watchlistActivityTimestamp(1_000, 2_000)).toBe(2_000);
-        expect(watchlistActivityTimestamp(3_000, 2_000)).toBe(3_000);
     });
 });
 
