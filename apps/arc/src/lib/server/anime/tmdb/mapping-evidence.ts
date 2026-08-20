@@ -1,7 +1,8 @@
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { animeDate, dateTimestamp } from '../date';
-import { normalizeTitle } from './title';
+import { normalizeTitle, releaseSequence } from './title';
+import type { Candidate } from './types';
 
 const day = 24 * 60 * 60 * 1_000;
 
@@ -12,6 +13,13 @@ export interface SpecialEpisodeEvidence {
     runtime: number | null;
     seasonNumber: number;
     stillPath: string | null;
+}
+
+export interface TvSeasonEvidence {
+    airDate: string | null;
+    episodeCount: number;
+    name: string;
+    seasonNumber: number;
 }
 
 function releaseQualifiers(anime: AniListAnime) {
@@ -128,4 +136,67 @@ export function relatedSpecialMappingIsBetter(
         relatedScore >= 160 &&
         (directScore === null || relatedScore >= directScore + 25)
     );
+}
+
+function tvReleaseEvidence(anime: AniListAnime, seasons: TvSeasonEvidence[]) {
+    const expectedEpisodes = anime.episodes ?? 0;
+    const expectedStart = dateTimestamp(animeDate(anime.startDate));
+    const expectedYear = anime.startDate?.year ?? anime.seasonYear ?? null;
+    const expectedSequence = releaseSequence(anime);
+    const titles = animeTitles(anime).map(normalizeTitle);
+
+    return (
+        seasons
+            .filter(({ seasonNumber }) => seasonNumber > 0)
+            .map((season) => {
+                const complete = expectedEpisodes > 0 && season.episodeCount === expectedEpisodes;
+                const airDate = dateTimestamp(season.airDate);
+                const seasonTitle = normalizeTitle(season.name);
+                let score = complete ? 120 : 0;
+
+                if (expectedStart !== null && airDate === expectedStart) {
+                    score += 60;
+                } else if (expectedYear && Number(season.airDate?.slice(0, 4)) === expectedYear) {
+                    score += 20;
+                }
+
+                if (titles.includes(seasonTitle)) {
+                    score += 80;
+                }
+
+                if (expectedSequence && season.seasonNumber === expectedSequence) {
+                    score += 60;
+                }
+
+                return { complete, score };
+            })
+            .sort((left, right) => right.score - left.score)[0] ?? { complete: false, score: 0 }
+    );
+}
+
+export function preferredTvReleaseCandidate(
+    anime: AniListAnime,
+    direct: Candidate,
+    candidates: { candidate: Candidate; seasons: TvSeasonEvidence[] }[]
+) {
+    const directEvidence = candidates.find(
+        ({ candidate }) => candidate.id === direct.id && candidate.mediaType === direct.mediaType
+    );
+    const directScore = tvReleaseEvidence(anime, directEvidence?.seasons ?? []);
+    const alternative = candidates
+        .filter(
+            ({ candidate }) =>
+                candidate.mediaType === 'tv' &&
+                (candidate.id !== direct.id || candidate.mediaType !== direct.mediaType)
+        )
+        .map((evidence) => ({
+            ...evidence,
+            ...tvReleaseEvidence(anime, evidence.seasons),
+        }))
+        .filter(({ complete, score }) => complete && score >= 200)
+        .sort((left, right) => right.score - left.score)[0];
+
+    return alternative && (!directScore.complete || alternative.score > directScore.score)
+        ? alternative.candidate
+        : direct;
 }

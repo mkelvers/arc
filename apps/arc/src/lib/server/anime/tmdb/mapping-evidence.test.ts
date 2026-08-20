@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    preferredTvReleaseCandidate,
     relatedSpecialMappingIsBetter,
     specialEpisodeEvidenceScore,
     type SpecialEpisodeEvidence,
 } from './mapping-evidence';
+import type { Candidate } from './types';
 import type { AniListAnime } from '../anilist/types';
 
 const anime = {
@@ -96,5 +98,98 @@ describe('TMDB special-release mapping evidence', () => {
         );
 
         expect(relatedSpecialMappingIsBetter(direct, related)).toBeFalse();
+    });
+});
+
+describe('TMDB TV release mapping evidence', () => {
+    const santaClaus = {
+        episodes: 13,
+        format: 'TV',
+        startDate: { year: 2025, month: 7, day: 5 },
+        title: {
+            english: 'Rascal Does Not Dream of Santa Claus',
+            romaji: 'Seishun Buta Yarou wa Santa Claus no Yume wo Minai',
+            native: '青春ブタ野郎はサンタクロースの夢を見ない',
+        },
+    } as AniListAnime;
+    const duplicate: Candidate = {
+        id: 329907,
+        mediaType: 'tv',
+        name: 'Rascal Does Not Dream of Santa Claus',
+        originalName: 'Rascal Does Not Dream of Santa Claus',
+        date: '2025-07-05',
+        popularity: 0.5539,
+    };
+    const aggregate: Candidate = {
+        id: 82739,
+        mediaType: 'tv',
+        name: 'Rascal Does Not Dream of Bunny Girl Senpai',
+        originalName: '青春ブタ野郎はバニーガール先輩の夢を見ない',
+        date: '2018-10-04',
+        popularity: 25.8087,
+    };
+
+    test('prefers a complete aggregate season over an exact-title duplicate shell', () => {
+        expect(
+            preferredTvReleaseCandidate(santaClaus, duplicate, [
+                {
+                    candidate: duplicate,
+                    seasons: [
+                        {
+                            airDate: '2025-07-05',
+                            episodeCount: 1,
+                            name: 'Season 1',
+                            seasonNumber: 1,
+                        },
+                    ],
+                },
+                {
+                    candidate: aggregate,
+                    seasons: [
+                        {
+                            airDate: '2018-10-04',
+                            episodeCount: 13,
+                            name: 'Rascal Does Not Dream of Bunny Girl Senpai',
+                            seasonNumber: 1,
+                        },
+                        {
+                            airDate: '2025-07-05',
+                            episodeCount: 13,
+                            name: 'Rascal Does Not Dream of Santa Claus',
+                            seasonNumber: 2,
+                        },
+                    ],
+                },
+            ]).id
+        ).toBe(82739);
+    });
+
+    test('keeps a complete standalone series when aggregate evidence is not stronger', () => {
+        expect(
+            preferredTvReleaseCandidate(santaClaus, duplicate, [
+                {
+                    candidate: duplicate,
+                    seasons: [
+                        {
+                            airDate: '2025-07-05',
+                            episodeCount: 13,
+                            name: 'Rascal Does Not Dream of Santa Claus',
+                            seasonNumber: 1,
+                        },
+                    ],
+                },
+                {
+                    candidate: aggregate,
+                    seasons: [
+                        {
+                            airDate: '2025-07-05',
+                            episodeCount: 13,
+                            name: 'Rascal Does Not Dream of Santa Claus',
+                            seasonNumber: 2,
+                        },
+                    ],
+                },
+            ]).id
+        ).toBe(329907);
     });
 });
