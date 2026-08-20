@@ -22,11 +22,11 @@
         aria-hidden="true"
         class={cn(
             'grid size-4 place-items-center rounded-full border',
-            selected ? 'border-player-accent' : 'border-white/55'
+            selected ? 'border-input-accent' : 'border-white/55'
         )}
     >
         {#if selected}
-            <span class="leading-none text-player-accent">•</span>
+            <span class="leading-none text-input-accent">•</span>
         {/if}
     </span>
 {/snippet}
@@ -54,14 +54,14 @@
                 class={cn(
                     'relative h-3.5 w-7 rounded-full border transition-colors',
                     player.media.autoplay
-                        ? 'border-player-accent bg-player-accent/20'
+                        ? 'border-input-accent bg-input-accent/20'
                         : 'border-white/55 bg-white/12'
                 )}
             >
                 <span
                     class={cn(
                         'absolute top-0.5 left-0.5 size-2 rounded-full transition-all',
-                        player.media.autoplay ? 'translate-x-4 bg-player-accent' : 'bg-white'
+                        player.media.autoplay ? 'translate-x-4 bg-input-accent' : 'bg-white'
                     )}
                 ></span>
             </span>
@@ -266,7 +266,7 @@
                     <span class="ml-auto text-white/65 tabular-nums">
                         {edgeTime === null ? 'Not set' : formatTime(edgeTime)}
                     </span>
-                    <span class="font-semibold text-player-accent">Set here</span>
+                    <span class="font-semibold text-input-accent">Set here</span>
                 </button>
             {/each}
 
@@ -275,7 +275,7 @@
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}
-                    class="flex min-h-9 w-full items-center px-4 text-left font-semibold text-player-accent hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
+                    class="flex min-h-9 w-full items-center px-4 text-left font-semibold text-input-accent hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
                     onclick={() =>
                         player.segments.creatingTemplate === editingKind
                             ? player.segments.cancelTemplate(editingKind)

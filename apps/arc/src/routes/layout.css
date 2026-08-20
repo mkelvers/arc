@@ -29,7 +29,7 @@
     --theme-watch-secondary: oklch(0.74 0.004 285);
     --theme-watch-muted: oklch(0.63 0.004 285);
     --theme-player-panel: oklch(0.18 0.012 285);
-    --theme-player-accent: oklch(0.72 0.13 205);
+    --theme-input-accent: oklch(0.72 0.13 205);
     --theme-tooltip: #414141;
     --theme-tooltip-foreground: #ececec;
 
@@ -69,7 +69,7 @@
     --color-watch-secondary: var(--theme-watch-secondary);
     --color-watch-muted: var(--theme-watch-muted);
     --color-player-panel: var(--theme-player-panel);
-    --color-player-accent: var(--theme-player-accent);
+    --color-input-accent: var(--theme-input-accent);
     --color-tooltip: var(--theme-tooltip);
     --color-tooltip-foreground: var(--theme-tooltip-foreground);
 }
