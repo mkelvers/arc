@@ -1,2 +1,0 @@
-ALTER TABLE "anime_catalog_refresh" ADD COLUMN "anime_ids" integer[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
-ALTER TABLE "anime_catalog_refresh" ADD COLUMN "has_next_page" boolean DEFAULT false NOT NULL;

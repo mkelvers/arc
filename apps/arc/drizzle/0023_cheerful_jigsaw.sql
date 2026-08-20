@@ -1,1 +1,0 @@
-CREATE INDEX "anime_catalog_genres_idx" ON "anime_catalog" USING gin ("genres");
