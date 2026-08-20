@@ -384,10 +384,11 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
     const sub = new Set(strings('sub'));
     const dub = new Set(strings('dub'));
     const raw = new Set(strings('raw'));
-    const titles = new Map(
+    const episodeInfo = new Map(
         (data.episodeInfos ?? []).flatMap((episode) => {
             const id = String(episode.episodeIdNum ?? '').trim();
-            const title = (episode.notes ?? '')
+            const [rawTitle, ...notes] = (episode.notes ?? '').split(/<note-split>/i);
+            const title = rawTitle
                 .replace(/<br\s*\/?>/gi, ' ')
                 .replace(/<[^>]+>/g, '')
                 .replaceAll('&amp;', '&')
@@ -398,7 +399,19 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
                 .replace(/\s+/g, ' ')
                 .trim();
 
-            return id && title ? [[id, title] as const] : [];
+            return id
+                ? [
+                      [
+                          id,
+                          {
+                              title,
+                              type: notes.some((note) => /^\s*recap/i.test(note))
+                                  ? ('recap' as const)
+                                  : undefined,
+                          },
+                      ] as const,
+                  ]
+                : [];
         })
     );
 
@@ -414,12 +427,13 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
                 {
                     id,
                     number,
-                    title: titles.get(id) ?? '',
+                    title: episodeInfo.get(id)?.title ?? '',
                     audio: [
                         ...(sub.has(id) ? ['sub' as const] : []),
                         ...(dub.has(id) ? ['dub' as const] : []),
                         ...(raw.has(id) ? ['raw' as const] : []),
                     ],
+                    type: episodeInfo.get(id)?.type,
                 },
             ];
         })

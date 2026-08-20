@@ -28,6 +28,9 @@ const searchResponseSchema = z.object({
 const inventoryEpisodeSchema = z.object({
     episode: z.union([z.number(), z.string()]),
     session: z.string(),
+    filler: z
+        .union([z.literal(0), z.literal(1), z.literal('0'), z.literal('1'), z.boolean()])
+        .optional(),
 });
 const jsonValueSchema = z.json();
 
@@ -39,6 +42,7 @@ interface AnimePaheReference {
 interface AnimePaheEpisode {
     number: number;
     session: string;
+    filler: boolean;
 }
 
 function headers(accept: string) {
@@ -186,7 +190,14 @@ async function loadEpisodes(reference: AnimePaheReference) {
             const number = Number(episode?.episode);
             const parsed = inventoryEpisodeSchema.safeParse(episode);
             if (parsed.success && Number.isFinite(number) && number > 0 && parsed.data.session) {
-                episodes.push({ number, session: parsed.data.session });
+                episodes.push({
+                    number,
+                    session: parsed.data.session,
+                    filler:
+                        parsed.data.filler === 1 ||
+                        parsed.data.filler === '1' ||
+                        parsed.data.filler === true,
+                });
             }
         }
 
@@ -236,6 +247,7 @@ async function getEpisodes(anime: AniListAnime) {
         number: episode.number,
         title: '',
         audio: ['sub'],
+        type: episode.filler ? 'filler' : undefined,
     }));
 }
 

@@ -1,4 +1,5 @@
 import type { AudioMode } from '$lib/audio';
+import type { EpisodeType } from '$lib/types';
 import type { AniListAnime } from '../anilist/types';
 
 export interface ProviderEpisode {
@@ -6,6 +7,7 @@ export interface ProviderEpisode {
     number: number;
     title: string;
     audio: AudioMode[];
+    type?: Exclude<EpisodeType, 'unknown'>;
     supplemental?: boolean;
 }
 
