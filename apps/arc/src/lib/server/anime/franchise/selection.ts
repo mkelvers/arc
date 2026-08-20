@@ -26,14 +26,14 @@ export function isFranchiseEntryEligible(
 }
 
 const continuityRelations = new Set<MediaRelation>(['PREQUEL', 'SEQUEL']);
-const replacementRelations = new Set<MediaRelation>([
+const nonNarrativeMovieRelations = new Set<MediaRelation>([
     'ALTERNATIVE',
     'COMPILATION',
     'CONTAINS',
     'SUMMARY',
-    'SIDE_STORY',
     'SPIN_OFF',
 ]);
+const replacementRelations = new Set<MediaRelation>([...nonNarrativeMovieRelations, 'SIDE_STORY']);
 
 const formatWeight = new Map<MediaFormat, number>([
     ['TV', 100_000],
@@ -170,13 +170,71 @@ function isNarrativeMovie(
     primaryIds: Set<number>,
     entries: FranchiseSelectionEntry[]
 ) {
-    return (
-        entry.format === 'MOVIE' &&
-        !entry.secondary &&
-        totalRuntime(entry) >= 40 &&
-        hasRelationBetween(primaryIds, entry.malId, entries, continuityRelations) &&
-        !hasRelationBetween(primaryIds, entry.malId, entries, replacementRelations)
-    );
+    if (
+        entry.format !== 'MOVIE' ||
+        entry.secondary ||
+        totalRuntime(entry) < 40 ||
+        hasRelationBetween(primaryIds, entry.malId, entries, nonNarrativeMovieRelations)
+    ) {
+        return false;
+    }
+
+    if (hasRelationBetween(primaryIds, entry.malId, entries, continuityRelations)) {
+        return true;
+    }
+
+    const parentIds = new Set<number>();
+    for (const candidate of entries) {
+        if (candidate.malId === entry.malId) {
+            for (const relation of candidate.relations) {
+                if (relation.type === 'PARENT' && primaryIds.has(relation.malId)) {
+                    parentIds.add(relation.malId);
+                }
+            }
+        } else if (primaryIds.has(candidate.malId)) {
+            for (const relation of candidate.relations) {
+                if (relation.malId === entry.malId && relation.type === 'SIDE_STORY') {
+                    parentIds.add(candidate.malId);
+                }
+            }
+        }
+    }
+
+    if (!parentIds.size) {
+        return false;
+    }
+
+    const successors = new Map<number, Set<number>>(entries.map(({ malId }) => [malId, new Set()]));
+    for (const candidate of entries) {
+        for (const relation of candidate.relations) {
+            if (relation.type === 'SEQUEL') {
+                successors.get(candidate.malId)?.add(relation.malId);
+            } else if (relation.type === 'PREQUEL') {
+                successors.get(relation.malId)?.add(candidate.malId);
+            }
+        }
+    }
+
+    const pending = [...parentIds];
+    const visited = new Set(parentIds);
+    while (pending.length) {
+        const malId = pending.pop();
+        if (!malId) {
+            continue;
+        }
+
+        for (const successorId of successors.get(malId) ?? []) {
+            if (primaryIds.has(successorId) && !parentIds.has(successorId)) {
+                return false;
+            }
+            if (!visited.has(successorId)) {
+                visited.add(successorId);
+                pending.push(successorId);
+            }
+        }
+    }
+
+    return true;
 }
 
 function isReplacementEntry(

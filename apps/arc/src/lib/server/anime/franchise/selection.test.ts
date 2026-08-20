@@ -215,6 +215,32 @@ describe('primaryFranchiseIds', () => {
         ]);
     });
 
+    test('keeps K-On! Movie as the terminal main-story release', () => {
+        const selected = primaryFranchiseIds([
+            entry(5680, {
+                title: 'K-ON!',
+                popularity: 276_811,
+                relations: [relation('SEQUEL', 7791)],
+            }),
+            entry(7791, {
+                title: 'K-ON! Season 2',
+                episodes: 26,
+                popularity: 166_258,
+                relations: [relation('PREQUEL', 5680), relation('SIDE_STORY', 9617)],
+            }),
+            entry(9617, {
+                title: 'K-ON!: The Movie',
+                format: 'MOVIE',
+                episodes: 1,
+                duration: 110,
+                popularity: 89_191,
+                relations: [relation('PARENT', 7791)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([5680, 7791, 9617]);
+    });
+
     test('keeps an unlinked future season but not unrelated television spin-offs', () => {
         const selected = primaryFranchiseIds([
             entry(1, {
@@ -349,7 +375,16 @@ describe('primaryFranchiseIds', () => {
             entry(36456, {
                 title: 'My Hero Academia Season 3',
                 popularity: 596_710,
-                relations: [relation('PREQUEL', 33486), relation('SIDE_STORY', 36896)],
+                relations: [
+                    relation('PREQUEL', 33486),
+                    relation('SEQUEL', 38408),
+                    relation('SIDE_STORY', 36896),
+                ],
+            }),
+            entry(38408, {
+                title: 'My Hero Academia Season 4',
+                popularity: 530_927,
+                relations: [relation('PREQUEL', 36456)],
             }),
             entry(36896, {
                 title: 'My Hero Academia: Two Heroes',
@@ -379,7 +414,7 @@ describe('primaryFranchiseIds', () => {
             }),
         ]);
 
-        expect([...selected].toSorted((a, b) => a - b)).toEqual([31964, 33486, 36456]);
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([31964, 33486, 36456, 38408]);
     });
 });
 
