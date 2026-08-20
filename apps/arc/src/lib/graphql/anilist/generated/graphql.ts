@@ -244,14 +244,6 @@ export type SimulcastSeasonStartsQueryVariables = Exact<{ [key: string]: never; 
 
 export type SimulcastSeasonStartsQuery = { winter: { media: Array<{ seasonYear: number | null } | null> | null } | null, spring: { media: Array<{ seasonYear: number | null } | null> | null } | null, summer: { media: Array<{ seasonYear: number | null } | null> | null } | null, fall: { media: Array<{ seasonYear: number | null } | null> | null } | null };
 
-export type WatchlistTransferAnimeQueryVariables = Exact<{
-  anilistIds?: Array<number | null | undefined> | number | null | undefined;
-  malIds?: Array<number | null | undefined> | number | null | undefined;
-}>;
-
-
-export type WatchlistTransferAnimeQuery = { anilist: { media: Array<{ id: number, idMal: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null> | null } | null, mal: { media: Array<{ id: number, idMal: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null> | null } | null };
-
 export type WatchlistAnimeQueryVariables = Exact<{
   ids: Array<number> | number;
 }>;
@@ -655,32 +647,6 @@ export const SimulcastSeasonStartsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SimulcastSeasonStartsQuery, SimulcastSeasonStartsQueryVariables>;
-export const WatchlistTransferAnimeDocument = new TypedDocumentString(`
-    query WatchlistTransferAnime($anilistIds: [Int], $malIds: [Int]) {
-  anilist: Page(page: 1, perPage: 50) {
-    media(id_in: $anilistIds, type: ANIME) {
-      id
-      idMal
-      title {
-        english
-        romaji
-        native
-      }
-    }
-  }
-  mal: Page(page: 1, perPage: 50) {
-    media(idMal_in: $malIds, type: ANIME) {
-      id
-      idMal
-      title {
-        english
-        romaji
-        native
-      }
-    }
-  }
-}
-    `) as unknown as TypedDocumentString<WatchlistTransferAnimeQuery, WatchlistTransferAnimeQueryVariables>;
 export const WatchlistAnimeDocument = new TypedDocumentString(`
     query WatchlistAnime($ids: [Int!]!) {
   Page(page: 1, perPage: 50) {
