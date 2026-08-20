@@ -309,6 +309,27 @@ describe('primaryFranchiseIds', () => {
         expect([...selected].toSorted((a, b) => a - b)).toEqual([1, 3]);
     });
 
+    test('keeps the Sakamoto Days ONA sequel chain in the main story', () => {
+        const selected = primaryFranchiseIds([
+            entry(58939, {
+                title: 'SAKAMOTO DAYS',
+                format: 'ONA',
+                episodes: 11,
+                popularity: 217_177,
+                relations: [relation('SEQUEL', 60285)],
+            }),
+            entry(60285, {
+                title: 'SAKAMOTO DAYS Part 2',
+                format: 'ONA',
+                episodes: 11,
+                popularity: 101_299,
+                relations: [relation('PREQUEL', 58939)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([58939, 60285]);
+    });
+
     test('keeps My Hero Academia side content and Vigilantes out of the main story', () => {
         const selected = primaryFranchiseIds([
             entry(31964, {

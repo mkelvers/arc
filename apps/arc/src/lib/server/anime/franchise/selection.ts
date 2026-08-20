@@ -200,7 +200,7 @@ function isReplacementEntry(
 }
 
 function isContinuityEntry(entry: FranchiseSelectionEntry) {
-    if (entry.format === 'OVA' || entry.format === 'ONA') {
+    if (entry.format === 'OVA') {
         return false;
     }
 
