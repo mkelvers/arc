@@ -6,7 +6,6 @@ interface Result {
     viewer: { id: number };
 }
 
-// SAFETY: The test document implements the minimal DocumentNode contract consumed by graphql.
 const document = {
     toString: () => 'query Viewer { viewer { id } }',
 } as Parameters<typeof graphql<Result, Record<string, never>>>[1];

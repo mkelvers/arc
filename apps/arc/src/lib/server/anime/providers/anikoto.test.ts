@@ -24,7 +24,6 @@ interface AniListFixture {
 }
 
 function animeFixture(fields: AniListFixture): AniListAnime {
-    // SAFETY: The provider reads only the fields represented by this test fixture contract.
     return fields as AniListAnime;
 }
 
@@ -121,7 +120,6 @@ afterEach(() => {
 
 describe('AniKoto provider', () => {
     test('maps the exact AniList identity and keeps per-episode audio availability', async () => {
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikototv.to') {
@@ -163,7 +161,6 @@ describe('AniKoto provider', () => {
 
     test('resolves independent sub and dub HLS sources with per-mode captions', async () => {
         storedMediaId = '6351';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
@@ -218,7 +215,6 @@ describe('AniKoto provider', () => {
 
     test('resolves HLS from a rotated megap CDN host', async () => {
         storedMediaId = '6351';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
@@ -259,7 +255,6 @@ describe('AniKoto provider', () => {
 
     test('prefers the fullest dub caption track', async () => {
         storedMediaId = '6351';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
@@ -321,7 +316,6 @@ describe('AniKoto provider', () => {
 
     test('keeps an AI-labeled captions track when it is the only one', async () => {
         storedMediaId = '6351';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6351') {
@@ -361,7 +355,6 @@ describe('AniKoto provider', () => {
 
     test('finds a fractional special stored as a standalone provider release', async () => {
         storedMediaId = '5665';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/5665') {
@@ -462,7 +455,6 @@ describe('AniKoto provider', () => {
 
     test('uses the sole provider episode for an exact one-episode movie', async () => {
         storedMediaId = '8323';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/8323') {
@@ -518,7 +510,6 @@ describe('AniKoto provider', () => {
 
     test('maps fractional episodes by position in a provider specials collection', async () => {
         storedMediaId = '6052';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anikotoapi.site' && url.pathname === '/series/6052') {

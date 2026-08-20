@@ -24,7 +24,6 @@ interface AniListFixture {
 }
 
 function animeFixture(fields: AniListFixture): AniListAnime {
-    // SAFETY: The provider reads only the fields represented by this test fixture contract.
     return fields as AniListAnime;
 }
 
@@ -72,7 +71,6 @@ function response(body: string, status = 200) {
 
 describe('AnimeGG provider', () => {
     test('requires an exact release title and a complete finished inventory', async () => {
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/search/') {
@@ -93,7 +91,6 @@ describe('AnimeGG provider', () => {
 
     test('resolves every direct source for the requested audio mode', async () => {
         storedSlug = 'slime';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/series/slime') {
@@ -136,7 +133,6 @@ describe('AnimeGG provider', () => {
 
     test('does not return a stream from the wrong audio tab', async () => {
         storedSlug = 'slime';
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.pathname === '/series/slime') {

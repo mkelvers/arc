@@ -18,7 +18,6 @@ interface AniListFixture {
 }
 
 function animeFixture(fields: AniListFixture): AniListAnime {
-    // SAFETY: The matching functions read only the fields represented by this fixture contract.
     return fields as AniListAnime;
 }
 

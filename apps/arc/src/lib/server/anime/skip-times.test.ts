@@ -14,7 +14,6 @@ afterEach(() => {
 
 describe('fetchAniSkip', () => {
     test('treats a valid not-found response as empty AniSkip data', async () => {
-        // SAFETY: The mock returns a Response for every fetch request, matching the global fetch contract.
         globalThis.fetch = mockFetch(async () =>
             Response.json(
                 {
@@ -35,7 +34,6 @@ describe('fetchAniSkip', () => {
     });
 
     test('still rejects upstream failures', async () => {
-        // SAFETY: The mock returns a Response for every fetch request, matching the global fetch contract.
         globalThis.fetch = mockFetch(async () =>
             Response.json({ statusCode: 503, message: 'Service unavailable' }, { status: 503 })
         );

@@ -22,7 +22,6 @@ describe('TMDB title matching', () => {
     test('matches stylized spacing differences for a later season', () => {
         expect(
             candidateScore(
-                // SAFETY: This partial AniList fixture contains the fields used by candidateScore.
                 {
                     id: 106055,
                     mediaType: 'tv',
@@ -31,7 +30,6 @@ describe('TMDB title matching', () => {
                     date: '2021-07-11',
                     popularity: 9,
                 },
-                // SAFETY: This partial AniList fixture contains the fields used by candidateScore.
                 {
                     title: {
                         english: 'Love Live! Superstar!! Season 3',
@@ -50,7 +48,6 @@ describe('TMDB title matching', () => {
     });
 
     test('matches a Roman-numeral sequel to its aggregate series', () => {
-        // SAFETY: This partial AniList fixture contains the fields used by title matching.
         const anime = {
             title: {
                 english: 'From Old Country Bumpkin to Master Swordsman II',
@@ -68,7 +65,6 @@ describe('TMDB title matching', () => {
         expect(releaseSequence(anime)).toBe(2);
         expect(
             candidateScore(
-                // SAFETY: This partial AniList fixture contains the fields used by candidateScore.
                 {
                     id: 260823,
                     mediaType: 'tv',
@@ -93,7 +89,6 @@ describe('TMDB title matching', () => {
                     date: '2019-04-06',
                     popularity: 18.3868,
                 },
-                // SAFETY: This partial AniList fixture contains the fields used by candidateScore.
                 {
                     title: {
                         english: 'Demon Slayer: Kimetsu no Yaiba Hashira Training Arc',

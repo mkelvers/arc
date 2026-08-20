@@ -40,7 +40,6 @@ async function tmdbPosters(seriesId: number) {
     });
     expect(response.ok).toBe(true);
 
-    // SAFETY: TMDB's images endpoint returns the TmdbImagesResponse contract used by this test.
     const data = (await response.json()) as TmdbImagesResponse;
     return (data.posters ?? []).filter(
         ({ aspect_ratio, file_path, height, width }) =>
@@ -72,7 +71,6 @@ describe('live anime card artwork providers', () => {
             });
             expect(response.ok).toBe(true);
 
-            // SAFETY: The test query requests exactly the fields represented by AniListResponse.
             const result = (await response.json()) as AniListResponse;
             const media = (result.data?.Page?.media ?? []).filter(
                 (entry): entry is NonNullable<typeof entry> => entry !== null

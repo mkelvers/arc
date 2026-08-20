@@ -5,7 +5,6 @@ import { animeTitles } from './text';
 
 describe('animeTitles', () => {
     test('preserves source priority while removing blank and duplicate titles', () => {
-        // SAFETY: This partial AniList fixture contains the title fields used by text formatting.
         const anime = {
             title: {
                 english: 'Frieren: Beyond Journey’s End',

@@ -25,7 +25,6 @@ interface AniListFixture {
 }
 
 function animeFixture(fields: AniListFixture): AniListAnime {
-    // SAFETY: The provider reads only the fields represented by this test fixture contract.
     return fields as AniListAnime;
 }
 
@@ -117,7 +116,6 @@ function packedEmbedPage() {
 
 describe('AniNeko provider', () => {
     test('matches a title with a (TV) disambiguator and resolves streams', async () => {
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anineko.to' && url.pathname === '/ajax/search') {
@@ -182,7 +180,6 @@ describe('AniNeko provider', () => {
     });
 
     test('resolves an otakuhg StreamHG embed to its self-hosted hls4 source', async () => {
-        // SAFETY: The mock accepts every fetch input and returns a Response, matching the global fetch contract.
         globalThis.fetch = mockFetch(async (input: string | URL | Request) => {
             const url = new URL(input instanceof Request ? input.url : input.toString());
             if (url.hostname === 'anineko.to' && url.pathname === '/ajax/search') {

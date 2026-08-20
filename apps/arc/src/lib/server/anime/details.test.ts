@@ -5,7 +5,6 @@ import type { AniListAnime } from './anilist/types';
 
 describe('anime details airing state', () => {
     test('hides a next airing event that has already passed', () => {
-        // SAFETY: The fixture includes the fields used by toAnimeDetails for this behavior.
         const details = toAnimeDetails({
             id: 196187,
             status: 'RELEASING',
@@ -23,7 +22,6 @@ describe('anime details airing state', () => {
             episode: 7,
             airingAt: Math.floor(Date.now() / 1_000) + 60,
         };
-        // SAFETY: The fixture includes the fields used by toAnimeDetails for this behavior.
         const details = toAnimeDetails({
             id: 196187,
             status: 'RELEASING',
@@ -38,7 +36,6 @@ describe('anime details airing state', () => {
             episode: 18,
             airingAt: Math.floor(Date.now() / 1_000) - 1,
         };
-        // SAFETY: The fixture includes the fields used by toAnimeDetails for this behavior.
         const details = toAnimeDetails(
             {
                 id: 196187,
