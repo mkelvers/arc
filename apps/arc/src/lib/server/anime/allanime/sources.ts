@@ -1,4 +1,6 @@
 import { record } from '$lib/utils';
+import type { JsonValue } from '$lib/utils';
+import { z } from 'zod';
 import { referer, userAgent } from './client';
 import type { Source, Stream } from './types';
 
@@ -6,8 +8,10 @@ interface MediaReference {
     url: string;
     quality: string | null;
 }
+const sourceSchema = z.object({ sourceName: z.string(), sourceUrl: z.string() });
+const qualityValue = z.union([z.string(), z.number()]);
 
-export function sourceReferences(value: unknown): Source[] {
+export function sourceReferences(value: JsonValue): Source[] {
     const root = record(value);
     const data = record(root?.data) ?? root;
     const episode = record(data?.episode) ?? data;
@@ -19,10 +23,9 @@ export function sourceReferences(value: unknown): Source[] {
 
     return urls.flatMap((value) => {
         const source = record(value);
-        const name = source?.sourceName;
-        const url = source?.sourceUrl;
+        const parsed = sourceSchema.safeParse(source);
 
-        return typeof name === 'string' && typeof url === 'string' ? [{ name, url }] : [];
+        return parsed.success ? [{ name: parsed.data.sourceName, url: parsed.data.sourceUrl }] : [];
     });
 }
 
@@ -51,15 +54,22 @@ export function decodeSourceUrl(value: string) {
     return decoded.replace('/clock', '/clock.json');
 }
 
-function streamQuality(value: unknown) {
-    const normalized = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+function streamQuality(value: JsonValue | undefined) {
+    const parsed = qualityValue.safeParse(value);
+    const normalized = parsed.success ? String(parsed.data) : '';
     const match = normalized.match(/^(\d{3,4})p?$/i);
     return match ? `${Number(match[1])}p` : null;
 }
 
-function mediaReferences(value: unknown, inheritedQuality: string | null = null): MediaReference[] {
-    if (typeof value === 'string') {
-        return /^https?:\/\//.test(value) ? [{ url: value, quality: inheritedQuality }] : [];
+function mediaReferences(
+    value: JsonValue,
+    inheritedQuality: string | null = null
+): MediaReference[] {
+    const text = z.string().safeParse(value);
+    if (text.success) {
+        return /^https?:\/\//.test(text.data)
+            ? [{ url: text.data, quality: inheritedQuality }]
+            : [];
     }
 
     if (Array.isArray(value)) {
@@ -82,7 +92,8 @@ function mediaReferences(value: unknown, inheritedQuality: string | null = null)
             return mediaReferences(child, quality);
         }
 
-        return typeof child === 'object' ? mediaReferences(child, quality) : [];
+        const parsed = z.json().safeParse(child);
+        return parsed.success ? mediaReferences(parsed.data, quality) : [];
     });
 }
 

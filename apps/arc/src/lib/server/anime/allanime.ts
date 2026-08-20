@@ -1,6 +1,6 @@
 import type { AudioMode } from '$lib/audio';
+import { z } from 'zod';
 import { RequestCache } from '$lib/server/request-cache';
-import { record } from '$lib/utils';
 import type { AniListAnime } from './anilist/types';
 import { findShowId } from './allanime/catalog';
 import {
@@ -18,6 +18,18 @@ import type { Source, Stream, StreamCrypto, Streams } from './allanime/types';
 
 const cache = new RequestCache<string, Streams>(2 * 60 * 1_000);
 const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
+const responseSchema = z
+    .object({
+        data: z
+            .object({
+                tobeparsed: z.string().optional(),
+                episode: z.object({ tobeparsed: z.string().optional() }).optional(),
+            })
+            .optional(),
+        errors: z.array(z.object({ message: z.string() })).optional(),
+    })
+    .passthrough();
+const jsonValueSchema = z.json();
 
 async function encryptedSources(
     showId: string,
@@ -55,14 +67,16 @@ async function encryptedSources(
         },
         signal: AbortSignal.timeout(6_000),
     });
-    const payload = (await response.json()) as unknown;
-    const root = record(payload);
-    const data = record(root?.data);
-    const episodeData = record(data?.episode);
-    const encrypted = data?.tobeparsed ?? episodeData?.tobeparsed;
+    // SAFETY: Fetch JSON is parsed by responseSchema before any field access.
+    const json = jsonValueSchema.safeParse(await response.json());
+    const rawPayload = json.success ? json.data : null;
+    const parsed = responseSchema.safeParse(rawPayload);
+    const payload = parsed.success ? parsed.data : null;
+    const encrypted = payload?.data?.tobeparsed ?? payload?.data?.episode?.tobeparsed;
 
-    if (typeof encrypted === 'string') {
-        const sources = sourceReferences(decrypt(encrypted, crypto.key));
+    if (encrypted) {
+        const decrypted = z.json().safeParse(decrypt(encrypted, crypto.key));
+        const sources = decrypted.success ? sourceReferences(decrypted.data) : [];
         if (!sources.length) {
             throw new Error('AllAnime decrypted no episode sources');
         }
@@ -70,18 +84,14 @@ async function encryptedSources(
         return sources;
     }
 
-    const sources = sourceReferences(payload);
+    const sources = sourceReferences(rawPayload);
     if (sources.length) {
         return sources;
     }
 
-    const message = Array.isArray(root?.errors) ? record(root.errors[0])?.message : null;
+    const message = payload?.errors?.[0]?.message;
 
-    throw new Error(
-        typeof message === 'string'
-            ? `AllAnime: ${message}`
-            : 'AllAnime returned no episode sources'
-    );
+    throw new Error(message ? `AllAnime: ${message}` : 'AllAnime returned no episode sources');
 }
 
 function sourceRank(source: Source) {
@@ -144,7 +154,7 @@ async function resolveStreams(anime: AniListAnime, episode: string, modes: Audio
     const load = (mode: AudioMode) =>
         encryptedSources(showId, episode, mode, crypto).then(
             (sources) => ({ mode, sources, error: null }),
-            (error: unknown) => ({ mode, sources: null, error })
+            (error: Error) => ({ mode, sources: null, error })
         );
     let sourceResults = await Promise.all(modes.map(load));
 

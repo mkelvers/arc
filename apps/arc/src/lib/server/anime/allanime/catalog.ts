@@ -14,12 +14,14 @@ import {
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from '../providers/mapping';
 import { db } from '@arc/db';
 import { animeSimulcastPageCache } from '@arc/db/schema';
-import { nonEmptyText, positiveInteger, record } from '$lib/utils';
+import { nonEmptyText, positiveInteger } from '$lib/utils';
+import type { JsonValue } from '$lib/utils';
 import { animeTitles, plainText } from '../anilist/text';
 import { request } from './client';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 import { AnimeCardPageSchema } from '$lib/types';
+import { z } from 'zod';
 
 const providerName = 'allanime';
 const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();
@@ -35,28 +37,40 @@ interface WeeklyPopularAnime {
     audio: AudioMode[];
 }
 
+const audioDetailSchema = z.object({
+    sub: z.array(z.unknown()).optional(),
+    dub: z.array(z.unknown()).optional(),
+    raw: z.array(z.unknown()).optional(),
+});
+const seasonSchema = z.object({
+    quarter: z.string().optional(),
+    year: z.union([z.number(), z.string()]).optional(),
+});
+
 let popularCache: {
     anime: WeeklyPopularAnime[];
     fetchedAt: number;
 } | null = null;
 let popularRequest: Promise<WeeklyPopularAnime[]> | null = null;
 
-function audioModes(value: unknown) {
-    const detail = record(value);
-    if (!detail) {
+function audioModes(value: JsonValue) {
+    const parsed = audioDetailSchema.safeParse(value);
+    if (!parsed.success) {
         return [];
     }
 
     return (['sub', 'dub', 'raw'] as const).filter((mode) => {
-        const episodes = detail[mode];
-        return Array.isArray(episodes) && episodes.length > 0;
+        return Boolean(parsed.data[mode]?.length);
     });
 }
 
-function matchesSeason(value: unknown, selected: AnimeSeasonSelection) {
-    const season = record(value);
-    const quarter = nonEmptyText(season?.quarter)?.toUpperCase();
-    const year = positiveInteger(season?.year);
+function matchesSeason(value: JsonValue, selected: AnimeSeasonSelection) {
+    const parsed = seasonSchema.safeParse(value);
+    if (!parsed.success) {
+        return false;
+    }
+    const quarter = nonEmptyText(parsed.data.quarter)?.toUpperCase();
+    const year = positiveInteger(parsed.data.year);
 
     return quarter === selected.season && year === selected.year;
 }
@@ -84,7 +98,13 @@ function simulcastCard(show: {
         link: `/anime/${id}`,
         title,
         image,
-        audioLabel: audioAvailabilityLabel(audioModes(show.availableEpisodesDetail)),
+        audioLabel: audioAvailabilityLabel(
+            audioModes(
+                z.json().safeParse(show.availableEpisodesDetail).success
+                    ? z.json().parse(show.availableEpisodesDetail)
+                    : null
+            )
+        ),
         score: Math.round(show.averageScore ?? 0),
         genres: [...new Set((show.genres ?? []).map((genre) => genre.trim()).filter(Boolean))],
         synopsis: plainText(show.description),
@@ -108,7 +128,8 @@ async function requestSimulcastPage(selected: AnimeSeasonSelection, page: number
     const anime: AnimeCard[] = [];
 
     for (const show of shows) {
-        if (!matchesSeason(show.season, selected)) {
+        const season = z.json().safeParse(show.season);
+        if (!matchesSeason(season.success ? season.data : null, selected)) {
             continue;
         }
 
@@ -243,7 +264,11 @@ async function getWeeklyPopularAnime() {
             seen.add(anilistId);
             anime.push({
                 anilistId,
-                audio: audioModes(card?.availableEpisodesDetail),
+                audio: audioModes(
+                    z.json().safeParse(card?.availableEpisodesDetail ?? null).success
+                        ? z.json().parse(card?.availableEpisodesDetail ?? null)
+                        : null
+                ),
             });
         }
 
@@ -343,13 +368,18 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
 
     await verifyProviderMediaId(anime.id, providerName);
 
-    const detail = record(data.show.availableEpisodesDetail) ?? {};
+    const detail = audioDetailSchema.safeParse(data.show.availableEpisodesDetail).success
+        ? audioDetailSchema.parse(data.show.availableEpisodesDetail)
+        : {};
     const strings = (key: AudioMode) => {
         const values = detail[key];
 
-        return Array.isArray(values)
-            ? values.filter((value): value is string => typeof value === 'string')
-            : [];
+        return (
+            values?.flatMap((value) => {
+                const parsed = z.string().safeParse(value);
+                return parsed.success ? [parsed.data] : [];
+            }) ?? []
+        );
     };
     const sub = new Set(strings('sub'));
     const dub = new Set(strings('dub'));

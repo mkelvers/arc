@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, createHmac } from 'node:c
 import { getClientData } from './bootstrap';
 import { contentLane, endpoint, origin, userAgent } from './client';
 import { record } from '$lib/utils';
+import { z } from 'zod';
 import type { StreamCrypto } from './types';
 
 // AllAnime rotates the boot epoch every 7 days; the bootstrap response
@@ -67,7 +68,9 @@ export async function getCrypto(refresh = false) {
     }
 
     const epoch = Number(bootstrap.epoch);
-    const part = Buffer.from(typeof bootstrap.partB === 'string' ? bootstrap.partB : '', 'base64');
+    const parsedPartB = z.string().safeParse(bootstrap.partB);
+    const partB = parsedPartB.success ? parsedPartB.data : '';
+    const part = Buffer.from(partB, 'base64');
 
     if (
         !Number.isSafeInteger(epoch) ||
@@ -127,6 +130,7 @@ export function decrypt(value: string, key: Buffer) {
     const decipher = createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(tag);
 
+    // SAFETY: AES-GCM authentication succeeded, so the decrypted bytes are the provider JSON payload.
     return JSON.parse(
         Buffer.concat([decipher.update(encrypted.subarray(13, -16)), decipher.final()]).toString(
             'utf8'
