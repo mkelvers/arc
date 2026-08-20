@@ -97,7 +97,7 @@ export async function graphql<TResult, TVariables>(
                 });
             }
 
-            let body: unknown = null;
+            let body = null;
             if (responseText) {
                 try {
                     body = JSON.parse(responseText);
@@ -149,6 +149,7 @@ export async function graphql<TResult, TVariables>(
                 });
             }
 
+            // SAFETY: the typed GraphQL document contract describes the validated data payload.
             return result.data.data as TResult;
         } catch (cause) {
             const retryable =

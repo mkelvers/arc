@@ -1,31 +1,39 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { z } from 'zod';
+
+const jsonValue = z.json();
+const jsonObject = z.record(z.string(), jsonValue);
+const positiveIntegerInput = z.union([z.number(), z.string().regex(/^\d+$/)]);
+const nonEmptyTextInput = z.string().trim().min(1);
+
+export type JsonObject = z.infer<typeof jsonObject>;
+export type JsonValue = z.infer<typeof jsonValue>;
+export const JsonValueSchema = jsonValue;
+type UtilityInput = JsonValue | undefined;
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+export function isRecord(value: UtilityInput): value is JsonObject {
+    return jsonObject.safeParse(value).success;
 }
 
-export function record(value: unknown): Record<string, unknown> | null {
+export function record(value: UtilityInput): JsonObject | null {
     return isRecord(value) ? value : null;
 }
 
-export function positiveInteger(value: unknown) {
-    const number =
-        typeof value === 'number'
-            ? value
-            : typeof value === 'string' && /^\d+$/.test(value.trim())
-              ? Number(value)
-              : Number.NaN;
+export function positiveInteger(value: UtilityInput) {
+    const parsed = positiveIntegerInput.safeParse(value);
+    const number = parsed.success ? Number(parsed.data) : Number.NaN;
 
     return Number.isSafeInteger(number) && number > 0 ? number : undefined;
 }
 
-export function nonEmptyText(value: unknown) {
-    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+export function nonEmptyText(value: UtilityInput) {
+    const parsed = nonEmptyTextInput.safeParse(value);
+    return parsed.success ? parsed.data : undefined;
 }
 
 export function batches<T>(values: readonly T[], size: number) {
