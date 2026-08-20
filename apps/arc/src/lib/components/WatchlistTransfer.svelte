@@ -69,13 +69,13 @@
 
 <Dropdown
     id="watchlist-transfer"
-    ariaLabel="Import or export watchlist"
+    ariaLabel="Manage watchlist"
     menuClass="mt-2 w-52 shadow-xl"
     triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
 >
     {#snippet trigger()}
         <ArrowsLeftRightIcon size="1.2rem" weight="bold" aria-hidden="true" />
-        <span class="hidden sm:inline">Import / Export</span>
+        <span class="hidden sm:inline">Manage</span>
         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
     {/snippet}
 
