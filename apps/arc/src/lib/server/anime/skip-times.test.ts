@@ -1,28 +1,28 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { http, HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
 
 import { fetchAniSkip, parseAniSkipResponse, validSkipInterval } from './aniskip';
 
-const nativeFetch = globalThis.fetch;
+const server = setupServer();
 
-function mockFetch(handler: () => Promise<Response>): typeof fetch {
-    return Object.assign(mock(handler), { preconnect: globalThis.fetch.preconnect });
-}
-
-afterEach(() => {
-    globalThis.fetch = nativeFetch;
-});
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 describe('fetchAniSkip', () => {
     test('treats a valid not-found response as empty AniSkip data', async () => {
-        globalThis.fetch = mockFetch(async () =>
-            Response.json(
-                {
-                    found: false,
-                    results: [],
-                    message: 'No skip times found',
-                    statusCode: 404,
-                },
-                { status: 404 }
+        server.use(
+            http.get('https://api.aniskip.com/v2/skip-times/:malId/:episode', () =>
+                HttpResponse.json(
+                    {
+                        found: false,
+                        results: [],
+                        message: 'No skip times found',
+                        statusCode: 404,
+                    },
+                    { status: 404 }
+                )
             )
         );
 
@@ -34,8 +34,13 @@ describe('fetchAniSkip', () => {
     });
 
     test('still rejects upstream failures', async () => {
-        globalThis.fetch = mockFetch(async () =>
-            Response.json({ statusCode: 503, message: 'Service unavailable' }, { status: 503 })
+        server.use(
+            http.get('https://api.aniskip.com/v2/skip-times/:malId/:episode', () =>
+                HttpResponse.json(
+                    { statusCode: 503, message: 'Service unavailable' },
+                    { status: 503 }
+                )
+            )
         );
 
         expect(fetchAniSkip(62_001, 17)).rejects.toThrow('AniSkip request failed with 503');
