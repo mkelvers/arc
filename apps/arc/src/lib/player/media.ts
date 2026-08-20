@@ -156,11 +156,11 @@ export const subtitleSizeOrder = [
     'extra-large',
 ] as const satisfies readonly SubtitleSize[];
 
-const subtitleLabels: Record<SubtitleKind, string> = {
+const subtitleLabels = {
     cc: 'English CC',
     translated: 'Original',
     limited: 'Signs & Songs',
-};
+} satisfies Record<SubtitleKind, string>;
 
 /** The caption choices for the tracks an encode actually provides. */
 export function subtitleOptionsFor(kinds: SubtitleKind[]) {
@@ -487,20 +487,20 @@ function subtitleText(value: string) {
                     ? String.fromCodePoint(codePoint)
                     : entity;
             }
-            return subtitleEntities[String(named).toLowerCase()] ?? entity;
+            return subtitleEntities.get(String(named).toLowerCase()) ?? entity;
         })
         .replaceAll('\\h', '\u00a0')
         .trim();
 }
 
-const subtitleEntities: Record<string, string> = {
-    amp: '&',
-    apos: "'",
-    gt: '>',
-    lt: '<',
-    nbsp: '\u00a0',
-    quot: '"',
-};
+const subtitleEntities = new Map([
+    ['amp', '&'],
+    ['apos', "'"],
+    ['gt', '>'],
+    ['lt', '<'],
+    ['nbsp', '\u00a0'],
+    ['quot', '"'],
+]);
 
 export function parseWebVtt(value: string) {
     const blocks = value

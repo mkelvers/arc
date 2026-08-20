@@ -3,17 +3,17 @@ import type { AniListAnime } from '../anilist/types';
 import type { Candidate } from './types';
 
 const romanReleaseSuffix = /\s+(ii|iii|iv|v|vi|vii|viii|ix|x)$/;
-const romanReleaseNumbers: Readonly<Record<string, number>> = {
-    ii: 2,
-    iii: 3,
-    iv: 4,
-    v: 5,
-    vi: 6,
-    vii: 7,
-    viii: 8,
-    ix: 9,
-    x: 10,
-};
+const romanReleaseNumbers = new Map([
+    ['ii', 2],
+    ['iii', 3],
+    ['iv', 4],
+    ['v', 5],
+    ['vi', 6],
+    ['vii', 7],
+    ['viii', 8],
+    ['ix', 9],
+    ['x', 10],
+]);
 
 export function normalizeTitle(title: string) {
     return title
@@ -51,7 +51,7 @@ export function releaseSequence(anime: AniListAnime) {
             normalized.match(/\b0*(\d+)(?:st|nd|rd|th)\s+season\b/)?.[1] ??
             normalized.match(/(?:^|\s)0*(\d+)\s*期$/u)?.[1];
         const roman = normalized.match(romanReleaseSuffix)?.[1];
-        const sequence = numeric ? Number(numeric) : roman ? romanReleaseNumbers[roman] : null;
+        const sequence = numeric ? Number(numeric) : roman ? romanReleaseNumbers.get(roman) : null;
 
         if (sequence && Number.isSafeInteger(sequence)) {
             return sequence;

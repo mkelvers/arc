@@ -9,10 +9,10 @@
         player: Player;
     }
 
-    const skipLabels: Record<SkipKind, string> = {
+    const skipLabels = {
         opening: 'Opening',
         ending: 'Ending',
-    };
+    } satisfies Record<SkipKind, string>;
 
     let { player }: Props = $props();
 </script>

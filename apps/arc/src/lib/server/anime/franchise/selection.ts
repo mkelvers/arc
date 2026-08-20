@@ -35,14 +35,14 @@ const replacementRelations = new Set<MediaRelation>([
     'SPIN_OFF',
 ]);
 
-const formatWeight: Partial<Record<MediaFormat, number>> = {
-    TV: 100_000,
-    MOVIE: 60_000,
-    ONA: 30_000,
-    OVA: 30_000,
-    SPECIAL: 15_000,
-    TV_SHORT: 10_000,
-};
+const formatWeight = new Map<MediaFormat, number>([
+    ['TV', 100_000],
+    ['MOVIE', 60_000],
+    ['ONA', 30_000],
+    ['OVA', 30_000],
+    ['SPECIAL', 15_000],
+    ['TV_SHORT', 10_000],
+]);
 
 function totalRuntime(entry: FranchiseSelectionEntry) {
     return (entry.episodes ?? 1) * (entry.duration ?? 0);
@@ -51,7 +51,7 @@ function totalRuntime(entry: FranchiseSelectionEntry) {
 function entryWeight(entry: FranchiseSelectionEntry) {
     const weight =
         (entry.popularity ?? 0) +
-        (formatWeight[entry.format ?? 'MUSIC'] ?? 0) +
+        (formatWeight.get(entry.format ?? 'MUSIC') ?? 0) +
         Math.min(totalRuntime(entry), 2_000) * 10;
 
     return entry.secondary ? weight / 4 : weight;
