@@ -14,6 +14,7 @@
 
     let { data }: PageProps = $props();
     const recent = new RecentSearches();
+    let searchInput: HTMLInputElement | null = null;
     let query = $state(untrack(() => data.query));
     let searchState = $state({
         query: untrack(() => data.query),
@@ -70,6 +71,7 @@
 
     onMount(() => {
         recent.load();
+        searchInput?.focus();
     });
 
     afterNavigate(({ type }) => {
@@ -117,7 +119,7 @@
                 type="search"
                 placeholder="Search…"
                 autocomplete="off"
-                autofocus
+                bind:this={searchInput}
                 bind:value={query}
                 class="h-14 w-full border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
             />

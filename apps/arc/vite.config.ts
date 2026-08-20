@@ -13,6 +13,9 @@ export default defineConfig(({ command }) => {
                 filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
         },
         adapter: adapter(),
+        alias: {
+            '@arc/app/*': 'src/*',
+        },
     };
 
     if (command === 'build') {
