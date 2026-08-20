@@ -1,7 +1,7 @@
 import { mergeAudioModes, type AudioMode } from '$lib/audio';
 import { availableEpisodeCount, providerEpisodeCount } from '../episodes/policy';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
-import { coversExpectedEpisodes, matchProviderEpisode } from './match';
+import { coversExpectedEpisodes, episodeTitleScore, matchProviderEpisode } from './match';
 
 class ProviderAttemptError extends Error {
     constructor(
@@ -230,13 +230,35 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
 
             return missing * 10_000 + Math.abs(inventory.length - availableEpisodes);
         };
-        const canonicalIndex = eligible.reduce(
-            (best, result, index) =>
-                inventoryPenalty(result.episodes) < inventoryPenalty(eligible[best].episodes)
-                    ? index
-                    : best,
-            0
+        const numberedInventories = eligible.map(
+            ({ episodes }) => new Map(episodes.map((episode) => [episode.number, episode]))
         );
+        const inventoryAgreement = eligible.map(({ episodes }, inventoryIndex) =>
+            episodes.reduce(
+                (agreement, episode) =>
+                    agreement +
+                    numberedInventories.filter((inventory, index) => {
+                        if (index === inventoryIndex || !episode.title) {
+                            return false;
+                        }
+                        const alternate = inventory.get(episode.number);
+                        return Boolean(
+                            alternate?.title &&
+                            episodeTitleScore(episode.title, alternate.title) >= 60
+                        );
+                    }).length,
+                0
+            )
+        );
+        const canonicalIndex = eligible.reduce((best, result, index) => {
+            const penalty = inventoryPenalty(result.episodes);
+            const bestPenalty = inventoryPenalty(eligible[best].episodes);
+            if (penalty !== bestPenalty) {
+                return penalty < bestPenalty ? index : best;
+            }
+
+            return inventoryAgreement[index] > inventoryAgreement[best] ? index : best;
+        }, 0);
         const canonical = eligible[canonicalIndex];
         const alternates = eligible.filter((_, index) => index !== canonicalIndex);
 

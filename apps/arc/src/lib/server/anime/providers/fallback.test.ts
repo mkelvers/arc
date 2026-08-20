@@ -263,6 +263,32 @@ describe('playback provider fallback', () => {
         ]);
     });
 
+    test('prefers the provider consensus when complete inventories disagree', async () => {
+        const shifted = [
+            { id: 'shifted-1', number: 1, title: 'Bonus feature', audio: ['sub' as const] },
+            { id: 'shifted-2', number: 2, title: 'Angel Attack', audio: ['sub' as const] },
+            { id: 'shifted-3', number: 3, title: 'The Beast', audio: ['sub' as const] },
+        ];
+        const release = (providerName: string) => [
+            { id: `${providerName}-1`, number: 1, title: 'Angel Attack', audio: ['sub' as const] },
+            { id: `${providerName}-2`, number: 2, title: 'The Beast', audio: ['sub' as const] },
+            { id: `${providerName}-3`, number: 3, title: 'A Transfer', audio: ['sub' as const] },
+        ];
+        const playback = createProviderFallback([
+            provider('shifted', { getEpisodes: async () => shifted }),
+            provider('release-a', { getEpisodes: async () => release('release-a') }),
+            provider('release-b', { getEpisodes: async () => release('release-b') }),
+        ]);
+
+        expect(
+            await playback.getEpisodes({
+                ...anime,
+                status: 'FINISHED',
+                episodes: 3,
+            })
+        ).toEqual(release('release-a'));
+    });
+
     test('fails closed when a finished release inventory is incomplete', async () => {
         const playback = createProviderFallback([
             provider('incomplete', {
