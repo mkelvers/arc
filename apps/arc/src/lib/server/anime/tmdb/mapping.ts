@@ -2,9 +2,11 @@ import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { create } from './client';
 import {
+    preferredTvReleaseCandidate,
     relatedSpecialMappingIsBetter,
     specialEpisodeEvidenceScore,
     type SpecialEpisodeEvidence,
+    type TvSeasonEvidence,
 } from './mapping-evidence';
 import { findMapping, saveVerifiedMapping } from './mapping-store';
 import { mappingNeedsVerification } from './mapping-verification';
@@ -12,6 +14,12 @@ import { candidateScore, isSpecialRelease, mappingTitles, seriesTitle } from './
 import { type Candidate, type Mapping, type StoredMapping } from './types';
 
 const requests = new Map<number, Promise<StoredMapping>>();
+const tvEvidenceCandidateLimit = 6;
+
+interface RankedCandidate {
+    candidate: Candidate;
+    searchRank: number;
+}
 
 export class NoConfidentTmdbMappingError extends Error {
     constructor(readonly anilistId: number) {
@@ -138,6 +146,87 @@ async function preferredSpecialMapping(
     return relatedSpecialMappingIsBetter(directScore, relatedScore) ? relatedMapping : direct;
 }
 
+async function preferredTvMapping(
+    anime: AniListAnime,
+    direct: Candidate,
+    candidates: RankedCandidate[]
+) {
+    if (anime.format !== 'TV' || direct.mediaType !== 'tv' || !anime.episodes) {
+        return direct;
+    }
+
+    const client = create();
+    const directSeries = await client
+        .GET('/3/tv/{series_id}', {
+            params: {
+                path: { series_id: direct.id },
+                query: { language: 'en-US' },
+            },
+        })
+        .then(({ data }) => data)
+        .catch(() => undefined);
+    if (!directSeries) {
+        return direct;
+    }
+
+    const directSeasons = (directSeries.seasons ?? []).map((season): TvSeasonEvidence => ({
+        airDate: season.air_date ?? null,
+        episodeCount: season.episode_count,
+        name: season.name?.trim() ?? '',
+        seasonNumber: season.season_number,
+    }));
+    if (
+        directSeasons.some(
+            ({ episodeCount, seasonNumber }) => seasonNumber > 0 && episodeCount === anime.episodes
+        )
+    ) {
+        return direct;
+    }
+
+    const alternatives = candidates
+        .filter(({ candidate }) => candidate.mediaType === 'tv' && candidate.id !== direct.id)
+        .sort(
+            (left, right) =>
+                left.searchRank - right.searchRank ||
+                candidateScore(right.candidate, anime) - candidateScore(left.candidate, anime)
+        )
+        .slice(0, tvEvidenceCandidateLimit - 1)
+        .map(({ candidate }) => candidate);
+    const evidence = await Promise.all(
+        alternatives.map(async (candidate) => {
+            try {
+                const { data } = await client.GET('/3/tv/{series_id}', {
+                    params: {
+                        path: { series_id: candidate.id },
+                        query: { language: 'en-US' },
+                    },
+                });
+
+                if (!data) {
+                    return null;
+                }
+
+                return {
+                    candidate,
+                    seasons: (data.seasons ?? []).map((season): TvSeasonEvidence => ({
+                        airDate: season.air_date ?? null,
+                        episodeCount: season.episode_count,
+                        name: season.name?.trim() ?? '',
+                        seasonNumber: season.season_number,
+                    })),
+                };
+            } catch {
+                return null;
+            }
+        })
+    );
+
+    return preferredTvReleaseCandidate(anime, direct, [
+        { candidate: direct, seasons: directSeasons },
+        ...evidence.filter((entry) => entry !== null),
+    ]);
+}
+
 async function searchTv(query: string): Promise<Candidate[]> {
     const { data, error } = await create().GET('/3/search/tv', {
         params: { query: { query, include_adult: true } },
@@ -216,31 +305,39 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
     const preferredSearch = anime.format === 'MOVIE' ? searchMovies : searchTv;
     const alternateSearch = anime.format === 'MOVIE' ? searchTv : searchMovies;
     const findCandidate = async (search: typeof searchTv | typeof searchMovies) => {
-        const candidates = (await Promise.all(queries.map((title) => search(title)))).flat();
-        const unique = [
-            ...new Map(
-                candidates.map((candidate) => [`${candidate.mediaType}:${candidate.id}`, candidate])
-            ).values(),
-        ];
+        const results = await Promise.all(queries.map((title) => search(title)));
+        const unique = new Map<string, RankedCandidate>();
+        results.forEach((candidates) => {
+            candidates.forEach((candidate, searchRank) => {
+                const key = `${candidate.mediaType}:${candidate.id}`;
+                const existing = unique.get(key);
+                if (!existing || searchRank < existing.searchRank) {
+                    unique.set(key, { candidate, searchRank });
+                }
+            });
+        });
+        const candidates = [...unique.values()];
+        const match = candidates
+            .map(({ candidate }) => candidate)
+            .sort((left, right) => candidateScore(right, anime) - candidateScore(left, anime))[0];
 
-        return unique.sort(
-            (left, right) => candidateScore(right, anime) - candidateScore(left, anime)
-        )[0];
+        return { candidates, match };
     };
-    let match = await findCandidate(preferredSearch);
+    let search = await findCandidate(preferredSearch);
 
-    if (!match || candidateScore(match, anime) < 85) {
-        match = await findCandidate(alternateSearch);
+    if (!search.match || candidateScore(search.match, anime) < 85) {
+        search = await findCandidate(alternateSearch);
     }
 
     // Missing enrichment is safer than attaching art and episodes from a
     // similarly named release, so only persist a confident search result.
-    if (match && candidateScore(match, anime) >= 85) {
+    if (search.match && candidateScore(search.match, anime) >= 85) {
+        const releaseMatch = await preferredTvMapping(anime, search.match, search.candidates);
         const mapping = await preferredSpecialMapping(
             anime,
             {
-                id: match.id,
-                mediaType: match.mediaType,
+                id: releaseMatch.id,
+                mediaType: releaseMatch.mediaType,
             },
             related
         );
