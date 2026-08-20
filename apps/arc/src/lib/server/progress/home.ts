@@ -4,8 +4,8 @@ import { audioAvailabilityLabel } from '$lib/audio';
 import type { ContinueWatchingCard } from '$lib/types';
 import { toAnimeDetails } from '$lib/server/anime/details';
 import { getStoredMedia } from '$lib/server/anime/tmdb/media';
-import { db } from '$lib/server/db';
-import { animeEpisode } from '$lib/server/db/schema';
+import { db } from '@arc/db';
+import { animeEpisode } from '@arc/db/schema';
 import { formatDuration } from '$lib/utils';
 import { getRecentPlaybackProgress } from './store';
 

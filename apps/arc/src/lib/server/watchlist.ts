@@ -2,7 +2,7 @@ import { and, desc, eq } from 'drizzle-orm';
 
 import type { PlaybackProgressInput } from '$lib/server/progress/input';
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
-import { db } from '$lib/server/db';
+import { db } from '@arc/db';
 import {
     animeEpisode,
     animeEpisodeSync,
@@ -10,7 +10,7 @@ import {
     animeExternalIdLink,
     watchlist,
     type WatchlistState,
-} from '$lib/server/db/schema';
+} from '@arc/db/schema';
 import { watchlistStateAfterPlayback } from './watchlist-completion';
 
 export async function getWatchlistState(userId: string | undefined, anilistId: number) {

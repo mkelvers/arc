@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
-import { db } from '$lib/server/db';
+import { db } from '@arc/db';
 import {
     anime as animeTable,
     animeDetailsCache,
@@ -9,7 +9,7 @@ import {
     animeExternalId,
     animeExternalIdLink,
     playbackProgress,
-} from '$lib/server/db/schema';
+} from '@arc/db/schema';
 import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
 import type { PlaybackProgressInput } from './input';
 
