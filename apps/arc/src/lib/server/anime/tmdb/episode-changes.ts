@@ -1,27 +1,16 @@
 import { env } from '$env/dynamic/private';
+import { z } from 'zod';
 
-interface ChangeItem {
-    iso_639_1?: unknown;
-    iso_3166_1?: unknown;
-    value?: unknown;
-}
-
-interface Change {
-    key?: unknown;
-    items?: unknown;
-}
-
-interface ChangesResponse {
-    changes?: unknown;
-}
-
-function isChange(value: unknown): value is Change {
-    return typeof value === 'object' && value !== null;
-}
-
-function isChangeItem(value: unknown): value is ChangeItem {
-    return typeof value === 'object' && value !== null;
-}
+const changeItemSchema = z.object({
+    iso_639_1: z.string().optional(),
+    iso_3166_1: z.string().optional(),
+    value: z.string().default(''),
+});
+const changeSchema = z.object({
+    key: z.string().optional(),
+    items: z.array(changeItemSchema).optional(),
+});
+const changesResponseSchema = z.object({ changes: z.array(changeSchema).optional() });
 
 export async function getEpisodeEnglishOverview(
     episodeId: number | undefined,
@@ -50,23 +39,13 @@ export async function getEpisodeEnglishOverview(
         throw new Error(`TMDB episode changes request failed with status ${response.status}`);
     }
 
-    const payload = (await response.json()) as ChangesResponse;
-    const overviewChanges = Array.isArray(payload.changes)
-        ? payload.changes
-              .filter(isChange)
-              .filter((change) => change.key === 'overview')
-              .flatMap((change) => (Array.isArray(change.items) ? change.items : []))
-              .filter(isChangeItem)
-        : [];
+    const payload = changesResponseSchema.parse(await response.json());
+    const overviewChanges = (payload.changes ?? [])
+        .filter((change) => change.key === 'overview')
+        .flatMap((change) => change.items ?? []);
     const overview = overviewChanges
         .toReversed()
-        .find(
-            (item) =>
-                item.iso_639_1 === 'en' &&
-                item.iso_3166_1 === 'US' &&
-                typeof item.value === 'string' &&
-                item.value.trim()
-        );
+        .find((item) => item.iso_639_1 === 'en' && item.iso_3166_1 === 'US' && item.value.trim());
 
-    return typeof overview?.value === 'string' ? overview.value.trim() : null;
+    return overview?.value.trim() ?? null;
 }

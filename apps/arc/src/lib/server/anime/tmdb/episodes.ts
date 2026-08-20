@@ -1,7 +1,8 @@
 import type { AniListAnime } from '../anilist/types';
+import { z } from 'zod';
 import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
-import { isRecord } from '$lib/utils';
+import type { JsonValue } from '$lib/utils';
 import { create, imageUrl } from './client';
 import { getEpisodeEnglishOverview } from './episode-changes';
 import {
@@ -20,6 +21,26 @@ interface MetadataEntry {
     id: string;
     metadata: EpisodeMetadata;
 }
+
+const featuredEpisodeSchema = z.object({
+    season_number: z.number().int(),
+    episode_number: z.number().int(),
+    name: z.string().nullish(),
+    overview: z.string().nullish(),
+    runtime: z.number().nullish(),
+    still_path: z.string().nullish(),
+});
+const episodeSchema = z.object({
+    air_date: z.string().nullish(),
+    episode_number: z.number(),
+    id: z.number().nullish(),
+    name: z.string().nullish(),
+    overview: z.string().nullish(),
+    runtime: z.number().nullish(),
+    season_number: z.number(),
+    still_path: z.string().nullish(),
+});
+type TmdbEpisode = z.infer<typeof episodeSchema>;
 
 const requestConcurrency = 4;
 // Sparse per-episode endpoints are optional fallbacks. Bound them so one
@@ -71,58 +92,46 @@ function withStoredMachineText(entries: MetadataEntry[], stored: Map<string, Sto
     return metadata;
 }
 
-function displayAirDate(value: string | undefined) {
+function displayAirDate(value: string | null | undefined) {
     const [year, month, day] = (value ?? '').split('-');
     return year && month && day ? `${month}/${day}/${year}` : '';
 }
 
-function featuredEpisode(value: unknown) {
-    if (!isRecord(value)) {
-        return null;
-    }
-
-    const seasonNumber = Number(value.season_number);
-    const episodeNumber = Number(value.episode_number);
-    if (!Number.isSafeInteger(seasonNumber) || !Number.isSafeInteger(episodeNumber)) {
+function featuredEpisode(value: JsonValue) {
+    const parsed = featuredEpisodeSchema.safeParse(value);
+    if (!parsed.success) {
         return null;
     }
 
     return {
-        seasonNumber,
-        episodeNumber,
+        seasonNumber: parsed.data.season_number,
+        episodeNumber: parsed.data.episode_number,
         details: {
-            name: typeof value.name === 'string' ? value.name : undefined,
-            overview: typeof value.overview === 'string' ? value.overview : undefined,
-            runtime: typeof value.runtime === 'number' ? value.runtime : undefined,
-            stillPath: typeof value.still_path === 'string' ? value.still_path : undefined,
+            name: parsed.data.name ?? undefined,
+            overview: parsed.data.overview ?? undefined,
+            runtime: parsed.data.runtime ?? undefined,
+            stillPath: parsed.data.still_path ?? undefined,
         },
     };
 }
 
-function episodeCandidate(episode: {
-    air_date?: string;
-    episode_number: number;
-    id?: number;
-    name?: string;
-    overview?: string;
-    runtime?: unknown;
-    season_number: number;
-    still_path?: unknown;
-}): EpisodeCandidate {
-    const stillPath = typeof episode.still_path === 'string' ? episode.still_path : null;
-
+function episodeCandidate(episode: TmdbEpisode): EpisodeCandidate {
     return {
-        tmdbEpisodeId: episode.id,
+        tmdbEpisodeId: episode.id ?? undefined,
         episodeNumber: episode.episode_number,
         seasonNumber: episode.season_number,
         title: episode.name?.trim() ?? '',
         overview: episode.overview?.trim() ?? '',
-        imageUrl: stillPath ? imageUrl(stillPath, 'w500') : null,
-        runtime:
-            typeof episode.runtime === 'number' && episode.runtime > 0 ? episode.runtime : null,
+        imageUrl: episode.still_path ? imageUrl(episode.still_path, 'w500') : null,
+        runtime: episode.runtime && episode.runtime > 0 ? episode.runtime : null,
         rawAirDate: episode.air_date ?? '',
         airDate: displayAirDate(episode.air_date),
     };
+}
+
+function parseEpisodeCandidate(value: JsonValue) {
+    const parsed = episodeSchema.safeParse(value);
+    return parsed.success ? episodeCandidate(parsed.data) : null;
 }
 
 function bestImagePath(
@@ -173,17 +182,18 @@ async function episodeGroupCandidates(
     );
     const blocks: EpisodeGroupBlock[] = groups.flatMap((group) =>
         (group?.groups ?? []).map((block) => ({
-            episodes: (block.episodes ?? []).flatMap((episode, index) =>
-                Number.isSafeInteger(episode.season_number) &&
-                Number.isSafeInteger(episode.episode_number)
+            episodes: (block.episodes ?? []).flatMap((episode, index) => {
+                const parsed = z.json().safeParse(episode);
+                const candidate = parsed.success ? parseEpisodeCandidate(parsed.data) : null;
+                return candidate
                     ? [
                           {
-                              ...episodeCandidate(episode),
+                              ...candidate,
                               order: Number.isSafeInteger(episode.order) ? episode.order : index,
                           },
                       ]
-                    : []
-            ),
+                    : [];
+            }),
             name: block.name,
             order: block.order,
         }))
@@ -381,7 +391,10 @@ export async function getEpisodeMetadata(
                 return [];
             }
 
-            return (response.data.episodes ?? []).map(episodeCandidate);
+            return (response.data.episodes ?? []).flatMap((episode) => {
+                const candidate = parseEpisodeCandidate(episode);
+                return candidate ? [candidate] : [];
+            });
         }),
         episodeGroupCandidates(client, match.id, anime, source).catch(() => null),
     ]);
@@ -471,7 +484,10 @@ export async function getEpisodeMetadata(
                 changesRequest,
             ]);
             const featured = [series.last_episode_to_air, series.next_episode_to_air]
-                .map(featuredEpisode)
+                .map((value) => {
+                    const parsed = z.json().safeParse(value);
+                    return parsed.success ? featuredEpisode(parsed.data) : null;
+                })
                 .find(
                     (episode) =>
                         episode?.seasonNumber === candidate.seasonNumber &&

@@ -1,9 +1,9 @@
 import { and, eq, inArray, ne } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { z } from 'zod';
 
 import { db } from '@arc/db';
 import { animeExternalId, animeExternalIdLink, animeReleasePoster } from '@arc/db/schema';
-import { isRecord } from '$lib/utils';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
@@ -16,15 +16,22 @@ import type { ArtworkImage, StoredMapping } from './types';
 
 const requests = new Map<string, Promise<ArtworkImage | null>>();
 
-function posterCandidate(image: {
-    aspect_ratio?: number;
-    file_path?: string;
-    height?: number;
-    iso_639_1?: unknown;
-    vote_average?: number;
-    vote_count?: number;
-    width?: number;
-}): PosterCandidate | null {
+const posterImageSchema = z.object({
+    aspect_ratio: z.number().optional(),
+    file_path: z.string().optional(),
+    height: z.number().optional(),
+    iso_639_1: z.string().nullable().optional(),
+    vote_average: z.number().optional(),
+    vote_count: z.number().optional(),
+    width: z.number().optional(),
+});
+const posterConflictSchema = z.object({
+    code: z.literal('23505'),
+    constraint: z.literal('anime_release_poster_external_file_unique'),
+});
+type PosterImage = z.infer<typeof posterImageSchema>;
+
+function posterCandidate(image: PosterImage): PosterCandidate | null {
     if (!image.file_path) {
         return null;
     }
@@ -33,7 +40,7 @@ function posterCandidate(image: {
         aspectRatio: image.aspect_ratio ?? 0,
         filePath: image.file_path,
         height: image.height ?? 0,
-        language: typeof image.iso_639_1 === 'string' ? image.iso_639_1 : null,
+        language: image.iso_639_1 ?? null,
         voteAverage: image.vote_average ?? 0,
         voteCount: image.vote_count ?? 0,
         width: image.width ?? 0,
@@ -130,11 +137,7 @@ async function usedPosterPaths(match: StoredMapping) {
 }
 
 function posterConflict(cause: unknown) {
-    return (
-        isRecord(cause) &&
-        cause.code === '23505' &&
-        cause.constraint === 'anime_release_poster_external_file_unique'
-    );
+    return posterConflictSchema.safeParse(cause).success;
 }
 
 async function saveAvailablePoster(
@@ -161,22 +164,12 @@ async function saveAvailablePoster(
     }
 }
 
-function posterCandidates(
-    posters:
-        | Array<{
-              aspect_ratio?: number;
-              file_path?: string;
-              height?: number;
-              iso_639_1?: unknown;
-              vote_average?: number;
-              vote_count?: number;
-              width?: number;
-          }>
-        | null
-        | undefined
-) {
+function posterCandidates(posters: PosterImage[] | null | undefined) {
     return (posters ?? [])
-        .map(posterCandidate)
+        .flatMap((poster) => {
+            const parsed = posterImageSchema.safeParse(poster);
+            return parsed.success ? [posterCandidate(parsed.data)] : [];
+        })
         .filter((candidate): candidate is PosterCandidate => candidate !== null);
 }
 

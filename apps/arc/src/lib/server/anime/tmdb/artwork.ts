@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { db } from '@arc/db';
 import { excluded } from '@arc/db/sql';
@@ -9,14 +10,17 @@ import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
 import { getPoster } from './poster';
 import type { Artwork, ArtworkImage, StoredMapping } from './types';
 
-function artworkImage(image: {
-    aspect_ratio?: number;
-    file_path?: string;
-    height?: number;
-    iso_639_1?: unknown;
-    vote_average?: number;
-    width?: number;
-}): ArtworkImage | null {
+const artworkImageSchema = z.object({
+    aspect_ratio: z.number().optional(),
+    file_path: z.string().optional(),
+    height: z.number().optional(),
+    iso_639_1: z.string().nullable().optional(),
+    vote_average: z.number().optional(),
+    width: z.number().optional(),
+});
+type ArtworkImagePayload = z.infer<typeof artworkImageSchema>;
+
+function artworkImage(image: ArtworkImagePayload): ArtworkImage | null {
     if (!image.file_path) {
         return null;
     }
@@ -25,7 +29,7 @@ function artworkImage(image: {
         aspectRatio: image.aspect_ratio ?? 0,
         filePath: image.file_path,
         height: image.height ?? 0,
-        language: typeof image.iso_639_1 === 'string' ? image.iso_639_1 : null,
+        language: image.iso_639_1 ?? null,
         url: imageUrl(image.file_path),
         voteAverage: image.vote_average ?? 0,
         width: image.width ?? 0,
@@ -140,11 +144,17 @@ export async function fetchArtwork(match: StoredMapping) {
     }
 
     const backdrops = (response.data.backdrops ?? [])
-        .map(artworkImage)
+        .flatMap((image) => {
+            const parsed = artworkImageSchema.safeParse(image);
+            return parsed.success ? [artworkImage(parsed.data)] : [];
+        })
         .filter((image): image is ArtworkImage => image !== null)
         .sort((left, right) => right.voteAverage - left.voteAverage);
     const logos = (response.data.logos ?? [])
-        .map(artworkImage)
+        .flatMap((image) => {
+            const parsed = artworkImageSchema.safeParse(image);
+            return parsed.success ? [artworkImage(parsed.data)] : [];
+        })
         .filter((image): image is ArtworkImage => image !== null)
         .sort((left, right) => right.voteAverage - left.voteAverage);
 
