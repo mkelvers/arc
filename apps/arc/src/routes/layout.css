@@ -3,19 +3,19 @@
 @import 'tailwindcss';
 
 :root {
-    color-scheme: light dark;
+    color-scheme: dark;
 
-    --theme-canvas: light-dark(oklch(0.985 0.002 75), #000);
-    --theme-header: light-dark(#f7f7f7, #232427);
-    --theme-header-hover: light-dark(#ececec, #303136);
-    --theme-search: light-dark(#f1f1f1, #161719);
-    --theme-foreground: light-dark(oklch(0.16 0.006 285), oklch(0.97 0.002 75));
-    --theme-surface: light-dark(oklch(0.955 0.004 75), oklch(0.17 0.006 285));
-    --theme-muted: light-dark(oklch(0.43 0.008 285), oklch(0.71 0.008 285));
-    --theme-subtle: light-dark(oklch(0.55 0.008 285), oklch(0.57 0.008 285));
-    --theme-border: light-dark(oklch(0.78 0.006 285), oklch(0.35 0.008 285));
-    --theme-border-strong: light-dark(oklch(0.54 0.008 285), oklch(0.5 0.008 285));
-    --theme-accent: oklch(0.58 0.16 145);
+    --theme-canvas: #000;
+    --theme-header: #232427;
+    --theme-header-hover: #303136;
+    --theme-search: #161719;
+    --theme-foreground: oklch(0.97 0.002 75);
+    --theme-surface: oklch(0.17 0.006 285);
+    --theme-muted: oklch(0.71 0.008 285);
+    --theme-subtle: oklch(0.57 0.008 285);
+    --theme-border: oklch(0.35 0.008 285);
+    --theme-border-strong: oklch(0.5 0.008 285);
+    --theme-accent: #f47521;
     --theme-on-accent: oklch(0.13 0.01 48);
     --theme-filler: oklch(0.84 0.16 91);
     --theme-on-filler: oklch(0.16 0.02 73);
@@ -35,13 +35,13 @@
     --theme-tooltip: #414141;
     --theme-tooltip-foreground: #ececec;
 
-    --theme-hero-scrim-inline-start: light-dark(rgb(255 255 255 / 0.68), rgb(0 0 0 / 0.52));
-    --theme-hero-scrim-inline-end: light-dark(rgb(255 255 255 / 0.42), rgb(0 0 0 / 0.28));
-    --theme-hero-scrim-top: light-dark(rgb(255 255 255 / 0.2), rgb(0 0 0 / 0.12));
-    --theme-hero-scrim-bottom: light-dark(rgb(255 255 255 / 1), rgb(0 0 0 / 1));
-    --theme-hero-scrim-bottom-soft: light-dark(rgb(255 255 255 / 0.78), rgb(0 0 0 / 0.72));
-    --theme-hero-scrim-corner: light-dark(rgb(255 255 255 / 0.58), rgb(0 0 0 / 0.42));
-    --theme-hero-scrim-corner-alt: light-dark(rgb(255 255 255 / 0.52), rgb(0 0 0 / 0.38));
+    --theme-hero-scrim-inline-start: rgb(0 0 0 / 0.52);
+    --theme-hero-scrim-inline-end: rgb(0 0 0 / 0.28);
+    --theme-hero-scrim-top: rgb(0 0 0 / 0.12);
+    --theme-hero-scrim-bottom: rgb(0 0 0 / 1);
+    --theme-hero-scrim-bottom-soft: rgb(0 0 0 / 0.72);
+    --theme-hero-scrim-corner: rgb(0 0 0 / 0.42);
+    --theme-hero-scrim-corner-alt: rgb(0 0 0 / 0.38);
 }
 
 @theme inline {
