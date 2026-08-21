@@ -2,6 +2,7 @@
     import { CaretRightIcon } from 'phosphor-svelte';
 
     import type { AnimeSearchResult } from '$lib/search';
+    import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
 
     interface Props {
@@ -36,7 +37,7 @@
                 <CaretRightIcon
                     size="1rem"
                     weight="bold"
-                    class={expanded ? 'rotate-180' : undefined}
+                    class={cn(expanded && 'rotate-180')}
                     aria-hidden="true"
                 />
             </button>

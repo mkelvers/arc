@@ -89,7 +89,7 @@
                     <ProgressiveImage
                         src={episode.image ?? image ?? ''}
                         alt=""
-                        imageClass={dialog ? undefined : 'brightness-75'}
+                        imageClass={cn(!dialog && 'brightness-75')}
                     />
                 {/if}
                 {#if current}
@@ -114,7 +114,7 @@
                 {/if}
             </div>
 
-            <div class={dialog ? undefined : 'mt-3 min-w-0'}>
+            <div class={cn(!dialog && 'mt-3 min-w-0')}>
                 <p
                     class={cn(
                         'line-clamp-1 text-xs uppercase',
