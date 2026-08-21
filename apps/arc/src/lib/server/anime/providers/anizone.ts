@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AudioMode } from '$lib/audio';
 import { animeTitles } from '../anilist/text';
 import { providerEpisodeCount } from '../episodes/policy';
+import { normalizeTitle, seriesTitle } from '../tmdb/title';
 import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
 import { normalizedProviderTitle } from './match';
@@ -123,6 +124,17 @@ function episodeInventory(html: string, slug: string) {
         .toSorted((left, right) => left.number - right.number);
 }
 
+function titleReleaseSequence(title: string) {
+    const normalized = normalizeTitle(title);
+    const value =
+        normalized.match(/\b(?:season|staffel|saison|temporada)\s+0*(\d+)\b/)?.[1] ??
+        normalized.match(/\b0*(\d+)(?:st|nd|rd|th)\s+season\b/)?.[1] ??
+        normalized.match(/(?:^|\s)0*(\d+)\s*期$/u)?.[1];
+    const sequence = Number(value);
+
+    return Number.isSafeInteger(sequence) && sequence > 0 ? sequence : null;
+}
+
 async function findSlug(anime: AniListAnime, refresh = false) {
     if (!refresh) {
         const stored = await providerMediaId(anime.id, providerName);
@@ -131,7 +143,10 @@ async function findSlug(anime: AniListAnime, refresh = false) {
         }
     }
 
-    const titleKeys = new Set(animeTitles(anime).map(normalizedProviderTitle));
+    const titles = animeTitles(anime);
+    const titleKeys = new Set(titles.map(normalizedProviderTitle));
+    const seriesTitles = new Set(titles.map(seriesTitle));
+    const expectedSequence = titles.map(titleReleaseSequence).find((value) => value !== null);
     const matches = new Map<string, ReturnType<typeof candidates>[number]>();
     for (const title of animeTitles(anime).slice(0, 4)) {
         for (const candidate of candidates(
@@ -141,11 +156,16 @@ async function findSlug(anime: AniListAnime, refresh = false) {
                 titleKeys.has(normalizedProviderTitle(value))
             );
             const exactYear = !anime.startDate?.year || candidate.year === anime.startDate.year;
+            const sameQualifiedRelease =
+                exactYear &&
+                expectedSequence != null &&
+                candidate.titles.some((value) => seriesTitles.has(seriesTitle(value))) &&
+                candidate.titles.some((value) => titleReleaseSequence(value) === expectedSequence);
             const complete =
                 anime.status !== 'FINISHED' ||
                 !providerEpisodeCount(anime) ||
                 candidate.episodes === providerEpisodeCount(anime);
-            if (exactTitle && exactYear && complete) {
+            if ((exactTitle || sameQualifiedRelease) && exactYear && complete) {
                 matches.set(candidate.slug, candidate);
             }
         }
