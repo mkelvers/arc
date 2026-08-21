@@ -11,8 +11,8 @@
         "graphql:generate": "graphql-codegen --config codegen.ts",
         "openapi:generate": "openapi-typescript https://developer.themoviedb.org/openapi/tmdb-api.json -o src/lib/server/anime/tmdb/generated.ts",
         "test": "bun test",
-        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+        "check": "svelte-kit sync && svelte-check --tsgo --tsconfig ./tsconfig.json",
+        "check:watch": "svelte-kit sync && svelte-check --tsgo --tsconfig ./tsconfig.json --watch",
         "lint": "oxlint",
         "lint:fix": "oxlint --fix",
         "format": "oxfmt",
@@ -44,6 +44,7 @@
         "@tailwindcss/vite": "^4.3.3",
         "@types/bun": "^1.4.0",
         "@types/node": "catalog:",
+        "@typescript/native": "npm:typescript@~7.0.2",
         "dotenv": "catalog:",
         "drizzle-kit": "catalog:",
         "graphql": "^17.0.2",
@@ -53,7 +54,7 @@
         "svelte": "^5.56.10",
         "svelte-check": "^4.7.6",
         "tailwindcss": "^4.3.3",
-        "typescript": "~7.0.2",
+        "typescript": "~6.0.3",
         "vite": "^8.2.2"
     }
 }
