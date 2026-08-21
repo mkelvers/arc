@@ -229,9 +229,14 @@
         </div>
     </section>
 
-    <div class="px-5 sm:px-10 lg:px-16">
+    <div class="px-3 sm:px-8 lg:px-14">
         {#snippet loadingEpisodes()}
-            <section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16" aria-busy="true" aria-live="polite">
+            <section
+                id="anime-episode-list"
+                class="px-2 py-7 sm:pb-12 lg:pb-16"
+                aria-busy="true"
+                aria-live="polite"
+            >
                 <span class="sr-only">Loading episodes</span>
                 <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
                     {#each Array.from({ length: 5 }) as _}
@@ -256,7 +261,7 @@
                 {@const visibleEpisodes = hideFiller
                     ? episodes.filter((episode) => episode.type !== 'filler')
                     : episodes}
-                <section id="anime-episode-list" class="py-7 sm:pb-12 lg:pb-16" aria-live="polite">
+                <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
                     {#if episodes.length}
                         {#if hasFiller}
                             <div class="mb-5 flex justify-end">

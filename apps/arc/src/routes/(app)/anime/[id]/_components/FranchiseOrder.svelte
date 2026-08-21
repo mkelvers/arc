@@ -78,7 +78,7 @@
 </script>
 
 <section class="pb-7" aria-labelledby="franchise-order-title">
-    <div class="mb-6 flex min-h-9 items-center justify-between gap-4">
+    <div class="mb-6 flex min-h-9 items-center justify-between gap-4 px-2">
         <h2 id="franchise-order-title" class="text-lg font-semibold">Franchise Order</h2>
 
         <Dropdown
@@ -130,7 +130,7 @@
             {#if canScrollBack}
                 <button
                     type="button"
-                    class="absolute inset-y-0 left-10 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:left-12"
+                    class="absolute inset-y-0 left-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
                     aria-label="Previous franchise titles"
                     onclick={() => scrollByPage(-1)}
                 >
@@ -141,7 +141,7 @@
             {#if canScrollForward}
                 <button
                     type="button"
-                    class="absolute inset-y-0 right-10 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid 2xl:right-12"
+                    class="absolute inset-y-0 right-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
                     aria-label="Next franchise titles"
                     onclick={() => scrollByPage(1)}
                 >
@@ -150,6 +150,6 @@
             {/if}
         </div>
     {:else}
-        <p class="text-sm text-muted">No franchise titles found.</p>
+        <p class="px-2 text-sm text-muted">No franchise titles found.</p>
     {/if}
 </section>
