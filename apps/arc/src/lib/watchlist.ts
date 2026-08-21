@@ -25,6 +25,11 @@ export const WatchlistSelectionSchema = z.object({
 });
 
 type WatchlistSelection = z.infer<typeof WatchlistSelectionSchema>;
+export type WatchlistSort = WatchlistSelection['sort'];
+export type WatchlistOrder = WatchlistSelection['order'];
+export type WatchlistLanguage = WatchlistSelection['language'];
+export type WatchlistMedia = WatchlistSelection['media'];
+export type WatchlistType = WatchlistSelection['type'];
 
 export function watchlistMatchesFilters(
     card: { format?: string | null; status?: string | null },
