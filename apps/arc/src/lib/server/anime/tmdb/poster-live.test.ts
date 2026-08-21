@@ -47,14 +47,12 @@ async function tmdbPosters(seriesId: number) {
 }
 
 describe('live anime card artwork providers', () => {
-    test.skip(
-        'AniList returns distinct covers across television, movie, OVA, ONA, and special releases',
-        async () => {
-            const response = await fetch('https://graphql.anilist.co', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: `
+    test.skip('AniList returns distinct covers across television, movie, OVA, ONA, and special releases', async () => {
+        const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `
                         query ($ids: [Int]) {
                             Page(perPage: 50) {
                                 media(id_in: $ids, type: ANIME) {
@@ -65,57 +63,45 @@ describe('live anime card artwork providers', () => {
                             }
                         }
                     `,
-                    variables: { ids: animeIds },
-                }),
-            });
-            expect(response.ok).toBe(true);
+                variables: { ids: animeIds },
+            }),
+        });
+        expect(response.ok).toBe(true);
 
-            const result = (await response.json()) as AniListResponse;
-            const media = (result.data?.Page?.media ?? []).filter(
-                (entry): entry is NonNullable<typeof entry> => entry !== null
+        const result = (await response.json()) as AniListResponse;
+        const media = (result.data?.Page?.media ?? []).filter(
+            (entry): entry is NonNullable<typeof entry> => entry !== null
+        );
+
+        expect(media).toHaveLength(animeIds.length);
+        expect(new Set(media.map(({ format }) => format))).toEqual(
+            new Set(['MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV'])
+        );
+        expect(new Set(media.map(({ coverImage }) => coverImage?.extraLarge)).size).toBe(
+            animeIds.length
+        );
+    }, 20_000);
+
+    test.skip('aggregate TMDB series expose enough distinct high-resolution posters for release allocation', async () => {
+        const samples = await Promise.all([95479, 1429, 65930, 82684].map(tmdbPosters));
+
+        for (const posters of samples) {
+            expect(new Set(posters.map(({ file_path }) => file_path)).size).toBeGreaterThanOrEqual(
+                8
             );
+            expect(
+                posters.some(({ height, width }) => (width ?? 0) >= 1_000 && (height ?? 0) >= 1_500)
+            ).toBe(true);
+        }
+    }, 20_000);
 
-            expect(media).toHaveLength(animeIds.length);
-            expect(new Set(media.map(({ format }) => format))).toEqual(
-                new Set(['MOVIE', 'ONA', 'OVA', 'SPECIAL', 'TV'])
-            );
-            expect(new Set(media.map(({ coverImage }) => coverImage?.extraLarge)).size).toBe(
-                animeIds.length
-            );
-        },
-        20_000
-    );
+    test.skip('Chiaki resolves Attack on Titan from its first and final releases', async () => {
+        const [first, final] = await Promise.all([fetchOrder(16498), fetchOrder(51535)]);
+        const expected = [16498, 25777, 35760, 38524, 40028, 48583, 51535];
 
-    test.skip(
-        'aggregate TMDB series expose enough distinct high-resolution posters for release allocation',
-        async () => {
-            const samples = await Promise.all([95479, 1429, 65930, 82684].map(tmdbPosters));
-
-            for (const posters of samples) {
-                expect(
-                    new Set(posters.map(({ file_path }) => file_path)).size
-                ).toBeGreaterThanOrEqual(8);
-                expect(
-                    posters.some(
-                        ({ height, width }) => (width ?? 0) >= 1_000 && (height ?? 0) >= 1_500
-                    )
-                ).toBe(true);
-            }
-        },
-        20_000
-    );
-
-    test.skip(
-        'Chiaki resolves Attack on Titan from its first and final releases',
-        async () => {
-            const [first, final] = await Promise.all([fetchOrder(16498), fetchOrder(51535)]);
-            const expected = [16498, 25777, 35760, 38524, 40028, 48583, 51535];
-
-            for (const id of expected) {
-                expect(first.entries.some(({ malId }) => malId === id)).toBe(true);
-                expect(final.entries.some(({ malId }) => malId === id)).toBe(true);
-            }
-        },
-        20_000
-    );
+        for (const id of expected) {
+            expect(first.entries.some(({ malId }) => malId === id)).toBe(true);
+            expect(final.entries.some(({ malId }) => malId === id)).toBe(true);
+        }
+    }, 20_000);
 });

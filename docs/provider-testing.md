@@ -68,24 +68,20 @@ import { expect, test } from 'bun:test';
 import { getAnime } from '../anilist/details';
 import { animeggProvider } from './animegg';
 
-test(
-    'AnimeGG satisfies the playback contract for a known release',
-    async () => {
-        const anime = await getAnime(21);
-        const episodes = await animeggProvider.getEpisodes(anime);
+test('AnimeGG satisfies the playback contract for a known release', async () => {
+    const anime = await getAnime(21);
+    const episodes = await animeggProvider.getEpisodes(anime);
 
-        expect(episodes.length).toBeGreaterThan(0);
+    expect(episodes.length).toBeGreaterThan(0);
 
-        const episode = episodes.find(({ number }) => number === 1);
-        if (!episode) {
-            throw new Error('AnimeGG returned no episode 1 for AniList 21');
-        }
+    const episode = episodes.find(({ number }) => number === 1);
+    if (!episode) {
+        throw new Error('AnimeGG returned no episode 1 for AniList 21');
+    }
 
-        const streams = await animeggProvider.getStreams(anime, episode, episode.audio);
-        expect(Object.values(streams).flat().length).toBeGreaterThan(0);
-    },
-    60_000
-);
+    const streams = await animeggProvider.getStreams(anime, episode, episode.audio);
+    expect(Object.values(streams).flat().length).toBeGreaterThan(0);
+}, 60_000);
 ```
 
 This is an example of the intended shape, not a test that must be copied verbatim. The final test must select a release and episode that match the provider's real contract.
