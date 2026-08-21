@@ -434,6 +434,8 @@ function supportedMediaUrl(value: JsonValue) {
         // subdomain, so match the shared prefix rather than fixed hosts.
         const supported =
             url.hostname.startsWith('megap.') ||
+            url.hostname === 'watching.onl' ||
+            url.hostname.endsWith('.watching.onl') ||
             url.hostname === 'lostproject.club' ||
             url.hostname.endsWith('.lostproject.club');
         return url.protocol === 'https:' && supported ? url : null;

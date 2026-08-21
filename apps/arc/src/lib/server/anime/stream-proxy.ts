@@ -376,7 +376,7 @@ export async function verifyStreamSource(source: string, fetchStream: StreamFetc
             throw new StreamProxyError({ kind: 'invalid-playlist' });
         }
 
-        const target = streamTarget(new URL(reference.url, provider.target).toString());
+        const target = streamTarget(providerReference(reference.url, provider.target).toString());
         if (reference.kind === 'segment') {
             const segment = await followProviderRedirects(target, 'bytes=0-0', fetchStream);
             await segment.response.body?.cancel().catch(() => undefined);
@@ -486,6 +486,24 @@ function streamTarget(value: string | null) {
     return target;
 }
 
+function providerReference(reference: string, playlist: URL) {
+    const target = new URL(reference, playlist);
+
+    // MegaPlay publishes the same immutable segment path on its playlist CDN
+    // and a rotating edge hostname. Some edge hosts reset server-side TLS
+    // connections even though the canonical playlist CDN serves the segment.
+    if (
+        (playlist.hostname === 'watching.onl' || playlist.hostname.endsWith('.watching.onl')) &&
+        (target.hostname === 'anivideo.sbs' || target.hostname.endsWith('.anivideo.sbs')) &&
+        target.pathname.startsWith('/anime/')
+    ) {
+        target.hostname = playlist.hostname;
+        target.port = playlist.port;
+    }
+
+    return target;
+}
+
 function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<string>) {
     if (reference.startsWith('data:')) {
         return reference;
@@ -493,7 +511,7 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
 
     let target: URL;
     try {
-        target = new URL(reference, playlist);
+        target = providerReference(reference, playlist);
     } catch {
         return reference;
     }

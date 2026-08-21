@@ -458,6 +458,30 @@ describe('stream proxy', () => {
         ]);
     });
 
+    test('uses the canonical MegaPlay CDN for an unreachable rotating segment edge', async () => {
+        const requests: string[] = [];
+        const fetchStream = async (target: URL) => {
+            requests.push(target.toString());
+            if (target.pathname.endsWith('/master.m3u8')) {
+                return new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nindex.m3u8', {
+                    headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+                });
+            }
+            if (target.pathname.endsWith('/index.m3u8')) {
+                return new Response(
+                    '#EXTM3U\n#EXTINF:8.0,\nhttps://fntb0.anivideo.sbs/anime/abc/segment.jpg',
+                    { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                );
+            }
+            return new Response(new Uint8Array([0x47]), { status: 200 });
+        };
+
+        await expect(
+            verifyStreamSource('https://cdn.watching.onl/anime/abc/master.m3u8', fetchStream)
+        ).resolves.toBeUndefined();
+        expect(requests.at(-1)).toBe('https://cdn.watching.onl/anime/abc/segment.jpg');
+    });
+
     test('serves MegaPlay static-disguised MPEG-TS segments as video/mp2t', async () => {
         const request = new Request(
             'https://arc.local/api/episodes/stream?url=https%3A%2F%2Fq1bog.cloudbuzz.lol%2Fanime%2Fabc%2Fseg-1-f1-v1-a1.css'
