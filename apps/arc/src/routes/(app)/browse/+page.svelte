@@ -20,6 +20,7 @@
 
     import { animeFormatLabel, browseSearchParams, metadataLabel, type BrowseFilters } from '$lib/browse';
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '$lib/types';
+    import { cn } from '$lib/utils';
     import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
@@ -256,7 +257,10 @@
                     ariaLabel="Filter by genre or tag"
                     menuAlign="start"
                     menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.genre || data.filters.tag ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.genre || data.filters.tag ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <TagIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -348,7 +352,10 @@
                     )}
                     ariaLabel="Filter by release status"
                     menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.status ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.status ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <PulseIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -370,7 +377,10 @@
                     )}
                     ariaLabel="Filter by anime type"
                     menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.format ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.format ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <MonitorPlayIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -397,7 +407,10 @@
                     ]}
                     ariaLabel="Filter by audio availability"
                     menuClass="mt-2 min-w-44 shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.audio ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.audio ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <MicrophoneStageIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -417,7 +430,10 @@
                     )}
                     ariaLabel="Filter by release season"
                     menuClass="mt-2 min-w-44 shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.season ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.season ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <SunHorizonIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -442,7 +458,10 @@
                     ]}
                     ariaLabel="Filter by release year"
                     menuClass="mt-2 max-h-80 min-w-36 overflow-y-auto shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.year ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.year ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <CalendarBlankIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -462,7 +481,10 @@
                     )}
                     ariaLabel="Filter by source material"
                     menuClass="mt-2 max-h-80 min-w-56 overflow-y-auto shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.source ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.source ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <BookOpenTextIcon size="1.1rem" weight="regular" aria-hidden="true" />
@@ -484,7 +506,10 @@
                     )}
                     ariaLabel="Filter by country of origin"
                     menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
-                    triggerClass={`flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground ${data.filters.country ? 'text-accent' : 'text-muted'}`}
+                    triggerClass={cn(
+                        'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
+                        data.filters.country ? 'text-accent' : 'text-muted'
+                    )}
                 >
                     {#snippet trigger()}
                         <GlobeHemisphereWestIcon size="1.1rem" weight="regular" aria-hidden="true" />
