@@ -4,7 +4,7 @@ import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import type { JsonValue } from '$lib/utils';
 import { create, imageUrl } from './client';
-import { getEpisodeEnglishOverview } from './episode-changes';
+import { getEpisodeChanges } from './episode-changes';
 import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
@@ -472,12 +472,10 @@ export async function getEpisodeMetadata(
                       .then(({ data }) => data?.stills)
                       .catch(() => undefined)
                 : Promise.resolve(undefined);
-            const changesRequest = needed.translations
-                ? getEpisodeEnglishOverview(candidate.tmdbEpisodeId, candidate.rawAirDate).catch(
-                      () => null
-                  )
+            const changesRequest = fetchFallback
+                ? getEpisodeChanges(candidate.tmdbEpisodeId, candidate.rawAirDate).catch(() => null)
                 : Promise.resolve(null);
-            const [details, translations, stills, englishOverview] = await Promise.all([
+            const [details, translations, stills, changes] = await Promise.all([
                 detailsRequest,
                 translationsRequest,
                 imagesRequest,
@@ -500,18 +498,6 @@ export async function getEpisodeMetadata(
                 name: translation.data?.name,
                 overview: translation.data?.overview,
             }));
-            if (
-                englishOverview &&
-                !localized.some(({ language, overview }) => language === 'en' && overview?.trim())
-            ) {
-                localized.unshift({
-                    country: 'US',
-                    language: 'en',
-                    name: undefined,
-                    overview: englishOverview,
-                });
-            }
-
             return {
                 id: sourceId,
                 metadata: completeEpisodeDetails(candidate, {
@@ -531,6 +517,7 @@ export async function getEpisodeMetadata(
                         width: still.width,
                     })),
                     featured: featured?.details,
+                    changes: changes ?? undefined,
                     localizedText,
                     image: (path) => imageUrl(path, 'w500'),
                 }),

@@ -1,6 +1,8 @@
 import type { AniListAnime } from '../anilist/types';
 type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 
+export const episodeMetadataRevision = 'tmdb-episode-v2';
+
 export function episodeRefreshReason(
     sync: {
         metadataExternalIdId: number | null;
@@ -29,11 +31,13 @@ export function canPreserveEpisodeMetadata(
 
 export function episodeMetadataNeedsRefresh(
     episodes: readonly { image: string | null; title: string; overview: string }[],
-    hasMetadataSource: boolean
+    hasMetadataSource: boolean,
+    metadataRevision: string | null | undefined = episodeMetadataRevision
 ) {
     return (
         hasMetadataSource &&
-        (episodes.every(({ image, title, overview }) => image === null && !title && !overview) ||
+        (metadataRevision !== episodeMetadataRevision ||
+            episodes.every(({ image, title, overview }) => image === null && !title && !overview) ||
             episodes.some(({ image, title, overview }) => image !== null && (!title || !overview)))
     );
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "anime_episode_sync" ADD COLUMN "metadata_revision" text;

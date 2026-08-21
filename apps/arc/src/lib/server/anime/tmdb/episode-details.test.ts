@@ -19,7 +19,7 @@ const candidate: EpisodeCandidate = {
 };
 
 describe('TMDB episode detail completion', () => {
-    test('completes episode 6 from a non-English translation when English is empty', () => {
+    test('does not label non-English episode text as English TMDB metadata', () => {
         expect(
             completeEpisodeDetails(
                 {
@@ -48,9 +48,8 @@ describe('TMDB episode detail completion', () => {
             )
         ).toMatchObject({
             episodeNumber: 6,
-            overview:
-                'Sasaki has a cigarette and nowhere to smoke it—until a pierced stranger calls out to him in the night.',
-            overviewSource: 'tmdb',
+            overview: '',
+            overviewSource: null,
             imageUrl: null,
         });
     });
@@ -140,8 +139,42 @@ describe('TMDB episode detail completion', () => {
         ).toMatchObject({
             title: 'Accomplices',
             titleSource: 'tmdb',
-            overview: '日本語で利用可能なあらすじ。',
-            overviewSource: 'tmdb',
+            overview: '',
+            overviewSource: null,
+        });
+    });
+
+    test('fills fields from recent changes while the normal episode endpoints are stale', () => {
+        expect(
+            completeEpisodeDetails(candidate, {
+                details: {
+                    name: 'Death and Loss',
+                    overview: '',
+                    runtime: null,
+                    stillPath: null,
+                },
+                translations: [
+                    {
+                        country: 'US',
+                        language: 'en',
+                        name: 'Death and Loss',
+                        overview: '',
+                    },
+                ],
+                changes: {
+                    overview:
+                        "Granville's true plan is revealed, but it may already be too late to stop it.",
+                    runtime: 24,
+                    stillPath: '/episode-19.jpg',
+                },
+                image: (path) => `https://images.example${path}`,
+            })
+        ).toMatchObject({
+            title: 'Death and Loss',
+            overview:
+                "Granville's true plan is revealed, but it may already be too late to stop it.",
+            runtime: 24,
+            imageUrl: 'https://images.example/episode-19.jpg',
         });
     });
 

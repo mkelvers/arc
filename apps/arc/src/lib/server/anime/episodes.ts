@@ -22,6 +22,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
         db
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+                metadataRevision: animeEpisodeSync.metadataRevision,
                 nextRefreshAt: animeEpisodeSync.nextRefreshAt,
                 lastError: animeEpisodeSync.lastError,
                 nextAiringAt: animeEpisodeSync.nextAiringAt,
@@ -50,7 +51,8 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
         availableEpisodes > 0 && !coversExpectedEpisodes(stored, availableEpisodes);
     const incompleteMetadata = episodeMetadataNeedsRefresh(
         stored,
-        sync?.metadataExternalIdId !== null && sync?.metadataExternalIdId !== undefined
+        sync?.metadataExternalIdId !== null && sync?.metadataExternalIdId !== undefined,
+        sync?.metadataRevision
     );
     const classificationsNeedRefresh =
         stored.length > 0 &&

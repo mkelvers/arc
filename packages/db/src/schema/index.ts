@@ -513,6 +513,7 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     metadataExternalIdId: integer('metadata_external_id_id').references(() => animeExternalId.id, {
         onDelete: 'set null',
     }),
+    metadataRevision: text('metadata_revision'),
     stableSince: timestamp('stable_since', { withTimezone: true }),
     lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
     classificationRevision: text('classification_revision'),

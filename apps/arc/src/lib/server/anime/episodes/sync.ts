@@ -14,6 +14,7 @@ import { sourceRevision, storedEpisodes } from './model';
 import {
     canPreserveEpisodeMetadata,
     classificationRefreshDue,
+    episodeMetadataRevision,
     episodeInventoryIsExpected,
     nextRefreshAt,
 } from './policy';
@@ -110,6 +111,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         db
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+                metadataRevision: animeEpisodeSync.metadataRevision,
                 classificationRevision: animeEpisodeSync.classificationRevision,
                 classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
             })
@@ -147,7 +149,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
               canPreserveEpisodeMetadata(
                   previousSync?.metadataExternalIdId ?? null,
                   resolvedMetadataSource.externalIdId
-              )
+              ) && previousSync?.metadataRevision === episodeMetadataRevision
                   ? storedText
                   : new Map()
           ).catch((cause) => {
@@ -169,6 +171,7 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
             tx
                 .select({
                     metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+                    metadataRevision: animeEpisodeSync.metadataRevision,
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
                     lastSuccessAt: animeEpisodeSync.lastSuccessAt,
@@ -185,12 +188,14 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
         const values = source.map((episode): typeof animeEpisode.$inferInsert => {
             const previous = stored.get(episode.id);
             const media = metadata?.get(episode.id);
-            const previousMetadata = canPreserveEpisodeMetadata(
-                sync?.metadataExternalIdId ?? null,
-                resolvedMetadataSource?.externalIdId ?? null
-            )
-                ? previous
-                : null;
+            const previousMetadata =
+                canPreserveEpisodeMetadata(
+                    sync?.metadataExternalIdId ?? null,
+                    resolvedMetadataSource?.externalIdId ?? null
+                ) &&
+                (metadata === null || sync?.metadataRevision === episodeMetadataRevision)
+                    ? previous
+                    : null;
 
             return {
                 anilistId: anime.id,
@@ -263,6 +268,9 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                 sourceRevision: revision,
                 metadataExternalIdId:
                     resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
+                metadataRevision: metadata
+                    ? episodeMetadataRevision
+                    : (sync?.metadataRevision ?? null),
                 stableSince,
                 lastSuccessAt: now,
                 classificationsRefreshedAt: !(fillerClassifications instanceof Map)
@@ -284,6 +292,9 @@ async function fetchAndStore(anime: AniListAnime, metadataSource: StoredMapping 
                     sourceRevision: revision,
                     metadataExternalIdId:
                         resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
+                    metadataRevision: metadata
+                        ? episodeMetadataRevision
+                        : (sync?.metadataRevision ?? null),
                     stableSince,
                     lastSuccessAt: now,
                     classificationsRefreshedAt: !(fillerClassifications instanceof Map)

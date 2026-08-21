@@ -6,6 +6,7 @@ import {
     classificationRefreshDue,
     episodeInventoryIsExpected,
     episodeMetadataNeedsRefresh,
+    episodeMetadataRevision,
     episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
@@ -102,6 +103,20 @@ describe('episode refresh policy', () => {
                 false
             )
         ).toBeFalse();
+    });
+
+    test('refreshes episode metadata written by an obsolete enrichment revision', () => {
+        const complete = [
+            {
+                image: 'https://image.example/still.jpg',
+                title: 'Death and Loss',
+                overview: 'Wrong-language text stored by the old fallback.',
+            },
+        ];
+
+        expect(episodeMetadataNeedsRefresh(complete, true, null)).toBeTrue();
+        expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v1')).toBeTrue();
+        expect(episodeMetadataNeedsRefresh(complete, true, episodeMetadataRevision)).toBeFalse();
     });
 
     test('does not probe playback before a release begins', () => {
