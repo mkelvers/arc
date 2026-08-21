@@ -17,12 +17,12 @@
         "db:down": "docker compose -f ../../compose.yaml down"
     },
     "dependencies": {
-        "drizzle-orm": "^0.45.2",
-        "postgres": "^3.4.9"
+        "drizzle-orm": "catalog:",
+        "postgres": "catalog:"
     },
     "devDependencies": {
-        "@types/node": "^26.2.0",
-        "dotenv": "^17.4.2",
-        "drizzle-kit": "^0.31.10"
+        "@types/node": "catalog:",
+        "dotenv": "catalog:",
+        "drizzle-kit": "catalog:"
     }
 }
