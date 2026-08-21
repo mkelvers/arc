@@ -2,6 +2,8 @@
     import type { Snippet } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
+    import { cn } from '$lib/utils';
+
     interface Props {
         children?: Snippet;
         description?: string;
@@ -40,7 +42,10 @@
     bind:this={dialog}
     aria-labelledby={`${id}-title`}
     aria-describedby={description ? `${id}-description` : undefined}
-    class={`${wide ? 'h-11/12 w-11/12 max-w-5xl' : 'w-[calc(100%-2rem)] max-w-lg'} m-auto hidden max-h-[calc(100dvh-2rem)] flex-col overflow-hidden bg-panel p-0 text-foreground shadow-2xl open:flex backdrop:bg-black/75`}
+    class={cn(
+        wide ? 'h-11/12 w-11/12 max-w-5xl' : 'w-[calc(100%-2rem)] max-w-lg',
+        'm-auto hidden max-h-[calc(100dvh-2rem)] flex-col overflow-hidden bg-panel p-0 text-foreground shadow-2xl open:flex backdrop:bg-black/75'
+    )}
     onclick={(event) => {
         if (event.target === dialog) {
             close();
