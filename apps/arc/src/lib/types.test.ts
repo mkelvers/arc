@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { AnimeCardPageSchema, type AnimeCard } from './types';
+import { AnimeCardPageSchema, type AnimeCard } from '@arc/shared/types';
 
 const card = {
     id: 1,
