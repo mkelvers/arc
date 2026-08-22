@@ -5,8 +5,8 @@ type SkipTimesSource = 'aniskip' | 'manual';
 
 const SkipIntervalSchema = z
     .object({
-        start: z.number().finite().nonnegative(),
-        end: z.number().finite().positive(),
+        start: z.number().nonnegative(),
+        end: z.number().positive(),
     })
     .refine(({ start, end }) => end > start);
 
@@ -20,7 +20,7 @@ export interface EpisodeSkipTimes {
 
 const SegmentTemplateSchema = z.object({
     fromEpisode: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-    duration: z.number().finite().positive(),
+    duration: z.number().positive(),
 });
 
 type SegmentTemplate = z.infer<typeof SegmentTemplateSchema>;
