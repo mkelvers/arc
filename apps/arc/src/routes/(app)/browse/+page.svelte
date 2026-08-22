@@ -293,7 +293,7 @@
                                 href={filterHref({ genre: null, tag: null })}
                                 aria-current={!data.filters.genre && !data.filters.tag ? 'page' : undefined}
                                 class:text-accent={!data.filters.genre && !data.filters.tag}
-                                class:text-muted={Boolean(data.filters.genre || data.filters.tag)}
+                                class:text-muted={data.filters.genre !== null || data.filters.tag !== null}
                                 class="block whitespace-nowrap px-5 py-3 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                             >
                                 All genres and tags
