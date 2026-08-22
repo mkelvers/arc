@@ -1,4 +1,4 @@
-import { record, type JsonValue } from '$lib/utils';
+import { record, type JsonValue } from '#utils';
 import { origin, userAgent } from './client';
 
 interface ClientData {

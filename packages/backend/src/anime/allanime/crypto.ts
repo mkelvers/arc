@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, createHmac } from 'node:c
 
 import { getClientData } from './bootstrap';
 import { contentLane, endpoint, origin, userAgent } from './client';
-import { record } from '$lib/utils';
+import { record } from '#utils';
 import { z } from 'zod';
 import type { StreamCrypto } from './types';
 

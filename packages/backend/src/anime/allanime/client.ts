@@ -1,4 +1,4 @@
-import { graphql } from '$lib/server/graphql';
+import { graphql } from '#graphql';
 
 export const endpoint = 'https://api.mkissa.net/api';
 export const site = 'https://allanime.day';
