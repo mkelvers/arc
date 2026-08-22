@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "target": "ES2023",
         "strict": true,
         "types": ["node", "bun"],
         "moduleResolution": "bundler",
