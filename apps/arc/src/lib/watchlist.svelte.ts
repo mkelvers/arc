@@ -32,7 +32,7 @@ class WatchlistClient {
         }
 
         const request = (async () => {
-            const response = await fetch(new URL('/v1/watchlist/states', env.PUBLIC_API_ORIGIN!), {
+            const response = await fetch(`${env.PUBLIC_API_ORIGIN!}/v1/watchlist/states`, {
                 credentials: 'include',
                 headers: {
                     Accept: 'application/json',
@@ -80,7 +80,7 @@ class WatchlistClient {
     }
 
     async remove(animeId: number) {
-        const response = await fetch(new URL(`/v1/watchlist/${animeId}`, env.PUBLIC_API_ORIGIN!), {
+        const response = await fetch(`${env.PUBLIC_API_ORIGIN!}/v1/watchlist/${animeId}`, {
             method: 'DELETE',
             credentials: 'include',
             headers: {
