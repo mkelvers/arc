@@ -28,24 +28,18 @@ export const load: PageServerLoad = async ({ params, locals, depends, request })
     const userId = locals.user?.id;
 
     const result = await loadAnime(id);
-    const headers = new Headers({ Accept: 'application/json' });
-    const cookie = request.headers.get('cookie');
-    const authorization = request.headers.get('authorization');
-    if (cookie) {
-        headers.set('cookie', cookie);
-    }
-    if (authorization) {
-        headers.set('authorization', authorization);
-    }
     const watchlistState = locals.user
-        ? fetch(new URL(`/v1/watchlist/${id}`, env.API_ORIGIN!), { headers }).then(
-              async (response) => {
-                  if (!response.ok) {
-                      throw new Error(`Watchlist state request failed with ${response.status}`);
-                  }
-                  return WatchlistStateResponseSchema.parse(await response.json()).state;
+        ? fetch(`${env.API_ORIGIN!}/v1/watchlist/${id}`, {
+              headers: {
+                  Cookie: request.headers.get('cookie') ?? '',
+                  Authorization: request.headers.get('authorization') ?? '',
+              },
+          }).then(async (response) => {
+              if (!response.ok) {
+                  throw new Error(`Watchlist state request failed with ${response.status}`);
               }
-          )
+              return WatchlistStateResponseSchema.parse(await response.json()).state;
+          })
         : Promise.resolve(null);
     const [synopsis, resolvedWatchlistState, , storedAiringSchedule] = await Promise.all([
         resolveAnimeSynopsis(result),
