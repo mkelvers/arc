@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { RequestCache } from './request-cache';
+import { RequestCache } from '@arc/backend/internal/request-cache';
 
 test('request cache shares active work and caches successful values', async () => {
     const cache = new RequestCache<string, number>(1_000);
