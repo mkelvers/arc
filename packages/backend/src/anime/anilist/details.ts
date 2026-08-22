@@ -8,7 +8,6 @@ import { GraphQLRequestError } from '../../graphql';
 import { request } from './client';
 import { AniListAnimeCacheSchema, type AniListAnime } from './types';
 
-const version = 2;
 const requests = new Map<number, Promise<AniListAnime>>();
 const backgroundRefreshes = new Set<number>();
 const retryAt = new Map<number, number>();
@@ -48,14 +47,14 @@ export async function refreshAnime(id: number) {
                 .values({
                     anilistId: id,
                     data,
-                    version,
+                    version: 2,
                     fetchedAt: new Date(),
                 })
                 .onConflictDoUpdate({
                     target: animeDetailsCache.anilistId,
                     set: {
                         data,
-                        version,
+                        version: 2,
                         fetchedAt: new Date(),
                     },
                 });
@@ -77,10 +76,10 @@ export async function refreshAnime(id: number) {
 export async function getAnime(id: number) {
     let stored:
         | {
-              data: AniListAnime;
-              version: number;
-              fetchedAt: Date;
-          }
+            data: AniListAnime;
+            version: number;
+            fetchedAt: Date;
+        }
         | undefined;
 
     try {
@@ -103,7 +102,7 @@ export async function getAnime(id: number) {
         console.error(`AniList cache read failed for ${id}`, cause);
     }
 
-    if (stored?.version === version) {
+    if (stored?.version === 2) {
         const airingAt = stored.data.nextAiringEpisode?.airingAt;
         const parsedAiringAt = z.number().safeParse(airingAt);
         const airingPassed =
