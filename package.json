@@ -14,7 +14,9 @@
         "lint": "oxlint",
         "test": "turbo run test",
         "format": "oxfmt",
-        "format:check": "oxfmt --check"
+        "format:check": "oxfmt --check",
+        "openapi:check": "bun --cwd apps/api openapi:check",
+        "db:check": "bun --cwd packages/db db:check"
     },
     "devDependencies": {
         "@oxlint/plugins": "1.79.0",
