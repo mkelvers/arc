@@ -1,23 +1,24 @@
 import { error } from '@sveltejs/kit';
 
-import { episodeAudioAvailabilityLabel } from '$lib/audio';
-import { toAnimeDetails } from '$lib/server/anime/details';
+import { WatchlistStateResponseSchema } from '@arc/api-contract/watchlist';
+import { episodeAudioAvailabilityLabel } from '@arc/shared/audio';
+import { serverApiClient } from '$lib/server/api-client';
+import { toAnimeDetails } from '@arc/backend/internal/anime/details';
 import {
     getEpisodeRevision,
     getEpisodes,
     getStoredAiringSchedule,
-} from '$lib/server/anime/episodes';
-import { getFranchiseOrder } from '$lib/server/anime/franchise';
-import { recordAnimeVisit } from '$lib/server/anime/interest';
+} from '@arc/backend/internal/anime/episodes';
+import { getFranchiseOrder } from '@arc/backend/internal/anime/franchise';
+import { recordAnimeVisit } from '@arc/backend/internal/anime/interest';
 import { animeId, loadAnime } from '$lib/server/anime/route';
-import { resolveAnimeSynopsis } from '$lib/server/anime/synopsis';
-import { getArtwork } from '$lib/server/anime/tmdb/artwork';
+import { resolveAnimeSynopsis } from '@arc/backend/internal/anime/synopsis';
+import { getArtwork } from '@arc/backend/internal/anime/tmdb/artwork';
 import { continuationEpisode } from '$lib/server/progress/continue';
 import { getPlaybackProgress } from '$lib/server/progress/store';
-import { getWatchlistState } from '$lib/server/watchlist';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals, depends }) => {
+export const load: PageServerLoad = async ({ params, locals, depends, request }) => {
     const id = animeId(params.id);
     if (!id) {
         error(400, 'Invalid anime ID');
@@ -27,9 +28,19 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
     const userId = locals.user?.id;
 
     const result = await loadAnime(id);
-    const [synopsis, watchlistState, , storedAiringSchedule] = await Promise.all([
+    const watchlistState = locals.user
+        ? serverApiClient(request)
+              .GET('/v1/watchlist/{anilistId}', { params: { path: { anilistId: id } } })
+              .then(({ data, response }) => {
+                  if (!response.ok) {
+                      throw new Error(`Watchlist state request failed with ${response.status}`);
+                  }
+                  return WatchlistStateResponseSchema.parse(data).state;
+              })
+        : Promise.resolve(null);
+    const [synopsis, resolvedWatchlistState, , storedAiringSchedule] = await Promise.all([
         resolveAnimeSynopsis(result),
-        getWatchlistState(userId, id),
+        watchlistState,
         recordAnimeVisit(userId, id),
         getStoredAiringSchedule(id),
     ]);
@@ -75,6 +86,6 @@ export const load: PageServerLoad = async ({ params, locals, depends }) => {
         watchAction,
         audioLabel,
         franchise,
-        watchlistState,
+        watchlistState: resolvedWatchlistState,
     };
 };

@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 
-import { GraphQLRequestError } from '$lib/server/graphql';
-import { getAnime } from './anilist/details';
+import { GraphQLRequestError } from '@arc/backend/internal/graphql';
+import { getAnime } from '@arc/backend/internal/anime/anilist/details';
 
 export function animeId(value: FormDataEntryValue | string | null | undefined) {
     const id = Number(value);

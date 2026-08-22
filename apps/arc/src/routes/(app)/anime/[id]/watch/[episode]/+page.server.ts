@@ -1,13 +1,13 @@
 import { error, redirect } from '@sveltejs/kit';
 
-import type { AudioMode } from '$lib/audio';
-import { toAnimeDetails } from '$lib/server/anime/details';
-import { getEpisodes, getRelatedReleaseTitles } from '$lib/server/anime/episodes';
-import { recordAnimeVisit } from '$lib/server/anime/interest';
-import { playback } from '$lib/server/anime/providers';
+import type { AudioMode } from '@arc/shared/audio';
+import { toAnimeDetails } from '@arc/backend/internal/anime/details';
+import { getEpisodes, getRelatedReleaseTitles } from '@arc/backend/internal/anime/episodes';
+import { recordAnimeVisit } from '@arc/backend/internal/anime/interest';
+import { playback } from '@arc/backend/internal/anime/providers';
 import { animeId, loadAnime } from '$lib/server/anime/route';
-import { getEpisodeSkipTimes, getSegmentTemplates } from '$lib/server/anime/skip-times';
-import { getStoredMedia } from '$lib/server/anime/tmdb/media';
+import { getEpisodeSkipTimes, getSegmentTemplates } from '@arc/backend/internal/anime/skip-times';
+import { getStoredMedia } from '@arc/backend/internal/anime/tmdb/media';
 import { resumePosition } from '$lib/server/progress/continue';
 import { getPlaybackProgress } from '$lib/server/progress/store';
 import type { PageServerLoad } from './$types';

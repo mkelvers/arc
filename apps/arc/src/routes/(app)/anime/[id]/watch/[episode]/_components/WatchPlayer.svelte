@@ -1,8 +1,8 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
-    import type { AnimeEpisode } from '$lib/types';
+    import type { AnimeEpisode } from '@arc/shared/types';
     import type { Sources } from '$lib/player/media';
-    import type { EpisodeSkipTimes, SegmentTemplates } from '$lib/player/skip-times';
+    import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
     import { SpinnerGapIcon } from 'phosphor-svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';

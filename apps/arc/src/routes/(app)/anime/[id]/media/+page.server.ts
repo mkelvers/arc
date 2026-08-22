@@ -1,15 +1,15 @@
 import { error, fail } from '@sveltejs/kit';
 import { z } from 'zod';
 
-import { toAnimeDetails } from '$lib/server/anime/details';
+import { toAnimeDetails } from '@arc/backend/internal/anime/details';
 import { animeId, loadAnime } from '$lib/server/anime/route';
-import { getArtwork } from '$lib/server/anime/tmdb/artwork';
+import { getArtwork } from '@arc/backend/internal/anime/tmdb/artwork';
 import {
     getStoredMedia,
     refreshArtwork,
     selectArtwork,
     setLogoSize,
-} from '$lib/server/anime/tmdb/media';
+} from '@arc/backend/internal/anime/tmdb/media';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
