@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { parsePlaybackProgress } from '@arc/backend/internal/progress/input';
+import { parsePlaybackProgress } from './input';
 
 describe('playback progress input', () => {
     test('accepts a valid progress report', () => {

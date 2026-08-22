@@ -1,6 +1,7 @@
-import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lt, or } from 'drizzle-orm';
 
-import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/backend/internal/anime/identity';
+import { audioAvailabilityLabel } from '@arc/shared/audio';
+import type { ContinueWatchingCard } from '@arc/shared/types';
 import { db, excluded } from '@arc/db';
 import {
     anime as animeTable,
@@ -10,8 +11,12 @@ import {
     animeExternalIdLink,
     playbackProgress,
 } from '@arc/db/schema';
-import { updateWatchlistAfterPlayback } from '@arc/backend/internal/watchlist/store';
-import type { PlaybackProgressInput } from '@arc/backend/internal/progress/input';
+import { parseStoredAnimeDetails, toAnimeDetails } from '../anime/details';
+import { ensureInternalAnimeId, findInternalAnimeId } from '../anime/identity';
+import { getStoredMedia } from '../anime/tmdb/media';
+import { updateWatchlistAfterPlayback } from '../watchlist/store';
+import { formatDuration } from '../utils';
+import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
     const [episode] = await db
@@ -32,7 +37,6 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
 
     const animeId = await ensureInternalAnimeId(input.animeId);
     const now = new Date();
-
     const [saved] = await db
         .insert(playbackProgress)
         .values({
@@ -71,8 +75,6 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
         .returning({ id: playbackProgress.id });
 
     if (!saved) {
-        // A newer progress event already won at the database boundary. The
-        // stale request was valid and needs no retry or user-facing failure.
         return true;
     }
 
@@ -124,12 +126,12 @@ export async function dismissPlaybackProgress(userId: string, anilistId: number)
         .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
 }
 
-export async function getRecentPlaybackProgress(userId: string | undefined, limit?: number) {
+async function recentPlaybackProgress(userId: string | undefined) {
     if (!userId) {
         return [];
     }
 
-    const query = db
+    return db
         .select({
             anilistId: animeExternalId.externalId,
             animeTitle: animeTable.title,
@@ -154,6 +156,99 @@ export async function getRecentPlaybackProgress(userId: string | undefined, limi
             )
         )
         .orderBy(desc(playbackProgress.lastWatchedAt));
+}
 
-    return limit === undefined ? query : query.limit(Math.max(1, Math.min(limit, 50)));
+export async function getContinueWatchingCards(userId: string): Promise<ContinueWatchingCard[]> {
+    const progressEntries = await recentPlaybackProgress(userId);
+    if (!progressEntries.length) {
+        return [];
+    }
+
+    const anilistIds = [...new Set(progressEntries.map(({ anilistId }) => anilistId))];
+    const episodeRows = await db
+        .select()
+        .from(animeEpisode)
+        .where(inArray(animeEpisode.anilistId, anilistIds))
+        .orderBy(asc(animeEpisode.number));
+    const episodesByAnime = new Map<number, (typeof episodeRows)[number][]>();
+
+    for (const episode of episodeRows) {
+        const episodes = episodesByAnime.get(episode.anilistId) ?? [];
+        episodes.push(episode);
+        episodesByAnime.set(episode.anilistId, episodes);
+    }
+
+    const cards = await Promise.all(
+        progressEntries.map(async (progress) => {
+            const episodes = episodesByAnime.get(progress.anilistId) ?? [];
+            const currentIndex = episodes.findIndex(
+                ({ episodeId }) => episodeId === progress.episodeId
+            );
+            const current = currentIndex >= 0 ? episodes[currentIndex] : null;
+            const storedDetails = parseStoredAnimeDetails(progress.details);
+            const details = storedDetails ? toAnimeDetails(storedDetails) : null;
+            const target = progress.completed
+                ? (episodes[currentIndex + 1] ??
+                  episodes.find(({ number }) => number > progress.episodeNumber) ??
+                  (details?.status === 'FINISHED' ? null : current) ??
+                  null)
+                : (current ?? {
+                      anilistId: progress.anilistId,
+                      episodeId: progress.episodeId,
+                      number: progress.episodeNumber,
+                      providerTitle: null,
+                      metadataTitle: null,
+                      audio: [],
+                      imageUrl: null,
+                      runtimeMinutes: Math.ceil(progress.durationSeconds / 60),
+                      airDate: null,
+                      overview: null,
+                      firstSeenAt: new Date(),
+                      lastSeenAt: new Date(),
+                      lastVerifiedAt: new Date(),
+                  });
+
+            if (!target) {
+                return null;
+            }
+
+            const targetIndex = episodes.findIndex(
+                ({ episodeId }) => episodeId === target.episodeId
+            );
+            const displayNumber =
+                targetIndex >= 0 && episodes.some(({ number }, index) => number !== index + 1)
+                    ? targetIndex + 1
+                    : target.number;
+            const storedMedia = await getStoredMedia(progress.anilistId).catch(() => null);
+            const backdrop =
+                storedMedia?.artwork.selectedBackdrop?.url ??
+                details?.bannerImage ??
+                target.imageUrl;
+            const episodeImage = target.imageUrl ?? backdrop;
+
+            if (!backdrop || !episodeImage) {
+                return null;
+            }
+
+            const continuingCurrent =
+                !progress.completed && target.episodeId === progress.episodeId;
+            const runtimeMinutes =
+                target.runtimeMinutes ??
+                (continuingCurrent ? Math.ceil(progress.durationSeconds / 60) : null);
+
+            return {
+                animeId: progress.anilistId,
+                title: details?.title ?? progress.animeTitle ?? `Anime ${progress.anilistId}`,
+                link: `/anime/${progress.anilistId}/watch/${encodeURIComponent(target.episodeId)}`,
+                backdrop,
+                episodeImage,
+                episodeLabel: `E${Number.isInteger(displayNumber) ? displayNumber : displayNumber.toFixed(1)}`,
+                audioLabel: audioAvailabilityLabel(target.audio),
+                duration: formatDuration(runtimeMinutes),
+                resumeAtSeconds: continuingCurrent ? progress.positionSeconds : 0,
+            };
+        })
+    );
+
+    return cards.filter((card): card is ContinueWatchingCard => card !== null);
 }
