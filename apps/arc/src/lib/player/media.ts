@@ -1,4 +1,4 @@
-import { audioModeOrder, type AudioMode } from '$lib/audio';
+import { audioModeOrder, type AudioMode } from '@arc/shared/audio';
 
 export interface Stream {
     url: string;

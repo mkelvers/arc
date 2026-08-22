@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AnimeEpisode } from '$lib/types';
+import type { AnimeEpisode } from '@arc/shared/types';
 import { continuationEpisode, resumePosition } from './continue';
 
 const episodes: AnimeEpisode[] = [

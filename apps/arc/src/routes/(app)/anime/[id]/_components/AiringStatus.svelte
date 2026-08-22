@@ -1,6 +1,6 @@
 <script lang="ts">
     import { invalidate } from '$app/navigation';
-    import { EpisodeRevisionSchema } from '$lib/types';
+    import { EpisodeRevisionSchema } from '@arc/shared/types';
 
     interface Props {
         animeId: number;

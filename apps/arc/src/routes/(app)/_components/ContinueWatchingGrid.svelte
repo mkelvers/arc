@@ -1,7 +1,7 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import { XIcon } from 'phosphor-svelte';
-    import type { ContinueWatchingCard } from '$lib/types';
+    import type { ContinueWatchingCard } from '@arc/shared/types';
     import Card from '$lib/components/ui/card/Card.svelte';
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';

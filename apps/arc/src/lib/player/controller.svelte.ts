@@ -2,7 +2,11 @@ import { isControl, shortcut, type Sources } from './media';
 import { Playback } from './playback.svelte';
 import { PlaybackProgress } from './progress-client';
 import { SegmentEditor } from './segments.svelte';
-import { activeSkip, type EpisodeSkipTimes, type SegmentTemplates } from './skip-times';
+import {
+    activeSkip,
+    type EpisodeSkipTimes,
+    type SegmentTemplates,
+} from '@arc/shared/player/skip-times';
 
 interface PlayerInput {
     animeId: number;

@@ -1,4 +1,4 @@
-import type { AudioMode } from '$lib/audio';
+import type { AudioMode } from '@arc/shared/audio';
 import { z } from 'zod';
 import {
     subtitleBackgroundOpacities,

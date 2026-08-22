@@ -6,7 +6,7 @@ import {
     type SegmentTemplates,
     type SkipInterval,
     type SkipKind,
-} from './skip-times';
+} from '@arc/shared/player/skip-times';
 
 interface Episode {
     animeId: number;

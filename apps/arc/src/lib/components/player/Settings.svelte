@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
     import { audioLabel, formatTime, isHd, subtitleSizeOrder, subtitleSizes } from '$lib/player/media';
-    import type { SkipKind } from '$lib/player/skip-times';
+    import type { SkipKind } from '@arc/shared/player/skip-times';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
