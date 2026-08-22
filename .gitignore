@@ -27,3 +27,7 @@ vite.config.ts.timestamp-*
 
 # Local agent work log
 decisions.tsv
+
+# Local production runtime data
+/deploy/backups/
+/deploy/secrets/

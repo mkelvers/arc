@@ -1,0 +1,13 @@
+.git
+.github
+.DS_Store
+.env
+.env.*
+**/.svelte-kit
+**/build
+**/dist
+**/node_modules
+**/.turbo
+deploy/backups
+deploy/secrets
+decisions.tsv
