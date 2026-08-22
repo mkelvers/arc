@@ -6,7 +6,7 @@ import {
     metadataLabel,
     parseBrowseFilters,
     type BrowseFilters,
-} from './browse';
+} from '@arc/shared/browse';
 
 describe('browse filters', () => {
     test('uses safe popularity defaults for a clean URL', () => {
