@@ -1,0 +1,29 @@
+{
+    "name": "@arc/api",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "ARC_WEB_ORIGIN=http://localhost:5173 bun --env-file=../arc/.env --watch src/index.ts",
+        "build": "bun build src/index.ts --outdir dist --target bun",
+        "check": "tsc --noEmit",
+        "test": "bun test",
+        "openapi:generate": "bun src/openapi.ts && oxfmt openapi.json && openapi-typescript openapi.json -o ../../packages/api-contract/src/generated.ts",
+        "openapi:check": "bun run openapi:generate && git diff --exit-code -- openapi.json ../../packages/api-contract/src/generated.ts"
+    },
+    "dependencies": {
+        "@arc/api-contract": "workspace:*",
+        "@arc/backend": "workspace:*",
+        "@arc/db": "workspace:*",
+        "@hono/zod-openapi": "^1.6.1",
+        "better-auth": "1.6.3",
+        "drizzle-orm": "catalog:",
+        "hono": "^4.13.3",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "openapi-typescript": "^7.13.0",
+        "typescript": "~6.0.3"
+    }
+}
