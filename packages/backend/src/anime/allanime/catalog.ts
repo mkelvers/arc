@@ -1,6 +1,6 @@
-import { audioAvailabilityLabel, type AudioMode } from '$lib/audio';
-import type { AnimeSeasonSelection } from '$lib/season';
-import type { AnimeCard } from '$lib/types';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
+import type { AnimeSeasonSelection } from '@arc/shared/season';
+import type { AnimeCard } from '@arc/shared/types';
 import { and, eq } from 'drizzle-orm';
 import {
     AllAnimeAvailableEpisodesDocument,
@@ -10,17 +10,17 @@ import {
     type AllAnimeAvailableEpisodesQuery,
     type AllAnimeSearchQuery,
     type VaildTranslationTypeEnumType,
-} from '$lib/graphql/allanime/generated/graphql';
+} from './generated/graphql';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from '../providers/mapping';
 import { db } from '@arc/db';
 import { animeSimulcastPageCache } from '@arc/db/schema';
-import { positiveInteger, text } from '$lib/utils';
-import type { JsonValue } from '$lib/utils';
+import { positiveInteger, text } from '#utils';
+import type { JsonValue } from '#utils';
 import { animeTitles, plainText } from '../anilist/text';
 import { request } from './client';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
-import { AnimeCardPageSchema } from '$lib/types';
+import { AnimeCardPageSchema } from '@arc/shared/types';
 import { z } from 'zod';
 
 const providerName = 'allanime';

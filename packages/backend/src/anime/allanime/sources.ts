@@ -1,5 +1,5 @@
-import { record } from '$lib/utils';
-import type { JsonValue } from '$lib/utils';
+import { record } from '#utils';
+import type { JsonValue } from '#utils';
 import { z } from 'zod';
 import { referer, userAgent } from './client';
 import type { Source, Stream } from './types';

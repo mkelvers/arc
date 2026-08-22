@@ -1,6 +1,6 @@
-import type { AudioMode } from '$lib/audio';
+import type { AudioMode } from '@arc/shared/audio';
 import { z } from 'zod';
-import { RequestCache } from '$lib/server/request-cache';
+import { RequestCache } from '#request-cache';
 import type { AniListAnime } from './anilist/types';
 import { findShowId } from './allanime/catalog';
 import {
