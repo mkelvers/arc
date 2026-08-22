@@ -1,4 +1,4 @@
-import type { EpisodeSkipTimes, SkipInterval } from '$lib/player/skip-times';
+import type { EpisodeSkipTimes, SkipInterval } from '@arc/shared/player/skip-times';
 import { z } from 'zod';
 
 const apiBaseUrl = 'https://api.aniskip.com/v2/skip-times';
