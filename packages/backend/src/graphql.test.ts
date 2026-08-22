@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { graphql, GraphQLRequestError } from '@arc/backend/internal/graphql';
+import { graphql, GraphQLRequestError } from './graphql';
 
 interface Result {
     viewer: { id: number };
