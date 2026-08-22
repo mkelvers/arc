@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
-import type { AnimeEpisode } from '$lib/types';
+import type { AnimeEpisode } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';

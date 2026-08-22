@@ -1,7 +1,7 @@
 import { and, eq, notInArray, sql } from 'drizzle-orm';
 
-import { mergeAudioModes } from '$lib/audio';
-import type { AnimeEpisode } from '$lib/types';
+import { mergeAudioModes } from '@arc/shared/audio';
+import type { AnimeEpisode } from '@arc/shared/types';
 import { db, excluded } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';

@@ -1,11 +1,10 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
-import type { AudioMode } from '$lib/audio';
-import type { AnimeEpisode } from '$lib/types';
+import type { AnimeEpisode, AudioMode } from '../../model';
 import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
-import { formatDuration } from '$lib/utils';
+import { formatDuration } from '../../utils';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
 
