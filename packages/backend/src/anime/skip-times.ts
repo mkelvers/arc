@@ -177,23 +177,26 @@ export async function getSegmentTemplates(
     return templates;
 }
 
-type SegmentSave =
-    | { kind: SkipKind; operation: 'clear' }
-    | { kind: SkipKind; operation: 'apply-template'; start: number }
-    | {
-          kind: SkipKind;
-          operation: 'set';
-          interval: SkipInterval;
-          createTemplate: boolean;
-      };
+type SegmentSave = {
+    anilistId: number;
+    episodeId: string;
+    kind: SkipKind;
+} & (
+    | { operation: 'clear' }
+    | { operation: 'apply-template'; start: number }
+    | { operation: 'set'; interval: SkipInterval; createTemplate: boolean }
+);
 
-export async function saveEpisodeSegment(anilistId: number, episodeId: string, save: SegmentSave) {
+export async function saveEpisodeSegment(save: SegmentSave) {
     const saved = await db.transaction(async (tx) => {
         const [episode] = await tx
             .select({ number: animeEpisode.number })
             .from(animeEpisode)
             .where(
-                and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId))
+                and(
+                    eq(animeEpisode.anilistId, save.anilistId),
+                    eq(animeEpisode.episodeId, save.episodeId)
+                )
             )
             .limit(1);
         if (!episode) {
@@ -218,7 +221,7 @@ export async function saveEpisodeSegment(anilistId: number, episodeId: string, s
                 .from(animeEpisodeSegmentTemplate)
                 .where(
                     and(
-                        eq(animeEpisodeSegmentTemplate.anilistId, anilistId),
+                        eq(animeEpisodeSegmentTemplate.anilistId, save.anilistId),
                         eq(animeEpisodeSegmentTemplate.kind, save.kind),
                         lte(animeEpisodeSegmentTemplate.episodeFrom, episode.number)
                     )
@@ -249,14 +252,17 @@ export async function saveEpisodeSegment(anilistId: number, episodeId: string, s
             .update(animeEpisode)
             .set(values)
             .where(
-                and(eq(animeEpisode.anilistId, anilistId), eq(animeEpisode.episodeId, episodeId))
+                and(
+                    eq(animeEpisode.anilistId, save.anilistId),
+                    eq(animeEpisode.episodeId, save.episodeId)
+                )
             );
 
         if (save.operation === 'set' && save.createTemplate) {
             await tx
                 .insert(animeEpisodeSegmentTemplate)
                 .values({
-                    anilistId,
+                    anilistId: save.anilistId,
                     kind: save.kind,
                     episodeFrom: episode.number,
                     durationSeconds: save.interval.end - save.interval.start,
@@ -278,8 +284,8 @@ export async function saveEpisodeSegment(anilistId: number, episodeId: string, s
     }
 
     const [times, templates] = await Promise.all([
-        getStoredEpisodeSkipTimes(anilistId, episodeId),
-        getSegmentTemplates(anilistId, saved),
+        getStoredEpisodeSkipTimes(save.anilistId, save.episodeId),
+        getSegmentTemplates(save.anilistId, saved),
     ]);
 
     return { times, templates };
