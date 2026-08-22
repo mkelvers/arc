@@ -9,10 +9,8 @@ import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
 import { anilistRequestPolicy } from './request-policy';
 
-const endpoint = 'https://graphql.anilist.co';
-const defaultFreshFor = 24 * 60 * 60 * 1_000;
 const requests = new Map<string, Promise<unknown>>();
-let cleanupAfter = 0;
+let cleanup = 0;
 
 interface RequestOptions {
     cacheForMs?: number;
@@ -46,11 +44,11 @@ function cacheKey<TVariables>(document: { toString(): string }, variables: TVari
 }
 
 async function removeExpiredEntries(now: Date) {
-    if (cleanupAfter > now.getTime()) {
+    if (cleanup > now.getTime()) {
         return;
     }
 
-    cleanupAfter = now.getTime() + 60 * 60 * 1_000;
+    cleanup = now.getTime() + 60 * 60 * 1_000;
     try {
         await db.delete(anilistQueryCache).where(lte(anilistQueryCache.expiresAt, now));
     } catch (cause) {
@@ -65,10 +63,10 @@ async function refresh<TResult, TVariables>(
     options: RequestOptions
 ) {
     const data = await anilistRequestPolicy.run(() =>
-        graphql(endpoint, document, variables, { timeoutMs: options.timeoutMs })
+        graphql("https://graphql.anilist.co", document, variables, { timeoutMs: options.timeoutMs })
     );
     const fetchedAt = new Date();
-    const expiresAt = new Date(fetchedAt.getTime() + (options.cacheForMs ?? defaultFreshFor));
+    const expiresAt = new Date(fetchedAt.getTime() + (options.cacheForMs ?? 24 * 60 * 60 * 1_000));
 
     try {
         await db
@@ -91,7 +89,7 @@ export async function request<TResult, TVariables>(
     variables: TVariables,
     options: RequestOptions = {}
 ) {
-    const freshFor = options.cacheForMs ?? defaultFreshFor;
+    const freshFor = options.cacheForMs ?? 24 * 60 * 60 * 1_000;
     if (!Number.isSafeInteger(freshFor) || freshFor <= 0) {
         throw new RangeError('AniList cache lifetime must be a positive integer');
     }
