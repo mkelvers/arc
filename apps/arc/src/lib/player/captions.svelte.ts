@@ -194,7 +194,7 @@ export class Captions {
     private offerAvailable(sources: Sources, mode: AudioMode) {
         const source = streamsFor(sources, mode).find((candidate) => {
             const tracks = subtitleTracks(sources, mode, candidate);
-            return Boolean(tracks.own || tracks.sub);
+            return tracks.own !== null || tracks.sub !== null;
         });
         const tracks = subtitleTracks(sources, mode, source);
         const kinds: SubtitleKind[] = [];
