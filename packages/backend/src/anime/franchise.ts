@@ -11,7 +11,7 @@ import { request } from './anilist/client';
 import { plainText, present } from './anilist/text';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
-import { verifiedFranchiseCache, verifiedFranchiseOrder } from './franchise/cache';
+import { FranchiseCacheSchema, verifiedFranchiseCache } from './franchise/cache';
 import { withFranchisePlayback } from './franchise/playback';
 import {
     isFranchiseEntryEligible,
@@ -215,7 +215,8 @@ async function cachedFranchiseOrder(malId: number) {
         console.error(`Franchise cache read failed for MAL ${malId}`, cause);
     }
 
-    const storedOrder = stored ? verifiedFranchiseOrder(stored.data) : null;
+    const parsedStored = stored ? FranchiseCacheSchema.safeParse(stored.data) : null;
+    const storedOrder = parsedStored?.success ? parsedStored.data.order : null;
 
     if (
         stored &&

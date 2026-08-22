@@ -1,28 +1,33 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { FranchiseOrder } from '@arc/shared/types';
-import { verifiedFranchiseCache, verifiedFranchiseOrder } from './cache';
+import { FranchiseCacheSchema, verifiedFranchiseCache } from './cache';
 
 const order: FranchiseOrder = { types: [], entries: [] };
 
 describe('franchise cache identity provenance', () => {
     test('does not trust a legacy order without AniList verification', () => {
-        expect(verifiedFranchiseOrder(order)).toBeNull();
+        expect(FranchiseCacheSchema.safeParse(order).success).toBeFalse();
     });
 
     test('returns an order with valid AniList verification provenance', () => {
         const cached = verifiedFranchiseCache(order, new Date('2026-08-02T03:00:00.000Z'));
 
-        expect(verifiedFranchiseOrder(cached)).toBe(order);
+        const parsed = FranchiseCacheSchema.safeParse(cached);
+
+        expect(parsed.success).toBeTrue();
+        if (parsed.success) {
+            expect(parsed.data.order).toEqual(order);
+        }
     });
 
     test('rejects malformed verification provenance', () => {
         expect(
-            verifiedFranchiseOrder({
+            FranchiseCacheSchema.safeParse({
                 order,
                 anilistVerifiedAt: 'not-a-date',
-            })
-        ).toBeNull();
+            }).success
+        ).toBeFalse();
     });
 
     test('rejects orders written before release metadata was cached', () => {
@@ -67,6 +72,6 @@ describe('franchise cache identity provenance', () => {
             Reflect.deleteProperty(entry, 'status');
         }
 
-        expect(verifiedFranchiseOrder(legacy)).toBeNull();
+        expect(FranchiseCacheSchema.safeParse(legacy).success).toBeFalse();
     });
 });
