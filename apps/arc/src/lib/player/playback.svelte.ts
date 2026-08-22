@@ -114,7 +114,7 @@ export class Playback {
                   .map(({ quality }) => quality)
                   .filter(
                       (quality, index, qualities): quality is string =>
-                          Boolean(quality) && qualities.indexOf(quality) === index
+                          quality !== null && qualities.indexOf(quality) === index
                   )
                   .toSorted((left, right) => Number.parseInt(right) - Number.parseInt(left));
     }
