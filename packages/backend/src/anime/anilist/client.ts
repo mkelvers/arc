@@ -5,8 +5,8 @@ import { z } from 'zod';
 
 import { db } from '@arc/db';
 import { anilistQueryCache } from '@arc/db/schema';
-import { graphql } from '$lib/server/graphql';
-import { record, type JsonValue } from '$lib/utils';
+import { graphql } from '../../graphql';
+import { record, type JsonValue } from '../../utils';
 import { anilistRequestPolicy } from './request-policy';
 
 const endpoint = 'https://graphql.anilist.co';

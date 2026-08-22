@@ -1,4 +1,4 @@
-import type { AnimeCard } from '$lib/types';
+import type { AnimeCard } from '../../model';
 import { mediaTitle, plainText, present } from './text';
 
 interface CardMedia {
