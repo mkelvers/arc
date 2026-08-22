@@ -1,5 +1,5 @@
-import type { AudioMode } from '$lib/audio';
-import type { JsonValue } from '$lib/utils';
+import type { AudioMode } from '@arc/shared/audio';
+import type { JsonValue } from '#utils';
 import { z } from 'zod';
 import { fullestCaption } from './captions';
 import { matchProviderStreamEpisode } from './match';

@@ -1,8 +1,8 @@
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/audio';
-import type { JsonValue } from '$lib/utils';
+import type { AudioMode } from '@arc/shared/audio';
+import type { JsonValue } from '#utils';
 import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';

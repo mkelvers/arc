@@ -1,7 +1,7 @@
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/audio';
+import type { AudioMode } from '@arc/shared/audio';
 import { animeTitles } from '../anilist/text';
 import { providerEpisodeCount } from '../episodes/policy';
 import { normalizeTitle, seriesTitle } from '../tmdb/title';

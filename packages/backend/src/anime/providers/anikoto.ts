@@ -1,8 +1,8 @@
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/audio';
-import { positiveInteger } from '$lib/utils';
+import type { AudioMode } from '@arc/shared/audio';
+import { positiveInteger } from '#utils';
 import { animeTitles } from '../anilist/text';
 import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
@@ -17,7 +17,7 @@ import {
 } from './match';
 import type { AniListAnime } from '../anilist/types';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
-import type { JsonValue } from '$lib/utils';
+import type { JsonValue } from '#utils';
 
 const baseUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';

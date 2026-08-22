@@ -1,7 +1,7 @@
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/audio';
+import type { AudioMode } from '@arc/shared/audio';
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -14,7 +14,7 @@ import {
     standaloneSpecialMatches,
 } from './match';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
-import type { JsonValue } from '$lib/utils';
+import type { JsonValue } from '#utils';
 
 const baseUrl = 'https://anineko.to';
 const providerName = 'anineko';

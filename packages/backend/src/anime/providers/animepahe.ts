@@ -1,9 +1,8 @@
-import { env } from '$env/dynamic/private';
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/audio';
-import { record, type JsonValue } from '$lib/utils';
+import type { AudioMode } from '@arc/shared/audio';
+import { record, type JsonValue } from '#utils';
 import { animeTitles } from '../anilist/text';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -54,8 +53,8 @@ function headers(accept: string) {
     if (accept === 'application/json') {
         requestHeaders.set('X-Requested-With', 'XMLHttpRequest');
     }
-    if (env.ANIMEPAHE_COOKIE) {
-        requestHeaders.set('Cookie', env.ANIMEPAHE_COOKIE.trim());
+    if (process.env.ANIMEPAHE_COOKIE) {
+        requestHeaders.set('Cookie', process.env.ANIMEPAHE_COOKIE.trim());
     }
     return requestHeaders;
 }
