@@ -3,7 +3,11 @@ import { batches } from '#utils';
 import { request } from './client';
 
 export async function getAiringAnime(ids: number[]) {
-    const anime: { id: number; airingAt: number | null; episode: number | null }[] = [];
+    const anime: {
+        id: number;
+        airingAt: number | null;
+        episode: number | null;
+    }[] = [];
 
     if (!ids.length) {
         return anime;
