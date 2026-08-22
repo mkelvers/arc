@@ -12,7 +12,9 @@ import {
 } from '@arc/backend/watchlist';
 import { middleware, type ApiEnvironment } from '../http';
 
-const AnimeIdSchema = z.object({ anilistId: z.coerce.number().int().positive() });
+const AnimeIdSchema = z.object({
+    id: z.coerce.number().int().positive(),
+});
 
 export const watchlist = new Hono<ApiEnvironment>();
 
@@ -27,10 +29,10 @@ watchlist.get('/states', async (context) =>
 );
 
 watchlist.get('/:anilistId', zValidator('param', AnimeIdSchema), async (context) => {
-    const { anilistId } = context.req.valid('param');
+    const { id } = context.req.valid('param');
     return context.json({
-        animeId: anilistId,
-        state: await getWatchlistState(context.get('session').user.id, anilistId),
+        animeId: id,
+        state: await getWatchlistState(context.get('session').user.id, id),
     });
 });
 
@@ -39,12 +41,12 @@ watchlist.put(
     zValidator('param', AnimeIdSchema),
     zValidator('json', WatchlistUpdateSchema),
     async (context) => {
-        const { anilistId } = context.req.valid('param');
+        const { id } = context.req.valid('param');
         return context.json({
-            animeId: anilistId,
+            animeId: id,
             state: await setWatchlistState(
                 context.get('session').user.id,
-                anilistId,
+                id,
                 context.req.valid('json').state
             ),
         });
@@ -52,6 +54,6 @@ watchlist.put(
 );
 
 watchlist.delete('/:anilistId', zValidator('param', AnimeIdSchema), async (context) => {
-    await removeFromWatchlist(context.get('session').user.id, context.req.valid('param').anilistId);
+    await removeFromWatchlist(context.get('session').user.id, context.req.valid('param').id);
     return context.body(null, 204);
 });
