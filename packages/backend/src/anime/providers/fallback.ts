@@ -1,4 +1,4 @@
-import { mergeAudioModes, type AudioMode } from '$lib/audio';
+import { mergeAudioModes, type AudioMode } from '@arc/shared/audio';
 import { availableEpisodeCount, providerEpisodeCount } from '../episodes/policy';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream, ProviderStreams } from './types';
 import { coversExpectedEpisodes, episodeTitleScore, matchProviderEpisode } from './match';
