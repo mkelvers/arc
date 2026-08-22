@@ -14,6 +14,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             headers: {
                 Cookie: event.request.headers.get('cookie') ?? '',
                 Authorization: event.request.headers.get('authorization') ?? '',
+                'X-Forwarded-For': event.getClientAddress(),
             },
             signal: AbortSignal.timeout(8_000),
         });

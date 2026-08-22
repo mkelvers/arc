@@ -21,6 +21,11 @@ export const auth = betterAuth({
         database: {
             generateId: 'uuid',
         },
+        ipAddress: {
+            trustedProxies: process.env.BETTER_AUTH_TRUSTED_PROXY_CIDR
+                ? [process.env.BETTER_AUTH_TRUSTED_PROXY_CIDR]
+                : [],
+        },
     },
     emailAndPassword: {
         enabled: true,
