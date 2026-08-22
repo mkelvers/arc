@@ -35,6 +35,12 @@ describe('anime card page response validation', () => {
         expect(
             AnimeCardPageSchema.safeParse({
                 ...page,
+                anime: [{ ...card, id: 0 }],
+            }).success
+        ).toBeFalse();
+        expect(
+            AnimeCardPageSchema.safeParse({
+                ...page,
                 anime: [{ ...card, score: Number.NaN }],
             }).success
         ).toBeFalse();
