@@ -1,70 +1,52 @@
-import { error } from '@sveltejs/kit';
-
 import { rankAnimeSearch, type AnimeSearchResult } from '@arc/shared/search';
 import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
-import { RequestCache } from '@arc/backend/internal/request-cache';
-import { createAnimeSearchIndex } from '@arc/backend/internal/anime/search-index';
-import { request } from '@arc/backend/internal/anime/anilist/client';
-import { animeCard } from '@arc/backend/internal/anime/anilist/models';
-import { animeTitles, present } from '@arc/backend/internal/anime/anilist/text';
+import { request } from './anilist/client';
+import { animeCard } from './anilist/models';
+import { animeTitles, present } from './anilist/text';
+import { RequestCache } from '../request-cache';
+import { createAnimeSearchIndex } from './search-index';
+import { enrichAnimeCards } from './card-enrichment';
+import { withAnimeSearchMetadata } from './search-enrichment';
 
 const cache = new RequestCache<string, AnimeSearchResult[]>(5 * 60 * 1_000);
 const searchIndex = createAnimeSearchIndex(db);
 
-export function parseSearchQuery(value: string | null) {
-    const query = value?.trim() ?? '';
-    if (query.length > 200) {
-        error(400, 'Search queries cannot exceed 200 characters');
-    }
-
-    return query;
-}
-
 async function requestSearch(search: string) {
     const response = await request(
         SearchAnimePageDocument,
-        {
-            search,
-            page: 1,
-            perPage: 50,
-        },
+        { search, page: 1, perPage: 50 },
         { cacheForMs: 24 * 60 * 60 * 1_000 }
     );
-
     const results = present(response.Page?.media).flatMap((entry) => {
         const card = animeCard(entry);
         if (!card) {
             return [];
         }
 
-        const titles = animeTitles(entry);
-        const relatedIds = present(entry.relations?.edges).flatMap((edge) =>
-            (edge?.relationType === 'PREQUEL' || edge?.relationType === 'SEQUEL') && edge.node
-                ? [edge.node.id]
-                : []
-        );
-
         return [
             {
                 ...card,
-                titles,
+                titles: animeTitles(entry),
                 format: entry.format ?? null,
                 popularity: entry.popularity ?? 0,
                 backdrop: null,
                 artworkGroup: null,
-                relatedIds,
+                relatedIds: present(entry.relations?.edges).flatMap((edge) =>
+                    (edge?.relationType === 'PREQUEL' || edge?.relationType === 'SEQUEL') &&
+                    edge.node
+                        ? [edge.node.id]
+                        : []
+                ),
             },
         ];
     });
-
     const ranked = rankAnimeSearch(search, results);
     await searchIndex.store(ranked);
-
     return ranked;
 }
 
-export async function searchAnime(search: string) {
+async function searchAnime(search: string) {
     const key = search.trim().toLocaleLowerCase('en');
     if (!key) {
         return [];
@@ -78,4 +60,8 @@ export async function searchAnime(search: string) {
         },
         { staleIfError: true, staleWhileRevalidate: true }
     );
+}
+
+export async function getSearchResults(search: string) {
+    return withAnimeSearchMetadata(await enrichAnimeCards(await searchAnime(search)));
 }
