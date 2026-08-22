@@ -1,12 +1,13 @@
 import type { EpisodeSkipTimes, SkipInterval } from '@arc/shared/player/skip-times';
 import { z } from 'zod';
 
+import type { JsonValue } from '#utils';
+
 const apiBaseUrl = 'https://api.aniskip.com/v2/skip-times';
 const maximumEpisodeSeconds = 7 * 24 * 60 * 60;
-type JsonValue = boolean | number | string | null | JsonValue[] | { [key: string]: JsonValue };
 const aniskipIntervalSchema = z.object({
-    startTime: z.number().finite(),
-    endTime: z.number().finite(),
+    startTime: z.number(),
+    endTime: z.number(),
 });
 const aniskipResponseSchema = z.object({
     found: z.boolean(),
@@ -17,8 +18,8 @@ const aniskipResultSchema = z.object({
     interval: aniskipIntervalSchema,
 });
 export const SkipIntervalInputSchema = z.object({
-    start: z.number().finite(),
-    end: z.number().finite(),
+    start: z.number(),
+    end: z.number(),
 });
 
 function interval(start: number, end: number): SkipInterval | null {
