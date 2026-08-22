@@ -352,43 +352,6 @@ export async function proxyStreamRequest(request: Request, fetchStream: StreamFe
     return proxiedResponse(provider.target, provider.response);
 }
 
-/** Reject provider sources that expose a playlist but cannot serve its first
- * media segment. This keeps expired signed playlists out of the browser's
- * fallback order. */
-async function verifyStreamSource(source: string, fetchStream: StreamFetch = fetch) {
-    let provider = await followProviderRedirects(streamTarget(source), null, fetchStream);
-
-    for (let depth = 0; depth < 3; depth += 1) {
-        const contentType = provider.response.headers.get('content-type')?.toLowerCase();
-        const playlist =
-            provider.target.pathname.toLowerCase().endsWith('.m3u8') ||
-            contentType?.includes('mpegurl');
-        if (!playlist) {
-            await provider.response.body?.cancel().catch(() => undefined);
-            return;
-        }
-
-        const body = new TextDecoder().decode(
-            await boundedResponseBytes(provider.response, 1024 * 1024, 10_000, 'playlist')
-        );
-        const reference = firstHlsReference(body);
-        if (!reference) {
-            throw new StreamProxyError({ kind: 'invalid-playlist' });
-        }
-
-        const target = streamTarget(providerReference(reference.url, provider.target).toString());
-        if (reference.kind === 'segment') {
-            const segment = await followProviderRedirects(target, 'bytes=0-0', fetchStream);
-            await segment.response.body?.cancel().catch(() => undefined);
-            return;
-        }
-
-        provider = await followProviderRedirects(target, null, fetchStream);
-    }
-
-    throw new StreamProxyError({ kind: 'invalid-playlist' });
-}
-
 async function boundedResponseBytes(
     response: Response,
     maximumBytes: number,
@@ -537,28 +500,6 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
         }
         return reference;
     }
-}
-
-function firstHlsReference(value: string) {
-    const lines = value.split(/\r?\n/).map((line) => line.trim());
-    for (let index = 0; index < lines.length; index += 1) {
-        const line = lines[index];
-        if (!line.startsWith('#EXTINF:') && !line.startsWith('#EXT-X-STREAM-INF:')) {
-            continue;
-        }
-
-        const url = lines
-            .slice(index + 1)
-            .find((candidate) => candidate && !candidate.startsWith('#'));
-        if (url) {
-            return {
-                kind: line.startsWith('#EXTINF:') ? ('segment' as const) : ('variant' as const),
-                url,
-            };
-        }
-    }
-
-    return null;
 }
 
 function rewriteHlsPlaylist(value: string, playlist: URL) {
