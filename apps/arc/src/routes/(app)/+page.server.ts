@@ -1,12 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 
-import { audioAvailabilityLabel } from '$lib/audio';
-import { currentAnimeSeason } from '$lib/season';
-import { getHomepage } from '$lib/server/anime/anilist/home';
-import { getPopularAudioLabels } from '$lib/server/anime/allanime/catalog';
-import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
-import { storedAudioModes } from '$lib/server/anime/episodes/model';
-import { getHomeHero } from '$lib/server/anime/home';
+import { audioAvailabilityLabel } from '@arc/shared/audio';
+import { currentAnimeSeason } from '@arc/shared/season';
+import { getHomepage } from '@arc/backend/internal/anime/anilist/home';
+import { getPopularAudioLabels } from '@arc/backend/internal/anime/allanime/catalog';
+import { enrichAnimeCards } from '@arc/backend/internal/anime/card-enrichment';
+import { storedAudioModes } from '@arc/backend/internal/anime/episodes/model';
+import { getHomeHero } from '@arc/backend/internal/anime/home';
 import { animeId } from '$lib/server/anime/route';
 import { getContinueWatchingCards } from '$lib/server/progress/home';
 import { dismissPlaybackProgress } from '$lib/server/progress/store';

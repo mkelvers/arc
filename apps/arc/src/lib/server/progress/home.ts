@@ -1,9 +1,9 @@
 import { asc, inArray } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '$lib/audio';
-import type { ContinueWatchingCard } from '$lib/types';
-import { toAnimeDetails } from '$lib/server/anime/details';
-import { getStoredMedia } from '$lib/server/anime/tmdb/media';
+import { audioAvailabilityLabel } from '@arc/shared/audio';
+import type { ContinueWatchingCard } from '@arc/shared/types';
+import { parseStoredAnimeDetails, toAnimeDetails } from '@arc/backend/internal/anime/details';
+import { getStoredMedia } from '@arc/backend/internal/anime/tmdb/media';
 import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
 import { formatDuration } from '$lib/utils';
@@ -38,7 +38,8 @@ export async function getContinueWatchingCards(
                 ({ episodeId }) => episodeId === progress.episodeId
             );
             const current = currentIndex >= 0 ? episodes[currentIndex] : null;
-            const details = progress.details ? toAnimeDetails(progress.details) : null;
+            const storedDetails = parseStoredAnimeDetails(progress.details);
+            const details = storedDetails ? toAnimeDetails(storedDetails) : null;
             const target = progress.completed
                 ? (episodes[currentIndex + 1] ??
                   episodes.find(({ number }) => number > progress.episodeNumber) ??
