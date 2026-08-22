@@ -18,8 +18,8 @@
         TagIcon,
     } from 'phosphor-svelte';
 
-    import { animeFormatLabel, browseSearchParams, metadataLabel, type BrowseFilters } from '$lib/browse';
-    import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '$lib/types';
+    import { animeFormatLabel, browseSearchParams, metadataLabel, type BrowseFilters } from '@arc/shared/browse';
+    import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
     import { cn } from '$lib/utils';
     import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';

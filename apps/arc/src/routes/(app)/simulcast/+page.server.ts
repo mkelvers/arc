@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
 
-import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '$lib/season';
-import { getSimulcastSeasonStarts } from '$lib/server/anime/anilist/simulcast';
-import { requestedSimulcastSeason, simulcastPage } from '$lib/server/anime/simulcast';
+import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '@arc/shared/season';
+import { getSimulcastSeasonStarts } from '@arc/backend/internal/anime/anilist/simulcast';
+import { requestedSimulcastSeason, simulcastPage } from '@arc/backend/internal/anime/simulcast';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

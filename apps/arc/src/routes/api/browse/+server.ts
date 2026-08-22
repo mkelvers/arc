@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 
-import { parseBrowseFilters } from '$lib/browse';
-import { browsePage, BrowseFilterError } from '$lib/server/anime/browse';
+import { parseBrowseFilters } from '@arc/shared/browse';
+import { browsePage, BrowseFilterError } from '@arc/backend/internal/anime/browse';
 import { positiveInteger } from '$lib/utils';
 import type { RequestHandler } from './$types';
 

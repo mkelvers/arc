@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 
-import { parseBrowseFilters } from '$lib/browse';
-import { BrowseFilterError, initialBrowsePage } from '$lib/server/anime/browse';
+import { parseBrowseFilters } from '@arc/shared/browse';
+import { BrowseFilterError, initialBrowsePage } from '@arc/backend/internal/anime/browse';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {
