@@ -25,10 +25,10 @@ export const middleware = createMiddleware<ApiEnvironment>(async (context, next)
 export const origin = createMiddleware(async (context, next) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(context.req.method)) {
         const origin = context.req.header('origin');
-        const hasCookie = Boolean(context.req.header('cookie'));
+        const cookie = context.req.header('cookie');
         if (
             (origin && origin !== process.env.ARC_WEB_ORIGIN!) ||
-            (hasCookie && origin !== process.env.ARC_WEB_ORIGIN!)
+            (cookie && origin !== process.env.ARC_WEB_ORIGIN!)
         ) {
             return context.json(
                 {
