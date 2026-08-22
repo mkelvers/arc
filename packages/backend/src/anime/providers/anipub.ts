@@ -144,9 +144,8 @@ function episodeLinks(value: JsonValue) {
     if (!parsed.success) {
         throw new Error('AniPub returned an invalid episode inventory');
     }
-    const local = parsed.data.local;
-    const first = local.link;
-    const rest = local.ep ?? [];
+    const first = parsed.data.local.link;
+    const rest = parsed.data.local.ep ?? [];
     const links = [first ?? '', ...rest.map((item) => item.link)].map((link) =>
         link.trim().replace(/^src=/, '')
     );
