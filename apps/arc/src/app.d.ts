@@ -1,6 +1,6 @@
-import type { auth } from '$lib/server/auth';
+import type { SessionResponse } from '@arc/api-contract/auth';
 
-type AuthSession = typeof auth.$Infer.Session;
+type AuthSession = NonNullable<SessionResponse>;
 
 declare global {
     namespace App {
