@@ -1,104 +1,62 @@
+import { env } from '$env/dynamic/private';
 import { error, fail } from '@sveltejs/kit';
-import { z } from 'zod';
 
-import { toAnimeDetails } from '@arc/backend/internal/anime/details';
-import { animeId, loadAnime } from '$lib/server/anime/route';
-import { getArtwork } from '@arc/backend/internal/anime/tmdb/artwork';
-import {
-    getStoredMedia,
-    refreshArtwork,
-    selectArtwork,
-    setLogoSize,
-} from '@arc/backend/internal/anime/tmdb/media';
+import { MediaPageSchema } from '@arc/api-contract/anime';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
-    const id = animeId(params.id);
-    if (!id) {
+export const load: PageServerLoad = async ({ params, request }) => {
+    const id = Number(params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
         error(400, 'Invalid anime ID');
     }
-
-    const stored = await getStoredMedia(id).catch((cause) => {
-        console.error(`Stored TMDB media read failed for AniList ${id}`, cause);
-        return null;
-    });
-
-    if (stored) {
-        return {
-            ...stored,
-        };
+    const response = await fetch(`${env.API_ORIGIN!}/v1/anime/${id}/media`, {
+        headers: {
+            Cookie: request.headers.get('cookie') ?? '',
+            Authorization: request.headers.get('authorization') ?? '',
+        },
+    }).catch(() => null);
+    if (!response) {
+        error(503, 'Arc is temporarily unavailable');
     }
-
-    const result = await loadAnime(id);
-    const details = toAnimeDetails(result);
-
-    try {
-        const artwork = await getArtwork(result);
-
-        return {
-            anime: details,
-            artwork,
-        };
-    } catch (cause) {
-        console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
-        return {
-            anime: details,
-            artwork: null,
-        };
+    if (!response.ok) {
+        error(502, 'Anime media could not be loaded');
     }
+    return MediaPageSchema.parse(await response.json());
 };
 
 export const actions: Actions = {
-    default: async ({ params, request }) => {
-        const data = await request.formData();
-        const intent = data.get('intent');
-        const id = animeId(params.id);
-        if (!id) {
+    default: async ({ params, request, url }) => {
+        const id = Number(params.id);
+        if (!Number.isSafeInteger(id) || id <= 0) {
             error(400, 'Invalid anime ID');
         }
-
-        if (intent === 'refresh') {
-            try {
-                await refreshArtwork(id);
-                return { success: true };
-            } catch (cause) {
-                return fail(502, {
-                    message: cause instanceof Error ? cause.message : 'Artwork refresh failed',
-                });
-            }
+        const form = await request.formData();
+        const intent = form.get('intent');
+        const body =
+            intent === 'refresh'
+                ? { intent }
+                : intent === 'logoSize'
+                  ? { intent, logoSize: Number(form.get('logoSize')) }
+                  : {
+                        intent: 'select',
+                        type: form.get('type'),
+                        filePath: form.get('filePath') || null,
+                    };
+        const response = await fetch(`${env.API_ORIGIN!}/v1/anime/${id}/media`, {
+            method: 'PUT',
+            headers: {
+                Cookie: request.headers.get('cookie') ?? '',
+                Authorization: request.headers.get('authorization') ?? '',
+                Origin: url.origin,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        }).catch(() => null);
+        if (!response) {
+            return fail(503, { message: 'Arc is temporarily unavailable' });
         }
-
-        if (intent === 'logoSize') {
-            const logoSize = Number(data.get('logoSize'));
-
-            try {
-                await setLogoSize(id, logoSize);
-                return { success: true };
-            } catch (cause) {
-                return fail(400, {
-                    message: cause instanceof Error ? cause.message : 'Logo size update failed',
-                });
-            }
-        }
-
-        const type = data.get('type');
-        const value = data.get('filePath');
-
-        if (type !== 'backdrop' && type !== 'logo') {
-            return fail(400, { message: 'Invalid artwork type' });
-        }
-        const parsedValue = z.string().safeParse(value);
-        if (!parsedValue.success) {
-            return fail(400, { message: 'Invalid artwork selection' });
-        }
-
-        try {
-            await selectArtwork(id, type, parsedValue.data === '' ? null : parsedValue.data);
-            return { success: true };
-        } catch (cause) {
-            return fail(400, {
-                message: cause instanceof Error ? cause.message : 'Selection failed',
-            });
-        }
+        return response.ok
+            ? { success: true }
+            : fail(response.status, { message: 'Media update failed' });
     },
 };
