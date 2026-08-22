@@ -1,4 +1,3 @@
-import { env } from '$env/dynamic/private';
 import { z } from 'zod';
 
 const changeItemSchema = z.object({
@@ -62,7 +61,7 @@ export async function getEpisodeChanges(
     startDate: string,
     request: typeof fetch = fetch
 ) {
-    const token = env.TMDB_READ_ACCESS_TOKEN?.trim();
+    const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
     if (!token || !episodeId || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
         return null;
     }

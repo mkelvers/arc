@@ -2,7 +2,7 @@ import type { AniListAnime } from '../anilist/types';
 import { z } from 'zod';
 import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
-import type { JsonValue } from '$lib/utils';
+import type { JsonValue } from '#utils';
 import { create, imageUrl } from './client';
 import { getEpisodeChanges } from './episode-changes';
 import {
