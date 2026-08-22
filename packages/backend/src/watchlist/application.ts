@@ -1,15 +1,17 @@
 import type { WatchlistState } from '@arc/db/schema';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
+import type { AnimeCard } from '@arc/shared/types';
 
-import { audioAvailabilityLabel, type AnimeCard, type AudioMode } from '../model';
 import { getWatchlistAnime } from '../anime/anilist/watchlist';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { storedAudioModes } from '../anime/episodes/model';
-import {
-    getWatchlistEntries,
-    getWatchlistState as readWatchlistState,
-    getWatchlistStates as readWatchlistStates,
-    removeFromWatchlist as deleteWatchlistEntry,
-    setWatchlistState as writeWatchlistState,
+import { getWatchlistEntries } from './store';
+
+export {
+    getWatchlistState,
+    getWatchlistStates,
+    removeFromWatchlist,
+    setWatchlistState,
 } from './store';
 
 export type WatchlistSelection = {
@@ -116,20 +118,4 @@ export async function getWatchlistPage(userId: string, selection: WatchlistSelec
     );
 
     return { entries, totalEntries: stored.length };
-}
-
-export function getWatchlistStates(userId: string) {
-    return readWatchlistStates(userId);
-}
-
-export function getWatchlistState(userId: string, anilistId: number) {
-    return readWatchlistState(userId, anilistId);
-}
-
-export function setWatchlistState(userId: string, anilistId: number, state: WatchlistState) {
-    return writeWatchlistState(userId, anilistId, state);
-}
-
-export function removeFromWatchlist(userId: string, anilistId: number) {
-    return deleteWatchlistEntry(userId, anilistId);
 }
