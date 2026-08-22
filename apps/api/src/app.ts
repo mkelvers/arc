@@ -1,36 +1,37 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 
 import { auth } from './auth';
 import { origin } from './http';
 import { accounts } from './routes/accounts';
-import { health } from './routes/health';
+import { anime } from './routes/anime';
+import { catalog } from './routes/catalog';
+import { playback } from './routes/playback';
 import { watchlist } from './routes/watchlist';
 
 const app = new Hono();
 
-app.use(
-    '*',
-    cors({
-        origin: process.env.ARC_WEB_ORIGIN!,
-        allowHeaders: ['Accept', 'Authorization', 'Content-Type'],
-        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        exposeHeaders: ['set-auth-token'],
-        credentials: true,
-    })
-);
-app.use('/v1/*', origin);
 app.use('/v1/*', async (context, next) => {
     await next();
     context.header('Cache-Control', 'no-store');
 });
+app.use('/v1/*', origin);
 
 app.all('/api/auth/*', (context) => auth.handler(context.req.raw));
-app.route('/health', health);
 app.route('/v1/accounts', accounts);
+app.route('/v1/anime', anime);
+app.route('/v1', catalog);
+app.route('/v1', playback);
 app.route('/v1/watchlist', watchlist);
 app.notFound((context) =>
-    context.json({ error: { code: 'NOT_FOUND', message: 'Route not found' } }, 404)
+    context.json(
+        {
+            error: {
+                code: 'NOT_FOUND',
+                message: 'Route not found',
+            },
+        },
+        404
+    )
 );
 app.onError((cause, context) => {
     console.error('Unhandled API request failure', cause);
