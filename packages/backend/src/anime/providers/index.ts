@@ -1,5 +1,3 @@
-import { env } from '$env/dynamic/private';
-
 import { allanimeProvider } from './allanime';
 import { anikotoProvider } from './anikoto';
 import { aninekoProvider } from './anineko';
@@ -25,7 +23,7 @@ const providers = new Map(
 );
 
 function providerOrder() {
-    const configured = env.PLAYBACK_PROVIDERS?.split(',')
+    const configured = process.env.PLAYBACK_PROVIDERS?.split(',')
         .map((name) => name.trim().toLowerCase())
         .filter(Boolean);
     if (!configured?.length) {

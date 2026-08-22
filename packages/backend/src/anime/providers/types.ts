@@ -1,5 +1,4 @@
-import type { AudioMode } from '$lib/audio';
-import type { EpisodeType } from '$lib/types';
+import type { AudioMode, EpisodeType } from '../../model';
 import type { AniListAnime } from '../anilist/types';
 
 export interface ProviderEpisode {
