@@ -16,11 +16,6 @@ import {
     varchar,
 } from 'drizzle-orm/pg-core';
 
-import type { AnimeQuery } from '@arc/app/lib/graphql/anilist/generated/graphql';
-import type { AnimeSearchResult } from '@arc/app/lib/search';
-import type { AnimeCard } from '@arc/app/lib/types';
-import type { FranchiseCacheData } from '@arc/app/lib/server/anime/franchise/cache';
-
 export const externalProvider = pgEnum('external_provider', ['anilist', 'tmdb']);
 
 export const externalMediaType = pgEnum('external_media_type', ['anime', 'movie', 'tv']);
@@ -269,7 +264,7 @@ export const animeReleasePoster = pgTable(
 
 export const animeFranchiseCache = pgTable('anime_franchise_cache', {
     malId: integer('mal_id').primaryKey(),
-    data: jsonb('data').$type<FranchiseCacheData>().notNull(),
+    data: jsonb('data').$type<unknown>().notNull(),
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -313,7 +308,7 @@ export const animeSynopsisCache = pgTable('anime_synopsis_cache', {
 
 export const animeDetailsCache = pgTable('anime_details_cache', {
     anilistId: integer('anilist_id').primaryKey(),
-    data: jsonb('data').$type<NonNullable<AnimeQuery['Media']>>().notNull(),
+    data: jsonb('data').$type<unknown>().notNull(),
     version: integer('version').notNull().default(1),
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -334,7 +329,7 @@ export const animeSearchIndex = pgTable(
     {
         anilistId: integer('anilist_id').primaryKey(),
         searchText: text('search_text').notNull(),
-        data: jsonb('data').$type<AnimeSearchResult>().notNull(),
+        data: jsonb('data').$type<unknown>().notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true })
             .notNull()
             .defaultNow()
@@ -350,7 +345,7 @@ export const animeSearchIndex = pgTable(
 
 export const animeCardCache = pgTable('anime_card_cache', {
     anilistId: integer('anilist_id').primaryKey(),
-    data: jsonb('data').$type<AnimeCard>().notNull(),
+    data: jsonb('data').$type<unknown>().notNull(),
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -360,9 +355,7 @@ export const animeSimulcastPageCache = pgTable(
         season: varchar('season', { length: 8 }).notNull(),
         year: integer('year').notNull(),
         page: integer('page').notNull(),
-        data: jsonb('data')
-            .$type<{ anime: AnimeCard[]; hasNextPage: boolean; page: number }>()
-            .notNull(),
+        data: jsonb('data').$type<unknown>().notNull(),
         fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [primaryKey({ columns: [table.season, table.year, table.page] })]
