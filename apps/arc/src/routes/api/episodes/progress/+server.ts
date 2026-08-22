@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 
-import { parsePlaybackProgress, type JsonValue } from '@arc/backend/internal/progress/input';
+import { parsePlaybackProgress } from '@arc/backend/internal/progress/input';
+import type { JsonValue } from '@arc/backend/internal/utils';
 import { savePlaybackProgress } from '$lib/server/progress/store';
 import type { RequestHandler } from './$types';
 
