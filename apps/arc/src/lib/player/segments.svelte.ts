@@ -143,7 +143,9 @@ export class SegmentEditor {
         try {
             const response = await fetch('/api/episodes/skip-times', {
                 method: 'PUT',
-                headers: { 'content-type': 'application/json' },
+                headers: {
+                    'content-type': 'application/json',
+                },
                 body: JSON.stringify({
                     anilistId: episode.animeId,
                     episodeId: episode.episodeId,

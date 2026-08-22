@@ -37,7 +37,9 @@
                 page: String(page),
             });
             const response = await fetch(`/api/simulcast?${query}`, {
-                headers: { Accept: 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                },
                 signal: controller.signal,
             });
             if (!response.ok) {
