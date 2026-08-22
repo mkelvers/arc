@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { InputConstraint } from 'sveltekit-superforms';
     import type { HTMLInputAttributes } from 'svelte/elements';
 
     let {
@@ -18,7 +17,10 @@
         type?: 'text' | 'password';
         autocomplete: HTMLInputAttributes['autocomplete'];
         value?: string;
-        constraints?: InputConstraint;
+        constraints?: Pick<
+            HTMLInputAttributes,
+            'required' | 'minlength' | 'maxlength' | 'pattern' | 'min' | 'max' | 'step'
+        >;
         error?: string;
         autocapitalize?: HTMLInputAttributes['autocapitalize'];
         spellcheck?: boolean;
