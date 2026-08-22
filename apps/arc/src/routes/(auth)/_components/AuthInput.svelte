@@ -14,7 +14,7 @@
     }: {
         name: string;
         label: string;
-        type?: 'text' | 'password';
+        type?: 'email' | 'password' | 'text';
         autocomplete: HTMLInputAttributes['autocomplete'];
         value?: string;
         constraints?: Pick<

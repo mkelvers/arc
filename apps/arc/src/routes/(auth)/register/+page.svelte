@@ -1,10 +1,10 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { env } from '$env/dynamic/public';
 
     import { ApiErrorSchema } from '@arc/api-contract/auth';
     import AuthInput from '../_components/AuthInput.svelte';
 
+    let email = $state('');
     let username = $state('');
     let password = $state('');
     let confirmPassword = $state('');
@@ -26,13 +26,12 @@
 
         pending = true;
         try {
-            const response = await fetch(`${env.PUBLIC_API_ORIGIN}/v1/accounts`, {
+            const response = await fetch('/v1/accounts', {
                 method: 'POST',
-                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password, invitationCode }),
+                body: JSON.stringify({ email, username, password, invitationCode }),
             });
             if (!response.ok) {
                 message = ApiErrorSchema.parse(await response.json()).error.message;
@@ -62,6 +61,16 @@
     {/if}
 
     <div class="mt-12 space-y-6">
+        <AuthInput
+            name="email"
+            label="Email"
+            type="email"
+            autocomplete="email"
+            autocapitalize="none"
+            spellcheck={false}
+            constraints={{ required: true, maxlength: 254 }}
+            bind:value={email}
+        />
         <AuthInput
             name="username"
             label="Username"
