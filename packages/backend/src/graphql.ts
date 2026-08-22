@@ -15,9 +15,7 @@ const payloadSchema = z.preprocess(
     (value) => {
         try {
             return JSON.parse(String(value));
-        } catch {
-            return undefined;
-        }
+        } catch {}
     },
     z.object({
         data: z.unknown().optional(),
@@ -86,8 +84,6 @@ export async function graphql<TResult, TVariables>(
                     headers: {
                         Accept: 'application/json',
                         'Content-Type': 'application/json',
-
-                        // Since this is server-side code, identify the application.
                         'User-Agent': 'Arc/0.1',
 
                         ...options.headers,
