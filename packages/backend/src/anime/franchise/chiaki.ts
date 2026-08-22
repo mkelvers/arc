@@ -3,9 +3,6 @@ import * as cheerio from 'cheerio';
 import type { FranchiseOrder } from '@arc/shared/types';
 import { positiveInteger } from '#utils';
 
-const baseUrl = 'https://chiaki.site';
-const maxHtmlLength = 2 * 1024 * 1024;
-
 export interface ChiakiEntry {
     malId: number;
     typeId: string;
@@ -17,7 +14,7 @@ export interface ChiakiEntry {
 
 function imageFromStyle(style: string | undefined) {
     const path = style?.match(/url\((['"]?)(.*?)\1\)/i)?.[2]?.trim();
-    return path ? new URL(path, `${baseUrl}/`).href : '';
+    return path ? new URL(path, 'https://chiaki.site').href : '';
 }
 
 export function parseOrder(html: string) {
@@ -57,11 +54,11 @@ export function parseOrder(html: string) {
 }
 
 export async function fetchOrder(malId: number) {
-    const response = await fetch(`${baseUrl}/?/tools/watch_order/id/${malId}`, {
+    const response = await fetch(`https://chiaki.site/?/tools/watch_order/id/${malId}`, {
         headers: {
             Accept: 'text/html,application/xhtml+xml',
             'Accept-Language': 'en-US,en;q=0.9',
-            Referer: `${baseUrl}/`,
+            Referer: 'https://chiaki.site/',
             'User-Agent':
                 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
         },
@@ -73,7 +70,7 @@ export async function fetchOrder(malId: number) {
     }
 
     const html = await response.text();
-    if (html.length > maxHtmlLength) {
+    if (html.length > 2 * 1024 * 1024) {
         throw new Error('Chiaki response was unexpectedly large');
     }
 
