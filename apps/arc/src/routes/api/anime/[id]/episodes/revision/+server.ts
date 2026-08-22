@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 
-import { getEpisodeRevision } from '$lib/server/anime/episodes';
+import { getEpisodeRevision } from '@arc/backend/internal/anime/episodes';
 import { animeId } from '$lib/server/anime/route';
 import type { RequestHandler } from './$types';
 

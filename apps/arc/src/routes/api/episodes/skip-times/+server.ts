@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { z } from 'zod';
 
-import { SkipIntervalInputSchema, validSkipInterval } from '$lib/server/anime/aniskip';
-import { saveEpisodeSegment } from '$lib/server/anime/skip-times';
+import { SkipIntervalInputSchema, validSkipInterval } from '@arc/backend/internal/anime/aniskip';
+import { saveEpisodeSegment } from '@arc/backend/internal/anime/skip-times';
 import type { RequestHandler } from './$types';
 
 const segmentRequestSchema = z.object({
