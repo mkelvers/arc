@@ -2,10 +2,16 @@ import { createMiddleware } from 'hono/factory';
 
 import { auth, type AuthSession } from './auth';
 
-export type ApiEnvironment = { Variables: { session: AuthSession } };
+export type ApiEnvironment = {
+    Variables: {
+        session: AuthSession;
+    };
+};
 
 export const middleware = createMiddleware<ApiEnvironment>(async (context, next) => {
-    const session = await auth.api.getSession({ headers: context.req.raw.headers });
+    const session = await auth.api.getSession({
+        headers: context.req.raw.headers,
+    });
     if (!session) {
         return context.json(
             {
