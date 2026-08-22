@@ -3,7 +3,56 @@ import { createHash } from 'node:crypto';
 import { and, eq, gt, isNotNull, isNull, or } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { invitations } from '@arc/db/schema';
+import { invitations, users } from '@arc/db/schema';
+
+export class InvalidInvitationError extends Error {
+    constructor() {
+        super('The invitation is invalid or already used');
+        this.name = 'InvalidInvitationError';
+    }
+}
+
+export class InvitationCompletionError extends Error {
+    constructor(options?: ErrorOptions) {
+        super('The invitation could not be completed', options);
+        this.name = 'InvitationCompletionError';
+    }
+}
+
+type CreatedAccount = { id: string; name: string; username: string };
+
+export async function registerInvitedAccount(
+    invitationCode: string,
+    createAccount: (reservationId: string) => Promise<CreatedAccount>
+) {
+    const reservationId = crypto.randomUUID();
+    if (!(await claimInvitation(invitationCode, reservationId))) {
+        throw new InvalidInvitationError();
+    }
+
+    let account: CreatedAccount | undefined;
+    try {
+        account = await createAccount(reservationId);
+        if (!(await completeInvitation(reservationId, account.id))) {
+            throw new InvitationCompletionError();
+        }
+        return account;
+    } catch (cause) {
+        if (account) {
+            try {
+                await db.delete(users).where(eq(users.id, account.id));
+            } catch {
+                // Cleanup is best effort; the API logs and maps the original registration failure.
+            }
+        }
+        try {
+            await restoreInvitation(reservationId);
+        } catch {
+            // Cleanup is best effort; the API logs and maps the original registration failure.
+        }
+        throw cause;
+    }
+}
 
 export async function claimInvitation(code: string, claim: string) {
     const now = new Date();
