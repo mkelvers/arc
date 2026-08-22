@@ -44,10 +44,13 @@
 
         pending = true;
         try {
-            const response = await fetch(new URL('/v1/accounts', env.PUBLIC_API_ORIGIN), {
+            const response = await fetch(`${env.PUBLIC_API_ORIGIN}/v1/accounts`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
                     username: input.data.username,
                     password: input.data.password,
