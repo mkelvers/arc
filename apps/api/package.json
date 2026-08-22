@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "ARC_WEB_ORIGIN=http://localhost:5173 bun --env-file=../arc/.env --watch src/index.ts",
+        "dev": "bun --env-file=.env --watch src/index.ts",
         "build": "bun build src/index.ts --outdir dist --target bun",
         "check": "tsc --noEmit",
         "test": "bun test",
