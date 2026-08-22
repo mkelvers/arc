@@ -1,6 +1,6 @@
-import type { AnimeCard } from '$lib/types';
-import { HomeAnimeDocument, type MediaSeason } from '$lib/graphql/anilist/generated/graphql';
-import { RequestCache } from '$lib/server/request-cache';
+import type { AnimeCard } from '@arc/shared/types';
+import { HomeAnimeDocument, type MediaSeason } from '@arc/shared/anilist/generated/graphql';
+import { RequestCache } from '#request-cache';
 import { request } from './client';
 import { selectPopularAnime } from './home-selection';
 import { animeCard } from './models';

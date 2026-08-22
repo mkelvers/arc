@@ -1,6 +1,6 @@
-import type { AnimeSeason, AnimeSeasonStartYears } from '$lib/season';
-import { SimulcastSeasonStartsDocument } from '$lib/graphql/anilist/generated/graphql';
-import { RequestCache } from '$lib/server/request-cache';
+import type { AnimeSeason, AnimeSeasonStartYears } from '@arc/shared/season';
+import { SimulcastSeasonStartsDocument } from '@arc/shared/anilist/generated/graphql';
+import { RequestCache } from '#request-cache';
 import { request } from './client';
 
 const starts = new RequestCache<string, AnimeSeasonStartYears>(24 * 60 * 60 * 1_000);
