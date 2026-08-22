@@ -1,5 +1,5 @@
-import { parseAnimeSeason, type AnimeSeasonSelection } from '$lib/season';
-import { positiveInteger } from '$lib/utils';
+import { parseAnimeSeason, type AnimeSeasonSelection } from '@arc/shared/season';
+import { positiveInteger } from '#utils';
 import { getSimulcastPage as fetchSimulcastPage } from './allanime/catalog';
 import { enrichAnimeCards } from './card-enrichment';
 
