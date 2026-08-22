@@ -19,7 +19,11 @@ export class InvitationCompletionError extends Error {
     }
 }
 
-type CreatedAccount = { id: string; name: string; username: string };
+type CreatedAccount = {
+    id: string;
+    name: string;
+    username: string;
+};
 
 export async function registerInvitedAccount(
     invitationCode: string,
@@ -41,15 +45,11 @@ export async function registerInvitedAccount(
         if (account) {
             try {
                 await db.delete(users).where(eq(users.id, account.id));
-            } catch {
-                // Cleanup is best effort; the API logs and maps the original registration failure.
-            }
+            } catch {}
         }
         try {
             await restoreInvitation(reservationId);
-        } catch {
-            // Cleanup is best effort; the API logs and maps the original registration failure.
-        }
+        } catch {}
         throw cause;
     }
 }
