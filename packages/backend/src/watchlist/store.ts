@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 
-import type { PlaybackProgressInput } from '$lib/server/progress/input';
-import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
+import type { PlaybackProgressInput } from '../progress/input';
+import { ensureInternalAnimeId, findInternalAnimeId } from '../anime/identity';
 import { db } from '@arc/db';
 import {
     animeEpisode,
@@ -11,7 +11,7 @@ import {
     watchlist,
     type WatchlistState,
 } from '@arc/db/schema';
-import { watchlistStateAfterPlayback } from './watchlist-completion';
+import { watchlistStateAfterPlayback } from './completion';
 
 export async function getWatchlistState(userId: string | undefined, anilistId: number) {
     if (!userId) {

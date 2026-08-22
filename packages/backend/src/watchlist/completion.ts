@@ -1,5 +1,5 @@
-import type { WatchlistState } from '$lib/watchlist';
-import { coversExpectedEpisodes } from '$lib/server/anime/providers/match';
+import type { WatchlistState } from '@arc/db/schema';
+import { coversExpectedEpisodes } from '../anime/providers/match';
 
 interface Episode {
     episodeId: string;

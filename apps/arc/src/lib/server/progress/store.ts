@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, lt, or } from 'drizzle-orm';
 
-import { ensureInternalAnimeId, findInternalAnimeId } from '$lib/server/anime/identity';
+import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/backend/internal/anime/identity';
 import { db, excluded } from '@arc/db';
 import {
     anime as animeTable,
@@ -10,8 +10,8 @@ import {
     animeExternalIdLink,
     playbackProgress,
 } from '@arc/db/schema';
-import { updateWatchlistAfterPlayback } from '$lib/server/watchlist';
-import type { PlaybackProgressInput } from './input';
+import { updateWatchlistAfterPlayback } from '@arc/backend/internal/watchlist/store';
+import type { PlaybackProgressInput } from '@arc/backend/internal/progress/input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
     const [episode] = await db
