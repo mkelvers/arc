@@ -13,7 +13,7 @@ export const AccountRegistrationSchema = z.object({
 
 export const AccountRegistrationResponseSchema = z.object({
     user: z.object({
-        id: z.string().uuid(),
+        id: z.uuid(),
         name: z.string(),
         username: z.string(),
     }),
