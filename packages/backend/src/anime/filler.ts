@@ -1,6 +1,6 @@
 import { load } from 'cheerio';
 
-import type { EpisodeType } from '$lib/types';
+import type { EpisodeType } from '@arc/shared/types';
 import type { AniListAnime } from './anilist/types';
 import type { ProviderEpisode } from './providers/types';
 

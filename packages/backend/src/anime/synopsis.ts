@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import type { AnimeCard } from '$lib/types';
+import type { AnimeCard } from '../model';
 import { db } from '@arc/db';
 import { animeSynopsisCache } from '@arc/db/schema';
 import { getAnime } from './anilist/details';
