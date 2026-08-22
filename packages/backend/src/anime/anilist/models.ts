@@ -1,4 +1,4 @@
-import type { AnimeCard } from '../../model';
+import type { AnimeCard } from '@arc/shared/types';
 import { mediaTitle, plainText, present } from './text';
 
 interface CardMedia {
