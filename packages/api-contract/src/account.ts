@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const AccountRegistrationSchema = z.object({
+    email: z.email().max(254),
     username: z
         .string()
         .trim()

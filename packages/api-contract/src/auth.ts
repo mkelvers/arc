@@ -2,12 +2,15 @@ import { z } from 'zod';
 
 export const ApiErrorCodeSchema = z.enum([
     'AUTHENTICATION_REQUIRED',
+    'EMAIL_TAKEN',
     'INTERNAL_ERROR',
     'INVITATION_COMPLETION_FAILED',
     'INVITATION_INVALID',
+    'INVALID_REQUEST',
     'NOT_FOUND',
     'ORIGIN_FORBIDDEN',
     'REGISTRATION_FAILED',
+    'STREAM_FAILED',
     'USERNAME_TAKEN',
 ]);
 
