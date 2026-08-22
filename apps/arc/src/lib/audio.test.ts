@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 
-import { audioAvailabilityLabel, episodeAudioAvailabilityLabel, mergeAudioModes } from './audio';
+import {
+    audioAvailabilityLabel,
+    episodeAudioAvailabilityLabel,
+    mergeAudioModes,
+} from '@arc/shared/audio';
 
 describe('audio availability labels', () => {
     test('derives labels from normalized audio modes', () => {
