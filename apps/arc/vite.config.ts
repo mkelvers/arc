@@ -53,5 +53,12 @@ export default defineConfig(({ command }) => {
 
     return {
         plugins: [tailwindcss(), sveltekit(kitOptions)],
+        server: {
+            proxy: {
+                '^/(api/auth|v1)': {
+                    target: process.env.API_ORIGIN!,
+                },
+            },
+        },
     };
 });
