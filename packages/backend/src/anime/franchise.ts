@@ -1,21 +1,17 @@
 import { eq, inArray } from 'drizzle-orm';
 
-import type { FranchiseOrder } from '$lib/types';
+import type { FranchiseOrder } from '@arc/shared/types';
 import {
     FranchiseMediaDocument,
     type FranchiseMediaQuery,
-} from '$lib/graphql/anilist/generated/graphql';
+} from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { animeEpisode, animeFranchiseCache } from '@arc/db/schema';
 import { request } from './anilist/client';
 import { plainText, present } from './anilist/text';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
-import {
-    verifiedFranchiseCache,
-    verifiedFranchiseOrder,
-    type FranchiseCacheData,
-} from './franchise/cache';
+import { verifiedFranchiseCache, verifiedFranchiseOrder } from './franchise/cache';
 import { withFranchisePlayback } from './franchise/playback';
 import {
     isFranchiseEntryEligible,
@@ -204,12 +200,7 @@ async function refresh(malId: number) {
 }
 
 async function cachedFranchiseOrder(malId: number) {
-    let stored:
-        | {
-              data: FranchiseCacheData;
-              fetchedAt: Date;
-          }
-        | undefined;
+    let stored: { data: unknown; fetchedAt: Date } | undefined;
 
     try {
         [stored] = await db

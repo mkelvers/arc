@@ -1,5 +1,5 @@
-import { episodeAudioAvailabilityLabel, type AudioMode } from '$lib/audio';
-import type { FranchiseOrder } from '$lib/types';
+import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
+import type { FranchiseOrder } from '@arc/shared/types';
 
 export type FranchisePlaybackEpisode = {
     anilistId: number;

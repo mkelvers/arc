@@ -1,7 +1,7 @@
 import * as cheerio from 'cheerio';
 
-import type { FranchiseOrder } from '$lib/types';
-import { positiveInteger } from '$lib/utils';
+import type { FranchiseOrder } from '@arc/shared/types';
+import { positiveInteger } from '#utils';
 
 const baseUrl = 'https://chiaki.site';
 const maxHtmlLength = 2 * 1024 * 1024;

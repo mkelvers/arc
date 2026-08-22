@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { FranchiseOrder } from '$lib/types';
+import type { FranchiseOrder } from '@arc/shared/types';
 import { verifiedFranchiseCache, verifiedFranchiseOrder } from './cache';
 
 const order: FranchiseOrder = { types: [], entries: [] };
