@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '$lib/browse';
+import type { BrowseFilters } from '@arc/shared/browse';
 import { z } from 'zod';
 import {
     BrowseAnimePageDocument,
@@ -8,8 +8,8 @@ import {
     type MediaSort,
     type MediaSource,
     type MediaStatus,
-} from '$lib/graphql/anilist/generated/graphql';
-import { GraphQLRequestError } from '$lib/server/graphql';
+} from '@arc/shared/anilist/generated/graphql';
+import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
 import { mediaTitle, plainText, present } from './text';
 

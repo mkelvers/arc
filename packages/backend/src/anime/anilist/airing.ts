@@ -1,5 +1,5 @@
-import { AiringAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
-import { batches } from '$lib/utils';
+import { AiringAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
+import { batches } from '#utils';
 import { request } from './client';
 
 export async function getAiringAnime(ids: number[]) {
