@@ -35,13 +35,15 @@ export const PUT: RequestHandler = async ({ locals, request }) => {
         return json({ message: 'Authentication required' }, { status: 401 });
     }
 
-    const body = segmentRequestSchema.safeParse(await request.json().catch(() => null));
-    if (!body.success) {
+    let body;
+    try {
+        body = segmentRequestSchema.parse(await request.json());
+    } catch {
         return json({ message: 'Invalid segments' }, { status: 400 });
     }
 
     try {
-        const saved = await saveEpisodeSegment(body.data);
+        const saved = await saveEpisodeSegment(body);
         if (!saved) {
             return json({ message: 'Episode not found' }, { status: 404 });
         }
