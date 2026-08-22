@@ -12,5 +12,7 @@ export const GET: RequestHandler = async ({ params, setHeaders }) => {
 
     setHeaders({ 'Cache-Control': 'no-store' });
 
-    return json({ revision: await getEpisodeRevision(id) });
+    return json({
+        revision: await getEpisodeRevision(id),
+    });
 };

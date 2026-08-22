@@ -25,7 +25,9 @@
                 password,
             });
             if (!result.error) {
-                await goto('/', { invalidateAll: true });
+                await goto('/', {
+                    invalidateAll: true,
+                });
                 return;
             }
             message =
@@ -61,7 +63,12 @@
             autocomplete="username"
             autocapitalize="none"
             spellcheck={false}
-            constraints={{ required: true, minlength: 3, maxlength: 30, pattern: '[A-Za-z0-9_]+' }}
+            constraints={{
+                required: true,
+                minlength: 3,
+                maxlength: 30,
+                pattern: '[A-Za-z0-9_]+',
+            }}
             bind:value={username}
         />
         <AuthInput
