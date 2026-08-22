@@ -1,0 +1,40 @@
+{
+    "name": "@arc/backend",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "imports": {
+        "#graphql": "./src/graphql.ts",
+        "#request-cache": "./src/request-cache.ts",
+        "#utils": "./src/utils.ts"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./auth": "./src/auth.ts",
+        "./watchlist": "./src/watchlist/application.ts",
+        "./progress": "./src/progress/store.ts",
+        "./internal/anime/providers": "./src/anime/providers/index.ts",
+        "./internal/*": "./src/*.ts"
+    },
+    "scripts": {
+        "check": "tsc --noEmit",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "@arc/db": "workspace:*",
+        "@arc/shared": "workspace:*",
+        "@graphql-typed-document-node/core": "^3.2.0",
+        "cheerio": "^1.2.0",
+        "dotenv": "catalog:",
+        "drizzle-orm": "catalog:",
+        "openapi-fetch": "^0.17.0",
+        "postgres": "catalog:",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "@types/node": "catalog:",
+        "msw": "^2.15.0",
+        "typescript": "~6.0.3"
+    }
+}
