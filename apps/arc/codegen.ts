@@ -2,7 +2,7 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 export default {
     generates: {
-        'src/lib/graphql/anilist/generated/': {
+        '../../packages/shared/src/anilist/generated/': {
             schema: 'https://graphql.anilist.co',
             documents: 'src/lib/graphql/anilist/*.graphql',
             preset: 'client',
@@ -13,7 +13,7 @@ export default {
                 useTypeImports: true,
             },
         },
-        'src/lib/graphql/allanime/generated/': {
+        '../../packages/backend/src/anime/allanime/generated/': {
             schema: 'src/lib/graphql/allanime/schema.graphql',
             documents: 'src/lib/graphql/allanime/operations/*.graphql',
             preset: 'client',
