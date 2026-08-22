@@ -24,7 +24,6 @@ export const GET: RequestHandler = async ({ url }) => {
             error(400, cause.message);
         }
 
-        console.error(`Browse page ${page} load failed`, cause);
         error(502, 'More anime could not be loaded');
     }
 };

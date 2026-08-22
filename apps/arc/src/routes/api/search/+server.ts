@@ -14,8 +14,7 @@ export const GET: RequestHandler = async ({ url }) => {
     let results;
     try {
         results = await searchAnime(query);
-    } catch (cause) {
-        console.error(`Anime search for ${JSON.stringify(query)} failed`, cause);
+    } catch {
         error(502, 'Anime search could not be loaded');
     }
 

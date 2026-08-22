@@ -1,4 +1,4 @@
-import { error, json } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 
 import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '@arc/shared/season';
 import { getSimulcastSeasonStarts } from '@arc/backend/internal/anime/anilist/simulcast';
@@ -17,25 +17,20 @@ export const GET: RequestHandler = async ({ url }) => {
         error(404, 'That simulcast season is not available yet');
     }
 
-    const starts = await getSimulcastSeasonStarts().catch((cause) => {
-        console.error('Simulcast season range load failed', cause);
-        error(502, 'Simulcast could not be loaded');
-    });
+    const starts = await getSimulcastSeasonStarts().catch(() =>
+        error(502, 'Simulcast could not be loaded')
+    );
     if (
         !availableAnimeSeasons(starts, current).some(
-            (option) => option.season === selected.season && option.year === selected.year
+            ({ season, year }) => season === selected.season && year === selected.year
         )
     ) {
         error(404, 'That simulcast season is not available');
     }
 
-    try {
-        return json(await simulcastPage(selected, page));
-    } catch (cause) {
-        console.error(
-            `Simulcast ${selected.season} ${selected.year} page ${page} load failed`,
-            cause
-        );
-        error(502, 'More simulcast releases could not be loaded');
-    }
+    return Response.json(
+        await simulcastPage(selected, page).catch(() =>
+            error(502, 'More simulcast releases could not be loaded')
+        )
+    );
 };
