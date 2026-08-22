@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { watchlistStateAfterPlayback } from '@arc/backend/internal/watchlist/completion';
+import { watchlistStateAfterPlayback } from './completion';
 
 const episodes = [
     { episodeId: 'one', number: 1 },
