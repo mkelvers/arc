@@ -1,4 +1,4 @@
-import { AnimeCardSchema, type AnimeCard } from '../../model';
+import { AnimeCardSchema, type AnimeCard } from '@arc/shared/types';
 import { WatchlistAnimeDocument } from '@arc/shared/anilist/generated/graphql';
 import { inArray, sql } from 'drizzle-orm';
 import { batches } from '../../utils';
