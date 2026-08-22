@@ -49,7 +49,7 @@ async function requestAnime(ids: number[], stored: Map<number, AnimeCard>) {
     return result;
 }
 
-export function getWatchlistAnime(ids: number[]) {
+export async function getWatchlistAnime(ids: number[]) {
     if (!ids.length) {
         return Promise.resolve([]);
     }
