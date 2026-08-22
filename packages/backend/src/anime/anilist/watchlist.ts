@@ -1,10 +1,10 @@
-import type { AnimeCard } from '$lib/types';
-import { WatchlistAnimeDocument } from '$lib/graphql/anilist/generated/graphql';
+import { AnimeCardSchema, type AnimeCard } from '../../model';
+import { WatchlistAnimeDocument } from '@arc/shared/anilist/generated/graphql';
 import { inArray, sql } from 'drizzle-orm';
-import { batches } from '$lib/utils';
+import { batches } from '../../utils';
 import { db } from '@arc/db';
 import { animeCardCache } from '@arc/db/schema';
-import { RequestCache } from '$lib/server/request-cache';
+import { RequestCache } from '../../request-cache';
 import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
@@ -70,15 +70,21 @@ export function getWatchlistAnime(ids: number[]) {
                     })
                     .from(animeCardCache)
                     .where(inArray(animeCardCache.anilistId, uniqueIds));
-                const stored = new Map(rows.map(({ id, data }) => [id, data]));
-                const staleIds = rows
-                    .filter(
-                        ({ data, fetchedAt }) =>
-                            data.format == null ||
-                            data.status == null ||
-                            now - fetchedAt.getTime() >= 24 * 60 * 60 * 1_000
-                    )
-                    .map(({ id }) => id);
+                const stored = new Map(
+                    rows.flatMap(({ id, data }) => {
+                        const parsed = AnimeCardSchema.safeParse(data);
+                        return parsed.success ? ([[id, parsed.data]] as const) : [];
+                    })
+                );
+                const staleIds = rows.flatMap(({ id, fetchedAt }) => {
+                    const data = stored.get(id);
+                    return !data ||
+                        data.format == null ||
+                        data.status == null ||
+                        now - fetchedAt.getTime() >= 24 * 60 * 60 * 1_000
+                        ? [id]
+                        : [];
+                });
                 const missingIds = uniqueIds.filter((id) => !stored.has(id));
 
                 try {

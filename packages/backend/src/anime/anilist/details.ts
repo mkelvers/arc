@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { AnimeDocument } from '$lib/graphql/anilist/generated/graphql';
+import { AnimeDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { animeDetailsCache } from '@arc/db/schema';
-import { GraphQLRequestError } from '$lib/server/graphql';
+import { GraphQLRequestError } from '../../graphql';
 import { request } from './client';
-import type { AniListAnime } from './types';
+import { AniListAnimeCacheSchema, type AniListAnime } from './types';
 
 const version = 2;
 const requests = new Map<number, Promise<AniListAnime>>();
@@ -84,7 +84,7 @@ export async function getAnime(id: number) {
         | undefined;
 
     try {
-        [stored] = await db
+        const [row] = await db
             .select({
                 data: animeDetailsCache.data,
                 version: animeDetailsCache.version,
@@ -93,6 +93,12 @@ export async function getAnime(id: number) {
             .from(animeDetailsCache)
             .where(eq(animeDetailsCache.anilistId, id))
             .limit(1);
+        if (row) {
+            const parsed = AniListAnimeCacheSchema.safeParse(row.data);
+            if (parsed.success) {
+                stored = { ...row, data: parsed.data };
+            }
+        }
     } catch (cause) {
         console.error(`AniList cache read failed for ${id}`, cause);
     }
