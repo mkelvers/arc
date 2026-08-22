@@ -43,7 +43,7 @@
             {...constraints}
             bind:value={value}
             aria-describedby={error ? `${name}-error` : undefined}
-            aria-invalid={Boolean(error)}
+            aria-invalid={error ? 'true' : undefined}
         />
         <label
             for={name}
