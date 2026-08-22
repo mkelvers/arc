@@ -7,20 +7,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     if (!event.route.id) {
         return resolve(event);
     }
-    const headers = new Headers({ Accept: 'application/json' });
-    const cookie = event.request.headers.get('cookie');
-    const authorization = event.request.headers.get('authorization');
-    if (cookie) {
-        headers.set('cookie', cookie);
-    }
-    if (authorization) {
-        headers.set('authorization', authorization);
-    }
 
     let response: Response;
     try {
-        response = await fetch(new URL('/api/auth/get-session', env.API_ORIGIN!), {
-            headers,
+        response = await fetch(`${env.API_ORIGIN!}/api/auth/get-session`, {
+            headers: {
+                Cookie: event.request.headers.get('cookie') ?? '',
+                Authorization: event.request.headers.get('authorization') ?? '',
+            },
             signal: AbortSignal.timeout(8_000),
         });
     } catch {
