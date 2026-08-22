@@ -1,8 +1,8 @@
+import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
 import { WatchlistStateResponseSchema } from '@arc/api-contract/watchlist';
 import { episodeAudioAvailabilityLabel } from '@arc/shared/audio';
-import { serverApiClient } from '$lib/server/api-client';
 import { toAnimeDetails } from '@arc/backend/internal/anime/details';
 import {
     getEpisodeRevision,
@@ -28,15 +28,24 @@ export const load: PageServerLoad = async ({ params, locals, depends, request })
     const userId = locals.user?.id;
 
     const result = await loadAnime(id);
+    const headers = new Headers({ Accept: 'application/json' });
+    const cookie = request.headers.get('cookie');
+    const authorization = request.headers.get('authorization');
+    if (cookie) {
+        headers.set('cookie', cookie);
+    }
+    if (authorization) {
+        headers.set('authorization', authorization);
+    }
     const watchlistState = locals.user
-        ? serverApiClient(request)
-              .GET('/v1/watchlist/{anilistId}', { params: { path: { anilistId: id } } })
-              .then(({ data, response }) => {
+        ? fetch(new URL(`/v1/watchlist/${id}`, env.API_ORIGIN!), { headers }).then(
+              async (response) => {
                   if (!response.ok) {
                       throw new Error(`Watchlist state request failed with ${response.status}`);
                   }
-                  return WatchlistStateResponseSchema.parse(data).state;
-              })
+                  return WatchlistStateResponseSchema.parse(await response.json()).state;
+              }
+          )
         : Promise.resolve(null);
     const [synopsis, resolvedWatchlistState, , storedAiringSchedule] = await Promise.all([
         resolveAnimeSynopsis(result),

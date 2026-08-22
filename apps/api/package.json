@@ -6,16 +6,13 @@
     "scripts": {
         "dev": "bun --env-file=.env --watch src/index.ts",
         "build": "bun build src/index.ts --outdir dist --target bun",
-        "check": "tsc --noEmit",
-        "test": "bun test",
-        "openapi:generate": "bun src/openapi.ts && oxfmt openapi.json && openapi-typescript openapi.json -o ../../packages/api-contract/src/generated.ts",
-        "openapi:check": "bun run openapi:generate && git diff --exit-code -- openapi.json ../../packages/api-contract/src/generated.ts"
+        "check": "tsc --noEmit"
     },
     "dependencies": {
         "@arc/api-contract": "workspace:*",
         "@arc/backend": "workspace:*",
         "@arc/db": "workspace:*",
-        "@hono/zod-openapi": "^1.6.1",
+        "@hono/zod-validator": "^0.9.0",
         "better-auth": "1.6.3",
         "drizzle-orm": "catalog:",
         "hono": "^4.13.3",
@@ -23,7 +20,6 @@
     },
     "devDependencies": {
         "@types/bun": "^1.4.0",
-        "openapi-typescript": "^7.13.0",
         "typescript": "~6.0.3"
     }
 }

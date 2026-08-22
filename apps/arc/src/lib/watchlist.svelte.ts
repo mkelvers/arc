@@ -3,7 +3,7 @@ import {
     WatchlistStatesResponseSchema,
     type WatchlistState,
 } from '@arc/api-contract/watchlist';
-import { apiClient } from '$lib/api-client';
+import { env } from '$env/dynamic/public';
 
 export class WatchlistAuthenticationError extends Error {}
 
@@ -32,9 +32,12 @@ class WatchlistClient {
         }
 
         const request = (async () => {
-            const { data, response } = await apiClient.GET('/v1/watchlist/states');
+            const response = await fetch(new URL('/v1/watchlist/states', env.PUBLIC_API_ORIGIN!), {
+                credentials: 'include',
+                headers: { Accept: 'application/json' },
+            });
             this.assertSuccessful(response);
-            const { entries } = WatchlistStatesResponseSchema.parse(data);
+            const { entries } = WatchlistStatesResponseSchema.parse(await response.json());
             this.states = Object.fromEntries(entries.map(({ animeId, state }) => [animeId, state]));
             this.loaded = true;
         })();
@@ -55,12 +58,14 @@ class WatchlistClient {
     }
 
     async set(animeId: number, state: WatchlistState) {
-        const { data, response } = await apiClient.PUT('/v1/watchlist/{anilistId}', {
-            params: { path: { anilistId: animeId } },
-            body: { state },
+        const response = await fetch(new URL(`/v1/watchlist/${animeId}`, env.PUBLIC_API_ORIGIN!), {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state }),
         });
         this.assertSuccessful(response);
-        const result = WatchlistStateResponseSchema.parse(data);
+        const result = WatchlistStateResponseSchema.parse(await response.json());
 
         if (!result.state) {
             throw new Error('Watchlist update returned no state');
@@ -70,8 +75,10 @@ class WatchlistClient {
     }
 
     async remove(animeId: number) {
-        const { response } = await apiClient.DELETE('/v1/watchlist/{anilistId}', {
-            params: { path: { anilistId: animeId } },
+        const response = await fetch(new URL(`/v1/watchlist/${animeId}`, env.PUBLIC_API_ORIGIN!), {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { Accept: 'application/json' },
         });
         this.assertSuccessful(response);
 

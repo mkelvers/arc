@@ -11,17 +11,15 @@ The first migration slice covers authentication, invitations, and watchlist beha
 
 ## Decision
 
-Run a Bun-hosted Hono application in `apps/api` at a dedicated API origin. Business endpoints are versioned under `/v1`; Better Auth keeps its conventional `/api/auth/*` paths. The API owns HTTP authentication, request validation, credentialed CORS, cookie-mutation origin checks, safe error mapping, response serialization, OpenAPI generation, and liveness/readiness endpoints.
+Run a Bun-hosted Hono application in `apps/api` at a dedicated API origin. Business endpoints are versioned under `/v1`; Better Auth keeps its conventional `/api/auth/*` paths. The API owns HTTP authentication, request validation, credentialed CORS, cookie-mutation origin checks, safe error mapping, response serialization, and liveness/readiness endpoints.
 
 Put application operations in `packages/backend`. Operations accept authenticated principal IDs and ordinary typed values. They own authorization-sensitive persistence, cache policy, provider coordination, synchronization, and multi-step invariants. The package does not import SvelteKit, Hono, Request, or Response. It exposes useful operations rather than pass-through repository or manager layers.
 
-Keep Zod wire schemas and generated OpenAPI path types in `packages/api-contract`. Both the API and Arc validate JSON at their respective trust boundaries. Persisted JSON in `@arc/db` is typed as `unknown`; the backend module that owns each value validates it before use.
+Keep shared Zod wire schemas in `packages/api-contract`. Hono route modules validate request data, and Arc validates response JSON at its network boundary. The API stays an ordinary grouped Hono application without a generated description or client. Persisted JSON in `@arc/db` is typed as `unknown`; the backend module that owns each value validates it before use.
 
 Arc browser and SSR code call the API. Browser requests use the public API origin with credentials. SSR forwards only the incoming Cookie and Authorization headers. An authentication API outage is a `503`, not an unauthenticated session and not a login redirect.
 
 Production uses an HTTPS API subdomain and a shared parent-domain session cookie. Better Auth cookies remain `HttpOnly` and `SameSite=Lax`, are `Secure` on HTTPS, and use the configured parent domain. Credentialed CORS permits only the configured Arc origin. Cookie-authenticated mutations also require that exact Origin. Bearer sessions remain available for future first-party non-browser clients.
-
-The Bun entry point overwrites Better Auth's internal client-IP header from the socket address. A deployment behind a trusted proxy may name one proxy-managed source header explicitly; the proxy must strip client-supplied values. This preserves session IP tracking and authentication rate limits without trusting a public forwarding header by default.
 
 This slice pins Better Auth to the schema-compatible 1.6.3 contract because 1.7 requires a new account issuer column and backfill. Upgrading Better Auth therefore requires a separate, explicit database migration; it is not part of this no-schema-change cutover.
 

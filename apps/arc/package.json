@@ -30,7 +30,6 @@
         "clsx": "^2.1.1",
         "drizzle-orm": "catalog:",
         "hls.js": "^1.7.1",
-        "openapi-fetch": "^0.17.0",
         "postgres": "catalog:",
         "tailwind-merge": "^3.6.0",
         "zod": "^4.4.3"

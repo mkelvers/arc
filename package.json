@@ -15,7 +15,6 @@
         "test": "turbo run test",
         "format": "oxfmt",
         "format:check": "oxfmt --check",
-        "openapi:check": "bun --cwd apps/api openapi:check",
         "db:check": "bun --cwd packages/db db:check"
     },
     "devDependencies": {

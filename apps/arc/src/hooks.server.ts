@@ -1,20 +1,36 @@
+import { env } from '$env/dynamic/private';
 import { redirect, type Handle } from '@sveltejs/kit';
 
-import { ArcApiError, getApiSession } from '$lib/server/api-client';
+import { SessionResponseSchema } from '@arc/api-contract/auth';
 
 export const handle: Handle = async ({ event, resolve }) => {
     if (!event.route.id) {
         return resolve(event);
     }
-    let session;
-    try {
-        session = await getApiSession(event.request);
-    } catch (cause) {
-        if (cause instanceof ArcApiError) {
-            return new Response('Arc is temporarily unavailable', { status: cause.status });
-        }
-        throw cause;
+    const headers = new Headers({ Accept: 'application/json' });
+    const cookie = event.request.headers.get('cookie');
+    const authorization = event.request.headers.get('authorization');
+    if (cookie) {
+        headers.set('cookie', cookie);
     }
+    if (authorization) {
+        headers.set('authorization', authorization);
+    }
+
+    let response: Response;
+    try {
+        response = await fetch(new URL('/api/auth/get-session', env.API_ORIGIN!), {
+            headers,
+            signal: AbortSignal.timeout(8_000),
+        });
+    } catch {
+        return new Response('Arc is temporarily unavailable', { status: 503 });
+    }
+    if (!response.ok) {
+        return new Response('Arc is temporarily unavailable', { status: 503 });
+    }
+
+    const session = SessionResponseSchema.parse(await response.json());
 
     if (session) {
         Object.assign(event.locals, session);

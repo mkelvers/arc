@@ -6,13 +6,12 @@ import { bearer, username } from 'better-auth/plugins';
 import { hasInvitationClaim } from '@arc/backend';
 import { db } from '@arc/db';
 import * as schema from '@arc/db/schema';
-import { apiOrigin, authSecret, cookieDomain, webOrigin } from './config';
 
 export const auth = betterAuth({
     appName: 'Arc',
-    baseURL: apiOrigin,
-    secret: authSecret,
-    trustedOrigins: [webOrigin],
+    baseURL: process.env.BETTER_AUTH_URL!,
+    secret: process.env.BETTER_AUTH_SECRET!,
+    trustedOrigins: [process.env.ARC_WEB_ORIGIN!],
     database: drizzleAdapter(db, {
         provider: 'pg',
         schema,
@@ -21,14 +20,15 @@ export const auth = betterAuth({
     advanced: {
         cookiePrefix: 'arc',
         database: { generateId: 'uuid' },
-        ipAddress: { ipAddressHeaders: ['x-arc-client-ip'] },
-        useSecureCookies: apiOrigin.startsWith('https://'),
+        useSecureCookies: process.env.BETTER_AUTH_URL!.startsWith('https://'),
         defaultCookieAttributes: {
             httpOnly: true,
             sameSite: 'lax',
-            secure: apiOrigin.startsWith('https://'),
+            secure: process.env.BETTER_AUTH_URL!.startsWith('https://'),
         },
-        crossSubDomainCookies: cookieDomain ? { enabled: true, domain: cookieDomain } : undefined,
+        crossSubDomainCookies: process.env.AUTH_COOKIE_DOMAIN
+            ? { enabled: true, domain: process.env.AUTH_COOKIE_DOMAIN }
+            : undefined,
     },
     emailAndPassword: {
         enabled: true,

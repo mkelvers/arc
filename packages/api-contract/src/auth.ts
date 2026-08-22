@@ -3,16 +3,12 @@ import { z } from 'zod';
 export const ApiErrorCodeSchema = z.enum([
     'AUTHENTICATION_REQUIRED',
     'INTERNAL_ERROR',
-    'INVALID_REQUEST',
     'INVITATION_COMPLETION_FAILED',
     'INVITATION_INVALID',
     'NOT_FOUND',
     'ORIGIN_FORBIDDEN',
     'REGISTRATION_FAILED',
     'USERNAME_TAKEN',
-    'WATCHLIST_LOAD_FAILED',
-    'WATCHLIST_REMOVE_FAILED',
-    'WATCHLIST_UPDATE_FAILED',
 ]);
 
 export const ApiErrorSchema = z.object({
