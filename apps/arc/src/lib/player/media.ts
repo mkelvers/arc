@@ -81,7 +81,7 @@ export function subtitleTracks(
 
 export function hasSubtitleTrack(sources: Sources, mode: AudioMode, stream: Stream) {
     const tracks = subtitleTracks(sources, mode, stream);
-    return Boolean(tracks.own || tracks.sub);
+    return tracks.own !== null || tracks.sub !== null;
 }
 
 /** Other Japanese encodes whose own captions may prove equivalent to the
@@ -432,7 +432,7 @@ export function seekTarget(currentTime: number, delta: number, duration: number)
 }
 
 export function availableModes(sources: Sources) {
-    return audioModeOrder.filter((mode) => Boolean(sources[mode]?.length));
+    return audioModeOrder.filter((mode) => (sources[mode]?.length ?? 0) > 0);
 }
 
 export function audioLabel(mode: AudioMode) {
@@ -559,7 +559,7 @@ export function formatTime(seconds: number) {
 export function isControl(target: EventTarget | null) {
     return (
         target instanceof Element &&
-        Boolean(target.closest('button, input, select, textarea, a, [role="menu"]'))
+        target.closest('button, input, select, textarea, a, [role="menu"]') !== null
     );
 }
 
