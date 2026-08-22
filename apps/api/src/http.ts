@@ -1,4 +1,7 @@
+import { zValidator } from '@hono/zod-validator';
+import type { ValidationTargets } from 'hono';
 import { createMiddleware } from 'hono/factory';
+import type { z } from 'zod';
 
 import { auth, type AuthSession } from './auth';
 
@@ -7,6 +10,25 @@ export type ApiEnvironment = {
         session: AuthSession;
     };
 };
+
+export function validate<T extends z.ZodType, Target extends keyof ValidationTargets>(
+    target: Target,
+    schema: T
+) {
+    return zValidator(target, schema, (result, context) => {
+        if (!result.success) {
+            return context.json(
+                {
+                    error: {
+                        code: 'INVALID_REQUEST',
+                        message: 'Request data is invalid',
+                    },
+                },
+                400
+            );
+        }
+    });
+}
 
 export const middleware = createMiddleware<ApiEnvironment>(async (context, next) => {
     const session = await auth.api.getSession({
@@ -33,8 +55,8 @@ export const origin = createMiddleware(async (context, next) => {
         const origin = context.req.header('origin');
         const cookie = context.req.header('cookie');
         if (
-            (origin && origin !== process.env.ARC_WEB_ORIGIN!) ||
-            (cookie && origin !== process.env.ARC_WEB_ORIGIN!)
+            (origin && origin !== process.env.BETTER_AUTH_URL!) ||
+            (cookie && origin !== process.env.BETTER_AUTH_URL!)
         ) {
             return context.json(
                 {

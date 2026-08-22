@@ -1,4 +1,3 @@
-import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -10,7 +9,7 @@ import {
     removeFromWatchlist,
     setWatchlistState,
 } from '@arc/backend/watchlist';
-import { middleware, type ApiEnvironment } from '../http';
+import { middleware, validate, type ApiEnvironment } from '../http';
 
 const AnimeIdSchema = z.object({
     id: z.coerce.number().int().positive(),
@@ -20,7 +19,7 @@ export const watchlist = new Hono<ApiEnvironment>();
 
 watchlist.use('*', middleware);
 
-watchlist.get('/', zValidator('query', WatchlistSelectionSchema), async (context) =>
+watchlist.get('/', validate('query', WatchlistSelectionSchema), async (context) =>
     context.json(await getWatchlistPage(context.get('session').user.id, context.req.valid('query')))
 );
 
@@ -28,7 +27,7 @@ watchlist.get('/states', async (context) =>
     context.json({ entries: await getWatchlistStates(context.get('session').user.id) })
 );
 
-watchlist.get('/:anilistId', zValidator('param', AnimeIdSchema), async (context) => {
+watchlist.get('/:anilistId', validate('param', AnimeIdSchema), async (context) => {
     const { id } = context.req.valid('param');
     return context.json({
         animeId: id,
@@ -38,8 +37,8 @@ watchlist.get('/:anilistId', zValidator('param', AnimeIdSchema), async (context)
 
 watchlist.put(
     '/:anilistId',
-    zValidator('param', AnimeIdSchema),
-    zValidator('json', WatchlistUpdateSchema),
+    validate('param', AnimeIdSchema),
+    validate('json', WatchlistUpdateSchema),
     async (context) => {
         const { id } = context.req.valid('param');
         return context.json({
@@ -53,7 +52,7 @@ watchlist.put(
     }
 );
 
-watchlist.delete('/:anilistId', zValidator('param', AnimeIdSchema), async (context) => {
+watchlist.delete('/:anilistId', validate('param', AnimeIdSchema), async (context) => {
     await removeFromWatchlist(context.get('session').user.id, context.req.valid('param').id);
     return context.body(null, 204);
 });
