@@ -17,7 +17,7 @@ Put application operations in `packages/backend`. Operations accept authenticate
 
 Keep shared Zod wire schemas in `packages/api-contract`. Hono route modules validate request data, and Arc validates response JSON at its network boundary. The API stays an ordinary grouped Hono application without a generated description or client. Persisted JSON in `@arc/db` is typed as `unknown`; the backend module that owns each value validates it before use.
 
-Arc browser and SSR code call the API. Browser requests use relative same-origin paths. SSR uses the private API origin and forwards only the incoming Cookie and Authorization headers. An authentication API outage is a `503`, not an unauthenticated session and not a login redirect.
+Arc browser and SSR code call the API. Browser requests use relative same-origin paths. SSR uses the private API origin and forwards the incoming Cookie, Authorization, and proxy-verified client address headers. An authentication API outage is a `503`, not an unauthenticated session and not a login redirect.
 
 Production routes `/v1/*` and `/api/auth/*` from Arc's HTTPS origin to the API deployment. Development uses the same paths through Vite's proxy. Better Auth therefore uses an ordinary host-only session cookie; cookies remain `HttpOnly` and `SameSite=Lax` and are `Secure` on HTTPS. Cookie-authenticated mutations require the configured Arc origin. Bearer sessions remain available for future first-party non-browser clients.
 
@@ -29,7 +29,7 @@ The production router applies these routes before Arc's fallback:
 /*          -> Arc
 ```
 
-This slice pins Better Auth to the schema-compatible 1.6.3 contract because 1.7 requires a new account issuer column and backfill. Upgrading Better Auth therefore requires a separate, explicit database migration; it is not part of this no-schema-change cutover.
+Better Auth 1.6.22 remains compatible with Arc's checked-in authentication tables. Its schema generator was run against the real auth configuration after the upgrade. Better Auth 1.7 requires an account issuer column and backfill, so that later upgrade still needs an explicit database migration.
 
 A future worker imports `@arc/backend` directly. It schedules and invokes application operations; it does not call Arc, own alternative business rules, or require an HTTP round trip.
 
