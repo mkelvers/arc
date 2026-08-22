@@ -10,6 +10,7 @@ import { watchlist } from './routes/watchlist';
 
 const app = new Hono();
 
+app.get('/health', (context) => context.json({ status: 'ok' }));
 app.use('/v1/*', async (context, next) => {
     await next();
     context.header('Cache-Control', 'no-store');
