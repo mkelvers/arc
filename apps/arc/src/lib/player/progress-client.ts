@@ -162,7 +162,7 @@ export class PlaybackProgress {
     }
 
     private async send(payload: ProgressPayload, keepalive = false) {
-        const response = await fetch('/api/episodes/progress', {
+        const response = await fetch('/v1/progress', {
             method: 'POST',
             headers: {
                 'content-type': 'application/json',

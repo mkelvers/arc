@@ -36,7 +36,7 @@
                 year: String(data.year),
                 page: String(page),
             });
-            const response = await fetch(`/api/simulcast?${query}`, {
+            const response = await fetch(`/v1/simulcast?${query}`, {
                 headers: {
                     Accept: 'application/json',
                 },

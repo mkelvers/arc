@@ -128,7 +128,7 @@
         try {
             const searchParams = browseSearchParams(data.filters);
             searchParams.set('page', String(page));
-            const response = await fetch(`/api/browse?${searchParams}`, {
+            const response = await fetch(`/v1/browse?${searchParams}`, {
                 headers: {
                     Accept: 'application/json',
                 },

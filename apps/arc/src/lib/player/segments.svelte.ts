@@ -141,7 +141,7 @@ export class SegmentEditor {
         this.error = null;
 
         try {
-            const response = await fetch('/api/episodes/skip-times', {
+            const response = await fetch('/v1/segments', {
                 method: 'PUT',
                 headers: {
                     'content-type': 'application/json',

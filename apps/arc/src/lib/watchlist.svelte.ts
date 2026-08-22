@@ -3,7 +3,6 @@ import {
     WatchlistStatesResponseSchema,
     type WatchlistState,
 } from '@arc/api-contract/watchlist';
-import { env } from '$env/dynamic/public';
 
 export class WatchlistAuthenticationError extends Error {}
 
@@ -32,8 +31,7 @@ class WatchlistClient {
         }
 
         const request = (async () => {
-            const response = await fetch(`${env.PUBLIC_API_ORIGIN!}/v1/watchlist/states`, {
-                credentials: 'include',
+            const response = await fetch('/v1/watchlist/states', {
                 headers: {
                     Accept: 'application/json',
                 },
@@ -60,9 +58,8 @@ class WatchlistClient {
     }
 
     async set(animeId: number, state: WatchlistState) {
-        const response = await fetch(`${env.PUBLIC_API_ORIGIN!}/v1/watchlist/${animeId}`, {
+        const response = await fetch(`/v1/watchlist/${animeId}`, {
             method: 'PUT',
-            credentials: 'include',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -80,9 +77,8 @@ class WatchlistClient {
     }
 
     async remove(animeId: number) {
-        const response = await fetch(`${env.PUBLIC_API_ORIGIN!}/v1/watchlist/${animeId}`, {
+        const response = await fetch(`/v1/watchlist/${animeId}`, {
             method: 'DELETE',
-            credentials: 'include',
             headers: {
                 Accept: 'application/json',
             },

@@ -50,7 +50,7 @@
             const poll = async () => {
                 if (document.visibilityState === 'visible') {
                     try {
-                        const response = await fetch(`/api/anime/${animeId}/episodes/revision`, {
+                        const response = await fetch(`/v1/anime/${animeId}/episodes/revision`, {
                             cache: 'no-store',
                             signal: controller.signal,
                         });

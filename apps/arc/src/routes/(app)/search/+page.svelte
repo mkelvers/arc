@@ -44,7 +44,7 @@
 
     async function loadResults(next: string, controller: AbortController) {
         try {
-            const response = await fetch(`/api/search?q=${encodeURIComponent(next)}`, {
+            const response = await fetch(`/v1/search?q=${encodeURIComponent(next)}`, {
                 headers: {
                     Accept: 'application/json',
                 },
