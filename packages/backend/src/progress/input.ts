@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import type { JsonValue } from '../utils';
+
 export interface PlaybackProgressInput {
     animeId: number;
     episodeId: string;
@@ -9,14 +11,6 @@ export interface PlaybackProgressInput {
     completed: boolean;
     eventAt: Date;
 }
-
-export type JsonValue =
-    | boolean
-    | number
-    | string
-    | null
-    | JsonValue[]
-    | { [key: string]: JsonValue };
 
 const playbackProgressSchema = z.object({
     animeId: z.number().int().positive(),
