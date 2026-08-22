@@ -1,4 +1,4 @@
-import { GraphQLRequestError } from '$lib/server/graphql';
+import { GraphQLRequestError } from '../../graphql';
 
 export class AniListRequestPolicy {
     #blockedUntil = 0;

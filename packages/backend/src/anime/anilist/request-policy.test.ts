@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { GraphQLRequestError } from '$lib/server/graphql';
+import { GraphQLRequestError } from '#graphql';
 import { AniListRequestPolicy } from './request-policy';
 
 test('one 429 prevents follow-up AniList requests during its retry window', async () => {
