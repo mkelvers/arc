@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import type { AudioMode } from '$lib/audio';
+import { WatchlistStateSchema, type WatchlistState } from '@arc/api-contract/watchlist';
 
 export const watchlistStates = [
     { value: 'watching', label: 'Watching' },
@@ -9,9 +9,7 @@ export const watchlistStates = [
     { value: 'dropped', label: 'Dropped' },
 ] as const;
 
-export const WatchlistStateSchema = z.enum(watchlistStates.map(({ value }) => value));
-export type WatchlistState = z.infer<typeof WatchlistStateSchema>;
-export const WatchlistUpdateSchema = z.object({ state: WatchlistStateSchema });
+export type { WatchlistState };
 
 export const WatchlistSelectionSchema = z.object({
     state: WatchlistStateSchema.or(z.literal('all')).catch('all'),
@@ -30,15 +28,3 @@ export type WatchlistOrder = WatchlistSelection['order'];
 export type WatchlistLanguage = WatchlistSelection['language'];
 export type WatchlistMedia = WatchlistSelection['media'];
 export type WatchlistType = WatchlistSelection['type'];
-
-export function watchlistMatchesFilters(
-    card: { format?: string | null; status?: string | null },
-    audio: ReadonlySet<AudioMode>,
-    { language, media, type }: Pick<WatchlistSelection, 'language' | 'media' | 'type'>
-) {
-    return (
-        (language === 'all' || language === (audio.has('dub') ? 'dub' : 'sub')) &&
-        (media === 'all' || media === (card.format === 'MOVIE' ? 'movie' : 'series')) &&
-        (type === 'all' || card.status === (type === 'airing' ? 'RELEASING' : type.toUpperCase()))
-    );
-}

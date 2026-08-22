@@ -1,11 +1,9 @@
-import { z } from 'zod';
-
-import { WatchlistStateSchema, type WatchlistState } from '$lib/watchlist';
-
-const WatchlistEntrySchema = z.object({
-    animeId: z.number().int().positive(),
-    state: WatchlistStateSchema,
-});
+import {
+    WatchlistStateResponseSchema,
+    WatchlistStatesResponseSchema,
+    type WatchlistState,
+} from '@arc/api-contract/watchlist';
+import { apiClient } from '$lib/api-client';
 
 export class WatchlistAuthenticationError extends Error {}
 
@@ -33,11 +31,13 @@ class WatchlistClient {
             return this.activeLoad;
         }
 
-        const request = this.request('/api/watchlist').then(async (response) => {
-            const entries = z.array(WatchlistEntrySchema).parse(await response.json());
+        const request = (async () => {
+            const { data, response } = await apiClient.GET('/v1/watchlist/states');
+            this.assertSuccessful(response);
+            const { entries } = WatchlistStatesResponseSchema.parse(data);
             this.states = Object.fromEntries(entries.map(({ animeId, state }) => [animeId, state]));
             this.loaded = true;
-        });
+        })();
         this.activeLoad = request;
 
         try {
@@ -55,22 +55,25 @@ class WatchlistClient {
     }
 
     async set(animeId: number, state: WatchlistState) {
-        const response = await this.request(`/api/watchlist/${animeId}`, {
-            method: 'PUT',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ state }),
+        const { data, response } = await apiClient.PUT('/v1/watchlist/{anilistId}', {
+            params: { path: { anilistId: animeId } },
+            body: { state },
         });
-        const result = WatchlistEntrySchema.parse({
-            animeId,
-            ...(await response.json()),
-        });
+        this.assertSuccessful(response);
+        const result = WatchlistStateResponseSchema.parse(data);
 
+        if (!result.state) {
+            throw new Error('Watchlist update returned no state');
+        }
         this.states = { ...this.states, [animeId]: result.state };
         return result.state;
     }
 
     async remove(animeId: number) {
-        await this.request(`/api/watchlist/${animeId}`, { method: 'DELETE' });
+        const { response } = await apiClient.DELETE('/v1/watchlist/{anilistId}', {
+            params: { path: { anilistId: animeId } },
+        });
+        this.assertSuccessful(response);
 
         const { [animeId]: _removed, ...remaining } = this.states;
         this.states = remaining;
@@ -87,16 +90,7 @@ class WatchlistClient {
         return this.set(animeId, 'plan_to_watch');
     }
 
-    private async request(input: string, init?: RequestInit) {
-        const response = await fetch(input, {
-            ...init,
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                ...init?.headers,
-            },
-        });
-
+    private assertSuccessful(response: Response) {
         if (response.status === 401) {
             throw new WatchlistAuthenticationError('Authentication required');
         }
@@ -104,8 +98,6 @@ class WatchlistClient {
         if (!response.ok) {
             throw new Error(`Watchlist request failed with ${response.status}`);
         }
-
-        return response;
     }
 }
 
