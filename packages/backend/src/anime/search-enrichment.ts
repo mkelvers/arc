@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 
-import { audioAvailabilityLabel, type AudioMode } from '$lib/audio';
-import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '$lib/search';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
+import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '@arc/shared/search';
 import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
 import { imageUrl } from './tmdb/client';

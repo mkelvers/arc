@@ -1,6 +1,6 @@
 import { asc, desc, eq, lt } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '$lib/audio';
+import { audioAvailabilityLabel } from '@arc/shared/audio';
 import { db } from '@arc/db';
 import { homeHeroSelection } from '@arc/db/schema';
 import { getAnime } from './anilist/details';

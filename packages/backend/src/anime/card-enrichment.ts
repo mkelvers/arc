@@ -1,4 +1,4 @@
-import type { AnimeCard } from '$lib/types';
+import type { AnimeCard } from '../model';
 import { withAnimeCardSynopses } from './synopsis';
 import { getStoredPosters } from './tmdb/poster';
 
