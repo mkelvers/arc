@@ -34,7 +34,9 @@ class WatchlistClient {
         const request = (async () => {
             const response = await fetch(new URL('/v1/watchlist/states', env.PUBLIC_API_ORIGIN!), {
                 credentials: 'include',
-                headers: { Accept: 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                },
             });
             this.assertSuccessful(response);
             const { entries } = WatchlistStatesResponseSchema.parse(await response.json());
@@ -58,10 +60,13 @@ class WatchlistClient {
     }
 
     async set(animeId: number, state: WatchlistState) {
-        const response = await fetch(new URL(`/v1/watchlist/${animeId}`, env.PUBLIC_API_ORIGIN!), {
+        const response = await fetch(`${env.PUBLIC_API_ORIGIN!}/v1/watchlist/${animeId}`, {
             method: 'PUT',
             credentials: 'include',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ state }),
         });
         this.assertSuccessful(response);
@@ -78,7 +83,9 @@ class WatchlistClient {
         const response = await fetch(new URL(`/v1/watchlist/${animeId}`, env.PUBLIC_API_ORIGIN!), {
             method: 'DELETE',
             credentials: 'include',
-            headers: { Accept: 'application/json' },
+            headers: {
+                Accept: 'application/json',
+            },
         });
         this.assertSuccessful(response);
 
