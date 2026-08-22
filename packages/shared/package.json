@@ -1,0 +1,27 @@
+{
+    "name": "@arc/shared",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        "./audio": "./src/audio.ts",
+        "./browse": "./src/browse.ts",
+        "./search": "./src/search.ts",
+        "./season": "./src/season.ts",
+        "./types": "./src/types.ts",
+        "./player/skip-times": "./src/player/skip-times.ts",
+        "./anilist/generated/*": "./src/anilist/generated/*.ts"
+    },
+    "scripts": {
+        "check": "tsc --noEmit",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "@graphql-typed-document-node/core": "^3.2.0",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "typescript": "~6.0.3"
+    }
+}
