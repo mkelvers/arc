@@ -1,49 +1,21 @@
+import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '@arc/shared/season';
-import { getSimulcastSeasonStarts } from '@arc/backend/internal/anime/anilist/simulcast';
-import { requestedSimulcastSeason, simulcastPage } from '@arc/backend/internal/anime/simulcast';
+import { SimulcastPageSchema } from '@arc/api-contract/anime';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ url }) => {
-    const current = currentAnimeSeason();
-    const selected = requestedSimulcastSeason(url.searchParams, current);
-    if (!selected) {
-        error(400, 'A valid season and year are required');
+export const load: PageServerLoad = async ({ url, request }) => {
+    const response = await fetch(`${env.API_ORIGIN!}/v1/simulcast?${url.searchParams}`, {
+        headers: {
+            Cookie: request.headers.get('cookie') ?? '',
+            Authorization: request.headers.get('authorization') ?? '',
+        },
+    }).catch(() => null);
+    if (!response) {
+        error(503, 'Arc is temporarily unavailable');
     }
-    if (compareAnimeSeasons(selected, current) > 0) {
-        error(404, 'That simulcast season is not available yet');
+    if (!response.ok) {
+        error(response.status === 404 ? 404 : 502, 'Simulcast could not be loaded');
     }
-
-    const [starts, page] = await Promise.all([
-        getSimulcastSeasonStarts(),
-        simulcastPage(selected, 1),
-    ]).catch((cause) => {
-        console.error('Simulcast page load failed', cause);
-        error(502, 'Simulcast could not be loaded');
-    });
-
-    const seasons = availableAnimeSeasons(starts, current);
-    if (!seasons.some(({ season, year }) => season === selected.season && year === selected.year)) {
-        error(404, 'That simulcast season is not available');
-    }
-    const label = `${selected.season[0]}${selected.season.slice(1).toLowerCase()} ${selected.year}`;
-
-    return {
-        season: selected.season,
-        year: selected.year,
-        label,
-        options: seasons
-            .map((option) => ({
-                ...option,
-                label: `${option.season[0]}${option.season.slice(1).toLowerCase()} ${option.year}`,
-                current: option.season === selected.season && option.year === selected.year,
-                href:
-                    compareAnimeSeasons(option, current) === 0
-                        ? '/simulcast'
-                        : `/simulcast?season=${option.season.toLowerCase()}&year=${option.year}`,
-            }))
-            .toReversed(),
-        page,
-    };
+    return SimulcastPageSchema.parse(await response.json());
 };
