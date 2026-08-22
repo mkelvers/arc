@@ -1,14 +1,9 @@
 import type { AniListAnime } from '../anilist/types';
 
-const seasonOrdinal =
-    '(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\\d+(?:st|nd|rd|th))';
-const seasonPlaceholder = new RegExp(
-    `^(?:(?:the\\s+)?${seasonOrdinal}\\s+season\\s+of|season\\s+${seasonOrdinal}\\s+of)\\b`,
-    'i'
-);
-
 export function isSeasonPlaceholderSynopsis(value: string) {
-    return seasonPlaceholder.test(value.trim());
+    return /^(?:(?:the\s+)?(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d+(?:st|nd|rd|th))\s+season|season\s+(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d+(?:st|nd|rd|th)))\s+of\b/i.test(
+        value.trim()
+    );
 }
 
 function synopsisSentences(value: string) {

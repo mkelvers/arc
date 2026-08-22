@@ -499,7 +499,7 @@ describe('playback provider fallback', () => {
             provider('challenged', {
                 getStreams: async () => {
                     attempts++;
-                    throw new Error('NEED_CAPTCHA');
+                    throw new AggregateError([new Error('NEED_CAPTCHA')], 'stream sources failed');
                 },
             }),
         ]);

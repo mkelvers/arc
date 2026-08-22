@@ -136,10 +136,6 @@ async function usedPosterPaths(match: StoredMapping) {
     );
 }
 
-function posterConflict(cause: unknown) {
-    return posterConflictSchema.safeParse(cause).success;
-}
-
 async function saveAvailablePoster(
     match: StoredMapping,
     candidates: PosterCandidate[],
@@ -156,7 +152,7 @@ async function saveAvailablePoster(
         try {
             return await savePoster(match, poster, seasonNumber);
         } catch (cause) {
-            if (!posterConflict(cause)) {
+            if (!posterConflictSchema.safeParse(cause).success) {
                 throw cause;
             }
             unavailable.add(poster.filePath);
@@ -248,11 +244,6 @@ async function posterOptions(anime: AniListAnime, match: StoredMapping) {
     ];
 }
 
-async function fetchPoster(anime: AniListAnime, match: StoredMapping) {
-    const { candidates, seasonNumber } = await fetchPosterCandidates(anime, match);
-    return saveAvailablePoster(match, candidates, seasonNumber);
-}
-
 export async function readPoster(match: StoredMapping) {
     const row = await cacheRow(match);
     return row ? storedPoster(row) : null;
@@ -272,7 +263,8 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
         }
 
         try {
-            return await fetchPoster(anime, match);
+            const { candidates, seasonNumber } = await fetchPosterCandidates(anime, match);
+            return await saveAvailablePoster(match, candidates, seasonNumber);
         } catch (cause) {
             const stale = cached ? storedPoster(cached) : null;
             if (stale) {

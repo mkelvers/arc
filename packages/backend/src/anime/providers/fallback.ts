@@ -46,20 +46,6 @@ function timed<T>(
     });
 }
 
-function failureText(cause: unknown): string {
-    if (cause instanceof AggregateError) {
-        return [cause.message, ...cause.errors.map(failureText)].join(' ');
-    }
-
-    return cause instanceof Error ? cause.message : String(cause);
-}
-
-function isProviderOutage(cause: unknown) {
-    return /(?:timed out|captcha|challenge|clearance|fetch failed|network|offline|\b403\b|\b429\b|\b5\d\d\b)/i.test(
-        failureText(cause)
-    );
-}
-
 export async function settledStreams(
     requests: Promise<{ mode: AudioMode; stream: ProviderStream }>[],
     emptyMessage: string
@@ -142,7 +128,25 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         capability: 'episodes' | 'streams',
         cause: unknown
     ) {
-        if (!isProviderOutage(cause)) {
+        const causes: unknown[] = [cause];
+        let outage = false;
+        for (let index = 0; index < causes.length; index++) {
+            const failure = causes[index];
+            if (failure instanceof AggregateError) {
+                causes.push(...failure.errors);
+            }
+            const detail = failure instanceof Error ? failure.message : String(failure);
+            if (
+                /(?:timed out|captcha|challenge|clearance|fetch failed|network|offline|\b403\b|\b429\b|\b5\d\d\b)/i.test(
+                    detail
+                )
+            ) {
+                outage = true;
+                break;
+            }
+        }
+
+        if (!outage) {
             return;
         }
 

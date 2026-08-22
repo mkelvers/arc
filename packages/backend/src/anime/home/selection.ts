@@ -20,28 +20,6 @@ export function homeHeroRotationStart(now = new Date()) {
     return rotation.toISOString().slice(0, 10);
 }
 
-function hasBroadAudienceGenre(genres: string[]) {
-    return genres.some((genre) => {
-        switch (genre) {
-            case 'Action':
-            case 'Adventure':
-            case 'Comedy':
-            case 'Drama':
-            case 'Romance':
-                return true;
-            default:
-                return false;
-        }
-    });
-}
-
-function hasEnoughAudience({ popularity, favourites, hasPrequel }: HomeHeroEligibility) {
-    // A continuing season needs an established audience; otherwise a niche sequel can rank highly
-    // among its existing fans without being a useful entry point for the homepage. Favorites also
-    // distinguish anime people actively recommend from titles that merely have many list entries.
-    return popularity >= (hasPrequel ? 50_000 : 25_000) && favourites * 1_000 >= popularity * 12;
-}
-
 export function eligibleHomeHeroCandidates<Candidate extends HomeHeroEligibility>(
     candidates: Candidate[],
     now = new Date()
@@ -49,14 +27,20 @@ export function eligibleHomeHeroCandidates<Candidate extends HomeHeroEligibility
     const currentYear = now.getUTCFullYear();
 
     return candidates
-        .filter(
-            (candidate) =>
+        .filter((candidate) => {
+            // Continuing seasons need an established audience so a niche sequel cannot rank highly
+            // only among existing fans. Favorites distinguish recommendations from list entries.
+            return (
                 candidate.seasonYear === currentYear &&
                 candidate.averageScore > 70 &&
                 candidate.trendingRank <= 30 &&
-                hasEnoughAudience(candidate) &&
-                hasBroadAudienceGenre(candidate.genres)
-        )
+                candidate.popularity >= (candidate.hasPrequel ? 50_000 : 25_000) &&
+                candidate.favourites * 1_000 >= candidate.popularity * 12 &&
+                candidate.genres.some((genre) =>
+                    ['Action', 'Adventure', 'Comedy', 'Drama', 'Romance'].includes(genre)
+                )
+            );
+        })
         .toSorted((left, right) => left.trendingRank - right.trendingRank);
 }
 

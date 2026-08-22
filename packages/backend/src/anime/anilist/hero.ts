@@ -9,18 +9,6 @@ import { eligibleHomeHeroCandidates, type HomeHeroCandidate } from '../home/sele
 
 let refreshRequest: Promise<HomeHeroCandidate[]> | null = null;
 
-async function storedCandidates() {
-    return db
-        .select({
-            anilistId: homeHeroCandidate.anilistId,
-            averageScore: homeHeroCandidate.averageScore,
-            trendingRank: homeHeroCandidate.trendingRank,
-            fetchedAt: homeHeroCandidate.fetchedAt,
-        })
-        .from(homeHeroCandidate)
-        .orderBy(asc(homeHeroCandidate.trendingRank));
-}
-
 async function refreshCandidates(now: Date) {
     const response = await request(
         HomeHeroCandidatesDocument,
@@ -104,7 +92,15 @@ function refresh(now: Date) {
 }
 
 export async function getHomeHeroCandidates(now = new Date()) {
-    const stored = await storedCandidates();
+    const stored = await db
+        .select({
+            anilistId: homeHeroCandidate.anilistId,
+            averageScore: homeHeroCandidate.averageScore,
+            trendingRank: homeHeroCandidate.trendingRank,
+            fetchedAt: homeHeroCandidate.fetchedAt,
+        })
+        .from(homeHeroCandidate)
+        .orderBy(asc(homeHeroCandidate.trendingRank));
     const newest = stored[0]?.fetchedAt;
     if (
         newest &&

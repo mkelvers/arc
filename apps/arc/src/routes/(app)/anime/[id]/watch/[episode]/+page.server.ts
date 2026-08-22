@@ -25,14 +25,6 @@ function legacySlug(title: string, episodeId: string) {
     );
 }
 
-function playbackFailureSummary(cause: AggregateError) {
-    return [
-        ...new Set(
-            cause.errors.map((error) => (error instanceof Error ? error.message : String(error)))
-        ),
-    ].join('; ');
-}
-
 async function getPlayback(
     animeData: Parameters<typeof playback.getStreams>[0],
     episode: Parameters<typeof playback.getStreams>[1],
@@ -45,7 +37,13 @@ async function getPlayback(
     } catch (cause) {
         if (cause instanceof AggregateError) {
             console.warn(
-                `Playback unavailable for AniList ${animeData.id}, episode ${episode.id}: ${playbackFailureSummary(cause)}`
+                `Playback unavailable for AniList ${animeData.id}, episode ${episode.id}: ${[
+                    ...new Set(
+                        cause.errors.map((error) =>
+                            error instanceof Error ? error.message : String(error)
+                        )
+                    ),
+                ].join('; ')}`
             );
         } else {
             console.error(

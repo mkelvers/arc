@@ -60,12 +60,6 @@ function metadataScore(candidates: EpisodeCandidate[]) {
     );
 }
 
-function inventoryKey(candidates: EpisodeCandidate[]) {
-    return candidates
-        .map(({ seasonNumber, episodeNumber }) => `${seasonNumber}:${episodeNumber}`)
-        .join(',');
-}
-
 /** Selects a TMDB episode-group block only when it identifies this release. */
 export function releaseEpisodeGroup(
     anime: AniListAnime,
@@ -99,7 +93,12 @@ export function releaseEpisodeGroup(
             ? [
                   {
                       candidates,
-                      key: inventoryKey(candidates),
+                      key: candidates
+                          .map(
+                              ({ seasonNumber, episodeNumber }) =>
+                                  `${seasonNumber}:${episodeNumber}`
+                          )
+                          .join(','),
                       identityScore:
                           Number(dateMatch) * 1_000 +
                           Number(expectedCount !== null) * 100 +
