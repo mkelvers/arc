@@ -215,13 +215,12 @@ function player(html: string) {
         return null;
     }
     const data = parsed.data;
-    const src = data.src;
     const english = data.subtitles.find(
         (track) => track.language === 'en' && track.forced !== 'yes' && track.format === 'ass'
     );
 
     try {
-        const url = new URL(src);
+        const url = new URL(data.src);
         const subtitleUrl = english ? new URL(english.file) : null;
         const videoHost =
             url.hostname === 'vid-cdn.xyz' ||
