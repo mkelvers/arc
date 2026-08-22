@@ -1,94 +1,35 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { WatchlistStateResponseSchema } from '@arc/api-contract/watchlist';
-import { episodeAudioAvailabilityLabel } from '@arc/shared/audio';
-import { toAnimeDetails } from '@arc/backend/internal/anime/details';
-import {
-    getEpisodeRevision,
-    getEpisodes,
-    getStoredAiringSchedule,
-} from '@arc/backend/internal/anime/episodes';
-import { getFranchiseOrder } from '@arc/backend/internal/anime/franchise';
-import { recordAnimeVisit } from '@arc/backend/internal/anime/interest';
-import { animeId, loadAnime } from '$lib/server/anime/route';
-import { resolveAnimeSynopsis } from '@arc/backend/internal/anime/synopsis';
-import { getArtwork } from '@arc/backend/internal/anime/tmdb/artwork';
-import { continuationEpisode } from '$lib/server/progress/continue';
-import { getPlaybackProgress } from '$lib/server/progress/store';
+import { AnimePageSchema } from '@arc/api-contract/anime';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, locals, depends, request }) => {
-    const id = animeId(params.id);
-    if (!id) {
+export const load: PageServerLoad = async ({ params, depends, request }) => {
+    const id = Number(params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
         error(400, 'Invalid anime ID');
     }
     depends(`arc:anime:${id}:episodes`);
-
-    const userId = locals.user?.id;
-
-    const result = await loadAnime(id);
-    const watchlistState = locals.user
-        ? fetch(`${env.API_ORIGIN!}/v1/watchlist/${id}`, {
-              headers: {
-                  Cookie: request.headers.get('cookie') ?? '',
-                  Authorization: request.headers.get('authorization') ?? '',
-              },
-          }).then(async (response) => {
-              if (!response.ok) {
-                  throw new Error(`Watchlist state request failed with ${response.status}`);
-              }
-              return WatchlistStateResponseSchema.parse(await response.json()).state;
-          })
-        : Promise.resolve(null);
-    const [synopsis, resolvedWatchlistState, , storedAiringSchedule] = await Promise.all([
-        resolveAnimeSynopsis(result),
-        watchlistState,
-        recordAnimeVisit(userId, id),
-        getStoredAiringSchedule(id),
-    ]);
-    const details = toAnimeDetails(result, synopsis, storedAiringSchedule);
-
-    const artwork = getArtwork(result).catch((cause) => {
-        console.error(`TMDB artwork enrichment failed for AniList ${id}`, cause);
-        return null;
-    });
-    const episodes = getEpisodes(result).catch(() => []);
-    const watchAction = Promise.all([episodes, getPlaybackProgress(userId, id)]).then(
-        ([availableEpisodes, progress]) => {
-            const continuation = continuationEpisode(
-                progress,
-                availableEpisodes,
-                details.status === 'FINISHED'
-            );
-            const target = continuation ?? availableEpisodes[0] ?? null;
-
-            return {
-                href: target?.href ?? '#anime-episode-list',
-                label: continuation
-                    ? `Continue watching ${continuation.label}`
-                    : target
-                      ? `Start watching ${target.label}`
-                      : 'View episodes',
-            };
-        }
-    );
-    const audioLabel = episodes.then(episodeAudioAvailabilityLabel);
-    const franchise = result.idMal
-        ? getFranchiseOrder(result.idMal).catch((cause) => {
-              console.error(`Franchise order failed for MAL ${result.idMal}`, cause);
-              return null;
-          })
-        : Promise.resolve(null);
-
+    const response = await fetch(`${env.API_ORIGIN!}/v1/anime/${id}`, {
+        headers: {
+            Cookie: request.headers.get('cookie') ?? '',
+            Authorization: request.headers.get('authorization') ?? '',
+        },
+    }).catch(() => null);
+    if (!response) {
+        error(503, 'Arc is temporarily unavailable');
+    }
+    if (!response.ok) {
+        error(response.status === 404 ? 404 : 502, 'Anime details could not be loaded');
+    }
+    const page = AnimePageSchema.parse(await response.json());
     return {
-        anime: details,
-        artwork,
-        episodes,
-        episodeRevision: episodes.then(() => getEpisodeRevision(id)),
-        watchAction,
-        audioLabel,
-        franchise,
-        watchlistState: resolvedWatchlistState,
+        ...page,
+        artwork: Promise.resolve(page.artwork),
+        episodes: Promise.resolve(page.episodes),
+        episodeRevision: Promise.resolve(page.episodeRevision),
+        watchAction: Promise.resolve(page.watchAction),
+        audioLabel: Promise.resolve(page.audioLabel),
+        franchise: Promise.resolve(page.franchise),
     };
 };
