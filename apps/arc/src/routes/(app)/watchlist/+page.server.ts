@@ -7,18 +7,15 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ request, url }) => {
     const selection = WatchlistSelectionSchema.parse(Object.fromEntries(url.searchParams));
-    const search = new URLSearchParams(selection);
-    const headers = new Headers({ Accept: 'application/json' });
-    const cookie = request.headers.get('cookie');
-    const authorization = request.headers.get('authorization');
-    if (cookie) {
-        headers.set('cookie', cookie);
-    }
-    if (authorization) {
-        headers.set('authorization', authorization);
-    }
-
-    const response = await fetch(new URL(`/v1/watchlist?${search}`, env.API_ORIGIN!), { headers });
+    const response = await fetch(
+        `${env.API_ORIGIN!}/v1/watchlist?${new URLSearchParams(selection)}`,
+        {
+            headers: {
+                Cookie: request.headers.get('cookie') ?? '',
+                Authorization: request.headers.get('authorization') ?? '',
+            },
+        }
+    );
     if (response.status === 401) {
         redirect(303, '/login');
     }
