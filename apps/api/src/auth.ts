@@ -11,7 +11,6 @@ export const auth = betterAuth({
     appName: 'Arc',
     baseURL: process.env.BETTER_AUTH_URL!,
     secret: process.env.BETTER_AUTH_SECRET!,
-    trustedOrigins: [process.env.ARC_WEB_ORIGIN!],
     database: drizzleAdapter(db, {
         provider: 'pg',
         schema,
@@ -19,16 +18,9 @@ export const auth = betterAuth({
     }),
     advanced: {
         cookiePrefix: 'arc',
-        database: { generateId: 'uuid' },
-        useSecureCookies: process.env.BETTER_AUTH_URL!.startsWith('https://'),
-        defaultCookieAttributes: {
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: process.env.BETTER_AUTH_URL!.startsWith('https://'),
+        database: {
+            generateId: 'uuid',
         },
-        crossSubDomainCookies: process.env.AUTH_COOKIE_DOMAIN
-            ? { enabled: true, domain: process.env.AUTH_COOKIE_DOMAIN }
-            : undefined,
     },
     emailAndPassword: {
         enabled: true,
@@ -47,7 +39,10 @@ export const auth = betterAuth({
         window: 60,
         max: 100,
         customRules: {
-            '/sign-in/username': { window: 60, max: 5 },
+            '/sign-in/username': {
+                window: 60,
+                max: 5,
+            },
         },
     },
     telemetry: { enabled: false },
@@ -58,11 +53,19 @@ export const auth = betterAuth({
             }
             const claim = context.headers?.get('x-arc-invitation-reservation');
             if (!claim || !(await hasInvitationClaim(claim))) {
-                throw new APIError('FORBIDDEN', { message: 'A valid invitation is required.' });
+                throw new APIError('FORBIDDEN', {
+                    message: 'A valid invitation is required.',
+                });
             }
         }),
     },
-    plugins: [username({ minUsernameLength: 3, maxUsernameLength: 30 }), bearer()],
+    plugins: [
+        username({
+            minUsernameLength: 3,
+            maxUsernameLength: 30,
+        }),
+        bearer(),
+    ],
 });
 
 export type AuthSession = typeof auth.$Infer.Session;

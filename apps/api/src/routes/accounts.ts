@@ -1,4 +1,3 @@
-import { zValidator } from '@hono/zod-validator';
 import { isAPIError } from 'better-auth/api';
 import { Hono } from 'hono';
 
@@ -9,10 +8,11 @@ import {
     registerInvitedAccount,
 } from '@arc/backend';
 import { auth } from '../auth';
+import { validate } from '../http';
 
 export const accounts = new Hono().post(
     '/',
-    zValidator('json', AccountRegistrationSchema),
+    validate('json', AccountRegistrationSchema),
     async (context) => {
         const input = context.req.valid('json');
         let sessionCookies: string[] = [];
@@ -28,10 +28,9 @@ export const accounts = new Hono().post(
                         returnHeaders: true,
                         body: {
                             name: input.username,
-                            email: `${input.username.toLowerCase()}@arc.local`,
+                            email: input.email,
                             password: input.password,
                             username: input.username,
-                            displayUsername: input.username,
                         },
                     });
                     sessionCookies = created.headers.getSetCookie();
@@ -59,16 +58,23 @@ export const accounts = new Hono().post(
                     400
                 );
             }
-            if (
-                isAPIError(cause) &&
-                (cause.body?.code === 'USERNAME_IS_ALREADY_TAKEN' ||
-                    cause.body?.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL')
-            ) {
+            if (isAPIError(cause) && cause.body?.code === 'USERNAME_IS_ALREADY_TAKEN') {
                 return context.json(
                     {
                         error: {
                             code: 'USERNAME_TAKEN',
                             message: 'That username is already in use.',
+                        },
+                    },
+                    409
+                );
+            }
+            if (isAPIError(cause) && cause.body?.code === 'USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL') {
+                return context.json(
+                    {
+                        error: {
+                            code: 'EMAIL_TAKEN',
+                            message: 'That email is already in use.',
                         },
                     },
                     409
