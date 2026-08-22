@@ -76,10 +76,10 @@ export async function refreshAnime(id: number) {
 export async function getAnime(id: number) {
     let stored:
         | {
-            data: AniListAnime;
-            version: number;
-            fetchedAt: Date;
-        }
+              data: AniListAnime;
+              version: number;
+              fetchedAt: Date;
+          }
         | undefined;
 
     try {

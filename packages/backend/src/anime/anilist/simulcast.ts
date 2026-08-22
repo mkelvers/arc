@@ -5,7 +5,14 @@ import { request } from './client';
 
 const starts = new RequestCache<string, AnimeSeasonStartYears>(24 * 60 * 60 * 1_000);
 
-function startYear(media: Array<{ seasonYear: number | null } | null> | null | undefined) {
+function startYear(
+    media:
+        | Array<{
+              seasonYear: number | null;
+          } | null>
+        | null
+        | undefined
+) {
     const year = media?.[0]?.seasonYear;
     return year && Number.isSafeInteger(year) && year > 0 ? year : undefined;
 }

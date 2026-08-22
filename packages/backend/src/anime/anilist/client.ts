@@ -63,7 +63,7 @@ async function refresh<TResult, TVariables>(
     options: RequestOptions
 ) {
     const data = await anilistRequestPolicy.run(() =>
-        graphql("https://graphql.anilist.co", document, variables, { timeoutMs: options.timeoutMs })
+        graphql('https://graphql.anilist.co', document, variables, { timeoutMs: options.timeoutMs })
     );
     const fetchedAt = new Date();
     const expiresAt = new Date(fetchedAt.getTime() + (options.cacheForMs ?? 24 * 60 * 60 * 1_000));
