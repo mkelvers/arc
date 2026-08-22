@@ -1,0 +1,24 @@
+{
+    "name": "@arc/api-contract",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./account": "./src/account.ts",
+        "./auth": "./src/auth.ts",
+        "./generated": "./src/generated.ts",
+        "./watchlist": "./src/watchlist.ts"
+    },
+    "scripts": {
+        "check": "tsc --noEmit",
+        "test": "bun test"
+    },
+    "dependencies": {
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "typescript": "~6.0.3"
+    }
+}
