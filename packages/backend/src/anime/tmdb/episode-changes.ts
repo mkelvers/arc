@@ -18,7 +18,7 @@ const changeSchema = z.object({
 const changesResponseSchema = z.object({ changes: z.array(changeSchema).optional() });
 type ChangesResponse = z.infer<typeof changesResponseSchema>;
 const textValueSchema = z.string().trim().min(1);
-const runtimeValueSchema = z.number().finite().positive();
+const runtimeValueSchema = z.number().positive();
 const imageValueSchema = z.object({
     backdrop: z.object({ file_path: z.string().trim().min(1).nullish() }).optional(),
 });
