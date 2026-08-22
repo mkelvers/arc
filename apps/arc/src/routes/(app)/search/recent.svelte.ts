@@ -1,4 +1,4 @@
-import type { AnimeCard } from '$lib/types';
+import type { AnimeCard } from '@arc/shared/types';
 import { z } from 'zod';
 
 interface RecentResult {

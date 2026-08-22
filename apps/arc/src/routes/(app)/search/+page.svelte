@@ -3,7 +3,7 @@
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import { distinctSearchArtwork, AnimeSearchResultSchema } from '$lib/search';
+    import { distinctSearchArtwork, AnimeSearchResultSchema } from '@arc/shared/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';

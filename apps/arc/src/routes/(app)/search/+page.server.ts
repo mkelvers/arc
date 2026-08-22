@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
 
 import { parseSearchQuery, searchAnime } from '$lib/server/anime/anilist/search';
-import { enrichAnimeCards } from '$lib/server/anime/card-enrichment';
-import { withAnimeSearchMetadata } from '$lib/server/anime/search-enrichment';
+import { enrichAnimeCards } from '@arc/backend/internal/anime/card-enrichment';
+import { withAnimeSearchMetadata } from '@arc/backend/internal/anime/search-enrichment';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

@@ -1,13 +1,13 @@
 import { error } from '@sveltejs/kit';
 
-import { rankAnimeSearch, type AnimeSearchResult } from '$lib/search';
-import { SearchAnimePageDocument } from '$lib/graphql/anilist/generated/graphql';
+import { rankAnimeSearch, type AnimeSearchResult } from '@arc/shared/search';
+import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
-import { RequestCache } from '$lib/server/request-cache';
-import { createAnimeSearchIndex } from '$lib/server/anime/search-index';
-import { request } from './client';
-import { animeCard } from './models';
-import { animeTitles, present } from './text';
+import { RequestCache } from '@arc/backend/internal/request-cache';
+import { createAnimeSearchIndex } from '@arc/backend/internal/anime/search-index';
+import { request } from '@arc/backend/internal/anime/anilist/client';
+import { animeCard } from '@arc/backend/internal/anime/anilist/models';
+import { animeTitles, present } from '@arc/backend/internal/anime/anilist/text';
 
 const cache = new RequestCache<string, AnimeSearchResult[]>(5 * 60 * 1_000);
 const searchIndex = createAnimeSearchIndex(db);
