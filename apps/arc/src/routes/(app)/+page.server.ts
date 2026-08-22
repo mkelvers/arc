@@ -1,78 +1,47 @@
+import { env } from '$env/dynamic/private';
 import { error, fail, redirect } from '@sveltejs/kit';
 
-import { audioAvailabilityLabel } from '@arc/shared/audio';
-import { currentAnimeSeason } from '@arc/shared/season';
-import { getHomepage } from '@arc/backend/internal/anime/anilist/home';
-import { getPopularAudioLabels } from '@arc/backend/internal/anime/allanime/catalog';
-import { enrichAnimeCards } from '@arc/backend/internal/anime/card-enrichment';
-import { storedAudioModes } from '@arc/backend/internal/anime/episodes/model';
-import { getHomeHero } from '@arc/backend/internal/anime/home';
-import { animeId } from '$lib/server/anime/route';
-import { getContinueWatchingCards } from '$lib/server/progress/home';
-import { dismissPlaybackProgress } from '$lib/server/progress/store';
+import { HomePageSchema } from '@arc/api-contract/anime';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
-    const { season, year } = currentAnimeSeason();
-    const continueWatching = getContinueWatchingCards(locals.user?.id).catch((cause) => {
-        console.error('Continue watching load failed', cause);
-        return [];
-    });
-    const highlights = getHomeHero().catch((cause) => {
-        console.error('Homepage hero load failed', cause);
-        return [];
-    });
-    const homepage = await getHomepage(season, year).catch((cause) => {
-        console.error('Homepage catalog load failed', cause);
+export const load: PageServerLoad = async ({ request }) => {
+    const response = await fetch(`${env.API_ORIGIN!}/v1/home`, {
+        headers: {
+            Cookie: request.headers.get('cookie') ?? '',
+            Authorization: request.headers.get('authorization') ?? '',
+        },
+    }).catch(() => null);
+    if (!response) {
+        error(503, 'Arc is temporarily unavailable');
+    }
+    if (!response.ok) {
         error(502, 'The home page could not be loaded');
-    });
-
-    const animeIds = [...new Set([...homepage.season, ...homepage.popular].map(({ id }) => id))];
-    const [homeHero, audioByAnime, popularAudio] = await Promise.all([
-        highlights,
-        storedAudioModes(animeIds),
-        getPopularAudioLabels().catch(() => new Map()),
-    ]);
-    const withAudio = (card: (typeof homepage.season)[number]) => ({
-        ...card,
-        audioLabel: audioAvailabilityLabel([
-            ...(audioByAnime.get(card.id) ?? []),
-            ...(popularAudio.get(card.id) ?? []),
-        ]),
-    });
-
-    const seasonCards = homepage.season.map(withAudio);
-    const cards = await enrichAnimeCards([...seasonCards, ...homepage.popular.map(withAudio)]);
-
-    return {
-        highlights: homeHero,
-        season: cards.slice(0, seasonCards.length),
-        popular: cards.slice(seasonCards.length),
-        continueWatching,
-    };
+    }
+    return HomePageSchema.parse(await response.json());
 };
 
 export const actions: Actions = {
-    removeContinueWatching: async ({ locals, request }) => {
+    removeContinueWatching: async ({ locals, request, url }) => {
         if (!locals.user) {
             redirect(303, '/login');
         }
-
-        const form = await request.formData();
-        const id = animeId(form.get('animeId'));
-
-        if (!id) {
+        const animeId = Number((await request.formData()).get('animeId'));
+        if (!Number.isSafeInteger(animeId) || animeId <= 0) {
             return fail(400, { message: 'Invalid anime ID' });
         }
-
-        try {
-            await dismissPlaybackProgress(locals.user.id, id);
-            return { success: true };
-        } catch (cause) {
-            console.error('Failed to remove continue watching', cause);
-            return fail(500, {
-                message: 'Failed to remove continue watching',
-            });
+        const response = await fetch(`${env.API_ORIGIN!}/v1/home/continue-watching/${animeId}`, {
+            method: 'DELETE',
+            headers: {
+                Cookie: request.headers.get('cookie') ?? '',
+                Authorization: request.headers.get('authorization') ?? '',
+                Origin: url.origin,
+            },
+        }).catch(() => null);
+        if (!response) {
+            return fail(503, { message: 'Arc is temporarily unavailable' });
         }
+        return response.ok
+            ? { success: true }
+            : fail(response.status, { message: 'Failed to remove continue watching' });
     },
 };
