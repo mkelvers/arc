@@ -168,7 +168,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         fallbackImage: storedMedia?.artwork.selectedBackdrop?.url ?? result.bannerImage ?? null,
         // WatchPlayer keeps promise props to coordinate client transitions.
         segments: {
-            canEdit: Boolean(locals.user),
+            canEdit: locals.user !== undefined,
             times: skipTimes,
             templates: segmentTemplates,
         },
