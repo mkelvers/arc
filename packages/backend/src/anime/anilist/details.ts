@@ -127,6 +127,7 @@ export async function getAnime(id: number) {
         }
 
         if (
+            stored.data.status !== 'FINISHED' &&
             Date.now() - stored.fetchedAt.getTime() > 24 * 60 * 60 * 1_000 &&
             (retryAt.get(id) ?? 0) <= Date.now() &&
             !backgroundRefreshes.has(id)
