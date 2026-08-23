@@ -160,13 +160,15 @@ export async function readArtwork(
 
 async function fetchArtworkSource(match: StoredMapping) {
     const client = create();
+
+    const query = { include_image_language: 'null,ja,en' };
     const response =
         match.mediaType === 'movie'
             ? await client.GET('/3/movie/{movie_id}/images', {
-                  params: { path: { movie_id: match.id } },
+                  params: { path: { movie_id: match.id }, query },
               })
             : await client.GET('/3/tv/{series_id}/images', {
-                  params: { path: { series_id: match.id } },
+                  params: { path: { series_id: match.id }, query },
               });
 
     if (!response.data) {
