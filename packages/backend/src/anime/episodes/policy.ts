@@ -56,6 +56,10 @@ export function classificationRefreshDue(
         return true;
     }
 
+    if (status === 'FINISHED') {
+        return false;
+    }
+
     const lifetime = status === 'RELEASING' ? 24 * 60 * 60 * 1_000 : 7 * 24 * 60 * 60 * 1_000;
     return refreshedAt.getTime() + lifetime <= now;
 }
@@ -116,15 +120,7 @@ export function nextRefreshAt(anime: AniListAnime, stableSince: Date) {
         case 'RELEASING':
             return new Date(Math.min(nextAiringAt ?? Infinity, now + 6 * 60 * 60 * 1_000));
         case 'FINISHED': {
-            const stableFor = now - stableSince.getTime();
-
-            if (stableFor >= 30 * 24 * 60 * 60 * 1_000) {
-                return after(30 * 24 * 60 * 60 * 1_000);
-            }
-
-            return stableFor >= 7 * 24 * 60 * 60 * 1_000
-                ? after(7 * 24 * 60 * 60 * 1_000)
-                : after(24 * 60 * 60 * 1_000);
+            return null;
         }
         case 'CANCELLED':
             return now - stableSince.getTime() >= 7 * 24 * 60 * 60 * 1_000

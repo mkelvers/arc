@@ -125,7 +125,7 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
     });
 
-    test('refreshes filler data daily while airing and weekly otherwise', () => {
+    test('keeps valid finished classifications and refreshes mutable releases', () => {
         const now = new Date('2026-08-20T12:00:00Z').getTime();
 
         expect(
@@ -155,7 +155,7 @@ describe('episode refresh policy', () => {
                 'animefillerlist-v1',
                 now
             )
-        ).toBeTrue();
+        ).toBeFalse();
         expect(
             classificationRefreshDue(
                 new Date('2026-08-13T12:00:01Z'),
@@ -208,12 +208,9 @@ describe('episode refresh policy', () => {
         expect(episodeRefreshRetryDelay(3, now - 14 * 24 * 60 * 60 * 1_000, now)).toBeNull();
     });
 
-    test('backs off stable finished titles even when optional fields are absent', () => {
-        const before = Date.now() + 30 * 24 * 60 * 60 * 1_000;
+    test('does not schedule routine refreshes for finished releases', () => {
         const next = nextRefreshAt({ status: 'FINISHED' } as AniListAnime, new Date(0));
-        const after = Date.now() + 30 * 24 * 60 * 60 * 1_000;
 
-        expect(next.getTime()).toBeGreaterThanOrEqual(before);
-        expect(next.getTime()).toBeLessThanOrEqual(after);
+        expect(next).toBeNull();
     });
 });
