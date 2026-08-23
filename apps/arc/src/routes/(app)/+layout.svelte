@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { navigating } from '$app/state';
     import {
         BookmarkSimpleIcon,
         CaretDownIcon,
@@ -12,6 +13,7 @@
     import Logo from '$lib/components/ui/Logo.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import AccountAvatar from './_components/AccountAvatar.svelte';
+    import NavigationSkeleton from './_components/NavigationSkeleton.svelte';
     import type { LayoutProps } from './$types';
 
     let { data, children }: LayoutProps = $props();
@@ -186,5 +188,9 @@
 </header>
 
 <div class="pt-14">
-    {@render children()}
+    {#if navigating.to}
+        <NavigationSkeleton pathname={navigating.to.url.pathname} />
+    {:else}
+        {@render children()}
+    {/if}
 </div>
