@@ -3,7 +3,7 @@
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
 
-    import { distinctSearchArtwork, AnimeSearchResultSchema } from '@arc/shared/search';
+    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/shared/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
@@ -12,16 +12,19 @@
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
 
+    type SearchState = { query: string; results: AnimeSearchResult[]; failed: boolean };
+
     let { data }: PageProps = $props();
     const recent = new RecentSearches();
     let searchInput: HTMLInputElement | null = null;
     let query = $state(untrack(() => data.query));
-    let searchState = $state({
-        query: untrack(() => data.query),
-        results: untrack(() => data.results),
+    let pending = $state(untrack(() => data.query.length >= 2));
+    let searchState: SearchState = $state({
+        query: untrack(() => (data.query.length >= 2 ? '' : data.query)),
+        results: [],
         failed: false,
     });
-    const loading = $derived(query.trim() !== searchState.query);
+    const loading = $derived(pending || query.trim() !== searchState.query);
 
     const topResults = $derived(
         distinctSearchArtwork(
@@ -79,13 +82,35 @@
     afterNavigate(({ type }) => {
         if (type === 'popstate') {
             query = data.query;
-            searchState = { query: data.query, results: data.results, failed: false };
         }
+    });
+
+    $effect(() => {
+        const requestedQuery = data.query;
+        const request = data.results;
+        pending = requestedQuery.length >= 2;
+
+        void request.then((result) => {
+            if (query.trim() !== requestedQuery) {
+                return;
+            }
+
+            searchState = {
+                query: requestedQuery,
+                results: result.status === 'success' ? result.data : [],
+                failed: result.status === 'error',
+            };
+            pending = false;
+        });
     });
 
     $effect(() => {
         const next = query.trim();
         if (next === searchState.query) {
+            return;
+        }
+
+        if (pending && next === data.query) {
             return;
         }
 
