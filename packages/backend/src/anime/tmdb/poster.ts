@@ -258,7 +258,7 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
 
     const request = (async () => {
         const cached = await cacheRow(match);
-        if (cached && isFresh(cached)) {
+        if (cached && (anime.status === 'FINISHED' || isFresh(cached))) {
             return storedPoster(cached);
         }
 

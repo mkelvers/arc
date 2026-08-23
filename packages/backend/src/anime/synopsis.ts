@@ -169,7 +169,8 @@ async function resolvedTmdbSynopsis(anime: AniListAnime, source: AniListAnime) {
     }
     if (
         stored?.sourceAnilistId === source.id &&
-        Date.now() - stored.fetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000
+        (anime.status === 'FINISHED' ||
+            Date.now() - stored.fetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000)
     ) {
         return stored.synopsis;
     }

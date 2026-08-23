@@ -101,7 +101,10 @@ function mergeArtwork(
     return { backdrops: merge('backdrops'), logos: merge('logos') };
 }
 
-export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | null> {
+export async function readArtwork(
+    mapping: ArtworkMappings,
+    status?: AniListAnime['status']
+): Promise<Artwork | null> {
     const externalIdIds = mapping.matches.map(({ externalIdId }) => externalIdId);
     const cached = await db
         .select({
@@ -135,7 +138,8 @@ export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | n
             backdrops.length && logos.length ? 30 * 24 * 60 * 60 * 1_000 : 6 * 60 * 60 * 1_000;
         const sourceCache = cached.find(({ externalIdId }) => externalIdId === match.externalIdId);
 
-        return sourceCache && Date.now() - sourceCache.fetchedAt.getTime() < freshFor
+        return sourceCache &&
+            (status === 'FINISHED' || Date.now() - sourceCache.fetchedAt.getTime() < freshFor)
             ? { backdrops, logos }
             : null;
     });
@@ -265,7 +269,9 @@ export async function getArtwork(anime: AniListAnime) {
     };
 
     const [artwork, selectedPoster] = await Promise.all([
-        readArtwork(artworkMappings).then((stored) => stored ?? fetchArtwork(artworkMappings)),
+        readArtwork(artworkMappings, anime.status).then(
+            (stored) => stored ?? fetchArtwork(artworkMappings)
+        ),
         getPoster(anime, match).catch((cause) => {
             console.warn(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
             return null;
