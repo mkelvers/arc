@@ -224,7 +224,8 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
                 storedMedia?.artwork.selectedBackdrop?.url ??
                 details?.bannerImage ??
                 target.imageUrl;
-            const episodeImage = target.imageUrl ?? backdrop;
+            const episodeImage =
+                storedDetails?.format === 'MOVIE' ? backdrop : (target.imageUrl ?? backdrop);
 
             if (!backdrop || !episodeImage) {
                 return null;
