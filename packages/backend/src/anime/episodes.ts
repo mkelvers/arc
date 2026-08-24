@@ -13,7 +13,7 @@ export { withMovieBackdrop } from './movie-backdrop';
 
 export async function getEpisodes(anime: AniListAnime) {
     const stored = await storedEpisodes(anime);
-    if (!episodeInventoryNeedsDiscovery(anime, stored.length)) {
+    if (!episodeInventoryNeedsDiscovery(anime, stored)) {
         return stored;
     }
 
