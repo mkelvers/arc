@@ -9,6 +9,7 @@ import {
     availableEpisodeCount,
     classificationRefreshDue,
     episodeMetadataNeedsRefresh,
+    episodeRefreshBlocksPage,
     episodeRefreshReason,
     providerEpisodeCount,
 } from './episodes/policy';
@@ -67,14 +68,24 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
             anime.status,
             sync?.classificationRevision
         );
-    if (
+    const needsEpisodeRefresh =
         !stored.length ||
         incompleteFinishedRelease ||
         incompleteReleasingRelease ||
         incompleteMetadata ||
-        classificationsNeedRefresh
-    ) {
-        const refreshDeferred = sync?.nextRefreshAt && sync.nextRefreshAt.getTime() > Date.now();
+        classificationsNeedRefresh;
+    const refreshDeferred = sync?.nextRefreshAt && sync.nextRefreshAt.getTime() > Date.now();
+
+    if (!episodeRefreshBlocksPage(anime.status, stored.length > 0) && needsEpisodeRefresh) {
+        if (!refreshDeferred) {
+            void refreshEpisodes(anime, metadataSource ?? undefined).catch((cause) =>
+                console.error(`Finished episode refresh failed for AniList ${anime.id}`, cause)
+            );
+        }
+        return stored;
+    }
+
+    if (needsEpisodeRefresh) {
         if (incompleteMetadata || classificationsNeedRefresh) {
             try {
                 return await refreshEpisodes(anime, metadataSource ?? undefined);
@@ -109,6 +120,13 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
     }
 
     const reason = episodeRefreshReason(sync, metadataSource?.externalIdId ?? null);
+
+    if (reason && !episodeRefreshBlocksPage(anime.status, stored.length > 0)) {
+        void refreshEpisodes(anime, metadataSource ?? undefined).catch((cause) =>
+            console.error(`Finished episode refresh failed for AniList ${anime.id}`, cause)
+        );
+        return stored;
+    }
 
     if (reason === 'metadata-source' && metadataSource) {
         try {
