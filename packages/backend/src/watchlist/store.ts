@@ -10,7 +10,6 @@ import {
     animeEpisodeSync,
     animeExternalId,
     animeExternalIdLink,
-    animeInterestDirty,
     animeRelease,
     watchlist,
     type WatchlistState,
@@ -146,33 +145,23 @@ export async function setWatchlistState(
 ) {
     const animeId = await ensureInternalAnimeId(anilistId, title);
 
-    return db.transaction(async (tx) => {
-        const [current] = await tx
-            .select({ state: watchlist.state })
-            .from(watchlist)
-            .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)))
-            .limit(1);
+    const [current] = await db
+        .select({ state: watchlist.state })
+        .from(watchlist)
+        .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)))
+        .limit(1);
 
-        if (current?.state !== state) {
-            await tx
-                .insert(watchlist)
-                .values({ userId, animeId, state })
-                .onConflictDoUpdate({
-                    target: [watchlist.userId, watchlist.animeId],
-                    set: { state, updatedAt: new Date() },
-                });
-        }
-
-        await tx
-            .insert(animeInterestDirty)
-            .values({ userId, animeId, dirtyAt: new Date() })
+    if (current?.state !== state) {
+        await db
+            .insert(watchlist)
+            .values({ userId, animeId, state })
             .onConflictDoUpdate({
-                target: [animeInterestDirty.userId, animeInterestDirty.animeId],
-                set: { dirtyAt: new Date() },
+                target: [watchlist.userId, watchlist.animeId],
+                set: { state, updatedAt: new Date() },
             });
+    }
 
-        return state;
-    });
+    return state;
 }
 
 export async function removeFromWatchlist(userId: string, anilistId: number) {
@@ -181,18 +170,9 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
         return;
     }
 
-    await db.transaction(async (tx) => {
-        await tx
-            .delete(watchlist)
-            .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
-        await tx
-            .insert(animeInterestDirty)
-            .values({ userId, animeId, dirtyAt: new Date() })
-            .onConflictDoUpdate({
-                target: [animeInterestDirty.userId, animeInterestDirty.animeId],
-                set: { dirtyAt: new Date() },
-            });
-    });
+    await db
+        .delete(watchlist)
+        .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
 }
 
 export async function updateWatchlistAfterPlayback(
