@@ -6,9 +6,9 @@
 
 ## Decision
 
-Arc will replace disposable AniList response caches with permanent, validated anime release records. Pages will read those records without waiting for AniList. AniList is contacted when Arc first encounters an unknown release and in small, deliberate updates while an interested release is upcoming or airing.
+Arc will replace disposable AniList response caches with permanent, validated anime release records. Pages will read those records without waiting for AniList. AniList is contacted when Arc first encounters an unknown release and in small, deliberate scheduler updates for releases AniList currently identifies as airing.
 
-A durable PostgreSQL scheduler will own episode discovery for airing anime. It will track releases that are relevant through a user's watchlist or Continue Watching history, ask playback providers whether the target episode is available, persist confirmed episodes, and notify open pages through a database revision change.
+A durable PostgreSQL scheduler will own episode discovery for every currently airing anime, independent of watchlist or Continue Watching activity. It asks playback providers whether an exact due episode is available, persists confirmed inventory, and notifies open pages through a database revision change.
 
 The scheduler is the normal owner of airing updates. Page reads do not need to contact AniList or playback providers to make the episode appear.
 
@@ -18,16 +18,15 @@ This project covers:
 
 - permanent AniList release metadata;
 - migration of release-oriented consumers away from `anime_details_cache` and `anime_card_cache`;
-- watchlist and Continue Watching interest discovery;
+- hourly global discovery of AniList releases with `RELEASING` status;
 - durable scheduling, leases, retries, and recovery for airing episodes;
 - provider-confirmed episode writes; and
 - automatic episode-list updates on an already-open anime page.
 
 It does not cover:
 
-- notifications or a separate notification-interest source;
+- proactive tracking of every announced future `NOT_YET_RELEASED` anime;
 - replacement of TMDB, artwork, home, browse, or simulcast caches;
-- proactive tracking of every airing anime Arc knows about; or
 - optimistic display of an episode before a playback provider confirms it.
 
 `anilist_query_cache` remains the owner for the explicitly excluded query workloads: home, browse, simulcast, taxonomy/query data, franchise queries, and other out-of-scope query caching. “Remove the AniList cache dependency” in this project means removing the migrated release consumers' dependency on the two redundant release-cache tables; it does not mean deleting every cache associated with AniList.
@@ -54,20 +53,13 @@ Once stored, all page reads use PostgreSQL. Finished releases do not receive rou
 
 Upcoming and airing releases remain mutable. Arc uses a small AniList request when it needs the next airing time or current release status; it does not repeatedly download the same release metadata during ordinary page loads.
 
-## Scheduler interest
+## Global airing coverage
 
-The scheduler derives interest from only two product features:
+Once per hour, the scheduler pages through AniList's complete `RELEASING` anime set. For each release it records exact targets for both the latest already-aired episode and the next scheduled episode when AniList provides those schedule entries. This catches a missed episode even when AniList has already advanced `nextAiringEpisode`. Schedules longer than 50 episodes fetch the page containing the latest aired episode so long-running releases are not truncated.
 
-- a user's watchlist; and
-- a user's Continue Watching history.
+An airing release with no permanent record is placed in the durable first-contact queue. The normal five-minute worker drains that queue with bounded concurrency instead of fetching every newly discovered title at once. A stored schedule that disappeared from the global `RELEASING` result is also queued for a full status refresh so finished or cancelled releases stop producing new targets.
 
-There is no separate notification-interest list in this design.
-
-Interest in one release expands to currently upcoming or airing releases in the same main-story continuity chain. Arc should reuse the existing primary-franchise selection rule based on AniList/MAL `PREQUEL` and `SEQUEL` relationships. This includes a main-story movie connected through that chain. It excludes recap movies, summaries, spin-offs, side stories, alternatives, and unrelated specials.
-
-The scheduler tracks a release only while at least one user has qualifying interest in that continuity chain. Watchlist and playback-progress mutations should update interest promptly, and a periodic reconciliation should repair missed or interrupted mutations. When no qualifying interest remains, pending work for that release is retired. If interest returns later, scheduling resumes from the persisted release and episode state.
-
-Qualifying watchlist states are `watching`, `plan_to_watch`, and `completed` (plus any future paused state); `dropped` is excluded. Continue Watching qualifies only while its playback-progress row is not dismissed. The dirty marker is committed in the same PostgreSQL transaction as each watchlist or playback mutation. The five-minute worker consumes dirty work, while a full reconciliation runs at least hourly as a repair path.
+Watchlist and Continue Watching remain ordinary product features, but they no longer control scheduler eligibility and their mutations do not write scheduler dirty work. Existing interest tables are retained only as rollout-compatible schema until a later contract deployment; the scheduler does not read them. Between hourly reconciliations, a five-minute tick does not repeat global AniList discovery or rescan all releases. It only drains durable first-contact, maintenance, and actually due episode work.
 
 ## Durable episode scheduling
 
@@ -86,11 +78,11 @@ Only one worker may hold a target lease at a time. Expired leases must be recove
 
 ### Release window and retries
 
-For an interested airing release, checks occur 30 minutes before airing, at airing time, then at +5, +15, +30 minutes, +1, +3, +6, +12, and +24 hours, followed by one check per 24 hours. Automatic retries stop 14 days after the scheduled airing time and leave an observable, repairable failed target.
+For an exact airing target, checks occur 30 minutes before airing, at airing time, then at +5, +15, +30 minutes, +1, +3, +6, +12, and +24 hours, followed by one check per 24 hours. Automatic retries stop 14 days after the scheduled airing time and leave an observable, repairable failed target.
 
 Provider inventory is playback truth. The scheduler confirms success only when a provider returns the exact target episode as usable inventory. A timeout, rate limit, provider error, or inventory that still lacks the target is not success.
 
-Arc checks for the exact target immediately after provider inventory returns. It does not call AnimeFillerList or TMDB for a target that the provider has not released. If the exact episode is already present in Arc's provider-confirmed inventory when reconciliation runs, Arc records the target as confirmed without another provider request and queues only the small AniList schedule discovery needed to advance to the next target.
+Arc checks for the exact target immediately after provider inventory returns. It does not call AnimeFillerList or TMDB for a target that the provider has not released. If the exact episode is already present in Arc's provider-confirmed inventory when reconciliation runs, Arc records the target as confirmed without another provider request. The global snapshot already supplies the next target, so reconciliation does not queue a redundant per-release AniList request.
 
 If the target is still unavailable at midnight, Arc keeps trying with decreasing frequency for several days. The work remains durable across restarts and deployments. Retry limits should end in an observable failed state that can be repaired; they must not silently mark the episode as released.
 
@@ -103,11 +95,11 @@ When the provider confirms the target episode, Arc performs one database transac
 3. marks that target confirmed so it cannot be processed again; and
 4. clears its retry and lease state.
 
-Arc then makes one small AniList request to learn the next airing episode/time and current status. If another episode is scheduled, Arc creates the next durable target. If the release is finished, the scheduler retires it. Reaching the expected episode count alone is not enough to invent a finished status when AniList is unavailable; Arc should retry that status check separately.
+Arc then makes one small AniList request to learn the next airing episode/time and current status. If another episode is scheduled, Arc creates the next durable target. If the release is finished, the scheduler creates no new target. Reaching the expected episode count alone is not enough to invent a finished status when AniList is unavailable; Arc retries that status check separately.
 
 ## Open-page updates
 
-An open anime page checks Arc's database-backed page revision endpoint. The revision covers both provider inventory and the stored AniList schedule, so a confirmed episode and the following airing time can each invalidate stale page data. The page sleeps until 30 minutes before airing and then polls once per minute while visible. It does not poll every few seconds while an episode is days away, and it never calls AniList or a playback provider.
+An open releasing-anime page checks Arc's database-backed page revision endpoint once per minute while visible. The revision covers both provider inventory and the stored AniList schedule, so a confirmed or repaired episode and the following airing time can each invalidate stale page data even when the next scheduled episode is days away. The revision check is a PostgreSQL read; it never calls AniList or a playback provider, and unchanged revisions do not reload page data.
 
 This is confirmed reactive UI, not optimistic UI: the new episode appears automatically after the scheduler verifies and stores it, never before provider confirmation. Arc already has the revision endpoint and visible-page polling behavior; the scheduler supplies the durable producer currently missing from that flow.
 
@@ -153,7 +145,7 @@ The protected health route returns `503` when no invocation has succeeded within
 
 1. Introduce and backfill permanent AniList release records without removing current reads.
 2. Switch watchlist and dynamic anime-page reads to the permanent records and verify first-contact behavior.
-3. Add interest derivation for watchlist and Continue Watching, including main-story sequel and connected-movie expansion.
+3. Add global airing discovery and exact latest-aired/next-episode target reconciliation independent of user activity.
 4. Add the durable PostgreSQL scheduler, leases, retry policy, reconciliation, and health evidence.
 5. Connect confirmed episode writes to the existing revision-based frontend refresh.
 6. Verify the complete airing lifecycle in production, then use a separate contract deployment to drop the obsolete release-cache tables. This stage has not occurred.
@@ -166,9 +158,9 @@ Stages 1–5 are implemented by this project. Each stage preserves usable stored
 - An unknown AniList ID causes one deduplicated first-contact fetch and becomes a permanent record.
 - Finished releases remain readable indefinitely and receive no routine automatic metadata refresh.
 - Manual repair can update a finished release when necessary.
-- Watchlist and Continue Watching are the only direct interest sources.
-- Interest in an earlier season tracks an upcoming or airing main-story sequel, including a connected continuation movie, while excluding recap and side-story branches.
-- A release with no remaining qualifying user interest is retired from active scheduling.
+- Every anime AniList currently identifies as `RELEASING` is discovered independently of user activity.
+- An exact latest-aired target repairs missed inventory even after AniList advances the next-airing pointer.
+- Five-minute ticks do not repeat global discovery or call a provider for future targets.
 - Due work survives restarts and cannot be processed concurrently by multiple workers.
 - Missing episodes continue retrying beyond their airing day with bounded backoff.
 - Only provider-confirmed episodes are written as available.
@@ -181,4 +173,4 @@ Stages 1–5 are implemented by this project. Each stage preserves usable stored
 
 This design makes Arc less dependent on AniList availability and removes upstream work from ordinary page loads. It also gives airing updates a durable, observable owner.
 
-The cost is additional scheduler infrastructure, permanent database growth, franchise-interest reconciliation, retry and lease policy, and an explicit migration away from cache-shaped storage. Stored finished metadata may remain incorrect until manually repaired, which is an intentional tradeoff for stability and low request volume.
+The cost is additional scheduler infrastructure, permanent database growth, an hourly paginated AniList discovery query, retry and lease policy, and an explicit migration away from cache-shaped storage. Stored finished metadata may remain incorrect until manually repaired, which is an intentional tradeoff for stability and low request volume.
