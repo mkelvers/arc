@@ -86,7 +86,7 @@ For an exact airing target, checks occur 30 minutes before airing, at airing tim
 
 Provider inventory is playback truth. The scheduler confirms success only when a provider returns the exact target episode as usable inventory. A timeout, rate limit, provider error, or inventory that still lacks the target is not success.
 
-Arc checks for the exact target immediately after provider inventory returns. It does not call AnimeFillerList or TMDB for a target that the provider has not released. If the exact episode is already present in Arc's provider-confirmed inventory when reconciliation runs, Arc records the target as confirmed without another provider request. The global snapshot already supplies the next target, so reconciliation does not queue a redundant per-release AniList request.
+Arc checks for the exact target immediately after provider inventory returns. It does not call AnimeFillerList or TMDB for a target that the provider has not released. If the exact episode is already present and the persisted inventory contains enough episodes to cover the aired release through that target, reconciliation records the target as confirmed without another provider request. An exact latest episode alongside a shorter inventory is a gap, not confirmation: reconciliation reopens that target so the bounded worker repairs the missing earlier episode. The global snapshot already supplies the next target, so reconciliation does not queue a redundant per-release AniList request.
 
 If the target is still unavailable at midnight, Arc keeps trying with decreasing frequency for several days. The work remains durable across restarts and deployments. Retry limits should end in an observable failed state that can be repaired; they must not silently mark the episode as released.
 
@@ -167,6 +167,7 @@ Stages 1–5 are implemented by this project. Each stage preserves usable stored
 - Manual repair can update a finished release when necessary.
 - Every anime AniList currently identifies as `RELEASING` is discovered independently of user activity.
 - An exact latest-aired target repairs missed inventory even after AniList advances the next-airing pointer.
+- A stored latest episode cannot conceal an earlier inventory gap or cause episode 2 to be labelled episode 1.
 - Five-minute ticks do not repeat global discovery or call a provider for future targets.
 - Due work survives restarts and cannot be processed concurrently by multiple workers.
 - Missing episodes continue retrying beyond their airing day with bounded backoff.
