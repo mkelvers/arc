@@ -4,7 +4,17 @@ import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '../anime/details';
 import { storedAudioModes } from '../anime/episodes/model';
 import { selectWatchlistEntries, type WatchlistSelection } from './selection';
-import { getWatchlistEntries, storeMissingWatchlistTitles } from './store';
+import {
+    applyWatchlistEntries,
+    getWatchlistEntries,
+    storeMissingWatchlistTitles,
+    type WatchlistImportMode,
+} from './store';
+import {
+    importedWatchlistEntries,
+    transferAnimeByAniListId,
+    WatchlistImportError,
+} from './transfer';
 
 export {
     getWatchlistState,
@@ -12,6 +22,47 @@ export {
     removeFromWatchlist,
     setWatchlistState,
 } from './store';
+
+export { WatchlistImportError };
+
+export async function importWatchlist(
+    userId: string,
+    source: string,
+    filename: string,
+    mode: WatchlistImportMode
+) {
+    const imported = await importedWatchlistEntries(source, filename);
+    if (!imported.entries.length) {
+        throw new WatchlistImportError('Arc could not match any anime in the file.');
+    }
+    return {
+        ...(await applyWatchlistEntries(userId, imported.entries, mode)),
+        unmatched: imported.unmatched,
+    };
+}
+
+export async function exportWatchlist(userId: string) {
+    return (await getWatchlistEntries(userId)).map(({ anilistId, state, addedAt, updatedAt }) => ({
+        anilistId,
+        state,
+        addedAt,
+        updatedAt,
+    }));
+}
+
+export async function exportMyAnimeListWatchlist(userId: string) {
+    const entries = await getWatchlistEntries(userId);
+    const media = await transferAnimeByAniListId(entries.map(({ anilistId }) => anilistId));
+    const mediaById = new Map(media.map((entry) => [entry.id, entry]));
+    return entries.map(({ anilistId, state }) => {
+        const item = mediaById.get(anilistId);
+        return {
+            malId: item?.idMal ?? null,
+            title: item?.title?.english ?? item?.title?.romaji ?? item?.title?.native ?? '',
+            state,
+        };
+    });
+}
 
 export async function getWatchlistPage(userId: string, selection: WatchlistSelection) {
     const stored = await getWatchlistEntries(userId);

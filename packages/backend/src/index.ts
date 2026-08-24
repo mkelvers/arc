@@ -8,9 +8,13 @@ export {
     restoreInvitation,
 } from './invitations';
 export {
+    exportMyAnimeListWatchlist,
+    exportWatchlist,
     getWatchlistPage,
     getWatchlistState,
     getWatchlistStates,
+    importWatchlist,
     removeFromWatchlist,
     setWatchlistState,
+    WatchlistImportError,
 } from './watchlist/application';
