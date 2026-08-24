@@ -41,6 +41,5 @@ async function importFile({ fetch, request, url }: RequestEvent) {
 }
 
 export const actions: Actions = {
-    importMal: importFile,
-    importUniversal: importFile,
+    import: importFile,
 };
