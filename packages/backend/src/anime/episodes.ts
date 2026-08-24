@@ -2,26 +2,15 @@ import { createHash } from 'node:crypto';
 
 import { and, eq } from 'drizzle-orm';
 
-import type { AnimeEpisode } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 
+export { withMovieBackdrop } from './movie-backdrop';
+
 export async function getEpisodes(anime: AniListAnime) {
     return storedEpisodes(anime);
-}
-
-export function withMovieBackdrop(
-    anime: Pick<AniListAnime, 'format'>,
-    episodes: AnimeEpisode[],
-    backdrop: string | null | undefined
-) {
-    if (anime.format !== 'MOVIE' || !backdrop) {
-        return episodes;
-    }
-
-    return episodes.map((episode) => ({ ...episode, image: backdrop }));
 }
 
 export async function getStoredAiringSchedule(anilistId: number) {
@@ -48,7 +37,10 @@ export async function getStoredAiringSchedule(anilistId: number) {
     ]);
     const schedule = rows[0];
 
-    if (!schedule?.airingAt || !schedule.episode || confirmed.length) {
+    if (!schedule) {
+        return undefined;
+    }
+    if (!schedule.airingAt || !schedule.episode || confirmed.length) {
         return null;
     }
 
