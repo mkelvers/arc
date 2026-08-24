@@ -2,6 +2,8 @@
     import { invalidate } from '$app/navigation';
     import { EpisodeRevisionSchema } from '@arc/shared/types';
 
+    import { episodeRevisionPollInterval } from './episode-revision-polling';
+
     interface Props {
         animeId: number;
         airingAt: number;
@@ -40,9 +42,6 @@
         let stopped = false;
         let warned = false;
         let revision = initialRevision;
-        const discoveryStartsAt = airingAt * 1_000 - 30 * 60_000;
-        const nextDelay = () =>
-            Date.now() < discoveryStartsAt ? Math.min(discoveryStartsAt - Date.now(), 60 * 60_000) : 60_000;
 
         const poll = async () => {
             if (document.visibilityState === 'visible') {
@@ -74,11 +73,11 @@
             }
 
             if (!stopped) {
-                timer = setTimeout(poll, nextDelay());
+                timer = setTimeout(poll, episodeRevisionPollInterval);
             }
         };
 
-        timer = setTimeout(poll, nextDelay());
+        timer = setTimeout(poll, episodeRevisionPollInterval);
 
         return () => {
             stopped = true;
