@@ -1,9 +1,12 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import type { PlaybackProgressInput } from '../progress/input';
 import { ensureInternalAnimeId, findInternalAnimeId } from '../anime/identity';
 import { db } from '@arc/db';
 import {
+    anime,
+    animeCatalog,
+    animeDetailsCache,
     animeEpisode,
     animeEpisodeSync,
     animeExternalId,
@@ -53,14 +56,21 @@ export async function getWatchlistStates(userId: string) {
 export async function getWatchlistEntries(userId: string) {
     return db
         .select({
+            internalAnimeId: watchlist.animeId,
             anilistId: animeExternalId.externalId,
+            title: anime.title,
+            catalogTitle: animeCatalog.title,
+            details: animeDetailsCache.data,
             state: watchlist.state,
             addedAt: watchlist.createdAt,
             updatedAt: watchlist.updatedAt,
         })
         .from(watchlist)
+        .innerJoin(anime, eq(anime.id, watchlist.animeId))
         .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, watchlist.animeId))
         .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
+        .leftJoin(animeCatalog, eq(animeCatalog.anilistId, animeExternalId.externalId))
+        .leftJoin(animeDetailsCache, eq(animeDetailsCache.anilistId, animeExternalId.externalId))
         .where(
             and(
                 eq(watchlist.userId, userId),
@@ -73,6 +83,25 @@ export async function getWatchlistEntries(userId: string) {
             desc(watchlist.createdAt),
             desc(animeExternalId.externalId)
         );
+}
+
+export async function storeMissingWatchlistTitles(
+    entries: ReadonlyArray<{ internalAnimeId: number; title: string }>
+) {
+    if (!entries.length) {
+        return;
+    }
+
+    const values = sql.join(
+        entries.map(({ internalAnimeId, title }) => sql`(${internalAnimeId}, ${title})`),
+        sql.raw(', ')
+    );
+    await db.execute(sql`
+        update ${anime}
+        set title = source.title, updated_at = now()
+        from (values ${values}) as source(id, title)
+        where ${anime.id} = source.id and ${anime.title} is null
+    `);
 }
 
 async function setInternalWatchlistState(userId: string, animeId: number, state: WatchlistState) {
@@ -108,10 +137,15 @@ async function setInternalWatchlistState(userId: string, animeId: number, state:
     return setInternalWatchlistState(userId, animeId, state);
 }
 
-export async function setWatchlistState(userId: string, anilistId: number, state: WatchlistState) {
+export async function setWatchlistState(
+    userId: string,
+    anilistId: number,
+    state: WatchlistState,
+    title?: string
+) {
     const result = await setInternalWatchlistState(
         userId,
-        await ensureInternalAnimeId(anilistId),
+        await ensureInternalAnimeId(anilistId, title),
         state
     );
     return result;
