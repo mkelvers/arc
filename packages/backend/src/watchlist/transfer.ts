@@ -1,4 +1,3 @@
-import { load } from 'cheerio';
 import { z } from 'zod';
 
 import {
@@ -149,12 +148,12 @@ export function parseJsonWatchlist(source: string): ImportEntry[] {
     try {
         raw = JSON.parse(source) as unknown;
     } catch {
-        throw new WatchlistImportError('Choose a valid JSON, CSV, or XML watchlist file.');
+        throw new WatchlistImportError('Choose a valid JSON or CSV watchlist file.');
     }
 
     const parsed = z.json().safeParse(raw);
     if (!parsed.success) {
-        throw new WatchlistImportError('Choose a valid JSON, CSV, or XML watchlist file.');
+        throw new WatchlistImportError('Choose a valid JSON or CSV watchlist file.');
     }
 
     const root = record(parsed.data);
@@ -247,49 +246,6 @@ export function parseCsvWatchlist(source: string): ImportEntry[] {
     );
 }
 
-export function parseXmlWatchlist(source: string): ImportEntry[] {
-    const document = load(source, { xmlMode: true });
-    const nodes = document('anime, entry, item').toArray();
-    if (!nodes.length) {
-        throw new WatchlistImportError('The XML file contains no anime entries.');
-    }
-
-    return nodes.map((node, index) => {
-        const element = document(node);
-        const field = (...names: string[]) => {
-            for (const name of names) {
-                const value = element.attr(name) ?? element.find(name).first().text();
-                if (value.trim()) {
-                    return value.trim();
-                }
-            }
-            return undefined;
-        };
-        const values: Record<string, JsonValue> = {};
-        const fields = {
-            anilist_id: field('anilist_id', 'anilistId'),
-            mal_id: field('mal_id', 'malId', 'series_animedb_id'),
-            id: field('id', 'anime_id'),
-            title: field('title', 'anime_title', 'series_title', 'name'),
-            status: field('status', 'watch_status', 'state', 'my_status'),
-            added_at: field('added_at', 'addedAt', 'created_at', 'createdAt', 'my_start_date'),
-            updated_at: field(
-                'updated_at',
-                'updatedAt',
-                'last_updated',
-                'lastUpdated',
-                'my_last_updated'
-            ),
-        };
-        for (const [name, value] of Object.entries(fields)) {
-            if (value !== undefined) {
-                values[name] = value;
-            }
-        }
-        return parsedEntry(values, index, `XML entry ${index + 1}`);
-    });
-}
-
 export function parseWatchlistImport(source: string, filename = '') {
     const extension = filename.split('.').pop()?.toLowerCase();
     if (extension === 'json') {
@@ -298,16 +254,13 @@ export function parseWatchlistImport(source: string, filename = '') {
     if (extension === 'csv') {
         return parseCsvWatchlist(source);
     }
-    if (extension === 'xml') {
-        return parseXmlWatchlist(source);
+    if (extension) {
+        throw new WatchlistImportError('Choose a JSON or CSV watchlist file.');
     }
 
     const trimmed = source.trimStart();
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
         return parseJsonWatchlist(source);
-    }
-    if (trimmed.startsWith('<')) {
-        return parseXmlWatchlist(source);
     }
     return parseCsvWatchlist(source);
 }
@@ -341,27 +294,9 @@ async function mediaByMalId(malIds: number[]) {
     const media: TransferAnime[] = [];
     for (const ids of batches([...new Set(malIds)], 50)) {
         const response = await request(WatchlistTransferAnimeDocument, {
-            anilistIds: [],
             malIds: ids,
         });
         media.push(...present(response.mal?.media));
-    }
-    return [...new Map(media.map((entry) => [entry.id, entry])).values()];
-}
-
-export async function transferAnimeByAniListId(anilistIds: number[]) {
-    if (!anilistIds.length) {
-        return [];
-    }
-
-    const { request } = await import('../anime/anilist/client');
-    const media: TransferAnime[] = [];
-    for (const ids of batches([...new Set(anilistIds)], 50)) {
-        const response = await request(WatchlistTransferAnimeDocument, {
-            anilistIds: ids,
-            malIds: [],
-        });
-        media.push(...present(response.anilist?.media));
     }
     return [...new Map(media.map((entry) => [entry.id, entry])).values()];
 }

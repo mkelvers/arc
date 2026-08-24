@@ -5,7 +5,6 @@ import {
     parseCsvWatchlist,
     parseJsonWatchlist,
     parseWatchlistImport,
-    parseXmlWatchlist,
     WatchlistImportError,
 } from './transfer';
 
@@ -62,30 +61,18 @@ describe('watchlist transfer', () => {
         expect(entry.titles.preferred).toBe('Kaguya-sama: Love Is War, "Ultra Romantic"');
     });
 
-    test('parses generic and MyAnimeList XML fields', () => {
-        const entries = parseXmlWatchlist(`<?xml version="1.0"?>
-            <watchlist>
-                <entry><title>Odd Taxi</title><status>dropped</status></entry>
-                <anime>
-                    <series_animedb_id>5114</series_animedb_id>
-                    <series_title>Fullmetal Alchemist: Brotherhood</series_title>
-                    <my_status>Completed</my_status>
-                </anime>
-            </watchlist>`);
-
-        expect(entries.map(({ malId, state, titles }) => [malId, state, titles.preferred])).toEqual(
-            [
-                [undefined, 'dropped', 'Odd Taxi'],
-                [5114, 'completed', 'Fullmetal Alchemist: Brotherhood'],
-            ]
-        );
-    });
-
     test('detects formats without an extension', () => {
         expect(parseWatchlistImport('title,status\nMonster,completed')).toHaveLength(1);
-        expect(
-            parseWatchlistImport('<watchlist><anime id="1" status="watching" /></watchlist>')
-        ).toHaveLength(1);
+        expect(parseWatchlistImport('[{"id": 1, "status": "watching"}]')).toHaveLength(1);
+    });
+
+    test('rejects XML files', () => {
+        expect(() =>
+            parseWatchlistImport(
+                '<watchlist><anime id="1" status="watching" /></watchlist>',
+                'watchlist.xml'
+            )
+        ).toThrow('Choose a JSON or CSV watchlist file.');
     });
 
     test('prefers source activity time to file position', () => {
