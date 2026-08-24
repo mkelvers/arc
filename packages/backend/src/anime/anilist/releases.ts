@@ -16,6 +16,7 @@ const releaseSchemaRevision = 1;
 const requestLeaseMs = 30_000;
 const requestWaitMs = 12_000;
 const requests = new Map<number, Promise<AniListAnime>>();
+const scheduleRequests = new Map<number, Promise<AniListAnime>>();
 
 function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
     return {
@@ -221,7 +222,7 @@ export async function getAnimeRelease(id: number) {
     return (await storedAnimeRelease(id)) ?? refreshAnimeRelease(id);
 }
 
-export async function refreshAnimeSchedule(id: number) {
+async function fetchAnimeSchedule(id: number) {
     const stored = await storedAnimeRelease(id);
     if (!stored) {
         return refreshAnimeRelease(id, { force: true });
@@ -267,6 +268,23 @@ export async function refreshAnimeSchedule(id: number) {
             },
         });
     return updated;
+}
+
+export function refreshAnimeSchedule(id: number) {
+    const pending = scheduleRequests.get(id);
+    if (pending) {
+        return pending;
+    }
+
+    const request = fetchAnimeSchedule(id);
+    scheduleRequests.set(id, request);
+    const cleanup = () => {
+        if (scheduleRequests.get(id) === request) {
+            scheduleRequests.delete(id);
+        }
+    };
+    void request.then(cleanup, cleanup);
+    return request;
 }
 
 export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {

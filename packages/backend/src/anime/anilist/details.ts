@@ -1,4 +1,3 @@
-import { getAnimeRelease, refreshAnimeRelease } from './releases';
+import { getAnimeRelease } from './releases';
 
 export const getAnime = getAnimeRelease;
-export const refreshAnime = (id: number) => refreshAnimeRelease(id, { force: true });
