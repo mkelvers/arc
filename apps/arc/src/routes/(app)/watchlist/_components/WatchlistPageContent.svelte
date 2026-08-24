@@ -25,6 +25,7 @@
     } from '$lib/watchlist';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
+    import WatchlistPendingCard from './WatchlistPendingCard.svelte';
 
     type PageResult = Awaited<PageData['page']>;
     type Page = Extract<PageResult, { status: 'success' }>['data'];
@@ -371,7 +372,11 @@
                         class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 2xl:gap-x-5"
                     >
                         {#each data.entries.filter((entry) => !watchlist.loaded || watchlist.state(entry.id)) as entry (entry.id)}
-                            <AnimeCard anime={entry} />
+                            {#if entry.pendingMetadata}
+                                <WatchlistPendingCard anime={entry} />
+                            {:else}
+                                <AnimeCard anime={entry} />
+                            {/if}
                         {/each}
                     </div>
                 {/if}
