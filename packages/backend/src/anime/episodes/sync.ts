@@ -1,8 +1,13 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, ne, sql } from 'drizzle-orm';
 
 import { mergeAudioModes } from '@arc/shared/audio';
 import { db, excluded } from '@arc/db';
-import { animeEpisode, animeEpisodeSync, animeEpisodeTarget } from '@arc/db/schema';
+import {
+    animeEpisode,
+    animeEpisodeSync,
+    animeEpisodeTarget,
+    maintenanceTask,
+} from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
 import { getEpisodeMetadata } from '../tmdb/episodes';
@@ -14,8 +19,9 @@ import {
     classificationRefreshDue,
     episodeMetadataRevision,
     nextRefreshAt,
+    providerEpisodeCount,
 } from './policy';
-import { episodesForRelease, providerConfirmsEpisode } from './release';
+import { confirmedEpisodeAirDate, episodesForRelease, providerConfirmsEpisode } from './release';
 
 export class TargetEpisodeUnavailableError extends Error {
     constructor(
@@ -28,15 +34,46 @@ export class TargetEpisodeUnavailableError extends Error {
     }
 }
 
+const inventoryRequests = new Map<number, ReturnType<typeof storedEpisodes>>();
+
+export function episodeInventoryBackfillKey(anilistId: number) {
+    return `episode:backfill:${anilistId}`;
+}
+
+async function enqueueEpisodeInventoryBackfill(anilistId: number) {
+    await db
+        .insert(maintenanceTask)
+        .values({
+            kind: 'episode_backfill',
+            dedupeKey: episodeInventoryBackfillKey(anilistId),
+            payload: { kind: 'episode_backfill', anilistId },
+        })
+        .onConflictDoUpdate({
+            target: maintenanceTask.dedupeKey,
+            setWhere: ne(maintenanceTask.state, 'running'),
+            set: {
+                state: 'pending',
+                attempts: 0,
+                nextAttemptAt: new Date(),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+                result: null,
+                completedAt: null,
+                updatedAt: new Date(),
+            },
+        });
+}
+
 async function fetchAndStore(
     anime: AniListAnime,
-    confirmation: { targetEpisode: number; leaseOwner: string }
+    confirmation?: { targetEpisode: number; airingAt: Date; leaseOwner: string }
 ) {
     const providerEpisodes = await playback.getEpisodes(anime);
     if (!providerEpisodes.length) {
         throw new Error(`No playback provider returned episodes for AniList ${anime.id}`);
     }
-    if (!providerConfirmsEpisode(providerEpisodes, confirmation.targetEpisode)) {
+    if (confirmation && !providerConfirmsEpisode(providerEpisodes, confirmation.targetEpisode)) {
         throw new TargetEpisodeUnavailableError(anime.id, confirmation.targetEpisode);
     }
 
@@ -109,6 +146,15 @@ async function fetchAndStore(
             : providerEpisodes,
         metadata
     );
+    const expected = providerEpisodeCount(anime);
+    if (
+        !confirmation &&
+        anime.status === 'FINISHED' &&
+        expected !== null &&
+        source.length < expected
+    ) {
+        throw new TargetEpisodeUnavailableError(anime.id, expected);
+    }
     const now = new Date();
     await db.transaction(async (tx) => {
         const [sync, existing] = await Promise.all([
@@ -160,7 +206,13 @@ async function fetchAndStore(
                             : (previous?.classification ?? episode.type ?? 'unknown'),
                 imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
                 runtimeMinutes: media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
-                airDate: media?.airDate || previousMetadata?.airDate || null,
+                airDate: confirmation
+                    ? confirmedEpisodeAirDate(
+                          episode.number,
+                          media?.airDate || previousMetadata?.airDate || null,
+                          confirmation
+                      )
+                    : media?.airDate || previousMetadata?.airDate || null,
                 overview: media?.overview || previousMetadata?.overview || null,
                 overviewSource: media?.overviewSource ?? previousMetadata?.overviewSource ?? null,
                 firstSeenAt: previous?.firstSeenAt ?? now,
@@ -257,6 +309,10 @@ async function fetchAndStore(
                 },
             });
 
+        if (!confirmation) {
+            return;
+        }
+
         const [confirmed] = await tx
             .update(animeEpisodeTarget)
             .set({
@@ -287,10 +343,52 @@ async function fetchAndStore(
     return storedEpisodes(anime);
 }
 
+export function discoverEpisodeInventory(anime: AniListAnime) {
+    const pending = inventoryRequests.get(anime.id);
+    if (pending) {
+        return pending;
+    }
+
+    const request = fetchAndStore(anime)
+        .then(async (episodes) => {
+            const now = new Date();
+            await db
+                .update(maintenanceTask)
+                .set({
+                    state: 'completed',
+                    result: { anilistId: anime.id, episodes: episodes.length },
+                    completedAt: now,
+                    updatedAt: now,
+                })
+                .where(
+                    and(
+                        eq(maintenanceTask.dedupeKey, episodeInventoryBackfillKey(anime.id)),
+                        eq(maintenanceTask.state, 'pending')
+                    )
+                );
+            return episodes;
+        })
+        .catch(async (cause) => {
+            await enqueueEpisodeInventoryBackfill(anime.id).catch((failure) =>
+                console.error(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
+            );
+            throw cause;
+        });
+    inventoryRequests.set(anime.id, request);
+    const cleanup = () => {
+        if (inventoryRequests.get(anime.id) === request) {
+            inventoryRequests.delete(anime.id);
+        }
+    };
+    void request.then(cleanup, cleanup);
+    return request;
+}
+
 export async function confirmScheduledEpisode(
     anime: AniListAnime,
     targetEpisode: number,
-    leaseOwner: string
+    leaseOwner: string,
+    airingAt: Date
 ) {
-    return fetchAndStore(anime, { targetEpisode, leaseOwner });
+    return fetchAndStore(anime, { targetEpisode, airingAt, leaseOwner });
 }

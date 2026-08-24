@@ -5,6 +5,7 @@ import {
     canPreserveEpisodeMetadata,
     classificationRefreshDue,
     episodeInventoryIsExpected,
+    episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
     episodeRefreshBlocksPage,
@@ -171,6 +172,27 @@ describe('episode refresh policy', () => {
     test('does not use AniList segment totals as provider episode counts', () => {
         expect(providerEpisodeCount({ format: 'TV_SHORT', episodes: 120 })).toBeNull();
         expect(providerEpisodeCount({ format: 'TV', episodes: 24 })).toBe(24);
+    });
+
+    test('discovers missing and incomplete finished provider inventory only when needed', () => {
+        expect(
+            episodeInventoryNeedsDiscovery({ status: 'FINISHED', format: 'TV', episodes: 12 }, 0)
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery({ status: 'FINISHED', format: 'TV', episodes: 12 }, 11)
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery({ status: 'FINISHED', format: 'TV', episodes: 12 }, 12)
+        ).toBeFalse();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV_SHORT', episodes: 120 },
+                12
+            )
+        ).toBeFalse();
+        expect(
+            episodeInventoryNeedsDiscovery({ status: 'RELEASING', format: 'TV', episodes: 12 }, 0)
+        ).toBeFalse();
     });
 
     test('expects all episodes before the next airing episode', () => {

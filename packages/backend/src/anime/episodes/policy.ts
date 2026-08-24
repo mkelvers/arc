@@ -77,6 +77,21 @@ export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episo
     return anime.format === 'TV_SHORT' ? null : anime.episodes;
 }
 
+export function episodeInventoryNeedsDiscovery(
+    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>,
+    storedEpisodeCount: number
+) {
+    if (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') {
+        return false;
+    }
+    if (storedEpisodeCount === 0) {
+        return true;
+    }
+
+    const expected = providerEpisodeCount(anime);
+    return anime.status === 'FINISHED' && expected !== null && storedEpisodeCount < expected;
+}
+
 export function availableEpisodeCount(anime: Pick<AniListAnime, 'status' | 'nextAiringEpisode'>) {
     if (anime.status !== 'RELEASING' || !anime.nextAiringEpisode?.episode) {
         return null;
