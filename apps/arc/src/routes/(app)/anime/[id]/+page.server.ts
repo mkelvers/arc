@@ -20,6 +20,7 @@ export const load: PageServerLoad = async ({ params, depends, request, fetch }) 
         })
             .then(async (response) => {
                 if (!response.ok) {
+                    console.error(`Anime page API returned ${response.status} for ${id}`);
                     return {
                         status:
                             response.status === 404 ? ('not-found' as const) : ('error' as const),
@@ -31,6 +32,9 @@ export const load: PageServerLoad = async ({ params, depends, request, fetch }) 
                     data: AnimePageSchema.parse(await response.json()),
                 };
             })
-            .catch(() => ({ status: 'error' as const })),
+            .catch((cause) => {
+                console.error(`Anime page API request failed for ${id}`, cause);
+                return { status: 'error' as const };
+            }),
     };
 };
