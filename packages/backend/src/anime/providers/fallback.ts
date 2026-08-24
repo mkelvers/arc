@@ -297,7 +297,8 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                         alternate.number > 0 &&
                         alternate.number <= (availableEpisodes ?? 0);
                     const possibleSpecial =
-                        alternate.number <= 0 || !Number.isInteger(alternate.number);
+                        (alternate.number <= 0 || !Number.isInteger(alternate.number)) &&
+                        Boolean(alternate.title.trim());
                     if (!fillsExpectedGap && !possibleSpecial) {
                         continue;
                     }

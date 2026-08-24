@@ -382,6 +382,44 @@ describe('playback provider fallback', () => {
         ]);
     });
 
+    test('rejects an uncorroborated untitled fractional row', async () => {
+        const playback = createProviderFallback([
+            provider('with-ghost', {
+                getEpisodes: async () => [
+                    { id: 'first-1', number: 1, title: 'First', audio: ['sub'] },
+                    { id: 'ghost', number: 1.5, title: '', audio: ['dub'] },
+                    { id: 'first-2', number: 2, title: 'Second', audio: ['sub'] },
+                ],
+            }),
+            provider('exact', {
+                getEpisodes: async () => [
+                    { id: 'exact-1', number: 1, title: 'First', audio: ['dub'] },
+                    { id: 'exact-2', number: 2, title: 'Second', audio: ['dub'] },
+                ],
+            }),
+        ]);
+
+        expect(
+            await playback.getEpisodes({
+                ...anime,
+                episodes: 2,
+            })
+        ).toEqual([
+            {
+                id: 'exact-1',
+                number: 1,
+                title: 'First',
+                audio: ['sub', 'dub'],
+            },
+            {
+                id: 'exact-2',
+                number: 2,
+                title: 'Second',
+                audio: ['sub', 'dub'],
+            },
+        ]);
+    });
+
     test('fills missing audio modes from later providers', async () => {
         const attempts: string[] = [];
         const playback = createProviderFallback([
