@@ -43,7 +43,7 @@
         pending = true;
         failed = false;
         try {
-            await watchlist.toggle(animeId);
+            await watchlist.toggle(animeId, title);
         } catch (cause) {
             if (cause instanceof WatchlistAuthenticationError) {
                 await goto('/login');

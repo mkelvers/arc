@@ -47,7 +47,7 @@
         pending = true;
         failed = false;
         try {
-            await watchlist.set(animeId, next);
+            await watchlist.set(animeId, next, title);
         } catch (cause) {
             if (cause instanceof WatchlistAuthenticationError) {
                 await goto('/login');

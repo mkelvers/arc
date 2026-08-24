@@ -57,14 +57,14 @@ class WatchlistClient {
         await this.load();
     }
 
-    async set(animeId: number, state: WatchlistState) {
+    async set(animeId: number, state: WatchlistState, title?: string) {
         const response = await fetch(`/v1/watchlist/${animeId}`, {
             method: 'PUT',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ state }),
+            body: JSON.stringify({ state, title }),
         });
         this.assertSuccessful(response);
         const result = WatchlistStateResponseSchema.parse(await response.json());
@@ -89,7 +89,7 @@ class WatchlistClient {
         this.states = remaining;
     }
 
-    async toggle(animeId: number) {
+    async toggle(animeId: number, title: string) {
         await this.load();
 
         if (this.state(animeId)) {
@@ -97,7 +97,7 @@ class WatchlistClient {
             return null;
         }
 
-        return this.set(animeId, 'plan_to_watch');
+        return this.set(animeId, 'plan_to_watch', title);
     }
 
     private assertSuccessful(response: Response) {
