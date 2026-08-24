@@ -40,6 +40,7 @@ export const MaintenanceRequestSchema = z.discriminatedUnion('kind', [
     }),
     z.object({ kind: z.literal('airing_reconcile') }),
     z.object({ kind: z.literal('interest_reconcile') }),
+    z.object({ kind: z.literal('episode_backfill'), anilistId: animeId }),
 ]);
 
 export type MaintenanceRequest = z.infer<typeof MaintenanceRequestSchema>;

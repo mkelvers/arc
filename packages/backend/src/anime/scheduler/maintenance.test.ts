@@ -7,6 +7,13 @@ describe('maintenance task boundary', () => {
         expect(MaintenanceRequestSchema.safeParse({ kind: 'airing_reconcile' }).success).toBe(true);
     });
 
+    test('accepts a bounded episode inventory backfill', () => {
+        expect(
+            MaintenanceRequestSchema.safeParse({ kind: 'episode_backfill', anilistId: 100922 })
+                .success
+        ).toBe(true);
+    });
+
     test('accepts the closed playback and metadata override variants', () => {
         expect(
             MaintenanceRequestSchema.safeParse({

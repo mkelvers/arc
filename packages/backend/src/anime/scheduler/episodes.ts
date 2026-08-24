@@ -149,7 +149,12 @@ async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
         if (!release) {
             throw new Error(`Permanent release ${target.anilistId} is unavailable`);
         }
-        await confirmScheduledEpisode(release, target.targetEpisode, target.leaseOwner);
+        await confirmScheduledEpisode(
+            release,
+            target.targetEpisode,
+            target.leaseOwner,
+            target.airingAt
+        );
 
         try {
             await refreshAnimeSchedule(target.anilistId);

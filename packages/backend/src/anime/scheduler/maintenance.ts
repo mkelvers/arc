@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, isNull, lte, ne, or } from 'drizzle-orm';
+import { and, asc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
-import { refreshAnimeRelease, refreshAnimeSchedule } from '../anilist/releases';
+import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
+import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
 import {
     rediscoverMapping,
     setMetadataMappingOverride,
@@ -26,6 +27,9 @@ function dedupeKey(request: MaintenanceRequest) {
     }
     if (request.kind === 'target_reactivate') {
         return `target:${request.anilistId}:${request.targetEpisode}`;
+    }
+    if (request.kind === 'episode_backfill') {
+        return episodeInventoryBackfillKey(request.anilistId);
     }
     return 'airing:full-reconciliation';
 }
@@ -142,6 +146,13 @@ async function executeMaintenance(request: MaintenanceRequest) {
         }
         return { reactivated: true };
     }
+    if (request.kind === 'episode_backfill') {
+        const release =
+            (await storedAnimeRelease(request.anilistId)) ??
+            (await refreshAnimeRelease(request.anilistId));
+        const episodes = await discoverEpisodeInventory(release);
+        return { anilistId: request.anilistId, episodes: episodes.length };
+    }
     if (request.kind === 'airing_reconcile' || request.kind === 'interest_reconcile') {
         const { snapshot: _, ...result } = await reconcileAllAiringReleases();
         await db
@@ -182,10 +193,44 @@ function maintenanceRetryDelay(attempts: number) {
     return Math.min(24 * 60 * 60 * 1_000, 60_000 * 2 ** Math.min(attempts, 10));
 }
 
+async function seedEpisodeInventoryBackfills() {
+    await db.execute(sql`
+        insert into maintenance_task (kind, dedupe_key, payload)
+        select
+            'episode_backfill',
+            'episode:backfill:' || release.anilist_id,
+            jsonb_build_object('kind', 'episode_backfill', 'anilistId', release.anilist_id)
+        from anime_release release
+        where release.status = 'FINISHED'
+          and release.episode_count > 0
+          and release.data is not null
+          and (
+              (
+                  release.format = 'TV_SHORT'
+                  and not exists (
+                      select 1
+                      from anime_episode episode
+                      where episode.anilist_id = release.anilist_id
+                  )
+              )
+              or (
+                  release.format is distinct from 'TV_SHORT'
+                  and (
+                      select count(*)
+                      from anime_episode episode
+                      where episode.anilist_id = release.anilist_id
+                  ) < release.episode_count
+              )
+          )
+        on conflict (dedupe_key) do nothing
+    `);
+}
+
 export async function drainMaintenanceTasks(
     runId: string,
     options: { limit: number; leaseDurationMs: number; leaseRenewalMs: number }
 ) {
+    await seedEpisodeInventoryBackfills();
     const now = new Date();
     const candidates = await db
         .select({ id: maintenanceTask.id, payload: maintenanceTask.payload })
