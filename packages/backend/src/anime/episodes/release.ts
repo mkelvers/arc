@@ -3,6 +3,15 @@ import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
 import type { AniListAnime } from '../anilist/types';
 
+export function providerConfirmsEpisode(
+    episodes: readonly ProviderEpisode[],
+    targetEpisode: number
+) {
+    return episodes.some(
+        (episode) => episode.number === targetEpisode && Boolean(episode.id.trim())
+    );
+}
+
 function metadataDate(metadata: EpisodeMetadata | undefined) {
     if (!metadata) {
         return null;

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
-import { episodesForRelease } from './release';
+import { episodesForRelease, providerConfirmsEpisode } from './release';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
@@ -47,6 +47,17 @@ function metadata(episodes: ProviderEpisode[], dates: string[]) {
 }
 
 describe('AniList release episode boundaries', () => {
+    test('requires the exact target episode and a usable provider ID', () => {
+        const episodes: ProviderEpisode[] = [
+            { id: 'episode-7', number: 7, title: '', audio: ['sub'] },
+            { id: '', number: 8, title: '', audio: ['sub'] },
+        ];
+
+        expect(providerConfirmsEpisode(episodes, 7)).toBe(true);
+        expect(providerConfirmsEpisode(episodes, 8)).toBe(false);
+        expect(providerConfirmsEpisode(episodes, 9)).toBe(false);
+    });
+
     test('removes a later part combined into the first part inventory', () => {
         const episodes = source(Array.from({ length: 22 }, (_, index) => index + 1));
         const dates = [

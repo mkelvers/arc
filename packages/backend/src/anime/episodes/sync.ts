@@ -15,7 +15,7 @@ import {
     episodeMetadataRevision,
     nextRefreshAt,
 } from './policy';
-import { episodesForRelease } from './release';
+import { episodesForRelease, providerConfirmsEpisode } from './release';
 
 export class TargetEpisodeUnavailableError extends Error {
     constructor(
@@ -35,6 +35,9 @@ async function fetchAndStore(
     const providerEpisodes = await playback.getEpisodes(anime);
     if (!providerEpisodes.length) {
         throw new Error(`No playback provider returned episodes for AniList ${anime.id}`);
+    }
+    if (!providerConfirmsEpisode(providerEpisodes, confirmation.targetEpisode)) {
+        throw new TargetEpisodeUnavailableError(anime.id, confirmation.targetEpisode);
     }
 
     const [storedText, previousSync] = await Promise.all([
@@ -106,9 +109,6 @@ async function fetchAndStore(
             : providerEpisodes,
         metadata
     );
-    if (!source.some((episode) => episode.number === confirmation.targetEpisode && episode.id)) {
-        throw new TargetEpisodeUnavailableError(anime.id, confirmation.targetEpisode);
-    }
     const now = new Date();
     await db.transaction(async (tx) => {
         const [sync, existing] = await Promise.all([
