@@ -56,60 +56,30 @@
         </label>
     </div>
 
-    <div class="mt-7 space-y-7">
+    <div class="mt-7">
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
-                <h3 class="text-sm text-foreground">MyAnimeList XML</h3>
-                <p class="mt-1 leading-relaxed text-muted">Import a standard MyAnimeList XML export.</p>
+                <h3 class="text-sm text-foreground">JSON or CSV</h3>
+                <p class="mt-1 leading-relaxed text-muted">Import anime from a JSON or CSV file.</p>
             </div>
             <form
                 method="POST"
-                action="?/importMal"
+                action="?/import"
                 enctype="multipart/form-data"
                 use:enhance={enhanceImport}
                 class="shrink-0"
             >
                 <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
                 <input
-                    id="mal-import"
+                    id="watchlist-import"
                     name="file"
                     type="file"
-                    accept=".xml,application/xml,text/xml"
+                    accept=".json,.csv,application/json,text/csv"
                     class="sr-only"
                     onchange={(event) => event.currentTarget.form?.requestSubmit()}
                 />
                 <label
-                    for="mal-import"
-                    class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-accent"
-                >
-                    Choose File
-                </label>
-            </form>
-        </div>
-
-        <div class="flex items-start justify-between gap-6 text-sm">
-            <div>
-                <h3 class="text-sm text-foreground">Universal Import</h3>
-                <p class="mt-1 leading-relaxed text-muted">Import anime from JSON, XML, or CSV files.</p>
-            </div>
-            <form
-                method="POST"
-                action="?/importUniversal"
-                enctype="multipart/form-data"
-                use:enhance={enhanceImport}
-                class="shrink-0"
-            >
-                <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
-                <input
-                    id="universal-import"
-                    name="file"
-                    type="file"
-                    accept=".json,.xml,.csv,application/json,application/xml,text/xml,text/csv"
-                    class="sr-only"
-                    onchange={(event) => event.currentTarget.form?.requestSubmit()}
-                />
-                <label
-                    for="universal-import"
+                    for="watchlist-import"
                     class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-accent"
                 >
                     Choose File
@@ -146,11 +116,11 @@
 
         <div class="flex items-start justify-between gap-6 text-sm">
             <div>
-                <h3 class="text-sm text-foreground">MyAnimeList XML</h3>
-                <p class="mt-1 leading-relaxed text-muted">Export in a format compatible with MyAnimeList.</p>
+                <h3 class="text-sm text-foreground">Arc CSV</h3>
+                <p class="mt-1 leading-relaxed text-muted">Spreadsheet-friendly copy of your library.</p>
             </div>
             <a
-                href="/v1/watchlist/export?format=mal"
+                href="/v1/watchlist/export?format=csv"
                 download
                 class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
