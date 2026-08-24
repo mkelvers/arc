@@ -280,11 +280,6 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                         if (!episode.title && alternate.title) {
                             episode.title = alternate.title;
                         }
-                        if (alternate.type === 'filler') {
-                            episode.type = 'filler';
-                        } else if (!episode.type && alternate.type) {
-                            episode.type = alternate.type;
-                        }
                         continue;
                     }
 

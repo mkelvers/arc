@@ -1,5 +1,4 @@
 import type { AudioMode } from '@arc/shared/audio';
-import type { EpisodeType } from '@arc/shared/types';
 import type { AniListAnime } from '../anilist/types';
 
 export interface ProviderEpisode {
@@ -7,7 +6,6 @@ export interface ProviderEpisode {
     number: number;
     title: string;
     audio: AudioMode[];
-    type?: Exclude<EpisodeType, 'unknown'>;
     supplemental?: boolean;
 }
 

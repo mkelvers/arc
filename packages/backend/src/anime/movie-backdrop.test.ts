@@ -14,7 +14,6 @@ const episode: AnimeEpisode = {
     duration: '2h 14m',
     releaseDate: '07/12/1997',
     overview: '',
-    type: 'canon',
 };
 
 describe('movie episode artwork', () => {

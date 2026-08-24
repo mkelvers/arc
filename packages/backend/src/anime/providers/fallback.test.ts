@@ -89,37 +89,6 @@ describe('playback provider fallback', () => {
         expect(attempts).toEqual(['first', 'second', 'third']);
     });
 
-    test('keeps an explicit filler classification from any matching provider', async () => {
-        const playback = createProviderFallback([
-            provider('primary', {
-                getEpisodes: async () => [
-                    { id: 'primary-29', number: 29, title: 'Path', audio: ['sub'] },
-                ],
-            }),
-            provider('classified', {
-                getEpisodes: async () => [
-                    {
-                        id: 'classified-29',
-                        number: 29,
-                        title: 'Path',
-                        audio: ['dub'],
-                        type: 'filler',
-                    },
-                ],
-            }),
-        ]);
-
-        expect(await playback.getEpisodes(anime)).toEqual([
-            {
-                id: 'primary-29',
-                number: 29,
-                title: 'Path',
-                audio: ['sub', 'dub'],
-                type: 'filler',
-            },
-        ]);
-    });
-
     test('returns complete stream modes without waiting for slow providers', async () => {
         const playback = createProviderFallback([
             provider('fast', {
