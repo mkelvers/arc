@@ -90,6 +90,8 @@ For an interested airing release, checks occur 30 minutes before airing, at airi
 
 Provider inventory is playback truth. The scheduler confirms success only when a provider returns the exact target episode as usable inventory. A timeout, rate limit, provider error, or inventory that still lacks the target is not success.
 
+Arc checks for the exact target immediately after provider inventory returns. It does not call AnimeFillerList or TMDB for a target that the provider has not released. If the exact episode is already present in Arc's provider-confirmed inventory when reconciliation runs, Arc records the target as confirmed without another provider request and queues only the small AniList schedule discovery needed to advance to the next target.
+
 If the target is still unavailable at midnight, Arc keeps trying with decreasing frequency for several days. The work remains durable across restarts and deployments. Retry limits should end in an observable failed state that can be repaired; they must not silently mark the episode as released.
 
 ### Confirmation transaction
@@ -105,7 +107,7 @@ Arc then makes one small AniList request to learn the next airing episode/time a
 
 ## Open-page updates
 
-An open anime page checks Arc's database-backed episode revision endpoint. When the revision changes, the frontend invalidates and reloads only the episode data. It does not call AniList or a playback provider.
+An open anime page checks Arc's database-backed page revision endpoint. The revision covers both provider inventory and the stored AniList schedule, so a confirmed episode and the following airing time can each invalidate stale page data. The page sleeps until 30 minutes before airing and then polls once per minute while visible. It does not poll every few seconds while an episode is days away, and it never calls AniList or a playback provider.
 
 This is confirmed reactive UI, not optimistic UI: the new episode appears automatically after the scheduler verifies and stores it, never before provider confirmation. Arc already has the revision endpoint and visible-page polling behavior; the scheduler supplies the durable producer currently missing from that flow.
 
