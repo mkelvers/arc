@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
-import { episodesForRelease, providerConfirmsEpisode } from './release';
+import { confirmedEpisodeAirDate, episodesForRelease, providerConfirmsEpisode } from './release';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
@@ -56,6 +56,16 @@ describe('AniList release episode boundaries', () => {
         expect(providerConfirmsEpisode(episodes, 7)).toBe(true);
         expect(providerConfirmsEpisode(episodes, 8)).toBe(false);
         expect(providerConfirmsEpisode(episodes, 9)).toBe(false);
+    });
+
+    test('uses the scheduler airing day for the exact provider-confirmed target', () => {
+        const confirmation = {
+            targetEpisode: 8,
+            airingAt: new Date('2026-08-24T15:00:00.000Z'),
+        };
+
+        expect(confirmedEpisodeAirDate(8, '08/25/2026', confirmation)).toBe('08/24/2026');
+        expect(confirmedEpisodeAirDate(7, '08/18/2026', confirmation)).toBe('08/18/2026');
     });
 
     test('removes a later part combined into the first part inventory', () => {

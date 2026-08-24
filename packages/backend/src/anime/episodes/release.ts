@@ -12,6 +12,19 @@ export function providerConfirmsEpisode(
     );
 }
 
+export function confirmedEpisodeAirDate(
+    episodeNumber: number,
+    fallback: string | null,
+    confirmation: { targetEpisode: number; airingAt: Date }
+) {
+    if (episodeNumber !== confirmation.targetEpisode) {
+        return fallback;
+    }
+
+    const date = confirmation.airingAt;
+    return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`;
+}
+
 function metadataDate(metadata: EpisodeMetadata | undefined) {
     if (!metadata) {
         return null;
