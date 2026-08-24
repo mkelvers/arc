@@ -426,13 +426,11 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
     throw new NoConfidentTmdbMappingError(anime.id);
 }
 
-async function resolveStoredUncached(anime: AniListAnime): Promise<StoredMapping> {
-    const stored = await findMapping(anime.id);
+async function refreshStoredMapping(
+    anime: AniListAnime,
+    stored: StoredMapping | null
+): Promise<StoredMapping> {
     const title = animeTitles(anime)[0] ?? null;
-
-    if (stored && !mappingNeedsVerification(stored, title)) {
-        return stored;
-    }
 
     try {
         return await discoverMapping(anime);
@@ -450,17 +448,38 @@ async function resolveStoredUncached(anime: AniListAnime): Promise<StoredMapping
 }
 
 export async function resolveStored(anime: AniListAnime): Promise<StoredMapping> {
-    const pending = requests.get(anime.id);
-    if (pending) {
-        return pending;
+    const stored = await findMapping(anime.id);
+    const title = animeTitles(anime)[0] ?? null;
+    if (stored && !mappingNeedsVerification(stored, title)) {
+        return stored;
     }
 
-    const request = resolveStoredUncached(anime);
-    requests.set(anime.id, request);
+    let request = requests.get(anime.id);
 
-    try {
-        return await request;
-    } finally {
-        requests.delete(anime.id);
+    if (!request) {
+        request = refreshStoredMapping(anime, stored);
+        requests.set(anime.id, request);
+
+        const cleanup = () => {
+            if (requests.get(anime.id) === request) {
+                requests.delete(anime.id);
+            }
+        };
+        request.then(cleanup, cleanup);
+
+        if (stored) {
+            void request.catch((cause) => {
+                console.warn(
+                    `TMDB mapping background refresh failed for AniList ${anime.id}`,
+                    cause
+                );
+            });
+        }
     }
+
+    if (stored) {
+        return stored;
+    }
+
+    return request;
 }
