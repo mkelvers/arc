@@ -1,0 +1,23 @@
+{
+    "name": "@arc/scheduler",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "bun build src/worker.ts --outdir dist --target bun",
+        "check": "tsc --noEmit",
+        "scheduler:install": "bun run build && bun src/install.ts",
+        "scheduler:remove": "bun src/remove.ts"
+    },
+    "dependencies": {
+        "@arc/backend": "workspace:*",
+        "@arc/db": "workspace:*",
+        "dotenv": "catalog:",
+        "drizzle-orm": "catalog:",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "typescript": "~6.0.3"
+    }
+}

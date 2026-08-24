@@ -15,7 +15,9 @@
         "test": "turbo run test",
         "format": "oxfmt",
         "format:check": "oxfmt --check",
-        "db:check": "bun --cwd packages/db db:check"
+        "db:check": "bun --cwd packages/db db:check",
+        "scheduler:install": "bun --cwd apps/scheduler scheduler:install",
+        "scheduler:remove": "bun --cwd apps/scheduler scheduler:remove"
     },
     "devDependencies": {
         "@oxlint/plugins": "1.79.0",

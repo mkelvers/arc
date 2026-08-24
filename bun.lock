@@ -65,6 +65,21 @@
         "vite": "^8.2.2",
       },
     },
+    "apps/scheduler": {
+      "name": "@arc/scheduler",
+      "version": "0.0.1",
+      "dependencies": {
+        "@arc/backend": "workspace:*",
+        "@arc/db": "workspace:*",
+        "dotenv": "catalog:",
+        "drizzle-orm": "catalog:",
+        "zod": "^4.4.3",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "typescript": "~6.0.3",
+      },
+    },
     "packages/api-contract": {
       "name": "@arc/api-contract",
       "version": "0.0.1",
@@ -148,6 +163,8 @@
     "@arc/backend": ["@arc/backend@workspace:packages/backend"],
 
     "@arc/db": ["@arc/db@workspace:packages/db"],
+
+    "@arc/scheduler": ["@arc/scheduler@workspace:apps/scheduler"],
 
     "@arc/shared": ["@arc/shared@workspace:packages/shared"],
 
