@@ -15,7 +15,6 @@ import {
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
-import { recordAnimeVisit } from './interest';
 import { playback } from './providers';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { resolveAnimeSynopsis } from './synopsis';
@@ -63,7 +62,6 @@ export async function animePage(userId: string, id: number) {
         getStoredAiringSchedule(id),
         getEpisodes(anime).catch(() => []),
         getPlaybackProgress(userId, id),
-        recordAnimeVisit(userId, id),
     ]);
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
@@ -213,7 +211,6 @@ export async function watchPage(userId: string, id: number, episodeId: string) {
     const [storedMedia, progress] = await Promise.all([
         getStoredMedia(id).catch(() => null),
         getPlaybackProgress(userId, id),
-        recordAnimeVisit(userId, id),
     ]);
     const episodes = withMovieBackdrop(
         anime,
