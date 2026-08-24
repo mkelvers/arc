@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 
 import { mergeAudioModes } from '@arc/shared/audio';
 import { db, excluded } from '@arc/db';
@@ -15,8 +15,10 @@ import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import { getFillerClassifications, mergeFillerClassifications } from '../filler';
 import { sourceRevision, storedEpisodes } from './model';
 import {
+    availableEpisodeCount,
     canPreserveEpisodeMetadata,
     classificationRefreshDue,
+    episodeInventoryCoversTarget,
     episodeMetadataRevision,
     nextRefreshAt,
     providerEpisodeCount,
@@ -146,13 +148,13 @@ async function fetchAndStore(
             : providerEpisodes,
         metadata
     );
-    const expected = providerEpisodeCount(anime);
-    if (
-        !confirmation &&
-        anime.status === 'FINISHED' &&
-        expected !== null &&
-        source.length < expected
-    ) {
+    const expected =
+        anime.status === 'RELEASING'
+            ? availableEpisodeCount(anime)
+            : anime.status === 'FINISHED'
+              ? providerEpisodeCount(anime)
+              : null;
+    if (!confirmation && expected !== null && !episodeInventoryCoversTarget(source, expected)) {
         throw new TargetEpisodeUnavailableError(anime.id, expected);
     }
     const now = new Date();
@@ -310,6 +312,30 @@ async function fetchAndStore(
             });
 
         if (!confirmation) {
+            const confirmedNumbers = source.flatMap(({ number }) =>
+                Number.isInteger(number) && number > 0 ? [number] : []
+            );
+            if (confirmedNumbers.length) {
+                await tx
+                    .update(animeEpisodeTarget)
+                    .set({
+                        state: 'confirmed',
+                        inventoryRevision: revision,
+                        confirmedAt: now,
+                        leaseOwner: null,
+                        leaseUntil: null,
+                        lastError: null,
+                        updatedAt: now,
+                    })
+                    .where(
+                        and(
+                            eq(animeEpisodeTarget.anilistId, anime.id),
+                            eq(animeEpisodeTarget.state, 'pending'),
+                            isNull(animeEpisodeTarget.leaseOwner),
+                            inArray(animeEpisodeTarget.targetEpisode, confirmedNumbers)
+                        )
+                    );
+            }
             return;
         }
 
