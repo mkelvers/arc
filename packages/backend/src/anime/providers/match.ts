@@ -72,7 +72,7 @@ export function episodeTitleScore(left: string, right: string) {
 }
 
 export function coversExpectedEpisodes(
-    episodes: { number: number }[],
+    episodes: readonly { number: number }[],
     expected: number | null | undefined
 ) {
     if (!expected || expected <= 0) {
