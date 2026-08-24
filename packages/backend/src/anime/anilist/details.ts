@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
-import { z } from 'zod';
 
 import { AnimeDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { animeDetailsCache } from '@arc/db/schema';
 import { GraphQLRequestError } from '../../graphql';
 import { request } from './client';
+import { animeDetailsRefreshMode, type AnimeDetailsRefreshMode } from './details-refresh';
 import { AniListAnimeCacheSchema, type AniListAnime } from './types';
 
 const requests = new Map<number, Promise<AniListAnime>>();
@@ -32,6 +32,33 @@ async function requestAnime(id: number) {
     }
 
     return Media;
+}
+
+function scheduleAnimeRefresh(id: number, mode: Exclude<AnimeDetailsRefreshMode, 'none'>) {
+    if ((retryAt.get(id) ?? 0) > Date.now() || backgroundRefreshes.has(id)) {
+        return;
+    }
+
+    backgroundRefreshes.add(id);
+    const delay = mode === 'urgent' ? 0 : Math.floor(Math.random() * 5 * 60 * 1_000);
+    setTimeout(() => {
+        void refreshAnime(id)
+            .then(
+                () => {
+                    retryAt.delete(id);
+                    retryAttempts.delete(id);
+                },
+                (cause) => {
+                    const attempt = (retryAttempts.get(id) ?? 0) + 1;
+                    retryAttempts.set(id, attempt);
+                    retryAt.set(id, Date.now() + refreshRetryDelay(cause, attempt));
+                    console.warn(
+                        `AniList cached details refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
+                    );
+                }
+            )
+            .finally(() => backgroundRefreshes.delete(id));
+    }, delay);
 }
 
 export async function refreshAnime(id: number) {
@@ -102,69 +129,19 @@ export async function getAnime(id: number) {
         console.error(`AniList cache read failed for ${id}`, cause);
     }
 
-    if (stored?.version === 2) {
-        const airingAt = stored.data.nextAiringEpisode?.airingAt;
-        const parsedAiringAt = z.number().safeParse(airingAt);
-        const airingPassed =
-            stored.data.status === 'RELEASING' &&
-            parsedAiringAt.success &&
-            parsedAiringAt.data * 1_000 <= Date.now();
-        if (airingPassed && (retryAt.get(id) ?? 0) <= Date.now()) {
-            try {
-                const anime = await refreshAnime(id);
-                retryAt.delete(id);
-                retryAttempts.delete(id);
-                return anime;
-            } catch (cause) {
-                const attempt = (retryAttempts.get(id) ?? 0) + 1;
-                retryAttempts.set(id, attempt);
-                retryAt.set(id, Date.now() + refreshRetryDelay(cause, attempt));
-                console.warn(
-                    `AniList airing refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
-                );
-                return stored.data;
-            }
-        }
-
-        if (
-            stored.data.status !== 'FINISHED' &&
-            Date.now() - stored.fetchedAt.getTime() > 24 * 60 * 60 * 1_000 &&
-            (retryAt.get(id) ?? 0) <= Date.now() &&
-            !backgroundRefreshes.has(id)
-        ) {
-            backgroundRefreshes.add(id);
-            const jitter = Math.floor(Math.random() * 5 * 60 * 1_000);
-            setTimeout(() => {
-                void refreshAnime(id)
-                    .then(
-                        () => {
-                            retryAt.delete(id);
-                            retryAttempts.delete(id);
-                        },
-                        (cause) => {
-                            const attempt = (retryAttempts.get(id) ?? 0) + 1;
-                            retryAttempts.set(id, attempt);
-                            retryAt.set(id, Date.now() + refreshRetryDelay(cause, attempt));
-                            console.warn(
-                                `AniList cached details refresh deferred for ${id}: ${cause instanceof Error ? cause.message : String(cause)}`
-                            );
-                        }
-                    )
-                    .finally(() => backgroundRefreshes.delete(id));
-            }, jitter);
+    if (stored) {
+        const refreshMode = animeDetailsRefreshMode({
+            status: stored.data.status,
+            nextAiringEpisode: stored.data.nextAiringEpisode,
+            fetchedAt: stored.fetchedAt,
+            version: stored.version,
+        });
+        if (refreshMode !== 'none') {
+            scheduleAnimeRefresh(id, refreshMode);
         }
 
         return stored.data;
     }
 
-    try {
-        return await refreshAnime(id);
-    } catch (cause) {
-        if (stored) {
-            console.error(`AniList refresh failed for ${id}; using stale cache`, cause);
-            return stored.data;
-        }
-
-        throw cause;
-    }
+    return refreshAnime(id);
 }
