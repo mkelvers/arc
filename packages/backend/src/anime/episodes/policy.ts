@@ -46,6 +46,13 @@ export function episodeInventoryIsExpected(status: AniListAnime['status']) {
     return status !== 'NOT_YET_RELEASED';
 }
 
+export function episodeRefreshBlocksPage(
+    status: AniListAnime['status'],
+    hasStoredEpisodes: boolean
+) {
+    return status !== 'FINISHED' || !hasStoredEpisodes;
+}
+
 export function classificationRefreshDue(
     refreshedAt: Date | null | undefined,
     status: AniListAnime['status'],

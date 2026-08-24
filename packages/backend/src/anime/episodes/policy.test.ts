@@ -7,6 +7,7 @@ import {
     episodeInventoryIsExpected,
     episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
+    episodeRefreshBlocksPage,
     episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
@@ -213,5 +214,11 @@ describe('episode refresh policy', () => {
         const next = nextRefreshAt({ status: 'FINISHED' } as AniListAnime, new Date(0));
 
         expect(next).toBeNull();
+    });
+
+    test('serves stored finished episodes before maintenance refreshes', () => {
+        expect(episodeRefreshBlocksPage('FINISHED', true)).toBeFalse();
+        expect(episodeRefreshBlocksPage('FINISHED', false)).toBeTrue();
+        expect(episodeRefreshBlocksPage('RELEASING', true)).toBeTrue();
     });
 });
