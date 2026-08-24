@@ -33,6 +33,36 @@ export const episodeClassification = pgEnum('episode_classification', [
 ]);
 export const episodeSegmentKind = pgEnum('episode_segment_kind', ['opening', 'ending']);
 
+export const schedulerInterestSource = pgEnum('scheduler_interest_source', [
+    'watchlist',
+    'continue_watching',
+]);
+export const animeEpisodeTargetState = pgEnum('anime_episode_target_state', [
+    'pending',
+    'confirmed',
+    'failed',
+    'retired',
+]);
+export const maintenanceTaskKind = pgEnum('maintenance_task_kind', [
+    'release_refresh',
+    'mapping_rediscover',
+    'mapping_override',
+    'target_reactivate',
+    'interest_reconcile',
+]);
+export const maintenanceTaskState = pgEnum('maintenance_task_state', [
+    'pending',
+    'running',
+    'completed',
+    'failed',
+]);
+export const mappingOverrideKind = pgEnum('mapping_override_kind', ['playback', 'metadata']);
+export const mappingValidationStatus = pgEnum('mapping_validation_status', [
+    'pending',
+    'valid',
+    'invalid',
+]);
+
 export const watchlistState = pgEnum('watchlist_state', [
     'watching',
     'plan_to_watch',
@@ -158,6 +188,54 @@ export const anime = pgTable('anime', {
         .defaultNow()
         .$onUpdate(() => new Date()),
 });
+
+export const animeRelease = pgTable(
+    'anime_release',
+    {
+        anilistId: integer('anilist_id').primaryKey(),
+        data: jsonb('data').$type<unknown>(),
+        title: text('title').notNull(),
+        imageUrl: text('image_url'),
+        status: varchar('status', { length: 32 }),
+        format: varchar('format', { length: 16 }),
+        malId: integer('mal_id'),
+        episodeCount: integer('episode_count'),
+        durationMinutes: integer('duration_minutes'),
+        nextAiringAt: timestamp('next_airing_at', { withTimezone: true }),
+        nextAiringEpisode: integer('next_airing_episode'),
+        schemaRevision: integer('schema_revision').notNull().default(1),
+        sourceFetchedAt: timestamp('source_fetched_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        index('anime_release_status_airing_idx').on(table.status, table.nextAiringAt),
+        index('anime_release_mal_idx').on(table.malId),
+    ]
+);
+
+export const animeReleaseRequest = pgTable(
+    'anime_release_request',
+    {
+        anilistId: integer('anilist_id').primaryKey(),
+        attempts: integer('attempts').notNull().default(0),
+        nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+        leaseOwner: text('lease_owner'),
+        leaseUntil: timestamp('lease_until', { withTimezone: true }),
+        lastError: text('last_error'),
+        requestedAt: timestamp('requested_at', { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [index('anime_release_request_due_idx').on(table.nextAttemptAt, table.leaseUntil)]
+);
 
 export const animeExternalId = pgTable(
     'anime_external_id',
@@ -583,6 +661,142 @@ export const playbackProgress = pgTable(
         unique('playback_progress_user_anime_unique').on(table.userId, table.animeId),
         index('playback_progress_user_watched_idx').on(table.userId, table.lastWatchedAt),
     ]
+);
+
+export const animeInterestDirty = pgTable(
+    'anime_interest_dirty',
+    {
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        animeId: integer('anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        dirtyAt: timestamp('dirty_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        primaryKey({ columns: [table.userId, table.animeId] }),
+        index('anime_interest_dirty_time_idx').on(table.dirtyAt),
+    ]
+);
+
+export const animeReleaseInterest = pgTable(
+    'anime_release_interest',
+    {
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        source: schedulerInterestSource('source').notNull(),
+        sourceAnimeId: integer('source_anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        trackedAnilistId: integer('tracked_anilist_id')
+            .notNull()
+            .references(() => animeRelease.anilistId, { onDelete: 'cascade' }),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        primaryKey({
+            columns: [table.userId, table.source, table.sourceAnimeId, table.trackedAnilistId],
+        }),
+        index('anime_release_interest_tracked_idx').on(table.trackedAnilistId),
+        index('anime_release_interest_source_idx').on(table.userId, table.sourceAnimeId),
+    ]
+);
+
+export const animeEpisodeTarget = pgTable(
+    'anime_episode_target',
+    {
+        anilistId: integer('anilist_id')
+            .notNull()
+            .references(() => animeRelease.anilistId, { onDelete: 'cascade' }),
+        targetEpisode: integer('target_episode').notNull(),
+        expectedEpisodes: integer('expected_episodes'),
+        airingAt: timestamp('airing_at', { withTimezone: true }).notNull(),
+        firstScheduledAt: timestamp('first_scheduled_at', { withTimezone: true })
+            .notNull()
+            .defaultNow(),
+        nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull(),
+        attemptCount: integer('attempt_count').notNull().default(0),
+        failureCount: integer('failure_count').notNull().default(0),
+        lastError: text('last_error'),
+        leaseOwner: text('lease_owner'),
+        leaseUntil: timestamp('lease_until', { withTimezone: true }),
+        state: animeEpisodeTargetState('state').notNull().default('pending'),
+        inventoryRevision: text('inventory_revision'),
+        confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+        retiredAt: timestamp('retired_at', { withTimezone: true }),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        primaryKey({ columns: [table.anilistId, table.targetEpisode] }),
+        index('anime_episode_target_due_idx').on(
+            table.state,
+            table.nextAttemptAt,
+            table.leaseUntil
+        ),
+    ]
+);
+
+export const maintenanceTask = pgTable(
+    'maintenance_task',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        kind: maintenanceTaskKind('kind').notNull(),
+        dedupeKey: text('dedupe_key').unique(),
+        payload: jsonb('payload').$type<unknown>().notNull(),
+        state: maintenanceTaskState('state').notNull().default('pending'),
+        attempts: integer('attempts').notNull().default(0),
+        nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+        leaseOwner: text('lease_owner'),
+        leaseUntil: timestamp('lease_until', { withTimezone: true }),
+        lastError: text('last_error'),
+        result: jsonb('result').$type<unknown>(),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+        completedAt: timestamp('completed_at', { withTimezone: true }),
+    },
+    (table) => [
+        index('maintenance_task_due_idx').on(table.state, table.nextAttemptAt, table.leaseUntil),
+    ]
+);
+
+export const schedulerHeartbeat = pgTable('scheduler_heartbeat', {
+    name: text('name').primaryKey(),
+    activeRunId: uuid('active_run_id'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+    lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
+    lastFullReconciliationAt: timestamp('last_full_reconciliation_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    stats: jsonb('stats').$type<unknown>(),
+});
+
+export const animeMappingOverride = pgTable(
+    'anime_mapping_override',
+    {
+        anilistId: integer('anilist_id')
+            .notNull()
+            .references(() => animeRelease.anilistId, { onDelete: 'cascade' }),
+        kind: mappingOverrideKind('kind').notNull(),
+        provider: varchar('provider', { length: 32 }).notNull(),
+        externalId: text('external_id').notNull(),
+        mediaType: varchar('media_type', { length: 16 }),
+        previousMapping: jsonb('previous_mapping').$type<unknown>(),
+        validationStatus: mappingValidationStatus('validation_status').notNull().default('pending'),
+        validationEvidence: jsonb('validation_evidence').$type<unknown>(),
+        maintenanceActor: text('maintenance_actor').notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        clearedAt: timestamp('cleared_at', { withTimezone: true }),
+    },
+    (table) => [primaryKey({ columns: [table.anilistId, table.kind, table.provider] })]
 );
 
 export type Anime = typeof anime.$inferSelect;
