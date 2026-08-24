@@ -60,7 +60,7 @@ export async function animePage(userId: string, id: number) {
     const [synopsis, storedAiringSchedule, episodes, watchlist] = await Promise.all([
         resolveAnimeSynopsis(anime),
         getStoredAiringSchedule(id),
-        getEpisodes(anime).catch(() => []),
+        getEpisodes(anime),
         getPlaybackProgress(userId, id),
     ]);
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
@@ -184,7 +184,7 @@ async function episodePlayback(
 
 async function watchEpisode(id: number, episodeId: string) {
     const anime = await getAnime(id);
-    const episodes = await getEpisodes(anime).catch(() => []);
+    const episodes = await getEpisodes(anime);
     let currentIndex = episodes.findIndex(({ id: candidate }) => candidate === episodeId);
     let canonicalHref: string | null = null;
 

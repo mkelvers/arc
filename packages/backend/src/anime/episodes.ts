@@ -6,11 +6,18 @@ import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
+import { episodeInventoryNeedsDiscovery } from './episodes/policy';
+import { discoverEpisodeInventory } from './episodes/sync';
 
 export { withMovieBackdrop } from './movie-backdrop';
 
 export async function getEpisodes(anime: AniListAnime) {
-    return storedEpisodes(anime);
+    const stored = await storedEpisodes(anime);
+    if (!episodeInventoryNeedsDiscovery(anime, stored.length)) {
+        return stored;
+    }
+
+    return discoverEpisodeInventory(anime);
 }
 
 export async function getStoredAiringSchedule(anilistId: number) {
