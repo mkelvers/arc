@@ -1,10 +1,12 @@
 # AniList persistence over cache
 
-- Status: stage 1 implemented (watchlist and shared query retention)
+- Status: historical incident record; release consumers superseded by permanent `anime_release` persistence
 - Date: 2026-08-24
 - Origin: production incident after the local-to-production watchlist migration
 
 ## Incident summary
+
+The current release-persistence and scheduler design is documented in [Scheduler-driven anime persistence](./scheduler-driven-anime-persistence.md). The cache paths below describe the incident-era implementation and are retained as historical context, not the current release read contract.
 
 All 230 watchlist entries for `mkelvers` were migrated from the local database (`admin`) to the production database. The rows committed correctly, verified by state distribution on both sides (148 completed, 81 plan_to_watch, 1 watching). The production watchlist UI showed only 8 entries.
 
@@ -18,22 +20,17 @@ Watchlist metadata refresh failed; using cached values
 
 AniList was down. The watchlist page depends on AniList card metadata at render time, so every entry without locally stored metadata disappeared from the page. Production's `anime_card_cache` contained only 8 rows at the time.
 
-## Current behavior
+## Incident-era repaired behavior
 
 ### What persists
 
-Card, query, details, synopsis, franchise, and artwork data are stored in database tables (`anime_card_cache`, `anilist_query_cache`, `anime_details_cache`, `anime_synopsis_cache`, `anime_franchise_cache`, `anime_artwork_cache`, defined in `packages/db/src/schema/index.ts`). Reads are DB-first. A steady-state page load with warm tables makes zero AniList requests. Expired query rows remain readable and are refreshed in the background. Arc deletes malformed stored JSON, not usable data whose freshness window elapsed.
+Release metadata and release cards are owned permanently by `anime_release`. Query, synopsis, franchise, and artwork workloads keep their separate stores (`anilist_query_cache`, `anime_synopsis_cache`, `anime_franchise_cache`, and `anime_artwork_cache`). The legacy `anime_card_cache` and `anime_details_cache` rows were backfilled into `anime_release`; migrated release consumers no longer read them, but the physical tables remain until the later contract deployment. A steady-state page load for a known release makes zero AniList requests.
 
 ### The watchlist render path
 
 1. `GET /v1/watchlist` (`apps/api/src/routes/watchlist.ts`) calls `getWatchlistPage` (`packages/backend/src/watchlist/application.ts`).
 2. `getWatchlistEntries` (`packages/backend/src/watchlist/store.ts`) reads the user's rows from the `watchlist` table joined to `anime_external_id` — pure DB, no AniList.
-3. `getWatchlistAnime` (`packages/backend/src/anime/anilist/watchlist.ts`) resolves each stored AniList ID to an `AnimeCard`:
-    - It first reads `anime_card_cache`.
-    - Stored cards are returned immediately regardless of age.
-    - Missing or stale IDs start a batched background refresh. The request is rate-limited and deduplicated through the shared AniList client.
-    - Results are written back to `anime_card_cache` (upsert on conflict).
-    - The result is memoized in-process for 5 minutes.
+3. `getWatchlistAnime` resolves each stored AniList ID from `anime_release`. A missing permanent record enters the durable, rate-limited first-contact queue; known releases render without an AniList request.
 4. `enrichAnimeCards` (`packages/backend/src/anime/card-enrichment.ts`) layers TMDB posters and synopses onto the cards.
 5. `selectWatchlistEntries` combines cards with the stored watchlist rows. An entry without a card renders as a title-only placeholder. New interactive watchlist writes persist the title, existing titles are recovered from stored card, catalog, or detail data, and the last fallback is `Anime <id>`.
 
@@ -59,7 +56,7 @@ Stored TMDB mappings are also returned before their periodic revalidation, and s
 
 **Naming lies.** The tables are named `*_cache`, which describes disposable copies safe to purge. Under the target model they are the permanent source of truth. Renaming them would be honest but touches every import plus a migration, so it is deferred as churn without behavior change.
 
-## Target model
+## Incident-era target model
 
 Persist by mutability, not by one global clock:
 
@@ -100,7 +97,7 @@ Caveats discussed:
 - The `*_cache` names become actively misleading. Until a rename happens, the tables read as disposable even though they are the source of truth; a future contributor could reasonably add a purge job and destroy persistent state.
 - First contact still requires AniList once per never-seen title. Persistence cannot produce data that was never fetched; the optional warming job reduces how often users hit that path, not whether it exists.
 
-## Implementation status
+## Incident-era implementation status
 
 - Implemented: shared stale query reads, no age-based query deletion, database-only watchlist rendering, status-aware background card refreshes, persisted watchlist titles, local title backfill, and pending metadata cards.
 - Implemented: dynamic anime pages return valid stored finished details and episodes without blocking on AniList or periodic TMDB maintenance.
