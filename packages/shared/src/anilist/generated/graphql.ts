@@ -172,10 +172,11 @@ export type AiringAnimePageQueryVariables = Exact<{
   page: number;
   perPage: number;
   ids?: Array<number | null | undefined> | number | null | undefined;
+  schedulePage: number;
 }>;
 
 
-export type AiringAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, status: MediaStatus | null, nextAiringEpisode: { airingAt: number, episode: number } | null } | null> | null } | null };
+export type AiringAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, status: MediaStatus | null, nextAiringEpisode: { airingAt: number, episode: number } | null, airingSchedule: { pageInfo: { lastPage: number | null } | null, nodes: Array<{ airingAt: number, episode: number } | null> | null } | null } | null> | null } | null };
 
 export type AnimeScheduleQueryVariables = Exact<{
   id: number;
@@ -278,7 +279,7 @@ export class TypedDocumentString<TResult, TVariables>
 }
 
 export const AiringAnimePageDocument = new TypedDocumentString(`
-    query AiringAnimePage($page: Int!, $perPage: Int!, $ids: [Int]) {
+    query AiringAnimePage($page: Int!, $perPage: Int!, $ids: [Int], $schedulePage: Int!) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       hasNextPage
@@ -289,6 +290,15 @@ export const AiringAnimePageDocument = new TypedDocumentString(`
       nextAiringEpisode {
         airingAt
         episode
+      }
+      airingSchedule(notYetAired: false, page: $schedulePage, perPage: 50) {
+        pageInfo {
+          lastPage
+        }
+        nodes {
+          airingAt
+          episode
+        }
       }
     }
   }

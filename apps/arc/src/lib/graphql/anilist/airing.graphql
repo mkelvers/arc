@@ -1,4 +1,4 @@
-query AiringAnimePage($page: Int!, $perPage: Int!, $ids: [Int]) {
+query AiringAnimePage($page: Int!, $perPage: Int!, $ids: [Int], $schedulePage: Int!) {
     Page(page: $page, perPage: $perPage) {
         pageInfo {
             hasNextPage
@@ -9,6 +9,15 @@ query AiringAnimePage($page: Int!, $perPage: Int!, $ids: [Int]) {
             nextAiringEpisode {
                 airingAt
                 episode
+            }
+            airingSchedule(notYetAired: false, page: $schedulePage, perPage: 50) {
+                pageInfo {
+                    lastPage
+                }
+                nodes {
+                    airingAt
+                    episode
+                }
             }
         }
     }
