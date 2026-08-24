@@ -50,6 +50,7 @@ export const maintenanceTaskKind = pgEnum('maintenance_task_kind', [
     'target_reactivate',
     'interest_reconcile',
     'airing_reconcile',
+    'episode_backfill',
 ]);
 export const maintenanceTaskState = pgEnum('maintenance_task_state', [
     'pending',
