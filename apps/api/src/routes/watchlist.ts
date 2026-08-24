@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { WatchlistSelectionSchema, WatchlistUpdateSchema } from '@arc/api-contract/watchlist';
 import {
-    exportMyAnimeListWatchlist,
     exportWatchlist,
     getWatchlistPage,
     getWatchlistState,
@@ -21,7 +20,7 @@ const AnimeIdSchema = z.object({
 
 const maximumWatchlistFileSize = 2 * 1_024 * 1_024;
 const ExportFormatSchema = z.object({
-    format: z.enum(['json', 'csv', 'xml', 'mal']).default('json'),
+    format: z.enum(['json', 'csv']).default('json'),
 });
 
 function errorResponse(message: string) {
@@ -35,10 +34,6 @@ function errorResponse(message: string) {
 
 function csvValue(value: string | number) {
     return `"${String(value).replaceAll('"', '""')}"`;
-}
-
-function xmlValue(value: string) {
-    return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 export const watchlist = new Hono<ApiEnvironment>();
@@ -63,11 +58,11 @@ watchlist.post('/import', async (context) => {
     try {
         form = await context.req.raw.formData();
     } catch {
-        return context.json(errorResponse('Choose a JSON, CSV, or XML watchlist file.'), 400);
+        return context.json(errorResponse('Choose a JSON or CSV watchlist file.'), 400);
     }
     const file = form.get('watchlist');
     if (!(file instanceof File) || !file.size) {
-        return context.json(errorResponse('Choose a JSON, CSV, or XML watchlist file.'), 400);
+        return context.json(errorResponse('Choose a JSON or CSV watchlist file.'), 400);
     }
     if (file.size > maximumWatchlistFileSize) {
         return context.json(errorResponse('The watchlist file must be smaller than 2 MB.'), 413);
@@ -102,31 +97,6 @@ watchlist.post('/import', async (context) => {
 watchlist.get('/export', validate('query', ExportFormatSchema), async (context) => {
     const format = context.req.valid('query').format;
     const generatedAt = new Date().toISOString();
-    if (format === 'mal') {
-        const entries = await exportMyAnimeListWatchlist(context.get('session').user.id);
-        const statuses = {
-            watching: 'Watching',
-            plan_to_watch: 'Plan to Watch',
-            completed: 'Completed',
-            dropped: 'Dropped',
-        } as const;
-        const body = [
-            '<?xml version="1.0" encoding="UTF-8" ?>',
-            '<myanimelist>',
-            ...entries.map(
-                (entry) =>
-                    `  <anime><series_animedb_id>${entry.malId ?? ''}</series_animedb_id><series_title>${xmlValue(entry.title)}</series_title><my_status>${statuses[entry.state]}</my_status></anime>`
-            ),
-            '</myanimelist>',
-        ].join('\n');
-        return context.body(`${body}\n`, 200, {
-            'Cache-Control': 'no-store',
-            'Content-Disposition': 'attachment; filename="arc-myanimelist.xml"',
-            'Content-Type': 'application/xml; charset=utf-8',
-            'X-Content-Type-Options': 'nosniff',
-        });
-    }
-
     const entries = (await exportWatchlist(context.get('session').user.id)).map(
         ({ anilistId, state, addedAt, updatedAt }) => ({
             anilistId,
@@ -152,14 +122,6 @@ watchlist.get('/export', validate('query', ExportFormatSchema), async (context) 
             .join('\r\n');
         body += '\r\n';
         contentType = 'text/csv; charset=utf-8';
-    } else if (format === 'xml') {
-        body = `<?xml version="1.0" encoding="UTF-8"?>\n<watchlist schema_version="1.0" generated_at="${generatedAt}">\n${entries
-            .map(
-                (entry) =>
-                    `  <anime>\n    <anilist_id>${entry.anilistId}</anilist_id>\n    <status>${entry.state}</status>\n    <added_at>${entry.addedAt}</added_at>\n    <updated_at>${entry.updatedAt}</updated_at>\n  </anime>`
-            )
-            .join('\n')}\n</watchlist>\n`;
-        contentType = 'application/xml; charset=utf-8';
     } else {
         body = `${JSON.stringify(
             {
