@@ -39,10 +39,6 @@ const maintenanceToken = createMiddleware(async (context, next) => {
 export const maintenance = new Hono();
 
 maintenance.use('*', maintenanceToken);
-maintenance.use('*', async (context, next) => {
-    await next();
-    context.header('Cache-Control', 'no-store');
-});
 
 maintenance.get('/health', async (context) => {
     try {
