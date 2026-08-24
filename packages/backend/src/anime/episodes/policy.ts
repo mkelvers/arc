@@ -1,7 +1,7 @@
 import type { AniListAnime } from '../anilist/types';
 type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 
-export const episodeMetadataRevision = 'tmdb-episode-v2';
+export const episodeMetadataRevision = 'tmdb-episode-v4';
 
 export function episodeRefreshReason(
     sync: {

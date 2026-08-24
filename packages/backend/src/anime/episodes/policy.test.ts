@@ -116,6 +116,7 @@ describe('episode refresh policy', () => {
 
         expect(episodeMetadataNeedsRefresh(complete, true, null)).toBeTrue();
         expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v1')).toBeTrue();
+        expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v2')).toBeTrue();
         expect(episodeMetadataNeedsRefresh(complete, true, episodeMetadataRevision)).toBeFalse();
     });
 

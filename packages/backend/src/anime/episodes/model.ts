@@ -14,12 +14,16 @@ function episodeModel(
     fallbackDuration: number | null | undefined,
     displayNumber: number
 ): AnimeEpisode {
-    const title =
+    const metadataTitle =
         episode.metadataTitleSource &&
         episode.metadataTitle &&
         !/^(?:episode|movie)(?:\s+\d+)?$/i.test(episode.metadataTitle)
             ? episode.metadataTitle
             : '';
+    const providerTitle = episode.providerTitle?.trim() ?? '';
+    const title =
+        metadataTitle ||
+        (/^(?:episode|movie)(?:\s+\d+)?$/i.test(providerTitle) ? '' : providerTitle);
 
     return {
         id: episode.episodeId,
