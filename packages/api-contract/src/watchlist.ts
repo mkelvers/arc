@@ -51,5 +51,9 @@ export const WatchlistPageResponseSchema = z.object({
     totalEntries: z.number().int().nonnegative(),
 });
 
+export const WatchlistImportResponseSchema = z.object({
+    message: z.string(),
+});
+
 export type WatchlistState = z.infer<typeof WatchlistStateSchema>;
 export type WatchlistSelection = z.infer<typeof WatchlistSelectionSchema>;
