@@ -139,7 +139,7 @@
                             >
                                 <a
                                     href={activeAnime.href}
-                                    class="pointer-events-auto relative z-10 flex h-full w-full items-center justify-start px-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white xl:block xl:h-auto xl:w-fit xl:px-0"
+                                    class="pointer-events-auto relative z-10 flex h-full w-full items-center justify-center px-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:justify-start xl:block xl:h-auto xl:w-fit xl:px-0"
                                     aria-label={`View ${activeAnime.title}`}
                                 >
                                     {#each highlights as anime, index (anime.id)}
@@ -152,7 +152,7 @@
                                                 fetchpriority={index === carousel.active ? 'high' : 'low'}
                                                 style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
                                                 class={cn(
-                                                    'max-h-24 max-w-[calc(100%_-_5rem)] object-contain object-left sm:max-h-28 sm:max-w-sm lg:max-h-48 lg:max-w-lg 2xl:max-w-2xl',
+                                                    'max-h-24 max-w-[calc(100%_-_5rem)] object-contain object-center sm:max-h-28 sm:max-w-sm sm:object-left lg:max-h-48 lg:max-w-lg 2xl:max-w-2xl',
                                                     index === carousel.active
                                                         ? 'block'
                                                         : 'absolute inset-0 opacity-0',
@@ -172,7 +172,7 @@
 
                                 <button
                                     type="button"
-                                    class="pointer-events-auto absolute top-1/2 left-0 z-30 grid size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
+                                    class="pointer-events-auto absolute top-1/2 left-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
                                     aria-label="Previous anime"
                                     onclick={() => select(carousel.active - 1, 'complete')}
                                 >
@@ -189,7 +189,7 @@
                         {#if highlights.length > 1}
                             <button
                                 type="button"
-                                class="pointer-events-auto absolute top-1/2 right-0 z-30 grid size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
+                                class="pointer-events-auto absolute top-1/2 right-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
                                 aria-label="Next anime"
                                 onclick={() => select(carousel.active + 1, 'complete')}
                             >
@@ -204,7 +204,7 @@
                     </div>
 
                     <p
-                        class="mt-5 flex min-h-5 max-w-[min(100%,36rem)] flex-wrap items-center gap-y-1 px-5 text-xs font-normal text-white/50 sm:min-h-0 sm:px-10 lg:mt-7 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-sm 2xl:mt-8"
+                        class="mt-5 flex min-h-5 max-w-[min(100%,36rem)] flex-wrap items-center justify-center gap-y-1 px-5 text-xs font-normal text-white/60 sm:min-h-0 sm:justify-start sm:px-10 lg:mt-7 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-sm 2xl:mt-8"
                     >
                         {#if activeAnime.audioLabel}
                             <span class="hero-metadata__tag">{activeAnime.audioLabel}</span>
@@ -217,13 +217,13 @@
                     </p>
 
                     <p
-                        class="mt-2 min-h-15 line-clamp-3 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-[#bbb] sm:min-h-0 sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
+                        class="mt-2 hidden min-h-15 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-[#bbb] sm:block sm:min-h-0 sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
                     >
                         {activeAnime.description}
                     </p>
 
                     <div
-                        class="pointer-events-auto mt-5 flex flex-wrap items-center gap-2 px-5 text-xs font-bold text-accent sm:px-10 lg:mt-7 lg:px-16 lg:text-sm"
+                        class="pointer-events-auto mt-5 flex flex-nowrap items-center gap-2 px-5 text-xs font-bold text-accent max-sm:[&>a]:flex-1 max-sm:[&>a]:justify-center sm:px-10 lg:mt-7 lg:px-16 lg:text-sm"
                     >
                         <a
                             href={activeAnime.link}
@@ -242,7 +242,7 @@
 
                     {#if highlights.length > 1}
                         <div
-                            class="pointer-events-auto relative z-30 mt-6 flex items-center gap-2 px-5 2xl:mt-7 sm:px-10 lg:px-16"
+                            class="pointer-events-auto relative z-30 mt-6 flex items-center justify-center gap-2 px-5 sm:justify-start sm:px-10 lg:px-16 2xl:mt-7"
                         >
                             {#each highlights as item, itemIndex (item.id)}
                                 <button

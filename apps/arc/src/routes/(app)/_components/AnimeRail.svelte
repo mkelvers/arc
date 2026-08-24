@@ -27,7 +27,7 @@
 
         const firstCard = rail.firstElementChild;
         if (firstCard instanceof HTMLElement) {
-            const posterCenter = 8 + Math.max(0, firstCard.clientWidth - 16) * 0.75;
+            const posterCenter = firstCard.clientWidth * 0.75;
             rail.parentElement?.style.setProperty('--rail-control-center', `${posterCenter}px`);
         }
     }
@@ -69,7 +69,7 @@
     class={cn('relative z-20 pb-10 sm:pb-12 lg:pb-16', topSpacing && 'pt-10 sm:pt-12 lg:pt-16')}
     aria-labelledby={headingId}
 >
-    <h2 id={headingId} class="mb-5 px-5 text-xl font-bold sm:px-10 sm:text-2xl lg:px-16 2xl:px-20">
+    <h2 id={headingId} class="mb-5 px-4 text-xl font-bold sm:px-10 sm:text-2xl lg:px-16 2xl:px-20">
         {heading}
     </h2>
 
@@ -78,7 +78,7 @@
             <div
                 bind:this={rail}
                 onscroll={updateScroll}
-                class="grid grid-flow-col auto-cols-[calc((100vw-1.875rem)/2)] gap-0 overflow-x-auto overscroll-x-contain px-3 scroll-smooth min-[30em]:auto-cols-[calc((100vw-2.8125rem)/3)] min-[35.5em]:auto-cols-[calc((100vw-2.5rem)/4)] sm:auto-cols-[calc((100vw-5.6875rem)/4)] sm:gap-1 sm:px-8 lg:auto-cols-[calc((100vw-10.875rem)/5)] lg:gap-3.5 lg:px-14 2xl:auto-cols-[calc((100vw-12.75rem)/6)] 2xl:px-[4.5rem] min-[120rem]:auto-cols-[calc((100vw-13.625rem)/7)]"
+                class="grid grid-flow-col auto-cols-[calc((100vw-2.75rem)/2)] gap-3 overflow-x-auto overscroll-x-contain px-4 pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4rem)/3)] min-[35.5em]:auto-cols-[calc((100vw-4.75rem)/4)] sm:auto-cols-[calc((100vw-7.75rem)/4)] sm:gap-4 sm:px-10 lg:auto-cols-[calc((100vw-12rem)/5)] lg:gap-5 lg:px-16 2xl:auto-cols-[calc((100vw-14.5rem)/6)] 2xl:px-20 min-[120rem]:auto-cols-[calc((100vw-16rem)/7)]"
             >
                 {#each anime as entry (entry.id)}
                     <div class="min-w-0">
