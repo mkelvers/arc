@@ -23,14 +23,6 @@ export const externalMediaType = pgEnum('external_media_type', ['anime', 'movie'
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 export const episodeAudio = pgEnum('episode_audio', ['sub', 'dub', 'raw']);
 export const episodeTextSource = pgEnum('episode_text_source', ['tmdb', 'machine']);
-export const episodeClassification = pgEnum('episode_classification', [
-    'canon',
-    'mixed',
-    'filler',
-    'recap',
-    'anime-canon',
-    'unknown',
-]);
 export const episodeSegmentKind = pgEnum('episode_segment_kind', ['opening', 'ending']);
 
 export const schedulerInterestSource = pgEnum('scheduler_interest_source', [
@@ -530,7 +522,6 @@ export const animeEpisode = pgTable(
         metadataTitle: text('metadata_title'),
         metadataTitleSource: episodeTextSource('metadata_title_source'),
         audio: episodeAudio('audio').array().notNull(),
-        classification: episodeClassification('classification').notNull().default('unknown'),
         imageUrl: text('image_url'),
         runtimeMinutes: integer('runtime_minutes'),
         airDate: text('air_date'),
@@ -590,8 +581,6 @@ export const animeEpisodeSync = pgTable('anime_episode_sync', {
     metadataRevision: text('metadata_revision'),
     stableSince: timestamp('stable_since', { withTimezone: true }),
     lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
-    classificationRevision: text('classification_revision'),
-    classificationsRefreshedAt: timestamp('classifications_refreshed_at', { withTimezone: true }),
     nextRefreshAt: timestamp('next_refresh_at', { withTimezone: true }),
     failureCount: integer('failure_count').notNull().default(0),
     lastError: text('last_error'),

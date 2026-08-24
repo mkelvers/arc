@@ -15,7 +15,6 @@ const episodes: AnimeEpisode[] = [
         duration: '24m',
         releaseDate: '',
         overview: '',
-        type: 'unknown',
     },
     {
         id: 'two',
@@ -28,7 +27,6 @@ const episodes: AnimeEpisode[] = [
         duration: '24m',
         releaseDate: '',
         overview: '',
-        type: 'unknown',
     },
 ];
 

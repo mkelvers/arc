@@ -25,8 +25,6 @@ export const AnimeCardPageSchema = z.object({
     page: z.number().int(),
 });
 
-export type EpisodeType = 'canon' | 'mixed' | 'filler' | 'recap' | 'anime-canon' | 'unknown';
-
 export type AnimeEpisode = {
     id: string;
     number: number;
@@ -38,7 +36,6 @@ export type AnimeEpisode = {
     duration: string;
     releaseDate: string;
     overview: string;
-    type: EpisodeType;
 };
 
 export const EpisodeRevisionSchema = z.object({
