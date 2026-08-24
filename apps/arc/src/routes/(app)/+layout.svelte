@@ -4,6 +4,7 @@
     import {
         BookmarkSimpleIcon,
         CaretDownIcon,
+        GearIcon,
         MagnifyingGlassIcon,
         ListIcon,
         SignOutIcon,
@@ -99,6 +100,14 @@
                         </div>
 
                         <a
+                            href="/settings"
+                            class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                        >
+                            <GearIcon size={21} aria-hidden="true" />
+                            <span>Settings</span>
+                        </a>
+
+                        <a
                             href="/watchlist"
                             class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                         >
@@ -166,6 +175,12 @@
                         Watchlist
                     </a>
                     {#if data.account}
+                        <a
+                            href="/settings"
+                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        >
+                            Settings
+                        </a>
                         <button
                             type="button"
                             class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
