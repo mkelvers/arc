@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync, animeEpisodeTarget, animeRelease } from '@arc/db/schema';
+import { episodeInventoryCoversTarget } from '../episodes/policy';
 import { firstEpisodeAttemptAt } from './policy';
 import { enqueueScheduleDiscovery } from './schedule-repair';
 
@@ -16,29 +17,38 @@ interface SchedulableRelease extends AiringTargetSchedule {
 }
 
 async function scheduleTarget(release: SchedulableRelease, discoverNextSchedule: boolean) {
-    const [storedTarget] = await db
-        .select({
-            episodeId: animeEpisode.episodeId,
-            inventoryRevision: animeEpisodeSync.sourceRevision,
-            targetState: animeEpisodeTarget.state,
-        })
-        .from(animeEpisode)
-        .leftJoin(animeEpisodeSync, eq(animeEpisodeSync.anilistId, animeEpisode.anilistId))
-        .leftJoin(
-            animeEpisodeTarget,
-            and(
-                eq(animeEpisodeTarget.anilistId, animeEpisode.anilistId),
-                eq(animeEpisodeTarget.targetEpisode, release.episode)
+    const [[storedTarget], inventory] = await Promise.all([
+        db
+            .select({
+                episodeId: animeEpisode.episodeId,
+                inventoryRevision: animeEpisodeSync.sourceRevision,
+                targetState: animeEpisodeTarget.state,
+            })
+            .from(animeEpisode)
+            .leftJoin(animeEpisodeSync, eq(animeEpisodeSync.anilistId, animeEpisode.anilistId))
+            .leftJoin(
+                animeEpisodeTarget,
+                and(
+                    eq(animeEpisodeTarget.anilistId, animeEpisode.anilistId),
+                    eq(animeEpisodeTarget.targetEpisode, release.episode)
+                )
             )
-        )
-        .where(
-            and(
-                eq(animeEpisode.anilistId, release.anilistId),
-                eq(animeEpisode.number, release.episode)
+            .where(
+                and(
+                    eq(animeEpisode.anilistId, release.anilistId),
+                    eq(animeEpisode.number, release.episode)
+                )
             )
-        )
-        .limit(1);
-    if (storedTarget?.episodeId.trim()) {
+            .limit(1),
+        db
+            .select({ number: animeEpisode.number })
+            .from(animeEpisode)
+            .where(eq(animeEpisode.anilistId, release.anilistId)),
+    ]);
+    if (
+        storedTarget?.episodeId.trim() &&
+        episodeInventoryCoversTarget(inventory, release.episode)
+    ) {
         if (storedTarget.targetState === 'confirmed') {
             return false;
         }
@@ -91,17 +101,34 @@ async function scheduleTarget(release: SchedulableRelease, discoverNextSchedule:
                 expectedEpisodes: release.expectedEpisodes,
                 airingAt: release.airingAt,
                 nextAttemptAt: sql`case
-                    when ${animeEpisodeTarget.state} = 'retired'
+                    when ${animeEpisodeTarget.state} in ('confirmed', 'retired')
                         then least(${animeEpisodeTarget.nextAttemptAt}, excluded.next_attempt_at)
                     else ${animeEpisodeTarget.nextAttemptAt}
                 end`,
                 state: sql`case
-                    when ${animeEpisodeTarget.state} = 'retired' then 'pending'::anime_episode_target_state
+                    when ${animeEpisodeTarget.state} in ('confirmed', 'retired')
+                        then 'pending'::anime_episode_target_state
                     else ${animeEpisodeTarget.state}
+                end`,
+                confirmedAt: sql`case
+                    when ${animeEpisodeTarget.state} = 'confirmed' then null
+                    else ${animeEpisodeTarget.confirmedAt}
+                end`,
+                inventoryRevision: sql`case
+                    when ${animeEpisodeTarget.state} = 'confirmed' then null
+                    else ${animeEpisodeTarget.inventoryRevision}
                 end`,
                 retiredAt: sql`case
                     when ${animeEpisodeTarget.state} = 'retired' then null
                     else ${animeEpisodeTarget.retiredAt}
+                end`,
+                leaseOwner: sql`case
+                    when ${animeEpisodeTarget.state} in ('confirmed', 'retired') then null
+                    else ${animeEpisodeTarget.leaseOwner}
+                end`,
+                leaseUntil: sql`case
+                    when ${animeEpisodeTarget.state} in ('confirmed', 'retired') then null
+                    else ${animeEpisodeTarget.leaseUntil}
                 end`,
             },
         });
