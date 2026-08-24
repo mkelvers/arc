@@ -3,7 +3,6 @@ import { describe, expect, test } from 'bun:test';
 import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
-    classificationRefreshDue,
     episodeInventoryIsExpected,
     episodeInventoryCoversTarget,
     episodeInventoryNeedsDiscovery,
@@ -127,47 +126,6 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
         expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
         expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
-    });
-
-    test('keeps valid finished classifications and refreshes mutable releases', () => {
-        const now = new Date('2026-08-20T12:00:00Z').getTime();
-
-        expect(
-            classificationRefreshDue(new Date('2026-08-20T11:59:59Z'), 'FINISHED', null, now)
-        ).toBeTrue();
-        expect(classificationRefreshDue(null, 'FINISHED', 'animefillerlist-v1', now)).toBeTrue();
-        expect(
-            classificationRefreshDue(
-                new Date('2026-08-19T11:59:59Z'),
-                'RELEASING',
-                'animefillerlist-v1',
-                now
-            )
-        ).toBeTrue();
-        expect(
-            classificationRefreshDue(
-                new Date('2026-08-19T12:00:01Z'),
-                'RELEASING',
-                'animefillerlist-v1',
-                now
-            )
-        ).toBeFalse();
-        expect(
-            classificationRefreshDue(
-                new Date('2026-08-13T11:59:59Z'),
-                'FINISHED',
-                'animefillerlist-v1',
-                now
-            )
-        ).toBeFalse();
-        expect(
-            classificationRefreshDue(
-                new Date('2026-08-13T12:00:01Z'),
-                'FINISHED',
-                'animefillerlist-v1',
-                now
-            )
-        ).toBeFalse();
     });
 
     test('does not use AniList segment totals as provider episode counts', () => {

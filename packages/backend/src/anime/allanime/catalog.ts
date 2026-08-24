@@ -387,7 +387,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
     const episodeInfo = new Map(
         (data.episodeInfos ?? []).flatMap((episode) => {
             const id = String(episode.episodeIdNum ?? '').trim();
-            const [rawTitle, ...notes] = (episode.notes ?? '').split(/<note-split>/i);
+            const [rawTitle] = (episode.notes ?? '').split(/<note-split>/i);
             const title = rawTitle
                 .replace(/<br\s*\/?>/gi, ' ')
                 .replace(/<[^>]+>/g, '')
@@ -399,19 +399,7 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
                 .replace(/\s+/g, ' ')
                 .trim();
 
-            return id
-                ? [
-                      [
-                          id,
-                          {
-                              title,
-                              type: notes.some((note) => /^\s*recap/i.test(note))
-                                  ? ('recap' as const)
-                                  : undefined,
-                          },
-                      ] as const,
-                  ]
-                : [];
+            return id ? [[id, { title }] as const] : [];
         })
     );
 
@@ -433,7 +421,6 @@ export async function getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[
                         ...(dub.has(id) ? ['dub' as const] : []),
                         ...(raw.has(id) ? ['raw' as const] : []),
                     ],
-                    type: episodeInfo.get(id)?.type,
                 },
             ];
         })

@@ -54,24 +54,6 @@ export function episodeRefreshBlocksPage(
     return status !== 'FINISHED' || !hasStoredEpisodes;
 }
 
-export function classificationRefreshDue(
-    refreshedAt: Date | null | undefined,
-    status: AniListAnime['status'],
-    revision: string | null | undefined,
-    now = Date.now()
-) {
-    if (revision !== 'animefillerlist-v1' || !refreshedAt) {
-        return true;
-    }
-
-    if (status === 'FINISHED') {
-        return false;
-    }
-
-    const lifetime = status === 'RELEASING' ? 24 * 60 * 60 * 1_000 : 7 * 24 * 60 * 60 * 1_000;
-    return refreshedAt.getTime() + lifetime <= now;
-}
-
 export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episodes'>) {
     // AniList counts the individual short segments for TV_SHORT releases;
     // playback providers generally expose their packaged broadcast episodes.

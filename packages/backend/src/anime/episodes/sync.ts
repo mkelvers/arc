@@ -12,12 +12,10 @@ import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
-import { getFillerClassifications, mergeFillerClassifications } from '../filler';
 import { sourceRevision, storedEpisodes } from './model';
 import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
-    classificationRefreshDue,
     episodeInventoryCoversTarget,
     episodeMetadataRevision,
     nextRefreshAt,
@@ -87,7 +85,6 @@ async function fetchAndStore(
                 titleSource: animeEpisode.metadataTitleSource,
                 overview: animeEpisode.overview,
                 overviewSource: animeEpisode.overviewSource,
-                classification: animeEpisode.classification,
             })
             .from(animeEpisode)
             .where(eq(animeEpisode.anilistId, anime.id))
@@ -98,25 +95,12 @@ async function fetchAndStore(
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
                 metadataRevision: animeEpisodeSync.metadataRevision,
-                classificationRevision: animeEpisodeSync.classificationRevision,
-                classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
             })
             .from(animeEpisodeSync)
             .where(eq(animeEpisodeSync.anilistId, anime.id))
             .limit(1)
             .then((rows) => rows[0] ?? null),
     ]);
-
-    const fillerClassifications = classificationRefreshDue(
-        previousSync?.classificationsRefreshedAt,
-        anime.status,
-        previousSync?.classificationRevision
-    )
-        ? await getFillerClassifications(anime, providerEpisodes).catch((cause) => {
-              console.error(`AnimeFillerList refresh failed for MAL ${anime.idMal}`, cause);
-              return null;
-          })
-        : undefined;
 
     const resolvedMetadataSource = await resolveStored(anime).catch((cause) => {
         if (cause instanceof NoConfidentTmdbMappingError) {
@@ -141,13 +125,7 @@ async function fetchAndStore(
               return null;
           })
         : null;
-    const source = episodesForRelease(
-        anime,
-        fillerClassifications
-            ? mergeFillerClassifications(providerEpisodes, fillerClassifications)
-            : providerEpisodes,
-        metadata
-    );
+    const source = episodesForRelease(anime, providerEpisodes, metadata);
     const expected =
         anime.status === 'RELEASING'
             ? availableEpisodeCount(anime)
@@ -167,8 +145,6 @@ async function fetchAndStore(
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
                     lastSuccessAt: animeEpisodeSync.lastSuccessAt,
-                    classificationRevision: animeEpisodeSync.classificationRevision,
-                    classificationsRefreshedAt: animeEpisodeSync.classificationsRefreshedAt,
                 })
                 .from(animeEpisodeSync)
                 .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -198,14 +174,6 @@ async function fetchAndStore(
                 metadataTitleSource:
                     media?.titleSource ?? previousMetadata?.metadataTitleSource ?? null,
                 audio: mergeAudioModes(previous?.audio, episode.audio),
-                classification:
-                    fillerClassifications instanceof Map
-                        ? (episode.type ?? 'unknown')
-                        : episode.type === 'filler' || previous?.classification === 'filler'
-                          ? 'filler'
-                          : episode.type === 'recap'
-                            ? 'recap'
-                            : (previous?.classification ?? episode.type ?? 'unknown'),
                 imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
                 runtimeMinutes: media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
                 airDate: confirmation
@@ -233,7 +201,6 @@ async function fetchAndStore(
                     metadataTitle: excluded(animeEpisode.metadataTitle),
                     metadataTitleSource: excluded(animeEpisode.metadataTitleSource),
                     audio: excluded(animeEpisode.audio),
-                    classification: excluded(animeEpisode.classification),
                     imageUrl: excluded(animeEpisode.imageUrl),
                     runtimeMinutes: excluded(animeEpisode.runtimeMinutes),
                     airDate: excluded(animeEpisode.airDate),
@@ -250,7 +217,6 @@ async function fetchAndStore(
                 number: animeEpisode.number,
                 title: sql<string>`coalesce(${animeEpisode.providerTitle}, '')`,
                 audio: animeEpisode.audio,
-                type: animeEpisode.classification,
             })
             .from(animeEpisode)
             .where(eq(animeEpisode.anilistId, anime.id))
@@ -274,13 +240,6 @@ async function fetchAndStore(
                     : (sync?.metadataRevision ?? null),
                 stableSince,
                 lastSuccessAt: now,
-                classificationsRefreshedAt: !(fillerClassifications instanceof Map)
-                    ? (sync?.classificationsRefreshedAt ?? null)
-                    : now,
-                classificationRevision:
-                    fillerClassifications instanceof Map
-                        ? 'animefillerlist-v1'
-                        : (sync?.classificationRevision ?? null),
                 nextRefreshAt: nextRefreshAt(anime, stableSince),
                 failureCount: 0,
                 lastError: null,
@@ -298,13 +257,6 @@ async function fetchAndStore(
                         : (sync?.metadataRevision ?? null),
                     stableSince,
                     lastSuccessAt: now,
-                    classificationsRefreshedAt: !(fillerClassifications instanceof Map)
-                        ? (sync?.classificationsRefreshedAt ?? null)
-                        : now,
-                    classificationRevision:
-                        fillerClassifications instanceof Map
-                            ? 'animefillerlist-v1'
-                            : (sync?.classificationRevision ?? null),
                     nextRefreshAt: nextRefreshAt(anime, stableSince),
                     failureCount: 0,
                     lastError: null,
