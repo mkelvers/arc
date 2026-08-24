@@ -25,7 +25,6 @@ export const EpisodeSchema = z.looseObject({
     duration: z.string(),
     releaseDate: z.string(),
     overview: z.string(),
-    type: z.enum(['canon', 'mixed', 'filler', 'recap', 'anime-canon', 'unknown']),
 });
 
 const AnimeDetailsSchema = z.object({
