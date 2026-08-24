@@ -14,7 +14,7 @@ import {
 } from './episodes/policy';
 import { refreshEpisodes } from './episodes/sync';
 import { coversExpectedEpisodes } from './providers/match';
-import { findMapping } from './tmdb/mapping-store';
+import { NoConfidentTmdbMappingError, resolveStored } from './tmdb/mapping';
 
 export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> {
     const [stored, sync, metadataSource] = await Promise.all([
@@ -34,7 +34,13 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
             .where(eq(animeEpisodeSync.anilistId, anime.id))
             .limit(1)
             .then((rows) => rows[0] ?? null),
-        findMapping(anime.id).catch(() => null),
+        resolveStored(anime).catch((cause) => {
+            if (cause instanceof NoConfidentTmdbMappingError) {
+                return null;
+            }
+            console.error(`TMDB mapping verification failed for AniList ${anime.id}`, cause);
+            return null;
+        }),
     ]);
 
     const incompleteFinishedRelease =
