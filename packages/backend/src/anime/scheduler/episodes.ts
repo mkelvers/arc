@@ -1,11 +1,11 @@
-import { and, asc, eq, exists, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, lte, or } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { animeEpisodeTarget, animeReleaseInterest } from '@arc/db/schema';
+import { animeEpisodeTarget } from '@arc/db/schema';
 import { refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { confirmScheduledEpisode } from '../episodes/sync';
 import { nextEpisodeAttemptAt } from './policy';
-import { scheduleInterestedTargets } from './targets';
+import { scheduleReleaseTargets } from './targets';
 import { enqueueScheduleDiscovery } from './schedule-repair';
 
 export interface SchedulerLimits {
@@ -40,15 +40,7 @@ async function claimTargets(runId: string, limit: number, leaseDurationMs: numbe
             and(
                 eq(animeEpisodeTarget.state, 'pending'),
                 lte(animeEpisodeTarget.nextAttemptAt, now),
-                or(isNull(animeEpisodeTarget.leaseUntil), lte(animeEpisodeTarget.leaseUntil, now)),
-                exists(
-                    db
-                        .select({ value: sql`1` })
-                        .from(animeReleaseInterest)
-                        .where(
-                            eq(animeReleaseInterest.trackedAnilistId, animeEpisodeTarget.anilistId)
-                        )
-                )
+                or(isNull(animeEpisodeTarget.leaseUntil), lte(animeEpisodeTarget.leaseUntil, now))
             )
         )
         .orderBy(asc(animeEpisodeTarget.nextAttemptAt))
@@ -161,7 +153,7 @@ async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
 
         try {
             await refreshAnimeSchedule(target.anilistId);
-            await scheduleInterestedTargets([target.anilistId]);
+            await scheduleReleaseTargets([target.anilistId]);
         } catch (cause) {
             await enqueueScheduleDiscovery(target.anilistId, target.targetEpisode, cause);
         }

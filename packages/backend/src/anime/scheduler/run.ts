@@ -11,12 +11,9 @@ import {
 } from '@arc/db/schema';
 import { refreshAnimeRelease } from '../anilist/releases';
 import { drainEpisodeTargets, type SchedulerLimits } from './episodes';
-import {
-    markAllInterestDirty,
-    markInterestDirtyForAnilistIds,
-    reconcileDirtyInterest,
-} from './interest';
 import { drainMaintenanceTasks } from './maintenance';
+import { reconcileAllAiringReleases } from './reconciliation';
+import { scheduleReleaseTargets } from './targets';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -41,11 +38,10 @@ async function refreshDueReleases(limit: number) {
     const results = await Promise.allSettled(
         rows.map(({ anilistId }) => refreshAnimeRelease(anilistId, { force: true }))
     );
-    await markInterestDirtyForAnilistIds(
-        rows.flatMap((row, index) =>
-            results[index]?.status === 'fulfilled' ? [row.anilistId] : []
-        )
+    const refreshedIds = rows.flatMap((row, index) =>
+        results[index]?.status === 'fulfilled' ? [row.anilistId] : []
     );
+    await scheduleReleaseTargets(refreshedIds);
     return {
         attempted: rows.length,
         completed: results.filter(({ status }) => status === 'fulfilled').length,
@@ -74,20 +70,18 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         });
 
     try {
-        let fullReconciliation: { marked: number; reconciled: number } | null = null;
+        let fullReconciliation: {
+            discovered: number;
+            releaseRequests: number;
+            targets: number;
+        } | null = null;
         if (await fullReconciliationDue(config.fullReconciliationIntervalMs)) {
-            const marked = await markAllInterestDirty();
-            let reconciled = 0;
-            for (;;) {
-                const count = await reconcileDirtyInterest(25);
-                reconciled += count;
-                if (count === 0) {
-                    break;
-                }
-            }
-            fullReconciliation = { marked, reconciled };
-        } else {
-            await reconcileDirtyInterest(25);
+            const result = await reconcileAllAiringReleases();
+            fullReconciliation = {
+                discovered: result.discovered,
+                releaseRequests: result.releaseRequests,
+                targets: result.targets,
+            };
         }
 
         const releases = await refreshDueReleases(config.concurrency);
@@ -232,7 +226,7 @@ export async function animeSchedulerHealth(now = new Date()) {
                   : latestFailed
                     ? 'The latest scheduler invocation failed'
                     : reconciliationAge === null || reconciliationAge > 2 * 60 * 60_000
-                      ? 'Full interest reconciliation is stale'
+                      ? 'Full airing reconciliation is stale'
                       : null,
         active,
         startedAt: heartbeat?.startedAt ?? null,

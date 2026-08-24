@@ -3,6 +3,10 @@ import { describe, expect, test } from 'bun:test';
 import { MaintenanceRequestSchema } from './maintenance-request';
 
 describe('maintenance task boundary', () => {
+    test('accepts global airing reconciliation', () => {
+        expect(MaintenanceRequestSchema.safeParse({ kind: 'airing_reconcile' }).success).toBe(true);
+    });
+
     test('accepts the closed playback and metadata override variants', () => {
         expect(
             MaintenanceRequestSchema.safeParse({

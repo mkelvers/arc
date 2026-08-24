@@ -38,6 +38,7 @@ export const MaintenanceRequestSchema = z.discriminatedUnion('kind', [
         anilistId: animeId,
         targetEpisode: z.number().int().positive(),
     }),
+    z.object({ kind: z.literal('airing_reconcile') }),
     z.object({ kind: z.literal('interest_reconcile') }),
 ]);
 

@@ -4,13 +4,13 @@ import { and, asc, eq, isNull, lte, ne, or } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule } from '../anilist/releases';
-import { markAllInterestDirty, reconcileDirtyInterest } from './interest';
 import {
     rediscoverMapping,
     setMetadataMappingOverride,
     setPlaybackMappingOverride,
 } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
+import { reconcileAllAiringReleases } from './reconciliation';
 
 export { MaintenanceRequestSchema } from './maintenance-request';
 
@@ -27,7 +27,7 @@ function dedupeKey(request: MaintenanceRequest) {
     if (request.kind === 'target_reactivate') {
         return `target:${request.anilistId}:${request.targetEpisode}`;
     }
-    return 'interest:full-reconciliation';
+    return 'airing:full-reconciliation';
 }
 
 export async function enqueueMaintenance(request: MaintenanceRequest) {
@@ -142,21 +142,13 @@ async function executeMaintenance(request: MaintenanceRequest) {
         }
         return { reactivated: true };
     }
-    if (request.kind === 'interest_reconcile') {
-        const marked = await markAllInterestDirty();
-        let reconciled = 0;
-        for (;;) {
-            const count = await reconcileDirtyInterest(25);
-            reconciled += count;
-            if (count === 0) {
-                break;
-            }
-        }
+    if (request.kind === 'airing_reconcile' || request.kind === 'interest_reconcile') {
+        const { snapshot: _, ...result } = await reconcileAllAiringReleases();
         await db
             .update(schedulerHeartbeat)
             .set({ lastFullReconciliationAt: new Date() })
             .where(eq(schedulerHeartbeat.name, 'anime-scheduler'));
-        return { marked, reconciled };
+        return result;
     }
     if (request.kind === 'mapping_rediscover') {
         if (request.mappingKind === 'metadata' && request.provider && request.provider !== 'tmdb') {
