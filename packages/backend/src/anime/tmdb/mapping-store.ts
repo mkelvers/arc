@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { db } from '@arc/db';
@@ -7,6 +7,7 @@ import {
     animeArtworkSource,
     animeExternalId,
     animeExternalIdLink,
+    animeMappingOverride,
 } from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
 import { tmdbMappingRevision } from './mapping-verification';
@@ -120,6 +121,27 @@ export async function saveVerifiedMapping(
     anime: AniListAnime,
     mapping: Mapping
 ): Promise<StoredMapping> {
+    const [override] = await db
+        .select({ externalId: animeMappingOverride.externalId })
+        .from(animeMappingOverride)
+        .where(
+            and(
+                eq(animeMappingOverride.anilistId, anime.id),
+                eq(animeMappingOverride.kind, 'metadata'),
+                eq(animeMappingOverride.provider, 'tmdb'),
+                eq(animeMappingOverride.validationStatus, 'valid'),
+                isNull(animeMappingOverride.clearedAt)
+            )
+        )
+        .limit(1);
+    if (override && Number(override.externalId) !== mapping.id) {
+        const stored = await findMapping(anime.id);
+        if (stored) {
+            return stored;
+        }
+        throw new Error(`Operator TMDB mapping override for AniList ${anime.id} is unavailable`);
+    }
+
     return db.transaction(async (tx) => {
         const title = animeTitles(anime)[0] ?? null;
         const verifiedAt = new Date();

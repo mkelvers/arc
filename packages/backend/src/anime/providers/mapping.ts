@@ -1,9 +1,29 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull, or } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { animeProviderMapping } from '@arc/db/schema';
+import { animeMappingOverride, animeProviderMapping } from '@arc/db/schema';
 
 export async function providerMediaId(anilistId: number, provider: string) {
+    const [override] = await db
+        .select({ id: animeMappingOverride.externalId })
+        .from(animeMappingOverride)
+        .where(
+            and(
+                eq(animeMappingOverride.anilistId, anilistId),
+                eq(animeMappingOverride.kind, 'playback'),
+                eq(animeMappingOverride.provider, provider),
+                isNull(animeMappingOverride.clearedAt),
+                or(
+                    eq(animeMappingOverride.validationStatus, 'pending'),
+                    eq(animeMappingOverride.validationStatus, 'valid')
+                )
+            )
+        )
+        .limit(1);
+    if (override) {
+        return override.id;
+    }
+
     const [stored] = await db
         .select({ id: animeProviderMapping.providerMediaId })
         .from(animeProviderMapping)
@@ -19,6 +39,26 @@ export async function providerMediaId(anilistId: number, provider: string) {
 }
 
 export async function saveProviderMediaId(anilistId: number, provider: string, id: string) {
+    const [override] = await db
+        .select({ id: animeMappingOverride.externalId })
+        .from(animeMappingOverride)
+        .where(
+            and(
+                eq(animeMappingOverride.anilistId, anilistId),
+                eq(animeMappingOverride.kind, 'playback'),
+                eq(animeMappingOverride.provider, provider),
+                isNull(animeMappingOverride.clearedAt),
+                or(
+                    eq(animeMappingOverride.validationStatus, 'pending'),
+                    eq(animeMappingOverride.validationStatus, 'valid')
+                )
+            )
+        )
+        .limit(1);
+    if (override && override.id !== id) {
+        return;
+    }
+
     const now = new Date();
 
     await db

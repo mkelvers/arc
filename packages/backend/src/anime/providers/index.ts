@@ -8,7 +8,7 @@ import { anizoneProvider } from './anizone';
 import { createProviderFallback } from './fallback';
 import { senshiProvider } from './senshi';
 
-export const playback = createProviderFallback([
+export const playbackProviders = [
     allanimeProvider,
     anikotoProvider,
     aninekoProvider,
@@ -17,4 +17,6 @@ export const playback = createProviderFallback([
     anipubProvider,
     animepaheProvider,
     anizoneProvider,
-]);
+] as const;
+
+export const playback = createProviderFallback(playbackProviders);
