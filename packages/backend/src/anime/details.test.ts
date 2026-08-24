@@ -51,4 +51,21 @@ describe('anime details airing state', () => {
 
         expect(details.nextAiringEpisode).toEqual(nextAiringEpisode);
     });
+
+    test('does not resurrect a stale AniList schedule after that episode is confirmed', () => {
+        const details = toAnimeDetails(
+            {
+                id: 199111,
+                status: 'RELEASING',
+                nextAiringEpisode: {
+                    episode: 8,
+                    airingAt: Math.floor(Date.now() / 1_000) + 86_400,
+                },
+            } as AniListAnime,
+            undefined,
+            null
+        );
+
+        expect(details.nextAiringEpisode).toBeNull();
+    });
 });

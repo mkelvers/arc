@@ -171,13 +171,14 @@ export function toAnimeDetails(
     storedAiringEpisode?: { episode: number; airingAt: number } | null
 ) {
     const nextAiringEpisode =
-        storedAiringEpisode ??
-        (media.nextAiringEpisode && media.nextAiringEpisode.airingAt * 1_000 > Date.now()
-            ? {
-                  episode: media.nextAiringEpisode.episode,
-                  airingAt: media.nextAiringEpisode.airingAt,
-              }
-            : null);
+        storedAiringEpisode !== undefined
+            ? storedAiringEpisode
+            : media.nextAiringEpisode && media.nextAiringEpisode.airingAt * 1_000 > Date.now()
+              ? {
+                    episode: media.nextAiringEpisode.episode,
+                    airingAt: media.nextAiringEpisode.airingAt,
+                }
+              : null;
 
     return {
         id: media.id,
