@@ -8,8 +8,8 @@ import {
     animeCatalog,
     animeCatalogRefresh,
     animeCatalogTaxonomy,
-    animeDetailsCache,
     animeEpisode,
+    animeRelease,
 } from '@arc/db/schema';
 import {
     getBrowsePage,
@@ -253,21 +253,20 @@ function validatedFilters(
 }
 
 async function observedFormats(taxonomy: BrowseSourceTaxonomy) {
-    const cachedFormat = sql<string | null>`${animeDetailsCache.data}->>'format'`;
-    const [catalog, details] = await Promise.all([
+    const [catalog, releases] = await Promise.all([
         db
             .select({ value: animeCatalog.format })
             .from(animeCatalog)
             .where(sql`${animeCatalog.format} is not null`)
             .groupBy(animeCatalog.format),
         db
-            .select({ value: cachedFormat })
-            .from(animeDetailsCache)
-            .where(sql`${cachedFormat} is not null`)
-            .groupBy(cachedFormat),
+            .select({ value: animeRelease.format })
+            .from(animeRelease)
+            .where(sql`${animeRelease.format} is not null`)
+            .groupBy(animeRelease.format),
     ]);
     const observed = new Set(
-        [...catalog, ...details].flatMap(({ value }) => (value ? [value] : []))
+        [...catalog, ...releases].flatMap(({ value }) => (value ? [value] : []))
     );
 
     return taxonomy.formats.filter((format) => observed.has(format));
