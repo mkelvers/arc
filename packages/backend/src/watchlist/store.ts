@@ -6,11 +6,12 @@ import { db } from '@arc/db';
 import {
     anime,
     animeCatalog,
-    animeDetailsCache,
     animeEpisode,
     animeEpisodeSync,
     animeExternalId,
     animeExternalIdLink,
+    animeInterestDirty,
+    animeRelease,
     watchlist,
     type WatchlistState,
 } from '@arc/db/schema';
@@ -60,7 +61,7 @@ export async function getWatchlistEntries(userId: string) {
             anilistId: animeExternalId.externalId,
             title: anime.title,
             catalogTitle: animeCatalog.title,
-            details: animeDetailsCache.data,
+            details: animeRelease.data,
             state: watchlist.state,
             addedAt: watchlist.createdAt,
             updatedAt: watchlist.updatedAt,
@@ -70,7 +71,7 @@ export async function getWatchlistEntries(userId: string) {
         .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, watchlist.animeId))
         .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
         .leftJoin(animeCatalog, eq(animeCatalog.anilistId, animeExternalId.externalId))
-        .leftJoin(animeDetailsCache, eq(animeDetailsCache.anilistId, animeExternalId.externalId))
+        .leftJoin(animeRelease, eq(animeRelease.anilistId, animeExternalId.externalId))
         .where(
             and(
                 eq(watchlist.userId, userId),
@@ -143,12 +144,35 @@ export async function setWatchlistState(
     state: WatchlistState,
     title?: string
 ) {
-    const result = await setInternalWatchlistState(
-        userId,
-        await ensureInternalAnimeId(anilistId, title),
-        state
-    );
-    return result;
+    const animeId = await ensureInternalAnimeId(anilistId, title);
+
+    return db.transaction(async (tx) => {
+        const [current] = await tx
+            .select({ state: watchlist.state })
+            .from(watchlist)
+            .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)))
+            .limit(1);
+
+        if (current?.state !== state) {
+            await tx
+                .insert(watchlist)
+                .values({ userId, animeId, state })
+                .onConflictDoUpdate({
+                    target: [watchlist.userId, watchlist.animeId],
+                    set: { state, updatedAt: new Date() },
+                });
+        }
+
+        await tx
+            .insert(animeInterestDirty)
+            .values({ userId, animeId, dirtyAt: new Date() })
+            .onConflictDoUpdate({
+                target: [animeInterestDirty.userId, animeInterestDirty.animeId],
+                set: { dirtyAt: new Date() },
+            });
+
+        return state;
+    });
 }
 
 export async function removeFromWatchlist(userId: string, anilistId: number) {
@@ -157,9 +181,18 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
         return;
     }
 
-    await db
-        .delete(watchlist)
-        .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
+    await db.transaction(async (tx) => {
+        await tx
+            .delete(watchlist)
+            .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
+        await tx
+            .insert(animeInterestDirty)
+            .values({ userId, animeId, dirtyAt: new Date() })
+            .onConflictDoUpdate({
+                target: [animeInterestDirty.userId, animeInterestDirty.animeId],
+                set: { dirtyAt: new Date() },
+            });
+    });
 }
 
 export async function updateWatchlistAfterPlayback(

@@ -5,10 +5,11 @@ import type { ContinueWatchingCard } from '@arc/shared/types';
 import { db, excluded } from '@arc/db';
 import {
     anime as animeTable,
-    animeDetailsCache,
     animeEpisode,
     animeExternalId,
     animeExternalIdLink,
+    animeInterestDirty,
+    animeRelease,
     playbackProgress,
 } from '@arc/db/schema';
 import { parseStoredAnimeDetails, toAnimeDetails } from '../anime/details';
@@ -37,42 +38,56 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
 
     const animeId = await ensureInternalAnimeId(input.animeId);
     const now = new Date();
-    const [saved] = await db
-        .insert(playbackProgress)
-        .values({
-            userId,
-            animeId,
-            episodeId: input.episodeId,
-            episodeNumber: input.episodeNumber,
-            positionSeconds: input.positionSeconds,
-            durationSeconds: input.durationSeconds,
-            completed: input.completed,
-            lastWatchedAt: now,
-            eventAt: input.eventAt,
-            dismissedAt: null,
-        })
-        .onConflictDoUpdate({
-            target: [playbackProgress.userId, playbackProgress.animeId],
-            set: {
+    const saved = await db.transaction(async (tx) => {
+        const [row] = await tx
+            .insert(playbackProgress)
+            .values({
+                userId,
+                animeId,
                 episodeId: input.episodeId,
                 episodeNumber: input.episodeNumber,
                 positionSeconds: input.positionSeconds,
                 durationSeconds: input.durationSeconds,
                 completed: input.completed,
-                updatedAt: now,
                 lastWatchedAt: now,
                 eventAt: input.eventAt,
                 dismissedAt: null,
-            },
-            setWhere: and(
-                lt(playbackProgress.eventAt, excluded(playbackProgress.eventAt)),
-                or(
-                    isNull(playbackProgress.dismissedAt),
-                    lt(playbackProgress.dismissedAt, excluded(playbackProgress.eventAt))
-                )
-            ),
-        })
-        .returning({ id: playbackProgress.id });
+            })
+            .onConflictDoUpdate({
+                target: [playbackProgress.userId, playbackProgress.animeId],
+                set: {
+                    episodeId: input.episodeId,
+                    episodeNumber: input.episodeNumber,
+                    positionSeconds: input.positionSeconds,
+                    durationSeconds: input.durationSeconds,
+                    completed: input.completed,
+                    updatedAt: now,
+                    lastWatchedAt: now,
+                    eventAt: input.eventAt,
+                    dismissedAt: null,
+                },
+                setWhere: and(
+                    lt(playbackProgress.eventAt, excluded(playbackProgress.eventAt)),
+                    or(
+                        isNull(playbackProgress.dismissedAt),
+                        lt(playbackProgress.dismissedAt, excluded(playbackProgress.eventAt))
+                    )
+                ),
+            })
+            .returning({ id: playbackProgress.id });
+
+        if (row) {
+            await tx
+                .insert(animeInterestDirty)
+                .values({ userId, animeId, dirtyAt: now })
+                .onConflictDoUpdate({
+                    target: [animeInterestDirty.userId, animeInterestDirty.animeId],
+                    set: { dirtyAt: now },
+                });
+        }
+
+        return row;
+    });
 
     if (!saved) {
         return true;
@@ -120,10 +135,19 @@ export async function dismissPlaybackProgress(userId: string, anilistId: number)
         return;
     }
 
-    await db
-        .update(playbackProgress)
-        .set({ dismissedAt: new Date() })
-        .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
+    await db.transaction(async (tx) => {
+        await tx
+            .update(playbackProgress)
+            .set({ dismissedAt: new Date() })
+            .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
+        await tx
+            .insert(animeInterestDirty)
+            .values({ userId, animeId, dirtyAt: new Date() })
+            .onConflictDoUpdate({
+                target: [animeInterestDirty.userId, animeInterestDirty.animeId],
+                set: { dirtyAt: new Date() },
+            });
+    });
 }
 
 async function recentPlaybackProgress(userId: string | undefined) {
@@ -135,7 +159,7 @@ async function recentPlaybackProgress(userId: string | undefined) {
         .select({
             anilistId: animeExternalId.externalId,
             animeTitle: animeTable.title,
-            details: animeDetailsCache.data,
+            details: animeRelease.data,
             episodeId: playbackProgress.episodeId,
             episodeNumber: playbackProgress.episodeNumber,
             positionSeconds: playbackProgress.positionSeconds,
@@ -146,7 +170,7 @@ async function recentPlaybackProgress(userId: string | undefined) {
         .innerJoin(animeTable, eq(animeTable.id, playbackProgress.animeId))
         .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.animeId, playbackProgress.animeId))
         .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
-        .leftJoin(animeDetailsCache, eq(animeDetailsCache.anilistId, animeExternalId.externalId))
+        .leftJoin(animeRelease, eq(animeRelease.anilistId, animeExternalId.externalId))
         .where(
             and(
                 eq(playbackProgress.userId, userId),
