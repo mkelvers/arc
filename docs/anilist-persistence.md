@@ -43,6 +43,14 @@ By contrast, `GET /v1/watchlist/states` reads only from the database and was una
 
 The shared query client keeps each caller's freshness window, but expiry now starts one deduplicated background refresh and returns the stored response. Watchlist cards use status-aware refresh windows: 6 hours for releasing, one day for upcoming or incomplete metadata, one week for hiatus, and 90 days for finished or cancelled titles.
 
+### Dynamic anime pages
+
+A valid stored AniList detail record is returned before any external refresh. Finished releases never expire, including records written by an older cache revision that still pass the current schema. Releasing, upcoming, hiatus, and cancelled releases remain eligible for status-aware background refreshes. A passed airing event starts an immediate background refresh without delaying the current response.
+
+Each season remains independent because AniList assigns it a separate release ID. A new Frieren season can therefore refresh without invalidating the stored details for an earlier finished season.
+
+Stored TMDB mappings are also returned before their periodic revalidation, and stored episodes for finished releases are returned before metadata or classification maintenance. Missing details, mappings, artwork, or episode inventory still require first contact because Arc has no local value to display.
+
 ## Original diagnosis
 
 **Gap 1 — the freshness rule sits on the critical path.** Staleness triggers a blocking refetch during render, and refetch failure silently drops content. Data we already own is thrown away from the user's point of view because a clock elapsed.
@@ -95,6 +103,7 @@ Caveats discussed:
 ## Implementation status
 
 - Implemented: shared stale query reads, no age-based query deletion, database-only watchlist rendering, status-aware background card refreshes, persisted watchlist titles, local title backfill, and pending metadata cards.
+- Implemented: dynamic anime pages return valid stored finished details and episodes without blocking on AniList or periodic TMDB maintenance.
 - Next stages: apply the same database-first read policy to each derived browse, detail, home, airing, and simulcast store, verifying one route group at a time.
 - Deferred: scheduled warming worker and `*_cache` table renames.
 
