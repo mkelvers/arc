@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { eq, lte } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db } from '@arc/db';
@@ -10,7 +10,6 @@ import { record, type JsonValue } from '../../utils';
 import { anilistRequestPolicy } from './request-policy';
 
 const requests = new Map<string, Promise<unknown>>();
-let cleanup = 0;
 
 interface RequestOptions {
     cacheForMs?: number;
@@ -43,19 +42,6 @@ function cacheKey<TVariables>(document: { toString(): string }, variables: TVari
         .digest('hex');
 }
 
-async function removeExpiredEntries(now: Date) {
-    if (cleanup > now.getTime()) {
-        return;
-    }
-
-    cleanup = now.getTime() + 60 * 60 * 1_000;
-    try {
-        await db.delete(anilistQueryCache).where(lte(anilistQueryCache.expiresAt, now));
-    } catch (cause) {
-        console.warn('AniList query cache cleanup failed', cause);
-    }
-}
-
 async function refresh<TResult, TVariables>(
     key: string,
     document: Parameters<typeof graphql<TResult, TVariables>>[1],
@@ -76,12 +62,35 @@ async function refresh<TResult, TVariables>(
                 target: anilistQueryCache.key,
                 set: { data, expiresAt, fetchedAt },
             });
-        void removeExpiredEntries(fetchedAt);
     } catch (cause) {
         console.warn('AniList query cache write failed', cause);
     }
 
     return data;
+}
+
+function refreshOnce<TResult, TVariables>(
+    key: string,
+    document: Parameters<typeof graphql<TResult, TVariables>>[1],
+    variables: TVariables,
+    options: RequestOptions
+) {
+    const pending = requests.get(key);
+    if (pending) {
+        return pending as Promise<TResult>;
+    }
+
+    const load = refresh(key, document, variables, options);
+    requests.set(key, load);
+
+    const cleanup = () => {
+        if (requests.get(key) === load) {
+            requests.delete(key);
+        }
+    };
+    void load.then(cleanup, cleanup);
+
+    return load;
 }
 
 export async function request<TResult, TVariables>(
@@ -104,34 +113,26 @@ export async function request<TResult, TVariables>(
             .from(anilistQueryCache)
             .where(eq(anilistQueryCache.key, key))
             .limit(1);
-        void removeExpiredEntries(new Date());
 
         if (stored) {
             const parsedStored = z.json().safeParse(stored.data);
             const object = parsedStored.success ? record(parsedStored.data) : null;
             if (!object) {
                 await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
-            } else if (!options.forceRefresh && stored.expiresAt.getTime() > Date.now()) {
-                return object as TResult;
+            } else {
+                if (!options.forceRefresh) {
+                    if (stored.expiresAt.getTime() <= Date.now()) {
+                        void refreshOnce(key, document, variables, options).catch((cause) => {
+                            console.warn('AniList query cache refresh failed', cause);
+                        });
+                    }
+                    return object as TResult;
+                }
             }
         }
     } catch (cause) {
         console.warn('AniList query cache read failed', cause);
     }
 
-    const pending = requests.get(key);
-    if (pending) {
-        return pending as Promise<TResult>;
-    }
-
-    const load = refresh(key, document, variables, options);
-    requests.set(key, load);
-
-    try {
-        return await load;
-    } finally {
-        if (requests.get(key) === load) {
-            requests.delete(key);
-        }
-    }
+    return refreshOnce(key, document, variables, options);
 }
