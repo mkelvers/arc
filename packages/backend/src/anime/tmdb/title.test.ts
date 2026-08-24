@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import { candidateScore, normalizeTitle, releaseSequence, seriesTitle } from './title';
+import {
+    alternateCandidateIsBetter,
+    candidateMatchesPrimaryTitle,
+    candidateScore,
+    normalizeTitle,
+    releaseSequence,
+    seriesTitle,
+} from './title';
 import type { AniListAnime } from '../anilist/types';
 
 describe('TMDB title matching', () => {
@@ -151,5 +158,110 @@ describe('TMDB title matching', () => {
                 } as AniListAnime
             )
         ).toBeGreaterThanOrEqual(85);
+    });
+
+    test('prefers a qualified primary series over an exact adaptation title', () => {
+        const anime = {
+            title: {
+                english: 'Dragon Ball Z Kai: The Final Chapters',
+                romaji: 'Dragon Ball Kai (2014)',
+                native: 'ドラゴンボール改 (2014)',
+            },
+            startDate: {
+                year: 2014,
+                month: 4,
+                day: 6,
+            },
+            relations: {
+                edges: [
+                    {
+                        relationType: 'ADAPTATION',
+                        node: {
+                            type: 'MANGA',
+                            title: {
+                                english: 'Dragon Ball',
+                                romaji: 'Dragon Ball',
+                                native: 'ドラゴンボール',
+                            },
+                        },
+                    },
+                ],
+            },
+        } as AniListAnime;
+        const aggregate = candidateScore(
+            {
+                id: 61709,
+                mediaType: 'tv',
+                name: 'Dragon Ball Z Kai',
+                originalName: 'ドラゴンボール改「カイ」',
+                date: '2009-04-05',
+                popularity: 15,
+            },
+            anime
+        );
+        const adaptation = candidateScore(
+            {
+                id: 12609,
+                mediaType: 'tv',
+                name: 'Dragon Ball',
+                originalName: 'ドラゴンボール',
+                date: '1986-02-26',
+                popularity: 50,
+            },
+            anime
+        );
+
+        expect(seriesTitle('Dragon Ball Z Kai: The Final Chapters')).toBe('dragon ball z kai');
+        expect(aggregate).toBeGreaterThan(adaptation);
+        expect(aggregate).toBeGreaterThanOrEqual(85);
+    });
+
+    test('distinguishes an exact release title from its adaptation alias', () => {
+        const anime = {
+            format: 'TV',
+            startDate: { year: 2023, month: 4, day: 1 },
+            title: {
+                english: 'Kaguya-sama: Love is War -The First Kiss That Never Ends-',
+                romaji: 'Kaguya-sama wa Kokurasetai: First Kiss wa Owaranai',
+                native: 'かぐや様は告らせたい -ファーストキッスは終わらない-',
+            },
+            relations: {
+                edges: [
+                    {
+                        relationType: 'ADAPTATION',
+                        node: {
+                            type: 'MANGA',
+                            title: { english: 'Kaguya-sama: Love is War' },
+                        },
+                    },
+                ],
+            },
+        } as AniListAnime;
+        const movie = {
+            id: 997317,
+            mediaType: 'movie' as const,
+            name: 'Kaguya-sama: Love Is War -The First Kiss That Never Ends-',
+            originalName: 'かぐや様は告らせたい-ファーストキッスは終わらない-',
+            date: '2022-12-17',
+            popularity: 20,
+        };
+        const parentSeries = {
+            id: 83121,
+            mediaType: 'tv' as const,
+            name: 'Kaguya-sama: Love Is War',
+            originalName: 'かぐや様は告らせたい～天才たちの恋愛頭脳戦～',
+            date: '2019-01-12',
+            popularity: 80,
+        };
+
+        expect(candidateMatchesPrimaryTitle(movie, anime)).toBeTrue();
+        expect(candidateMatchesPrimaryTitle(parentSeries, anime)).toBeFalse();
+        expect(alternateCandidateIsBetter(anime, parentSeries, movie)).toBeTrue();
+        expect(
+            alternateCandidateIsBetter(anime, parentSeries, {
+                ...movie,
+                date: '1980-01-01',
+            })
+        ).toBeFalse();
     });
 });

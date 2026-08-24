@@ -33,6 +33,7 @@ export function seriesTitle(title: string) {
         value = value
             .replace(/\s+(?:(?:season|part|cour)\s+\d+|\d+(?:st|nd|rd|th)\s+season)$/, '')
             .replace(/\s+final\s+season$/, '')
+            .replace(/\s+(?:the\s+)?final\s+chapters$/, '')
             .replace(romanReleaseSuffix, '')
             .replace(/\s+(?:the\s+)?movie$/, '')
             .replace(/\s+tv$/, '')
@@ -91,6 +92,28 @@ export function mappingTitles(anime: AniListAnime) {
     );
 }
 
+export function candidateMatchesPrimaryTitle(candidate: Candidate, anime: AniListAnime) {
+    const compact = (value: string) => normalizeTitle(value).replace(/\s+/g, '');
+    const primary = animeTitles(anime).map(compact);
+
+    return [candidate.name, candidate.originalName]
+        .map(compact)
+        .some((name) => primary.includes(name));
+}
+
+export function alternateCandidateIsBetter(
+    anime: AniListAnime,
+    preferred: Candidate,
+    alternate: Candidate
+) {
+    return (
+        candidateScore(preferred, anime) < 85 ||
+        (candidateScore(alternate, anime) >= 85 &&
+            candidateMatchesPrimaryTitle(alternate, anime) &&
+            !candidateMatchesPrimaryTitle(preferred, anime))
+    );
+}
+
 export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const mapping = mappingTitles(anime);
     const primaryTitles = animeTitles(anime);
@@ -104,6 +127,10 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const exact = names.some((name) => titles.some((title) => matches(name, title)));
     const exactAlias = exact && !exactPrimary;
     const series = mapping.map(seriesTitle);
+    const primarySeries = primaryTitles.map(seriesTitle);
+    const exactPrimarySeries = names.some((name) =>
+        primarySeries.some((title) => matches(seriesTitle(name), title))
+    );
     const exactSeries = names.some((name) =>
         series.some((title) => matches(seriesTitle(name), title))
     );
@@ -115,7 +142,17 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const animeYear = anime.startDate?.year ?? anime.seasonYear;
     const candidateYear = Number(candidate.date?.slice(0, 4)) || null;
     const yearDistance = animeYear && candidateYear ? Math.abs(animeYear - candidateYear) : 0;
-    const titleScore = exactPrimary ? 110 : exact ? 100 : exactSeries ? 95 : partial ? 55 : 0;
+    const titleScore = exactPrimary
+        ? 110
+        : exact
+          ? 100
+          : exactPrimarySeries
+            ? 105
+            : exactSeries
+              ? 95
+              : partial
+                ? 55
+                : 0;
     const aggregate =
         candidate.mediaType === 'tv' &&
         exactSeries &&
