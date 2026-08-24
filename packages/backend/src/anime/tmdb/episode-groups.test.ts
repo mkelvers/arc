@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
-import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
+import {
+    releaseEpisodeGroup,
+    releaseWindowEpisodeGroup,
+    type EpisodeGroupBlock,
+} from './episode-groups';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number | null, start: [number, number, number]) {
@@ -54,6 +58,37 @@ function block(
 }
 
 describe('TMDB episode groups', () => {
+    test('combines TMDB seasons that exactly cover one AniList release window', () => {
+        const release = {
+            ...anime(4, [2009, 4, 5]),
+            endDate: { year: 2009, month: 4, day: 26 },
+        } as AniListAnime;
+        const candidates = [
+            ...block(1, 2, [2009, 4, 5]).episodes,
+            ...block(1, 2, [2009, 4, 19]).episodes.map((episode) => ({
+                ...episode,
+                seasonNumber: 2,
+            })),
+            ...block(1, 2, [2014, 4, 6]).episodes.map((episode) => ({
+                ...episode,
+                seasonNumber: 3,
+            })),
+        ];
+
+        expect(
+            releaseWindowEpisodeGroup(release, candidates)?.map((episode) => ({
+                season: episode.seasonNumber,
+                episode: episode.episodeNumber,
+                release: episode.releaseEpisodeNumber,
+            }))
+        ).toEqual([
+            { season: 1, episode: 1, release: 1 },
+            { season: 1, episode: 2, release: 2 },
+            { season: 2, episode: 1, release: 3 },
+            { season: 2, episode: 2, release: 4 },
+        ]);
+    });
+
     test('maps Re:ZERO release episode 12 to TMDB season 1 episode 78', () => {
         const candidates = Array.from({ length: 19 }, (_, index) => ({
             order: index,
@@ -144,6 +179,22 @@ describe('TMDB episode groups', () => {
                 block(1, 2, [2024, 1, 1]),
                 block(11, 2, [2024, 1, 1]),
             ])
+        ).toBeNull();
+    });
+
+    test('rejects a reordered broadcast block whose first episode misses the release start', () => {
+        const reordered = block(1, 2, [1996, 2, 7]);
+        reordered.episodes = [
+            { ...reordered.episodes[1], order: 0 },
+            { ...reordered.episodes[0], order: 1 },
+        ];
+
+        expect(
+            releaseEpisodeGroup(
+                anime(2, [1996, 2, 7]),
+                source(['A Devastating Wish', 'Pan Blasts Off']),
+                [reordered]
+            )
         ).toBeNull();
     });
 

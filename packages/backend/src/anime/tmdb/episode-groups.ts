@@ -75,10 +75,7 @@ export function releaseEpisodeGroup(
             return [];
         }
 
-        const actualStart = candidates
-            .map(({ rawAirDate }) => rawAirDate)
-            .filter(Boolean)
-            .sort()[0];
+        const actualStart = candidates[0]?.rawAirDate;
         const dateMatch = Boolean(expectedStart && actualStart === expectedStart);
         const seasonMatch = Boolean(
             expectedSequence &&
@@ -123,4 +120,38 @@ export function releaseEpisodeGroup(
     }
 
     return best.candidates;
+}
+
+/** Uses an exact AniList release window when TMDB splits one release across seasons. */
+export function releaseWindowEpisodeGroup(anime: AniListAnime, available: EpisodeCandidate[]) {
+    const expectedCount = anime.episodes ?? null;
+    const expectedStart = animeDate(anime.startDate);
+    const expectedEnd = animeDate(anime.endDate);
+    if (!expectedCount || !expectedStart || !expectedEnd) {
+        return null;
+    }
+
+    const candidates = available
+        .filter(
+            ({ rawAirDate, seasonNumber }) =>
+                seasonNumber > 0 && rawAirDate >= expectedStart && rawAirDate <= expectedEnd
+        )
+        .toSorted(
+            (left, right) =>
+                left.rawAirDate.localeCompare(right.rawAirDate) ||
+                left.seasonNumber - right.seasonNumber ||
+                left.episodeNumber - right.episodeNumber
+        );
+    if (
+        candidates.length !== expectedCount ||
+        candidates[0]?.rawAirDate !== expectedStart ||
+        candidates.at(-1)?.rawAirDate !== expectedEnd
+    ) {
+        return null;
+    }
+
+    return candidates.map((episode, index) => ({
+        ...episode,
+        releaseEpisodeNumber: index + 1,
+    }));
 }
