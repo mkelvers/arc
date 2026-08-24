@@ -10,6 +10,7 @@ import {
     getEpisodes,
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
+    withMovieBackdrop,
 } from './episodes';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
@@ -76,7 +77,7 @@ export async function animePage(userId: string, id: number) {
     return {
         anime: details,
         artwork,
-        episodes,
+        episodes: withMovieBackdrop(anime, episodes, artwork?.selectedBackdrop?.url),
         episodeRevision: await getEpisodeRevision(id),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
@@ -208,13 +209,18 @@ export async function watchPage(userId: string, id: number, episodeId: string) {
         return null;
     }
 
-    const { anime, episodes, currentIndex, canonicalHref } = context;
-    const currentEpisode = episodes[currentIndex];
+    const { anime, currentIndex, canonicalHref } = context;
     const [storedMedia, progress] = await Promise.all([
         getStoredMedia(id).catch(() => null),
         getPlaybackProgress(userId, id),
         recordAnimeVisit(userId, id),
     ]);
+    const episodes = withMovieBackdrop(
+        anime,
+        context.episodes,
+        storedMedia?.artwork.selectedBackdrop?.url
+    );
+    const currentEpisode = episodes[currentIndex];
 
     return {
         canonicalHref,
