@@ -7,7 +7,7 @@
     import type { PageProps } from './$types';
 
     let { form }: PageProps = $props();
-    let dismissedForm = $state<unknown>();
+    let dismissedForm = $state.raw<unknown>();
     let replaceWatchlist = $state(false);
 
     const enhanceImport: SubmitFunction = () => {

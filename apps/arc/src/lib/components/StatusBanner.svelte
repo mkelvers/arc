@@ -12,7 +12,7 @@
     let { message, tone = 'success', ondismiss }: Props = $props();
 
     $effect(() => {
-        if (!message || tone === 'error') {
+        if (!message) {
             return;
         }
         const timeout = setTimeout(ondismiss, 2_000);
