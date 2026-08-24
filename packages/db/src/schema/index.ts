@@ -183,6 +183,7 @@ export const animeExternalIdLink = pgTable(
             .notNull()
             .references(() => animeExternalId.id, { onDelete: 'cascade' }),
         verifiedAt: timestamp('verified_at', { withTimezone: true }),
+        mappingRevision: text('mapping_revision'),
     },
     (table) => [primaryKey({ columns: [table.animeId, table.externalIdId] })]
 );
