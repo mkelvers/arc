@@ -11,7 +11,10 @@ export const WatchlistSelectionSchema = z.object({
     type: z.enum(['all', 'airing', 'finished', 'not_yet_released', 'cancelled', 'hiatus']),
 });
 
-export const WatchlistUpdateSchema = z.object({ state: WatchlistStateSchema });
+export const WatchlistUpdateSchema = z.object({
+    state: WatchlistStateSchema,
+    title: z.string().trim().min(1).max(512).optional(),
+});
 
 export const WatchlistStateResponseSchema = z.object({
     animeId: z.number().int().positive(),
@@ -40,6 +43,7 @@ export const WatchlistCardSchema = z.object({
     genres: z.array(z.string()),
     synopsis: z.string(),
     state: WatchlistStateSchema,
+    pendingMetadata: z.literal(true).optional(),
 });
 
 export const WatchlistPageResponseSchema = z.object({

@@ -41,12 +41,14 @@ watchlist.put(
     validate('json', WatchlistUpdateSchema),
     async (context) => {
         const { anilistId } = context.req.valid('param');
+        const input = context.req.valid('json');
         return context.json({
             animeId: anilistId,
             state: await setWatchlistState(
                 context.get('session').user.id,
                 anilistId,
-                context.req.valid('json').state
+                input.state,
+                input.title
             ),
         });
     }
