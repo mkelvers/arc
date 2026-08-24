@@ -5,6 +5,7 @@
 
     import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/shared/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
+    import errorArtwork from '$lib/assets/error-state.png';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
@@ -158,34 +159,48 @@
             <section aria-label="Searching" aria-live="polite">
                 <span class="sr-only">Searching for anime</span>
                 <div class="animate-pulse motion-reduce:animate-none" aria-hidden="true">
-                    <h1 class="mb-4 text-xl font-bold">Top Results</h1>
-                    <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-                        {#each Array.from({ length: 3 }) as _, index (index)}
-                            <div>
-                                <div class="aspect-video bg-surface"></div>
-                                <div class="mt-3 h-4 w-3/4 bg-surface"></div>
-                                <div class="mt-2 h-4 w-2/5 bg-surface"></div>
+                    <div class="space-y-3 sm:hidden">
+                        {#each Array.from({ length: 7 }) as _, index (index)}
+                            <div class="flex min-h-24 gap-3">
+                                <div class="aspect-2/3 h-24 shrink-0 bg-surface"></div>
+                                <div class="min-w-0 flex-1 py-2">
+                                    <div class="h-4 w-4/5 bg-surface"></div>
+                                    <div class="mt-3 h-3 w-3/5 bg-surface"></div>
+                                    <div class="mt-5 h-3 w-2/5 bg-surface"></div>
+                                </div>
                             </div>
                         {/each}
                     </div>
+                    <div class="hidden sm:block">
+                        <h1 class="mb-4 text-xl font-bold">Top Results</h1>
+                        <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+                            {#each Array.from({ length: 3 }) as _, index (index)}
+                                <div>
+                                    <div class="aspect-video bg-surface"></div>
+                                    <div class="mt-3 h-4 w-3/4 bg-surface"></div>
+                                    <div class="mt-2 h-4 w-2/5 bg-surface"></div>
+                                </div>
+                            {/each}
+                        </div>
 
-                    {#each ['Series', 'Movies'] as title}
-                        <section class="mt-10">
-                            <h2 class="mb-3 text-xl font-bold">{title}</h2>
-                            <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
-                                {#each Array.from({ length: 6 }) as _, index (index)}
-                                    <div class="flex min-h-28 gap-3 p-2">
-                                        <div class="aspect-2/3 h-24 shrink-0 bg-surface"></div>
-                                        <div class="min-w-0 flex-1 py-1">
-                                            <div class="h-4 w-4/5 bg-surface"></div>
-                                            <div class="mt-2 h-3 w-3/5 bg-surface"></div>
-                                            <div class="mt-8 h-4 w-2/5 bg-surface"></div>
+                        {#each ['Series', 'Movies'] as title}
+                            <section class="mt-10">
+                                <h2 class="mb-3 text-xl font-bold">{title}</h2>
+                                <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+                                    {#each Array.from({ length: 6 }) as _, index (index)}
+                                        <div class="flex min-h-28 gap-3 p-2">
+                                            <div class="aspect-2/3 h-24 shrink-0 bg-surface"></div>
+                                            <div class="min-w-0 flex-1 py-1">
+                                                <div class="h-4 w-4/5 bg-surface"></div>
+                                                <div class="mt-2 h-3 w-3/5 bg-surface"></div>
+                                                <div class="mt-8 h-4 w-2/5 bg-surface"></div>
+                                            </div>
                                         </div>
-                                    </div>
-                                {/each}
-                            </div>
-                        </section>
-                    {/each}
+                                    {/each}
+                                </div>
+                            </section>
+                        {/each}
+                    </div>
                 </div>
             </section>
         {:else if query.trim().length >= 2}
@@ -210,7 +225,14 @@
                     {/each}
                 {/key}
             {:else if searchState.failed}
-                <p class="text-sm text-muted">Search could not be loaded. Please try again.</p>
+                <EmptyState
+                    artwork={errorArtwork}
+                    artworkWidth={1254}
+                    artworkHeight={1254}
+                    id="search-error-message"
+                    title="Search hit a snag"
+                    body="Arc could not load these results. Check your connection, then try the search again."
+                />
             {:else}
                 <EmptyState
                     artwork={emptyArtwork}

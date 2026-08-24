@@ -6,6 +6,7 @@
         CalendarBlankIcon,
         CaretDownIcon,
         ChartBarIcon,
+        CircleNotchIcon,
         GlobeHemisphereWestIcon,
         MagnifyingGlassIcon,
         MicrophoneStageIcon,
@@ -234,7 +235,7 @@
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
     <section class="mx-auto w-full max-w-384" aria-labelledby="browse-title">
-        <h1 id="browse-title" class="mb-6 text-2xl font-semibold">Browse Anime</h1>
+        <h1 id="browse-title" class="mb-6 text-2xl font-bold">Browse Anime</h1>
 
         <div class="mb-10">
             <label
@@ -573,7 +574,7 @@
 
         {#if anime.length}
             <div
-                class="grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-3 sm:gap-x-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+                class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
             >
                 {#each anime as entry (entry.id)}
                     <AnimeCard anime={entry} />
@@ -592,7 +593,18 @@
         {/if}
 
         {#if nextPage !== null}
-            <div bind:this={sentinel} class="h-px w-full" aria-hidden="true"></div>
+            <div bind:this={sentinel} class="flex min-h-24 w-full items-center justify-center" aria-live="polite">
+                {#if loading}
+                    <CircleNotchIcon
+                        size="2rem"
+                        weight="bold"
+                        class="animate-spin text-accent motion-reduce:animate-none"
+                        aria-label="Loading more anime"
+                    />
+                {:else}
+                    <span class="sr-only">More anime load automatically while scrolling.</span>
+                {/if}
+            </div>
         {/if}
     </section>
 </main>

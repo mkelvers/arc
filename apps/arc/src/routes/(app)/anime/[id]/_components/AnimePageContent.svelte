@@ -8,7 +8,7 @@
     import WatchlistStatusMenu from './WatchlistStatusMenu.svelte';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
-    import { DotsThreeVerticalIcon, EyeIcon, EyeSlashIcon, PlayIcon } from 'phosphor-svelte';
+    import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
@@ -16,7 +16,6 @@
     let { data }: Props = $props();
 
     let detailsExpanded = $state(false);
-    let hideFiller = $state(false);
     let loadedBackdrop = $state<string | null>(null);
 </script>
 
@@ -255,32 +254,10 @@
             {#await data.artwork}
                 {@render loadingEpisodes()}
             {:then artwork}
-                {@const hasFiller = episodes.some((episode) => episode.type === 'filler')}
-                {@const visibleEpisodes = hideFiller
-                    ? episodes.filter((episode) => episode.type !== 'filler')
-                    : episodes}
                 <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
                     {#if episodes.length}
-                        {#if hasFiller}
-                            <div class="mb-5 flex justify-end">
-                                <button
-                                    type="button"
-                                    aria-pressed={hideFiller}
-                                    class="inline-flex min-h-10 items-center gap-2 px-3 text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                                    onclick={() => (hideFiller = !hideFiller)}
-                                >
-                                    {#if hideFiller}
-                                        <EyeIcon size="1.1rem" weight="bold" aria-hidden="true" />
-                                        Show filler
-                                    {:else}
-                                        <EyeSlashIcon size="1.1rem" weight="bold" aria-hidden="true" />
-                                        Hide filler
-                                    {/if}
-                                </button>
-                            </div>
-                        {/if}
                         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
-                            {#each visibleEpisodes as episode}
+                            {#each episodes as episode}
                                 <EpisodeGridCard
                                     episode={episode}
                                     title={data.anime.title}

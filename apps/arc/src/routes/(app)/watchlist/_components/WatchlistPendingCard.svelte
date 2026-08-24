@@ -17,9 +17,8 @@
 <Card>
     <a href={anime.href} class="block focus-visible:outline-none">
         <CardMedia aspect="poster">
-            <div class="grid size-full place-items-center bg-surface px-4 text-center text-sm text-muted">
-                Artwork pending
-            </div>
+            <div class="size-full animate-pulse bg-surface motion-reduce:animate-none" aria-hidden="true"></div>
+            <span class="sr-only">Artwork loading</span>
         </CardMedia>
         <h3 class="mt-3 min-h-10 line-clamp-2 text-sm leading-snug font-semibold">
             {anime.title}

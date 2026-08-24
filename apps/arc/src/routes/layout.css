@@ -6,9 +6,9 @@
     color-scheme: dark;
 
     --theme-canvas: #000;
-    --theme-header: #232427;
-    --theme-header-hover: #303136;
-    --theme-search: #161719;
+    --theme-header: #272727;
+    --theme-header-hover: #151515;
+    --theme-search: #17191e;
     --theme-foreground: oklch(0.97 0.002 75);
     --theme-surface: oklch(0.17 0.006 285);
     --theme-muted: oklch(0.71 0.008 285);
@@ -17,8 +17,6 @@
     --theme-border-strong: oklch(0.5 0.008 285);
     --theme-accent: #0a64ff;
     --theme-on-accent: oklch(0.13 0.01 48);
-    --theme-filler: oklch(0.84 0.16 91);
-    --theme-on-filler: oklch(0.16 0.02 73);
     --theme-status-error: #f04427;
     --theme-status-success: #2ca66f;
     --theme-on-status: oklch(0.13 0.01 48);
@@ -59,8 +57,6 @@
     --color-border-strong: var(--theme-border-strong);
     --color-accent: var(--theme-accent);
     --color-on-accent: var(--theme-on-accent);
-    --color-filler: var(--theme-filler);
-    --color-on-filler: var(--theme-on-filler);
     --color-status-error: var(--theme-status-error);
     --color-status-success: var(--theme-status-success);
     --color-on-status: var(--theme-on-status);

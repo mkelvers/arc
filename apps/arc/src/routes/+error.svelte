@@ -1,5 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
+    import errorArtwork from '$lib/assets/error-state.png';
     import Logo from '$lib/components/ui/Logo.svelte';
 
     const error = $derived(page.status !== 404);
@@ -31,7 +32,14 @@
         </a>
     </header>
 
-    <section class="flex flex-1 flex-col items-center justify-center pb-24 text-center sm:pb-32">
+    <section class="flex flex-1 flex-col items-center justify-center pb-16 text-center sm:pb-24">
+        <img
+            src={errorArtwork}
+            alt=""
+            width="1254"
+            height="1254"
+            class="mb-4 h-auto w-56 object-contain sm:w-72"
+        />
         <h1 id="error-title" class="text-4xl leading-tight font-normal tracking-tight sm:text-6xl">
             {heading}
         </h1>
@@ -40,7 +48,7 @@
         <div class="mt-9 flex justify-center">
             <a
                 href="/"
-                class="inline-flex min-h-11 items-center bg-foreground px-5 text-xs font-bold text-canvas uppercase transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 Back to homepage
             </a>

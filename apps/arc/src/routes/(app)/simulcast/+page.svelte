@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte';
-    import { CaretDownIcon } from 'phosphor-svelte';
+    import { CaretDownIcon, CircleNotchIcon } from 'phosphor-svelte';
 
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
     import emptyArtwork from '$lib/assets/simulcast-empty.png';
@@ -112,7 +112,7 @@
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
     <section class="mx-auto w-full max-w-384" aria-labelledby="simulcast-title">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h1 id="simulcast-title" class="text-2xl font-semibold">Simulcast Season</h1>
+            <h1 id="simulcast-title" class="text-2xl font-bold">Simulcast Season</h1>
             <Dropdown
                 id="simulcast-season"
                 items={data.options}
@@ -129,7 +129,7 @@
 
         {#if anime.length}
             <div
-                class="grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-3 sm:gap-x-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
             >
                 {#each anime as entry (entry.id)}
                     <AnimeCard anime={entry} />
@@ -148,7 +148,12 @@
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <p class="text-sm text-muted" role="status">Loading more releases…</p>
+                    <CircleNotchIcon
+                        size="2rem"
+                        weight="bold"
+                        class="animate-spin text-accent motion-reduce:animate-none"
+                        aria-label="Loading more releases"
+                    />
                 {:else if failure}
                     <div class="flex flex-col items-center gap-3 text-center">
                         <p class="text-sm text-muted">{failure}</p>
