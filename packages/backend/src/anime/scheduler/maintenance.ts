@@ -1,0 +1,297 @@
+import { randomUUID } from 'node:crypto';
+
+import { and, asc, eq, isNull, lte, or } from 'drizzle-orm';
+import { db } from '@arc/db';
+import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
+import { refreshAnimeRelease, refreshAnimeSchedule } from '../anilist/releases';
+import { markAllInterestDirty, reconcileDirtyInterest } from './interest';
+import {
+    rediscoverMapping,
+    setMetadataMappingOverride,
+    setPlaybackMappingOverride,
+} from './mappings';
+import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
+
+export { MaintenanceRequestSchema } from './maintenance-request';
+
+function dedupeKey(request: MaintenanceRequest) {
+    if (request.kind === 'release_refresh') {
+        return `release:${request.mode}:${request.anilistId}`;
+    }
+    if (request.kind === 'mapping_rediscover') {
+        return `mapping:rediscover:${request.mappingKind}:${request.anilistId}:${request.provider ?? '*'}`;
+    }
+    if (request.kind === 'mapping_override') {
+        return `mapping:override:${request.override.kind}:${request.anilistId}:${request.override.provider}`;
+    }
+    if (request.kind === 'target_reactivate') {
+        return `target:${request.anilistId}:${request.targetEpisode}`;
+    }
+    return 'interest:full-reconciliation';
+}
+
+export async function enqueueMaintenance(request: MaintenanceRequest) {
+    const [task] = await db
+        .insert(maintenanceTask)
+        .values({
+            kind: request.kind,
+            dedupeKey: dedupeKey(request),
+            payload: request,
+        })
+        .onConflictDoUpdate({
+            target: maintenanceTask.dedupeKey,
+            set: {
+                payload: request,
+                state: 'pending',
+                attempts: 0,
+                nextAttemptAt: new Date(),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+                result: null,
+                completedAt: null,
+                updatedAt: new Date(),
+            },
+        })
+        .returning({ id: maintenanceTask.id });
+
+    return task.id;
+}
+
+export async function getMaintenanceTask(id: string) {
+    return db
+        .select({
+            id: maintenanceTask.id,
+            kind: maintenanceTask.kind,
+            state: maintenanceTask.state,
+            attempts: maintenanceTask.attempts,
+            nextAttemptAt: maintenanceTask.nextAttemptAt,
+            lastError: maintenanceTask.lastError,
+            result: maintenanceTask.result,
+            createdAt: maintenanceTask.createdAt,
+            updatedAt: maintenanceTask.updatedAt,
+            completedAt: maintenanceTask.completedAt,
+        })
+        .from(maintenanceTask)
+        .where(eq(maintenanceTask.id, id))
+        .limit(1)
+        .then((rows) => rows[0] ?? null);
+}
+
+async function executeMaintenance(request: MaintenanceRequest) {
+    if (request.kind === 'release_refresh') {
+        const release =
+            request.mode === 'schedule'
+                ? await refreshAnimeSchedule(request.anilistId)
+                : await refreshAnimeRelease(request.anilistId, { force: true });
+        return { anilistId: release.id, status: release.status };
+    }
+    if (request.kind === 'target_reactivate') {
+        const [target] = await db
+            .update(animeEpisodeTarget)
+            .set({
+                state: 'pending',
+                nextAttemptAt: new Date(),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+                retiredAt: null,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(animeEpisodeTarget.anilistId, request.anilistId),
+                    eq(animeEpisodeTarget.targetEpisode, request.targetEpisode),
+                    or(
+                        eq(animeEpisodeTarget.state, 'failed'),
+                        eq(animeEpisodeTarget.state, 'retired')
+                    )
+                )
+            )
+            .returning({ anilistId: animeEpisodeTarget.anilistId });
+        if (!target) {
+            const [active] = await db
+                .select({ state: animeEpisodeTarget.state })
+                .from(animeEpisodeTarget)
+                .where(
+                    and(
+                        eq(animeEpisodeTarget.anilistId, request.anilistId),
+                        eq(animeEpisodeTarget.targetEpisode, request.targetEpisode)
+                    )
+                )
+                .limit(1);
+            if (active?.state === 'pending') {
+                return { reactivated: false, alreadyActive: true };
+            }
+            throw new Error('The requested failed or retired episode target does not exist');
+        }
+        return { reactivated: true };
+    }
+    if (request.kind === 'interest_reconcile') {
+        const marked = await markAllInterestDirty();
+        let reconciled = 0;
+        for (;;) {
+            const count = await reconcileDirtyInterest(25);
+            reconciled += count;
+            if (count === 0) {
+                break;
+            }
+        }
+        await db
+            .update(schedulerHeartbeat)
+            .set({ lastFullReconciliationAt: new Date() })
+            .where(eq(schedulerHeartbeat.name, 'anime-scheduler'));
+        return { marked, reconciled };
+    }
+    if (request.kind === 'mapping_rediscover') {
+        if (request.mappingKind === 'metadata' && request.provider && request.provider !== 'tmdb') {
+            throw new Error('Metadata mapping rediscovery only supports TMDB');
+        }
+        if (request.mappingKind === 'playback' && request.provider === 'tmdb') {
+            throw new Error('TMDB is not a playback mapping provider');
+        }
+        return rediscoverMapping(
+            request.anilistId,
+            request.mappingKind,
+            request.provider === 'tmdb' ? undefined : request.provider
+        );
+    }
+    if (request.kind === 'mapping_override') {
+        return request.override.kind === 'playback'
+            ? setPlaybackMappingOverride(
+                  request.anilistId,
+                  request.override.provider,
+                  request.override.mediaId
+              )
+            : setMetadataMappingOverride(
+                  request.anilistId,
+                  Number(request.override.externalId),
+                  request.override.mediaType
+              );
+    }
+}
+
+function maintenanceRetryDelay(attempts: number) {
+    return Math.min(24 * 60 * 60 * 1_000, 60_000 * 2 ** Math.min(attempts, 10));
+}
+
+export async function drainMaintenanceTasks(
+    runId: string,
+    options: { limit: number; leaseDurationMs: number; leaseRenewalMs: number }
+) {
+    const now = new Date();
+    const candidates = await db
+        .select({ id: maintenanceTask.id, payload: maintenanceTask.payload })
+        .from(maintenanceTask)
+        .where(
+            and(
+                or(eq(maintenanceTask.state, 'pending'), eq(maintenanceTask.state, 'running')),
+                lte(maintenanceTask.nextAttemptAt, now),
+                or(isNull(maintenanceTask.leaseUntil), lte(maintenanceTask.leaseUntil, now))
+            )
+        )
+        .orderBy(asc(maintenanceTask.nextAttemptAt))
+        .limit(options.limit * 2);
+    const totals = { claimed: 0, completed: 0, retried: 0, failed: 0 };
+
+    for (const candidate of candidates) {
+        if (totals.claimed === options.limit) {
+            break;
+        }
+        const leaseOwner = `${runId}:maintenance:${randomUUID()}`;
+        const [claimed] = await db
+            .update(maintenanceTask)
+            .set({
+                state: 'running',
+                leaseOwner,
+                leaseUntil: new Date(Date.now() + options.leaseDurationMs),
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(maintenanceTask.id, candidate.id),
+                    or(eq(maintenanceTask.state, 'pending'), eq(maintenanceTask.state, 'running')),
+                    or(
+                        isNull(maintenanceTask.leaseUntil),
+                        lte(maintenanceTask.leaseUntil, new Date())
+                    )
+                )
+            )
+            .returning({ attempts: maintenanceTask.attempts });
+        if (!claimed) {
+            continue;
+        }
+
+        totals.claimed += 1;
+        const parsed = MaintenanceRequestSchema.safeParse(candidate.payload);
+        const timer = setInterval(() => {
+            void db
+                .update(maintenanceTask)
+                .set({
+                    leaseUntil: new Date(Date.now() + options.leaseDurationMs),
+                    updatedAt: new Date(),
+                })
+                .where(
+                    and(
+                        eq(maintenanceTask.id, candidate.id),
+                        eq(maintenanceTask.state, 'running'),
+                        eq(maintenanceTask.leaseOwner, leaseOwner)
+                    )
+                )
+                .catch((cause) => {
+                    console.error(`Maintenance lease renewal failed for ${candidate.id}`, cause);
+                });
+        }, options.leaseRenewalMs);
+        try {
+            if (!parsed.success) {
+                throw new Error('Stored maintenance task payload is invalid', {
+                    cause: parsed.error,
+                });
+            }
+            const result = await executeMaintenance(parsed.data);
+            await db
+                .update(maintenanceTask)
+                .set({
+                    state: 'completed',
+                    result,
+                    completedAt: new Date(),
+                    leaseOwner: null,
+                    leaseUntil: null,
+                    lastError: null,
+                    updatedAt: new Date(),
+                })
+                .where(
+                    and(
+                        eq(maintenanceTask.id, candidate.id),
+                        eq(maintenanceTask.leaseOwner, leaseOwner)
+                    )
+                );
+            totals.completed += 1;
+        } catch (cause) {
+            const attempts = claimed.attempts + 1;
+            const failed = attempts >= 12;
+            await db
+                .update(maintenanceTask)
+                .set({
+                    state: failed ? 'failed' : 'pending',
+                    attempts,
+                    nextAttemptAt: new Date(Date.now() + maintenanceRetryDelay(attempts)),
+                    leaseOwner: null,
+                    leaseUntil: null,
+                    lastError: cause instanceof Error ? cause.message : 'Maintenance task failed',
+                    updatedAt: new Date(),
+                })
+                .where(
+                    and(
+                        eq(maintenanceTask.id, candidate.id),
+                        eq(maintenanceTask.leaseOwner, leaseOwner)
+                    )
+                );
+            totals[failed ? 'failed' : 'retried'] += 1;
+        } finally {
+            clearInterval(timer);
+        }
+    }
+
+    return totals;
+}

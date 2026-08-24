@@ -1,0 +1,256 @@
+import { randomUUID } from 'node:crypto';
+
+import { and, count, eq, gt, isNotNull, isNull, lte, or } from 'drizzle-orm';
+
+import { db } from '@arc/db';
+import {
+    animeEpisodeTarget,
+    animeReleaseRequest,
+    maintenanceTask,
+    schedulerHeartbeat,
+} from '@arc/db/schema';
+import { refreshAnimeRelease } from '../anilist/releases';
+import { drainEpisodeTargets, type SchedulerLimits } from './episodes';
+import {
+    markAllInterestDirty,
+    markInterestDirtyForAnilistIds,
+    reconcileDirtyInterest,
+} from './interest';
+import { drainMaintenanceTasks } from './maintenance';
+
+const heartbeatName = 'anime-scheduler';
+
+export interface SchedulerConfig extends SchedulerLimits {
+    fullReconciliationIntervalMs: number;
+}
+
+async function refreshDueReleases(limit: number) {
+    const rows = await db
+        .select({ anilistId: animeReleaseRequest.anilistId })
+        .from(animeReleaseRequest)
+        .where(
+            and(
+                lte(animeReleaseRequest.nextAttemptAt, new Date()),
+                or(
+                    isNull(animeReleaseRequest.leaseUntil),
+                    lte(animeReleaseRequest.leaseUntil, new Date())
+                )
+            )
+        )
+        .limit(limit);
+    const results = await Promise.allSettled(
+        rows.map(({ anilistId }) => refreshAnimeRelease(anilistId, { force: true }))
+    );
+    await markInterestDirtyForAnilistIds(
+        rows.flatMap((row, index) =>
+            results[index]?.status === 'fulfilled' ? [row.anilistId] : []
+        )
+    );
+    return {
+        attempted: rows.length,
+        completed: results.filter(({ status }) => status === 'fulfilled').length,
+        failed: results.filter(({ status }) => status === 'rejected').length,
+    };
+}
+
+async function fullReconciliationDue(intervalMs: number) {
+    const [heartbeat] = await db
+        .select({ completedAt: schedulerHeartbeat.lastFullReconciliationAt })
+        .from(schedulerHeartbeat)
+        .where(eq(schedulerHeartbeat.name, heartbeatName))
+        .limit(1);
+    return !heartbeat?.completedAt || Date.now() - heartbeat.completedAt.getTime() >= intervalMs;
+}
+
+export async function runAnimeScheduler(config: SchedulerConfig) {
+    const runId = randomUUID();
+    const startedAt = new Date();
+    await db
+        .insert(schedulerHeartbeat)
+        .values({ name: heartbeatName, activeRunId: runId, startedAt })
+        .onConflictDoUpdate({
+            target: schedulerHeartbeat.name,
+            set: { activeRunId: runId, startedAt },
+        });
+
+    try {
+        let fullReconciliation: { marked: number; reconciled: number } | null = null;
+        if (await fullReconciliationDue(config.fullReconciliationIntervalMs)) {
+            const marked = await markAllInterestDirty();
+            let reconciled = 0;
+            for (;;) {
+                const count = await reconcileDirtyInterest(25);
+                reconciled += count;
+                if (count === 0) {
+                    break;
+                }
+            }
+            fullReconciliation = { marked, reconciled };
+        } else {
+            await reconcileDirtyInterest(25);
+        }
+
+        const releases = await refreshDueReleases(config.concurrency);
+        const maintenance = await drainMaintenanceTasks(runId, {
+            limit: config.concurrency,
+            leaseDurationMs: config.leaseDurationMs,
+            leaseRenewalMs: config.leaseRenewalMs,
+        });
+        const episodes = await drainEpisodeTargets(runId, config);
+        const completedAt = new Date();
+        const stats = { releases, maintenance, episodes, fullReconciliation };
+        const heartbeatUpdate: Partial<typeof schedulerHeartbeat.$inferInsert> = {
+            completedAt,
+            lastSuccessAt: completedAt,
+            lastError: null,
+            stats,
+        };
+        if (fullReconciliation) {
+            heartbeatUpdate.lastFullReconciliationAt = completedAt;
+        }
+        await db
+            .update(schedulerHeartbeat)
+            .set(heartbeatUpdate)
+            .where(eq(schedulerHeartbeat.name, heartbeatName));
+        await db
+            .update(schedulerHeartbeat)
+            .set({ activeRunId: null })
+            .where(
+                and(
+                    eq(schedulerHeartbeat.name, heartbeatName),
+                    eq(schedulerHeartbeat.activeRunId, runId)
+                )
+            );
+        return stats;
+    } catch (cause) {
+        const completedAt = new Date();
+        await db
+            .update(schedulerHeartbeat)
+            .set({
+                completedAt,
+                lastFailureAt: completedAt,
+                lastError: cause instanceof Error ? cause.message : 'Anime scheduler failed',
+            })
+            .where(eq(schedulerHeartbeat.name, heartbeatName));
+        await db
+            .update(schedulerHeartbeat)
+            .set({ activeRunId: null })
+            .where(
+                and(
+                    eq(schedulerHeartbeat.name, heartbeatName),
+                    eq(schedulerHeartbeat.activeRunId, runId)
+                )
+            );
+        throw cause;
+    }
+}
+
+export async function animeSchedulerHealth(now = new Date()) {
+    const [heartbeat, targetCounts, taskCounts, [oldestDue], [dueTargets], [leasedTargets]] =
+        await Promise.all([
+            db
+                .select()
+                .from(schedulerHeartbeat)
+                .where(eq(schedulerHeartbeat.name, heartbeatName))
+                .limit(1)
+                .then((rows) => rows[0] ?? null),
+            db
+                .select({ state: animeEpisodeTarget.state, count: count() })
+                .from(animeEpisodeTarget)
+                .groupBy(animeEpisodeTarget.state),
+            db
+                .select({ state: maintenanceTask.state, count: count() })
+                .from(maintenanceTask)
+                .groupBy(maintenanceTask.state),
+            db
+                .select({ nextAttemptAt: animeEpisodeTarget.nextAttemptAt })
+                .from(animeEpisodeTarget)
+                .where(
+                    and(
+                        eq(animeEpisodeTarget.state, 'pending'),
+                        lte(animeEpisodeTarget.nextAttemptAt, now)
+                    )
+                )
+                .orderBy(animeEpisodeTarget.nextAttemptAt)
+                .limit(1),
+            db
+                .select({ count: count() })
+                .from(animeEpisodeTarget)
+                .where(
+                    and(
+                        eq(animeEpisodeTarget.state, 'pending'),
+                        lte(animeEpisodeTarget.nextAttemptAt, now),
+                        or(
+                            isNull(animeEpisodeTarget.leaseUntil),
+                            lte(animeEpisodeTarget.leaseUntil, now)
+                        )
+                    )
+                ),
+            db
+                .select({ count: count() })
+                .from(animeEpisodeTarget)
+                .where(
+                    and(
+                        eq(animeEpisodeTarget.state, 'pending'),
+                        isNotNull(animeEpisodeTarget.leaseUntil),
+                        gt(animeEpisodeTarget.leaseUntil, now)
+                    )
+                ),
+        ]);
+    const successAge = heartbeat?.lastSuccessAt
+        ? now.getTime() - heartbeat.lastSuccessAt.getTime()
+        : null;
+    const reconciliationAge = heartbeat?.lastFullReconciliationAt
+        ? now.getTime() - heartbeat.lastFullReconciliationAt.getTime()
+        : null;
+    const latestFailed = Boolean(
+        heartbeat?.lastFailureAt &&
+        (!heartbeat.lastSuccessAt || heartbeat.lastFailureAt > heartbeat.lastSuccessAt)
+    );
+    const healthy =
+        successAge !== null &&
+        successAge <= 15 * 60_000 &&
+        !latestFailed &&
+        reconciliationAge !== null &&
+        reconciliationAge <= 2 * 60 * 60_000;
+    const active = heartbeat?.activeRunId !== null && heartbeat?.activeRunId !== undefined;
+    const durationMs =
+        !active && heartbeat?.startedAt && heartbeat.completedAt
+            ? heartbeat.completedAt.getTime() - heartbeat.startedAt.getTime()
+            : null;
+    const targetTotals = Object.fromEntries(
+        targetCounts.map((row) => [row.state, row.count])
+    ) as Record<string, number>;
+
+    return {
+        healthy,
+        reason:
+            successAge === null
+                ? 'The scheduler has not completed successfully'
+                : successAge > 15 * 60_000
+                  ? 'The scheduler success heartbeat is stale'
+                  : latestFailed
+                    ? 'The latest scheduler invocation failed'
+                    : reconciliationAge === null || reconciliationAge > 2 * 60 * 60_000
+                      ? 'Full interest reconciliation is stale'
+                      : null,
+        active,
+        startedAt: heartbeat?.startedAt ?? null,
+        completedAt: heartbeat?.completedAt ?? null,
+        lastSuccessAt: heartbeat?.lastSuccessAt ?? null,
+        lastFailureAt: heartbeat?.lastFailureAt ?? null,
+        lastFullReconciliationAt: heartbeat?.lastFullReconciliationAt ?? null,
+        durationMs,
+        stats: heartbeat?.stats ?? null,
+        targets: {
+            pending: targetTotals.pending ?? 0,
+            due: dueTargets?.count ?? 0,
+            leased: leasedTargets?.count ?? 0,
+            confirmed: targetTotals.confirmed ?? 0,
+            failed: targetTotals.failed ?? 0,
+            retired: targetTotals.retired ?? 0,
+        },
+        maintenanceTasks: Object.fromEntries(taskCounts.map((row) => [row.state, row.count])),
+        oldestDueAgeMs: oldestDue ? now.getTime() - oldestDue.nextAttemptAt.getTime() : null,
+    };
+}
