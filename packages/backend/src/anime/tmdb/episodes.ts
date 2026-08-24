@@ -11,8 +11,13 @@ import {
     hasRequestedEpisodeLocalization,
     translatedMetadata,
 } from './episode-details';
-import { releaseEpisodeGroup, type EpisodeGroupBlock } from './episode-groups';
+import {
+    releaseEpisodeGroup,
+    releaseWindowEpisodeGroup,
+    type EpisodeGroupBlock,
+} from './episode-groups';
 import { matchBestEpisodeMetadata } from './episode-match';
+import { movieEpisodeMetadata } from './movie-episodes';
 import { resolveStored } from './mapping';
 import { releaseSequence } from './title';
 import type { EpisodeCandidate, EpisodeMetadata, StoredEpisodeText, StoredMapping } from './types';
@@ -254,10 +259,6 @@ export async function getEpisodeMetadata(
     const client = create();
 
     if (match.mediaType === 'movie') {
-        if (source.length !== 1) {
-            return new Map();
-        }
-
         const { data: movie, error } = await client.GET('/3/movie/{movie_id}', {
             params: {
                 path: { movie_id: match.id },
@@ -310,19 +311,16 @@ export async function getEpisodeMetadata(
 
         return withStoredMachineText(
             [
-                {
-                    id: source[0].id,
-                    metadata: {
-                        title,
-                        titleSource: title ? 'tmdb' : null,
-                        overview,
-                        overviewSource: overview ? 'tmdb' : null,
-                        imageUrl: image ? imageUrl(image, 'w500') : null,
-                        runtime: movie.runtime || null,
-                        airDate: displayAirDate(movie.release_date),
-                    },
-                },
-            ],
+                ...movieEpisodeMetadata(source, {
+                    title,
+                    titleSource: title ? 'tmdb' : null,
+                    overview,
+                    overviewSource: overview ? 'tmdb' : null,
+                    imageUrl: image ? imageUrl(image, 'w500') : null,
+                    runtime: movie.runtime || null,
+                    airDate: displayAirDate(movie.release_date),
+                }),
+            ].map(([id, metadata]) => ({ id, metadata })),
             storedText
         );
     }
@@ -399,7 +397,13 @@ export async function getEpisodeMetadata(
         episodeGroupCandidates(client, match.id, anime, source).catch(() => null),
     ]);
 
-    const matched = matchBestEpisodeMetadata(anime, source, grouped, fetched.flat());
+    const available = fetched.flat();
+    const matched = matchBestEpisodeMetadata(
+        anime,
+        source,
+        grouped ?? releaseWindowEpisodeGroup(anime, available),
+        available
+    );
     const sourceById = new Map(source.map((episode) => [episode.id, episode]));
     let fallbacks = 0;
     const matches = [...matched.entries()].map(([sourceId, candidate]) => {
