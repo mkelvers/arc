@@ -122,6 +122,18 @@ export async function getEpisodes(anime: AniListAnime): Promise<AnimeEpisode[]> 
     return stored;
 }
 
+export function withMovieBackdrop(
+    anime: Pick<AniListAnime, 'format'>,
+    episodes: AnimeEpisode[],
+    backdrop: string | null | undefined
+) {
+    if (anime.format !== 'MOVIE' || !backdrop) {
+        return episodes;
+    }
+
+    return episodes.map((episode) => ({ ...episode, image: backdrop }));
+}
+
 export async function getStoredAiringSchedule(anilistId: number) {
     const [rows, confirmed] = await Promise.all([
         db
