@@ -15,6 +15,7 @@ export interface StoredMapping extends Mapping {
     externalIdId: number;
     title: string | null;
     verifiedAt: Date | null;
+    mappingRevision: string | null;
 }
 
 export interface ArtworkImage {

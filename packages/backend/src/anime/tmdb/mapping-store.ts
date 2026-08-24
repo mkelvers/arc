@@ -9,6 +9,7 @@ import {
     animeExternalIdLink,
 } from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
+import { tmdbMappingRevision } from './mapping-verification';
 import type { AniListAnime } from '../anilist/types';
 import { type Mapping, type StoredMapping } from './types';
 
@@ -23,6 +24,7 @@ export async function findMapping(anilistId: number): Promise<StoredMapping | nu
             mediaType: targetId.mediaType,
             title: animeTable.title,
             verifiedAt: targetLink.verifiedAt,
+            mappingRevision: targetLink.mappingRevision,
         })
         .from(animeExternalId)
         .innerJoin(animeExternalIdLink, eq(animeExternalIdLink.externalIdId, animeExternalId.id))
@@ -56,6 +58,7 @@ export async function findMapping(anilistId: number): Promise<StoredMapping | nu
                 mediaType: match.mediaType,
                 title: match.title,
                 verifiedAt: match.verifiedAt,
+                mappingRevision: match.mappingRevision,
             };
         }
     }
@@ -223,10 +226,11 @@ export async function saveVerifiedMapping(
                 animeId: link.animeId,
                 externalIdId: tmdbId.id,
                 verifiedAt,
+                mappingRevision: tmdbMappingRevision,
             })
             .onConflictDoUpdate({
                 target: [animeExternalIdLink.animeId, animeExternalIdLink.externalIdId],
-                set: { verifiedAt },
+                set: { verifiedAt, mappingRevision: tmdbMappingRevision },
             });
 
         return {
@@ -235,6 +239,7 @@ export async function saveVerifiedMapping(
             externalIdId: tmdbId.id,
             title,
             verifiedAt,
+            mappingRevision: tmdbMappingRevision,
         };
     });
 }
