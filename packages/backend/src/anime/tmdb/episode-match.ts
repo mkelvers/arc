@@ -89,6 +89,14 @@ function pairScore(
         source.number === (candidate.releaseEpisodeNumber ?? candidate.episodeNumber);
     const specialRelease = isSpecialRelease(anime);
     const specialCandidate = specialRelease && candidate.seasonNumber === 0;
+    const verifiedReleaseNumber =
+        candidate.releaseEpisodeNumber !== undefined &&
+        Number.isInteger(source.number) &&
+        source.number > 0;
+
+    if (verifiedReleaseNumber && source.number !== candidate.releaseEpisodeNumber) {
+        return -Infinity;
+    }
 
     if (specialRelease && candidate.seasonNumber > 0) {
         score -= 100;
@@ -104,6 +112,7 @@ function pairScore(
         !duplicateTitle &&
         title < 15 &&
         !sameRegularNumber &&
+        !verifiedReleaseNumber &&
         !specialCandidate &&
         date < 55
     ) {
@@ -112,11 +121,14 @@ function pairScore(
     if (specialNumber && candidate.seasonNumber !== 0 && title < 60) {
         return -Infinity;
     }
-    if (title >= 60 && date < 0) {
+    if (title >= 60 && date < 0 && !verifiedReleaseNumber) {
         return -Infinity;
     }
 
     score += title >= 0 ? title : -10;
+    if (verifiedReleaseNumber) {
+        score += 100;
+    }
 
     if (Number.isInteger(source.number) && source.number > 0) {
         const difference = Math.abs(
@@ -134,7 +146,12 @@ function pairScore(
 
     if (anime.duration && candidate.runtime) {
         const difference = Math.abs(anime.duration - candidate.runtime);
-        if (difference > 8 && title < 60 && !(sameRegularNumber && date >= 100)) {
+        if (
+            difference > 8 &&
+            title < 60 &&
+            !verifiedReleaseNumber &&
+            !(sameRegularNumber && date >= 100)
+        ) {
             return -Infinity;
         }
 
@@ -145,6 +162,14 @@ function pairScore(
 }
 
 function candidateOrder(left: EpisodeCandidate, right: EpisodeCandidate) {
+    if (
+        left.releaseEpisodeNumber !== undefined &&
+        right.releaseEpisodeNumber !== undefined &&
+        left.releaseEpisodeNumber !== right.releaseEpisodeNumber
+    ) {
+        return left.releaseEpisodeNumber - right.releaseEpisodeNumber;
+    }
+
     if (left.rawAirDate && right.rawAirDate) {
         const date = left.rawAirDate.localeCompare(right.rawAirDate);
         if (date) {

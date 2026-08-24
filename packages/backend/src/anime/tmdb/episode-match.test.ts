@@ -540,4 +540,30 @@ describe('TMDB episode identity matching', () => {
 
         expect([...metadata.values()].map(({ seasonNumber }) => seasonNumber)).toEqual([3, 3, 3]);
     });
+
+    test('keeps a verified episode-group order when provider titles use another edition', () => {
+        const episodes = source([
+            ['1', 1, 'International Episode Two'],
+            ['2', 2, 'International Episode Three'],
+            ['3', 3, 'Episode 3'],
+        ]);
+        const focused = [
+            candidate(5, 1, 'International Episode One', '2014-04-06'),
+            candidate(0, 7, 'International Episode Two', '2017-01-22'),
+            candidate(5, 3, 'International Episode Three', '2014-04-20'),
+        ].map((episode, index) => ({ ...episode, releaseEpisodeNumber: index + 1 }));
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 3,
+                startDate: { year: null, month: null, day: null },
+                endDate: { year: null, month: null, day: null },
+            }),
+            episodes,
+            focused
+        );
+
+        expect(['1', '2', '3'].map((id) => metadata.get(id)?.releaseEpisodeNumber)).toEqual([
+            1, 2, 3,
+        ]);
+    });
 });
