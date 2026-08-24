@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { and, eq } from 'drizzle-orm';
 
 import type { AnimeEpisode } from '@arc/shared/types';
@@ -57,12 +59,30 @@ export async function getStoredAiringSchedule(anilistId: number) {
 }
 
 export async function getEpisodeRevision(anilistId: number) {
-    return db
-        .select({ revision: animeEpisodeSync.sourceRevision })
+    const [state] = await db
+        .select({
+            sourceRevision: animeEpisodeSync.sourceRevision,
+            mediaStatus: animeEpisodeSync.mediaStatus,
+            nextAiringAt: animeEpisodeSync.nextAiringAt,
+            nextAiringEpisode: animeEpisodeSync.nextAiringEpisode,
+        })
         .from(animeEpisodeSync)
         .where(eq(animeEpisodeSync.anilistId, anilistId))
-        .limit(1)
-        .then((rows) => rows[0]?.revision ?? null);
+        .limit(1);
+    if (!state) {
+        return null;
+    }
+
+    return createHash('sha256')
+        .update(
+            JSON.stringify({
+                sourceRevision: state.sourceRevision,
+                mediaStatus: state.mediaStatus,
+                nextAiringAt: state.nextAiringAt?.toISOString() ?? null,
+                nextAiringEpisode: state.nextAiringEpisode,
+            })
+        )
+        .digest('hex');
 }
 
 export async function getRelatedReleaseTitles(anilistIds: number[]) {
