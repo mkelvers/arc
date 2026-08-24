@@ -8,19 +8,22 @@ import { RequestCache } from '../../request-cache';
 import { request } from './client';
 import { animeCard } from './models';
 import { present } from './text';
+import { watchlistCardFreshForMs } from './watchlist-refresh';
 
 const cache = new RequestCache<string, Map<number, AnimeCard>>(5 * 60 * 1_000);
 
-async function requestAnime(ids: number[], stored: Map<number, AnimeCard>) {
-    const result = new Map(stored);
+async function requestAnime(ids: number[]) {
     const fetched: AnimeCard[] = [];
 
     for (const idsBatch of batches(ids, 50)) {
-        const response = await request(WatchlistAnimeDocument, { ids: idsBatch });
+        const response = await request(
+            WatchlistAnimeDocument,
+            { ids: idsBatch },
+            { forceRefresh: true }
+        );
         for (const entry of present(response.Page?.media)) {
             const card = animeCard(entry);
             if (card) {
-                result.set(card.id, card);
                 fetched.push(card);
             }
         }
@@ -45,8 +48,6 @@ async function requestAnime(ids: number[], stored: Map<number, AnimeCard>) {
             console.warn('Watchlist metadata cache write failed', cause);
         }
     }
-
-    return result;
 }
 
 export async function getWatchlistAnime(ids: number[]) {
@@ -76,29 +77,32 @@ export async function getWatchlistAnime(ids: number[]) {
                         return parsed.success ? ([[id, parsed.data]] as const) : [];
                     })
                 );
+                const invalidIds = rows.flatMap(({ id }) => (stored.has(id) ? [] : [id]));
+                if (invalidIds.length) {
+                    try {
+                        await db
+                            .delete(animeCardCache)
+                            .where(inArray(animeCardCache.anilistId, invalidIds));
+                    } catch (cause) {
+                        console.warn('Invalid watchlist metadata cleanup failed', cause);
+                    }
+                }
                 const staleIds = rows.flatMap(({ id, fetchedAt }) => {
                     const data = stored.get(id);
-                    return !data ||
-                        data.format == null ||
-                        data.status == null ||
-                        now - fetchedAt.getTime() >= 24 * 60 * 60 * 1_000
+                    return !data || now - fetchedAt.getTime() >= watchlistCardFreshForMs(data)
                         ? [id]
                         : [];
                 });
                 const missingIds = uniqueIds.filter((id) => !stored.has(id));
+                const refreshIds = [...new Set([...missingIds, ...staleIds])];
 
-                try {
-                    return await requestAnime([...missingIds, ...staleIds], stored);
-                } catch (cause) {
-                    if (stored.size) {
-                        console.warn(
-                            'Watchlist metadata refresh failed; using cached values',
-                            cause
-                        );
-                        return stored;
-                    }
-                    throw cause;
+                if (refreshIds.length) {
+                    void requestAnime(refreshIds).catch((cause) => {
+                        console.warn('Watchlist metadata refresh failed', cause);
+                    });
                 }
+
+                return stored;
             },
             {
                 staleIfError: true,
