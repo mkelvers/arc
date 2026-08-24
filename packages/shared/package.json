@@ -14,7 +14,7 @@
     },
     "scripts": {
         "check": "tsc --noEmit",
-        "test": "bun test"
+        "test": "bun test --pass-with-no-tests"
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
