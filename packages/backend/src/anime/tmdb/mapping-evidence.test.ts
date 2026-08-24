@@ -192,4 +192,66 @@ describe('TMDB TV release mapping evidence', () => {
             ]).id
         ).toBe(329907);
     });
+
+    test('prefers a metadata-rich aggregate release window over a complete duplicate shell', () => {
+        const frieren = {
+            episodes: 10,
+            format: 'TV',
+            startDate: { year: 2026, month: 1, day: 16 },
+            endDate: { year: 2026, month: 3, day: 27 },
+            title: {
+                english: 'Frieren: Beyond Journey’s End Season 2',
+                romaji: 'Sousou no Frieren 2nd Season',
+            },
+        } as AniListAnime;
+        const shell: Candidate = {
+            id: 327813,
+            mediaType: 'tv',
+            name: 'Frieren: Beyond Journey’s End Season 2',
+            originalName: '葬送のフリーレン',
+            date: null,
+            popularity: 2,
+        };
+        const frierenAggregate: Candidate = {
+            id: 209867,
+            mediaType: 'tv',
+            name: "Frieren: Beyond Journey's End",
+            originalName: '葬送のフリーレン',
+            date: '2023-09-29',
+            popularity: 80,
+        };
+
+        expect(
+            preferredTvReleaseCandidate(frieren, shell, [
+                {
+                    candidate: shell,
+                    seasons: [
+                        {
+                            airDate: '2026-01-16',
+                            episodeCount: 10,
+                            metadataCount: 0,
+                            name: 'Season 2',
+                            releaseAirDate: '2026-01-16',
+                            releaseEpisodeCount: 10,
+                            seasonNumber: 2,
+                        },
+                    ],
+                },
+                {
+                    candidate: frierenAggregate,
+                    seasons: [
+                        {
+                            airDate: '2023-09-29',
+                            episodeCount: 38,
+                            metadataCount: 10,
+                            name: 'Season 1',
+                            releaseAirDate: '2026-01-16',
+                            releaseEpisodeCount: 10,
+                            seasonNumber: 1,
+                        },
+                    ],
+                },
+            ]).id
+        ).toBe(209867);
+    });
 });

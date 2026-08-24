@@ -1,5 +1,7 @@
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
+import { animeDate } from '../date';
+import { episodeTitleKey } from '../providers/match';
 import { create } from './client';
 import {
     preferredTvReleaseCandidate,
@@ -10,7 +12,15 @@ import {
 } from './mapping-evidence';
 import { findMapping, saveVerifiedMapping } from './mapping-store';
 import { mappingNeedsVerification } from './mapping-verification';
-import { candidateScore, isSpecialRelease, mappingTitles, seriesTitle } from './title';
+import {
+    alternateCandidateIsBetter,
+    candidateMatchesPrimaryTitle,
+    candidateScore,
+    isSpecialRelease,
+    mappingTitles,
+    releaseSequence,
+    seriesTitle,
+} from './title';
 import { type Candidate, type Mapping, type StoredMapping } from './types';
 
 const requests = new Map<number, Promise<StoredMapping>>();
@@ -169,20 +179,6 @@ async function preferredTvMapping(
         return direct;
     }
 
-    const directSeasons = (directSeries.seasons ?? []).map((season): TvSeasonEvidence => ({
-        airDate: season.air_date ?? null,
-        episodeCount: season.episode_count,
-        name: season.name?.trim() ?? '',
-        seasonNumber: season.season_number,
-    }));
-    if (
-        directSeasons.some(
-            ({ episodeCount, seasonNumber }) => seasonNumber > 0 && episodeCount === anime.episodes
-        )
-    ) {
-        return direct;
-    }
-
     const alternatives = candidates
         .filter(({ candidate }) => candidate.mediaType === 'tv' && candidate.id !== direct.id)
         .sort(
@@ -192,39 +188,100 @@ async function preferredTvMapping(
         )
         .slice(0, tvEvidenceCandidateLimit - 1)
         .map(({ candidate }) => candidate);
-    const evidence = await Promise.all(
-        alternatives.map(async (candidate) => {
-            try {
-                const { data } = await client.GET('/3/tv/{series_id}', {
-                    params: {
-                        path: { series_id: candidate.id },
-                        query: { language: 'en-US' },
-                    },
-                });
-
-                if (!data) {
-                    return null;
-                }
-
-                return {
-                    candidate,
-                    seasons: (data.seasons ?? []).map((season): TvSeasonEvidence => ({
-                        airDate: season.air_date ?? null,
-                        episodeCount: season.episode_count,
-                        name: season.name?.trim() ?? '',
-                        seasonNumber: season.season_number,
-                    })),
-                };
-            } catch {
+    const expectedStart = animeDate(anime.startDate);
+    const expectedEnd = animeDate(anime.endDate);
+    const expectedSequence = releaseSequence(anime);
+    const candidateEvidence = async (
+        candidate: Candidate,
+        series: typeof directSeries | undefined = undefined
+    ) => {
+        try {
+            const data =
+                series ??
+                (
+                    await client.GET('/3/tv/{series_id}', {
+                        params: {
+                            path: { series_id: candidate.id },
+                            query: { language: 'en-US' },
+                        },
+                    })
+                ).data;
+            if (!data) {
                 return null;
             }
-        })
-    );
 
-    return preferredTvReleaseCandidate(anime, direct, [
-        { candidate: direct, seasons: directSeasons },
-        ...evidence.filter((entry) => entry !== null),
+            const seasons = (data.seasons ?? [])
+                .filter(({ season_number }) => season_number > 0)
+                .map((season) => ({
+                    season,
+                    score:
+                        seasonEvidenceScore(anime, season) +
+                        Number(expectedSequence === season.season_number) * 60,
+                }))
+                .sort((left, right) => right.score - left.score)
+                .slice(0, 3);
+            const details = await Promise.all(
+                seasons.map(({ season }) =>
+                    client
+                        .GET('/3/tv/{series_id}/season/{season_number}', {
+                            params: {
+                                path: {
+                                    series_id: candidate.id,
+                                    season_number: season.season_number,
+                                },
+                                query: { language: 'en-US' },
+                            },
+                        })
+                        .then(({ data }) => data)
+                        .catch(() => undefined)
+                )
+            );
+            const detailBySeason = new Map(
+                details.flatMap((season) =>
+                    season?.season_number === undefined ? [] : [[season.season_number, season]]
+                )
+            );
+
+            return {
+                candidate,
+                seasons: (data.seasons ?? []).map((season): TvSeasonEvidence => {
+                    const episodes = detailBySeason.get(season.season_number)?.episodes ?? [];
+                    const release =
+                        expectedStart && expectedEnd
+                            ? episodes.filter(({ air_date }) => {
+                                  const date = air_date ?? '';
+                                  return date >= expectedStart && date <= expectedEnd;
+                              })
+                            : [];
+
+                    return {
+                        airDate: season.air_date ?? null,
+                        episodeCount: season.episode_count,
+                        metadataCount: release.filter(
+                            ({ name, overview }) =>
+                                Boolean(episodeTitleKey(name ?? '')) && Boolean(overview?.trim())
+                        ).length,
+                        name: season.name?.trim() ?? '',
+                        releaseAirDate: release[0]?.air_date ?? null,
+                        releaseEpisodeCount: release.length,
+                        seasonNumber: season.season_number,
+                    };
+                }),
+            };
+        } catch {
+            return null;
+        }
+    };
+    const evidence = await Promise.all([
+        candidateEvidence(direct, directSeries),
+        ...alternatives.map((candidate) => candidateEvidence(candidate)),
     ]);
+
+    return preferredTvReleaseCandidate(
+        anime,
+        direct,
+        evidence.filter((entry) => entry !== null)
+    );
 }
 
 async function searchTv(query: string): Promise<Candidate[]> {
@@ -324,9 +381,20 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
         return { candidates, match };
     };
     let search = await findCandidate(preferredSearch);
+    const preferred = search.match;
 
-    if (!search.match || candidateScore(search.match, anime) < 85) {
-        search = await findCandidate(alternateSearch);
+    if (
+        !preferred ||
+        candidateScore(preferred, anime) < 85 ||
+        !candidateMatchesPrimaryTitle(preferred, anime)
+    ) {
+        const alternate = await findCandidate(alternateSearch);
+        if (
+            alternate.match &&
+            (!preferred || alternateCandidateIsBetter(anime, preferred, alternate.match))
+        ) {
+            search = alternate;
+        }
     }
 
     // Missing enrichment is safer than attaching art and episodes from a

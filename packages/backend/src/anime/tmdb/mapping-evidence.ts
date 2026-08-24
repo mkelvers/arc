@@ -18,7 +18,10 @@ export interface SpecialEpisodeEvidence {
 export interface TvSeasonEvidence {
     airDate: string | null;
     episodeCount: number;
+    metadataCount?: number;
     name: string;
+    releaseAirDate?: string | null;
+    releaseEpisodeCount?: number;
     seasonNumber: number;
 }
 
@@ -149,8 +152,11 @@ function tvReleaseEvidence(anime: AniListAnime, seasons: TvSeasonEvidence[]) {
         seasons
             .filter(({ seasonNumber }) => seasonNumber > 0)
             .map((season) => {
-                const complete = expectedEpisodes > 0 && season.episodeCount === expectedEpisodes;
-                const airDate = dateTimestamp(season.airDate);
+                const complete =
+                    expectedEpisodes > 0 &&
+                    (season.episodeCount === expectedEpisodes ||
+                        season.releaseEpisodeCount === expectedEpisodes);
+                const airDate = dateTimestamp(season.releaseAirDate ?? season.airDate);
                 const seasonTitle = normalizeTitle(season.name);
                 let score = complete ? 120 : 0;
 
@@ -166,6 +172,15 @@ function tvReleaseEvidence(anime: AniListAnime, seasons: TvSeasonEvidence[]) {
 
                 if (expectedSequence && season.seasonNumber === expectedSequence) {
                     score += 60;
+                }
+
+                if (
+                    expectedEpisodes > 0 &&
+                    season.releaseEpisodeCount === expectedEpisodes &&
+                    season.metadataCount !== undefined
+                ) {
+                    score +=
+                        (80 * Math.min(season.metadataCount, expectedEpisodes)) / expectedEpisodes;
                 }
 
                 return { complete, score };
