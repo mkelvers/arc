@@ -19,10 +19,10 @@
             aria-current={current ? 'page' : undefined}
             onclick={onselect}
         >
-            <CardMedia aspect="poster">
+            <CardMedia aspect="poster" class={compact ? 'sm:aspect-2/3' : undefined}>
                 <ProgressiveImage src={anime.image} alt="" />
             </CardMedia>
-            <h3 class:min-h-10={!compact} class="mt-3 line-clamp-2 text-sm leading-snug font-semibold">
+            <h3 class:min-h-10={!compact} class="mt-3 line-clamp-2 text-sm leading-snug font-bold">
                 {anime.title}
             </h3>
             {#if anime.audioLabel}
@@ -36,7 +36,7 @@
         class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
     />
     <div
-        class="pointer-events-none absolute inset-0 flex flex-col bg-surface/88 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+        class="pointer-events-none absolute inset-0 flex flex-col bg-[#151515]/96 p-4 opacity-0 shadow-2xl transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
     >
         <a
             href={anime.href}

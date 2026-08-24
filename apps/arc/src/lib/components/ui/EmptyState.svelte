@@ -14,12 +14,12 @@
 </script>
 
 <section
-    class="mt-10 grid min-h-128 place-items-center border border-dashed border-border px-6 py-12 text-center sm:mt-12"
+    class="mt-8 grid min-h-112 place-items-center px-6 py-12 text-center sm:mt-10 sm:min-h-128"
     aria-labelledby={title ? id : undefined}
     aria-describedby={title ? undefined : id}
 >
     <div class="flex max-w-md flex-col items-center">
-        <div class="mb-6 grid w-72 place-items-center sm:w-80">
+        <div class="mb-5 grid w-60 place-items-center sm:w-72">
             <img
                 src={artwork}
                 alt=""
@@ -29,9 +29,14 @@
             />
         </div>
         {#if title}
-            <h2 id={id} class="text-xl font-semibold">{title}</h2>
+            <h2 id={id} class="text-xl font-bold sm:text-2xl">{title}</h2>
         {/if}
-        <p id={title ? undefined : id} class="mt-2 max-w-md text-base leading-7 text-muted">{body}</p>
+        <p
+            id={title ? undefined : id}
+            class="mt-2 max-w-md text-sm leading-6 text-muted sm:text-base sm:leading-7"
+        >
+            {body}
+        </p>
         {#if actionHref && actionLabel}
             <a
                 href={actionHref}

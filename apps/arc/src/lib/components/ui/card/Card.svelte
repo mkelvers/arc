@@ -7,7 +7,7 @@
     const cardVariants = cva('group relative min-w-0', {
         variants: {
             variant: {
-                poster: 'isolate p-2 text-foreground transition-colors focus-within:z-10 focus-within:border-foreground hover:z-10',
+                poster: 'isolate text-foreground transition-[background-color,box-shadow] focus-within:z-10 focus-within:bg-surface focus-within:shadow-2xl hover:z-10 hover:bg-surface hover:shadow-2xl',
                 compact: 'transition-colors hover:bg-surface focus-within:bg-surface',
                 landscape: 'text-foreground',
             },
