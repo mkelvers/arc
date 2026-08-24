@@ -40,6 +40,9 @@
         let stopped = false;
         let warned = false;
         let revision = initialRevision;
+        const discoveryStartsAt = airingAt * 1_000 - 30 * 60_000;
+        const nextDelay = () =>
+            Date.now() < discoveryStartsAt ? Math.min(discoveryStartsAt - Date.now(), 60 * 60_000) : 60_000;
 
         const poll = async () => {
             if (document.visibilityState === 'visible') {
@@ -71,11 +74,11 @@
             }
 
             if (!stopped) {
-                timer = setTimeout(poll, 3_000);
+                timer = setTimeout(poll, nextDelay());
             }
         };
 
-        timer = setTimeout(poll, 3_000);
+        timer = setTimeout(poll, nextDelay());
 
         return () => {
             stopped = true;
