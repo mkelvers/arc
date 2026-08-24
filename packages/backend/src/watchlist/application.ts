@@ -10,11 +10,7 @@ import {
     storeMissingWatchlistTitles,
     type WatchlistImportMode,
 } from './store';
-import {
-    importedWatchlistEntries,
-    transferAnimeByAniListId,
-    WatchlistImportError,
-} from './transfer';
+import { importedWatchlistEntries, WatchlistImportError } from './transfer';
 
 export {
     getWatchlistState,
@@ -48,20 +44,6 @@ export async function exportWatchlist(userId: string) {
         addedAt,
         updatedAt,
     }));
-}
-
-export async function exportMyAnimeListWatchlist(userId: string) {
-    const entries = await getWatchlistEntries(userId);
-    const media = await transferAnimeByAniListId(entries.map(({ anilistId }) => anilistId));
-    const mediaById = new Map(media.map((entry) => [entry.id, entry]));
-    return entries.map(({ anilistId, state }) => {
-        const item = mediaById.get(anilistId);
-        return {
-            malId: item?.idMal ?? null,
-            title: item?.title?.english ?? item?.title?.romaji ?? item?.title?.native ?? '',
-            state,
-        };
-    });
 }
 
 export async function getWatchlistPage(userId: string, selection: WatchlistSelection) {

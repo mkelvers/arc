@@ -8,7 +8,6 @@ export {
     restoreInvitation,
 } from './invitations';
 export {
-    exportMyAnimeListWatchlist,
     exportWatchlist,
     getWatchlistPage,
     getWatchlistState,
