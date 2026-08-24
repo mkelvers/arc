@@ -7,7 +7,6 @@ import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
 import { formatDuration } from '../../utils';
 import type { AniListAnime } from '../anilist/types';
-import type { ProviderEpisode } from '../providers/types';
 
 function episodeModel(
     episode: typeof animeEpisode.$inferSelect,
@@ -107,7 +106,15 @@ export async function storedAudioModes(anilistIds: number[]) {
     return audioByAnime;
 }
 
-export function sourceRevision(episodes: ProviderEpisode[]) {
+export function sourceRevision(
+    episodes: ReadonlyArray<{
+        id: string;
+        number: number;
+        title: string;
+        audio: AudioMode[];
+        type?: string | null;
+    }>
+) {
     return createHash('sha256')
         .update(
             JSON.stringify(
