@@ -6,7 +6,8 @@
     "scripts": {
         "dev": "bun --env-file=.env --watch src/index.ts",
         "build": "bun build src/index.ts --outdir dist --target bun",
-        "check": "tsc --noEmit"
+        "check": "tsc --noEmit",
+        "test": "bun test"
     },
     "dependencies": {
         "@arc/api-contract": "workspace:*",
