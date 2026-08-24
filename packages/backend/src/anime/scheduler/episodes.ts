@@ -1,12 +1,12 @@
 import { and, asc, eq, exists, isNull, lte, or, sql } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { animeEpisodeTarget, animeReleaseInterest, maintenanceTask } from '@arc/db/schema';
+import { animeEpisodeTarget, animeReleaseInterest } from '@arc/db/schema';
 import { refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { confirmScheduledEpisode } from '../episodes/sync';
 import { nextEpisodeAttemptAt } from './policy';
 import { scheduleInterestedTargets } from './targets';
-import type { MaintenanceRequest } from './maintenance-request';
+import { enqueueScheduleDiscovery } from './schedule-repair';
 
 export interface SchedulerLimits {
     concurrency: number;
@@ -88,34 +88,6 @@ async function claimTargets(runId: string, limit: number, leaseDurationMs: numbe
     return claimed;
 }
 
-async function enqueueScheduleDiscovery(target: ClaimedTarget, cause: unknown) {
-    const message = cause instanceof Error ? cause.message : 'AniList schedule discovery failed';
-    const payload = {
-        kind: 'release_refresh',
-        anilistId: target.anilistId,
-        mode: 'schedule',
-    } satisfies MaintenanceRequest;
-    await db
-        .insert(maintenanceTask)
-        .values({
-            kind: 'release_refresh',
-            dedupeKey: `schedule:${target.anilistId}:${target.targetEpisode}`,
-            payload,
-            lastError: message,
-        })
-        .onConflictDoUpdate({
-            target: maintenanceTask.dedupeKey,
-            set: {
-                state: 'pending',
-                nextAttemptAt: new Date(),
-                leaseOwner: null,
-                leaseUntil: null,
-                lastError: message,
-                completedAt: null,
-            },
-        });
-}
-
 async function retryTarget(target: ClaimedTarget, cause: unknown) {
     const now = new Date();
     const nextAttemptAt = nextEpisodeAttemptAt(target.airingAt, now);
@@ -191,7 +163,7 @@ async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
             await refreshAnimeSchedule(target.anilistId);
             await scheduleInterestedTargets([target.anilistId]);
         } catch (cause) {
-            await enqueueScheduleDiscovery(target, cause);
+            await enqueueScheduleDiscovery(target.anilistId, target.targetEpisode, cause);
         }
         return 'confirmed' as const;
     } catch (cause) {

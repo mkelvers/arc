@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, isNull, lte, or } from 'drizzle-orm';
+import { and, asc, eq, isNull, lte, ne, or } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule } from '../anilist/releases';
@@ -31,15 +31,17 @@ function dedupeKey(request: MaintenanceRequest) {
 }
 
 export async function enqueueMaintenance(request: MaintenanceRequest) {
+    const key = dedupeKey(request);
     const [task] = await db
         .insert(maintenanceTask)
         .values({
             kind: request.kind,
-            dedupeKey: dedupeKey(request),
+            dedupeKey: key,
             payload: request,
         })
         .onConflictDoUpdate({
             target: maintenanceTask.dedupeKey,
+            setWhere: ne(maintenanceTask.state, 'running'),
             set: {
                 payload: request,
                 state: 'pending',
@@ -55,7 +57,20 @@ export async function enqueueMaintenance(request: MaintenanceRequest) {
         })
         .returning({ id: maintenanceTask.id });
 
-    return task.id;
+    if (task) {
+        return task.id;
+    }
+
+    const [running] = await db
+        .select({ id: maintenanceTask.id })
+        .from(maintenanceTask)
+        .where(and(eq(maintenanceTask.dedupeKey, key), eq(maintenanceTask.state, 'running')))
+        .limit(1);
+    if (!running) {
+        throw new Error('The maintenance task could not be persisted');
+    }
+
+    return running.id;
 }
 
 export async function getMaintenanceTask(id: string) {

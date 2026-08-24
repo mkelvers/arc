@@ -1,8 +1,15 @@
 import { and, eq, exists, inArray, ne, not, sql } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { animeEpisodeTarget, animeRelease, animeReleaseInterest } from '@arc/db/schema';
+import {
+    animeEpisode,
+    animeEpisodeSync,
+    animeEpisodeTarget,
+    animeRelease,
+    animeReleaseInterest,
+} from '@arc/db/schema';
 import { firstEpisodeAttemptAt } from './policy';
+import { enqueueScheduleDiscovery } from './schedule-repair';
 
 export async function scheduleInterestedTargets(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)];
@@ -41,6 +48,52 @@ export async function scheduleInterestedTargets(anilistIds: number[]) {
                         eq(animeEpisodeTarget.state, 'pending')
                     )
                 );
+            continue;
+        }
+
+        const [storedTarget] = await db
+            .select({
+                episodeId: animeEpisode.episodeId,
+                inventoryRevision: animeEpisodeSync.sourceRevision,
+            })
+            .from(animeEpisode)
+            .leftJoin(animeEpisodeSync, eq(animeEpisodeSync.anilistId, animeEpisode.anilistId))
+            .where(
+                and(
+                    eq(animeEpisode.anilistId, release.anilistId),
+                    eq(animeEpisode.number, release.episode)
+                )
+            )
+            .limit(1);
+        if (storedTarget?.episodeId.trim()) {
+            const confirmedAt = new Date();
+            await db
+                .insert(animeEpisodeTarget)
+                .values({
+                    anilistId: release.anilistId,
+                    targetEpisode: release.episode,
+                    expectedEpisodes: release.expectedEpisodes,
+                    airingAt: release.airingAt,
+                    nextAttemptAt: confirmedAt,
+                    state: 'confirmed',
+                    inventoryRevision: storedTarget.inventoryRevision,
+                    confirmedAt,
+                })
+                .onConflictDoUpdate({
+                    target: [animeEpisodeTarget.anilistId, animeEpisodeTarget.targetEpisode],
+                    set: {
+                        expectedEpisodes: release.expectedEpisodes,
+                        airingAt: release.airingAt,
+                        state: 'confirmed',
+                        inventoryRevision: storedTarget.inventoryRevision,
+                        confirmedAt,
+                        leaseOwner: null,
+                        leaseUntil: null,
+                        lastError: null,
+                        retiredAt: null,
+                    },
+                });
+            await enqueueScheduleDiscovery(release.anilistId, release.episode);
             continue;
         }
 
