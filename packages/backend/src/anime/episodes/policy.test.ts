@@ -5,6 +5,7 @@ import {
     canPreserveEpisodeMetadata,
     classificationRefreshDue,
     episodeInventoryIsExpected,
+    episodeInventoryCoversTarget,
     episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
@@ -174,25 +175,69 @@ describe('episode refresh policy', () => {
         expect(providerEpisodeCount({ format: 'TV', episodes: 24 })).toBe(24);
     });
 
-    test('discovers missing and incomplete finished provider inventory only when needed', () => {
+    test('discovers missing and incomplete provider inventory only when needed', () => {
+        const inventory = (count: number) =>
+            Array.from({ length: count }, (_, index) => ({ number: index + 1 }));
+
+        expect(episodeInventoryCoversTarget(inventory(6), 7)).toBeFalse();
+        expect(episodeInventoryCoversTarget(inventory(7), 7)).toBeTrue();
         expect(
-            episodeInventoryNeedsDiscovery({ status: 'FINISHED', format: 'TV', episodes: 12 }, 0)
-        ).toBeTrue();
-        expect(
-            episodeInventoryNeedsDiscovery({ status: 'FINISHED', format: 'TV', episodes: 12 }, 11)
-        ).toBeTrue();
-        expect(
-            episodeInventoryNeedsDiscovery({ status: 'FINISHED', format: 'TV', episodes: 12 }, 12)
-        ).toBeFalse();
-        expect(
-            episodeInventoryNeedsDiscovery(
-                { status: 'FINISHED', format: 'TV_SHORT', episodes: 120 },
-                12
+            episodeInventoryCoversTarget(
+                Array.from({ length: 6 }, (_, index) => ({ number: index + 2 })),
+                7
             )
         ).toBeFalse();
         expect(
-            episodeInventoryNeedsDiscovery({ status: 'RELEASING', format: 'TV', episodes: 12 }, 0)
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
+                inventory(0)
+            )
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
+                inventory(11)
+            )
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
+                inventory(12)
+            )
         ).toBeFalse();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                {
+                    status: 'FINISHED',
+                    format: 'TV_SHORT',
+                    episodes: 120,
+                    nextAiringEpisode: null,
+                },
+                inventory(12)
+            )
+        ).toBeFalse();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                {
+                    status: 'RELEASING',
+                    format: 'TV',
+                    episodes: 12,
+                    nextAiringEpisode: null,
+                },
+                inventory(0)
+            )
+        ).toBeFalse();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                {
+                    status: 'RELEASING',
+                    format: 'TV',
+                    episodes: 12,
+                    nextAiringEpisode: { episode: 8, airingAt: 1_787_842_560 },
+                },
+                inventory(6)
+            )
+        ).toBeTrue();
     });
 
     test('expects all episodes before the next airing episode', () => {

@@ -1,4 +1,5 @@
 import type { AniListAnime } from '../anilist/types';
+import { coversExpectedEpisodes } from '../providers/match';
 type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 
 export const episodeMetadataRevision = 'tmdb-episode-v4';
@@ -77,19 +78,34 @@ export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episo
     return anime.format === 'TV_SHORT' ? null : anime.episodes;
 }
 
-export function episodeInventoryNeedsDiscovery(
-    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>,
-    storedEpisodeCount: number
+export function episodeInventoryCoversTarget(
+    storedEpisodes: readonly { number: number }[],
+    targetEpisode: number
 ) {
-    if (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') {
+    return coversExpectedEpisodes(storedEpisodes, targetEpisode);
+}
+
+export function episodeInventoryNeedsDiscovery(
+    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes' | 'nextAiringEpisode'>,
+    storedEpisodes: readonly { number: number }[]
+) {
+    if (anime.status === 'NOT_YET_RELEASED') {
         return false;
     }
-    if (storedEpisodeCount === 0) {
+    if (anime.status === 'RELEASING') {
+        const available = availableEpisodeCount(anime);
+        return available !== null && !episodeInventoryCoversTarget(storedEpisodes, available);
+    }
+    if (storedEpisodes.length === 0) {
         return true;
     }
 
     const expected = providerEpisodeCount(anime);
-    return anime.status === 'FINISHED' && expected !== null && storedEpisodeCount < expected;
+    return (
+        anime.status === 'FINISHED' &&
+        expected !== null &&
+        !episodeInventoryCoversTarget(storedEpisodes, expected)
+    );
 }
 
 export function availableEpisodeCount(anime: Pick<AniListAnime, 'status' | 'nextAiringEpisode'>) {
