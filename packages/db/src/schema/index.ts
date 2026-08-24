@@ -49,6 +49,7 @@ export const maintenanceTaskKind = pgEnum('maintenance_task_kind', [
     'mapping_override',
     'target_reactivate',
     'interest_reconcile',
+    'airing_reconcile',
 ]);
 export const maintenanceTaskState = pgEnum('maintenance_task_state', [
     'pending',

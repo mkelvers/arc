@@ -379,6 +379,13 @@
             "when": 1787592220276,
             "tag": "0053_harsh_corsair",
             "breakpoints": true
+        },
+        {
+            "idx": 54,
+            "version": "7",
+            "when": 1787596293574,
+            "tag": "0054_sweet_frightful_four",
+            "breakpoints": true
         }
     ]
 }
