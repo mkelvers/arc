@@ -177,12 +177,19 @@ export type AiringAnimePageQueryVariables = Exact<{
 
 export type AiringAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, status: MediaStatus | null, nextAiringEpisode: { airingAt: number, episode: number } | null } | null> | null } | null };
 
+export type AnimeScheduleQueryVariables = Exact<{
+  id: number;
+}>;
+
+
+export type AnimeScheduleQuery = { Media: { id: number, status: MediaStatus | null, episodes: number | null, nextAiringEpisode: { airingAt: number, episode: number } | null } | null };
+
 export type AnimeQueryVariables = Exact<{
   id: number;
 }>;
 
 
-export type AnimeQuery = { Media: { id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, endDate: { year: number | null, month: number | null, day: number | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
+export type AnimeQuery = { Media: { id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, endDate: { year: number | null, month: number | null, day: number | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null };
 
 export type BrowseAnimeTaxonomyQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -287,6 +294,19 @@ export const AiringAnimePageDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AiringAnimePageQuery, AiringAnimePageQueryVariables>;
+export const AnimeScheduleDocument = new TypedDocumentString(`
+    query AnimeSchedule($id: Int!) {
+  Media(id: $id, type: ANIME) {
+    id
+    status
+    episodes
+    nextAiringEpisode {
+      airingAt
+      episode
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AnimeScheduleQuery, AnimeScheduleQueryVariables>;
 export const AnimeDocument = new TypedDocumentString(`
     query Anime($id: Int!) {
   Media(id: $id, type: ANIME) {
@@ -298,6 +318,10 @@ export const AnimeDocument = new TypedDocumentString(`
       native
     }
     synonyms
+    coverImage {
+      extraLarge
+      large
+    }
     bannerImage
     description(asHtml: false)
     genres

@@ -1,0 +1,11 @@
+query AnimeSchedule($id: Int!) {
+    Media(id: $id, type: ANIME) {
+        id
+        status
+        episodes
+        nextAiringEpisode {
+            airingAt
+            episode
+        }
+    }
+}
