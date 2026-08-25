@@ -74,3 +74,155 @@ query AllAnimeEpisodeSources(
         sourceUrls
     }
 }
+
+query AllAnimeExpandedEpisodeSources(
+    $showId: String!
+    $translationType: VaildTranslationTypeEnumType!
+    $episodeString: String!
+) {
+    episode(showId: $showId, translationType: $translationType, episodeString: $episodeString) {
+        episodeString
+        uploadDate
+        sourceUrls
+        thumbnail
+        notes
+        show {
+            _id
+            name
+            englishName
+            nativeName
+            slugTime
+            thumbnail
+            tbObj {
+                u
+                sm
+                md
+                ts
+            }
+            lastEpisodeInfo
+            lastEpisodeDate
+            type
+            season
+            score
+            airedStart
+            availableEpisodes
+            episodeDuration
+            episodeCount
+            lastUpdateEnd
+            characterCount
+            description
+            broadcastInterval
+            banner
+            characters
+            availableEpisodesDetail
+            nameOnlyString
+            characters
+            isAdult
+            relatedShows
+            relatedMangas
+            altNames
+            disqusIds
+        }
+        pageStatus {
+            _id
+            notes
+            pageId
+            showId
+            views
+            likesCount
+            commentCount
+            dislikesCount
+            boostsCount
+            reviewCount
+            userScoreCount
+            userScoreTotalValue
+            userScoreAverValue
+            viewers {
+                firstViewers {
+                    viewCount
+                    lastWatchedDate
+                    user {
+                        _id
+                        username
+                        displayName
+                        createdAt
+                        picture
+                        reputation
+                        roleLevel
+                        brief
+                        followerCount
+                        followingCount
+                        pDec
+                        equippedBadgeKey
+                        equippedBadge {
+                            key
+                            name
+                            rank
+                            iconPath
+                            date
+                        }
+                        ugcContributorStats {
+                            mediaEditReviewSubmitCount
+                            mediaEditApprovedCount
+                            mediaEditRejectedCount
+                            mediaEditAppliedCount
+                            mediaEditContributionPoints
+                            mediaEditModContributionPoints
+                        }
+                        hideMe
+                    }
+                }
+                recViewers {
+                    viewCount
+                    lastWatchedDate
+                    user {
+                        _id
+                        username
+                        displayName
+                        createdAt
+                        picture
+                        reputation
+                        roleLevel
+                        brief
+                        followerCount
+                        followingCount
+                        pDec
+                        equippedBadgeKey
+                        equippedBadge {
+                            key
+                            name
+                            rank
+                            iconPath
+                            date
+                        }
+                        ugcContributorStats {
+                            mediaEditReviewSubmitCount
+                            mediaEditApprovedCount
+                            mediaEditRejectedCount
+                            mediaEditAppliedCount
+                            mediaEditContributionPoints
+                            mediaEditModContributionPoints
+                        }
+                        hideMe
+                    }
+                }
+            }
+        }
+        episodeInfo {
+            notes
+            thumbnails
+            tbObj {
+                u
+                sm
+                md
+                ts
+            }
+            vidInforssub
+            uploadDates
+            vidInforsdub
+            vidInforsraw
+            description
+        }
+        versionFix
+    }
+}
