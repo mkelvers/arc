@@ -18,8 +18,7 @@
     },
     "scripts": {
         "check": "tsc --noEmit",
-        "test": "bun test",
-        "test:providers": "LIVE_PROVIDER_TESTS=1 bun test src/anime/providers/providers.provider-live.test.ts"
+        "test": "bun test"
     },
     "dependencies": {
         "@arc/db": "workspace:*",

@@ -13,7 +13,6 @@
         "check": "turbo run check",
         "lint": "oxlint",
         "test": "turbo run test",
-        "test:providers": "bun --cwd packages/backend run test:providers",
         "format": "oxfmt",
         "format:check": "oxfmt --check",
         "db:check": "bun --cwd packages/db db:check",
