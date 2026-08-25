@@ -23,6 +23,7 @@
         previousEpisode={data.previousEpisode}
         nextEpisode={data.nextEpisode}
         fallbackImage={data.fallbackImage}
+        playbackEndpoint={data.playbackEndpoint}
         playback={data.playback}
         poster={data.currentEpisode.image ?? data.fallbackImage}
         startAt={data.startAt}

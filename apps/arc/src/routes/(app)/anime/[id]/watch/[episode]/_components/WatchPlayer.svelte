@@ -1,5 +1,7 @@
 <script lang="ts">
     import { invalidateAll } from '$app/navigation';
+    import { WatchPlaybackSchema } from '@arc/api-contract/anime';
+    import { audioModeOrder } from '@arc/shared/audio';
     import type { AnimeEpisode } from '@arc/shared/types';
     import type { Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
@@ -31,6 +33,7 @@
         previousEpisode?: AnimeEpisode | null;
         nextEpisode?: AnimeEpisode | null;
         fallbackImage?: string | null;
+        playbackEndpoint: string;
         playback: Promise<Playback>;
         poster?: string | null;
         segments: {
@@ -69,6 +72,7 @@
         previousEpisode = null,
         nextEpisode = null,
         fallbackImage = null,
+        playbackEndpoint,
         playback,
         poster = null,
         segments,
@@ -144,6 +148,55 @@
                     active = { ...active, segments: { ...active.segments, templates: resolved } };
                 })
                 .catch(() => undefined);
+
+            const missingModes = audioModeOrder.filter(
+                (mode) => mode in result.streams && !result.streams[mode]?.length
+            );
+            if (missingModes.length) {
+                void fetch(playbackEndpoint)
+                    .then(async (response) => {
+                        if (!response.ok) {
+                            return null;
+                        }
+                        return WatchPlaybackSchema.parse(await response.json());
+                    })
+                    .then((resolved) => {
+                        if (
+                            !resolved ||
+                            cancelled ||
+                            active?.anime.id !== pending.anime.id ||
+                            active.currentEpisode.id !== pending.currentEpisode.id
+                        ) {
+                            return;
+                        }
+
+                        const streams = { ...active.result.streams };
+                        for (const mode of audioModeOrder) {
+                            const sources = resolved.streams[mode];
+                            if (sources?.length) {
+                                streams[mode] = [
+                                    ...(streams[mode] ?? []),
+                                    ...sources.filter(
+                                        (source) =>
+                                            !streams[mode]?.some(
+                                                (existing) =>
+                                                    existing.url === source.url &&
+                                                    existing.provider === source.provider
+                                            )
+                                    ),
+                                ];
+                            }
+                        }
+                        active = {
+                            ...active,
+                            result: {
+                                streams,
+                                error: !Object.values(streams).some((sources) => sources?.length),
+                            },
+                        };
+                    })
+                    .catch(() => undefined);
+            }
         });
 
         return () => {

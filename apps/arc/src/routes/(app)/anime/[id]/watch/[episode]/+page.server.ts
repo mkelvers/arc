@@ -50,6 +50,7 @@ export const load: PageServerLoad = async ({ params, request }) => {
 
     return {
         ...page,
+        playbackEndpoint: `/v1/anime/${id}/episodes/${encodeURIComponent(params.episode)}/playback`,
         playback,
         segments: {
             canEdit: true,
