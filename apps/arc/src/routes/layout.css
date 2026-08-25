@@ -8,7 +8,8 @@
     --theme-canvas: #000;
     --theme-header: #272727;
     --theme-header-hover: #151515;
-    --theme-search: #17191e;
+    --theme-search: #151515;
+    --theme-search-recent: #213944;
     --theme-foreground: oklch(0.97 0.002 75);
     --theme-surface: oklch(0.17 0.006 285);
     --theme-muted: oklch(0.71 0.008 285);
@@ -49,6 +50,7 @@
     --color-header: var(--theme-header);
     --color-header-hover: var(--theme-header-hover);
     --color-search: var(--theme-search);
+    --color-search-recent: var(--theme-search-recent);
     --color-foreground: var(--theme-foreground);
     --color-surface: var(--theme-surface);
     --color-muted: var(--theme-muted);
