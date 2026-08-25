@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { RequestCache } from '#request-cache';
 import type { AniListAnime } from './anilist/types';
 import { findShowId } from './allanime/catalog';
+import { AllAnimeExpandedEpisodeSourcesDocument } from './allanime/generated/graphql';
 import {
     contentLane,
     endpoint,
@@ -18,6 +19,11 @@ import type { Source, Stream, StreamCrypto, Streams } from './allanime/types';
 
 const cache = new RequestCache<string, Streams>(2 * 60 * 1_000);
 const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
+const expandedSourceQueryHash = '04bd3a7b24fc732c07c2e3bd92126bcdd901293c9dfbe678352dca0f4877d697';
+type RequestTransport = (
+    input: URL | RequestInfo,
+    init?: RequestInit | undefined
+) => Promise<Response>;
 const responseSchema = z
     .object({
         data: z
@@ -31,42 +37,93 @@ const responseSchema = z
     .passthrough();
 const jsonValueSchema = z.json();
 
-async function encryptedSources(
+export async function encryptedSources(
     showId: string,
     episode: string,
     mode: AudioMode,
-    crypto: StreamCrypto
+    crypto: StreamCrypto,
+    fetcher: RequestTransport = fetch
 ) {
-    const url = new URL(endpoint);
-    url.searchParams.set(
-        'variables',
-        JSON.stringify({
-            showId,
-            translationType: mode,
-            episodeString: episode,
-        })
-    );
-    url.searchParams.set(
-        'extensions',
-        JSON.stringify({
-            persistedQuery: {
-                version: 1,
-                sha256Hash: sourceQueryHash,
-            },
-            k: contentLane,
-            aaReq: lease(crypto, sourceQueryHash),
-        })
-    );
+    const variables = { showId, translationType: mode, episodeString: episode };
+    const headers = {
+        Origin: origin,
+        Referer: referer,
+        'User-Agent': userAgent,
+        'x-build-id': crypto.buildId,
+    };
+    const hashes = [sourceQueryHash, expandedSourceQueryHash];
 
-    const response = await fetch(url, {
-        headers: {
-            Origin: origin,
-            Referer: referer,
-            'User-Agent': userAgent,
-            'x-build-id': crypto.buildId,
-        },
+    for (const hash of hashes) {
+        const extensions = {
+            persistedQuery: { version: 1, sha256Hash: hash },
+            k: contentLane,
+            aaReq: lease(crypto, hash),
+        };
+        const url = new URL(endpoint);
+        url.searchParams.set('variables', JSON.stringify(variables));
+        url.searchParams.set('extensions', JSON.stringify(extensions));
+
+        const response = await fetcher(url, {
+            headers,
+            signal: AbortSignal.timeout(6_000),
+        });
+        if (!response.ok) {
+            throw new Error(`AllAnime source request returned ${response.status}`);
+        }
+
+        const json = jsonValueSchema.safeParse(await response.json());
+        const rawPayload = json.success ? json.data : null;
+        const parsed = responseSchema.safeParse(rawPayload);
+        const payload = parsed.success ? parsed.data : null;
+        const message = payload?.errors?.[0]?.message;
+
+        if (
+            message &&
+            /PersistedQueryNotFound|Context creation failed|Cannot set properties of undefined/i.test(
+                message
+            )
+        ) {
+            continue;
+        }
+
+        const encrypted = payload?.data?.tobeparsed ?? payload?.data?.episode?.tobeparsed;
+        if (encrypted) {
+            const decrypted = z.json().safeParse(decrypt(encrypted, crypto.key));
+            const sources = decrypted.success ? sourceReferences(decrypted.data) : [];
+            if (!sources.length) {
+                throw new Error('AllAnime decrypted no episode sources');
+            }
+
+            return sources;
+        }
+
+        const sources = sourceReferences(rawPayload);
+        if (sources.length) {
+            return sources;
+        }
+
+        throw new Error(message ? `AllAnime: ${message}` : 'AllAnime returned no episode sources');
+    }
+
+    const extensions = {
+        persistedQuery: { version: 1, sha256Hash: expandedSourceQueryHash },
+        k: contentLane,
+        aaReq: lease(crypto, expandedSourceQueryHash),
+    };
+    const response = await fetcher(endpoint, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            query: AllAnimeExpandedEpisodeSourcesDocument.toString(),
+            variables,
+            extensions,
+        }),
         signal: AbortSignal.timeout(6_000),
     });
+    if (!response.ok) {
+        throw new Error(`AllAnime source POST returned ${response.status}`);
+    }
+
     const json = jsonValueSchema.safeParse(await response.json());
     const rawPayload = json.success ? json.data : null;
     const parsed = responseSchema.safeParse(rawPayload);
@@ -76,11 +133,9 @@ async function encryptedSources(
     if (encrypted) {
         const decrypted = z.json().safeParse(decrypt(encrypted, crypto.key));
         const sources = decrypted.success ? sourceReferences(decrypted.data) : [];
-        if (!sources.length) {
-            throw new Error('AllAnime decrypted no episode sources');
+        if (sources.length) {
+            return sources;
         }
-
-        return sources;
     }
 
     const sources = sourceReferences(rawPayload);
@@ -89,7 +144,6 @@ async function encryptedSources(
     }
 
     const message = payload?.errors?.[0]?.message;
-
     throw new Error(message ? `AllAnime: ${message}` : 'AllAnime returned no episode sources');
 }
 
