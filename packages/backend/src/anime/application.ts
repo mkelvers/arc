@@ -173,12 +173,6 @@ async function episodePlayback(
 ) {
     try {
         const streams = await playback.getStreams(anime, episode, modes);
-        const missing = modes.filter((mode) => !streams[mode]?.length);
-        if (missing.length) {
-            console.warn(
-                `Playback modes unavailable for AniList ${anime.id} episode ${episode.number}: ${missing.join(', ')}`
-            );
-        }
         return {
             streams,
             error: !Object.values(streams).some((sources) => sources?.length),
