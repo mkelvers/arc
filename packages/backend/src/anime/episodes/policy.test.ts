@@ -196,6 +196,22 @@ describe('episode refresh policy', () => {
                 inventory(6)
             )
         ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
+                inventory(12),
+                new Date(now - 1),
+                now
+            )
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
+                inventory(12),
+                new Date(now + 1),
+                now
+            )
+        ).toBeFalse();
     });
 
     test('expects all episodes before the next airing episode', () => {
@@ -235,10 +251,10 @@ describe('episode refresh policy', () => {
         expect(episodeRefreshRetryDelay(3, now - 14 * 24 * 60 * 60 * 1_000, now)).toBeNull();
     });
 
-    test('does not schedule routine refreshes for finished releases', () => {
+    test('schedules routine refreshes for finished releases', () => {
         const next = nextRefreshAt({ status: 'FINISHED' } as AniListAnime, new Date(0));
 
-        expect(next).toBeNull();
+        expect(next).toBeInstanceOf(Date);
     });
 
     test('serves stored finished episodes before maintenance refreshes', () => {

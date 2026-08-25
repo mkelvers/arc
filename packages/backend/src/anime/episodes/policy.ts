@@ -69,7 +69,9 @@ export function episodeInventoryCoversTarget(
 
 export function episodeInventoryNeedsDiscovery(
     anime: Pick<AniListAnime, 'status' | 'format' | 'episodes' | 'nextAiringEpisode'>,
-    storedEpisodes: readonly { number: number }[]
+    storedEpisodes: readonly { number: number }[],
+    nextRefreshAt?: Date | null,
+    now = Date.now()
 ) {
     if (anime.status === 'NOT_YET_RELEASED') {
         return false;
@@ -86,7 +88,9 @@ export function episodeInventoryNeedsDiscovery(
     return (
         anime.status === 'FINISHED' &&
         expected !== null &&
-        !episodeInventoryCoversTarget(storedEpisodes, expected)
+        (!episodeInventoryCoversTarget(storedEpisodes, expected) ||
+            (nextRefreshAt !== undefined &&
+                (nextRefreshAt === null || nextRefreshAt.getTime() <= now)))
     );
 }
 
@@ -140,7 +144,7 @@ export function nextRefreshAt(anime: AniListAnime, stableSince: Date) {
         case 'RELEASING':
             return new Date(Math.min(nextAiringAt ?? Infinity, now + 6 * 60 * 60 * 1_000));
         case 'FINISHED': {
-            return null;
+            return after(7 * 24 * 60 * 60 * 1_000);
         }
         case 'CANCELLED':
             return now - stableSince.getTime() >= 7 * 24 * 60 * 60 * 1_000
