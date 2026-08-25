@@ -2,7 +2,13 @@
     import type { AnimeEpisode } from '@arc/shared/types';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
     import { Player } from '$lib/player/controller.svelte';
-    import { subtitleBackgrounds, subtitleSizes, subtitleTextColors, type Sources } from '$lib/player/media';
+    import {
+        audioLabel,
+        subtitleBackgrounds,
+        subtitleSizes,
+        subtitleTextColors,
+        type Sources,
+    } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
     import { onMount, untrack } from 'svelte';
     import { CaretLeftIcon, SpinnerGapIcon } from 'phosphor-svelte';
@@ -175,6 +181,7 @@
             allow="autoplay; fullscreen; picture-in-picture"
             allowfullscreen
         ></iframe>
+        <video bind:this={video} class="hidden" aria-hidden="true"></video>
     {:else}
         <video
             bind:this={video}
@@ -183,6 +190,27 @@
             preload="auto"
             poster={poster}
         ></video>
+    {/if}
+
+    {#if player.media.sourceKind === 'iframe' && player.media.audioModes.length > 1}
+        <div
+            role="group"
+            aria-label="Audio"
+            class="absolute top-20 right-5 z-40 flex overflow-hidden rounded-sm border border-white/30 bg-black/80 p-1 text-xs font-bold text-white shadow-lg backdrop-blur-sm sm:right-7 lg:right-9"
+        >
+            {#each player.media.audioModes as mode}
+                <button
+                    type="button"
+                    aria-pressed={player.media.mode === mode}
+                    class="min-h-9 rounded-xs px-3 transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
+                    class:bg-white={player.media.mode === mode}
+                    class:text-black={player.media.mode === mode}
+                    onclick={() => player.media.switchMode(mode)}
+                >
+                    {audioLabel(mode)}
+                </button>
+            {/each}
+        </div>
     {/if}
 
     <!-- Top header bar with back navigation and centered show title/episode subtitle -->
