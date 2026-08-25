@@ -73,10 +73,10 @@ export class Playback {
 
     private applySourcePreference() {
         this.sources = Object.fromEntries(
-            Object.entries(this.allSources).map(([mode, streams]) => [
-                mode,
-                streams?.filter((stream) => stream.kind !== 'iframe'),
-            ])
+            Object.entries(this.allSources).map(([mode, streams]) => {
+                const direct = streams?.filter((stream) => stream.kind !== 'iframe');
+                return [mode, direct?.length ? direct : streams];
+            })
         );
     }
 
