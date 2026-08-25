@@ -168,4 +168,9 @@ async function getStreams(
     return result;
 }
 
-export const aniDBAppProvider: PlaybackProvider = { name: 'AniDB.app', getEpisodes, getStreams };
+export const aniDBAppProvider: PlaybackProvider = {
+    name: 'AniDB.app',
+    providesEpisodeInventory: false,
+    getEpisodes,
+    getStreams,
+};

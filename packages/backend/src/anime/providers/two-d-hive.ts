@@ -162,4 +162,9 @@ async function getStreams(
     return result;
 }
 
-export const twoDHiveProvider: PlaybackProvider = { name: '2dhive', getEpisodes, getStreams };
+export const twoDHiveProvider: PlaybackProvider = {
+    name: '2dhive',
+    providesEpisodeInventory: false,
+    getEpisodes,
+    getStreams,
+};
