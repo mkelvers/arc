@@ -48,7 +48,17 @@ const providerHostGroups: readonly ProviderHostGroup[] = [
     { hosts: ['lostproject.club'], referer: 'https://megaplay.buzz/' },
     { hosts: ['animegg.org', 'vidcache.net'], referer: 'https://www.animegg.org/' },
     { hosts: ['vid-cdn.xyz', 'xin-cdn.xyz'], referer: 'https://anizone.to/' },
-    { hosts: ['hls.krussdomi.com'], referer: 'https://krussdomi.com/' },
+    {
+        hosts: [
+            'bl.krussdomi.com',
+            'subbl.krussdomi.com',
+            'advancedairesearchlab.xyz',
+            'habibikun.xyz',
+            'babybayw.xyz',
+            'narutokun.xyz',
+        ],
+        referer: 'https://krussdomi.com/',
+    },
     { hosts: ['kwik.cx', 'uwucdn.top', 'streampeaker.org'], referer: 'https://kwik.cx/' },
     {
         hosts: ['vibevibe.workers.dev', 'vivibebe.site', 'anizara.store', 'ibyteimg.com'],
@@ -478,6 +488,10 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
         target = providerReference(reference, playlist);
     } catch {
         return reference;
+    }
+
+    if (target.protocol === 'http:' && hostGroup(target.hostname)) {
+        target.protocol = 'https:';
     }
 
     try {
