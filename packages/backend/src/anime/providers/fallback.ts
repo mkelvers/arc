@@ -164,29 +164,31 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         anime: Parameters<PlaybackProvider['getEpisodes']>[0]
     ): Promise<ProviderEpisode[]> {
         const results = await Promise.all(
-            providers.map(async (provider) => {
-                try {
-                    assertAvailable(provider, 'episodes');
-                    const episodes = await timed(provider, 'episodes', timeoutMs, () =>
-                        shared(episodeRequests, `${provider.name}:${anime.id}`, () =>
-                            provider.getEpisodes(anime)
-                        )
-                    );
-                    markHealthy(provider, 'episodes');
-                    if (!episodes.length) {
-                        throw new Error('the episode inventory was empty');
-                    }
+            providers
+                .filter((provider) => provider.providesEpisodeInventory !== false)
+                .map(async (provider) => {
+                    try {
+                        assertAvailable(provider, 'episodes');
+                        const episodes = await timed(provider, 'episodes', timeoutMs, () =>
+                            shared(episodeRequests, `${provider.name}:${anime.id}`, () =>
+                                provider.getEpisodes(anime)
+                            )
+                        );
+                        markHealthy(provider, 'episodes');
+                        if (!episodes.length) {
+                            throw new Error('the episode inventory was empty');
+                        }
 
-                    return { provider, episodes, error: null };
-                } catch (cause) {
-                    markFailure(provider, 'episodes', cause);
-                    return {
-                        provider,
-                        episodes: [],
-                        error: new ProviderAttemptError(provider.name, 'episodes', cause),
-                    };
-                }
-            })
+                        return { provider, episodes, error: null };
+                    } catch (cause) {
+                        markFailure(provider, 'episodes', cause);
+                        return {
+                            provider,
+                            episodes: [],
+                            error: new ProviderAttemptError(provider.name, 'episodes', cause),
+                        };
+                    }
+                })
         );
         const errors = results.flatMap(({ error }) => (error ? [error] : []));
 
@@ -328,12 +330,15 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         }
 
         const requestKey = [anime.id, episode.id, episode.number, requested.join(',')].join(':');
+        const now = Date.now();
+        for (const [key, entry] of completedStreams) {
+            if (entry.expiresAt <= now) {
+                completedStreams.delete(key);
+            }
+        }
         const cached = completedStreams.get(requestKey);
         if (cached) {
-            if (cached.expiresAt > Date.now()) {
-                return cached.streams;
-            }
-            completedStreams.delete(requestKey);
+            return cached.streams;
         }
         const background = backgroundStreams.get(requestKey);
         if (background) {
@@ -403,12 +408,15 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                         })
                     );
                     const seen = new Set(
-                        existing.map((stream) => `${stream.url}\n${stream.subtitleUrl ?? ''}`)
+                        existing.map(
+                            (stream) =>
+                                `${stream.kind ?? 'direct'}\n${stream.url}\n${stream.subtitleUrl ?? ''}`
+                        )
                     );
                     merged[mode] = [
                         ...existing,
                         ...additions.filter((stream) => {
-                            const key = `${stream.url}\n${stream.subtitleUrl ?? ''}`;
+                            const key = `${stream.kind ?? 'direct'}\n${stream.url}\n${stream.subtitleUrl ?? ''}`;
                             if (seen.has(key)) return false;
                             seen.add(key);
                             return true;
@@ -421,11 +429,15 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         const firstAvailable = Promise.any(
             attempts.map(async (attempt) => {
                 const result = await attempt;
-                if (requested.some((mode) => result.streams[mode]?.length)) {
+                if (
+                    requested.every((mode) =>
+                        result.streams[mode]?.some((stream) => stream.kind !== 'iframe')
+                    )
+                ) {
                     return result;
                 }
 
-                throw new Error('Provider returned no requested audio mode');
+                throw new Error('Provider returned no complete direct audio modes');
             })
         );
         const result = await Promise.race([

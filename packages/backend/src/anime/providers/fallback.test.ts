@@ -89,6 +89,35 @@ describe('playback provider fallback', () => {
         expect(attempts).toEqual(['first', 'second', 'third']);
     });
 
+    test('keeps stream-only adapters out of episode and audio inventory', async () => {
+        let streamOnlyInventoryCalled = false;
+        const playback = createProviderFallback([
+            provider('trusted-inventory', {
+                getEpisodes: async () => [
+                    { id: 'episode-1', number: 1, title: 'Episode One', audio: ['sub'] },
+                ],
+            }),
+            provider('stream-only', {
+                providesEpisodeInventory: false,
+                getEpisodes: async () => {
+                    streamOnlyInventoryCalled = true;
+                    return [
+                        { id: 'wrong-1', number: 1, title: 'Episode One', audio: ['sub', 'dub'] },
+                    ];
+                },
+                getStreams: async () => ({ dub: [alternateStream] }),
+            }),
+        ]);
+
+        expect(await playback.getEpisodes(anime)).toEqual([
+            { id: 'episode-1', number: 1, title: 'Episode One', audio: ['sub'] },
+        ]);
+        expect(streamOnlyInventoryCalled).toBeFalse();
+        expect((await playback.getStreams(anime, episode, ['dub'])).dub?.[0].provider).toBe(
+            'stream-only'
+        );
+    });
+
     test('returns complete stream modes without waiting for slow providers', async () => {
         const playback = createProviderFallback([
             provider('fast', {
@@ -111,7 +140,7 @@ describe('playback provider fallback', () => {
         expect(result.sub?.[0].provider).toBe('fast');
     });
 
-    test('returns the first mode and exposes the completed result on a later request', async () => {
+    test('does not let a partial result hide a complete direct provider', async () => {
         const playback = createProviderFallback([
             provider('japanese-first', {
                 getStreams: async () => ({ sub: [alternateStream] }),
@@ -134,13 +163,36 @@ describe('playback provider fallback', () => {
         const result = await playback.getStreams(anime, episode, ['sub', 'dub']);
 
         expect(performance.now() - started).toBeLessThan(100);
-        expect(result.sub).toEqual([from('japanese-first', alternateStream)]);
-        expect(result.dub).toEqual([]);
+        expect(result.sub).toEqual([
+            from('japanese-first', alternateStream),
+            from('complete', stream),
+        ]);
+        expect(result.dub).toEqual([from('complete', stream)]);
 
         await new Promise((resolve) => setTimeout(resolve, 200));
         const completed = await playback.getStreams(anime, episode, ['sub', 'dub']);
         expect(completed.sub).toContainEqual(from('complete', stream));
         expect(completed.dub).toContainEqual(from('complete', stream));
+    });
+
+    test('does not let iframe-only modes hide complete direct streams', async () => {
+        const iframe = { ...stream, kind: 'iframe' as const };
+        const playback = createProviderFallback([
+            provider('iframe-first', {
+                getStreams: async () => ({ sub: [iframe], dub: [iframe] }),
+            }),
+            provider('direct', {
+                getStreams: async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                    return { sub: [stream], dub: [alternateStream] };
+                },
+            }),
+        ]);
+
+        const result = await playback.getStreams(anime, episode, ['sub', 'dub']);
+
+        expect(result.sub).toEqual([from('iframe-first', iframe), from('direct', stream)]);
+        expect(result.dub).toEqual([from('iframe-first', iframe), from('direct', alternateStream)]);
     });
 
     test('uses the freshest provider inventory through the next airing episode', async () => {
