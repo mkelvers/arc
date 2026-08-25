@@ -234,7 +234,7 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
-    <section class="mx-auto w-full max-w-384" aria-labelledby="browse-title">
+    <section class="mx-auto w-full max-w-264" aria-labelledby="browse-title">
         <h1 id="browse-title" class="mb-6 text-2xl font-bold">Browse Anime</h1>
 
         <div class="mb-10">
@@ -522,7 +522,8 @@
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                 </Dropdown>
-
+                <div class="h-px basis-full bg-border"></div>
+                <span class="grow" aria-hidden="true"></span>
                 <Dropdown
                     id="browse-sort"
                     ariaLabel={`Choose browse ordering. ${ordering.label} selected`}
@@ -574,7 +575,7 @@
 
         {#if anime.length}
             <div
-                class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+                class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-[1.875rem] lg:gap-y-12 xl:grid-cols-6"
             >
                 {#each anime as entry (entry.id)}
                     <AnimeCard anime={entry} />
