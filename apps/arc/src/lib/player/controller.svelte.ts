@@ -77,8 +77,6 @@ export class Player {
         };
         const episodeChanged =
             episode.animeId !== this.input.animeId || episode.episodeId !== this.input.episodeId;
-        const sourcesChanged = input.sources !== this.input.sources;
-
         this.input = input;
         this.media.sync(input.sources, input.next);
         this.progress.syncEvent(input.progressEventAt);
@@ -89,7 +87,7 @@ export class Player {
             input.segments.canEdit
         );
 
-        if (!episodeChanged && !sourcesChanged) {
+        if (!episodeChanged) {
             return;
         }
 
