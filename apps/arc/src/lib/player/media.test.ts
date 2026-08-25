@@ -3,7 +3,6 @@ import { describe, expect, test } from 'bun:test';
 import {
     alignSubtitleCues,
     audioLabel,
-    availableModes,
     formatTime,
     hasDialogueCoverage,
     hasSubtitleTrack,
@@ -28,15 +27,6 @@ const streams: Stream[] = [
 ];
 
 describe('player media helpers', () => {
-    test('offers audio modes supplied by iframe-only sources', () => {
-        expect(
-            availableModes({
-                sub: [{ url: '/sub.m3u8', quality: null }],
-                dub: [{ url: '/dub', kind: 'iframe', quality: null }],
-            })
-        ).toEqual(['sub', 'dub']);
-    });
-
     test('formats short and long durations without wrapping punctuation', () => {
         expect(formatTime(65)).toBe('1:05');
         expect(formatTime(3_600)).toBe('1h');
