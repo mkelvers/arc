@@ -74,7 +74,10 @@ export class Playback {
                 mode,
                 this.iframeEnabled
                     ? streams
-                    : streams?.filter((stream) => stream.kind !== 'iframe'),
+                    : (() => {
+                          const direct = streams?.filter((stream) => stream.kind !== 'iframe');
+                          return direct?.length ? direct : streams;
+                      })(),
             ])
         );
     }
