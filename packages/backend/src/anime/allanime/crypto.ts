@@ -26,13 +26,25 @@ export async function getCrypto(refresh = false) {
         const epoch = Math.floor(now / epochLength);
         const epochs = now - epoch * epochLength < graceLength ? [epoch - 1, epoch] : [epoch];
         const secret = createHmac('sha256', client.mask)
-            .update(`aa-boot:${client.buildId}`)
+            .update(`${client.bootPrefix ?? 'aa-boot:'}${client.buildId}`)
             .digest();
         let status = 0;
 
         for (const candidate of epochs) {
+            const fields = {
+                buildId: client.buildId,
+                group: 'mkissa',
+                host: 'mkissa.to',
+                epoch: String(candidate),
+                lane: contentLane,
+            };
+            const configuredParts = client.parts ?? ['buildId', 'group', 'host', 'epoch', 'lane'];
+            const parts =
+                client.omitEmptyLane && !fields.lane
+                    ? configuredParts.filter((part) => part !== 'lane')
+                    : configuredParts;
             const token = createHmac('sha256', secret)
-                .update(`${client.buildId}:mkissa:mkissa.to:${candidate}:${contentLane}`)
+                .update(parts.map((part) => fields[part] ?? '').join(client.join ?? ':'))
                 .digest('hex');
             const response = await fetch(
                 new URL(

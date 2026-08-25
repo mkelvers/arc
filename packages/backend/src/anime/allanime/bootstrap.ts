@@ -1,10 +1,15 @@
 import { record, type JsonValue } from '#utils';
+import { z } from 'zod';
 import { origin, userAgent } from './client';
 
 interface ClientData {
     bootstrap: Record<string, JsonValue> | null;
     buildId: string;
     mask: Buffer;
+    bootPrefix?: string;
+    join?: string;
+    parts?: Array<'buildId' | 'group' | 'host' | 'epoch' | 'lane'>;
+    omitEmptyLane?: boolean;
 }
 
 interface StringResolver {
@@ -83,7 +88,177 @@ function decodeMaskParts(source: string, values: string[], wrappers: Map<string,
     );
 }
 
-export function decodeChunk(chunk: string) {
+function functionSource(text: string, name: string) {
+    const match = new RegExp(`function\\s+${name}\\s*\\(`).exec(text);
+    if (!match) return null;
+    const start = text.indexOf('{', match.index);
+    let depth = 0;
+    for (let index = start; index < text.length; index++) {
+        if (text[index] === '{') depth++;
+        if (text[index] === '}' && --depth === 0) return text.slice(match.index, index + 1);
+    }
+    return null;
+}
+
+function openingParen(text: string, end: number) {
+    let depth = 0;
+    for (let index = end; index >= 0; index--) {
+        if (text[index] === ')') depth++;
+        if (text[index] === '(' && --depth === 0) return index;
+    }
+    return -1;
+}
+
+function expressionEnd(text: string, start: number) {
+    const opening = text[start];
+    const closing = opening === '(' ? ')' : opening === '{' ? '}' : ']';
+    let depth = 0;
+    let quote: string | null = null;
+    let escaped = false;
+
+    for (let index = start; index < text.length; index++) {
+        const character = text[index];
+        if (quote) {
+            if (escaped) {
+                escaped = false;
+            } else if (character === '\\') {
+                escaped = true;
+            } else if (character === quote) {
+                quote = null;
+            }
+            continue;
+        }
+
+        if (character === '"' || character === "'" || character === '`') {
+            quote = character;
+        } else if (character === opening) {
+            depth++;
+        } else if (character === closing && --depth === 0) {
+            return index + 1;
+        }
+    }
+
+    return -1;
+}
+
+function evalFragmentCryptoChunk(chunk: string) {
+    const configAt = chunk.search(/\b(?:saltMul|fragMul)\s*:/);
+    const declarationAt = configAt === -1 ? -1 : chunk.lastIndexOf('const ', configAt);
+    const layout =
+        declarationAt === -1
+            ? null
+            : /const\s+([A-Za-z_$][\w$]*)\s*=\s*(.+?),\s*[A-Za-z_$][\w$]*\s*=\s*Number\([^;]+?\),\s*[A-Za-z_$][\w$]*\s*=\s*Number\([^;]+?\),\s*([A-Za-z_$][\w$]*)\s*=\s*(\[[^\]]+\]),\s*([A-Za-z_$][\w$]*)\s*=\s*(\{[^{}]+\})\s*;\s*function\s+[A-Za-z_$][\w$]*\s*\(/.exec(
+                  chunk.slice(declarationAt)
+              );
+    if (!layout) return null;
+
+    const [, , buildExpr, , partsExpr, , configExpr] = layout;
+    const names = new Set(
+        [...`${buildExpr};${partsExpr};${configExpr}`.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(
+            (match) => match[1]
+        )
+    );
+    const helpers: string[] = [];
+    let foundTable = false;
+    for (let pass = 0; pass < 8 && !foundTable; pass++) {
+        let changed = false;
+        for (const name of names) {
+            if (helpers.some((source) => new RegExp(`function\\s+${name}\\s*\\(`).test(source)))
+                continue;
+            const source = functionSource(chunk, name);
+            if (!source) continue;
+            helpers.push(source);
+            if (/^function\s+[A-Za-z_$][\w$]*\s*\(\)\s*\{const\s+e=\[/.test(source)) {
+                foundTable = true;
+                break;
+            }
+            for (const reference of source.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) {
+                if (!names.has(reference[1])) {
+                    names.add(reference[1]);
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) {
+            break;
+        }
+    }
+
+    const tableSource =
+        helpers.find((source) =>
+            /^function\s+[A-Za-z_$][\w$]*\s*\(\)\s*\{const\s+e=\[/.test(source)
+        ) ?? null;
+    const tableName = tableSource?.match(/^function\s+([A-Za-z_$][\w$]*)\s*\(/)?.[1];
+    const tableInitEnd = tableName ? chunk.lastIndexOf(`)(${tableName},`, declarationAt) : -1;
+    const tableCallStart = tableInitEnd === -1 ? -1 : tableInitEnd + 1;
+    const tableInitStart = tableInitEnd === -1 ? -1 : openingParen(chunk, tableInitEnd);
+    const tableCallEnd = tableCallStart === -1 ? -1 : expressionEnd(chunk, tableCallStart);
+    const tableInit =
+        tableInitStart === -1 || tableCallEnd === -1
+            ? ''
+            : chunk.slice(tableInitStart, tableCallEnd);
+    if (!tableSource) return null;
+
+    const source = `${tableSource}\n${tableInit}\n${helpers
+        .filter((value) => !value.startsWith(`function ${tableName}`))
+        .join(
+            '\n'
+        )}\nreturn { buildId: (${buildExpr}), maskParts: (${partsExpr}), params: (${configExpr}) };`;
+    const result = Function(source)() as unknown;
+    const parsed = z
+        .object({
+            buildId: z.string().min(1),
+            maskParts: z.array(z.string()).min(4),
+            params: z.object({
+                saltMul: z.number().finite(),
+                saltAdd: z.number().finite(),
+                fragMul: z.number().finite(),
+                fragAdd: z.number().finite(),
+                join: z.string(),
+                bootPrefix: z.string(),
+                parts: z.array(z.enum(['buildId', 'group', 'host', 'epoch', 'lane'])).min(1),
+                omitEmptyLane: z.boolean().optional(),
+            }),
+        })
+        .safeParse(result);
+    if (!parsed.success) return null;
+
+    const { buildId, maskParts, params } = parsed.data;
+    const salt = Buffer.alloc(32);
+    for (let index = 0; index < salt.length; index++) {
+        salt[index] =
+            (buildId.charCodeAt(index % buildId.length) || 0) ^
+            ((index * params.saltMul + params.saltAdd) & 0xff);
+    }
+    const mask = Buffer.alloc(32);
+    for (let group = 0; group < 4; group++) {
+        const part = Buffer.from(maskParts[group], 'base64');
+        if (part.length !== 8) return null;
+        for (let index = 0; index < 8; index++) {
+            mask[group * 8 + index] =
+                part[index] ^
+                salt[group * 8 + index] ^
+                ((group * params.fragMul + index * params.fragAdd) & 0xff);
+        }
+    }
+    return {
+        buildId,
+        mask,
+        bootPrefix: params.bootPrefix,
+        join: params.join,
+        parts: params.parts,
+        omitEmptyLane: params.omitEmptyLane ?? false,
+    };
+}
+
+export function decodeChunk(chunk: string): Omit<ClientData, 'bootstrap'> | null {
+    try {
+        const fragments = evalFragmentCryptoChunk(chunk);
+        if (fragments) return fragments;
+    } catch {
+        // Ignore malformed downloaded chunks and retain the compatibility parser.
+    }
+
     const legacy = chunk.match(
         /\?["']([0-9a-f]{64})["']:["']["'],\w+=[^;]{0,100}\?["']([A-Za-z0-9._-]+)["']:["']["']/
     );
@@ -94,11 +269,7 @@ export function decodeChunk(chunk: string) {
         };
     }
 
-    if (
-        !chunk.includes('/client-crypto/v1/bootstrap?buildId=') ||
-        !chunk.includes('aa-boo') ||
-        !chunk.includes('partB')
-    ) {
+    if (!chunk.includes('/client-crypto/v1/bootstrap?buildId=') || !chunk.includes('partB')) {
         return null;
     }
 
