@@ -16,6 +16,7 @@ const searchSchema = z.object({
                 anime_id: z.string(),
                 title: z.unknown().optional(),
                 anilist_id: z.unknown().optional(),
+                subbed: z.union([z.number(), z.string()]).optional(),
                 dubbed: z.union([z.number(), z.string()]).optional(),
             })
         )
@@ -81,11 +82,26 @@ export function parseReAnimeLinks(value: z.input<typeof linksSchema> | z.input<t
         ...(linksSchema.safeParse(value).data?.episode_links ?? []),
         ...(flixSchema.safeParse(value).data?.servers ?? []),
     ];
-    return links.flatMap((link) => {
+    const streams = links.flatMap((link) => {
         const url = httpsUrl(link.dataLink);
         if (!url) return [];
         const mode: AudioMode = /(?:^|-)dub$|dub/i.test(link.dataType) ? 'dub' : 'sub';
         return [{ mode, url: url.toString() }];
+    });
+    const subUrls = new Set(
+        streams.flatMap((stream) => (stream.mode === 'sub' ? [stream.url] : []))
+    );
+    const seen = new Set<string>();
+    return streams.filter((stream) => {
+        if (stream.mode === 'dub' && subUrls.has(stream.url)) {
+            return false;
+        }
+        const key = `${stream.mode}\n${stream.url}`;
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
     });
 }
 
@@ -97,7 +113,12 @@ async function findSeries(anime: AniListAnime) {
             headers
         );
         const direct = payload.results?.find((item) => Number(item.anilist_id) === anime.id);
-        if (direct) return { slug: direct.anime_id, hasDub: Number(direct.dubbed) > 0 };
+        if (direct)
+            return {
+                slug: direct.anime_id,
+                subbed: Number(direct.subbed) || 0,
+                dubbed: Number(direct.dubbed) || 0,
+            };
         for (const item of payload.results ?? []) {
             const detail = await requestJson(
                 new URL(`/api/v1/anime/${item.anime_id}`, baseUrl),
@@ -105,7 +126,11 @@ async function findSeries(anime: AniListAnime) {
                 headers
             ).catch(() => null);
             if (detail?.anilist_id === anime.id)
-                return { slug: item.anime_id, hasDub: Number(item.dubbed) > 0 };
+                return {
+                    slug: item.anime_id,
+                    subbed: Number(item.subbed) || 0,
+                    dubbed: Number(item.dubbed) || 0,
+                };
         }
     }
     throw new Error(`ReAnime has no confirmed match for AniList ${anime.id}`);
@@ -120,15 +145,18 @@ async function inventory(anime: AniListAnime) {
     );
     const parsed = parseReAnimeEpisodes(payload);
     if (!parsed.length) throw new Error(`ReAnime returned no episodes for AniList ${anime.id}`);
-    return { slug: series.slug, hasDub: series.hasDub, episodes: parsed };
+    return { ...series, episodes: parsed };
 }
 
 async function getEpisodes(anime: AniListAnime) {
-    const { episodes, hasDub } = await inventory(anime);
+    const { episodes, subbed, dubbed } = await inventory(anime);
     return episodes.map((episode): ReAnimeEpisode => ({
         ...episode,
         id: String(episode.number),
-        audio: hasDub ? ['sub', 'dub'] : ['sub'],
+        audio: [
+            ...(episode.number <= subbed ? (['sub'] as const) : []),
+            ...(episode.number <= dubbed ? (['dub'] as const) : []),
+        ],
         sourceNumber: episode.number,
         links: {},
     }));
