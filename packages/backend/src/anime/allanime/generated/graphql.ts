@@ -59,6 +59,15 @@ export type AllAnimeEpisodeSourcesQueryVariables = Exact<{
 
 export type AllAnimeEpisodeSourcesQuery = { episode: { sourceUrls: unknown } | null };
 
+export type AllAnimeExpandedEpisodeSourcesQueryVariables = Exact<{
+  showId: string;
+  translationType: VaildTranslationTypeEnumType;
+  episodeString: string;
+}>;
+
+
+export type AllAnimeExpandedEpisodeSourcesQuery = { episode: { episodeString: string | null, uploadDate: string | null, sourceUrls: unknown, thumbnail: string | null, notes: string | null, versionFix: unknown, show: { _id: string | null, name: string | null, englishName: string | null, nativeName: string | null, slugTime: string | null, thumbnail: string | null, lastEpisodeInfo: unknown, lastEpisodeDate: string | null, type: string | null, season: unknown, score: number | null, airedStart: string | null, availableEpisodes: unknown, episodeDuration: unknown, episodeCount: string | null, lastUpdateEnd: string | null, characterCount: unknown, description: string | null, broadcastInterval: unknown, banner: string | null, characters: unknown, availableEpisodesDetail: unknown, nameOnlyString: string | null, isAdult: boolean | null, relatedShows: unknown, relatedMangas: unknown, altNames: unknown, disqusIds: unknown, tbObj: { u: string | null, sm: string | null, md: string | null, ts: string | null } | null } | null, pageStatus: { _id: string | null, notes: string | null, pageId: string | null, showId: string | null, views: number | null, likesCount: number | null, commentCount: number | null, dislikesCount: number | null, boostsCount: number | null, reviewCount: number | null, userScoreCount: number | null, userScoreTotalValue: number | null, userScoreAverValue: number | null, viewers: { firstViewers: { viewCount: number | null, lastWatchedDate: string | null, user: { _id: string | null, username: string | null, displayName: string | null, createdAt: string | null, picture: string | null, reputation: number | null, roleLevel: number | null, brief: string | null, followerCount: number | null, followingCount: number | null, pDec: unknown, equippedBadgeKey: string | null, hideMe: boolean | null, equippedBadge: { key: string | null, name: string | null, rank: number | null, iconPath: string | null, date: string | null } | null, ugcContributorStats: { mediaEditReviewSubmitCount: number | null, mediaEditApprovedCount: number | null, mediaEditRejectedCount: number | null, mediaEditAppliedCount: number | null, mediaEditContributionPoints: number | null, mediaEditModContributionPoints: number | null } | null } | null } | null, recViewers: { viewCount: number | null, lastWatchedDate: string | null, user: { _id: string | null, username: string | null, displayName: string | null, createdAt: string | null, picture: string | null, reputation: number | null, roleLevel: number | null, brief: string | null, followerCount: number | null, followingCount: number | null, pDec: unknown, equippedBadgeKey: string | null, hideMe: boolean | null, equippedBadge: { key: string | null, name: string | null, rank: number | null, iconPath: string | null, date: string | null } | null, ugcContributorStats: { mediaEditReviewSubmitCount: number | null, mediaEditApprovedCount: number | null, mediaEditRejectedCount: number | null, mediaEditAppliedCount: number | null, mediaEditContributionPoints: number | null, mediaEditModContributionPoints: number | null } | null } | null } | null } | null } | null, episodeInfo: { notes: string | null, thumbnails: unknown, vidInforssub: unknown, uploadDates: unknown, vidInforsdub: unknown, vidInforsraw: unknown, description: string | null, tbObj: { u: string | null, sm: string | null, md: string | null, ts: string | null } | null } | null } | null };
+
 export class TypedDocumentString<TResult, TVariables>
   extends String
   implements DocumentTypeDecoration<TResult, TVariables>
@@ -160,3 +169,156 @@ export const AllAnimeEpisodeSourcesDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AllAnimeEpisodeSourcesQuery, AllAnimeEpisodeSourcesQueryVariables>;
+export const AllAnimeExpandedEpisodeSourcesDocument = new TypedDocumentString(`
+    query AllAnimeExpandedEpisodeSources($showId: String!, $translationType: VaildTranslationTypeEnumType!, $episodeString: String!) {
+  episode(
+    showId: $showId
+    translationType: $translationType
+    episodeString: $episodeString
+  ) {
+    episodeString
+    uploadDate
+    sourceUrls
+    thumbnail
+    notes
+    show {
+      _id
+      name
+      englishName
+      nativeName
+      slugTime
+      thumbnail
+      tbObj {
+        u
+        sm
+        md
+        ts
+      }
+      lastEpisodeInfo
+      lastEpisodeDate
+      type
+      season
+      score
+      airedStart
+      availableEpisodes
+      episodeDuration
+      episodeCount
+      lastUpdateEnd
+      characterCount
+      description
+      broadcastInterval
+      banner
+      characters
+      availableEpisodesDetail
+      nameOnlyString
+      characters
+      isAdult
+      relatedShows
+      relatedMangas
+      altNames
+      disqusIds
+    }
+    pageStatus {
+      _id
+      notes
+      pageId
+      showId
+      views
+      likesCount
+      commentCount
+      dislikesCount
+      boostsCount
+      reviewCount
+      userScoreCount
+      userScoreTotalValue
+      userScoreAverValue
+      viewers {
+        firstViewers {
+          viewCount
+          lastWatchedDate
+          user {
+            _id
+            username
+            displayName
+            createdAt
+            picture
+            reputation
+            roleLevel
+            brief
+            followerCount
+            followingCount
+            pDec
+            equippedBadgeKey
+            equippedBadge {
+              key
+              name
+              rank
+              iconPath
+              date
+            }
+            ugcContributorStats {
+              mediaEditReviewSubmitCount
+              mediaEditApprovedCount
+              mediaEditRejectedCount
+              mediaEditAppliedCount
+              mediaEditContributionPoints
+              mediaEditModContributionPoints
+            }
+            hideMe
+          }
+        }
+        recViewers {
+          viewCount
+          lastWatchedDate
+          user {
+            _id
+            username
+            displayName
+            createdAt
+            picture
+            reputation
+            roleLevel
+            brief
+            followerCount
+            followingCount
+            pDec
+            equippedBadgeKey
+            equippedBadge {
+              key
+              name
+              rank
+              iconPath
+              date
+            }
+            ugcContributorStats {
+              mediaEditReviewSubmitCount
+              mediaEditApprovedCount
+              mediaEditRejectedCount
+              mediaEditAppliedCount
+              mediaEditContributionPoints
+              mediaEditModContributionPoints
+            }
+            hideMe
+          }
+        }
+      }
+    }
+    episodeInfo {
+      notes
+      thumbnails
+      tbObj {
+        u
+        sm
+        md
+        ts
+      }
+      vidInforssub
+      uploadDates
+      vidInforsdub
+      vidInforsraw
+      description
+    }
+    versionFix
+  }
+}
+    `) as unknown as TypedDocumentString<AllAnimeExpandedEpisodeSourcesQuery, AllAnimeExpandedEpisodeSourcesQueryVariables>;
