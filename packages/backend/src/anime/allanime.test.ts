@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 
-import { encryptedSources } from './allanime';
+import { encryptedSources } from './allanime/source-request';
 
 const crypto = {
     buildId: 'build-test',
@@ -66,7 +67,7 @@ describe('AllAnime episode source requests', () => {
         expect(body.query).toContain('lastEpisodeInfo');
         expect(body.query).toContain('pageStatus');
         expect(body.extensions.persistedQuery.sha256Hash).toBe(
-            '04bd3a7b24fc732c07c2e3bd92126bcdd901293c9dfbe678352dca0f4877d697'
+            createHash('sha256').update(body.query).digest('hex')
         );
         expect(body.extensions.aaReq).toBeString();
     });
