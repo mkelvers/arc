@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { RequestCache } from '#request-cache';
 import type { AniListAnime } from '../anilist/types';
 import { animeTitles } from '../anilist/text';
 import type { AudioMode } from '@arc/shared/audio';
@@ -47,8 +48,11 @@ const serversSchema = z.object({
 });
 
 interface KaaEpisode extends ProviderEpisode {
-    sourceSlug: string;
+    showSlug: string;
+    sourceSlugs: Partial<Record<AudioMode, string>>;
 }
+
+const inventoryCache = new RequestCache<number, KaaEpisode[]>(2 * 60 * 1_000);
 
 function score(title: string, candidate: string) {
     const left = title
@@ -117,16 +121,35 @@ async function findSeries(anime: AniListAnime) {
     return best.slug;
 }
 
-async function episodePage(slug: string, number: number) {
+async function episodePage(slug: string, number: number, locale: 'en-US' | 'ja-JP') {
     return requestJson(
-        new URL(`/api/show/${slug}/episodes?ep=${number}&lang=ja-JP`, baseUrl),
+        new URL(`/api/show/${slug}/episodes?ep=${number}&lang=${locale}`, baseUrl),
         pageSchema,
         headers
     );
 }
 
+async function episodesForLocale(slug: string, locale: 'en-US' | 'ja-JP') {
+    const first = await episodePage(slug, 1, locale);
+    const pages = first.pages ?? [];
+    const responses = [
+        first,
+        ...(await Promise.all(
+            pages.slice(1).map(async (page) => {
+                const number = episodeNumber(page.eps?.[0]);
+                return number ? episodePage(slug, number, locale) : { result: [] };
+            })
+        )),
+    ];
+    const episodes = responses.flatMap(mapKaaEpisodes);
+    return [...new Map(episodes.map((episode) => [episode.number, episode])).values()];
+}
+
 async function playableManifest(url: URL) {
-    const headers = { Accept: 'application/vnd.apple.mpegurl', Referer: `${baseUrl}/` };
+    const headers = {
+        Accept: 'application/vnd.apple.mpegurl',
+        Referer: 'https://krussdomi.com/',
+    };
     const master = await requestText(url, headers);
     const child = master
         .split(/\r?\n/)
@@ -140,36 +163,44 @@ async function playableManifest(url: URL) {
     return !/\.(?:jpe?g|png)(?:[?#]|$)/im.test(media);
 }
 
-async function inventory(anime: AniListAnime) {
+async function loadInventory(anime: AniListAnime) {
     const slug = await findSeries(anime);
-    const first = await episodePage(slug, 1);
-    const pages = first.pages ?? [];
-    const batches = [
-        first,
-        ...(await Promise.all(
-            pages.slice(1).map(async (page) => {
-                const number = episodeNumber(page.eps?.[0]);
-                return number ? episodePage(slug, number) : { result: [] };
-            })
-        )),
-    ];
-    const all = batches.flatMap(mapKaaEpisodes);
-    const episodes = [...new Map(all.map((episode) => [episode.number, episode])).values()];
-    if (!episodes.length)
-        throw new Error(`KickAssAnime returned no episodes for AniList ${anime.id}`);
     const show = await requestJson(new URL(`/api/show/${slug}`, baseUrl), showSchema, headers);
-    return { slug, episodes, hasDub: show.locales?.includes('en-US') ?? false };
+    const [sub, dub] = await Promise.all([
+        episodesForLocale(slug, 'ja-JP'),
+        show.locales?.includes('en-US') ? episodesForLocale(slug, 'en-US') : Promise.resolve([]),
+    ]);
+    const episodes = new Map<number, KaaEpisode>();
+    for (const [mode, available] of [
+        ['sub', sub],
+        ['dub', dub],
+    ] as const) {
+        for (const episode of available) {
+            const existing = episodes.get(episode.number) ?? {
+                id: String(episode.number),
+                number: episode.number,
+                title: episode.title,
+                audio: [],
+                showSlug: slug,
+                sourceSlugs: {},
+            };
+            existing.sourceSlugs[mode] = episode.slug;
+            existing.audio.push(mode);
+            episodes.set(episode.number, existing);
+        }
+    }
+    const available = [...episodes.values()].toSorted((left, right) => left.number - right.number);
+    if (!available.length)
+        throw new Error(`KickAssAnime returned no episodes for AniList ${anime.id}`);
+    return available;
+}
+
+function inventory(anime: AniListAnime) {
+    return inventoryCache.get(anime.id, () => loadInventory(anime));
 }
 
 async function getEpisodes(anime: AniListAnime) {
-    const { episodes, hasDub } = await inventory(anime);
-    return episodes.map((episode): KaaEpisode => ({
-        id: String(episode.number),
-        number: episode.number,
-        title: episode.title,
-        audio: hasDub ? ['sub', 'dub'] : ['sub'],
-        sourceSlug: episode.slug,
-    }));
+    return inventory(anime);
 }
 
 async function getStreams(
@@ -177,29 +208,26 @@ async function getStreams(
     episode: Parameters<PlaybackProvider['getStreams']>[1],
     modes: AudioMode[]
 ) {
-    const { slug, episodes, hasDub } = await inventory(anime);
-    const available = episodes.map((item): KaaEpisode => ({
-        id: String(item.number),
-        number: item.number,
-        title: item.title,
-        audio: hasDub ? ['sub', 'dub'] : ['sub'],
-        sourceSlug: item.slug,
-    }));
-    const match = matchProviderStreamEpisode(available, episode, anime.episodes);
+    const episodes = await inventory(anime);
+    const match = matchProviderStreamEpisode(episodes, episode, anime.episodes);
     if (!match)
         throw new Error(`KickAssAnime cannot map episode ${episode.id} for AniList ${anime.id}`);
-    const payload = await requestJson(
-        new URL(`/api/show/${slug}/episode/ep-${match.number}-${match.sourceSlug}`, baseUrl),
-        serversSchema,
-        headers
-    );
     const result: Partial<Record<AudioMode, ProviderStream[]>> = {};
     for (const mode of requestedModes(modes)) {
-        if (!match.audio.includes(mode)) continue;
+        const sourceSlug = match.sourceSlugs[mode];
+        if (!sourceSlug) continue;
+        const payload = await requestJson(
+            new URL(
+                `/api/show/${match.showSlug}/episode/ep-${match.number}-${sourceSlug}`,
+                baseUrl
+            ),
+            serversSchema,
+            headers
+        );
         const streams = (
             await Promise.all(
-                (payload.servers ?? []).map(async (server) => {
-                    const playerUrl = httpsUrl(server.src);
+                (payload.servers ?? []).map(async ({ src }) => {
+                    const playerUrl = httpsUrl(src);
                     if (!playerUrl) {
                         return null;
                     }
@@ -213,24 +241,43 @@ async function getStreams(
                             /&quot;manifest&quot;:\[0,&quot;([^&]+)&quot;/
                         )?.[1];
                         if (!encoded) {
-                            return null;
+                            return {
+                                url: playerUrl.toString(),
+                                kind: 'iframe' as const,
+                                quality: null,
+                                subtitleUrl: null,
+                                provider: 'KickAssAnime',
+                            };
                         }
 
                         const manifest = encoded.replaceAll('&amp;', '&').replaceAll('&quot;', '"');
                         const url = httpsUrl(
                             manifest.startsWith('//') ? `https:${manifest}` : manifest
                         );
-                        return url && (await playableManifest(url))
-                            ? {
-                                  url: url.toString(),
-                                  kind: 'direct' as const,
-                                  quality: null,
-                                  subtitleUrl: null,
-                                  provider: 'KickAssAnime',
-                              }
-                            : null;
+                        if (url && (await playableManifest(url))) {
+                            return {
+                                url: url.toString(),
+                                kind: 'direct' as const,
+                                quality: null,
+                                subtitleUrl: null,
+                                provider: 'KickAssAnime',
+                            };
+                        }
+                        return {
+                            url: playerUrl.toString(),
+                            kind: 'iframe' as const,
+                            quality: null,
+                            subtitleUrl: null,
+                            provider: 'KickAssAnime',
+                        };
                     } catch {
-                        return null;
+                        return {
+                            url: playerUrl.toString(),
+                            kind: 'iframe' as const,
+                            quality: null,
+                            subtitleUrl: null,
+                            provider: 'KickAssAnime',
+                        };
                     }
                 })
             )
