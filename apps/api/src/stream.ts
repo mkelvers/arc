@@ -48,6 +48,7 @@ const providerHostGroups: readonly ProviderHostGroup[] = [
     { hosts: ['lostproject.club'], referer: 'https://megaplay.buzz/' },
     { hosts: ['animegg.org', 'vidcache.net'], referer: 'https://www.animegg.org/' },
     { hosts: ['vid-cdn.xyz', 'xin-cdn.xyz'], referer: 'https://anizone.to/' },
+    { hosts: ['hls.krussdomi.com'], referer: 'https://krussdomi.com/' },
     { hosts: ['kwik.cx', 'uwucdn.top', 'streampeaker.org'], referer: 'https://kwik.cx/' },
     {
         hosts: ['vibevibe.workers.dev', 'vivibebe.site', 'anizara.store', 'ibyteimg.com'],
