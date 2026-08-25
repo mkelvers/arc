@@ -33,7 +33,6 @@ export class Playback {
     volume = $state(1);
     autoplay = $state(true);
     quality = $state('best');
-    iframeEnabled = $state(false);
     hlsQualities = $state<HlsQuality[]>([]);
     hlsCurrentQuality = $state<string | null>(null);
     sourceIndex = $state(0);
@@ -57,6 +56,9 @@ export class Playback {
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
     private waitingTimer: ReturnType<typeof setTimeout> | undefined;
     private allSources: Sources;
+    private preferredMode: AudioMode | null = null;
+    private modeSelected = false;
+    private mounted = false;
 
     constructor(
         sources: Sources,
@@ -72,12 +74,7 @@ export class Playback {
         this.sources = Object.fromEntries(
             Object.entries(this.allSources).map(([mode, streams]) => [
                 mode,
-                this.iframeEnabled
-                    ? streams
-                    : (() => {
-                          const direct = streams?.filter((stream) => stream.kind !== 'iframe');
-                          return direct?.length ? direct : streams;
-                      })(),
+                streams?.filter((stream) => stream.kind !== 'iframe'),
             ])
         );
     }
@@ -86,6 +83,13 @@ export class Playback {
         this.allSources = sources;
         this.applySourcePreference();
         this.next = next;
+        if (!this.modeSelected && this.preferredMode && this.sources[this.preferredMode]?.length) {
+            this.mode = this.preferredMode;
+            this.resetSource();
+            if (this.mounted) {
+                void this.reloadSource();
+            }
+        }
     }
 
     private get modeSources() {
@@ -194,14 +198,6 @@ export class Playback {
     toggleAutoplay() {
         this.autoplay = !this.autoplay;
         preferences.save('autoplay', this.autoplay);
-    }
-
-    async toggleIframes() {
-        this.iframeEnabled = !this.iframeEnabled;
-        preferences.save('iframes', this.iframeEnabled);
-        this.applySourcePreference();
-        this.resetSource();
-        await this.reloadSource();
     }
 
     private rememberPlayback() {
@@ -409,6 +405,7 @@ export class Playback {
         }
 
         this.rememberPlayback();
+        this.modeSelected = true;
         this.mode = mode;
 
         this.resetSource();
@@ -706,7 +703,7 @@ export class Playback {
 
     mount() {
         const saved = preferences.load(this.sources, this.qualities);
-        this.iframeEnabled = saved.iframes ?? false;
+        this.preferredMode = saved.preferredMode;
         this.applySourcePreference();
 
         if (!this.sources[this.mode]?.length) {
@@ -758,6 +755,7 @@ export class Playback {
             this.captions.edgeStyle = saved.subtitleEdgeStyle;
         }
 
+        this.mounted = true;
         this.resetSource();
         void this.reloadSource();
 

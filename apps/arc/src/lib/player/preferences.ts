@@ -87,10 +87,9 @@ export function load(sources: Sources, qualities: string[]) {
     const rawVolume = values.volume ?? null;
     const volume = rawVolume === null ? null : Number(rawVolume);
     const rawMode = values['audio-mode'] ?? null;
-    const mode: AudioMode | null =
-        (rawMode === 'sub' || rawMode === 'dub' || rawMode === 'raw') && sources[rawMode]?.length
-            ? rawMode
-            : null;
+    const preferredMode: AudioMode | null =
+        rawMode === 'sub' || rawMode === 'dub' || rawMode === 'raw' ? rawMode : null;
+    const mode = preferredMode && sources[preferredMode]?.length ? preferredMode : null;
     const rawAutoplay = values.autoplay ?? null;
     const autoplay =
         rawAutoplay === 'true' || rawAutoplay === 'false' ? rawAutoplay === 'true' : null;
@@ -158,6 +157,7 @@ export function load(sources: Sources, qualities: string[]) {
                 ? volume
                 : null,
         mode,
+        preferredMode,
         autoplay,
         iframes: rawIframes === 'true' ? true : rawIframes === 'false' ? false : null,
         quality,
