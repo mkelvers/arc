@@ -12,8 +12,16 @@ import { discoverEpisodeInventory } from './episodes/sync';
 export { withMovieBackdrop } from './movie-backdrop';
 
 export async function getEpisodes(anime: AniListAnime) {
-    const stored = await storedEpisodes(anime);
-    if (!episodeInventoryNeedsDiscovery(anime, stored)) {
+    const [stored, sync] = await Promise.all([
+        storedEpisodes(anime),
+        db
+            .select({ nextRefreshAt: animeEpisodeSync.nextRefreshAt })
+            .from(animeEpisodeSync)
+            .where(eq(animeEpisodeSync.anilistId, anime.id))
+            .limit(1)
+            .then(([state]) => state ?? null),
+    ]);
+    if (!episodeInventoryNeedsDiscovery(anime, stored, sync?.nextRefreshAt)) {
         return stored;
     }
 
