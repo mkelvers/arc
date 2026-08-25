@@ -65,7 +65,8 @@ export class Playback {
         private next: string | null
     ) {
         this.allSources = sources;
-        this.sources = sources;
+        this.sources = {};
+        this.applySourcePreference();
     }
 
     private sources: Sources;
@@ -760,6 +761,7 @@ export class Playback {
         void this.reloadSource();
 
         return () => {
+            this.mounted = false;
             this.clearSourceWatchdog();
             this.clearWaitingTimer();
             this.captions.clear();
