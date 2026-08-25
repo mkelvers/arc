@@ -3,6 +3,22 @@ import { describe, expect, test } from 'bun:test';
 import { decodeChunk } from './bootstrap';
 
 describe('AllAnime client bootstrap', () => {
+    test('never executes expressions from a downloaded chunk', () => {
+        const originalPoolSize = Buffer.poolSize;
+        const chunk = [
+            'function q(){const e=["AQIDBAUGBwg=","CQoLDA0ODxA=","ERITFBUWFxg=","GRobHB0eHyA="];return q=function(){return e},q()}',
+            'const build=(Buffer.poolSize=1)&&"build-7",n=Number(1),m=Number(2),parts=[r(0),r(1),r(2),r(3)],params={saltMul:250,saltAdd:54,fragMul:16,fragAdd:217,join:".",bootPrefix:"boot:",parts:["buildId","group","host","epoch","lane"],omitEmptyLane:false};',
+            'function r(a,b){return q()[a]}',
+        ].join('');
+
+        try {
+            expect(decodeChunk(chunk)).toBeNull();
+            expect(Buffer.poolSize).toBe(originalPoolSize);
+        } finally {
+            Buffer.poolSize = originalPoolSize;
+        }
+    });
+
     test('evaluates the current fragment crypto config', () => {
         const chunk = [
             'function q(){const e=["build-7","AQIDBAUGBwg=","CQoLDA0ODxA=","ERITFBUWFxg=","GRobHB0eHyA="];return q=function(){return e},q()}',

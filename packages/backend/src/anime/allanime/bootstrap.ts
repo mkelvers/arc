@@ -17,6 +17,21 @@ interface StringResolver {
     offset: number;
 }
 
+const fragmentSchema = z.object({
+    buildId: z.string().min(1),
+    maskParts: z.array(z.string()).length(4),
+    params: z.object({
+        saltMul: z.number().finite(),
+        saltAdd: z.number().finite(),
+        fragMul: z.number().finite(),
+        fragAdd: z.number().finite(),
+        join: z.string(),
+        bootPrefix: z.string(),
+        parts: z.array(z.enum(['buildId', 'group', 'host', 'epoch', 'lane'])).min(1),
+        omitEmptyLane: z.boolean().optional(),
+    }),
+});
+
 function calculate(expression: string) {
     const tokens = expression.match(/\d+|[-+*/]/g) ?? [];
     if (tokens.join('') !== expression.replaceAll(' ', '')) {
@@ -88,36 +103,15 @@ function decodeMaskParts(source: string, values: string[], wrappers: Map<string,
     );
 }
 
-function functionSource(text: string, name: string) {
-    const match = new RegExp(`function\\s+${name}\\s*\\(`).exec(text);
-    if (!match) return null;
-    const start = text.indexOf('{', match.index);
-    let depth = 0;
-    for (let index = start; index < text.length; index++) {
-        if (text[index] === '{') depth++;
-        if (text[index] === '}' && --depth === 0) return text.slice(match.index, index + 1);
-    }
-    return null;
-}
-
-function openingParen(text: string, end: number) {
-    let depth = 0;
-    for (let index = end; index >= 0; index--) {
-        if (text[index] === ')') depth++;
-        if (text[index] === '(' && --depth === 0) return index;
-    }
-    return -1;
-}
-
-function expressionEnd(text: string, start: number) {
-    const opening = text[start];
-    const closing = opening === '(' ? ')' : opening === '{' ? '}' : ']';
+function splitTopLevel(value: string, delimiter: ',' | '+') {
+    const parts: string[] = [];
+    let start = 0;
     let depth = 0;
     let quote: string | null = null;
     let escaped = false;
 
-    for (let index = start; index < text.length; index++) {
-        const character = text[index];
+    for (let index = 0; index < value.length; index++) {
+        const character = value[index];
         if (quote) {
             if (escaped) {
                 escaped = false;
@@ -128,20 +122,137 @@ function expressionEnd(text: string, start: number) {
             }
             continue;
         }
-
-        if (character === '"' || character === "'" || character === '`') {
+        if (character === '"' || character === "'") {
             quote = character;
-        } else if (character === opening) {
+        } else if (character === '(' || character === '[' || character === '{') {
             depth++;
-        } else if (character === closing && --depth === 0) {
-            return index + 1;
+        } else if (character === ')' || character === ']' || character === '}') {
+            depth--;
+        } else if (character === delimiter && depth === 0) {
+            parts.push(value.slice(start, index).trim());
+            start = index + 1;
+        }
+    }
+    parts.push(value.slice(start).trim());
+    return parts;
+}
+
+function stringLiteral(value: string) {
+    if (value.startsWith('"')) {
+        const parsed = z.string().safeParse(JSON.parse(value));
+        return parsed.success ? parsed.data : null;
+    }
+    if (!value.startsWith("'") || !value.endsWith("'")) {
+        return null;
+    }
+    return value.slice(1, -1).replace(/\\(["'\\])/g, '$1');
+}
+
+function resolverMap(chunk: string, table: string) {
+    const resolvers = new Map<string, StringResolver>();
+    const direct = new RegExp(
+        `function\\s+(\\w+)\\((\\w+)(?:,(\\w+))?\\)\\{return\\s+${table}\\(\\)\\[(\\w+)\\]\\}`,
+        'g'
+    );
+    for (const match of chunk.matchAll(direct)) {
+        const argument = match[4] === match[2] ? 0 : match[4] === match[3] ? 1 : -1;
+        if (argument >= 0) {
+            resolvers.set(match[1], { argument, offset: 0 });
         }
     }
 
-    return -1;
+    const base = new RegExp(
+        `function\\s+(\\w+)\\((\\w+)(?:,(\\w+))?\\)\\{return\\s+(\\w+)=\\4-\\(?([-+*/\\d ]+)\\)?,${table}\\(\\)\\[\\4\\]\\}`,
+        'g'
+    );
+    for (const match of chunk.matchAll(base)) {
+        const argument = match[4] === match[2] ? 0 : match[4] === match[3] ? 1 : -1;
+        const offset = calculate(match[5]);
+        if (argument >= 0 && Number.isSafeInteger(offset)) {
+            resolvers.set(match[1], { argument, offset });
+        }
+    }
+
+    for (let pass = 0; pass < 4; pass++) {
+        let changed = false;
+        const wrapper =
+            /function\s+(\w+)\((\w+)(?:,(\w+))?\)\{return\s+(\w+)\((\w+)-\s*([-+*/\d ]+)\)\}/g;
+        for (const match of chunk.matchAll(wrapper)) {
+            const parent = resolvers.get(match[4]);
+            if (!parent || resolvers.has(match[1])) {
+                continue;
+            }
+            const argument = match[5] === match[2] ? 0 : match[5] === match[3] ? 1 : -1;
+            const offset = calculate(match[6]);
+            if (argument >= 0 && Number.isSafeInteger(offset)) {
+                resolvers.set(match[1], { argument, offset: parent.offset + offset });
+                changed = true;
+            }
+        }
+        if (!changed) {
+            break;
+        }
+    }
+    return resolvers;
 }
 
-function evalFragmentCryptoChunk(chunk: string) {
+function resolveString(
+    expression: string,
+    values: string[],
+    resolvers: Map<string, StringResolver>
+) {
+    let result = '';
+    for (const part of splitTopLevel(expression, '+')) {
+        const literal = stringLiteral(part);
+        if (literal !== null) {
+            result += literal;
+            continue;
+        }
+        const call = /^(\w+)\((-?\d+)(?:,(-?\d+))?\)$/.exec(part);
+        const resolver = call ? resolvers.get(call[1]) : null;
+        if (!call || !resolver) {
+            return null;
+        }
+        const args = callArguments(call[2], call[3]);
+        const argument = args[resolver.argument];
+        const value = argument === undefined ? undefined : values[argument - resolver.offset];
+        if (value === undefined) {
+            return null;
+        }
+        result += value;
+    }
+    return result;
+}
+
+function objectProperties(expression: string) {
+    const properties = new Map<string, string>();
+    if (!expression.startsWith('{') || !expression.endsWith('}')) {
+        return properties;
+    }
+    for (const entry of splitTopLevel(expression.slice(1, -1), ',')) {
+        const colon = entry.indexOf(':');
+        if (colon > 0) {
+            properties.set(entry.slice(0, colon).trim(), entry.slice(colon + 1).trim());
+        }
+    }
+    return properties;
+}
+
+function resolveStringArray(
+    expression: string,
+    values: string[],
+    resolvers: Map<string, StringResolver>
+) {
+    if (!expression.startsWith('[') || !expression.endsWith(']')) {
+        return null;
+    }
+    const resolved = splitTopLevel(expression.slice(1, -1), ',').map((part) =>
+        resolveString(part, values, resolvers)
+    );
+    return resolved.every((value): value is string => value !== null) ? resolved : null;
+}
+
+function decodeFragmentCryptoChunk(chunk: string) {
     const configAt = chunk.search(/\b(?:saltMul|fragMul)\s*:/);
     const declarationAt = configAt === -1 ? -1 : chunk.lastIndexOf('const ', configAt);
     const layout =
@@ -153,77 +264,68 @@ function evalFragmentCryptoChunk(chunk: string) {
     if (!layout) return null;
 
     const [, , buildExpr, , partsExpr, , configExpr] = layout;
-    const names = new Set(
-        [...`${buildExpr};${partsExpr};${configExpr}`.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)].map(
-            (match) => match[1]
-        )
+    const config = objectProperties(configExpr);
+    const tables = chunk.matchAll(
+        /function\s+(\w+)\(\)\{const\s+\w+=\[(.*?)\];return\s+\1=function/gs
     );
-    const helpers: string[] = [];
-    let foundTable = false;
-    for (let pass = 0; pass < 8 && !foundTable; pass++) {
-        let changed = false;
-        for (const name of names) {
-            if (helpers.some((source) => new RegExp(`function\\s+${name}\\s*\\(`).test(source)))
-                continue;
-            const source = functionSource(chunk, name);
-            if (!source) continue;
-            helpers.push(source);
-            if (/^function\s+[A-Za-z_$][\w$]*\s*\(\)\s*\{const\s+e=\[/.test(source)) {
-                foundTable = true;
+    let parsed: z.infer<typeof fragmentSchema> | null = null;
+    for (const table of tables) {
+        const strings = [...table[2].matchAll(/"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'/g)].flatMap(
+            (match) => {
+                const value = stringLiteral(match[0]);
+                return value === null ? [] : [value];
+            }
+        );
+        const resolvers = resolverMap(chunk, table[1]);
+        for (let rotation = 0; rotation < strings.length; rotation++) {
+            const values = [...strings.slice(rotation), ...strings.slice(0, rotation)];
+            const buildId = resolveString(buildExpr, values, resolvers);
+            const maskParts = resolveStringArray(partsExpr, values, resolvers);
+            const bootPrefixExpression = config.get('bootPrefix');
+            const joinExpression = config.get('join');
+            const partsExpression = config.get('parts');
+            const bootPrefix = bootPrefixExpression
+                ? resolveString(bootPrefixExpression, values, resolvers)
+                : null;
+            const join = joinExpression ? resolveString(joinExpression, values, resolvers) : null;
+            const parts = partsExpression
+                ? resolveStringArray(partsExpression, values, resolvers)
+                : null;
+            const omitEmptyLane = config.get('omitEmptyLane');
+            const candidate = fragmentSchema.safeParse({
+                buildId,
+                maskParts,
+                params: {
+                    saltMul: calculate(config.get('saltMul') ?? ''),
+                    saltAdd: calculate(config.get('saltAdd') ?? ''),
+                    fragMul: calculate(config.get('fragMul') ?? ''),
+                    fragAdd: calculate(config.get('fragAdd') ?? ''),
+                    bootPrefix,
+                    join,
+                    parts,
+                    omitEmptyLane:
+                        omitEmptyLane === 'true' || omitEmptyLane === '!0'
+                            ? true
+                            : omitEmptyLane === 'false' || omitEmptyLane === '!1'
+                              ? false
+                              : undefined,
+                },
+            });
+            if (
+                candidate.success &&
+                candidate.data.maskParts.every((part) => Buffer.from(part, 'base64').length === 8)
+            ) {
+                parsed = candidate.data;
                 break;
             }
-            for (const reference of source.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) {
-                if (!names.has(reference[1])) {
-                    names.add(reference[1]);
-                    changed = true;
-                }
-            }
         }
-        if (!changed) {
+        if (parsed) {
             break;
         }
     }
+    if (!parsed) return null;
 
-    const tableSource =
-        helpers.find((source) =>
-            /^function\s+[A-Za-z_$][\w$]*\s*\(\)\s*\{const\s+e=\[/.test(source)
-        ) ?? null;
-    const tableName = tableSource?.match(/^function\s+([A-Za-z_$][\w$]*)\s*\(/)?.[1];
-    const tableInitEnd = tableName ? chunk.lastIndexOf(`)(${tableName},`, declarationAt) : -1;
-    const tableCallStart = tableInitEnd === -1 ? -1 : tableInitEnd + 1;
-    const tableInitStart = tableInitEnd === -1 ? -1 : openingParen(chunk, tableInitEnd);
-    const tableCallEnd = tableCallStart === -1 ? -1 : expressionEnd(chunk, tableCallStart);
-    const tableInit =
-        tableInitStart === -1 || tableCallEnd === -1
-            ? ''
-            : chunk.slice(tableInitStart, tableCallEnd);
-    if (!tableSource) return null;
-
-    const source = `${tableSource}\n${tableInit}\n${helpers
-        .filter((value) => !value.startsWith(`function ${tableName}`))
-        .join(
-            '\n'
-        )}\nreturn { buildId: (${buildExpr}), maskParts: (${partsExpr}), params: (${configExpr}) };`;
-    const result = Function(source)() as unknown;
-    const parsed = z
-        .object({
-            buildId: z.string().min(1),
-            maskParts: z.array(z.string()).min(4),
-            params: z.object({
-                saltMul: z.number().finite(),
-                saltAdd: z.number().finite(),
-                fragMul: z.number().finite(),
-                fragAdd: z.number().finite(),
-                join: z.string(),
-                bootPrefix: z.string(),
-                parts: z.array(z.enum(['buildId', 'group', 'host', 'epoch', 'lane'])).min(1),
-                omitEmptyLane: z.boolean().optional(),
-            }),
-        })
-        .safeParse(result);
-    if (!parsed.success) return null;
-
-    const { buildId, maskParts, params } = parsed.data;
+    const { buildId, maskParts, params } = parsed;
     const salt = Buffer.alloc(32);
     for (let index = 0; index < salt.length; index++) {
         salt[index] =
@@ -252,12 +354,8 @@ function evalFragmentCryptoChunk(chunk: string) {
 }
 
 export function decodeChunk(chunk: string): Omit<ClientData, 'bootstrap'> | null {
-    try {
-        const fragments = evalFragmentCryptoChunk(chunk);
-        if (fragments) return fragments;
-    } catch {
-        // Ignore malformed downloaded chunks and retain the compatibility parser.
-    }
+    const fragments = decodeFragmentCryptoChunk(chunk);
+    if (fragments) return fragments;
 
     const legacy = chunk.match(
         /\?["']([0-9a-f]{64})["']:["']["'],\w+=[^;]{0,100}\?["']([A-Za-z0-9._-]+)["']:["']["']/
