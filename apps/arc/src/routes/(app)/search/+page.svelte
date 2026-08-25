@@ -2,7 +2,6 @@
     import { afterNavigate, replaceState } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
-
     import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/shared/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import errorArtwork from '$lib/assets/error-state.png';
@@ -245,7 +244,7 @@
         {:else if !query.trim() && recent.results.length}
             <section aria-labelledby="recent-results-title">
                 <div class="mb-3 flex items-center justify-between gap-6">
-                    <h1 id="recent-results-title" class="text-base font-semibold">Recent searches</h1>
+                    <h1 id="recent-results-title" class="text-base font-semibold">Recent Search Results</h1>
                     <button
                         type="button"
                         class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -257,23 +256,23 @@
 
                 <ul class="flex flex-wrap gap-1.5">
                     {#each recent.results as result (result.id)}
-                        <li class="flex min-w-0 max-w-full items-stretch bg-surface/70 text-xs font-semibold">
+                        <li
+                            class="flex min-w-0 max-w-86 items-stretch bg-search-recent text-xs uppercase text-[#bbb]"
+                        >
                             <a
                                 href={`/anime/${result.id}`}
-                                class="min-w-0 truncate px-2.5 py-2 hover:bg-surface focus-visible:outline-1 focus-visible:outline-accent"
+                                class="min-w-0 truncate px-2.5 py-2 hover:bg-[hsla(0,0%,100%,.078)] focus-visible:outline-1 focus-visible:outline-accent"
                             >
                                 {result.title}
                             </a>
-                            <Tooltip text="Remove" class="normal-case">
-                                <button
-                                    type="button"
-                                    class="grid size-9 shrink-0 place-items-center border-l border-black/30 text-muted hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
-                                    aria-label={`Remove ${result.title} from recent search results`}
-                                    onclick={() => recent.remove(result.id)}
-                                >
-                                    <XIcon size="1.15rem" weight="bold" aria-hidden="true" />
-                                </button>
-                            </Tooltip>
+                            <button
+                                type="button"
+                                class="grid size-9 shrink-0 place-items-center border-l border-black/30 text-muted hover:bg-[hsla(0,0%,100%,.078)] hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                                aria-label={`Remove ${result.title} from recent search results`}
+                                onclick={() => recent.remove(result.id)}
+                            >
+                                <XIcon size="1.15rem" weight="bold" aria-hidden="true" />
+                            </button>
                         </li>
                     {/each}
                 </ul>
