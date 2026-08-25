@@ -425,6 +425,13 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         }
 
         if (requested.some((mode) => streams[mode]?.length)) {
+            const missing = requested.filter((mode) => !streams[mode]?.length);
+            if (missing.length) {
+                console.warn(
+                    `Playback modes unavailable for AniList ${anime.id} episode ${episode.number}: ${missing.join(', ')}`,
+                    errors.map((cause) => (cause instanceof Error ? cause.message : String(cause)))
+                );
+            }
             return streams;
         }
 
