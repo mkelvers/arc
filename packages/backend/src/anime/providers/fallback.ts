@@ -78,6 +78,8 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
 
     const episodeRequests = new Map<string, Promise<ProviderEpisode[]>>();
     const streamRequests = new Map<string, Promise<ProviderStreams>>();
+    const completedStreams = new Map<string, { streams: ProviderStreams; expiresAt: number }>();
+    const backgroundStreams = new Map<string, Promise<ProviderStreams | null>>();
     const health = new Map<string, { failures: number; retryAt: number }>();
 
     function shared<T>(requests: Map<string, Promise<T>>, key: string, request: () => Promise<T>) {
@@ -325,6 +327,22 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
             throw new TypeError('At least one audio mode is required');
         }
 
+        const requestKey = [anime.id, episode.id, episode.number, requested.join(',')].join(':');
+        const cached = completedStreams.get(requestKey);
+        if (cached) {
+            if (cached.expiresAt > Date.now()) {
+                return cached.streams;
+            }
+            completedStreams.delete(requestKey);
+        }
+        const background = backgroundStreams.get(requestKey);
+        if (background) {
+            const resolved = await background;
+            if (resolved) {
+                return resolved;
+            }
+        }
+
         const streams: ProviderStreams = Object.fromEntries(requested.map((mode) => [mode, []]));
         const settledResults = new Map<PlaybackProvider, StreamAttempt>();
         const attempts = providers.map(async (provider): Promise<StreamAttempt> => {
@@ -373,55 +391,72 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
             }
         });
         const allResults = Promise.all(attempts);
-        const result = await Promise.race([
-            Promise.any(
-                attempts.map(async (attempt) => {
-                    const result = await attempt;
-                    if (requested.every((mode) => result.streams[mode]?.length)) {
-                        return result;
-                    }
+        const mergeResults = (results: StreamAttempt[]) => {
+            const merged: ProviderStreams = Object.fromEntries(requested.map((mode) => [mode, []]));
+            for (const attempt of results) {
+                for (const mode of requested) {
+                    const existing = merged[mode] ?? [];
+                    const additions = (attempt.streams[mode] ?? []).map(
+                        (stream): ProviderStream => ({
+                            ...stream,
+                            provider: attempt.provider.name,
+                        })
+                    );
+                    const seen = new Set(
+                        existing.map((stream) => `${stream.url}\n${stream.subtitleUrl ?? ''}`)
+                    );
+                    merged[mode] = [
+                        ...existing,
+                        ...additions.filter((stream) => {
+                            const key = `${stream.url}\n${stream.subtitleUrl ?? ''}`;
+                            if (seen.has(key)) return false;
+                            seen.add(key);
+                            return true;
+                        }),
+                    ];
+                }
+            }
+            return merged;
+        };
+        const firstAvailable = Promise.any(
+            attempts.map(async (attempt) => {
+                const result = await attempt;
+                if (requested.some((mode) => result.streams[mode]?.length)) {
+                    return result;
+                }
 
-                    throw new Error('Provider returned incomplete audio modes');
-                })
-            ).then(
-                (complete) => ({ kind: 'complete' as const, result: complete }),
+                throw new Error('Provider returned no requested audio mode');
+            })
+        );
+        const result = await Promise.race([
+            firstAvailable.then(
+                (available) => ({ kind: 'available' as const, result: available }),
                 () => new Promise<never>(() => undefined)
             ),
             allResults.then((results) => ({ kind: 'all' as const, results })),
         ]);
-        /*
-         * A provider that has every requested mode is enough to start
-         * playback. When providers split the modes, retain the old unioning
-         * behavior and wait for all attempts.
-         */
         const mergedResults =
-            result.kind === 'complete'
+            result.kind === 'available'
                 ? providers.flatMap((provider) => settledResults.get(provider) ?? [])
                 : result.results;
         const errors = mergedResults.flatMap((attempt) => attempt.errors);
+        Object.assign(streams, mergeResults(mergedResults));
 
-        for (const result of mergedResults) {
-            for (const mode of requested) {
-                const existing = streams[mode] ?? [];
-                const additions = (result.streams[mode] ?? []).map((stream): ProviderStream => ({
-                    ...stream,
-                    provider: result.provider.name,
-                }));
-                const seen = new Set(
-                    existing.map((stream) => `${stream.url}\n${stream.subtitleUrl ?? ''}`)
-                );
-                streams[mode] = [
-                    ...existing,
-                    ...additions.filter((stream) => {
-                        const key = `${stream.url}\n${stream.subtitleUrl ?? ''}`;
-                        if (seen.has(key)) {
-                            return false;
-                        }
-                        seen.add(key);
-                        return true;
-                    }),
-                ];
-            }
+        if (result.kind === 'available') {
+            const background = allResults
+                .then((results) => {
+                    const completed = mergeResults(results);
+                    if (!requested.every((mode) => completed[mode]?.length)) {
+                        return null;
+                    }
+                    completedStreams.set(requestKey, {
+                        streams: completed,
+                        expiresAt: Date.now() + 2 * 60_000,
+                    });
+                    return completed;
+                })
+                .finally(() => backgroundStreams.delete(requestKey));
+            backgroundStreams.set(requestKey, background);
         }
 
         if (requested.some((mode) => streams[mode]?.length)) {

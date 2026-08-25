@@ -111,7 +111,7 @@ describe('playback provider fallback', () => {
         expect(result.sub?.[0].provider).toBe('fast');
     });
 
-    test('retains provider alternatives that settled before a complete result', async () => {
+    test('returns the first mode and exposes the completed result on a later request', async () => {
         const playback = createProviderFallback([
             provider('japanese-first', {
                 getStreams: async () => ({ sub: [alternateStream] }),
@@ -134,11 +134,13 @@ describe('playback provider fallback', () => {
         const result = await playback.getStreams(anime, episode, ['sub', 'dub']);
 
         expect(performance.now() - started).toBeLessThan(100);
-        expect(result.sub).toEqual([
-            from('japanese-first', alternateStream),
-            from('complete', stream),
-        ]);
-        expect(result.dub).toEqual([from('complete', stream)]);
+        expect(result.sub).toEqual([from('japanese-first', alternateStream)]);
+        expect(result.dub).toEqual([]);
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const completed = await playback.getStreams(anime, episode, ['sub', 'dub']);
+        expect(completed.sub).toContainEqual(from('complete', stream));
+        expect(completed.dub).toContainEqual(from('complete', stream));
     });
 
     test('uses the freshest provider inventory through the next airing episode', async () => {
