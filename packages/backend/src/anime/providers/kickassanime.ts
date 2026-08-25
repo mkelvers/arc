@@ -4,11 +4,10 @@ import type { AniListAnime } from '../anilist/types';
 import { animeTitles } from '../anilist/text';
 import type { AudioMode } from '@arc/shared/audio';
 import { matchProviderStreamEpisode } from './match';
-import { episodeNumber, httpsUrl, requestJson, requestedModes } from './anivexa-utils';
+import { episodeNumber, httpsUrl, requestJson, requestText, requestedModes } from './anivexa-utils';
 import type { PlaybackProvider, ProviderEpisode, ProviderStream } from './types';
 
 const baseUrl = 'https://kaa.lt';
-const hlsBase = 'https://hls.krussdomi.com/manifest';
 const headers = { Accept: 'application/json, */*' };
 const searchSchema = z.object({
     result: z
@@ -126,6 +125,21 @@ async function episodePage(slug: string, number: number) {
     );
 }
 
+async function playableManifest(url: URL) {
+    const headers = { Accept: 'application/vnd.apple.mpegurl', Referer: `${baseUrl}/` };
+    const master = await requestText(url, headers);
+    const child = master
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .find((line) => line && !line.startsWith('#'));
+    if (!child) {
+        return false;
+    }
+
+    const media = await requestText(new URL(child, url), headers);
+    return !/\.(?:jpe?g|png)(?:[?#]|$)/im.test(media);
+}
+
 async function inventory(anime: AniListAnime) {
     const slug = await findSeries(anime);
     const first = await episodePage(slug, 1);
@@ -182,24 +196,45 @@ async function getStreams(
     const result: Partial<Record<AudioMode, ProviderStream[]>> = {};
     for (const mode of requestedModes(modes)) {
         if (!match.audio.includes(mode)) continue;
-        const streams =
-            payload.servers?.flatMap((server) => {
-                const id = server.src.match(/[?&]id=([^&]+)/)?.[1];
-                const url = id
-                    ? httpsUrl(`${hlsBase}/${encodeURIComponent(id)}/master.m3u8`)
-                    : null;
-                return url
-                    ? [
-                          {
-                              url: url.toString(),
-                              kind: 'direct' as const,
-                              quality: null,
-                              subtitleUrl: null,
-                              provider: 'KickAssAnime',
-                          },
-                      ]
-                    : [];
-            }) ?? [];
+        const streams = (
+            await Promise.all(
+                (payload.servers ?? []).map(async (server) => {
+                    const playerUrl = httpsUrl(server.src);
+                    if (!playerUrl) {
+                        return null;
+                    }
+
+                    try {
+                        const html = await requestText(playerUrl, {
+                            Accept: 'text/html,application/xhtml+xml',
+                            Referer: `${baseUrl}/`,
+                        });
+                        const encoded = html.match(
+                            /&quot;manifest&quot;:\[0,&quot;([^&]+)&quot;/
+                        )?.[1];
+                        if (!encoded) {
+                            return null;
+                        }
+
+                        const manifest = encoded.replaceAll('&amp;', '&').replaceAll('&quot;', '"');
+                        const url = httpsUrl(
+                            manifest.startsWith('//') ? `https:${manifest}` : manifest
+                        );
+                        return url && (await playableManifest(url))
+                            ? {
+                                  url: url.toString(),
+                                  kind: 'direct' as const,
+                                  quality: null,
+                                  subtitleUrl: null,
+                                  provider: 'KickAssAnime',
+                              }
+                            : null;
+                    } catch {
+                        return null;
+                    }
+                })
+            )
+        ).flatMap((stream) => (stream ? [stream] : []));
         if (streams.length) result[mode] = streams;
     }
     if (!Object.keys(result).length)
