@@ -14,13 +14,12 @@
     let anime = $state<AnimeCardModel[]>(untrack(() => data.page.anime));
     let nextPage = $state<number | null>(untrack(() => (data.page.hasNextPage ? data.page.page + 1 : null)));
     let loading = $state(false);
-    let failure = $state('');
     let sentinel = $state<HTMLDivElement>();
     let activeRequest: AbortController | undefined;
 
     async function loadMore() {
         const page = nextPage;
-        if (page === null || loading || failure) {
+        if (page === null || loading) {
             return;
         }
 
@@ -59,7 +58,7 @@
             nextPage = result.data.hasNextPage ? page + 1 : null;
         } catch (cause) {
             if (!(cause instanceof DOMException) || cause.name !== 'AbortError') {
-                failure = 'More simulcast releases could not be loaded.';
+                console.warn(`Simulcast page ${page} could not be loaded`, cause);
             }
         } finally {
             if (activeRequest === controller) {
@@ -80,11 +79,10 @@
         anime = data.page.anime;
         nextPage = data.page.hasNextPage ? data.page.page + 1 : null;
         loading = false;
-        failure = '';
     });
 
     $effect(() => {
-        if (!sentinel || nextPage === null || failure) {
+        if (!sentinel || nextPage === null) {
             return;
         }
 
@@ -110,7 +108,7 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
-    <section class="mx-auto w-full max-w-384" aria-labelledby="simulcast-title">
+    <section class="mx-auto w-full max-w-264" aria-labelledby="simulcast-title">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 id="simulcast-title" class="text-2xl font-bold">Simulcast Season</h1>
             <Dropdown
@@ -129,7 +127,7 @@
 
         {#if anime.length}
             <div
-                class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-[1.875rem] lg:gap-y-12 xl:grid-cols-6"
             >
                 {#each anime as entry (entry.id)}
                     <AnimeCard anime={entry} />
@@ -154,20 +152,6 @@
                         class="animate-spin text-accent motion-reduce:animate-none"
                         aria-label="Loading more releases"
                     />
-                {:else if failure}
-                    <div class="flex flex-col items-center gap-3 text-center">
-                        <p class="text-sm text-muted">{failure}</p>
-                        <button
-                            type="button"
-                            class="min-h-11 px-4 text-sm font-semibold text-accent hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            onclick={() => {
-                                failure = '';
-                                void loadMore();
-                            }}
-                        >
-                            Try again
-                        </button>
-                    </div>
                 {:else}
                     <span class="sr-only">More releases load automatically while scrolling.</span>
                 {/if}
