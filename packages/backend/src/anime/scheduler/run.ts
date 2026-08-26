@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, count, eq, gt, isNotNull, isNull, lte, or } from 'drizzle-orm';
+import { and, count, eq, gt, isNotNull, isNull, lt, lte, or } from 'drizzle-orm';
 
 import { db } from '@arc/db';
 import {
@@ -79,13 +79,21 @@ async function catalogRefreshDue() {
 export async function runAnimeScheduler(config: SchedulerConfig) {
     const runId = randomUUID();
     const startedAt = new Date();
-    await db
+    const [claimed] = await db
         .insert(schedulerHeartbeat)
         .values({ name: heartbeatName, activeRunId: runId, startedAt })
         .onConflictDoUpdate({
             target: schedulerHeartbeat.name,
             set: { activeRunId: runId, startedAt },
-        });
+            setWhere: or(
+                isNull(schedulerHeartbeat.activeRunId),
+                lt(schedulerHeartbeat.startedAt, new Date(startedAt.getTime() - 30 * 60_000))
+            ),
+        })
+        .returning({ activeRunId: schedulerHeartbeat.activeRunId });
+    if (!claimed) {
+        return { skipped: 'already-running' as const };
+    }
 
     try {
         let fullReconciliation:
@@ -183,7 +191,12 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         await db
             .update(schedulerHeartbeat)
             .set(heartbeatUpdate)
-            .where(eq(schedulerHeartbeat.name, heartbeatName));
+            .where(
+                and(
+                    eq(schedulerHeartbeat.name, heartbeatName),
+                    eq(schedulerHeartbeat.activeRunId, runId)
+                )
+            );
         await db
             .update(schedulerHeartbeat)
             .set({ activeRunId: null })
@@ -203,7 +216,12 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
                 lastFailureAt: completedAt,
                 lastError: cause instanceof Error ? cause.message : 'Anime scheduler failed',
             })
-            .where(eq(schedulerHeartbeat.name, heartbeatName));
+            .where(
+                and(
+                    eq(schedulerHeartbeat.name, heartbeatName),
+                    eq(schedulerHeartbeat.activeRunId, runId)
+                )
+            );
         await db
             .update(schedulerHeartbeat)
             .set({ activeRunId: null })
