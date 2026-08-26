@@ -65,7 +65,7 @@
         </div>
         <button
             type="button"
-            class="ml-auto grid size-11 shrink-0 place-items-center hover:bg-white/8 focus-visible:outline-1 focus-visible:outline-white"
+            class="ml-auto grid size-11 shrink-0 place-items-center transition-[background-color,transform] duration-150 hover:bg-white/8 focus-visible:outline-1 focus-visible:outline-white active:scale-95"
             aria-label={`Close ${title}`}
             onclick={close}
         >
@@ -75,3 +75,69 @@
 
     {@render children?.()}
 </dialog>
+
+<style>
+    dialog {
+        opacity: 0;
+        transform: scale(0.96);
+
+        transition:
+            opacity 150ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
+            overlay 150ms allow-discrete,
+            display 150ms allow-discrete;
+    }
+
+    dialog[open] {
+        opacity: 1;
+        transform: scale(1);
+
+        transition:
+            opacity 250ms cubic-bezier(0.23, 1, 0.32, 1),
+            transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
+            overlay 250ms allow-discrete,
+            display 250ms allow-discrete;
+
+        @starting-style {
+            opacity: 0;
+            transform: scale(0.96);
+        }
+    }
+
+    dialog::backdrop {
+        opacity: 0;
+        transition:
+            opacity 150ms ease-out,
+            overlay 150ms allow-discrete,
+            display 150ms allow-discrete;
+    }
+
+    dialog[open]::backdrop {
+        opacity: 1;
+        transition:
+            opacity 250ms ease-out,
+            overlay 250ms allow-discrete,
+            display 250ms allow-discrete;
+
+        @starting-style {
+            opacity: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        dialog,
+        dialog[open] {
+            transform: none;
+            transition:
+                opacity 120ms ease-out,
+                overlay 120ms allow-discrete,
+                display 120ms allow-discrete;
+        }
+
+        dialog[open] {
+            @starting-style {
+                transform: none;
+            }
+        }
+    }
+</style>
