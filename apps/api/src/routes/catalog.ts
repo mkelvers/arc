@@ -54,13 +54,27 @@ catalog.get('/browse', validate('query', PageQuerySchema), async (context) => {
     );
 });
 
-catalog.get('/new', validate('query', PageQuerySchema), async (context) =>
-    context.json(await newAnimePage(context.req.valid('query').page))
-);
+catalog.get('/new', validate('query', PageQuerySchema), async (context) => {
+    const filters = parseBrowseFilters(new URLSearchParams(context.req.query()));
+    if (!filters) {
+        return context.json(
+            { error: { code: 'INVALID_REQUEST', message: 'Invalid catalog filters' } },
+            400
+        );
+    }
+    return context.json(await newAnimePage(context.req.valid('query').page, filters));
+});
 
-catalog.get('/popular', validate('query', PageQuerySchema), async (context) =>
-    context.json(await popularAnimePage(context.req.valid('query').page))
-);
+catalog.get('/popular', validate('query', PageQuerySchema), async (context) => {
+    const filters = parseBrowseFilters(new URLSearchParams(context.req.query()));
+    if (!filters) {
+        return context.json(
+            { error: { code: 'INVALID_REQUEST', message: 'Invalid catalog filters' } },
+            400
+        );
+    }
+    return context.json(await popularAnimePage(context.req.valid('query').page, filters));
+});
 
 catalog.get('/search', validate('query', SearchQuerySchema), async (context) => {
     const query = context.req.valid('query').q;
