@@ -6,10 +6,12 @@ import { db } from '@arc/db';
 import {
     animeEpisodeTarget,
     animeReleaseRequest,
+    anilistRequestState,
     maintenanceTask,
     schedulerHeartbeat,
 } from '@arc/db/schema';
 import { refreshAnimeRelease } from '../anilist/releases';
+import { GraphQLRequestError } from '../../graphql';
 import { drainEpisodeTargets, type SchedulerLimits } from './episodes';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
@@ -51,10 +53,16 @@ async function refreshDueReleases(limit: number) {
 
 async function fullReconciliationDue(intervalMs: number) {
     const [heartbeat] = await db
-        .select({ completedAt: schedulerHeartbeat.lastFullReconciliationAt })
+        .select({
+            completedAt: schedulerHeartbeat.lastFullReconciliationAt,
+            nextAttemptAt: schedulerHeartbeat.nextFullReconciliationAt,
+        })
         .from(schedulerHeartbeat)
         .where(eq(schedulerHeartbeat.name, heartbeatName))
         .limit(1);
+    if (heartbeat?.nextAttemptAt) {
+        return heartbeat.nextAttemptAt.getTime() <= Date.now();
+    }
     return !heartbeat?.completedAt || Date.now() - heartbeat.completedAt.getTime() >= intervalMs;
 }
 
@@ -70,18 +78,37 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         });
 
     try {
-        let fullReconciliation: {
-            discovered: number;
-            releaseRequests: number;
-            targets: number;
-        } | null = null;
+        let fullReconciliation:
+            | { discovered: number; releaseRequests: number; targets: number }
+            | { error: string; retryAt: string }
+            | null = null;
         if (await fullReconciliationDue(config.fullReconciliationIntervalMs)) {
-            const result = await reconcileAllAiringReleases();
-            fullReconciliation = {
-                discovered: result.discovered,
-                releaseRequests: result.releaseRequests,
-                targets: result.targets,
-            };
+            try {
+                const result = await reconcileAllAiringReleases();
+                fullReconciliation = {
+                    discovered: result.discovered,
+                    releaseRequests: result.releaseRequests,
+                    targets: result.targets,
+                };
+            } catch (cause) {
+                const retryAfterMs =
+                    cause instanceof GraphQLRequestError && cause.retryAfterMs
+                        ? cause.retryAfterMs
+                        : 0;
+                const retryAt = new Date(Date.now() + Math.max(30 * 60_000, retryAfterMs));
+                const error =
+                    cause instanceof Error ? cause.message : 'Airing reconciliation failed';
+                fullReconciliation = { error, retryAt: retryAt.toISOString() };
+                console.warn('Arc airing reconciliation failed; continuing durable work', error);
+                await db
+                    .update(schedulerHeartbeat)
+                    .set({
+                        nextFullReconciliationAt: retryAt,
+                        lastFailureAt: new Date(),
+                        lastError: error,
+                    })
+                    .where(eq(schedulerHeartbeat.name, heartbeatName));
+            }
         }
 
         const releases = await refreshDueReleases(config.concurrency);
@@ -93,14 +120,19 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         const episodes = await drainEpisodeTargets(runId, config);
         const completedAt = new Date();
         const stats = { releases, maintenance, episodes, fullReconciliation };
+        const reconciliationError =
+            fullReconciliation && 'error' in fullReconciliation ? fullReconciliation.error : null;
         const heartbeatUpdate: Partial<typeof schedulerHeartbeat.$inferInsert> = {
             completedAt,
             lastSuccessAt: completedAt,
-            lastError: null,
+            lastError: reconciliationError,
             stats,
         };
-        if (fullReconciliation) {
+        if (fullReconciliation && !reconciliationError) {
             heartbeatUpdate.lastFullReconciliationAt = completedAt;
+            heartbeatUpdate.nextFullReconciliationAt = new Date(
+                completedAt.getTime() + config.fullReconciliationIntervalMs
+            );
         }
         await db
             .update(schedulerHeartbeat)
@@ -140,57 +172,70 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
 }
 
 export async function animeSchedulerHealth(now = new Date()) {
-    const [heartbeat, targetCounts, taskCounts, [oldestDue], [dueTargets], [leasedTargets]] =
-        await Promise.all([
-            db
-                .select()
-                .from(schedulerHeartbeat)
-                .where(eq(schedulerHeartbeat.name, heartbeatName))
-                .limit(1)
-                .then((rows) => rows[0] ?? null),
-            db
-                .select({ state: animeEpisodeTarget.state, count: count() })
-                .from(animeEpisodeTarget)
-                .groupBy(animeEpisodeTarget.state),
-            db
-                .select({ state: maintenanceTask.state, count: count() })
-                .from(maintenanceTask)
-                .groupBy(maintenanceTask.state),
-            db
-                .select({ nextAttemptAt: animeEpisodeTarget.nextAttemptAt })
-                .from(animeEpisodeTarget)
-                .where(
-                    and(
-                        eq(animeEpisodeTarget.state, 'pending'),
-                        lte(animeEpisodeTarget.nextAttemptAt, now)
+    const [
+        heartbeat,
+        requestState,
+        targetCounts,
+        taskCounts,
+        [oldestDue],
+        [dueTargets],
+        [leasedTargets],
+    ] = await Promise.all([
+        db
+            .select()
+            .from(schedulerHeartbeat)
+            .where(eq(schedulerHeartbeat.name, heartbeatName))
+            .limit(1)
+            .then((rows) => rows[0] ?? null),
+        db
+            .select()
+            .from(anilistRequestState)
+            .where(eq(anilistRequestState.name, 'global'))
+            .limit(1)
+            .then((rows) => rows[0] ?? null),
+        db
+            .select({ state: animeEpisodeTarget.state, count: count() })
+            .from(animeEpisodeTarget)
+            .groupBy(animeEpisodeTarget.state),
+        db
+            .select({ state: maintenanceTask.state, count: count() })
+            .from(maintenanceTask)
+            .groupBy(maintenanceTask.state),
+        db
+            .select({ nextAttemptAt: animeEpisodeTarget.nextAttemptAt })
+            .from(animeEpisodeTarget)
+            .where(
+                and(
+                    eq(animeEpisodeTarget.state, 'pending'),
+                    lte(animeEpisodeTarget.nextAttemptAt, now)
+                )
+            )
+            .orderBy(animeEpisodeTarget.nextAttemptAt)
+            .limit(1),
+        db
+            .select({ count: count() })
+            .from(animeEpisodeTarget)
+            .where(
+                and(
+                    eq(animeEpisodeTarget.state, 'pending'),
+                    lte(animeEpisodeTarget.nextAttemptAt, now),
+                    or(
+                        isNull(animeEpisodeTarget.leaseUntil),
+                        lte(animeEpisodeTarget.leaseUntil, now)
                     )
                 )
-                .orderBy(animeEpisodeTarget.nextAttemptAt)
-                .limit(1),
-            db
-                .select({ count: count() })
-                .from(animeEpisodeTarget)
-                .where(
-                    and(
-                        eq(animeEpisodeTarget.state, 'pending'),
-                        lte(animeEpisodeTarget.nextAttemptAt, now),
-                        or(
-                            isNull(animeEpisodeTarget.leaseUntil),
-                            lte(animeEpisodeTarget.leaseUntil, now)
-                        )
-                    )
-                ),
-            db
-                .select({ count: count() })
-                .from(animeEpisodeTarget)
-                .where(
-                    and(
-                        eq(animeEpisodeTarget.state, 'pending'),
-                        isNotNull(animeEpisodeTarget.leaseUntil),
-                        gt(animeEpisodeTarget.leaseUntil, now)
-                    )
-                ),
-        ]);
+            ),
+        db
+            .select({ count: count() })
+            .from(animeEpisodeTarget)
+            .where(
+                and(
+                    eq(animeEpisodeTarget.state, 'pending'),
+                    isNotNull(animeEpisodeTarget.leaseUntil),
+                    gt(animeEpisodeTarget.leaseUntil, now)
+                )
+            ),
+    ]);
     const successAge = heartbeat?.lastSuccessAt
         ? now.getTime() - heartbeat.lastSuccessAt.getTime()
         : null;
@@ -234,6 +279,7 @@ export async function animeSchedulerHealth(now = new Date()) {
         lastSuccessAt: heartbeat?.lastSuccessAt ?? null,
         lastFailureAt: heartbeat?.lastFailureAt ?? null,
         lastFullReconciliationAt: heartbeat?.lastFullReconciliationAt ?? null,
+        nextFullReconciliationAt: heartbeat?.nextFullReconciliationAt ?? null,
         durationMs,
         stats: heartbeat?.stats ?? null,
         targets: {
@@ -245,6 +291,18 @@ export async function animeSchedulerHealth(now = new Date()) {
             retired: targetTotals.retired ?? 0,
         },
         maintenanceTasks: Object.fromEntries(taskCounts.map((row) => [row.state, row.count])),
+        anilist: requestState
+            ? {
+                  blockedUntil: requestState.blockedUntil,
+                  lastRequestAt: requestState.lastRequestAt,
+                  lastOperation: requestState.lastOperation,
+                  lastStatus: requestState.lastStatus,
+                  lastError: requestState.lastError,
+                  requestCount: requestState.requestCount,
+                  successCount: requestState.successCount,
+                  failureCount: requestState.failureCount,
+              }
+            : null,
         oldestDueAgeMs: oldestDue ? now.getTime() - oldestDue.nextAttemptAt.getTime() : null,
     };
 }
