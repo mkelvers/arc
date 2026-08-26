@@ -1,4 +1,4 @@
-import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
+import { and, arrayContains, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { BrowseFilters, BrowseTaxonomy } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
@@ -9,16 +9,15 @@ import {
     animeCatalogRefresh,
     animeCatalogTaxonomy,
     animeEpisode,
+    animeEpisodeTarget,
     animeRelease,
 } from '@arc/db/schema';
 import {
-    getBrowseAnime,
     getBrowsePage,
     getBrowseTaxonomy,
     type AniListBrowseFilters,
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
-import { getRecentAiringPage } from './anilist/recent';
 import { enrichAnimeCards } from './card-enrichment';
 import { createAnimeSearchIndex } from './search-index';
 import {
@@ -496,25 +495,39 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
         throw new BrowseFilterError('Invalid catalog page');
     }
 
-    const recent = await getRecentAiringPage(page);
-    const latestSchedules = [
-        ...new Map(recent.schedules.map((schedule) => [schedule.anilistId, schedule])).values(),
-    ];
-    const entries = (
-        await getBrowseAnime(latestSchedules.map(({ anilistId }) => anilistId))
-    ).filter(
-        (entry) =>
-            (!filters.status || entry.status === filters.status) &&
-            (!filters.format || entry.format === filters.format)
-    );
-    const episodeRows = entries.length
+    const confirmed = await db
+        .select({
+            anilistId: animeEpisodeTarget.anilistId,
+            episode: animeEpisodeTarget.targetEpisode,
+            airedAt: animeEpisodeTarget.airingAt,
+            title: animeCatalog.title,
+            image: animeCatalog.imageUrl,
+            score: animeCatalog.averageScore,
+            genres: animeCatalog.genres,
+            synopsis: animeCatalog.synopsis,
+            status: animeCatalog.status,
+            format: animeCatalog.format,
+        })
+        .from(animeEpisodeTarget)
+        .innerJoin(animeCatalog, eq(animeCatalog.anilistId, animeEpisodeTarget.anilistId))
+        .where(
+            and(
+                eq(animeEpisodeTarget.state, 'confirmed'),
+                filters.status ? eq(animeCatalog.status, filters.status) : undefined,
+                filters.format ? eq(animeCatalog.format, filters.format) : undefined
+            )
+        )
+        .orderBy(desc(animeEpisodeTarget.airingAt), desc(animeEpisodeTarget.targetEpisode))
+        .limit(5_000);
+    const latest = [...new Map(confirmed.map((entry) => [entry.anilistId, entry])).values()];
+    const episodeRows = latest.length
         ? await db
               .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
               .from(animeEpisode)
               .where(
                   inArray(
                       animeEpisode.anilistId,
-                      entries.map(({ anilistId }) => anilistId)
+                      latest.map(({ anilistId }) => anilistId)
                   )
               )
         : [];
@@ -524,37 +537,30 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
         row.audio.forEach((mode) => modes.add(mode));
         audioByAnime.set(row.anilistId, modes);
     }
-    const entryById = new Map(entries.map((entry) => [entry.anilistId, entry]));
-    const cards: AnimeCard[] = latestSchedules.flatMap((schedule) => {
-        const entry = entryById.get(schedule.anilistId);
-        if (!entry) {
-            return [];
-        }
+    const eligible = latest.filter((entry) => {
         const audio = [...(audioByAnime.get(entry.anilistId) ?? [])];
-        if (filters.audio && !audio.includes(filters.audio)) {
-            return [];
-        }
-        return [
-            {
-                id: entry.anilistId,
-                href: `/anime/${entry.anilistId}`,
-                link: `/anime/${entry.anilistId}`,
-                title: entry.title,
-                image: entry.imageUrl,
-                audioLabel: audioAvailabilityLabel(audio),
-                score: entry.averageScore ?? 0,
-                genres: entry.genres,
-                synopsis: entry.synopsis,
-                releasedAt: schedule.airedAt.toISOString(),
-                episode: schedule.episode,
-            },
-        ];
+        return !filters.audio || audio.includes(filters.audio);
     });
+    const offset = (page - 1) * 42;
+    const pageEntries = eligible.slice(offset, offset + 43);
+    const cards: AnimeCard[] = pageEntries.slice(0, 42).map((entry) => ({
+        id: entry.anilistId,
+        href: `/anime/${entry.anilistId}`,
+        link: `/anime/${entry.anilistId}`,
+        title: entry.title,
+        image: entry.image,
+        audioLabel: audioAvailabilityLabel([...(audioByAnime.get(entry.anilistId) ?? [])]),
+        score: entry.score ?? 0,
+        genres: entry.genres,
+        synopsis: entry.synopsis,
+        releasedAt: entry.airedAt.toISOString(),
+        episode: entry.episode,
+    }));
     const anime = await enrichAnimeCards(cards);
 
     return {
         anime,
-        hasNextPage: recent.hasNextPage,
+        hasNextPage: pageEntries.length > 42,
         page,
         loadedAt: new Date().toISOString(),
     };
