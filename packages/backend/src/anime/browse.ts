@@ -43,8 +43,13 @@ function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     });
 }
 
-async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, pageNumber: number) {
-    const result = await getBrowsePage(filters, pageNumber, 42);
+async function refreshCatalog(
+    filters: AniListBrowseFilters,
+    queryKey: string,
+    pageNumber: number,
+    forceRefresh = false
+) {
+    const result = await getBrowsePage(filters, pageNumber, 42, forceRefresh);
     const fetchedAt = new Date();
     const cachePage = {
         animeIds: result.anime.map(({ anilistId }) => anilistId),
@@ -488,6 +493,24 @@ export async function browsePage(filters: BrowseFilters, number: number) {
 export async function popularAnimePage(page: number, filters: BrowseFilters) {
     const { sourceTaxonomy: _, ...result } = await loadPage(filters, page);
     return { ...result, loadedAt: new Date().toISOString() };
+}
+
+export async function refreshPopularAnime() {
+    const filters: AniListBrowseFilters = {
+        query: '',
+        genre: null,
+        tag: null,
+        format: null,
+        status: null,
+        source: null,
+        season: null,
+        year: null,
+        country: null,
+        safe: true,
+        sort: 'popularity',
+        order: 'desc',
+    };
+    return refreshCatalog(filters, browseRefreshKey(filters, 1), 1, true);
 }
 
 export async function newAnimePage(page: number, filters: BrowseFilters) {
