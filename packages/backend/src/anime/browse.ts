@@ -1,4 +1,4 @@
-import { and, arrayContains, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, arrayContains, desc, eq, gte, inArray, sql } from 'drizzle-orm';
 
 import type { BrowseFilters, BrowseTaxonomy } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
@@ -530,6 +530,10 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
         .where(
             and(
                 eq(animeEpisodeTarget.state, 'confirmed'),
+                gte(
+                    animeEpisodeTarget.airingAt,
+                    new Date(Date.now() - 30 * 24 * 60 * 60 * 1_000)
+                ),
                 filters.status ? eq(animeRelease.status, filters.status) : undefined,
                 filters.format ? eq(animeRelease.format, filters.format) : undefined
             )
