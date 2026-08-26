@@ -1,0 +1,1 @@
+ALTER TABLE "anime_catalog" ADD COLUMN "duration" integer;

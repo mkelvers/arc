@@ -452,6 +452,8 @@ export const animeCatalog = pgTable(
         countryOfOrigin: varchar('country_of_origin', { length: 8 }),
         isAdult: boolean('is_adult').notNull(),
         popularity: integer('popularity'),
+        duration: integer('duration'),
+        discoveryRevision: integer('discovery_revision').notNull().default(0),
         averageScore: integer('average_score'),
         sourceFetchedAt: timestamp('source_fetched_at', {
             withTimezone: true,

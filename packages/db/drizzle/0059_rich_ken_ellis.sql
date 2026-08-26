@@ -1,0 +1,1 @@
+ALTER TABLE "anime_catalog" ADD COLUMN "discovery_revision" integer DEFAULT 0 NOT NULL;

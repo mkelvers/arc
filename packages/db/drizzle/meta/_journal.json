@@ -407,6 +407,20 @@
             "when": 1787608973060,
             "tag": "0057_square_dracula",
             "breakpoints": true
+        },
+        {
+            "idx": 58,
+            "version": "7",
+            "when": 1787729616603,
+            "tag": "0058_damp_dragon_lord",
+            "breakpoints": true
+        },
+        {
+            "idx": 59,
+            "version": "7",
+            "when": 1787729715891,
+            "tag": "0059_rich_ken_ellis",
+            "breakpoints": true
         }
     ]
 }
