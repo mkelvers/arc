@@ -251,14 +251,14 @@
                     {section.title}
                 </h2>
                 <div
-                    class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-[1.875rem] lg:gap-y-12 xl:grid-cols-6"
+                    class="grid grid-cols-2 items-start gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-[1.875rem] lg:gap-y-12 xl:grid-cols-6"
                 >
                     {#each section.anime as entry (entry.id)}
                         <AnimeCard
                             anime={entry}
-                            meta={kind === 'new'
-                                ? `Episode ${entry.episode} · ${releasedLabel(entry.releasedAt)}`
-                                : undefined}
+                            meta={kind === 'new' ? releasedLabel(entry.releasedAt) : undefined}
+                            reserveTitleSpace={kind !== 'new'}
+                            truncateTitle={false}
                         />
                     {/each}
                 </div>
