@@ -4,6 +4,7 @@
     import { authClient } from '$lib/auth-client';
     import AuthInput from '../_components/AuthInput.svelte';
     import StatusBanner from '$lib/components/StatusBanner.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     let username = $state('');
     let password = $state('');
@@ -30,12 +31,9 @@
                 });
                 return;
             }
-            message =
-                result.error.status === 429
-                    ? 'Too many attempts. Try again shortly.'
-                    : 'Username or password is incorrect.';
+            message = result.error.status === 429 ? m.auth_too_many_attempts() : m.auth_invalid_credentials();
         } catch {
-            message = 'Unable to log in. Try again.';
+            message = m.auth_login_failed();
         } finally {
             if (message) {
                 password = '';
@@ -46,20 +44,20 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Log in</title>
-    <meta name="description" content="Log in to continue watching anime on Arc." />
+    <title>Arc — {m.nav_login()}</title>
+    <meta name="description" content={m.auth_login_description()} />
     <meta name="robots" content="noindex" />
 </svelte:head>
 
 <StatusBanner message={message} tone="error" ondismiss={() => (message = '')} />
 
 <form class="w-full max-w-104" onsubmit={login}>
-    <h1 class="text-center text-3xl font-normal">Log In</h1>
+    <h1 class="text-center text-3xl font-normal">{m.auth_login_title()}</h1>
 
     <div class="mt-16 space-y-6">
         <AuthInput
             name="username"
-            label="Username"
+            label={m.auth_username()}
             autocomplete="username"
             autocapitalize="none"
             spellcheck={false}
@@ -73,7 +71,7 @@
         />
         <AuthInput
             name="password"
-            label="Password"
+            label={m.auth_password()}
             type="password"
             autocomplete="current-password"
             constraints={{ required: true, maxlength: 128 }}
@@ -86,10 +84,11 @@
         type="submit"
         disabled={pending}
     >
-        {pending ? 'LOGGING IN…' : 'LOG IN'}
+        {pending ? m.auth_logging_in() : m.auth_login()}
     </button>
 
     <p class="mt-6 text-center text-sm text-muted">
-        Have an invitation? <a class="text-foreground underline" href="/register">Register</a>
+        {m.auth_have_invitation()}
+        <a class="text-foreground underline" href="/register">{m.auth_register()}</a>
     </p>
 </form>

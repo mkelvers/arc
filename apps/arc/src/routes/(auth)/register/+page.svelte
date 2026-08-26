@@ -3,6 +3,7 @@
 
     import { ApiErrorSchema } from '@arc/api-contract/auth';
     import AuthInput from '../_components/AuthInput.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     let email = $state('');
     let username = $state('');
@@ -20,7 +21,7 @@
 
         message = '';
         if (password !== confirmPassword) {
-            message = 'Passwords do not match.';
+            message = m.auth_passwords_mismatch();
             return;
         }
 
@@ -40,7 +41,7 @@
 
             await goto('/', { invalidateAll: true });
         } catch {
-            message = 'We could not create your account. Please try again.';
+            message = m.auth_create_failed();
         } finally {
             pending = false;
         }
@@ -48,13 +49,13 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Create account</title>
-    <meta name="description" content="Create an Arc account to watch anime and build your watchlist." />
+    <title>Arc — {m.auth_register_title()}</title>
+    <meta name="description" content={m.auth_create_failed()} />
     <meta name="robots" content="noindex" />
 </svelte:head>
 
 <form class="w-full max-w-104" onsubmit={register}>
-    <h1 class="text-center text-3xl font-normal">Register</h1>
+    <h1 class="text-center text-3xl font-normal">{m.auth_register_title()}</h1>
 
     {#if message}
         <p class="mt-6 text-center text-sm text-status-error" role="alert">{message}</p>
@@ -63,7 +64,7 @@
     <div class="mt-12 space-y-6">
         <AuthInput
             name="email"
-            label="Email"
+            label={m.auth_email()}
             type="email"
             autocomplete="email"
             autocapitalize="none"
@@ -73,7 +74,7 @@
         />
         <AuthInput
             name="username"
-            label="Username"
+            label={m.auth_username()}
             autocomplete="username"
             autocapitalize="none"
             spellcheck={false}
@@ -82,7 +83,7 @@
         />
         <AuthInput
             name="password"
-            label="Password"
+            label={m.auth_password()}
             type="password"
             autocomplete="new-password"
             constraints={{ required: true, minlength: 12, maxlength: 128 }}
@@ -90,7 +91,7 @@
         />
         <AuthInput
             name="confirmPassword"
-            label="Confirm Password"
+            label={m.auth_confirm_password()}
             type="password"
             autocomplete="new-password"
             constraints={{ required: true, maxlength: 128 }}
@@ -98,7 +99,7 @@
         />
         <AuthInput
             name="invitationCode"
-            label="Invitation Code"
+            label={m.auth_invitation_code()}
             autocomplete="off"
             autocapitalize="none"
             spellcheck={false}
@@ -112,10 +113,11 @@
         type="submit"
         disabled={pending}
     >
-        {pending ? 'CREATING ACCOUNT…' : 'CREATE ACCOUNT'}
+        {pending ? m.auth_creating_account() : m.auth_create_account()}
     </button>
 
     <p class="mt-6 text-center text-sm text-muted">
-        Already have an account? <a class="text-foreground underline" href="/login">Log in</a>
+        {m.auth_already_account()}
+        <a class="text-foreground underline" href="/login">{m.nav_login()}</a>
     </p>
 </form>

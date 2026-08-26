@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
+    import { m } from '$lib/paraglide/messages.js';
 
     let {
         name,
@@ -55,11 +56,11 @@
             <button
                 class="absolute inset-y-0 right-0 min-w-12 pt-8 text-xs font-semibold text-muted uppercase transition-[color,transform] hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                 type="button"
-                aria-label={visible ? 'Hide password' : 'Show password'}
+                aria-label={visible ? m.player_hide_password() : m.player_show_password()}
                 aria-pressed={visible}
                 onclick={() => (visible = !visible)}
             >
-                {visible ? 'Hide' : 'Show'}
+                {visible ? m.player_hide_password() : m.player_show_password()}
             </button>
         {/if}
     </div>
