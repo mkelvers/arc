@@ -95,6 +95,12 @@ describe('browse filters', () => {
         expect(filters?.sort).toBe('score');
     });
 
+    test('accepts catalog subtitle selections', () => {
+        const filters = parseBrowseFilters(new URLSearchParams({ audio: 'sub' }));
+
+        expect(filters?.audio).toBe('sub');
+    });
+
     test('formats provider status and type values for display', () => {
         expect(metadataLabel('NOT_YET_RELEASED')).toBe('Not Yet Released');
         expect(animeFormatLabel('TV_SHORT')).toBe('TV Short');
