@@ -67,14 +67,14 @@
                 </a>
 
                 <a
-                    href="/new"
+                    href="/shows/new"
                     class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
                     {localized(m.nav_new)}
                 </a>
 
                 <a
-                    href="/popular"
+                    href="/shows/popular"
                     class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
                     {localized(m.nav_popular)}
@@ -187,13 +187,13 @@
 
                     {#snippet content()}
                         <a
-                            href="/new"
+                            href="/shows/new"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
                             {localized(m.nav_new)}
                         </a>
                         <a
-                            href="/popular"
+                            href="/shows/popular"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
                             {localized(m.nav_popular)}

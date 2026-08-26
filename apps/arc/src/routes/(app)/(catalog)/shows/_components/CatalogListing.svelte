@@ -117,7 +117,7 @@
                 {kind === 'new' ? m.catalog_newly_added() : m.catalog_most_popular()}
             </h1>
             <a
-                href={kind === 'new' ? '/popular' : '/new'}
+                href={kind === 'new' ? '/shows/popular' : '/shows/new'}
                 class="inline-flex h-11 items-center gap-2 px-3 text-sm font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
             >
                 {#if kind === 'new'}
