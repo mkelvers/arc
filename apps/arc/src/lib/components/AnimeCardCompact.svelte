@@ -7,6 +7,7 @@
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import type { AnimeCardProps } from './AnimeCard.types';
+    import { m } from '$lib/paraglide/messages.js';
 
     let { anime, onselect }: AnimeCardProps = $props();
 </script>
@@ -15,10 +16,10 @@
     <a
         href={anime.href}
         class="absolute inset-0 z-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        aria-label={`View ${anime.title}`}
+        aria-label={m.shared_view({ title: anime.title })}
         onclick={onselect}
     >
-        <span class="sr-only">View {anime.title}</span>
+        <span class="sr-only">{m.shared_view({ title: anime.title })}</span>
     </a>
     <div class="flex min-h-28 gap-3 p-2">
         <CardMedia aspect="poster" class="h-24 shrink-0">
@@ -43,15 +44,15 @@
                     <p class="flex items-center gap-1 text-sm text-muted">
                         <span>{anime.score}%</span>
                         <StarIcon size="1em" weight="fill" aria-hidden="true" />
-                        <span class="sr-only">AniList score</span>
+                        <span class="sr-only">{m.shared_anilist_score()}</span>
                     </p>
                 {/if}
                 <div class="ml-auto flex items-center gap-1 text-accent">
-                    <Tooltip text="Play episode 1">
+                    <Tooltip text={m.shared_play_episode()}>
                         <a
                             href={anime.link}
                             class="grid size-9 place-items-center transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-90"
-                            aria-label={`Start watching ${anime.title}`}
+                            aria-label={m.shared_start_watching({ title: anime.title })}
                             onclick={onselect}
                         >
                             <PlayIcon size="1.45rem" weight="bold" aria-hidden="true" />
