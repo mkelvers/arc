@@ -540,7 +540,13 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
         )
         .orderBy(desc(animeEpisodeTarget.airingAt), desc(animeEpisodeTarget.targetEpisode))
         .limit(5_000);
-    const latest = [...new Map(confirmed.map((entry) => [entry.anilistId, entry])).values()];
+    const latestMap = new Map<number, (typeof confirmed)[number]>();
+    for (const entry of confirmed) {
+        if (!latestMap.has(entry.anilistId)) {
+            latestMap.set(entry.anilistId, entry);
+        }
+    }
+    const latest = [...latestMap.values()];
     const episodeRows = latest.length
         ? await db
               .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
