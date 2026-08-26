@@ -197,6 +197,8 @@
     "anime_more": "Más",
     "anime_view_media": "Ver opciones multimedia",
     "anime_view_episodes": "Ver episodios",
+    "anime_continue_watching": "Continuar viendo {episode}",
+    "anime_start_watching": "Comenzar a ver {episode}",
     "anime_production": "Producción:",
     "anime_key_staff": "Equipo principal:",
     "anime_rankings": "Clasificaciones:",
