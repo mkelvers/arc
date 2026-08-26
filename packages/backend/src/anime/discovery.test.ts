@@ -23,6 +23,13 @@ describe('anime discovery catalog', () => {
         );
     });
 
+    test('admits movies only when the caller explicitly requests them', () => {
+        const movie = { format: 'MOVIE' as const, popularity: 20_000, duration: 110 };
+
+        expect(isDiscoverableAnime(movie)).toBe(false);
+        expect(isDiscoverableAnime(movie, ['MOVIE'])).toBe(true);
+    });
+
     test('fails closed when AniList has not classified format or popularity', () => {
         expect(isDiscoverableAnime({ format: null, popularity: 10_000, duration: 24 })).toBe(false);
         expect(isDiscoverableAnime({ format: 'TV', popularity: null, duration: 24 })).toBe(false);
