@@ -160,7 +160,7 @@
     <div class="flex justify-end border-t border-border pt-6">
         <button
             type="button"
-            class="min-h-10 border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="min-h-10 border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
             onclick={resetDefaults}
         >
             Reset to default

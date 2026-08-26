@@ -47,13 +47,13 @@
         />
         <label
             for={name}
-            class="pointer-events-none absolute top-1 left-0 text-xs transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent"
+            class="pointer-events-none absolute top-1 left-0 text-xs transition-[top,font-size,color] peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent"
         >
             {label}
         </label>
         {#if type === 'password' && value}
             <button
-                class="absolute inset-y-0 right-0 min-w-12 pt-8 text-xs font-semibold text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+                class="absolute inset-y-0 right-0 min-w-12 pt-8 text-xs font-semibold text-muted uppercase transition-[color,transform] hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                 type="button"
                 aria-label={visible ? 'Hide password' : 'Show password'}
                 aria-pressed={visible}
