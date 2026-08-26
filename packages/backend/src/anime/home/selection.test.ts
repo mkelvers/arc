@@ -109,7 +109,7 @@ describe('homepage hero selection', () => {
                     genres: ['Adventure', 'Romance'],
                     hasPrequel: false,
                 },
-            ],
+            ].map((candidate) => ({ ...candidate, format: 'TV' as const, duration: 24 })),
             new Date('2026-08-11T00:00:00Z')
         );
 

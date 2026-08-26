@@ -1,3 +1,6 @@
+import type { MediaFormat } from '@arc/shared/anilist/generated/graphql';
+import { isDiscoverableAnime } from '../discovery';
+
 export interface HomeHeroCandidate {
     anilistId: number;
     averageScore: number;
@@ -5,6 +8,8 @@ export interface HomeHeroCandidate {
 }
 
 interface HomeHeroEligibility extends HomeHeroCandidate {
+    format: MediaFormat | null;
+    duration: number | null;
     popularity: number;
     favourites: number;
     seasonYear: number;
@@ -32,6 +37,7 @@ export function eligibleHomeHeroCandidates<Candidate extends HomeHeroEligibility
             // only among existing fans. Favorites distinguish recommendations from list entries.
             return (
                 candidate.seasonYear === currentYear &&
+                isDiscoverableAnime(candidate) &&
                 candidate.averageScore > 70 &&
                 candidate.trendingRank <= 30 &&
                 candidate.popularity >= (candidate.hasPrequel ? 50_000 : 25_000) &&

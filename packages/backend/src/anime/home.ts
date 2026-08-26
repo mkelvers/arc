@@ -6,6 +6,7 @@ import { homeHeroSelection } from '@arc/db/schema';
 import { getAnime } from './anilist/details';
 import { getHomeHeroCandidates } from './anilist/hero';
 import { mediaTitle, present } from './anilist/text';
+import { isDiscoverableAnime } from './discovery';
 import { getEpisodes } from './episodes';
 import { resolveHeroSynopsis } from './synopsis';
 import { homeHeroRotationStart, rotatedHomeHeroCandidates, selectHomeHero } from './home/selection';
@@ -60,6 +61,10 @@ async function previousSelection(rotationStart: string) {
 async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
     try {
         const details = await getAnime(id);
+        if (!isDiscoverableAnime(details)) {
+            return null;
+        }
+
         const artwork = await getArtwork(details);
 
         if (!artwork?.selectedBackdrop || !artwork.selectedLogo) {
