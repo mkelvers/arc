@@ -18,6 +18,7 @@ import {
     type AniListBrowseFilters,
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
+import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
 import { createAnimeSearchIndex } from './search-index';
 import {
@@ -523,21 +524,14 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
             anilistId: animeEpisodeTarget.anilistId,
             episode: animeEpisodeTarget.targetEpisode,
             airedAt: animeEpisodeTarget.airingAt,
-            title: animeCatalog.title,
-            image: animeCatalog.imageUrl,
-            score: animeCatalog.averageScore,
-            genres: animeCatalog.genres,
-            synopsis: animeCatalog.synopsis,
-            status: animeCatalog.status,
-            format: animeCatalog.format,
         })
         .from(animeEpisodeTarget)
-        .innerJoin(animeCatalog, eq(animeCatalog.anilistId, animeEpisodeTarget.anilistId))
+        .innerJoin(animeRelease, eq(animeRelease.anilistId, animeEpisodeTarget.anilistId))
         .where(
             and(
                 eq(animeEpisodeTarget.state, 'confirmed'),
-                filters.status ? eq(animeCatalog.status, filters.status) : undefined,
-                filters.format ? eq(animeCatalog.format, filters.format) : undefined
+                filters.status ? eq(animeRelease.status, filters.status) : undefined,
+                filters.format ? eq(animeRelease.format, filters.format) : undefined
             )
         )
         .orderBy(desc(animeEpisodeTarget.airingAt), desc(animeEpisodeTarget.targetEpisode))
@@ -566,19 +560,26 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
     });
     const offset = (page - 1) * 42;
     const pageEntries = eligible.slice(offset, offset + 43);
-    const cards: AnimeCard[] = pageEntries.slice(0, 42).map((entry) => ({
-        id: entry.anilistId,
-        href: `/anime/${entry.anilistId}`,
-        link: `/anime/${entry.anilistId}`,
-        title: entry.title,
-        image: entry.image,
-        audioLabel: audioAvailabilityLabel([...(audioByAnime.get(entry.anilistId) ?? [])]),
-        score: entry.score ?? 0,
-        genres: entry.genres,
-        synopsis: entry.synopsis,
-        releasedAt: entry.airedAt.toISOString(),
-        episode: entry.episode,
-    }));
+    const storedCards = new Map(
+        (await storedReleaseCards(pageEntries.slice(0, 42).map(({ anilistId }) => anilistId))).map(
+            (card) => [card.id, card]
+        )
+    );
+    const cards: AnimeCard[] = pageEntries.slice(0, 42).flatMap((entry) => {
+        const card = storedCards.get(entry.anilistId);
+        return card
+            ? [
+                  {
+                      ...card,
+                      audioLabel: audioAvailabilityLabel([
+                          ...(audioByAnime.get(entry.anilistId) ?? []),
+                      ]),
+                      releasedAt: entry.airedAt.toISOString(),
+                      episode: entry.episode,
+                  },
+              ]
+            : [];
+    });
     const anime = await enrichAnimeCards(cards);
 
     return {
