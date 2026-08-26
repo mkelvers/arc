@@ -25,4 +25,31 @@ describe('ReAnime stream modes', () => {
             },
         ]);
     });
+
+    test('keeps a distinct English iframe URL', () => {
+        expect(
+            parseReAnimeLinks({
+                success: true,
+                servers: [
+                    {
+                        dataType: 'sub',
+                        dataLink: 'https://player.example/embed/episode-5-sub',
+                    },
+                    {
+                        dataType: 'dub',
+                        dataLink: 'https://player.example/embed/episode-5-dub',
+                    },
+                ],
+            })
+        ).toEqual([
+            {
+                mode: 'sub',
+                url: 'https://player.example/embed/episode-5-sub',
+            },
+            {
+                mode: 'dub',
+                url: 'https://player.example/embed/episode-5-dub',
+            },
+        ]);
+    });
 });
