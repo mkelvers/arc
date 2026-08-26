@@ -1,4 +1,5 @@
 import {
+    bigint,
     boolean,
     doublePrecision,
     foreignKey,
@@ -397,6 +398,25 @@ export const anilistQueryCache = pgTable(
     (table) => [index('anilist_query_cache_expires_idx').on(table.expiresAt)]
 );
 
+export const anilistRequestState = pgTable('anilist_request_state', {
+    name: text('name').primaryKey(),
+    nextRequestAt: timestamp('next_request_at', { withTimezone: true }).notNull().defaultNow(),
+    blockedUntil: timestamp('blocked_until', { withTimezone: true }),
+    leaseOwner: uuid('lease_owner'),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
+    lastRequestAt: timestamp('last_request_at', { withTimezone: true }),
+    lastOperation: text('last_operation'),
+    requestCount: bigint('request_count', { mode: 'number' }).notNull().default(0),
+    successCount: bigint('success_count', { mode: 'number' }).notNull().default(0),
+    failureCount: bigint('failure_count', { mode: 'number' }).notNull().default(0),
+    lastStatus: integer('last_status'),
+    lastError: text('last_error'),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+        .notNull()
+        .defaultNow()
+        .$onUpdate(() => new Date()),
+});
+
 export const animeSearchIndex = pgTable(
     'anime_search_index',
     {
@@ -768,6 +788,7 @@ export const schedulerHeartbeat = pgTable('scheduler_heartbeat', {
     lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
     lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
     lastFullReconciliationAt: timestamp('last_full_reconciliation_at', { withTimezone: true }),
+    nextFullReconciliationAt: timestamp('next_full_reconciliation_at', { withTimezone: true }),
     lastError: text('last_error'),
     stats: jsonb('stats').$type<unknown>(),
 });
