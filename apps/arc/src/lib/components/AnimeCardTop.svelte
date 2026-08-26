@@ -58,7 +58,7 @@
             <Tooltip text="Play episode 1">
                 <a
                     href={anime.link}
-                    class="grid size-9 place-items-center"
+                    class="grid size-9 place-items-center transition-[opacity,transform] duration-150 hover:opacity-80 active:scale-90"
                     aria-label={`Start watching ${anime.title}`}
                     onclick={onselect}
                 >

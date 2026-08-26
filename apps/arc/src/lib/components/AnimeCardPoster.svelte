@@ -22,7 +22,7 @@
             <CardMedia aspect="poster" class={compact ? 'sm:aspect-2/3' : undefined}>
                 <ProgressiveImage src={anime.image} alt="" />
             </CardMedia>
-            <h3 class:min-h-10={!compact} class="mt-3 line-clamp-2 text-sm leading-snug font-bold">
+            <h3 class:min-h-10={!compact} class="mt-3 line-clamp-2 text-sm leading-snug font-semibold">
                 {anime.title}
             </h3>
             {#if meta}
@@ -39,7 +39,7 @@
         class="pointer-events-none absolute -inset-2 size-auto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
     />
     <div
-        class="pointer-events-none absolute -inset-2 flex flex-col bg-[#151515]/95 p-4 pt-6 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+        class="pointer-events-none absolute -inset-2 flex flex-col bg-header-hover/95 p-4 pt-6 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
     >
         <a
             href={anime.href}
@@ -61,12 +61,12 @@
             </p>
         {/if}
         {#if anime.genres.length}
-            <p class="pointer-events-none relative z-10 mt-3 line-clamp-1 text-xs font-semibold text-muted">
+            <p class="pointer-events-none relative z-10 mt-3 line-clamp-1 text-xs text-muted">
                 {anime.genres.slice(0, 2).join(' · ')}
             </p>
         {/if}
         {#if anime.synopsis}
-            <p class="pointer-events-none relative z-10 mt-3 line-clamp-6 text-xs leading-relaxed text-foreground">
+            <p class="pointer-events-none relative z-10 mt-3 line-clamp-6 text-xs leading-relaxed text-muted">
                 {anime.synopsis}
             </p>
         {/if}
@@ -74,7 +74,7 @@
             <Tooltip text="Play E1">
                 <a
                     href={anime.link}
-                    class="grid size-9 place-items-center transition-colors focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
+                    class="grid size-9 place-items-center transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent active:scale-90"
                     aria-label={`Start watching ${anime.title}`}
                     onclick={onselect}
                 >

@@ -221,7 +221,7 @@
         <a
             href={`/anime/${anime.id}`}
             aria-label={`Back to ${anime.title}`}
-            class="pointer-events-auto grid size-10 place-items-center text-white/90 drop-shadow transition hover:text-white hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white"
+            class="pointer-events-auto grid size-10 place-items-center text-white/90 drop-shadow transition-[color,opacity,transform] duration-150 hover:text-white hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90"
         >
             <CaretLeftIcon size="2rem" weight="bold" aria-hidden="true" />
         </a>
@@ -349,7 +349,7 @@
                 <button
                     type="button"
                     disabled={retrying}
-                    class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-60"
+                    class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold transition-[border-color,transform] duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
                     onclick={onretry}
                 >
                     {retrying ? 'Trying again…' : 'Try again'}
@@ -373,7 +373,7 @@
                 <p class="mt-2 text-sm text-white/65">Every available provider source was tried.</p>
                 <button
                     type="button"
-                    class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold transition-[border-color,transform] duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97]"
                     onclick={() => player.media.retry()}
                 >
                     Try again
@@ -388,7 +388,7 @@
             <button
                 type="button"
                 disabled={player.media.loading}
-                class="absolute right-4 bottom-24 z-30 min-h-11 rounded-sm bg-white/95 px-5 text-sm font-bold text-black shadow-[0_3px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50 sm:right-6 sm:bottom-28"
+                class="absolute right-4 bottom-24 z-30 min-h-11 rounded-sm bg-white/95 px-5 text-sm font-bold text-black shadow-[0_3px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm transition-[background-color,translate,scale,opacity] duration-200 ease-out hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] disabled:opacity-50 motion-reduce:transition-none motion-reduce:starting:translate-y-0 starting:translate-y-1.5 starting:opacity-0 sm:right-6 sm:bottom-28"
                 onclick={() => {
                     player.media.seek(skip.interval.end);
                     player.showControls();

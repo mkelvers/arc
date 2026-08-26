@@ -77,7 +77,7 @@
                         <Tooltip text="Remove">
                             <button
                                 type="submit"
-                                class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-colors hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-[color,transform] duration-150 hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90"
                                 aria-label={`Remove ${entry.title} from continue watching`}
                             >
                                 <XIcon size="1rem" weight="bold" aria-hidden="true" />

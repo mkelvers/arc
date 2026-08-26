@@ -60,7 +60,7 @@
     <button
         type="button"
         class={cn(
-            'grid shrink-0 place-items-center text-accent transition-opacity disabled:cursor-wait disabled:opacity-50',
+            'grid shrink-0 place-items-center text-accent transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90 disabled:cursor-wait disabled:opacity-50',
             outlined ? 'size-10 border-2 border-accent' : 'size-9'
         )}
         aria-label={added ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`}

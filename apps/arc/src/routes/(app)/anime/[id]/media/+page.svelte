@@ -55,7 +55,7 @@
             </p>
             <a
                 href={`/anime/${data.anime.id}`}
-                class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-sm font-semibold text-on-accent"
+                class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-sm font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
             >
                 Back to anime
             </a>

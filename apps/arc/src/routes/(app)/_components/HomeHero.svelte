@@ -172,7 +172,7 @@
 
                                 <button
                                     type="button"
-                                    class="pointer-events-auto absolute top-1/2 left-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
+                                    class="pointer-events-auto absolute top-1/2 left-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
                                     aria-label="Previous anime"
                                     onclick={() => select(carousel.active - 1, 'complete')}
                                 >
@@ -189,7 +189,7 @@
                         {#if highlights.length > 1}
                             <button
                                 type="button"
-                                class="pointer-events-auto absolute top-1/2 right-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
+                                class="pointer-events-auto absolute top-1/2 right-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
                                 aria-label="Next anime"
                                 onclick={() => select(carousel.active + 1, 'complete')}
                             >
@@ -207,17 +207,17 @@
                         class="mt-5 flex min-h-5 max-w-[min(100%,36rem)] flex-wrap items-center justify-center gap-y-1 px-5 text-xs font-normal text-white/60 sm:min-h-0 sm:justify-start sm:px-10 lg:mt-7 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-sm 2xl:mt-8"
                     >
                         {#if activeAnime.audioLabel}
-                            <span class="hero-metadata__tag">{activeAnime.audioLabel}</span>
+                            <span class="metadata-tag">{activeAnime.audioLabel}</span>
                         {/if}
                         {#if activeAnime.genres.length}
-                            <span class="hero-metadata__tag">
+                            <span class="metadata-tag">
                                 {activeAnime.genres.slice(0, 4).join(', ')}
                             </span>
                         {/if}
                     </p>
 
                     <p
-                        class="mt-2 hidden min-h-15 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-[#bbb] sm:block sm:min-h-0 sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
+                        class="mt-2 hidden min-h-15 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-muted sm:block sm:min-h-0 sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
                     >
                         {activeAnime.description}
                     </p>
@@ -227,7 +227,7 @@
                     >
                         <a
                             href={activeAnime.link}
-                            class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent uppercase transition-colors hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white 2xl:text-sm"
+                            class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] 2xl:text-sm"
                         >
                             <PlayIcon size="1.2rem" weight="bold" aria-hidden="true" />
                             Start watching {activeAnime.episodeLabel}
@@ -289,18 +289,6 @@
 {/if}
 
 <style>
-    .hero-metadata__tag:not(:first-child)::before {
-        width: 0.25rem;
-        height: 0.25rem;
-        margin-inline: 0.25rem;
-        display: inline-block;
-        background-color: currentcolor;
-        content: '';
-        line-height: 1;
-        vertical-align: middle;
-        transform: rotate(45deg);
-    }
-
     .hero-pagination__progress {
         animation-name: hero-slide-progress;
         animation-timing-function: linear;

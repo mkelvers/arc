@@ -83,7 +83,7 @@
                 {#if result.status === 'error'}
                     <button
                         type="button"
-                        class="mt-6 min-h-10 bg-accent px-5 text-sm font-bold text-on-accent uppercase transition-opacity hover:opacity-85 disabled:cursor-wait disabled:opacity-60"
+                        class="mt-6 min-h-10 bg-accent px-5 text-sm font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
                         disabled={retrying}
                         onclick={retry}
                     >
