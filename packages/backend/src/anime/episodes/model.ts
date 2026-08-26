@@ -7,12 +7,10 @@ import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
 import { formatDuration } from '../../utils';
 import type { AniListAnime } from '../anilist/types';
-import { availableEpisodeCount } from './policy';
 
 function episodeModel(
     episode: typeof animeEpisode.$inferSelect,
-    fallbackDuration: number | null | undefined,
-    displayNumber: number
+    fallbackDuration: number | null | undefined
 ): AnimeEpisode {
     const metadataTitle =
         episode.metadataTitleSource &&
@@ -28,7 +26,7 @@ function episodeModel(
     return {
         id: episode.episodeId,
         number: episode.number,
-        label: `E${displayNumber}`,
+        label: `E${episode.number}`,
         title,
         href: `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
         audio: episode.audio,
@@ -45,14 +43,8 @@ export async function storedEpisodes(anime: AniListAnime) {
         .from(animeEpisode)
         .where(eq(animeEpisode.anilistId, anime.id))
         .orderBy(asc(animeEpisode.number));
-    const available = availableEpisodeCount(anime);
-    const sequentialLabels =
-        (available === null || rows.length >= available) &&
-        rows.some(({ number }, index) => number !== index + 1);
 
-    return rows.map((episode, index) =>
-        episodeModel(episode, anime.duration, sequentialLabels ? index + 1 : episode.number)
-    );
+    return rows.map((episode) => episodeModel(episode, anime.duration));
 }
 
 export async function storedRelatedReleaseTitles(anilistIds: number[]) {
