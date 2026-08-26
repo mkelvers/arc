@@ -118,8 +118,9 @@
                     class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
                 >
                     <span class="relative flex items-center gap-0.5 text-subtle" aria-hidden="true">
-                        {#each Array(5) as _}
+                        {#each Array(5) as _, index}
                             <svg
+                                class:text-foreground={index < Math.round(data.anime.score / 20)}
                                 class="size-6 shrink-0 fill-current sm:size-7"
                                 viewBox="0 0 24 24"
                                 aria-hidden="true"
@@ -129,22 +130,6 @@
                                 />
                             </svg>
                         {/each}
-                        <span
-                            class="absolute inset-0 flex items-center gap-0.5 overflow-hidden text-foreground"
-                            style:clip-path={`inset(0 ${100 - data.anime.score / 5}% 0 0)`}
-                        >
-                            {#each Array(5) as _}
-                                <svg
-                                    class="size-6 shrink-0 fill-current sm:size-7"
-                                    viewBox="0 0 24 24"
-                                    aria-hidden="true"
-                                >
-                                    <path
-                                        d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
-                                    />
-                                </svg>
-                            {/each}
-                        </span>
                     </span>
                     <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
                     <strong>AniList score: {data.anime.score}%</strong>
