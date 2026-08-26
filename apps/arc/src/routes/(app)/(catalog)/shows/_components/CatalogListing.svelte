@@ -256,7 +256,9 @@
                     {#each section.anime as entry (entry.id)}
                         <AnimeCard
                             anime={entry}
-                            meta={kind === 'new' ? releasedLabel(entry.releasedAt) : undefined}
+                            meta={kind === 'new'
+                                ? `${entry.episode ? `E${entry.episode} · ` : ''}${releasedLabel(entry.releasedAt)}`
+                                : undefined}
                             reserveTitleSpace={kind !== 'new'}
                             truncateTitle={false}
                         />
