@@ -13,6 +13,7 @@ import {
 import { refreshAnimeRelease } from '../anilist/releases';
 import { GraphQLRequestError } from '../../graphql';
 import { drainEpisodeTargets, type SchedulerLimits } from './episodes';
+import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { scheduleReleaseTargets } from './targets';
@@ -66,6 +67,15 @@ async function fullReconciliationDue(intervalMs: number) {
     return !heartbeat?.completedAt || Date.now() - heartbeat.completedAt.getTime() >= intervalMs;
 }
 
+async function catalogRefreshDue() {
+    const [heartbeat] = await db
+        .select({ nextAttemptAt: schedulerHeartbeat.nextCatalogRefreshAt })
+        .from(schedulerHeartbeat)
+        .where(eq(schedulerHeartbeat.name, heartbeatName))
+        .limit(1);
+    return !heartbeat?.nextAttemptAt || heartbeat.nextAttemptAt.getTime() <= Date.now();
+}
+
 export async function runAnimeScheduler(config: SchedulerConfig) {
     const runId = randomUUID();
     const startedAt = new Date();
@@ -111,6 +121,40 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
             }
         }
 
+        let catalogRefresh: { completedAt: string } | { error: string; retryAt: string } | null =
+            null;
+        if (await catalogRefreshDue()) {
+            try {
+                await refreshCatalogSnapshots();
+                const refreshedAt = new Date();
+                catalogRefresh = { completedAt: refreshedAt.toISOString() };
+                await db
+                    .update(schedulerHeartbeat)
+                    .set({
+                        lastCatalogRefreshAt: refreshedAt,
+                        nextCatalogRefreshAt: new Date(refreshedAt.getTime() + 24 * 60 * 60_000),
+                    })
+                    .where(eq(schedulerHeartbeat.name, heartbeatName));
+            } catch (cause) {
+                const error = cause instanceof Error ? cause.message : 'Catalog refresh failed';
+                const retryAfterMs =
+                    cause instanceof GraphQLRequestError && cause.retryAfterMs
+                        ? cause.retryAfterMs
+                        : 0;
+                const retryAt = new Date(Date.now() + Math.max(60 * 60_000, retryAfterMs));
+                catalogRefresh = { error, retryAt: retryAt.toISOString() };
+                console.warn('Arc catalog refresh failed; continuing durable work', error);
+                await db
+                    .update(schedulerHeartbeat)
+                    .set({
+                        nextCatalogRefreshAt: retryAt,
+                        lastFailureAt: new Date(),
+                        lastError: error,
+                    })
+                    .where(eq(schedulerHeartbeat.name, heartbeatName));
+            }
+        }
+
         const releases = await refreshDueReleases(config.concurrency);
         const maintenance = await drainMaintenanceTasks(runId, {
             limit: config.concurrency,
@@ -119,13 +163,15 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         });
         const episodes = await drainEpisodeTargets(runId, config);
         const completedAt = new Date();
-        const stats = { releases, maintenance, episodes, fullReconciliation };
+        const stats = { releases, maintenance, episodes, fullReconciliation, catalogRefresh };
         const reconciliationError =
             fullReconciliation && 'error' in fullReconciliation ? fullReconciliation.error : null;
+        const catalogError =
+            catalogRefresh && 'error' in catalogRefresh ? catalogRefresh.error : null;
         const heartbeatUpdate: Partial<typeof schedulerHeartbeat.$inferInsert> = {
             completedAt,
             lastSuccessAt: completedAt,
-            lastError: reconciliationError,
+            lastError: reconciliationError ?? catalogError,
             stats,
         };
         if (fullReconciliation && !reconciliationError) {
@@ -280,6 +326,8 @@ export async function animeSchedulerHealth(now = new Date()) {
         lastFailureAt: heartbeat?.lastFailureAt ?? null,
         lastFullReconciliationAt: heartbeat?.lastFullReconciliationAt ?? null,
         nextFullReconciliationAt: heartbeat?.nextFullReconciliationAt ?? null,
+        lastCatalogRefreshAt: heartbeat?.lastCatalogRefreshAt ?? null,
+        nextCatalogRefreshAt: heartbeat?.nextCatalogRefreshAt ?? null,
         durationMs,
         stats: heartbeat?.stats ?? null,
         targets: {
