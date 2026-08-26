@@ -137,21 +137,6 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
     };
 }
 
-export async function getBrowseAnime(ids: number[]) {
-    if (!ids.length) {
-        return [];
-    }
-    const response = await request(BrowseAnimePageDocument, {
-        ids,
-        isAdult: false,
-        discoveryFormats: [...discoveryFormats, 'MOVIE'],
-        minimumPopularity: discoveryMinimumPopularity - 1,
-        page: 1,
-        perPage: 50,
-    });
-    return browseEntries(response.Page?.media ?? [], [...discoveryFormats, 'MOVIE']);
-}
-
 export async function getBrowseTaxonomy() {
     const response = await request(
         BrowseAnimeTaxonomyDocument,
