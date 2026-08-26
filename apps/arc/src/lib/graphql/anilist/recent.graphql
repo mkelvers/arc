@@ -1,0 +1,31 @@
+query RecentAiringPage($page: Int!, $perPage: Int!, $before: Int!) {
+    Page(page: $page, perPage: $perPage) {
+        pageInfo {
+            hasNextPage
+        }
+        airingSchedules(airingAt_lesser: $before, sort: TIME_DESC) {
+            episode
+            airingAt
+            media {
+                id
+                title {
+                    english
+                    romaji
+                    native
+                }
+                coverImage {
+                    extraLarge
+                    large
+                }
+                description(asHtml: false)
+                genres
+                format
+                status
+                isAdult
+                averageScore
+                popularity
+                duration
+            }
+        }
+    }
+}

@@ -213,6 +213,7 @@ export type BrowseAnimePageQueryVariables = Exact<{
   minimumPopularity?: number | null | undefined;
   page: number;
   perPage: number;
+  ids?: Array<number> | number | null | undefined;
 }>;
 
 
@@ -248,6 +249,15 @@ export type HomeHeroCandidatesQueryVariables = Exact<{
 
 
 export type HomeHeroCandidatesQuery = { Page: { media: Array<{ id: number, averageScore: number | null, popularity: number | null, favourites: number | null, duration: number | null, format: MediaFormat | null, seasonYear: number | null, genres: Array<string | null> | null, relations: { edges: Array<{ relationType: MediaRelation | null } | null> | null } | null } | null> | null } | null };
+
+export type RecentAiringPageQueryVariables = Exact<{
+  page: number;
+  perPage: number;
+  before: number;
+}>;
+
+
+export type RecentAiringPageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, airingSchedules: Array<{ episode: number, airingAt: number, media: { id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, isAdult: boolean | null, averageScore: number | null, popularity: number | null, duration: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null } | null> | null } | null };
 
 export type SearchAnimePageQueryVariables = Exact<{
   search: string;
@@ -451,7 +461,7 @@ export const BrowseAnimeTaxonomyDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<BrowseAnimeTaxonomyQuery, BrowseAnimeTaxonomyQueryVariables>;
 export const BrowseAnimePageDocument = new TypedDocumentString(`
-    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $source: MediaSource, $season: MediaSeason, $seasonYear: Int, $countryOfOrigin: CountryCode, $isAdult: Boolean, $sort: [MediaSort], $discoveryFormats: [MediaFormat!], $minimumPopularity: Int, $page: Int!, $perPage: Int!) {
+    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $source: MediaSource, $season: MediaSeason, $seasonYear: Int, $countryOfOrigin: CountryCode, $isAdult: Boolean, $sort: [MediaSort], $discoveryFormats: [MediaFormat!], $minimumPopularity: Int, $page: Int!, $perPage: Int!, $ids: [Int!]) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       hasNextPage
@@ -471,6 +481,7 @@ export const BrowseAnimePageDocument = new TypedDocumentString(`
       sort: $sort
       format_in: $discoveryFormats
       popularity_greater: $minimumPopularity
+      id_in: $ids
     ) {
       id
       title {
@@ -639,6 +650,39 @@ export const HomeHeroCandidatesDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<HomeHeroCandidatesQuery, HomeHeroCandidatesQueryVariables>;
+export const RecentAiringPageDocument = new TypedDocumentString(`
+    query RecentAiringPage($page: Int!, $perPage: Int!, $before: Int!) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      hasNextPage
+    }
+    airingSchedules(airingAt_lesser: $before, sort: TIME_DESC) {
+      episode
+      airingAt
+      media {
+        id
+        title {
+          english
+          romaji
+          native
+        }
+        coverImage {
+          extraLarge
+          large
+        }
+        description(asHtml: false)
+        genres
+        format
+        status
+        isAdult
+        averageScore
+        popularity
+        duration
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RecentAiringPageQuery, RecentAiringPageQueryVariables>;
 export const SearchAnimePageDocument = new TypedDocumentString(`
     query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {
