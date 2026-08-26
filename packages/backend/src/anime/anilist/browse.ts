@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
+    type BrowseAnimePageQuery,
     type MediaFormat,
     type MediaSeason,
     type MediaSort,
@@ -33,7 +34,7 @@ export interface BrowseSourceTaxonomy {
     seasons: string[];
 }
 
-interface BrowseCatalogEntry {
+export interface BrowseCatalogEntry {
     anilistId: number;
     title: string;
     searchText: string;
@@ -53,28 +54,12 @@ interface BrowseCatalogEntry {
     averageScore: number | null;
 }
 
-export async function getBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
-    const sort: MediaSort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
-    const response = await request(BrowseAnimePageDocument, {
-        search: filters.query || undefined,
-        genre: filters.genre ?? undefined,
-        tag: filters.tag ?? undefined,
-        format: filters.format ?? undefined,
-        status: filters.status ?? undefined,
-        source: filters.source ?? undefined,
-        season: filters.season ?? undefined,
-        seasonYear: filters.year ?? undefined,
-        countryOfOrigin: filters.country ?? undefined,
-        isAdult: filters.safe ? false : undefined,
-        sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
-        discoveryFormats: [...discoveryFormats],
-        minimumPopularity: discoveryMinimumPopularity - 1,
-        page,
-        perPage,
-    });
-
-    const anime = present(response.Page?.media).flatMap((media) => {
-        if (!isDiscoverableAnime(media)) {
+function browseEntries(
+    mediaEntries: NonNullable<NonNullable<BrowseAnimePageQuery['Page']>['media']>,
+    formats: readonly MediaFormat[] = discoveryFormats
+) {
+    return present(mediaEntries).flatMap((media) => {
+        if (!isDiscoverableAnime(media, formats)) {
             return [];
         }
 
@@ -113,7 +98,6 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
                 seasonYear: media.seasonYear,
                 countryOfOrigin:
                     z.string().nullable().safeParse(media.countryOfOrigin).data ?? null,
-                // Unknown classifications are excluded from safe browsing.
                 isAdult: media.isAdult !== false,
                 popularity: media.popularity,
                 duration: media.duration,
@@ -121,11 +105,51 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
             } satisfies BrowseCatalogEntry,
         ];
     });
+}
+
+export async function getBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
+    const sort: MediaSort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
+    const formats: readonly MediaFormat[] =
+        filters.format === 'MOVIE' ? ['MOVIE'] : discoveryFormats;
+    const response = await request(BrowseAnimePageDocument, {
+        search: filters.query || undefined,
+        genre: filters.genre ?? undefined,
+        tag: filters.tag ?? undefined,
+        format: filters.format === 'MOVIE' ? undefined : (filters.format ?? undefined),
+        status: filters.status ?? undefined,
+        source: filters.source ?? undefined,
+        season: filters.season ?? undefined,
+        seasonYear: filters.year ?? undefined,
+        countryOfOrigin: filters.country ?? undefined,
+        isAdult: filters.safe ? false : undefined,
+        sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
+        discoveryFormats: [...formats],
+        minimumPopularity: discoveryMinimumPopularity - 1,
+        page,
+        perPage,
+    });
+
+    const anime = browseEntries(response.Page?.media ?? [], formats);
 
     return {
         anime,
         hasNextPage: response.Page?.pageInfo?.hasNextPage === true,
     };
+}
+
+export async function getBrowseAnime(ids: number[]) {
+    if (!ids.length) {
+        return [];
+    }
+    const response = await request(BrowseAnimePageDocument, {
+        ids,
+        isAdult: false,
+        discoveryFormats: [...discoveryFormats, 'MOVIE'],
+        minimumPopularity: discoveryMinimumPopularity - 1,
+        page: 1,
+        perPage: 50,
+    });
+    return browseEntries(response.Page?.media ?? [], [...discoveryFormats, 'MOVIE']);
 }
 
 export async function getBrowseTaxonomy() {
