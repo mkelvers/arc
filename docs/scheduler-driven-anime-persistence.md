@@ -21,15 +21,18 @@ This project covers:
 - hourly global discovery of AniList releases with `RELEASING` status;
 - durable scheduling, leases, retries, and recovery for airing episodes;
 - provider-confirmed episode writes; and
-- automatic episode-list updates on an already-open anime page.
+- automatic episode-list updates on an already-open anime page;
+- daily refreshes for fixed home, popular, taxonomy, simulcast-range, and hero snapshots; and
+- a database-only recent-release page built from confirmed episode targets.
 
 It does not cover:
 
 - proactive tracking of every announced future `NOT_YET_RELEASED` anime;
-- replacement of TMDB, artwork, home, browse, or simulcast caches;
+- replacement of TMDB or artwork caches;
+- scheduled refresh of every arbitrary browse filter combination;
 - optimistic display of an episode before a playback provider confirms it.
 
-`anilist_query_cache` remains the owner for the explicitly excluded query workloads: home, browse, simulcast, taxonomy/query data, franchise queries, and other out-of-scope query caching. “Remove the AniList cache dependency” in this project means removing the migrated release consumers' dependency on the two redundant release-cache tables; it does not mean deleting every cache associated with AniList.
+`anilist_query_cache` retains valid responses for home, browse, simulcast, taxonomy, franchise, and other query workloads. A page may create a missing response once, but age never starts a refresh during a read. The scheduler refreshes the fixed mutable snapshots once per day. Arbitrary browse queries remain permanent after first contact unless an operator repairs them.
 
 ## Permanent records, not expiring cache entries
 
@@ -64,6 +67,16 @@ Once per hour, the scheduler pages through AniList's complete `RELEASING` anime 
 An airing release with no permanent record is placed in the durable first-contact queue. The normal five-minute worker drains that queue with bounded concurrency instead of fetching every newly discovered title at once. A stored schedule that disappeared from the global `RELEASING` result is also queued for a full status refresh so finished or cancelled releases stop producing new targets.
 
 Watchlist and Continue Watching remain ordinary product features, but they no longer control scheduler eligibility and their mutations do not write scheduler dirty work. Existing interest tables are retained only as rollout-compatible schema until a later contract deployment; the scheduler does not read them. Between hourly reconciliations, a five-minute tick does not repeat global AniList discovery. It performs an idempotent local PostgreSQL check for unseeded historical inventory, then drains durable first-contact, maintenance, and actually due episode work.
+
+A failed global reconciliation no longer aborts the invocation. The scheduler records a retry at least 30 minutes in the future, then drains release, maintenance, and episode work. A failed daily catalog refresh behaves the same way and retries no sooner than one hour later.
+
+The API and scheduler acquire the same PostgreSQL AniList request lease. Requests start at least 2.1 seconds apart. The shared row preserves `Retry-After`, the last operation and status, and cumulative request counts across API containers and short-lived cron processes.
+
+## Catalog snapshots
+
+Once per day, the scheduler refreshes the current-season home and popular snapshots, browse taxonomy, simulcast season range, and hero candidates. Each update replaces stored data only after a valid response. A failed update leaves the previous snapshot readable.
+
+`/shows/new` does not use AniList's recent-airing query. It reads confirmed `anime_episode_target` rows joined to stored catalog metadata. A title appears only after the scheduler has confirmed its episode through a playback provider.
 
 ## Durable episode scheduling
 

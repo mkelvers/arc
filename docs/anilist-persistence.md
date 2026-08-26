@@ -38,7 +38,9 @@ By contrast, `GET /v1/watchlist/states` reads only from the database and was una
 
 ### Retention policy
 
-The shared query client keeps each caller's freshness window, but expiry now starts one deduplicated background refresh and returns the stored response. Watchlist cards use status-aware refresh windows: 6 hours for releasing, one day for upcoming or incomplete metadata, one week for hiatus, and 90 days for finished or cancelled titles.
+The shared query client keeps every valid stored response. Expiry is scheduler information. It does not start AniList work during a page read. A missing query response still makes one coordinated first-contact request because Arc has no local result to show.
+
+The API and scheduler share one PostgreSQL AniList lease and cooldown. The row records the last operation and cumulative request, success, and failure counts. A `Retry-After` response blocks both processes, including later cron invocations.
 
 ### Dynamic anime pages
 
@@ -69,10 +71,10 @@ Persist by mutability, not by one global clock:
 Render from the database alone:
 
 - The watchlist page becomes a pure DB read of stored rows plus stored cards. AniList is never on the critical path.
-- Missing or stale metadata starts a background refresh from an active read: batched (50 per AniList request), rate-limited, and deduplicated. A future worker may add proactive warming for inactive data.
+- Missing metadata starts one coordinated first-contact request. Age alone never starts an AniList request from a page read.
 - Cold entries that have no card yet render minimally from data Arc owns — `anime.title` is already stored — instead of disappearing from the page.
 
-Browse and detail query-cache reads inherit stale-while-refresh behavior from the shared client. Their derived stores still need route-by-route review before the database-first rollout is complete.
+Browse and detail query-cache reads keep stored responses until an explicit scheduler or repair refresh replaces them.
 
 Caveats discussed:
 
@@ -91,18 +93,19 @@ Caveats discussed:
 **What it costs or risks**
 
 - Stored metadata can remain stale for its status-specific audit interval. A correction to a finished title may take up to 90 days to appear.
-- Refreshes start from active reads. Data nobody visits will not refresh until a future worker provides proactive warming.
-- Background work must be owned somewhere. Refresh scheduling lives inside the API process under this scope; that work has to be bounded and rate-limited so a large backlog (for example after a long outage) cannot hammer AniList or starve request handling. Durable retry across restarts is not solved by an in-process helper and may eventually want the future worker described in ADR 0001.
+- The scheduler refreshes mutable fixed snapshots. Arbitrary cold queries still make their unavoidable first-contact request.
+- PostgreSQL retains AniList request leases, cooldowns, retry times, and counters across process restarts.
 - Storage grows monotonically. Nothing is deleted for age, so tables grow for the lifetime of the deployment. Growth is slow (one row per title), but the cleanup path that existed before is gone by design.
 - The `*_cache` names become actively misleading. Until a rename happens, the tables read as disposable even though they are the source of truth; a future contributor could reasonably add a purge job and destroy persistent state.
 - First contact still requires AniList once per never-seen title. Persistence cannot produce data that was never fetched; the optional warming job reduces how often users hit that path, not whether it exists.
 
 ## Incident-era implementation status
 
-- Implemented: shared stale query reads, no age-based query deletion, database-only watchlist rendering, status-aware background card refreshes, persisted watchlist titles, local title backfill, and pending metadata cards.
+- Implemented: permanent query reads, no age-based query deletion, database-only watchlist rendering, persisted watchlist titles, local title backfill, and pending metadata cards.
 - Implemented: dynamic anime pages return valid stored finished details and episodes without blocking on AniList or periodic TMDB maintenance.
-- Next stages: apply the same database-first read policy to each derived browse, detail, home, airing, and simulcast store, verifying one route group at a time.
-- Deferred: scheduled warming worker and `*_cache` table renames.
+- Implemented: `/shows/new` reads provider-confirmed scheduler targets and stored catalog rows. It no longer runs the timestamp-varying recent-airing query.
+- Implemented: the scheduler refreshes the current home and popular snapshots, taxonomy, simulcast range, and hero candidates once per day. Page reads keep the last valid snapshots.
+- Deferred: `*_cache` table renames.
 
 ## Related context
 
