@@ -10,6 +10,8 @@ query BrowseAnimePage(
     $countryOfOrigin: CountryCode
     $isAdult: Boolean
     $sort: [MediaSort]
+    $discoveryFormats: [MediaFormat!]
+    $minimumPopularity: Int
     $page: Int!
     $perPage: Int!
 ) {
@@ -30,6 +32,8 @@ query BrowseAnimePage(
             countryOfOrigin: $countryOfOrigin
             isAdult: $isAdult
             sort: $sort
+            format_in: $discoveryFormats
+            popularity_greater: $minimumPopularity
         ) {
             id
             title {
@@ -56,6 +60,7 @@ query BrowseAnimePage(
             isAdult
             averageScore
             popularity
+            duration
         }
     }
 }

@@ -209,12 +209,21 @@ export type BrowseAnimePageQueryVariables = Exact<{
   countryOfOrigin?: unknown;
   isAdult?: boolean | null | undefined;
   sort?: Array<MediaSort | null | undefined> | MediaSort | null | undefined;
+  discoveryFormats?: Array<MediaFormat> | MediaFormat | null | undefined;
+  minimumPopularity?: number | null | undefined;
   page: number;
   perPage: number;
 }>;
 
 
-export type BrowseAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, source: MediaSource | null, season: MediaSeason | null, seasonYear: number | null, countryOfOrigin: unknown, isAdult: boolean | null, averageScore: number | null, popularity: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, tags: Array<{ name: string } | null> | null } | null> | null } | null };
+export type BrowseAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, source: MediaSource | null, season: MediaSeason | null, seasonYear: number | null, countryOfOrigin: unknown, isAdult: boolean | null, averageScore: number | null, popularity: number | null, duration: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, tags: Array<{ name: string } | null> | null } | null> | null } | null };
+
+export type DiscoveryAnimeQueryVariables = Exact<{
+  ids: Array<number> | number;
+}>;
+
+
+export type DiscoveryAnimeQuery = { Page: { media: Array<{ id: number, format: MediaFormat | null, duration: number | null, popularity: number | null } | null> | null } | null };
 
 export type FranchiseMediaQueryVariables = Exact<{
   malIds?: Array<number | null | undefined> | number | null | undefined;
@@ -226,17 +235,19 @@ export type FranchiseMediaQuery = { Page: { media: Array<{ id: number, idMal: nu
 export type HomeAnimeQueryVariables = Exact<{
   season: MediaSeason;
   seasonYear: number;
+  discoveryFormats: Array<MediaFormat> | MediaFormat;
+  minimumPopularity: number;
 }>;
 
 
-export type HomeAnimeQuery = { season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null, popular: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number } | null } | null> | null } | null } | null> | null } | null };
+export type HomeAnimeQuery = { season: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, popularity: number | null, duration: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null, popular: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, popularity: number | null, duration: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number } | null } | null> | null } | null } | null> | null } | null };
 
 export type HomeHeroCandidatesQueryVariables = Exact<{
   seasonYear: number;
 }>;
 
 
-export type HomeHeroCandidatesQuery = { Page: { media: Array<{ id: number, averageScore: number | null, popularity: number | null, favourites: number | null, seasonYear: number | null, genres: Array<string | null> | null, relations: { edges: Array<{ relationType: MediaRelation | null } | null> | null } | null } | null> | null } | null };
+export type HomeHeroCandidatesQuery = { Page: { media: Array<{ id: number, averageScore: number | null, popularity: number | null, favourites: number | null, duration: number | null, format: MediaFormat | null, seasonYear: number | null, genres: Array<string | null> | null, relations: { edges: Array<{ relationType: MediaRelation | null } | null> | null } | null } | null> | null } | null };
 
 export type SearchAnimePageQueryVariables = Exact<{
   search: string;
@@ -440,7 +451,7 @@ export const BrowseAnimeTaxonomyDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<BrowseAnimeTaxonomyQuery, BrowseAnimeTaxonomyQueryVariables>;
 export const BrowseAnimePageDocument = new TypedDocumentString(`
-    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $source: MediaSource, $season: MediaSeason, $seasonYear: Int, $countryOfOrigin: CountryCode, $isAdult: Boolean, $sort: [MediaSort], $page: Int!, $perPage: Int!) {
+    query BrowseAnimePage($search: String, $genre: String, $tag: String, $format: MediaFormat, $status: MediaStatus, $source: MediaSource, $season: MediaSeason, $seasonYear: Int, $countryOfOrigin: CountryCode, $isAdult: Boolean, $sort: [MediaSort], $discoveryFormats: [MediaFormat!], $minimumPopularity: Int, $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       hasNextPage
@@ -458,6 +469,8 @@ export const BrowseAnimePageDocument = new TypedDocumentString(`
       countryOfOrigin: $countryOfOrigin
       isAdult: $isAdult
       sort: $sort
+      format_in: $discoveryFormats
+      popularity_greater: $minimumPopularity
     ) {
       id
       title {
@@ -484,10 +497,23 @@ export const BrowseAnimePageDocument = new TypedDocumentString(`
       isAdult
       averageScore
       popularity
+      duration
     }
   }
 }
     `) as unknown as TypedDocumentString<BrowseAnimePageQuery, BrowseAnimePageQueryVariables>;
+export const DiscoveryAnimeDocument = new TypedDocumentString(`
+    query DiscoveryAnime($ids: [Int!]!) {
+  Page(page: 1, perPage: 50) {
+    media(id_in: $ids, type: ANIME, isAdult: false) {
+      id
+      format
+      duration
+      popularity
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<DiscoveryAnimeQuery, DiscoveryAnimeQueryVariables>;
 export const FranchiseMediaDocument = new TypedDocumentString(`
     query FranchiseMedia($malIds: [Int]) {
   Page(perPage: 50) {
@@ -524,7 +550,7 @@ export const FranchiseMediaDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<FranchiseMediaQuery, FranchiseMediaQueryVariables>;
 export const HomeAnimeDocument = new TypedDocumentString(`
-    query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
+    query HomeAnime($season: MediaSeason!, $seasonYear: Int!, $discoveryFormats: [MediaFormat!]!, $minimumPopularity: Int!) {
   season: Page(page: 1, perPage: 30) {
     media(
       type: ANIME
@@ -533,6 +559,8 @@ export const HomeAnimeDocument = new TypedDocumentString(`
       status_in: [RELEASING, NOT_YET_RELEASED]
       sort: [POPULARITY_DESC, TRENDING_DESC]
       isAdult: false
+      format_in: $discoveryFormats
+      popularity_greater: $minimumPopularity
     ) {
       id
       title {
@@ -548,6 +576,8 @@ export const HomeAnimeDocument = new TypedDocumentString(`
       genres
       format
       averageScore
+      popularity
+      duration
     }
   }
   popular: Page(page: 1, perPage: 50) {
@@ -566,6 +596,8 @@ export const HomeAnimeDocument = new TypedDocumentString(`
       genres
       format
       averageScore
+      popularity
+      duration
       relations {
         edges {
           relationType
@@ -594,6 +626,8 @@ export const HomeHeroCandidatesDocument = new TypedDocumentString(`
       averageScore
       popularity
       favourites
+      duration
+      format
       seasonYear
       genres
       relations {

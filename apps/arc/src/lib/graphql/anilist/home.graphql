@@ -1,4 +1,9 @@
-query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
+query HomeAnime(
+    $season: MediaSeason!
+    $seasonYear: Int!
+    $discoveryFormats: [MediaFormat!]!
+    $minimumPopularity: Int!
+) {
     season: Page(page: 1, perPage: 30) {
         media(
             type: ANIME
@@ -7,6 +12,8 @@ query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
             status_in: [RELEASING, NOT_YET_RELEASED]
             sort: [POPULARITY_DESC, TRENDING_DESC]
             isAdult: false
+            format_in: $discoveryFormats
+            popularity_greater: $minimumPopularity
         ) {
             id
             title {
@@ -22,6 +29,8 @@ query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
             genres
             format
             averageScore
+            popularity
+            duration
         }
     }
     popular: Page(page: 1, perPage: 50) {
@@ -40,6 +49,8 @@ query HomeAnime($season: MediaSeason!, $seasonYear: Int!) {
             genres
             format
             averageScore
+            popularity
+            duration
             relations {
                 edges {
                     relationType
@@ -67,6 +78,8 @@ query HomeHeroCandidates($seasonYear: Int!) {
             averageScore
             popularity
             favourites
+            duration
+            format
             seasonYear
             genres
             relations {

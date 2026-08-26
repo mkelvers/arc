@@ -1,0 +1,10 @@
+query DiscoveryAnime($ids: [Int!]!) {
+    Page(page: 1, perPage: 50) {
+        media(id_in: $ids, type: ANIME, isAdult: false) {
+            id
+            format
+            duration
+            popularity
+        }
+    }
+}
