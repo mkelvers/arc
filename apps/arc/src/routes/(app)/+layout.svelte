@@ -49,7 +49,7 @@
             <div class="flex h-full items-center gap-2 max-sm:pl-12">
                 <a
                     href="/"
-                    class="inline-flex h-12 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                    class="inline-flex h-12 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     aria-label="Home"
                     title="Home"
                 >
@@ -58,21 +58,21 @@
 
                 <a
                     href="/new"
-                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
+                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
                     New
                 </a>
 
                 <a
                     href="/popular"
-                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
+                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
                     Popular
                 </a>
 
                 <a
                     href="/simulcast"
-                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
+                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
                     Simulcast
                 </a>
@@ -81,7 +81,7 @@
             <div class="hidden h-full items-center sm:flex">
                 <a
                     href="/search"
-                    class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:w-14"
+                    class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-14"
                     aria-label="Search"
                     title="Search"
                 >
@@ -90,7 +90,7 @@
 
                 <a
                     href="/watchlist"
-                    class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:w-14"
+                    class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-14"
                     aria-label="Watchlist"
                     title="Watchlist"
                 >
@@ -103,7 +103,7 @@
                         ariaLabel="Account menu"
                         modal
                         menuClass="w-[min(21rem,calc(100vw-1rem))]"
-                        triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:ring-1 focus-within:ring-muted sm:gap-2 sm:px-3"
+                        triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:gap-2 sm:px-3"
                     >
                         {#snippet trigger()}
                             <AccountAvatar
@@ -152,7 +152,7 @@
                 {:else}
                     <a
                         href="/login"
-                        class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:w-14"
+                        class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-14"
                         aria-label="Log in"
                         title="Log in"
                     >
@@ -169,10 +169,10 @@
                     ariaLabel="Open navigation"
                     menuClass="w-52"
                     modal
-                    triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                    triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                     {#snippet trigger()}
-                        <ListIcon size={25} aria-hidden="true" />
+                        <ListIcon size={24} aria-hidden="true" />
                     {/snippet}
 
                     {#snippet content()}
@@ -234,22 +234,22 @@
                 <div class="pointer-events-auto ml-auto flex h-full items-center bg-header/95">
                     <a
                         href="/search"
-                        class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                        class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         aria-label="Search"
                     >
-                        <MagnifyingGlassIcon size={23} aria-hidden="true" />
+                        <MagnifyingGlassIcon size={24} aria-hidden="true" />
                     </a>
                     <a
                         href="/watchlist"
-                        class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                        class="grid h-14 w-12 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         aria-label="Watchlist"
                     >
-                        <BookmarkSimpleIcon size={23} aria-hidden="true" />
+                        <BookmarkSimpleIcon size={24} aria-hidden="true" />
                     </a>
                     {#if data.account}
                         <a
                             href="/settings"
-                            class="grid h-14 w-12 place-items-center hover:bg-header-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                            class="grid h-14 w-12 place-items-center hover:bg-header-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             aria-label="Account settings"
                         >
                             <AccountAvatar
@@ -260,10 +260,10 @@
                     {:else}
                         <a
                             href="/login"
-                            class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted"
+                            class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             aria-label="Log in"
                         >
-                            <UserCircleIcon size={29} weight="fill" aria-hidden="true" />
+                            <UserCircleIcon size={30} weight="fill" aria-hidden="true" />
                         </a>
                     {/if}
                 </div>
