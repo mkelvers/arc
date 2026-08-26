@@ -789,6 +789,8 @@ export const schedulerHeartbeat = pgTable('scheduler_heartbeat', {
     lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
     lastFullReconciliationAt: timestamp('last_full_reconciliation_at', { withTimezone: true }),
     nextFullReconciliationAt: timestamp('next_full_reconciliation_at', { withTimezone: true }),
+    lastCatalogRefreshAt: timestamp('last_catalog_refresh_at', { withTimezone: true }),
+    nextCatalogRefreshAt: timestamp('next_catalog_refresh_at', { withTimezone: true }),
     lastError: text('last_error'),
     stats: jsonb('stats').$type<unknown>(),
 });

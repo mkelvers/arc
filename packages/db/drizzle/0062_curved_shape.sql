@@ -1,0 +1,2 @@
+ALTER TABLE "scheduler_heartbeat" ADD COLUMN "last_catalog_refresh_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "scheduler_heartbeat" ADD COLUMN "next_catalog_refresh_at" timestamp with time zone;
