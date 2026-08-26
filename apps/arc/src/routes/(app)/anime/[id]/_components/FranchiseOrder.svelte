@@ -6,6 +6,7 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import { matchesFranchiseFilter, type FranchiseFilter } from '$lib/franchise';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         order: FranchiseOrderData;
@@ -19,11 +20,13 @@
     let canScrollForward = $state(false);
     let filter = $state<FranchiseFilter>('main');
     const filters: Array<{ value: FranchiseFilter; label: string }> = [
-        { value: 'main', label: 'Main story' },
-        { value: 'movies', label: 'Movies' },
-        { value: 'side-stories', label: 'Side stories' },
+        { value: 'main', label: m.franchise_main() },
+        { value: 'movies', label: m.franchise_movies() },
+        { value: 'side-stories', label: m.franchise_side() },
     ];
-    const selectedFilterLabel = $derived(filters.find(({ value }) => value === filter)?.label ?? 'Main story');
+    const selectedFilterLabel = $derived(
+        filters.find(({ value }) => value === filter)?.label ?? m.franchise_main()
+    );
     const visibleEntries = $derived(
         order.entries.filter((entry) => matchesFranchiseFilter(entry, filter, currentAnimeId))
     );
@@ -79,11 +82,11 @@
 
 <section class="pb-7" aria-labelledby="franchise-order-title">
     <div class="mb-6 flex min-h-9 items-center justify-between gap-4 px-2">
-        <h2 id="franchise-order-title" class="text-lg font-semibold">Franchise Order</h2>
+        <h2 id="franchise-order-title" class="text-lg font-semibold">{m.franchise_order()}</h2>
 
         <Dropdown
             id="franchise-order-filter"
-            ariaLabel={`Filter franchise order, ${selectedFilterLabel}`}
+            ariaLabel={`${m.franchise_filters()}: ${selectedFilterLabel}`}
             menuClass="mt-2 w-48 shadow-xl"
             triggerClass="flex min-h-9 cursor-pointer items-center gap-2 px-2 text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
         >
@@ -94,7 +97,7 @@
             {/snippet}
 
             {#snippet content()}
-                <div role="menu" aria-label="Franchise order filters" class="py-2">
+                <div role="menu" aria-label={m.franchise_filters()} class="py-2">
                     {#each filters as option}
                         <button
                             type="button"
@@ -131,7 +134,7 @@
                 <button
                     type="button"
                     class="absolute inset-y-0 left-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
-                    aria-label="Previous franchise titles"
+                    aria-label={m.shared_franchise_previous()}
                     onclick={() => scrollByPage(-1)}
                 >
                     <CaretLeftIcon size="1.75rem" weight="bold" aria-hidden="true" />
@@ -142,7 +145,7 @@
                 <button
                     type="button"
                     class="absolute inset-y-0 right-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
-                    aria-label="Next franchise titles"
+                    aria-label={m.shared_franchise_next()}
                     onclick={() => scrollByPage(1)}
                 >
                     <CaretRightIcon size="1.75rem" weight="bold" aria-hidden="true" />
@@ -150,6 +153,6 @@
             {/if}
         </div>
     {:else}
-        <p class="px-2 text-sm text-muted">No franchise titles found.</p>
+        <p class="px-2 text-sm text-muted">{m.franchise_empty()}</p>
     {/if}
 </section>

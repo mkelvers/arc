@@ -3,6 +3,7 @@
     import { EpisodeRevisionSchema } from '@arc/shared/types';
 
     import { episodeRevisionPollInterval } from './episode-revision-polling';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         animeId: number;
@@ -88,5 +89,5 @@
 </script>
 
 <p class="mt-7 text-base font-semibold text-foreground/80 sm:mt-8 sm:text-lg">
-    The next episode airs {airingDate}{airingTime ? ` at ${airingTime}` : ''}.
+    {m.anime_next_episode({ date: airingDate, time: airingTime ? ` at ${airingTime}` : '' })}
 </p>

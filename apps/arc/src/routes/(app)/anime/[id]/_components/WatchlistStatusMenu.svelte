@@ -7,6 +7,7 @@
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         animeId: number;
@@ -19,6 +20,14 @@
     let failed = $state(false);
     let seededAnimeId: number | undefined;
     const watchlistStatus = $derived(watchlist.state(animeId));
+    const statusLabel = (status: WatchlistState) =>
+        status === 'watching'
+            ? m.watchlist_watching()
+            : status === 'plan_to_watch'
+              ? m.watchlist_plan()
+              : status === 'completed'
+                ? m.watchlist_completed()
+                : m.watchlist_dropped();
 
     $effect(() => {
         if (initialState && seededAnimeId !== animeId) {
@@ -82,19 +91,19 @@
 
 <Dropdown
     id="watchlist-status"
-    ariaLabel={`Manage ${title} watchlist status`}
+    ariaLabel={m.shared_manage_title({ title })}
     menuAlign="start"
     menuClass="w-52 pt-2"
     triggerClass="grid size-10 shrink-0 cursor-pointer place-items-center text-accent"
 >
     {#snippet trigger()}
-        <Tooltip text="Manage Watchlist Status" class="size-full items-center justify-center">
+        <Tooltip text={m.shared_manage_watchlist()} class="size-full items-center justify-center">
             <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true" />
         </Tooltip>
     {/snippet}
 
     {#snippet content()}
-        <div role="menu" aria-label={`Set ${title} watchlist status`}>
+        <div role="menu" aria-label={m.shared_set_title({ title })}>
             {#each watchlistStates as option}
                 <button
                     type="button"
@@ -105,7 +114,7 @@
                     class="flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
                     onclick={() => setStatus(option.value)}
                 >
-                    <span>{option.label}</span>
+                    <span>{statusLabel(option.value)}</span>
                     {#if watchlistStatus === option.value}
                         <CheckIcon size="1rem" weight="bold" aria-hidden="true" />
                     {/if}
@@ -121,14 +130,14 @@
                         class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-status-error hover:bg-panel-hover focus:bg-panel-hover focus:outline-none disabled:cursor-wait disabled:opacity-50"
                         onclick={remove}
                     >
-                        Remove from watchlist
+                        {m.watchlist_remove()}
                     </button>
                 </div>
             {/if}
 
             {#if failed}
                 <p class="border-t border-white/10 px-4 py-3 text-xs text-status-error" role="alert">
-                    Watchlist could not be updated. Try again.
+                    {m.watchlist_update_failed()}
                 </p>
             {/if}
         </div>

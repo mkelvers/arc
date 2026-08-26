@@ -9,6 +9,7 @@
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
@@ -42,12 +43,12 @@
             >
                 <Dropdown
                     id="more-options"
-                    items={[{ label: 'View Media Options', href: `/anime/${data.anime.id}/media` }]}
+                    items={[{ label: m.anime_view_media(), href: `/anime/${data.anime.id}/media` }]}
                 >
                     {#snippet trigger()}
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
                             <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
-                            <span>More</span>
+                            <span>{m.anime_more()}</span>
                         </span>
                     {/snippet}
                 </Dropdown>
@@ -144,7 +145,7 @@
                             class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                            View episodes
+                            {m.anime_view_episodes()}
                         </a>
                     {:then watchAction}
                         <a
@@ -189,27 +190,30 @@
                         <p class="max-w-3xl text-foreground">{data.anime.description}</p>
                         <div class="space-y-3">
                             <p>
-                                <strong class="font-normal text-foreground">Production:</strong>
+                                <strong class="font-normal text-foreground">{m.anime_production()}</strong>
                                 {data.anime.studios.join(', ')}
                             </p>
                             <p>
-                                <strong class="font-normal text-foreground">Key staff:</strong>
+                                <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
                                 {data.anime.staff}
                             </p>
                             <p>
-                                <strong class="font-normal text-foreground">Rankings:</strong>
+                                <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
                                 {data.anime.rankings.join(', ')}
                             </p>
                             <p>
-                                <strong class="font-normal text-foreground">Audience:</strong>
-                                {data.anime.members} members, {data.anime.favourites} favorites
+                                <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
+                                {m.anime_members_favorites({
+                                    members: data.anime.members,
+                                    favorites: data.anime.favourites,
+                                })}
                             </p>
                             <p>
-                                <strong class="font-normal text-foreground">Themes:</strong>
+                                <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
                                 {data.anime.themes.join(', ')}
                             </p>
                             <p>
-                                <strong class="font-normal text-foreground">Genres:</strong>
+                                <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
                                 {#each data.anime.genres as genre, index}
                                     {#if index > 0}<span aria-hidden="true">,</span>{/if}
                                     <a
@@ -231,7 +235,7 @@
                     aria-controls="anime-details"
                     onclick={() => (detailsExpanded = !detailsExpanded)}
                 >
-                    {detailsExpanded ? 'Fewer details' : 'More details'}
+                    {detailsExpanded ? m.anime_fewer_details() : m.anime_more_details()}
                 </button>
             </div>
         </div>
@@ -245,7 +249,7 @@
                 aria-busy="true"
                 aria-live="polite"
             >
-                <span class="sr-only">Loading episodes</span>
+                <span class="sr-only">{m.anime_loading_episodes()}</span>
                 <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
                     {#each Array.from({ length: 5 }) as _}
                         <div class="min-h-56 animate-pulse motion-reduce:animate-none" aria-hidden="true">

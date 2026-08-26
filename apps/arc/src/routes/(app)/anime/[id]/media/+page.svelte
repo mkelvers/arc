@@ -4,6 +4,7 @@
 
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import type { PageProps } from './$types';
+    import { m } from '$lib/paraglide/messages.js';
 
     let { data }: PageProps = $props();
     const logos = $derived(
@@ -27,7 +28,7 @@
 <main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
     <header class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
-            <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">← Back to anime</a>
+            <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">{m.media_back()}</a>
             <h1 class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">
                 {data.anime.title}
             </h1>
@@ -40,7 +41,7 @@
                     class="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground"
                 >
                     <ArrowClockwiseIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                    Refetch
+                    {m.media_refetch()}
                 </button>
             </form>
         {/if}
@@ -48,22 +49,21 @@
 
     {#if !data.artwork}
         <section class="max-w-2xl border border-border bg-surface p-6 sm:p-8">
-            <h2 class="text-xl font-semibold sm:text-2xl">No TMDB media available</h2>
+            <h2 class="text-xl font-semibold sm:text-2xl">{m.media_no_tmdb()}</h2>
             <p class="mt-3 leading-7 text-muted">
-                This release is still available on Arc, but no reliable TMDB match was found. Its media options
-                will appear automatically when a confident match becomes available.
+                {m.media_no_tmdb_body()}
             </p>
             <a
                 href={`/anime/${data.anime.id}`}
                 class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-sm font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
             >
-                Back to anime
+                {m.media_back()}
             </a>
         </section>
     {:else}
-        <nav class="mb-8 overflow-x-auto border-b border-border" aria-label="Media types">
+        <nav class="mb-8 overflow-x-auto border-b border-border" aria-label={m.media_types()}>
             <div class="flex min-w-max gap-6" role="tablist">
-                {#each [{ value: 'logo', label: 'Logos', count: data.artwork.logos.length }, { value: 'backdrop', label: 'Backdrops', count: data.artwork.backdrops.length }] as tab}
+                {#each [{ value: 'logo', label: m.media_logos(), count: data.artwork.logos.length }, { value: 'backdrop', label: m.media_backdrops(), count: data.artwork.backdrops.length }] as tab}
                     <button
                         type="button"
                         role="tab"
@@ -86,7 +86,7 @@
                 <div class="mb-5 flex justify-end">
                     <form method="POST" use:enhance class="flex items-center gap-4">
                         <input type="hidden" name="intent" value="logoSize" />
-                        <label for="logo-size" class="shrink-0 text-sm text-muted">Logo size</label>
+                        <label for="logo-size" class="shrink-0 text-sm text-muted">{m.media_logo_size()}</label>
                         <input
                             id="logo-size"
                             name="logoSize"
@@ -95,7 +95,7 @@
                             max="300"
                             step="5"
                             value={data.artwork.logoSize}
-                            aria-label="Logo size"
+                            aria-label={m.media_logo_size()}
                             onchange={(event) => event.currentTarget.form?.requestSubmit()}
                             class="w-32 accent-accent"
                         />
@@ -112,7 +112,7 @@
                             class:border-border={!data.artwork.logoHidden}
                             class="grid min-h-40 w-full place-items-center border bg-surface p-5 text-xl font-semibold sm:min-h-48 sm:p-6"
                         >
-                            No logo
+                            {m.media_no_logo()}
                         </button>
                     </form>
                     {#each logos as image}
@@ -132,7 +132,7 @@
                                     class="max-h-40 max-w-full"
                                 />
                                 <span class="sr-only">
-                                    {image.width} × {image.height}, {image.language ?? 'no language'}
+                                    {image.width} × {image.height}, {image.language ?? m.media_no_language()}
                                 </span>
                             </button>
                         </form>
@@ -160,7 +160,7 @@
                                     class="aspect-video w-full"
                                 />
                                 <span class="block px-3 py-2 text-xs text-subtle">
-                                    {image.width} × {image.height} · {image.language ?? 'no language'} · {image.voteAverage.toFixed(
+                                    {image.width} × {image.height} · {image.language ?? m.media_no_language()} · {image.voteAverage.toFixed(
                                         1
                                     )}
                                 </span>

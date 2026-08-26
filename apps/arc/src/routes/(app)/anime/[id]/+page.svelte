@@ -3,10 +3,11 @@
 
     import AnimePageContent from './_components/AnimePageContent.svelte';
     import type { PageProps } from './$types';
+    import { m } from '$lib/paraglide/messages.js';
 
     let { data }: PageProps = $props();
     let title = $state('Arc — Anime');
-    let description = $state('Anime details and episodes on Arc.');
+    let description = $state<string>(m.anime_loading());
     let retrying = $state(false);
 
     async function retry() {
@@ -41,7 +42,7 @@
 
 {#await data.page}
     <main class="min-h-dvh bg-canvas text-foreground" aria-busy="true" aria-live="polite">
-        <span class="sr-only">Loading anime</span>
+        <span class="sr-only">{m.anime_loading()}</span>
         <section
             class="grid h-dvh min-h-120 max-h-192 animate-pulse grid-cols-1 grid-rows-1 bg-black motion-reduce:animate-none sm:min-h-150 lg:min-h-175 lg:max-h-300"
             aria-hidden="true"
@@ -73,12 +74,10 @@
         <main class="grid min-h-[calc(100dvh-3.5rem)] place-items-center bg-canvas px-5 text-foreground">
             <div class="max-w-md text-center" role="alert">
                 <h1 class="text-2xl font-semibold">
-                    {result.status === 'not-found' ? 'Anime not found' : 'Anime could not be loaded'}
+                    {result.status === 'not-found' ? m.anime_not_found() : m.anime_load_failed()}
                 </h1>
                 <p class="mt-3 text-sm text-muted">
-                    {result.status === 'not-found'
-                        ? 'This anime is unavailable or no longer exists.'
-                        : 'Arc could not load this anime right now. Please try again.'}
+                    {result.status === 'not-found' ? m.anime_unavailable() : m.anime_load_error()}
                 </p>
                 {#if result.status === 'error'}
                     <button
@@ -87,7 +86,7 @@
                         disabled={retrying}
                         onclick={retry}
                     >
-                        {retrying ? 'Retrying…' : 'Retry'}
+                        {retrying ? m.retrying() : m.retry()}
                     </button>
                 {/if}
             </div>
