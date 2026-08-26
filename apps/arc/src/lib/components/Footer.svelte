@@ -21,7 +21,7 @@
     }
 </script>
 
-<footer class="relative z-[1000] text-muted">
+<footer class="relative z-1000 text-muted">
     <div class="footer-legal px-5 py-10 sm:px-8 lg:px-12">
         <div class="relative flex flex-col items-center gap-6 sm:min-h-10 sm:justify-center">
             <a
