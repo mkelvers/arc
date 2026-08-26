@@ -1,0 +1,22 @@
+{
+    "nav_home": "Home",
+    "nav_new": "New",
+    "nav_popular": "Popular",
+    "nav_simulcast": "Simulcast",
+    "nav_search": "Search",
+    "nav_watchlist": "Watchlist",
+    "nav_settings": "Settings",
+    "nav_login": "Log in",
+    "nav_logout": "Log out",
+    "nav_account_menu": "Account menu",
+    "nav_open_navigation": "Open navigation",
+    "nav_primary": "Primary navigation",
+    "footer_home": "Arc home",
+    "footer_terms": "Terms of Service",
+    "footer_privacy": "Privacy Policy",
+    "footer_cookies": "Cookie settings",
+    "footer_choose_language": "Choose language",
+    "language_en": "English (US)",
+    "language_ja": "日本語",
+    "language_es": "Español"
+}

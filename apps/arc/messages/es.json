@@ -1,0 +1,22 @@
+{
+    "nav_home": "Inicio",
+    "nav_new": "Nuevos",
+    "nav_popular": "Populares",
+    "nav_simulcast": "Simulcast",
+    "nav_search": "Buscar",
+    "nav_watchlist": "Lista de seguimiento",
+    "nav_settings": "Configuración",
+    "nav_login": "Iniciar sesión",
+    "nav_logout": "Cerrar sesión",
+    "nav_account_menu": "Menú de cuenta",
+    "nav_open_navigation": "Abrir navegación",
+    "nav_primary": "Navegación principal",
+    "footer_home": "Inicio de Arc",
+    "footer_terms": "Términos del servicio",
+    "footer_privacy": "Política de privacidad",
+    "footer_cookies": "Configuración de cookies",
+    "footer_choose_language": "Elegir idioma",
+    "language_en": "English (US)",
+    "language_ja": "日本語",
+    "language_es": "Español"
+}
