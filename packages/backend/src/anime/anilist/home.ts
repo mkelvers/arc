@@ -5,6 +5,7 @@ import { request } from './client';
 import { selectPopularAnime } from './home-selection';
 import { animeCard } from './models';
 import { present } from './text';
+import { discoveryFormats, discoveryMinimumPopularity, isDiscoverableAnime } from '../discovery';
 
 const cache = new RequestCache<string, { season: AnimeCard[]; popular: AnimeCard[] }>(
     30 * 60 * 1_000
@@ -13,7 +14,12 @@ const cache = new RequestCache<string, { season: AnimeCard[]; popular: AnimeCard
 async function requestHomepage(season: MediaSeason, seasonYear: number) {
     const response = await request(
         HomeAnimeDocument,
-        { season, seasonYear },
+        {
+            season,
+            seasonYear,
+            discoveryFormats: [...discoveryFormats],
+            minimumPopularity: discoveryMinimumPopularity - 1,
+        },
         {
             cacheForMs: 24 * 60 * 60 * 1_000,
         }
@@ -21,6 +27,10 @@ async function requestHomepage(season: MediaSeason, seasonYear: number) {
 
     const cards = (media: NonNullable<typeof response.season>['media'] | undefined) =>
         present(media).flatMap((entry) => {
+            if (!isDiscoverableAnime(entry)) {
+                return [];
+            }
+
             const card = animeCard(entry);
             return card ? [card] : [];
         });

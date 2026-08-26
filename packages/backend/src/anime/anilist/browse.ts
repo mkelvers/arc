@@ -12,6 +12,7 @@ import {
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
 import { mediaTitle, plainText, present } from './text';
+import { discoveryFormats, discoveryMinimumPopularity, isDiscoverableAnime } from '../discovery';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
@@ -48,6 +49,7 @@ interface BrowseCatalogEntry {
     countryOfOrigin: string | null;
     isAdult: boolean;
     popularity: number | null;
+    duration: number | null;
     averageScore: number | null;
 }
 
@@ -65,11 +67,17 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
         countryOfOrigin: filters.country ?? undefined,
         isAdult: filters.safe ? false : undefined,
         sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
+        discoveryFormats: [...discoveryFormats],
+        minimumPopularity: discoveryMinimumPopularity - 1,
         page,
         perPage,
     });
 
     const anime = present(response.Page?.media).flatMap((media) => {
+        if (!isDiscoverableAnime(media)) {
+            return [];
+        }
+
         const imageUrl = media.coverImage?.extraLarge ?? media.coverImage?.large;
         if (!imageUrl) {
             return [];
@@ -108,6 +116,7 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
                 // Unknown classifications are excluded from safe browsing.
                 isAdult: media.isAdult !== false,
                 popularity: media.popularity,
+                duration: media.duration,
                 averageScore: media.averageScore,
             } satisfies BrowseCatalogEntry,
         ];

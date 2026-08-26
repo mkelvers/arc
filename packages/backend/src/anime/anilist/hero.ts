@@ -31,6 +31,8 @@ async function refreshCandidates(now: Date) {
                 averageScore: media.averageScore,
                 trendingRank: index + 1,
                 popularity: media.popularity,
+                format: media.format,
+                duration: media.duration,
                 favourites: media.favourites,
                 seasonYear: media.seasonYear,
                 genres: present(media.genres),
