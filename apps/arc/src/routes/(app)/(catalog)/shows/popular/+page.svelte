@@ -17,4 +17,5 @@
     initialHasNextPage={data.hasNextPage}
     initialPage={data.page}
     loadedAt={data.loadedAt}
+    filters={data.filters}
 />

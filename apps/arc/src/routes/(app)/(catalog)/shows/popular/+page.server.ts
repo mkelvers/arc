@@ -2,10 +2,15 @@ import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
 import { CatalogPageSchema } from '@arc/api-contract/anime';
+import { parseBrowseFilters } from '@arc/shared/browse';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ request }) => {
-    const response = await fetch(`${env.API_ORIGIN!}/v1/popular`, {
+export const load: PageServerLoad = async ({ request, url }) => {
+    const filters = parseBrowseFilters(url.searchParams);
+    if (!filters) {
+        error(400, 'Invalid catalog filters');
+    }
+    const response = await fetch(`${env.API_ORIGIN!}/v1/popular?${url.searchParams}`, {
         headers: {
             Cookie: request.headers.get('cookie') ?? '',
             Authorization: request.headers.get('authorization') ?? '',
@@ -17,5 +22,5 @@ export const load: PageServerLoad = async ({ request }) => {
     if (!response.ok) {
         error(502, 'Popular anime could not be loaded');
     }
-    return CatalogPageSchema.parse(await response.json());
+    return { ...CatalogPageSchema.parse(await response.json()), filters };
 };
