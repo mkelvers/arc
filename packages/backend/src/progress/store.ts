@@ -212,13 +212,6 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
                 return null;
             }
 
-            const targetIndex = episodes.findIndex(
-                ({ episodeId }) => episodeId === target.episodeId
-            );
-            const displayNumber =
-                targetIndex >= 0 && episodes.some(({ number }, index) => number !== index + 1)
-                    ? targetIndex + 1
-                    : target.number;
             const storedMedia = await getStoredMedia(progress.anilistId).catch(() => null);
             const backdrop =
                 storedMedia?.artwork.selectedBackdrop?.url ??
@@ -243,7 +236,7 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
                 link: `/anime/${progress.anilistId}/watch/${encodeURIComponent(target.episodeId)}`,
                 backdrop,
                 episodeImage,
-                episodeLabel: `E${Number.isInteger(displayNumber) ? displayNumber : displayNumber.toFixed(1)}`,
+                episodeLabel: `E${target.number}`,
                 audioLabel: audioAvailabilityLabel(target.audio),
                 duration: formatDuration(runtimeMinutes),
                 resumeAtSeconds: continuingCurrent ? progress.positionSeconds : 0,
