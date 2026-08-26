@@ -26,7 +26,7 @@
         )}
     >
         {#if selected}
-            <span class="leading-none text-input-accent">•</span>
+            <span class="size-1.5 rounded-full bg-input-accent"></span>
         {/if}
     </span>
 {/snippet}
@@ -36,8 +36,7 @@
     role="menu"
     aria-label="Playback settings"
     class={cn(
-        'absolute right-0 bottom-full z-40 mb-2 overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8',
-        player.settingsView.startsWith('segment') ? 'w-64' : 'w-60'
+        'absolute right-0 bottom-full z-40 mb-2 w-64 origin-bottom-right overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8 transition-[opacity,scale] duration-150 ease-out starting:opacity-0 starting:scale-95 motion-reduce:transition-none'
     )}
 >
     {#if player.settingsView === 'main'}
@@ -60,7 +59,7 @@
             >
                 <span
                     class={cn(
-                        'absolute top-0.5 left-0.5 size-2 rounded-full transition-all',
+                        'absolute top-0.5 left-0.5 size-2 rounded-full transition-[transform,background-color]',
                         player.media.autoplay ? 'translate-x-4 bg-input-accent' : 'bg-white'
                     )}
                 ></span>
