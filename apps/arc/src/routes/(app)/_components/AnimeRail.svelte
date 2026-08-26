@@ -69,7 +69,7 @@
     class={cn('relative z-20 pb-10 sm:pb-12 lg:pb-16', topSpacing && 'pt-10 sm:pt-12 lg:pt-16')}
     aria-labelledby={headingId}
 >
-    <h2 id={headingId} class="mb-5 px-0 text-xl font-bold sm:px-10 sm:text-2xl lg:px-16 2xl:px-20">
+    <h2 id={headingId} class="mb-5 px-4 text-xl font-bold sm:px-10 sm:text-2xl lg:px-16 2xl:px-16">
         {heading}
     </h2>
 
@@ -78,7 +78,7 @@
             <div
                 bind:this={rail}
                 onscroll={updateScroll}
-                class="grid grid-flow-col auto-cols-[calc((100vw-2.75rem)/2)] gap-3 overflow-x-auto overscroll-x-contain px-0 pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4rem)/3)] min-[35.5em]:auto-cols-[calc((100vw-4.75rem)/4)] sm:auto-cols-[calc((100vw-7.75rem)/4)] sm:gap-4 sm:px-10 lg:auto-cols-[calc((100vw-12rem)/5)] lg:gap-[1.875rem] lg:px-16 2xl:auto-cols-[calc((100vw-14.5rem)/6)] 2xl:px-20 min-[120rem]:auto-cols-[calc((100vw-16rem)/7)]"
+                class="grid grid-flow-col auto-cols-[calc((100vw-2.75rem)/2)] gap-3 overflow-x-auto overscroll-x-contain px-4 pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4rem)/3)] min-[35.5em]:auto-cols-[calc((100vw-4.75rem)/4)] sm:auto-cols-[calc((100vw-7.75rem)/4)] sm:gap-4 sm:px-10 lg:auto-cols-[calc((100vw-12rem)/5)] lg:gap-[1.875rem] lg:px-16 2xl:auto-cols-[calc((100vw-14.5rem)/6)] 2xl:px-16 min-[120rem]:auto-cols-[calc((100vw-16rem)/7)]"
             >
                 {#each anime as entry (entry.id)}
                     <div class="min-w-0">
@@ -110,6 +110,6 @@
             {/if}
         </div>
     {:else}
-        <p class="px-5 text-sm text-muted sm:px-10 lg:px-16 2xl:px-20">{emptyMessage}</p>
+        <p class="px-5 text-sm text-muted sm:px-10 lg:px-16 2xl:px-16">{emptyMessage}</p>
     {/if}
 </section>
