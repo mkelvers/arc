@@ -19,6 +19,12 @@ import {
 } from './anilist/browse';
 import { enrichAnimeCards } from './card-enrichment';
 import { createAnimeSearchIndex } from './search-index';
+import {
+    discoveryCatalogRevision,
+    discoveryFormats,
+    discoveryMinimumDuration,
+    discoveryMinimumPopularity,
+} from './discovery';
 
 type CatalogCachePage = {
     animeIds: number[];
@@ -29,6 +35,7 @@ let activeTaxonomyRefresh: Promise<BrowseSourceTaxonomy> | null = null;
 
 function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     return JSON.stringify({
+        discoveryCatalogRevision,
         ...filters,
         query: filters.query.toLocaleLowerCase('en'),
         page,
@@ -50,6 +57,7 @@ async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, p
                 .values(
                     result.anime.map((entry) => ({
                         ...entry,
+                        discoveryRevision: discoveryCatalogRevision,
                         sourceFetchedAt: fetchedAt,
                     }))
                 )
@@ -70,6 +78,8 @@ async function refreshCatalog(filters: AniListBrowseFilters, queryKey: string, p
                         countryOfOrigin: excluded(animeCatalog.countryOfOrigin),
                         isAdult: excluded(animeCatalog.isAdult),
                         popularity: excluded(animeCatalog.popularity),
+                        duration: excluded(animeCatalog.duration),
+                        discoveryRevision: excluded(animeCatalog.discoveryRevision),
                         averageScore: excluded(animeCatalog.averageScore),
                         sourceFetchedAt: fetchedAt,
                         updatedAt: fetchedAt,
@@ -269,7 +279,11 @@ async function observedFormats(taxonomy: BrowseSourceTaxonomy) {
         [...catalog, ...releases].flatMap(({ value }) => (value ? [value] : []))
     );
 
-    return taxonomy.formats.filter((format) => observed.has(format));
+    return taxonomy.formats.filter(
+        (format) =>
+            discoveryFormats.includes(format as (typeof discoveryFormats)[number]) &&
+            observed.has(format)
+    );
 }
 
 async function pageTaxonomy(taxonomy: BrowseSourceTaxonomy): Promise<BrowseTaxonomy> {
@@ -318,6 +332,10 @@ function catalogConditions(filters: BrowseFilters) {
         filters.query
             ? sql`${animeCatalog.searchText} ilike ${`%${escapeLike(filters.query)}%`} escape '\\'`
             : undefined,
+        inArray(animeCatalog.format, [...discoveryFormats]),
+        sql`${animeCatalog.popularity} >= ${discoveryMinimumPopularity}`,
+        sql`(${animeCatalog.duration} is null or ${animeCatalog.duration} >= ${discoveryMinimumDuration})`,
+        eq(animeCatalog.discoveryRevision, discoveryCatalogRevision),
         filters.safe ? eq(animeCatalog.isAdult, false) : undefined,
         filters.genre ? arrayContains(animeCatalog.genres, [filters.genre]) : undefined,
         filters.tag ? arrayContains(animeCatalog.tags, [filters.tag]) : undefined,
