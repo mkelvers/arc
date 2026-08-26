@@ -38,7 +38,7 @@
                     aria-label="Replace current watchlist"
                 />
                 <span
-                    class="flex size-4 items-center justify-center border border-border-strong bg-transparent text-player-accent transition-colors peer-hover:border-player-accent peer-checked:border-player-accent peer-focus-visible:ring-2 peer-focus-visible:ring-player-accent peer-checked:[&>svg]:opacity-100"
+                    class="flex size-4 items-center justify-center border border-border-strong bg-transparent text-accent transition-colors peer-hover:border-accent peer-checked:border-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-checked:[&>svg]:opacity-100"
                     aria-hidden="true"
                 >
                     <svg viewBox="0 0 12 12" class="size-2.5 opacity-0 transition-opacity" fill="none">
@@ -80,7 +80,7 @@
                 />
                 <label
                     for="watchlist-import"
-                    class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-none focus-within:ring-2 focus-within:ring-accent"
+                    class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
                 >
                     Choose File
                 </label>
@@ -108,7 +108,7 @@
             <a
                 href="/v1/watchlist/export?format=json"
                 download
-                class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 Export
             </a>
@@ -122,7 +122,7 @@
             <a
                 href="/v1/watchlist/export?format=csv"
                 download
-                class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
                 Export
             </a>
