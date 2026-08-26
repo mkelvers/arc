@@ -11,6 +11,8 @@
         UserCircleIcon,
     } from 'phosphor-svelte';
     import { authClient } from '$lib/auth-client';
+    import { locale } from '$lib/locale.svelte';
+    import { m } from '$lib/paraglide/messages.js';
     import Logo from '$lib/components/ui/Logo.svelte';
     import Footer from '$lib/components/Footer.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
@@ -26,10 +28,17 @@
             },
         });
     }
+
+    function localized(message: () => string) {
+        if (!locale.current) {
+            return '';
+        }
+        return message();
+    }
 </script>
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header/95 backdrop-blur">
-    <nav class="flex h-full items-center justify-between pl-3 md:pl-6" aria-label="Primary navigation">
+    <nav class="flex h-full items-center justify-between pl-3 md:pl-6" aria-label={localized(m.nav_primary)}>
         {#if navigating.to}
             <div
                 class="flex h-full w-full animate-pulse items-center justify-between pr-3 motion-reduce:animate-none md:pr-5"
@@ -51,8 +60,8 @@
                 <a
                     href="/"
                     class="inline-flex h-12 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    aria-label="Home"
-                    title="Home"
+                    aria-label={localized(m.nav_home)}
+                    title={localized(m.nav_home)}
                 >
                     <Logo alt="Arc" />
                 </a>
@@ -61,21 +70,21 @@
                     href="/new"
                     class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
-                    New
+                    {localized(m.nav_new)}
                 </a>
 
                 <a
                     href="/popular"
                     class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
-                    Popular
+                    {localized(m.nav_popular)}
                 </a>
 
                 <a
                     href="/simulcast"
                     class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
                 >
-                    Simulcast
+                    {localized(m.nav_simulcast)}
                 </a>
             </div>
 
@@ -83,8 +92,8 @@
                 <a
                     href="/search"
                     class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-14"
-                    aria-label="Search"
-                    title="Search"
+                    aria-label={localized(m.nav_search)}
+                    title={localized(m.nav_search)}
                 >
                     <MagnifyingGlassIcon size={24} weight="regular" aria-hidden="true" />
                 </a>
@@ -92,8 +101,8 @@
                 <a
                     href="/watchlist"
                     class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-14"
-                    aria-label="Watchlist"
-                    title="Watchlist"
+                    aria-label={localized(m.nav_watchlist)}
+                    title={localized(m.nav_watchlist)}
                 >
                     <BookmarkSimpleIcon size={24} weight="regular" aria-hidden="true" />
                 </a>
@@ -101,7 +110,7 @@
                 {#if data.account}
                     <Dropdown
                         id="account-menu"
-                        ariaLabel="Account menu"
+                        ariaLabel={localized(m.nav_account_menu)}
                         modal
                         menuClass="w-[min(21rem,calc(100vw-1rem))]"
                         triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:gap-2 sm:px-3"
@@ -129,7 +138,7 @@
                                 class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                             >
                                 <GearIcon size={21} aria-hidden="true" />
-                                <span>Settings</span>
+                                <span>{localized(m.nav_settings)}</span>
                             </a>
 
                             <a
@@ -137,7 +146,7 @@
                                 class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                             >
                                 <BookmarkSimpleIcon size={21} aria-hidden="true" />
-                                <span>Watchlist</span>
+                                <span>{localized(m.nav_watchlist)}</span>
                             </a>
 
                             <button
@@ -146,7 +155,7 @@
                                 onclick={signOut}
                             >
                                 <SignOutIcon size={21} aria-hidden="true" />
-                                <span>Log out</span>
+                                <span>{localized(m.nav_logout)}</span>
                             </button>
                         {/snippet}
                     </Dropdown>
@@ -154,8 +163,8 @@
                     <a
                         href="/login"
                         class="inline-flex h-full w-11 items-center justify-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-14"
-                        aria-label="Log in"
-                        title="Log in"
+                        aria-label={localized(m.nav_login)}
+                        title={localized(m.nav_login)}
                     >
                         <UserCircleIcon size={30} weight="fill" aria-hidden="true" />
                     </a>
@@ -167,7 +176,7 @@
             >
                 <Dropdown
                     id="mobile-navigation"
-                    ariaLabel="Open navigation"
+                    ariaLabel={localized(m.nav_open_navigation)}
                     menuClass="w-52"
                     modal
                     triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -181,52 +190,52 @@
                             href="/new"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            New
+                            {localized(m.nav_new)}
                         </a>
                         <a
                             href="/popular"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            Popular
+                            {localized(m.nav_popular)}
                         </a>
                         <a
                             href="/simulcast"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            Simulcast
+                            {localized(m.nav_simulcast)}
                         </a>
                         <a
                             href="/search"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            Search
+                            {localized(m.nav_search)}
                         </a>
                         <a
                             href="/watchlist"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            Watchlist
+                            {localized(m.nav_watchlist)}
                         </a>
                         {#if data.account}
                             <a
                                 href="/settings"
                                 class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                             >
-                                Settings
+                                {localized(m.nav_settings)}
                             </a>
                             <button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={signOut}
                             >
-                                Log out
+                                {localized(m.nav_logout)}
                             </button>
                         {:else}
                             <a
                                 href="/login"
                                 class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                             >
-                                Log in
+                                {localized(m.nav_login)}
                             </a>
                         {/if}
                     {/snippet}
@@ -236,14 +245,14 @@
                     <a
                         href="/search"
                         class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                        aria-label="Search"
+                        aria-label={localized(m.nav_search)}
                     >
                         <MagnifyingGlassIcon size={24} aria-hidden="true" />
                     </a>
                     <a
                         href="/watchlist"
                         class="grid h-14 w-12 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                        aria-label="Watchlist"
+                        aria-label={localized(m.nav_watchlist)}
                     >
                         <BookmarkSimpleIcon size={24} aria-hidden="true" />
                     </a>
@@ -251,7 +260,7 @@
                         <a
                             href="/settings"
                             class="grid h-14 w-12 place-items-center hover:bg-header-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            aria-label="Account settings"
+                            aria-label={localized(m.nav_settings)}
                         >
                             <AccountAvatar
                                 username={data.account.username}
@@ -262,7 +271,7 @@
                         <a
                             href="/login"
                             class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            aria-label="Log in"
+                            aria-label={localized(m.nav_login)}
                         >
                             <UserCircleIcon size={30} weight="fill" aria-hidden="true" />
                         </a>
