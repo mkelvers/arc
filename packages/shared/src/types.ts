@@ -15,7 +15,8 @@ export const AnimeCardSchema = z.object({
     score: z.number(),
     genres: z.array(z.string()),
     synopsis: z.string(),
-    addedAt: z.iso.datetime().optional(),
+    releasedAt: z.iso.datetime().optional(),
+    episode: z.number().int().positive().optional(),
 });
 
 export type AnimeCard = z.infer<typeof AnimeCardSchema>;
