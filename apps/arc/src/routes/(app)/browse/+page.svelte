@@ -26,6 +26,7 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import { m } from '$lib/paraglide/messages.js';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();
@@ -46,10 +47,10 @@
         data.taxonomy.tags.filter((value) => value.toLocaleLowerCase('en').includes(categoryNeedle))
     );
     const browseOrderings = [
-        { label: 'Most popular', sort: 'popularity', order: 'desc' },
-        { label: 'Least popular', sort: 'popularity', order: 'asc' },
-        { label: 'Highest score', sort: 'score', order: 'desc' },
-        { label: 'Lowest score', sort: 'score', order: 'asc' },
+        { label: m.browse_most_popular(), sort: 'popularity', order: 'desc' },
+        { label: m.browse_least_popular(), sort: 'popularity', order: 'asc' },
+        { label: m.browse_highest_score(), sort: 'score', order: 'desc' },
+        { label: m.browse_lowest_score(), sort: 'score', order: 'asc' },
     ] as const;
     const ordering = $derived(
         browseOrderings.find(
@@ -226,7 +227,7 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Browse anime</title>
+    <title>Arc — {m.browse_title()}</title>
     <meta
         name="description"
         content="Browse anime by genre, tag, status, type, audio, season, year, source material, country, popularity, and score."
@@ -235,18 +236,18 @@
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
     <section class="mx-auto w-full max-w-264" aria-labelledby="browse-title">
-        <h1 id="browse-title" class="mb-6 text-2xl font-bold">Browse Anime</h1>
+        <h1 id="browse-title" class="mb-6 text-2xl font-bold">{m.browse_title()}</h1>
 
         <div class="mb-10">
             <label
                 class="flex h-14 w-full items-center gap-4 border-b-2 border-border text-muted transition-colors focus-within:border-accent focus-within:text-foreground"
             >
                 <MagnifyingGlassIcon size="1.35rem" weight="regular" class="shrink-0" aria-hidden="true" />
-                <span class="sr-only">Search anime</span>
+                <span class="sr-only">{m.search_anime()}</span>
                 <input
                     name="q"
                     type="search"
-                    placeholder="Search the anime catalog…"
+                    placeholder={m.browse_placeholder()}
                     autocomplete="off"
                     maxlength="200"
                     bind:value={query}
@@ -257,7 +258,7 @@
             <div class="mt-3 flex flex-wrap items-center gap-1 sm:gap-2">
                 <Dropdown
                     id="browse-genre"
-                    ariaLabel="Filter by genre or tag"
+                    ariaLabel={m.browse_filter_genre_tag()}
                     menuAlign="start"
                     menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
                     triggerClass={cn(
@@ -268,21 +269,21 @@
                     {#snippet trigger()}
                         <TagIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-32 truncate">
-                            {data.filters.genre ?? data.filters.tag ?? 'Genres & tags'}
+                            {data.filters.genre ?? data.filters.tag ?? m.browse_genres_tags()}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                     {#snippet content()}
-                        <div role="menu" aria-label="Genre and tag filters">
+                        <div role="menu" aria-label={m.browse_filter_genre_tag()}>
                             <div class="sticky top-0 z-10 border-b border-border bg-panel p-2">
                                 <label
                                     class="flex h-9 items-center gap-2 px-2 text-muted focus-within:text-foreground"
                                 >
                                     <MagnifyingGlassIcon size="1rem" weight="regular" aria-hidden="true" />
-                                    <span class="sr-only">Search genres and tags</span>
+                                    <span class="sr-only">{m.browse_search_genres_tags()}</span>
                                     <input
                                         type="search"
-                                        placeholder="Find a genre or tag…"
+                                        placeholder={m.browse_find_genre_tag()}
                                         autocomplete="off"
                                         bind:value={categoryQuery}
                                         class="h-full min-w-0 bg-transparent text-sm text-foreground outline-none placeholder:text-subtle"
@@ -297,13 +298,13 @@
                                 class:text-muted={data.filters.genre !== null || data.filters.tag !== null}
                                 class="block whitespace-nowrap px-5 py-3 text-sm leading-tight hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                             >
-                                All genres and tags
+                                {m.browse_all_genres_tags()}
                             </a>
                             {#if visibleGenres.length}
                                 <p
                                     class="border-t border-border px-5 pt-3 pb-1 text-xs font-medium tracking-wide text-subtle uppercase"
                                 >
-                                    Genres
+                                    {m.browse_genres()}
                                 </p>
                                 {#each visibleGenres as genre}
                                     <a
@@ -322,7 +323,7 @@
                                 <p
                                     class="border-t border-border px-5 pt-3 pb-1 text-xs font-medium tracking-wide text-subtle uppercase"
                                 >
-                                    Tags
+                                    {m.browse_tags()}
                                 </p>
                                 {#each visibleTags as tag}
                                     <a
@@ -338,7 +339,7 @@
                                 {/each}
                             {/if}
                             {#if !visibleGenres.length && !visibleTags.length}
-                                <p class="px-5 py-5 text-sm text-muted">No matching genres or tags.</p>
+                                <p class="px-5 py-5 text-sm text-muted">{m.browse_no_matching()}</p>
                             {/if}
                         </div>
                     {/snippet}
@@ -350,10 +351,10 @@
                         'status',
                         data.taxonomy.statuses,
                         data.filters.status,
-                        'All statuses',
+                        m.browse_all_statuses(),
                         metadataLabel
                     )}
-                    ariaLabel="Filter by release status"
+                    ariaLabel={m.browse_filter_status()}
                     menuClass="mt-2 max-h-80 min-w-52 overflow-y-auto shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -363,7 +364,7 @@
                     {#snippet trigger()}
                         <PulseIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-32 truncate">
-                            {selectedLabel(data.filters.status, 'Status', metadataLabel)}
+                            {selectedLabel(data.filters.status, m.browse_status(), metadataLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -375,10 +376,10 @@
                         'format',
                         data.taxonomy.formats,
                         data.filters.format,
-                        'All types',
+                        m.browse_all_types(),
                         animeFormatLabel
                     )}
-                    ariaLabel="Filter by anime type"
+                    ariaLabel={m.browse_filter_type()}
                     menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -388,7 +389,7 @@
                     {#snippet trigger()}
                         <MonitorPlayIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-28 truncate">
-                            {selectedLabel(data.filters.format, 'Type', animeFormatLabel)}
+                            {selectedLabel(data.filters.format, m.browse_type(), animeFormatLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -398,17 +399,17 @@
                     id="browse-audio"
                     items={[
                         {
-                            label: 'Any audio',
+                            label: m.browse_any_audio(),
                             href: filterHref({ audio: null }),
                             current: data.filters.audio === null,
                         },
                         {
-                            label: 'Dubbed',
+                            label: m.watchlist_dubbed(),
                             href: filterHref({ audio: 'dub' }),
                             current: data.filters.audio === 'dub',
                         },
                     ]}
-                    ariaLabel="Filter by audio availability"
+                    ariaLabel={m.browse_filter_audio()}
                     menuClass="mt-2 min-w-44 shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -417,7 +418,7 @@
                 >
                     {#snippet trigger()}
                         <MicrophoneStageIcon size="1.1rem" weight="regular" aria-hidden="true" />
-                        <span>{data.filters.audio === 'dub' ? 'Dubbed' : 'Audio'}</span>
+                        <span>{data.filters.audio === 'dub' ? m.watchlist_dubbed() : m.browse_audio()}</span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                 </Dropdown>
@@ -428,10 +429,10 @@
                         'season',
                         data.taxonomy.seasons,
                         data.filters.season,
-                        'All seasons',
+                        m.browse_all_seasons(),
                         metadataLabel
                     )}
-                    ariaLabel="Filter by release season"
+                    ariaLabel={m.browse_filter_season()}
                     menuClass="mt-2 min-w-44 shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -440,7 +441,7 @@
                 >
                     {#snippet trigger()}
                         <SunHorizonIcon size="1.1rem" weight="regular" aria-hidden="true" />
-                        <span>{selectedLabel(data.filters.season, 'Season', metadataLabel)}</span>
+                        <span>{selectedLabel(data.filters.season, m.browse_season(), metadataLabel)}</span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                 </Dropdown>
@@ -449,7 +450,7 @@
                     id="browse-year"
                     items={[
                         {
-                            label: 'All years',
+                            label: m.browse_all_years(),
                             href: filterHref({ year: null }),
                             current: data.filters.year === null,
                         },
@@ -459,7 +460,7 @@
                             current: data.filters.year === year,
                         })),
                     ]}
-                    ariaLabel="Filter by release year"
+                    ariaLabel={m.browse_filter_year()}
                     menuClass="mt-2 max-h-80 min-w-36 overflow-y-auto shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -468,7 +469,7 @@
                 >
                     {#snippet trigger()}
                         <CalendarBlankIcon size="1.1rem" weight="regular" aria-hidden="true" />
-                        <span>{data.filters.year ?? 'Year'}</span>
+                        <span>{data.filters.year ?? m.browse_year()}</span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                 </Dropdown>
@@ -479,10 +480,10 @@
                         'source',
                         data.taxonomy.sources,
                         data.filters.source,
-                        'All source materials',
+                        m.browse_all_sources(),
                         metadataLabel
                     )}
-                    ariaLabel="Filter by source material"
+                    ariaLabel={m.browse_filter_source()}
                     menuClass="mt-2 max-h-80 min-w-56 overflow-y-auto shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -492,7 +493,7 @@
                     {#snippet trigger()}
                         <BookOpenTextIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-36 truncate">
-                            {selectedLabel(data.filters.source, 'Source', metadataLabel)}
+                            {selectedLabel(data.filters.source, m.browse_source(), metadataLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -504,10 +505,10 @@
                         'country',
                         data.taxonomy.countries,
                         data.filters.country,
-                        'All countries',
+                        m.browse_all_countries(),
                         countryLabel
                     )}
-                    ariaLabel="Filter by country of origin"
+                    ariaLabel={m.browse_filter_country()}
                     menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
                     triggerClass={cn(
                         'flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground',
@@ -517,7 +518,7 @@
                     {#snippet trigger()}
                         <GlobeHemisphereWestIcon size="1.1rem" weight="regular" aria-hidden="true" />
                         <span class="max-w-32 truncate">
-                            {selectedLabel(data.filters.country, 'Country', countryLabel)}
+                            {selectedLabel(data.filters.country, m.browse_country(), countryLabel)}
                         </span>
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
@@ -526,7 +527,7 @@
                 <span class="grow" aria-hidden="true"></span>
                 <Dropdown
                     id="browse-sort"
-                    ariaLabel={`Choose browse ordering. ${ordering.label} selected`}
+                    ariaLabel={m.browse_ordering({ label: ordering.label })}
                     menuClass="mt-2 min-w-48 shadow-xl"
                     triggerClass="flex h-11 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
                 >
@@ -541,7 +542,7 @@
                         <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                     {#snippet content()}
-                        <div role="menu" aria-label="Browse ordering">
+                        <div role="menu" aria-label={m.browse_ordering_menu()}>
                             {#each browseOrderings as option}
                                 <a
                                     role="menuitem"
@@ -563,12 +564,12 @@
                     class:text-accent={safe}
                     class:text-muted={!safe}
                     class="inline-flex h-11 items-center gap-2 px-3 text-sm font-medium transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-accent"
-                    aria-label={safe ? 'Disable safe for work filtering' : 'Enable safe for work filtering'}
+                    aria-label={safe ? m.browse_safe_on() : m.browse_safe_off()}
                     aria-pressed={safe}
                     onclick={() => void toggleSafe()}
                 >
                     <ShieldCheckIcon size="1.25rem" weight={safe ? 'fill' : 'regular'} aria-hidden="true" />
-                    <span>Safe mode</span>
+                    <span>{m.browse_safe_mode()}</span>
                 </button>
             </div>
         </div>
@@ -587,9 +588,9 @@
                 artworkWidth={1254}
                 artworkHeight={1254}
                 id="empty-browse-message"
-                body="Nothing matched those filters this time. Try widening the search or clearing a few filters to let something new in."
+                body={m.browse_empty()}
                 actionHref="/browse"
-                actionLabel="Clear Filters"
+                actionLabel={m.browse_clear_filters()}
             />
         {/if}
 
@@ -600,10 +601,10 @@
                         size="2rem"
                         weight="bold"
                         class="animate-spin text-accent motion-reduce:animate-none"
-                        aria-label="Loading more anime"
+                        aria-label={m.browse_loading()}
                     />
                 {:else}
-                    <span class="sr-only">More anime load automatically while scrolling.</span>
+                    <span class="sr-only">{m.browse_auto_loading()}</span>
                 {/if}
             </div>
         {/if}
