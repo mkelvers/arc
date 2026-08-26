@@ -4,6 +4,7 @@
 
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         kind: 'new' | 'popular';
@@ -22,13 +23,13 @@
     const loadedAtMs = untrack(() => new Date(loadedAt).getTime());
     const sections = $derived.by(() => {
         if (kind === 'popular') {
-            return [{ title: 'Popular', anime }];
+            return [{ title: m.catalog_popular(), anime }];
         }
 
         const groups = [
-            { title: 'Last 24 Hours', anime: [] as AnimeCardModel[] },
-            { title: 'This Past Week', anime: [] as AnimeCardModel[] },
-            { title: 'Earlier', anime: [] as AnimeCardModel[] },
+            { title: m.catalog_last_day(), anime: [] as AnimeCardModel[] },
+            { title: m.catalog_past_week(), anime: [] as AnimeCardModel[] },
+            { title: m.catalog_earlier(), anime: [] as AnimeCardModel[] },
         ];
         for (const entry of anime) {
             const age = Math.max(0, loadedAtMs - new Date(entry.addedAt ?? loadedAt).getTime());
@@ -113,7 +114,7 @@
     <section class="mx-auto w-full max-w-264" aria-labelledby="catalog-title">
         <div class="mb-8 flex items-center justify-between gap-4">
             <h1 id="catalog-title" class="text-2xl font-bold">
-                {kind === 'new' ? 'Newly Added Anime' : 'Most Popular Anime'}
+                {kind === 'new' ? m.catalog_newly_added() : m.catalog_most_popular()}
             </h1>
             <a
                 href={kind === 'new' ? '/popular' : '/new'}
@@ -121,10 +122,10 @@
             >
                 {#if kind === 'new'}
                     <ChartBarIcon size="1.15rem" aria-hidden="true" />
-                    Popularity
+                    {m.catalog_popularity()}
                 {:else}
                     <SortDescendingIcon size="1.15rem" aria-hidden="true" />
-                    Newest
+                    {m.catalog_newest()}
                 {/if}
             </a>
         </div>
@@ -148,7 +149,7 @@
         {/each}
 
         {#if !anime.length}
-            <p class="py-20 text-center text-muted">No anime are available yet.</p>
+            <p class="py-20 text-center text-muted">{m.catalog_empty()}</p>
         {/if}
 
         {#if nextPage !== null}
@@ -158,10 +159,10 @@
                         size="2rem"
                         weight="bold"
                         class="animate-spin text-accent motion-reduce:animate-none"
-                        aria-label="Loading more anime"
+                        aria-label={m.catalog_loading()}
                     />
                 {:else}
-                    <span class="sr-only">More anime load automatically while scrolling.</span>
+                    <span class="sr-only">{m.catalog_auto_loading()}</span>
                 {/if}
             </div>
         {/if}

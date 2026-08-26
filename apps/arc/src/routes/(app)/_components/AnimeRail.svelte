@@ -3,6 +3,7 @@
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         anime: AnimeCardModel[];
@@ -91,7 +92,7 @@
                 <button
                     type="button"
                     class="absolute top-[var(--rail-control-center)] left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label={`Scroll ${heading.toLocaleLowerCase()} left`}
+                    aria-label={`${heading}: ${m.shared_previous()}`}
                     onclick={() => move(-1)}
                 >
                     <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
@@ -102,7 +103,7 @@
                 <button
                     type="button"
                     class="absolute top-[var(--rail-control-center)] right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label={`Scroll ${heading.toLocaleLowerCase()} right`}
+                    aria-label={`${heading}: ${m.shared_next()}`}
                     onclick={() => move(1)}
                 >
                     <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />

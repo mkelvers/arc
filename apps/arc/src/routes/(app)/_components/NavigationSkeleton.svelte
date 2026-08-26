@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages.js';
     import { CircleNotchIcon } from 'phosphor-svelte';
 </script>
 
@@ -7,7 +8,7 @@
     aria-busy="true"
     aria-live="polite"
 >
-    <span class="sr-only">Loading page</span>
+    <span class="sr-only">{m.navigation_loading()}</span>
     <CircleNotchIcon
         size="2.25rem"
         weight="bold"

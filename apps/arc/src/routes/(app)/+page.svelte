@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { m } from '$lib/paraglide/messages.js';
     import AnimeRail from './_components/AnimeRail.svelte';
     import ContinueWatchingGrid from './_components/ContinueWatchingGrid.svelte';
     import HomeHero from './_components/HomeHero.svelte';
@@ -8,11 +9,8 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Watch anime</title>
-    <meta
-        name="description"
-        content="Discover the anime everyone is watching and explore popular new releases this season."
-    />
+    <title>{m.home_title()}</title>
+    <meta name="description" content={m.home_description()} />
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas text-foreground">
@@ -26,16 +24,16 @@
     </div>
     <AnimeRail
         anime={data.season}
-        heading="New Anime from the Current Season"
+        heading={m.home_new_season()}
         headingId="new-this-season"
-        emptyMessage="No seasonal anime are available right now."
+        emptyMessage={m.home_no_season()}
         topSpacing={false}
     />
     <AnimeRail
         anime={data.popular}
-        heading="Most Popular Anime"
+        heading={m.home_most_popular()}
         headingId="most-popular-anime"
-        emptyMessage="No popular anime are available right now."
+        emptyMessage={m.home_no_popular()}
         topSpacing={false}
     />
 </main>

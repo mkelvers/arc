@@ -6,6 +6,7 @@
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         anime: ContinueWatchingCard[];
@@ -19,7 +20,7 @@
         class="continue-watching-section relative z-20 col-start-1 row-start-2 row-end-3 self-end px-5 sm:px-10 lg:px-16 wide:row-start-1 wide:row-end-3"
         aria-labelledby="continue-watching"
     >
-        <h2 id="continue-watching" class="mb-5 text-xl font-bold sm:text-2xl">Continue Watching</h2>
+        <h2 id="continue-watching" class="mb-5 text-xl font-bold sm:text-2xl">{m.continue_watching()}</h2>
 
         <div
             class="grid grid-cols-1 gap-x-2 gap-y-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
@@ -57,7 +58,7 @@
                                 {entry.title}
                             </h3>
                             <p class="mt-1.5 text-sm text-muted">
-                                Continue Watching: {entry.episodeLabel}
+                                {m.continue_watching_episode({ episode: entry.episodeLabel })}
                             </p>
                             {#if entry.audioLabel}
                                 <p class="mt-auto pt-5 text-sm text-muted">
@@ -74,11 +75,11 @@
                         class="absolute top-2 right-2 z-10 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
                     >
                         <input type="hidden" name="animeId" value={entry.animeId} />
-                        <Tooltip text="Remove">
+                        <Tooltip text={m.remove()}>
                             <button
                                 type="submit"
                                 class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-[color,transform] duration-150 hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90"
-                                aria-label={`Remove ${entry.title} from continue watching`}
+                                aria-label={m.remove_continue_watching({ title: entry.title })}
                             >
                                 <XIcon size="1rem" weight="bold" aria-hidden="true" />
                             </button>

@@ -4,6 +4,7 @@
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Highlight {
         id: number;
@@ -78,7 +79,7 @@
     <section
         class="relative h-[min(100svh,32rem)] min-h-0 max-h-none overflow-hidden bg-black sm:h-[min(100svh,42rem)] sm:min-h-180 sm:max-h-192 xl:h-[calc(100svh-3.5rem)] xl:max-h-none"
         aria-roledescription="carousel"
-        aria-label="Trending anime now"
+        aria-label={m.home_trending()}
     >
         {#if activeAnime}
             {#each highlights as anime, index (anime.id)}
@@ -105,7 +106,7 @@
                     <a
                         href={anime.href}
                         class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
-                        aria-label={`View ${anime.title}`}
+                        aria-label={m.shared_view({ title: anime.title })}
                         tabindex={index === carousel.active ? undefined : -1}
                     >
                         <ProgressiveImage
@@ -140,7 +141,7 @@
                                 <a
                                     href={activeAnime.href}
                                     class="pointer-events-auto relative z-10 flex h-full w-full items-center justify-center px-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:justify-start xl:block xl:h-auto xl:w-fit xl:px-0"
-                                    aria-label={`View ${activeAnime.title}`}
+                                    aria-label={m.shared_view({ title: activeAnime.title })}
                                 >
                                     {#each highlights as anime, index (anime.id)}
                                         {#if index === carousel.active || index === upcoming}
@@ -173,7 +174,7 @@
                                 <button
                                     type="button"
                                     class="pointer-events-auto absolute top-1/2 left-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
-                                    aria-label="Previous anime"
+                                    aria-label={m.shared_previous()}
                                     onclick={() => select(carousel.active - 1, 'complete')}
                                 >
                                     <CaretLeftIcon
@@ -190,7 +191,7 @@
                             <button
                                 type="button"
                                 class="pointer-events-auto absolute top-1/2 right-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
-                                aria-label="Next anime"
+                                aria-label={m.shared_next()}
                                 onclick={() => select(carousel.active + 1, 'complete')}
                             >
                                 <CaretRightIcon
@@ -230,7 +231,7 @@
                             class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] 2xl:text-sm"
                         >
                             <PlayIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                            Start watching {activeAnime.episodeLabel}
+                            {m.shared_start_watching({ title: activeAnime.episodeLabel })}
                         </a>
                         <WatchlistBookmark
                             animeId={activeAnime.id}
@@ -253,7 +254,7 @@
                                             ? 'w-12'
                                             : 'w-6 hover:bg-accent/60 focus-visible:bg-accent/60'
                                     )}
-                                    aria-label={`Show ${item.title}`}
+                                    aria-label={m.shared_view({ title: item.title })}
                                     aria-current={itemIndex === carousel.active ? 'true' : undefined}
                                     onclick={() => select(itemIndex, 'complete')}
                                 >
@@ -276,7 +277,7 @@
                                         {/key}
                                     {/if}
                                     <span class="sr-only">
-                                        Show {item.title}
+                                        {m.shared_view({ title: item.title })}
                                     </span>
                                 </button>
                             {/each}
