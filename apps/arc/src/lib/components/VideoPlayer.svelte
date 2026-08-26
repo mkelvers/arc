@@ -14,6 +14,7 @@
     import { CaretLeftIcon, SpinnerGapIcon } from 'phosphor-svelte';
     import Controls from './player/Controls.svelte';
     import Modal from './ui/Modal.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface AnimeInfo {
         id: number;
@@ -195,7 +196,7 @@
     {#if player.media.sourceKind === 'iframe' && player.media.audioModes.length > 1}
         <div
             role="group"
-            aria-label="Audio"
+            aria-label={m.player_audio()}
             class="absolute top-20 right-5 z-40 flex overflow-hidden rounded-sm border border-white/30 bg-black/80 p-1 text-xs font-bold text-white shadow-lg backdrop-blur-sm sm:right-7 lg:right-9"
         >
             {#each player.media.audioModes as mode}
@@ -220,7 +221,7 @@
     >
         <a
             href={`/anime/${anime.id}`}
-            aria-label={`Back to ${anime.title}`}
+            aria-label={m.player_back({ title: anime.title })}
             class="pointer-events-auto grid size-10 place-items-center text-white/90 drop-shadow transition-[color,opacity,transform] duration-150 hover:text-white hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90"
         >
             <CaretLeftIcon size="2rem" weight="bold" aria-hidden="true" />
@@ -332,7 +333,7 @@
     {#if transitioning || player.changingEpisode}
         <div
             role="status"
-            aria-label="Loading next episode"
+            aria-label={m.player_loading_next()}
             class="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/80"
         >
             <SpinnerGapIcon size="2.5rem" weight="bold" class="animate-spin text-accent" aria-hidden="true" />
@@ -341,25 +342,23 @@
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
             <div>
                 <p class="text-base font-bold">
-                    {error
-                        ? 'The streaming providers could not load this video.'
-                        : 'No video source is available.'}
+                    {error ? m.player_provider_error() : m.player_no_source()}
                 </p>
-                <p class="mt-2 text-sm text-white/65">Arc tried every available source for this episode.</p>
+                <p class="mt-2 text-sm text-white/65">{m.player_tried_sources()}</p>
                 <button
                     type="button"
                     disabled={retrying}
                     class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold transition-[border-color,transform] duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
                     onclick={onretry}
                 >
-                    {retrying ? 'Trying again…' : 'Try again'}
+                    {retrying ? m.player_trying_again() : m.player_try_again()}
                 </button>
             </div>
         </div>
     {:else if player.media.loading}
         <div
             role="status"
-            aria-label="Loading video"
+            aria-label={m.player_loading_video()}
             class="pointer-events-none absolute inset-0 grid place-items-center bg-black/40"
         >
             <SpinnerGapIcon size="2.5rem" weight="bold" class="animate-spin text-accent" aria-hidden="true" />
@@ -369,14 +368,14 @@
     {#if player.media.error && !unavailable && !transitioning && !player.changingEpisode}
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
             <div>
-                <p class="text-base font-bold">This video could not be loaded.</p>
-                <p class="mt-2 text-sm text-white/65">Every available provider source was tried.</p>
+                <p class="text-base font-bold">{m.player_load_failed()}</p>
+                <p class="mt-2 text-sm text-white/65">{m.player_tried_provider()}</p>
                 <button
                     type="button"
                     class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold transition-[border-color,transform] duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97]"
                     onclick={() => player.media.retry()}
                 >
-                    Try again
+                    {m.player_try_again()}
                 </button>
             </div>
         </div>
@@ -394,7 +393,7 @@
                     player.showControls();
                 }}
             >
-                Skip {skip.kind === 'opening' ? 'intro' : 'outro'}
+                {m.player_skip({ kind: skip.kind === 'opening' ? 'intro' : 'outro' })}
             </button>
         {/if}
     {/if}

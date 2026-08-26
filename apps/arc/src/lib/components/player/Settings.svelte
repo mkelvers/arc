@@ -4,14 +4,15 @@
     import type { SkipKind } from '@arc/shared/player/skip-times';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         player: Player;
     }
 
     const skipLabels = {
-        opening: 'Opening',
-        ending: 'Ending',
+        opening: 'opening',
+        ending: 'ending',
     } satisfies Record<SkipKind, string>;
 
     let { player }: Props = $props();
@@ -34,7 +35,7 @@
 <div
     id="player-settings"
     role="menu"
-    aria-label="Playback settings"
+    aria-label={m.player_settings()}
     class={cn(
         'absolute right-0 bottom-full z-40 mb-2 w-64 origin-bottom-right overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8 transition-[opacity,scale] duration-150 ease-out starting:opacity-0 starting:scale-95 motion-reduce:transition-none'
     )}
@@ -47,7 +48,7 @@
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
             onclick={() => player.media.toggleAutoplay()}
         >
-            <span>Autoplay</span>
+            <span>{m.player_autoplay()}</span>
             <span
                 aria-hidden="true"
                 class={cn(
@@ -72,7 +73,7 @@
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
             onclick={() => (player.settingsView = 'audio')}
         >
-            <span>Audio</span>
+            <span>{m.player_audio()}</span>
             <span class="flex items-center gap-1 text-white/85">
                 {audioLabel(player.media.mode)}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
@@ -85,12 +86,12 @@
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
             onclick={() => (player.settingsView = 'subtitles')}
         >
-            <span>Subtitles/CC</span>
+            <span>{m.player_subtitles()}</span>
             <span class="flex items-center gap-1 text-white/85">
                 {player.media.captions.options.find((option) => option.mode === player.media.captions.mode)
                     ?.label ??
                     player.media.captions.options[0]?.label ??
-                    'None'}
+                    m.player_none()}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </button>
@@ -102,7 +103,7 @@
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                 onclick={() => (player.settingsView = 'quality')}
             >
-                <span>Quality</span>
+                <span>{m.player_quality()}</span>
                 <span class="flex items-center gap-1 text-white/85">
                     <span>{player.media.qualityText}</span>
                     {#if isHd(player.media.quality === 'best' ? player.media.bestQuality : player.media.quality)}
@@ -120,7 +121,7 @@
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                 onclick={() => (player.settingsView = 'segments')}
             >
-                <span>Segments</span>
+                <span>{m.player_segments()}</span>
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </button>
         {/if}
@@ -135,17 +136,17 @@
             type="button"
             role="menuitem"
             aria-label={player.settingsView === 'subtitle-size'
-                ? 'Back to Subtitles/CC'
+                ? m.player_back_subtitles()
                 : editingKind
-                  ? 'Back to segments'
-                  : 'Back to playback settings'}
+                  ? m.player_back_segments()
+                  : m.player_back_settings()}
             class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
             onclick={() =>
                 (player.settingsView =
                     player.settingsView === 'subtitle-size' ? 'subtitles' : editingKind ? 'segments' : 'main')}
         >
             <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
-            Back
+            {m.player_back_label()}
         </button>
 
         {#if player.settingsView === 'quality'}
@@ -157,7 +158,7 @@
                 onclick={() => player.media.switchQuality('best')}
             >
                 {@render radio(player.media.quality === 'best')}
-                Auto
+                {m.player_auto()}
             </button>
 
             {#each player.media.qualities as option}
@@ -197,7 +198,7 @@
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                 onclick={() => (player.settingsView = 'subtitle-size')}
             >
-                <span>Size</span>
+                <span>{m.player_size()}</span>
                 <span class="flex items-center gap-1 text-white/85">
                     {subtitleSizes[player.media.captions.size].label}
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
@@ -242,7 +243,7 @@
                     <span class="font-medium">{skipLabels[kind]}</span>
                     <span class="ml-auto text-[0.7rem] text-white/60 tabular-nums">
                         {interval.start === null || interval.end === null
-                            ? 'Not set'
+                            ? m.player_not_set()
                             : `${formatTime(interval.start)} – ${formatTime(interval.end)}`}
                     </span>
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
@@ -255,17 +256,17 @@
                 <button
                     type="button"
                     role="menuitem"
-                    aria-label={`Set ${skipLabels[editingKind].toLowerCase()} ${edge} to current playback position`}
-                    title="Set to current playback position"
+                    aria-label={m.player_set_position({ kind: skipLabels[editingKind], edge })}
+                    title={m.player_set_position_title()}
                     disabled={player.segments.saving}
                     class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
                     onclick={() => player.segments.mark(editingKind, edge, player.media.video.currentTime)}
                 >
                     <span class="font-medium capitalize">{edge}</span>
                     <span class="ml-auto text-white/65 tabular-nums">
-                        {edgeTime === null ? 'Not set' : formatTime(edgeTime)}
+                        {edgeTime === null ? m.player_not_set() : formatTime(edgeTime)}
                     </span>
-                    <span class="font-semibold text-input-accent">Set here</span>
+                    <span class="font-semibold text-input-accent">{m.player_set_here()}</span>
                 </button>
             {/each}
 
@@ -281,10 +282,10 @@
                             : player.segments.startTemplate(editingKind)}
                 >
                     {player.segments.creatingTemplate === editingKind
-                        ? 'Cancel new template'
+                        ? m.player_cancel_template()
                         : template
-                          ? `New ${skipLabels[editingKind].toLowerCase()}`
-                          : 'Start new template'}
+                          ? m.player_new_kind({ kind: skipLabels[editingKind] })
+                          : m.player_new_template()}
                 </button>
             {/if}
 
@@ -296,13 +297,13 @@
                     class="flex min-h-9 w-full items-center px-4 text-left text-white/55 hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:outline-none disabled:opacity-40"
                     onclick={() => player.segments.clear(editingKind)}
                 >
-                    Clear segment
+                    {m.player_clear_segment()}
                 </button>
             {/if}
 
             {#if player.segments.saving}
                 <p aria-live="polite" class="border-t border-white/8 px-4 py-2 text-[0.7rem] text-white/60">
-                    Saving…
+                    {m.player_saving()}
                 </p>
             {/if}
 

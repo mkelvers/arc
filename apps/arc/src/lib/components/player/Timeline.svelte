@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
     import { formatTime } from '$lib/player/media';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         player: Player;
@@ -99,7 +100,7 @@
             style:--progress={`${progress.played}%`}
             aria-hidden="true"
         >
-            <span class="sr-only">Playback progress</span>
+            <span class="sr-only">{m.player_progress()}</span>
         </div>
 
         <input
@@ -108,7 +109,7 @@
             max={player.media.duration || 0}
             step="0.1"
             value={position}
-            aria-label="Seek video"
+            aria-label={m.player_seek()}
             class="absolute inset-0 z-20 cursor-pointer opacity-0"
             oninput={(event) => {
                 if (!pointer.scrubbing) {

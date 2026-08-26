@@ -1,4 +1,5 @@
 import { audioModeOrder, type AudioMode } from '@arc/shared/audio';
+import { m } from '$lib/paraglide/messages.js';
 
 export interface Stream {
     url: string;
@@ -114,33 +115,33 @@ export interface SubtitleOption {
 
 /** The subtitle size presets and the pixel size each renders at. */
 export const subtitleSizes = {
-    small: { label: 'Small', px: 24 },
-    normal: { label: 'Normal', px: 32 },
-    large: { label: 'Large', px: 40 },
-    'extra-large': { label: 'Extra Large', px: 48 },
+    small: { label: m.player_small(), px: 24 },
+    normal: { label: m.player_normal(), px: 32 },
+    large: { label: m.player_large(), px: 40 },
+    'extra-large': { label: m.player_extra_large(), px: 48 },
 };
 
 export type SubtitleSize = keyof typeof subtitleSizes;
 
 export const subtitleTextColors = {
-    white: { label: 'White', value: '#ffffff' },
-    yellow: { label: 'Yellow', value: '#fff36b' },
-    black: { label: 'Black', value: '#111111' },
+    white: { label: m.player_white(), value: '#ffffff' },
+    yellow: { label: m.player_yellow(), value: '#fff36b' },
+    black: { label: m.player_black(), value: '#111111' },
 } as const;
 
 export type SubtitleTextColor = keyof typeof subtitleTextColors;
 
 export const subtitleEdgeStyles = {
-    outline: { label: 'Outline' },
-    none: { label: 'None' },
+    outline: { label: m.player_outline() },
+    none: { label: m.player_none() },
 } as const;
 
 export type SubtitleEdgeStyle = keyof typeof subtitleEdgeStyles;
 
 export const subtitleBackgrounds = {
-    black: { label: 'Black', value: '0 0 0' },
-    white: { label: 'White', value: '255 255 255' },
-    none: { label: 'None', value: null },
+    black: { label: m.player_black(), value: '0 0 0' },
+    white: { label: m.player_white(), value: '255 255 255' },
+    none: { label: m.player_none(), value: null },
 } as const;
 
 export type SubtitleBackground = keyof typeof subtitleBackgrounds;
@@ -157,9 +158,9 @@ export const subtitleSizeOrder = [
 ] as const satisfies readonly SubtitleSize[];
 
 const subtitleLabels = {
-    cc: 'English CC',
-    translated: 'Original',
-    limited: 'Signs & Songs',
+    cc: m.player_subtitle_cc(),
+    translated: m.player_subtitle_original(),
+    limited: m.player_subtitle_signs(),
 } satisfies Record<SubtitleKind, string>;
 
 /** The caption choices for the tracks an encode actually provides. */
@@ -171,7 +172,7 @@ export function subtitleOptionsFor(kinds: SubtitleKind[]) {
             label: subtitleLabels[kind],
         });
     }
-    options.push({ mode: 'off', label: 'None' });
+    options.push({ mode: 'off', label: m.player_none() });
     return options;
 }
 
@@ -437,10 +438,10 @@ export function availableModes(sources: Sources) {
 
 export function audioLabel(mode: AudioMode) {
     if (mode === 'dub') {
-        return 'English';
+        return String(m.player_audio_english());
     }
 
-    return mode === 'raw' ? 'Japanese (Raw)' : 'Japanese';
+    return mode === 'raw' ? String(m.player_audio_raw()) : String(m.player_audio_japanese());
 }
 
 export function isHd(quality: string | null) {

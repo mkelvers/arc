@@ -12,6 +12,7 @@
     } from 'phosphor-svelte';
     import Settings from './Settings.svelte';
     import Timeline from './Timeline.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         player: Player;
@@ -32,7 +33,7 @@
         <div class="flex items-center gap-4">
             <button
                 type="button"
-                aria-label={player.media.playing ? 'Pause' : 'Play'}
+                aria-label={player.media.playing ? m.player_pause() : m.player_play()}
                 disabled={player.media.loading}
                 class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
                 onclick={() => {
@@ -58,7 +59,7 @@
                             max="1"
                             step="0.05"
                             value={player.media.muted ? 0 : player.media.volume}
-                            aria-label="Volume"
+                            aria-label={m.player_volume()}
                             disabled={player.media.loading}
                             class="absolute inset-0 size-full cursor-pointer [direction:rtl] [writing-mode:vertical-lr]"
                             oninput={(event) => player.media.setVolume(Number(event.currentTarget.value))}
@@ -68,7 +69,7 @@
 
                 <button
                     type="button"
-                    aria-label={player.media.muted ? 'Unmute' : 'Mute'}
+                    aria-label={player.media.muted ? m.player_unmute() : m.player_mute()}
                     disabled={player.media.loading}
                     class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
                     onclick={() => {
@@ -89,7 +90,7 @@
             {#if hasMultipleEpisodes && onopenepisodes}
                 <button
                     type="button"
-                    aria-label={episodesOpen ? 'Close episodes' : 'Episodes'}
+                    aria-label={episodesOpen ? m.player_close_episodes() : m.player_episodes()}
                     aria-haspopup="dialog"
                     aria-expanded={episodesOpen}
                     aria-controls="episode-dialog"
@@ -103,7 +104,7 @@
             <div class="relative">
                 <button
                     type="button"
-                    aria-label="Playback settings"
+                    aria-label={m.player_settings()}
                     aria-expanded={player.settingsOpen}
                     aria-controls="player-settings"
                     disabled={player.media.loading}
@@ -120,7 +121,7 @@
 
             <button
                 type="button"
-                aria-label={player.fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                aria-label={player.fullscreen ? m.player_exit_fullscreen() : m.player_fullscreen()}
                 disabled={player.media.loading}
                 class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
                 onclick={() => {
