@@ -1,6 +1,6 @@
-import { and, arrayContains, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
 
-import { parseBrowseFilters, type BrowseFilters, type BrowseTaxonomy } from '@arc/shared/browse';
+import type { BrowseFilters, BrowseTaxonomy } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
 import { db, excluded } from '@arc/db';
@@ -12,11 +12,13 @@ import {
     animeRelease,
 } from '@arc/db/schema';
 import {
+    getBrowseAnime,
     getBrowsePage,
     getBrowseTaxonomy,
     type AniListBrowseFilters,
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
+import { getRecentAiringPage } from './anilist/recent';
 import { enrichAnimeCards } from './card-enrichment';
 import { createAnimeSearchIndex } from './search-index';
 import {
@@ -332,7 +334,9 @@ function catalogConditions(filters: BrowseFilters) {
         filters.query
             ? sql`${animeCatalog.searchText} ilike ${`%${escapeLike(filters.query)}%`} escape '\\'`
             : undefined,
-        inArray(animeCatalog.format, [...discoveryFormats]),
+        filters.format === 'MOVIE'
+            ? eq(animeCatalog.format, 'MOVIE')
+            : inArray(animeCatalog.format, [...discoveryFormats]),
         sql`${animeCatalog.popularity} >= ${discoveryMinimumPopularity}`,
         sql`(${animeCatalog.duration} is null or ${animeCatalog.duration} >= ${discoveryMinimumDuration})`,
         eq(animeCatalog.discoveryRevision, discoveryCatalogRevision),
@@ -340,12 +344,15 @@ function catalogConditions(filters: BrowseFilters) {
         filters.genre ? arrayContains(animeCatalog.genres, [filters.genre]) : undefined,
         filters.tag ? arrayContains(animeCatalog.tags, [filters.tag]) : undefined,
         filters.status ? eq(animeCatalog.status, filters.status) : undefined,
-        filters.format ? eq(animeCatalog.format, filters.format) : undefined,
+        filters.format && filters.format !== 'MOVIE'
+            ? eq(animeCatalog.format, filters.format)
+            : undefined,
         filters.source ? eq(animeCatalog.source, filters.source) : undefined,
         filters.season ? eq(animeCatalog.season, filters.season) : undefined,
         filters.year ? eq(animeCatalog.seasonYear, filters.year) : undefined,
         filters.country ? eq(animeCatalog.countryOfOrigin, filters.country) : undefined,
-        filters.audio === 'dub' ? hasAudio('dub') : undefined
+        filters.audio === 'dub' ? hasAudio('dub') : undefined,
+        filters.audio === 'sub' ? hasAudio('sub') : undefined
     );
 }
 
@@ -385,12 +392,7 @@ function audioModes(row: { hasSub: boolean; hasDub: boolean; hasRaw: boolean }) 
     return modes;
 }
 
-async function catalogPage(
-    filters: BrowseFilters,
-    page: number,
-    animeIds: number[] | null,
-    ordering: 'filters' | 'newest' = 'filters'
-) {
+async function catalogPage(filters: BrowseFilters, page: number, animeIds: number[] | null) {
     if (animeIds?.length === 0) {
         return [];
     }
@@ -403,7 +405,6 @@ async function catalogPage(
             score: animeCatalog.averageScore,
             genres: animeCatalog.genres,
             synopsis: animeCatalog.synopsis,
-            addedAt: animeCatalog.createdAt,
             hasSub: hasAudio('sub'),
             hasDub: hasAudio('dub'),
             hasRaw: hasAudio('raw'),
@@ -415,11 +416,7 @@ async function catalogPage(
                 animeIds ? inArray(animeCatalog.anilistId, animeIds) : undefined
             )
         )
-        .orderBy(
-            ...(ordering === 'newest'
-                ? [desc(animeCatalog.createdAt), animeCatalog.title]
-                : catalogOrder(filters))
-        )
+        .orderBy(...catalogOrder(filters))
         .limit(42)
         .offset(animeIds ? 0 : (page - 1) * 42);
 
@@ -431,7 +428,7 @@ async function catalogPage(
         : rows;
 
     const cards: AnimeCard[] = orderedRows.map((row) => {
-        const card: AnimeCard = {
+        return {
             id: row.id,
             href: `/anime/${row.id}`,
             link: `/anime/${row.id}`,
@@ -442,10 +439,6 @@ async function catalogPage(
             genres: row.genres,
             synopsis: row.synopsis,
         };
-        if (ordering === 'newest') {
-            card.addedAt = row.addedAt.toISOString();
-        }
-        return card;
     });
 
     return enrichAnimeCards(cards);
@@ -493,30 +486,75 @@ export async function browsePage(filters: BrowseFilters, number: number) {
     return result;
 }
 
-export async function popularAnimePage(page: number) {
-    const filters = parseBrowseFilters(new URLSearchParams());
-    if (!filters) {
-        throw new Error('Default catalog filters are invalid');
-    }
-
+export async function popularAnimePage(page: number, filters: BrowseFilters) {
     const { sourceTaxonomy: _, ...result } = await loadPage(filters, page);
     return { ...result, loadedAt: new Date().toISOString() };
 }
 
-export async function newAnimePage(page: number) {
+export async function newAnimePage(page: number, filters: BrowseFilters) {
     if (!Number.isSafeInteger(page) || page < 1 || page > 2_147_483_647) {
         throw new BrowseFilterError('Invalid catalog page');
     }
 
-    const filters = parseBrowseFilters(new URLSearchParams());
-    if (!filters) {
-        throw new Error('Default catalog filters are invalid');
+    const recent = await getRecentAiringPage(page);
+    const latestSchedules = [
+        ...new Map(recent.schedules.map((schedule) => [schedule.anilistId, schedule])).values(),
+    ];
+    const entries = (
+        await getBrowseAnime(latestSchedules.map(({ anilistId }) => anilistId))
+    ).filter(
+        (entry) =>
+            (!filters.status || entry.status === filters.status) &&
+            (!filters.format || entry.format === filters.format)
+    );
+    const episodeRows = entries.length
+        ? await db
+              .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
+              .from(animeEpisode)
+              .where(
+                  inArray(
+                      animeEpisode.anilistId,
+                      entries.map(({ anilistId }) => anilistId)
+                  )
+              )
+        : [];
+    const audioByAnime = new Map<number, Set<AudioMode>>();
+    for (const row of episodeRows) {
+        const modes = audioByAnime.get(row.anilistId) ?? new Set<AudioMode>();
+        row.audio.forEach((mode) => modes.add(mode));
+        audioByAnime.set(row.anilistId, modes);
     }
-    const anime = await catalogPage(filters, page, null, 'newest');
+    const entryById = new Map(entries.map((entry) => [entry.anilistId, entry]));
+    const cards: AnimeCard[] = latestSchedules.flatMap((schedule) => {
+        const entry = entryById.get(schedule.anilistId);
+        if (!entry) {
+            return [];
+        }
+        const audio = [...(audioByAnime.get(entry.anilistId) ?? [])];
+        if (filters.audio && !audio.includes(filters.audio)) {
+            return [];
+        }
+        return [
+            {
+                id: entry.anilistId,
+                href: `/anime/${entry.anilistId}`,
+                link: `/anime/${entry.anilistId}`,
+                title: entry.title,
+                image: entry.imageUrl,
+                audioLabel: audioAvailabilityLabel(audio) || 'Audio not indexed',
+                score: entry.averageScore ?? 0,
+                genres: entry.genres,
+                synopsis: entry.synopsis,
+                releasedAt: schedule.airedAt.toISOString(),
+                episode: schedule.episode,
+            },
+        ];
+    });
+    const anime = await enrichAnimeCards(cards);
 
     return {
         anime,
-        hasNextPage: anime.length === 42,
+        hasNextPage: recent.hasNextPage,
         page,
         loadedAt: new Date().toISOString(),
     };
