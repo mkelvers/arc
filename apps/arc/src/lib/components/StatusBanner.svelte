@@ -3,6 +3,7 @@
     import { fly } from 'svelte/transition';
     import { prefersReducedMotion } from 'svelte/motion';
     import { cn } from '$lib/utils';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         message: string;
@@ -39,7 +40,7 @@
         <button
             class="absolute inset-y-0 right-0 grid w-12 place-items-center transition-[background-color,transform] duration-150 hover:bg-black/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-on-status active:scale-90"
             type="button"
-            aria-label="Dismiss message"
+            aria-label={m.shared_dismiss()}
             onclick={ondismiss}
         >
             <XIcon size={20} weight="bold" aria-hidden="true" />

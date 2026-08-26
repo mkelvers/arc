@@ -6,6 +6,7 @@
     import { cn } from '$lib/utils';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Tooltip from './ui/Tooltip.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         animeId: number;
@@ -56,14 +57,14 @@
     }
 </script>
 
-<Tooltip text={failed ? 'Try again' : added ? 'Remove from Watchlist' : 'Add to Watchlist'}>
+<Tooltip text={failed ? m.player_try_again() : added ? m.remove() : m.shared_add_watchlist({ title })}>
     <button
         type="button"
         class={cn(
             'grid shrink-0 place-items-center text-accent transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90 disabled:cursor-wait disabled:opacity-50',
             outlined ? 'size-10 border-2 border-accent' : 'size-9'
         )}
-        aria-label={added ? `Remove ${title} from watchlist` : `Add ${title} to watchlist`}
+        aria-label={added ? m.shared_remove_watchlist({ title }) : m.shared_add_watchlist({ title })}
         aria-pressed={added}
         disabled={pending}
         onclick={toggle}

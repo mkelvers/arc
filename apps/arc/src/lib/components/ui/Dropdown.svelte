@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Snippet } from 'svelte';
     import { cn } from '$lib/utils';
+    import { m } from '$lib/paraglide/messages.js';
 
     type Item = {
         label: string;
@@ -26,7 +27,7 @@
         trigger,
         items = [],
         content,
-        ariaLabel = 'More options',
+        ariaLabel = m.anime_more(),
         menuAlign = 'end',
         menuClass = 'w-48',
         modal = false,
@@ -119,7 +120,7 @@
         <button
             type="button"
             class="fixed inset-x-0 top-14 bottom-0 z-40 cursor-default bg-black/65 backdrop-blur-[2px]"
-            aria-label="Close menu"
+            aria-label={m.shared_close_menu()}
             onclick={() => (open = false)}
         ></button>
     {/if}

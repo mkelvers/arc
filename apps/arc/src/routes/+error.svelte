@@ -2,14 +2,11 @@
     import { page } from '$app/state';
     import errorArtwork from '$lib/assets/error-state.png';
     import Logo from '$lib/components/ui/Logo.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     const error = $derived(page.status !== 404);
-    const heading = $derived(error ? 'Something went wrong.' : 'Page not found.');
-    const description = $derived(
-        error
-            ? 'Arc could not load this page. Please head back home and try again.'
-            : 'This page does not exist. Please head back home and try again.'
-    );
+    const heading = $derived(error ? m.error_generic() : m.error_not_found());
+    const description = $derived(error ? m.error_generic_body() : m.error_not_found_body());
 </script>
 
 <svelte:head>
@@ -25,7 +22,7 @@
     <header class="flex h-20 items-center sm:h-24">
         <a
             href="/"
-            aria-label="Arc home"
+            aria-label={m.footer_home()}
             class="focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-accent"
         >
             <Logo alt="Arc" class="h-9" />
@@ -50,7 +47,7 @@
                 href="/"
                 class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
             >
-                Back to homepage
+                {m.error_back_home()}
             </a>
         </div>
     </section>

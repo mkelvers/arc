@@ -8,6 +8,7 @@
     import { SpinnerGapIcon } from 'phosphor-svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Playback {
         streams: Sources;
@@ -238,7 +239,7 @@
     />
 {:else}
     <section
-        aria-label={`${anime.title} player`}
+        aria-label={m.player_back({ title: anime.title })}
         aria-busy="true"
         class="fixed inset-0 grid size-full place-items-center overflow-hidden bg-black px-6 text-center"
     >
@@ -253,7 +254,7 @@
         {/if}
         <SpinnerGapIcon
             role="status"
-            aria-label="Loading video"
+            aria-label={m.player_loading_video()}
             size="2.5rem"
             weight="bold"
             class="relative animate-spin text-accent"

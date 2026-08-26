@@ -5,6 +5,7 @@
     import type { AnimeEpisode } from '@arc/shared/types';
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         episode: AnimeEpisode;
@@ -71,7 +72,7 @@
                             'top-2'
                         )}
                     >
-                        Now playing
+                        {m.player_now_playing()}
                     </span>
                 {/if}
                 {#if episode.duration}
@@ -158,7 +159,7 @@
             {/if}
             <span class="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-bold text-accent uppercase">
                 <PlayIcon size="1.25rem" weight="bold" aria-hidden="true" />
-                Play {episode.label}
+                {m.player_play_episode({ episode: episode.label })}
             </span>
         </div>
     </a>
