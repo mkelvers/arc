@@ -7,7 +7,7 @@ import { db } from '@arc/db';
 import { anilistQueryCache } from '@arc/db/schema';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
-import { anilistRequestPolicy } from './request-policy';
+import { coordinatedAniListRequest } from './durable-request-policy';
 
 const requests = new Map<string, Promise<unknown>>();
 
@@ -48,7 +48,8 @@ async function refresh<TResult, TVariables>(
     variables: TVariables,
     options: RequestOptions
 ) {
-    const data = await anilistRequestPolicy.run(() =>
+    const operation = document.toString().match(/(?:query|mutation)\s+(\w+)/)?.[1] ?? 'anonymous';
+    const data = await coordinatedAniListRequest(operation, () =>
         graphql('https://graphql.anilist.co', document, variables, { timeoutMs: options.timeoutMs })
     );
     const fetchedAt = new Date();
@@ -121,11 +122,6 @@ export async function request<TResult, TVariables>(
                 await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
             } else {
                 if (!options.forceRefresh) {
-                    if (stored.expiresAt.getTime() <= Date.now()) {
-                        void refreshOnce(key, document, variables, options).catch((cause) => {
-                            console.warn('AniList query cache refresh failed', cause);
-                        });
-                    }
                     return object as TResult;
                 }
             }
