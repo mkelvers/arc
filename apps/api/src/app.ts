@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 
+import { TargetEpisodeUnavailableError } from '@arc/backend/internal/anime/episodes/sync';
 import { auth } from './auth';
 import { origin } from './http';
 import { accounts } from './routes/accounts';
@@ -37,6 +38,19 @@ app.notFound((context) =>
     )
 );
 app.onError((cause, context) => {
+    if (cause instanceof TargetEpisodeUnavailableError) {
+        console.warn(cause.message);
+        return context.json(
+            {
+                error: {
+                    code: 'EPISODE_UNAVAILABLE',
+                    message: 'The requested episode is not available yet',
+                },
+            },
+            503
+        );
+    }
+
     console.error('Unhandled API request failure', cause);
     return context.json(
         {
