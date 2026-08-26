@@ -107,27 +107,36 @@ function browseEntries(
     });
 }
 
-export async function getBrowsePage(filters: AniListBrowseFilters, page: number, perPage: number) {
+export async function getBrowsePage(
+    filters: AniListBrowseFilters,
+    page: number,
+    perPage: number,
+    forceRefresh = false
+) {
     const sort: MediaSort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
     const formats: readonly MediaFormat[] =
         filters.format === 'MOVIE' ? ['MOVIE'] : discoveryFormats;
-    const response = await request(BrowseAnimePageDocument, {
-        search: filters.query || undefined,
-        genre: filters.genre ?? undefined,
-        tag: filters.tag ?? undefined,
-        format: filters.format === 'MOVIE' ? undefined : (filters.format ?? undefined),
-        status: filters.status ?? undefined,
-        source: filters.source ?? undefined,
-        season: filters.season ?? undefined,
-        seasonYear: filters.year ?? undefined,
-        countryOfOrigin: filters.country ?? undefined,
-        isAdult: filters.safe ? false : undefined,
-        sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
-        discoveryFormats: [...formats],
-        minimumPopularity: discoveryMinimumPopularity - 1,
-        page,
-        perPage,
-    });
+    const response = await request(
+        BrowseAnimePageDocument,
+        {
+            search: filters.query || undefined,
+            genre: filters.genre ?? undefined,
+            tag: filters.tag ?? undefined,
+            format: filters.format === 'MOVIE' ? undefined : (filters.format ?? undefined),
+            status: filters.status ?? undefined,
+            source: filters.source ?? undefined,
+            season: filters.season ?? undefined,
+            seasonYear: filters.year ?? undefined,
+            countryOfOrigin: filters.country ?? undefined,
+            isAdult: filters.safe ? false : undefined,
+            sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
+            discoveryFormats: [...formats],
+            minimumPopularity: discoveryMinimumPopularity - 1,
+            page,
+            perPage,
+        },
+        { forceRefresh }
+    );
 
     const anime = browseEntries(response.Page?.media ?? [], formats);
 
@@ -137,12 +146,13 @@ export async function getBrowsePage(filters: AniListBrowseFilters, page: number,
     };
 }
 
-export async function getBrowseTaxonomy() {
+export async function getBrowseTaxonomy(forceRefresh = false) {
     const response = await request(
         BrowseAnimeTaxonomyDocument,
         {},
         {
             cacheForMs: 7 * 24 * 60 * 60 * 1_000,
+            forceRefresh,
         }
     );
     const sortedUnique = (values: string[]) =>

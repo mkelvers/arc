@@ -17,12 +17,13 @@ function startYear(
     return year && Number.isSafeInteger(year) && year > 0 ? year : undefined;
 }
 
-async function requestSeasonStarts() {
+async function requestSeasonStarts(forceRefresh = false) {
     const response = await request(
         SimulcastSeasonStartsDocument,
         {},
         {
             cacheForMs: 7 * 24 * 60 * 60 * 1_000,
+            forceRefresh,
         }
     );
     const entries: Array<[AnimeSeason, number | undefined]> = [
@@ -35,6 +36,10 @@ async function requestSeasonStarts() {
     return Object.fromEntries(
         entries.filter((entry): entry is [AnimeSeason, number] => entry[1] !== undefined)
     );
+}
+
+export function refreshSimulcastSeasonStarts() {
+    return requestSeasonStarts(true);
 }
 
 export async function getSimulcastSeasonStarts() {

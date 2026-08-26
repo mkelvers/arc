@@ -9,11 +9,11 @@ import { eligibleHomeHeroCandidates, type HomeHeroCandidate } from '../home/sele
 
 let refreshRequest: Promise<HomeHeroCandidate[]> | null = null;
 
-async function refreshCandidates(now: Date) {
+async function refreshCandidates(now: Date, forceRefresh = false) {
     const response = await request(
         HomeHeroCandidatesDocument,
         { seasonYear: now.getUTCFullYear() },
-        { cacheForMs: 6 * 60 * 60 * 1_000 }
+        { cacheForMs: 6 * 60 * 60 * 1_000, forceRefresh }
     );
     const candidates = present(response.Page?.media).flatMap((media, index) => {
         if (
@@ -81,6 +81,10 @@ async function refreshCandidates(now: Date) {
         averageScore,
         trendingRank,
     }));
+}
+
+export function refreshHomeHeroCandidates(now = new Date()) {
+    return refreshCandidates(now, true);
 }
 
 function refresh(now: Date) {

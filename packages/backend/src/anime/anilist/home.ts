@@ -11,7 +11,7 @@ const cache = new RequestCache<string, { season: AnimeCard[]; popular: AnimeCard
     30 * 60 * 1_000
 );
 
-async function requestHomepage(season: MediaSeason, seasonYear: number) {
+async function requestHomepage(season: MediaSeason, seasonYear: number, forceRefresh = false) {
     const response = await request(
         HomeAnimeDocument,
         {
@@ -22,6 +22,7 @@ async function requestHomepage(season: MediaSeason, seasonYear: number) {
         },
         {
             cacheForMs: 24 * 60 * 60 * 1_000,
+            forceRefresh,
         }
     );
 
@@ -39,6 +40,10 @@ async function requestHomepage(season: MediaSeason, seasonYear: number) {
         season: cards(response.season?.media),
         popular: cards(selectPopularAnime(present(response.popular?.media))),
     };
+}
+
+export function refreshHomepage(season: MediaSeason, seasonYear: number) {
+    return requestHomepage(season, seasonYear, true);
 }
 
 export async function getHomepage(season: MediaSeason, seasonYear: number) {
