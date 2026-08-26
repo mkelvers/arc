@@ -247,7 +247,7 @@
                     <h1 id="recent-results-title" class="text-base font-semibold">Recent Search Results</h1>
                     <button
                         type="button"
-                        class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted transition-[color,transform] duration-150 hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                         onclick={() => recent.clear()}
                     >
                         Clear recent
@@ -257,17 +257,17 @@
                 <ul class="flex flex-wrap gap-1.5">
                     {#each recent.results as result (result.id)}
                         <li
-                            class="flex min-w-0 max-w-86 items-stretch bg-search-recent text-xs uppercase text-[#bbb]"
+                            class="flex min-w-0 max-w-86 items-stretch bg-search-recent text-xs uppercase text-muted"
                         >
                             <a
                                 href={`/anime/${result.id}`}
-                                class="min-w-0 truncate px-2.5 py-2 hover:bg-[hsla(0,0%,100%,.078)] focus-visible:outline-1 focus-visible:outline-accent"
+                                class="min-w-0 truncate px-2.5 py-2 transition-colors hover:bg-white/8 focus-visible:outline-1 focus-visible:outline-accent"
                             >
                                 {result.title}
                             </a>
                             <button
                                 type="button"
-                                class="grid size-9 shrink-0 place-items-center border-l border-black/30 text-muted hover:bg-[hsla(0,0%,100%,.078)] hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent"
+                                class="grid size-9 shrink-0 place-items-center border-l border-black/30 text-muted transition-colors hover:bg-white/8 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent active:scale-90"
                                 aria-label={`Remove ${result.title} from recent search results`}
                                 onclick={() => recent.remove(result.id)}
                             >
