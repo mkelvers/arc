@@ -16,7 +16,7 @@ export async function discoverableAnimeIds(ids: number[]) {
 
     return new Set(
         present(response.Page?.media)
-            .filter(isDiscoverableAnime)
+            .filter((media) => isDiscoverableAnime(media))
             .map(({ id }) => id)
     );
 }
