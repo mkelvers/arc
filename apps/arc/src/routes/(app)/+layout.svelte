@@ -57,10 +57,17 @@
                 </a>
 
                 <a
-                    href="/browse"
+                    href="/new"
                     class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
                 >
-                    Browse
+                    New
+                </a>
+
+                <a
+                    href="/popular"
+                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-muted sm:inline-flex"
+                >
+                    Popular
                 </a>
 
                 <a
@@ -170,10 +177,16 @@
 
                     {#snippet content()}
                         <a
-                            href="/browse"
+                            href="/new"
                             class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            Browse
+                            New
+                        </a>
+                        <a
+                            href="/popular"
+                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        >
+                            Popular
                         </a>
                         <a
                             href="/simulcast"
