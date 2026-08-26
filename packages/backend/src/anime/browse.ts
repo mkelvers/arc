@@ -1,6 +1,6 @@
-import { and, arrayContains, eq, inArray, sql } from 'drizzle-orm';
+import { and, arrayContains, desc, eq, inArray, sql } from 'drizzle-orm';
 
-import type { BrowseFilters, BrowseTaxonomy } from '@arc/shared/browse';
+import { parseBrowseFilters, type BrowseFilters, type BrowseTaxonomy } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
 import { db, excluded } from '@arc/db';
@@ -385,7 +385,12 @@ function audioModes(row: { hasSub: boolean; hasDub: boolean; hasRaw: boolean }) 
     return modes;
 }
 
-async function catalogPage(filters: BrowseFilters, page: number, animeIds: number[] | null) {
+async function catalogPage(
+    filters: BrowseFilters,
+    page: number,
+    animeIds: number[] | null,
+    ordering: 'filters' | 'newest' = 'filters'
+) {
     if (animeIds?.length === 0) {
         return [];
     }
@@ -398,6 +403,7 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
             score: animeCatalog.averageScore,
             genres: animeCatalog.genres,
             synopsis: animeCatalog.synopsis,
+            addedAt: animeCatalog.createdAt,
             hasSub: hasAudio('sub'),
             hasDub: hasAudio('dub'),
             hasRaw: hasAudio('raw'),
@@ -409,7 +415,11 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
                 animeIds ? inArray(animeCatalog.anilistId, animeIds) : undefined
             )
         )
-        .orderBy(...catalogOrder(filters))
+        .orderBy(
+            ...(ordering === 'newest'
+                ? [desc(animeCatalog.createdAt), animeCatalog.title]
+                : catalogOrder(filters))
+        )
         .limit(42)
         .offset(animeIds ? 0 : (page - 1) * 42);
 
@@ -421,7 +431,7 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
         : rows;
 
     const cards: AnimeCard[] = orderedRows.map((row) => {
-        return {
+        const card: AnimeCard = {
             id: row.id,
             href: `/anime/${row.id}`,
             link: `/anime/${row.id}`,
@@ -432,6 +442,10 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
             genres: row.genres,
             synopsis: row.synopsis,
         };
+        if (ordering === 'newest') {
+            card.addedAt = row.addedAt.toISOString();
+        }
+        return card;
     });
 
     return enrichAnimeCards(cards);
@@ -477,6 +491,35 @@ export async function initialBrowsePage(filters: BrowseFilters) {
 export async function browsePage(filters: BrowseFilters, number: number) {
     const { sourceTaxonomy: _, ...result } = await loadPage(filters, number);
     return result;
+}
+
+export async function popularAnimePage(page: number) {
+    const filters = parseBrowseFilters(new URLSearchParams());
+    if (!filters) {
+        throw new Error('Default catalog filters are invalid');
+    }
+
+    const { sourceTaxonomy: _, ...result } = await loadPage(filters, page);
+    return { ...result, loadedAt: new Date().toISOString() };
+}
+
+export async function newAnimePage(page: number) {
+    if (!Number.isSafeInteger(page) || page < 1 || page > 2_147_483_647) {
+        throw new BrowseFilterError('Invalid catalog page');
+    }
+
+    const filters = parseBrowseFilters(new URLSearchParams());
+    if (!filters) {
+        throw new Error('Default catalog filters are invalid');
+    }
+    const anime = await catalogPage(filters, page, null, 'newest');
+
+    return {
+        anime,
+        hasNextPage: anime.length === 42,
+        page,
+        loadedAt: new Date().toISOString(),
+    };
 }
 
 export class BrowseFilterError extends Error {}

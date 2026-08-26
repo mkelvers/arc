@@ -153,6 +153,10 @@ export const BrowsePageSchema = AnimeCardPageSchema.extend({
     }),
 });
 
+export const CatalogPageSchema = AnimeCardPageSchema.extend({
+    loadedAt: z.iso.datetime(),
+});
+
 export const SimulcastPageSchema = z.object({
     season: z.string(),
     year: z.number().int(),

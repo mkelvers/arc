@@ -3,7 +3,12 @@ import { z } from 'zod';
 
 import { PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
-import { browsePage, initialBrowsePage } from '@arc/backend/internal/anime/browse';
+import {
+    browsePage,
+    initialBrowsePage,
+    newAnimePage,
+    popularAnimePage,
+} from '@arc/backend/internal/anime/browse';
 import { homePage, simulcast } from '@arc/backend/internal/anime/application';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
 import { dismissPlaybackProgress } from '@arc/backend/progress';
@@ -48,6 +53,14 @@ catalog.get('/browse', validate('query', PageQuerySchema), async (context) => {
         page === 1 ? await initialBrowsePage(filters) : await browsePage(filters, page)
     );
 });
+
+catalog.get('/new', validate('query', PageQuerySchema), async (context) =>
+    context.json(await newAnimePage(context.req.valid('query').page))
+);
+
+catalog.get('/popular', validate('query', PageQuerySchema), async (context) =>
+    context.json(await popularAnimePage(context.req.valid('query').page))
+);
 
 catalog.get('/search', validate('query', SearchQuerySchema), async (context) => {
     const query = context.req.valid('query').q;
