@@ -61,18 +61,10 @@
         }
 
         const previousOverflow = document.body.style.overflow;
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                open = false;
-            }
-        };
-
         document.body.style.overflow = 'hidden';
-        document.addEventListener('keydown', closeOnEscape);
 
         return () => {
             document.body.style.overflow = previousOverflow;
-            document.removeEventListener('keydown', closeOnEscape);
         };
     });
 
@@ -87,9 +79,19 @@
                 open = false;
             }
         };
-        document.addEventListener('pointerdown', close);
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                open = false;
+            }
+        };
 
-        return () => document.removeEventListener('pointerdown', close);
+        document.addEventListener('pointerdown', close);
+        document.addEventListener('keydown', closeOnEscape);
+
+        return () => {
+            document.removeEventListener('pointerdown', close);
+            document.removeEventListener('keydown', closeOnEscape);
+        };
     });
 </script>
 
