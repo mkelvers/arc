@@ -93,6 +93,20 @@
     paint-order: stroke fill;
 }
 
+@utility metadata-tag {
+    &:not(:first-child)::before {
+        width: 0.25rem;
+        height: 0.25rem;
+        margin-inline: 0.25rem;
+        display: inline-block;
+        background-color: currentcolor;
+        content: '';
+        line-height: 1;
+        vertical-align: middle;
+        transform: rotate(45deg);
+    }
+}
+
 @layer base {
     * {
         scrollbar-width: none;
