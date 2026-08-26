@@ -10,6 +10,7 @@ import {
 } from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
+import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import { sourceRevision, storedEpisodes } from './model';
@@ -347,6 +348,14 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             return episodes;
         })
         .catch(async (cause) => {
+            if (cause instanceof TargetEpisodeUnavailableError) {
+                await scheduleReleaseTargets([anime.id]).catch((failure) =>
+                    console.error(
+                        `Could not schedule episode target for AniList ${anime.id}`,
+                        failure
+                    )
+                );
+            }
             await enqueueEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 console.error(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
