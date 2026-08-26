@@ -10,4 +10,6 @@ export interface AnimeCardProps {
     compact?: boolean;
     current?: boolean;
     onselect?: () => void;
+    reserveTitleSpace?: boolean;
+    truncateTitle?: boolean;
 }

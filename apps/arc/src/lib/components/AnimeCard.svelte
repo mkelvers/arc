@@ -16,11 +16,30 @@
         compact?: boolean;
         current?: boolean;
         onselect?: () => void;
+        reserveTitleSpace?: boolean;
+        truncateTitle?: boolean;
         variant?: 'poster' | 'compact' | 'top';
     }
 
-    let { anime, meta, compact = false, current = false, onselect, variant = 'poster' }: Props = $props();
+    let {
+        anime,
+        meta,
+        compact = false,
+        current = false,
+        onselect,
+        reserveTitleSpace = true,
+        truncateTitle = true,
+        variant = 'poster',
+    }: Props = $props();
     const Card = $derived(cardVariants[variant]);
 </script>
 
-<Card anime={anime} meta={meta} compact={compact} current={current} onselect={onselect} />
+<Card
+    anime={anime}
+    meta={meta}
+    compact={compact}
+    current={current}
+    onselect={onselect}
+    reserveTitleSpace={reserveTitleSpace}
+    truncateTitle={truncateTitle}
+/>

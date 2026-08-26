@@ -9,7 +9,15 @@
     import type { AnimeCardProps } from './AnimeCard.types';
     import { m } from '$lib/paraglide/messages.js';
 
-    let { anime, meta, compact = false, current = false, onselect }: AnimeCardProps = $props();
+    let {
+        anime,
+        meta,
+        compact = false,
+        current = false,
+        onselect,
+        reserveTitleSpace = true,
+        truncateTitle = true,
+    }: AnimeCardProps = $props();
 </script>
 
 <Card selected={current}>
@@ -23,7 +31,11 @@
             <CardMedia aspect="poster" class={compact ? 'sm:aspect-2/3' : undefined}>
                 <ProgressiveImage src={anime.image} alt="" />
             </CardMedia>
-            <h3 class:min-h-10={!compact} class="mt-3 line-clamp-2 text-sm leading-snug font-semibold">
+            <h3
+                class:min-h-10={!compact && reserveTitleSpace}
+                class:line-clamp-2={truncateTitle}
+                class="mt-3 text-sm leading-snug font-semibold"
+            >
                 {anime.title}
             </h3>
             {#if meta}
@@ -51,7 +63,10 @@
         >
             <span class="sr-only">{m.shared_view({ title: anime.title })}</span>
         </a>
-        <h3 class="pointer-events-none relative z-10 line-clamp-2 text-sm leading-snug font-semibold">
+        <h3
+            class:line-clamp-2={truncateTitle}
+            class="pointer-events-none relative z-10 text-sm leading-snug font-semibold"
+        >
             {anime.title}
         </h3>
         {#if anime.score}
