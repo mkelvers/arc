@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 
 import { TargetEpisodeUnavailableError } from '@arc/backend/internal/anime/episodes/sync';
+import { GraphQLRequestError } from '@arc/backend/internal/graphql';
 import { auth } from './auth';
 import { origin } from './http';
 import { accounts } from './routes/accounts';
@@ -45,6 +46,22 @@ app.onError((cause, context) => {
                 error: {
                     code: 'EPISODE_UNAVAILABLE',
                     message: 'The requested episode is not available yet',
+                },
+            },
+            503
+        );
+    }
+
+    if (
+        cause instanceof GraphQLRequestError &&
+        (cause.status === 429 || cause.status === undefined || cause.status >= 500)
+    ) {
+        console.warn('AniList is temporarily unavailable', cause.message);
+        return context.json(
+            {
+                error: {
+                    code: 'UPSTREAM_UNAVAILABLE',
+                    message: 'AniList is temporarily unavailable',
                 },
             },
             503
