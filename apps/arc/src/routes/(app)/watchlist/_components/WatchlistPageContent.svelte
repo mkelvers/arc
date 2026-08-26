@@ -15,7 +15,6 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import {
-        watchlistStates,
         type WatchlistLanguage,
         type WatchlistMedia,
         type WatchlistOrder,
@@ -26,6 +25,7 @@
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
     import WatchlistPendingCard from './WatchlistPendingCard.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     type PageResult = Awaited<PageData['page']>;
     type Page = Extract<PageResult, { status: 'success' }>['data'];
@@ -33,71 +33,79 @@
 
     let { data }: Props = $props();
 
-    const filters = [{ value: 'all', label: 'All' }, ...watchlistStates] as const satisfies ReadonlyArray<{
+    const filters = [
+        { value: 'all', label: m.watchlist_all() },
+        { value: 'watching', label: m.watchlist_watching() },
+        { value: 'plan_to_watch', label: m.watchlist_plan() },
+        { value: 'completed', label: m.watchlist_completed() },
+        { value: 'dropped', label: m.watchlist_dropped() },
+    ] as const satisfies ReadonlyArray<{
         value: WatchlistState | 'all';
         label: string;
     }>;
     const sorts = [
-        { value: 'updated', label: 'Updated' },
-        { value: 'added', label: 'Added' },
-        { value: 'alphabetical', label: 'Alphabetical' },
+        { value: 'updated', label: m.watchlist_updated() },
+        { value: 'added', label: m.watchlist_added() },
+        { value: 'alphabetical', label: m.watchlist_alphabetical() },
     ] as const satisfies ReadonlyArray<{ value: WatchlistSort; label: string }>;
     const orders = [
-        { value: 'newest', label: 'Newest' },
-        { value: 'oldest', label: 'Oldest' },
+        { value: 'newest', label: m.watchlist_newest() },
+        { value: 'oldest', label: m.watchlist_oldest() },
     ] as const satisfies ReadonlyArray<{ value: WatchlistOrder; label: string }>;
     const languages = [
-        { value: 'all', label: 'All' },
-        { value: 'sub', label: 'Subtitled' },
-        { value: 'dub', label: 'Dubbed' },
+        { value: 'all', label: m.watchlist_all() },
+        { value: 'sub', label: m.watchlist_subtitled() },
+        { value: 'dub', label: m.watchlist_dubbed() },
     ] as const satisfies ReadonlyArray<{ value: WatchlistLanguage; label: string }>;
     const media = [
-        { value: 'all', label: 'All' },
-        { value: 'series', label: 'Series' },
-        { value: 'movie', label: 'Movies' },
+        { value: 'all', label: m.watchlist_all() },
+        { value: 'series', label: m.watchlist_series() },
+        { value: 'movie', label: m.watchlist_movies() },
     ] as const satisfies ReadonlyArray<{ value: WatchlistMedia; label: string }>;
     const types = [
-        { value: 'all', label: 'All' },
-        { value: 'airing', label: 'Currently Airing' },
-        { value: 'finished', label: 'Finished' },
-        { value: 'not_yet_released', label: 'Not Yet Released' },
-        { value: 'cancelled', label: 'Cancelled' },
-        { value: 'hiatus', label: 'On Hiatus' },
+        { value: 'all', label: m.watchlist_all() },
+        { value: 'airing', label: m.watchlist_airing() },
+        { value: 'finished', label: m.watchlist_finished() },
+        { value: 'not_yet_released', label: m.watchlist_not_released() },
+        { value: 'cancelled', label: m.watchlist_cancelled() },
+        { value: 'hiatus', label: m.watchlist_hiatus() },
     ] as const satisfies ReadonlyArray<{ value: WatchlistType; label: string }>;
     type FilterKey = 'language' | 'media' | 'type';
     const filterGroups = [
-        { label: 'Language', options: languages, key: 'language' },
-        { label: 'Media', options: media, key: 'media' },
+        { label: m.settings_subtitles(), options: languages, key: 'language' },
+        { label: m.watchlist_type(), options: media, key: 'media' },
     ] as const satisfies ReadonlyArray<{
         label: string;
         key: FilterKey;
         options: ReadonlyArray<{ label: string; value: string }>;
     }>;
     const selectedStateLabel = $derived(
-        filters.find(({ value }) => value === data.selection.state)?.label ?? 'All'
+        filters.find(({ value }) => value === data.selection.state)?.label ?? m.watchlist_all()
     );
     const selectedSortLabel = $derived(
-        sorts.find(({ value }) => value === data.selection.sort)?.label ?? 'Updated'
+        sorts.find(({ value }) => value === data.selection.sort)?.label ?? m.watchlist_updated()
     );
     const selectedFilterCount = $derived(
         Number(data.selection.language !== 'all') +
             Number(data.selection.media !== 'all') +
             Number(data.selection.type !== 'all')
     );
-    const selectedTypeLabel = $derived(types.find(({ value }) => value === data.selection.type)?.label ?? 'All');
+    const selectedTypeLabel = $derived(
+        types.find(({ value }) => value === data.selection.type)?.label ?? m.watchlist_all()
+    );
     let filterView = $state<'main' | 'type'>('main');
     const filteredEmptyCopy = $derived.by(() => {
         switch (data.selection.state) {
             case 'watching':
-                return 'Your next great watch is still out there. Add something and it’ll appear here.';
+                return m.watchlist_empty_watching();
             case 'plan_to_watch':
-                return 'Future-you will be glad you saved something. Add an anime and it’ll wait here.';
+                return m.watchlist_empty_plan();
             case 'completed':
-                return 'A shelf for your victories is waiting. Finish an anime and it’ll proudly appear here.';
+                return m.watchlist_empty_completed();
             case 'dropped':
-                return 'Even dropped anime deserve a little shelf space. They’ll be here if you change your mind.';
+                return m.watchlist_empty_dropped();
             default:
-                return 'Nothing matched those filters this time. Try another status or give them a little breathing room.';
+                return m.watchlist_filtered_empty();
         }
     });
 
@@ -155,10 +163,10 @@
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
-        <h1 class="text-2xl font-semibold">Watchlist</h1>
+        <h1 class="text-2xl font-semibold">{m.watchlist_title()}</h1>
 
         <div class="mt-8 flex min-w-0 items-end border-b border-border sm:mt-10">
-            <nav class="min-w-0 flex-1 overflow-x-auto" aria-label="Watchlist statuses">
+            <nav class="min-w-0 flex-1 overflow-x-auto" aria-label={m.watchlist_statuses()}>
                 <ul class="-mb-px flex min-w-max gap-5 sm:gap-7">
                     {#each filters as filter}
                         <li>
@@ -186,7 +194,7 @@
                 >
                     {#snippet trigger()}
                         <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                        <span class="hidden sm:inline">Filter</span>
+                        <span class="hidden sm:inline">{m.watchlist_filter()}</span>
                         {#if selectedFilterCount}
                             <span class="text-accent">
                                 {selectedFilterCount}
@@ -196,7 +204,7 @@
                     {/snippet}
 
                     {#snippet content()}
-                        <div role="menu" aria-label="Watchlist filtering" class="py-2">
+                        <div role="menu" aria-label={m.watchlist_filtering()} class="py-2">
                             {#if filterView === 'main'}
                                 <button
                                     type="button"
@@ -209,7 +217,7 @@
                                         filterView = 'type';
                                     }}
                                 >
-                                    <span>Type</span>
+                                    <span>{m.watchlist_type()}</span>
                                     <span class="flex items-center gap-1 text-foreground">
                                         {selectedTypeLabel}
                                         <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
@@ -293,7 +301,7 @@
                     {/snippet}
 
                     {#snippet content()}
-                        <div role="menu" aria-label="Watchlist sorting" class="py-2">
+                        <div role="menu" aria-label={m.watchlist_sorting()} class="py-2">
                             {#each sorts as sort}
                                 <a
                                     role="menuitemradio"
@@ -316,7 +324,9 @@
                                 </a>
                             {/each}
 
-                            <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">Sort Order</p>
+                            <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">
+                                {m.watchlist_sort_order()}
+                            </p>
                             {#each orders as order}
                                 <a
                                     role="menuitemradio"
@@ -350,7 +360,7 @@
                 artworkWidth={566}
                 artworkHeight={720}
                 id="empty-watchlist-title"
-                title="Your Watchlist needs some love."
+                title={m.watchlist_empty_title()}
                 body="Let’s fill it up with awesome anime."
                 actionHref="/"
                 actionLabel="Explore Anime"
@@ -365,7 +375,7 @@
                         id="empty-filter-message"
                         body={filteredEmptyCopy}
                         actionHref={selectionHref({ state: 'all' })}
-                        actionLabel="View All Statuses"
+                        actionLabel={m.watchlist_view_all()}
                     />
                 {:else}
                     <div
