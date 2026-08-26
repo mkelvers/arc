@@ -9,7 +9,7 @@ import { animeEpisodeSync, animeRelease, animeReleaseRequest } from '@arc/db/sch
 import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '../identity';
 import { animeTitles, plainText, present } from './text';
-import { anilistRequestPolicy } from './request-policy';
+import { coordinatedAniListRequest } from './durable-request-policy';
 import { AniListAnimeSchema, AniListScheduleSchema, type AniListAnime } from './types';
 
 const releaseSchemaRevision = 1;
@@ -53,7 +53,7 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
 }
 
 async function fetchAnimeRelease(id: number) {
-    const response = await anilistRequestPolicy.run(() =>
+    const response = await coordinatedAniListRequest('Anime', () =>
         graphql('https://graphql.anilist.co', AnimeDocument, { id }, { timeoutMs: 8_000 })
     );
     const parsed = AniListAnimeSchema.safeParse(response.Media);
@@ -228,7 +228,7 @@ async function fetchAnimeSchedule(id: number) {
         return refreshAnimeRelease(id, { force: true });
     }
 
-    const response = await anilistRequestPolicy.run(() =>
+    const response = await coordinatedAniListRequest('AnimeSchedule', () =>
         graphql('https://graphql.anilist.co', AnimeScheduleDocument, { id }, { timeoutMs: 8_000 })
     );
     const schedule = AniListScheduleSchema.safeParse(response.Media);
