@@ -12,6 +12,7 @@
     } from 'phosphor-svelte';
     import { authClient } from '$lib/auth-client';
     import Logo from '$lib/components/ui/Logo.svelte';
+    import Footer from '$lib/components/Footer.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import NavigationSkeleton from './_components/NavigationSkeleton.svelte';
@@ -279,3 +280,5 @@
         {@render children()}
     {/if}
 </div>
+
+<Footer />
