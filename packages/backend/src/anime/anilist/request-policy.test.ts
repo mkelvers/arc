@@ -1,29 +1,25 @@
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 
 import { GraphQLRequestError } from '#graphql';
-import { AniListRequestPolicy } from './request-policy';
+import { anilistRetryDelay } from './request-policy';
 
-test('one 429 prevents follow-up AniList requests during its retry window', async () => {
-    const policy = new AniListRequestPolicy(1);
-    let upstreamCalls = 0;
-    const rateLimited = new GraphQLRequestError({
-        message: 'Too Many Requests.',
-        status: 429,
-        retryAfterMs: 60_000,
+describe('AniList retry policy', () => {
+    test('preserves AniList Retry-After for rate limits', () => {
+        expect(
+            anilistRetryDelay(
+                new GraphQLRequestError({
+                    message: 'Too Many Requests.',
+                    status: 429,
+                    retryAfterMs: 21_000,
+                })
+            )
+        ).toBe(21_000);
     });
 
-    expect(
-        policy.run(async () => {
-            upstreamCalls += 1;
-            throw rateLimited;
-        })
-    ).rejects.toBe(rateLimited);
-
-    expect(
-        policy.run(async () => {
-            upstreamCalls += 1;
-            return 'should not run';
-        })
-    ).rejects.toMatchObject({ status: 429 });
-    expect(upstreamCalls).toBe(1);
+    test('backs off outages but not ordinary client errors', () => {
+        expect(anilistRetryDelay(new GraphQLRequestError({ message: 'Unavailable' }))).toBe(30_000);
+        expect(
+            anilistRetryDelay(new GraphQLRequestError({ message: 'Bad request', status: 400 }))
+        ).toBe(0);
+    });
 });
