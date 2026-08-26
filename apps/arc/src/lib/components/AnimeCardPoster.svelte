@@ -36,7 +36,7 @@
         class="pointer-events-none absolute -inset-2 size-auto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
     />
     <div
-        class="pointer-events-none absolute -inset-2 flex flex-col bg-[#151515]/95 p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+        class="pointer-events-none absolute -inset-2 flex flex-col bg-[#151515]/95 p-4 pt-6 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
     >
         <a
             href={anime.href}
