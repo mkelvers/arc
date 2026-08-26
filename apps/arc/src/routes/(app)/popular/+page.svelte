@@ -1,13 +1,14 @@
 <script lang="ts">
     import CatalogListing from '../_components/CatalogListing.svelte';
     import type { PageProps } from './$types';
+    import { m } from '$lib/paraglide/messages.js';
 
     let { data }: PageProps = $props();
 </script>
 
 <svelte:head>
-    <title>Arc — Most popular anime</title>
-    <meta name="description" content="See the most popular anime available on Arc." />
+    <title>Arc — {m.catalog_most_popular()}</title>
+    <meta name="description" content={m.popular_description()} />
 </svelte:head>
 
 <CatalogListing

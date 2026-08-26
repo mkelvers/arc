@@ -17,6 +17,7 @@
     } from '$lib/player/media';
     import * as preferences from '$lib/player/preferences';
     import { cn } from '$lib/utils';
+    import { m } from '$lib/paraglide/messages.js';
 
     let size = $state<SubtitleSize>('normal');
     let textColor = $state<SubtitleTextColor>('white');
@@ -52,13 +53,13 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Subtitle settings</title>
-    <meta name="description" content="Choose how subtitles look in the Arc player." />
+    <title>Arc — {m.settings_subtitles()}</title>
+    <meta name="description" content={m.settings_subtitles_synopsis()} />
 </svelte:head>
 
 <div class="space-y-10">
     <section aria-labelledby="subtitle-preview-title">
-        <h2 id="subtitle-preview-title" class="text-lg font-medium">Preview</h2>
+        <h2 id="subtitle-preview-title" class="text-lg font-medium">{m.settings_preview()}</h2>
         <div
             class="relative mt-5 aspect-[16/7] min-h-48 overflow-hidden bg-black bg-cover bg-center ring-1 ring-border/50"
             style:background-image={`url(${ccBackground})`}
@@ -75,17 +76,17 @@
                         ? 'transparent'
                         : `rgb(${subtitleBackgrounds[background].value} / ${backgroundOpacity})`}
                 >
-                    Closed captions will look like this.
+                    {m.settings_closed_captions()}
                 </p>
             </div>
         </div>
     </section>
 
     <section aria-labelledby="subtitle-text-title">
-        <h2 id="subtitle-text-title" class="text-lg font-medium">Text</h2>
+        <h2 id="subtitle-text-title" class="text-lg font-medium">{m.settings_text()}</h2>
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <label class="block text-sm">
-                <span class="text-xs text-muted">Size</span>
+                <span class="text-xs text-muted">{m.player_size()}</span>
                 <select
                     bind:value={size}
                     class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
@@ -98,7 +99,7 @@
             </label>
 
             <label class="block text-sm">
-                <span class="text-xs text-muted">Color</span>
+                <span class="text-xs text-muted">{m.settings_color()}</span>
                 <select
                     bind:value={textColor}
                     class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
@@ -111,7 +112,7 @@
             </label>
 
             <label class="block text-sm">
-                <span class="text-xs text-muted">Edge style</span>
+                <span class="text-xs text-muted">{m.settings_edge_style()}</span>
                 <select
                     bind:value={edgeStyle}
                     class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
@@ -126,10 +127,10 @@
     </section>
 
     <section aria-labelledby="subtitle-background-title">
-        <h2 id="subtitle-background-title" class="text-lg font-medium">Background</h2>
+        <h2 id="subtitle-background-title" class="text-lg font-medium">{m.settings_background()}</h2>
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <label class="block text-sm">
-                <span class="text-xs text-muted">Color</span>
+                <span class="text-xs text-muted">{m.settings_color()}</span>
                 <select
                     bind:value={background}
                     class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
@@ -142,7 +143,7 @@
             </label>
 
             <label class="block text-sm">
-                <span class="text-xs text-muted">Opacity</span>
+                <span class="text-xs text-muted">{m.settings_opacity()}</span>
                 <select
                     bind:value={backgroundOpacity}
                     disabled={background === 'none'}
@@ -163,7 +164,7 @@
             class="min-h-10 border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
             onclick={resetDefaults}
         >
-            Reset to default
+            {m.settings_reset()}
         </button>
     </div>
 </div>

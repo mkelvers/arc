@@ -8,6 +8,7 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import type { PageProps } from './$types';
+    import { m } from '$lib/paraglide/messages.js';
 
     let { data }: PageProps = $props();
     let loadedSelection = untrack(() => `${data.season}:${data.year}`);
@@ -103,18 +104,18 @@
 </script>
 
 <svelte:head>
-    <title>Arc — {data.label} simulcast</title>
-    <meta name="description" content={`Browse anime from the ${data.label} simulcast season.`} />
+    <title>Arc — {data.label} {m.simulcast_title()}</title>
+    <meta name="description" content={m.simulcast_title()} />
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
     <section class="mx-auto w-full max-w-264" aria-labelledby="simulcast-title">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h1 id="simulcast-title" class="text-2xl font-bold">Simulcast Season</h1>
+            <h1 id="simulcast-title" class="text-2xl font-bold">{m.simulcast_title()}</h1>
             <Dropdown
                 id="simulcast-season"
                 items={data.options}
-                ariaLabel={`Choose simulcast season. ${data.label} selected`}
+                ariaLabel={m.simulcast_choose({ label: data.label })}
                 menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
                 triggerClass="flex h-11 min-w-44 cursor-pointer items-center gap-3 px-3 text-sm font-semibold tracking-wide text-muted uppercase transition-colors hover:text-foreground peer-checked:text-foreground"
             >
@@ -139,7 +140,7 @@
                 artworkWidth={1254}
                 artworkHeight={1254}
                 id="empty-simulcast-message"
-                body={`${data.label} is taking a little breather. Try another season to see what was airing.`}
+                body={m.simulcast_empty({ label: data.label })}
             />
         {/if}
 
@@ -150,10 +151,10 @@
                         size="2rem"
                         weight="bold"
                         class="animate-spin text-accent motion-reduce:animate-none"
-                        aria-label="Loading more releases"
+                        aria-label={m.simulcast_loading()}
                     />
                 {:else}
-                    <span class="sr-only">More releases load automatically while scrolling.</span>
+                    <span class="sr-only">{m.simulcast_auto_loading()}</span>
                 {/if}
             </div>
         {/if}
