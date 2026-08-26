@@ -79,11 +79,8 @@ export async function animePage(userId: string, id: number) {
         episodeRevision: await getEpisodeRevision(id),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
-            label: continuation
-                ? `Continue watching ${continuation.label}`
-                : target
-                  ? `Start watching ${target.label}`
-                  : 'View episodes',
+            kind: continuation ? 'continue' : target ? 'start' : 'episodes',
+            episode: target?.label ?? null,
         },
         audioLabel: episodeAudioAvailabilityLabel(episodes),
         franchise,

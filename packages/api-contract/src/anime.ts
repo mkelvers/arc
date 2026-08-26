@@ -178,7 +178,11 @@ export const AnimePageSchema = z.object({
     artwork: ArtworkSchema.nullable(),
     episodes: z.array(EpisodeSchema),
     episodeRevision: z.string().nullable(),
-    watchAction: z.object({ href: z.string(), label: z.string() }),
+    watchAction: z.object({
+        href: z.string(),
+        kind: z.enum(['continue', 'start', 'episodes']),
+        episode: z.string().nullable(),
+    }),
     audioLabel: z.string(),
     franchise: z
         .object({
