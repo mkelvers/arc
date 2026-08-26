@@ -153,7 +153,11 @@
                             class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                            {watchAction.label}
+                            {watchAction.kind === 'continue'
+                                ? m.anime_continue_watching({ episode: watchAction.episode ?? '' })
+                                : watchAction.kind === 'start'
+                                  ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
+                                  : m.anime_view_episodes()}
                         </a>
                     {/await}
                     <WatchlistBookmark
