@@ -6,9 +6,11 @@
     import Logo from './ui/Logo.svelte';
 
     const languages = [
-        { locale: 'en', label: () => localized(m.language_en) },
-        { locale: 'ja', label: () => localized(m.language_ja) },
-        { locale: 'es', label: () => localized(m.language_es) },
+        { locale: 'en', label: 'English (US)' },
+        { locale: 'da', label: 'Dansk' },
+        { locale: 'de', label: 'Deutsch' },
+        { locale: 'es', label: 'Español' },
+        { locale: 'ja', label: '日本語' },
     ] as const;
 
     function localized(message: () => string) {
@@ -51,7 +53,7 @@
                     {#snippet trigger()}
                         <GlobeIcon size={16} aria-hidden="true" />
                         <span>
-                            {languages.find((language) => language.locale === locale.current)?.label() ??
+                            {languages.find((language) => language.locale === locale.current)?.label ??
                                 localized(m.language_en)}
                         </span>
                         <CaretDownIcon
@@ -73,7 +75,7 @@
                                         class="mr-2 inline"
                                         aria-hidden="true"
                                     />{/if}
-                                {language.label()}
+                                {language.label}
                             </button>
                         {/each}
                     {/snippet}
