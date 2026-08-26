@@ -6,6 +6,7 @@ export type AnimeCardItem = AnimeCard & {
 
 export interface AnimeCardProps {
     anime: AnimeCardItem;
+    meta?: string;
     compact?: boolean;
     current?: boolean;
     onselect?: () => void;

@@ -12,14 +12,15 @@
 
     interface Props {
         anime: AnimeCardItem;
+        meta?: string;
         compact?: boolean;
         current?: boolean;
         onselect?: () => void;
         variant?: 'poster' | 'compact' | 'top';
     }
 
-    let { anime, compact = false, current = false, onselect, variant = 'poster' }: Props = $props();
+    let { anime, meta, compact = false, current = false, onselect, variant = 'poster' }: Props = $props();
     const Card = $derived(cardVariants[variant]);
 </script>
 
-<Card anime={anime} compact={compact} current={current} onselect={onselect} />
+<Card anime={anime} meta={meta} compact={compact} current={current} onselect={onselect} />

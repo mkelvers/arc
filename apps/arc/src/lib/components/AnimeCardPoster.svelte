@@ -8,7 +8,7 @@
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import type { AnimeCardProps } from './AnimeCard.types';
 
-    let { anime, compact = false, current = false, onselect }: AnimeCardProps = $props();
+    let { anime, meta, compact = false, current = false, onselect }: AnimeCardProps = $props();
 </script>
 
 <Card selected={current}>
@@ -25,6 +25,9 @@
             <h3 class:min-h-10={!compact} class="mt-3 line-clamp-2 text-sm leading-snug font-bold">
                 {anime.title}
             </h3>
+            {#if meta}
+                <p class="mt-1.5 text-sm text-muted">{meta}</p>
+            {/if}
             {#if anime.audioLabel}
                 <p class="mt-1.5 text-sm text-muted">{anime.audioLabel}</p>
             {/if}
