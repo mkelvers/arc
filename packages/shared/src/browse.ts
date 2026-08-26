@@ -23,7 +23,7 @@ const BrowseSearchSchema = z.object({
         .trim()
         .regex(/^[A-Z]{2}$/)
         .nullable(),
-    audio: z.literal('dub').nullable(),
+    audio: z.enum(['sub', 'dub']).nullable(),
     sort: z.enum(['popularity', 'score']).nullable(),
     order: z.enum(['asc', 'desc']).nullable(),
 });
@@ -39,7 +39,7 @@ const BrowseFiltersSchema = z
             .trim()
             .regex(/^[A-Z]{2}$/)
             .nullable(),
-        audio: z.literal('dub').nullable(),
+        audio: z.enum(['sub', 'dub']).nullable(),
         sort: z.enum(['popularity', 'score']),
         order: z.enum(['asc', 'desc']),
     })
