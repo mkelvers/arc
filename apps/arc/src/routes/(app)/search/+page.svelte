@@ -11,6 +11,7 @@
     import SearchResultsGroup from './_components/SearchResultsGroup.svelte';
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
+    import { m } from '$lib/paraglide/messages.js';
 
     type SearchState = { query: string; results: AnimeSearchResult[]; failed: boolean };
 
@@ -35,12 +36,12 @@
     const resultSections = $derived([
         {
             id: 'series-results',
-            title: 'Series',
+            title: m.search_series(),
             results: searchState.results.filter(({ format }) => format !== 'MOVIE' && format !== 'MUSIC'),
         },
         {
             id: 'movie-results',
-            title: 'Movies',
+            title: m.search_movies(),
             results: searchState.results.filter(({ format }) => format === 'MOVIE'),
         },
     ]);
@@ -132,19 +133,19 @@
 </script>
 
 <svelte:head>
-    <title>Arc — Search anime</title>
-    <meta name="description" content="Search Arc’s anime catalog by title." />
+    <title>Arc — {m.search_anime()}</title>
+    <meta name="description" content={m.search_anime()} />
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas text-foreground">
     <section class="bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
         <form action="/search" class="mx-auto max-w-6xl" role="search">
-            <label for="anime-search" class="sr-only">Search anime</label>
+            <label for="anime-search" class="sr-only">{m.search_anime()}</label>
             <input
                 id="anime-search"
                 name="q"
                 type="search"
-                placeholder="Search…"
+                placeholder={m.search_placeholder()}
                 autocomplete="off"
                 bind:this={searchInput}
                 bind:value={query}
@@ -155,8 +156,8 @@
 
     <div class="mx-auto w-full max-w-6xl px-5 py-7 sm:px-10 sm:py-9 lg:px-0 lg:py-10">
         {#if loading}
-            <section aria-label="Searching" aria-live="polite">
-                <span class="sr-only">Searching for anime</span>
+            <section aria-label={m.searching()} aria-live="polite">
+                <span class="sr-only">{m.searching_for_anime()}</span>
                 <div class="animate-pulse motion-reduce:animate-none" aria-hidden="true">
                     <div class="space-y-3 sm:hidden">
                         {#each Array.from({ length: 7 }) as _, index (index)}
@@ -171,7 +172,7 @@
                         {/each}
                     </div>
                     <div class="hidden sm:block">
-                        <h1 class="mb-4 text-xl font-bold">Top Results</h1>
+                        <h1 class="mb-4 text-xl font-bold">{m.search_top_results()}</h1>
                         <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                             {#each Array.from({ length: 3 }) as _, index (index)}
                                 <div>
@@ -182,7 +183,7 @@
                             {/each}
                         </div>
 
-                        {#each ['Series', 'Movies'] as title}
+                        {#each [m.search_series(), m.search_movies()] as title}
                             <section class="mt-10">
                                 <h2 class="mb-3 text-xl font-bold">{title}</h2>
                                 <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -205,7 +206,7 @@
         {:else if query.trim().length >= 2}
             {#if searchState.results.length}
                 <section aria-labelledby="top-results-title">
-                    <h1 id="top-results-title" class="mb-4 text-xl font-bold">Top Results</h1>
+                    <h1 id="top-results-title" class="mb-4 text-xl font-bold">{m.search_top_results()}</h1>
                     <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                         {#each topResults as result (result.id)}
                             <AnimeCard anime={result} variant="top" onselect={() => recent.remember(result)} />
@@ -229,8 +230,8 @@
                     artworkWidth={1254}
                     artworkHeight={1254}
                     id="search-error-message"
-                    title="Search hit a snag"
-                    body="Arc could not load these results. Check your connection, then try the search again."
+                    title={m.search_error_title()}
+                    body={m.search_error_body()}
                 />
             {:else}
                 <EmptyState
@@ -238,19 +239,19 @@
                     artworkWidth={1254}
                     artworkHeight={1254}
                     id="empty-search-message"
-                    body="No anime turned up this time. Try another title, character, or a brave guess."
+                    body={m.search_empty()}
                 />
             {/if}
         {:else if !query.trim() && recent.results.length}
             <section aria-labelledby="recent-results-title">
                 <div class="mb-3 flex items-center justify-between gap-6">
-                    <h1 id="recent-results-title" class="text-base font-semibold">Recent Search Results</h1>
+                    <h1 id="recent-results-title" class="text-base font-semibold">{m.search_recent()}</h1>
                     <button
                         type="button"
                         class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted transition-[color,transform] duration-150 hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                         onclick={() => recent.clear()}
                     >
-                        Clear recent
+                        {m.search_clear_recent()}
                     </button>
                 </div>
 
@@ -268,7 +269,7 @@
                             <button
                                 type="button"
                                 class="grid size-9 shrink-0 place-items-center border-l border-black/30 text-muted transition-colors hover:bg-white/8 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent active:scale-90"
-                                aria-label={`Remove ${result.title} from recent search results`}
+                                aria-label={m.search_remove_recent({ title: result.title })}
                                 onclick={() => recent.remove(result.id)}
                             >
                                 <XIcon size="1.15rem" weight="bold" aria-hidden="true" />

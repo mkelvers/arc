@@ -4,6 +4,7 @@
     import type { AnimeSearchResult } from '@arc/shared/search';
     import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
         id: string;
@@ -33,7 +34,7 @@
                 aria-expanded={expanded}
                 onclick={() => (expanded = !expanded)}
             >
-                {expanded ? 'Show less' : 'See more'}
+                {expanded ? m.shared_show_less() : m.shared_see_more()}
                 <CaretRightIcon
                     size="1rem"
                     weight="bold"
