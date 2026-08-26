@@ -96,11 +96,11 @@
                 >
                     {#await data.audioLabel then audioLabel}
                         {#if audioLabel}
-                            <span class="anime-hero-metadata__tag">{audioLabel}</span>
+                            <span class="metadata-tag">{audioLabel}</span>
                         {/if}
                     {/await}
                     {#if data.anime.genres.length}
-                        <span class="anime-hero-metadata__tag">
+                        <span class="metadata-tag">
                             {#each data.anime.genres as genre, index}
                                 {#if index > 0}<span aria-hidden="true">,</span>{/if}
                                 <a
@@ -117,14 +117,34 @@
                 <div
                     class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
                 >
-                    <span class="flex items-center gap-0.5 text-muted" aria-hidden="true">
+                    <span class="relative flex items-center gap-0.5 text-subtle" aria-hidden="true">
                         {#each Array(5) as _}
-                            <svg class="size-6 fill-current sm:size-7" viewBox="0 0 24 24" aria-hidden="true">
+                            <svg
+                                class="size-6 shrink-0 fill-current sm:size-7"
+                                viewBox="0 0 24 24"
+                                aria-hidden="true"
+                            >
                                 <path
                                     d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
                                 />
                             </svg>
                         {/each}
+                        <span
+                            class="absolute inset-0 flex items-center gap-0.5 overflow-hidden text-foreground"
+                            style:clip-path={`inset(0 ${100 - data.anime.score / 5}% 0 0)`}
+                        >
+                            {#each Array(5) as _}
+                                <svg
+                                    class="size-6 shrink-0 fill-current sm:size-7"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
+                                    />
+                                </svg>
+                            {/each}
+                        </span>
                     </span>
                     <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
                     <strong>AniList score: {data.anime.score}%</strong>
@@ -136,7 +156,7 @@
                     {#await data.watchAction}
                         <a
                             href="#anime-episode-list"
-                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase sm:px-6"
+                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                             View episodes
@@ -144,7 +164,7 @@
                     {:then watchAction}
                         <a
                             href={watchAction.href}
-                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase sm:px-6"
+                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
                         >
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                             {watchAction.label}
@@ -167,51 +187,57 @@
 
         <div class="px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
             <div class="border-b border-border">
-                <section
-                    id="anime-details"
+                <div
                     class={cn(
-                        'grid min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
-                        detailsExpanded
-                            ? 'max-h-320'
-                            : 'max-h-24 [mask-image:linear-gradient(to_bottom,black_45%,transparent_100%)]'
+                        'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+                        detailsExpanded ? '[grid-template-rows:1fr]' : '[grid-template-rows:0fr]'
                     )}
                 >
-                    <p class="max-w-3xl text-foreground">{data.anime.description}</p>
-                    <div class="space-y-3">
-                        <p>
-                            <strong class="font-normal text-foreground">Production:</strong>
-                            {data.anime.studios.join(', ')}
-                        </p>
-                        <p>
-                            <strong class="font-normal text-foreground">Key staff:</strong>
-                            {data.anime.staff}
-                        </p>
-                        <p>
-                            <strong class="font-normal text-foreground">Rankings:</strong>
-                            {data.anime.rankings.join(', ')}
-                        </p>
-                        <p>
-                            <strong class="font-normal text-foreground">Audience:</strong>
-                            {data.anime.members} members, {data.anime.favourites} favorites
-                        </p>
-                        <p>
-                            <strong class="font-normal text-foreground">Themes:</strong>
-                            {data.anime.themes.join(', ')}
-                        </p>
-                        <p>
-                            <strong class="font-normal text-foreground">Genres:</strong>
-                            {#each data.anime.genres as genre, index}
-                                {#if index > 0}<span aria-hidden="true">,</span>{/if}
-                                <a
-                                    class="underline underline-offset-2"
-                                    href={`/browse?genre=${encodeURIComponent(genre)}`}
-                                >
-                                    {genre}
-                                </a>
-                            {/each}
-                        </p>
-                    </div>
-                </section>
+                    <section
+                        id="anime-details"
+                        class={cn(
+                            'grid min-h-24 min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
+                            !detailsExpanded &&
+                                '[mask-image:linear-gradient(to_bottom,black_45%,transparent_100%)]'
+                        )}
+                    >
+                        <p class="max-w-3xl text-foreground">{data.anime.description}</p>
+                        <div class="space-y-3">
+                            <p>
+                                <strong class="font-normal text-foreground">Production:</strong>
+                                {data.anime.studios.join(', ')}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">Key staff:</strong>
+                                {data.anime.staff}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">Rankings:</strong>
+                                {data.anime.rankings.join(', ')}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">Audience:</strong>
+                                {data.anime.members} members, {data.anime.favourites} favorites
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">Themes:</strong>
+                                {data.anime.themes.join(', ')}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">Genres:</strong>
+                                {#each data.anime.genres as genre, index}
+                                    {#if index > 0}<span aria-hidden="true">,</span>{/if}
+                                    <a
+                                        class="underline underline-offset-2"
+                                        href={`/browse?genre=${encodeURIComponent(genre)}`}
+                                    >
+                                        {genre}
+                                    </a>
+                                {/each}
+                            </p>
+                        </div>
+                    </section>
+                </div>
 
                 <button
                     type="button"
@@ -277,17 +303,3 @@
         {/await}
     </div>
 </main>
-
-<style>
-    .anime-hero-metadata__tag:not(:first-child)::before {
-        width: 0.25rem;
-        height: 0.25rem;
-        margin-inline: 0.25rem;
-        display: inline-block;
-        background-color: currentcolor;
-        content: '';
-        line-height: 1;
-        vertical-align: middle;
-        transform: rotate(45deg);
-    }
-</style>
