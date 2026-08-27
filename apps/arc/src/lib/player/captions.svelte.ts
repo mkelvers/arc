@@ -274,6 +274,9 @@ export class Captions {
                     return;
                 }
                 if (offsets?.length) {
+                    if (ownCues) {
+                        this.loaded.dub = alignSubtitleCues(ownCues, offsets);
+                    }
                     this.loaded.sub = alignSubtitleCues(subCues, offsets);
                 } else {
                     this.loaded.sub = subCues;
