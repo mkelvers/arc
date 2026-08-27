@@ -26,8 +26,10 @@ export default defineConfig(({ command }) => {
                 'default-src': ['self'],
                 'script-src': [
                     'self',
-                    'sha256-uP++nI0YQearma9Hc2G0q99ClgaYxxtiO48R2lvXePk=',
-                    'sha256-DV44IKgITwDAfvthDHThPRsyNopVAzUXfpIRO1uDQDI=',
+                    'https://challenges.cloudflare.com',
+                    'unsafe-eval',
+                    'sha256-s1m8cPt5qQt2+GHnqM9/4MoBksIfZAkMYMtK1tszz4s=',
+                    'sha256-ZswfTY7H35rbv8WC7NXBoiC7WNu86vSzCDChNWwZZDM=',
                 ],
                 'script-src-attr': [
                     'unsafe-hashes',
@@ -35,7 +37,7 @@ export default defineConfig(({ command }) => {
                 ],
                 'style-src': ['self', 'unsafe-inline'],
                 'img-src': ['self', 'data:', 'https:'],
-                'font-src': ['self'],
+                'font-src': ['self', 'data:'],
                 'connect-src': [
                     'self',
                     'https://*.tiktokcdn.com',
@@ -44,6 +46,7 @@ export default defineConfig(({ command }) => {
                 ],
                 'worker-src': ['self', 'blob:'],
                 'media-src': ['self', 'blob:'],
+                'frame-src': ['https://challenges.cloudflare.com'],
                 'object-src': ['none'],
                 'base-uri': ['self'],
                 'form-action': ['self'],
