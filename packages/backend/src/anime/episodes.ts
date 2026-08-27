@@ -6,7 +6,7 @@ import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodeInventoryNeedsDiscovery } from './episodes/policy';
+import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
 import { discoverEpisodeInventory, TargetEpisodeUnavailableError } from './episodes/sync';
 
 export { withMovieBackdrop } from './movie-backdrop';
@@ -22,15 +22,17 @@ export async function getEpisodes(anime: AniListAnime) {
             .then(([state]) => state ?? null),
     ]);
     if (!episodeInventoryNeedsDiscovery(anime, stored, sync?.nextRefreshAt)) {
-        return stored;
+        return episodesAvailableToWatch(stored, anime);
     }
 
-    return discoverEpisodeInventory(anime).catch((cause) => {
-        if (cause instanceof TargetEpisodeUnavailableError && stored.length) {
-            return stored;
-        }
-        throw cause;
-    });
+    return discoverEpisodeInventory(anime)
+        .then((episodes) => episodesAvailableToWatch(episodes, anime))
+        .catch((cause) => {
+            if (cause instanceof TargetEpisodeUnavailableError && stored.length) {
+                return episodesAvailableToWatch(stored, anime);
+            }
+            throw cause;
+        });
 }
 
 export async function getStoredAiringSchedule(anilistId: number) {

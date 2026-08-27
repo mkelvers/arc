@@ -110,6 +110,20 @@ export function availableEpisodeCount(anime: Pick<AniListAnime, 'status' | 'next
     return Math.max(0, nextEpisode - (airingPassed ? 0 : 1));
 }
 
+export function episodesAvailableToWatch<T extends { number: number }>(
+    episodes: readonly T[],
+    anime: Pick<AniListAnime, 'status' | 'nextAiringEpisode'>
+) {
+    const available = availableEpisodeCount(anime);
+    if (available === null) {
+        return [...episodes];
+    }
+
+    return episodes.filter(
+        ({ number }) => number <= 0 || !Number.isInteger(number) || number <= available
+    );
+}
+
 const episodeRefreshRetryDelays = [
     2 * 60 * 1_000,
     5 * 60 * 1_000,

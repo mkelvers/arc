@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     availableEpisodeCount,
+    episodesAvailableToWatch,
     canPreserveEpisodeMetadata,
     episodeInventoryIsExpected,
     episodeInventoryCoversTarget,
@@ -260,6 +261,24 @@ describe('episode refresh policy', () => {
                 nextAiringEpisode: { episode: 6, airingAt: Math.floor(Date.now() / 1_000) - 1 },
             })
         ).toBe(6);
+    });
+
+    test('does not expose unreleased regular episodes', () => {
+        const episodes = [
+            { number: 0 },
+            ...Array.from({ length: 12 }, (_, index) => ({ number: index + 1 })),
+            { number: 12.5 },
+        ];
+
+        expect(
+            episodesAvailableToWatch(episodes, {
+                status: 'RELEASING',
+                nextAiringEpisode: {
+                    episode: 9,
+                    airingAt: Math.floor(Date.now() / 1_000) + 3_600,
+                },
+            }).map(({ number }) => number)
+        ).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 12.5]);
     });
 
     test('backs off scheduled provider checks from minutes to days', () => {
