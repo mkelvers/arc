@@ -49,14 +49,19 @@
         href={episode.href}
         aria-current={current ? 'page' : undefined}
         class={cn(
-            'group relative block min-w-0',
+            dialog ? 'episode-dialog-card group relative block min-w-0' : 'group relative block min-w-0',
             dialog
                 ? 'min-h-72 p-3 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white'
                 : 'min-h-56 focus-visible:ring-1 focus-visible:ring-accent focus-visible:outline-none',
             current && 'bg-panel-selected'
         )}
     >
-        <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
+        <div
+            class={cn(
+                'transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0',
+                dialog && 'episode-dialog-card-body'
+            )}
+        >
             <div class={cn('relative aspect-video overflow-hidden', dialog ? 'bg-media-tile' : 'bg-surface')}>
                 {#if episode.image || image}
                     <ProgressiveImage
@@ -164,3 +169,27 @@
         </div>
     </a>
 {/if}
+
+<style>
+    @media (pointer: coarse) and (hover: none) and (orientation: landscape) and (max-width: 64rem) {
+        .episode-dialog-card {
+            min-height: 0;
+            padding: 0.5rem;
+        }
+
+        .episode-dialog-card-body {
+            display: grid;
+            grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr);
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .episode-dialog-card-body > div:last-child {
+            min-width: 0;
+        }
+
+        .episode-dialog-card-body > div:last-child > p:first-child {
+            margin-top: 0;
+        }
+    }
+</style>
