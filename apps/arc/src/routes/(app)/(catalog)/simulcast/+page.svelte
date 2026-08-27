@@ -116,8 +116,8 @@
                 id="simulcast-season"
                 items={data.options}
                 ariaLabel={m.simulcast_choose({ label: data.label })}
-                menuClass="mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl"
-                triggerClass="flex h-11 min-w-44 cursor-pointer items-center gap-3 px-3 text-sm font-semibold tracking-wide text-muted uppercase transition-colors hover:text-foreground peer-checked:text-foreground"
+                menuClass="top-full left-0 mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl right-auto sm:right-0 sm:left-auto"
+                triggerClass="flex h-11 min-w-44 cursor-pointer items-center justify-start gap-3 px-3 text-sm font-semibold tracking-wide text-muted uppercase transition-colors hover:text-foreground peer-checked:text-foreground"
             >
                 {#snippet trigger()}
                     <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
