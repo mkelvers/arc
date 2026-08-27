@@ -1,9 +1,15 @@
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, inArray, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
 import { db } from '@arc/db';
-import { animeExternalId, animeExternalIdLink, animeReleasePoster } from '@arc/db/schema';
+import {
+    animeArtworkSource,
+    animeExternalId,
+    animeExternalIdLink,
+    animeReleasePoster,
+} from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
@@ -121,6 +127,53 @@ async function savePoster(
 }
 
 async function usedPosterPaths(match: StoredMapping) {
+    const linkedAnilistIds = await db
+        .select({ anilistId: animeExternalId.externalId })
+        .from(animeExternalIdLink)
+        .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
+        .where(
+            and(
+                eq(animeExternalIdLink.animeId, match.animeId),
+                eq(animeExternalId.provider, 'anilist'),
+                eq(animeExternalId.mediaType, 'anime')
+            )
+        );
+    const anilistIds = linkedAnilistIds.map(({ anilistId }) => anilistId);
+    const connected = anilistIds.length
+        ? await db
+              .select({
+                  anilistId: animeArtworkSource.anilistId,
+                  sourceAnilistId: animeArtworkSource.sourceAnilistId,
+              })
+              .from(animeArtworkSource)
+              .where(
+                  or(
+                      inArray(animeArtworkSource.anilistId, anilistIds),
+                      inArray(animeArtworkSource.sourceAnilistId, anilistIds)
+                  )
+              )
+        : [];
+    const connectedIds = [
+        ...new Set([
+            ...anilistIds,
+            ...connected.flatMap(({ anilistId, sourceAnilistId }) => [anilistId, sourceAnilistId]),
+        ]),
+    ];
+    const connectedAnimeIds = connectedIds.length
+        ? await db
+              .select({ animeId: animeExternalIdLink.animeId })
+              .from(animeExternalIdLink)
+              .innerJoin(animeExternalId, eq(animeExternalId.id, animeExternalIdLink.externalIdId))
+              .where(
+                  and(
+                      eq(animeExternalId.provider, 'anilist'),
+                      eq(animeExternalId.mediaType, 'anime'),
+                      inArray(animeExternalId.externalId, connectedIds)
+                  )
+              )
+        : [];
+    const unavailableAnimeIds = [...new Set(connectedAnimeIds.map(({ animeId }) => animeId))];
+
     return new Set(
         (
             await db
@@ -128,12 +181,43 @@ async function usedPosterPaths(match: StoredMapping) {
                 .from(animeReleasePoster)
                 .where(
                     and(
-                        eq(animeReleasePoster.externalIdId, match.externalIdId),
-                        ne(animeReleasePoster.animeId, match.animeId)
+                        ne(animeReleasePoster.animeId, match.animeId),
+                        or(
+                            inArray(animeReleasePoster.animeId, unavailableAnimeIds),
+                            eq(animeReleasePoster.externalIdId, match.externalIdId)
+                        )
                     )
                 )
         ).flatMap(({ filePath }) => (filePath ? [filePath] : []))
     );
+}
+
+async function posterFingerprint(filePath: string) {
+    const response = await fetch(imageUrl(filePath, 'w185'), {
+        signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) {
+        throw new Error(`TMDB poster image request failed with ${response.status}`);
+    }
+
+    const image = new Bun.Image(await response.arrayBuffer(), { maxPixels: 4_000_000 });
+    const normalized = await image.resize(32, 48, { fit: 'fill' }).png().bytes();
+    return createHash('sha256').update(normalized).digest('hex');
+}
+
+async function hasVisuallyMatchingPoster(filePath: string, usedPaths: Set<string>) {
+    try {
+        const fingerprint = await posterFingerprint(filePath);
+        for (const usedPath of usedPaths) {
+            if ((await posterFingerprint(usedPath)) === fingerprint) {
+                return true;
+            }
+        }
+    } catch (cause) {
+        console.warn(`TMDB poster comparison failed for ${filePath}; using path uniqueness`, cause);
+    }
+
+    return false;
 }
 
 async function saveAvailablePoster(
@@ -147,6 +231,11 @@ async function saveAvailablePoster(
         const poster = choosePoster(candidates, unavailable);
         if (!poster) {
             return savePoster(match, null, seasonNumber);
+        }
+
+        if (await hasVisuallyMatchingPoster(poster.filePath, unavailable)) {
+            unavailable.add(poster.filePath);
+            continue;
         }
 
         try {
@@ -318,6 +407,10 @@ export async function selectPosterImage(anime: AniListAnime, filePath: string) {
     const poster = candidates.find((candidate) => candidate.filePath === filePath);
     if (!poster) {
         throw new Error('Poster does not belong to this anime');
+    }
+
+    if (await hasVisuallyMatchingPoster(poster.filePath, await usedPosterPaths(match))) {
+        throw new Error('Poster is already assigned to a connected anime');
     }
 
     return savePoster(match, poster, selected.seasonNumber);
