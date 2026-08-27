@@ -368,7 +368,9 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                 );
                 markHealthy(provider, 'streams');
 
-                const missing = requested.filter((mode) => !result[mode]?.length);
+                const missing = requested.filter(
+                    (mode) => !result[mode]?.some((stream) => stream.kind !== 'iframe')
+                );
                 const attempt = {
                     provider,
                     streams: result,
@@ -401,12 +403,12 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
             for (const attempt of results) {
                 for (const mode of requested) {
                     const existing = merged[mode] ?? [];
-                    const additions = (attempt.streams[mode] ?? []).map(
-                        (stream): ProviderStream => ({
+                    const additions = (attempt.streams[mode] ?? [])
+                        .filter((stream) => stream.kind !== 'iframe')
+                        .map((stream): ProviderStream => ({
                             ...stream,
                             provider: attempt.provider.name,
-                        })
-                    );
+                        }));
                     const seen = new Set(
                         existing.map(
                             (stream) =>
