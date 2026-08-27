@@ -267,7 +267,7 @@
     "shared_anilist_score": "AniList-score",
     "shared_add_watchlist": "Føj {title} til overvågningsliste",
     "shared_remove_watchlist": "Fjern {title} fra overvågningsliste",
-    "shared_manage_watchlist": "Administrer status for overvågningsliste",
+    "shared_manage_watchlist": "Rediger Status",
     "shared_manage_title": "Administrer status for {title} på overvågningslisten",
     "shared_set_title": "Angiv status for {title} på overvågningslisten",
     "shared_dismiss": "Luk besked",
