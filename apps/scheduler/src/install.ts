@@ -12,6 +12,7 @@ try {
 } catch (cause) {
     throw new Error('Scheduler PostgreSQL connectivity check failed', { cause });
 }
+await db.$client.end();
 
 const worker = resolve(import.meta.dir, '../dist/worker.js');
 if (!(await Bun.file(worker).exists())) {
