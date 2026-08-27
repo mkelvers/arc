@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { PlayIcon, StarIcon } from 'phosphor-svelte';
+    import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
+    import StarIcon from 'phosphor-svelte/lib/StarIcon';
 
     import Card from '$lib/components/ui/card/Card.svelte';
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
@@ -21,7 +22,12 @@
             onclick={onselect}
         >
             <CardMedia aspect="video">
-                <ProgressiveImage src={anime.backdrop ?? anime.image} alt="" previewSize="w300" />
+                <ProgressiveImage
+                    src={anime.backdrop ?? anime.image}
+                    alt=""
+                    previewSize="w300"
+                    displaySize="w780"
+                />
             </CardMedia>
             <h3 class="mt-3 line-clamp-2 min-h-10 text-sm leading-snug font-semibold">{anime.title}</h3>
             {#if anime.audioLabel}
