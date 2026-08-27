@@ -123,6 +123,7 @@
                         {#snippet trigger()}
                             <AccountAvatar
                                 username={data.account.username}
+                                image={data.account.image}
                                 class="size-8 text-sm ring-1 ring-white/20"
                             />
                             <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
@@ -131,7 +132,11 @@
                         {#snippet content()}
                             <div class="bg-panel-strong">
                                 <div class="flex min-h-20 items-center gap-3 px-5 py-3">
-                                    <AccountAvatar username={data.account.username} class="size-11 text-lg" />
+                                    <AccountAvatar
+                                        username={data.account.username}
+                                        image={data.account.image}
+                                        class="size-11 text-lg"
+                                    />
                                     <span class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                                         {data.account.name}
                                     </span>
@@ -270,6 +275,7 @@
                         >
                             <AccountAvatar
                                 username={data.account.username}
+                                image={data.account.image}
                                 class="size-8 text-sm ring-1 ring-white/20"
                             />
                         </a>

@@ -33,6 +33,7 @@ export const SessionResponseSchema = z
             id: z.string(),
             name: z.string(),
             username: z.string(),
+            image: z.string().nullable(),
         }),
     })
     .nullable();

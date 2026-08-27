@@ -3,18 +3,21 @@
 
     interface Props {
         username: string;
+        image?: string | null;
         class?: string;
     }
 
-    let { username, class: className }: Props = $props();
+    let { username, image = null, class: className }: Props = $props();
+    const diceBearImage = $derived(
+        `https://api.dicebear.com/10.x/thumbs/svg?seed=${encodeURIComponent(username)}`
+    );
 </script>
 
 <span
-    aria-hidden="true"
     class={cn(
-        'inline-grid shrink-0 select-none place-items-center rounded-full bg-accent font-medium text-on-accent uppercase',
+        'inline-grid shrink-0 select-none place-items-center overflow-hidden rounded-full bg-accent font-medium text-on-accent uppercase',
         className
     )}
 >
-    {username.trim()[0]?.toUpperCase() ?? '?'}
+    <img src={image ?? diceBearImage} alt="" class="size-full object-cover" aria-hidden="true" />
 </span>
