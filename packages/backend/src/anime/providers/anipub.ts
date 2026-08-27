@@ -233,6 +233,7 @@ async function resolveStream(id: string, mode: AudioMode) {
             if (url.protocol !== 'https:') {
                 throw new Error('AniPub returned an unsupported stream URL');
             }
+            await requestText(url, `${megaplayUrl}/`);
 
             const captions = payload.tracks
                 ? payload.tracks.flatMap((track) => {
