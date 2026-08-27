@@ -313,6 +313,7 @@
     "export_complete": "Komplet, flytbar kopi af dit bibliotek.",
     "export_spreadsheet": "Regnearksvenlig kopi af dit bibliotek.",
     "export": "Eksportér",
+    "download": "Download",
     "error_generic": "Noget gik galt.",
     "error_not_found": "Siden blev ikke fundet.",
     "error_generic_body": "Arc kunne ikke indlæse denne side. Gå hjem, og prøv igen.",
