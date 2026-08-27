@@ -11,8 +11,10 @@
 
     import { browseSearchParams, type BrowseFilters } from '@arc/shared/browse';
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
+    import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
@@ -268,7 +270,13 @@
         {/each}
 
         {#if !anime.length}
-            <p class="py-20 text-center text-muted">{m.catalog_empty()}</p>
+            <EmptyState
+                artwork={emptyArtwork}
+                artworkWidth={1254}
+                artworkHeight={1254}
+                id="empty-catalog-message"
+                body={m.catalog_empty()}
+            />
         {/if}
 
         {#if nextPage !== null}
