@@ -166,7 +166,27 @@
         <h1 class="text-2xl font-semibold">{m.watchlist_title()}</h1>
 
         <div class="mt-8 flex min-w-0 items-end border-b border-border sm:mt-10">
-            <nav class="min-w-0 flex-1 overflow-x-auto" aria-label={m.watchlist_statuses()}>
+            <div class="min-w-0 flex-1 sm:hidden">
+                <Dropdown
+                    id="watchlist-status-mobile"
+                    ariaLabel={m.watchlist_statuses()}
+                    items={filters.map((filter) => ({
+                        label: filter.label,
+                        href: selectionHref({ state: filter.value }),
+                        current: data.selection.state === filter.value,
+                    }))}
+                    menuAlign="start"
+                    menuClass="mt-2 w-56 shadow-xl"
+                    triggerClass="flex h-12 min-w-0 w-full cursor-pointer items-center justify-between gap-3 px-1 text-sm font-medium text-foreground uppercase transition-colors hover:text-accent peer-checked:text-accent"
+                >
+                    {#snippet trigger()}
+                        <span class="truncate">{selectedStateLabel}</span>
+                        <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
+                    {/snippet}
+                </Dropdown>
+            </div>
+
+            <nav class="hidden min-w-0 flex-1 overflow-x-auto sm:block" aria-label={m.watchlist_statuses()}>
                 <ul class="-mb-px flex min-w-max gap-5 sm:gap-7">
                     {#each filters as filter}
                         <li>
