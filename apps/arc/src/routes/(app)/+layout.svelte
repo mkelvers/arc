@@ -177,7 +177,8 @@
                 <Dropdown
                     id="mobile-navigation"
                     ariaLabel={localized(m.nav_open_navigation)}
-                    menuClass="w-52"
+                    menuAlign="start"
+                    menuClass="!fixed !top-14 !right-auto !bottom-0 !left-0 z-50 w-64 pointer-events-auto"
                     modal
                     triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
@@ -282,7 +283,7 @@
     </nav>
 </header>
 
-<div class="pt-14">
+<div class="pt-14 pb-32 sm:pb-36 lg:pb-44">
     {#if navigating.to}
         <NavigationSkeleton />
     {:else}
