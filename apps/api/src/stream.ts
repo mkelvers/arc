@@ -98,31 +98,38 @@ export class StreamProxyError extends Error {
 }
 
 async function providerResponse(target: URL, range: string | null, fetchStream: StreamFetch) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
-
-    try {
-        const requestHeaders = new Headers({
-            Referer: hostGroup(target.hostname)?.referer ?? 'https://youtu-chan.com',
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
-        });
-        if (range) {
-            requestHeaders.set('Range', range);
-        }
-        return await fetchStream(target, {
-            headers: requestHeaders,
-            redirect: 'manual',
-            signal: controller.signal,
-        });
-    } catch {
-        if (controller.signal.aborted) {
-            throw new StreamProxyError({ kind: 'request-timeout' });
-        }
-        throw new StreamProxyError({ kind: 'upstream', status: null });
-    } finally {
-        clearTimeout(timeout);
+    const requestHeaders = new Headers({
+        Referer: hostGroup(target.hostname)?.referer ?? 'https://youtu-chan.com',
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0',
+    });
+    if (range) {
+        requestHeaders.set('Range', range);
     }
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10_000);
+
+        try {
+            return await fetchStream(target, {
+                headers: requestHeaders,
+                redirect: 'manual',
+                signal: controller.signal,
+            });
+        } catch {
+            if (controller.signal.aborted) {
+                throw new StreamProxyError({ kind: 'request-timeout' });
+            }
+            if (attempt === 1) {
+                throw new StreamProxyError({ kind: 'upstream', status: null });
+            }
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    throw new StreamProxyError({ kind: 'no-response' });
 }
 
 async function proxiedResponse(target: URL, response: Response) {
