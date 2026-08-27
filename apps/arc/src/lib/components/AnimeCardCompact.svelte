@@ -23,7 +23,7 @@
     </a>
     <div class="flex min-h-28 gap-3 p-2">
         <CardMedia aspect="poster" class="h-24 shrink-0">
-            <ProgressiveImage src={anime.image} alt="" />
+            <ProgressiveImage src={anime.image} alt="" displaySize="w342" sizes="6rem" />
         </CardMedia>
         <div class="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-col py-1">
             <h3 class="line-clamp-1 text-sm leading-snug font-semibold">{anime.title}</h3>
