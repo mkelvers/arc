@@ -20,7 +20,11 @@ if (!(await Bun.file(worker).exists())) {
 }
 
 const cronMarker = '# arc-anime-scheduler';
-const cronCommand = `*/5 * * * * /usr/bin/flock -n /tmp/arc-anime-scheduler.lock /usr/bin/env -S ${process.execPath} ${worker}`;
+const runner = resolve(import.meta.dir, '../../../scripts/run-scheduler-latest.sh');
+if (!(await Bun.file(runner).exists())) {
+    throw new Error(`Scheduler update runner does not exist at ${runner}`);
+}
+const cronCommand = `*/5 * * * * /usr/bin/flock -n /tmp/arc-anime-scheduler.lock ${runner}`;
 const current = Bun.spawnSync(['crontab', '-l']);
 const existing = current.exitCode === 0 ? current.stdout.toString() : '';
 const withoutScheduler = existing
