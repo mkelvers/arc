@@ -77,7 +77,9 @@
 
     onMount(() => {
         recent.load();
-        searchInput?.focus();
+        if (window.matchMedia('(pointer: fine)').matches) {
+            searchInput?.focus();
+        }
     });
 
     afterNavigate(({ type }) => {
@@ -137,10 +139,10 @@
     <meta name="description" content={m.search_anime()} />
 </svelte:head>
 
-<main class="min-h-dvh bg-canvas text-foreground">
+<main class="min-h-dvh overflow-x-clip bg-canvas text-foreground">
     <h1 class="sr-only">{m.search_anime()}</h1>
-    <section class="bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
-        <form action="/search" class="mx-auto max-w-6xl" role="search">
+    <section class="overflow-x-clip bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
+        <form action="/search" class="mx-auto min-w-0 max-w-6xl" role="search">
             <label for="anime-search" class="sr-only">{m.search_anime()}</label>
             <input
                 id="anime-search"
@@ -150,7 +152,7 @@
                 autocomplete="off"
                 bind:this={searchInput}
                 bind:value={query}
-                class="h-14 w-full border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
+                class="block h-14 w-full min-w-0 max-w-full appearance-none border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
             />
         </form>
     </section>
