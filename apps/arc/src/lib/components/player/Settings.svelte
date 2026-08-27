@@ -205,7 +205,7 @@
                 </span>
             </button>
 
-            {#each player.media.captions.options as option}
+            {#each player.media.captions.options.filter((option) => player.media.mode !== 'sub' || option.mode !== 'off') as option}
                 <button
                     type="button"
                     role="menuitemradio"
