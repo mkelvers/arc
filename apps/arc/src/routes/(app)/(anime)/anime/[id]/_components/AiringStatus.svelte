@@ -2,7 +2,6 @@
     import { invalidate } from '$app/navigation';
     import { EpisodeRevisionSchema } from '@arc/shared/types';
 
-    import { episodeRevisionPollInterval } from './episode-revision-polling';
     import { m } from '$lib/paraglide/messages.js';
 
     interface Props {
@@ -74,11 +73,11 @@
             }
 
             if (!stopped) {
-                timer = setTimeout(poll, episodeRevisionPollInterval);
+                timer = setTimeout(poll, 60_000);
             }
         };
 
-        timer = setTimeout(poll, episodeRevisionPollInterval);
+        timer = setTimeout(poll, 60_000);
 
         return () => {
             stopped = true;
