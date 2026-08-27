@@ -43,3 +43,24 @@ test('proxies MegaPlay rotated Kryntal CDN HLS playlists', async () => {
     expect(response.status).toBe(200);
     expect(referer).toBe('https://megaplay.buzz/');
 });
+
+test('retries a reset provider connection once', async () => {
+    let attempts = 0;
+    const response = await proxyStreamRequest(
+        new Request(
+            'http://localhost/v1/stream?url=https://morning-credit-3bcc.vibevibe.workers.dev/master.m3u8'
+        ),
+        async () => {
+            attempts += 1;
+            if (attempts === 1) {
+                throw new TypeError('socket connection was closed unexpectedly');
+            }
+            return new Response('#EXTM3U\n#EXT-X-ENDLIST', {
+                headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+            });
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(attempts).toBe(2);
+});
