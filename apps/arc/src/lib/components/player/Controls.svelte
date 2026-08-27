@@ -27,7 +27,7 @@
 <div
     class:pointer-events-none={!player.controlsVisible && player.media.playing}
     class:opacity-0={!player.controlsVisible && player.media.playing}
-    class="absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/95 via-black/50 to-transparent px-4 pt-20 pb-4 text-white transition-opacity duration-300 sm:px-6 sm:pb-5"
+    class="absolute inset-x-0 bottom-0 z-20 bg-linear-to-t from-black/95 via-black/50 to-transparent px-4 pt-20 pb-[max(1rem,env(safe-area-inset-bottom))] text-white transition-opacity duration-300 sm:px-6 sm:pb-5"
 >
     <div class="flex items-center justify-between px-1">
         <div class="flex items-center gap-4">
@@ -35,7 +35,7 @@
                 type="button"
                 aria-label={player.media.playing ? m.player_pause() : m.player_play()}
                 disabled={player.media.loading}
-                class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
                 onclick={() => {
                     player.media.togglePlayback();
                     player.showControls();
@@ -71,7 +71,7 @@
                     type="button"
                     aria-label={player.media.muted ? m.player_unmute() : m.player_mute()}
                     disabled={player.media.loading}
-                    class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
                     onclick={() => {
                         player.media.toggleMute();
                         player.showControls();
@@ -94,7 +94,7 @@
                     aria-haspopup="dialog"
                     aria-expanded={episodesOpen}
                     aria-controls="episode-dialog"
-                    class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90"
+                    class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 sm:size-8"
                     onclick={onopenepisodes}
                 >
                     <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
@@ -108,7 +108,7 @@
                     aria-expanded={player.settingsOpen}
                     aria-controls="player-settings"
                     disabled={player.media.loading}
-                    class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
                     onclick={() => player.openSettings()}
                 >
                     <GearIcon size="1.5rem" aria-hidden="true" />
@@ -123,7 +123,7 @@
                 type="button"
                 aria-label={player.fullscreen ? m.player_exit_fullscreen() : m.player_fullscreen()}
                 disabled={player.media.loading}
-                class="grid size-8 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+                class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
                 onclick={() => {
                     void player.toggleFullscreen();
                     player.showControls();
