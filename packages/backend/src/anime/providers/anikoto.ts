@@ -197,14 +197,14 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
                 try {
                     return await resolveStream(embed);
                 } catch (cause) {
-                    console.warn('[AniKoto] native dub extraction failed; keeping iframe', {
+                    console.warn('[AniKoto] native dub extraction failed; skipping server', {
                         seriesId,
                         episodeNumber,
                         reason: cause instanceof Error ? cause.message : 'unknown error',
                     });
                 }
             }
-            return { url: url.toString(), kind: 'iframe', quality: null, subtitleUrl: null };
+            throw new Error('AniKoto returned no native dub stream');
         })
     );
     const playable = streams.flatMap((result, index) => {
@@ -583,6 +583,10 @@ async function resolveStream(embed: URL) {
     if (!streamUrl || !streamUrl.pathname.endsWith('.m3u8')) {
         throw new Error('AniKoto MegaPlay embed returned no HLS stream');
     }
+    await requestText(streamUrl, {
+        accept: 'application/vnd.apple.mpegurl',
+        referer: `${megaplayUrl}/`,
+    });
 
     return {
         url: streamUrl.toString(),
