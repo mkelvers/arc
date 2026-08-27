@@ -19,7 +19,6 @@
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import NavigationSkeleton from './_components/NavigationSkeleton.svelte';
     import type { LayoutProps } from './$types';
-    import { page } from '$app/state';
 
     let { data, children }: LayoutProps = $props();
     async function signOut() {
@@ -39,7 +38,7 @@
 </script>
 
 <svelte:head>
-    <link rel="canonical" href={new URL(page.url.pathname, page.url.origin).href} />
+    <link rel="canonical" href={data.canonical} />
 </svelte:head>
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header/95 backdrop-blur">
