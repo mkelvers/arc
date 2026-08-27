@@ -57,8 +57,8 @@
     </div>
 
     <div class="mt-7">
-        <div class="flex items-start justify-between gap-6 text-sm">
-            <div>
+        <div class="flex flex-col items-start gap-4 text-sm sm:flex-row sm:justify-between sm:gap-6">
+            <div class="min-w-0">
                 <h3 class="text-sm text-foreground">{m.import_json_csv()}</h3>
                 <p class="mt-1 leading-relaxed text-muted">{m.import_json_csv_body()}</p>
             </div>
@@ -67,7 +67,7 @@
                 action="?/import"
                 enctype="multipart/form-data"
                 use:enhance={enhanceImport}
-                class="shrink-0"
+                class="w-full shrink-0 sm:w-auto"
             >
                 <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
                 <input
@@ -80,7 +80,7 @@
                 />
                 <label
                     for="watchlist-import"
-                    class="inline-flex min-h-8 cursor-pointer items-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
+                    class="inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:w-auto"
                 >
                     {m.import_choose_file()}
                 </label>
@@ -100,8 +100,8 @@
     <p class="mt-1 text-sm leading-relaxed text-muted">{m.export_download()}</p>
 
     <div class="mt-5 space-y-7">
-        <div class="flex items-start justify-between gap-6 text-sm">
-            <div>
+        <div class="flex flex-col items-start justify-between gap-2 text-sm sm:flex-row sm:gap-6">
+            <div class="min-w-0">
                 <h3 class="text-sm text-foreground">Arc JSON</h3>
                 <p class="mt-1 leading-relaxed text-muted">{m.export_complete()}</p>
             </div>
@@ -114,8 +114,8 @@
             </a>
         </div>
 
-        <div class="flex items-start justify-between gap-6 text-sm">
-            <div>
+        <div class="flex flex-col items-start justify-between gap-2 text-sm sm:flex-row sm:gap-6">
+            <div class="min-w-0">
                 <h3 class="text-sm text-foreground">Arc CSV</h3>
                 <p class="mt-1 leading-relaxed text-muted">{m.export_spreadsheet()}</p>
             </div>

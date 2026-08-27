@@ -57,17 +57,17 @@
     <meta name="description" content={m.settings_subtitles_synopsis()} />
 </svelte:head>
 
-<div class="space-y-10">
+<div class="space-y-8 sm:space-y-10">
     <section aria-labelledby="subtitle-preview-title">
         <h2 id="subtitle-preview-title" class="text-lg font-medium">{m.settings_preview()}</h2>
         <div
-            class="relative mt-5 aspect-[16/7] min-h-48 overflow-hidden bg-black bg-cover bg-center ring-1 ring-border/50"
+            class="relative mt-5 aspect-[16/9] min-h-48 overflow-hidden bg-black bg-cover bg-center ring-1 ring-border/50 sm:aspect-[16/7]"
             style:background-image={`url(${ccBackground})`}
         >
             <div class="absolute inset-0 flex items-end justify-center p-4 sm:p-8">
                 <p
                     class={cn(
-                        'max-w-full px-2 py-1 text-center leading-tight font-semibold',
+                        'max-w-full break-words px-2 py-1 text-center leading-tight font-semibold',
                         edgeStyle === 'outline' && 'subtitle-outline'
                     )}
                     style:color={subtitleTextColors[textColor].value}
@@ -158,10 +158,10 @@
         </div>
     </section>
 
-    <div class="flex justify-end border-t border-border pt-6">
+    <div class="border-t border-border pt-6">
         <button
             type="button"
-            class="min-h-10 border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+            class="min-h-10 w-full border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
             onclick={resetDefaults}
         >
             {m.settings_reset()}
