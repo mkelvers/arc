@@ -59,7 +59,7 @@
     <div class="mt-7">
         <div class="flex flex-col items-start gap-4 text-sm sm:flex-row sm:justify-between sm:gap-6">
             <div class="min-w-0">
-                <h3 class="text-sm text-foreground">{m.import_json_csv()}</h3>
+                <h3 class="text-sm text-foreground">{m.import_library()}</h3>
                 <p class="mt-1 leading-relaxed text-muted">{m.import_json_csv_body()}</p>
             </div>
             <form
@@ -96,32 +96,17 @@
 />
 
 <section class="mt-10" aria-labelledby="export-library">
-    <h2 id="export-library" class="text-sm font-medium text-foreground">{m.export_library()}</h2>
-    <p class="mt-1 text-sm leading-relaxed text-muted">{m.export_download()}</p>
-
-    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+    <div class="flex items-start justify-between gap-5">
+        <div class="min-w-0">
+            <h2 id="export-library" class="text-sm font-medium text-foreground">{m.export_library()}</h2>
+            <p class="mt-1 text-sm leading-relaxed text-muted">{m.export_download()}</p>
+        </div>
         <a
             href="/v1/watchlist/export?format=json"
             download
-            class="border border-border-strong p-4 transition-colors hover:border-accent focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="inline-flex min-h-10 shrink-0 items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-            <span class="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
-                <span>Arc JSON</span>
-                <span class="text-accent">{m.export()}</span>
-            </span>
-            <span class="mt-1 block text-xs leading-5 text-muted">{m.export_complete()}</span>
-        </a>
-
-        <a
-            href="/v1/watchlist/export?format=csv"
-            download
-            class="border border-border-strong p-4 transition-colors hover:border-accent focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-            <span class="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
-                <span>Arc CSV</span>
-                <span class="text-accent">{m.export()}</span>
-            </span>
-            <span class="mt-1 block text-xs leading-5 text-muted">{m.export_spreadsheet()}</span>
+            {m.download()}
         </a>
     </div>
 </section>
