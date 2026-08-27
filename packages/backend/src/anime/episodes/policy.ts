@@ -78,7 +78,11 @@ export function episodeInventoryNeedsDiscovery(
     }
     if (anime.status === 'RELEASING') {
         const available = availableEpisodeCount(anime);
-        return available !== null && !episodeInventoryCoversTarget(storedEpisodes, available);
+        return (
+            (available !== null && !episodeInventoryCoversTarget(storedEpisodes, available)) ||
+            (nextRefreshAt !== undefined &&
+                (nextRefreshAt === null || nextRefreshAt.getTime() <= now))
+        );
     }
     if (storedEpisodes.length === 0) {
         return true;

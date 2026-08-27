@@ -212,6 +212,32 @@ describe('episode refresh policy', () => {
                 now
             )
         ).toBeFalse();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                {
+                    status: 'RELEASING',
+                    format: 'ONA',
+                    episodes: 12,
+                    nextAiringEpisode: null,
+                },
+                inventory(10),
+                new Date(now - 1),
+                now
+            )
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                {
+                    status: 'RELEASING',
+                    format: 'ONA',
+                    episodes: 12,
+                    nextAiringEpisode: null,
+                },
+                inventory(10),
+                new Date(now + 1),
+                now
+            )
+        ).toBeFalse();
     });
 
     test('expects all episodes before the next airing episode', () => {
