@@ -10,6 +10,7 @@
         type Sources,
     } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
+    import { beforeNavigate } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
     import { CaretLeftIcon, SpinnerGapIcon } from 'phosphor-svelte';
     import Controls from './player/Controls.svelte';
@@ -75,6 +76,9 @@
     let episodeDialogOpen = $state(false);
     let renderedEpisodeId: string | undefined;
     let video = $state<HTMLVideoElement>();
+    let nativeSubtitleElement = $state<HTMLTrackElement>();
+    let nativeSubtitleTrack = $state<TextTrack | null>(null);
+    let nativeSubtitleUrl = '';
 
     function releaseDate(value: string | null | undefined) {
         if (!value) {
@@ -106,6 +110,23 @@
     );
     const formattedReleaseDate = $derived(releaseDate(currentEpisode.releaseDate));
 
+    function subtitleFontSize() {
+        const pixels = subtitleSizes[player.media.captions.size].px;
+        const scale = pixels / subtitleSizes.normal.px;
+        const viewportSize = 7 * scale;
+        return `clamp(${pixels * 0.5}px, min(${viewportSize}vh, ${viewportSize}vw), ${pixels}px)`;
+    }
+
+    function vttTimestamp(value: number) {
+        const milliseconds = Math.max(0, Math.round(value * 1000));
+        const hours = Math.floor(milliseconds / 3_600_000);
+        const minutes = Math.floor((milliseconds % 3_600_000) / 60_000);
+        const seconds = Math.floor((milliseconds % 60_000) / 1000);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds
+            .toString()
+            .padStart(2, '0')}.${(milliseconds % 1000).toString().padStart(3, '0')}`;
+    }
+
     const player = untrack(
         () =>
             new Player({
@@ -119,6 +140,8 @@
                 segments,
             })
     );
+
+    beforeNavigate(() => player.navigationStarted());
 
     const isPaused = $derived(
         !player.media.playing &&
@@ -163,6 +186,40 @@
         player.media.video = video;
         return player.mount();
     });
+
+    $effect(() => {
+        const element = nativeSubtitleElement;
+        if (!element) {
+            return;
+        }
+
+        if (nativeSubtitleUrl) {
+            URL.revokeObjectURL(nativeSubtitleUrl);
+            nativeSubtitleUrl = '';
+        }
+
+        const cues = player.media.captions.cues;
+        if (cues.length) {
+            const vtt = [
+                'WEBVTT',
+                '',
+                ...cues.flatMap((cue, index) => [
+                    String(index + 1),
+                    `${vttTimestamp(cue.start)} --> ${vttTimestamp(cue.end)}`,
+                    cue.text,
+                    '',
+                ]),
+            ].join('\n');
+            nativeSubtitleUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
+            element.src = nativeSubtitleUrl;
+        } else {
+            element.removeAttribute('src');
+        }
+
+        nativeSubtitleTrack = element.track;
+        player.setNativeSubtitleTrack(nativeSubtitleTrack);
+        nativeSubtitleTrack.mode = player.fullscreen && !document.fullscreenElement ? 'showing' : 'disabled';
+    });
 </script>
 
 <!-- The focusable section owns player-wide shortcuts and surface clicks. -->
@@ -190,7 +247,9 @@
             playsinline
             preload="auto"
             poster={poster}
-        ></video>
+        >
+            <track bind:this={nativeSubtitleElement} kind="subtitles" srclang="en" label="Arc" default />
+        </video>
     {/if}
 
     {#if player.media.sourceKind === 'iframe' && player.media.audioModes.length > 1}
@@ -254,7 +313,7 @@
         <!-- Show / Episode Info Overlay: vertically centered on Y-axis, only shown when paused -->
         {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
             <div
-                class="pointer-events-none absolute inset-y-0 left-8 z-20 flex max-w-xl flex-col items-start justify-center text-white transition-opacity duration-300 sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
+                class="mobile-player-info pointer-events-none absolute inset-y-0 left-8 z-20 hidden max-w-xl flex-col items-start justify-center text-white transition-opacity duration-300 sm:flex sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
                 class:opacity-100={isPaused}
                 class:opacity-0={!isPaused}
             >
@@ -319,7 +378,7 @@
                     class:subtitle-outline={player.media.captions.edgeStyle === 'outline'}
                     class="whitespace-pre-line px-2 py-0.5"
                     style:color={subtitleTextColors[player.media.captions.textColor].value}
-                    style:font-size={`${subtitleSizes[player.media.captions.size].px}px`}
+                    style:font-size={subtitleFontSize()}
                     style:background-color={subtitleBackgrounds[player.media.captions.background].value === null
                         ? 'transparent'
                         : `rgb(${subtitleBackgrounds[player.media.captions.background].value} / ${player.media.captions.backgroundOpacity})`}
@@ -427,3 +486,11 @@
         {/snippet}
     </Modal>
 {/if}
+
+<style>
+    @media (pointer: coarse) and (hover: none) and (max-width: 64rem) {
+        .mobile-player-info {
+            display: none;
+        }
+    }
+</style>
