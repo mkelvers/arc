@@ -313,6 +313,7 @@
     "export_complete": "Copia portátil completa de tu biblioteca.",
     "export_spreadsheet": "Copia de tu biblioteca compatible con hojas de cálculo.",
     "export": "Exportar",
+    "download": "Descargar",
     "error_generic": "Algo salió mal.",
     "error_not_found": "Página no encontrada.",
     "error_generic_body": "Arc no pudo cargar esta página. Vuelve al inicio e inténtalo de nuevo.",
