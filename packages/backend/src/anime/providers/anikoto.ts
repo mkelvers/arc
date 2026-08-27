@@ -60,6 +60,14 @@ const sourcePayloadSchema = z.object({
     sources: z.object({ file: z.string() }),
     tracks: z.array(trackSchema).optional(),
 });
+const ajaxResponseSchema = z.object({
+    status: z.number(),
+    result: z.string(),
+});
+const serverResponseSchema = z.object({
+    status: z.number(),
+    result: z.object({ url: z.string() }).loose(),
+});
 
 interface AniKotoEpisode {
     embedId: string;
@@ -142,6 +150,87 @@ async function requestJson(url: URL, referer = `${baseUrl}/`) {
             cause,
         });
     }
+}
+
+async function liveDubStreams(seriesId: number, episodeNumber: number) {
+    const episodesResponse = ajaxResponseSchema.safeParse(
+        await requestJson(new URL(`/ajax/episode/list/${seriesId}`, baseUrl))
+    );
+    if (!episodesResponse.success || episodesResponse.data.status !== 200) {
+        console.warn('[AniKoto] live episode list unavailable', { seriesId, episodeNumber });
+        return [];
+    }
+
+    const episode = episodesResponse.data.result
+        .replaceAll('\\/', '/')
+        .match(new RegExp(`data-num=["']${episodeNumber}["'][^>]*data-ids=["']([^"']+)["']`, 'i'));
+    if (!episode) {
+        console.warn('[AniKoto] live episode missing', { seriesId, episodeNumber });
+        return [];
+    }
+
+    const serversResponse = ajaxResponseSchema.safeParse(
+        await requestJson(
+            new URL(`/ajax/server/list?servers=${encodeURIComponent(episode[1])}`, baseUrl)
+        )
+    );
+    if (!serversResponse.success || serversResponse.data.status !== 200) {
+        console.warn('[AniKoto] live server list unavailable', { seriesId, episodeNumber });
+        return [];
+    }
+
+    const dubSection = serversResponse.data.result.match(
+        /<div class="type" data-type="dub">([\s\S]*?)<\/ul>\s*<\/div>/i
+    )?.[1];
+    const linkIds = [...(dubSection ?? '').matchAll(/data-link-id="([^"]+)"/g)].map(([, id]) => id);
+    console.info('[AniKoto] live dub servers discovered', {
+        seriesId,
+        episodeNumber,
+        hasDubSection: Boolean(dubSection),
+        serverCount: linkIds.length,
+    });
+    const streams = await Promise.allSettled(
+        linkIds.map(async (linkId): Promise<ProviderStream> => {
+            const response = serverResponseSchema.parse(
+                await requestJson(
+                    new URL(`/ajax/server?get=${encodeURIComponent(linkId)}`, baseUrl)
+                )
+            );
+            const url = new URL(response.result.url);
+            if (url.protocol !== 'https:') throw new Error('AniKoto returned an unsafe server URL');
+            const embed = validEmbed(url.toString(), 'dub');
+            if (embed) {
+                try {
+                    return await resolveStream(embed);
+                } catch (cause) {
+                    console.warn('[AniKoto] native dub extraction failed; keeping iframe', {
+                        seriesId,
+                        episodeNumber,
+                        reason: cause instanceof Error ? cause.message : 'unknown error',
+                    });
+                }
+            }
+            return { url: url.toString(), kind: 'iframe', quality: null, subtitleUrl: null };
+        })
+    );
+    const playable = streams.flatMap((result, index) => {
+        if (result.status === 'fulfilled') return [result.value];
+        console.warn('[AniKoto] live dub server resolution failed', {
+            seriesId,
+            episodeNumber,
+            server: index + 1,
+            reason: result.reason instanceof Error ? result.reason.message : 'unknown error',
+        });
+        return [];
+    });
+    if (!playable.length && linkIds.length) {
+        console.warn('[AniKoto] live dub servers returned no usable URLs', {
+            seriesId,
+            episodeNumber,
+            attempted: linkIds.length,
+        });
+    }
+    return playable;
 }
 
 function searchCandidates(html: string) {
@@ -437,7 +526,9 @@ function supportedMediaUrl(value: JsonValue) {
             url.hostname === 'watching.onl' ||
             url.hostname.endsWith('.watching.onl') ||
             url.hostname === 'lostproject.club' ||
-            url.hostname.endsWith('.lostproject.club');
+            url.hostname.endsWith('.lostproject.club') ||
+            url.hostname === 'kryntal.top' ||
+            url.hostname.endsWith('.kryntal.top');
         return url.protocol === 'https:' && supported ? url : null;
     } catch {
         return null;
@@ -547,13 +638,24 @@ async function getStreams(
         const embed = validEmbed(match.embeds[mode], mode);
         return embed ? [{ mode, embed }] : [];
     });
-    return settledStreams(
+    if (modes.includes('dub') && !requested.some(({ mode }) => mode === 'dub')) {
+        const liveDub = await liveDubStreams(Number((await findSeries(anime)).id), episode.number);
+        if (liveDub.length) {
+            return { dub: liveDub };
+        }
+    }
+    const resolved = await settledStreams(
         requested.map(async ({ mode, embed }) => ({
             mode,
             stream: await resolveStream(embed),
         })),
         `AniKoto returned no ${modes.join('/')} stream for episode ${episode.id}`
     );
+    if (!resolved.dub?.length) {
+        const liveDub = await liveDubStreams(Number((await findSeries(anime)).id), episode.number);
+        if (liveDub.length) resolved.dub = liveDub;
+    }
+    return resolved;
 }
 
 export const anikotoProvider: PlaybackProvider = {
