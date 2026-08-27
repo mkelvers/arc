@@ -42,6 +42,11 @@
         logos: new Set<number>(),
     });
     let lastManualSelection = 0;
+    let gestureStartX = 0;
+    let gestureStartY = 0;
+    let gesturePointerId: number | null = null;
+    let gestureDragging = false;
+    let suppressClickUntil = 0;
     const activeAnime = $derived(highlights[carousel.active]);
     const autoRotate = $derived(highlights.length > 1 && !prefersReducedMotion.current);
     const upcoming = $derived((carousel.active + 1) % highlights.length);
@@ -66,6 +71,60 @@
         carousel.progression += 1;
     }
 
+    function handlePointerDown(event: PointerEvent) {
+        if (
+            event.pointerType === 'mouse' ||
+            (event.target instanceof Element && event.target.closest('button, [data-hero-action]'))
+        ) {
+            return;
+        }
+
+        gesturePointerId = event.pointerId;
+        gestureStartX = event.clientX;
+        gestureStartY = event.clientY;
+        gestureDragging = false;
+        event.currentTarget instanceof HTMLElement && event.currentTarget.setPointerCapture(event.pointerId);
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+        if (event.pointerId !== gesturePointerId) {
+            return;
+        }
+
+        const deltaX = event.clientX - gestureStartX;
+        const deltaY = event.clientY - gestureStartY;
+        if (!gestureDragging && Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+            gestureDragging = true;
+        }
+
+        if (gestureDragging) {
+            event.preventDefault();
+        }
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+        if (event.pointerId !== gesturePointerId) {
+            return;
+        }
+
+        const deltaX = event.clientX - gestureStartX;
+        const deltaY = event.clientY - gestureStartY;
+        if (gestureDragging && Math.abs(deltaX) >= 48 && Math.abs(deltaX) > Math.abs(deltaY)) {
+            select(carousel.active + (deltaX < 0 ? 1 : -1), 'complete');
+            suppressClickUntil = performance.now() + 500;
+        }
+
+        gesturePointerId = null;
+        gestureDragging = false;
+    }
+
+    function cancelHeroClick(event: MouseEvent) {
+        if (performance.now() < suppressClickUntil) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
     $effect(() => {
         if (!autoRotate || carousel.progressMode !== 'complete') {
             return;
@@ -79,9 +138,16 @@
 
 {#if highlights.length}
     <section
-        class="relative h-[min(100svh,32rem)] min-h-0 max-h-none overflow-hidden bg-black sm:h-[min(100svh,42rem)] sm:min-h-180 sm:max-h-192 xl:h-[calc(100svh-3.5rem)] xl:max-h-none"
+        class="relative h-[min(100svh,32rem)] min-h-0 max-h-none touch-pan-y overflow-hidden bg-black select-none sm:h-[min(100svh,42rem)] sm:min-h-180 sm:max-h-192 xl:h-[calc(100svh-3.5rem)] xl:max-h-none"
         aria-roledescription="carousel"
         aria-label={m.home_trending()}
+        onpointerdown={handlePointerDown}
+        onpointermove={handlePointerMove}
+        onpointerup={handlePointerUp}
+        onpointercancel={() => {
+            gesturePointerId = null;
+            gestureDragging = false;
+        }}
     >
         {#if activeAnime}
             {#each highlights as anime, index (anime.id)}
@@ -110,6 +176,7 @@
                         class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
                         aria-label={m.shared_view({ title: anime.title })}
                         tabindex={index === carousel.active ? undefined : -1}
+                        onclick={cancelHeroClick}
                     >
                         <ProgressiveImage
                             src={anime.image}
@@ -144,6 +211,7 @@
                                     href={activeAnime.href}
                                     class="pointer-events-auto relative z-10 flex h-full w-full items-center justify-center px-10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white sm:justify-start xl:block xl:h-auto xl:w-fit xl:px-0"
                                     aria-label={m.shared_view({ title: activeAnime.title })}
+                                    onclick={cancelHeroClick}
                                 >
                                     {#each highlights as anime, index (anime.id)}
                                         {#if index === carousel.active || index === upcoming}
@@ -226,6 +294,7 @@
                     </p>
 
                     <div
+                        data-hero-action
                         class="pointer-events-auto mt-5 flex flex-nowrap items-center gap-2 px-5 text-xs font-bold text-accent max-sm:[&>a]:flex-1 max-sm:[&>a]:justify-center sm:px-10 lg:mt-7 lg:px-16 lg:text-sm"
                     >
                         <a
