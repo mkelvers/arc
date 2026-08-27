@@ -14,6 +14,7 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas text-foreground">
+    <h1 class="sr-only">{m.home_title()}</h1>
     <div
         class="home-layout grid grid-cols-1 grid-rows-[auto] wide:has-[>_.continue-watching-section]:grid-rows-[auto_15rem] wide:has-[>_.continue-watching-section]:pb-8 hero:has-[>_.continue-watching-section]:grid-rows-[auto_16rem] hero:has-[>_.continue-watching-section]:pb-12 hero:has-[>section:first-child]:not-has-[>_.continue-watching-section]:grid-rows-[calc(100svh-16rem)] [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
     >

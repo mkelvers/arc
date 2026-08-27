@@ -32,7 +32,7 @@
                 <ProgressiveImage
                     src={anime.image}
                     alt=""
-                    displaySize="w342"
+                    displaySize="w500"
                     sizes="(min-width: 1024px) 10rem, 45vw"
                 />
             </CardMedia>
@@ -54,7 +54,7 @@
     <ProgressiveImage
         src={anime.image}
         alt=""
-        displaySize="w342"
+        displaySize="w500"
         sizes="(min-width: 1024px) 10rem, 45vw"
         class="pointer-events-none absolute -inset-2 size-auto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
     />

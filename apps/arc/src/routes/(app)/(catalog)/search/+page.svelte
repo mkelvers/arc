@@ -138,6 +138,7 @@
 </svelte:head>
 
 <main class="min-h-dvh bg-canvas text-foreground">
+    <h1 class="sr-only">{m.search_anime()}</h1>
     <section class="bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
         <form action="/search" class="mx-auto max-w-6xl" role="search">
             <label for="anime-search" class="sr-only">{m.search_anime()}</label>
@@ -172,7 +173,7 @@
                         {/each}
                     </div>
                     <div class="hidden sm:block">
-                        <h1 class="mb-4 text-xl font-bold">{m.search_top_results()}</h1>
+                        <h2 class="mb-4 text-xl font-bold">{m.search_top_results()}</h2>
                         <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                             {#each Array.from({ length: 3 }) as _, index (index)}
                                 <div>
@@ -206,7 +207,7 @@
         {:else if query.trim().length >= 2}
             {#if searchState.results.length}
                 <section aria-labelledby="top-results-title">
-                    <h1 id="top-results-title" class="mb-4 text-xl font-bold">{m.search_top_results()}</h1>
+                    <h2 id="top-results-title" class="mb-4 text-xl font-bold">{m.search_top_results()}</h2>
                     <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                         {#each topResults as result (result.id)}
                             <AnimeCard anime={result} variant="top" onselect={() => recent.remember(result)} />
@@ -245,7 +246,7 @@
         {:else if !query.trim() && recent.results.length}
             <section aria-labelledby="recent-results-title">
                 <div class="mb-3 flex items-center justify-between gap-6">
-                    <h1 id="recent-results-title" class="text-base font-semibold">{m.search_recent()}</h1>
+                    <h2 id="recent-results-title" class="text-base font-semibold">{m.search_recent()}</h2>
                     <button
                         type="button"
                         class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted transition-[color,transform] duration-150 hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"

@@ -11,7 +11,7 @@
         loading?: 'eager' | 'lazy';
         previewLoading?: 'eager' | 'lazy';
         fetchpriority?: 'high' | 'low' | 'auto';
-        displaySize?: 'w342' | 'w780';
+        displaySize?: 'w342' | 'w500' | 'w780';
         sizes?: string;
         loadFull?: boolean;
         ontransitionend?: (event: TransitionEvent) => void;

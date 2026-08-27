@@ -21,6 +21,7 @@
 </script>
 
 <main class="bg-canvas text-foreground">
+    <h1 class="sr-only">{data.anime.title}</h1>
     <section class="min-h-dvh">
         <figure
             class="anime-hero relative z-10 grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"

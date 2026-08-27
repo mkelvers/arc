@@ -19,6 +19,7 @@
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import NavigationSkeleton from './_components/NavigationSkeleton.svelte';
     import type { LayoutProps } from './$types';
+    import { page } from '$app/state';
 
     let { data, children }: LayoutProps = $props();
     async function signOut() {
@@ -36,6 +37,10 @@
         return message();
     }
 </script>
+
+<svelte:head>
+    <link rel="canonical" href={new URL(page.url.pathname, page.url.origin).href} />
+</svelte:head>
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header/95 backdrop-blur">
     <nav class="flex h-full items-center justify-between pl-3 md:pl-6" aria-label={localized(m.nav_primary)}>
