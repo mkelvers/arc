@@ -138,7 +138,7 @@
                 </div>
 
                 <div
-                    class="mt-7 flex items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
+                    class="mt-7 flex max-sm:flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
                 >
                     {#await data.watchAction}
                         <a
