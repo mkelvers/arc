@@ -106,7 +106,12 @@ export class PlaybackProgress {
     }
 
     paused(changingEpisode: boolean) {
-        if (!this.ended && !changingEpisode) {
+        if (
+            !this.ended &&
+            !changingEpisode &&
+            (this.hasPlayed || this.media.currentTime > 0 || this.media.video.currentTime > 0)
+        ) {
+            this.hasPlayed = true;
             void this.save();
         }
     }
@@ -122,7 +127,11 @@ export class PlaybackProgress {
     }
 
     leavePage() {
-        if (!this.hasPlayed || this.ended || this.finalSaveSent) {
+        if (
+            (!this.hasPlayed && this.media.currentTime <= 0 && this.media.video.currentTime <= 0) ||
+            this.ended ||
+            this.finalSaveSent
+        ) {
             return;
         }
 
@@ -136,7 +145,9 @@ export class PlaybackProgress {
     }
 
     private payload(completed: boolean): ProgressPayload | null {
-        const positionSeconds = this.media.video?.currentTime;
+        const positionSeconds = this.media.seeking
+            ? this.media.currentTime
+            : this.media.video?.currentTime;
         const durationSeconds = this.media.video?.duration;
 
         if (
