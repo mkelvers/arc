@@ -175,7 +175,7 @@ describe('playback provider fallback', () => {
         expect(completed.dub).toContainEqual(from('complete', stream));
     });
 
-    test('does not let iframe-only modes hide complete direct streams', async () => {
+    test('drops iframe streams and keeps complete direct streams', async () => {
         const iframe = { ...stream, kind: 'iframe' as const };
         const playback = createProviderFallback([
             provider('iframe-first', {
@@ -191,8 +191,21 @@ describe('playback provider fallback', () => {
 
         const result = await playback.getStreams(anime, episode, ['sub', 'dub']);
 
-        expect(result.sub).toEqual([from('iframe-first', iframe), from('direct', stream)]);
-        expect(result.dub).toEqual([from('iframe-first', iframe), from('direct', alternateStream)]);
+        expect(result.sub).toEqual([from('direct', stream)]);
+        expect(result.dub).toEqual([from('direct', alternateStream)]);
+    });
+
+    test('fails when every provider returns only iframes', async () => {
+        const iframe = { ...stream, kind: 'iframe' as const };
+        const playback = createProviderFallback([
+            provider('iframe-only', {
+                getStreams: async () => ({ sub: [iframe] }),
+            }),
+        ]);
+
+        await expect(playback.getStreams(anime, episode, ['sub'])).rejects.toThrow(
+            'No playback provider returned a stream for episode 1'
+        );
     });
 
     test('uses the freshest provider inventory through the next airing episode', async () => {
