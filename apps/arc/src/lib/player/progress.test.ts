@@ -3,27 +3,27 @@ import { describe, expect, test } from 'bun:test';
 import { nextProgressEventAt, ProgressSchedule } from './progress';
 
 describe('playback progress schedule', () => {
-    test('saves after each 30 seconds of active media progress', () => {
+    test('saves after each 5 seconds of active media progress', () => {
         const schedule = new ProgressSchedule();
         schedule.start(120);
 
         expect(
             schedule.update({
-                currentTime: 149.9,
+                currentTime: 124.9,
                 duration: 1_440,
                 playing: true,
             })
         ).toBeNull();
         expect(
             schedule.update({
-                currentTime: 150,
+                currentTime: 125,
                 duration: 1_440,
                 playing: true,
             })
         ).toBe('periodic');
         expect(
             schedule.update({
-                currentTime: 180,
+                currentTime: 130,
                 duration: 1_440,
                 playing: false,
             })
