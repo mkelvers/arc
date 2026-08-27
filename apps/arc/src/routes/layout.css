@@ -145,8 +145,7 @@
     .footer-legal {
         background-color: #070707;
         background-image:
-            linear-gradient(rgb(0 0 0 / 0.24), rgb(0 0 0 / 0.24)),
-            url('https://www.crunchyroll.com/build/assets/img/footer/footer-bg.webp');
+            linear-gradient(rgb(0 0 0 / 0.24), rgb(0 0 0 / 0.24)), url('/assets/footer-bg.webp');
         background-position: center;
         background-size: cover;
     }
