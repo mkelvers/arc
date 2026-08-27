@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ArrowClockwiseIcon } from 'phosphor-svelte';
+    import { ArrowClockwiseIcon, CaretLeftIcon } from 'phosphor-svelte';
     import { enhance } from '$app/forms';
 
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
@@ -28,7 +28,13 @@
 <main class="min-h-dvh min-w-0 bg-canvas px-4 py-6 text-foreground sm:px-8 sm:py-10 lg:px-16">
     <header class="mb-10 flex flex-col items-start gap-6 sm:mb-12 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
-            <a href={`/anime/${data.anime.id}`} class="text-sm text-accent">{m.media_back()}</a>
+            <a
+                href={`/anime/${data.anime.id}`}
+                class="inline-flex items-center gap-2 text-sm font-medium text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            >
+                <CaretLeftIcon size="1rem" weight="bold" aria-hidden="true" />
+                {m.media_back()}
+            </a>
             <h1 class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">
                 {data.anime.title}
             </h1>
