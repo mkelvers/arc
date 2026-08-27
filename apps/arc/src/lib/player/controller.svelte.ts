@@ -33,6 +33,12 @@ type SettingsView =
     | 'segment-opening'
     | 'segment-ending';
 
+type SafariVideo = HTMLVideoElement & {
+    webkitDisplayingFullscreen?: boolean;
+    webkitEnterFullscreen?: () => void;
+    webkitExitFullscreen?: () => void;
+};
+
 export class Player {
     container!: HTMLElement;
     controlsVisible = $state(true);
@@ -47,6 +53,7 @@ export class Player {
     private hideControlsTimer: ReturnType<typeof setTimeout> | undefined;
     private mounted = false;
     private input: PlayerInput;
+    private nativeSubtitleTrack: TextTrack | null = null;
 
     constructor(input: PlayerInput) {
         this.input = input;
@@ -111,12 +118,28 @@ export class Player {
     }
 
     async toggleFullscreen() {
+        const video = this.media.video as SafariVideo;
         if (document.fullscreenElement === this.container) {
             await document.exitFullscreen();
             return;
         }
+        if (video.webkitDisplayingFullscreen) {
+            video.webkitExitFullscreen?.();
+            return;
+        }
 
-        await this.container.requestFullscreen();
+        try {
+            await this.container.requestFullscreen();
+        } catch {
+            if (this.nativeSubtitleTrack) {
+                this.nativeSubtitleTrack.mode = 'showing';
+            }
+            video.webkitEnterFullscreen?.();
+        }
+    }
+
+    setNativeSubtitleTrack(track: TextTrack) {
+        this.nativeSubtitleTrack = track;
     }
 
     private handleClick(event: MouseEvent) {
@@ -218,8 +241,20 @@ export class Player {
         this.container.focus({ preventScroll: true });
     }
 
+    navigationStarted() {
+        this.progress.leavePage();
+    }
+
     private fullscreenChanged() {
         this.fullscreen = document.fullscreenElement === this.container;
+        this.showControls();
+    }
+
+    private safariFullscreenChanged(video: SafariVideo) {
+        this.fullscreen = video.webkitDisplayingFullscreen ?? false;
+        if (!this.fullscreen && this.nativeSubtitleTrack) {
+            this.nativeSubtitleTrack.mode = 'disabled';
+        }
         this.showControls();
     }
 
@@ -241,6 +276,27 @@ export class Player {
             signal,
         });
         window.addEventListener('fullscreenchange', () => this.fullscreenChanged(), { signal });
+        video.addEventListener(
+            'webkitbeginfullscreen',
+            () => this.safariFullscreenChanged(video as SafariVideo),
+            { signal }
+        );
+        video.addEventListener(
+            'webkitendfullscreen',
+            () => this.safariFullscreenChanged(video as SafariVideo),
+            { signal }
+        );
+        document.addEventListener(
+            'visibilitychange',
+            () => {
+                if (document.visibilityState === 'hidden') {
+                    this.progress.leavePage();
+                } else {
+                    this.progress.resumePage();
+                }
+            },
+            { signal }
+        );
         window.addEventListener('pagehide', () => this.progress.leavePage(), { signal });
         window.addEventListener('pageshow', () => this.progress.resumePage(), { signal });
 
@@ -254,9 +310,11 @@ export class Player {
             },
             { signal }
         );
-        video.addEventListener('durationchange', () => (this.media.duration = video.duration), {
-            signal,
-        });
+        video.addEventListener(
+            'durationchange',
+            () => this.media.handleMetadata(this.input.startAt),
+            { signal }
+        );
         video.addEventListener('seeked', () => this.media.handleSeeked(), { signal });
         video.addEventListener('timeupdate', () => this.progress.timeUpdated(), { signal });
         video.addEventListener('progress', () => this.media.updateBuffered(), { signal });
