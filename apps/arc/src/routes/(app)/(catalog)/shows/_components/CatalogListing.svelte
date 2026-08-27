@@ -164,7 +164,7 @@
 <main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
     <section class="mx-auto w-full max-w-264" aria-labelledby="catalog-title">
         <div class="mb-8 flex items-center justify-between gap-4">
-            <h1 id="catalog-title" class="text-2xl font-bold">
+            <h1 id="catalog-title" class="text-xl font-bold sm:text-2xl">
                 {kind === 'new' ? m.catalog_newly_added() : m.catalog_most_popular()}
             </h1>
             <div class="flex items-center">
