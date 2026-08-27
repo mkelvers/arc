@@ -25,6 +25,7 @@
 
         if (open && !dialog.open) {
             dialog.showModal();
+            dialog.focus({ preventScroll: true });
         } else if (!open && dialog.open) {
             dialog.close();
         }
@@ -43,9 +44,10 @@
     bind:this={dialog}
     aria-labelledby={`${id}-title`}
     aria-describedby={description ? `${id}-description` : undefined}
+    tabindex="-1"
     class={cn(
         wide ? 'h-11/12 w-11/12 max-w-5xl' : 'w-[calc(100%-2rem)] max-w-lg',
-        'm-auto hidden max-h-[calc(100dvh-2rem)] flex-col overflow-hidden bg-panel p-0 text-foreground shadow-2xl open:flex backdrop:bg-black/75'
+        'm-auto hidden max-h-[calc(100dvh-2rem)] flex-col overflow-hidden bg-panel p-0 text-foreground shadow-2xl outline-none open:flex backdrop:bg-black/75'
     )}
     onclick={(event) => {
         if (event.target === dialog) {
