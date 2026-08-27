@@ -110,9 +110,7 @@
             aria-modal="true"
             aria-label={m.settings_sections()}
         >
-            <header
-                class="flex min-h-14 shrink-0 items-center justify-between bg-[#151515] px-5"
-            >
+            <header class="flex min-h-14 shrink-0 items-center justify-between bg-[#151515] px-5">
                 <h2 class="text-base font-medium">{m.settings_account()}</h2>
                 <button
                     type="button"
