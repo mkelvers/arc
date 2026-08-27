@@ -31,15 +31,6 @@
             >
                 <Logo alt="Arc" class="h-9 text-accent" />
             </a>
-            <div class="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-base text-subtle">
-                <a href="/terms" class="transition-colors hover:text-foreground">{localized(m.footer_terms)}</a>
-                <a href="/privacy" class="transition-colors hover:text-foreground">
-                    {localized(m.footer_privacy)}
-                </a>
-                <a href="/cookies" class="transition-colors hover:text-foreground">
-                    {localized(m.footer_cookies)}
-                </a>
-            </div>
             <div
                 class="flex flex-wrap items-center justify-center gap-2 sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
             >
