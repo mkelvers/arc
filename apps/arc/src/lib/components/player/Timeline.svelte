@@ -13,6 +13,7 @@
         position: 0,
         scrubbing: false,
     });
+    let track = $state<HTMLDivElement>();
     const position = $derived(
         pointer.scrubbing && pointer.preview !== null ? pointer.preview : player.media.currentTime
     );
@@ -26,10 +27,9 @@
     });
 
     function move(event: PointerEvent) {
-        const input = event.currentTarget as HTMLInputElement;
-        const bounds = input.getBoundingClientRect();
+        const bounds = track?.getBoundingClientRect();
 
-        if (!player.media.duration || !bounds.width) {
+        if (!player.media.duration || !bounds?.width) {
             return;
         }
 
@@ -95,6 +95,7 @@
         {/if}
 
         <div
+            bind:this={track}
             class="timeline-progress relative h-1 w-full rounded-full bg-white/25 transition-[height] before:absolute before:inset-y-0 before:left-0 before:w-(--buffered-progress) before:rounded-l-full before:bg-white/60 before:content-[''] after:absolute after:inset-y-0 after:left-0 after:w-(--progress) after:rounded-l-full after:bg-accent after:content-[''] group-hover/timeline:h-1.5"
             style:--buffered-progress={`${progress.buffered}%`}
             style:--progress={`${progress.played}%`}
@@ -110,7 +111,7 @@
             step="0.1"
             value={position}
             aria-label={m.player_seek()}
-            class="absolute inset-0 z-20 cursor-pointer opacity-0"
+            class="timeline-hit-area absolute inset-0 z-20 cursor-pointer opacity-0"
             oninput={(event) => {
                 if (!pointer.scrubbing) {
                     player.media.seek(Number(event.currentTarget.value));
@@ -132,3 +133,12 @@
         {formatTime(player.media.duration)}
     </span>
 </div>
+
+<style>
+    @media (pointer: coarse) and (hover: none) {
+        .timeline-hit-area {
+            right: -0.75rem;
+            left: -0.75rem;
+        }
+    }
+</style>
