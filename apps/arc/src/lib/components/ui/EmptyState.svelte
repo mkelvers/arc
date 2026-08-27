@@ -14,7 +14,7 @@
 </script>
 
 <section
-    class="mt-8 grid min-h-112 place-items-center px-6 py-12 text-center sm:mt-10 sm:min-h-128"
+    class="mt-8 grid min-h-112 place-items-center border border-dashed border-border px-6 py-12 text-center sm:mt-10 sm:min-h-128"
     aria-labelledby={title ? id : undefined}
     aria-describedby={title ? undefined : id}
 >
