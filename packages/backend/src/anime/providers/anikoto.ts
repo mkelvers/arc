@@ -183,12 +183,6 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
         /<div class="type" data-type="dub">([\s\S]*?)<\/ul>\s*<\/div>/i
     )?.[1];
     const linkIds = [...(dubSection ?? '').matchAll(/data-link-id="([^"]+)"/g)].map(([, id]) => id);
-    console.info('[AniKoto] live dub servers discovered', {
-        seriesId,
-        episodeNumber,
-        hasDubSection: Boolean(dubSection),
-        serverCount: linkIds.length,
-    });
     const streams = await Promise.allSettled(
         linkIds.map(async (linkId): Promise<ProviderStream> => {
             const response = serverResponseSchema.parse(
