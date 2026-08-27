@@ -313,6 +313,7 @@
     "export_complete": "Vollständige portable Kopie deiner Bibliothek.",
     "export_spreadsheet": "Tabellenfreundliche Kopie deiner Bibliothek.",
     "export": "Exportieren",
+    "download": "Herunterladen",
     "error_generic": "Etwas ist schiefgelaufen.",
     "error_not_found": "Seite nicht gefunden.",
     "error_generic_body": "Arc konnte diese Seite nicht laden. Gehe zurück zur Startseite und versuche es erneut.",
