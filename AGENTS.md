@@ -35,6 +35,10 @@ Use this file when changing Arc. Read `CODE_STYLE.md` when a change introduces o
 - Stream host allowlists, referers, redirect limits, content-size limits, and playlist rewriting are protocol or security rules. Keep them in the owning server boundary.
 - The internal episode refresh route is authenticated machine-facing code. Its `internal` path names its trust boundary.
 
+## Commit convention
+
+Use a minimal lowercase commit title in imperative style. Do not include a commit body unless explicitly requested.
+
 ## Review evidence
 
 For cleanup or review work, report the files and consumers inspected, symbols deleted or retained and why, behavior changes, generated files excluded, checks run, runtime paths exercised, and remaining gaps. Analyzer output is evidence for investigation, not a reason to add abstractions.

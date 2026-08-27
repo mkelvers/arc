@@ -99,33 +99,29 @@
     <h2 id="export-library" class="text-sm font-medium text-foreground">{m.export_library()}</h2>
     <p class="mt-1 text-sm leading-relaxed text-muted">{m.export_download()}</p>
 
-    <div class="mt-5 space-y-7">
-        <div class="flex flex-col items-start justify-between gap-2 text-sm sm:flex-row sm:gap-6">
-            <div class="min-w-0">
-                <h3 class="text-sm text-foreground">Arc JSON</h3>
-                <p class="mt-1 leading-relaxed text-muted">{m.export_complete()}</p>
-            </div>
-            <a
-                href="/v1/watchlist/export?format=json"
-                download
-                class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-                {m.export()}
-            </a>
-        </div>
+    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+        <a
+            href="/v1/watchlist/export?format=json"
+            download
+            class="border border-border-strong p-4 transition-colors hover:border-accent focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+            <span class="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
+                <span>Arc JSON</span>
+                <span class="text-accent">{m.export()}</span>
+            </span>
+            <span class="mt-1 block text-xs leading-5 text-muted">{m.export_complete()}</span>
+        </a>
 
-        <div class="flex flex-col items-start justify-between gap-2 text-sm sm:flex-row sm:gap-6">
-            <div class="min-w-0">
-                <h3 class="text-sm text-foreground">Arc CSV</h3>
-                <p class="mt-1 leading-relaxed text-muted">{m.export_spreadsheet()}</p>
-            </div>
-            <a
-                href="/v1/watchlist/export?format=csv"
-                download
-                class="shrink-0 text-accent transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-                {m.export()}
-            </a>
-        </div>
+        <a
+            href="/v1/watchlist/export?format=csv"
+            download
+            class="border border-border-strong p-4 transition-colors hover:border-accent focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+            <span class="flex items-center justify-between gap-4 text-sm font-medium text-foreground">
+                <span>Arc CSV</span>
+                <span class="text-accent">{m.export()}</span>
+            </span>
+            <span class="mt-1 block text-xs leading-5 text-muted">{m.export_spreadsheet()}</span>
+        </a>
     </div>
 </section>

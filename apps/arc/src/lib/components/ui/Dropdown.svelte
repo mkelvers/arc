@@ -19,6 +19,7 @@
         menuClass?: string;
         modal?: boolean;
         openOnHover?: boolean;
+        disabled?: boolean;
         triggerClass?: string;
     }
 
@@ -32,6 +33,7 @@
         menuClass = 'w-48',
         modal = false,
         openOnHover = false,
+        disabled = false,
         triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel peer-checked:bg-panel',
     }: Props = $props();
     let open = $state(false);
@@ -111,7 +113,14 @@
         }
     }}
 >
-    <input id={id} type="checkbox" aria-label={ariaLabel} class="peer sr-only" bind:checked={open} />
+    <input
+        id={id}
+        type="checkbox"
+        aria-label={ariaLabel}
+        class="peer sr-only"
+        bind:checked={open}
+        disabled={disabled}
+    />
     <label for={id} data-testid="dropdown-trigger" class={triggerClass}>
         {@render trigger()}
     </label>

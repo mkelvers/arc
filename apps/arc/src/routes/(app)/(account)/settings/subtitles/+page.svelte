@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
+    import { CaretDownIcon } from 'phosphor-svelte';
 
     import ccBackground from '$lib/assets/cc-background.png';
     import {
@@ -17,6 +18,7 @@
     } from '$lib/player/media';
     import * as preferences from '$lib/player/preferences';
     import { cn } from '$lib/utils';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import { m } from '$lib/paraglide/messages.js';
 
     let size = $state<SubtitleSize>('normal');
@@ -87,41 +89,76 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <label class="block text-sm">
                 <span class="text-xs text-muted">{m.player_size()}</span>
-                <select
-                    bind:value={size}
-                    class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
-                    onchange={() => preferences.save('subtitle-size', size)}
+                <Dropdown
+                    id="subtitle-size"
+                    menuAlign="start"
+                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
                 >
-                    {#each subtitleSizeOrder as option}
-                        <option value={option}>{subtitleSizes[option].label}</option>
-                    {/each}
-                </select>
+                    {#snippet trigger()}<span>{subtitleSizes[size].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet content()}
+                        {#each subtitleSizeOrder as option}
+                            <button
+                                type="button"
+                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                onclick={() => {
+                                    size = option;
+                                    preferences.save('subtitle-size', size);
+                                }}
+                            >
+                                {subtitleSizes[option].label}
+                            </button>
+                        {/each}
+                    {/snippet}
+                </Dropdown>
             </label>
 
             <label class="block text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <select
-                    bind:value={textColor}
-                    class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
-                    onchange={() => preferences.save('subtitle-text-color', textColor)}
+                <Dropdown
+                    id="subtitle-text-color"
+                    menuAlign="start"
+                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
                 >
-                    {#each textColorOptions as option}
-                        <option value={option}>{subtitleTextColors[option].label}</option>
-                    {/each}
-                </select>
+                    {#snippet trigger()}<span>{subtitleTextColors[textColor].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet content()}
+                        {#each textColorOptions as option}<button
+                                type="button"
+                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                onclick={() => {
+                                    textColor = option;
+                                    preferences.save('subtitle-text-color', textColor);
+                                }}
+                            >
+                                {subtitleTextColors[option].label}
+                            </button>{/each}
+                    {/snippet}
+                </Dropdown>
             </label>
 
             <label class="block text-sm">
                 <span class="text-xs text-muted">{m.settings_edge_style()}</span>
-                <select
-                    bind:value={edgeStyle}
-                    class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
-                    onchange={() => preferences.save('subtitle-edge-style', edgeStyle)}
+                <Dropdown
+                    id="subtitle-edge-style"
+                    menuAlign="start"
+                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
                 >
-                    {#each edgeStyleOptions as option}
-                        <option value={option}>{subtitleEdgeStyles[option].label}</option>
-                    {/each}
-                </select>
+                    {#snippet trigger()}<span>{subtitleEdgeStyles[edgeStyle].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet content()}
+                        {#each edgeStyleOptions as option}<button
+                                type="button"
+                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                onclick={() => {
+                                    edgeStyle = option;
+                                    preferences.save('subtitle-edge-style', edgeStyle);
+                                }}
+                            >
+                                {subtitleEdgeStyles[option].label}
+                            </button>{/each}
+                    {/snippet}
+                </Dropdown>
             </label>
         </div>
     </section>
@@ -131,34 +168,56 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <label class="block text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <select
-                    bind:value={background}
-                    class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground focus-visible:border-accent focus-visible:outline-none"
-                    onchange={() => preferences.save('subtitle-background', background)}
+                <Dropdown
+                    id="subtitle-background"
+                    menuAlign="start"
+                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
                 >
-                    {#each backgroundOptions as option}
-                        <option value={option}>{subtitleBackgrounds[option].label}</option>
-                    {/each}
-                </select>
+                    {#snippet trigger()}<span>{subtitleBackgrounds[background].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet content()}
+                        {#each backgroundOptions as option}<button
+                                type="button"
+                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                onclick={() => {
+                                    background = option;
+                                    preferences.save('subtitle-background', background);
+                                }}
+                            >
+                                {subtitleBackgrounds[option].label}
+                            </button>{/each}
+                    {/snippet}
+                </Dropdown>
             </label>
 
             <label class="block text-sm">
                 <span class="text-xs text-muted">{m.settings_opacity()}</span>
-                <select
-                    bind:value={backgroundOpacity}
+                <Dropdown
+                    id="subtitle-background-opacity"
                     disabled={background === 'none'}
-                    class="mt-2 min-h-11 w-full border-b border-border-strong bg-panel px-1 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50 focus-visible:border-accent focus-visible:outline-none"
-                    onchange={() => preferences.save('subtitle-background-opacity', backgroundOpacity)}
+                    menuAlign="start"
+                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-colors hover:text-input-accent focus-visible:text-input-accent"
                 >
-                    {#each subtitleBackgroundOpacities as option}
-                        <option value={option}>{Math.round(option * 100)}%</option>
-                    {/each}
-                </select>
+                    {#snippet trigger()}<span>{Math.round(backgroundOpacity * 100)}%</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet content()}
+                        {#each subtitleBackgroundOpacities as option}<button
+                                type="button"
+                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                onclick={() => {
+                                    backgroundOpacity = option;
+                                    preferences.save('subtitle-background-opacity', backgroundOpacity);
+                                }}
+                            >
+                                {Math.round(option * 100)}%
+                            </button>{/each}
+                    {/snippet}
+                </Dropdown>
             </label>
         </div>
     </section>
 
-    <div class="border-t border-border pt-6">
+    <div class="pt-6">
         <button
             type="button"
             class="min-h-10 w-full border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
