@@ -313,6 +313,7 @@
     "export_complete": "Complete portable copy of your library.",
     "export_spreadsheet": "Spreadsheet-friendly copy of your library.",
     "export": "Export",
+    "download": "Download",
     "error_generic": "Something went wrong.",
     "error_not_found": "Page not found.",
     "error_generic_body": "Arc could not load this page. Please head back home and try again.",
