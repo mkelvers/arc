@@ -30,6 +30,7 @@ export default defineConfig(({ command }) => {
                     'unsafe-eval',
                     'sha256-s1m8cPt5qQt2+GHnqM9/4MoBksIfZAkMYMtK1tszz4s=',
                     'sha256-ZswfTY7H35rbv8WC7NXBoiC7WNu86vSzCDChNWwZZDM=',
+                    'sha256-3ajCFMuu+27mZRc7mzM2wPWf2WLUBfUOuHRIxOmE9A8=',
                 ],
                 'script-src-attr': [
                     'unsafe-hashes',
@@ -69,6 +70,11 @@ export default defineConfig(({ command }) => {
             proxy: {
                 '^/(api/auth|v1)': {
                     target: process.env.API_ORIGIN!,
+                    // The API validates cookie mutation origins against the app
+                    // origin. Keep the LAN browser origin out of that check in dev.
+                    headers: {
+                        origin: process.env.BETTER_AUTH_URL!,
+                    },
                 },
             },
         },
