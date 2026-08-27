@@ -29,7 +29,12 @@
             onclick={onselect}
         >
             <CardMedia aspect="poster" class={compact ? 'sm:aspect-2/3' : undefined}>
-                <ProgressiveImage src={anime.image} alt="" />
+                <ProgressiveImage
+                    src={anime.image}
+                    alt=""
+                    displaySize="w342"
+                    sizes="(min-width: 1024px) 10rem, 45vw"
+                />
             </CardMedia>
             <h3
                 class:min-h-10={!compact && reserveTitleSpace}
@@ -49,6 +54,8 @@
     <ProgressiveImage
         src={anime.image}
         alt=""
+        displaySize="w342"
+        sizes="(min-width: 1024px) 10rem, 45vw"
         class="pointer-events-none absolute -inset-2 size-auto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
     />
     <div
