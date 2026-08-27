@@ -43,6 +43,7 @@ export class Playback {
 
     private lastVolume = 1;
     private resumeAt: number | null = null;
+    private pendingStartAt: number | null = null;
     private resumePlayback = false;
     private autoplayAttempted = false;
     private changingSource = false;
@@ -78,6 +79,15 @@ export class Playback {
                 return [mode, direct?.length ? direct : streams];
             })
         );
+    }
+
+    private enforceSubtitlesForSubAudio() {
+        if (this.mode !== 'sub') {
+            return;
+        }
+
+        this.captions.enabled = true;
+        this.captions.mode = 'sub';
     }
 
     sync(sources: Sources, next: string | null) {
@@ -302,6 +312,10 @@ export class Playback {
                 maxBufferLength: 30,
                 maxBufferSize: 60 * 1000 * 1000,
                 maxMaxBufferLength: 600,
+                manifestLoadingMaxRetry: 1,
+                manifestLoadingRetryDelay: 500,
+                levelLoadingMaxRetry: 1,
+                levelLoadingRetryDelay: 500,
                 startLevel: -1,
             });
             let recoveredMediaError = false;
@@ -387,6 +401,7 @@ export class Playback {
             )
         ) {
             this.mode = mode;
+            this.enforceSubtitlesForSubAudio();
             this.sourceChain = this.preferredSources;
             this.sourceIndex = Math.max(
                 0,
@@ -408,6 +423,7 @@ export class Playback {
         this.rememberPlayback();
         this.modeSelected = true;
         this.mode = mode;
+        this.enforceSubtitlesForSubAudio();
 
         this.resetSource();
         preferences.save('audio-mode', mode);
@@ -435,6 +451,10 @@ export class Playback {
     }
 
     switchSubtitleMode(mode: SubtitleMode) {
+        if (this.mode === 'sub' && mode === 'off') {
+            return;
+        }
+
         const selection = this.captions.select(mode);
         if (selection === 'done') {
             return;
@@ -561,21 +581,25 @@ export class Playback {
         this.duration = video.duration;
         this.error = false;
         if (this.resumeAt !== null) {
-            this.currentTime = Math.min(this.resumeAt, this.duration);
-            video.currentTime = this.currentTime;
+            this.pendingStartAt = this.resumeAt;
             this.resumeAt = null;
+        } else if (!this.autoplayAttempted && Number.isFinite(startAt) && startAt > 0) {
+            this.pendingStartAt = startAt;
+        }
+
+        if (this.pendingStartAt !== null) {
+            if (!(this.duration > 0)) {
+                return;
+            }
+
+            this.currentTime = Math.min(this.pendingStartAt, this.duration);
+            video.currentTime = this.currentTime;
+            this.pendingStartAt = null;
 
             if (this.resumePlayback) {
                 video.play().catch(() => undefined);
+                this.resumePlayback = false;
             }
-
-            this.resumePlayback = false;
-            return;
-        }
-
-        if (!this.autoplayAttempted && Number.isFinite(startAt) && startAt > 0) {
-            this.currentTime = Math.min(startAt, this.duration);
-            video.currentTime = this.currentTime;
         }
 
         if (this.autoplayAttempted) {
@@ -665,6 +689,7 @@ export class Playback {
         this.destroyHls();
 
         this.resumeAt = null;
+        this.pendingStartAt = null;
         this.resumePlayback = false;
         this.autoplayAttempted = false;
         this.changingSource = false;
@@ -740,6 +765,7 @@ export class Playback {
         if (saved.subtitleMode !== null) {
             this.captions.mode = saved.subtitleMode;
         }
+        this.enforceSubtitlesForSubAudio();
         if (saved.subtitleSize !== null) {
             this.captions.size = saved.subtitleSize;
         }
