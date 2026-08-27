@@ -83,7 +83,9 @@
         gestureStartX = event.clientX;
         gestureStartY = event.clientY;
         gestureDragging = false;
-        event.currentTarget instanceof HTMLElement && event.currentTarget.setPointerCapture(event.pointerId);
+        if (event.currentTarget instanceof HTMLElement) {
+            event.currentTarget.setPointerCapture(event.pointerId);
+        }
     }
 
     function handlePointerMove(event: PointerEvent) {
@@ -200,7 +202,7 @@
 
             <article class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden">
                 <div
-                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-8 sm:pb-80 xl:h-[32rem] xl:self-center xl:pb-0"
+                    class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-8 sm:pb-80 xl:h-128 xl:self-center xl:pb-0"
                 >
                     <div class="relative">
                         <div class="px-5 sm:px-10 lg:px-16">
@@ -223,7 +225,7 @@
                                                 fetchpriority={index === carousel.active ? 'high' : 'low'}
                                                 style:height={`clamp(${(5 * anime.logo.size) / 100}rem, ${(6.4 * anime.logo.size) / 100}vw, ${(8 * anime.logo.size) / 100}rem)`}
                                                 class={cn(
-                                                    'max-h-24 max-w-[calc(100%_-_5rem)] object-contain object-center sm:max-h-28 sm:max-w-sm sm:object-left lg:max-h-48 lg:max-w-lg 2xl:max-w-2xl',
+                                                    'max-h-24 max-w-[calc(100%-5rem)] object-contain object-center sm:max-h-28 sm:max-w-sm sm:object-left lg:max-h-48 lg:max-w-lg 2xl:max-w-2xl',
                                                     index === carousel.active
                                                         ? 'block'
                                                         : 'absolute inset-0 opacity-0',
