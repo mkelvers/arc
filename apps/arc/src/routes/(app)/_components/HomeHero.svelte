@@ -1,6 +1,8 @@
 <script lang="ts">
     import { prefersReducedMotion } from 'svelte/motion';
-    import { CaretLeftIcon, CaretRightIcon, PlayIcon } from 'phosphor-svelte';
+    import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
+    import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
+    import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';

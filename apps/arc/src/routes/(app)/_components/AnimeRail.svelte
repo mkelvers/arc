@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { AnimeCard as AnimeCardModel } from '@arc/shared/types';
     import { cn } from '$lib/utils';
-    import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
+    import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
+    import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import { m } from '$lib/paraglide/messages.js';
 
