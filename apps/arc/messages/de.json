@@ -210,7 +210,7 @@
     "anime_fewer_details": "Weniger Details",
     "anime_loading_episodes": "Episoden werden geladen",
     "anime_next_episode": "Die nächste Episode wird am {date}{time} ausgestrahlt.",
-    "media_back": "← Zurück zum Anime",
+    "media_back": "Zurück zum Anime",
     "media_refetch": "Erneut abrufen",
     "media_no_tmdb": "Keine TMDB-Medien verfügbar",
     "media_no_tmdb_body": "Diese Veröffentlichung ist weiterhin auf Arc verfügbar, aber es wurde kein zuverlässiger TMDB-Treffer gefunden. Die Medienoptionen erscheinen automatisch, sobald ein sicherer Treffer verfügbar ist.",

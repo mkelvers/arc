@@ -210,7 +210,7 @@
     "anime_fewer_details": "Færre detaljer",
     "anime_loading_episodes": "Indlæser episoder",
     "anime_next_episode": "Næste episode sendes {date}{time}.",
-    "media_back": "← Tilbage til anime",
+    "media_back": "Tilbage til anime",
     "media_refetch": "Hent igen",
     "media_no_tmdb": "Ingen TMDB-medier tilgængelige",
     "media_no_tmdb_body": "Denne udgivelse er stadig tilgængelig på Arc, men der blev ikke fundet et pålideligt TMDB-match. Medieindstillingerne vises automatisk, når et sikkert match bliver fundet.",
