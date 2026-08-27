@@ -40,6 +40,7 @@ const providerHostGroups: readonly ProviderHostGroup[] = [
             'anivideo.sbs',
             'cloudvideo.lat',
             'trycloud.pro',
+            'kryntal.top',
         ],
         referer: 'https://megaplay.buzz/',
         disguisedTs: true,
