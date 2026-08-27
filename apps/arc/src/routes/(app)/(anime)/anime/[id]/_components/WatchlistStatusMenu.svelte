@@ -93,7 +93,7 @@
     id="watchlist-status"
     ariaLabel={m.shared_manage_title({ title })}
     menuAlign="start"
-    menuClass="w-52 pt-2"
+    menuClass="w-52 pt-2 max-sm:right-0 max-sm:left-auto"
     triggerClass="grid size-10 shrink-0 cursor-pointer place-items-center text-accent"
 >
     {#snippet trigger()}
