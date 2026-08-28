@@ -293,12 +293,6 @@ export class Playback {
             return;
         }
 
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = source;
-            video.load();
-            return;
-        }
-
         const { default: Hls } = await import('hls.js');
         if (video !== this.video || source !== this.src) {
             return;
@@ -374,6 +368,12 @@ export class Playback {
             });
             hls.loadSource(source);
             hls.attachMedia(video);
+            return;
+        }
+
+        if (video.canPlayType('application/vnd.apple.mpegurl') && 'ManagedMediaSource' in window) {
+            video.src = source;
+            video.load();
             return;
         }
 
