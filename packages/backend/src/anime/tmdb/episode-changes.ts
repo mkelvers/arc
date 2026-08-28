@@ -59,7 +59,7 @@ function changedEpisodeDetails(payload: ChangesResponse) {
 export async function getEpisodeChanges(
     episodeId: number | undefined,
     startDate: string,
-    request: typeof fetch = fetch
+    request: (input: URL | RequestInfo, init?: RequestInit) => Promise<Response> = fetch
 ) {
     const token = process.env.TMDB_READ_ACCESS_TOKEN?.trim();
     if (!token || !episodeId || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
@@ -70,9 +70,11 @@ export async function getEpisodeChanges(
     const earliest = new Date(end.getTime() - 14 * 86_400_000);
     const requestedStart = new Date(`${startDate}T00:00:00Z`);
     const start = requestedStart > earliest && requestedStart < end ? requestedStart : earliest;
+    // TMDB excludes changes when the date-only end boundary is the next day.
+    const queryEnd = new Date(end.getTime() + 2 * 86_400_000);
     const query = new URLSearchParams({
         start_date: start.toISOString().slice(0, 10),
-        end_date: end.toISOString().slice(0, 10),
+        end_date: queryEnd.toISOString().slice(0, 10),
     });
     const response = await request(
         `https://api.themoviedb.org/3/tv/episode/${episodeId}/changes?${query}`,
