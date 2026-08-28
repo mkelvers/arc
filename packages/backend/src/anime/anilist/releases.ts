@@ -15,8 +15,6 @@ import { AniListAnimeSchema, AniListScheduleSchema, type AniListAnime } from './
 const releaseSchemaRevision = 1;
 const requestLeaseMs = 30_000;
 const requestWaitMs = 12_000;
-const requests = new Map<number, Promise<AniListAnime>>();
-const scheduleRequests = new Map<number, Promise<AniListAnime>>();
 
 function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
     return {
@@ -147,7 +145,13 @@ async function requestWithLease(id: number, force: boolean) {
     try {
         const media = await fetchAnimeRelease(id);
         await db
-            .delete(animeReleaseRequest)
+            .update(animeReleaseRequest)
+            .set({
+                nextAttemptAt: new Date(Date.now() + 24 * 60 * 60 * 1_000),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+            })
             .where(
                 and(
                     eq(animeReleaseRequest.anilistId, id),
@@ -177,20 +181,7 @@ async function requestWithLease(id: number, force: boolean) {
 }
 
 export function refreshAnimeRelease(id: number, options: { force?: boolean } = {}) {
-    const pending = requests.get(id);
-    if (pending) {
-        return pending;
-    }
-
-    const request = requestWithLease(id, options.force ?? false);
-    requests.set(id, request);
-    const cleanup = () => {
-        if (requests.get(id) === request) {
-            requests.delete(id);
-        }
-    };
-    void request.then(cleanup, cleanup);
-    return request;
+    return requestWithLease(id, options.force ?? false);
 }
 
 export async function storedAnimeRelease(id: number) {
@@ -271,20 +262,7 @@ async function fetchAnimeSchedule(id: number) {
 }
 
 export function refreshAnimeSchedule(id: number) {
-    const pending = scheduleRequests.get(id);
-    if (pending) {
-        return pending;
-    }
-
-    const request = fetchAnimeSchedule(id);
-    scheduleRequests.set(id, request);
-    const cleanup = () => {
-        if (scheduleRequests.get(id) === request) {
-            scheduleRequests.delete(id);
-        }
-    };
-    void request.then(cleanup, cleanup);
-    return request;
+    return fetchAnimeSchedule(id);
 }
 
 export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {

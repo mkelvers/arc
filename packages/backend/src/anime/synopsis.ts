@@ -4,6 +4,7 @@ import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeSynopsisCache } from '@arc/db/schema';
 import { getAnime } from './anilist/details';
+import { storedAnimeRelease } from './anilist/releases';
 import { plainText } from './anilist/text';
 import type { AniListAnime } from './anilist/types';
 import { create } from './tmdb/client';
@@ -14,14 +15,12 @@ import {
     isSeasonPlaceholderSynopsis,
 } from './synopsis/selection';
 
-const requests = new Map<number, Promise<string | null>>();
-
 function usefulSynopsis(value: string | null | undefined) {
     const synopsis = value?.trim() ?? '';
     return synopsis && !isSeasonPlaceholderSynopsis(synopsis) ? synopsis : null;
 }
 
-async function firstRelease(anime: AniListAnime) {
+async function firstRelease(anime: AniListAnime, refresh = false) {
     const visited = new Set<number>();
     let current = anime;
 
@@ -38,8 +37,14 @@ async function firstRelease(anime: AniListAnime) {
             return current;
         }
 
-        const prequels = await Promise.all(ids.map(getAnime));
-        const earliest = earliestRelease(prequels);
+        const prequels = await Promise.all(
+            ids.map((id) => (refresh ? getAnime(id) : storedAnimeRelease(id)))
+        );
+        const available = prequels.filter((prequel): prequel is AniListAnime => prequel !== null);
+        if (available.length !== prequels.length) {
+            return current;
+        }
+        const earliest = earliestRelease(available);
         if (!earliest) {
             return current;
         }
@@ -51,7 +56,7 @@ async function firstRelease(anime: AniListAnime) {
 }
 
 async function tmdbSynopsis(source: AniListAnime) {
-    const mapping = await resolveStored(source);
+    const mapping = await resolveStored(source, { refresh: true });
     const client = create();
 
     if (mapping.mediaType === 'movie') {
@@ -150,7 +155,11 @@ async function refreshSynopsis(anime: AniListAnime, source: AniListAnime) {
     }
 }
 
-async function resolvedTmdbSynopsis(anime: AniListAnime, source: AniListAnime) {
+async function resolvedTmdbSynopsis(
+    anime: AniListAnime,
+    source: AniListAnime,
+    options: { refresh?: boolean } = {}
+) {
     let stored:
         | { synopsis: string | null; sourceAnilistId: number | null; fetchedAt: Date }
         | undefined;
@@ -175,16 +184,12 @@ async function resolvedTmdbSynopsis(anime: AniListAnime, source: AniListAnime) {
         return stored.synopsis;
     }
 
-    const pending = requests.get(anime.id);
-    if (pending) {
-        return pending;
+    if (!options.refresh) {
+        return stored?.sourceAnilistId === source.id ? stored.synopsis : null;
     }
 
-    const request = refreshSynopsis(anime, source);
-    requests.set(anime.id, request);
-
     try {
-        return await request;
+        return await refreshSynopsis(anime, source);
     } catch (cause) {
         if (stored?.sourceAnilistId === source.id) {
             console.warn(
@@ -196,18 +201,22 @@ async function resolvedTmdbSynopsis(anime: AniListAnime, source: AniListAnime) {
 
         console.warn(`TMDB synopsis replacement failed for AniList ${anime.id}`, cause);
         return null;
-    } finally {
-        requests.delete(anime.id);
     }
 }
 
-export async function resolveAnimeSynopsis(anime: AniListAnime) {
+export async function resolveAnimeSynopsis(
+    anime: AniListAnime,
+    options: { refresh?: boolean } = {}
+) {
     const original = plainText(anime.description);
     if (!isSeasonPlaceholderSynopsis(original)) {
         return original;
     }
 
-    return (await resolvedTmdbSynopsis(anime, await firstRelease(anime))) ?? original;
+    return (
+        (await resolvedTmdbSynopsis(anime, await firstRelease(anime, options.refresh), options)) ??
+        original
+    );
 }
 
 export async function resolveHeroSynopsis(anime: AniListAnime) {

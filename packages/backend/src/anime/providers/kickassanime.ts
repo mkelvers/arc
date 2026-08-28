@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { RequestCache } from '#request-cache';
 import type { AniListAnime } from '../anilist/types';
 import { animeTitles } from '../anilist/text';
 import type { AudioMode } from '@arc/shared/audio';
@@ -51,8 +50,6 @@ interface KaaEpisode extends ProviderEpisode {
     showSlug: string;
     sourceSlugs: Partial<Record<AudioMode, string>>;
 }
-
-const inventoryCache = new RequestCache<number, KaaEpisode[]>(2 * 60 * 1_000);
 
 function score(title: string, candidate: string) {
     const left = title
@@ -196,7 +193,7 @@ async function loadInventory(anime: AniListAnime) {
 }
 
 function inventory(anime: AniListAnime) {
-    return inventoryCache.get(anime.id, () => loadInventory(anime));
+    return loadInventory(anime);
 }
 
 async function getEpisodes(anime: AniListAnime) {

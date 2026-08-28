@@ -23,7 +23,6 @@ import {
 } from './title';
 import { type Candidate, type Mapping, type StoredMapping } from './types';
 
-const requests = new Map<number, Promise<StoredMapping>>();
 const tvEvidenceCandidateLimit = 6;
 
 interface RankedCandidate {
@@ -447,39 +446,23 @@ async function refreshStoredMapping(
     }
 }
 
-export async function resolveStored(anime: AniListAnime): Promise<StoredMapping> {
+export async function resolveStored(
+    anime: AniListAnime,
+    options: { refresh?: boolean } = {}
+): Promise<StoredMapping> {
     const stored = await findMapping(anime.id);
     const title = animeTitles(anime)[0] ?? null;
-    if (stored && !mappingNeedsVerification(stored, title)) {
+    if (stored && (!options.refresh || !mappingNeedsVerification(stored, title))) {
         return stored;
     }
 
-    let request = requests.get(anime.id);
-
-    if (!request) {
-        request = refreshStoredMapping(anime, stored);
-        requests.set(anime.id, request);
-
-        const cleanup = () => {
-            if (requests.get(anime.id) === request) {
-                requests.delete(anime.id);
-            }
-        };
-        request.then(cleanup, cleanup);
-
-        if (stored) {
-            void request.catch((cause) => {
-                console.warn(
-                    `TMDB mapping background refresh failed for AniList ${anime.id}`,
-                    cause
-                );
-            });
-        }
+    if (!options.refresh) {
+        throw new NoConfidentTmdbMappingError(anime.id);
     }
 
     if (stored) {
         return stored;
     }
 
-    return request;
+    return refreshStoredMapping(anime, stored);
 }

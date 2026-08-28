@@ -1,5 +1,4 @@
 import type { AudioMode } from '@arc/shared/audio';
-import { RequestCache } from '#request-cache';
 import type { AniListAnime } from './anilist/types';
 import { findShowId } from './allanime/catalog';
 import { site } from './allanime/client';
@@ -8,7 +7,6 @@ import { encryptedSources } from './allanime/source-request';
 import { decodeSourceUrl, resolveTarget } from './allanime/sources';
 import type { Source, Stream, Streams } from './allanime/types';
 
-const cache = new RequestCache<string, Streams>(2 * 60 * 1_000);
 const priority = ['default', 's-mp4', 'yt-mp4', 'mp4'];
 
 function sourceRank(source: Source) {
@@ -133,6 +131,5 @@ async function resolveStreams(anime: AniListAnime, episode: string, modes: Audio
 }
 
 export async function getStreams(anime: AniListAnime, episode: string, modes: AudioMode[]) {
-    const key = `${anime.id}:${episode}:${modes.toSorted().join(',')}`;
-    return cache.get(key, () => resolveStreams(anime, episode, modes));
+    return resolveStreams(anime, episode, modes);
 }

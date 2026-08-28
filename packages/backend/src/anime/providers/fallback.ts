@@ -76,37 +76,7 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
         throw new TypeError('At least one playback provider is required');
     }
 
-    const episodeRequests = new Map<string, Promise<ProviderEpisode[]>>();
-    const streamRequests = new Map<string, Promise<ProviderStreams>>();
-    const completedStreams = new Map<string, { streams: ProviderStreams; expiresAt: number }>();
-    const backgroundStreams = new Map<string, Promise<ProviderStreams | null>>();
     const health = new Map<string, { failures: number; retryAt: number }>();
-
-    function shared<T>(requests: Map<string, Promise<T>>, key: string, request: () => Promise<T>) {
-        const existing = requests.get(key);
-        if (existing) {
-            return existing;
-        }
-
-        const pending = request();
-        requests.set(key, pending);
-        const cleanup = setTimeout(() => requests.delete(key), Math.max(timeoutMs * 2, 30_000));
-        pending.then(
-            () => {
-                clearTimeout(cleanup);
-                if (requests.get(key) === pending) {
-                    requests.delete(key);
-                }
-            },
-            () => {
-                clearTimeout(cleanup);
-                if (requests.get(key) === pending) {
-                    requests.delete(key);
-                }
-            }
-        );
-        return pending;
-    }
 
     function healthKey(provider: PlaybackProvider, capability: 'episodes' | 'streams') {
         return `${provider.name}:${capability}`;
@@ -170,9 +140,7 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                     try {
                         assertAvailable(provider, 'episodes');
                         const episodes = await timed(provider, 'episodes', timeoutMs, () =>
-                            shared(episodeRequests, `${provider.name}:${anime.id}`, () =>
-                                provider.getEpisodes(anime)
-                            )
+                            provider.getEpisodes(anime)
                         );
                         markHealthy(provider, 'episodes');
                         if (!episodes.length) {
@@ -329,42 +297,13 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
             throw new TypeError('At least one audio mode is required');
         }
 
-        const requestKey = [anime.id, episode.id, episode.number, requested.join(',')].join(':');
-        const now = Date.now();
-        for (const [key, entry] of completedStreams) {
-            if (entry.expiresAt <= now) {
-                completedStreams.delete(key);
-            }
-        }
-        const cached = completedStreams.get(requestKey);
-        if (cached) {
-            return cached.streams;
-        }
-        const background = backgroundStreams.get(requestKey);
-        if (background) {
-            const resolved = await background;
-            if (resolved) {
-                return resolved;
-            }
-        }
-
         const streams: ProviderStreams = Object.fromEntries(requested.map((mode) => [mode, []]));
         const settledResults = new Map<PlaybackProvider, StreamAttempt>();
         const attempts = providers.map(async (provider): Promise<StreamAttempt> => {
             try {
                 assertAvailable(provider, 'streams');
                 const result = await timed(provider, 'streams', timeoutMs, () =>
-                    shared(
-                        streamRequests,
-                        [
-                            provider.name,
-                            anime.id,
-                            episode.id,
-                            episode.number,
-                            requested.join(','),
-                        ].join(':'),
-                        () => provider.getStreams(anime, episode, requested)
-                    )
+                    provider.getStreams(anime, episode, requested)
                 );
                 markHealthy(provider, 'streams');
 
@@ -455,23 +394,6 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                 : result.results;
         const errors = mergedResults.flatMap((attempt) => attempt.errors);
         Object.assign(streams, mergeResults(mergedResults));
-
-        if (result.kind === 'available') {
-            const background = allResults
-                .then((results) => {
-                    const completed = mergeResults(results);
-                    if (!requested.every((mode) => completed[mode]?.length)) {
-                        return null;
-                    }
-                    completedStreams.set(requestKey, {
-                        streams: completed,
-                        expiresAt: Date.now() + 2 * 60_000,
-                    });
-                    return completed;
-                })
-                .finally(() => backgroundStreams.delete(requestKey));
-            backgroundStreams.set(requestKey, background);
-        }
 
         if (requested.some((mode) => streams[mode]?.length)) {
             return streams;

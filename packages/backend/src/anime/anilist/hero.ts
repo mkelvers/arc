@@ -5,9 +5,7 @@ import { db } from '@arc/db';
 import { homeHeroCandidate } from '@arc/db/schema';
 import { request } from './client';
 import { present } from './text';
-import { eligibleHomeHeroCandidates, type HomeHeroCandidate } from '../home/selection';
-
-let refreshRequest: Promise<HomeHeroCandidate[]> | null = null;
+import { eligibleHomeHeroCandidates } from '../home/selection';
 
 async function refreshCandidates(now: Date, forceRefresh = false) {
     const response = await request(
@@ -87,16 +85,6 @@ export function refreshHomeHeroCandidates(now = new Date()) {
     return refreshCandidates(now, true);
 }
 
-function refresh(now: Date) {
-    if (!refreshRequest) {
-        refreshRequest = refreshCandidates(now).finally(() => {
-            refreshRequest = null;
-        });
-    }
-
-    return refreshRequest;
-}
-
 export async function getHomeHeroCandidates(now = new Date()) {
     const stored = await db
         .select({
@@ -107,29 +95,9 @@ export async function getHomeHeroCandidates(now = new Date()) {
         })
         .from(homeHeroCandidate)
         .orderBy(asc(homeHeroCandidate.trendingRank));
-    const newest = stored[0]?.fetchedAt;
-    if (
-        newest &&
-        newest.getUTCFullYear() === now.getUTCFullYear() &&
-        now.getTime() - newest.getTime() < 24 * 60 * 60 * 1_000
-    ) {
-        return stored.map(({ fetchedAt, ...candidate }) => {
-            void fetchedAt;
-            return candidate;
-        });
-    }
-
-    try {
-        return await refresh(now);
-    } catch (cause) {
-        if (stored.length) {
-            console.warn('AniList hero candidate refresh failed; using stored candidates', cause);
-            return stored.map(({ fetchedAt, ...candidate }) => {
-                void fetchedAt;
-                return candidate;
-            });
-        }
-
-        throw cause;
-    }
+    void now;
+    return stored.map(({ fetchedAt, ...candidate }) => {
+        void fetchedAt;
+        return candidate;
+    });
 }

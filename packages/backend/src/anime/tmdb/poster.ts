@@ -18,9 +18,7 @@ import {
     selectReleaseSeason,
     type PosterCandidate,
 } from './poster-selection';
-import type { ArtworkImage, StoredMapping } from './types';
-
-const requests = new Map<string, Promise<ArtworkImage | null>>();
+import type { StoredMapping } from './types';
 
 const posterImageSchema = z.object({
     aspect_ratio: z.number().optional(),
@@ -339,13 +337,7 @@ export async function readPoster(match: StoredMapping) {
 }
 
 export async function getPoster(anime: AniListAnime, match: StoredMapping) {
-    const key = `${anime.id}:${match.externalIdId}`;
-    const active = requests.get(key);
-    if (active) {
-        return active;
-    }
-
-    const request = (async () => {
+    return (async () => {
         const cached = await cacheRow(match);
         if (cached && (anime.status === 'FINISHED' || isFresh(cached))) {
             return storedPoster(cached);
@@ -366,16 +358,6 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
             throw cause;
         }
     })();
-    requests.set(key, request);
-
-    const cleanup = () => {
-        if (requests.get(key) === request) {
-            requests.delete(key);
-        }
-    };
-    request.then(cleanup, cleanup);
-
-    return request;
 }
 
 export async function getPosterOptions(anime: AniListAnime) {
