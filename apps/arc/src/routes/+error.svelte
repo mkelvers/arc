@@ -22,7 +22,7 @@
     <header class="flex h-20 items-center sm:h-24">
         <a
             href="/"
-            aria-label={m.footer_home()}
+            aria-label={m.nav_home()}
             class="focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-accent"
         >
             <Logo alt="Arc" class="h-9" />
