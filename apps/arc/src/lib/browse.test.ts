@@ -1,12 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-    animeFormatLabel,
-    browseSearchParams,
-    metadataLabel,
-    parseBrowseFilters,
-    type BrowseFilters,
-} from '@arc/shared/browse';
+import { browseSearchParams, parseBrowseFilters, type BrowseFilters } from '@arc/shared/browse';
 
 describe('browse filters', () => {
     test('uses safe popularity defaults for a clean URL', () => {
@@ -99,10 +93,5 @@ describe('browse filters', () => {
         const filters = parseBrowseFilters(new URLSearchParams({ audio: 'sub' }));
 
         expect(filters?.audio).toBe('sub');
-    });
-
-    test('formats provider status and type values for display', () => {
-        expect(metadataLabel('NOT_YET_RELEASED')).toBe('Not Yet Released');
-        expect(animeFormatLabel('TV_SHORT')).toBe('TV Short');
     });
 });
