@@ -100,11 +100,7 @@ async function scheduleTarget(release: SchedulableRelease, discoverNextSchedule:
             set: {
                 expectedEpisodes: release.expectedEpisodes,
                 airingAt: release.airingAt,
-                nextAttemptAt: sql`case
-                    when ${animeEpisodeTarget.state} in ('confirmed', 'retired')
-                        then least(${animeEpisodeTarget.nextAttemptAt}, excluded.next_attempt_at)
-                    else ${animeEpisodeTarget.nextAttemptAt}
-                end`,
+                nextAttemptAt: sql`least(${animeEpisodeTarget.nextAttemptAt}, excluded.next_attempt_at)`,
                 state: sql`case
                     when ${animeEpisodeTarget.state} in ('confirmed', 'retired')
                         then 'pending'::anime_episode_target_state
