@@ -6,33 +6,14 @@ import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
-import { discoverEpisodeInventory, TargetEpisodeUnavailableError } from './episodes/sync';
+import { episodesAvailableToWatch } from './episodes/policy';
 
 export { withMovieBackdrop } from './movie-backdrop';
 
 export async function getEpisodes(anime: AniListAnime) {
-    const [stored, sync] = await Promise.all([
-        storedEpisodes(anime),
-        db
-            .select({ nextRefreshAt: animeEpisodeSync.nextRefreshAt })
-            .from(animeEpisodeSync)
-            .where(eq(animeEpisodeSync.anilistId, anime.id))
-            .limit(1)
-            .then(([state]) => state ?? null),
-    ]);
-    if (!episodeInventoryNeedsDiscovery(anime, stored, sync?.nextRefreshAt)) {
-        return episodesAvailableToWatch(stored, anime);
-    }
-
-    return discoverEpisodeInventory(anime)
-        .then((episodes) => episodesAvailableToWatch(episodes, anime))
-        .catch((cause) => {
-            if (cause instanceof TargetEpisodeUnavailableError && stored.length) {
-                return episodesAvailableToWatch(stored, anime);
-            }
-            throw cause;
-        });
+    // Page reads use the last verified provider inventory. Refreshes are owned by
+    // the scheduler, while a missing release import explicitly calls discovery.
+    return episodesAvailableToWatch(await storedEpisodes(anime), anime);
 }
 
 export async function getStoredAiringSchedule(anilistId: number) {

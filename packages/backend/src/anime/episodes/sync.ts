@@ -103,7 +103,7 @@ async function fetchAndStore(
             .then((rows) => rows[0] ?? null),
     ]);
 
-    const resolvedMetadataSource = await resolveStored(anime).catch((cause) => {
+    const resolvedMetadataSource = await resolveStored(anime, { refresh: true }).catch((cause) => {
         if (cause instanceof NoConfidentTmdbMappingError) {
             return null;
         }

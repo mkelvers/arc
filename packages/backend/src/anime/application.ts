@@ -2,7 +2,6 @@ import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/shar
 import type { AudioMode } from '@arc/shared/audio';
 import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '@arc/shared/season';
 import { getHomepage } from './anilist/home';
-import { getPopularAudioLabels } from './allanime/catalog';
 import { enrichAnimeCards } from './card-enrichment';
 import { toAnimeDetails } from './details';
 import {
@@ -12,6 +11,8 @@ import {
     getStoredAiringSchedule,
     withMovieBackdrop,
 } from './episodes';
+import { episodesAvailableToWatch } from './episodes/policy';
+import { discoverEpisodeInventory } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
@@ -21,6 +22,7 @@ import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
 import { getAnime } from './anilist/details';
+import { refreshAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import { getContinueWatchingCards, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getSimulcastSeasonStarts } from './anilist/simulcast';
@@ -31,18 +33,14 @@ export async function homePage(userId: string) {
     const { season, year } = currentAnimeSeason();
     const homepage = await getHomepage(season, year);
     const animeIds = [...new Set([...homepage.season, ...homepage.popular].map(({ id }) => id))];
-    const [highlights, continueWatching, audioByAnime, popularAudio] = await Promise.all([
+    const [highlights, continueWatching, audioByAnime] = await Promise.all([
         getHomeHero().catch(() => []),
         getContinueWatchingCards(userId).catch(() => []),
         storedAudioModes(animeIds),
-        getPopularAudioLabels().catch(() => new Map()),
     ]);
     const withAudio = (card: (typeof homepage.season)[number]) => ({
         ...card,
-        audioLabel: audioAvailabilityLabel([
-            ...(audioByAnime.get(card.id) ?? []),
-            ...(popularAudio.get(card.id) ?? []),
-        ]),
+        audioLabel: audioAvailabilityLabel([...(audioByAnime.get(card.id) ?? [])]),
     });
     const seasonCards = homepage.season.map(withAudio);
     const cards = await enrichAnimeCards([...seasonCards, ...homepage.popular.map(withAudio)]);
@@ -56,18 +54,24 @@ export async function homePage(userId: string) {
 }
 
 export async function animePage(userId: string, id: number) {
-    const anime = await getAnime(id);
+    const stored = await storedAnimeRelease(id);
+    const imported = !stored;
+    const anime = stored ?? (await refreshAnimeRelease(id));
     const [synopsis, storedAiringSchedule, episodes, watchlist] = await Promise.all([
-        resolveAnimeSynopsis(anime),
+        resolveAnimeSynopsis(anime, { refresh: imported }),
         getStoredAiringSchedule(id),
-        getEpisodes(anime),
+        imported
+            ? discoverEpisodeInventory(anime).then((entries) =>
+                  episodesAvailableToWatch(entries, anime)
+              )
+            : getEpisodes(anime),
         getPlaybackProgress(userId, id),
     ]);
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        getArtwork(anime).catch(() => null),
+        getArtwork(anime, { refresh: imported }).catch(() => null),
         anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
         getWatchlistState(userId, id),
     ]);
@@ -94,10 +98,12 @@ export async function mediaPage(id: number) {
         return stored;
     }
 
-    const anime = await getAnime(id);
+    const existing = await storedAnimeRelease(id);
+    const imported = !existing;
+    const anime = existing ?? (await refreshAnimeRelease(id));
     return {
         anime: toAnimeDetails(anime),
-        artwork: await getArtwork(anime).catch(() => null),
+        artwork: await getArtwork(anime, { refresh: imported }).catch(() => null),
     };
 }
 

@@ -255,7 +255,7 @@ export async function getEpisodeMetadata(
         return new Map();
     }
 
-    const match = storedMapping ?? (await resolveStored(anime));
+    const match = storedMapping ?? (await resolveStored(anime, { refresh: true }));
     const client = create();
 
     if (match.mediaType === 'movie') {

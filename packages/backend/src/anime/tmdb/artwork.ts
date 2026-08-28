@@ -7,7 +7,7 @@ import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
 import { findArtworkMappings, type ArtworkMappings } from './mapping-store';
-import { getPoster } from './poster';
+import { getPoster, readPoster } from './poster';
 import type { Artwork, ArtworkImage, StoredMapping } from './types';
 
 const artworkImageSchema = z.object({
@@ -101,15 +101,11 @@ function mergeArtwork(
     return { backdrops: merge('backdrops'), logos: merge('logos') };
 }
 
-export async function readArtwork(
-    mapping: ArtworkMappings,
-    status?: AniListAnime['status']
-): Promise<Artwork | null> {
+export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | null> {
     const externalIdIds = mapping.matches.map(({ externalIdId }) => externalIdId);
     const cached = await db
         .select({
             externalIdId: animeArtworkCache.externalIdId,
-            fetchedAt: animeArtworkCache.fetchedAt,
         })
         .from(animeArtworkCache)
         .where(
@@ -134,14 +130,7 @@ export async function readArtwork(
                 .map(storedImage);
         const backdrops = forType('backdrop');
         const logos = forType('logo');
-        const freshFor =
-            backdrops.length && logos.length ? 30 * 24 * 60 * 60 * 1_000 : 6 * 60 * 60 * 1_000;
-        const sourceCache = cached.find(({ externalIdId }) => externalIdId === match.externalIdId);
-
-        return sourceCache &&
-            (status === 'FINISHED' || Date.now() - sourceCache.fetchedAt.getTime() < freshFor)
-            ? { backdrops, logos }
-            : null;
+        return { backdrops, logos };
     });
 
     if (artwork.some((source) => source === null)) {
@@ -254,10 +243,10 @@ export async function fetchArtwork(mapping: ArtworkMappings) {
     return withSelections(mapping, mergeArtwork(artwork));
 }
 
-export async function getArtwork(anime: AniListAnime) {
+export async function getArtwork(anime: AniListAnime, options: { refresh?: boolean } = {}) {
     let match: StoredMapping;
     try {
-        match = await resolveStored(anime);
+        match = await resolveStored(anime, { refresh: options.refresh === true });
     } catch (cause) {
         if (cause instanceof NoConfidentTmdbMappingError) {
             return null;
@@ -270,15 +259,16 @@ export async function getArtwork(anime: AniListAnime) {
         preferenceExternalIdId: match.externalIdId,
     };
 
-    const [artwork, selectedPoster] = await Promise.all([
-        readArtwork(artworkMappings, anime.status).then(
-            (stored) => stored ?? fetchArtwork(artworkMappings)
-        ),
-        getPoster(anime, match).catch((cause) => {
-            console.warn(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
-            return null;
-        }),
-    ]);
+    const artwork = await readArtwork(artworkMappings);
+    if (!artwork) {
+        return null;
+    }
+    const selectedPoster = options.refresh
+        ? await getPoster(anime, match).catch((cause) => {
+              console.warn(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
+              return null;
+          })
+        : await readPoster(match);
 
     return { ...artwork, selectedPoster };
 }

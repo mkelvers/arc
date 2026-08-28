@@ -3,16 +3,14 @@ import { asc, desc, eq, lt } from 'drizzle-orm';
 import { audioAvailabilityLabel } from '@arc/shared/audio';
 import { db } from '@arc/db';
 import { homeHeroSelection } from '@arc/db/schema';
-import { getAnime } from './anilist/details';
 import { getHomeHeroCandidates } from './anilist/hero';
+import { storedAnimeRelease } from './anilist/releases';
 import { mediaTitle, present } from './anilist/text';
 import { isDiscoverableAnime } from './discovery';
 import { getEpisodes } from './episodes';
 import { resolveHeroSynopsis } from './synopsis';
 import { homeHeroRotationStart, rotatedHomeHeroCandidates, selectHomeHero } from './home/selection';
 import { getArtwork } from './tmdb/artwork';
-
-const requests = new Map<string, Promise<HomeHeroAnime[]>>();
 
 interface HomeHeroAnime {
     id: number;
@@ -60,7 +58,10 @@ async function previousSelection(rotationStart: string) {
 
 async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
     try {
-        const details = await getAnime(id);
+        const details = await storedAnimeRelease(id);
+        if (!details) {
+            return null;
+        }
         if (!isDiscoverableAnime(details)) {
             return null;
         }
@@ -172,20 +173,5 @@ async function loadHomeHero(rotationStart: string) {
 
 export function getHomeHero(now = new Date()) {
     const rotationStart = homeHeroRotationStart(now);
-    const active = requests.get(rotationStart);
-    if (active) {
-        return active;
-    }
-
-    const request = loadHomeHero(rotationStart);
-    requests.set(rotationStart, request);
-
-    const cleanup = () => {
-        if (requests.get(rotationStart) === request) {
-            requests.delete(rotationStart);
-        }
-    };
-    request.then(cleanup, cleanup);
-
-    return request;
+    return loadHomeHero(rotationStart);
 }
