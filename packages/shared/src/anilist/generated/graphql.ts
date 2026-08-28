@@ -268,11 +268,6 @@ export type SearchAnimePageQueryVariables = Exact<{
 
 export type SearchAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, synonyms: Array<string | null> | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, averageScore: number | null, popularity: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number } | null } | null> | null } | null } | null> | null } | null };
 
-export type SimulcastSeasonStartsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type SimulcastSeasonStartsQuery = { winter: { media: Array<{ seasonYear: number | null } | null> | null } | null, spring: { media: Array<{ seasonYear: number | null } | null> | null } | null, summer: { media: Array<{ seasonYear: number | null } | null> | null } | null, fall: { media: Array<{ seasonYear: number | null } | null> | null } | null };
-
 export type WatchlistTransferAnimeQueryVariables = Exact<{
   malIds?: Array<number | null | undefined> | number | null | undefined;
 }>;
@@ -718,54 +713,6 @@ export const SearchAnimePageDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<SearchAnimePageQuery, SearchAnimePageQueryVariables>;
-export const SimulcastSeasonStartsDocument = new TypedDocumentString(`
-    query SimulcastSeasonStarts {
-  winter: Page(page: 1, perPage: 1) {
-    media(
-      type: ANIME
-      season: WINTER
-      startDate_greater: 10000000
-      sort: [START_DATE]
-      isAdult: false
-    ) {
-      seasonYear
-    }
-  }
-  spring: Page(page: 1, perPage: 1) {
-    media(
-      type: ANIME
-      season: SPRING
-      startDate_greater: 10000000
-      sort: [START_DATE]
-      isAdult: false
-    ) {
-      seasonYear
-    }
-  }
-  summer: Page(page: 1, perPage: 1) {
-    media(
-      type: ANIME
-      season: SUMMER
-      startDate_greater: 10000000
-      sort: [START_DATE]
-      isAdult: false
-    ) {
-      seasonYear
-    }
-  }
-  fall: Page(page: 1, perPage: 1) {
-    media(
-      type: ANIME
-      season: FALL
-      startDate_greater: 10000000
-      sort: [START_DATE]
-      isAdult: false
-    ) {
-      seasonYear
-    }
-  }
-}
-    `) as unknown as TypedDocumentString<SimulcastSeasonStartsQuery, SimulcastSeasonStartsQueryVariables>;
 export const WatchlistTransferAnimeDocument = new TypedDocumentString(`
     query WatchlistTransferAnime($malIds: [Int]) {
   mal: Page(page: 1, perPage: 50) {

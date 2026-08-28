@@ -449,6 +449,13 @@
             "when": 1787769000000,
             "tag": "0063_distinct_connected_posters",
             "breakpoints": true
+        },
+        {
+            "idx": 64,
+            "version": "7",
+            "when": 1787939517000,
+            "tag": "0064_remove_allanime",
+            "breakpoints": true
         }
     ]
 }

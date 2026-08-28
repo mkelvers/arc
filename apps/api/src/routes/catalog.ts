@@ -4,15 +4,10 @@ import { z } from 'zod';
 import { PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
 import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
-import { homePage, simulcast } from '@arc/backend/internal/anime/application';
+import { homePage } from '@arc/backend/internal/anime/application';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
 import { dismissPlaybackProgress } from '@arc/backend/progress';
 import { middleware, validate, type ApiEnvironment } from '../http';
-
-const SimulcastQuerySchema = PageQuerySchema.extend({
-    season: z.string().optional(),
-    year: z.string().optional(),
-});
 
 export const catalog = new Hono<ApiEnvironment>();
 
@@ -63,17 +58,4 @@ catalog.get('/search', validate('query', SearchQuerySchema), async (context) => 
     }
 
     return context.json(await getSearchResults(query));
-});
-
-catalog.get('/simulcast', validate('query', SimulcastQuerySchema), async (context) => {
-    const page = await simulcast(
-        new URLSearchParams(context.req.query()),
-        context.req.valid('query').page
-    );
-    return page
-        ? context.json(context.req.valid('query').page === 1 ? page : page.page)
-        : context.json(
-              { error: { code: 'NOT_FOUND', message: 'That simulcast season is not available' } },
-              404
-          );
 });

@@ -143,22 +143,6 @@ export const CatalogPageSchema = AnimeCardPageSchema.extend({
     loadedAt: z.iso.datetime(),
 });
 
-export const SimulcastPageSchema = z.object({
-    season: z.string(),
-    year: z.number().int(),
-    label: z.string(),
-    options: z.array(
-        z.object({
-            season: z.string(),
-            year: z.number().int(),
-            label: z.string(),
-            current: z.boolean(),
-            href: z.string(),
-        })
-    ),
-    page: AnimeCardPageSchema,
-});
-
 export const AnimePageSchema = z.object({
     anime: AnimeDetailsSchema,
     artwork: ArtworkSchema.nullable(),

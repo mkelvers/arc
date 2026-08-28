@@ -1,12 +1,10 @@
-import { currentAnimeSeason, parseAnimeSeason } from '@arc/shared/season';
+import { currentAnimeSeason } from '@arc/shared/season';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/db';
-import { animeFranchiseCache, animeRelease, animeSimulcastPageCache } from '@arc/db/schema';
-import { refreshSimulcastPage } from '../allanime/catalog';
+import { animeFranchiseCache, animeRelease } from '@arc/db/schema';
 import { getBrowseTaxonomy } from '../anilist/browse';
 import { refreshHomeHeroCandidates } from '../anilist/hero';
 import { refreshHomepage } from '../anilist/home';
-import { refreshSimulcastSeasonStarts } from '../anilist/simulcast';
 import { refreshPopularAnime } from '../browse';
 import { refreshFranchiseOrder } from '../franchise';
 
@@ -50,21 +48,6 @@ export async function refreshCatalogSnapshots(now = new Date()) {
     await refreshHomepage(season, year);
     await refreshPopularAnime();
     await getBrowseTaxonomy(true);
-    await refreshSimulcastSeasonStarts();
     await refreshHomeHeroCandidates(now);
     await refreshKnownFranchises(now);
-
-    const pages = await db
-        .select({
-            season: animeSimulcastPageCache.season,
-            year: animeSimulcastPageCache.year,
-            page: animeSimulcastPageCache.page,
-        })
-        .from(animeSimulcastPageCache);
-    await Promise.all(
-        pages.flatMap(({ season, year, page }) => {
-            const parsedSeason = parseAnimeSeason(season);
-            return parsedSeason ? [refreshSimulcastPage({ season: parsedSeason, year }, page)] : [];
-        })
-    );
 }

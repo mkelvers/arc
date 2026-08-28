@@ -442,18 +442,6 @@ export const animeCardCache = pgTable('anime_card_cache', {
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const animeSimulcastPageCache = pgTable(
-    'anime_simulcast_page_cache',
-    {
-        season: varchar('season', { length: 8 }).notNull(),
-        year: integer('year').notNull(),
-        page: integer('page').notNull(),
-        data: jsonb('data').$type<unknown>().notNull(),
-        fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-    },
-    (table) => [primaryKey({ columns: [table.season, table.year, table.page] })]
-);
-
 export const animeCatalog = pgTable(
     'anime_catalog',
     {
@@ -513,13 +501,6 @@ export const animeCatalogTaxonomy = pgTable('anime_catalog_taxonomy', {
     sources: text('sources').array().notNull().default([]),
     seasons: text('seasons').array().notNull().default([]),
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const animePlaybackProvider = pgTable('anime_playback_provider', {
-    anilistId: integer('anilist_id').primaryKey(),
-    allanimeShowId: text('allanime_show_id').notNull(),
-    discoveredAt: timestamp('discovered_at', { withTimezone: true }).notNull().defaultNow(),
-    verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const animeProviderMapping = pgTable(
