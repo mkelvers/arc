@@ -1,6 +1,7 @@
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import { animeDate } from '../date';
+import { logger } from '@arc/backend/internal/logger';
 import { episodeTitleKey } from '../providers/match';
 import { create } from './client';
 import {
@@ -435,7 +436,7 @@ async function refreshStoredMapping(
         return await discoverMapping(anime);
     } catch (cause) {
         if (stored && stored.title === title) {
-            console.error(
+            logger.debug(
                 `TMDB mapping revalidation failed for AniList ${anime.id}; using the last verified mapping`,
                 cause
             );

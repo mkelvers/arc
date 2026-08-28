@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AudioMode } from '@arc/shared/audio';
 import { positiveInteger } from '#utils';
 import { animeTitles } from '../anilist/text';
+import { logger } from '@arc/backend/internal/logger';
 import { fullestCaption } from './captions';
 import { settledStreams } from './fallback';
 import { providerMediaId, saveProviderMediaId, verifyProviderMediaId } from './mapping';
@@ -157,7 +158,7 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
         await requestJson(new URL(`/ajax/episode/list/${seriesId}`, baseUrl))
     );
     if (!episodesResponse.success || episodesResponse.data.status !== 200) {
-        console.warn('[AniKoto] live episode list unavailable', { seriesId, episodeNumber });
+        logger.debug('[AniKoto] live episode list unavailable', { seriesId, episodeNumber });
         return [];
     }
 
@@ -165,7 +166,7 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
         .replaceAll('\\/', '/')
         .match(new RegExp(`data-num=["']${episodeNumber}["'][^>]*data-ids=["']([^"']+)["']`, 'i'));
     if (!episode) {
-        console.warn('[AniKoto] live episode missing', { seriesId, episodeNumber });
+        logger.debug('[AniKoto] live episode missing', { seriesId, episodeNumber });
         return [];
     }
 
@@ -175,7 +176,7 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
         )
     );
     if (!serversResponse.success || serversResponse.data.status !== 200) {
-        console.warn('[AniKoto] live server list unavailable', { seriesId, episodeNumber });
+        logger.debug('[AniKoto] live server list unavailable', { seriesId, episodeNumber });
         return [];
     }
 
@@ -197,7 +198,7 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
                 try {
                     return await resolveStream(embed);
                 } catch (cause) {
-                    console.warn('[AniKoto] native dub extraction failed; skipping server', {
+                    logger.debug('[AniKoto] native dub extraction failed; skipping server', {
                         seriesId,
                         episodeNumber,
                         reason: cause instanceof Error ? cause.message : 'unknown error',
@@ -209,7 +210,7 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
     );
     const playable = streams.flatMap((result, index) => {
         if (result.status === 'fulfilled') return [result.value];
-        console.warn('[AniKoto] live dub server resolution failed', {
+        logger.debug('[AniKoto] live dub server resolution failed', {
             seriesId,
             episodeNumber,
             server: index + 1,
@@ -218,7 +219,7 @@ async function liveDubStreams(seriesId: number, episodeNumber: number) {
         return [];
     });
     if (!playable.length && linkIds.length) {
-        console.warn('[AniKoto] live dub servers returned no usable URLs', {
+        logger.debug('[AniKoto] live dub servers returned no usable URLs', {
             seriesId,
             episodeNumber,
             attempted: linkIds.length,

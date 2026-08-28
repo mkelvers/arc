@@ -8,6 +8,7 @@ import { storedAnimeRelease } from './anilist/releases';
 import { mediaTitle, present } from './anilist/text';
 import { isDiscoverableAnime } from './discovery';
 import { getEpisodes } from './episodes';
+import { logger } from '@arc/backend/internal/logger';
 import { resolveHeroSynopsis } from './synopsis';
 import { homeHeroRotationStart, rotatedHomeHeroCandidates, selectHomeHero } from './home/selection';
 import { getArtwork } from './tmdb/artwork';
@@ -96,7 +97,7 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
             description: await resolveHeroSynopsis(details),
         };
     } catch (cause) {
-        console.error(`Homepage hero candidate ${id} failed`, cause);
+        logger.debug(`Homepage hero candidate ${id} failed`, cause);
         return null;
     }
 }
@@ -160,7 +161,7 @@ async function loadHomeHero(rotationStart: string) {
     } catch (cause) {
         const { previous } = await previousSelection(rotationStart);
         if (previous.length) {
-            console.error(
+            logger.debug(
                 `Homepage hero rotation failed; using ${previous.length} previous selections`,
                 cause
             );

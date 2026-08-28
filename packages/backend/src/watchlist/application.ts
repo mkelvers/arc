@@ -3,6 +3,7 @@ import { animeTitles } from '../anime/anilist/text';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '../anime/details';
 import { storedAudioModes } from '../anime/episodes/model';
+import { logger } from '@arc/backend/internal/logger';
 import { selectWatchlistEntries, type WatchlistSelection } from './selection';
 import {
     applyWatchlistEntries,
@@ -78,11 +79,11 @@ export async function getWatchlistPage(userId: string, selection: WatchlistSelec
     const [audioByAnime, enrichedCards] = await Promise.all([
         storedAudioModes(cards.map(({ id }) => id)),
         enrichAnimeCards(cards).catch((cause) => {
-            console.warn('Watchlist card enrichment failed', cause);
+            logger.debug('Watchlist card enrichment failed', cause);
             return cards;
         }),
         storeMissingWatchlistTitles(titleBackfills).catch((cause) => {
-            console.warn('Watchlist title backfill failed', cause);
+            logger.debug('Watchlist title backfill failed', cause);
         }),
     ]);
     const entries = selectWatchlistEntries(enrichedCards, titledStored, audioByAnime, selection);

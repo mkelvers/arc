@@ -17,6 +17,7 @@ import { animeSimulcastPageCache } from '@arc/db/schema';
 import { positiveInteger, text } from '#utils';
 import type { JsonValue } from '#utils';
 import { animeTitles, plainText } from '../anilist/text';
+import { logger } from '@arc/backend/internal/logger';
 import { request } from './client';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisode } from '../providers/types';
@@ -161,7 +162,7 @@ export function refreshSimulcastPage(selected: AnimeSeasonSelection, page: numbe
                     set: { data, fetchedAt: new Date() },
                 });
         } catch (cause) {
-            console.warn('AllAnime simulcast cache write failed', cause);
+            logger.debug('AllAnime simulcast cache write failed', cause);
         }
 
         return data;

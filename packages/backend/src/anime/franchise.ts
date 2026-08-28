@@ -18,6 +18,7 @@ import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import { FranchiseCacheSchema, verifiedFranchiseCache } from './franchise/cache';
 import { withFranchisePlayback } from './franchise/playback';
+import { logger } from '@arc/backend/internal/logger';
 import {
     isFranchiseEntryEligible,
     primaryFranchiseIds,
@@ -148,7 +149,7 @@ async function saveOrder(tx: DatabaseTransaction, malId: number, data: Franchise
                 set: { data: cached, fetchedAt },
             });
     } catch (cause) {
-        console.error(`Franchise cache write failed for MAL ${malId}`, cause);
+        logger.debug(`Franchise cache write failed for MAL ${malId}`, cause);
     }
 }
 
@@ -264,7 +265,7 @@ async function cachedFranchiseOrder(malId: number) {
             .where(eq(animeFranchiseCache.malId, malId))
             .limit(1);
     } catch (cause) {
-        console.error(`Franchise cache read failed for MAL ${malId}`, cause);
+        logger.debug(`Franchise cache read failed for MAL ${malId}`, cause);
     }
 
     const parsedStored = stored ? FranchiseCacheSchema.safeParse(stored.data) : null;

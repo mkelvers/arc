@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { db, excluded } from '@arc/db';
 import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '@arc/db/schema';
+import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
@@ -208,7 +209,7 @@ async function fetchArtworkSource(match: StoredMapping) {
               });
 
     const languageCodes = await allImageLanguages(client).catch((cause) => {
-        console.warn(`TMDB language configuration failed for ${match.id}`, cause);
+        logger.debug(`TMDB language configuration failed for ${match.id}`, cause);
         return [];
     });
     const languageResponses = [];
@@ -232,7 +233,7 @@ async function fetchArtworkSource(match: StoredMapping) {
                                   },
                               });
                     } catch (cause) {
-                        console.warn(
+                        logger.debug(
                             `TMDB ${language} artwork request failed for ${match.id}`,
                             cause
                         );
@@ -362,7 +363,7 @@ export async function getArtwork(
     let artwork = await readArtwork(artworkMappings);
     if (!artwork && (options.refresh || options.fetchMissing)) {
         artwork = await fetchArtwork(artworkMappings).catch((cause) => {
-            console.warn(`TMDB artwork enrichment failed for AniList ${anime.id}`, cause);
+            logger.debug(`TMDB artwork enrichment failed for AniList ${anime.id}`, cause);
             return null;
         });
     }
@@ -371,7 +372,7 @@ export async function getArtwork(
     }
     const selectedPoster = options.refresh
         ? await getPoster(anime, match).catch((cause) => {
-              console.warn(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
+              logger.debug(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
               return null;
           })
         : await readPoster(match);

@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { db, type DatabaseTransaction } from '@arc/db';
 import { anilistQueryCache } from '@arc/db/schema';
+import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
 import { coordinatedAniListRequest } from './durable-request-policy';
@@ -63,7 +64,7 @@ async function refresh<TResult, TVariables>(
                 set: { data, expiresAt, fetchedAt },
             });
     } catch (cause) {
-        console.warn('AniList query cache write failed', cause);
+        logger.debug('AniList query cache write failed', cause);
     }
 
     return data;
@@ -134,7 +135,7 @@ export async function request<TResult, TVariables>(
             }
         }
     } catch (cause) {
-        console.warn('AniList query cache read failed', cause);
+        logger.debug('AniList query cache read failed', cause);
     }
 
     return refreshWithLock(key, document, variables, options, new Date());

@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeSynopsisCache } from '@arc/db/schema';
+import { logger } from '@arc/backend/internal/logger';
 import { getAnime } from './anilist/details';
 import { storedAnimeRelease } from './anilist/releases';
 import { plainText } from './anilist/text';
@@ -130,7 +131,7 @@ async function refreshSynopsis(anime: AniListAnime, source: AniListAnime) {
         return replacement.synopsis;
     } catch (cause) {
         if (cause instanceof NoConfidentTmdbMappingError) {
-            console.info(`No TMDB synopsis replacement found for AniList ${anime.id}`);
+            logger.debug(`No TMDB synopsis replacement found for AniList ${anime.id}`);
             await db
                 .insert(animeSynopsisCache)
                 .values({
@@ -174,7 +175,7 @@ async function resolvedTmdbSynopsis(
             .where(eq(animeSynopsisCache.anilistId, anime.id))
             .limit(1);
     } catch (cause) {
-        console.warn(`Synopsis cache read failed for AniList ${anime.id}`, cause);
+        logger.debug(`Synopsis cache read failed for AniList ${anime.id}`, cause);
     }
     if (
         stored?.sourceAnilistId === source.id &&
@@ -192,14 +193,14 @@ async function resolvedTmdbSynopsis(
         return await refreshSynopsis(anime, source);
     } catch (cause) {
         if (stored?.sourceAnilistId === source.id) {
-            console.warn(
+            logger.debug(
                 `TMDB synopsis refresh failed for AniList ${anime.id}; using stored text`,
                 cause
             );
             return stored.synopsis;
         }
 
-        console.warn(`TMDB synopsis replacement failed for AniList ${anime.id}`, cause);
+        logger.debug(`TMDB synopsis replacement failed for AniList ${anime.id}`, cause);
         return null;
     }
 }
@@ -241,7 +242,7 @@ export async function withAnimeCardSynopses<T extends AnimeCard>(cards: T[]) {
                         const anime = await getAnime(card.id);
                         return { ...card, synopsis: await resolveAnimeSynopsis(anime) };
                     } catch (cause) {
-                        console.warn(
+                        logger.debug(
                             `Card synopsis replacement failed for AniList ${card.id}`,
                             cause
                         );

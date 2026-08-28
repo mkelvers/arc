@@ -10,6 +10,7 @@ import {
     animeExternalIdLink,
     animeReleasePoster,
 } from '@arc/db/schema';
+import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
@@ -212,7 +213,7 @@ async function hasVisuallyMatchingPoster(filePath: string, usedPaths: Set<string
             }
         }
     } catch (cause) {
-        console.warn(`TMDB poster comparison failed for ${filePath}; using path uniqueness`, cause);
+        logger.debug(`TMDB poster comparison failed for ${filePath}; using path uniqueness`, cause);
     }
 
     return false;
@@ -349,7 +350,7 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
         } catch (cause) {
             const stale = cached ? storedPoster(cached) : null;
             if (stale) {
-                console.warn(
+                logger.debug(
                     `TMDB poster refresh failed for AniList ${anime.id}; using cached poster`,
                     cause
                 );

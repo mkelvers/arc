@@ -8,6 +8,7 @@ import {
     animeEpisodeTarget,
     maintenanceTask,
 } from '@arc/db/schema';
+import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
 import { scheduleReleaseTargets } from '../scheduler/targets';
@@ -108,7 +109,7 @@ async function fetchAndStore(
         if (cause instanceof NoConfidentTmdbMappingError) {
             return null;
         }
-        console.error(`TMDB episode enrichment failed for AniList ${anime.id}`, cause);
+        logger.debug(`TMDB episode enrichment failed for AniList ${anime.id}`, cause);
         return null;
     });
     const metadata = resolvedMetadataSource
@@ -123,7 +124,7 @@ async function fetchAndStore(
                   ? storedText
                   : new Map()
           ).catch((cause) => {
-              console.error(`TMDB episode enrichment failed for AniList ${anime.id}`, cause);
+              logger.debug(`TMDB episode enrichment failed for AniList ${anime.id}`, cause);
               return null;
           })
         : null;
@@ -360,14 +361,14 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
         .catch(async (cause) => {
             if (cause instanceof TargetEpisodeUnavailableError) {
                 await scheduleReleaseTargets([anime.id]).catch((failure) =>
-                    console.error(
+                    logger.debug(
                         `Could not schedule episode target for AniList ${anime.id}`,
                         failure
                     )
                 );
             }
             await enqueueEpisodeInventoryBackfill(anime.id).catch((failure) =>
-                console.error(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
+                logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
             throw cause;
         });
