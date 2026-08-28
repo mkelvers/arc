@@ -31,3 +31,4 @@ decisions.tsv
 # Local production runtime data
 /deploy/backups/
 /deploy/secrets/
+/output/staging-acceptance/
