@@ -69,6 +69,7 @@ const state = {
     preference: null as PreferenceRow | null,
     payload: { backdrops: [], logos: [] } as ArtworkPayload,
     localizedPayload: null as ArtworkPayload | null,
+    placeholderPayload: null as ArtworkPayload | null,
     fetchError: null as Error | null,
     fetchCount: 0,
     fetchQueries: [] as ArtworkQuery[],
@@ -144,6 +145,12 @@ mock.module('./client', () => ({
             if (state.fetchError) {
                 throw state.fetchError;
             }
+            if (
+                request.params?.query?.include_image_language.includes('xx') &&
+                state.placeholderPayload
+            ) {
+                return { data: state.placeholderPayload };
+            }
             return {
                 data: request.params?.query
                     ? (state.localizedPayload ?? state.payload)
@@ -181,6 +188,7 @@ beforeEach(() => {
     state.preference = null;
     state.payload = { backdrops: [], logos: [] };
     state.localizedPayload = null;
+    state.placeholderPayload = null;
     state.fetchError = null;
     state.fetchCount = 0;
     state.fetchQueries = [];
@@ -216,11 +224,24 @@ describe('TMDB anime artwork', () => {
 
         expect(state.fetchQueries).toEqual([
             null,
-            { include_image_language: 'en-US' },
-            { include_image_language: 'en' },
-            { include_image_language: 'ja' },
-            { include_image_language: 'null' },
+            { include_image_language: 'en-US,xx' },
+            { include_image_language: 'en,xx' },
+            { include_image_language: 'ja,xx' },
+            { include_image_language: 'null,xx' },
         ]);
+    });
+
+    test('fetches TMDB placeholder-language images added after the initial artwork cache', async () => {
+        state.localizedPayload = { backdrops: [], logos: [] };
+        state.placeholderPayload = {
+            backdrops: [{ file_path: '/new-backdrop.jpg', width: 3840, height: 2160 }],
+            logos: [{ file_path: '/new-logo.png', width: 512, height: 114 }],
+        };
+
+        const artwork = await getArtwork(anime, { refresh: true });
+
+        expect(artwork?.backdrops.map(({ filePath }) => filePath)).toContain('/new-backdrop.jpg');
+        expect(artwork?.logos.map(({ filePath }) => filePath)).toContain('/new-logo.png');
     });
 
     test('merges unfiltered and language-filtered artwork', async () => {

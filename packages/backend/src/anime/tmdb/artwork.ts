@@ -219,17 +219,19 @@ async function fetchArtworkSource(match: StoredMapping) {
             ...(await Promise.all(
                 batch.map(async (language) => {
                     try {
+                        // TMDB uses xx for images without a language, including freshly added images.
+                        const query = { include_image_language: `${language},xx` };
                         return match.mediaType === 'movie'
                             ? await client.GET('/3/movie/{movie_id}/images', {
                                   params: {
                                       path: { movie_id: match.id },
-                                      query: { include_image_language: language },
+                                      query,
                                   },
                               })
                             : await client.GET('/3/tv/{series_id}/images', {
                                   params: {
                                       path: { series_id: match.id },
-                                      query: { include_image_language: language },
+                                      query,
                                   },
                               });
                     } catch (cause) {
