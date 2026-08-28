@@ -88,7 +88,7 @@
             id="franchise-order-filter"
             ariaLabel={`${m.franchise_filters()}: ${selectedFilterLabel}`}
             menuClass="mt-2 w-48 shadow-xl"
-            triggerClass="flex min-h-9 cursor-pointer items-center gap-2 px-2 text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+            triggerClass="flex min-h-9 cursor-pointer items-center gap-2 px-2 text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
         >
             {#snippet trigger()}
                 <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />

@@ -1,12 +1,6 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte';
-    import {
-        CircleIcon,
-        CircleNotchIcon,
-        FunnelIcon,
-        ListBulletsIcon,
-        RadioButtonIcon,
-    } from 'phosphor-svelte';
+    import { CircleIcon, CircleNotchIcon, FunnelIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
 
     import { browseSearchParams, type BrowseFilters } from '@arc/shared/browse';
     import type { AnimeCard as AnimeCardModel } from '@arc/shared/types';
@@ -199,7 +193,7 @@
                     id="catalog-sort"
                     ariaLabel={`Sort anime. ${selectedSortLabel} selected`}
                     menuClass="mt-2 w-52 shadow-xl"
-                    triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+                    triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}
                         <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
@@ -226,7 +220,7 @@
                     id="catalog-filter"
                     ariaLabel={`Filter anime${selectedFilterCount ? `, ${selectedFilterCount} selected` : ''}`}
                     menuClass="mt-2 w-60 shadow-xl"
-                    triggerClass="ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+                    triggerClass="ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}
                         <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />

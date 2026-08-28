@@ -117,7 +117,7 @@
                 items={data.options}
                 ariaLabel={m.simulcast_choose({ label: data.label })}
                 menuClass="top-full left-0 mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl right-auto sm:right-0 sm:left-auto"
-                triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground peer-checked:bg-surface peer-checked:text-foreground"
+                triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
             >
                 {#snippet trigger()}
                     <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
