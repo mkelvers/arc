@@ -6,10 +6,35 @@ import { saveEpisodeSegment } from '@arc/backend/internal/anime/skip-times';
 import { parsePlaybackProgress } from '@arc/backend/internal/progress/input';
 import { savePlaybackProgress } from '@arc/backend/progress';
 import { middleware, validate, type ApiEnvironment } from '../http';
+import { proxyStreamRequest, StreamProxyError } from '../stream';
 
 export const playback = new Hono<ApiEnvironment>();
 
 playback.use('*', middleware);
+
+playback.get('/stream', async (context) => {
+    try {
+        return await proxyStreamRequest(context.req.raw, fetch);
+    } catch (cause) {
+        if (!(cause instanceof StreamProxyError)) {
+            throw cause;
+        }
+
+        const status =
+            cause.reason.kind === 'missing-source' || cause.reason.kind === 'invalid-source'
+                ? 400
+                : cause.reason.kind === 'unsupported-host' ||
+                    cause.reason.kind === 'unsupported-redirect'
+                  ? 403
+                  : cause.reason.kind === 'body-timeout'
+                    ? 504
+                    : 502;
+        return context.json(
+            { error: { code: 'STREAM_FAILED', message: 'Episode stream failed' } },
+            status
+        );
+    }
+});
 
 playback.post('/progress', validate('json', PlaybackProgressSchema), async (context) => {
     const input = parsePlaybackProgress(context.req.valid('json'));
