@@ -1,6 +1,5 @@
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 
-import { mergeAudioModes } from '@arc/shared/audio';
 import { db, excluded } from '@arc/db';
 import {
     animeEpisode,
@@ -196,7 +195,9 @@ async function fetchAndStore(
                 metadataTitle: media?.title || previousMetadata?.metadataTitle || null,
                 metadataTitleSource:
                     media?.titleSource ?? previousMetadata?.metadataTitleSource ?? null,
-                audio: mergeAudioModes(previous?.audio, episode.audio),
+                // The sole playback provider is authoritative per episode. Do not
+                // retain a mode that a later inventory refresh no longer reports.
+                audio: episode.audio,
                 imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
                 runtimeMinutes: media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
                 // AniList's confirmed airing timestamp is the release truth;

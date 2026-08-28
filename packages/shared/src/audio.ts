@@ -30,10 +30,3 @@ export function episodeAudioAvailabilityLabel(
 ) {
     return audioAvailabilityLabel(episodes.flatMap((episode) => episode.audio));
 }
-
-export function mergeAudioModes(
-    stored: readonly AudioMode[] = [],
-    observed: readonly AudioMode[] = []
-) {
-    return orderedAudio([...stored, ...observed]);
-}

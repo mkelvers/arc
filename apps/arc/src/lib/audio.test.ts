@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-    audioAvailabilityLabel,
-    episodeAudioAvailabilityLabel,
-    mergeAudioModes,
-} from '@arc/shared/audio';
+import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/shared/audio';
 
 describe('audio availability labels', () => {
     test('derives labels from normalized audio modes', () => {
@@ -21,10 +17,5 @@ describe('audio availability labels', () => {
             'Dub | Sub'
         );
         expect(episodeAudioAvailabilityLabel([{ audio: ['dub'] }])).toBe('Dubbed');
-    });
-
-    test('keeps previously verified availability during later refreshes', () => {
-        expect(mergeAudioModes(['sub'], ['dub'])).toEqual(['sub', 'dub']);
-        expect(mergeAudioModes(['sub', 'dub'], ['sub'])).toEqual(['sub', 'dub']);
     });
 });
