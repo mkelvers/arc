@@ -1,15 +1,13 @@
-import { rankAnimeSearch, type AnimeSearchResult } from '@arc/shared/search';
+import { rankAnimeSearch } from '@arc/shared/search';
 import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { request } from './anilist/client';
 import { animeCard } from './anilist/models';
 import { animeTitles, present } from './anilist/text';
-import { RequestCache } from '../request-cache';
 import { createAnimeSearchIndex } from './search-index';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';
 
-const cache = new RequestCache<string, AnimeSearchResult[]>(5 * 60 * 1_000);
 const searchIndex = createAnimeSearchIndex(db);
 
 async function requestSearch(search: string) {
@@ -52,14 +50,13 @@ async function searchAnime(search: string) {
         return [];
     }
 
-    return cache.get(
-        key,
-        async () => {
-            const stored = await searchIndex.find(search);
-            return stored.length ? stored : requestSearch(search.trim());
-        },
-        { staleIfError: true, staleWhileRevalidate: true }
-    );
+    const stored = await searchIndex.find(search);
+    if (stored.length) {
+        return stored;
+    }
+
+    // Search is explicit user intent; only a local miss may ingest from AniList.
+    return requestSearch(search.trim());
 }
 
 export async function getSearchResults(search: string) {

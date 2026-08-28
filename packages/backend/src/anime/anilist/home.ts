@@ -1,15 +1,13 @@
 import type { AnimeCard } from '@arc/shared/types';
 import { HomeAnimeDocument, type MediaSeason } from '@arc/shared/anilist/generated/graphql';
-import { RequestCache } from '#request-cache';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import { db } from '@arc/db';
+import { animeCatalog } from '@arc/db/schema';
 import { request } from './client';
 import { selectPopularAnime } from './home-selection';
 import { animeCard } from './models';
 import { present } from './text';
 import { discoveryFormats, discoveryMinimumPopularity, isDiscoverableAnime } from '../discovery';
-
-const cache = new RequestCache<string, { season: AnimeCard[]; popular: AnimeCard[] }>(
-    30 * 60 * 1_000
-);
 
 async function requestHomepage(season: MediaSeason, seasonYear: number, forceRefresh = false) {
     const response = await request(
@@ -47,14 +45,42 @@ export function refreshHomepage(season: MediaSeason, seasonYear: number) {
 }
 
 export async function getHomepage(season: MediaSeason, seasonYear: number) {
-    const key = `${season}:${seasonYear}`;
-    return cache.get(
-        key,
-        () =>
-            requestHomepage(season, seasonYear).catch((cause) => {
-                console.error('AniList homepage refresh failed', cause);
-                throw cause;
-            }),
-        { staleIfError: true, staleWhileRevalidate: true }
-    );
+    const toCard = (row: typeof animeCatalog.$inferSelect): AnimeCard => ({
+        id: row.anilistId,
+        href: `/anime/${row.anilistId}`,
+        link: `/anime/${row.anilistId}`,
+        title: row.title,
+        image: row.imageUrl,
+        audioLabel: '',
+        format: row.format,
+        status: row.status,
+        score: row.averageScore ?? 0,
+        genres: row.genres,
+        synopsis: row.synopsis,
+    });
+    const [seasonRows, popularRows] = await Promise.all([
+        db
+            .select()
+            .from(animeCatalog)
+            .where(
+                and(
+                    eq(animeCatalog.season, season),
+                    eq(animeCatalog.seasonYear, seasonYear),
+                    inArray(animeCatalog.status, ['RELEASING', 'FINISHED'])
+                )
+            )
+            .orderBy(desc(animeCatalog.popularity), desc(animeCatalog.averageScore))
+            .limit(24),
+        db
+            .select()
+            .from(animeCatalog)
+            .where(inArray(animeCatalog.status, ['RELEASING', 'FINISHED']))
+            .orderBy(desc(animeCatalog.popularity), desc(animeCatalog.averageScore))
+            .limit(24),
+    ]);
+
+    return {
+        season: seasonRows.map(toCard),
+        popular: popularRows.map(toCard),
+    };
 }

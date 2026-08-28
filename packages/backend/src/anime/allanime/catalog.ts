@@ -24,13 +24,6 @@ import { AnimeCardPageSchema } from '@arc/shared/types';
 import { z } from 'zod';
 
 const providerName = 'allanime';
-const activeSimulcastRefreshes = new Map<string, Promise<SimulcastPage>>();
-
-interface SimulcastPage {
-    anime: AnimeCard[];
-    hasNextPage: boolean;
-    page: number;
-}
 
 interface WeeklyPopularAnime {
     anilistId: number;
@@ -46,12 +39,6 @@ const seasonSchema = z.object({
     quarter: z.string().optional(),
     year: z.union([z.number(), z.string()]).optional(),
 });
-
-let popularCache: {
-    anime: WeeklyPopularAnime[];
-    fetchedAt: number;
-} | null = null;
-let popularRequest: Promise<WeeklyPopularAnime[]> | null = null;
 
 function audioModes(value: JsonValue) {
     const parsed = audioDetailSchema.safeParse(value);
@@ -149,55 +136,47 @@ async function requestSimulcastPage(selected: AnimeSeasonSelection, page: number
     };
 }
 
+export function refreshSimulcastPage(selected: AnimeSeasonSelection, page: number) {
+    if (!Number.isSafeInteger(page) || page <= 0) {
+        throw new RangeError('Simulcast page must be a positive integer');
+    }
+
+    return requestSimulcastPage(selected, page).then(async (data) => {
+        try {
+            await db
+                .insert(animeSimulcastPageCache)
+                .values({
+                    season: selected.season,
+                    year: selected.year,
+                    page,
+                    data,
+                    fetchedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                    target: [
+                        animeSimulcastPageCache.season,
+                        animeSimulcastPageCache.year,
+                        animeSimulcastPageCache.page,
+                    ],
+                    set: { data, fetchedAt: new Date() },
+                });
+        } catch (cause) {
+            console.warn('AllAnime simulcast cache write failed', cause);
+        }
+
+        return data;
+    });
+}
+
 export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
     if (!Number.isSafeInteger(page) || page <= 0) {
         throw new RangeError('Simulcast page must be a positive integer');
     }
 
     const key = `${selected.season}:${selected.year}:${page}`;
-    const refresh = () => {
-        const active = activeSimulcastRefreshes.get(key);
-        if (active) {
-            return active;
-        }
-
-        const request = requestSimulcastPage(selected, page).then(async (data) => {
-            try {
-                await db
-                    .insert(animeSimulcastPageCache)
-                    .values({
-                        season: selected.season,
-                        year: selected.year,
-                        page,
-                        data,
-                        fetchedAt: new Date(),
-                    })
-                    .onConflictDoUpdate({
-                        target: [
-                            animeSimulcastPageCache.season,
-                            animeSimulcastPageCache.year,
-                            animeSimulcastPageCache.page,
-                        ],
-                        set: { data, fetchedAt: new Date() },
-                    });
-            } catch (cause) {
-                console.warn('AllAnime simulcast cache write failed', cause);
-            }
-
-            return data;
-        });
-        activeSimulcastRefreshes.set(key, request);
-        request.then(
-            () => activeSimulcastRefreshes.delete(key),
-            () => activeSimulcastRefreshes.delete(key)
-        );
-        return request;
-    };
-
     return db
         .select({
             data: animeSimulcastPageCache.data,
-            fetchedAt: animeSimulcastPageCache.fetchedAt,
         })
         .from(animeSimulcastPageCache)
         .where(
@@ -208,40 +187,17 @@ export function getSimulcastPage(selected: AnimeSeasonSelection, page: number) {
             )
         )
         .limit(1)
-        .then(async ([stored]) => {
+        .then(([stored]) => {
             const parsed = stored ? AnimeCardPageSchema.safeParse(stored.data) : null;
-            const cached = parsed?.success ? parsed.data : null;
-            const fresh = cached && Date.now() - stored.fetchedAt.getTime() < 30 * 60 * 1_000;
-            if (fresh) {
-                return cached;
+            if (!parsed?.success) {
+                throw new Error(`No stored AllAnime simulcast page for ${key}`);
             }
-
-            const request = refresh().catch((cause) => {
-                console.error(`AllAnime simulcast ${key} refresh failed`, cause);
-                if (cached) {
-                    return cached;
-                }
-                throw cause;
-            });
-            if (cached) {
-                void request;
-                return cached;
-            }
-
-            return request;
+            return parsed.data;
         });
 }
 
 async function getWeeklyPopularAnime() {
-    if (popularCache && Date.now() - popularCache.fetchedAt < 30 * 60 * 1_000) {
-        return popularCache.anime;
-    }
-
-    if (popularRequest) {
-        return popularRequest;
-    }
-
-    popularRequest = request(AllAnimeWeeklyPopularDocument, {}).then((data) => {
+    return request(AllAnimeWeeklyPopularDocument, {}).then((data) => {
         const recommendations = (data.queryPopular?.recommendations ?? [])
             .map((recommendation, index) => ({
                 card: recommendation.anyCard,
@@ -272,15 +228,8 @@ async function getWeeklyPopularAnime() {
             });
         }
 
-        popularCache = { anime, fetchedAt: Date.now() };
         return anime;
     });
-
-    try {
-        return await popularRequest;
-    } finally {
-        popularRequest = null;
-    }
 }
 
 export async function getPopularAudioLabels() {

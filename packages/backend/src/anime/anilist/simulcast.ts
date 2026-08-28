@@ -1,9 +1,9 @@
-import type { AnimeSeason, AnimeSeasonStartYears } from '@arc/shared/season';
+import { parseAnimeSeason, type AnimeSeason, type AnimeSeasonStartYears } from '@arc/shared/season';
 import { SimulcastSeasonStartsDocument } from '@arc/shared/anilist/generated/graphql';
-import { RequestCache } from '#request-cache';
+import { asc, eq } from 'drizzle-orm';
+import { db } from '@arc/db';
+import { animeCatalog } from '@arc/db/schema';
 import { request } from './client';
-
-const starts = new RequestCache<string, AnimeSeasonStartYears>(24 * 60 * 60 * 1_000);
 
 function startYear(
     media:
@@ -43,13 +43,17 @@ export function refreshSimulcastSeasonStarts() {
 }
 
 export async function getSimulcastSeasonStarts() {
-    return starts.get(
-        'catalog',
-        () =>
-            requestSeasonStarts().catch((cause) => {
-                console.error('AniList season range refresh failed', cause);
-                throw cause;
-            }),
-        { staleIfError: true, staleWhileRevalidate: true }
-    );
+    const rows = await db
+        .select({ season: animeCatalog.season, year: animeCatalog.seasonYear })
+        .from(animeCatalog)
+        .where(eq(animeCatalog.isAdult, false))
+        .orderBy(asc(animeCatalog.seasonYear));
+    const result: AnimeSeasonStartYears = {};
+    for (const row of rows) {
+        const season = parseAnimeSeason(row.season);
+        if (row.year && season && result[season] === undefined) {
+            result[season] = row.year;
+        }
+    }
+    return result;
 }
