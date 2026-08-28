@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 import { TargetEpisodeUnavailableError } from '@arc/backend/internal/anime/episodes/sync';
 import { GraphQLRequestError } from '@arc/backend/internal/graphql';
+import { logger } from '@arc/backend/internal/logger';
 import { auth } from './auth';
 import { origin } from './http';
 import { accounts } from './routes/accounts';
@@ -40,7 +41,7 @@ app.notFound((context) =>
 );
 app.onError((cause, context) => {
     if (cause instanceof TargetEpisodeUnavailableError) {
-        console.warn(cause.message);
+        logger.debug(cause.message);
         return context.json(
             {
                 error: {
@@ -56,7 +57,7 @@ app.onError((cause, context) => {
         cause instanceof GraphQLRequestError &&
         (cause.status === 429 || cause.status === undefined || cause.status >= 500)
     ) {
-        console.warn('AniList is temporarily unavailable', cause.message);
+        logger.debug('AniList is temporarily unavailable', cause.message);
         return context.json(
             {
                 error: {
@@ -68,7 +69,7 @@ app.onError((cause, context) => {
         );
     }
 
-    console.error('Unhandled API request failure', cause);
+    logger.debug('Unhandled API request failure', cause);
     return context.json(
         {
             error: {

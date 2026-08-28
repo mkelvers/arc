@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer';
 
+import { logger } from '@arc/backend/internal/logger';
+
 // Single registry of provider CDN hosts. Allowlist membership, request
 // referer, and segment handling all derive from it, so a provider CDN is
 // described in exactly one place. Hosts match exactly or by `.<host>`
@@ -517,7 +519,7 @@ function rewrittenReference(reference: string, playlist: URL, warnedHosts: Set<s
         // surface the gap so a legitimate provider CDN can be allowed.
         if (!warnedHosts.has(target.hostname)) {
             warnedHosts.add(target.hostname);
-            console.warn(
+            logger.debug(
                 `Stream proxy skipped unlisted host ${target.hostname} referenced by ${playlist.hostname}`
             );
         }

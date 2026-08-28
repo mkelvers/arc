@@ -7,6 +7,7 @@ import {
     InvitationCompletionError,
     registerInvitedAccount,
 } from '@arc/backend';
+import { logger } from '@arc/backend/internal/logger';
 import { auth } from '../auth';
 import { validate } from '../http';
 
@@ -81,7 +82,7 @@ export const accounts = new Hono().post(
                 );
             }
 
-            console.error('Account registration failed', cause);
+            logger.debug('Account registration failed', cause);
             const completionFailed = cause instanceof InvitationCompletionError;
             return context.json(
                 {

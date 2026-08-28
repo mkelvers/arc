@@ -1,4 +1,5 @@
 import { runAnimeScheduler } from '@arc/backend/internal/anime/scheduler/run';
+import { logger } from '@arc/backend/internal/logger';
 import { db } from '@arc/db';
 
 const schedulerPollIntervalMs = 60 * 1_000;
@@ -16,7 +17,7 @@ export async function startScheduler() {
             try {
                 await runAnimeScheduler();
             } catch (cause) {
-                console.error('Arc anime scheduler failed', cause);
+                logger.debug('Arc anime scheduler failed', cause);
             }
 
             if (!stopping) {
