@@ -28,7 +28,7 @@ import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getSimulcastSeasonStarts } from './anilist/simulcast';
 import { requestedSimulcastSeason, simulcastPage } from './simulcast';
 import { getWatchlistState } from '../watchlist/store';
-import { logger } from '../logger';
+import { logger } from '@arc/backend/internal/logger';
 
 export async function homePage(userId: string) {
     const { season, year } = currentAnimeSeason();
