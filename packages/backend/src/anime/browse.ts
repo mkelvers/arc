@@ -1,4 +1,4 @@
-import { and, arrayContains, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
 import type { BrowseFilters, BrowseTaxonomy } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
@@ -14,12 +14,13 @@ import {
 } from '@arc/db/schema';
 import {
     getBrowsePage,
-    getBrowseTaxonomy,
     type AniListBrowseFilters,
+    type BrowseCatalogEntry,
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
 import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
+import { popularCatalogPages } from './catalog-pagination';
 import { createAnimeSearchIndex } from './search-index';
 import {
     discoveryCatalogRevision,
@@ -32,8 +33,6 @@ type CatalogCachePage = {
     animeIds: number[];
     hasNextPage: boolean;
 };
-const activeRefreshes = new Map<string, Promise<CatalogCachePage>>();
-let activeTaxonomyRefresh: Promise<BrowseSourceTaxonomy> | null = null;
 
 function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     return JSON.stringify({
@@ -44,25 +43,23 @@ function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     });
 }
 
-async function refreshCatalog(
-    filters: AniListBrowseFilters,
+async function refreshCatalogPage(
     queryKey: string,
-    pageNumber: number,
-    forceRefresh = false
+    anime: BrowseCatalogEntry[],
+    hasNextPage: boolean,
+    fetchedAt = new Date()
 ) {
-    const result = await getBrowsePage(filters, pageNumber, 42, forceRefresh);
-    const fetchedAt = new Date();
     const cachePage = {
-        animeIds: result.anime.map(({ anilistId }) => anilistId),
-        hasNextPage: result.hasNextPage,
+        animeIds: anime.map(({ anilistId }) => anilistId),
+        hasNextPage,
     } satisfies CatalogCachePage;
 
     await db.transaction(async (tx) => {
-        if (result.anime.length) {
+        if (anime.length) {
             await tx
                 .insert(animeCatalog)
                 .values(
-                    result.anime.map((entry) => ({
+                    anime.map((entry) => ({
                         ...entry,
                         discoveryRevision: discoveryCatalogRevision,
                         sourceFetchedAt: fetchedAt,
@@ -94,7 +91,7 @@ async function refreshCatalog(
                 });
 
             await createAnimeSearchIndex(tx).store(
-                result.anime.map((entry) => ({
+                anime.map((entry) => ({
                     id: entry.anilistId,
                     href: `/anime/${entry.anilistId}`,
                     link: `/anime/${entry.anilistId}`,
@@ -138,60 +135,15 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
         .where(eq(animeCatalogRefresh.queryKey, queryKey))
         .limit(1);
 
-    if (stored && Date.now() - stored.fetchedAt.getTime() < 24 * 60 * 60 * 1_000) {
-        return { ...stored, stale: false };
-    }
-
-    const startRefresh = () => {
-        const active = activeRefreshes.get(queryKey);
-        if (active) {
-            return active;
-        }
-
-        const refresh = refreshCatalog(filters, queryKey, page);
-        activeRefreshes.set(queryKey, refresh);
-        if (stored) {
-            void refresh.catch((cause) => {
-                console.warn(
-                    `AniList browse page ${page} refresh failed; using stored values`,
-                    cause
-                );
-            });
-        }
-        const cleanup = () => {
-            if (activeRefreshes.get(queryKey) === refresh) {
-                activeRefreshes.delete(queryKey);
-            }
-        };
-        refresh.then(cleanup, cleanup);
-        return refresh;
-    };
-
-    const refresh = startRefresh();
     if (stored) {
         return { ...stored, stale: true };
     }
 
-    return { ...(await refresh), stale: false };
-}
-
-async function refreshTaxonomy() {
-    const taxonomy = await getBrowseTaxonomy();
-    const fetchedAt = new Date();
-
-    await db
-        .insert(animeCatalogTaxonomy)
-        .values({
-            provider: 'anilist',
-            ...taxonomy,
-            fetchedAt,
-        })
-        .onConflictDoUpdate({
-            target: animeCatalogTaxonomy.provider,
-            set: { ...taxonomy, fetchedAt },
-        });
-
-    return taxonomy;
+    const result = await getBrowsePage(filters, page, 42, true);
+    return {
+        ...(await refreshCatalogPage(queryKey, result.anime, result.hasNextPage)),
+        stale: false,
+    };
 }
 
 async function sourceTaxonomy() {
@@ -209,30 +161,32 @@ async function sourceTaxonomy() {
         .where(eq(animeCatalogTaxonomy.provider, 'anilist'))
         .limit(1);
 
-    if (
-        stored &&
-        stored.tags.length > 0 &&
-        stored.sources.length > 0 &&
-        stored.seasons.length > 0 &&
-        Date.now() - stored.fetchedAt.getTime() < 7 * 24 * 60 * 60 * 1_000
-    ) {
-        return stored;
-    }
-
-    if (!activeTaxonomyRefresh) {
-        activeTaxonomyRefresh = refreshTaxonomy().finally(() => {
-            activeTaxonomyRefresh = null;
-        });
-    }
-
     if (stored) {
-        void activeTaxonomyRefresh.catch((cause) => {
-            console.warn('AniList browse taxonomy refresh failed; using stored values', cause);
-        });
         return stored;
     }
 
-    return activeTaxonomyRefresh;
+    const rows = await db
+        .select({
+            genres: animeCatalog.genres,
+            tags: animeCatalog.tags,
+            format: animeCatalog.format,
+            status: animeCatalog.status,
+            source: animeCatalog.source,
+            season: animeCatalog.season,
+        })
+        .from(animeCatalog);
+    const values = (entries: Array<string | null>) =>
+        [...new Set(entries.flatMap((value) => (value ? [value] : [])))].sort((left, right) =>
+            left.localeCompare(right, 'en')
+        );
+    return {
+        genres: [...new Set(rows.flatMap(({ genres }) => genres))].sort(),
+        tags: [...new Set(rows.flatMap(({ tags }) => tags))].sort(),
+        formats: values(rows.map(({ format }) => format)),
+        statuses: values(rows.map(({ status }) => status)),
+        sources: values(rows.map(({ source }) => source)),
+        seasons: values(rows.map(({ season }) => season)),
+    };
 }
 
 function validatedFilters(
@@ -372,6 +326,7 @@ function catalogOrder(filters: BrowseFilters) {
                 : sql`${animeCatalog.averageScore} desc nulls last`,
             popularityDescending,
             titleAscending,
+            asc(animeCatalog.anilistId),
         ];
     }
 
@@ -380,6 +335,7 @@ function catalogOrder(filters: BrowseFilters) {
             ? sql`${animeCatalog.popularity} asc nulls last`
             : popularityDescending,
         titleAscending,
+        asc(animeCatalog.anilistId),
     ];
 }
 
@@ -399,7 +355,7 @@ function audioModes(row: { hasSub: boolean; hasDub: boolean; hasRaw: boolean }) 
 
 async function catalogPage(filters: BrowseFilters, page: number, animeIds: number[] | null) {
     if (animeIds?.length === 0) {
-        return [];
+        return { anime: [], hasNextPage: false };
     }
 
     const rows = await db
@@ -422,7 +378,7 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
             )
         )
         .orderBy(...catalogOrder(filters))
-        .limit(42)
+        .limit(43)
         .offset(animeIds ? 0 : (page - 1) * 42);
 
     const orderedRows = animeIds
@@ -432,7 +388,7 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
           })
         : rows;
 
-    const cards: AnimeCard[] = orderedRows.map((row) => {
+    const cards: AnimeCard[] = orderedRows.slice(0, 42).map((row) => {
         return {
             id: row.id,
             href: `/anime/${row.id}`,
@@ -446,7 +402,10 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
         };
     });
 
-    return enrichAnimeCards(cards);
+    return {
+        anime: await enrichAnimeCards(cards),
+        hasNextPage: orderedRows.length > 42,
+    };
 }
 
 async function loadPage(filters: BrowseFilters, page: number) {
@@ -456,26 +415,15 @@ async function loadPage(filters: BrowseFilters, page: number) {
 
     const taxonomy = await sourceTaxonomy();
     const sourceFilters = validatedFilters(filters, taxonomy);
-    let refreshFailed = false;
-    let cachePage: Awaited<ReturnType<typeof ensureFreshCatalog>> | null = null;
+    const cachePage = await ensureFreshCatalog(sourceFilters, page);
 
-    try {
-        cachePage = await ensureFreshCatalog(sourceFilters, page);
-    } catch (cause) {
-        refreshFailed = true;
-        console.warn(`Anime catalog page ${page} refresh failed; using stored results`, cause);
-    }
-
-    const anime = await catalogPage(filters, page, cachePage?.animeIds ?? null);
-    if (refreshFailed && !anime.length) {
-        throw new Error('The anime catalog could not be loaded');
-    }
+    const catalog = await catalogPage(filters, page, cachePage?.animeIds ?? null);
 
     return {
-        anime,
-        hasNextPage: cachePage?.hasNextPage ?? anime.length === 42,
+        anime: catalog.anime,
+        hasNextPage: cachePage?.hasNextPage ?? catalog.hasNextPage,
         page,
-        stale: refreshFailed || cachePage?.stale === true,
+        stale: cachePage?.stale ?? true,
         sourceTaxonomy: taxonomy,
     };
 }
@@ -511,7 +459,34 @@ export async function refreshPopularAnime() {
         sort: 'popularity',
         order: 'desc',
     };
-    return refreshCatalog(filters, browseRefreshKey(filters, 1), 1, true);
+    const entries: BrowseCatalogEntry[] = [];
+    for (let page = 1; ; page += 1) {
+        const result = await getBrowsePage(filters, page, 42, true);
+        entries.push(...result.anime);
+        if (!result.hasNextPage) {
+            break;
+        }
+    }
+
+    const pages = popularCatalogPages(entries);
+    const refreshedAt = new Date();
+    for (const [index, page] of pages.entries()) {
+        await refreshCatalogPage(
+            browseRefreshKey(filters, index + 1),
+            page,
+            index < pages.length - 1,
+            refreshedAt
+        );
+    }
+
+    if (!pages.length) {
+        await refreshCatalogPage(browseRefreshKey(filters, 1), [], false, refreshedAt);
+    }
+
+    return {
+        animeIds: pages[0]?.map(({ anilistId }) => anilistId) ?? [],
+        hasNextPage: pages.length > 1,
+    } satisfies CatalogCachePage;
 }
 
 export async function newAnimePage(page: number, filters: BrowseFilters) {

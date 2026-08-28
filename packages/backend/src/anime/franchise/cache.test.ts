@@ -18,6 +18,8 @@ describe('franchise cache identity provenance', () => {
         expect(parsed.success).toBeTrue();
         if (parsed.success) {
             expect(parsed.data.order).toEqual(order);
+            expect(parsed.data.membershipSource).toBe('chiaki');
+            expect(parsed.data.identitySource).toBe('arc');
         }
     });
 

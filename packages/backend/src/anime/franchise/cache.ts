@@ -33,6 +33,8 @@ const franchiseOrderSchema = z
 
 export const FranchiseCacheSchema = z.object({
     order: franchiseOrderSchema,
+    membershipSource: z.literal('chiaki'),
+    identitySource: z.literal('arc'),
     anilistVerifiedAt: z
         .string()
         .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid verification timestamp'),
@@ -41,6 +43,8 @@ export const FranchiseCacheSchema = z.object({
 export function verifiedFranchiseCache(order: FranchiseOrder, verifiedAt: Date) {
     return {
         order,
+        membershipSource: 'chiaki' as const,
+        identitySource: 'arc' as const,
         anilistVerifiedAt: verifiedAt.toISOString(),
     };
 }
