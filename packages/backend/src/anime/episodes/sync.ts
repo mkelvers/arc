@@ -24,7 +24,7 @@ import {
     nextRefreshAt,
     providerEpisodeCount,
 } from './policy';
-import { confirmedEpisodeAirDate, episodesForRelease, providerConfirmsEpisode } from './release';
+import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from './release';
 
 export class TargetEpisodeUnavailableError extends Error {
     constructor(
@@ -80,7 +80,7 @@ async function fetchAndStore(
         throw new TargetEpisodeUnavailableError(anime.id, confirmation.targetEpisode);
     }
 
-    const [storedText, previousSync] = await Promise.all([
+    const [storedText, previousSync, confirmedAirDates] = await Promise.all([
         db
             .select({
                 episodeId: animeEpisode.episodeId,
@@ -103,6 +103,21 @@ async function fetchAndStore(
             .where(eq(animeEpisodeSync.anilistId, anime.id))
             .limit(1)
             .then((rows) => rows[0] ?? null),
+        db
+            .select({
+                episode: animeEpisodeTarget.targetEpisode,
+                airingAt: animeEpisodeTarget.airingAt,
+            })
+            .from(animeEpisodeTarget)
+            .where(
+                and(
+                    eq(animeEpisodeTarget.anilistId, anime.id),
+                    eq(animeEpisodeTarget.state, 'confirmed')
+                )
+            )
+            .then(
+                (rows) => new Map(rows.map(({ episode, airingAt }) => [episode, airingAt] as const))
+            ),
     ]);
 
     const resolvedMetadataSource = await resolveStored(anime, { refresh: true }).catch((cause) => {
@@ -167,6 +182,11 @@ async function fetchAndStore(
                 (metadata === null || sync?.metadataRevision === episodeMetadataRevision)
                     ? previous
                     : null;
+            const confirmedAiringAt =
+                confirmation?.targetEpisode === episode.number
+                    ? confirmation.airingAt
+                    : confirmedAirDates.get(episode.number);
+            const metadataAirDate = media?.airDate || previousMetadata?.airDate || null;
 
             return {
                 anilistId: anime.id,
@@ -179,13 +199,13 @@ async function fetchAndStore(
                 audio: mergeAudioModes(previous?.audio, episode.audio),
                 imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
                 runtimeMinutes: media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
-                airDate: confirmation
-                    ? confirmedEpisodeAirDate(
-                          episode.number,
-                          media?.airDate || previousMetadata?.airDate || null,
-                          confirmation
-                      )
-                    : media?.airDate || previousMetadata?.airDate || null,
+                // AniList's confirmed airing timestamp is the release truth;
+                // TMDB's calendar date can represent the source timezone instead.
+                airDate: preferredEpisodeAirDate(
+                    episode.number,
+                    metadataAirDate,
+                    confirmedAiringAt
+                ),
                 overview: media?.overview || previousMetadata?.overview || null,
                 overviewSource: media?.overviewSource ?? previousMetadata?.overviewSource ?? null,
                 firstSeenAt: previous?.firstSeenAt ?? now,
