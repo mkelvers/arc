@@ -1,3 +1,3 @@
-import { createProviderFallback } from './fallback';
+import { anikotoProvider } from './anikoto';
 
-export const playback = createProviderFallback(null);
+export const playback = anikotoProvider;
