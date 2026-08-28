@@ -73,7 +73,15 @@ export class Playback {
     sync(sources: Sources, next: string | null) {
         this.sources = sources;
         this.next = next;
-        if (!this.modeSelected && this.preferredMode && this.sources[this.preferredMode]?.length) {
+        if (
+            !this.modeSelected &&
+            this.preferredMode &&
+            this.mode !== this.preferredMode &&
+            this.sources[this.preferredMode]?.length
+        ) {
+            if (this.mounted) {
+                this.rememberPlayback();
+            }
             this.mode = this.preferredMode;
             this.resetSource();
             if (this.mounted) {
@@ -200,7 +208,7 @@ export class Playback {
     }
 
     private rememberPlayback() {
-        this.resumeAt = this.video.currentTime;
+        this.resumeAt = Math.max(this.video.currentTime, this.currentTime);
         this.resumePlayback = !this.video.paused;
     }
 
@@ -455,7 +463,7 @@ export class Playback {
             this.exhaustedModes.add(this.mode);
             const fallbackMode = this.audioModes.find((mode) => !this.exhaustedModes.has(mode));
             if (fallbackMode) {
-                this.resumeAt = this.video.currentTime || this.currentTime;
+                this.resumeAt = Math.max(this.video.currentTime, this.currentTime);
                 this.resumePlayback = this.playing || (this.autoplay && this.autoplayAttempted);
                 this.mode = fallbackMode;
                 this.resetQuality();
@@ -482,7 +490,7 @@ export class Playback {
             return;
         }
 
-        this.resumeAt = this.video.currentTime || this.currentTime;
+        this.resumeAt = Math.max(this.video.currentTime, this.currentTime);
         this.resumePlayback = this.playing || (this.autoplay && this.autoplayAttempted);
         this.sourceIndex += 1;
         this.resetQuality();

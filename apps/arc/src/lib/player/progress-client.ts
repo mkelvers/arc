@@ -112,7 +112,7 @@ export class PlaybackProgress {
             (this.hasPlayed || this.media.currentTime > 0 || this.media.video.currentTime > 0)
         ) {
             this.hasPlayed = true;
-            void this.save();
+            void this.save(false, true);
         }
     }
 
@@ -135,19 +135,14 @@ export class PlaybackProgress {
             return;
         }
 
-        const payload = this.payload(false);
-        if (!payload) {
-            return;
-        }
-
         this.finalSaveSent = true;
-        void this.send(payload, true).catch(() => undefined);
+        void this.save(false, true);
     }
 
     private payload(completed: boolean): ProgressPayload | null {
         const positionSeconds = this.media.seeking
             ? this.media.currentTime
-            : this.media.video?.currentTime;
+            : Math.max(this.media.currentTime, this.media.video?.currentTime ?? 0);
         const durationSeconds = this.media.video?.duration;
 
         if (
