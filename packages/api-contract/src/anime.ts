@@ -209,20 +209,26 @@ export const WatchSegmentsSchema = z.object({
     }),
 });
 
+const PlaybackStreamSchema = z.strictObject({
+    provider: z.string(),
+    server: z.string(),
+    url: z.string(),
+    quality: z.string().nullable(),
+    subtitles: z.array(
+        z.strictObject({
+            kind: z.enum(['full', 'sdh', 'forced']),
+            url: z.string(),
+        })
+    ),
+});
+
 export const WatchPlaybackSchema = z.object({
     error: z.boolean(),
-    streams: z.record(
-        z.string(),
-        z.array(
-            z.object({
-                url: z.string(),
-                kind: z.enum(['direct', 'iframe']).optional(),
-                quality: z.string().nullable(),
-                subtitleUrl: z.string().nullable().optional(),
-                provider: z.string().optional(),
-            })
-        )
-    ),
+    streams: z.strictObject({
+        sub: z.array(PlaybackStreamSchema),
+        dub: z.array(PlaybackStreamSchema),
+        raw: z.array(PlaybackStreamSchema),
+    }),
 });
 
 export const MediaPageSchema = z.object({
