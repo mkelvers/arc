@@ -10,26 +10,29 @@ const positiveInteger = (fallback: number, minimum: number, maximum: number) =>
     );
 
 const SchedulerEnvironmentSchema = z.object({
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.url(),
     ARC_SCHEDULER_CONCURRENCY: positiveInteger(3, 1, 10),
     ARC_SCHEDULER_MAX_CLAIMED_TARGETS: positiveInteger(25, 1, 250),
     ARC_SCHEDULER_CLAIMING_WINDOW_SECONDS: positiveInteger(240, 30, 600),
     ARC_SCHEDULER_LEASE_SECONDS: positiveInteger(600, 60, 3_600),
     ARC_SCHEDULER_LEASE_RENEWAL_SECONDS: positiveInteger(180, 15, 1_800),
     ARC_SCHEDULER_FULL_RECONCILIATION_SECONDS: positiveInteger(3_600, 300, 86_400),
+    ARC_SCHEDULER_POLL_SECONDS: positiveInteger(300, 15, 3_600),
 });
 
 export function schedulerEnvironmentPath() {
     return resolve(import.meta.dir, '../.env');
 }
 
-export function loadSchedulerConfig() {
+export async function loadSchedulerConfig() {
     const path = schedulerEnvironmentPath();
-    const loaded = loadEnv({ path, override: false, quiet: true });
-    if (loaded.error) {
-        throw new Error(`Scheduler configuration could not be loaded from ${path}`, {
-            cause: loaded.error,
-        });
+    if (await Bun.file(path).exists()) {
+        const loaded = loadEnv({ path, override: false, quiet: true });
+        if (loaded.error) {
+            throw new Error(`Scheduler configuration could not be loaded from ${path}`, {
+                cause: loaded.error,
+            });
+        }
     }
 
     const environment = SchedulerEnvironmentSchema.parse(process.env);
@@ -49,5 +52,6 @@ export function loadSchedulerConfig() {
         leaseDurationMs: environment.ARC_SCHEDULER_LEASE_SECONDS * 1_000,
         leaseRenewalMs: environment.ARC_SCHEDULER_LEASE_RENEWAL_SECONDS * 1_000,
         fullReconciliationIntervalMs: environment.ARC_SCHEDULER_FULL_RECONCILIATION_SECONDS * 1_000,
+        pollIntervalMs: environment.ARC_SCHEDULER_POLL_SECONDS * 1_000,
     };
 }

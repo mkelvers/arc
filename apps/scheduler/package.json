@@ -4,10 +4,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "bun build src/worker.ts --outdir dist --target bun",
+        "build": "bun build src/index.ts --outdir dist --target bun",
         "check": "tsc --noEmit",
-        "scheduler:install": "bun run build && bun src/install.ts",
-        "scheduler:remove": "bun src/remove.ts"
+        "start": "bun run build && bun dist/index.js"
     },
     "dependencies": {
         "@arc/backend": "workspace:*",

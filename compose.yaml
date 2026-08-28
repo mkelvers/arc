@@ -16,5 +16,17 @@ services:
             start_period: 5s
         volumes:
             - postgres-data:/var/lib/postgresql
+    scheduler:
+        build:
+            context: .
+            dockerfile: apps/scheduler/Dockerfile
+        restart: unless-stopped
+        env_file:
+            - ./apps/scheduler/.env
+        environment:
+            DATABASE_URL: postgresql://arc:arc@postgres:5432/arc
+        depends_on:
+            postgres:
+                condition: service_healthy
 volumes:
     postgres-data:
