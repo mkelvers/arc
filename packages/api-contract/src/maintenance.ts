@@ -1,16 +1,6 @@
 import { z } from 'zod';
 
 const animeId = z.number().int().positive();
-const playbackProviders = [
-    'allanime',
-    'anikoto',
-    'anineko',
-    'animegg',
-    'anipub',
-    'animepahe',
-    'anizone',
-] as const;
-
 export const MaintenanceRequestSchema = z.discriminatedUnion('kind', [
     z.object({
         kind: z.literal('release_refresh'),
@@ -20,25 +10,18 @@ export const MaintenanceRequestSchema = z.discriminatedUnion('kind', [
     z.object({
         kind: z.literal('mapping_rediscover'),
         anilistId: animeId,
-        mappingKind: z.enum(['playback', 'metadata']),
-        provider: z.enum([...playbackProviders, 'tmdb']).optional(),
+        mappingKind: z.literal('metadata'),
+        provider: z.literal('tmdb').optional(),
     }),
     z.object({
         kind: z.literal('mapping_override'),
         anilistId: animeId,
-        override: z.discriminatedUnion('kind', [
-            z.object({
-                kind: z.literal('playback'),
-                provider: z.enum(playbackProviders),
-                mediaId: z.string().trim().min(1).max(512),
-            }),
-            z.object({
-                kind: z.literal('metadata'),
-                provider: z.literal('tmdb'),
-                externalId: z.string().regex(/^[1-9][0-9]*$/),
-                mediaType: z.enum(['movie', 'tv']),
-            }),
-        ]),
+        override: z.object({
+            kind: z.literal('metadata'),
+            provider: z.literal('tmdb'),
+            externalId: z.string().regex(/^[1-9][0-9]*$/),
+            mediaType: z.enum(['movie', 'tv']),
+        }),
     }),
     z.object({
         kind: z.literal('target_reactivate'),

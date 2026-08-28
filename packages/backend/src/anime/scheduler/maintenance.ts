@@ -6,11 +6,7 @@ import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
 import { episodeMetadataRevision } from '../episodes/policy';
-import {
-    rediscoverMapping,
-    setMetadataMappingOverride,
-    setPlaybackMappingOverride,
-} from './mappings';
+import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
 import { reconcileAllAiringReleases } from './reconciliation';
 
@@ -163,30 +159,14 @@ async function executeMaintenance(request: MaintenanceRequest) {
         return result;
     }
     if (request.kind === 'mapping_rediscover') {
-        if (request.mappingKind === 'metadata' && request.provider && request.provider !== 'tmdb') {
-            throw new Error('Metadata mapping rediscovery only supports TMDB');
-        }
-        if (request.mappingKind === 'playback' && request.provider === 'tmdb') {
-            throw new Error('TMDB is not a playback mapping provider');
-        }
-        return rediscoverMapping(
-            request.anilistId,
-            request.mappingKind,
-            request.provider === 'tmdb' ? undefined : request.provider
-        );
+        return rediscoverMapping(request.anilistId);
     }
     if (request.kind === 'mapping_override') {
-        return request.override.kind === 'playback'
-            ? setPlaybackMappingOverride(
-                  request.anilistId,
-                  request.override.provider,
-                  request.override.mediaId
-              )
-            : setMetadataMappingOverride(
-                  request.anilistId,
-                  Number(request.override.externalId),
-                  request.override.mediaType
-              );
+        return setMetadataMappingOverride(
+            request.anilistId,
+            Number(request.override.externalId),
+            request.override.mediaType
+        );
     }
 }
 

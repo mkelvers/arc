@@ -14,14 +14,7 @@ describe('maintenance task boundary', () => {
         ).toBe(true);
     });
 
-    test('accepts the closed playback and metadata override variants', () => {
-        expect(
-            MaintenanceRequestSchema.safeParse({
-                kind: 'mapping_override',
-                anilistId: 1,
-                override: { kind: 'playback', provider: 'anikoto', mediaId: '123' },
-            }).success
-        ).toBe(true);
+    test('accepts the metadata override variant', () => {
         expect(
             MaintenanceRequestSchema.safeParse({
                 kind: 'mapping_override',
@@ -36,7 +29,7 @@ describe('maintenance task boundary', () => {
         ).toBe(true);
     });
 
-    test('rejects arbitrary providers and provider fields', () => {
+    test('rejects playback providers and invalid metadata fields', () => {
         expect(
             MaintenanceRequestSchema.safeParse({
                 kind: 'mapping_override',

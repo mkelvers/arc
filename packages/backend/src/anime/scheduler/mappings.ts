@@ -1,12 +1,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import {
-    animeExternalId,
-    animeExternalIdLink,
-    animeMappingOverride,
-    animeProviderMapping,
-} from '@arc/db/schema';
+import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
 import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
 import { storedAnimeRelease } from '../anilist/releases';
@@ -14,12 +9,6 @@ import { create as createTmdbClient } from '../tmdb/client';
 import { findMapping, saveVerifiedMapping } from '../tmdb/mapping-store';
 import { resolveStored } from '../tmdb/mapping';
 import { normalizedProviderTitle } from '../providers/match';
-import { playback, playbackProviders } from '../providers';
-import type { MappingPlaybackProvider } from './mapping-policy';
-
-function providerByKey(provider: MappingPlaybackProvider) {
-    return playbackProviders.find((candidate) => candidate.name.toLowerCase() === provider) ?? null;
-}
 
 async function requireRelease(anilistId: number) {
     const release = await storedAnimeRelease(anilistId);
@@ -29,7 +18,7 @@ async function requireRelease(anilistId: number) {
     return release;
 }
 
-async function activeOverride(anilistId: number, kind: 'playback' | 'metadata', provider: string) {
+async function activeOverride(anilistId: number, kind: 'metadata', provider: string) {
     return db
         .select()
         .from(animeMappingOverride)
@@ -43,125 +32,6 @@ async function activeOverride(anilistId: number, kind: 'playback' | 'metadata', 
         )
         .limit(1)
         .then((rows) => rows[0] ?? null);
-}
-
-export async function setPlaybackMappingOverride(
-    anilistId: number,
-    provider: MappingPlaybackProvider,
-    mediaId: string
-) {
-    const release = await requireRelease(anilistId);
-    const adapter = providerByKey(provider);
-    if (!adapter) {
-        throw new Error(`Playback provider ${provider} cannot validate an explicit mapping`);
-    }
-    const [previous, previousOverride] = await Promise.all([
-        db
-            .select({ providerMediaId: animeProviderMapping.providerMediaId })
-            .from(animeProviderMapping)
-            .where(
-                and(
-                    eq(animeProviderMapping.anilistId, anilistId),
-                    eq(animeProviderMapping.provider, provider)
-                )
-            )
-            .limit(1)
-            .then((rows) => rows[0] ?? null),
-        activeOverride(anilistId, 'playback', provider),
-    ]);
-    const previousMapping = previousOverride
-        ? {
-              source: 'operator',
-              externalId: previousOverride.externalId,
-              validationStatus: previousOverride.validationStatus,
-          }
-        : previous
-          ? { source: 'automatic', externalId: previous.providerMediaId }
-          : null;
-
-    await db
-        .insert(animeMappingOverride)
-        .values({
-            anilistId,
-            kind: 'playback',
-            provider,
-            externalId: mediaId,
-            previousMapping,
-            validationStatus: 'pending',
-            maintenanceActor: 'maintenance-token',
-        })
-        .onConflictDoUpdate({
-            target: [
-                animeMappingOverride.anilistId,
-                animeMappingOverride.kind,
-                animeMappingOverride.provider,
-            ],
-            set: {
-                externalId: mediaId,
-                mediaType: null,
-                previousMapping,
-                validationStatus: 'pending',
-                validationEvidence: null,
-                maintenanceActor: 'maintenance-token',
-                createdAt: new Date(),
-                clearedAt: null,
-            },
-        });
-
-    try {
-        const episodes = await adapter.getEpisodes(release);
-        if (!episodes.length) {
-            throw new Error(`${adapter.name} returned no playable episode inventory`);
-        }
-        const evidence = {
-            checkedAt: new Date().toISOString(),
-            episodeCount: episodes.length,
-            firstEpisode: episodes[0]?.number ?? null,
-            lastEpisode: episodes.at(-1)?.number ?? null,
-        };
-        await db.transaction(async (tx) => {
-            await tx
-                .insert(animeProviderMapping)
-                .values({ anilistId, provider, providerMediaId: mediaId })
-                .onConflictDoUpdate({
-                    target: [animeProviderMapping.anilistId, animeProviderMapping.provider],
-                    set: { providerMediaId: mediaId, verifiedAt: new Date() },
-                });
-            await tx
-                .update(animeMappingOverride)
-                .set({ validationStatus: 'valid', validationEvidence: evidence })
-                .where(
-                    and(
-                        eq(animeMappingOverride.anilistId, anilistId),
-                        eq(animeMappingOverride.kind, 'playback'),
-                        eq(animeMappingOverride.provider, provider),
-                        eq(animeMappingOverride.externalId, mediaId),
-                        isNull(animeMappingOverride.clearedAt)
-                    )
-                );
-        });
-        return evidence;
-    } catch (cause) {
-        await db
-            .update(animeMappingOverride)
-            .set({
-                validationStatus: 'invalid',
-                validationEvidence: {
-                    checkedAt: new Date().toISOString(),
-                    error:
-                        cause instanceof Error ? cause.message.slice(0, 500) : 'Validation failed',
-                },
-            })
-            .where(
-                and(
-                    eq(animeMappingOverride.anilistId, anilistId),
-                    eq(animeMappingOverride.kind, 'playback'),
-                    eq(animeMappingOverride.provider, provider),
-                    eq(animeMappingOverride.externalId, mediaId)
-                )
-            );
-        throw cause;
-    }
 }
 
 async function validateTmdbIdentity(
@@ -341,54 +211,20 @@ async function removeStoredTmdbMapping(anilistId: number) {
     }
 }
 
-export async function rediscoverMapping(
-    anilistId: number,
-    mappingKind: 'playback' | 'metadata',
-    provider?: MappingPlaybackProvider
-) {
+export async function rediscoverMapping(anilistId: number) {
     const release = await requireRelease(anilistId);
-    if (mappingKind === 'metadata') {
-        await db
-            .update(animeMappingOverride)
-            .set({ clearedAt: new Date() })
-            .where(
-                and(
-                    eq(animeMappingOverride.anilistId, anilistId),
-                    eq(animeMappingOverride.kind, 'metadata'),
-                    isNull(animeMappingOverride.clearedAt)
-                )
-            );
-        await removeStoredTmdbMapping(anilistId);
-        const mapping = await resolveStored(release, { refresh: true });
-        await enqueueEpisodeInventoryBackfill(anilistId);
-        return { provider: 'tmdb', externalId: mapping.id, mediaType: mapping.mediaType };
-    }
-
-    await db.transaction(async (tx) => {
-        await tx
-            .update(animeMappingOverride)
-            .set({ clearedAt: new Date() })
-            .where(
-                and(
-                    eq(animeMappingOverride.anilistId, anilistId),
-                    eq(animeMappingOverride.kind, 'playback'),
-                    ...(provider ? [eq(animeMappingOverride.provider, provider)] : []),
-                    isNull(animeMappingOverride.clearedAt)
-                )
-            );
-        await tx
-            .delete(animeProviderMapping)
-            .where(
-                and(
-                    eq(animeProviderMapping.anilistId, anilistId),
-                    ...(provider ? [eq(animeProviderMapping.provider, provider)] : [])
-                )
-            );
-    });
-    const adapter = provider ? providerByKey(provider) : playback;
-    if (!adapter) {
-        throw new Error(`Playback provider ${provider} cannot be rediscovered`);
-    }
-    const episodes = await adapter.getEpisodes(release);
-    return { provider: provider ?? 'automatic-fallback', episodeCount: episodes.length };
+    await db
+        .update(animeMappingOverride)
+        .set({ clearedAt: new Date() })
+        .where(
+            and(
+                eq(animeMappingOverride.anilistId, anilistId),
+                eq(animeMappingOverride.kind, 'metadata'),
+                isNull(animeMappingOverride.clearedAt)
+            )
+        );
+    await removeStoredTmdbMapping(anilistId);
+    const mapping = await resolveStored(release, { refresh: true });
+    await enqueueEpisodeInventoryBackfill(anilistId);
+    return { provider: 'tmdb', externalId: mapping.id, mediaType: mapping.mediaType };
 }

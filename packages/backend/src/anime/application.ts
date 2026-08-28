@@ -1,6 +1,6 @@
 import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/shared/audio';
 import type { AudioMode } from '@arc/shared/audio';
-import { availableAnimeSeasons, compareAnimeSeasons, currentAnimeSeason } from '@arc/shared/season';
+import { currentAnimeSeason } from '@arc/shared/season';
 import { getHomepage } from './anilist/home';
 import { enrichAnimeCards } from './card-enrichment';
 import { toAnimeDetails } from './details';
@@ -25,8 +25,6 @@ import { getAnime } from './anilist/details';
 import { refreshAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import { getContinueWatchingCards, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
-import { getSimulcastSeasonStarts } from './anilist/simulcast';
-import { requestedSimulcastSeason, simulcastPage } from './simulcast';
 import { getWatchlistState } from '../watchlist/store';
 import { logger } from '@arc/backend/internal/logger';
 
@@ -123,42 +121,6 @@ export async function updateMedia(id: number, update: MediaUpdate) {
     } else {
         await selectArtwork(id, update.type, update.filePath);
     }
-}
-
-export async function simulcast(selection: URLSearchParams, page: number) {
-    const current = currentAnimeSeason();
-    const selected = requestedSimulcastSeason(selection, current);
-    if (!selected || compareAnimeSeasons(selected, current) > 0) {
-        return null;
-    }
-
-    const [starts, result] = await Promise.all([
-        getSimulcastSeasonStarts(),
-        simulcastPage(selected, page),
-    ]);
-    const seasons = availableAnimeSeasons(starts, current);
-    if (!seasons.some(({ season, year }) => season === selected.season && year === selected.year)) {
-        return null;
-    }
-    const label = `${selected.season[0]}${selected.season.slice(1).toLowerCase()} ${selected.year}`;
-
-    return {
-        season: selected.season,
-        year: selected.year,
-        label,
-        options: seasons
-            .map((option) => ({
-                ...option,
-                label: `${option.season[0]}${option.season.slice(1).toLowerCase()} ${option.year}`,
-                current: option.season === selected.season && option.year === selected.year,
-                href:
-                    compareAnimeSeasons(option, current) === 0
-                        ? '/simulcast'
-                        : `/simulcast?season=${option.season.toLowerCase()}&year=${option.year}`,
-            }))
-            .toReversed(),
-        page: result,
-    };
 }
 
 function legacySlug(title: string, episodeId: string) {

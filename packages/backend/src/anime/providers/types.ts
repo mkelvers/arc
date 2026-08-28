@@ -31,7 +31,6 @@ export type ProviderStreams = Partial<Record<AudioMode, ProviderStream[]>>;
 
 export interface PlaybackProvider {
     name: string;
-    providesEpisodeInventory?: boolean;
     getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[]>;
     getStreams(
         anime: AniListAnime,

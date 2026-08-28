@@ -3,13 +3,13 @@ import { describe, expect, test } from 'bun:test';
 import { MaintenanceHealthSchema, MaintenanceRequestSchema } from './maintenance';
 
 describe('maintenance wire contracts', () => {
-    test('accepts supported task requests and rejects arbitrary providers', () => {
+    test('accepts metadata rediscovery and rejects playback providers', () => {
         expect(
             MaintenanceRequestSchema.safeParse({
                 kind: 'mapping_rediscover',
                 anilistId: 1,
-                mappingKind: 'playback',
-                provider: 'allanime',
+                mappingKind: 'metadata',
+                provider: 'tmdb',
             }).success
         ).toBe(true);
         expect(
@@ -17,7 +17,7 @@ describe('maintenance wire contracts', () => {
                 kind: 'mapping_rediscover',
                 anilistId: 1,
                 mappingKind: 'playback',
-                provider: 'arbitrary-provider',
+                provider: 'tmdb',
             }).success
         ).toBe(false);
     });
