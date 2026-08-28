@@ -14,7 +14,6 @@
     import { locale } from '$lib/locale.svelte';
     import { m } from '$lib/paraglide/messages.js';
     import Logo from '$lib/components/ui/Logo.svelte';
-    import Footer from '$lib/components/Footer.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import NavigationSkeleton from './_components/NavigationSkeleton.svelte';
@@ -293,12 +292,10 @@
     </nav>
 </header>
 
-<div class="pt-14 pb-32 sm:pb-36 lg:pb-44">
+<div class="pt-14">
     {#if navigating.to}
         <NavigationSkeleton />
     {:else}
         {@render children()}
     {/if}
 </div>
-
-<Footer />
