@@ -71,7 +71,7 @@ export async function animePage(userId: string, id: number) {
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        getArtwork(anime, { refresh: imported }).catch(() => null),
+        getArtwork(anime, { refresh: imported, fetchMissing: true }).catch(() => null),
         anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
         getWatchlistState(userId, id),
     ]);
@@ -103,7 +103,9 @@ export async function mediaPage(id: number) {
     const anime = existing ?? (await refreshAnimeRelease(id));
     return {
         anime: toAnimeDetails(anime),
-        artwork: await getArtwork(anime, { refresh: imported }).catch(() => null),
+        artwork: await getArtwork(anime, { refresh: imported, fetchMissing: true }).catch(
+            () => null
+        ),
     };
 }
 

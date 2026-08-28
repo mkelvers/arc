@@ -68,6 +68,13 @@ async function withSelections(
         .where(eq(animeArtworkPreference.externalIdId, mapping.preferenceExternalIdId))
         .limit(1);
     const logoHidden = preference?.logoHidden ?? false;
+    const selectDefault = (images: ArtworkImage[]) =>
+        [...images].sort(
+            (left, right) =>
+                right.width * right.height - left.width * left.height ||
+                right.voteAverage - left.voteAverage ||
+                left.filePath.localeCompare(right.filePath)
+        )[0] ?? null;
 
     return {
         id: match.id,
@@ -75,13 +82,11 @@ async function withSelections(
         ...artwork,
         selectedBackdrop:
             artwork.backdrops.find(({ filePath }) => filePath === preference?.backdropFilePath) ??
-            artwork.backdrops[0] ??
-            null,
+            selectDefault(artwork.backdrops),
         selectedLogo: logoHidden
             ? null
             : (artwork.logos.find(({ filePath }) => filePath === preference?.logoFilePath) ??
-              artwork.logos[0] ??
-              null),
+              selectDefault(artwork.logos)),
         selectedPoster: null,
         logoHidden,
         logoSize: preference?.logoSize ?? 100,
@@ -243,7 +248,10 @@ export async function fetchArtwork(mapping: ArtworkMappings) {
     return withSelections(mapping, mergeArtwork(artwork));
 }
 
-export async function getArtwork(anime: AniListAnime, options: { refresh?: boolean } = {}) {
+export async function getArtwork(
+    anime: AniListAnime,
+    options: { refresh?: boolean; fetchMissing?: boolean } = {}
+) {
     let match: StoredMapping;
     try {
         match = await resolveStored(anime, { refresh: options.refresh === true });
@@ -259,7 +267,13 @@ export async function getArtwork(anime: AniListAnime, options: { refresh?: boole
         preferenceExternalIdId: match.externalIdId,
     };
 
-    const artwork = await readArtwork(artworkMappings);
+    let artwork = await readArtwork(artworkMappings);
+    if (!artwork && (options.refresh || options.fetchMissing)) {
+        artwork = await fetchArtwork(artworkMappings).catch((cause) => {
+            console.warn(`TMDB artwork enrichment failed for AniList ${anime.id}`, cause);
+            return null;
+        });
+    }
     if (!artwork) {
         return null;
     }
