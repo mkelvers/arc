@@ -11,9 +11,8 @@
     "nav_account_menu": "アカウントメニュー",
     "nav_open_navigation": "ナビゲーションを開く",
     "nav_primary": "メインナビゲーション",
-    "footer_home": "Arc ホーム",
-    "footer_choose_language": "言語を選択",
-    "language_en": "English (US)",
-    "language_ja": "日本語",
-    "language_es": "Español"
+    "settings_preferences": "環境設定",
+    "settings_preferences_synopsis": "Arc の環境設定を管理します。",
+    "settings_language": "言語",
+    "settings_language_synopsis": "Arc 全体で使用する言語を選択します。"
 }
