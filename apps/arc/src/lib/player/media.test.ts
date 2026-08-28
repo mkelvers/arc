@@ -67,8 +67,17 @@ describe('player media helpers', () => {
     });
 
     test('recognizes HLS sources', () => {
+        const encodeSource = (source: string) =>
+            btoa(source).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+
         expect(isHlsSource('https://media.example/master.m3u8?token=1')).toBe(true);
+        expect(
+            isHlsSource(`/v1/stream?src=${encodeSource('https://media.example/master.m3u8')}`)
+        ).toBe(true);
         expect(isHlsSource('https://media.example/video.mp4')).toBe(false);
+        expect(
+            isHlsSource(`/v1/stream?src=${encodeSource('https://media.example/video.mp4')}`)
+        ).toBe(false);
     });
 
     test('parses and selects overlapping WebVTT captions', () => {

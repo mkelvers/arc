@@ -448,12 +448,39 @@ export function isHd(quality: string | null) {
     return Number(quality?.match(/\d+/)?.[0] ?? 0) >= 720;
 }
 
-export function isHlsSource(value: string) {
+function hasHlsPath(value: string) {
     try {
-        const url = new URL(value, 'http://arc.local');
-        return url.pathname.toLowerCase().endsWith('.m3u8');
+        return new URL(value, 'http://arc.local').pathname.toLowerCase().endsWith('.m3u8');
     } catch {
         return /\.m3u8(?:$|[?#])/i.test(value);
+    }
+}
+
+function decodeBase64Url(value: string) {
+    try {
+        const binary = atob(
+            value.replaceAll('-', '+').replaceAll('_', '/') +
+                '='.repeat((4 - (value.length % 4)) % 4)
+        );
+        return new TextDecoder().decode(
+            Uint8Array.from(binary, (character) => character.charCodeAt(0))
+        );
+    } catch {
+        return null;
+    }
+}
+
+export function isHlsSource(value: string) {
+    if (hasHlsPath(value)) {
+        return true;
+    }
+
+    try {
+        const encodedSource = new URL(value, 'http://arc.local').searchParams.get('src');
+        const source = encodedSource ? decodeBase64Url(encodedSource) : null;
+        return source ? hasHlsPath(source) : false;
+    } catch {
+        return false;
     }
 }
 
