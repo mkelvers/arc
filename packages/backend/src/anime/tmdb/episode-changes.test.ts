@@ -8,7 +8,7 @@ describe('TMDB episode changes', () => {
         process.env.TMDB_READ_ACCESS_TOKEN = 'test-token';
         let requestedUrl = '';
         try {
-            const changes = await getEpisodeChanges(7451662, '2000-01-01', async (input) => {
+            const changes = await getEpisodeChanges(7451662, '2099-01-01', async (input) => {
                 requestedUrl = String(input);
                 return new Response(
                     JSON.stringify({
@@ -42,7 +42,7 @@ describe('TMDB episode changes', () => {
             const start = Date.parse(`${query.get('start_date')}T00:00:00Z`);
             const end = Date.parse(`${query.get('end_date')}T00:00:00Z`);
 
-            expect(end - start).toBe(16 * 86_400_000);
+            expect(end - start).toBe(14 * 86_400_000);
             expect(changes).toEqual({
                 name: 'Touch ~ 100 Things I Want to Draw for Manga!!!',
                 overview: 'The Manga Research Club explores the island of Oshima.',

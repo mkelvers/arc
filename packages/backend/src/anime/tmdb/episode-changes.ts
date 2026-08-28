@@ -66,12 +66,12 @@ export async function getEpisodeChanges(
         return null;
     }
 
-    const end = new Date(Date.now() + 86_400_000);
-    const earliest = new Date(end.getTime() - 14 * 86_400_000);
-    const requestedStart = new Date(`${startDate}T00:00:00Z`);
-    const start = requestedStart > earliest && requestedStart < end ? requestedStart : earliest;
     // TMDB excludes changes when the date-only end boundary is the next day.
-    const queryEnd = new Date(end.getTime() + 2 * 86_400_000);
+    const queryEnd = new Date(Date.now() + 2 * 86_400_000);
+    const earliest = new Date(queryEnd.getTime() - 14 * 86_400_000);
+    const requestedStart = new Date(`${startDate}T00:00:00Z`);
+    const start =
+        requestedStart > earliest && requestedStart < queryEnd ? requestedStart : earliest;
     const query = new URLSearchParams({
         start_date: start.toISOString().slice(0, 10),
         end_date: queryEnd.toISOString().slice(0, 10),
