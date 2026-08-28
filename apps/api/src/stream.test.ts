@@ -112,3 +112,18 @@ test('mirrors Shiora image-named segments to the matching Akirax shard', async (
     expect(response.headers.get('content-type')).toBe('video/mp2t');
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([0x47, 0, 1]));
 });
+
+test('unwraps current Norami JPEG-named segments into MPEG-TS', async () => {
+    const response = await proxyStreamRequest(
+        streamRequest('https://s2.norami.top/path/0000.jpg'),
+        async (target) => {
+            expect(target.hostname).toBe('s2.norami.top');
+            return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9, 0x47, 0x00, 0x01]), {
+                headers: { 'content-type': 'image/jpeg' },
+            });
+        }
+    );
+
+    expect(response.headers.get('content-type')).toBe('video/mp2t');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([0x47, 0, 1]));
+});
