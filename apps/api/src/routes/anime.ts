@@ -11,8 +11,8 @@ import {
     watchSegments,
 } from '@arc/backend/internal/anime/application';
 import { getEpisodeRevision } from '@arc/backend/internal/anime/episodes';
-import { Buffer } from 'node:buffer';
 import { middleware, validate, type ApiEnvironment } from '../http';
+import { playbackResponse } from './playback-response';
 
 const AnimeParamSchema = z.object({ anilistId: AnimeIdSchema });
 const EpisodeParamSchema = AnimeParamSchema.extend({ episodeId: z.string().min(1).max(512) });
@@ -82,28 +82,7 @@ anime.get(
             );
         }
 
-        return context.json({
-            ...playback,
-            streams: Object.fromEntries(
-                Object.entries(playback.streams).map(([mode, sources]) => [
-                    mode,
-                    (sources ?? []).map((source) => ({
-                        ...source,
-                        url:
-                            source.kind === 'iframe'
-                                ? source.url
-                                : `/v1/stream?${new URLSearchParams({
-                                      src: Buffer.from(source.url).toString('base64url'),
-                                  })}`,
-                        subtitleUrl: source.subtitleUrl
-                            ? `/v1/stream?${new URLSearchParams({
-                                  src: Buffer.from(source.subtitleUrl).toString('base64url'),
-                              })}`
-                            : null,
-                    })),
-                ])
-            ),
-        });
+        return context.json(playbackResponse(playback));
     }
 );
 
