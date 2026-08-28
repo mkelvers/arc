@@ -435,7 +435,8 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
         .select({
             anilistId: animeEpisodeTarget.anilistId,
             episode: animeEpisodeTarget.targetEpisode,
-            airedAt: animeEpisodeTarget.airingAt,
+            confirmedAt: animeEpisodeTarget.confirmedAt,
+            airingAt: animeEpisodeTarget.airingAt,
         })
         .from(animeEpisodeTarget)
         .innerJoin(animeRelease, eq(animeRelease.anilistId, animeEpisodeTarget.anilistId))
@@ -448,7 +449,7 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
                 filters.format ? eq(animeRelease.format, filters.format) : undefined
             )
         )
-        .orderBy(desc(animeEpisodeTarget.airingAt), desc(animeEpisodeTarget.targetEpisode))
+        .orderBy(desc(animeEpisodeTarget.confirmedAt), desc(animeEpisodeTarget.targetEpisode))
         .limit(5_000);
     const latestMap = new Map<number, (typeof confirmed)[number]>();
     for (const entry of confirmed) {
@@ -494,7 +495,7 @@ export async function newAnimePage(page: number, filters: BrowseFilters) {
                       audioLabel: audioAvailabilityLabel([
                           ...(audioByAnime.get(entry.anilistId) ?? []),
                       ]),
-                      releasedAt: entry.airedAt.toISOString(),
+                      releasedAt: (entry.confirmedAt ?? entry.airingAt).toISOString(),
                       episode: entry.episode,
                   },
               ]
