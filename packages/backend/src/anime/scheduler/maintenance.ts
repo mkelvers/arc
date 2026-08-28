@@ -5,6 +5,7 @@ import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
+import { episodeMetadataRevision } from '../episodes/policy';
 import {
     rediscoverMapping,
     setMetadataMappingOverride,
@@ -201,28 +202,119 @@ async function seedEpisodeInventoryBackfills() {
             'episode:backfill:' || release.anilist_id,
             jsonb_build_object('kind', 'episode_backfill', 'anilistId', release.anilist_id)
         from anime_release release
-        where release.status = 'FINISHED'
-          and release.episode_count > 0
-          and release.data is not null
+        where release.data is not null
+          and release.status in ('RELEASING', 'FINISHED')
           and (
               (
-                  release.format = 'TV_SHORT'
-                  and not exists (
-                      select 1
-                      from anime_episode episode
-                      where episode.anilist_id = release.anilist_id
+                  release.status = 'FINISHED'
+                  and release.episode_count > 0
+                  and (
+                      (
+                          release.format = 'TV_SHORT'
+                          and not exists (
+                              select 1
+                              from anime_episode episode
+                              where episode.anilist_id = release.anilist_id
+                          )
+                      )
+                      or (
+                          release.format is distinct from 'TV_SHORT'
+                          and (
+                              select count(*)
+                              from anime_episode episode
+                              where episode.anilist_id = release.anilist_id
+                          ) < release.episode_count
+                      )
                   )
               )
               or (
-                  release.format is distinct from 'TV_SHORT'
+                  release.status = 'RELEASING'
+                  and release.next_airing_episode > 0
                   and (
-                      select count(*)
+                      select count(distinct episode.number)
                       from anime_episode episode
                       where episode.anilist_id = release.anilist_id
-                  ) < release.episode_count
+                        and episode.number > 0
+                        and episode.number <= greatest(
+                            0,
+                            release.next_airing_episode - case
+                                when release.next_airing_at is null
+                                    or release.next_airing_at <= now()
+                                    then 0
+                                else 1
+                            end
+                        )
+                  ) < greatest(
+                      0,
+                      release.next_airing_episode - case
+                          when release.next_airing_at is null
+                              or release.next_airing_at <= now()
+                              then 0
+                          else 1
+                      end
+                  )
+              )
+              or not exists (
+                  select 1
+                  from anime_external_id anilist
+                  inner join anime_external_id_link anilist_link
+                      on anilist_link.external_id_id = anilist.id
+                  inner join anime_external_id_link tmdb_link
+                      on tmdb_link.anime_id = anilist_link.anime_id
+                     and tmdb_link.external_id_id <> anilist.id
+                  inner join anime_external_id tmdb
+                      on tmdb.id = tmdb_link.external_id_id
+                     and tmdb.provider = 'tmdb'
+                  where anilist.provider = 'anilist'
+                    and anilist.media_type = 'anime'
+                    and anilist.external_id = release.anilist_id
+              )
+              or exists (
+                  select 1
+                  from anime_episode_sync sync
+                  where sync.anilist_id = release.anilist_id
+                    and sync.metadata_revision is distinct from ${episodeMetadataRevision}
+              )
+              or exists (
+                  select 1
+                  from anime_episode episode
+                  where episode.anilist_id = release.anilist_id
+                    and (
+                        episode.metadata_title is null
+                        or btrim(episode.metadata_title) = ''
+                        or episode.overview is null
+                        or btrim(episode.overview) = ''
+                        or episode.image_url is null
+                        or btrim(episode.image_url) = ''
+                    )
               )
           )
-        on conflict (dedupe_key) do nothing
+        on conflict (dedupe_key) do update
+        set state = 'pending',
+            attempts = 0,
+            next_attempt_at = now(),
+            lease_owner = null,
+            lease_until = null,
+            last_error = null,
+            result = null,
+            completed_at = null,
+            updated_at = now()
+        where maintenance_task.state in ('completed', 'failed')
+          and (
+              maintenance_task.updated_at < now() - interval '7 days'
+              or (
+                  maintenance_task.state = 'completed'
+                  and maintenance_task.updated_at < now() - interval '5 minutes'
+                  and exists (
+                      select 1
+                      from anime_episode_sync sync
+                      where sync.anilist_id = (excluded.payload ->> 'anilistId')::integer
+                        and sync.metadata_revision is distinct from ${episodeMetadataRevision}
+                        and sync.next_refresh_at is not null
+                        and sync.next_refresh_at <= now()
+                  )
+              )
+          )
     `);
 }
 
