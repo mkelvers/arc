@@ -7,7 +7,7 @@
         "packages/*"
     ],
     "scripts": {
-        "dev": "turbo run dev",
+        "dev": "turbo run dev --",
         "build": "turbo run build",
         "preview": "turbo run preview",
         "check": "turbo run check",
