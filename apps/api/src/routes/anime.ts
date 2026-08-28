@@ -81,24 +81,7 @@ anime.get(
             );
         }
 
-        return context.json({
-            ...playback,
-            streams: Object.fromEntries(
-                Object.entries(playback.streams).map(([mode, sources]) => [
-                    mode,
-                    (sources ?? []).map((source) => ({
-                        ...source,
-                        url:
-                            source.kind === 'iframe'
-                                ? source.url
-                                : `/v1/stream?${new URLSearchParams({ url: source.url })}`,
-                        subtitleUrl: source.subtitleUrl
-                            ? `/v1/stream?${new URLSearchParams({ url: source.subtitleUrl })}`
-                            : null,
-                    })),
-                ])
-            ),
-        });
+        return context.json(playback);
     }
 );
 
