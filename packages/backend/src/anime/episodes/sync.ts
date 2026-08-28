@@ -18,6 +18,7 @@ import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
     episodeInventoryCoversTarget,
+    episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
     nextRefreshAt,
     providerEpisodeCount,
@@ -41,7 +42,7 @@ export function episodeInventoryBackfillKey(anilistId: number) {
     return `episode:backfill:${anilistId}`;
 }
 
-async function enqueueEpisodeInventoryBackfill(anilistId: number) {
+export async function enqueueEpisodeInventoryBackfill(anilistId: number) {
     await db
         .insert(maintenanceTask)
         .values({
@@ -223,6 +224,19 @@ async function fetchAndStore(
             .where(eq(animeEpisode.anilistId, anime.id))
             .orderBy(animeEpisode.number);
         const revision = sourceRevision(persisted);
+        const metadataRevision =
+            metadata === null
+                ? (sync?.metadataRevision ?? null)
+                : episodeMetadataNeedsRefresh(
+                        values.map(({ imageUrl, metadataTitle, overview }) => ({
+                            image: imageUrl ?? null,
+                            title: metadataTitle ?? '',
+                            overview: overview ?? '',
+                        })),
+                        true
+                    )
+                  ? null
+                  : episodeMetadataRevision;
 
         const stableSince =
             sync?.sourceRevision === revision && sync.stableSince ? sync.stableSince : now;
@@ -236,9 +250,7 @@ async function fetchAndStore(
                 sourceRevision: revision,
                 metadataExternalIdId:
                     resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
-                metadataRevision: metadata
-                    ? episodeMetadataRevision
-                    : (sync?.metadataRevision ?? null),
+                metadataRevision,
                 stableSince,
                 lastSuccessAt: now,
                 nextRefreshAt: nextRefreshAt(anime, stableSince),
@@ -253,9 +265,7 @@ async function fetchAndStore(
                     sourceRevision: revision,
                     metadataExternalIdId:
                         resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
-                    metadataRevision: metadata
-                        ? episodeMetadataRevision
-                        : (sync?.metadataRevision ?? null),
+                    metadataRevision,
                     stableSince,
                     lastSuccessAt: now,
                     nextRefreshAt: nextRefreshAt(anime, stableSince),
