@@ -34,11 +34,12 @@
         modal = false,
         openOnHover = false,
         disabled = false,
-        triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel peer-checked:bg-panel',
+        triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel data-[state=open]:bg-panel',
     }: Props = $props();
     let open = $state(false);
     let root = $state<HTMLDivElement>();
     let menu = $state<HTMLDivElement>();
+    let triggerElement = $state<HTMLButtonElement>();
 
     function closeOnSelection(event: MouseEvent) {
         if (event.target instanceof Element && event.target.closest('a, button')) {
@@ -85,6 +86,7 @@
         const closeOnEscape = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 open = false;
+                triggerElement?.focus();
             }
         };
 
@@ -113,17 +115,22 @@
         }
     }}
 >
-    <input
+    <button
+        bind:this={triggerElement}
         id={id}
-        type="checkbox"
+        type="button"
         aria-label={ariaLabel}
-        class="peer sr-only"
-        bind:checked={open}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={`${id}-menu`}
+        data-state={open ? 'open' : 'closed'}
+        data-testid="dropdown-trigger"
+        class={cn('appearance-none border-0 bg-transparent p-0', triggerClass)}
         disabled={disabled}
-    />
-    <label for={id} data-testid="dropdown-trigger" class={triggerClass}>
+        onclick={() => (open = !open)}
+    >
         {@render trigger()}
-    </label>
+    </button>
 
     {#if open && modal}
         <button
@@ -136,9 +143,11 @@
 
     <div
         bind:this={menu}
+        id={`${id}-menu`}
         class={cn(
-            'absolute top-full z-50 hidden peer-checked:block',
+            'absolute top-full z-50',
             menuAlign === 'start' ? 'left-0' : 'right-0',
+            open ? 'block' : 'hidden',
             menuClass
         )}
     >
