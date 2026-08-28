@@ -1,6 +1,8 @@
 import { runAnimeScheduler } from '@arc/backend/internal/anime/scheduler/run';
 import { db } from '@arc/db';
 
+const schedulerPollIntervalMs = 60 * 1_000;
+
 export async function startScheduler() {
     let stopping = false;
     const stop = () => {
@@ -18,7 +20,7 @@ export async function startScheduler() {
             }
 
             if (!stopping) {
-                await Bun.sleep(5 * 60 * 1_000);
+                await Bun.sleep(schedulerPollIntervalMs);
             }
         }
     } finally {
