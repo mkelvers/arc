@@ -28,6 +28,7 @@ import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getSimulcastSeasonStarts } from './anilist/simulcast';
 import { requestedSimulcastSeason, simulcastPage } from './simulcast';
 import { getWatchlistState } from '../watchlist/store';
+import { logger } from '../logger';
 
 export async function homePage(userId: string) {
     const { season, year } = currentAnimeSeason();
@@ -183,7 +184,7 @@ async function episodePlayback(
             error: !Object.values(streams).some((sources) => sources?.length),
         };
     } catch (cause) {
-        console.error(
+        logger.debug(
             `Playback source resolution failed for AniList ${anime.id} episode ${episode.number}`,
             cause
         );
