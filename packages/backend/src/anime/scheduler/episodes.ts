@@ -7,6 +7,7 @@ import { confirmScheduledEpisode } from '../episodes/sync';
 import { nextEpisodeAttemptAt } from './policy';
 import { scheduleReleaseTargets } from './targets';
 import { enqueueScheduleDiscovery } from './schedule-repair';
+import { logSchedulerEvent } from './log';
 
 export interface SchedulerLimits {
     concurrency: number;
@@ -104,7 +105,10 @@ async function retryTarget(target: ClaimedTarget, cause: unknown) {
                 eq(animeEpisodeTarget.leaseOwner, target.leaseOwner)
             )
         );
-    return nextAttemptAt ? ('retried' as const) : ('failed' as const);
+    return {
+        outcome: nextAttemptAt ? ('retried' as const) : ('failed' as const),
+        retryAt: nextAttemptAt,
+    };
 }
 
 async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
@@ -162,9 +166,9 @@ async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
         } catch (cause) {
             await enqueueScheduleDiscovery(target.anilistId, target.targetEpisode, cause);
         }
-        return 'confirmed' as const;
+        return { outcome: 'confirmed' as const, retryAt: null, cause: undefined };
     } catch (cause) {
-        return retryTarget(target, cause);
+        return { ...(await retryTarget(target, cause)), cause };
     } finally {
         stopped = true;
         clearInterval(timer);
@@ -183,9 +187,23 @@ export async function drainEpisodeTargets(runId: string, limits: SchedulerLimits
         }
 
         totals.claimed += claimed.length;
-        const outcomes = await Promise.all(claimed.map((target) => processTarget(target, limits)));
+        const outcomes = await Promise.all(
+            claimed.map(async (target) => {
+                const startedAt = Date.now();
+                const outcome = await processTarget(target, limits);
+                logSchedulerEvent({
+                    runId,
+                    taskType: 'episode_target',
+                    outcome: outcome.outcome === 'confirmed' ? 'completed' : outcome.outcome,
+                    durationMs: Date.now() - startedAt,
+                    retryAt: outcome.retryAt,
+                    cause: outcome.cause,
+                });
+                return outcome;
+            })
+        );
         for (const outcome of outcomes) {
-            totals[outcome] += 1;
+            totals[outcome.outcome === 'confirmed' ? 'confirmed' : outcome.outcome] += 1;
         }
     }
 

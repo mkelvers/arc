@@ -17,6 +17,7 @@ import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { scheduleReleaseTargets } from './targets';
+import { logSchedulerEvent } from './log';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -24,7 +25,7 @@ export interface SchedulerConfig extends SchedulerLimits {
     fullReconciliationIntervalMs: number;
 }
 
-async function refreshDueReleases(limit: number) {
+async function refreshDueReleases(runId: string, limit: number) {
     const rows = await db
         .select({ anilistId: animeReleaseRequest.anilistId })
         .from(animeReleaseRequest)
@@ -38,17 +39,32 @@ async function refreshDueReleases(limit: number) {
             )
         )
         .limit(limit);
-    const results = await Promise.allSettled(
-        rows.map(({ anilistId }) => refreshAnimeRelease(anilistId, { force: true }))
+    const results = await Promise.all(
+        rows.map(async ({ anilistId }) => {
+            const startedAt = Date.now();
+            try {
+                await refreshAnimeRelease(anilistId, { force: true });
+                return { ok: true as const, durationMs: Date.now() - startedAt };
+            } catch (cause) {
+                return { ok: false as const, durationMs: Date.now() - startedAt, cause };
+            }
+        })
     );
-    const refreshedIds = rows.flatMap((row, index) =>
-        results[index]?.status === 'fulfilled' ? [row.anilistId] : []
-    );
+    for (const result of results) {
+        logSchedulerEvent({
+            runId,
+            taskType: 'release_refresh',
+            outcome: result.ok ? 'completed' : 'failed',
+            durationMs: result.durationMs,
+            cause: result.ok ? undefined : result.cause,
+        });
+    }
+    const refreshedIds = rows.flatMap((row, index) => (results[index]?.ok ? [row.anilistId] : []));
     await scheduleReleaseTargets(refreshedIds);
     return {
         attempted: rows.length,
-        completed: results.filter(({ status }) => status === 'fulfilled').length,
-        failed: results.filter(({ status }) => status === 'rejected').length,
+        completed: results.filter(({ ok }) => ok).length,
+        failed: results.filter(({ ok }) => !ok).length,
     };
 }
 
@@ -79,6 +95,12 @@ async function catalogRefreshDue() {
 export async function runAnimeScheduler(config: SchedulerConfig) {
     const runId = randomUUID();
     const startedAt = new Date();
+    logSchedulerEvent({
+        runId,
+        taskType: 'scheduler_run',
+        outcome: 'started',
+        durationMs: 0,
+    });
     const [claimed] = await db
         .insert(schedulerHeartbeat)
         .values({ name: heartbeatName, activeRunId: runId, startedAt })
@@ -92,6 +114,13 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         })
         .returning({ activeRunId: schedulerHeartbeat.activeRunId });
     if (!claimed) {
+        logSchedulerEvent({
+            runId,
+            taskType: 'scheduler_run',
+            outcome: 'skipped',
+            durationMs: Date.now() - startedAt.getTime(),
+            cause: new Error('scheduler run already active'),
+        });
         return { skipped: 'already-running' as const };
     }
 
@@ -101,6 +130,7 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
             | { error: string; retryAt: string }
             | null = null;
         if (await fullReconciliationDue(config.fullReconciliationIntervalMs)) {
+            const taskStartedAt = Date.now();
             try {
                 const result = await reconcileAllAiringReleases();
                 fullReconciliation = {
@@ -117,6 +147,14 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
                 const error =
                     cause instanceof Error ? cause.message : 'Airing reconciliation failed';
                 fullReconciliation = { error, retryAt: retryAt.toISOString() };
+                logSchedulerEvent({
+                    runId,
+                    taskType: 'airing_reconciliation',
+                    outcome: 'retried',
+                    durationMs: Date.now() - taskStartedAt,
+                    retryAt,
+                    cause,
+                });
                 console.warn('Arc airing reconciliation failed; continuing durable work', error);
                 await db
                     .update(schedulerHeartbeat)
@@ -132,6 +170,7 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         let catalogRefresh: { completedAt: string } | { error: string; retryAt: string } | null =
             null;
         if (await catalogRefreshDue()) {
+            const taskStartedAt = Date.now();
             try {
                 await refreshCatalogSnapshots();
                 const refreshedAt = new Date();
@@ -151,6 +190,14 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
                         : 0;
                 const retryAt = new Date(Date.now() + Math.max(60 * 60_000, retryAfterMs));
                 catalogRefresh = { error, retryAt: retryAt.toISOString() };
+                logSchedulerEvent({
+                    runId,
+                    taskType: 'catalog_refresh',
+                    outcome: 'retried',
+                    durationMs: Date.now() - taskStartedAt,
+                    retryAt,
+                    cause,
+                });
                 console.warn('Arc catalog refresh failed; continuing durable work', error);
                 await db
                     .update(schedulerHeartbeat)
@@ -163,7 +210,7 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
             }
         }
 
-        const releases = await refreshDueReleases(config.concurrency);
+        const releases = await refreshDueReleases(runId, config.concurrency);
         const maintenance = await drainMaintenanceTasks(runId, {
             limit: config.concurrency,
             leaseDurationMs: config.leaseDurationMs,
@@ -206,9 +253,22 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
                     eq(schedulerHeartbeat.activeRunId, runId)
                 )
             );
+        logSchedulerEvent({
+            runId,
+            taskType: 'scheduler_run',
+            outcome: 'completed',
+            durationMs: completedAt.getTime() - startedAt.getTime(),
+        });
         return stats;
     } catch (cause) {
         const completedAt = new Date();
+        logSchedulerEvent({
+            runId,
+            taskType: 'scheduler_run',
+            outcome: 'failed',
+            durationMs: completedAt.getTime() - startedAt.getTime(),
+            cause,
+        });
         await db
             .update(schedulerHeartbeat)
             .set({

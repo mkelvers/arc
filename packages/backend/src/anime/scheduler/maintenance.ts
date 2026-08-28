@@ -12,6 +12,7 @@ import {
 } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
 import { reconcileAllAiringReleases } from './reconciliation';
+import { logSchedulerEvent } from './log';
 
 export { MaintenanceRequestSchema } from './maintenance-request';
 
@@ -275,7 +276,9 @@ export async function drainMaintenanceTasks(
         }
 
         totals.claimed += 1;
+        const startedAt = Date.now();
         const parsed = MaintenanceRequestSchema.safeParse(candidate.payload);
+        const taskType = parsed.success ? parsed.data.kind : 'invalid_payload';
         const timer = setInterval(() => {
             void db
                 .update(maintenanceTask)
@@ -318,16 +321,23 @@ export async function drainMaintenanceTasks(
                         eq(maintenanceTask.leaseOwner, leaseOwner)
                     )
                 );
+            logSchedulerEvent({
+                runId,
+                taskType,
+                outcome: 'completed',
+                durationMs: Date.now() - startedAt,
+            });
             totals.completed += 1;
         } catch (cause) {
             const attempts = claimed.attempts + 1;
             const failed = attempts >= 12;
+            const retryAt = new Date(Date.now() + maintenanceRetryDelay(attempts));
             await db
                 .update(maintenanceTask)
                 .set({
                     state: failed ? 'failed' : 'pending',
                     attempts,
-                    nextAttemptAt: new Date(Date.now() + maintenanceRetryDelay(attempts)),
+                    nextAttemptAt: retryAt,
                     leaseOwner: null,
                     leaseUntil: null,
                     lastError: cause instanceof Error ? cause.message : 'Maintenance task failed',
@@ -339,6 +349,14 @@ export async function drainMaintenanceTasks(
                         eq(maintenanceTask.leaseOwner, leaseOwner)
                     )
                 );
+            logSchedulerEvent({
+                runId,
+                taskType,
+                outcome: failed ? 'failed' : 'retried',
+                durationMs: Date.now() - startedAt,
+                retryAt,
+                cause,
+            });
             totals[failed ? 'failed' : 'retried'] += 1;
         } finally {
             clearInterval(timer);
