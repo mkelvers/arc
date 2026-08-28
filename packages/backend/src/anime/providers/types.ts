@@ -20,11 +20,14 @@ export interface ProviderEpisodeReference {
 }
 
 export interface ProviderStream {
+    provider: string;
+    server: string;
     url: string;
-    kind?: 'direct' | 'iframe';
     quality: string | null;
-    subtitleUrl?: string | null;
-    provider?: string;
+    subtitles: Array<{
+        kind: 'full' | 'sdh' | 'forced';
+        url: string;
+    }>;
 }
 
 export type ProviderStreams = Partial<Record<AudioMode, ProviderStream[]>>;

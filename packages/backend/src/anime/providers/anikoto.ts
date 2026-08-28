@@ -24,14 +24,23 @@ const mediaHostSuffixes = [
     'lostproject.club',
     'megaplay.buzz',
     'mikora.top',
+    'norami.top',
     'shiora.top',
     'tiktokcdn.com',
     'watching.onl',
 ] as const;
-const requestTimeoutMs = 8_000;
+export const aniKotoRequestTimeoutMs = 10_000;
+export const aniKotoMediaReferer = 'https://megaplay.buzz/';
+export const aniKotoStreamLimits = {
+    playlist: 2 * 1024 * 1024,
+    subtitle: 512 * 1024,
+    segment: 64 * 1024 * 1024,
+} as const;
+const resolutionDeadlineMs = 12_000;
+const resolutionConcurrency = 4;
 const failedSourceCooldownMs = 30_000;
 const maxTextBytes = 2 * 1024 * 1024;
-const failedSourceHosts = new Map<string, number>();
+const failedSources = new Map<string, number>();
 
 const ajaxResponseSchema = z.object({ status: z.number().int(), result: z.string() });
 const seriesResponseSchema = z.object({
@@ -97,6 +106,7 @@ export interface AniKotoServerCandidate {
 
 interface CaptionCandidate {
     url: string;
+    kind: 'full' | 'sdh' | 'forced';
     preferred: boolean;
 }
 
@@ -125,27 +135,25 @@ function supportedHost(hostname: string) {
     );
 }
 
+export function sourceCooldownKey(url: URL) {
+    return url.toString();
+}
+
 function sourceIsCoolingDown(url: URL) {
-    const retryAt = failedSourceHosts.get(url.hostname);
+    const key = sourceCooldownKey(url);
+    const retryAt = failedSources.get(key);
     if (retryAt === undefined) {
         return false;
     }
     if (retryAt <= Date.now()) {
-        failedSourceHosts.delete(url.hostname);
+        failedSources.delete(key);
         return false;
     }
     return true;
 }
 
 function rememberFailedSource(url: URL) {
-    failedSourceHosts.set(url.hostname, Date.now() + failedSourceCooldownMs);
-}
-
-function isTransientSourceFailure(cause: unknown) {
-    return (
-        cause instanceof TypeError ||
-        (cause instanceof AniKotoRequestError && (cause.status === 429 || cause.status >= 500))
-    );
+    failedSources.set(sourceCooldownKey(url), Date.now() + failedSourceCooldownMs);
 }
 
 export function supportedAniKotoHost(hostname: string) {
@@ -155,8 +163,47 @@ export function supportedAniKotoHost(hostname: string) {
 export function isAniKotoDisguisedSegmentHost(hostname: string) {
     return (
         /^p\d+-ad-site-sign-sg\.tiktokcdn\.com$/.test(hostname) ||
-        /^s\d+\.(?:akirax\.buzz|shiora\.top)$/.test(hostname)
+        /^s\d+\.(?:akirax\.buzz|norami\.top|shiora\.top)$/.test(hostname)
     );
+}
+
+export function unwrapAniKotoDisguisedSegment(value: Uint8Array) {
+    const pngEnd = new Uint8Array([0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
+    for (let index = 0; index <= value.length - pngEnd.length; index += 1) {
+        if (pngEnd.every((byte, offset) => value[index + offset] === byte)) {
+            return value.slice(index + pngEnd.length);
+        }
+    }
+
+    if (value[0] === 0xff && value[1] === 0xd8) {
+        for (let index = 1; index < value.length; index += 1) {
+            if (value[index - 1] === 0xff && value[index] === 0xd9) {
+                return value.slice(index + 1);
+            }
+        }
+    }
+
+    return value;
+}
+
+export function normalizeAniKotoMediaUrl(url: URL) {
+    if (
+        !url ||
+        url.protocol !== 'https:' ||
+        url.username ||
+        url.password ||
+        url.port ||
+        !supportedHost(url.hostname)
+    ) {
+        return null;
+    }
+
+    const normalized = new URL(url.toString());
+    const shard = normalized.hostname.match(/^(s\d+)\.shiora\.top$/i)?.[1];
+    if (shard) {
+        normalized.hostname = `${shard}.akirax.buzz`;
+    }
+    return normalized;
 }
 
 function validHttpsUrl(value: string | undefined) {
@@ -177,20 +224,22 @@ function validHttpsUrl(value: string | undefined) {
 
 export function supportedMediaUrl(value: string) {
     const url = validHttpsUrl(value);
-    if (!url || !supportedHost(url.hostname)) {
+    const normalized = url ? normalizeAniKotoMediaUrl(url) : null;
+    if (!normalized) {
         return null;
     }
 
-    return /\.(?:m3u8|mp4)$/i.test(url.pathname) ? url : null;
+    return /\.(?:m3u8|mp4)$/i.test(normalized.pathname) ? normalized : null;
 }
 
 export function supportedSubtitleUrl(value: string) {
     const url = validHttpsUrl(value);
-    if (!url || !supportedHost(url.hostname) || !/\.vtt$/i.test(url.pathname)) {
+    const normalized = url ? normalizeAniKotoMediaUrl(url) : null;
+    if (!normalized || !/\.vtt$/i.test(normalized.pathname)) {
         return null;
     }
 
-    return url;
+    return normalized;
 }
 
 export function validOpaqueId(value: string | undefined, maxLength = 1024) {
@@ -301,6 +350,7 @@ export function parseServerList(value: JsonValue) {
         sub: [] as AniKotoServerCandidate[],
         dub: [] as AniKotoServerCandidate[],
     };
+    const seenByMode = { sub: new Set<string>(), dub: new Set<string>() };
     if (!parsed.success || parsed.data.status !== 200) {
         return servers;
     }
@@ -313,14 +363,13 @@ export function parseServerList(value: JsonValue) {
         }
         const mode = embedMode === 'hsub' ? 'sub' : embedMode;
 
-        const seen = new Set<string>();
         $(element)
             .find('li[data-link-id]')
             .each((_, server) => {
                 const item = $(server);
                 const linkId = item.attr('data-link-id')?.trim() ?? '';
-                if (validOpaqueId(linkId) && !seen.has(linkId)) {
-                    seen.add(linkId);
+                if (validOpaqueId(linkId) && !seenByMode[mode].has(linkId)) {
+                    seenByMode[mode].add(linkId);
                     servers[mode].push({
                         mode,
                         embedMode,
@@ -363,22 +412,29 @@ export function parseMegaPlaySource(value: JsonValue) {
 
         const url = supportedSubtitleUrl(track.file);
         if (url && !captions.some((candidate) => candidate.url === url.toString())) {
-            captions.push({ url: url.toString(), preferred: track.default === true });
+            const label = track.label.toLowerCase();
+            const kind = /forced/.test(label)
+                ? 'forced'
+                : /sdh|cc|hearing impaired/.test(label)
+                  ? 'sdh'
+                  : 'full';
+            captions.push({ url: url.toString(), kind, preferred: track.default === true });
         }
     }
 
-    captions.sort((left, right) => Number(right.preferred) - Number(left.preferred));
+    captions.sort(
+        (left, right) =>
+            Number(right.preferred) - Number(left.preferred) ||
+            ['full', 'sdh', 'forced'].indexOf(left.kind) -
+                ['full', 'sdh', 'forced'].indexOf(right.kind)
+    );
     return { mediaUrl, captions };
 }
 
 export function uniqueDirectStreams(streams: readonly ProviderStream[]) {
     const seen = new Set<string>();
     return streams.filter((stream) => {
-        if (stream.kind === 'iframe') {
-            return false;
-        }
-
-        const key = `${stream.url}\n${stream.subtitleUrl ?? ''}`;
+        const key = stream.url;
         if (seen.has(key)) {
             return false;
         }
@@ -387,26 +443,58 @@ export function uniqueDirectStreams(streams: readonly ProviderStream[]) {
     });
 }
 
-export async function firstPlayable<T>(
+export async function resolveCandidates<T, R>(
     candidates: readonly T[],
-    resolve: (candidate: T) => Promise<ProviderStream | null>
+    resolve: (candidate: T, signal: AbortSignal) => Promise<R | null>,
+    options: { concurrency?: number; signal?: AbortSignal } = {}
 ) {
+    const controller = new AbortController();
+    const signal = options.signal
+        ? AbortSignal.any([options.signal, controller.signal])
+        : controller.signal;
+    const results: Array<R | null> = Array.from({ length: candidates.length }, () => null);
     const errors: unknown[] = [];
-    for (const candidate of candidates) {
-        try {
-            const stream = await resolve(candidate);
-            if (stream) {
-                return stream;
-            }
-        } catch (cause) {
-            errors.push(cause);
-        }
-    }
+    let next = 0;
+    const concurrency = Math.max(
+        1,
+        Math.min(options.concurrency ?? resolutionConcurrency, candidates.length)
+    );
 
-    throw new AggregateError(errors, 'AniKoto returned no playable server');
+    const run = async () => {
+        while (!signal.aborted) {
+            const index = next;
+            next += 1;
+            if (index >= candidates.length) {
+                return;
+            }
+
+            try {
+                const result = await Promise.race([
+                    resolve(candidates[index], signal),
+                    new Promise<never>((_, reject) => {
+                        if (signal.aborted) {
+                            reject(signal.reason);
+                            return;
+                        }
+                        signal.addEventListener('abort', () => reject(signal.reason), {
+                            once: true,
+                        });
+                    }),
+                ]);
+                results[index] = result;
+            } catch (cause) {
+                if (!signal.aborted || cause !== signal.reason) {
+                    errors.push(cause);
+                }
+            }
+        }
+    };
+
+    await Promise.all(Array.from({ length: concurrency }, run));
+    return { results, errors };
 }
 
-async function readBounded(response: Response, limit: number) {
+async function readBounded(response: Response, limit: number, signal?: AbortSignal) {
     const contentLength = Number(response.headers.get('content-length'));
     if (Number.isFinite(contentLength) && contentLength > limit) {
         throw new Error('AniKoto response exceeded its size limit');
@@ -414,10 +502,11 @@ async function readBounded(response: Response, limit: number) {
 
     if (!response.body) {
         const text = await response.text();
-        if (new TextEncoder().encode(text).byteLength > limit) {
+        const bytes = new TextEncoder().encode(text);
+        if (bytes.byteLength > limit) {
             throw new Error('AniKoto response exceeded its size limit');
         }
-        return text;
+        return bytes;
     }
 
     const reader = response.body.getReader();
@@ -425,7 +514,20 @@ async function readBounded(response: Response, limit: number) {
     let size = 0;
     try {
         while (true) {
-            const chunk = await reader.read();
+            const chunk = signal
+                ? await Promise.race([
+                      reader.read(),
+                      new Promise<never>((_, reject) => {
+                          if (signal.aborted) {
+                              reject(signal.reason);
+                              return;
+                          }
+                          signal.addEventListener('abort', () => reject(signal.reason), {
+                              once: true,
+                          });
+                      }),
+                  ])
+                : await reader.read();
             if (chunk.done) {
                 break;
             }
@@ -436,6 +538,9 @@ async function readBounded(response: Response, limit: number) {
             }
             chunks.push(chunk.value);
         }
+    } catch (cause) {
+        await reader.cancel().catch(() => undefined);
+        throw cause;
     } finally {
         reader.releaseLock();
     }
@@ -446,12 +551,12 @@ async function readBounded(response: Response, limit: number) {
         bytes.set(chunk, offset);
         offset += chunk.byteLength;
     }
-    return new TextDecoder().decode(bytes);
+    return bytes;
 }
 
 async function requestText(
     url: URL,
-    options: { accept?: string; referer?: string; maxBytes?: number } = {}
+    options: { accept?: string; referer?: string; maxBytes?: number; signal?: AbortSignal } = {}
 ): Promise<string> {
     const headers = new Headers({
         Accept: options.accept ?? 'text/html',
@@ -465,7 +570,9 @@ async function requestText(
 
     const response = await fetch(url, {
         headers,
-        signal: AbortSignal.timeout(requestTimeoutMs),
+        signal: options.signal
+            ? AbortSignal.any([options.signal, AbortSignal.timeout(aniKotoRequestTimeoutMs)])
+            : AbortSignal.timeout(aniKotoRequestTimeoutMs),
     });
     if (!response.ok) {
         throw new AniKotoRequestError(
@@ -474,11 +581,13 @@ async function requestText(
         );
     }
 
-    return readBounded(response, options.maxBytes ?? maxTextBytes);
+    return new TextDecoder().decode(
+        await readBounded(response, options.maxBytes ?? maxTextBytes, options.signal)
+    );
 }
 
-async function requestJson(url: URL, referer = `${anikotoUrl}/`) {
-    const text = await requestText(url, { accept: 'application/json', referer });
+async function requestJson(url: URL, referer = `${anikotoUrl}/`, signal?: AbortSignal) {
+    const text = await requestText(url, { accept: 'application/json', referer, signal });
     try {
         return z.json().parse(JSON.parse(text));
     } catch (cause) {
@@ -670,7 +779,93 @@ export function validEmbed(value: string | undefined, mode: AniKotoServerMode) {
         : null;
 }
 
-async function resolvedSubtitle(captions: readonly CaptionCandidate[], referer: string) {
+export type AniKotoMediaFetch = (target: URL, init: RequestInit) => Promise<Response>;
+
+function mediaHeaders(range?: string) {
+    const headers = new Headers({
+        Accept: '*/*',
+        Referer: aniKotoMediaReferer,
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36',
+    });
+    if (range) {
+        headers.set('Range', range);
+    }
+    return headers;
+}
+
+export async function fetchAniKotoResource(
+    initialTarget: URL,
+    fetchMedia: AniKotoMediaFetch,
+    options: { range?: string; signal?: AbortSignal } = {}
+) {
+    let target = normalizeAniKotoMediaUrl(initialTarget);
+    if (!target) {
+        throw new Error('AniKoto returned an unsupported media URL');
+    }
+
+    for (let redirects = 0; redirects <= 3; redirects += 1) {
+        const response = await fetchMedia(target, {
+            headers: mediaHeaders(options.range),
+            redirect: 'manual',
+            signal: options.signal
+                ? AbortSignal.any([options.signal, AbortSignal.timeout(aniKotoRequestTimeoutMs)])
+                : AbortSignal.timeout(aniKotoRequestTimeoutMs),
+        });
+        if (response.status < 300 || response.status >= 400) {
+            if (!response.ok && response.status !== 206) {
+                throw new AniKotoRequestError(
+                    `AniKoto media returned ${response.status}`,
+                    response.status
+                );
+            }
+            return { response, target };
+        }
+
+        const location = response.headers.get('location');
+        if (!location || redirects === 3) {
+            throw new Error('AniKoto media redirect limit exceeded');
+        }
+        target = normalizeAniKotoMediaUrl(new URL(location, target));
+        if (!target) {
+            throw new Error('AniKoto media redirected to an unsupported host');
+        }
+    }
+
+    throw new Error('AniKoto media redirect limit exceeded');
+}
+
+function hlsVariant(playlist: string, base: URL) {
+    const lines = playlist.split(/\r?\n/).map((line) => line.trim());
+    const index = lines.findIndex((line) => line.startsWith('#EXT-X-STREAM-INF:'));
+    if (index < 0) {
+        return null;
+    }
+    const reference = lines.slice(index + 1).find((line) => line && !line.startsWith('#'));
+    return reference ? normalizeAniKotoMediaUrl(new URL(reference, base)) : null;
+}
+
+function hlsSegment(playlist: string, base: URL) {
+    const lines = playlist.split(/\r?\n/).map((line) => line.trim());
+    const map = lines.find((line) => line.startsWith('#EXT-X-MAP:'))?.match(/URI="([^"]+)"/i)?.[1];
+    const reference = map ?? lines.find((line) => line && !line.startsWith('#'));
+    return reference ? normalizeAniKotoMediaUrl(new URL(reference, base)) : null;
+}
+
+function mediaSegment(value: Uint8Array) {
+    const bytes = unwrapAniKotoDisguisedSegment(value);
+    if (bytes.length < 4) {
+        return false;
+    }
+    return (
+        bytes[0] === 0x47 ||
+        String.fromCharCode(...bytes.slice(4, 8)) === 'ftyp' ||
+        String.fromCharCode(...bytes.slice(4, 8)) === 'styp'
+    );
+}
+
+async function resolvedSubtitles(captions: readonly CaptionCandidate[], signal?: AbortSignal) {
+    const valid: ProviderStream['subtitles'] = [];
     for (const caption of captions) {
         const url = supportedSubtitleUrl(caption.url);
         if (!url) {
@@ -678,68 +873,93 @@ async function resolvedSubtitle(captions: readonly CaptionCandidate[], referer: 
         }
 
         try {
-            const text = await requestText(url, {
-                accept: 'text/vtt',
-                referer,
-                maxBytes: 512 * 1024,
-            });
+            const { response } = await fetchAniKotoResource(url, fetch, { signal });
+            const text = new TextDecoder().decode(
+                await readBounded(response, aniKotoStreamLimits.subtitle, signal)
+            );
             if (/^\s*WEBVTT(?:\s|$)/i.test(text)) {
-                return url.toString();
+                valid.push({ kind: caption.kind, url: url.toString() });
             }
         } catch {
             // Captions are optional; a broken track must not discard playable video.
         }
     }
-    return null;
+    return valid.filter(
+        (caption, index, tracks) => tracks.findIndex(({ kind }) => kind === caption.kind) === index
+    );
 }
 
-async function verifyMedia(url: URL, referer: string) {
-    if (sourceIsCoolingDown(url)) {
+export async function validateAniKotoMedia(
+    url: URL,
+    fetchMedia: AniKotoMediaFetch = fetch,
+    options: { signal?: AbortSignal } = {}
+) {
+    const target = normalizeAniKotoMediaUrl(url);
+    if (!target) {
+        throw new Error('AniKoto returned an unsupported media URL');
+    }
+    if (sourceIsCoolingDown(target)) {
         throw new Error('AniKoto source is cooling down after an upstream failure');
     }
 
     try {
-        if (url.pathname.endsWith('.m3u8')) {
-            const playlist = await requestText(url, {
-                accept: 'application/vnd.apple.mpegurl',
-                referer,
-            });
-            if (!/^\s*#EXTM3U(?:\s|$)/.test(playlist)) {
+        if (target.pathname.endsWith('.m3u8')) {
+            const master = await fetchAniKotoResource(target, fetchMedia, options);
+            const masterBody = new TextDecoder().decode(
+                await readBounded(master.response, aniKotoStreamLimits.playlist, options.signal)
+            );
+            if (!/^\s*#EXTM3U(?:\s|$)/.test(masterBody) || !hlsVariant(masterBody, master.target)) {
                 throw new Error('AniKoto returned an invalid HLS playlist');
+            }
+
+            const variantTarget = hlsVariant(masterBody, master.target);
+            if (!variantTarget) {
+                throw new Error('AniKoto returned no HLS variant');
+            }
+            const variant = await fetchAniKotoResource(variantTarget, fetchMedia, options);
+            const variantBody = new TextDecoder().decode(
+                await readBounded(variant.response, aniKotoStreamLimits.playlist, options.signal)
+            );
+            if (!/^\s*#EXTM3U(?:\s|$)/.test(variantBody)) {
+                throw new Error('AniKoto returned an invalid HLS media playlist');
+            }
+            const segmentTarget = hlsSegment(variantBody, variant.target);
+            if (!segmentTarget) {
+                throw new Error('AniKoto returned no HLS media segment');
+            }
+            const segment = await fetchAniKotoResource(segmentTarget, fetchMedia, options);
+            if (
+                !mediaSegment(
+                    await readBounded(segment.response, aniKotoStreamLimits.segment, options.signal)
+                )
+            ) {
+                throw new Error('AniKoto returned an invalid HLS media segment');
             }
             return;
         }
 
-        const response = await fetch(url, {
-            headers: {
-                Accept: 'video/mp4,application/octet-stream;q=0.9,*/*;q=0.1',
-                Referer: referer,
-                Range: 'bytes=0-65535',
-                'User-Agent': 'Mozilla/5.0 Chrome/140 Safari/537.36',
-            },
-            signal: AbortSignal.timeout(requestTimeoutMs),
+        const { response } = await fetchAniKotoResource(target, fetchMedia, {
+            range: 'bytes=0-65535',
+            signal: options.signal,
         });
-        if (!response.ok && response.status !== 206) {
-            throw new AniKotoRequestError(
-                `AniKoto media returned ${response.status}`,
-                response.status
-            );
-        }
         const contentType = response.headers.get('content-type')?.split(';', 1)[0].trim();
         if (contentType && !['video/mp4', 'application/octet-stream'].includes(contentType)) {
             throw new Error('AniKoto returned a non-MP4 media response');
         }
-        await readBounded(response, 64 * 1024);
-    } catch (cause) {
-        if (isTransientSourceFailure(cause)) {
-            rememberFailedSource(url);
+        const bytes = await readBounded(response, 64 * 1024, options.signal);
+        if (!bytes.length || !mediaSegment(bytes)) {
+            throw new Error('AniKoto returned an invalid MP4 range');
         }
+    } catch (cause) {
+        rememberFailedSource(target);
         throw cause;
     }
 }
 
-async function resolveMegaPlay(embed: URL) {
-    const sourceId = parseMegaPlaySourceId(await requestText(embed, { referer: `${anikotoUrl}/` }));
+async function resolveMegaPlay(embed: URL, signal: AbortSignal) {
+    const sourceId = parseMegaPlaySourceId(
+        await requestText(embed, { referer: `${anikotoUrl}/`, signal })
+    );
     if (!sourceId) {
         throw new Error('MegaPlay embed returned no source ID');
     }
@@ -750,28 +970,28 @@ async function resolveMegaPlay(embed: URL) {
     if (selector && /^[a-z0-9_-]{1,32}$/i.test(selector)) {
         sourceUrl.searchParams.set('s', selector);
     }
-    const source = parseMegaPlaySource(await requestJson(sourceUrl, embed.toString()));
+    const source = parseMegaPlaySource(await requestJson(sourceUrl, embed.toString(), signal));
     if (!source) {
         throw new Error('MegaPlay returned no supported media source');
     }
 
-    await verifyMedia(source.mediaUrl, `${embed.origin}/`);
+    await validateAniKotoMedia(source.mediaUrl, undefined, { signal });
     return {
         url: source.mediaUrl.toString(),
-        kind: 'direct',
         quality: null,
-        subtitleUrl: await resolvedSubtitle(source.captions, `${embed.origin}/`),
-        provider: 'AniKoto',
-    } satisfies ProviderStream;
+        subtitles: await resolvedSubtitles(source.captions, signal),
+    } satisfies Omit<ProviderStream, 'provider' | 'server'>;
 }
 
 async function resolveServer(
     candidate: AniKotoServerCandidate,
-    resolutions: Map<string, Promise<ProviderStream>>
+    signal: AbortSignal
 ): Promise<ProviderStream | null> {
     const response = serverResponseSchema.parse(
         await requestJson(
-            new URL(`/ajax/server?get=${encodeURIComponent(candidate.linkId)}`, anikotoUrl)
+            new URL(`/ajax/server?get=${encodeURIComponent(candidate.linkId)}`, anikotoUrl),
+            `${anikotoUrl}/`,
+            signal
         )
     );
     if (response.status !== 200) {
@@ -783,15 +1003,11 @@ async function resolveServer(
         throw new Error('AniKoto returned an invalid MegaPlay embed');
     }
 
-    const key = embed.toString();
-    const existing = resolutions.get(key);
-    if (existing) {
-        return existing.catch(() => null);
-    }
-
-    const resolution = resolveMegaPlay(embed);
-    resolutions.set(key, resolution);
-    return resolution;
+    return {
+        ...(await resolveMegaPlay(embed, signal)),
+        provider: providerName,
+        server: candidate.label,
+    };
 }
 
 async function getEpisodes(anime: AniListAnime) {
@@ -822,32 +1038,25 @@ async function getStreams(
     }
 
     const servers = await episodeServers(current.id);
-    const result: ProviderStreams = {};
-    const errors: unknown[] = [];
-    const resolutions = new Map<string, Promise<ProviderStream>>();
     const playableModes = playableAudioModes(current.audio, modes);
+    const tasks = playableModes.flatMap((mode) =>
+        servers[mode].map((candidate) => ({ mode, candidate }))
+    );
+    const deadline = AbortSignal.timeout(resolutionDeadlineMs);
+    const { results, errors } = await resolveCandidates(
+        tasks,
+        ({ candidate }, signal) => resolveServer(candidate, signal),
+        { concurrency: resolutionConcurrency, signal: deadline }
+    );
+    const result: ProviderStreams = {};
     for (const mode of playableModes) {
-        const candidates = servers[mode];
-        if (!candidates.length) {
-            errors.push(new Error(`AniKoto returned no ${mode} servers`));
-        } else {
-            try {
-                result[mode] = [
-                    await firstPlayable(candidates, (candidate) =>
-                        resolveServer(candidate, resolutions)
-                    ),
-                ];
-            } catch (cause) {
-                errors.push(cause);
-            }
-        }
+        result[mode] = uniqueDirectStreams(
+            results.flatMap((stream, index) =>
+                tasks[index]?.mode === mode && stream ? [stream] : []
+            )
+        );
     }
 
-    for (const mode of ['sub', 'dub'] as const) {
-        if (result[mode]) {
-            result[mode] = uniqueDirectStreams(result[mode]);
-        }
-    }
     if (!Object.values(result).some((streams) => streams?.length)) {
         throw new AggregateError(
             errors,

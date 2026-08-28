@@ -2,12 +2,15 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     episodeAudioModes,
-    firstPlayable,
     matchesAniKotoIdentity,
+    normalizeAniKotoMediaUrl,
     parseEpisodeList,
     parseMegaPlaySource,
     parseServerList,
     playableAudioModes,
+    resolveCandidates,
+    unwrapAniKotoDisguisedSegment,
+    validateAniKotoMedia,
     serverMode,
     supportedMediaUrl,
     supportedSubtitleUrl,
@@ -22,6 +25,16 @@ describe('AniKoto provider rules', () => {
         expect(parseEpisodeList({ status: 200, result: 42 })).toEqual([]);
         expect(parseServerList({ status: 500, result: '<div></div>' })).toEqual({
             sub: [],
+            dub: [],
+        });
+        expect(
+            parseServerList({
+                status: 200,
+                result: `<div class="type" data-type="hsub"><ul><li data-link-id="same-id">HD-1</li></ul></div>
+                    <div class="type" data-type="sub"><ul><li data-link-id="same-id">SUB-1</li></ul></div>`,
+            })
+        ).toEqual({
+            sub: [{ mode: 'sub', embedMode: 'hsub', linkId: 'same-id', label: 'HD-1' }],
             dub: [],
         });
         expect(
@@ -77,6 +90,9 @@ describe('AniKoto provider rules', () => {
         expect(supportedMediaUrl('https://megap.akirax.buzz/video.mp4')?.hostname).toBe(
             'megap.akirax.buzz'
         );
+        expect(normalizeAniKotoMediaUrl(new URL('https://s2.norami.top/video.jpg'))?.hostname).toBe(
+            's2.norami.top'
+        );
         expect(supportedSubtitleUrl('https://cdn.kryntal.top/track.ass')).toBeNull();
         expect(supportedSubtitleUrl('https://cdn.kryntal.top/track.vtt')?.pathname).toBe(
             '/track.vtt'
@@ -104,60 +120,129 @@ describe('AniKoto provider rules', () => {
                     },
                     {
                         kind: 'captions',
-                        label: 'English',
-                        file: 'https://cdn.kryntal.top/track.vtt',
+                        label: 'English SDH',
+                        file: 'https://cdn.kryntal.top/sdh.vtt',
+                    },
+                    {
+                        kind: 'captions',
+                        label: 'English Forced',
+                        file: 'https://cdn.kryntal.top/forced.vtt',
                     },
                 ],
             })?.captions
-        ).toHaveLength(1);
+        ).toEqual([
+            { kind: 'full', url: 'https://cdn.kryntal.top/track.vtt', preferred: false },
+            { kind: 'sdh', url: 'https://cdn.kryntal.top/sdh.vtt', preferred: false },
+            { kind: 'forced', url: 'https://cdn.kryntal.top/forced.vtt', preferred: false },
+        ]);
     });
 
-    test('skips duplicate and iframe streams', () => {
+    test('removes duplicate direct streams while keeping the first server label', () => {
         const direct = {
-            kind: 'direct' as const,
+            provider: 'anikoto',
+            server: 'VidPlay-1',
             url: 'https://cdn.kryntal.top/master.m3u8',
             quality: null,
-            subtitleUrl: null,
+            subtitles: [],
         };
-        expect(uniqueDirectStreams([direct, { ...direct }, { ...direct, kind: 'iframe' }])).toEqual(
+        expect(uniqueDirectStreams([direct, { ...direct }, { ...direct, server: 'HD-2' }])).toEqual(
             [direct]
         );
     });
 
-    test('tries server candidates in order until one is playable', async () => {
-        const attempts: string[] = [];
-        const stream = await firstPlayable(['dead', 'working'], async (candidate) => {
-            attempts.push(candidate);
-            if (candidate === 'dead') {
-                throw new Error('dead CDN');
+    test('validates the HLS master, media playlist, and initial segment', async () => {
+        const requested: string[] = [];
+        await validateAniKotoMedia(
+            new URL('https://cdn.kryntal.top/episode/master.m3u8'),
+            async (target) => {
+                requested.push(target.toString());
+                if (target.pathname.endsWith('master.m3u8')) {
+                    return new Response(
+                        '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8',
+                        { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                    );
+                }
+                if (target.pathname.endsWith('index.m3u8')) {
+                    return new Response('#EXTM3U\n#EXTINF:4,\nsegment.ts', {
+                        headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+                    });
+                }
+                return new Response(new Uint8Array([0x47, 0x00, 0x01, 0x02]), {
+                    headers: { 'content-type': 'video/mp2t' },
+                });
             }
-            return {
-                kind: 'direct',
-                url: 'https://megap.akirax.buzz/master.m3u8',
-                quality: null,
-            };
-        });
-        expect(attempts).toEqual(['dead', 'working']);
-        expect(stream.url).toContain('akirax.buzz');
+        );
+        expect(requested).toEqual([
+            'https://cdn.kryntal.top/episode/master.m3u8',
+            'https://cdn.kryntal.top/episode/video/index.m3u8',
+            'https://cdn.kryntal.top/episode/video/segment.ts',
+        ]);
     });
 
-    test('continues when a candidate has no usable source', async () => {
-        const attempts: string[] = [];
-        const stream = await firstPlayable(['dead', 'duplicate', 'working'], async (candidate) => {
-            attempts.push(candidate);
-            if (candidate === 'dead') {
-                throw new Error('dead CDN');
+    test('unwraps JPEG-disguised HLS segments from current AniKoto shards', async () => {
+        const segment = new Uint8Array([0xff, 0xd8, 0xff, 0xd9, 0x47, 0x00, 0x01, 0x02]);
+        expect(unwrapAniKotoDisguisedSegment(segment)).toEqual(
+            new Uint8Array([0x47, 0x00, 0x01, 0x02])
+        );
+        expect(unwrapAniKotoDisguisedSegment(new Uint8Array([0x47, 0xff, 0xd9, 0x00]))).toEqual(
+            new Uint8Array([0x47, 0xff, 0xd9, 0x00])
+        );
+
+        await validateAniKotoMedia(
+            new URL('https://s1.akirax.buzz/episode/master.m3u8'),
+            async (target) => {
+                if (target.pathname.endsWith('master.m3u8')) {
+                    return new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8');
+                }
+                if (target.pathname.endsWith('index.m3u8')) {
+                    return new Response('#EXTM3U\n#EXTINF:4,\nhttps://s2.norami.top/segment.jpg');
+                }
+                return new Response(segment, { headers: { 'content-type': 'image/jpeg' } });
             }
-            if (candidate === 'duplicate') {
-                return null;
-            }
-            return {
-                kind: 'direct',
-                url: 'https://megap.akirax.buzz/master.m3u8',
-                quality: null,
-            };
+        );
+    });
+
+    test('validates an MP4 range and cools down only the failed source URL', async () => {
+        const failed = new URL('https://cdn.kryntal.top/dead.mp4');
+        let failedAttempts = 0;
+        const deadFetch = async () => {
+            failedAttempts += 1;
+            return new Response('upstream failed', { status: 503 });
+        };
+        await expect(validateAniKotoMedia(failed, deadFetch)).rejects.toThrow();
+        await expect(validateAniKotoMedia(failed, deadFetch)).rejects.toThrow('cooling down');
+        expect(failedAttempts).toBe(1);
+
+        const sibling = new URL('https://cdn.kryntal.top/sibling.mp4');
+        await validateAniKotoMedia(sibling, async (_target, init) => {
+            expect(new Headers(init.headers).get('Range')).toBe('bytes=0-65535');
+            return new Response(new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70]), {
+                status: 206,
+                headers: { 'content-type': 'video/mp4' },
+            });
         });
-        expect(attempts).toEqual(['dead', 'duplicate', 'working']);
-        expect(stream.url).toContain('akirax.buzz');
+    });
+
+    test('resolves every candidate independently with four workers and preserves order', async () => {
+        const active: string[] = [];
+        let maximum = 0;
+        const result = await resolveCandidates(
+            ['dead', 'one', 'two', 'three', 'four', 'five'],
+            async (candidate) => {
+                active.push(candidate);
+                maximum = Math.max(maximum, active.length);
+                await new Promise((resolve) => setTimeout(resolve, candidate === 'dead' ? 5 : 1));
+                active.splice(active.indexOf(candidate), 1);
+                if (candidate === 'dead') {
+                    throw new Error('dead CDN');
+                }
+                return candidate === 'three' ? null : candidate;
+            },
+            { concurrency: 4 }
+        );
+
+        expect(maximum).toBe(4);
+        expect(result.results).toEqual([null, 'one', 'two', null, 'four', 'five']);
+        expect(result.errors).toHaveLength(1);
     });
 });
