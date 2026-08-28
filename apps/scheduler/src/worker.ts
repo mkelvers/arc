@@ -13,7 +13,9 @@ export async function startScheduler() {
         while (!stopping) {
             try {
                 await runAnimeScheduler();
-            } catch {}
+            } catch (cause) {
+                console.error('Arc anime scheduler failed', cause);
+            }
 
             if (!stopping) {
                 await Bun.sleep(5 * 60 * 1_000);
