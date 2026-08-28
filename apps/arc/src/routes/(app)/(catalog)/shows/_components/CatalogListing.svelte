@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte';
     import {
-        CaretDownIcon,
         CircleIcon,
         CircleNotchIcon,
         FunnelIcon,
@@ -205,7 +204,6 @@
                     {#snippet trigger()}
                         <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
                         <span class="hidden sm:inline">{selectedSortLabel}</span>
-                        <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                     {#snippet content()}
                         <div role="menu" aria-label="Catalog sorting" class="py-2">
@@ -236,7 +234,6 @@
                         {#if selectedFilterCount}
                             <span class="text-accent">{selectedFilterCount}</span>
                         {/if}
-                        <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
                     {#snippet content()}
                         <div role="menu" aria-label="Catalog filtering" class="py-2">
