@@ -38,8 +38,10 @@ export function episodeMetadataNeedsRefresh(
     return (
         hasMetadataSource &&
         (metadataRevision !== episodeMetadataRevision ||
-            episodes.every(({ image, title, overview }) => image === null && !title && !overview) ||
-            episodes.some(({ image, title, overview }) => image !== null && (!title || !overview)))
+            episodes.length === 0 ||
+            episodes.some(
+                ({ image, title, overview }) => !image?.trim() || !title.trim() || !overview.trim()
+            ))
     );
 }
 

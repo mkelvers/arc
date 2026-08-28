@@ -78,7 +78,7 @@ describe('episode refresh policy', () => {
         expect(canPreserveEpisodeMetadata(41, 42)).toBeFalse();
     });
 
-    test('refreshes stored rows with an image but missing episode metadata', () => {
+    test('refreshes stored rows with incomplete episode metadata', () => {
         expect(
             episodeMetadataNeedsRefresh(
                 [{ image: 'https://image.example/still.jpg', title: '', overview: '' }],
@@ -100,6 +100,12 @@ describe('episode refresh policy', () => {
                 true
             )
         ).toBeFalse();
+        expect(
+            episodeMetadataNeedsRefresh(
+                [{ image: null, title: 'From Now On', overview: 'Text' }],
+                true
+            )
+        ).toBeTrue();
         expect(
             episodeMetadataNeedsRefresh(
                 [{ image: 'https://image.example/still.jpg', title: '', overview: '' }],
