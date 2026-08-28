@@ -7,7 +7,6 @@ import { confirmScheduledEpisode } from '../episodes/sync';
 import { nextEpisodeAttemptAt } from './policy';
 import { scheduleReleaseTargets } from './targets';
 import { enqueueScheduleDiscovery } from './schedule-repair';
-import { logSchedulerEvent } from './log';
 
 interface SchedulerLimits {
     concurrency: number;
@@ -115,7 +114,7 @@ async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
     let stopped = false;
     const renew = async () => {
         try {
-            const [renewed] = await db
+            await db
                 .update(animeEpisodeTarget)
                 .set({
                     leaseUntil: new Date(Date.now() + limits.leaseDurationMs),
@@ -128,19 +127,8 @@ async function processTarget(target: ClaimedTarget, limits: SchedulerLimits) {
                         eq(animeEpisodeTarget.state, 'pending'),
                         eq(animeEpisodeTarget.leaseOwner, target.leaseOwner)
                     )
-                )
-                .returning({ anilistId: animeEpisodeTarget.anilistId });
-            if (!renewed) {
-                console.warn(
-                    `Episode target lease was not renewed for ${target.anilistId}:${target.targetEpisode}`
                 );
-            }
-        } catch (cause) {
-            console.error(
-                `Episode target lease renewal failed for ${target.anilistId}:${target.targetEpisode}`,
-                cause
-            );
-        }
+        } catch {}
     };
     const timer = setInterval(() => {
         if (!stopped) {
@@ -189,17 +177,7 @@ export async function drainEpisodeTargets(runId: string, limits: SchedulerLimits
         totals.claimed += claimed.length;
         const outcomes = await Promise.all(
             claimed.map(async (target) => {
-                const startedAt = Date.now();
-                const outcome = await processTarget(target, limits);
-                logSchedulerEvent({
-                    runId,
-                    taskType: 'episode_target',
-                    outcome: outcome.outcome === 'confirmed' ? 'completed' : outcome.outcome,
-                    durationMs: Date.now() - startedAt,
-                    retryAt: outcome.retryAt,
-                    cause: outcome.cause,
-                });
-                return outcome;
+                return processTarget(target, limits);
             })
         );
         for (const outcome of outcomes) {

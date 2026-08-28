@@ -17,7 +17,6 @@ import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { scheduleReleaseTargets } from './targets';
-import { logSchedulerEvent } from './log';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -30,7 +29,7 @@ const schedulerPolicy = {
     fullReconciliationIntervalMs: 3_600 * 1_000,
 };
 
-async function refreshDueReleases(runId: string, limit: number) {
+async function refreshDueReleases(limit: number) {
     const rows = await db
         .select({ anilistId: animeReleaseRequest.anilistId })
         .from(animeReleaseRequest)
@@ -46,24 +45,14 @@ async function refreshDueReleases(runId: string, limit: number) {
         .limit(limit);
     const results = await Promise.all(
         rows.map(async ({ anilistId }) => {
-            const startedAt = Date.now();
             try {
                 await refreshAnimeRelease(anilistId, { force: true });
-                return { ok: true as const, durationMs: Date.now() - startedAt };
+                return { ok: true as const };
             } catch (cause) {
-                return { ok: false as const, durationMs: Date.now() - startedAt, cause };
+                return { ok: false as const, cause };
             }
         })
     );
-    for (const result of results) {
-        logSchedulerEvent({
-            runId,
-            taskType: 'release_refresh',
-            outcome: result.ok ? 'completed' : 'failed',
-            durationMs: result.durationMs,
-            cause: result.ok ? undefined : result.cause,
-        });
-    }
     const refreshedIds = rows.flatMap((row, index) => (results[index]?.ok ? [row.anilistId] : []));
     await scheduleReleaseTargets(refreshedIds);
     return {
@@ -100,12 +89,6 @@ async function catalogRefreshDue() {
 export async function runAnimeScheduler() {
     const runId = randomUUID();
     const startedAt = new Date();
-    logSchedulerEvent({
-        runId,
-        taskType: 'scheduler_run',
-        outcome: 'started',
-        durationMs: 0,
-    });
     const [claimed] = await db
         .insert(schedulerHeartbeat)
         .values({ name: heartbeatName, activeRunId: runId, startedAt })
@@ -119,13 +102,6 @@ export async function runAnimeScheduler() {
         })
         .returning({ activeRunId: schedulerHeartbeat.activeRunId });
     if (!claimed) {
-        logSchedulerEvent({
-            runId,
-            taskType: 'scheduler_run',
-            outcome: 'skipped',
-            durationMs: Date.now() - startedAt.getTime(),
-            cause: new Error('scheduler run already active'),
-        });
         return { skipped: 'already-running' as const };
     }
 
@@ -135,7 +111,6 @@ export async function runAnimeScheduler() {
             | { error: string; retryAt: string }
             | null = null;
         if (await fullReconciliationDue(schedulerPolicy.fullReconciliationIntervalMs)) {
-            const taskStartedAt = Date.now();
             try {
                 const result = await reconcileAllAiringReleases();
                 fullReconciliation = {
@@ -152,15 +127,6 @@ export async function runAnimeScheduler() {
                 const error =
                     cause instanceof Error ? cause.message : 'Airing reconciliation failed';
                 fullReconciliation = { error, retryAt: retryAt.toISOString() };
-                logSchedulerEvent({
-                    runId,
-                    taskType: 'airing_reconciliation',
-                    outcome: 'retried',
-                    durationMs: Date.now() - taskStartedAt,
-                    retryAt,
-                    cause,
-                });
-                console.warn('Arc airing reconciliation failed; continuing durable work', error);
                 await db
                     .update(schedulerHeartbeat)
                     .set({
@@ -175,7 +141,6 @@ export async function runAnimeScheduler() {
         let catalogRefresh: { completedAt: string } | { error: string; retryAt: string } | null =
             null;
         if (await catalogRefreshDue()) {
-            const taskStartedAt = Date.now();
             try {
                 await refreshCatalogSnapshots();
                 const refreshedAt = new Date();
@@ -195,15 +160,6 @@ export async function runAnimeScheduler() {
                         : 0;
                 const retryAt = new Date(Date.now() + Math.max(60 * 60_000, retryAfterMs));
                 catalogRefresh = { error, retryAt: retryAt.toISOString() };
-                logSchedulerEvent({
-                    runId,
-                    taskType: 'catalog_refresh',
-                    outcome: 'retried',
-                    durationMs: Date.now() - taskStartedAt,
-                    retryAt,
-                    cause,
-                });
-                console.warn('Arc catalog refresh failed; continuing durable work', error);
                 await db
                     .update(schedulerHeartbeat)
                     .set({
@@ -215,7 +171,7 @@ export async function runAnimeScheduler() {
             }
         }
 
-        const releases = await refreshDueReleases(runId, schedulerPolicy.concurrency);
+        const releases = await refreshDueReleases(schedulerPolicy.concurrency);
         const maintenance = await drainMaintenanceTasks(runId, {
             limit: schedulerPolicy.concurrency,
             leaseDurationMs: schedulerPolicy.leaseDurationMs,
@@ -258,22 +214,9 @@ export async function runAnimeScheduler() {
                     eq(schedulerHeartbeat.activeRunId, runId)
                 )
             );
-        logSchedulerEvent({
-            runId,
-            taskType: 'scheduler_run',
-            outcome: 'completed',
-            durationMs: completedAt.getTime() - startedAt.getTime(),
-        });
         return stats;
     } catch (cause) {
         const completedAt = new Date();
-        logSchedulerEvent({
-            runId,
-            taskType: 'scheduler_run',
-            outcome: 'failed',
-            durationMs: completedAt.getTime() - startedAt.getTime(),
-            cause,
-        });
         await db
             .update(schedulerHeartbeat)
             .set({
