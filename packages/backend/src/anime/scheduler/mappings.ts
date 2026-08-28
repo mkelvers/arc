@@ -8,6 +8,7 @@ import {
     animeProviderMapping,
 } from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
+import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
 import { storedAnimeRelease } from '../anilist/releases';
 import { create as createTmdbClient } from '../tmdb/client';
 import { findMapping, saveVerifiedMapping } from '../tmdb/mapping-store';
@@ -276,6 +277,7 @@ export async function setMetadataMappingOverride(
                     isNull(animeMappingOverride.clearedAt)
                 )
             );
+        await enqueueEpisodeInventoryBackfill(anilistId);
         return evidence;
     } catch (cause) {
         await db
@@ -358,6 +360,7 @@ export async function rediscoverMapping(
             );
         await removeStoredTmdbMapping(anilistId);
         const mapping = await resolveStored(release, { refresh: true });
+        await enqueueEpisodeInventoryBackfill(anilistId);
         return { provider: 'tmdb', externalId: mapping.id, mediaType: mapping.mediaType };
     }
 
