@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@arc/db';
@@ -7,6 +5,7 @@ import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import { episodesAvailableToWatch } from './episodes/policy';
+import { episodeRevision } from './episodes/revision';
 
 export { withMovieBackdrop } from './movie-backdrop';
 
@@ -60,6 +59,7 @@ export async function getEpisodeRevision(anilistId: number) {
             mediaStatus: animeEpisodeSync.mediaStatus,
             nextAiringAt: animeEpisodeSync.nextAiringAt,
             nextAiringEpisode: animeEpisodeSync.nextAiringEpisode,
+            lastSuccessAt: animeEpisodeSync.lastSuccessAt,
         })
         .from(animeEpisodeSync)
         .where(eq(animeEpisodeSync.anilistId, anilistId))
@@ -68,16 +68,7 @@ export async function getEpisodeRevision(anilistId: number) {
         return null;
     }
 
-    return createHash('sha256')
-        .update(
-            JSON.stringify({
-                sourceRevision: state.sourceRevision,
-                mediaStatus: state.mediaStatus,
-                nextAiringAt: state.nextAiringAt?.toISOString() ?? null,
-                nextAiringEpisode: state.nextAiringEpisode,
-            })
-        )
-        .digest('hex');
+    return episodeRevision(state);
 }
 
 export async function getRelatedReleaseTitles(anilistIds: number[]) {
