@@ -2,11 +2,14 @@ import { audioModeOrder, type AudioMode } from '@arc/shared/audio';
 import { m } from '$lib/paraglide/messages.js';
 
 export interface Stream {
+    provider: string;
+    server: string;
     url: string;
-    kind?: 'direct' | 'iframe';
     quality: string | null;
-    subtitleUrl?: string | null;
-    provider?: string;
+    subtitles: Array<{
+        kind: 'full' | 'sdh' | 'forced';
+        url: string;
+    }>;
 }
 
 export interface SubtitleCue {
@@ -17,9 +20,9 @@ export interface SubtitleCue {
 
 export type Sources = Partial<Record<AudioMode, Stream[]>>;
 
-/** Which audio script the English captions follow. */
-export type SubtitleMode = 'off' | 'dub' | 'sub';
-export type SubtitleKind = 'cc' | 'translated' | 'limited';
+/** Which English caption variant is displayed. */
+export type SubtitleMode = 'off' | 'full' | 'sdh' | 'forced' | 'translated';
+export type SubtitleKind = Exclude<SubtitleMode, 'off'>;
 
 type Shortcut =
     | 'play'
@@ -32,18 +35,19 @@ type Shortcut =
     | { percent: number };
 
 export function streamsFor(sources: Sources, mode: AudioMode) {
-    return sources[mode] ?? sources.sub ?? sources.dub ?? sources.raw ?? [];
+    return sources[mode] ?? [];
 }
 
 export interface SubtitleTrack {
     url: string;
+    kind: SubtitleKind;
     source: Stream;
 }
 
 interface SubtitleTracks {
     /** Captions returned with the active encode. */
-    own: SubtitleTrack | null;
-    /** Captions from the same provider's Japanese encode. */
+    own: SubtitleTrack[];
+    /** One translated fallback from the same provider's Japanese encode. */
     sub: SubtitleTrack | null;
 }
 
@@ -53,60 +57,54 @@ export function subtitleTracks(
     stream: Stream | undefined
 ): SubtitleTracks {
     if (!stream) {
-        return { own: null, sub: null };
+        return { own: [], sub: null };
     }
 
-    const own = stream.subtitleUrl ? { url: stream.subtitleUrl, source: stream } : null;
-    if (mode !== 'dub' || !stream.provider) {
+    const own = stream.subtitles.map((subtitle) => ({ ...subtitle, source: stream }));
+    if (mode !== 'dub' || own.length > 0) {
         return { own, sub: null };
     }
 
-    // Prefer the same provider because its subtitle timing is more likely to
-    // match the dub. If it has no track, use another provider's Original track
-    // rather than leaving the user without subtitles.
+    // Use the same provider's sub encode only when the dub has no native
+    // English track. The provider/server remain attached for alignment and
+    // provenance; another provider is never borrowed.
     const subSource =
         sources.sub?.find(
-            (candidate) => candidate.provider === stream.provider && candidate.subtitleUrl
-        ) ?? sources.sub?.find((candidate) => candidate.subtitleUrl);
-    const sub = subSource?.subtitleUrl ? { url: subSource.subtitleUrl, source: subSource } : null;
-
-    // Some sources repeat the Japanese VTT in the dub payload. It is still
-    // timed for the sub encode, so do not mislabel it as native dub CC.
-    const sharedSubTrack = own && sub && own.url === sub.url;
-
-    return {
-        own: sharedSubTrack ? null : own,
-        sub,
-    };
+            (candidate) => candidate.provider === stream.provider && candidate.subtitles.length > 0
+        ) ?? null;
+    const subtitle = subSource?.subtitles[0];
+    return { own, sub: subtitle ? { ...subtitle, kind: 'translated', source: subSource } : null };
 }
 
 export function hasSubtitleTrack(sources: Sources, mode: AudioMode, stream: Stream) {
     const tracks = subtitleTracks(sources, mode, stream);
-    return tracks.own !== null || tracks.sub !== null;
+    return tracks.own.length > 0 || tracks.sub !== null;
 }
 
-/** Other Japanese encodes whose own captions may prove equivalent to the
+/** Other same-provider encodes whose own captions may prove equivalent to the
  * primary fallback. They are timing references only after cue equality is
  * verified by the player. */
 export function subtitleReferenceTracks(sources: Sources, primary: SubtitleTrack) {
     const seen = new Set<string>();
 
     return (sources.sub ?? []).flatMap((source) => {
-        if (!source.subtitleUrl || source === primary.source) {
+        if (source.provider !== primary.source.provider || source === primary.source) {
             return [];
         }
 
-        const key = `${source.url}\n${source.subtitleUrl}`;
-        if (seen.has(key)) {
-            return [];
-        }
-        seen.add(key);
-        return [{ url: source.subtitleUrl, source }];
+        return source.subtitles.flatMap((subtitle) => {
+            const key = `${source.url}\n${subtitle.url}`;
+            if (seen.has(key)) {
+                return [];
+            }
+            seen.add(key);
+            return [{ ...subtitle, source }];
+        });
     });
 }
 
 /** One caption choice in the Subtitles/CC menu. The mode says which loaded
- * cue set to display; the label names the track for the user. None is always
+ * cue set to display; the label names the track for the user. Off is always
  * offered last. */
 export interface SubtitleOption {
     mode: SubtitleMode;
@@ -158,30 +156,26 @@ export const subtitleSizeOrder = [
 ] as const satisfies readonly SubtitleSize[];
 
 const subtitleLabels = {
-    cc: m.player_subtitle_cc(),
-    translated: m.player_subtitle_original(),
-    limited: m.player_subtitle_signs(),
+    full: 'English',
+    sdh: 'English SDH',
+    forced: 'English Forced',
+    translated: 'Original translation',
 } satisfies Record<SubtitleKind, string>;
 
 /** The caption choices for the tracks an encode actually provides. */
 export function subtitleOptionsFor(kinds: SubtitleKind[]) {
     const options: SubtitleOption[] = [];
-    for (const kind of kinds) {
+    for (const kind of ['full', 'sdh', 'forced', 'translated'] as const) {
+        if (!kinds.includes(kind)) {
+            continue;
+        }
         options.push({
-            mode: kind === 'translated' ? 'sub' : 'dub',
+            mode: kind,
             label: subtitleLabels[kind],
         });
     }
-    options.push({ mode: 'off', label: m.player_none() });
+    options.push({ mode: 'off', label: 'Off' });
     return options;
-}
-
-/** Dub captions are dialogue-capable when their cue coverage is a meaningful
- * fraction of the Japanese track. Full dub CC can combine lines and therefore
- * need not match cue-for-cue; forced/sign tracks are typically far smaller. */
-export function hasDialogueCoverage(dubCues: number, subCues: number) {
-    const minimumDialogueCues = 50;
-    return dubCues >= minimumDialogueCues && (subCues === 0 || dubCues / subCues >= 0.2);
 }
 
 /** Cue equality is the proof required before another provider's encode can
@@ -434,14 +428,6 @@ export function seekTarget(currentTime: number, delta: number, duration: number)
 
 export function availableModes(sources: Sources) {
     return audioModeOrder.filter((mode) => (sources[mode]?.length ?? 0) > 0);
-}
-
-export function audioLabel(mode: AudioMode) {
-    if (mode === 'dub') {
-        return String(m.player_audio_english());
-    }
-
-    return mode === 'raw' ? String(m.player_audio_raw()) : String(m.player_audio_japanese());
 }
 
 export function isHd(quality: string | null) {

@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
-    import { audioLabel, formatTime, isHd, subtitleSizeOrder, subtitleSizes } from '$lib/player/media';
+    import { formatTime, isHd, subtitleSizeOrder, subtitleSizes } from '$lib/player/media';
     import type { SkipKind } from '@arc/shared/player/skip-times';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
@@ -71,11 +71,11 @@
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-            onclick={() => (player.settingsView = 'audio')}
+            onclick={() => (player.settingsView = 'source')}
         >
-            <span>{m.player_audio()}</span>
+            <span>{m.player_source()}</span>
             <span class="flex items-center gap-1 text-white/85">
-                {audioLabel(player.media.mode)}
+                {player.media.sourceText}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </button>
@@ -91,7 +91,7 @@
                 {player.media.captions.options.find((option) => option.mode === player.media.captions.mode)
                     ?.label ??
                     player.media.captions.options[0]?.label ??
-                    m.player_none()}
+                    'Off'}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </button>
@@ -178,18 +178,23 @@
                     </span>
                 </button>
             {/each}
-        {:else if player.settingsView === 'audio'}
-            {#each player.media.audioModes as option}
-                <button
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={player.media.mode === option}
-                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
-                    onclick={() => player.media.switchMode(option)}
-                >
-                    {@render radio(player.media.mode === option)}
-                    {audioLabel(option)}
-                </button>
+        {:else if player.settingsView === 'source'}
+            {#each player.media.audioModes as mode}
+                <h3 class="px-4 pt-2 pb-1 text-[0.65rem] font-bold tracking-[0.16em] text-white/50">
+                    {mode.toUpperCase()}
+                </h3>
+                {#each player.media.sourcesForMode(mode) as source}
+                    <button
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={player.media.mode === mode && player.media.activeSource === source}
+                        class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                        onclick={() => player.media.switchSource(mode, source)}
+                    >
+                        {@render radio(player.media.mode === mode && player.media.activeSource === source)}
+                        {source.server}
+                    </button>
+                {/each}
             {/each}
         {:else if player.settingsView === 'subtitles'}
             <button
@@ -205,7 +210,7 @@
                 </span>
             </button>
 
-            {#each player.media.captions.options.filter((option) => player.media.mode !== 'sub' || option.mode !== 'off') as option}
+            {#each player.media.captions.options as option}
                 <button
                     type="button"
                     role="menuitemradio"

@@ -25,7 +25,7 @@ interface PlayerInput {
 
 type SettingsView =
     | 'main'
-    | 'audio'
+    | 'source'
     | 'subtitles'
     | 'subtitle-size'
     | 'quality'

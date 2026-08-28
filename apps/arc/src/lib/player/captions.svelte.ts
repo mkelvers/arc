@@ -1,7 +1,6 @@
 import type { AudioMode } from '@arc/shared/audio';
 import {
     alignSubtitleCues,
-    hasDialogueCoverage,
     hlsTimeline,
     hlsTimelineOffsets,
     isHlsSource,
@@ -28,7 +27,7 @@ import * as preferences from './preferences';
 
 export class Captions {
     cues = $state<SubtitleCue[]>([]);
-    mode = $state<SubtitleMode>('dub');
+    mode = $state<SubtitleMode>('off');
     options = $state<SubtitleOption[]>(subtitleOptionsFor([]));
     size = $state<SubtitleSize>('normal');
     textColor = $state<SubtitleTextColor>('white');
@@ -170,42 +169,25 @@ export class Captions {
         return null;
     }
 
-    private preferredKind(kinds: SubtitleKind[]) {
-        if (this.mode === 'sub' && kinds.includes('translated')) {
+    private preferredKind(kinds: SubtitleKind[], audioMode: AudioMode) {
+        if (audioMode === 'sub' && kinds.includes('translated')) {
             return 'translated';
         }
-        if (this.mode === 'dub') {
-            if (kinds.includes('cc')) {
-                return 'cc';
-            }
-            if (kinds.includes('limited')) {
-                return 'limited';
-            }
-        }
-        if (kinds.includes('cc')) {
-            return 'cc';
-        }
-        if (kinds.includes('translated')) {
-            return 'translated';
-        }
-        return kinds.includes('limited') ? 'limited' : null;
+        return (
+            (['full', 'sdh', 'forced', 'translated'] as const).find((kind) =>
+                kinds.includes(kind)
+            ) ?? null
+        );
     }
 
     private offerAvailable(sources: Sources, mode: AudioMode) {
         const source = streamsFor(sources, mode).find((candidate) => {
             const tracks = subtitleTracks(sources, mode, candidate);
-            return tracks.own !== null || tracks.sub !== null;
+            return tracks.own.length > 0 || tracks.sub !== null;
         });
         const tracks = subtitleTracks(sources, mode, source);
-        const kinds: SubtitleKind[] = [];
-        if (mode === 'dub') {
-            if (tracks.own) {
-                kinds.push('limited');
-            }
-            if (tracks.sub) {
-                kinds.push('translated');
-            }
-        } else if (tracks.own) {
+        const kinds = tracks.own.map(({ kind }) => kind);
+        if (mode === 'dub' && tracks.own.length === 0 && tracks.sub) {
             kinds.push('translated');
         }
         this.options = subtitleOptionsFor(kinds);
@@ -223,41 +205,32 @@ export class Captions {
         const stale = () =>
             request.signal.aborted || this.request !== request || source !== this.source;
 
-        if (!active || (!own && !sub)) {
+        if (!active || (own.length === 0 && !sub)) {
             this.offerAvailable(sources, mode);
             return;
         }
 
         try {
-            const ownRequest = own
-                ? this.fetchCues(own.url, request.signal)
-                : Promise.resolve(null);
-            const subRequest =
-                sub && sub.url !== own?.url ? this.fetchCues(sub.url, request.signal) : ownRequest;
-            const [ownCues, subCues] = await Promise.all([ownRequest, subRequest]);
+            const ownCues = await Promise.all(
+                own.map((track) => this.fetchCues(track.url, request.signal))
+            );
+            const subCues = sub ? await this.fetchCues(sub.url, request.signal) : null;
 
             if (stale()) {
                 return;
             }
 
             const kinds: SubtitleKind[] = [];
+            own.forEach((track, index) => {
+                const cues = ownCues[index];
+                if (!cues || kinds.includes(track.kind)) {
+                    return;
+                }
+                this.loaded[track.kind] = cues;
+                kinds.push(track.kind);
+            });
 
-            // The active encode's own track is dub CC (or signs) on a dub and
-            // the translated dialogue on a sub/raw encode.
-            if (ownCues) {
-                const kind =
-                    mode === 'dub'
-                        ? hasDialogueCoverage(ownCues.length, subCues?.length ?? 0)
-                            ? 'cc'
-                            : 'limited'
-                        : 'translated';
-                this.loaded[kind === 'translated' ? 'sub' : 'dub'] = ownCues;
-                kinds.push(kind);
-            }
-
-            // Prefer calibrated timing, but still offer the provider's
-            // original track when the timelines cannot be aligned.
-            if (mode === 'dub' && sub && subCues) {
+            if (mode === 'dub' && own.length === 0 && sub && subCues) {
                 let offsets: Awaited<ReturnType<Captions['fallbackOffsets']>> = null;
                 try {
                     offsets = await this.fallbackOffsets(
@@ -273,24 +246,17 @@ export class Captions {
                 if (stale()) {
                     return;
                 }
-                if (offsets?.length) {
-                    if (ownCues) {
-                        this.loaded.dub = alignSubtitleCues(ownCues, offsets);
-                    }
-                    this.loaded.sub = alignSubtitleCues(subCues, offsets);
-                } else {
-                    this.loaded.sub = subCues;
-                }
-                if (!kinds.includes('translated')) {
-                    kinds.push('translated');
-                }
+                this.loaded.translated = offsets?.length
+                    ? alignSubtitleCues(subCues, offsets)
+                    : subCues;
+                kinds.push('translated');
             }
 
             this.options = subtitleOptionsFor(kinds);
-            const selectedKind = this.preferredKind(kinds);
+            const selectedKind = this.preferredKind(kinds, mode);
             if (this.enabled && selectedKind) {
-                this.mode = selectedKind === 'translated' ? 'sub' : 'dub';
-                this.cues = this.loaded[this.mode] ?? [];
+                this.mode = selectedKind;
+                this.cues = this.loaded[selectedKind] ?? [];
             } else {
                 this.mode = 'off';
                 this.cues = [];

@@ -56,43 +56,22 @@ export class Playback {
     private hls: HlsType | null = null;
     private sourceWatchdog: ReturnType<typeof setTimeout> | undefined;
     private waitingTimer: ReturnType<typeof setTimeout> | undefined;
-    private allSources: Sources;
     private preferredMode: AudioMode | null = null;
     private modeSelected = false;
     private mounted = false;
+    private exhaustedModes = new Set<AudioMode>();
 
     constructor(
         sources: Sources,
         private next: string | null
     ) {
-        this.allSources = sources;
-        this.sources = {};
-        this.applySourcePreference();
+        this.sources = sources;
     }
 
     private sources: Sources;
 
-    private applySourcePreference() {
-        this.sources = Object.fromEntries(
-            Object.entries(this.allSources).map(([mode, streams]) => {
-                const direct = streams?.filter((stream) => stream.kind !== 'iframe');
-                return [mode, direct?.length ? direct : streams];
-            })
-        );
-    }
-
-    private enforceSubtitlesForSubAudio() {
-        if (this.mode !== 'sub') {
-            return;
-        }
-
-        this.captions.enabled = true;
-        this.captions.mode = 'sub';
-    }
-
     sync(sources: Sources, next: string | null) {
-        this.allSources = sources;
-        this.applySourcePreference();
+        this.sources = sources;
         this.next = next;
         if (!this.modeSelected && this.preferredMode && this.sources[this.preferredMode]?.length) {
             this.mode = this.preferredMode;
@@ -141,8 +120,8 @@ export class Playback {
         return this.activeSources[this.sourceIndex]?.url ?? '';
     }
 
-    get sourceKind() {
-        return this.activeSources[this.sourceIndex]?.kind ?? 'direct';
+    get activeSource() {
+        return this.activeSources[this.sourceIndex];
     }
 
     get subtitles() {
@@ -159,6 +138,15 @@ export class Playback {
 
     get audioModes() {
         return availableModes(this.sources);
+    }
+
+    get sourceText() {
+        const source = this.activeSources[this.sourceIndex];
+        return source ? `${this.mode.toUpperCase()} · ${source.server}` : this.mode.toUpperCase();
+    }
+
+    sourcesForMode(mode: AudioMode) {
+        return this.sources[mode] ?? [];
     }
 
     get qualityText() {
@@ -217,12 +205,18 @@ export class Playback {
     }
 
     private resetSource() {
+        this.exhaustedModes.clear();
         this.sourceChain = this.preferredSources;
         this.sourceIndex = 0;
         this.pendingSourceFailure = null;
         this.error = false;
         this.loading = true;
         this.buffered = 0;
+    }
+
+    private resetQuality() {
+        this.quality = 'best';
+        preferences.save('quality', 'best');
     }
 
     private destroyHls() {
@@ -272,11 +266,6 @@ export class Playback {
         video.load();
 
         if (!source) {
-            return;
-        }
-
-        if (this.sourceKind === 'iframe') {
-            this.loading = false;
             return;
         }
 
@@ -381,51 +370,31 @@ export class Playback {
     }
 
     async switchMode(mode: AudioMode) {
-        if (!this.sources[mode] || mode === this.mode) {
+        const source = this.sourcesForMode(mode)[0];
+        if (!source) {
             return;
         }
 
-        const current = this.activeSources[this.sourceIndex];
-        const hls = this.hls;
-        const language = mode === 'dub' ? /^(?:en(?:-|$)|english$)/i : /^(?:ja(?:-|$)|japanese$)/i;
-        const audioTrack = hls?.audioTracks.findIndex(
-            (track) => language.test(track.lang ?? '') || language.test(track.name)
-        );
-        if (
-            hls &&
-            current &&
-            audioTrack !== undefined &&
-            audioTrack >= 0 &&
-            streamsFor(this.sources, mode).some(
-                (stream) => stream.url === current.url && stream.provider === current.provider
-            )
-        ) {
-            this.mode = mode;
-            this.enforceSubtitlesForSubAudio();
-            this.sourceChain = this.preferredSources;
-            this.sourceIndex = Math.max(
-                0,
-                this.sourceChain.findIndex(
-                    (stream) => stream.url === current.url && stream.provider === current.provider
-                )
-            );
-            hls.audioTrack = audioTrack;
-            preferences.save('audio-mode', mode);
-            void this.captions.load(
-                this.sources,
-                mode,
-                this.sourceChain[this.sourceIndex],
-                current.url
-            );
+        await this.switchSource(mode, source);
+    }
+
+    async switchSource(mode: AudioMode, selected: Stream) {
+        if (!this.sources[mode] || !this.sources[mode]?.includes(selected)) {
             return;
         }
 
         this.rememberPlayback();
         this.modeSelected = true;
         this.mode = mode;
-        this.enforceSubtitlesForSubAudio();
-
+        this.resetQuality();
         this.resetSource();
+        const selectedIndex = this.sourceChain.findIndex(
+            (source) =>
+                source.provider === selected.provider &&
+                source.server === selected.server &&
+                source.url === selected.url
+        );
+        this.sourceIndex = selectedIndex >= 0 ? selectedIndex : 0;
         preferences.save('audio-mode', mode);
         await this.reloadSource();
     }
@@ -451,10 +420,6 @@ export class Playback {
     }
 
     switchSubtitleMode(mode: SubtitleMode) {
-        if (this.mode === 'sub' && mode === 'off') {
-            return;
-        }
-
         const selection = this.captions.select(mode);
         if (selection === 'done') {
             return;
@@ -487,6 +452,25 @@ export class Playback {
         this.changingSource = true;
 
         if (this.sourceIndex + 1 >= this.activeSources.length) {
+            this.exhaustedModes.add(this.mode);
+            const fallbackMode = this.audioModes.find((mode) => !this.exhaustedModes.has(mode));
+            if (fallbackMode) {
+                this.resumeAt = this.video.currentTime || this.currentTime;
+                this.resumePlayback = this.playing || (this.autoplay && this.autoplayAttempted);
+                this.mode = fallbackMode;
+                this.resetQuality();
+                this.sourceChain = this.preferredSources;
+                this.sourceIndex = 0;
+                this.loading = true;
+                this.buffered = 0;
+                try {
+                    await this.reloadSource();
+                } finally {
+                    this.changingSource = false;
+                }
+                return;
+            }
+
             this.pendingSourceFailure = null;
             this.clearSourceWatchdog();
             this.captions.clear();
@@ -501,6 +485,7 @@ export class Playback {
         this.resumeAt = this.video.currentTime || this.currentTime;
         this.resumePlayback = this.playing || (this.autoplay && this.autoplayAttempted);
         this.sourceIndex += 1;
+        this.resetQuality();
         this.loading = true;
         this.buffered = 0;
         try {
@@ -730,7 +715,6 @@ export class Playback {
     mount() {
         const saved = preferences.load(this.sources, this.qualities);
         this.preferredMode = saved.preferredMode;
-        this.applySourcePreference();
 
         if (!this.sources[this.mode]?.length) {
             this.mode = this.audioModes[0] ?? 'sub';
@@ -765,7 +749,6 @@ export class Playback {
         if (saved.subtitleMode !== null) {
             this.captions.mode = saved.subtitleMode;
         }
-        this.enforceSubtitlesForSubAudio();
         if (saved.subtitleSize !== null) {
             this.captions.size = saved.subtitleSize;
         }

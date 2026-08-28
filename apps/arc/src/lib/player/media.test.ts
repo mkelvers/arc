@@ -2,9 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     alignSubtitleCues,
-    audioLabel,
     formatTime,
-    hasDialogueCoverage,
     hlsTimeline,
     hlsTimelineOffsets,
     isHd,
@@ -14,13 +12,14 @@ import {
     sameSubtitleCues,
     seekTarget,
     subtitleOptionsFor,
+    subtitleTracks,
     subtitlesAt,
     type Stream,
 } from './media';
 
 const streams: Stream[] = [
-    { url: '/1080', quality: '1080p' },
-    { url: '/720', quality: '720p' },
+    { provider: 'anikoto', server: 'VidPlay-1', url: '/1080', quality: '1080p', subtitles: [] },
+    { provider: 'anikoto', server: 'HD-2', url: '/720', quality: '720p', subtitles: [] },
 ];
 
 describe('player media helpers', () => {
@@ -37,8 +36,20 @@ describe('player media helpers', () => {
         expect(
             orderStreams(
                 [
-                    { url: '/slow.mp4', quality: '480p' },
-                    { url: '/adaptive.m3u8', quality: null },
+                    {
+                        provider: 'anikoto',
+                        server: 'HD-2',
+                        url: '/slow.mp4',
+                        quality: '480p',
+                        subtitles: [],
+                    },
+                    {
+                        provider: 'anikoto',
+                        server: 'VidPlay-1',
+                        url: '/adaptive.m3u8',
+                        quality: null,
+                        subtitles: [],
+                    },
                 ],
                 'best'
             ).map(({ url }) => url)
@@ -61,7 +72,6 @@ describe('player media helpers', () => {
     });
 
     test('derives concise labels', () => {
-        expect(audioLabel('dub')).toBe('English');
         expect(isHd('720p')).toBe(true);
         expect(isHd('480p')).toBe(false);
     });
@@ -101,34 +111,55 @@ Cheers!
         expect(subtitlesAt(cues, 113)).toEqual(['Yeah & cheers!', 'Cheers!']);
     });
 
-    test('offers every caption track an encode provides, None last', () => {
-        expect(subtitleOptionsFor([])).toEqual([{ mode: 'off', label: 'None' }]);
-        expect(subtitleOptionsFor(['cc'])).toEqual([
-            { mode: 'dub', label: 'English CC' },
-            { mode: 'off', label: 'None' },
+    test('offers every validated caption variant in preferred order with Off last', () => {
+        expect(subtitleOptionsFor([])).toEqual([{ mode: 'off', label: 'Off' }]);
+        expect(subtitleOptionsFor(['full', 'sdh', 'forced'])).toEqual([
+            { mode: 'full', label: 'English' },
+            { mode: 'sdh', label: 'English SDH' },
+            { mode: 'forced', label: 'English Forced' },
+            { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['translated'])).toEqual([
-            { mode: 'sub', label: 'Original' },
-            { mode: 'off', label: 'None' },
+            { mode: 'translated', label: 'Original translation' },
+            { mode: 'off', label: 'Off' },
         ]);
-        expect(subtitleOptionsFor(['limited'])).toEqual([
-            { mode: 'dub', label: 'Signs & Songs' },
-            { mode: 'off', label: 'None' },
-        ]);
-        expect(subtitleOptionsFor(['cc', 'translated'])).toEqual([
-            { mode: 'dub', label: 'English CC' },
-            { mode: 'sub', label: 'Original' },
-            { mode: 'off', label: 'None' },
+        expect(subtitleOptionsFor(['full', 'translated'])).toEqual([
+            { mode: 'full', label: 'English' },
+            { mode: 'translated', label: 'Original translation' },
+            { mode: 'off', label: 'Off' },
         ]);
     });
 
-    test('distinguishes dialogue CC from a brittle signs track by coverage', () => {
-        expect(hasDialogueCoverage(553, 394)).toBe(true);
-        expect(hasDialogueCoverage(319, 394)).toBe(true);
-        expect(hasDialogueCoverage(30, 476)).toBe(false);
-        expect(hasDialogueCoverage(8, 394)).toBe(false);
-        expect(hasDialogueCoverage(30, 0)).toBe(false);
-        expect(hasDialogueCoverage(300, 0)).toBe(true);
+    test('uses same-provider translated captions only when a dub has no native track', () => {
+        const sub: Stream = {
+            provider: 'anikoto',
+            server: 'VidPlay-1',
+            url: '/sub',
+            quality: null,
+            subtitles: [{ kind: 'full', url: '/sub.vtt' }],
+        };
+        const dub: Stream = {
+            provider: 'anikoto',
+            server: 'HD-2',
+            url: '/dub',
+            quality: null,
+            subtitles: [],
+        };
+        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub).sub).toMatchObject({
+            kind: 'translated',
+            url: '/sub.vtt',
+            source: sub,
+        });
+        expect(
+            subtitleTracks(
+                {
+                    sub: [sub],
+                    dub: [{ ...dub, subtitles: [{ kind: 'full', url: '/dub.vtt' }] }],
+                },
+                'dub',
+                { ...dub, subtitles: [{ kind: 'full', url: '/dub.vtt' }] }
+            ).sub
+        ).toBeNull();
     });
 
     test('reads HLS variants and segment boundaries', () => {

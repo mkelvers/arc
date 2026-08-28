@@ -101,9 +101,17 @@ export function load(sources: Sources, qualities: string[]) {
     const rawSubtitles = values.subtitles ?? null;
     const rawSubtitleMode = values['subtitle-mode'] ?? null;
     const subtitleMode: SubtitleMode | null =
-        rawSubtitleMode === 'off' || rawSubtitleMode === 'dub' || rawSubtitleMode === 'sub'
+        rawSubtitleMode === 'off' ||
+        rawSubtitleMode === 'full' ||
+        rawSubtitleMode === 'sdh' ||
+        rawSubtitleMode === 'forced' ||
+        rawSubtitleMode === 'translated'
             ? rawSubtitleMode
-            : null;
+            : rawSubtitleMode === 'dub'
+              ? 'full'
+              : rawSubtitleMode === 'sub'
+                ? 'translated'
+                : null;
     const subtitleEnabled =
         rawSubtitles === 'false' || rawSubtitles === 'off'
             ? false

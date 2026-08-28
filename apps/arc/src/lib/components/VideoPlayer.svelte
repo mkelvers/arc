@@ -2,13 +2,7 @@
     import type { AnimeEpisode } from '@arc/shared/types';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
     import { Player } from '$lib/player/controller.svelte';
-    import {
-        audioLabel,
-        subtitleBackgrounds,
-        subtitleSizes,
-        subtitleTextColors,
-        type Sources,
-    } from '$lib/player/media';
+    import { subtitleBackgrounds, subtitleSizes, subtitleTextColors, type Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
     import { beforeNavigate } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
@@ -231,47 +225,9 @@
     class:cursor-none={player.media.playing && !player.controlsVisible}
     class="group fixed inset-0 size-full overflow-hidden bg-black select-none focus:outline-none"
 >
-    {#if player.media.sourceKind === 'iframe'}
-        <iframe
-            src={player.media.src}
-            title={`${anime.title} ${episodeTitle}`}
-            class="size-full border-0 bg-black"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowfullscreen
-        ></iframe>
-        <video bind:this={video} class="hidden" aria-hidden="true"></video>
-    {:else}
-        <video
-            bind:this={video}
-            class="size-full bg-black object-cover"
-            playsinline
-            preload="auto"
-            poster={poster}
-        >
-            <track bind:this={nativeSubtitleElement} kind="subtitles" srclang="en" label="Arc" default />
-        </video>
-    {/if}
-
-    {#if player.media.sourceKind === 'iframe' && player.media.audioModes.length > 1}
-        <div
-            role="group"
-            aria-label={m.player_audio()}
-            class="absolute top-20 right-5 z-40 flex overflow-hidden rounded-sm border border-white/30 bg-black/80 p-1 text-xs font-bold text-white shadow-lg backdrop-blur-sm sm:right-7 lg:right-9"
-        >
-            {#each player.media.audioModes as mode}
-                <button
-                    type="button"
-                    aria-pressed={player.media.mode === mode}
-                    class="min-h-9 rounded-xs px-3 transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
-                    class:bg-white={player.media.mode === mode}
-                    class:text-black={player.media.mode === mode}
-                    onclick={() => player.media.switchMode(mode)}
-                >
-                    {audioLabel(mode)}
-                </button>
-            {/each}
-        </div>
-    {/if}
+    <video bind:this={video} class="size-full bg-black object-cover" playsinline preload="auto" poster={poster}>
+        <track bind:this={nativeSubtitleElement} kind="subtitles" srclang="en" label="Arc" default />
+    </video>
 
     <!-- Top header bar with back navigation and centered show title/episode subtitle -->
     <div
@@ -286,88 +242,83 @@
             <CaretLeftIcon size="2rem" weight="bold" aria-hidden="true" />
         </a>
 
-        {#if player.media.sourceKind !== 'iframe'}
-            <div class="pointer-events-none absolute inset-x-0 mx-auto max-w-[60vw] text-center">
-                <p class="truncate text-sm font-bold tracking-wide text-white drop-shadow sm:text-base">
-                    {anime.title}
+        <div class="pointer-events-none absolute inset-x-0 mx-auto max-w-[60vw] text-center">
+            <p class="truncate text-sm font-bold tracking-wide text-white drop-shadow sm:text-base">
+                {anime.title}
+            </p>
+            {#if episodeSubtitle}
+                <p class="mt-0.5 truncate text-xs font-medium text-white/75 drop-shadow sm:text-sm">
+                    {episodeSubtitle}
                 </p>
-                {#if episodeSubtitle}
-                    <p class="mt-0.5 truncate text-xs font-medium text-white/75 drop-shadow sm:text-sm">
-                        {episodeSubtitle}
-                    </p>
-                {/if}
-            </div>
-        {/if}
+            {/if}
+        </div>
 
         <div class="size-11" aria-hidden="true"></div>
     </div>
 
-    {#if player.media.sourceKind !== 'iframe'}
-        <!-- Paused left-side gradient scrim for metadata contrast -->
+    <!-- Paused left-side gradient scrim for metadata contrast -->
+    <div
+        class="pointer-events-none absolute inset-y-0 left-0 z-10 w-full max-w-3xl bg-linear-to-r from-black/75 via-black/40 via-70% to-transparent transition-opacity duration-300 sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl"
+        class:opacity-100={isPaused}
+        class:opacity-0={!isPaused}
+    ></div>
+
+    <!-- Show / Episode Info Overlay: vertically centered on Y-axis, only shown when paused -->
+    {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
         <div
-            class="pointer-events-none absolute inset-y-0 left-0 z-10 w-full max-w-3xl bg-linear-to-r from-black/75 via-black/40 via-70% to-transparent transition-opacity duration-300 sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl"
+            class="mobile-player-info pointer-events-none absolute inset-y-0 left-8 z-20 hidden max-w-xl flex-col items-start justify-center text-white transition-opacity duration-300 sm:flex sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
             class:opacity-100={isPaused}
             class:opacity-0={!isPaused}
-        ></div>
-
-        <!-- Show / Episode Info Overlay: vertically centered on Y-axis, only shown when paused -->
-        {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
-            <div
-                class="mobile-player-info pointer-events-none absolute inset-y-0 left-8 z-20 hidden max-w-xl flex-col items-start justify-center text-white transition-opacity duration-300 sm:flex sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
-                class:opacity-100={isPaused}
-                class:opacity-0={!isPaused}
-            >
-                {#if logo?.url}
-                    <div class="mb-4">
-                        <img
-                            src={logo.url}
-                            alt={anime.title}
-                            loading="eager"
-                            style:height={`clamp(${(3 * (logo.size || 100)) / 100}rem, ${(4.5 * (logo.size || 100)) / 100}vw, ${(6 * (logo.size || 100)) / 100}rem)`}
-                            class="max-w-[70vw] object-contain object-left drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] sm:max-w-sm md:max-w-md lg:max-w-lg"
-                        />
-                    </div>
-                {:else}
-                    <h2
-                        class="mb-3 text-3xl font-black tracking-tight text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.95)] sm:text-4xl md:text-5xl"
-                    >
-                        {anime.title}
-                    </h2>
-                {/if}
-
-                <h1
-                    class="text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.95)] sm:text-3xl md:text-4xl"
+        >
+            {#if logo?.url}
+                <div class="mb-4">
+                    <img
+                        src={logo.url}
+                        alt={anime.title}
+                        loading="eager"
+                        style:height={`clamp(${(3 * (logo.size || 100)) / 100}rem, ${(4.5 * (logo.size || 100)) / 100}vw, ${(6 * (logo.size || 100)) / 100}rem)`}
+                        class="max-w-[70vw] object-contain object-left drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] sm:max-w-sm md:max-w-md lg:max-w-lg"
+                    />
+                </div>
+            {:else}
+                <h2
+                    class="mb-3 text-3xl font-black tracking-tight text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.95)] sm:text-4xl md:text-5xl"
                 >
-                    {episodeTitle}
-                </h1>
+                    {anime.title}
+                </h2>
+            {/if}
 
-                {#if formattedReleaseDate || currentEpisode.duration}
-                    <div
-                        class="mt-3 flex flex-wrap items-center gap-2.5 text-sm font-semibold text-white/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] sm:text-base"
-                    >
-                        {#if formattedReleaseDate}
-                            <span>Released on {formattedReleaseDate}</span>
-                        {/if}
-                        {#if formattedReleaseDate && currentEpisode.duration}
-                            <span aria-hidden="true" class="text-white/50">·</span>
-                        {/if}
-                        {#if currentEpisode.duration}
-                            <span>{currentEpisode.duration}</span>
-                        {/if}
-                    </div>
-                {/if}
+            <h1
+                class="text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.95)] sm:text-3xl md:text-4xl"
+            >
+                {episodeTitle}
+            </h1>
 
-                {#if currentEpisode.overview}
-                    <p
-                        class="mt-4 max-w-xl text-sm leading-relaxed text-white/90 line-clamp-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] sm:max-w-2xl sm:text-base sm:line-clamp-5 md:text-lg lg:max-w-3xl"
-                    >
-                        {currentEpisode.overview}
-                    </p>
-                {/if}
-            </div>
-        {/if}
+            {#if formattedReleaseDate || currentEpisode.duration}
+                <div
+                    class="mt-3 flex flex-wrap items-center gap-2.5 text-sm font-semibold text-white/95 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] sm:text-base"
+                >
+                    {#if formattedReleaseDate}
+                        <span>Released on {formattedReleaseDate}</span>
+                    {/if}
+                    {#if formattedReleaseDate && currentEpisode.duration}
+                        <span aria-hidden="true" class="text-white/50">·</span>
+                    {/if}
+                    {#if currentEpisode.duration}
+                        <span>{currentEpisode.duration}</span>
+                    {/if}
+                </div>
+            {/if}
+
+            {#if currentEpisode.overview}
+                <p
+                    class="mt-4 max-w-xl text-sm leading-relaxed text-white/90 line-clamp-4 drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] sm:max-w-2xl sm:text-base sm:line-clamp-5 md:text-lg lg:max-w-3xl"
+                >
+                    {currentEpisode.overview}
+                </p>
+            {/if}
+        </div>
     {/if}
-
     {#if player.media.subtitles.length}
         <div
             aria-live="off"
@@ -440,7 +391,7 @@
         </div>
     {/if}
 
-    {#if player.media.sourceKind !== 'iframe' && !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
+    {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
         {@const skip = player.visibleSkip}
         {#if skip}
             <button
@@ -457,14 +408,12 @@
         {/if}
     {/if}
 
-    {#if player.media.sourceKind !== 'iframe'}
-        <Controls
-            player={player}
-            hasMultipleEpisodes={episodes.length > 1}
-            episodesOpen={episodeDialogOpen}
-            onopenepisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
-        />
-    {/if}
+    <Controls
+        player={player}
+        hasMultipleEpisodes={episodes.length > 1}
+        episodesOpen={episodeDialogOpen}
+        onopenepisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
+    />
 </div>
 
 {#if episodeDialogOpen}
