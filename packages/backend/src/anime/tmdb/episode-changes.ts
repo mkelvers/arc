@@ -66,12 +66,14 @@ export async function getEpisodeChanges(
         return null;
     }
 
+    const now = new Date();
     // TMDB excludes changes when the date-only end boundary is the next day.
-    const queryEnd = new Date(Date.now() + 2 * 86_400_000);
+    const queryEnd = new Date(now.getTime() + 2 * 86_400_000);
     const earliest = new Date(queryEnd.getTime() - 14 * 86_400_000);
     const requestedStart = new Date(`${startDate}T00:00:00Z`);
-    const start =
-        requestedStart > earliest && requestedStart < queryEnd ? requestedStart : earliest;
+    // TMDB can publish metadata before a future air date, so future air dates
+    // must not move the start beyond changes that were posted today.
+    const start = requestedStart <= now && requestedStart > earliest ? requestedStart : earliest;
     const query = new URLSearchParams({
         start_date: start.toISOString().slice(0, 10),
         end_date: queryEnd.toISOString().slice(0, 10),
