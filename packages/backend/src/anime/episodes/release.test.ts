@@ -2,7 +2,12 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
-import { confirmedEpisodeAirDate, episodesForRelease, providerConfirmsEpisode } from './release';
+import {
+    confirmedEpisodeAirDate,
+    episodesForRelease,
+    preferredEpisodeAirDate,
+    providerConfirmsEpisode,
+} from './release';
 import type { AniListAnime } from '../anilist/types';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
@@ -66,6 +71,12 @@ describe('AniList release episode boundaries', () => {
 
         expect(confirmedEpisodeAirDate(8, '08/25/2026', confirmation)).toBe('08/24/2026');
         expect(confirmedEpisodeAirDate(7, '08/18/2026', confirmation)).toBe('08/18/2026');
+    });
+
+    test('keeps the AniList airing day when later TMDB metadata disagrees', () => {
+        expect(preferredEpisodeAirDate(9, '08/29/2026', new Date('2026-08-28T16:00:00.000Z'))).toBe(
+            '08/28/2026'
+        );
     });
 
     test('removes a later part combined into the first part inventory', () => {

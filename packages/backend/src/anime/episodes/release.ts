@@ -25,6 +25,19 @@ export function confirmedEpisodeAirDate(
     return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${date.getUTCFullYear()}`;
 }
 
+export function preferredEpisodeAirDate(
+    episodeNumber: number,
+    metadataAirDate: string | null,
+    confirmedAiringAt: Date | null | undefined
+) {
+    return confirmedAiringAt
+        ? confirmedEpisodeAirDate(episodeNumber, metadataAirDate, {
+              targetEpisode: episodeNumber,
+              airingAt: confirmedAiringAt,
+          })
+        : metadataAirDate;
+}
+
 function metadataDate(metadata: EpisodeMetadata | undefined) {
     if (!metadata) {
         return null;
