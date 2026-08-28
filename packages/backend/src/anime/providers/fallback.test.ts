@@ -541,7 +541,7 @@ describe('playback provider fallback', () => {
         ]);
     });
 
-    test('preserves every provider failure in one aggregate error', async () => {
+    test('preserves provider failures without treating missing modes as errors', async () => {
         const playback = createProviderFallback([
             provider('first', {
                 getStreams: async () => {
@@ -558,10 +558,9 @@ describe('playback provider fallback', () => {
             throw new Error('Expected playback fallback to fail');
         } catch (cause) {
             expect(cause).toBeInstanceOf(AggregateError);
-            expect((cause as AggregateError).errors).toHaveLength(2);
+            expect((cause as AggregateError).errors).toHaveLength(1);
             expect((cause as AggregateError).errors.map(String)).toEqual([
                 'Error: first streams failed: offline',
-                'Error: second streams failed: no sub stream was returned',
             ]);
             expect(String(cause)).toContain('No playback provider returned a stream');
         }

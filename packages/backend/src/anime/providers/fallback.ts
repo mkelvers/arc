@@ -307,21 +307,10 @@ export function createProviderFallback(providers: readonly PlaybackProvider[], t
                 );
                 markHealthy(provider, 'streams');
 
-                const missing = requested.filter(
-                    (mode) => !result[mode]?.some((stream) => stream.kind !== 'iframe')
-                );
                 const attempt = {
                     provider,
                     streams: result,
-                    errors: missing.length
-                        ? [
-                              new ProviderAttemptError(
-                                  provider.name,
-                                  'streams',
-                                  new Error(`no ${missing.join('/')} stream was returned`)
-                              ),
-                          ]
-                        : [],
+                    errors: [],
                 };
                 settledResults.set(provider, attempt);
                 return attempt;
