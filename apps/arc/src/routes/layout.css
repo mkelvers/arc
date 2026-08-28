@@ -16,8 +16,8 @@
     --theme-subtle: oklch(0.57 0.008 285);
     --theme-border: oklch(0.35 0.008 285);
     --theme-border-strong: oklch(0.5 0.008 285);
-    --theme-accent: #2563eb;
-    --theme-on-accent: oklch(0.98 0.002 285);
+    --theme-accent: #ff640a;
+    --theme-on-accent: #000;
     --theme-status-error: #f04427;
     --theme-status-success: #2ca66f;
     --theme-on-status: oklch(0.13 0.01 48);
