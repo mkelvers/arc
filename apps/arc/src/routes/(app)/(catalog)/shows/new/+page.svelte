@@ -18,4 +18,5 @@
     initialPage={data.page}
     loadedAt={data.loadedAt}
     filters={data.filters}
+    paginationStrategy="eager"
 />

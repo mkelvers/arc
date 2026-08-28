@@ -10,12 +10,18 @@
     } from 'phosphor-svelte';
 
     import { browseSearchParams, type BrowseFilters } from '@arc/shared/browse';
-    import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
+    import type { AnimeCard as AnimeCardModel } from '@arc/shared/types';
     import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { m } from '$lib/paraglide/messages.js';
+    import {
+        appendCatalogPage,
+        createPaginationGate,
+        fetchCatalogPage,
+        type PaginationStrategy,
+    } from './catalog-pagination';
 
     interface Props {
         kind: 'new' | 'popular';
@@ -24,15 +30,22 @@
         initialPage: number;
         loadedAt: string;
         filters: BrowseFilters;
+        paginationStrategy: PaginationStrategy;
     }
 
-    let { kind, initialAnime, initialHasNextPage, initialPage, loadedAt, filters }: Props = $props();
+    let { kind, initialAnime, initialHasNextPage, initialPage, loadedAt, filters, paginationStrategy }: Props =
+        $props();
     let anime = $state<AnimeCardModel[]>(untrack(() => initialAnime));
     let nextPage = $state<number | null>(untrack(() => (initialHasNextPage ? initialPage + 1 : null)));
     let loading = $state(false);
+    let loadError = $state(false);
     let sentinel = $state<HTMLDivElement>();
     let activeRequest: AbortController | undefined;
-    const loadedAtMs = untrack(() => new Date(loadedAt).getTime());
+    let loadedListing = untrack(
+        () => `${kind}:${initialPage}:${initialHasNextPage}:${loadedAt}:${browseSearchParams(filters)}`
+    );
+    const paginationGate = createPaginationGate(untrack(() => paginationStrategy));
+    const loadedAtMs = $derived(new Date(loadedAt).getTime());
     const sections = $derived.by(() => {
         if (kind === 'popular') {
             return [
@@ -103,44 +116,57 @@
 
     async function loadMore() {
         const page = nextPage;
-        if (page === null || loading) {
+        if (page === null || loadError) {
+            return;
+        }
+        if (!paginationGate.observe(true)) {
             return;
         }
 
         const controller = new AbortController();
-        activeRequest?.abort();
         activeRequest = controller;
         loading = true;
+        loadError = false;
 
         try {
-            const query = browseSearchParams(filters);
-            query.set('page', String(page));
-            const response = await fetch(`/v1/${kind}?${query}`, {
-                headers: { Accept: 'application/json' },
+            const result = await fetchCatalogPage({
+                kind,
+                filters,
+                page,
                 signal: controller.signal,
+                retryOnce: paginationStrategy === 'gated',
             });
-            if (!response.ok) {
-                throw new Error(`${kind} page request returned ${response.status}`);
-            }
-            const result = AnimeCardPageSchema.safeParse(await response.json());
-            if (!result.success || result.data.page !== page) {
-                throw new TypeError(`${kind} page request returned an invalid response`);
-            }
-
-            const existing = new Set(anime.map(({ id }) => id));
-            anime = [...anime, ...result.data.anime.filter(({ id }) => !existing.has(id))];
-            nextPage = result.data.hasNextPage ? page + 1 : null;
+            const update = appendCatalogPage(anime, page, result);
+            anime = update.anime;
+            nextPage = update.nextPage;
         } catch (cause) {
             if (!(cause instanceof DOMException) || cause.name !== 'AbortError') {
                 console.warn(`${kind} page ${page} could not be loaded`, cause);
+                loadError = paginationStrategy === 'gated';
             }
         } finally {
             if (activeRequest === controller) {
                 activeRequest = undefined;
                 loading = false;
+                paginationGate.complete();
             }
         }
     }
+
+    $effect(() => {
+        const listing = `${kind}:${initialPage}:${initialHasNextPage}:${loadedAt}:${browseSearchParams(filters)}`;
+        if (listing === loadedListing) {
+            return;
+        }
+
+        activeRequest?.abort();
+        loadedListing = listing;
+        paginationGate.reset();
+        anime = initialAnime;
+        nextPage = initialHasNextPage ? initialPage + 1 : null;
+        loading = false;
+        loadError = false;
+    });
 
     $effect(() => {
         if (!sentinel || nextPage === null) {
@@ -150,6 +176,8 @@
             ([entry]) => {
                 if (entry?.isIntersecting) {
                     void loadMore();
+                } else {
+                    paginationGate.observe(false);
                 }
             },
             { rootMargin: '600px 0px' }
