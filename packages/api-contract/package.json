@@ -8,6 +8,7 @@
         "./account": "./src/account.ts",
         "./auth": "./src/auth.ts",
         "./anime": "./src/anime.ts",
+        "./maintenance": "./src/maintenance.ts",
         "./watchlist": "./src/watchlist.ts"
     },
     "scripts": {

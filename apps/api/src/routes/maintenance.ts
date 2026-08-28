@@ -5,14 +5,53 @@ import { createMiddleware } from 'hono/factory';
 import { z } from 'zod';
 
 import {
+    MaintenanceHealthSchema,
+    MaintenanceRequestSchema,
+    MaintenanceTaskSchema,
+} from '@arc/api-contract/maintenance';
+import {
     enqueueMaintenance,
     getMaintenanceTask,
-    MaintenanceRequestSchema,
 } from '@arc/backend/internal/anime/scheduler/maintenance';
 import { animeSchedulerHealth } from '@arc/backend/internal/anime/scheduler/run';
 import { validate } from '../http';
 
-const TaskParamSchema = z.object({ taskId: z.string().uuid() });
+const TaskParamSchema = z.object({ taskId: z.uuid() });
+
+function timestamp(value: Date | null) {
+    return value?.toISOString() ?? null;
+}
+
+function healthResponse(health: Awaited<ReturnType<typeof animeSchedulerHealth>>) {
+    return MaintenanceHealthSchema.parse({
+        ...health,
+        startedAt: timestamp(health.startedAt),
+        completedAt: timestamp(health.completedAt),
+        lastSuccessAt: timestamp(health.lastSuccessAt),
+        lastFailureAt: timestamp(health.lastFailureAt),
+        lastFullReconciliationAt: timestamp(health.lastFullReconciliationAt),
+        nextFullReconciliationAt: timestamp(health.nextFullReconciliationAt),
+        lastCatalogRefreshAt: timestamp(health.lastCatalogRefreshAt),
+        nextCatalogRefreshAt: timestamp(health.nextCatalogRefreshAt),
+        anilist: health.anilist
+            ? {
+                  ...health.anilist,
+                  blockedUntil: timestamp(health.anilist.blockedUntil),
+                  lastRequestAt: timestamp(health.anilist.lastRequestAt),
+              }
+            : null,
+    });
+}
+
+function taskResponse(task: NonNullable<Awaited<ReturnType<typeof getMaintenanceTask>>>) {
+    return MaintenanceTaskSchema.parse({
+        ...task,
+        nextAttemptAt: task.nextAttemptAt.toISOString(),
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+        completedAt: timestamp(task.completedAt),
+    });
+}
 
 const maintenanceToken = createMiddleware(async (context, next) => {
     const configured = process.env.ARC_MAINTENANCE_TOKEN;
@@ -43,13 +82,35 @@ maintenance.use('*', maintenanceToken);
 maintenance.get('/health', async (context) => {
     try {
         const health = await animeSchedulerHealth();
-        return context.json(health, health.healthy ? 200 : 503);
+        return context.json(healthResponse(health), health.healthy ? 200 : 503);
     } catch {
         return context.json(
-            {
+            MaintenanceHealthSchema.parse({
                 healthy: false,
                 reason: 'Scheduler state could not be read from PostgreSQL',
-            },
+                active: false,
+                startedAt: null,
+                completedAt: null,
+                lastSuccessAt: null,
+                lastFailureAt: null,
+                lastFullReconciliationAt: null,
+                nextFullReconciliationAt: null,
+                lastCatalogRefreshAt: null,
+                nextCatalogRefreshAt: null,
+                durationMs: null,
+                stats: null,
+                targets: {
+                    pending: 0,
+                    due: 0,
+                    leased: 0,
+                    confirmed: 0,
+                    failed: 0,
+                    retired: 0,
+                },
+                maintenanceTasks: {},
+                anilist: null,
+                oldestDueAgeMs: null,
+            }),
             503
         );
     }
@@ -63,7 +124,7 @@ maintenance.post('/tasks', validate('json', MaintenanceRequestSchema), async (co
 maintenance.get('/tasks/:taskId', validate('param', TaskParamSchema), async (context) => {
     const task = await getMaintenanceTask(context.req.valid('param').taskId);
     return task
-        ? context.json(task)
+        ? context.json(taskResponse(task))
         : context.json(
               { error: { code: 'NOT_FOUND', message: 'Maintenance task not found' } },
               404
