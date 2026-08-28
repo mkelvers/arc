@@ -3,12 +3,7 @@ import { z } from 'zod';
 
 import { PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
-import {
-    browsePage,
-    initialBrowsePage,
-    newAnimePage,
-    popularAnimePage,
-} from '@arc/backend/internal/anime/browse';
+import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage, simulcast } from '@arc/backend/internal/anime/application';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
 import { dismissPlaybackProgress } from '@arc/backend/progress';
@@ -38,21 +33,6 @@ catalog.delete(
         return context.body(null, 204);
     }
 );
-
-catalog.get('/browse', validate('query', PageQuerySchema), async (context) => {
-    const filters = parseBrowseFilters(new URLSearchParams(context.req.query()));
-    if (!filters) {
-        return context.json(
-            { error: { code: 'INVALID_REQUEST', message: 'Invalid browse filters' } },
-            400
-        );
-    }
-
-    const page = context.req.valid('query').page;
-    return context.json(
-        page === 1 ? await initialBrowsePage(filters) : await browsePage(filters, page)
-    );
-});
 
 catalog.get('/new', validate('query', PageQuerySchema), async (context) => {
     const filters = parseBrowseFilters(new URLSearchParams(context.req.query()));

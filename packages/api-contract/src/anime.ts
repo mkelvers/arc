@@ -139,20 +139,6 @@ export const HomePageSchema = z.object({
 
 export const SearchResponseSchema = z.array(AnimeSearchResultSchema);
 
-export const BrowsePageSchema = AnimeCardPageSchema.extend({
-    stale: z.boolean(),
-    taxonomy: z.object({
-        genres: z.array(z.string()),
-        tags: z.array(z.string()),
-        formats: z.array(z.string()),
-        statuses: z.array(z.string()),
-        sources: z.array(z.string()),
-        seasons: z.array(z.string()),
-        years: z.array(z.number().int()),
-        countries: z.array(z.string()),
-    }),
-});
-
 export const CatalogPageSchema = AnimeCardPageSchema.extend({
     loadedAt: z.iso.datetime(),
 });

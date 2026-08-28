@@ -1,6 +1,6 @@
 import { and, arrayContains, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 
-import type { BrowseFilters, BrowseTaxonomy } from '@arc/shared/browse';
+import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
 import { db, excluded } from '@arc/db';
@@ -223,58 +223,6 @@ function validatedFilters(
     return sourceFilters as AniListBrowseFilters;
 }
 
-async function observedFormats(taxonomy: BrowseSourceTaxonomy) {
-    const [catalog, releases] = await Promise.all([
-        db
-            .select({ value: animeCatalog.format })
-            .from(animeCatalog)
-            .where(sql`${animeCatalog.format} is not null`)
-            .groupBy(animeCatalog.format),
-        db
-            .select({ value: animeRelease.format })
-            .from(animeRelease)
-            .where(sql`${animeRelease.format} is not null`)
-            .groupBy(animeRelease.format),
-    ]);
-    const observed = new Set(
-        [...catalog, ...releases].flatMap(({ value }) => (value ? [value] : []))
-    );
-
-    return taxonomy.formats.filter(
-        (format) =>
-            discoveryFormats.includes(format as (typeof discoveryFormats)[number]) &&
-            observed.has(format)
-    );
-}
-
-async function pageTaxonomy(taxonomy: BrowseSourceTaxonomy): Promise<BrowseTaxonomy> {
-    const [years, countries] = await Promise.all([
-        db
-            .select({ value: animeCatalog.seasonYear })
-            .from(animeCatalog)
-            .where(sql`${animeCatalog.seasonYear} is not null`)
-            .groupBy(animeCatalog.seasonYear)
-            .orderBy(sql`${animeCatalog.seasonYear} desc`),
-        db
-            .select({ value: animeCatalog.countryOfOrigin })
-            .from(animeCatalog)
-            .where(sql`${animeCatalog.countryOfOrigin} is not null`)
-            .groupBy(animeCatalog.countryOfOrigin)
-            .orderBy(animeCatalog.countryOfOrigin),
-    ]);
-
-    return {
-        genres: taxonomy.genres,
-        tags: taxonomy.tags,
-        formats: await observedFormats(taxonomy),
-        statuses: taxonomy.statuses,
-        sources: taxonomy.sources,
-        seasons: taxonomy.seasons,
-        years: years.flatMap(({ value }) => (value ? [value] : [])),
-        countries: countries.flatMap(({ value }) => (value ? [value] : [])),
-    };
-}
-
 function escapeLike(value: string) {
     return value.replace(/[\\%_]/g, '\\$&');
 }
@@ -426,17 +374,6 @@ async function loadPage(filters: BrowseFilters, page: number) {
         stale: cachePage?.stale ?? true,
         sourceTaxonomy: taxonomy,
     };
-}
-
-export async function initialBrowsePage(filters: BrowseFilters) {
-    const { sourceTaxonomy: taxonomy, ...result } = await loadPage(filters, 1);
-
-    return { ...result, taxonomy: await pageTaxonomy(taxonomy) };
-}
-
-export async function browsePage(filters: BrowseFilters, number: number) {
-    const { sourceTaxonomy: _, ...result } = await loadPage(filters, number);
-    return result;
 }
 
 export async function popularAnimePage(page: number, filters: BrowseFilters) {

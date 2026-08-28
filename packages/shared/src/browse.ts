@@ -64,17 +64,6 @@ const BrowseFiltersCodec = z.codec(BrowseSearchSchema, BrowseFiltersSchema, {
     }),
 });
 
-export interface BrowseTaxonomy {
-    genres: string[];
-    tags: string[];
-    formats: string[];
-    statuses: string[];
-    sources: string[];
-    seasons: string[];
-    years: number[];
-    countries: string[];
-}
-
 export type BrowseFilters = z.output<typeof BrowseFiltersCodec>;
 
 export function parseBrowseFilters(searchParams: URLSearchParams): BrowseFilters | null {
@@ -98,22 +87,4 @@ export function browseSearchParams(filters: BrowseFilters) {
             value === null ? [] : [[name, String(value)]]
         )
     );
-}
-
-export function metadataLabel(value: string) {
-    return value
-        .split('_')
-        .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`)
-        .join(' ');
-}
-
-export function animeFormatLabel(value: string) {
-    return value
-        .split('_')
-        .map((part) =>
-            part.length <= 3
-                ? part.toUpperCase()
-                : `${part.charAt(0).toUpperCase()}${part.slice(1).toLowerCase()}`
-        )
-        .join(' ');
 }
