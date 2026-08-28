@@ -70,8 +70,8 @@ export function subtitleTracks(
         ) ?? sources.sub?.find((candidate) => candidate.subtitleUrl);
     const sub = subSource?.subtitleUrl ? { url: subSource.subtitleUrl, source: subSource } : null;
 
-    // MegaPlay sometimes repeats the Japanese VTT in the dub payload. It is
-    // still timed for the sub encode, so do not mislabel it as native dub CC.
+    // Some sources repeat the Japanese VTT in the dub payload. It is still
+    // timed for the sub encode, so do not mislabel it as native dub CC.
     const sharedSubTrack = own && sub && own.url === sub.url;
 
     return {
@@ -451,9 +451,7 @@ export function isHd(quality: string | null) {
 export function isHlsSource(value: string) {
     try {
         const url = new URL(value, 'http://arc.local');
-        const nested = url.searchParams.get('url');
-        const source = nested ? new URL(nested) : url;
-        return source.pathname.toLowerCase().endsWith('.m3u8');
+        return url.pathname.toLowerCase().endsWith('.m3u8');
     } catch {
         return /\.m3u8(?:$|[?#])/i.test(value);
     }

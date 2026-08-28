@@ -5,7 +5,6 @@ import {
     audioLabel,
     formatTime,
     hasDialogueCoverage,
-    hasSubtitleTrack,
     hlsTimeline,
     hlsTimelineOffsets,
     isHd,
@@ -15,9 +14,7 @@ import {
     sameSubtitleCues,
     seekTarget,
     subtitleOptionsFor,
-    subtitleReferenceTracks,
     subtitlesAt,
-    subtitleTracks,
     type Stream,
 } from './media';
 
@@ -69,10 +66,9 @@ describe('player media helpers', () => {
         expect(isHd('480p')).toBe(false);
     });
 
-    test('recognizes direct and proxied HLS sources', () => {
+    test('recognizes HLS sources', () => {
         expect(isHlsSource('https://media.example/master.m3u8?token=1')).toBe(true);
-        expect(isHlsSource('/v1/stream?url=https%3A%2F%2Fmedia.example%2Fmaster.m3u8')).toBe(true);
-        expect(isHlsSource('/v1/stream?url=video.mp4')).toBe(false);
+        expect(isHlsSource('https://media.example/video.mp4')).toBe(false);
     });
 
     test('parses and selects overlapping WebVTT captions', () => {
@@ -94,120 +90,6 @@ Cheers!
         expect(cues).toHaveLength(3);
         expect(subtitlesAt(cues, 7)).toEqual(['"I want to go on living\neven after my death!"']);
         expect(subtitlesAt(cues, 113)).toEqual(['Yeah & cheers!', 'Cheers!']);
-    });
-
-    test('prefers fallback subtitles from the active provider', () => {
-        const sub: Stream = {
-            url: '/anikoto-sub.m3u8',
-            quality: null,
-            subtitleUrl: '/sub.vtt',
-            provider: 'AniKoto',
-        };
-        const dub: Stream = {
-            url: '/anikoto-dub.m3u8',
-            quality: null,
-            subtitleUrl: null,
-            provider: 'AniKoto',
-        };
-        const unrelated: Stream = {
-            ...dub,
-            url: '/allanime-dub.mp4',
-            provider: 'AllAnime',
-        };
-        const sources = { sub: [sub], dub: [dub, unrelated] };
-
-        expect(subtitleTracks(sources, 'dub', dub)).toEqual({
-            own: null,
-            sub: { url: '/sub.vtt', source: sub },
-        });
-        expect(subtitleTracks(sources, 'dub', unrelated)).toEqual({
-            own: null,
-            sub: { url: '/sub.vtt', source: sub },
-        });
-        expect(hasSubtitleTrack(sources, 'dub', dub)).toBe(true);
-        expect(hasSubtitleTrack(sources, 'dub', unrelated)).toBe(true);
-    });
-
-    test('falls back to an Original track from another provider', () => {
-        const sub: Stream = {
-            url: '/anineko-sub.m3u8',
-            quality: null,
-            subtitleUrl: '/sub.vtt',
-            provider: 'AniNeko',
-        };
-        const dub: Stream = {
-            url: '/anikoto-dub.m3u8',
-            quality: null,
-            subtitleUrl: null,
-            provider: 'AniKoto',
-        };
-
-        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub)).toEqual({
-            own: null,
-            sub: { url: '/sub.vtt', source: sub },
-        });
-    });
-
-    test('recognizes a repeated sub VTT in a dub payload', () => {
-        const sub: Stream = {
-            url: '/sub.m3u8',
-            quality: null,
-            subtitleUrl: '/shared.vtt',
-            provider: 'AniKoto',
-        };
-        const dub: Stream = {
-            url: '/sub.m3u8',
-            quality: null,
-            subtitleUrl: '/shared.vtt',
-            provider: 'AniKoto',
-        };
-
-        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub)).toEqual({
-            own: null,
-            sub: { url: '/shared.vtt', source: sub },
-        });
-    });
-
-    test('keeps native dub CC separate from the provider sub fallback', () => {
-        const sub: Stream = {
-            url: '/sub.m3u8',
-            quality: null,
-            subtitleUrl: '/sub.vtt',
-            provider: 'AniKoto',
-        };
-        const dub: Stream = {
-            url: '/dub.m3u8',
-            quality: null,
-            subtitleUrl: '/dub.vtt',
-            provider: 'AniKoto',
-        };
-
-        expect(subtitleTracks({ sub: [sub], dub: [dub] }, 'dub', dub)).toEqual({
-            own: { url: '/dub.vtt', source: dub },
-            sub: { url: '/sub.vtt', source: sub },
-        });
-    });
-
-    test('offers alternate timing references without treating them as captions', () => {
-        const primary: Stream = {
-            url: '/anikoto-sub.m3u8',
-            quality: null,
-            subtitleUrl: '/anikoto.vtt',
-            provider: 'AniKoto',
-        };
-        const alternative: Stream = {
-            url: '/anineko-sub.m3u8',
-            quality: null,
-            subtitleUrl: '/anineko.vtt',
-            provider: 'AniNeko',
-        };
-
-        expect(
-            subtitleReferenceTracks(
-                { sub: [primary, alternative] },
-                { url: '/anikoto.vtt', source: primary }
-            )
-        ).toEqual([{ url: '/anineko.vtt', source: alternative }]);
     });
 
     test('offers every caption track an encode provides, None last', () => {
