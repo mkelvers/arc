@@ -19,6 +19,49 @@ const artworkImageSchema = z.object({
     width: z.number().optional(),
 });
 type ArtworkImagePayload = z.infer<typeof artworkImageSchema>;
+const tmdbLanguagesSchema = z.array(
+    z.object({
+        iso_639_1: z
+            .string()
+            .regex(/^[a-z]{2}$/)
+            .optional(),
+    })
+);
+
+let imageLanguageCodes: Promise<string[]> | undefined;
+
+function allImageLanguages(client: ReturnType<typeof create>) {
+    if (!imageLanguageCodes) {
+        imageLanguageCodes = client
+            .GET('/3/configuration/languages')
+            .then(({ data, error }) => {
+                if (!data) {
+                    throw new Error('TMDB language configuration request failed', { cause: error });
+                }
+
+                const parsed = tmdbLanguagesSchema.safeParse(data);
+                if (!parsed.success) {
+                    throw new Error('TMDB returned invalid language configuration', {
+                        cause: parsed.error,
+                    });
+                }
+
+                return [
+                    ...new Set([
+                        'en-US',
+                        ...parsed.data.flatMap(({ iso_639_1 }) => iso_639_1 ?? []),
+                        'null',
+                    ]),
+                ];
+            })
+            .catch((cause) => {
+                imageLanguageCodes = undefined;
+                throw cause;
+            });
+    }
+
+    return imageLanguageCodes;
+}
 
 function artworkImage(image: ArtworkImagePayload): ArtworkImage | null {
     if (!image.file_path) {
@@ -155,35 +198,84 @@ export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | n
 async function fetchArtworkSource(match: StoredMapping) {
     const client = create();
 
-    const query = { include_image_language: 'en,null,ja' };
-    const response =
+    const unfilteredResponse =
         match.mediaType === 'movie'
             ? await client.GET('/3/movie/{movie_id}/images', {
-                  params: { path: { movie_id: match.id }, query },
+                  params: { path: { movie_id: match.id } },
               })
             : await client.GET('/3/tv/{series_id}/images', {
-                  params: { path: { series_id: match.id }, query },
+                  params: { path: { series_id: match.id } },
               });
 
-    if (!response.data) {
+    const languageCodes = await allImageLanguages(client).catch((cause) => {
+        console.warn(`TMDB language configuration failed for ${match.id}`, cause);
+        return [];
+    });
+    const languageResponses = [];
+    for (let index = 0; index < languageCodes.length; index += 10) {
+        const batch = languageCodes.slice(index, index + 10);
+        languageResponses.push(
+            ...(await Promise.all(
+                batch.map(async (language) => {
+                    try {
+                        return match.mediaType === 'movie'
+                            ? await client.GET('/3/movie/{movie_id}/images', {
+                                  params: {
+                                      path: { movie_id: match.id },
+                                      query: { include_image_language: language },
+                                  },
+                              })
+                            : await client.GET('/3/tv/{series_id}/images', {
+                                  params: {
+                                      path: { series_id: match.id },
+                                      query: { include_image_language: language },
+                                  },
+                              });
+                    } catch (cause) {
+                        console.warn(
+                            `TMDB ${language} artwork request failed for ${match.id}`,
+                            cause
+                        );
+                        return null;
+                    }
+                })
+            ))
+        );
+    }
+
+    if (!unfilteredResponse.data && !languageResponses.some((response) => response?.data)) {
         throw new Error('TMDB artwork request failed', {
-            cause: response.error,
+            cause: unfilteredResponse.error,
         });
     }
 
-    const backdrops = (response.data.backdrops ?? [])
+    const images = [
+        unfilteredResponse.data,
+        ...languageResponses.map((response) => response?.data),
+    ].filter((data): data is NonNullable<typeof unfilteredResponse.data> => Boolean(data));
+    const backdrops = images
+        .flatMap((data) => data.backdrops ?? [])
         .flatMap((image) => {
             const parsed = artworkImageSchema.safeParse(image);
             return parsed.success ? [artworkImage(parsed.data)] : [];
         })
         .filter((image): image is ArtworkImage => image !== null)
+        .filter(
+            (image, index, all) =>
+                all.findIndex(({ filePath }) => filePath === image.filePath) === index
+        )
         .sort((left, right) => right.voteAverage - left.voteAverage);
-    const logos = (response.data.logos ?? [])
+    const logos = images
+        .flatMap((data) => data.logos ?? [])
         .flatMap((image) => {
             const parsed = artworkImageSchema.safeParse(image);
             return parsed.success ? [artworkImage(parsed.data)] : [];
         })
         .filter((image): image is ArtworkImage => image !== null)
+        .filter(
+            (image, index, all) =>
+                all.findIndex(({ filePath }) => filePath === image.filePath) === index
+        )
         .sort((left, right) => right.voteAverage - left.voteAverage);
 
     await db.transaction(async (tx) => {

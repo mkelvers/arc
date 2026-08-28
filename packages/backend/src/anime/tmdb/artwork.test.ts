@@ -16,6 +16,8 @@ type ImageRow = {
 };
 
 type CacheRow = { externalIdId: number; allLanguages: boolean };
+type ArtworkQuery = { include_image_language: string } | null;
+type LanguageRow = { iso_639_1?: string };
 type PreferenceRow = {
     backdropFilePath: string | null;
     logoFilePath: string | null;
@@ -66,8 +68,11 @@ const state = {
     images: [] as ImageRow[],
     preference: null as PreferenceRow | null,
     payload: { backdrops: [], logos: [] } as ArtworkPayload,
+    localizedPayload: null as ArtworkPayload | null,
     fetchError: null as Error | null,
     fetchCount: 0,
+    fetchQueries: [] as ArtworkQuery[],
+    languages: [{ iso_639_1: 'en' }, { iso_639_1: 'ja' }] as LanguageRow[],
 };
 
 function rowsFor(table: ArtworkTable): QueryRows {
@@ -130,12 +135,20 @@ mock.module('@arc/db', () => ({
 
 mock.module('./client', () => ({
     create: () => ({
-        GET: async () => {
+        GET: async (path: string, request: { params?: { query?: ArtworkQuery } }) => {
+            if (path === '/3/configuration/languages') {
+                return { data: state.languages };
+            }
             state.fetchCount += 1;
+            state.fetchQueries.push(request.params?.query ?? null);
             if (state.fetchError) {
                 throw state.fetchError;
             }
-            return { data: state.payload };
+            return {
+                data: request.params?.query
+                    ? (state.localizedPayload ?? state.payload)
+                    : state.payload,
+            };
         },
     }),
     imageUrl: (path: string) => `https://image.tmdb.org/t/p/original${path}`,
@@ -167,8 +180,11 @@ beforeEach(() => {
     state.images = [];
     state.preference = null;
     state.payload = { backdrops: [], logos: [] };
+    state.localizedPayload = null;
     state.fetchError = null;
     state.fetchCount = 0;
+    state.fetchQueries = [];
+    state.languages = [{ iso_639_1: 'en' }, { iso_639_1: 'ja' }];
 });
 
 describe('TMDB anime artwork', () => {
@@ -180,7 +196,7 @@ describe('TMDB anime artwork', () => {
 
         const artwork = await getArtwork(anime, { refresh: true });
 
-        expect(state.fetchCount).toBe(1);
+        expect(state.fetchCount).toBe(5);
         expect(state.cache).toEqual([{ externalIdId: 100, allLanguages: true }]);
         expect(state.images.map(({ filePath }) => filePath)).toEqual([
             '/backdrop.jpg',
@@ -188,6 +204,45 @@ describe('TMDB anime artwork', () => {
         ]);
         expect(artwork?.selectedBackdrop?.filePath).toBe('/backdrop.jpg');
         expect(artwork?.selectedLogo?.filePath).toBe('/logo.png');
+    });
+
+    test('requests unlocalized and English artwork from TMDB', async () => {
+        state.payload = {
+            backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
+            logos: [],
+        };
+
+        await getArtwork(anime, { refresh: true });
+
+        expect(state.fetchQueries).toEqual([
+            null,
+            { include_image_language: 'en-US' },
+            { include_image_language: 'en' },
+            { include_image_language: 'ja' },
+            { include_image_language: 'null' },
+        ]);
+    });
+
+    test('merges unfiltered and language-filtered artwork', async () => {
+        state.payload = {
+            backdrops: [{ file_path: '/unfiltered-backdrop.jpg', width: 1920, height: 1080 }],
+            logos: [{ file_path: '/unfiltered-logo.png', width: 800, height: 240 }],
+        };
+        state.localizedPayload = {
+            backdrops: [{ file_path: '/localized-backdrop.jpg', width: 2560, height: 1440 }],
+            logos: [{ file_path: '/localized-logo.png', width: 1000, height: 300 }],
+        };
+
+        const artwork = await getArtwork(anime, { refresh: true });
+
+        expect(artwork?.backdrops.map(({ filePath }) => filePath)).toEqual([
+            '/unfiltered-backdrop.jpg',
+            '/localized-backdrop.jpg',
+        ]);
+        expect(artwork?.logos.map(({ filePath }) => filePath)).toEqual([
+            '/unfiltered-logo.png',
+            '/localized-logo.png',
+        ]);
     });
 
     test('does not fetch missing artwork during an ordinary read', async () => {
@@ -203,7 +258,7 @@ describe('TMDB anime artwork', () => {
 
         const artwork = await getArtwork(anime, { fetchMissing: true });
 
-        expect(state.fetchCount).toBe(1);
+        expect(state.fetchCount).toBe(5);
         expect(artwork?.selectedBackdrop?.filePath).toBe('/backdrop.jpg');
     });
 
