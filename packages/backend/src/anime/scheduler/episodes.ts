@@ -9,7 +9,7 @@ import { scheduleReleaseTargets } from './targets';
 import { enqueueScheduleDiscovery } from './schedule-repair';
 import { logSchedulerEvent } from './log';
 
-export interface SchedulerLimits {
+interface SchedulerLimits {
     concurrency: number;
     maxClaimedTargets: number;
     claimingWindowMs: number;

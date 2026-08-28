@@ -12,7 +12,7 @@ import {
 } from '@arc/db/schema';
 import { refreshAnimeRelease } from '../anilist/releases';
 import { GraphQLRequestError } from '../../graphql';
-import { drainEpisodeTargets, type SchedulerLimits } from './episodes';
+import { drainEpisodeTargets } from './episodes';
 import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
@@ -21,9 +21,14 @@ import { logSchedulerEvent } from './log';
 
 const heartbeatName = 'anime-scheduler';
 
-export interface SchedulerConfig extends SchedulerLimits {
-    fullReconciliationIntervalMs: number;
-}
+const schedulerPolicy = {
+    concurrency: 3,
+    maxClaimedTargets: 25,
+    claimingWindowMs: 240 * 1_000,
+    leaseDurationMs: 600 * 1_000,
+    leaseRenewalMs: 180 * 1_000,
+    fullReconciliationIntervalMs: 3_600 * 1_000,
+};
 
 async function refreshDueReleases(runId: string, limit: number) {
     const rows = await db
@@ -92,7 +97,7 @@ async function catalogRefreshDue() {
     return !heartbeat?.nextAttemptAt || heartbeat.nextAttemptAt.getTime() <= Date.now();
 }
 
-export async function runAnimeScheduler(config: SchedulerConfig) {
+export async function runAnimeScheduler() {
     const runId = randomUUID();
     const startedAt = new Date();
     logSchedulerEvent({
@@ -129,7 +134,7 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
             | { discovered: number; releaseRequests: number; targets: number }
             | { error: string; retryAt: string }
             | null = null;
-        if (await fullReconciliationDue(config.fullReconciliationIntervalMs)) {
+        if (await fullReconciliationDue(schedulerPolicy.fullReconciliationIntervalMs)) {
             const taskStartedAt = Date.now();
             try {
                 const result = await reconcileAllAiringReleases();
@@ -210,13 +215,13 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
             }
         }
 
-        const releases = await refreshDueReleases(runId, config.concurrency);
+        const releases = await refreshDueReleases(runId, schedulerPolicy.concurrency);
         const maintenance = await drainMaintenanceTasks(runId, {
-            limit: config.concurrency,
-            leaseDurationMs: config.leaseDurationMs,
-            leaseRenewalMs: config.leaseRenewalMs,
+            limit: schedulerPolicy.concurrency,
+            leaseDurationMs: schedulerPolicy.leaseDurationMs,
+            leaseRenewalMs: schedulerPolicy.leaseRenewalMs,
         });
-        const episodes = await drainEpisodeTargets(runId, config);
+        const episodes = await drainEpisodeTargets(runId, schedulerPolicy);
         const completedAt = new Date();
         const stats = { releases, maintenance, episodes, fullReconciliation, catalogRefresh };
         const reconciliationError =
@@ -232,7 +237,7 @@ export async function runAnimeScheduler(config: SchedulerConfig) {
         if (fullReconciliation && !reconciliationError) {
             heartbeatUpdate.lastFullReconciliationAt = completedAt;
             heartbeatUpdate.nextFullReconciliationAt = new Date(
-                completedAt.getTime() + config.fullReconciliationIntervalMs
+                completedAt.getTime() + schedulerPolicy.fullReconciliationIntervalMs
             );
         }
         await db
