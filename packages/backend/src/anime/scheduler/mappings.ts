@@ -357,7 +357,7 @@ export async function rediscoverMapping(
                 )
             );
         await removeStoredTmdbMapping(anilistId);
-        const mapping = await resolveStored(release);
+        const mapping = await resolveStored(release, { refresh: true });
         return { provider: 'tmdb', externalId: mapping.id, mediaType: mapping.mediaType };
     }
 

@@ -1,12 +1,17 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 import type { FranchiseOrder } from '@arc/shared/types';
 import {
     FranchiseMediaDocument,
     type FranchiseMediaQuery,
 } from '@arc/shared/anilist/generated/graphql';
-import { db } from '@arc/db';
-import { animeEpisode, animeFranchiseCache } from '@arc/db/schema';
+import { db, type DatabaseTransaction } from '@arc/db';
+import {
+    animeEpisode,
+    animeFranchiseCache,
+    animeProviderMapping,
+    animeRelease,
+} from '@arc/db/schema';
 import { request } from './anilist/client';
 import { plainText, present } from './anilist/text';
 import { enrichAnimeCards } from './card-enrichment';
@@ -19,8 +24,12 @@ import {
     type FranchiseSelectionEntry,
 } from './franchise/selection';
 
-const requests = new Map<number, Promise<FranchiseOrder>>();
 type FranchiseMedia = NonNullable<NonNullable<FranchiseMediaQuery['Page']>['media']>[number];
+
+type StoredFranchiseIdentity = {
+    anilistId: number;
+    hasProviderMapping: boolean;
+};
 
 async function fetchMetadata(entries: ChiakiEntry[]) {
     const malIds = [...new Set(entries.map(({ malId }) => malId))];
@@ -41,6 +50,42 @@ async function fetchMetadata(entries: ChiakiEntry[]) {
     }
 
     return metadata;
+}
+
+async function storedIdentities(tx: DatabaseTransaction, entries: ChiakiEntry[]) {
+    const malIds = [...new Set(entries.map(({ malId }) => malId))];
+    const identities = new Map<number, StoredFranchiseIdentity[]>();
+    if (!malIds.length) {
+        return identities;
+    }
+
+    const rows = await tx
+        .select({
+            malId: animeRelease.malId,
+            anilistId: animeRelease.anilistId,
+            provider: animeProviderMapping.provider,
+        })
+        .from(animeRelease)
+        .leftJoin(animeProviderMapping, eq(animeProviderMapping.anilistId, animeRelease.anilistId))
+        .where(inArray(animeRelease.malId, malIds));
+
+    for (const row of rows) {
+        if (row.malId === null) {
+            continue;
+        }
+
+        const candidates = identities.get(row.malId) ?? [];
+        let candidate = candidates.find(({ anilistId }) => anilistId === row.anilistId);
+        if (!candidate) {
+            candidate = { anilistId: row.anilistId, hasProviderMapping: Boolean(row.provider) };
+            candidates.push(candidate);
+        } else if (row.provider) {
+            candidate.hasProviderMapping = true;
+        }
+        identities.set(row.malId, candidates);
+    }
+
+    return identities;
 }
 
 async function currentPlayback(entries: FranchiseOrder['entries']) {
@@ -80,14 +125,14 @@ function currentPrimaryFlags(entries: FranchiseOrder['entries']) {
     return entries.map((entry) => ({ ...entry, primary: primaryIds.has(entry.malId) }));
 }
 
-async function saveOrder(malId: number, data: FranchiseOrder) {
+async function saveOrder(tx: DatabaseTransaction, malId: number, data: FranchiseOrder) {
     const fetchedAt = new Date();
     const cached = verifiedFranchiseCache(data, fetchedAt);
 
     try {
         // Concurrent refreshes of the same franchise upsert this identical row set; insert in a
         // deterministic order so they lock the same tuples in the same order instead of deadlocking.
-        await db
+        await tx
             .insert(animeFranchiseCache)
             .values(
                 [...new Set([malId, ...data.entries.map((entry) => entry.malId)])]
@@ -107,10 +152,13 @@ async function saveOrder(malId: number, data: FranchiseOrder) {
     }
 }
 
-async function refresh(malId: number) {
+async function refresh(tx: DatabaseTransaction, malId: number) {
     const { types, entries } = await fetchOrder(malId);
     const typeLabels = new Map(types.map(({ id, label }) => [id, label]));
-    const metadata = await fetchMetadata(entries);
+    const [metadata, identities] = await Promise.all([
+        fetchMetadata(entries),
+        storedIdentities(tx, entries),
+    ]);
     const primaryIds = primaryFranchiseIds(
         entries.flatMap((entry): FranchiseSelectionEntry[] => {
             const media = metadata.get(entry.malId);
@@ -151,7 +199,12 @@ async function refresh(malId: number) {
         types,
         entries: entries.flatMap((entry) => {
             const media = metadata.get(entry.malId);
-            const anilistId = media?.id;
+            const candidates = identities.get(entry.malId) ?? [];
+            const storedIdentity =
+                candidates.find(({ anilistId }) => anilistId === media?.id) ??
+                candidates.find(({ hasProviderMapping }) => hasProviderMapping) ??
+                candidates[0];
+            const anilistId = storedIdentity?.anilistId ?? media?.id;
             const type = typeLabels.get(entry.typeId);
 
             if (!anilistId || !type || (media && !isFranchiseEntryEligible(media))) {
@@ -173,11 +226,11 @@ async function refresh(malId: number) {
                     image: media?.coverImage?.extraLarge ?? media?.coverImage?.large ?? entry.image,
                     audioLabel: '',
                     score: media?.averageScore ?? 0,
-                    format: media?.format,
-                    status: media?.status,
-                    episodes: media?.episodes,
-                    duration: media?.duration,
-                    popularity: media?.popularity,
+                    format: media?.format ?? null,
+                    status: media?.status ?? null,
+                    episodes: media?.episodes ?? null,
+                    duration: media?.duration ?? null,
+                    popularity: media?.popularity ?? null,
                     relations: (media?.relations?.edges ?? []).flatMap((relation) =>
                         relation?.relationType && relation.node?.idMal
                             ? [{ type: relation.relationType, malId: relation.node.idMal }]
@@ -194,19 +247,18 @@ async function refresh(malId: number) {
         }),
     };
 
-    await saveOrder(malId, data);
+    await saveOrder(tx, malId, data);
 
     return data;
 }
 
 async function cachedFranchiseOrder(malId: number) {
-    let stored: { data: unknown; fetchedAt: Date } | undefined;
+    let stored: { data: unknown } | undefined;
 
     try {
         [stored] = await db
             .select({
                 data: animeFranchiseCache.data,
-                fetchedAt: animeFranchiseCache.fetchedAt,
             })
             .from(animeFranchiseCache)
             .where(eq(animeFranchiseCache.malId, malId))
@@ -216,54 +268,37 @@ async function cachedFranchiseOrder(malId: number) {
     }
 
     const parsedStored = stored ? FranchiseCacheSchema.safeParse(stored.data) : null;
-    const storedOrder = parsedStored?.success ? parsedStored.data.order : null;
-
-    if (
-        stored &&
-        storedOrder &&
-        Date.now() - stored.fetchedAt.getTime() < 7 * 24 * 60 * 60 * 1_000
-    ) {
-        return storedOrder;
-    }
-
-    const pending = requests.get(malId);
-    if (pending && !storedOrder) {
-        return pending;
-    }
-
-    if (storedOrder) {
-        if (!pending) {
-            const background = refresh(malId);
-            requests.set(malId, background);
-            void background
-                .catch((cause) => {
-                    console.warn(
-                        `Franchise refresh failed for MAL ${malId}; using stored order`,
-                        cause
-                    );
-                })
-                .finally(() => {
-                    if (requests.get(malId) === background) {
-                        requests.delete(malId);
-                    }
-                });
-        }
-
-        return storedOrder;
-    }
-
-    const request = refresh(malId);
-    requests.set(malId, request);
-
-    try {
-        return await request;
-    } finally {
-        requests.delete(malId);
-    }
+    return parsedStored?.success ? parsedStored.data.order : null;
 }
 
-export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder> {
-    const order = await cachedFranchiseOrder(malId);
+export async function refreshFranchiseOrder(malId: number, options: { force?: boolean } = {}) {
+    return db.transaction(async (tx) => {
+        await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${'arc:franchise:' + String(malId)}))`
+        );
+
+        if (!options.force) {
+            const [stored] = await tx
+                .select({ data: animeFranchiseCache.data })
+                .from(animeFranchiseCache)
+                .where(eq(animeFranchiseCache.malId, malId))
+                .limit(1);
+            const parsed = stored ? FranchiseCacheSchema.safeParse(stored.data) : null;
+            if (parsed?.success) {
+                return parsed.data.order;
+            }
+        }
+
+        return refresh(tx, malId);
+    });
+}
+
+export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder | null> {
+    let order = await cachedFranchiseOrder(malId);
+    if (!order) {
+        order = await refreshFranchiseOrder(malId);
+    }
+
     const entries = await currentPlayback(currentPrimaryFlags(order.entries));
 
     return {

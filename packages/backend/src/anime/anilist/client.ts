@@ -1,15 +1,13 @@
 import { createHash } from 'node:crypto';
 
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { db } from '@arc/db';
+import { db, type DatabaseTransaction } from '@arc/db';
 import { anilistQueryCache } from '@arc/db/schema';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
 import { coordinatedAniListRequest } from './durable-request-policy';
-
-const requests = new Map<string, Promise<unknown>>();
 
 interface RequestOptions {
     cacheForMs?: number;
@@ -43,6 +41,7 @@ function cacheKey<TVariables>(document: { toString(): string }, variables: TVari
 }
 
 async function refresh<TResult, TVariables>(
+    tx: DatabaseTransaction,
     key: string,
     document: Parameters<typeof graphql<TResult, TVariables>>[1],
     variables: TVariables,
@@ -56,7 +55,7 @@ async function refresh<TResult, TVariables>(
     const expiresAt = new Date(fetchedAt.getTime() + (options.cacheForMs ?? 24 * 60 * 60 * 1_000));
 
     try {
-        await db
+        await tx
             .insert(anilistQueryCache)
             .values({ key, data, expiresAt, fetchedAt })
             .onConflictDoUpdate({
@@ -70,28 +69,36 @@ async function refresh<TResult, TVariables>(
     return data;
 }
 
-function refreshOnce<TResult, TVariables>(
+async function refreshWithLock<TResult, TVariables>(
     key: string,
     document: Parameters<typeof graphql<TResult, TVariables>>[1],
     variables: TVariables,
-    options: RequestOptions
+    options: RequestOptions,
+    requestedAt: Date
 ) {
-    const pending = requests.get(key);
-    if (pending) {
-        return pending as Promise<TResult>;
-    }
+    return db.transaction(async (tx) => {
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${'arc:anilist:' + key}))`);
 
-    const load = refresh(key, document, variables, options);
-    requests.set(key, load);
-
-    const cleanup = () => {
-        if (requests.get(key) === load) {
-            requests.delete(key);
+        const [stored] = await tx
+            .select({
+                data: anilistQueryCache.data,
+                fetchedAt: anilistQueryCache.fetchedAt,
+            })
+            .from(anilistQueryCache)
+            .where(eq(anilistQueryCache.key, key))
+            .limit(1);
+        if (stored) {
+            const parsedStored = z.json().safeParse(stored.data);
+            const object = parsedStored.success ? record(parsedStored.data) : null;
+            if (!object) {
+                await tx.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
+            } else if (!options.forceRefresh || stored.fetchedAt >= requestedAt) {
+                return object as TResult;
+            }
         }
-    };
-    void load.then(cleanup, cleanup);
 
-    return load;
+        return refresh(tx, key, document, variables, options);
+    });
 }
 
 export async function request<TResult, TVariables>(
@@ -130,5 +137,5 @@ export async function request<TResult, TVariables>(
         console.warn('AniList query cache read failed', cause);
     }
 
-    return refreshOnce(key, document, variables, options);
+    return refreshWithLock(key, document, variables, options, new Date());
 }
