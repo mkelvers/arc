@@ -12,7 +12,7 @@
         </div>
     </header>
 
-    <main class="flex flex-1 justify-center px-5 pt-20 sm:px-10 sm:pt-40">
+    <main id="main-content" tabindex="-1" class="flex flex-1 justify-center px-5 pt-20 sm:px-10 sm:pt-40">
         {@render children()}
     </main>
 </div>

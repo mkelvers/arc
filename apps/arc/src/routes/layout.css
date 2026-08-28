@@ -108,14 +108,6 @@
 }
 
 @layer base {
-    * {
-        scrollbar-width: none;
-    }
-
-    *::-webkit-scrollbar {
-        display: none;
-    }
-
     html,
     body {
         @apply min-w-0 bg-canvas text-foreground;
@@ -124,6 +116,28 @@
     html {
         font-family: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
         overflow-wrap: anywhere;
+    }
+
+    img,
+    video,
+    iframe {
+        max-inline-size: 100%;
+    }
+
+    :where(a, button, input, select, textarea, summary):focus-visible {
+        outline: 2px solid var(--theme-accent);
+        outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            scroll-behavior: auto !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
     }
 
     h1,

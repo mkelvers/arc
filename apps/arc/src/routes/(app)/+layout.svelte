@@ -116,7 +116,7 @@
                         ariaLabel={localized(m.nav_account_menu)}
                         modal
                         menuClass="w-[min(21rem,calc(100vw-1rem))]"
-                        triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:gap-2 sm:px-3"
+                        triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:gap-2 sm:px-3"
                     >
                         {#snippet trigger()}
                             <AccountAvatar
@@ -188,7 +188,7 @@
                     menuAlign="start"
                     menuClass="!fixed !top-14 !right-auto !bottom-0 !left-0 z-50 w-64 pointer-events-auto"
                     modal
-                    triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground peer-checked:bg-header-hover peer-checked:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                     {#snippet trigger()}
                         <ListIcon size={24} aria-hidden="true" />
@@ -292,7 +292,7 @@
     </nav>
 </header>
 
-<div class="pt-14">
+<div id="main-content" class="pt-14" tabindex="-1">
     {#if navigating.to}
         <NavigationSkeleton />
     {:else}
