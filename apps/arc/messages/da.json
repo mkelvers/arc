@@ -108,7 +108,7 @@
     "search_remove_recent": "Fjern {title} fra seneste søgeresultater",
     "simulcast_title": "Simulcast-sæson",
     "simulcast_choose": "Vælg simulcast-sæson. {label} valgt",
-    "simulcast_empty": "{label} tager en lille pause. Prøv en anden sæson for at se, hvad der blev sendt.",
+    "simulcast_empty": "AniKoto har endnu ingen udgivelser registreret for {label}.",
     "simulcast_loading": "Indlæser flere udgivelser",
     "simulcast_auto_loading": "Flere udgivelser indlæses automatisk, når du ruller.",
     "watchlist_title": "Overvågningsliste",

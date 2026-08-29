@@ -108,7 +108,7 @@
     "search_remove_recent": "{title} aus den letzten Suchergebnissen entfernen",
     "simulcast_title": "Simulcast-Staffel",
     "simulcast_choose": "Simulcast-Staffel wählen. {label} ausgewählt",
-    "simulcast_empty": "{label} macht gerade eine kleine Pause. Wähle eine andere Staffel, um zu sehen, was ausgestrahlt wurde.",
+    "simulcast_empty": "AniKoto listet noch keine Veröffentlichungen für {label}.",
     "simulcast_loading": "Weitere Veröffentlichungen werden geladen",
     "simulcast_auto_loading": "Weitere Veröffentlichungen werden beim Scrollen automatisch geladen.",
     "watchlist_title": "Merkliste",

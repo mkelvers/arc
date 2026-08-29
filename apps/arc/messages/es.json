@@ -108,7 +108,7 @@
     "search_remove_recent": "Quitar {title} de los resultados recientes",
     "simulcast_title": "Temporada simulcast",
     "simulcast_choose": "Elegir temporada simulcast. {label} seleccionada",
-    "simulcast_empty": "{label} se está tomando un pequeño descanso. Prueba otra temporada para ver qué se emitía.",
+    "simulcast_empty": "AniKoto aún no tiene lanzamientos publicados para {label}.",
     "simulcast_loading": "Cargando más lanzamientos",
     "simulcast_auto_loading": "Se cargan más lanzamientos automáticamente al desplazarte.",
     "watchlist_title": "Lista de seguimiento",
