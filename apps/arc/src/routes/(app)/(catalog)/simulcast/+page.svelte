@@ -26,20 +26,21 @@
     );
 
     function localizedSeasonLabel(season: string, year: number) {
-        const name = (() => {
-            switch (season) {
-                case 'WINTER':
-                    return m.season_winter();
-                case 'SPRING':
-                    return m.season_spring();
-                case 'SUMMER':
-                    return m.season_summer();
-                case 'FALL':
-                    return m.season_fall();
-                default:
-                    return season;
-            }
-        })();
+        let name = season;
+        switch (season) {
+            case 'WINTER':
+                name = m.season_winter();
+                break;
+            case 'SPRING':
+                name = m.season_spring();
+                break;
+            case 'SUMMER':
+                name = m.season_summer();
+                break;
+            case 'FALL':
+                name = m.season_fall();
+                break;
+        }
         return `${name} ${year}`;
     }
 
