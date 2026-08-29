@@ -3,6 +3,7 @@ import { load } from 'cheerio';
 import { z } from 'zod';
 
 import type { AudioMode } from '@arc/shared/audio';
+import type { AnimeSeasonSelection } from '@arc/shared/season';
 import { animeTitles } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import type { JsonValue } from '../../utils';
@@ -312,6 +313,28 @@ export function parseSearchCandidates(html: string) {
     });
 
     return [...candidates.values()];
+}
+
+export function parseAniKotoCatalogPage(html: string) {
+    const $ = load(html);
+    const providerIds = new Set<number>();
+
+    $('#list-items > .item').each((_, element) => {
+        const item = $(element);
+        if (item.find('.adult').length) {
+            return;
+        }
+
+        const id = positiveId(item.find('.poster[data-tip]').first().attr('data-tip'));
+        if (id) {
+            providerIds.add(id);
+        }
+    });
+
+    return {
+        providerIds: [...providerIds],
+        hasNextPage: $('.pagination a[rel="next"]').length > 0,
+    };
 }
 
 export function parseEpisodeList(value: JsonValue) {
@@ -687,6 +710,37 @@ async function loadSeries(id: number) {
         throw new Error('AniKoto returned an invalid series response');
     }
     return series;
+}
+
+export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, page: number) {
+    if (!Number.isSafeInteger(page) || page <= 0) {
+        throw new RangeError('AniKoto catalog page must be a positive integer');
+    }
+
+    const url = new URL('/filter', anikotoUrl);
+    url.searchParams.set('season[0]', selection.season.toLowerCase());
+    url.searchParams.set('year[0]', String(selection.year));
+    url.searchParams.set('page', String(page));
+    const catalog = parseAniKotoCatalogPage(await requestText(url));
+    const resolved = await resolveCandidates(catalog.providerIds, (id) => loadSeries(id), {
+        concurrency: 8,
+    });
+    const series = resolved.results.flatMap((entry) =>
+        entry?.anilistId ? [{ id: entry.id, anilistId: entry.anilistId }] : []
+    );
+    if (catalog.providerIds.length && !series.length) {
+        throw new AggregateError(resolved.errors, 'AniKoto catalog identities could not be loaded');
+    }
+
+    await Promise.all(
+        series.map((entry) => saveProviderMediaId(entry.anilistId, String(entry.id)))
+    );
+
+    return {
+        animeIds: [...new Set(series.map((entry) => entry.anilistId))],
+        hasNextPage: catalog.hasNextPage,
+        page,
+    };
 }
 
 async function search(title: string) {

@@ -4,6 +4,7 @@ import {
     episodeAudioModes,
     matchesAniKotoIdentity,
     normalizeAniKotoMediaUrl,
+    parseAniKotoCatalogPage,
     parseEpisodeList,
     parseMegaPlaySource,
     parseServerList,
@@ -79,6 +80,24 @@ describe('AniKoto provider rules', () => {
         expect(
             matchesAniKotoIdentity({ anilistId: null, malId: 123 }, { id: 176496, idMal: 58567 })
         ).toBe(false);
+    });
+
+    test('reads the seasonal catalog and excludes adult entries', () => {
+        expect(
+            parseAniKotoCatalogPage(`
+                <div id="list-items">
+                    <div class="item"><div class="poster" data-tip="8873"></div></div>
+                    <div class="item"><div class="poster" data-tip="8873"></div></div>
+                    <div class="item"><div class="poster" data-tip="8910"><div class="adult"></div></div></div>
+                    <div class="item"><div class="poster" data-tip="not-an-id"></div></div>
+                </div>
+                <ul class="pagination"><li><a rel="next" href="?page=2">Next</a></li></ul>
+            `)
+        ).toEqual({ providerIds: [8873], hasNextPage: true });
+        expect(parseAniKotoCatalogPage('<div id="list-items"></div>')).toEqual({
+            providerIds: [],
+            hasNextPage: false,
+        });
     });
 
     test('accepts only supported HTTPS media and subtitle URLs', () => {
