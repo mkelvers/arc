@@ -899,7 +899,10 @@ async function loadEpisodes(series: AniKotoSeries) {
 
 function relationTitles(anime: AniListAnime) {
     return (anime.relations?.edges ?? [])
-        .filter((edge) => edge?.relationType === 'SEQUEL' && edge.node?.type === 'ANIME')
+        .filter(
+            (edge): edge is NonNullable<typeof edge> =>
+                Boolean(edge && edge.relationType === 'SEQUEL' && edge.node?.type === 'ANIME')
+        )
         .map((edge) => edge.node?.title)
         .flatMap((title) => (title ? [title.english, title.romaji, title.native] : []))
         .filter((title): title is string => Boolean(title?.trim()))
@@ -971,7 +974,7 @@ async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
     return mergeAniKotoEpisodeRanges(
         primary,
         series.id,
-        secondary ? { episodes: secondary, seriesId: related.id } : null,
+        secondary && related ? { episodes: secondary, seriesId: related.id } : null,
         expected
     );
 }

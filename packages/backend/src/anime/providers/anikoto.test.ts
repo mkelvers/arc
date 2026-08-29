@@ -27,6 +27,7 @@ import {
     validEmbed,
     validOpaqueId,
 } from './anikoto';
+import type { ProviderEpisode } from './types';
 
 describe('AniKoto provider rules', () => {
     test('keeps merged episodes addressable by their provider release', () => {
@@ -35,13 +36,13 @@ describe('AniKoto provider rules', () => {
             episodeId: 'episode-36',
         });
 
-        const primary = Array.from({ length: 48 }, (_, index) => ({
+        const primary: ProviderEpisode[] = Array.from({ length: 48 }, (_, index) => ({
             id: `black-white-${index + 1}`,
             number: index + 1,
             title: `Episode ${index + 1}`,
             audio: ['sub'],
         }));
-        const related = Array.from({ length: 49 }, (_, index) => ({
+        const related: ProviderEpisode[] = Array.from({ length: 49 }, (_, index) => ({
             id: `rival-destinies-${index + 1}`,
             number: index + 1,
             title: `Episode ${index + 1}`,
