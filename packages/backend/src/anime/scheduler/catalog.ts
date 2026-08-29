@@ -7,6 +7,7 @@ import { refreshHomeHeroCandidates } from '../anilist/hero';
 import { refreshHomepage } from '../anilist/home';
 import { refreshPopularAnime } from '../browse';
 import { refreshFranchiseOrder } from '../franchise';
+import { refreshCurrentSimulcast } from '../simulcast';
 
 const franchiseRefreshIntervalMs = 7 * 24 * 60 * 60 * 1_000;
 
@@ -47,6 +48,7 @@ export async function refreshCatalogSnapshots(now = new Date()) {
     const { season, year } = currentAnimeSeason(now);
     await refreshHomepage(season, year);
     await refreshPopularAnime();
+    await refreshCurrentSimulcast(now);
     await getBrowseTaxonomy(true);
     await refreshHomeHeroCandidates(now);
     await refreshKnownFranchises(now);
