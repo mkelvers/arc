@@ -67,7 +67,7 @@
                 action="?/import"
                 enctype="multipart/form-data"
                 use:enhance={enhanceImport}
-                class="w-full shrink-0 sm:w-auto"
+                class="w-full shrink-0 sm:w-32"
             >
                 <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
                 <input
@@ -80,7 +80,7 @@
                 />
                 <label
                     for="watchlist-import"
-                    class="inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:w-auto"
+                    class="inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
                 >
                     {m.import_choose_file()}
                 </label>
@@ -96,7 +96,7 @@
 />
 
 <section class="mt-10" aria-labelledby="export-library">
-    <div class="flex items-start justify-between gap-5">
+    <div class="flex flex-col items-start gap-4 sm:flex-row sm:justify-between sm:gap-6">
         <div class="min-w-0">
             <h2 id="export-library" class="text-sm font-medium text-foreground">{m.export_library()}</h2>
             <p class="mt-1 text-sm leading-relaxed text-muted">{m.export_download()}</p>
@@ -104,7 +104,7 @@
         <a
             href="/v1/watchlist/export?format=json"
             download
-            class="inline-flex min-h-10 shrink-0 items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            class="inline-flex min-h-10 w-full shrink-0 items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-32"
         >
             {m.download()}
         </a>
