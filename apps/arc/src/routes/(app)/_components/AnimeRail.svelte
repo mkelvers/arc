@@ -115,14 +115,3 @@
         <p class="px-5 text-sm text-muted sm:px-10 lg:px-16 2xl:px-16">{emptyMessage}</p>
     {/if}
 </section>
-
-<style>
-    .scrollbar-hidden {
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .scrollbar-hidden::-webkit-scrollbar {
-        display: none;
-    }
-</style>

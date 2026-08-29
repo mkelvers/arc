@@ -156,14 +156,3 @@
         <p class="px-2 text-sm text-muted">{m.franchise_empty()}</p>
     {/if}
 </section>
-
-<style>
-    .scrollbar-hidden {
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .scrollbar-hidden::-webkit-scrollbar {
-        display: none;
-    }
-</style>
