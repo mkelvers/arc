@@ -934,38 +934,46 @@ async function findRelatedSeries(anime: AniListAnime) {
     return null;
 }
 
+export function mergeAniKotoEpisodeRanges(
+    primary: ProviderEpisode[],
+    primarySeriesId: number,
+    related: { episodes: ProviderEpisode[]; seriesId: number } | null,
+    expected: number
+) {
+    const primaryEpisodes = primary.map((episode) => ({
+        ...episode,
+        id: aniKotoEpisodeRoute(primarySeriesId, episode.id),
+    }));
+    if (!related || expected <= primaryEpisodes.length) {
+        return primaryEpisodes;
+    }
+
+    const offset = Math.max(...primary.map((episode) => episode.number), 0);
+    return [
+        ...primaryEpisodes,
+        ...related.episodes.slice(0, expected - primaryEpisodes.length).map((episode) => ({
+            ...episode,
+            id: aniKotoEpisodeRoute(related.seriesId, episode.id),
+            number: episode.number + offset,
+        })),
+    ];
+}
+
 async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
     const primary = await loadEpisodes(series);
     const expected = anime.episodes;
-    if (!expected || expected <= primary.length) {
-        return primary.map((episode) => ({
-            ...episode,
-            id: aniKotoEpisodeRoute(series.id, episode.id),
-        }));
+    if (!expected) {
+        return mergeAniKotoEpisodeRanges(primary, series.id, null, Number.MAX_SAFE_INTEGER);
     }
 
     const related = await findRelatedSeries(anime);
-    if (!related || related.id === series.id) {
-        return primary.map((episode) => ({
-            ...episode,
-            id: aniKotoEpisodeRoute(series.id, episode.id),
-        }));
-    }
-
-    const secondary = await loadEpisodes(related);
-    const primaryEpisodes = primary.map((episode) => ({
-        ...episode,
-        id: aniKotoEpisodeRoute(series.id, episode.id),
-    }));
-    const offset = Math.max(...primary.map((episode) => episode.number), 0);
-    const remaining = expected - primaryEpisodes.length;
-    const secondaryEpisodes = secondary.slice(0, remaining).map((episode) => ({
-        ...episode,
-        id: aniKotoEpisodeRoute(related.id, episode.id),
-        number: episode.number + offset,
-    }));
-
-    return [...primaryEpisodes, ...secondaryEpisodes];
+    const secondary = related && related.id !== series.id ? await loadEpisodes(related) : null;
+    return mergeAniKotoEpisodeRanges(
+        primary,
+        series.id,
+        secondary ? { episodes: secondary, seriesId: related.id } : null,
+        expected
+    );
 }
 
 export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, page: number) {
@@ -1377,9 +1385,7 @@ async function resolveServer(
 
 async function getEpisodes(anime: AniListAnime) {
     const series = await findSeries(anime);
-    const parsed = parseEpisodeList(
-        await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
-    );
+    const parsed = await episodesForAnime(anime, series);
     if (!parsed.length) {
         throw new Error(`AniKoto returned no playable episodes for AniList ${anime.id}`);
     }
@@ -1392,11 +1398,11 @@ async function getStreams(
     modes: AudioMode[]
 ): Promise<ProviderStreams> {
     const series = await findSeries(anime);
-    const episodes = parseEpisodeList(
-        await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
-    );
+    const route = parseAniKotoEpisodeRoute(episode.id);
+    const episodeSeries = route ? await loadSeries(route.seriesId) : series;
+    const episodes = await loadEpisodes(episodeSeries);
     const current =
-        episodes.find((candidate) => candidate.id === episode.id) ??
+        episodes.find((candidate) => candidate.id === (route?.episodeId ?? episode.id)) ??
         episodes.find((candidate) => candidate.number === episode.number);
     if (!current) {
         throw new Error(`AniKoto has no episode ${episode.number} for AniList ${anime.id}`);
