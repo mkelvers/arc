@@ -40,6 +40,8 @@ query Anime($id: Int!) {
                 relationType
                 node {
                     id
+                    idMal
+                    episodes
                     type
                     title {
                         english

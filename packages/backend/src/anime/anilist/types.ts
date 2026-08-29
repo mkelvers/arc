@@ -49,6 +49,8 @@ export const AniListAnimeSchema = z
                                 node: z
                                     .object({
                                         id: z.number().int().positive(),
+                                        idMal: nullableInteger,
+                                        episodes: nullableInteger,
                                         type: nullableString,
                                         title: titleSchema,
                                     })
