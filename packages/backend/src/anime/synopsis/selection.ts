@@ -1,8 +1,16 @@
 import type { AniListAnime } from '../anilist/types';
 
+export const minimumInformativeHeroSynopsisLength = 160;
+
 export function isSeasonPlaceholderSynopsis(value: string) {
     return /^(?:(?:the\s+)?(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d+(?:st|nd|rd|th))\s+season|season\s+(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|\d+(?:st|nd|rd|th)))\s+of\b/i.test(
         value.trim()
+    );
+}
+
+export function isSeasonReleaseTitle(value: string) {
+    return /\b(?:season\s+(?:\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)|(?:\d+|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)(?:st|nd|rd|th)?\s+season)\b/i.test(
+        value
     );
 }
 
@@ -39,12 +47,25 @@ export function conciseHeroSynopsis(value: string) {
 }
 
 export function informativeHeroSynopsis(preferred: string, fallback: string) {
+    const preferredSentences = synopsisSentences(preferred);
     const preferredSummary = conciseHeroSynopsis(preferred);
     const fallbackSummary = conciseHeroSynopsis(fallback);
 
-    // Keep the cleaner preferred source unless it carries substantially less of the story.
-    if (preferredSummary && preferredSummary.length * 3 >= fallback.trim().length * 2) {
+    // Do not let a technically valid one-line premise displace a fuller story summary.
+    if (
+        preferredSummary &&
+        preferredSummary.length >= minimumInformativeHeroSynopsisLength &&
+        preferredSummary.length * 3 >= fallback.trim().length * 2
+    ) {
         return preferredSummary;
+    }
+
+    if (
+        preferredSentences.length === 1 &&
+        preferredSummary.length < minimumInformativeHeroSynopsisLength &&
+        fallbackSummary.length >= minimumInformativeHeroSynopsisLength
+    ) {
+        return fallbackSummary;
     }
 
     const fallbackSentences = synopsisSentences(fallback);

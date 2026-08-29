@@ -6,14 +6,16 @@ import { animeSynopsisCache } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { getAnime } from './anilist/details';
 import { storedAnimeRelease } from './anilist/releases';
-import { plainText } from './anilist/text';
+import { mediaTitle, plainText } from './anilist/text';
 import type { AniListAnime } from './anilist/types';
 import { create } from './tmdb/client';
 import { NoConfidentTmdbMappingError, resolveStored } from './tmdb/mapping';
 import {
     earliestRelease,
     informativeHeroSynopsis,
+    isSeasonReleaseTitle,
     isSeasonPlaceholderSynopsis,
+    minimumInformativeHeroSynopsisLength,
 } from './synopsis/selection';
 
 function usefulSynopsis(value: string | null | undefined) {
@@ -222,7 +224,11 @@ export async function resolveAnimeSynopsis(
 
 export async function resolveHeroSynopsis(anime: AniListAnime) {
     const original = plainText(anime.description);
-    const source = isSeasonPlaceholderSynopsis(original) ? await firstRelease(anime) : anime;
+    const needsEarlierRelease =
+        isSeasonPlaceholderSynopsis(original) ||
+        (original.length < minimumInformativeHeroSynopsisLength &&
+            isSeasonReleaseTitle(mediaTitle(anime)));
+    const source = needsEarlierRelease ? await firstRelease(anime, true) : anime;
     const replacement = await resolvedTmdbSynopsis(anime, source);
     return informativeHeroSynopsis(replacement ?? '', plainText(source.description) || original);
 }
