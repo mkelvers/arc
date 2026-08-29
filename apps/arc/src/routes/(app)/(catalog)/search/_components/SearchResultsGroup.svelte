@@ -4,7 +4,7 @@
     import type { AnimeSearchResult } from '@arc/shared/search';
     import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         id: string;

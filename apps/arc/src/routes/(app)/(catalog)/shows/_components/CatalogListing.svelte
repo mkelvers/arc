@@ -8,7 +8,7 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
     import {
         appendCatalogPage,
         createPaginationGate,
