@@ -87,12 +87,12 @@
     <section aria-labelledby="subtitle-text-title">
         <h2 id="subtitle-text-title" class="text-lg font-medium">{m.settings_text()}</h2>
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
-            <label class="block text-sm">
+            <div class="text-sm">
                 <span class="text-xs text-muted">{m.player_size()}</span>
                 <Dropdown
                     id="subtitle-size"
                     menuAlign="start"
-                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
+                    triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}<span>{subtitleSizes[size].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
@@ -111,14 +111,14 @@
                         {/each}
                     {/snippet}
                 </Dropdown>
-            </label>
+            </div>
 
-            <label class="block text-sm">
+            <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
                 <Dropdown
                     id="subtitle-text-color"
                     menuAlign="start"
-                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
+                    triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}<span>{subtitleTextColors[textColor].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
@@ -135,14 +135,14 @@
                             </button>{/each}
                     {/snippet}
                 </Dropdown>
-            </label>
+            </div>
 
-            <label class="block text-sm">
+            <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_edge_style()}</span>
                 <Dropdown
                     id="subtitle-edge-style"
                     menuAlign="start"
-                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
+                    triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}<span>{subtitleEdgeStyles[edgeStyle].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
@@ -159,19 +159,19 @@
                             </button>{/each}
                     {/snippet}
                 </Dropdown>
-            </label>
+            </div>
         </div>
     </section>
 
     <section aria-labelledby="subtitle-background-title">
         <h2 id="subtitle-background-title" class="text-lg font-medium">{m.settings_background()}</h2>
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
-            <label class="block text-sm">
+            <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
                 <Dropdown
                     id="subtitle-background"
                     menuAlign="start"
-                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground transition-colors hover:text-input-accent focus-visible:text-input-accent"
+                    triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}<span>{subtitleBackgrounds[background].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
@@ -188,15 +188,15 @@
                             </button>{/each}
                     {/snippet}
                 </Dropdown>
-            </label>
+            </div>
 
-            <label class="block text-sm">
+            <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_opacity()}</span>
                 <Dropdown
                     id="subtitle-background-opacity"
                     disabled={background === 'none'}
                     menuAlign="start"
-                    triggerClass="mt-2 flex min-h-11 w-full items-center justify-between border-b border-border-strong bg-panel px-1 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50 transition-colors hover:text-input-accent focus-visible:text-input-accent"
+                    triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {#snippet trigger()}<span>{Math.round(backgroundOpacity * 100)}%</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
@@ -213,7 +213,7 @@
                             </button>{/each}
                     {/snippet}
                 </Dropdown>
-            </label>
+            </div>
         </div>
     </section>
 
