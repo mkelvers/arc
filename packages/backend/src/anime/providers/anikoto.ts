@@ -42,6 +42,9 @@ export const aniKotoStreamLimits = {
 const resolutionDeadlineMs = 30_000;
 const resolutionConcurrency = 4;
 const mediaRetryCount = 2;
+const requestRetryCount = 2;
+const defaultRequestRetryDelayMs = 500;
+const maxRequestRetryDelayMs = 10_000;
 const failedSourceCooldownMs = 30_000;
 const maxTextBytes = 2 * 1024 * 1024;
 const failedSources = new Map<string, number>();
@@ -120,6 +123,35 @@ interface SearchCandidate {
     alternativeTitle: string;
 }
 
+const episodeRoutePrefix = 'anikoto:';
+
+export function aniKotoEpisodeRoute(seriesId: number, episodeId: string) {
+    return `${episodeRoutePrefix}${seriesId}:${encodeURIComponent(episodeId)}`;
+}
+
+export function parseAniKotoEpisodeRoute(value: string) {
+    if (!value.startsWith(episodeRoutePrefix)) {
+        return null;
+    }
+
+    const match = value.match(/^anikoto:(\d+):(.+)$/);
+    if (!match) {
+        return null;
+    }
+
+    const seriesId = positiveId(match[1]);
+    if (!seriesId) {
+        return null;
+    }
+
+    try {
+        const episodeId = decodeURIComponent(match[2]);
+        return validOpaqueId(episodeId) ? { seriesId, episodeId } : null;
+    } catch {
+        return null;
+    }
+}
+
 export interface AniKotoServerCandidate {
     mode: Exclude<AudioMode, 'raw'>;
     embedMode: AniKotoServerMode;
@@ -166,6 +198,52 @@ function supportedHost(hostname: string) {
 
 export function sourceCooldownKey(url: URL) {
     return url.toString();
+}
+
+function retryAfterMs(value: string | null) {
+    if (!value) {
+        return null;
+    }
+
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+        return Math.min(maxRequestRetryDelayMs, Math.ceil(seconds * 1000));
+    }
+
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp)
+        ? Math.min(maxRequestRetryDelayMs, Math.max(0, timestamp - Date.now()))
+        : null;
+}
+
+function retryableRequestStatus(status: number) {
+    return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function abortPromise(signal?: AbortSignal) {
+    if (!signal) {
+        return new Promise<void>(() => undefined);
+    }
+    if (signal.aborted) {
+        return Promise.reject(signal.reason);
+    }
+    return new Promise<never>((_, reject) =>
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+    );
+}
+
+async function abortableDelay(delay: number, signal?: AbortSignal) {
+    await Promise.race([
+        new Promise<void>((resolve) => setTimeout(resolve, delay)),
+        abortPromise(signal),
+    ]);
+}
+
+function requestRetryDelay(response: Response, attempt: number) {
+    return (
+        retryAfterMs(response.headers.get('retry-after')) ??
+        Math.min(maxRequestRetryDelayMs, defaultRequestRetryDelayMs * 2 ** attempt)
+    );
 }
 
 function sourceIsCoolingDown(url: URL) {
@@ -684,22 +762,30 @@ async function requestText(
         headers.set('X-Requested-With', 'XMLHttpRequest');
     }
 
-    const response = await fetch(url, {
-        headers,
-        signal: options.signal
-            ? AbortSignal.any([options.signal, AbortSignal.timeout(aniKotoRequestTimeoutMs)])
-            : AbortSignal.timeout(aniKotoRequestTimeoutMs),
-    });
-    if (!response.ok) {
-        throw new AniKotoRequestError(
-            `AniKoto returned ${response.status} for ${url.hostname}${url.pathname}`,
-            response.status
+    for (let attempt = 0; ; attempt += 1) {
+        const response = await fetch(url, {
+            headers,
+            signal: options.signal
+                ? AbortSignal.any([options.signal, AbortSignal.timeout(aniKotoRequestTimeoutMs)])
+                : AbortSignal.timeout(aniKotoRequestTimeoutMs),
+        });
+        if (!response.ok) {
+            if (retryableRequestStatus(response.status) && attempt < requestRetryCount) {
+                const delay = requestRetryDelay(response, attempt);
+                await response.body?.cancel().catch(() => undefined);
+                await abortableDelay(delay, options.signal);
+                continue;
+            }
+            throw new AniKotoRequestError(
+                `AniKoto returned ${response.status} for ${url.hostname}${url.pathname}`,
+                response.status
+            );
+        }
+
+        return new TextDecoder().decode(
+            await readBounded(response, options.maxBytes ?? maxTextBytes, options.signal)
         );
     }
-
-    return new TextDecoder().decode(
-        await readBounded(response, options.maxBytes ?? maxTextBytes, options.signal)
-    );
 }
 
 async function requestJson(url: URL, referer = `${anikotoUrl}/`, signal?: AbortSignal) {
@@ -805,6 +891,83 @@ async function loadSeries(id: number) {
     return series;
 }
 
+async function loadEpisodes(series: AniKotoSeries) {
+    return parseEpisodeList(
+        await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
+    );
+}
+
+function relationTitles(anime: AniListAnime) {
+    return (anime.relations?.edges ?? [])
+        .filter((edge) => edge?.relationType === 'SEQUEL' && edge.node?.type === 'ANIME')
+        .map((edge) => edge.node?.title)
+        .flatMap((title) => (title ? [title.english, title.romaji, title.native] : []))
+        .filter((title): title is string => Boolean(title?.trim()))
+        .map(normalizedProviderTitle);
+}
+
+async function findRelatedSeries(anime: AniListAnime) {
+    const titles = new Set(relationTitles(anime));
+    const candidates = new Map<number, SearchCandidate>();
+    for (const title of titles) {
+        for (const candidate of await search(title).catch(() => [])) {
+            candidates.set(candidate.id, candidate);
+        }
+    }
+
+    const exactCandidates = [...candidates.values()].filter(
+        (candidate) =>
+            titles.has(normalizedProviderTitle(candidate.title)) ||
+            titles.has(normalizedProviderTitle(candidate.alternativeTitle))
+    );
+    for (const candidate of exactCandidates) {
+        const series = await loadSeries(candidate.id).catch(() => null);
+        if (
+            series &&
+            (titles.has(normalizedProviderTitle(series.title)) ||
+                titles.has(normalizedProviderTitle(series.alternativeTitle)))
+        ) {
+            return series;
+        }
+    }
+
+    return null;
+}
+
+async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
+    const primary = await loadEpisodes(series);
+    const expected = anime.episodes;
+    if (!expected || expected <= primary.length) {
+        return primary.map((episode) => ({
+            ...episode,
+            id: aniKotoEpisodeRoute(series.id, episode.id),
+        }));
+    }
+
+    const related = await findRelatedSeries(anime);
+    if (!related || related.id === series.id) {
+        return primary.map((episode) => ({
+            ...episode,
+            id: aniKotoEpisodeRoute(series.id, episode.id),
+        }));
+    }
+
+    const secondary = await loadEpisodes(related);
+    const primaryEpisodes = primary.map((episode) => ({
+        ...episode,
+        id: aniKotoEpisodeRoute(series.id, episode.id),
+    }));
+    const offset = Math.max(...primary.map((episode) => episode.number), 0);
+    const remaining = expected - primaryEpisodes.length;
+    const secondaryEpisodes = secondary.slice(0, remaining).map((episode) => ({
+        ...episode,
+        id: aniKotoEpisodeRoute(related.id, episode.id),
+        number: episode.number + offset,
+    }));
+
+    return [...primaryEpisodes, ...secondaryEpisodes];
+}
+
 export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, page: number) {
     if (!Number.isSafeInteger(page) || page <= 0) {
         throw new RangeError('AniKoto catalog page must be a positive integer');
@@ -876,13 +1039,10 @@ async function findSeries(anime: AniListAnime) {
         }
     }
 
-    const results = await Promise.allSettled(animeTitles(anime).slice(0, 6).map(search));
     const candidates = new Map<number, SearchCandidate>();
-    for (const result of results) {
-        if (result.status === 'fulfilled') {
-            for (const candidate of result.value) {
-                candidates.set(candidate.id, candidate);
-            }
+    for (const title of animeTitles(anime).slice(0, 6)) {
+        for (const candidate of await search(title).catch(() => [])) {
+            candidates.set(candidate.id, candidate);
         }
     }
 
@@ -899,16 +1059,12 @@ async function findSeries(anime: AniListAnime) {
             )
     );
     for (let offset = 0; offset < ordered.length; offset += 12) {
-        const batch = await Promise.allSettled(
-            ordered.slice(offset, offset + 12).map((candidate) => loadSeries(candidate.id))
-        );
-        const match = batch.find(
-            (result): result is PromiseFulfilledResult<AniKotoSeries> =>
-                result.status === 'fulfilled' && matchesAniKotoIdentity(result.value, anime)
-        );
-        if (match) {
-            await saveProviderMediaId(anime.id, String(match.value.id));
-            return match.value;
+        for (const candidate of ordered.slice(offset, offset + 12)) {
+            const series = await loadSeries(candidate.id).catch(() => null);
+            if (series && matchesAniKotoIdentity(series, anime)) {
+                await saveProviderMediaId(anime.id, String(series.id));
+                return series;
+            }
         }
     }
 

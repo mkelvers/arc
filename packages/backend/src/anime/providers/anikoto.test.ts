@@ -4,6 +4,7 @@ import {
     episodeAudioModes,
     aniKotoMediaCandidates,
     fetchAniKotoResource,
+    getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
     matchesAniKotoIdentity,
     normalizeAniKotoMediaUrl,
@@ -290,6 +291,34 @@ describe('AniKoto provider rules', () => {
         );
         expect(result.response.status).toBe(200);
         expect(attempts).toBe(3);
+    });
+
+    test('retries rate-limited catalog requests before parsing the response', async () => {
+        const originalFetch = globalThis.fetch;
+        let attempts = 0;
+        const mockedFetch: typeof fetch = Object.assign(
+            async () => {
+                attempts += 1;
+                return attempts === 1
+                    ? new Response(null, { status: 429 })
+                    : new Response('<div id="list-items"></div>', { status: 200 });
+            },
+            { preconnect: originalFetch.preconnect }
+        );
+        globalThis.fetch = mockedFetch;
+
+        try {
+            await expect(
+                getAniKotoSimulcastPage({ season: 'WINTER', year: 2026 }, 1)
+            ).resolves.toEqual({
+                anime: [],
+                hasNextPage: false,
+                page: 1,
+            });
+            expect(attempts).toBe(2);
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
     });
 
     test('unwraps JPEG-disguised HLS segments from current AniKoto shards', async () => {
