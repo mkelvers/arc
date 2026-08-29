@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let {
         name,
