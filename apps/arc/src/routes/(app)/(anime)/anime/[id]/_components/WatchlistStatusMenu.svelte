@@ -7,7 +7,7 @@
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         animeId: number;

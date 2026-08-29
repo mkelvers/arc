@@ -6,7 +6,7 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import { matchesFranchiseFilter, type FranchiseFilter } from '$lib/franchise';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         order: FranchiseOrderData;

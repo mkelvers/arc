@@ -8,7 +8,7 @@
     import { SpinnerGapIcon } from 'phosphor-svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Playback {
         streams: Sources;

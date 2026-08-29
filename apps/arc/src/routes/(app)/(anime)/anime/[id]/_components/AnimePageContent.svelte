@@ -9,7 +9,7 @@
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };

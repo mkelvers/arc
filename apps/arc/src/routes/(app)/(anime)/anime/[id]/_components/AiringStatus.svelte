@@ -2,7 +2,7 @@
     import { invalidate } from '$app/navigation';
     import { EpisodeRevisionSchema } from '@arc/shared/types';
 
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         animeId: number;
