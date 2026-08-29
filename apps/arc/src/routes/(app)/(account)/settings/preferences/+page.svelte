@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { CaretDownIcon, CheckIcon, GlobeIcon } from 'phosphor-svelte';
+    import { CaretDownIcon } from 'phosphor-svelte';
 
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import { changeLocale, locale, type AppLocale } from '$lib/locale.svelte';
@@ -20,12 +20,9 @@
 </svelte:head>
 
 <section aria-labelledby="language-title">
-    <div class="flex items-start gap-3">
-        <GlobeIcon class="mt-0.5 shrink-0 text-muted" size={22} aria-hidden="true" />
-        <div>
-            <h2 id="language-title" class="text-lg font-medium">{m.settings_language()}</h2>
-            <p class="mt-1 text-sm leading-relaxed text-muted">{m.settings_language_synopsis()}</p>
-        </div>
+    <div>
+        <h2 id="language-title" class="text-lg font-medium">{m.settings_language()}</h2>
+        <p class="mt-1 text-sm leading-relaxed text-muted">{m.settings_language_synopsis()}</p>
     </div>
 
     <Dropdown
@@ -48,9 +45,6 @@
                     onclick={() => changeLocale(language.locale)}
                     class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                 >
-                    {#if locale.current === language.locale}
-                        <CheckIcon size={16} class="mr-2 inline" aria-hidden="true" />
-                    {/if}
                     {language.label}
                 </button>
             {/each}

@@ -23,14 +23,14 @@
         },
     } as const;
     const sections = [
+        {
+            title: m.settings_general,
+            links: [{ label: m.settings_preferences, href: '/settings/preferences' }],
+        },
         { title: m.settings_playback, links: [{ label: m.settings_subtitles, href: '/settings/subtitles' }] },
         {
             title: m.settings_watchlist,
             links: [{ label: m.settings_import_export, href: '/settings/import-export' }],
-        },
-        {
-            title: m.settings_preferences,
-            links: [{ label: m.settings_language, href: '/settings/preferences' }],
         },
     ] as const;
     const currentPage = $derived(
