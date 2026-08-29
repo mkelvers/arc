@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { invalidateAll } from '$app/navigation';
     import { WatchPlaybackSchema } from '@arc/api-contract/anime';
     import { audioModeOrder } from '@arc/shared/audio';
     import type { AnimeEpisode } from '@arc/shared/types';
@@ -209,7 +208,15 @@
         retrying = true;
 
         try {
-            await invalidateAll();
+            const response = await fetch(playbackEndpoint, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`Playback request failed with ${response.status}`);
+            }
+
+            const result = WatchPlaybackSchema.parse(await response.json());
+            if (active) {
+                active = { ...active, result };
+            }
         } finally {
             retrying = false;
         }
@@ -236,6 +243,7 @@
         transitioning={transitioning}
         retrying={retrying}
         onretry={retry}
+        onSourceFailure={() => void retry()}
     />
 {:else}
     <section
