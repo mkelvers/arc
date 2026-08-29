@@ -11,7 +11,7 @@ import {
     getStoredAiringSchedule,
     withMovieBackdrop,
 } from './episodes';
-import { episodesAvailableToWatch } from './episodes/policy';
+import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
 import { discoverEpisodeInventory } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
@@ -20,6 +20,7 @@ import { playback } from './providers';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
+import { findMapping } from './tmdb/mapping-store';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
 import { getAnime } from './anilist/details';
 import { refreshAnimeRelease, storedAnimeRelease } from './anilist/releases';
@@ -56,21 +57,34 @@ export async function animePage(userId: string, id: number) {
     const stored = await storedAnimeRelease(id);
     const imported = !stored;
     const anime = stored ?? (await refreshAnimeRelease(id));
+    const storedMapping = await findMapping(id);
+    const storedEpisodes = await getEpisodes(anime);
+    const shouldDiscover =
+        imported || !storedMapping || episodeInventoryNeedsDiscovery(anime, storedEpisodes);
+    const initialEpisodes = shouldDiscover
+        ? await discoverEpisodeInventory(anime)
+              .then((entries) => episodesAvailableToWatch(entries, anime))
+              .catch((cause) => {
+                  if (imported) {
+                      throw cause;
+                  }
+                  logger.debug(`Episode inventory repair failed for AniList ${id}`, cause);
+                  return storedEpisodes;
+              })
+        : null;
     const [synopsis, storedAiringSchedule, episodes, watchlist] = await Promise.all([
         resolveAnimeSynopsis(anime, { refresh: imported }),
         getStoredAiringSchedule(id),
-        imported
-            ? discoverEpisodeInventory(anime).then((entries) =>
-                  episodesAvailableToWatch(entries, anime)
-              )
-            : getEpisodes(anime),
+        initialEpisodes ?? storedEpisodes,
         getPlaybackProgress(userId, id),
     ]);
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        getArtwork(anime, { refresh: imported, fetchMissing: true }).catch(() => null),
+        getArtwork(anime, { refresh: imported || !storedMapping, fetchMissing: true }).catch(
+            () => null
+        ),
         anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
         getWatchlistState(userId, id),
     ]);
@@ -102,9 +116,7 @@ export async function mediaPage(id: number) {
     const anime = existing ?? (await refreshAnimeRelease(id));
     return {
         anime: toAnimeDetails(anime),
-        artwork: await getArtwork(anime, { refresh: imported, fetchMissing: true }).catch(
-            () => null
-        ),
+        artwork: await getArtwork(anime, { refresh: true, fetchMissing: true }).catch(() => null),
     };
 }
 
