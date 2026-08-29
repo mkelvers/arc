@@ -93,52 +93,67 @@ async function requestWithLease(id: number, force: boolean) {
             );
     }
 
-    const [claimed] = await db
-        .update(animeReleaseRequest)
-        .set({
-            leaseOwner: owner,
-            leaseUntil: new Date(now.getTime() + requestLeaseMs),
-            lastError: null,
-        })
-        .where(
-            and(
-                eq(animeReleaseRequest.anilistId, id),
-                lte(animeReleaseRequest.nextAttemptAt, now),
-                or(isNull(animeReleaseRequest.leaseUntil), lte(animeReleaseRequest.leaseUntil, now))
+    let claimed: { attempts: number } | undefined;
+    const deadline = Date.now() + requestLeaseMs + requestWaitMs;
+    while (!claimed && Date.now() < deadline) {
+        const claimNow = new Date();
+        [claimed] = await db
+            .update(animeReleaseRequest)
+            .set({
+                leaseOwner: owner,
+                leaseUntil: new Date(claimNow.getTime() + requestLeaseMs),
+                lastError: null,
+            })
+            .where(
+                and(
+                    eq(animeReleaseRequest.anilistId, id),
+                    lte(animeReleaseRequest.nextAttemptAt, claimNow),
+                    or(
+                        isNull(animeReleaseRequest.leaseUntil),
+                        lte(animeReleaseRequest.leaseUntil, claimNow)
+                    )
+                )
             )
-        )
-        .returning({ attempts: animeReleaseRequest.attempts });
+            .returning({ attempts: animeReleaseRequest.attempts });
 
-    if (!claimed) {
-        const deadline = Date.now() + requestWaitMs;
-        while (Date.now() < deadline) {
-            const [release, pending] = await Promise.all([
-                storedAnimeRelease(id),
-                db
-                    .select({
-                        leaseUntil: animeReleaseRequest.leaseUntil,
-                        nextAttemptAt: animeReleaseRequest.nextAttemptAt,
-                        lastError: animeReleaseRequest.lastError,
-                    })
-                    .from(animeReleaseRequest)
-                    .where(eq(animeReleaseRequest.anilistId, id))
-                    .limit(1)
-                    .then((rows) => rows[0] ?? null),
-            ]);
-            if (release) {
-                return release;
-            }
-            if (
-                pending?.lastError &&
-                !pending.leaseUntil &&
-                pending.nextAttemptAt.getTime() > Date.now()
-            ) {
-                throw new Error(pending.lastError);
-            }
-
-            await new Promise((resolve) => setTimeout(resolve, 100));
+        if (claimed) {
+            break;
         }
 
+        const [release, pending] = await Promise.all([
+            storedAnimeRelease(id),
+            db
+                .select({
+                    leaseUntil: animeReleaseRequest.leaseUntil,
+                    nextAttemptAt: animeReleaseRequest.nextAttemptAt,
+                    lastError: animeReleaseRequest.lastError,
+                })
+                .from(animeReleaseRequest)
+                .where(eq(animeReleaseRequest.anilistId, id))
+                .limit(1)
+                .then((rows) => rows[0] ?? null),
+        ]);
+        if (release) {
+            return release;
+        }
+        if (
+            pending?.lastError &&
+            !pending.leaseUntil &&
+            pending.nextAttemptAt.getTime() > Date.now()
+        ) {
+            throw new Error(pending.lastError);
+        }
+
+        const retryAt = Math.min(
+            pending?.leaseUntil?.getTime() ?? Number.POSITIVE_INFINITY,
+            deadline
+        );
+        await new Promise((resolve) =>
+            setTimeout(resolve, Math.max(25, Math.min(1_000, retryAt - Date.now())))
+        );
+    }
+
+    if (!claimed) {
         throw new Error(`AniList release metadata for ${id} is still being fetched`);
     }
 
@@ -210,7 +225,7 @@ export async function storedAnimeRelease(id: number) {
 }
 
 export async function getAnimeRelease(id: number) {
-    return (await storedAnimeRelease(id)) ?? refreshAnimeRelease(id);
+    return (await storedAnimeRelease(id)) ?? refreshAnimeRelease(id, { force: true });
 }
 
 async function fetchAnimeSchedule(id: number) {
