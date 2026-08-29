@@ -5,7 +5,7 @@
     import type { AnimeEpisode } from '@arc/shared/types';
     import type { Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
-    import { SpinnerGapIcon } from 'phosphor-svelte';
+    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -252,12 +252,6 @@
                 imageClass="scale-105 blur-xl"
             />
         {/if}
-        <SpinnerGapIcon
-            role="status"
-            aria-label={m.player_loading_video()}
-            size="2.5rem"
-            weight="bold"
-            class="relative animate-spin text-accent"
-        />
+        <LoadingSpinner size="2.5rem" class="relative animate-spin text-accent" label={m.player_loading_video()} />
     </section>
 {/if}

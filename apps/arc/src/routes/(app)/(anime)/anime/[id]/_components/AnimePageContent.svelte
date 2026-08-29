@@ -6,6 +6,7 @@
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import AiringStatus from './AiringStatus.svelte';
     import WatchlistStatusMenu from './WatchlistStatusMenu.svelte';
+    import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
@@ -247,12 +248,7 @@
                 <span class="sr-only">{m.anime_loading_episodes()}</span>
                 <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
                     {#each Array.from({ length: 5 }) as _}
-                        <div class="min-h-56 animate-pulse motion-reduce:animate-none" aria-hidden="true">
-                            <div class="aspect-video bg-surface"></div>
-                            <div class="mt-3 h-3 w-2/3 rounded-full bg-surface"></div>
-                            <div class="mt-2 h-4 w-4/5 rounded-full bg-surface"></div>
-                            <div class="mt-3 h-4 w-1/3 rounded-full bg-surface"></div>
-                        </div>
+                        <AnimeCardSkeleton variant="top" />
                     {/each}
                 </div>
             </section>

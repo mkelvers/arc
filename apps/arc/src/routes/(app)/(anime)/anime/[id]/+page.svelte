@@ -2,6 +2,7 @@
     import { invalidate } from '$app/navigation';
 
     import AnimePageContent from './_components/AnimePageContent.svelte';
+    import PageLoading from '$lib/components/ui/PageLoading.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -41,32 +42,7 @@
 </svelte:head>
 
 {#await data.page}
-    <main class="min-h-dvh bg-canvas text-foreground" aria-busy="true" aria-live="polite">
-        <span class="sr-only">{m.anime_loading()}</span>
-        <section
-            class="grid h-dvh min-h-120 max-h-192 animate-pulse grid-cols-1 grid-rows-1 bg-black motion-reduce:animate-none sm:min-h-150 lg:min-h-175 lg:max-h-300"
-            aria-hidden="true"
-        >
-            <div class="col-start-1 row-start-1 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
-                <div class="h-16 w-3/5 max-w-xl bg-surface/70"></div>
-                <div class="mt-8 h-4 w-2/5 max-w-md bg-surface/70"></div>
-                <div class="mt-4 h-5 w-1/3 max-w-sm bg-surface/70"></div>
-                <div class="mt-7 h-10 w-48 bg-surface/70"></div>
-            </div>
-        </section>
-        <div class="animate-pulse px-5 py-8 motion-reduce:animate-none sm:px-10 lg:px-16" aria-hidden="true">
-            <div class="h-4 w-full max-w-3xl bg-surface"></div>
-            <div class="mt-3 h-4 w-4/5 max-w-2xl bg-surface"></div>
-            <div class="mt-12 grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
-                {#each Array.from({ length: 5 }) as _}
-                    <div>
-                        <div class="aspect-video bg-surface"></div>
-                        <div class="mt-3 h-4 w-4/5 bg-surface"></div>
-                    </div>
-                {/each}
-            </div>
-        </div>
-    </main>
+    <PageLoading label={m.anime_loading()} />
 {:then result}
     {#if result.status === 'success'}
         <AnimePageContent data={result.data} />

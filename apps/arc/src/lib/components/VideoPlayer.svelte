@@ -6,7 +6,8 @@
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
     import { beforeNavigate } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
-    import { CaretLeftIcon, SpinnerGapIcon } from 'phosphor-svelte';
+    import { CaretLeftIcon } from 'phosphor-svelte';
+    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import Controls from './player/Controls.svelte';
     import Modal from './ui/Modal.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -346,7 +347,7 @@
             aria-label={m.player_loading_next()}
             class="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/80"
         >
-            <SpinnerGapIcon size="2.5rem" weight="bold" class="animate-spin text-accent" aria-hidden="true" />
+            <LoadingSpinner size="2.5rem" />
         </div>
     {:else if unavailable}
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
@@ -371,7 +372,7 @@
             aria-label={m.player_loading_video()}
             class="pointer-events-none absolute inset-0 grid place-items-center bg-black/40"
         >
-            <SpinnerGapIcon size="2.5rem" weight="bold" class="animate-spin text-accent" aria-hidden="true" />
+            <LoadingSpinner size="2.5rem" />
         </div>
     {/if}
 
