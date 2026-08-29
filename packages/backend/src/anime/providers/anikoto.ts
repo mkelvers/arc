@@ -27,6 +27,7 @@ const mediaHostSuffixes = [
     'megaplay.buzz',
     'mikora.top',
     'norami.top',
+    'shiora.site',
     'shiora.top',
     'tiktokcdn.com',
     'watching.onl',
@@ -38,8 +39,9 @@ export const aniKotoStreamLimits = {
     subtitle: 512 * 1024,
     segment: 64 * 1024 * 1024,
 } as const;
-const resolutionDeadlineMs = 12_000;
+const resolutionDeadlineMs = 30_000;
 const resolutionConcurrency = 4;
+const mediaRetryCount = 2;
 const failedSourceCooldownMs = 30_000;
 const maxTextBytes = 2 * 1024 * 1024;
 const failedSources = new Map<string, number>();
@@ -140,6 +142,12 @@ class AniKotoRequestError extends Error {
     }
 }
 
+class AniKotoSubtitlesError extends Error {
+    constructor(readonly mediaUrl: string) {
+        super('AniKoto SUB source returned no subtitles');
+    }
+}
+
 function positiveId(value: JsonValue | undefined) {
     const parsed = z.union([z.number().int(), z.string().regex(/^\d+$/)]).safeParse(value);
     if (!parsed.success) {
@@ -177,6 +185,25 @@ function rememberFailedSource(url: URL) {
     failedSources.set(sourceCooldownKey(url), Date.now() + failedSourceCooldownMs);
 }
 
+function retryableMediaError(cause: unknown) {
+    if (cause instanceof AniKotoRequestError) {
+        return false;
+    }
+
+    if (cause instanceof DOMException && ['AbortError', 'TimeoutError'].includes(cause.name)) {
+        return false;
+    }
+
+    const error = cause as { code?: unknown; cause?: { code?: unknown }; message?: unknown };
+    const code = error.code ?? error.cause?.code;
+    return (
+        (typeof code === 'string' &&
+            ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT'].includes(code)) ||
+        (typeof error.message === 'string' &&
+            /socket connection was closed|network connection was lost/i.test(error.message))
+    );
+}
+
 export function supportedAniKotoHost(hostname: string) {
     return supportedHost(hostname);
 }
@@ -184,7 +211,7 @@ export function supportedAniKotoHost(hostname: string) {
 export function isAniKotoDisguisedSegmentHost(hostname: string) {
     return (
         /^p\d+-ad-site-sign-sg\.tiktokcdn\.com$/.test(hostname) ||
-        /^s\d+\.(?:akirax\.buzz|norami\.top|shiora\.top)$/.test(hostname)
+        /^s\d+\.(?:akirax\.buzz|norami\.top|shiora\.site|shiora\.top)$/.test(hostname)
     );
 }
 
@@ -220,11 +247,30 @@ export function normalizeAniKotoMediaUrl(url: URL) {
     }
 
     const normalized = new URL(url.toString());
-    const shard = normalized.hostname.match(/^(s\d+)\.shiora\.top$/i)?.[1];
+    const shard = normalized.hostname.match(/^(s\d+)\.shiora\.(?:site|top)$/i)?.[1];
     if (shard) {
         normalized.hostname = `${shard}.akirax.buzz`;
     }
     return normalized;
+}
+
+export function aniKotoMediaCandidates(url: URL) {
+    const candidates = [url];
+    if (url.hostname.endsWith('.shiora.top')) {
+        const alternate = new URL(url);
+        alternate.hostname = alternate.hostname.replace(/\.shiora\.top$/, '.shiora.site');
+        candidates.push(alternate);
+    }
+    if (url.hostname === 'cdn.kryntal.top' || url.hostname === 'ncdn.kryntal.top') {
+        for (const prefix of ['cdn', 'ncdn']) {
+            const alternate = new URL(url);
+            alternate.hostname = `${prefix}.watching.onl`;
+            if (!candidates.some((candidate) => candidate.hostname === alternate.hostname)) {
+                candidates.push(alternate);
+            }
+        }
+    }
+    return candidates;
 }
 
 function validHttpsUrl(value: string | undefined) {
@@ -330,11 +376,16 @@ export function matchesAniKotoIdentity(
     series: Pick<AniKotoSeries, 'anilistId' | 'malId'>,
     anime: Pick<AniListAnime, 'id' | 'idMal'>
 ) {
-    if (series.anilistId !== null) {
-        return series.anilistId === anime.id;
+    if (series.anilistId === anime.id) {
+        return true;
     }
 
-    return Boolean(anime.idMal && series.malId !== null && series.malId === anime.idMal);
+    const duplicatedMalId = series.anilistId !== null && series.anilistId === series.malId;
+    if (series.anilistId === null || duplicatedMalId) {
+        return Boolean(anime.idMal && series.malId !== null && series.malId === anime.idMal);
+    }
+
+    return false;
 }
 
 export function parseSearchCandidates(html: string) {
@@ -917,13 +968,30 @@ export async function fetchAniKotoResource(
     }
 
     for (let redirects = 0; redirects <= 3; redirects += 1) {
-        const response = await fetchMedia(target, {
-            headers: mediaHeaders(options.range),
-            redirect: 'manual',
-            signal: options.signal
-                ? AbortSignal.any([options.signal, AbortSignal.timeout(aniKotoRequestTimeoutMs)])
-                : AbortSignal.timeout(aniKotoRequestTimeoutMs),
-        });
+        let response: Response;
+        for (let attempt = 0; ; attempt += 1) {
+            try {
+                response = await fetchMedia(target, {
+                    headers: mediaHeaders(options.range),
+                    redirect: 'manual',
+                    signal: options.signal
+                        ? AbortSignal.any([
+                              options.signal,
+                              AbortSignal.timeout(aniKotoRequestTimeoutMs),
+                          ])
+                        : AbortSignal.timeout(aniKotoRequestTimeoutMs),
+                });
+                break;
+            } catch (cause) {
+                if (
+                    !retryableMediaError(cause) ||
+                    attempt >= mediaRetryCount ||
+                    options.signal?.aborted
+                ) {
+                    throw cause;
+                }
+            }
+        }
         if (response.status < 300 || response.status >= 400) {
             if (!response.ok && response.status !== 206) {
                 throw new AniKotoRequestError(
@@ -984,16 +1052,19 @@ async function resolvedSubtitles(captions: readonly CaptionCandidate[], signal?:
             continue;
         }
 
-        try {
-            const { response } = await fetchAniKotoResource(url, fetch, { signal });
-            const text = new TextDecoder().decode(
-                await readBounded(response, aniKotoStreamLimits.subtitle, signal)
-            );
-            if (/^\s*WEBVTT(?:\s|$)/i.test(text)) {
-                valid.push({ kind: caption.kind, url: url.toString() });
+        for (const candidate of aniKotoMediaCandidates(url)) {
+            try {
+                const { response } = await fetchAniKotoResource(candidate, fetch, { signal });
+                const text = new TextDecoder().decode(
+                    await readBounded(response, aniKotoStreamLimits.subtitle, signal)
+                );
+                if (/^\s*WEBVTT(?:\s|$)/i.test(text)) {
+                    valid.push({ kind: caption.kind, url: candidate.toString() });
+                    break;
+                }
+            } catch {
+                // Captions are optional; a broken track must not discard playable video.
             }
-        } catch {
-            // Captions are optional; a broken track must not discard playable video.
         }
     }
     return valid.filter(
@@ -1047,7 +1118,7 @@ export async function validateAniKotoMedia(
             ) {
                 throw new Error('AniKoto returned an invalid HLS media segment');
             }
-            return;
+            return /#EXT-X-MEDIA:[^\n]*TYPE=SUBTITLES/i.test(masterBody);
         }
 
         const { response } = await fetchAniKotoResource(target, fetchMedia, {
@@ -1062,13 +1133,14 @@ export async function validateAniKotoMedia(
         if (!bytes.length || !mediaSegment(bytes)) {
             throw new Error('AniKoto returned an invalid MP4 range');
         }
+        return false;
     } catch (cause) {
         rememberFailedSource(target);
         throw cause;
     }
 }
 
-async function resolveMegaPlay(embed: URL, signal: AbortSignal) {
+async function resolveMegaPlay(embed: URL, signal: AbortSignal, requiresSubtitles: boolean) {
     const sourceId = parseMegaPlaySourceId(
         await requestText(embed, { referer: `${anikotoUrl}/`, signal })
     );
@@ -1087,11 +1159,35 @@ async function resolveMegaPlay(embed: URL, signal: AbortSignal) {
         throw new Error('MegaPlay returned no supported media source');
     }
 
-    await validateAniKotoMedia(source.mediaUrl, undefined, { signal });
+    let mediaUrl = source.mediaUrl;
+    let subtitles: ProviderStream['subtitles'] = [];
+    let hasSubtitles = false;
+    for (const candidate of aniKotoMediaCandidates(source.mediaUrl)) {
+        try {
+            const embeddedSubtitles = await validateAniKotoMedia(candidate, undefined, { signal });
+            subtitles = requiresSubtitles ? await resolvedSubtitles(source.captions, signal) : [];
+            if (requiresSubtitles && !embeddedSubtitles && subtitles.length === 0) {
+                throw new Error('AniKoto SUB source returned no subtitles');
+            }
+            hasSubtitles = embeddedSubtitles || subtitles.length > 0;
+            mediaUrl = candidate;
+            break;
+        } catch {
+            // Media probing is best-effort. The stream proxy performs the authoritative
+            // validation when the user actually requests the source.
+        }
+    }
+    if (requiresSubtitles && !hasSubtitles) {
+        subtitles = await resolvedSubtitles(source.captions, signal);
+    }
+    if (requiresSubtitles && !hasSubtitles && subtitles.length === 0) {
+        throw new AniKotoSubtitlesError(source.mediaUrl.toString());
+    }
+
     return {
-        url: source.mediaUrl.toString(),
+        url: mediaUrl.toString(),
         quality: null,
-        subtitles: await resolvedSubtitles(source.captions, signal),
+        subtitles,
     } satisfies Omit<ProviderStream, 'provider' | 'server'>;
 }
 
@@ -1116,7 +1212,7 @@ async function resolveServer(
     }
 
     return {
-        ...(await resolveMegaPlay(embed, signal)),
+        ...(await resolveMegaPlay(embed, signal, candidate.embedMode !== 'dub')),
         provider: providerName,
         server: candidate.label,
     };
@@ -1166,6 +1262,21 @@ async function getStreams(
             results.flatMap((stream, index) =>
                 tasks[index]?.mode === mode && stream ? [stream] : []
             )
+        );
+    }
+
+    if (result.dub?.length) {
+        const subtitleUrls = new Set(result.sub?.map((stream) => stream.url));
+        const rejectedSubtitleUrls = new Set(
+            errors
+                .filter(
+                    (cause): cause is AniKotoSubtitlesError =>
+                        cause instanceof AniKotoSubtitlesError
+                )
+                .map((cause) => cause.mediaUrl)
+        );
+        result.dub = result.dub.filter(
+            (stream) => !subtitleUrls.has(stream.url) && !rejectedSubtitleUrls.has(stream.url)
         );
     }
 

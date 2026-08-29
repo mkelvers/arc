@@ -2,6 +2,9 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     episodeAudioModes,
+    aniKotoMediaCandidates,
+    fetchAniKotoResource,
+    isAniKotoDisguisedSegmentHost,
     matchesAniKotoIdentity,
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
@@ -81,6 +84,12 @@ describe('AniKoto provider rules', () => {
         expect(
             matchesAniKotoIdentity({ anilistId: null, malId: 123 }, { id: 176496, idMal: 58567 })
         ).toBe(false);
+        expect(
+            matchesAniKotoIdentity({ anilistId: 51297, malId: 51297 }, { id: 146493, idMal: 51297 })
+        ).toBe(true);
+        expect(
+            matchesAniKotoIdentity({ anilistId: 123, malId: 58567 }, { id: 146493, idMal: 58567 })
+        ).toBe(false);
     });
 
     test('reads the seasonal catalog and excludes adult entries', () => {
@@ -158,9 +167,26 @@ describe('AniKoto provider rules', () => {
         expect(supportedMediaUrl('https://megap.akirax.buzz/video.mp4')?.hostname).toBe(
             'megap.akirax.buzz'
         );
+        expect(supportedMediaUrl('https://megap.shiora.site/video.m3u8')?.hostname).toBe(
+            'megap.shiora.site'
+        );
+        expect(
+            aniKotoMediaCandidates(new URL('https://megap.shiora.top/video.m3u8')).map(
+                (candidate) => candidate.hostname
+            )
+        ).toEqual(['megap.shiora.top', 'megap.shiora.site']);
+        expect(
+            aniKotoMediaCandidates(new URL('https://cdn.kryntal.top/video.m3u8')).map(
+                (candidate) => candidate.hostname
+            )
+        ).toEqual(['cdn.kryntal.top', 'cdn.watching.onl', 'ncdn.watching.onl']);
         expect(normalizeAniKotoMediaUrl(new URL('https://s2.norami.top/video.jpg'))?.hostname).toBe(
             's2.norami.top'
         );
+        expect(
+            normalizeAniKotoMediaUrl(new URL('https://s2.shiora.site/video.jpg'))?.hostname
+        ).toBe('s2.akirax.buzz');
+        expect(isAniKotoDisguisedSegmentHost('s2.shiora.site')).toBe(true);
         expect(supportedSubtitleUrl('https://cdn.kryntal.top/track.ass')).toBeNull();
         expect(supportedSubtitleUrl('https://cdn.kryntal.top/track.vtt')?.pathname).toBe(
             '/track.vtt'
@@ -245,6 +271,25 @@ describe('AniKoto provider rules', () => {
             'https://cdn.kryntal.top/episode/video/index.m3u8',
             'https://cdn.kryntal.top/episode/video/segment.ts',
         ]);
+    });
+
+    test('retries transient media connection failures', async () => {
+        let attempts = 0;
+        const result = await fetchAniKotoResource(
+            new URL('https://cdn.kryntal.top/episode/master.m3u8'),
+            async () => {
+                attempts += 1;
+                if (attempts < 3) {
+                    throw Object.assign(
+                        new TypeError('The socket connection was closed unexpectedly'),
+                        { code: 'ECONNRESET' }
+                    );
+                }
+                return new Response('#EXTM3U');
+            }
+        );
+        expect(result.response.status).toBe(200);
+        expect(attempts).toBe(3);
     });
 
     test('unwraps JPEG-disguised HLS segments from current AniKoto shards', async () => {
