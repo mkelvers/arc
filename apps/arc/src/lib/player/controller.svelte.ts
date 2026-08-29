@@ -63,7 +63,12 @@ export class Player {
             episodeNumber: input.episodeNumber,
         };
         this.media = new Playback(input.sources, input.next);
-        this.progress = new PlaybackProgress(this.media, episode, input.progressEventAt);
+        this.progress = new PlaybackProgress(
+            this.media,
+            episode,
+            input.progressEventAt,
+            input.progressEventAt
+        );
         this.segments = new SegmentEditor(
             episode,
             input.segments.times,
@@ -98,7 +103,7 @@ export class Player {
             return;
         }
 
-        this.progress.changeEpisode(episode, episodeChanged);
+        this.progress.changeEpisode(episode, input.progressEventAt, episodeChanged);
 
         if (this.mounted) {
             this.changingEpisode = true;

@@ -23,6 +23,7 @@ interface ProgressPayload extends Episode {
     durationSeconds: number;
     completed: boolean;
     eventAt: number;
+    sessionStartedAt: number;
 }
 
 export class PlaybackProgress {
@@ -33,12 +34,16 @@ export class PlaybackProgress {
     private ended = false;
     private finalSaveSent = false;
     private saveQueue: Promise<void> = Promise.resolve();
+    private sessionStartedAt: number;
 
     constructor(
         private readonly media: ProgressMedia,
         private episode: Episode,
-        private eventCursor: number
-    ) {}
+        private eventCursor: number,
+        sessionStartedAt: number
+    ) {
+        this.sessionStartedAt = sessionStartedAt;
+    }
 
     mount(eventAt: number) {
         this.eventCursor = Math.max(this.eventCursor, eventAt);
@@ -60,12 +65,13 @@ export class PlaybackProgress {
         };
     }
 
-    changeEpisode(episode: Episode, changed: boolean) {
+    changeEpisode(episode: Episode, sessionStartedAt: number, changed: boolean) {
         if (changed && this.hasPlayed && !this.ended) {
             void this.save(false, true);
         }
 
         this.episode = episode;
+        this.sessionStartedAt = sessionStartedAt;
         this.schedule = new ProgressSchedule();
         this.started = false;
         this.hasPlayed = false;
@@ -164,6 +170,7 @@ export class PlaybackProgress {
             durationSeconds,
             completed,
             eventAt: this.eventCursor,
+            sessionStartedAt: this.sessionStartedAt,
         };
     }
 

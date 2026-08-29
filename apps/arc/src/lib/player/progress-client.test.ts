@@ -43,6 +43,7 @@ describe('playback progress client', () => {
                 episodeId: 'episode-7',
                 episodeNumber: 7,
             },
+            Date.now() - 1_000,
             Date.now() - 1_000
         );
         progress.mount(Date.now() - 1_000);
@@ -69,6 +70,7 @@ describe('playback progress client', () => {
                 episodeId: 'episode-7',
                 episodeNumber: 7,
             },
+            Date.now() - 1_000,
             Date.now() - 1_000
         );
         progress.mount(Date.now() - 1_000);
@@ -100,6 +102,7 @@ describe('playback progress client', () => {
                 episodeId: 'episode-7',
                 episodeNumber: 7,
             },
+            Date.now() - 1_000,
             Date.now() - 1_000
         );
         progress.mount(Date.now() - 1_000);
@@ -129,6 +132,7 @@ describe('playback progress client', () => {
                 episodeId: 'episode-7',
                 episodeNumber: 7,
             },
+            Date.now() - 1_000,
             Date.now() - 1_000
         );
         progress.mount(Date.now() - 1_000);
