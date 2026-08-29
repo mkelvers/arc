@@ -31,6 +31,7 @@ export default defineConfig(({ command }) => {
                     'sha256-s1m8cPt5qQt2+GHnqM9/4MoBksIfZAkMYMtK1tszz4s=',
                     'sha256-ZswfTY7H35rbv8WC7NXBoiC7WNu86vSzCDChNWwZZDM=',
                     'sha256-3ajCFMuu+27mZRc7mzM2wPWf2WLUBfUOuHRIxOmE9A8=',
+                    'sha256-UIi5cIyjChhdynmWsmE/OK/iHekzYRo4+kjUaTwB+nw=',
                 ],
                 'script-src-attr': [
                     'unsafe-hashes',

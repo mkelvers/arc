@@ -127,7 +127,7 @@ export async function getEpisodeSkipTimes({
     } catch (cause) {
         const detail = cause instanceof Error ? cause.message : 'Unknown AniSkip failure';
         logger.debug(
-            `AniSkip unavailable for AniList ${anilistId}, episode ${episodeId}: ${detail}`
+            `AniSkip unavailable for AniList ${anilistId}, episode ${episodeNumber}: ${detail}`
         );
         return cached;
     }
