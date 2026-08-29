@@ -32,6 +32,7 @@
         nextEpisode?: AnimeEpisode | null;
         fallbackImage?: string | null;
         sources: Sources;
+        onSourceFailure?: () => void;
         poster?: string | null;
         next?: string | null;
         onretry: () => void;
@@ -56,6 +57,7 @@
         nextEpisode = null,
         fallbackImage = null,
         sources,
+        onSourceFailure,
         poster = null,
         next = null,
         onretry,
@@ -132,6 +134,7 @@
                 progressEventAt,
                 sources,
                 startAt,
+                onSourceFailure,
                 segments,
             })
     );

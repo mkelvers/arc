@@ -61,10 +61,12 @@ export class Playback {
     private modeSelected = false;
     private mounted = false;
     private exhaustedModes = new Set<AudioMode>();
+    private sourceRefreshRequested = false;
 
     constructor(
         sources: Sources,
-        private next: string | null
+        private next: string | null,
+        private readonly onSourceFailure?: () => void
     ) {
         this.sources = sources;
     }
@@ -72,8 +74,13 @@ export class Playback {
     private sources: Sources;
 
     sync(sources: Sources, next: string | null) {
+        const sourcesChanged = sources !== this.sources;
         this.sources = sources;
         this.next = next;
+        if (sourcesChanged && this.error && this.mounted) {
+            this.resetSource();
+            void this.reloadSource();
+        }
         if (
             !this.modeSelected &&
             this.preferredMode &&
@@ -487,6 +494,10 @@ export class Playback {
             this.loading = false;
             this.error = true;
             this.playing = false;
+            if (!this.sourceRefreshRequested) {
+                this.sourceRefreshRequested = true;
+                this.onSourceFailure?.();
+            }
             this.changingSource = false;
             return;
         }
@@ -687,6 +698,7 @@ export class Playback {
         this.autoplayAttempted = false;
         this.changingSource = false;
         this.pendingSourceFailure = null;
+        this.sourceRefreshRequested = false;
         this.pendingSeekTarget = null;
         this.resumeAfterSeek = false;
         this.seekInFlight = false;

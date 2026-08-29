@@ -16,6 +16,7 @@ interface PlayerInput {
     progressEventAt: number;
     sources: Sources;
     startAt: number;
+    onSourceFailure?: () => void;
     segments: {
         canEdit: boolean;
         times: EpisodeSkipTimes;
@@ -62,7 +63,7 @@ export class Player {
             episodeId: input.episodeId,
             episodeNumber: input.episodeNumber,
         };
-        this.media = new Playback(input.sources, input.next);
+        this.media = new Playback(input.sources, input.next, input.onSourceFailure);
         this.progress = new PlaybackProgress(
             this.media,
             episode,
