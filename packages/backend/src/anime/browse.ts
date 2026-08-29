@@ -356,30 +356,6 @@ async function catalogPage(filters: BrowseFilters, page: number, animeIds: numbe
     };
 }
 
-export async function storedDiscoverableAnimeCards(animeIds: number[]) {
-    return (
-        await catalogPage(
-            {
-                query: '',
-                safe: true,
-                genre: null,
-                tag: null,
-                status: null,
-                format: null,
-                source: null,
-                season: null,
-                year: null,
-                country: null,
-                audio: null,
-                sort: 'popularity',
-                order: 'desc',
-            },
-            1,
-            animeIds
-        )
-    ).anime;
-}
-
 async function loadPage(filters: BrowseFilters, page: number) {
     if (!Number.isSafeInteger(page) || page < 1 || page > 2_147_483_647) {
         throw new BrowseFilterError('Invalid browse page');
