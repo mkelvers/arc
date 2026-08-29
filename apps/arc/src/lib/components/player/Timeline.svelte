@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
     import { formatTime } from '$lib/player/media';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         player: Player;

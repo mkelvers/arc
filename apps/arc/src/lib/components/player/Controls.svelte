@@ -12,7 +12,7 @@
     } from 'phosphor-svelte';
     import Settings from './Settings.svelte';
     import Timeline from './Timeline.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         player: Player;

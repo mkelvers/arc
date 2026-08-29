@@ -3,7 +3,7 @@
     import { XIcon } from 'phosphor-svelte';
 
     import { cn } from '$lib/utils';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         children?: Snippet;

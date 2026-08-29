@@ -1,5 +1,5 @@
 import { audioModeOrder, type AudioMode } from '@arc/shared/audio';
-import { m } from '$lib/paraglide/messages.js';
+import { m } from '$lib/i18n.svelte';
 
 export interface Stream {
     provider: string;
