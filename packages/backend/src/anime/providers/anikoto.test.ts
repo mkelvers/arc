@@ -34,7 +34,7 @@ describe('AniKoto provider rules', () => {
         expect(
             relatedReleaseTitleMatches(
                 'Pokémon BW: Adventures in Unova and Beyond',
-                'Pokémon: Black & White: Adventures in Unova'
+                'Pokémon: Black &amp; White: Adventures in Unova'
             )
         ).toBe(true);
         expect(
@@ -126,6 +126,35 @@ describe('AniKoto provider rules', () => {
             number: 84,
             id: 'anikoto:3879:rival-destinies-36',
         });
+    });
+
+    test('does not append a related release to an inventory with a hole', () => {
+        const primary: ProviderEpisode[] = [1, 2, 3, 5].map((number) => ({
+            id: `sun-and-moon-${number}`,
+            number,
+            title: `Episode ${number}`,
+            audio: ['sub'],
+        }));
+        const related: ProviderEpisode[] = [1, 2].map((number) => ({
+            id: `journeys-${number}`,
+            number,
+            title: `Episode ${number}`,
+            audio: ['sub'],
+        }));
+
+        const merged = mergeAniKotoEpisodeRanges(
+            primary,
+            3087,
+            { episodes: related, seriesId: 386 },
+            6
+        );
+
+        expect(merged.map(({ id, number }) => ({ id, number }))).toEqual([
+            { id: 'anikoto:3087:sun-and-moon-1', number: 1 },
+            { id: 'anikoto:3087:sun-and-moon-2', number: 2 },
+            { id: 'anikoto:3087:sun-and-moon-3', number: 3 },
+            { id: 'anikoto:3087:sun-and-moon-5', number: 5 },
+        ]);
     });
 
     test('fails closed for malformed provider payloads', () => {

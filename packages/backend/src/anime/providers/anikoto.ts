@@ -42,11 +42,6 @@ export const aniKotoStreamLimits = {
 } as const;
 const resolutionDeadlineMs = 30_000;
 const resolutionConcurrency = 4;
-const mediaRetryCount = 2;
-const requestRetryCount = 2;
-const defaultRequestRetryDelayMs = 500;
-const maxRequestRetryDelayMs = 10_000;
-const failedSourceCooldownMs = 30_000;
 const maxTextBytes = 2 * 1024 * 1024;
 const failedSources = new Map<string, number>();
 
@@ -211,8 +206,7 @@ async function abortableDelay(delay: number, signal?: AbortSignal) {
 
 function requestRetryDelay(response: Response, attempt: number) {
     return (
-        retryAfterMs(response.headers.get('retry-after')) ??
-        Math.min(maxRequestRetryDelayMs, defaultRequestRetryDelayMs * 2 ** attempt)
+        retryAfterMs(response.headers.get('retry-after')) ?? Math.min(60_000, 500 * 2 ** attempt)
     );
 }
 
@@ -230,7 +224,7 @@ function sourceIsCoolingDown(url: URL) {
 }
 
 function rememberFailedSource(url: URL) {
-    failedSources.set(sourceCooldownKey(url), Date.now() + failedSourceCooldownMs);
+    failedSources.set(sourceCooldownKey(url), Date.now() + 30_000);
 }
 
 function retryableMediaError(cause: unknown) {
@@ -743,8 +737,8 @@ async function requestText(
             const retryAfter = retryAfterMs(response.headers.get('retry-after'));
             if (
                 retryableRequestStatus(response.status) &&
-                attempt < requestRetryCount &&
-                (retryAfter === null || retryAfter <= maxRequestRetryDelayMs)
+                attempt < 2 &&
+                (retryAfter === null || retryAfter <= 60_000)
             ) {
                 const delay = retryAfter ?? requestRetryDelay(response, attempt);
                 await response.body?.cancel().catch(() => undefined);
@@ -940,6 +934,18 @@ export function mergeAniKotoEpisodeRanges(
         return primaryEpisodes;
     }
 
+    const regularNumbers = primary
+        .map(({ number }) => number)
+        .filter((number) => Number.isInteger(number) && number > 0)
+        .toSorted((a, b) => a - b);
+    if (
+        !regularNumbers.length ||
+        regularNumbers[0] !== 1 ||
+        regularNumbers.some((number, index) => number !== index + 1)
+    ) {
+        return primaryEpisodes;
+    }
+
     const offset = Math.max(...primary.map((episode) => episode.number), 0);
     return [
         ...primaryEpisodes,
@@ -1015,6 +1021,24 @@ export function mapAniKotoContinuityRelease(
     releases: ProviderContinuityRelease[],
     targetId: number
 ) {
+    const targetIndex = releases.findIndex(({ anime }) => anime.id === targetId);
+    if (targetIndex < 0) {
+        return null;
+    }
+
+    for (let start = targetIndex; start >= 0; start -= 1) {
+        for (let end = targetIndex; end < releases.length; end += 1) {
+            const mapped = mapAniKotoContinuityWindow(releases.slice(start, end + 1), targetId);
+            if (mapped) {
+                return mapped;
+            }
+        }
+    }
+
+    return null;
+}
+
+function mapAniKotoContinuityWindow(releases: ProviderContinuityRelease[], targetId: number) {
     const expectedTotal = releases.reduce(
         (total, release) => total + (release.anime.episodes ?? 0),
         0
@@ -1084,26 +1108,53 @@ async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
         return mergeAniKotoEpisodeRanges(primary, series.id, null, Number.MAX_SAFE_INTEGER);
     }
 
+    // A provider release can contain several AniList releases. An inventory that
+    // happens to be at least as large as the AniList release still needs the
+    // continuity boundary selector; otherwise a combined provider season leaks
+    // unrelated episodes into this release.
+    if (primary.length === expected) {
+        return primary.map((episode) => ({
+            ...episode,
+            id: `anikoto:${series.id}:${encodeURIComponent(episode.id)}`,
+        }));
+    }
+
     const releases = await continuityChain(anime);
     const continuity = [] as ProviderContinuityRelease[];
+    const episodeLists = new Map<number, ProviderEpisode[]>();
     for (const release of releases) {
-        const releaseSeries =
+        const releaseSeriesId =
             release.id === anime.id
-                ? series
-                : await findSeries(release, { allowRelatedIdentity: true });
-        const episodes =
-            release.id === anime.id
-                ? primary
-                : parseEpisodeList(
-                      await requestJson(
-                          new URL(`/ajax/episode/list/${releaseSeries.id}`, anikotoUrl)
-                      )
-                  );
-        continuity.push({ anime: release, seriesId: releaseSeries.id, episodes });
+                ? series.id
+                : (positiveId(await providerMediaId(release.id)) ??
+                  (await findSeries(release, { allowRelatedIdentity: true })).id);
+        let episodes = episodeLists.get(releaseSeriesId);
+        if (!episodes) {
+            episodes =
+                release.id === anime.id
+                    ? primary
+                    : parseEpisodeList(
+                          await requestJson(
+                              new URL(`/ajax/episode/list/${releaseSeriesId}`, anikotoUrl)
+                          )
+                      );
+            episodeLists.set(releaseSeriesId, episodes);
+        }
+        continuity.push({ anime: release, seriesId: releaseSeriesId, episodes });
     }
     const mapped = mapAniKotoContinuityRelease(continuity, anime.id);
     if (mapped) {
         return mapped;
+    }
+
+    // Leave an oversized regular inventory intact for the release synchronizer.
+    // TMDB episode metadata owns the final release boundary when AniKoto's
+    // language edition contains one or more additional episodes.
+    if (primary.length > expected) {
+        return primary.map((episode) => ({
+            ...episode,
+            id: `anikoto:${series.id}:${encodeURIComponent(episode.id)}`,
+        }));
     }
 
     const related = await findRelatedSeries(anime);
@@ -1113,12 +1164,16 @@ async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
                   await requestJson(new URL(`/ajax/episode/list/${related.id}`, anikotoUrl))
               )
             : null;
-    return mergeAniKotoEpisodeRanges(
-        primary,
-        series.id,
-        secondary && related ? { episodes: secondary, seriesId: related.id } : null,
-        expected
-    );
+    if (primary.length < expected) {
+        return mergeAniKotoEpisodeRanges(
+            primary,
+            series.id,
+            secondary && related ? { episodes: secondary, seriesId: related.id } : null,
+            expected
+        );
+    }
+
+    throw new Error(`AniKoto could not map its combined inventory to AniList ${anime.id}`);
 }
 
 export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, page: number) {
@@ -1310,11 +1365,7 @@ export async function fetchAniKotoResource(
                 });
                 break;
             } catch (cause) {
-                if (
-                    !retryableMediaError(cause) ||
-                    attempt >= mediaRetryCount ||
-                    options.signal?.aborted
-                ) {
+                if (!retryableMediaError(cause) || attempt >= 2 || options.signal?.aborted) {
                     throw cause;
                 }
             }
@@ -1546,22 +1597,10 @@ async function resolveServer(
 }
 
 async function getEpisodes(anime: AniListAnime) {
-    let series: AniKotoSeries;
-    try {
-        series = await findSeries(anime);
-    } catch (cause) {
-        const hasContinuity =
-            Boolean(continuityRelation(anime, 'PREQUEL')) ||
-            Boolean(continuityRelation(anime, 'SEQUEL'));
-        if (
-            !hasContinuity ||
-            !(cause instanceof Error) ||
-            !cause.message.startsWith('AniKoto has no exact identity match')
-        ) {
-            throw cause;
-        }
-        series = await findSeries(anime, { allowRelatedIdentity: true });
-    }
+    const hasContinuity =
+        Boolean(continuityRelation(anime, 'PREQUEL')) ||
+        Boolean(continuityRelation(anime, 'SEQUEL'));
+    const series = await findSeries(anime, { allowRelatedIdentity: hasContinuity });
     const parsed = await episodesForAnime(anime, series);
     if (!parsed.length) {
         throw new Error(`AniKoto returned no playable episodes for AniList ${anime.id}`);
