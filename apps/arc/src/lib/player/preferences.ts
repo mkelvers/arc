@@ -3,15 +3,14 @@ import { z } from 'zod';
 import {
     subtitleBackgroundOpacities,
     subtitleSizeOrder,
-    subtitleSizes,
-    type Sources,
+    subtitleSizePixels,
     type SubtitleBackground,
     type SubtitleBackgroundOpacity,
     type SubtitleEdgeStyle,
     type SubtitleSize,
-    type SubtitleMode,
     type SubtitleTextColor,
-} from './media';
+} from './subtitle-settings';
+import type { Sources, SubtitleMode } from './media';
 
 type Key =
     | 'audio-mode'
@@ -131,8 +130,8 @@ export function load(sources: Sources, qualities: string[]) {
         (Number.isFinite(parsedSize)
             ? subtitleSizeOrder.reduce(
                   (nearest, size) =>
-                      Math.abs(subtitleSizes[size].px - parsedSize) <
-                      Math.abs(subtitleSizes[nearest].px - parsedSize)
+                      Math.abs(subtitleSizePixels[size] - parsedSize) <
+                      Math.abs(subtitleSizePixels[nearest] - parsedSize)
                           ? size
                           : nearest,
                   subtitleSizeOrder[0]

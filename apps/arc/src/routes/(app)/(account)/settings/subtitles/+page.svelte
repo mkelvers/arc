@@ -15,7 +15,7 @@
         type SubtitleEdgeStyle,
         type SubtitleSize,
         type SubtitleTextColor,
-    } from '$lib/player/media';
+    } from '$lib/player/subtitle-settings.svelte';
     import * as preferences from '$lib/player/preferences';
     import { cn } from '$lib/utils';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';

@@ -2,7 +2,8 @@
     import type { AnimeEpisode } from '@arc/shared/types';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
     import { Player } from '$lib/player/controller.svelte';
-    import { subtitleBackgrounds, subtitleSizes, subtitleTextColors, type Sources } from '$lib/player/media';
+    import { subtitleBackgrounds, subtitleSizes, subtitleTextColors } from '$lib/player/subtitle-settings.svelte';
+    import type { Sources } from '$lib/player/media';
     import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
     import { beforeNavigate } from '$app/navigation';
     import { onMount, untrack } from 'svelte';

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
-    import { formatTime, isHd, subtitleSizeOrder, subtitleSizes } from '$lib/player/media';
+    import { formatTime, isHd } from '$lib/player/media';
+    import { subtitleSizeOrder, subtitleSizes } from '$lib/player/subtitle-settings.svelte';
     import type { SkipKind } from '@arc/shared/player/skip-times';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';

@@ -1,5 +1,12 @@
 import { audioModeOrder, type AudioMode } from '@arc/shared/audio';
-import { m } from '$lib/i18n.svelte';
+
+export type {
+    SubtitleBackground,
+    SubtitleBackgroundOpacity,
+    SubtitleEdgeStyle,
+    SubtitleSize,
+    SubtitleTextColor,
+} from './subtitle-settings';
 
 export interface Stream {
     provider: string;
@@ -110,50 +117,6 @@ export interface SubtitleOption {
     mode: SubtitleMode;
     label: string;
 }
-
-/** The subtitle size presets and the pixel size each renders at. */
-export const subtitleSizes = {
-    small: { label: m.player_small(), px: 24 },
-    normal: { label: m.player_normal(), px: 32 },
-    large: { label: m.player_large(), px: 40 },
-    'extra-large': { label: m.player_extra_large(), px: 48 },
-};
-
-export type SubtitleSize = keyof typeof subtitleSizes;
-
-export const subtitleTextColors = {
-    white: { label: m.player_white(), value: '#ffffff' },
-    yellow: { label: m.player_yellow(), value: '#fff36b' },
-    black: { label: m.player_black(), value: '#111111' },
-} as const;
-
-export type SubtitleTextColor = keyof typeof subtitleTextColors;
-
-export const subtitleEdgeStyles = {
-    outline: { label: m.player_outline() },
-    none: { label: m.player_none() },
-} as const;
-
-export type SubtitleEdgeStyle = keyof typeof subtitleEdgeStyles;
-
-export const subtitleBackgrounds = {
-    black: { label: m.player_black(), value: '0 0 0' },
-    white: { label: m.player_white(), value: '255 255 255' },
-    none: { label: m.player_none(), value: null },
-} as const;
-
-export type SubtitleBackground = keyof typeof subtitleBackgrounds;
-
-export const subtitleBackgroundOpacities = [0, 0.25, 0.5, 0.75, 1] as const;
-export type SubtitleBackgroundOpacity = (typeof subtitleBackgroundOpacities)[number];
-
-/** Menu order for the size presets. */
-export const subtitleSizeOrder = [
-    'small',
-    'normal',
-    'large',
-    'extra-large',
-] as const satisfies readonly SubtitleSize[];
 
 const subtitleLabels = {
     full: 'English',
