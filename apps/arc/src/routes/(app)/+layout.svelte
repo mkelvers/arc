@@ -103,7 +103,7 @@
                     ariaLabel={m.nav_account_menu()}
                     modal
                     menuClass="w-[min(21rem,calc(100vw-1rem))]"
-                    triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent sm:gap-2 sm:px-3"
+                    triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-2 sm:px-3"
                 >
                     {#snippet trigger()}
                         <AccountAvatar

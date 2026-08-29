@@ -135,7 +135,7 @@
     {#if open && modal}
         <button
             type="button"
-            class="fixed inset-x-0 top-14 bottom-0 z-40 cursor-default bg-black/65 backdrop-blur-[2px]"
+            class="fixed inset-x-0 top-14 z-40 h-[calc(100dvh-3.5rem)] cursor-default bg-black/65 backdrop-blur-[2px]"
             aria-label={m.shared_close_menu()}
             onclick={() => (open = false)}
         ></button>
