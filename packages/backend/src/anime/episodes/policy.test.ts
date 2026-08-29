@@ -9,6 +9,7 @@ import {
     episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
+    episodeMetadataRevisionAfterSync,
     episodeRefreshBlocksPage,
     episodeRefreshRetryDelay,
     episodeRefreshReason,
@@ -127,6 +128,22 @@ describe('episode refresh policy', () => {
         expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v1')).toBeTrue();
         expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v2')).toBeTrue();
         expect(episodeMetadataNeedsRefresh(complete, true, episodeMetadataRevision)).toBeFalse();
+    });
+
+    test('does not mark failed metadata enrichment as complete', () => {
+        const complete = [
+            {
+                image: 'https://image.example/still.jpg',
+                title: 'Jarmo’s Vow',
+                overview: 'Jarmo dreams of the past.',
+            },
+        ];
+
+        expect(episodeMetadataRevisionAfterSync(complete, false, true)).toBeNull();
+        expect(episodeMetadataRevisionAfterSync(complete, true, true)).toBe(
+            episodeMetadataRevision
+        );
+        expect(episodeMetadataRevisionAfterSync(complete, false, false)).toBeNull();
     });
 
     test('does not probe playback before a release begins', () => {

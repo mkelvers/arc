@@ -45,6 +45,18 @@ export function episodeMetadataNeedsRefresh(
     );
 }
 
+export function episodeMetadataRevisionAfterSync(
+    episodes: readonly { image: string | null; title: string; overview: string }[],
+    metadataAvailable: boolean,
+    hasMetadataSource: boolean
+) {
+    if (!metadataAvailable || !hasMetadataSource) {
+        return null;
+    }
+
+    return episodeMetadataNeedsRefresh(episodes, true) ? null : episodeMetadataRevision;
+}
+
 export function episodeInventoryIsExpected(status: AniListAnime['status']) {
     return status !== 'NOT_YET_RELEASED';
 }
