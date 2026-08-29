@@ -261,6 +261,32 @@ describe('TMDB episode identity matching', () => {
         });
     });
 
+    test('uses the release ordinal when the provider uses generic titles', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 3,
+                startDate: { year: 2026, month: 7, day: 5 },
+                endDate: { year: 2026, month: 7, day: 19 },
+            }),
+            source([
+                ['1', 1, 'Episode 1'],
+                ['2', 2, 'Episode 2'],
+                ['3', 3, 'Episode 3'],
+            ]),
+            [
+                candidate(1, 1, 'A New Beginning', '2026-07-05'),
+                candidate(1, 2, 'A Difficult Choice', '2026-07-12'),
+                candidate(1, 3, 'The Road Ahead', '2026-07-19'),
+            ]
+        );
+
+        expect(['1', '2', '3'].map((id) => metadata.get(id)?.title)).toEqual([
+            'A New Beginning',
+            'A Difficult Choice',
+            'The Road Ahead',
+        ]);
+    });
+
     test('does not treat the latest available simulcast row as the finale', () => {
         const metadata = matchEpisodeMetadata(
             anime({
@@ -590,5 +616,34 @@ describe('TMDB episode identity matching', () => {
         expect(['1', '2', '3'].map((id) => metadata.get(id)?.releaseEpisodeNumber)).toEqual([
             1, 2, 3,
         ]);
+    });
+
+    test('maps a focused absolute-order group to generic provider numbering', () => {
+        const episodes = source(
+            Array.from({ length: 45 }, (_, index) => [
+                String(index + 1),
+                index + 1,
+                `Episode ${index + 1}`,
+            ])
+        );
+        const focused = Array.from({ length: 20 }, (_, index) => ({
+            ...candidate(16, 26 + index, `Episode ${26 + index}`, `2013-04-${25 + index}`),
+            releaseEpisodeNumber: index + 1,
+        }));
+
+        const metadata = matchBestEpisodeMetadata(
+            anime({
+                episodes: 20,
+                startDate: { year: 2013, month: 4, day: 25 },
+                endDate: { year: 2013, month: 9, day: 26 },
+            }),
+            episodes,
+            focused,
+            []
+        );
+
+        expect(metadata.get('26')).toMatchObject({ episodeNumber: 26 });
+        expect(metadata.get('45')).toMatchObject({ episodeNumber: 45 });
+        expect(metadata).toHaveLength(20);
     });
 });

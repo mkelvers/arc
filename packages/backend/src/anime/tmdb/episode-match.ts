@@ -501,6 +501,18 @@ export function matchBestEpisodeMetadata(
         return availableMatches;
     }
 
+    const focusedByProviderNumber = new Map(
+        focused.map((candidate) => [candidate.episodeNumber, candidate] as const)
+    );
+    const focusedStartsAtRelease = focused[0]?.rawAirDate === animeDate(anime.startDate);
+    const providerNumberMatches = source.flatMap((episode) => {
+        const candidate = focusedByProviderNumber.get(episode.number);
+        return candidate ? [{ id: episode.id, candidate }] : [];
+    });
+    if (focusedStartsAtRelease && providerNumberMatches.length === focused.length) {
+        return new Map(providerNumberMatches.map(({ id, candidate }) => [id, candidate]));
+    }
+
     const focusedMatches = matchEpisodeMetadata(anime, source, focused);
-    return focusedMatches.size >= availableMatches.size ? focusedMatches : availableMatches;
+    return focusedStartsAtRelease && focusedMatches.size > 0 ? focusedMatches : availableMatches;
 }
