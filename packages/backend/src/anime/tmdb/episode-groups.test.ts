@@ -173,6 +173,32 @@ describe('TMDB episode groups', () => {
         ]);
     });
 
+    test('drops one TMDB special from a release group with the expected regular count', () => {
+        const special = {
+            ...block(1, 1, [2013, 10, 3]).episodes[0],
+            seasonNumber: 0,
+            order: 20,
+        };
+        const selected = releaseEpisodeGroup(
+            {
+                ...anime(20, [2013, 4, 25]),
+                endDate: { year: 2013, month: 9, day: 26 },
+            } as AniListAnime,
+            source(Array.from({ length: 20 }, () => 'Episode')),
+            [
+                {
+                    episodes: [...block(1, 20, [2013, 4, 25]).episodes, special],
+                    name: 'Decolora Adventure',
+                    order: 1,
+                },
+            ]
+        );
+
+        expect(selected).toHaveLength(20);
+        expect(selected?.[0]).toMatchObject({ rawAirDate: '2013-04-25', seasonNumber: 1 });
+        expect(selected?.at(-1)).toMatchObject({ rawAirDate: '2013-09-05', seasonNumber: 1 });
+    });
+
     test('rejects equally supported blocks with different inventories', () => {
         expect(
             releaseEpisodeGroup(anime(2, [2024, 1, 1]), source(['Episode 1', 'Episode 2']), [

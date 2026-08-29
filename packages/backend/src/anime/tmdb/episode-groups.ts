@@ -70,7 +70,11 @@ export function releaseEpisodeGroup(
     const expectedStart = animeDate(anime.startDate);
     const expectedSequence = releaseSequence(anime);
     const matches = blocks.flatMap((block) => {
-        const candidates = orderedCandidates(block);
+        const ordered = orderedCandidates(block);
+        const candidates =
+            expectedCount && ordered.length === expectedCount + 1
+                ? ordered.filter(({ seasonNumber }) => seasonNumber > 0)
+                : ordered;
         if (!candidates.length || (expectedCount && candidates.length !== expectedCount)) {
             return [];
         }
