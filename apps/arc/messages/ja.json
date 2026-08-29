@@ -31,5 +31,5 @@
     "settings_subtitles_enabled_synopsis": "字幕が利用できる場合、字幕を有効にしてエピソードを開始します。",
     "settings_default_subtitle": "デフォルトの字幕トラック",
     "settings_language": "言語",
-    "settings_language_synopsis": "Arc 全体で使用する言語を選択します。",
+    "settings_language_synopsis": "Arc 全体で使用する言語を選択します。"
 }

@@ -3,7 +3,6 @@ import { describe, expect, test } from 'bun:test';
 import {
     episodeAudioModes,
     aniKotoMediaCandidates,
-    aniKotoEpisodeRoute,
     fetchAniKotoResource,
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
@@ -11,7 +10,6 @@ import {
     mergeAniKotoEpisodeRanges,
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
-    parseAniKotoEpisodeRoute,
     parseEpisodeList,
     parseMegaPlaySource,
     parseSeries,
@@ -31,11 +29,6 @@ import type { ProviderEpisode } from './types';
 
 describe('AniKoto provider rules', () => {
     test('keeps merged episodes addressable by their provider release', () => {
-        expect(parseAniKotoEpisodeRoute(aniKotoEpisodeRoute(3879, 'episode-36'))).toEqual({
-            seriesId: 3879,
-            episodeId: 'episode-36',
-        });
-
         const primary: ProviderEpisode[] = Array.from({ length: 48 }, (_, index) => ({
             id: `black-white-${index + 1}`,
             number: index + 1,
@@ -49,17 +42,22 @@ describe('AniKoto provider rules', () => {
             audio: ['sub'],
         }));
 
-        const merged = mergeAniKotoEpisodeRanges(primary, 4337, {
-            episodes: related,
-            seriesId: 3879,
-        }, 84);
+        const merged = mergeAniKotoEpisodeRanges(
+            primary,
+            4337,
+            {
+                episodes: related,
+                seriesId: 3879,
+            },
+            84
+        );
 
         expect(merged).toHaveLength(84);
         expect(merged[47]?.number).toBe(48);
         expect(merged[48]?.number).toBe(49);
         expect(merged[83]).toMatchObject({
             number: 84,
-            id: aniKotoEpisodeRoute(3879, 'rival-destinies-36'),
+            id: 'anikoto:3879:rival-destinies-36',
         });
     });
 

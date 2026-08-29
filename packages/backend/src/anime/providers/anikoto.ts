@@ -123,35 +123,6 @@ interface SearchCandidate {
     alternativeTitle: string;
 }
 
-const episodeRoutePrefix = 'anikoto:';
-
-export function aniKotoEpisodeRoute(seriesId: number, episodeId: string) {
-    return `${episodeRoutePrefix}${seriesId}:${encodeURIComponent(episodeId)}`;
-}
-
-export function parseAniKotoEpisodeRoute(value: string) {
-    if (!value.startsWith(episodeRoutePrefix)) {
-        return null;
-    }
-
-    const match = value.match(/^anikoto:(\d+):(.+)$/);
-    if (!match) {
-        return null;
-    }
-
-    const seriesId = positiveId(match[1]);
-    if (!seriesId) {
-        return null;
-    }
-
-    try {
-        const episodeId = decodeURIComponent(match[2]);
-        return validOpaqueId(episodeId) ? { seriesId, episodeId } : null;
-    } catch {
-        return null;
-    }
-}
-
 export interface AniKotoServerCandidate {
     mode: Exclude<AudioMode, 'raw'>;
     embedMode: AniKotoServerMode;
@@ -891,17 +862,10 @@ async function loadSeries(id: number) {
     return series;
 }
 
-async function loadEpisodes(series: AniKotoSeries) {
-    return parseEpisodeList(
-        await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
-    );
-}
-
 function relationTitles(anime: AniListAnime) {
     return (anime.relations?.edges ?? [])
-        .filter(
-            (edge): edge is NonNullable<typeof edge> =>
-                Boolean(edge && edge.relationType === 'SEQUEL' && edge.node?.type === 'ANIME')
+        .filter((edge): edge is NonNullable<typeof edge> =>
+            Boolean(edge && edge.relationType === 'SEQUEL' && edge.node?.type === 'ANIME')
         )
         .map((edge) => edge.node?.title)
         .flatMap((title) => (title ? [title.english, title.romaji, title.native] : []))
@@ -945,7 +909,7 @@ export function mergeAniKotoEpisodeRanges(
 ) {
     const primaryEpisodes = primary.map((episode) => ({
         ...episode,
-        id: aniKotoEpisodeRoute(primarySeriesId, episode.id),
+        id: `anikoto:${primarySeriesId}:${encodeURIComponent(episode.id)}`,
     }));
     if (!related || expected <= primaryEpisodes.length) {
         return primaryEpisodes;
@@ -956,21 +920,28 @@ export function mergeAniKotoEpisodeRanges(
         ...primaryEpisodes,
         ...related.episodes.slice(0, expected - primaryEpisodes.length).map((episode) => ({
             ...episode,
-            id: aniKotoEpisodeRoute(related.seriesId, episode.id),
+            id: `anikoto:${related.seriesId}:${encodeURIComponent(episode.id)}`,
             number: episode.number + offset,
         })),
     ];
 }
 
 async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
-    const primary = await loadEpisodes(series);
+    const primary = parseEpisodeList(
+        await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
+    );
     const expected = anime.episodes;
     if (!expected) {
         return mergeAniKotoEpisodeRanges(primary, series.id, null, Number.MAX_SAFE_INTEGER);
     }
 
     const related = await findRelatedSeries(anime);
-    const secondary = related && related.id !== series.id ? await loadEpisodes(related) : null;
+    const secondary =
+        related && related.id !== series.id
+            ? parseEpisodeList(
+                  await requestJson(new URL(`/ajax/episode/list/${related.id}`, anikotoUrl))
+              )
+            : null;
     return mergeAniKotoEpisodeRanges(
         primary,
         series.id,
@@ -1401,9 +1372,25 @@ async function getStreams(
     modes: AudioMode[]
 ): Promise<ProviderStreams> {
     const series = await findSeries(anime);
-    const route = parseAniKotoEpisodeRoute(episode.id);
+    const routeMatch = episode.id.match(/^anikoto:(\d+):(.+)$/);
+    let route: { seriesId: number; episodeId: string } | null = null;
+    if (routeMatch) {
+        const seriesId = positiveId(routeMatch[1]);
+        if (seriesId) {
+            try {
+                const episodeId = decodeURIComponent(routeMatch[2]);
+                if (validOpaqueId(episodeId)) {
+                    route = { seriesId, episodeId };
+                }
+            } catch {
+                // Keep legacy provider IDs usable when a persisted route is malformed.
+            }
+        }
+    }
     const episodeSeries = route ? await loadSeries(route.seriesId) : series;
-    const episodes = await loadEpisodes(episodeSeries);
+    const episodes = parseEpisodeList(
+        await requestJson(new URL(`/ajax/episode/list/${episodeSeries.id}`, anikotoUrl))
+    );
     const current =
         episodes.find((candidate) => candidate.id === (route?.episodeId ?? episode.id)) ??
         episodes.find((candidate) => candidate.number === episode.number);
