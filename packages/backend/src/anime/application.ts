@@ -11,7 +11,10 @@ import {
     getStoredAiringSchedule,
     withMovieBackdrop,
 } from './episodes';
-import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
+import {
+    episodeInventoryNeedsDiscovery,
+    episodesAvailableToWatch,
+} from './episodes/policy';
 import { discoverEpisodeInventory } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';

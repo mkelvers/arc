@@ -184,6 +184,12 @@ describe('episode refresh policy', () => {
         expect(
             episodeInventoryNeedsDiscovery(
                 { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
+                inventory(11)
+            )
+        ).toBeTrue();
+        expect(
+            episodeInventoryNeedsDiscovery(
+                { status: 'FINISHED', format: 'TV', episodes: 12, nextAiringEpisode: null },
                 inventory(12)
             )
         ).toBeFalse();
