@@ -1,7 +1,7 @@
 <script lang="ts">
     import CatalogListing from '../_components/CatalogListing.svelte';
     import type { PageProps } from './$types';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let { data }: PageProps = $props();
 </script>

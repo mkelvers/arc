@@ -5,7 +5,7 @@
     import StatusBanner from '$lib/components/StatusBanner.svelte';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageProps } from './$types';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let { form }: PageProps = $props();
     let dismissedForm = $state.raw<unknown>();

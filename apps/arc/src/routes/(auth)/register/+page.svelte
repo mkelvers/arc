@@ -3,7 +3,7 @@
 
     import { ApiErrorSchema } from '@arc/api-contract/auth';
     import AuthInput from '../_components/AuthInput.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let email = $state('');
     let username = $state('');

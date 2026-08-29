@@ -11,7 +11,7 @@
     import SearchResultsGroup from './_components/SearchResultsGroup.svelte';
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     type SearchState = { query: string; results: AnimeSearchResult[]; failed: boolean };
 

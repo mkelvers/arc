@@ -4,7 +4,7 @@
     import { authClient } from '$lib/auth-client';
     import AuthInput from '../_components/AuthInput.svelte';
     import StatusBanner from '$lib/components/StatusBanner.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let username = $state('');
     let password = $state('');

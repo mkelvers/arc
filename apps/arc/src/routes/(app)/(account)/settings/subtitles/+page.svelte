@@ -19,7 +19,7 @@
     import * as preferences from '$lib/player/preferences';
     import { cn } from '$lib/utils';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let size = $state<SubtitleSize>('normal');
     let textColor = $state<SubtitleTextColor>('white');

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
     import AnimeRail from './_components/AnimeRail.svelte';
     import ContinueWatchingGrid from './_components/ContinueWatchingGrid.svelte';
     import HomeHero from './_components/HomeHero.svelte';

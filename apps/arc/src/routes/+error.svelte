@@ -2,7 +2,7 @@
     import { page } from '$app/state';
     import errorArtwork from '$lib/assets/error-state.png';
     import Logo from '$lib/components/ui/Logo.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     const error = $derived(page.status !== 404);
     const heading = $derived(error ? m.error_generic() : m.error_not_found());
