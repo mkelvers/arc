@@ -17,6 +17,31 @@
     let loading = $state(false);
     let sentinel = $state<HTMLDivElement>();
     let activeRequest: AbortController | undefined;
+    let label = $derived(localizedSeasonLabel(data.season, data.year));
+    let options = $derived(
+        data.options.map((option) => ({
+            ...option,
+            label: localizedSeasonLabel(option.season, option.year),
+        }))
+    );
+
+    function localizedSeasonLabel(season: string, year: number) {
+        const name = (() => {
+            switch (season) {
+                case 'WINTER':
+                    return m.season_winter();
+                case 'SPRING':
+                    return m.season_spring();
+                case 'SUMMER':
+                    return m.season_summer();
+                case 'FALL':
+                    return m.season_fall();
+                default:
+                    return season;
+            }
+        })();
+        return `${name} ${year}`;
+    }
 
     async function loadMore() {
         const page = nextPage;
@@ -101,7 +126,7 @@
 </script>
 
 <svelte:head>
-    <title>Arc — {data.label} {m.simulcast_title()}</title>
+    <title>Arc — {label} {m.simulcast_title()}</title>
     <meta name="description" content={m.simulcast_title()} />
 </svelte:head>
 
@@ -111,14 +136,14 @@
             <h1 id="simulcast-title" class="text-xl font-bold sm:text-2xl">{m.simulcast_title()}</h1>
             <Dropdown
                 id="simulcast-season"
-                items={data.options}
-                ariaLabel={m.simulcast_choose({ label: data.label })}
+                items={options}
+                ariaLabel={m.simulcast_choose({ label })}
                 menuClass="top-full left-0 mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl right-auto sm:right-0 sm:left-auto"
                 triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
             >
                 {#snippet trigger()}
                     <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
-                    <span>{data.label}</span>
+                    <span>{label}</span>
                 {/snippet}
             </Dropdown>
         </div>
@@ -137,7 +162,7 @@
                 artworkWidth={1254}
                 artworkHeight={1254}
                 id="empty-simulcast-message"
-                body={m.simulcast_empty({ label: data.label })}
+                body={m.simulcast_empty({ label })}
             />
         {/if}
 
