@@ -6,6 +6,7 @@ import {
     animeEpisodeSync,
     animeEpisodeTarget,
     maintenanceTask,
+    playbackProgress,
 } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
@@ -18,8 +19,8 @@ import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
     episodeInventoryCoversTarget,
-    episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
+    episodeMetadataRevisionAfterSync,
     nextRefreshAt,
     providerEpisodeCount,
 } from './policy';
@@ -170,8 +171,39 @@ async function fetchAndStore(
             tx.select().from(animeEpisode).where(eq(animeEpisode.anilistId, anime.id)),
         ]);
         const stored = new Map(existing.map((episode) => [episode.episodeId, episode]));
+        const existingByNumber = new Map<number, (typeof existing)[number][]>();
+        existing.forEach((episode) => {
+            const rows = existingByNumber.get(episode.number) ?? [];
+            rows.push(episode);
+            existingByNumber.set(episode.number, rows);
+        });
+        const sourceIds = new Set(source.map(({ id }) => id));
+        const sourceIdsByNumber = new Map<number, string[]>();
+        source.forEach((episode) => {
+            if (!Number.isInteger(episode.number) || episode.number <= 0) {
+                return;
+            }
+
+            const ids = sourceIdsByNumber.get(episode.number) ?? [];
+            ids.push(episode.id);
+            sourceIdsByNumber.set(episode.number, ids);
+        });
+        const episodeIdReplacements = new Map<string, string>();
+        existing.forEach((episode) => {
+            const currentIds = sourceIdsByNumber.get(episode.number);
+            if (sourceIds.has(episode.episodeId) || currentIds?.length !== 1) {
+                return;
+            }
+
+            episodeIdReplacements.set(episode.episodeId, currentIds[0]);
+        });
+        const staleEpisodeIds = [...episodeIdReplacements.keys()];
         const values = source.map((episode): typeof animeEpisode.$inferInsert => {
-            const previous = stored.get(episode.id);
+            const previous =
+                stored.get(episode.id) ??
+                (existingByNumber.get(episode.number)?.length === 1
+                    ? existingByNumber.get(episode.number)?.[0]
+                    : undefined);
             const media = metadata?.get(episode.id);
             const previousMetadata =
                 canPreserveEpisodeMetadata(
@@ -234,6 +266,27 @@ async function fetchAndStore(
                     lastVerifiedAt: now,
                 },
             });
+        for (const [oldEpisodeId, newEpisodeId] of episodeIdReplacements) {
+            await tx
+                .update(playbackProgress)
+                .set({ episodeId: newEpisodeId })
+                .where(
+                    and(
+                        eq(playbackProgress.animeId, anime.id),
+                        eq(playbackProgress.episodeId, oldEpisodeId)
+                    )
+                );
+        }
+        if (staleEpisodeIds.length) {
+            await tx
+                .delete(animeEpisode)
+                .where(
+                    and(
+                        eq(animeEpisode.anilistId, anime.id),
+                        inArray(animeEpisode.episodeId, staleEpisodeIds)
+                    )
+                );
+        }
 
         const persisted = await tx
             .select({
@@ -246,19 +299,15 @@ async function fetchAndStore(
             .where(eq(animeEpisode.anilistId, anime.id))
             .orderBy(animeEpisode.number);
         const revision = sourceRevision(persisted);
-        const metadataRevision =
-            metadata === null
-                ? (sync?.metadataRevision ?? null)
-                : episodeMetadataNeedsRefresh(
-                        values.map(({ imageUrl, metadataTitle, overview }) => ({
-                            image: imageUrl ?? null,
-                            title: metadataTitle ?? '',
-                            overview: overview ?? '',
-                        })),
-                        true
-                    )
-                  ? null
-                  : episodeMetadataRevision;
+        const metadataRevision = episodeMetadataRevisionAfterSync(
+            values.map(({ imageUrl, metadataTitle, overview }) => ({
+                image: imageUrl ?? null,
+                title: metadataTitle ?? '',
+                overview: overview ?? '',
+            })),
+            metadata !== null,
+            resolvedMetadataSource !== null || sync?.metadataExternalIdId !== null
+        );
 
         const stableSince =
             sync?.sourceRevision === revision && sync.stableSince ? sync.stableSince : now;
