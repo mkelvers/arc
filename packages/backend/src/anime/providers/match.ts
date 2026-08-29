@@ -6,8 +6,37 @@ export function isSpecialEpisodeReference(episode: ProviderEpisodeReference) {
     return episode.number <= 0 || !Number.isInteger(episode.number);
 }
 
+function decodeHtmlEntities(value: string) {
+    const entities: Record<string, string> = {
+        amp: '&',
+        apos: "'",
+        gt: '>',
+        lt: '<',
+        nbsp: ' ',
+        quot: '"',
+    };
+
+    return value.replace(/&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi, (entity, decimal, hex, name) => {
+        if (name) {
+            return entities[name.toLowerCase()] ?? entity;
+        }
+
+        const codePoint = Number.parseInt(decimal ?? hex, decimal ? 10 : 16);
+        return Number.isSafeInteger(codePoint) ? String.fromCodePoint(codePoint) : entity;
+    });
+}
+
 export function normalizedProviderTitle(title: string) {
-    return title
+    let decodedTitle = title;
+    for (let pass = 0; pass < 3; pass += 1) {
+        const nextTitle = decodeHtmlEntities(decodedTitle);
+        if (nextTitle === decodedTitle) {
+            break;
+        }
+        decodedTitle = nextTitle;
+    }
+
+    return decodedTitle
         .replace(/(\p{Ll})(\p{Lu})/gu, '$1 $2')
         .normalize('NFKD')
         .replace(/\p{M}+/gu, '')

@@ -6,9 +6,17 @@ import {
     matchProviderEpisode,
     matchProviderStreamEpisode,
     releaseInventoryEvidence,
+    normalizedProviderTitle,
 } from './match';
 
 describe('playback episode identity matching', () => {
+    test('normalizes single and double encoded provider HTML entities', () => {
+        expect(normalizedProviderTitle('Pokémon: Black &amp;amp; White')).toBe(
+            'pokemon black white'
+        );
+        expect(normalizedProviderTitle('A &#x26; B')).toBe('a b');
+    });
+
     test('requires every expected numbered episode', () => {
         expect(coversExpectedEpisodes([{ number: 1 }, { number: 2 }], 3)).toBe(false);
         expect(
