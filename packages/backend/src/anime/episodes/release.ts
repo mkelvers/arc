@@ -57,17 +57,45 @@ function metadataDate(metadata: EpisodeMetadata | undefined) {
     return Date.UTC(year, month - 1, date);
 }
 
+function normalizeReleaseWindow(episodes: ProviderEpisode[], expected: number) {
+    const firstSelectedNumber = episodes[0]?.number;
+    if (
+        episodes.length !== expected ||
+        !Number.isInteger(firstSelectedNumber) ||
+        firstSelectedNumber <= 1 ||
+        !episodes.every(
+            (episode, index) =>
+                Number.isInteger(episode.number) && episode.number === firstSelectedNumber + index
+        )
+    ) {
+        return episodes;
+    }
+
+    return episodes.map((episode, index) => ({
+        ...episode,
+        number: index + 1,
+    }));
+}
+
 export function episodesForRelease(
     anime: AniListAnime,
     episodes: ProviderEpisode[],
     metadata: Map<string, EpisodeMetadata> | null
 ) {
     const expected = anime.episodes;
-    if (!expected || expected <= 0 || episodes.length <= expected || !metadata) {
+    if (!expected || expected <= 0) {
         return episodes;
+    }
+    if (episodes.length <= expected || !metadata) {
+        return normalizeReleaseWindow(episodes, expected);
     }
 
     let selected = episodes;
+    const matched = selected.filter((episode) => metadata.has(episode.id));
+    if (matched.length >= expected && matched.length < selected.length) {
+        selected = matched;
+    }
+
     const confirmed = selected.filter(
         (episode) => !episode.supplemental || metadata.has(episode.id)
     );
@@ -111,5 +139,5 @@ export function episodesForRelease(
         }
     }
 
-    return selected;
+    return normalizeReleaseWindow(selected, expected);
 }

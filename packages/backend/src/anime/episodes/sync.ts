@@ -72,6 +72,12 @@ async function fetchAndStore(
     anime: AniListAnime,
     confirmation?: { targetEpisode: number; airingAt: Date; leaseOwner: string }
 ) {
+    const expected =
+        anime.status === 'RELEASING'
+            ? availableEpisodeCount(anime)
+            : anime.status === 'FINISHED'
+              ? providerEpisodeCount(anime)
+              : null;
     const providerEpisodes = await playback.getEpisodes(anime);
     if (!providerEpisodes.length) {
         throw new Error(`No playback provider returned episodes for AniList ${anime.id}`);
@@ -144,12 +150,6 @@ async function fetchAndStore(
           })
         : null;
     const source = episodesForRelease(anime, providerEpisodes, metadata);
-    const expected =
-        anime.status === 'RELEASING'
-            ? availableEpisodeCount(anime)
-            : anime.status === 'FINISHED'
-              ? providerEpisodeCount(anime)
-              : null;
     if (!confirmation && expected !== null && !episodeInventoryCoversTarget(source, expected)) {
         throw new TargetEpisodeUnavailableError(anime.id, expected);
     }

@@ -119,6 +119,38 @@ describe('AniList release episode boundaries', () => {
         ).toEqual(Array.from({ length: 10 }, (_, index) => String(index + 13)));
     });
 
+    test('renumbers a selected provider window for the AniList release', () => {
+        const episodes = source(Array.from({ length: 45 }, (_, index) => index + 1));
+        const selected = episodes.slice(11, 25);
+        const matched = metadata(
+            selected,
+            Array.from({ length: 14 }, (_, index) =>
+                new Date(Date.UTC(2013, 0, 5 + index * 7)).toISOString().slice(0, 10)
+            )
+        );
+
+        expect(
+            episodesForRelease(anime(14, [2013, 1, 5], [2013, 4, 5]), episodes, matched).map(
+                ({ number }) => number
+            )
+        ).toEqual(Array.from({ length: 14 }, (_, index) => index + 1));
+        expect(
+            episodesForRelease(anime(14, [2013, 1, 5], [2013, 4, 5]), episodes, matched).map(
+                ({ id }) => id
+            )
+        ).toEqual(Array.from({ length: 14 }, (_, index) => String(index + 12)));
+    });
+
+    test('renumbers an exact provider window without metadata enrichment', () => {
+        expect(
+            episodesForRelease(
+                anime(14, [2013, 1, 5], [2013, 4, 5]),
+                source(Array.from({ length: 14 }, (_, index) => index + 12)),
+                null
+            ).map(({ number }) => number)
+        ).toEqual(Array.from({ length: 14 }, (_, index) => index + 1));
+    });
+
     test('keeps in-window recap specials in addition to regular episodes', () => {
         const episodes = source([
             0,
