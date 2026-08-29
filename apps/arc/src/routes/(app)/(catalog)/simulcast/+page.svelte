@@ -154,7 +154,7 @@
                 class="grid grid-cols-2 items-start gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-[1.875rem] lg:gap-y-12 xl:grid-cols-6"
             >
                 {#each anime as entry (entry.id)}
-                    <AnimeCard anime={entry} truncateTitle={false} />
+                    <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false} />
                 {/each}
             </div>
         {:else}

@@ -280,7 +280,7 @@
                             meta={kind === 'new'
                                 ? `${entry.episode ? `E${entry.episode} · ` : ''}${releasedLabel(entry.releasedAt)}`
                                 : undefined}
-                            reserveTitleSpace={kind !== 'new'}
+                            reserveTitleSpace={false}
                             truncateTitle={false}
                         />
                     {/each}
