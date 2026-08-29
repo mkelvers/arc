@@ -397,10 +397,52 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
         }
     }
 
+    const relatedCandidates = await Promise.all(
+        related
+            .filter((mapping) => mapping.mediaType === 'tv')
+            .map(async (mapping) => {
+                const { data } = await create().GET('/3/tv/{series_id}', {
+                    params: {
+                        path: { series_id: mapping.id },
+                        query: { language: 'en-US' },
+                    },
+                });
+
+                return data
+                    ? {
+                          id: mapping.id,
+                          mediaType: 'tv' as const,
+                          date: data.first_air_date ?? null,
+                          name: data.name ?? '',
+                          originalName: data.original_name ?? '',
+                          popularity: data.popularity ?? 0,
+                      }
+                    : null;
+            })
+    );
+    const candidates = [
+        ...search.candidates,
+        ...relatedCandidates.flatMap((candidate) =>
+            candidate ? [{ candidate, searchRank: -1 }] : []
+        ),
+    ].filter(
+        ({ candidate }, index, values) =>
+            values.findIndex(
+                (other) =>
+                    other.candidate.mediaType === candidate.mediaType &&
+                    other.candidate.id === candidate.id
+            ) === index
+    );
+
     // Missing enrichment is safer than attaching art and episodes from a
     // similarly named release, so only persist a confident search result.
     if (search.match && candidateScore(search.match, anime) >= 85) {
-        const releaseMatch = await preferredTvMapping(anime, search.match, search.candidates);
+        const relatedCandidate = relatedCandidates.find((candidate) => candidate !== null);
+        const releaseMatch = await preferredTvMapping(
+            anime,
+            relatedCandidate ?? search.match,
+            candidates
+        );
         const mapping = await preferredSpecialMapping(
             anime,
             {
@@ -459,10 +501,6 @@ export async function resolveStored(
 
     if (!options.refresh) {
         throw new NoConfidentTmdbMappingError(anime.id);
-    }
-
-    if (stored) {
-        return stored;
     }
 
     return refreshStoredMapping(anime, stored);
