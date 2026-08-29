@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { mappingNeedsVerification, tmdbMappingRevision } from './mapping-verification';
+import { mappingNeedsVerification } from './mapping-verification';
 
 const now = Date.UTC(2026, 7, 1);
 
@@ -11,7 +11,7 @@ describe('TMDB mapping verification', () => {
                 {
                     title: 'You and I Are Polar Opposites',
                     verifiedAt: new Date(now - 29 * 24 * 60 * 60 * 1_000),
-                    mappingRevision: tmdbMappingRevision,
+                    mappingRevision: 'tmdb-mapping-v9',
                 },
                 'You and I Are Polar Opposites',
                 now
@@ -25,7 +25,7 @@ describe('TMDB mapping verification', () => {
                 {
                     title: 'You and I Are Polar Opposites',
                     verifiedAt: new Date(now - 30 * 24 * 60 * 60 * 1_000),
-                    mappingRevision: tmdbMappingRevision,
+                    mappingRevision: 'tmdb-mapping-v9',
                 },
                 'You and I Are Polar Opposites',
                 now
@@ -36,7 +36,7 @@ describe('TMDB mapping verification', () => {
                 {
                     title: 'You and I Are Polar Opposites',
                     verifiedAt: null,
-                    mappingRevision: tmdbMappingRevision,
+                    mappingRevision: 'tmdb-mapping-v9',
                 },
                 'You and I Are Polar Opposites',
                 now
@@ -50,7 +50,7 @@ describe('TMDB mapping verification', () => {
                 {
                     title: 'Old title',
                     verifiedAt: new Date(now),
-                    mappingRevision: tmdbMappingRevision,
+                    mappingRevision: 'tmdb-mapping-v9',
                 },
                 'Corrected title',
                 now

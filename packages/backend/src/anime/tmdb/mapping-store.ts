@@ -10,7 +10,6 @@ import {
     animeMappingOverride,
 } from '@arc/db/schema';
 import { animeTitles } from '../anilist/text';
-import { tmdbMappingRevision } from './mapping-verification';
 import type { AniListAnime } from '../anilist/types';
 import { type Mapping, type StoredMapping } from './types';
 
@@ -248,11 +247,11 @@ export async function saveVerifiedMapping(
                 animeId: link.animeId,
                 externalIdId: tmdbId.id,
                 verifiedAt,
-                mappingRevision: tmdbMappingRevision,
+                mappingRevision: 'tmdb-mapping-v9',
             })
             .onConflictDoUpdate({
                 target: [animeExternalIdLink.animeId, animeExternalIdLink.externalIdId],
-                set: { verifiedAt, mappingRevision: tmdbMappingRevision },
+                set: { verifiedAt, mappingRevision: 'tmdb-mapping-v9' },
             });
 
         return {
@@ -261,7 +260,7 @@ export async function saveVerifiedMapping(
             externalIdId: tmdbId.id,
             title,
             verifiedAt,
-            mappingRevision: tmdbMappingRevision,
+            mappingRevision: 'tmdb-mapping-v9',
         };
     });
 }
