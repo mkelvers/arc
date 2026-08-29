@@ -119,21 +119,8 @@ test('unwraps image-named segments from other allowlisted AniKoto hosts', async 
         async () =>
             new Response(
                 new Uint8Array([
-                    0x89,
-                    0x50,
-                    0x4e,
-                    0x47,
-                    0x49,
-                    0x45,
-                    0x4e,
-                    0x44,
-                    0xae,
-                    0x42,
-                    0x60,
-                    0x82,
-                    0x47,
-                    0x00,
-                    0x01,
+                    0x89, 0x50, 0x4e, 0x47, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, 0x47,
+                    0x00, 0x01,
                 ]),
                 { headers: { 'content-type': 'image/png' } }
             )
@@ -153,7 +140,9 @@ test('allows AniKoto playlist segments served from TryCloud', async () => {
     );
 
     expect(response.headers.get('content-type')).toBe('video/mp2t');
-    expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([0x47, 0x40, 0x11]));
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+        new Uint8Array([0x47, 0x40, 0x11])
+    );
 });
 
 test('unwraps current Norami JPEG-named segments into MPEG-TS', async () => {
