@@ -112,7 +112,6 @@ export async function mediaPage(id: number) {
     }
 
     const existing = await storedAnimeRelease(id);
-    const imported = !existing;
     const anime = existing ?? (await refreshAnimeRelease(id));
     return {
         anime: toAnimeDetails(anime),
