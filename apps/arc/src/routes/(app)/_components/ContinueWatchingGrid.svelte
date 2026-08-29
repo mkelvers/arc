@@ -26,7 +26,7 @@
             class="grid grid-cols-1 gap-x-2 gap-y-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
         >
             {#each anime as entry (entry.animeId)}
-                <Card variant="compact" class="p-2">
+                <Card variant="compact" class="-ml-2 mr-2 p-2">
                     <a
                         href={entry.link}
                         class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
