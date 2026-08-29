@@ -30,6 +30,7 @@ const mediaHostSuffixes = [
     'shiora.site',
     'shiora.top',
     'tiktokcdn.com',
+    'trycloud.pro',
     'watching.onl',
 ] as const;
 export const aniKotoRequestTimeoutMs = 10_000;
@@ -178,13 +179,11 @@ function retryAfterMs(value: string | null) {
 
     const seconds = Number(value);
     if (Number.isFinite(seconds) && seconds >= 0) {
-        return Math.min(maxRequestRetryDelayMs, Math.ceil(seconds * 1000));
+        return Math.ceil(seconds * 1000);
     }
 
     const timestamp = Date.parse(value);
-    return Number.isFinite(timestamp)
-        ? Math.min(maxRequestRetryDelayMs, Math.max(0, timestamp - Date.now()))
-        : null;
+    return Number.isFinite(timestamp) ? Math.max(0, timestamp - Date.now()) : null;
 }
 
 function retryableRequestStatus(status: number) {
@@ -741,8 +740,13 @@ async function requestText(
                 : AbortSignal.timeout(aniKotoRequestTimeoutMs),
         });
         if (!response.ok) {
-            if (retryableRequestStatus(response.status) && attempt < requestRetryCount) {
-                const delay = requestRetryDelay(response, attempt);
+            const retryAfter = retryAfterMs(response.headers.get('retry-after'));
+            if (
+                retryableRequestStatus(response.status) &&
+                attempt < requestRetryCount &&
+                (retryAfter === null || retryAfter <= maxRequestRetryDelayMs)
+            ) {
+                const delay = retryAfter ?? requestRetryDelay(response, attempt);
                 await response.body?.cancel().catch(() => undefined);
                 await abortableDelay(delay, options.signal);
                 continue;
@@ -873,6 +877,15 @@ function relationTitles(anime: AniListAnime) {
         .map(normalizedProviderTitle);
 }
 
+function relatedReleaseTitleMatches(relationTitle: string, providerTitle: string) {
+    const relationWords = new Set(relationTitle.split(' ').filter((word) => word.length > 2));
+    const providerWords = new Set(normalizedProviderTitle(providerTitle).split(' '));
+    const sharedWords = [...relationWords].filter((word) => providerWords.has(word)).length;
+    return (
+        sharedWords >= 2 && sharedWords / Math.min(relationWords.size, providerWords.size) >= 0.75
+    );
+}
+
 async function findRelatedSeries(anime: AniListAnime) {
     const titles = new Set(relationTitles(anime));
     const candidates = new Map<number, SearchCandidate>();
@@ -882,17 +895,22 @@ async function findRelatedSeries(anime: AniListAnime) {
         }
     }
 
-    const exactCandidates = [...candidates.values()].filter(
-        (candidate) =>
-            titles.has(normalizedProviderTitle(candidate.title)) ||
-            titles.has(normalizedProviderTitle(candidate.alternativeTitle))
+    const exactCandidates = [...candidates.values()].filter((candidate) =>
+        [...titles].some(
+            (title) =>
+                relatedReleaseTitleMatches(title, candidate.title) ||
+                relatedReleaseTitleMatches(title, candidate.alternativeTitle)
+        )
     );
     for (const candidate of exactCandidates) {
         const series = await loadSeries(candidate.id).catch(() => null);
         if (
             series &&
-            (titles.has(normalizedProviderTitle(series.title)) ||
-                titles.has(normalizedProviderTitle(series.alternativeTitle)))
+            [...titles].some(
+                (title) =>
+                    relatedReleaseTitleMatches(title, series.title) ||
+                    relatedReleaseTitleMatches(title, series.alternativeTitle)
+            )
         ) {
             return series;
         }
@@ -1371,7 +1389,6 @@ async function getStreams(
     episode: ProviderEpisodeReference,
     modes: AudioMode[]
 ): Promise<ProviderStreams> {
-    const series = await findSeries(anime);
     const routeMatch = episode.id.match(/^anikoto:(\d+):(.+)$/);
     let route: { seriesId: number; episodeId: string } | null = null;
     if (routeMatch) {
@@ -1387,9 +1404,11 @@ async function getStreams(
             }
         }
     }
-    const episodeSeries = route ? await loadSeries(route.seriesId) : series;
+    const episodeSeries = route ? null : await findSeries(anime);
     const episodes = parseEpisodeList(
-        await requestJson(new URL(`/ajax/episode/list/${episodeSeries.id}`, anikotoUrl))
+        await requestJson(
+            new URL(`/ajax/episode/list/${route?.seriesId ?? episodeSeries?.id}`, anikotoUrl)
+        )
     );
     const current =
         episodes.find((candidate) => candidate.id === (route?.episodeId ?? episode.id)) ??
