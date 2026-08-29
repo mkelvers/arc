@@ -5,6 +5,7 @@
     import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/shared/search';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import errorArtwork from '$lib/assets/error-state.png';
+    import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
@@ -161,28 +162,17 @@
         {#if loading}
             <section aria-label={m.searching()} aria-live="polite">
                 <span class="sr-only">{m.searching_for_anime()}</span>
-                <div class="animate-pulse motion-reduce:animate-none" aria-hidden="true">
+                <div aria-hidden="true">
                     <div class="space-y-3 sm:hidden">
                         {#each Array.from({ length: 7 }) as _, index (index)}
-                            <div class="flex min-h-24 gap-3">
-                                <div class="aspect-2/3 h-24 shrink-0 bg-surface"></div>
-                                <div class="min-w-0 flex-1 py-2">
-                                    <div class="h-4 w-4/5 bg-surface"></div>
-                                    <div class="mt-3 h-3 w-3/5 bg-surface"></div>
-                                    <div class="mt-5 h-3 w-2/5 bg-surface"></div>
-                                </div>
-                            </div>
+                            <AnimeCardSkeleton variant="compact" />
                         {/each}
                     </div>
                     <div class="hidden sm:block">
                         <h2 class="mb-4 text-xl font-bold">{m.search_top_results()}</h2>
                         <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                             {#each Array.from({ length: 3 }) as _, index (index)}
-                                <div>
-                                    <div class="aspect-video bg-surface"></div>
-                                    <div class="mt-3 h-4 w-3/4 bg-surface"></div>
-                                    <div class="mt-2 h-4 w-2/5 bg-surface"></div>
-                                </div>
+                                <AnimeCardSkeleton variant="top" />
                             {/each}
                         </div>
 
@@ -191,14 +181,7 @@
                                 <h2 class="mb-3 text-xl font-bold">{title}</h2>
                                 <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
                                     {#each Array.from({ length: 6 }) as _, index (index)}
-                                        <div class="flex min-h-28 gap-3 p-2">
-                                            <div class="aspect-2/3 h-24 shrink-0 bg-surface"></div>
-                                            <div class="min-w-0 flex-1 py-1">
-                                                <div class="h-4 w-4/5 bg-surface"></div>
-                                                <div class="mt-2 h-3 w-3/5 bg-surface"></div>
-                                                <div class="mt-8 h-4 w-2/5 bg-surface"></div>
-                                            </div>
-                                        </div>
+                                        <AnimeCardSkeleton variant="compact" />
                                     {/each}
                                 </div>
                             </section>

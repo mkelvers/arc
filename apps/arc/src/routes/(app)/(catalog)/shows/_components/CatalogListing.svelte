@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte';
-    import { CircleIcon, CircleNotchIcon, FunnelIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
+    import { CircleIcon, FunnelIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
 
     import { browseSearchParams, type BrowseFilters } from '@arc/shared/browse';
     import type { AnimeCard as AnimeCardModel } from '@arc/shared/types';
@@ -8,6 +8,7 @@
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import { m } from '$lib/i18n.svelte';
     import {
         appendCatalogPage,
@@ -301,12 +302,7 @@
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 w-full items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <CircleNotchIcon
-                        size="2rem"
-                        weight="bold"
-                        class="animate-spin text-accent motion-reduce:animate-none"
-                        aria-label={m.catalog_loading()}
-                    />
+                    <LoadingSpinner label={m.catalog_loading()} />
                 {:else}
                     <span class="sr-only">{m.catalog_auto_loading()}</span>
                 {/if}

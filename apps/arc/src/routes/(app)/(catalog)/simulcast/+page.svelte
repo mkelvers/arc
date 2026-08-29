@@ -1,12 +1,13 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte';
-    import { CaretDownIcon, CircleNotchIcon } from 'phosphor-svelte';
+    import { CaretDownIcon } from 'phosphor-svelte';
 
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
     import emptyArtwork from '$lib/assets/simulcast-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import { m } from '$lib/i18n.svelte';
     import type { PageProps } from './$types';
 
@@ -170,12 +171,7 @@
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <CircleNotchIcon
-                        size="2rem"
-                        weight="bold"
-                        class="animate-spin text-accent motion-reduce:animate-none"
-                        aria-label={m.simulcast_loading()}
-                    />
+                    <LoadingSpinner label={m.simulcast_loading()} />
                 {:else}
                     <span class="sr-only">{m.simulcast_auto_loading()}</span>
                 {/if}
