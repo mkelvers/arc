@@ -197,10 +197,11 @@ function retryableMediaError(cause: unknown) {
     const error = cause as { code?: unknown; cause?: { code?: unknown }; message?: unknown };
     const code = error.code ?? error.cause?.code;
     return (
-        (typeof code === 'string' &&
-            ['ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'ETIMEDOUT'].includes(code)) ||
-        (typeof error.message === 'string' &&
-            /socket connection was closed|network connection was lost/i.test(error.message))
+        code === 'ECONNRESET' ||
+        code === 'ECONNREFUSED' ||
+        code === 'EPIPE' ||
+        code === 'ETIMEDOUT' ||
+        /socket connection was closed|network connection was lost/i.test(String(error.message))
     );
 }
 
