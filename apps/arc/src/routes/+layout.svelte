@@ -3,7 +3,7 @@
     import './layout.css';
     import favicon from '$lib/assets/favicon.svg';
     import { locale } from '$lib/locale.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
     import type { LayoutProps } from './$types';
 
     let { children }: LayoutProps = $props();

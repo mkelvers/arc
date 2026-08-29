@@ -6,7 +6,7 @@
     import * as preferences from '$lib/player/preferences';
     import type { AudioMode } from '@arc/shared/audio';
     import { changeLocale, locale, type AppLocale } from '$lib/locale.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     const languages = [
         { locale: 'en', label: 'English (US)' },
@@ -62,35 +62,30 @@
         }
     }
 
-    function localized(message: () => string) {
-        locale.current;
-        return message();
-    }
-
     function audioLabel(value: (typeof audioOptions)[number]) {
         return value === 'auto'
-            ? localized(m.player_auto)
+            ? m.player_auto()
             : value === 'sub'
-              ? localized(m.watchlist_subtitled)
-              : localized(m.watchlist_dubbed);
+              ? m.watchlist_subtitled()
+              : m.watchlist_dubbed();
     }
 </script>
 
 <svelte:head>
-    <title>Arc — {localized(m.settings_language)}</title>
-    <meta name="description" content={localized(m.settings_language_synopsis)} />
+    <title>Arc — {m.settings_language()}</title>
+    <meta name="description" content={m.settings_language_synopsis()} />
 </svelte:head>
 
 <div class="space-y-10">
     <section aria-labelledby="language-title">
         <div>
-            <h2 id="language-title" class="text-lg font-medium">{localized(m.settings_language)}</h2>
-            <p class="mt-1 text-sm leading-relaxed text-muted">{localized(m.settings_language_synopsis)}</p>
+            <h2 id="language-title" class="text-lg font-medium">{m.settings_language()}</h2>
+            <p class="mt-1 text-sm leading-relaxed text-muted">{m.settings_language_synopsis()}</p>
         </div>
 
         <Dropdown
             id="settings-language"
-            ariaLabel={localized(m.settings_language)}
+            ariaLabel={m.settings_language()}
             menuAlign="start"
             triggerClass="mt-6 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
         >
@@ -118,10 +113,10 @@
     <section aria-labelledby="playback-defaults-title" class="pt-2">
         <div>
             <h2 id="playback-defaults-title" class="text-lg font-medium">
-                {localized(m.settings_playback_defaults)}
+                {m.settings_playback_defaults()}
             </h2>
             <p class="mt-1 text-sm leading-relaxed text-muted">
-                {localized(m.settings_playback_defaults_synopsis)}
+                {m.settings_playback_defaults_synopsis()}
             </p>
         </div>
 
@@ -133,9 +128,9 @@
                 onclick={() => setAutoplay(!autoplay)}
             >
                 <span>
-                    <span class="block text-sm">{localized(m.settings_autoplay_next)}</span>
+                    <span class="block text-sm">{m.settings_autoplay_next()}</span>
                     <span class="mt-1 block text-xs leading-relaxed text-muted">
-                        {localized(m.settings_autoplay_next_synopsis)}
+                        {m.settings_autoplay_next_synopsis()}
                     </span>
                 </span>
                 <span
@@ -152,7 +147,7 @@
             </button>
 
             <div class="text-sm">
-                <span class="text-xs text-muted">{localized(m.settings_preferred_audio)}</span>
+                <span class="text-xs text-muted">{m.settings_preferred_audio()}</span>
                 <Dropdown
                     id="preferred-audio"
                     menuAlign="start"
@@ -176,13 +171,13 @@
             </div>
 
             <div class="text-sm">
-                <span class="text-xs text-muted">{localized(m.settings_default_quality)}</span>
+                <span class="text-xs text-muted">{m.settings_default_quality()}</span>
                 <Dropdown
                     id="default-quality"
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{quality === 'best' ? localized(m.player_auto) : quality}</span>
+                    {#snippet trigger()}<span>{quality === 'best' ? m.player_auto() : quality}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
                         {#each qualityOptions as option}
@@ -192,7 +187,7 @@
                                 class:text-white={quality === option}
                                 onclick={() => setQuality(option)}
                             >
-                                {option === 'best' ? localized(m.player_auto) : option}
+                                {option === 'best' ? m.player_auto() : option}
                             </button>
                         {/each}
                     {/snippet}
@@ -204,10 +199,10 @@
     <section aria-labelledby="subtitle-defaults-title" class="pt-2">
         <div>
             <h2 id="subtitle-defaults-title" class="text-lg font-medium">
-                {localized(m.settings_subtitle_defaults)}
+                {m.settings_subtitle_defaults()}
             </h2>
             <p class="mt-1 text-sm leading-relaxed text-muted">
-                {localized(m.settings_subtitle_defaults_synopsis)}
+                {m.settings_subtitle_defaults_synopsis()}
             </p>
         </div>
 
@@ -219,9 +214,9 @@
                 onclick={() => setSubtitlesEnabled(!subtitlesEnabled)}
             >
                 <span>
-                    <span class="block text-sm">{localized(m.settings_subtitles_enabled)}</span>
+                    <span class="block text-sm">{m.settings_subtitles_enabled()}</span>
                     <span class="mt-1 block text-xs leading-relaxed text-muted">
-                        {localized(m.settings_subtitles_enabled_synopsis)}
+                        {m.settings_subtitles_enabled_synopsis()}
                     </span>
                 </span>
                 <span
