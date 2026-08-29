@@ -236,6 +236,31 @@ describe('TMDB episode identity matching', () => {
         expect(metadata.get('2')?.title).toBe('Sukuwareru Ramiris - 02');
     });
 
+    test('uses a unique ordinal when provider and TMDB titles are generic', () => {
+        const metadata = matchEpisodeMetadata(
+            anime({
+                episodes: 3,
+                startDate: { year: 2026, month: 7, day: 5 },
+                endDate: { year: 2026, month: 7, day: 19 },
+            }),
+            source([
+                ['1', 1, 'Episode 1'],
+                ['2', 2, 'Episode 2'],
+                ['3', 3, 'Episode 3'],
+            ]),
+            [
+                candidate(1, 1, 'A Marriage Just for Show', '2026-07-05'),
+                candidate(1, 2, 'Episode 2', '2026-07-12'),
+                candidate(1, 3, 'Episode 3', '2026-07-19'),
+            ]
+        );
+
+        expect(metadata.get('3')).toMatchObject({
+            episodeNumber: 3,
+            title: 'Episode 3',
+        });
+    });
+
     test('does not treat the latest available simulcast row as the finale', () => {
         const metadata = matchEpisodeMetadata(
             anime({

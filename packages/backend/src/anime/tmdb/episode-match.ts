@@ -460,6 +460,33 @@ export function matchEpisodeMetadata(
         }
     }
 
+    for (const sourceIndex of source.flatMap((_, index) => (matches.has(index) ? [] : [index]))) {
+        const episode = source[sourceIndex];
+        if (!Number.isInteger(episode.number) || episode.number <= 0) {
+            continue;
+        }
+        if (!/^(?:episode|movie)(?:\s+\d+)?$/i.test(episode.title.trim())) {
+            continue;
+        }
+
+        const ordinalCandidates = candidateIndexes.filter((candidateIndex) => {
+            const candidate = candidates[candidateIndex];
+            return (
+                !usedCandidates.has(candidateIndex) &&
+                candidate.seasonNumber > 0 &&
+                (candidate.releaseEpisodeNumber ?? candidate.episodeNumber) === episode.number &&
+                /^(?:episode|movie)(?:\s+\d+)?$/i.test(candidate.title.trim())
+            );
+        });
+        if (ordinalCandidates.length !== 1) {
+            continue;
+        }
+
+        const [candidateIndex] = ordinalCandidates;
+        matches.set(sourceIndex, candidateIndex);
+        usedCandidates.add(candidateIndex);
+    }
+
     return matchedMetadata(anime, source, candidates, matches);
 }
 
