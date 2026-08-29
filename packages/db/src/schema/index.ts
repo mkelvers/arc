@@ -492,6 +492,19 @@ export const animeCatalogRefresh = pgTable('anime_catalog_refresh', {
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const animeSimulcastPageCache = pgTable(
+    'anime_simulcast_page_cache',
+    {
+        provider: varchar('provider', { length: 32 }).notNull(),
+        season: varchar('season', { length: 8 }).notNull(),
+        year: integer('year').notNull(),
+        page: integer('page').notNull(),
+        data: jsonb('data').$type<unknown>().notNull(),
+        fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [primaryKey({ columns: [table.provider, table.season, table.year, table.page] })]
+);
+
 export const animeCatalogTaxonomy = pgTable('anime_catalog_taxonomy', {
     provider: varchar('provider', { length: 32 }).primaryKey(),
     genres: text('genres').array().notNull(),
