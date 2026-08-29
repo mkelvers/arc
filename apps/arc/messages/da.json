@@ -156,6 +156,7 @@
     "anime_more_details": "Flere detaljer",
     "anime_fewer_details": "Færre detaljer",
     "anime_loading_episodes": "Indlæser episoder",
+    "anime_episode_inventory_partial": "Kun {available} af {expected} episoder er tilgængelige lige nu. Der kan komme flere efter næste opdatering.",
     "anime_next_episode": "Næste episode sendes {date}{time}.",
     "media_back": "Tilbage til anime",
     "media_refetch": "Hent igen",

@@ -31,5 +31,6 @@
     "settings_subtitles_enabled_synopsis": "字幕が利用できる場合、字幕を有効にしてエピソードを開始します。",
     "settings_default_subtitle": "デフォルトの字幕トラック",
     "settings_language": "言語",
-    "settings_language_synopsis": "Arc 全体で使用する言語を選択します。"
+    "settings_language_synopsis": "Arc 全体で使用する言語を選択します。",
+    "anime_episode_inventory_partial": "現在視聴できるのは全{expected}話中{available}話です。次回の配信元更新後に増える可能性があります。"
 }

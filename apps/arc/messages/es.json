@@ -156,6 +156,7 @@
     "anime_more_details": "Más detalles",
     "anime_fewer_details": "Menos detalles",
     "anime_loading_episodes": "Cargando episodios",
+    "anime_episode_inventory_partial": "Actualmente solo hay {available} de {expected} episodios disponibles. Puede que aparezcan más después de la próxima actualización del proveedor.",
     "anime_next_episode": "El próximo episodio se emite el {date}{time}.",
     "media_back": "Volver al anime",
     "media_refetch": "Volver a obtener",
