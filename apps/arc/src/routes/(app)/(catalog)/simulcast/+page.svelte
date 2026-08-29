@@ -105,7 +105,7 @@
     <meta name="description" content={m.simulcast_title()} />
 </svelte:head>
 
-<main class="min-h-dvh bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
+<main class="min-h-dvh overflow-x-clip bg-canvas px-5 py-10 text-foreground sm:px-10 sm:py-12 lg:px-16 lg:py-16">
     <section class="mx-auto w-full max-w-264" aria-labelledby="simulcast-title">
         <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 id="simulcast-title" class="text-xl font-bold sm:text-2xl">{m.simulcast_title()}</h1>
