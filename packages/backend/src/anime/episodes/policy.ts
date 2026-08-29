@@ -106,7 +106,8 @@ export function episodeInventoryNeedsDiscovery(
     return (
         anime.status === 'FINISHED' &&
         expected !== null &&
-        (!episodeInventoryCoversTarget(storedEpisodes, expected) ||
+        (storedEpisodes.length !== expected ||
+            !episodeInventoryCoversTarget(storedEpisodes, expected) ||
             (nextRefreshAt !== undefined &&
                 (nextRefreshAt === null || nextRefreshAt.getTime() <= now)))
     );

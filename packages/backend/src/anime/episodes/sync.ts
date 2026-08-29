@@ -18,7 +18,6 @@ import { sourceRevision, storedEpisodes } from './model';
 import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
-    episodeInventoryCoversTarget,
     episodeMetadataRevision,
     episodeMetadataRevisionAfterSync,
     nextRefreshAt,
@@ -41,6 +40,31 @@ const inventoryRequests = new Map<number, ReturnType<typeof storedEpisodes>>();
 
 export function episodeInventoryBackfillKey(anilistId: number) {
     return `episode:backfill:${anilistId}`;
+}
+
+export async function ensureEpisodeInventoryBackfill(anilistId: number) {
+    await db
+        .insert(maintenanceTask)
+        .values({
+            kind: 'episode_backfill',
+            dedupeKey: episodeInventoryBackfillKey(anilistId),
+            payload: { kind: 'episode_backfill', anilistId },
+        })
+        .onConflictDoUpdate({
+            target: maintenanceTask.dedupeKey,
+            setWhere: ne(maintenanceTask.state, 'running'),
+            set: {
+                state: 'pending',
+                attempts: 0,
+                nextAttemptAt: new Date(),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+                result: null,
+                completedAt: null,
+                updatedAt: new Date(),
+            },
+        });
 }
 
 export async function enqueueEpisodeInventoryBackfill(anilistId: number) {
@@ -150,8 +174,13 @@ async function fetchAndStore(
           })
         : null;
     const source = episodesForRelease(anime, providerEpisodes, metadata);
-    if (!confirmation && expected !== null && !episodeInventoryCoversTarget(source, expected)) {
-        throw new TargetEpisodeUnavailableError(anime.id, expected);
+    const regularEpisodeNumbers = new Set(
+        source.flatMap(({ number }) => (Number.isInteger(number) && number > 0 ? [number] : []))
+    );
+    if (expected !== null && regularEpisodeNumbers.size > expected) {
+        throw new Error(
+            `Episode metadata could not resolve the provider inventory for AniList ${anime.id}`
+        );
     }
     const now = new Date();
     await db.transaction(async (tx) => {
@@ -197,7 +226,9 @@ async function fetchAndStore(
 
             episodeIdReplacements.set(episode.episodeId, currentIds[0]);
         });
-        const staleEpisodeIds = [...episodeIdReplacements.keys()];
+        const staleEpisodeIds = existing.flatMap(({ episodeId }) =>
+            sourceIds.has(episodeId) ? [] : [episodeId]
+        );
         const values = source.map((episode): typeof animeEpisode.$inferInsert => {
             const previous =
                 stored.get(episode.id) ??
@@ -437,7 +468,7 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
                     )
                 );
             }
-            await enqueueEpisodeInventoryBackfill(anime.id).catch((failure) =>
+            await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
             throw cause;

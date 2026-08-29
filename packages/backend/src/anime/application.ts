@@ -7,12 +7,17 @@ import { toAnimeDetails } from './details';
 import {
     getEpisodeRevision,
     getEpisodes,
+    getEpisodeSyncState,
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
     withMovieBackdrop,
 } from './episodes';
-import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
-import { discoverEpisodeInventory } from './episodes/sync';
+import {
+    episodeInventoryNeedsDiscovery,
+    episodeMetadataNeedsRefresh,
+    episodesAvailableToWatch,
+} from './episodes/policy';
+import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
@@ -58,19 +63,36 @@ export async function animePage(userId: string, id: number) {
     const imported = !stored;
     const anime = stored ?? (await getAnimeRelease(id));
     const storedMapping = await findMapping(id);
-    const storedEpisodes = await getEpisodes(anime);
+    const [storedEpisodes, episodeSync] = await Promise.all([
+        getEpisodes(anime),
+        getEpisodeSyncState(id),
+    ]);
+    const metadataNeedsDiscovery = episodeMetadataNeedsRefresh(
+        storedEpisodes,
+        storedMapping !== null,
+        episodeSync?.metadataRevision
+    );
     const shouldDiscover =
-        imported || !storedMapping || episodeInventoryNeedsDiscovery(anime, storedEpisodes);
+        imported ||
+        !storedMapping ||
+        (episodeInventoryNeedsDiscovery(anime, storedEpisodes, episodeSync?.nextRefreshAt) &&
+            (!episodeSync?.lastSuccessAt ||
+                !episodeSync.nextRefreshAt ||
+                episodeSync.nextRefreshAt.getTime() <= Date.now())) ||
+        metadataNeedsDiscovery;
     const initialEpisodes =
-        shouldDiscover && imported
-            ? await discoverEpisodeInventory(anime).then((entries) =>
-                  episodesAvailableToWatch(entries, anime)
-              )
+        shouldDiscover &&
+        (imported ||
+            storedEpisodes.length === 0 ||
+            (anime.episodes !== null && storedEpisodes.length !== anime.episodes) ||
+            !storedMapping ||
+            metadataNeedsDiscovery)
+            ? await discoverEpisodeInventory(anime)
+                  .then((entries) => episodesAvailableToWatch(entries, anime))
+                  .catch(() => null)
             : null;
     if (shouldDiscover && !imported) {
-        void discoverEpisodeInventory(anime).catch((cause) =>
-            logger.debug(`Episode inventory repair failed for AniList ${id}`, cause)
-        );
+        await ensureEpisodeInventoryBackfill(id);
     }
     const [synopsis, storedAiringSchedule, episodes, watchlist] = await Promise.all([
         resolveAnimeSynopsis(anime, { refresh: imported }),
