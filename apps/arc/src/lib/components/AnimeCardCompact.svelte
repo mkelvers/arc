@@ -7,7 +7,7 @@
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import type { AnimeCardProps } from './AnimeCard.types';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     let { anime, onselect }: AnimeCardProps = $props();
 </script>

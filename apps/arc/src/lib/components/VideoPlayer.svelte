@@ -9,7 +9,7 @@
     import { CaretLeftIcon, SpinnerGapIcon } from 'phosphor-svelte';
     import Controls from './player/Controls.svelte';
     import Modal from './ui/Modal.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface AnimeInfo {
         id: number;

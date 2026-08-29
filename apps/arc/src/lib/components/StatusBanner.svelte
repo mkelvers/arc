@@ -3,7 +3,7 @@
     import { fly } from 'svelte/transition';
     import { prefersReducedMotion } from 'svelte/motion';
     import { cn } from '$lib/utils';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         message: string;
