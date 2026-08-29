@@ -186,7 +186,10 @@
                 </Dropdown>
             </div>
 
-            <nav class="hidden min-w-0 flex-1 overflow-x-auto sm:block" aria-label={m.watchlist_statuses()}>
+            <nav
+                class="scrollbar-hidden hidden min-w-0 flex-1 overflow-x-auto sm:block"
+                aria-label={m.watchlist_statuses()}
+            >
                 <ul class="-mb-px flex min-w-max gap-5 sm:gap-7">
                     {#each filters as filter}
                         <li>
