@@ -7,6 +7,8 @@ import {
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
     matchesAniKotoIdentity,
+    mapAniKotoContinuityRelease,
+    relatedReleaseTitleMatches,
     mergeAniKotoEpisodeRanges,
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
@@ -28,6 +30,71 @@ import {
 import type { ProviderEpisode } from './types';
 
 describe('AniKoto provider rules', () => {
+    test('matches a related release inside a longer provider title', () => {
+        expect(
+            relatedReleaseTitleMatches(
+                'Pokémon BW: Adventures in Unova and Beyond',
+                'Pokémon: Black & White: Adventures in Unova'
+            )
+        ).toBe(true);
+        expect(
+            relatedReleaseTitleMatches('A completely different series', 'Adventures in Unova')
+        ).toBe(false);
+    });
+
+    test('maps a release range onto a continuous provider run', () => {
+        const providerEpisodes = (seriesId: string, count: number): ProviderEpisode[] =>
+            Array.from({ length: count }, (_, index) => ({
+                id: `${seriesId}-${index + 1}`,
+                number: index + 1,
+                title: `Episode ${index + 1}`,
+                audio: ['sub' as const],
+            }));
+        const releases = [
+            {
+                anime: { id: 1, idMal: 1, episodes: 84, title: null },
+                seriesId: 100,
+                episodes: providerEpisodes('first', 48),
+            },
+            {
+                anime: { id: 2, idMal: 2, episodes: 24, title: null },
+                seriesId: 300,
+                episodes: providerEpisodes('second', 49),
+            },
+            {
+                anime: { id: 3, idMal: 3, episodes: 14, title: null },
+                seriesId: 400,
+                episodes: providerEpisodes('third', 45),
+            },
+            {
+                anime: { id: 4, idMal: 4, episodes: 20, title: null },
+                seriesId: 400,
+                episodes: providerEpisodes('third', 45),
+            },
+        ];
+
+        expect(
+            mapAniKotoContinuityRelease(releases, 3)?.map(({ number, id }) => ({ number, id }))
+        ).toEqual(
+            Array.from({ length: 14 }, (_, index) => ({
+                number: index + 1,
+                id: `anikoto:400:third-${index + 12}`,
+            }))
+        );
+        expect(
+            mapAniKotoContinuityRelease(releases, 2)?.map(({ number, id }) => ({ number, id }))
+        ).toEqual([
+            ...Array.from({ length: 13 }, (_, index) => ({
+                number: index + 1,
+                id: `anikoto:300:second-${index + 37}`,
+            })),
+            ...Array.from({ length: 11 }, (_, index) => ({
+                number: index + 14,
+                id: `anikoto:400:third-${index + 1}`,
+            })),
+        ]);
+    });
+
     test('keeps merged episodes addressable by their provider release', () => {
         const primary: ProviderEpisode[] = Array.from({ length: 48 }, (_, index) => ({
             id: `black-white-${index + 1}`,
