@@ -25,7 +25,7 @@
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
     import WatchlistPendingCard from './WatchlistPendingCard.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     type PageResult = Awaited<PageData['page']>;
     type Page = Extract<PageResult, { status: 'success' }>['data'];
