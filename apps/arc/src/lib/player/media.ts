@@ -426,6 +426,21 @@ export function seekTarget(currentTime: number, delta: number, duration: number)
     return Math.max(0, Math.min(duration, currentTime + delta));
 }
 
+export function playbackStartTarget(
+    startAt: number,
+    resumeAt: number | null,
+    autoplayAttempted: boolean
+) {
+    const savedStart =
+        !autoplayAttempted && Number.isFinite(startAt) && startAt > 0 ? startAt : null;
+
+    if (resumeAt === null || savedStart === null) {
+        return resumeAt ?? savedStart;
+    }
+
+    return Math.max(resumeAt, savedStart);
+}
+
 export function availableModes(sources: Sources) {
     return audioModeOrder.filter((mode) => (sources[mode]?.length ?? 0) > 0);
 }

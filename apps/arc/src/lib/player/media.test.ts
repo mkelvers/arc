@@ -9,6 +9,7 @@ import {
     isHlsSource,
     orderStreams,
     parseWebVtt,
+    playbackStartTarget,
     sameSubtitleCues,
     seekTarget,
     subtitleOptionsFor,
@@ -69,6 +70,11 @@ describe('player media helpers', () => {
     test('clamps seek targets to the media duration', () => {
         expect(seekTarget(5, -10, 100)).toBe(0);
         expect(seekTarget(95, 10, 100)).toBe(100);
+    });
+
+    test('keeps the saved start time across an initial zero-position source fallback', () => {
+        expect(playbackStartTarget(891, 0, false)).toBe(891);
+        expect(playbackStartTarget(891, 42, true)).toBe(42);
     });
 
     test('derives concise labels', () => {

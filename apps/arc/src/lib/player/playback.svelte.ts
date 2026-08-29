@@ -8,6 +8,7 @@ import {
     hasSubtitleTrack,
     isHlsSource,
     orderStreams,
+    playbackStartTarget,
     seekTarget,
     streamsFor,
     subtitlesAt,
@@ -573,11 +574,10 @@ export class Playback {
         const video = this.video;
         this.duration = video.duration;
         this.error = false;
-        if (this.resumeAt !== null) {
-            this.pendingStartAt = this.resumeAt;
-            this.resumeAt = null;
-        } else if (!this.autoplayAttempted && Number.isFinite(startAt) && startAt > 0) {
-            this.pendingStartAt = startAt;
+        const startTarget = playbackStartTarget(startAt, this.resumeAt, this.autoplayAttempted);
+        this.resumeAt = null;
+        if (startTarget !== null) {
+            this.pendingStartAt = startTarget;
         }
 
         if (this.pendingStartAt !== null) {
