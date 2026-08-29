@@ -22,9 +22,9 @@
 
 <main class="bg-canvas text-foreground">
     <h1 class="sr-only">{data.anime.title}</h1>
-    <section class="min-h-dvh">
+    <section>
         <figure
-            class="anime-hero relative z-10 grid h-dvh min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
+            class="anime-hero relative z-0 grid h-[calc(100dvh-10rem)] min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
             {#await data.artwork then artwork}
                 {#if artwork?.selectedBackdrop}
@@ -32,8 +32,8 @@
                         src={artwork.selectedBackdrop.url}
                         alt={data.anime.title}
                         previewSize="w300"
-                        class="z-0 col-start-1 row-start-1"
-                        imageClass="object-[center_0%]"
+                        class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
+                        imageClass="object-[45%_0%]"
                         onready={() => (loadedBackdrop = artwork.selectedBackdrop?.url ?? null)}
                     />
                 {/if}
@@ -171,8 +171,8 @@
             </div>
         </figure>
 
-        <div class="px-5 pt-7 sm:px-10 lg:px-16 lg:pt-8">
-            <div class="border-b border-border">
+        <div class="relative z-20 bg-canvas px-5 sm:px-10 lg:px-16">
+            <div class="border-b border-border pt-7 lg:pt-8">
                 <div
                     class={cn(
                         'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
