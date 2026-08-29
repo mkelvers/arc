@@ -7,16 +7,14 @@ import {
     type AnimeSeasonSelection,
     type AnimeSeasonStartYears,
 } from '@arc/shared/season';
-import { asc, eq } from 'drizzle-orm';
+import { AnimeCardPageSchema } from '@arc/shared/types';
+import { and, asc, eq } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { animeCatalog, animeCatalogRefresh } from '@arc/db/schema';
-import { storedDiscoverableAnimeCards } from './browse';
+import { animeCatalog, animeSimulcastPageCache } from '@arc/db/schema';
 import { getAniKotoSimulcastPage } from './providers/anikoto';
 
-function refreshKey(selection: AnimeSeasonSelection, page: number) {
-    return JSON.stringify({ provider: 'anikoto', kind: 'simulcast', ...selection, page });
-}
+const provider = 'anikoto';
 
 export function requestedSimulcastSeason(
     searchParams: URLSearchParams,
@@ -51,23 +49,30 @@ async function seasonStarts() {
 
 export async function refreshSimulcastPage(selection: AnimeSeasonSelection, page: number) {
     const result = await getAniKotoSimulcastPage(selection, page);
+    const data = AnimeCardPageSchema.parse(result);
     await db
-        .insert(animeCatalogRefresh)
+        .insert(animeSimulcastPageCache)
         .values({
-            queryKey: refreshKey(selection, page),
-            animeIds: result.animeIds,
-            hasNextPage: result.hasNextPage,
+            provider,
+            season: selection.season,
+            year: selection.year,
+            page,
+            data,
             fetchedAt: new Date(),
         })
         .onConflictDoUpdate({
-            target: animeCatalogRefresh.queryKey,
+            target: [
+                animeSimulcastPageCache.provider,
+                animeSimulcastPageCache.season,
+                animeSimulcastPageCache.year,
+                animeSimulcastPageCache.page,
+            ],
             set: {
-                animeIds: result.animeIds,
-                hasNextPage: result.hasNextPage,
+                data,
                 fetchedAt: new Date(),
             },
         });
-    return result;
+    return data;
 }
 
 async function simulcastPage(selection: AnimeSeasonSelection, page: number) {
@@ -76,29 +81,43 @@ async function simulcastPage(selection: AnimeSeasonSelection, page: number) {
     }
 
     const [stored] = await db
-        .select({
-            animeIds: animeCatalogRefresh.animeIds,
-            hasNextPage: animeCatalogRefresh.hasNextPage,
-        })
-        .from(animeCatalogRefresh)
-        .where(eq(animeCatalogRefresh.queryKey, refreshKey(selection, page)))
+        .select({ data: animeSimulcastPageCache.data })
+        .from(animeSimulcastPageCache)
+        .where(
+            and(
+                eq(animeSimulcastPageCache.provider, provider),
+                eq(animeSimulcastPageCache.season, selection.season),
+                eq(animeSimulcastPageCache.year, selection.year),
+                eq(animeSimulcastPageCache.page, page)
+            )
+        )
         .limit(1);
-    const snapshot = stored ?? (await refreshSimulcastPage(selection, page));
-
-    return {
-        anime: await storedDiscoverableAnimeCards(snapshot.animeIds),
-        hasNextPage: snapshot.hasNextPage,
-        page,
-    };
+    const cached = AnimeCardPageSchema.safeParse(stored?.data);
+    return cached.success ? cached.data : refreshSimulcastPage(selection, page);
 }
 
 export async function refreshCurrentSimulcast(now = new Date()) {
-    const selection = currentAnimeSeason(now);
-    for (let page = 1; ; page += 1) {
-        const result = await refreshSimulcastPage(selection, page);
-        if (!result.hasNextPage) {
-            return;
+    const current = currentAnimeSeason(now);
+    for (const selection of [current, nextAnimeSeason(current)]) {
+        for (let page = 1; ; page += 1) {
+            const result = await refreshSimulcastPage(selection, page);
+            if (!result.hasNextPage) {
+                break;
+            }
         }
+    }
+}
+
+function nextAnimeSeason(selection: AnimeSeasonSelection): AnimeSeasonSelection {
+    switch (selection.season) {
+        case 'WINTER':
+            return { season: 'SPRING', year: selection.year };
+        case 'SPRING':
+            return { season: 'SUMMER', year: selection.year };
+        case 'SUMMER':
+            return { season: 'FALL', year: selection.year };
+        case 'FALL':
+            return { season: 'WINTER', year: selection.year + 1 };
     }
 }
 
@@ -108,13 +127,14 @@ function label(season: AnimeSeason, year: number) {
 
 export async function simulcast(searchParams: URLSearchParams, page: number) {
     const current = currentAnimeSeason();
+    const latest = nextAnimeSeason(current);
     const selected = requestedSimulcastSeason(searchParams, current);
-    if (!selected || compareAnimeSeasons(selected, current) > 0) {
+    if (!selected || compareAnimeSeasons(selected, latest) > 0) {
         return null;
     }
 
     const [starts, result] = await Promise.all([seasonStarts(), simulcastPage(selected, page)]);
-    const seasons = availableAnimeSeasons(starts, current);
+    const seasons = availableAnimeSeasons(starts, latest);
     if (!seasons.some(({ season, year }) => season === selected.season && year === selected.year)) {
         return null;
     }

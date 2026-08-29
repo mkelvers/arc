@@ -7,6 +7,7 @@ import {
     parseAniKotoCatalogPage,
     parseEpisodeList,
     parseMegaPlaySource,
+    parseSeries,
     parseServerList,
     playableAudioModes,
     resolveCandidates,
@@ -98,6 +99,54 @@ describe('AniKoto provider rules', () => {
             providerIds: [],
             hasNextPage: false,
         });
+    });
+
+    test('builds seasonal card metadata from a validated AniKoto series', () => {
+        expect(
+            parseSeries({
+                ok: true,
+                data: {
+                    anime: {
+                        id: 8873,
+                        ani_id: '209983',
+                        mal_id: '63817',
+                        title: 'Provider title',
+                        alternative: 'Alternative title',
+                        poster: 'https://img.animeschedule.net/production/assets/public/img/anime/jpg/default/provider.jpg',
+                        description: '<p>A seasonal <b>release</b>.</p>',
+                        score: '7.27',
+                        is_sub: 9,
+                        is_dub: 4,
+                        status: 'Currently Airing',
+                        terms_by_type: { genre: ['Action', 'Fantasy'], type: ['TV'] },
+                    },
+                    episodes: [],
+                },
+            })
+        ).toMatchObject({
+            id: 8873,
+            anilistId: 209983,
+            title: 'Provider title',
+            synopsis: 'A seasonal release.',
+            score: 73,
+            genres: ['Action', 'Fantasy'],
+            format: 'TV',
+            status: 'RELEASING',
+            audio: ['sub', 'dub'],
+        });
+        expect(
+            parseSeries({
+                ok: true,
+                data: {
+                    anime: {
+                        id: 8873,
+                        title: 'Missing image',
+                        poster: 'http://insecure.test/x.jpg',
+                    },
+                    episodes: [],
+                },
+            })?.image
+        ).toBeNull();
     });
 
     test('accepts only supported HTTPS media and subtitle URLs', () => {

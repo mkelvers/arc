@@ -2,9 +2,10 @@ import { and, eq, isNull, or } from 'drizzle-orm';
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import type { AudioMode } from '@arc/shared/audio';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeSeasonSelection } from '@arc/shared/season';
-import { animeTitles } from '../anilist/text';
+import type { AnimeCard } from '@arc/shared/types';
+import { animeTitles, plainText } from '../anilist/text';
 import type { AniListAnime } from '../anilist/types';
 import type { JsonValue } from '../../utils';
 import type {
@@ -54,6 +55,18 @@ const seriesResponseSchema = z.object({
                 mal_id: z.union([z.number(), z.string()]).nullish(),
                 title: z.string(),
                 alternative: z.string().nullish(),
+                poster: z.string().nullish(),
+                description: z.string().nullish(),
+                score: z.union([z.number(), z.string()]).nullish(),
+                is_sub: z.union([z.number(), z.string()]).nullish(),
+                is_dub: z.union([z.number(), z.string()]).nullish(),
+                status: z.string().nullish(),
+                terms_by_type: z
+                    .object({
+                        genre: z.array(z.string()).optional(),
+                        type: z.array(z.string()).optional(),
+                    })
+                    .nullish(),
             }),
             episodes: z.array(
                 z.object({
@@ -90,6 +103,13 @@ interface AniKotoSeries {
     malId: number | null;
     title: string;
     alternativeTitle: string;
+    image: string | null;
+    synopsis: string;
+    score: number;
+    genres: string[];
+    format: string | null;
+    status: string | null;
+    audio: AudioMode[];
 }
 
 interface SearchCandidate {
@@ -276,12 +296,33 @@ export function parseSeries(value: JsonValue): AniKotoSeries | null {
         return null;
     }
 
+    const anime = parsed.data.data.anime;
+    const score = Number(anime.score);
+    const modes: AudioMode[] = [
+        ...(Number(anime.is_sub) > 0 ? (['sub'] as const) : []),
+        ...(Number(anime.is_dub) > 0 ? (['dub'] as const) : []),
+    ];
+
     return {
         id,
-        anilistId: positiveId(parsed.data.data.anime.ani_id),
-        malId: positiveId(parsed.data.data.anime.mal_id),
-        title: parsed.data.data.anime.title.trim(),
-        alternativeTitle: parsed.data.data.anime.alternative?.trim() ?? '',
+        anilistId: positiveId(anime.ani_id),
+        malId: positiveId(anime.mal_id),
+        title: anime.title.trim(),
+        alternativeTitle: anime.alternative?.trim() ?? '',
+        image: validHttpsUrl(anime.poster ?? undefined)?.toString() ?? null,
+        synopsis: plainText(anime.description),
+        score: Number.isFinite(score) && score >= 0 ? Math.min(100, Math.round(score * 10)) : 0,
+        genres: [
+            ...new Set(anime.terms_by_type?.genre?.map((genre) => genre.trim()).filter(Boolean)),
+        ],
+        format: anime.terms_by_type?.type?.find((format) => format.trim())?.trim() ?? null,
+        status:
+            {
+                'currently airing': 'RELEASING',
+                'finished airing': 'FINISHED',
+                'not yet aired': 'NOT_YET_RELEASED',
+            }[anime.status?.trim().toLowerCase() ?? ''] ?? null,
+        audio: modes,
     };
 }
 
@@ -725,9 +766,12 @@ export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, p
     const resolved = await resolveCandidates(catalog.providerIds, (id) => loadSeries(id), {
         concurrency: 8,
     });
-    const series = resolved.results.flatMap((entry) =>
-        entry?.anilistId ? [{ id: entry.id, anilistId: entry.anilistId }] : []
-    );
+    const series = resolved.results.flatMap((entry) => {
+        if (!entry?.anilistId || !entry.title || !entry.image) {
+            return [];
+        }
+        return [{ ...entry, anilistId: entry.anilistId, image: entry.image }];
+    });
     if (catalog.providerIds.length && !series.length) {
         throw new AggregateError(resolved.errors, 'AniKoto catalog identities could not be loaded');
     }
@@ -736,8 +780,22 @@ export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, p
         series.map((entry) => saveProviderMediaId(entry.anilistId, String(entry.id)))
     );
 
+    const anime: AnimeCard[] = series.map((entry) => ({
+        id: entry.anilistId,
+        href: `/anime/${entry.anilistId}`,
+        link: `/anime/${entry.anilistId}`,
+        title: entry.title,
+        image: entry.image,
+        audioLabel: audioAvailabilityLabel(entry.audio),
+        format: entry.format,
+        status: entry.status,
+        score: entry.score,
+        genres: entry.genres,
+        synopsis: entry.synopsis,
+    }));
+
     return {
-        animeIds: [...new Set(series.map((entry) => entry.anilistId))],
+        anime,
         hasNextPage: catalog.hasNextPage,
         page,
     };
