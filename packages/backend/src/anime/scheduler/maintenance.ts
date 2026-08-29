@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
@@ -174,6 +174,81 @@ function maintenanceRetryDelay(attempts: number) {
     return Math.min(24 * 60 * 60 * 1_000, 60_000 * 2 ** Math.min(attempts, 10));
 }
 
+async function finishMaintenanceTask(
+    candidate: { id: string; payload: unknown },
+    claimed: { attempts: number },
+    leaseOwner: string,
+    options: { leaseDurationMs: number; leaseRenewalMs: number }
+) {
+    const parsed = MaintenanceRequestSchema.safeParse(candidate.payload);
+    const timer = setInterval(() => {
+        void db
+            .update(maintenanceTask)
+            .set({
+                leaseUntil: new Date(Date.now() + options.leaseDurationMs),
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(maintenanceTask.id, candidate.id),
+                    eq(maintenanceTask.state, 'running'),
+                    eq(maintenanceTask.leaseOwner, leaseOwner)
+                )
+            )
+            .catch(() => {});
+    }, options.leaseRenewalMs);
+    try {
+        if (!parsed.success) {
+            throw new Error('Stored maintenance task payload is invalid', {
+                cause: parsed.error,
+            });
+        }
+        const result = await executeMaintenance(parsed.data);
+        await db
+            .update(maintenanceTask)
+            .set({
+                state: 'completed',
+                result,
+                completedAt: new Date(),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(maintenanceTask.id, candidate.id),
+                    eq(maintenanceTask.leaseOwner, leaseOwner)
+                )
+            );
+        return 'completed' as const;
+    } catch (cause) {
+        const attempts = claimed.attempts + 1;
+        const failed = attempts >= 12;
+        const retryAt = new Date(Date.now() + maintenanceRetryDelay(attempts));
+        await db
+            .update(maintenanceTask)
+            .set({
+                state: failed ? 'failed' : 'pending',
+                attempts,
+                nextAttemptAt: retryAt,
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: cause instanceof Error ? cause.message : 'Maintenance task failed',
+                updatedAt: new Date(),
+            })
+            .where(
+                and(
+                    eq(maintenanceTask.id, candidate.id),
+                    eq(maintenanceTask.leaseOwner, leaseOwner)
+                )
+            );
+        return failed ? ('failed' as const) : ('retried' as const);
+    } finally {
+        clearInterval(timer);
+    }
+}
+
 async function seedEpisodeInventoryBackfills() {
     await db.execute(sql`
         insert into maintenance_task (kind, dedupe_key, payload)
@@ -314,9 +389,10 @@ export async function drainMaintenanceTasks(
                 or(isNull(maintenanceTask.leaseUntil), lte(maintenanceTask.leaseUntil, now))
             )
         )
-        .orderBy(asc(maintenanceTask.nextAttemptAt))
+        .orderBy(desc(maintenanceTask.updatedAt), asc(maintenanceTask.nextAttemptAt))
         .limit(options.limit * 2);
     const totals = { claimed: 0, completed: 0, retried: 0, failed: 0 };
+    const executions: Promise<'completed' | 'retried' | 'failed'>[] = [];
 
     for (const candidate of candidates) {
         if (totals.claimed === options.limit) {
@@ -347,74 +423,18 @@ export async function drainMaintenanceTasks(
         }
 
         totals.claimed += 1;
-        const parsed = MaintenanceRequestSchema.safeParse(candidate.payload);
-        const timer = setInterval(() => {
-            void db
-                .update(maintenanceTask)
-                .set({
-                    leaseUntil: new Date(Date.now() + options.leaseDurationMs),
-                    updatedAt: new Date(),
-                })
-                .where(
-                    and(
-                        eq(maintenanceTask.id, candidate.id),
-                        eq(maintenanceTask.state, 'running'),
-                        eq(maintenanceTask.leaseOwner, leaseOwner)
-                    )
-                )
-                .catch(() => {});
-        }, options.leaseRenewalMs);
-        try {
-            if (!parsed.success) {
-                throw new Error('Stored maintenance task payload is invalid', {
-                    cause: parsed.error,
-                });
-            }
-            const result = await executeMaintenance(parsed.data);
-            await db
-                .update(maintenanceTask)
-                .set({
-                    state: 'completed',
-                    result,
-                    completedAt: new Date(),
-                    leaseOwner: null,
-                    leaseUntil: null,
-                    lastError: null,
-                    updatedAt: new Date(),
-                })
-                .where(
-                    and(
-                        eq(maintenanceTask.id, candidate.id),
-                        eq(maintenanceTask.leaseOwner, leaseOwner)
-                    )
-                );
-            totals.completed += 1;
-        } catch (cause) {
-            const attempts = claimed.attempts + 1;
-            const failed = attempts >= 12;
-            const retryAt = new Date(Date.now() + maintenanceRetryDelay(attempts));
-            await db
-                .update(maintenanceTask)
-                .set({
-                    state: failed ? 'failed' : 'pending',
-                    attempts,
-                    nextAttemptAt: retryAt,
-                    leaseOwner: null,
-                    leaseUntil: null,
-                    lastError: cause instanceof Error ? cause.message : 'Maintenance task failed',
-                    updatedAt: new Date(),
-                })
-                .where(
-                    and(
-                        eq(maintenanceTask.id, candidate.id),
-                        eq(maintenanceTask.leaseOwner, leaseOwner)
-                    )
-                );
-            totals[failed ? 'failed' : 'retried'] += 1;
-        } finally {
-            clearInterval(timer);
-        }
+        executions.push(
+            finishMaintenanceTask(candidate, claimed, leaseOwner, {
+                leaseDurationMs: options.leaseDurationMs,
+                leaseRenewalMs: options.leaseRenewalMs,
+            })
+        );
     }
+
+    const results = await Promise.all(executions);
+    results.forEach((result) => {
+        totals[result] += 1;
+    });
 
     return totals;
 }
