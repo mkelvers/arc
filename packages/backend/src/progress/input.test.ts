@@ -13,6 +13,7 @@ describe('playback progress input', () => {
                 durationSeconds: 1_440,
                 completed: false,
                 eventAt: 1_754_915_200_000,
+                sessionStartedAt: 1_754_915_200_000,
             })
         ).toEqual({
             animeId: 21,
@@ -22,6 +23,7 @@ describe('playback progress input', () => {
             durationSeconds: 1_440,
             completed: false,
             eventAt: new Date(1_754_915_200_000),
+            sessionStartedAt: new Date(1_754_915_200_000),
         });
     });
 
@@ -35,6 +37,7 @@ describe('playback progress input', () => {
                 durationSeconds: 1_440,
                 completed: true,
                 eventAt: 1_754_915_200_000,
+                sessionStartedAt: 1_754_915_200_000,
             })?.positionSeconds
         ).toBe(1_440);
     });
@@ -49,6 +52,7 @@ describe('playback progress input', () => {
                 durationSeconds: 0,
                 completed: 'no',
                 eventAt: Number.NaN,
+                sessionStartedAt: 1_754_915_200_000,
             })
         ).toBeNull();
     });

@@ -68,7 +68,7 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
                 lt(playbackProgress.eventAt, excluded(playbackProgress.eventAt)),
                 or(
                     isNull(playbackProgress.dismissedAt),
-                    lt(playbackProgress.dismissedAt, excluded(playbackProgress.eventAt))
+                    lt(playbackProgress.dismissedAt, input.sessionStartedAt)
                 )
             ),
         })

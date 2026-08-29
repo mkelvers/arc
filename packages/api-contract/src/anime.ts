@@ -266,6 +266,7 @@ export const PlaybackProgressSchema = z.object({
         .max(7 * 24 * 60 * 60),
     completed: z.boolean(),
     eventAt: z.number().int().nonnegative(),
+    sessionStartedAt: z.number().int().nonnegative(),
 });
 
 const SegmentFields = {

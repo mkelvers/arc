@@ -10,6 +10,7 @@ export interface PlaybackProgressInput {
     durationSeconds: number;
     completed: boolean;
     eventAt: Date;
+    sessionStartedAt: Date;
 }
 
 const playbackProgressSchema = z.object({
@@ -23,11 +24,17 @@ const playbackProgressSchema = z.object({
         .max(7 * 24 * 60 * 60),
     completed: z.boolean(),
     eventAt: z.number().int().nonnegative(),
+    sessionStartedAt: z.number().int().nonnegative(),
 });
 
 export function parsePlaybackProgress(value: JsonValue): PlaybackProgressInput | null {
     const parsed = playbackProgressSchema.safeParse(value);
-    if (!parsed.success || parsed.data.eventAt > Date.now() + 5 * 60 * 1_000) {
+    if (
+        !parsed.success ||
+        parsed.data.eventAt > Date.now() + 5 * 60 * 1_000 ||
+        parsed.data.sessionStartedAt > Date.now() + 5 * 60 * 1_000 ||
+        parsed.data.sessionStartedAt > parsed.data.eventAt
+    ) {
         return null;
     }
 
@@ -39,5 +46,6 @@ export function parsePlaybackProgress(value: JsonValue): PlaybackProgressInput |
         durationSeconds: parsed.data.durationSeconds,
         completed: parsed.data.completed,
         eventAt: new Date(parsed.data.eventAt),
+        sessionStartedAt: new Date(parsed.data.sessionStartedAt),
     };
 }
