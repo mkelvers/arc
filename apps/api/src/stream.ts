@@ -240,7 +240,11 @@ async function proxiedResponse(target: URL, response: Response) {
         return new Response(body, { status: response.status, headers });
     }
 
-    if (isAniKotoDisguisedSegmentHost(target.hostname)) {
+    const isDisguisedSegment =
+        isAniKotoDisguisedSegmentHost(target.hostname) ||
+        /\.(?:png|jpe?g)$/i.test(target.pathname) ||
+        contentType.startsWith('image/');
+    if (isDisguisedSegment) {
         const body = await boundedBytes(response, aniKotoStreamLimits.segment, 'segment');
         const unwrapped = unwrapAniKotoDisguisedSegment(body);
         if (unwrapped[0] !== 0x47) {

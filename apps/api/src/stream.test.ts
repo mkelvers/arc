@@ -113,6 +113,49 @@ test('mirrors Shiora image-named segments to the matching Akirax shard', async (
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([0x47, 0, 1]));
 });
 
+test('unwraps image-named segments from other allowlisted AniKoto hosts', async () => {
+    const response = await proxyStreamRequest(
+        streamRequest('https://bb.akirax.buzz/path/segment.png'),
+        async () =>
+            new Response(
+                new Uint8Array([
+                    0x89,
+                    0x50,
+                    0x4e,
+                    0x47,
+                    0x49,
+                    0x45,
+                    0x4e,
+                    0x44,
+                    0xae,
+                    0x42,
+                    0x60,
+                    0x82,
+                    0x47,
+                    0x00,
+                    0x01,
+                ]),
+                { headers: { 'content-type': 'image/png' } }
+            )
+    );
+
+    expect(response.headers.get('content-type')).toBe('video/mp2t');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([0x47, 0, 1]));
+});
+
+test('allows AniKoto playlist segments served from TryCloud', async () => {
+    const response = await proxyStreamRequest(
+        streamRequest('https://feyyb.trycloud.pro/anime/segment-00000.jpg'),
+        async () =>
+            new Response(new Uint8Array([0x47, 0x40, 0x11]), {
+                headers: { 'content-type': 'image/jpeg' },
+            })
+    );
+
+    expect(response.headers.get('content-type')).toBe('video/mp2t');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array([0x47, 0x40, 0x11]));
+});
+
 test('unwraps current Norami JPEG-named segments into MPEG-TS', async () => {
     const response = await proxyStreamRequest(
         streamRequest('https://s2.norami.top/path/0000.jpg'),
