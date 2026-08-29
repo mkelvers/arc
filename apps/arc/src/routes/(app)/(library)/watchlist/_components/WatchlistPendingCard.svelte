@@ -2,7 +2,7 @@
     import Card from '$lib/components/ui/card/Card.svelte';
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         anime: {

@@ -6,7 +6,7 @@
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Props {
         anime: ContinueWatchingCard[];

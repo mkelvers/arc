@@ -6,7 +6,7 @@
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
-    import { m } from '$lib/paraglide/messages.js';
+    import { m } from '$lib/i18n.svelte';
 
     interface Highlight {
         id: number;
