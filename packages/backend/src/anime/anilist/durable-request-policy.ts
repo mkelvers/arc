@@ -100,14 +100,14 @@ export async function coordinatedAniListRequest<Value>(
     } catch (cause) {
         const now = new Date();
         const delay = anilistRetryDelay(cause);
-        const blockedUntil = delay > 0 ? new Date(now.getTime() + delay) : null;
         await db
             .update(anilistRequestState)
             .set({
                 nextRequestAt: new Date(now.getTime() + minimumIntervalMs),
-                blockedUntil: blockedUntil
-                    ? sql`greatest(coalesce(${anilistRequestState.blockedUntil}, ${blockedUntil}), ${blockedUntil})`
-                    : null,
+                blockedUntil:
+                    delay > 0
+                        ? sql`greatest(coalesce(${anilistRequestState.blockedUntil}, now()), now() + (${delay} * interval '1 millisecond'))`
+                        : null,
                 leaseOwner: null,
                 leaseUntil: null,
                 lastStatus: cause instanceof GraphQLRequestError ? (cause.status ?? null) : null,
