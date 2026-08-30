@@ -116,7 +116,12 @@
                         <span class="metadata-tag">
                             {#each data.anime.genres as genre, index}
                                 {#if index > 0}<span aria-hidden="true">,</span>{/if}
-                                <a class="underline underline-offset-2" href="/">{genre}</a>
+                                <a
+                                    class="underline underline-offset-2"
+                                    href={`/shows/popular?genre=${encodeURIComponent(genre)}`}
+                                >
+                                    {genre}
+                                </a>
                             {/each}
                         </span>
                     {/if}
@@ -226,7 +231,12 @@
                                 <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
                                 {#each data.anime.genres as genre, index}
                                     {#if index > 0}<span aria-hidden="true">,</span>{/if}
-                                    <a class="underline underline-offset-2" href="/">{genre}</a>
+                                    <a
+                                        class="underline underline-offset-2"
+                                        href={`/shows/popular?genre=${encodeURIComponent(genre)}`}
+                                    >
+                                        {genre}
+                                    </a>
                                 {/each}
                             </p>
                         </div>
