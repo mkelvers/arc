@@ -705,7 +705,11 @@ export function uniqueDirectStreams(streams: readonly ProviderStream[]) {
 export async function resolveCandidates<T, R>(
     candidates: readonly T[],
     resolve: (candidate: T, signal: AbortSignal) => Promise<R | null>,
-    options: { concurrency?: number; signal?: AbortSignal } = {}
+    options: {
+        concurrency?: number;
+        signal?: AbortSignal;
+        stopWhen?: (results: readonly (R | null)[]) => boolean;
+    } = {}
 ) {
     const controller = new AbortController();
     const signal = options.signal
@@ -741,6 +745,10 @@ export async function resolveCandidates<T, R>(
                     }),
                 ]);
                 results[index] = result;
+                if (options.stopWhen?.(results)) {
+                    controller.abort();
+                    return;
+                }
             } catch (cause) {
                 if (!signal.aborted || cause !== signal.reason) {
                     errors.push(cause);
@@ -1567,7 +1575,14 @@ async function getStreams(
     const { results, errors } = await resolveCandidates(
         tasks,
         ({ candidate }, signal) => resolveServer(candidate, signal),
-        { concurrency: resolutionConcurrency, signal: deadline }
+        {
+            concurrency: resolutionConcurrency,
+            signal: deadline,
+            stopWhen: (resolved) =>
+                playableModes.every((mode) =>
+                    resolved.some((stream, index) => tasks[index]?.mode === mode && stream !== null)
+                ),
+        }
     );
     const result: ProviderStreams = {};
     for (const mode of playableModes) {

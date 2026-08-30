@@ -573,4 +573,23 @@ describe('AniKoto provider rules', () => {
         expect(result.results).toEqual([null, 'one', 'two', null, 'four', 'five']);
         expect(result.errors).toHaveLength(1);
     });
+
+    test('stops after every requested mode has a playable candidate', async () => {
+        const resolved: string[] = [];
+        const result = await resolveCandidates(
+            ['sub-1', 'sub-2', 'dub-1', 'dub-2'],
+            async (candidate) => {
+                resolved.push(candidate);
+                await new Promise((resolve) => setTimeout(resolve, 1));
+                return candidate.endsWith('-1') ? candidate : null;
+            },
+            {
+                concurrency: 1,
+                stopWhen: (results) => results[0] !== null && results[2] !== null,
+            }
+        );
+
+        expect(result.results).toEqual(['sub-1', null, 'dub-1', null]);
+        expect(resolved).toEqual(['sub-1', 'sub-2', 'dub-1']);
+    });
 });
