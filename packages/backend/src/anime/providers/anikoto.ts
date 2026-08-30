@@ -179,12 +179,6 @@ export function isAniKotoNoMatchError(cause: unknown): cause is AniKotoNoMatchEr
     return cause instanceof AniKotoNoMatchError;
 }
 
-class AniKotoSubtitlesError extends Error {
-    constructor(readonly mediaUrl: string) {
-        super('AniKoto SUB source returned no subtitles');
-    }
-}
-
 function positiveId(value: JsonValue | undefined) {
     const parsed = z.union([z.number().int(), z.string().regex(/^\d+$/)]).safeParse(value);
     if (!parsed.success) {
@@ -1455,7 +1449,7 @@ export async function validateAniKotoMedia(
     }
 }
 
-async function resolveMegaPlay(embed: URL, signal: AbortSignal, requiresSubtitles: boolean) {
+export async function resolveMegaPlay(embed: URL, signal: AbortSignal) {
     const sourceId = parseMegaPlaySourceId(
         await requestText(embed, { referer: `${anikotoUrl}/`, signal })
     );
@@ -1476,27 +1470,16 @@ async function resolveMegaPlay(embed: URL, signal: AbortSignal, requiresSubtitle
 
     let mediaUrl = source.mediaUrl;
     let subtitles: ProviderStream['subtitles'] = [];
-    let hasSubtitles = false;
     for (const candidate of aniKotoMediaCandidates(source.mediaUrl)) {
         try {
-            const embeddedSubtitles = await validateAniKotoMedia(candidate, undefined, { signal });
-            subtitles = requiresSubtitles ? await resolvedSubtitles(source.captions, signal) : [];
-            if (requiresSubtitles && !embeddedSubtitles && subtitles.length === 0) {
-                throw new Error('AniKoto SUB source returned no subtitles');
-            }
-            hasSubtitles = embeddedSubtitles || subtitles.length > 0;
+            await validateAniKotoMedia(candidate, undefined, { signal });
+            subtitles = await resolvedSubtitles(source.captions, signal);
             mediaUrl = candidate;
             break;
         } catch {
             // Media probing is best-effort. The stream proxy performs the authoritative
             // validation when the user actually requests the source.
         }
-    }
-    if (requiresSubtitles && !hasSubtitles) {
-        subtitles = await resolvedSubtitles(source.captions, signal);
-    }
-    if (requiresSubtitles && !hasSubtitles && subtitles.length === 0) {
-        throw new AniKotoSubtitlesError(source.mediaUrl.toString());
     }
 
     return {
@@ -1527,7 +1510,7 @@ async function resolveServer(
     }
 
     return {
-        ...(await resolveMegaPlay(embed, signal, candidate.embedMode !== 'dub')),
+        ...(await resolveMegaPlay(embed, signal)),
         provider: providerName,
         server: candidate.label,
     };
@@ -1597,17 +1580,7 @@ async function getStreams(
 
     if (result.dub?.length) {
         const subtitleUrls = new Set(result.sub?.map((stream) => stream.url));
-        const rejectedSubtitleUrls = new Set(
-            errors
-                .filter(
-                    (cause): cause is AniKotoSubtitlesError =>
-                        cause instanceof AniKotoSubtitlesError
-                )
-                .map((cause) => cause.mediaUrl)
-        );
-        result.dub = result.dub.filter(
-            (stream) => !subtitleUrls.has(stream.url) && !rejectedSubtitleUrls.has(stream.url)
-        );
+        result.dub = result.dub.filter((stream) => !subtitleUrls.has(stream.url));
     }
 
     if (!Object.values(result).some((streams) => streams?.length)) {

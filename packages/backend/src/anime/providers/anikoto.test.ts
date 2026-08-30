@@ -19,6 +19,7 @@ import {
     parseEpisodeList,
     parseSearchCandidates,
     parseMegaPlaySource,
+    resolveMegaPlay,
     parseSeries,
     parseServerList,
     playableAudioModes,
@@ -418,6 +419,49 @@ describe('AniKoto provider rules', () => {
             'https://cdn.kryntal.top/episode/video/index.m3u8',
             'https://cdn.kryntal.top/episode/video/segment.ts',
         ]);
+    });
+
+    test('keeps a validated SUB stream playable when captions are unavailable', async () => {
+        const originalFetch = globalThis.fetch;
+        const mockedFetch: typeof fetch = Object.assign(
+            async (target: URL | RequestInfo) => {
+                const url = String(target);
+                if (url === 'https://megaplay.buzz/stream/test/sub') {
+                    return new Response('<div data-id="123"></div>');
+                }
+                if (url === 'https://megaplay.buzz/stream/getSources?id=123') {
+                    return Response.json({
+                        sources: { file: 'https://cdn.kryntal.top/episode/master.m3u8' },
+                    });
+                }
+                if (url.endsWith('/episode/master.m3u8')) {
+                    return new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8');
+                }
+                if (url.endsWith('/episode/video/index.m3u8')) {
+                    return new Response('#EXTM3U\n#EXTINF:4,\nsegment.ts');
+                }
+                if (url.endsWith('/episode/video/segment.ts')) {
+                    return new Response(new Uint8Array([0x47, 0x00, 0x01, 0x02]));
+                }
+                throw new Error(`unexpected request: ${url}`);
+            },
+            { preconnect: originalFetch.preconnect }
+        );
+        globalThis.fetch = mockedFetch;
+
+        try {
+            await expect(
+                resolveMegaPlay(
+                    new URL('https://megaplay.buzz/stream/test/sub'),
+                    AbortSignal.timeout(1_000)
+                )
+            ).resolves.toMatchObject({
+                url: 'https://cdn.kryntal.top/episode/master.m3u8',
+                subtitles: [],
+            });
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
     });
 
     test('retries transient media connection failures', async () => {
