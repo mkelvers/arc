@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
+import { AnimeIdSchema, PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
 import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage } from '@arc/backend/internal/anime/application';
@@ -25,7 +25,7 @@ catalog.get('/home', async (context) =>
 
 catalog.delete(
     '/home/continue-watching/:anilistId',
-    validate('param', z.object({ anilistId: z.coerce.number().int().positive() })),
+    validate('param', z.object({ anilistId: AnimeIdSchema })),
     async (context) => {
         await dismissPlaybackProgress(
             context.get('session').user.id,

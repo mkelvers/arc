@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { AnimeIdSchema } from '@arc/api-contract/anime';
 import { WatchlistSelectionSchema, WatchlistUpdateSchema } from '@arc/api-contract/watchlist';
 import {
     exportWatchlist,
@@ -14,9 +15,7 @@ import {
 } from '@arc/backend/watchlist';
 import { middleware, validate, type ApiEnvironment } from '../http';
 
-const AnimeIdSchema = z.object({
-    anilistId: z.coerce.number().int().positive(),
-});
+const animeIdParamSchema = z.object({ anilistId: AnimeIdSchema });
 
 const maximumWatchlistFileSize = 2 * 1_024 * 1_024;
 const ExportFormatSchema = z.object({
@@ -148,7 +147,7 @@ watchlist.get('/export', validate('query', ExportFormatSchema), async (context) 
     });
 });
 
-watchlist.get('/:anilistId', validate('param', AnimeIdSchema), async (context) => {
+watchlist.get('/:anilistId', validate('param', animeIdParamSchema), async (context) => {
     const { anilistId } = context.req.valid('param');
     return context.json({
         animeId: anilistId,
@@ -158,7 +157,7 @@ watchlist.get('/:anilistId', validate('param', AnimeIdSchema), async (context) =
 
 watchlist.put(
     '/:anilistId',
-    validate('param', AnimeIdSchema),
+    validate('param', animeIdParamSchema),
     validate('json', WatchlistUpdateSchema),
     async (context) => {
         const { anilistId } = context.req.valid('param');
@@ -175,7 +174,7 @@ watchlist.put(
     }
 );
 
-watchlist.delete('/:anilistId', validate('param', AnimeIdSchema), async (context) => {
+watchlist.delete('/:anilistId', validate('param', animeIdParamSchema), async (context) => {
     await removeFromWatchlist(context.get('session').user.id, context.req.valid('param').anilistId);
     return context.body(null, 204);
 });
