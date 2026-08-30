@@ -470,6 +470,13 @@
             "when": 1787962645330,
             "tag": "0066_lumpy_maelstrom",
             "breakpoints": true
+        },
+        {
+            "idx": 67,
+            "version": "7",
+            "when": 1788052488775,
+            "tag": "0067_perpetual_jackpot",
+            "breakpoints": true
         }
     ]
 }

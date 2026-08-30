@@ -777,6 +777,7 @@ export const maintenanceTask = pgTable(
 export const schedulerHeartbeat = pgTable('scheduler_heartbeat', {
     name: text('name').primaryKey(),
     activeRunId: uuid('active_run_id'),
+    leaseUntil: timestamp('lease_until', { withTimezone: true }),
     startedAt: timestamp('started_at', { withTimezone: true }),
     completedAt: timestamp('completed_at', { withTimezone: true }),
     lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, count, eq, gt, isNotNull, isNull, lt, lte, or } from 'drizzle-orm';
+import { and, count, eq, gt, isNotNull, isNull, lte, or } from 'drizzle-orm';
 
 import { db } from '@arc/db';
 import {
@@ -17,6 +17,7 @@ import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { scheduleReleaseTargets } from './targets';
+import { schedulerRunLease } from './policy';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -89,15 +90,17 @@ async function catalogRefreshDue() {
 export async function runAnimeScheduler() {
     const runId = randomUUID();
     const startedAt = new Date();
+    const leaseUntil = new Date(startedAt.getTime() + schedulerRunLease.durationMs);
     const [claimed] = await db
         .insert(schedulerHeartbeat)
-        .values({ name: heartbeatName, activeRunId: runId, startedAt })
+        .values({ name: heartbeatName, activeRunId: runId, leaseUntil, startedAt })
         .onConflictDoUpdate({
             target: schedulerHeartbeat.name,
-            set: { activeRunId: runId, startedAt },
+            set: { activeRunId: runId, leaseUntil, startedAt },
             setWhere: or(
                 isNull(schedulerHeartbeat.activeRunId),
-                lt(schedulerHeartbeat.startedAt, new Date(startedAt.getTime() - 30 * 60_000))
+                isNull(schedulerHeartbeat.leaseUntil),
+                lte(schedulerHeartbeat.leaseUntil, startedAt)
             ),
         })
         .returning({ activeRunId: schedulerHeartbeat.activeRunId });
@@ -105,7 +108,24 @@ export async function runAnimeScheduler() {
         return { skipped: 'already-running' as const };
     }
 
+    const leaseRenewal = setInterval(() => {
+        void db
+            .update(schedulerHeartbeat)
+            .set({ leaseUntil: new Date(Date.now() + schedulerRunLease.durationMs) })
+            .where(
+                and(
+                    eq(schedulerHeartbeat.name, heartbeatName),
+                    eq(schedulerHeartbeat.activeRunId, runId)
+                )
+            );
+    }, schedulerRunLease.renewalMs);
+
     try {
+        const maintenance = await drainMaintenanceTasks(runId, {
+            limit: schedulerPolicy.concurrency,
+            leaseDurationMs: schedulerPolicy.leaseDurationMs,
+            leaseRenewalMs: schedulerPolicy.leaseRenewalMs,
+        });
         let fullReconciliation:
             | { discovered: number; releaseRequests: number; targets: number }
             | { error: string; retryAt: string }
@@ -172,11 +192,6 @@ export async function runAnimeScheduler() {
         }
 
         const releases = await refreshDueReleases(schedulerPolicy.concurrency);
-        const maintenance = await drainMaintenanceTasks(runId, {
-            limit: schedulerPolicy.concurrency,
-            leaseDurationMs: schedulerPolicy.leaseDurationMs,
-            leaseRenewalMs: schedulerPolicy.leaseRenewalMs,
-        });
         const episodes = await drainEpisodeTargets(runId, schedulerPolicy);
         const completedAt = new Date();
         const stats = { releases, maintenance, episodes, fullReconciliation, catalogRefresh };
@@ -207,7 +222,7 @@ export async function runAnimeScheduler() {
             );
         await db
             .update(schedulerHeartbeat)
-            .set({ activeRunId: null })
+            .set({ activeRunId: null, leaseUntil: null })
             .where(
                 and(
                     eq(schedulerHeartbeat.name, heartbeatName),
@@ -232,7 +247,7 @@ export async function runAnimeScheduler() {
             );
         await db
             .update(schedulerHeartbeat)
-            .set({ activeRunId: null })
+            .set({ activeRunId: null, leaseUntil: null })
             .where(
                 and(
                     eq(schedulerHeartbeat.name, heartbeatName),
@@ -240,6 +255,8 @@ export async function runAnimeScheduler() {
                 )
             );
         throw cause;
+    } finally {
+        clearInterval(leaseRenewal);
     }
 }
 

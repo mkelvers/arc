@@ -1,10 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 
-import { firstEpisodeAttemptAt, nextEpisodeAttemptAt } from './policy';
+import { firstEpisodeAttemptAt, nextEpisodeAttemptAt, schedulerRunLease } from './policy';
 
 const airing = new Date('2026-08-24T12:00:00Z');
 
 describe('airing target retry policy', () => {
+    test('recovers a dead scheduler quickly while renewing well before expiry', () => {
+        expect(schedulerRunLease.durationMs).toBe(120_000);
+        expect(schedulerRunLease.renewalMs).toBe(30_000);
+        expect(schedulerRunLease.renewalMs * 2).toBeLessThan(schedulerRunLease.durationMs);
+    });
+
     test('opens the provider check window thirty minutes before airing', () => {
         expect(firstEpisodeAttemptAt(airing).toISOString()).toBe('2026-08-24T11:30:00.000Z');
     });
