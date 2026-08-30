@@ -947,7 +947,7 @@ async function findSeries(anime: AniListAnime) {
 
     const candidates = new Map<number, SearchCandidate>();
     for (const title of animeTitles(anime).slice(0, 6)) {
-        for (const candidate of await search(title).catch(() => [])) {
+        for (const candidate of await search(title)) {
             candidates.set(candidate.id, candidate);
         }
     }
