@@ -12,6 +12,8 @@ import { animeEpisode, animeEpisodeSegmentTemplate } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { fetchAniSkip, validSkipInterval } from './aniskip';
 
+const aniskipFailureUntil = new Map<string, number>();
+
 type StoredSkipTimes = Pick<
     typeof animeEpisode.$inferSelect,
     | 'openingStartSeconds'
@@ -99,8 +101,14 @@ export async function getEpisodeSkipTimes({
         return cached;
     }
 
+    const failureKey = `${malId}:${episodeNumber}`;
+    if ((aniskipFailureUntil.get(failureKey) ?? 0) > Date.now()) {
+        return cached;
+    }
+
     try {
         const remote = await fetchAniSkip(malId, episodeNumber);
+        aniskipFailureUntil.delete(failureKey);
         const [updated] = await db
             .update(animeEpisode)
             .set({
@@ -125,6 +133,7 @@ export async function getEpisodeSkipTimes({
 
         return updated ? remote : getStoredEpisodeSkipTimes(anilistId, episodeId);
     } catch (cause) {
+        aniskipFailureUntil.set(failureKey, Date.now() + 5 * 60 * 1_000);
         const detail = cause instanceof Error ? cause.message : 'Unknown AniSkip failure';
         logger.debug(
             `AniSkip unavailable for AniList ${anilistId}, episode ${episodeNumber}: ${detail}`

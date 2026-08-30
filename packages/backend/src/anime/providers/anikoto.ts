@@ -149,7 +149,11 @@ export class AniKotoRequestError extends Error {
 }
 
 export function isAniKotoTransientError(cause: unknown) {
-    return cause instanceof AniKotoRequestError && (cause.status === 429 || cause.status >= 500);
+    if (cause instanceof AniKotoRequestError) {
+        return cause.status === 429 || cause.status >= 500;
+    }
+
+    return cause instanceof AggregateError && cause.errors.some(isAniKotoTransientError);
 }
 
 class AniKotoSubtitlesError extends Error {

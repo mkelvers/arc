@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 
 import { TargetEpisodeUnavailableError } from '@arc/backend/internal/anime/episodes/sync';
+import { isAniKotoTransientError } from '@arc/backend/internal/anime/providers/anikoto';
 import { GraphQLRequestError } from '@arc/backend/internal/graphql';
 import { logger } from '@arc/backend/internal/logger';
 import { auth } from './auth';
@@ -47,6 +48,22 @@ app.onError((cause, context) => {
                 error: {
                     code: 'EPISODE_UNAVAILABLE',
                     message: 'The requested episode is not available yet',
+                },
+            },
+            503
+        );
+    }
+
+    if (isAniKotoTransientError(cause)) {
+        logger.debug(
+            'AniKoto is temporarily unavailable',
+            cause instanceof Error ? cause.message : cause
+        );
+        return context.json(
+            {
+                error: {
+                    code: 'UPSTREAM_UNAVAILABLE',
+                    message: 'AniKoto is temporarily unavailable',
                 },
             },
             503
