@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '../providers/types';
-import { matchBestEpisodeMetadata, matchEpisodeMetadata } from './episode-match';
+import {
+    matchBestEpisodeMetadata,
+    matchEpisodeMetadata,
+    providerReleaseWindow,
+} from './episode-match';
 import type { AniListAnime } from '../anilist/types';
 import type { EpisodeCandidate } from './types';
 
@@ -46,6 +50,100 @@ function candidate(
 }
 
 describe('TMDB episode identity matching', () => {
+    test('selects a release window after a related aggregate inventory', () => {
+        const episodes = source(
+            Array.from({ length: 146 }, (_, index) => [
+                String(index + 1),
+                index + 1,
+                `Episode ${index + 1}`,
+            ])
+        );
+        const window = providerReleaseWindow(
+            anime({
+                episodes: 11,
+                relations: {
+                    edges: [
+                        {
+                            relationType: 'PREQUEL',
+                            node: {
+                                id: 112153,
+                                idMal: 40351,
+                                episodes: 136,
+                                type: 'ANIME',
+                                title: { english: 'Pokémon Journeys', romaji: null, native: null },
+                            },
+                        },
+                    ],
+                },
+                startDate: { year: 2023, month: 1, day: 13 },
+                endDate: { year: 2023, month: 3, day: 24 },
+            }),
+            episodes
+        );
+
+        expect(window.map(({ number }) => number)).toEqual(
+            Array.from({ length: 11 }, (_, index) => index + 1)
+        );
+    });
+
+    test('maps a release-local window to an absolute TMDB season window', () => {
+        const episodes = source(
+            Array.from({ length: 146 }, (_, index) => [
+                String(index + 1),
+                index + 1,
+                `Episode ${index + 1}`,
+            ])
+        );
+        const release = anime({
+            episodes: 11,
+            relations: {
+                edges: [
+                    {
+                        relationType: 'PREQUEL',
+                        node: {
+                            id: 112153,
+                            idMal: 40351,
+                            episodes: 136,
+                            type: 'ANIME',
+                            title: { english: 'Pokémon Journeys', romaji: null, native: null },
+                        },
+                    },
+                ],
+            },
+            startDate: { year: 2023, month: 1, day: 13 },
+            endDate: { year: 2023, month: 3, day: 24 },
+        });
+        const dates = [
+            '2023-01-13',
+            '2023-01-20',
+            '2023-01-27',
+            '2023-02-03',
+            '2023-02-10',
+            '2023-02-17',
+            '2023-02-24',
+            '2023-03-03',
+            '2023-03-10',
+            '2023-03-17',
+            '2023-03-24',
+        ];
+        const focused = dates.map((date, index) => ({
+            ...candidate(25, 47 + index, `TMDB Episode ${47 + index}`, date),
+            releaseEpisodeNumber: index + 1,
+        }));
+        const metadata = matchBestEpisodeMetadata(
+            release,
+            providerReleaseWindow(release, episodes),
+            focused,
+            []
+        );
+
+        expect(
+            [...metadata.entries()]
+                .toSorted(([left], [right]) => Number(left) - Number(right))
+                .map(([id, value]) => [id, value.episodeNumber])
+        ).toEqual(Array.from({ length: 11 }, (_, index) => [String(index + 136), index + 47]));
+    });
+
     test('maps packaged TV_SHORT episodes to their matching TMDB season', () => {
         const episodes = source([
             ['one', 1, 'Segment One'],

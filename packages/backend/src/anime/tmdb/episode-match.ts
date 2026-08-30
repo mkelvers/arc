@@ -516,3 +516,27 @@ export function matchBestEpisodeMetadata(
     const focusedMatches = matchEpisodeMetadata(anime, source, focused);
     return focusedStartsAtRelease && focusedMatches.size > 0 ? focusedMatches : availableMatches;
 }
+
+/** Selects the current release from a provider inventory that includes its predecessor. */
+export function providerReleaseWindow(anime: AniListAnime, source: ProviderEpisode[]) {
+    const expected = anime.episodes;
+    if (!expected || expected <= 0 || source.length <= expected) {
+        return source;
+    }
+
+    const predecessorEpisodes = (anime.relations?.edges ?? []).flatMap((edge) =>
+        edge?.relationType === 'PREQUEL' && edge.node?.type === 'ANIME' && edge.node.episodes
+            ? [edge.node.episodes]
+            : []
+    );
+    const start = Math.max(0, ...predecessorEpisodes);
+    if (!start) {
+        return source;
+    }
+
+    const offset = Math.min(start, source.length - expected);
+    return source.slice(offset, offset + expected).map((episode, index) => ({
+        ...episode,
+        number: index + 1,
+    }));
+}

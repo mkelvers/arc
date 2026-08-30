@@ -16,7 +16,7 @@ import {
     releaseWindowEpisodeGroup,
     type EpisodeGroupBlock,
 } from './episode-groups';
-import { matchBestEpisodeMetadata } from './episode-match';
+import { matchBestEpisodeMetadata, providerReleaseWindow } from './episode-match';
 import { movieEpisodeMetadata } from './movie-episodes';
 import { resolveStored } from './mapping';
 import { releaseSequence } from './title';
@@ -398,13 +398,14 @@ export async function getEpisodeMetadata(
     ]);
 
     const available = fetched.flat();
+    const metadataSource = providerReleaseWindow(anime, source);
     const matched = matchBestEpisodeMetadata(
         anime,
-        source,
+        metadataSource,
         grouped ?? releaseWindowEpisodeGroup(anime, available),
         available
     );
-    const sourceById = new Map(source.map((episode) => [episode.id, episode]));
+    const sourceById = new Map(metadataSource.map((episode) => [episode.id, episode]));
     let fallbacks = 0;
     const matches = [...matched.entries()].map(([sourceId, candidate]) => {
         const localizedText = hasRequestedEpisodeLocalization(
