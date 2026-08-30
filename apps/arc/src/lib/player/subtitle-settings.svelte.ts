@@ -1,15 +1,75 @@
 import { m } from '$lib/i18n.svelte';
+import * as preferences from './preferences';
 import {
+    subtitleBackgroundOrder,
     subtitleBackgroundOpacities,
     subtitleBackgroundValues,
     subtitleSizeOrder,
     subtitleSizePixels,
+    subtitleEdgeStyleOrder,
+    subtitleTextColorOrder,
     subtitleTextColorValues,
     type SubtitleBackground,
+    type SubtitleBackgroundOpacity,
     type SubtitleEdgeStyle,
     type SubtitleSize,
     type SubtitleTextColor,
 } from './subtitle-settings';
+
+export class SubtitleSettings {
+    size = $state<SubtitleSize>('normal');
+    textColor = $state<SubtitleTextColor>('white');
+    background = $state<SubtitleBackground>('black');
+    backgroundOpacity = $state<SubtitleBackgroundOpacity>(0.75);
+    edgeStyle = $state<SubtitleEdgeStyle>('outline');
+
+    load() {
+        const saved = preferences.load({}, []);
+        this.size = saved.subtitleSize ?? this.size;
+        this.textColor = saved.subtitleTextColor ?? this.textColor;
+        this.background = saved.subtitleBackground ?? this.background;
+        this.backgroundOpacity = saved.subtitleBackgroundOpacity ?? this.backgroundOpacity;
+        this.edgeStyle = saved.subtitleEdgeStyle ?? this.edgeStyle;
+    }
+
+    setSize(value: SubtitleSize) {
+        this.size = value;
+        preferences.save('subtitle-size', value);
+    }
+
+    setTextColor(value: SubtitleTextColor) {
+        this.textColor = value;
+        preferences.save('subtitle-text-color', value);
+    }
+
+    setBackground(value: SubtitleBackground) {
+        this.background = value;
+        preferences.save('subtitle-background', value);
+    }
+
+    setBackgroundOpacity(value: SubtitleBackgroundOpacity) {
+        this.backgroundOpacity = value;
+        preferences.save('subtitle-background-opacity', value);
+    }
+
+    setEdgeStyle(value: SubtitleEdgeStyle) {
+        this.edgeStyle = value;
+        preferences.save('subtitle-edge-style', value);
+    }
+
+    reset() {
+        this.size = 'normal';
+        this.textColor = 'white';
+        this.background = 'black';
+        this.backgroundOpacity = 0.75;
+        this.edgeStyle = 'outline';
+        preferences.save('subtitle-size', this.size);
+        preferences.save('subtitle-text-color', this.textColor);
+        preferences.save('subtitle-background', this.background);
+        preferences.save('subtitle-background-opacity', this.backgroundOpacity);
+        preferences.save('subtitle-edge-style', this.edgeStyle);
+    }
+}
 
 export type {
     SubtitleBackground,
@@ -44,3 +104,4 @@ export const subtitleBackgrounds = {
 } as const satisfies Record<SubtitleBackground, { label: string; value: string | null }>;
 
 export { subtitleBackgroundOpacities, subtitleSizeOrder };
+export { subtitleBackgroundOrder, subtitleEdgeStyleOrder, subtitleTextColorOrder };

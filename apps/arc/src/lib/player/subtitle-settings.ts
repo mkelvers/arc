@@ -11,6 +11,21 @@ export type SubtitleTextColor = 'white' | 'yellow' | 'black';
 export type SubtitleEdgeStyle = 'outline' | 'none';
 export type SubtitleBackground = 'black' | 'white' | 'none';
 
+export const subtitleTextColorOrder = [
+    'white',
+    'yellow',
+    'black',
+] as const satisfies readonly SubtitleTextColor[];
+export const subtitleBackgroundOrder = [
+    'black',
+    'white',
+    'none',
+] as const satisfies readonly SubtitleBackground[];
+export const subtitleEdgeStyleOrder = [
+    'outline',
+    'none',
+] as const satisfies readonly SubtitleEdgeStyle[];
+
 export const subtitleSizeOrder = [
     'small',
     'normal',
