@@ -7,6 +7,8 @@ import {
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
     matchesAniKotoIdentity,
+    matchesAniKotoFormat,
+    matchesAniKotoTitle,
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
     parseEpisodeList,
@@ -91,6 +93,26 @@ describe('AniKoto provider rules', () => {
         expect(
             matchesAniKotoIdentity({ anilistId: 123, malId: 58567 }, { id: 146493, idMal: 58567 })
         ).toBe(false);
+    });
+
+    test('does not match related specials to a series title', () => {
+        expect(
+            matchesAniKotoTitle(
+                'Seishun Buta Yarou wa Bunny Girl Senpai no Yume wo Minai Picture Drama',
+                ['Rascal Does Not Dream of Bunny Girl Senpai']
+            )
+        ).toBeFalse();
+        expect(
+            matchesAniKotoTitle('Rascal Does Not Dream of Bunny Girl Senpai', [
+                'Rascal Does Not Dream of Bunny Girl Senpai',
+            ])
+        ).toBeTrue();
+    });
+
+    test('requires a compatible provider format', () => {
+        expect(matchesAniKotoFormat('ONA', 'TV')).toBeFalse();
+        expect(matchesAniKotoFormat('TV', 'TV')).toBeTrue();
+        expect(matchesAniKotoFormat(null, 'TV')).toBeTrue();
     });
 
     test('reads the seasonal catalog and excludes adult entries', () => {

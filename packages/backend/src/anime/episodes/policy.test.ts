@@ -165,6 +165,24 @@ describe('episode refresh policy', () => {
         expect(episodeInventoryCoversTarget(inventory(7), 7)).toBeTrue();
         expect(
             episodeInventoryCoversTarget(
+                Array.from({ length: 7 }, (_, index) => ({
+                    id: String(index + 1),
+                    number: index + 1,
+                })),
+                7
+            )
+        ).toBeFalse();
+        expect(
+            episodeInventoryCoversTarget(
+                Array.from({ length: 7 }, (_, index) => ({
+                    id: `anikoto:series:episode-${index + 1}`,
+                    number: index + 1,
+                })),
+                7
+            )
+        ).toBeTrue();
+        expect(
+            episodeInventoryCoversTarget(
                 Array.from({ length: 6 }, (_, index) => ({ number: index + 2 })),
                 7
             )

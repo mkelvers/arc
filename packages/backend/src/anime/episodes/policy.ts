@@ -75,15 +75,19 @@ export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episo
 }
 
 export function episodeInventoryCoversTarget(
-    storedEpisodes: readonly { number: number }[],
+    storedEpisodes: readonly { number: number; id?: string }[],
     targetEpisode: number
 ) {
-    return coversExpectedEpisodes(storedEpisodes, targetEpisode);
+    return coversExpectedEpisodes(
+        // Legacy numeric IDs can describe scheduled episodes but cannot be played.
+        storedEpisodes.filter(({ id }) => id === undefined || id.includes(':')),
+        targetEpisode
+    );
 }
 
 export function episodeInventoryNeedsDiscovery(
     anime: Pick<AniListAnime, 'status' | 'format' | 'episodes' | 'nextAiringEpisode'>,
-    storedEpisodes: readonly { number: number }[],
+    storedEpisodes: readonly { number: number; id?: string }[],
     nextRefreshAt?: Date | null,
     now = Date.now()
 ) {

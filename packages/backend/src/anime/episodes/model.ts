@@ -46,9 +46,10 @@ export async function storedEpisodes(anime: AniListAnime) {
         .orderBy(asc(animeEpisode.number));
 
     const uniqueEpisodes = new Map<number, (typeof rows)[number]>();
-    for (const episode of rows) {
+    // Numeric IDs are legacy AniList schedule placeholders, not provider inventory.
+    for (const episode of rows.filter(({ episodeId }) => episodeId.includes(':'))) {
         const existing = uniqueEpisodes.get(episode.number);
-        if (!existing || (!existing.episodeId.includes(':') && episode.episodeId.includes(':'))) {
+        if (!existing) {
             uniqueEpisodes.set(episode.number, episode);
         }
     }

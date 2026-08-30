@@ -124,6 +124,7 @@ interface SearchCandidate {
     id: number;
     title: string;
     alternativeTitle: string;
+    format: string | null;
 }
 
 export interface AniKotoServerCandidate {
@@ -480,6 +481,15 @@ export function matchesAniKotoIdentity(
     return false;
 }
 
+export function matchesAniKotoTitle(title: string, titles: readonly string[]) {
+    const normalizedTitle = normalizedProviderTitle(title);
+    return titles.some((candidate) => normalizedTitle === normalizedProviderTitle(candidate));
+}
+
+export function matchesAniKotoFormat(providerFormat: string | null, animeFormat: string | null) {
+    return !providerFormat || !animeFormat || providerFormat.toUpperCase() === animeFormat;
+}
+
 export function parseSearchCandidates(html: string) {
     const $ = load(html);
     const candidates = new Map<number, SearchCandidate>();
@@ -492,7 +502,12 @@ export function parseSearchCandidates(html: string) {
         const alternativeTitle = titleElement.attr('data-jp')?.trim() ?? '';
 
         if (id && title) {
-            candidates.set(id, { id, title, alternativeTitle });
+            candidates.set(id, {
+                id,
+                title,
+                alternativeTitle,
+                format: item.find('.meta .right').first().text().trim() || null,
+            });
         }
     });
 
@@ -1038,7 +1053,11 @@ async function findSeries(anime: AniListAnime) {
     if (storedId) {
         try {
             const series = await loadSeries(storedId);
-            if (matchesAniKotoIdentity(series, anime)) {
+            if (
+                matchesAniKotoIdentity(series, anime) &&
+                matchesAniKotoTitle(series.title, [...titles]) &&
+                matchesAniKotoFormat(series.format, anime.format)
+            ) {
                 await verifyProviderMediaId(anime.id);
                 return series;
             }
@@ -1098,7 +1117,17 @@ async function findSeries(anime: AniListAnime) {
                     throw cause;
                 }
             }
-            if (series && (!('anilistId' in series) || matchesAniKotoIdentity(series, anime))) {
+            if (
+                series &&
+                matchesAniKotoFormat(
+                    'format' in series ? series.format : candidate.format,
+                    anime.format
+                ) &&
+                matchesAniKotoTitle('title' in series ? series.title : candidate.title, [
+                    ...titles,
+                ]) &&
+                (!('anilistId' in series) || matchesAniKotoIdentity(series, anime))
+            ) {
                 await saveProviderMediaId(anime.id, String(series.id));
                 return series;
             }
