@@ -6,6 +6,7 @@ import {
     matchProviderEpisode,
     matchProviderStreamEpisode,
     releaseInventoryEvidence,
+    relatedCollectionTitle,
     normalizedProviderTitle,
 } from './match';
 
@@ -15,6 +16,15 @@ describe('playback episode identity matching', () => {
             'pokemon black white'
         );
         expect(normalizedProviderTitle('A &#x26; B')).toBe('a b');
+    });
+
+    test('matches equivalent cour and part release titles', () => {
+        expect(
+            relatedCollectionTitle(
+                'Let This Grieving Soul Retire Cour 2',
+                'Let This Grieving Soul Retire Part 2'
+            )
+        ).toBe(true);
     });
 
     test('requires every expected numbered episode', () => {

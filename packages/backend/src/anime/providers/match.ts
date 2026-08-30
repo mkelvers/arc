@@ -242,7 +242,7 @@ function releaseSequence(title: string) {
     return { season, part };
 }
 
-function relatedCollectionTitle(left: string, right: string) {
+export function relatedCollectionTitle(left: string, right: string) {
     if (!relatedReleaseTitle(left, right)) {
         return false;
     }
