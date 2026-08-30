@@ -55,10 +55,6 @@ app.onError((cause, context) => {
     }
 
     if (isAniKotoTransientError(cause)) {
-        logger.debug(
-            'AniKoto is temporarily unavailable',
-            cause instanceof Error ? cause.message : cause
-        );
         return context.json(
             {
                 error: {

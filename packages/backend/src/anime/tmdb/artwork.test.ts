@@ -17,7 +17,6 @@ type ImageRow = {
 
 type CacheRow = { externalIdId: number; allLanguages: boolean };
 type ArtworkQuery = { include_image_language: string } | null;
-type LanguageRow = { iso_639_1?: string };
 type PreferenceRow = {
     backdropFilePath: string | null;
     logoFilePath: string | null;
@@ -73,7 +72,6 @@ const state = {
     fetchError: null as Error | null,
     fetchCount: 0,
     fetchQueries: [] as ArtworkQuery[],
-    languages: [{ iso_639_1: 'en' }, { iso_639_1: 'ja' }] as LanguageRow[],
 };
 
 function rowsFor(table: ArtworkTable): QueryRows {
@@ -137,9 +135,6 @@ mock.module('@arc/db', () => ({
 mock.module('./client', () => ({
     create: () => ({
         GET: async (path: string, request: { params?: { query?: ArtworkQuery } }) => {
-            if (path === '/3/configuration/languages') {
-                return { data: state.languages };
-            }
             state.fetchCount += 1;
             state.fetchQueries.push(request.params?.query ?? null);
             if (state.fetchError) {
@@ -192,7 +187,6 @@ beforeEach(() => {
     state.fetchError = null;
     state.fetchCount = 0;
     state.fetchQueries = [];
-    state.languages = [{ iso_639_1: 'en' }, { iso_639_1: 'ja' }];
 });
 
 describe('TMDB anime artwork', () => {
@@ -214,7 +208,7 @@ describe('TMDB anime artwork', () => {
         expect(artwork?.selectedLogo?.filePath).toBe('/logo.png');
     });
 
-    test('requests every configured image language from TMDB', async () => {
+    test('requests default and unlocalized image languages from TMDB', async () => {
         state.payload = {
             backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
             logos: [],
@@ -222,10 +216,7 @@ describe('TMDB anime artwork', () => {
 
         await getArtwork(anime, { refresh: true });
 
-        expect(state.fetchQueries).toEqual([
-            null,
-            { include_image_language: 'en-US,en,ja,null,xx' },
-        ]);
+        expect(state.fetchQueries).toEqual([null, { include_image_language: 'en-US,en,null,xx' }]);
     });
 
     test('fetches TMDB placeholder-language images added after the initial artwork cache', async () => {

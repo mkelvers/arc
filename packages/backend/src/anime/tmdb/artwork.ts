@@ -20,50 +20,6 @@ const artworkImageSchema = z.object({
     width: z.number().optional(),
 });
 type ArtworkImagePayload = z.infer<typeof artworkImageSchema>;
-const tmdbLanguagesSchema = z.array(
-    z.object({
-        iso_639_1: z
-            .string()
-            .regex(/^[a-z]{2}$/)
-            .optional(),
-    })
-);
-
-let imageLanguageCodes: Promise<string[]> | undefined;
-
-function allImageLanguages(client: ReturnType<typeof create>) {
-    if (!imageLanguageCodes) {
-        imageLanguageCodes = client
-            .GET('/3/configuration/languages')
-            .then(({ data, error }) => {
-                if (!data) {
-                    throw new Error('TMDB language configuration request failed', { cause: error });
-                }
-
-                const parsed = tmdbLanguagesSchema.safeParse(data);
-                if (!parsed.success) {
-                    throw new Error('TMDB returned invalid language configuration', {
-                        cause: parsed.error,
-                    });
-                }
-
-                return [
-                    ...new Set([
-                        'en-US',
-                        ...parsed.data.flatMap(({ iso_639_1 }) => iso_639_1 ?? []),
-                        'null',
-                    ]),
-                ];
-            })
-            .catch((cause) => {
-                imageLanguageCodes = undefined;
-                throw cause;
-            });
-    }
-
-    return imageLanguageCodes;
-}
-
 function artworkImage(image: ArtworkImagePayload): ArtworkImage | null {
     if (!image.file_path) {
         return null;
@@ -208,13 +164,9 @@ async function fetchArtworkSource(match: StoredMapping) {
                   params: { path: { series_id: match.id } },
               });
 
-    const languageCodes = await allImageLanguages(client).catch((cause) => {
-        logger.debug(`TMDB language configuration failed for ${match.id}`, cause);
-        return [];
-    });
     const allLanguagesQuery = {
         // TMDB uses xx for images without a language, including freshly added images.
-        include_image_language: [...new Set([...languageCodes, 'null', 'xx'])].join(','),
+        include_image_language: 'en-US,en,null,xx',
     };
     const languageResponse = await (
         match.mediaType === 'movie'
