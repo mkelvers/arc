@@ -162,7 +162,7 @@ async function preferredTvMapping(
     direct: Candidate,
     candidates: RankedCandidate[]
 ) {
-    if (anime.format !== 'TV' || direct.mediaType !== 'tv' || !anime.episodes) {
+    if (direct.mediaType !== 'tv' || !anime.episodes) {
         return { candidate: direct, aggregate: false };
     }
 
@@ -220,30 +220,27 @@ async function preferredTvMapping(
                         Number(expectedSequence === season.season_number) * 60,
                 }))
                 .sort((left, right) => right.score - left.score)
-                .filter(({ season }) => {
-                    const airDate = season.air_date ?? '';
-                    const year = Number(airDate.slice(0, 4));
-                    const startYear = anime.startDate?.year;
-                    const endYear = anime.endDate?.year ?? startYear;
-                    return !startYear || !endYear || (year >= startYear - 1 && year <= endYear + 1);
-                })
-                .slice(0, 6);
-            const details = await Promise.all(
-                seasons.map(({ season }) =>
-                    client
-                        .GET('/3/tv/{series_id}/season/{season_number}', {
-                            params: {
-                                path: {
-                                    series_id: candidate.id,
-                                    season_number: season.season_number,
-                                },
-                                query: { language: 'en-US' },
-                            },
-                        })
-                        .then(({ data }) => data)
-                        .catch(() => undefined)
-                )
-            );
+                .map(({ season }) => season);
+            const fetchSeason = (seasonNumber: number) =>
+                client
+                    .GET('/3/tv/{series_id}/season/{season_number}', {
+                        params: {
+                            path: { series_id: candidate.id, season_number: seasonNumber },
+                            query: { language: 'en-US' },
+                        },
+                    })
+                    .then(({ data }) => data)
+                    .catch(() => undefined);
+            const details: Awaited<ReturnType<typeof fetchSeason>>[] = [];
+            for (let index = 0; index < seasons.length; index += 4) {
+                details.push(
+                    ...(await Promise.all(
+                        seasons
+                            .slice(index, index + 4)
+                            .map((season) => fetchSeason(season.season_number))
+                    ))
+                );
+            }
             const detailBySeason = new Map(
                 details.flatMap((season) =>
                     season?.season_number === undefined ? [] : [[season.season_number, season]]
