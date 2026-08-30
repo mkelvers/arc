@@ -860,320 +860,17 @@ async function loadSeries(id: number) {
     return series;
 }
 
-function relationTitles(anime: AniListAnime) {
-    return (anime.relations?.edges ?? [])
-        .filter((edge): edge is NonNullable<typeof edge> =>
-            Boolean(edge && edge.relationType === 'SEQUEL' && edge.node?.type === 'ANIME')
-        )
-        .map((edge) => edge.node?.title)
-        .flatMap((title) => (title ? [title.english, title.romaji, title.native] : []))
-        .filter((title): title is string => Boolean(title?.trim()))
-        .map(normalizedProviderTitle);
-}
-
-export function relatedReleaseTitleMatches(relationTitle: string, providerTitle: string) {
-    const relationWords = new Set(
-        normalizedProviderTitle(relationTitle)
-            .split(' ')
-            .filter((word) => word.length > 2)
-    );
-    const providerWords = new Set(normalizedProviderTitle(providerTitle).split(' '));
-    const sharedWords = [...relationWords].filter((word) => providerWords.has(word)).length;
-    return (
-        sharedWords >= 2 &&
-        (sharedWords / Math.min(relationWords.size, providerWords.size) >= 0.75 ||
-            (sharedWords >= 3 &&
-                sharedWords / Math.max(relationWords.size, providerWords.size) >= 0.5))
-    );
-}
-
-async function findRelatedSeries(anime: AniListAnime) {
-    const titles = new Set(relationTitles(anime));
-    const candidates = new Map<number, SearchCandidate>();
-    for (const title of titles) {
-        for (const candidate of await search(title).catch(() => [])) {
-            candidates.set(candidate.id, candidate);
-        }
-    }
-
-    const exactCandidates = [...candidates.values()].filter((candidate) =>
-        [...titles].some(
-            (title) =>
-                relatedReleaseTitleMatches(title, candidate.title) ||
-                relatedReleaseTitleMatches(title, candidate.alternativeTitle)
-        )
-    );
-    for (const candidate of exactCandidates) {
-        const series = await loadSeries(candidate.id).catch(() => null);
-        if (
-            series &&
-            [...titles].some(
-                (title) =>
-                    relatedReleaseTitleMatches(title, series.title) ||
-                    relatedReleaseTitleMatches(title, series.alternativeTitle)
-            )
-        ) {
-            return series;
-        }
-    }
-
-    return null;
-}
-
-export function mergeAniKotoEpisodeRanges(
-    primary: ProviderEpisode[],
-    primarySeriesId: number,
-    related: { episodes: ProviderEpisode[]; seriesId: number } | null,
-    expected: number
-) {
-    const primaryEpisodes = primary.map((episode) => ({
-        ...episode,
-        id: `anikoto:${primarySeriesId}:${encodeURIComponent(episode.id)}`,
-    }));
-    if (!related || expected <= primaryEpisodes.length) {
-        return primaryEpisodes;
-    }
-
-    const regularNumbers = primary
-        .map(({ number }) => number)
-        .filter((number) => Number.isInteger(number) && number > 0)
-        .toSorted((a, b) => a - b);
-    if (
-        !regularNumbers.length ||
-        regularNumbers[0] !== 1 ||
-        regularNumbers.some((number, index) => number !== index + 1)
-    ) {
-        return primaryEpisodes;
-    }
-
-    const offset = Math.max(...primary.map((episode) => episode.number), 0);
-    return [
-        ...primaryEpisodes,
-        ...related.episodes.slice(0, expected - primaryEpisodes.length).map((episode) => ({
-            ...episode,
-            id: `anikoto:${related.seriesId}:${encodeURIComponent(episode.id)}`,
-            number: episode.number + offset,
-        })),
-    ];
-}
-
-type AniListContinuityRelease = Pick<AniListAnime, 'id' | 'idMal' | 'episodes' | 'title'>;
-
-type ProviderContinuityRelease = {
-    anime: AniListContinuityRelease;
-    seriesId: number;
-    episodes: ProviderEpisode[];
-};
-
-function continuityRelation(anime: AniListAnime, relationType: 'PREQUEL' | 'SEQUEL') {
-    return (anime.relations?.edges ?? []).find(
-        (edge) =>
-            edge?.relationType === relationType &&
-            edge.node?.type === 'ANIME' &&
-            edge.node.episodes !== null &&
-            edge.node.episodes !== undefined
-    )?.node;
-}
-
-async function continuityChain(anime: AniListAnime) {
-    const { getAnime } = await import('../anilist/details');
-    const releases = [anime];
-    const seen = new Set([anime.id]);
-    let current = anime;
-
-    while (true) {
-        const node = continuityRelation(current, 'PREQUEL');
-        if (!node || seen.has(node.id)) {
-            break;
-        }
-
-        const release = await getAnime(node.id).catch(() => null);
-        if (!release) {
-            break;
-        }
-
-        releases.unshift(release);
-        seen.add(release.id);
-        current = release;
-    }
-
-    current = anime;
-    while (true) {
-        const node = continuityRelation(current, 'SEQUEL');
-        if (!node || seen.has(node.id)) {
-            break;
-        }
-
-        const release = await getAnime(node.id).catch(() => null);
-        if (!release) {
-            break;
-        }
-
-        releases.push(release);
-        seen.add(release.id);
-        current = release;
-    }
-
-    return releases;
-}
-
-export function mapAniKotoContinuityRelease(
-    releases: ProviderContinuityRelease[],
-    targetId: number
-) {
-    const targetIndex = releases.findIndex(({ anime }) => anime.id === targetId);
-    if (targetIndex < 0) {
-        return null;
-    }
-
-    for (let start = targetIndex; start >= 0; start -= 1) {
-        for (let end = targetIndex; end < releases.length; end += 1) {
-            const mapped = mapAniKotoContinuityWindow(releases.slice(start, end + 1), targetId);
-            if (mapped) {
-                return mapped;
-            }
-        }
-    }
-
-    return null;
-}
-
-function mapAniKotoContinuityWindow(releases: ProviderContinuityRelease[], targetId: number) {
-    const expectedTotal = releases.reduce(
-        (total, release) => total + (release.anime.episodes ?? 0),
-        0
-    );
-    const providerSeries = new Map<number, ProviderEpisode[]>();
-    for (const release of releases) {
-        if (!providerSeries.has(release.seriesId)) {
-            providerSeries.set(release.seriesId, release.episodes);
-        }
-    }
-
-    const providerTotal = [...providerSeries.values()].reduce(
-        (total, episodes) => total + episodes.length,
-        0
-    );
-    if (!expectedTotal || providerTotal !== expectedTotal) {
-        return null;
-    }
-
-    const providerRanges = new Map<
-        number,
-        { seriesId: number; start: number; episodes: ProviderEpisode[] }
-    >();
-    let providerStart = 1;
-    for (const [seriesId, episodes] of providerSeries) {
-        providerRanges.set(seriesId, { seriesId, start: providerStart, episodes });
-        providerStart += episodes.length;
-    }
-
-    let releaseStart = 1;
-    for (const release of releases) {
-        const releaseEpisodes = release.anime.episodes ?? 0;
-        const releaseEnd = releaseStart + releaseEpisodes - 1;
-        if (release.anime.id === targetId) {
-            const mapped = [];
-            for (const range of providerRanges.values()) {
-                const rangeEnd = range.start + range.episodes.length - 1;
-                const from = Math.max(releaseStart, range.start);
-                const to = Math.min(releaseEnd, rangeEnd);
-                for (let absolute = from; absolute <= to; absolute += 1) {
-                    const episode = range.episodes[absolute - range.start];
-                    if (!episode) {
-                        return null;
-                    }
-                    mapped.push({
-                        ...episode,
-                        id: `anikoto:${range.seriesId}:${encodeURIComponent(episode.id)}`,
-                        number: absolute - releaseStart + 1,
-                    });
-                }
-            }
-
-            return mapped.length === releaseEpisodes ? mapped : null;
-        }
-        releaseStart = releaseEnd + 1;
-    }
-
-    return null;
-}
-
-async function episodesForAnime(anime: AniListAnime, series: AniKotoSeries) {
+async function episodesForAnime(series: AniKotoSeries) {
     const primary = parseEpisodeList(
         await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
     );
-    const expected = anime.episodes;
-    if (!expected) {
-        return mergeAniKotoEpisodeRanges(primary, series.id, null, Number.MAX_SAFE_INTEGER);
-    }
-
-    // A provider release can contain several AniList releases. An inventory that
-    // happens to be at least as large as the AniList release still needs the
-    // continuity boundary selector; otherwise a combined provider season leaks
-    // unrelated episodes into this release.
-    if (primary.length === expected) {
-        return primary.map((episode) => ({
-            ...episode,
-            id: `anikoto:${series.id}:${encodeURIComponent(episode.id)}`,
-        }));
-    }
-
-    const releases = await continuityChain(anime);
-    const continuity = [] as ProviderContinuityRelease[];
-    const episodeLists = new Map<number, ProviderEpisode[]>();
-    for (const release of releases) {
-        const releaseSeriesId =
-            release.id === anime.id
-                ? series.id
-                : (positiveId(await providerMediaId(release.id)) ??
-                  (await findSeries(release, { allowRelatedIdentity: true })).id);
-        let episodes = episodeLists.get(releaseSeriesId);
-        if (!episodes) {
-            episodes =
-                release.id === anime.id
-                    ? primary
-                    : parseEpisodeList(
-                          await requestJson(
-                              new URL(`/ajax/episode/list/${releaseSeriesId}`, anikotoUrl)
-                          )
-                      );
-            episodeLists.set(releaseSeriesId, episodes);
-        }
-        continuity.push({ anime: release, seriesId: releaseSeriesId, episodes });
-    }
-    const mapped = mapAniKotoContinuityRelease(continuity, anime.id);
-    if (mapped) {
-        return mapped;
-    }
-
-    // Leave an oversized regular inventory intact for the release synchronizer.
-    // TMDB episode metadata owns the final release boundary when AniKoto's
-    // language edition contains one or more additional episodes.
-    if (primary.length > expected) {
-        return primary.map((episode) => ({
-            ...episode,
-            id: `anikoto:${series.id}:${encodeURIComponent(episode.id)}`,
-        }));
-    }
-
-    const related = await findRelatedSeries(anime);
-    const secondary =
-        related && related.id !== series.id
-            ? parseEpisodeList(
-                  await requestJson(new URL(`/ajax/episode/list/${related.id}`, anikotoUrl))
-              )
-            : null;
-    if (primary.length < expected) {
-        return mergeAniKotoEpisodeRanges(
-            primary,
-            series.id,
-            secondary && related ? { episodes: secondary, seriesId: related.id } : null,
-            expected
-        );
-    }
-
-    throw new Error(`AniKoto could not map its combined inventory to AniList ${anime.id}`);
+    // Episode inventory is scoped to the requested provider series. Do not walk
+    // AniList PREQUEL/SEQUEL relations here: that turns one page visit into a
+    // franchise-wide provider lookup and makes a cold page appear stuck.
+    return primary.map((episode) => ({
+        ...episode,
+        id: `anikoto:${series.id}:${encodeURIComponent(episode.id)}`,
+    }));
 }
 
 export async function getAniKotoSimulcastPage(selection: AnimeSeasonSelection, page: number) {
@@ -1230,22 +927,14 @@ async function search(title: string) {
     return parseSearchCandidates(await requestText(url));
 }
 
-async function findSeries(anime: AniListAnime, options: { allowRelatedIdentity?: boolean } = {}) {
+async function findSeries(anime: AniListAnime) {
     const titles = new Set(animeTitles(anime).map(normalizedProviderTitle));
     const stored = await providerMediaId(anime.id);
     const storedId = positiveId(stored);
     if (storedId) {
         try {
             const series = await loadSeries(storedId);
-            if (
-                matchesAniKotoIdentity(series, anime) ||
-                (options.allowRelatedIdentity &&
-                    [...titles].some(
-                        (title) =>
-                            relatedReleaseTitleMatches(title, series.title) ||
-                            relatedReleaseTitleMatches(title, series.alternativeTitle)
-                    ))
-            ) {
+            if (matchesAniKotoIdentity(series, anime)) {
                 await verifyProviderMediaId(anime.id);
                 return series;
             }
@@ -1277,16 +966,7 @@ async function findSeries(anime: AniListAnime, options: { allowRelatedIdentity?:
     for (let offset = 0; offset < ordered.length; offset += 12) {
         for (const candidate of ordered.slice(offset, offset + 12)) {
             const series = await loadSeries(candidate.id).catch(() => null);
-            if (
-                series &&
-                (matchesAniKotoIdentity(series, anime) ||
-                    (options.allowRelatedIdentity &&
-                        [...titles].some(
-                            (title) =>
-                                relatedReleaseTitleMatches(title, series.title) ||
-                                relatedReleaseTitleMatches(title, series.alternativeTitle)
-                        )))
-            ) {
+            if (series && matchesAniKotoIdentity(series, anime)) {
                 await saveProviderMediaId(anime.id, String(series.id));
                 return series;
             }
@@ -1597,11 +1277,8 @@ async function resolveServer(
 }
 
 async function getEpisodes(anime: AniListAnime) {
-    const hasContinuity =
-        Boolean(continuityRelation(anime, 'PREQUEL')) ||
-        Boolean(continuityRelation(anime, 'SEQUEL'));
-    const series = await findSeries(anime, { allowRelatedIdentity: hasContinuity });
-    const parsed = await episodesForAnime(anime, series);
+    const series = await findSeries(anime);
+    const parsed = await episodesForAnime(series);
     if (!parsed.length) {
         throw new Error(`AniKoto returned no playable episodes for AniList ${anime.id}`);
     }

@@ -7,9 +7,6 @@ import {
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
     matchesAniKotoIdentity,
-    mapAniKotoContinuityRelease,
-    relatedReleaseTitleMatches,
-    mergeAniKotoEpisodeRanges,
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
     parseEpisodeList,
@@ -27,136 +24,8 @@ import {
     validEmbed,
     validOpaqueId,
 } from './anikoto';
-import type { ProviderEpisode } from './types';
 
 describe('AniKoto provider rules', () => {
-    test('matches a related release inside a longer provider title', () => {
-        expect(
-            relatedReleaseTitleMatches(
-                'Pokémon BW: Adventures in Unova and Beyond',
-                'Pokémon: Black &amp; White: Adventures in Unova'
-            )
-        ).toBe(true);
-        expect(
-            relatedReleaseTitleMatches('A completely different series', 'Adventures in Unova')
-        ).toBe(false);
-    });
-
-    test('maps a release range onto a continuous provider run', () => {
-        const providerEpisodes = (seriesId: string, count: number): ProviderEpisode[] =>
-            Array.from({ length: count }, (_, index) => ({
-                id: `${seriesId}-${index + 1}`,
-                number: index + 1,
-                title: `Episode ${index + 1}`,
-                audio: ['sub' as const],
-            }));
-        const releases = [
-            {
-                anime: { id: 1, idMal: 1, episodes: 84, title: null },
-                seriesId: 100,
-                episodes: providerEpisodes('first', 48),
-            },
-            {
-                anime: { id: 2, idMal: 2, episodes: 24, title: null },
-                seriesId: 300,
-                episodes: providerEpisodes('second', 49),
-            },
-            {
-                anime: { id: 3, idMal: 3, episodes: 14, title: null },
-                seriesId: 400,
-                episodes: providerEpisodes('third', 45),
-            },
-            {
-                anime: { id: 4, idMal: 4, episodes: 20, title: null },
-                seriesId: 400,
-                episodes: providerEpisodes('third', 45),
-            },
-        ];
-
-        expect(
-            mapAniKotoContinuityRelease(releases, 3)?.map(({ number, id }) => ({ number, id }))
-        ).toEqual(
-            Array.from({ length: 14 }, (_, index) => ({
-                number: index + 1,
-                id: `anikoto:400:third-${index + 12}`,
-            }))
-        );
-        expect(
-            mapAniKotoContinuityRelease(releases, 2)?.map(({ number, id }) => ({ number, id }))
-        ).toEqual([
-            ...Array.from({ length: 13 }, (_, index) => ({
-                number: index + 1,
-                id: `anikoto:300:second-${index + 37}`,
-            })),
-            ...Array.from({ length: 11 }, (_, index) => ({
-                number: index + 14,
-                id: `anikoto:400:third-${index + 1}`,
-            })),
-        ]);
-    });
-
-    test('keeps merged episodes addressable by their provider release', () => {
-        const primary: ProviderEpisode[] = Array.from({ length: 48 }, (_, index) => ({
-            id: `black-white-${index + 1}`,
-            number: index + 1,
-            title: `Episode ${index + 1}`,
-            audio: ['sub'],
-        }));
-        const related: ProviderEpisode[] = Array.from({ length: 49 }, (_, index) => ({
-            id: `rival-destinies-${index + 1}`,
-            number: index + 1,
-            title: `Episode ${index + 1}`,
-            audio: ['sub'],
-        }));
-
-        const merged = mergeAniKotoEpisodeRanges(
-            primary,
-            4337,
-            {
-                episodes: related,
-                seriesId: 3879,
-            },
-            84
-        );
-
-        expect(merged).toHaveLength(84);
-        expect(merged[47]?.number).toBe(48);
-        expect(merged[48]?.number).toBe(49);
-        expect(merged[83]).toMatchObject({
-            number: 84,
-            id: 'anikoto:3879:rival-destinies-36',
-        });
-    });
-
-    test('does not append a related release to an inventory with a hole', () => {
-        const primary: ProviderEpisode[] = [1, 2, 3, 5].map((number) => ({
-            id: `sun-and-moon-${number}`,
-            number,
-            title: `Episode ${number}`,
-            audio: ['sub'],
-        }));
-        const related: ProviderEpisode[] = [1, 2].map((number) => ({
-            id: `journeys-${number}`,
-            number,
-            title: `Episode ${number}`,
-            audio: ['sub'],
-        }));
-
-        const merged = mergeAniKotoEpisodeRanges(
-            primary,
-            3087,
-            { episodes: related, seriesId: 386 },
-            6
-        );
-
-        expect(merged.map(({ id, number }) => ({ id, number }))).toEqual([
-            { id: 'anikoto:3087:sun-and-moon-1', number: 1 },
-            { id: 'anikoto:3087:sun-and-moon-2', number: 2 },
-            { id: 'anikoto:3087:sun-and-moon-3', number: 3 },
-            { id: 'anikoto:3087:sun-and-moon-5', number: 5 },
-        ]);
-    });
-
     test('fails closed for malformed provider payloads', () => {
         expect(parseEpisodeList(null)).toEqual([]);
         expect(parseEpisodeList({ status: 200, result: 42 })).toEqual([]);
