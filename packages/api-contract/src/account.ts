@@ -11,13 +11,3 @@ export const AccountRegistrationSchema = z.object({
     password: z.string().min(12, 'Use at least 12 characters.').max(128),
     invitationCode: z.string().trim().min(1).max(256),
 });
-
-export const AccountRegistrationResponseSchema = z.object({
-    user: z.object({
-        id: z.uuid(),
-        name: z.string(),
-        username: z.string(),
-    }),
-});
-
-export type AccountRegistration = z.infer<typeof AccountRegistrationSchema>;

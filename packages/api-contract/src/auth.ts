@@ -21,8 +21,6 @@ export const ApiErrorSchema = z.object({
     }),
 });
 
-export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;
-
 export const SessionResponseSchema = z
     .object({
         session: z.object({

@@ -129,10 +129,6 @@ function releaseSchedules(entries: AiringPageEntry[]): AiringAnime[] {
     }));
 }
 
-export async function getAiringAnime(ids: number[], now = new Date()) {
-    return releaseSchedules(await getAiringPages(ids, now, false));
-}
-
 export async function discoverAiringAnime(now = new Date()) {
     return releaseSchedules(await getAiringPages(undefined, now, true, 1, true));
 }

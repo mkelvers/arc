@@ -113,8 +113,6 @@ export const AniListAnimeSchema = z
     })
     .transform((value) => value as AniListAnime);
 
-export const AniListAnimeCacheSchema = AniListAnimeSchema;
-
 export const AniListScheduleSchema = z
     .object({
         id: z.number().int().positive(),

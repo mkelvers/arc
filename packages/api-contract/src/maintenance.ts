@@ -35,11 +35,6 @@ export const MaintenanceRequestSchema = z.discriminatedUnion('kind', [
 
 export type MaintenanceRequest = z.infer<typeof MaintenanceRequestSchema>;
 
-export const MaintenanceEnqueueResponseSchema = z.object({
-    id: z.uuid(),
-    state: z.literal('pending'),
-});
-
 const TimestampSchema = z.iso.datetime().nullable();
 
 export const MaintenanceTaskSchema = z.object({
