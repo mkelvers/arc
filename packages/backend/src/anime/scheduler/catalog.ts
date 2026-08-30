@@ -49,6 +49,27 @@ async function refreshKnownFranchises(now: Date) {
     return { attempted: malIds.length, completed, failed: 0 };
 }
 
+async function rediscoverRelatedMappings(release: Awaited<ReturnType<typeof getAnimeRelease>>) {
+    const relatedIds = (release.relations?.edges ?? []).flatMap((edge) =>
+        edge?.node?.type === 'ANIME' &&
+        (edge.relationType === 'PREQUEL' || edge.relationType === 'SEQUEL')
+            ? [edge.node.id]
+            : []
+    );
+
+    for (const relatedId of relatedIds) {
+        if (await findMapping(relatedId)) {
+            continue;
+        }
+
+        try {
+            await rediscoverMapping(relatedId);
+        } catch (cause) {
+            logger.debug(`Related mapping enrichment failed for AniList ${relatedId}`, cause);
+        }
+    }
+}
+
 export async function refreshCatalogSnapshots(now = new Date()) {
     const { season, year } = currentAnimeSeason(now);
     await refreshHomepage(season, year);
@@ -59,6 +80,7 @@ export async function refreshCatalogSnapshots(now = new Date()) {
     for (const { anilistId } of heroCandidates) {
         try {
             const release = await getAnimeRelease(anilistId);
+            await rediscoverRelatedMappings(release);
             if (!(await findMapping(anilistId))) {
                 await rediscoverMapping(anilistId);
             }
