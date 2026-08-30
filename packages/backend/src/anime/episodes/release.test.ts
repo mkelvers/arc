@@ -151,6 +151,24 @@ describe('AniList release episode boundaries', () => {
         ).toEqual(Array.from({ length: 14 }, (_, index) => index + 1));
     });
 
+    test('selects the declared release from a provider bundle without metadata enrichment', () => {
+        expect(
+            episodesForRelease(
+                anime(11, [2020, 7, 17], [2020, 10, 1]),
+                source(Array.from({ length: 15 }, (_, index) => index + 1)),
+                null
+            ).map(({ number }) => number)
+        ).toEqual(Array.from({ length: 11 }, (_, index) => index + 1));
+    });
+
+    test('does not guess a later provider release without metadata enrichment', () => {
+        const episodes = source(Array.from({ length: 15 }, (_, index) => index + 12));
+
+        expect(episodesForRelease(anime(11, [2020, 7, 17], [2020, 10, 1]), episodes, null)).toEqual(
+            episodes
+        );
+    });
+
     test('keeps in-window recap specials in addition to regular episodes', () => {
         const episodes = source([
             0,

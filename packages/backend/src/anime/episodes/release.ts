@@ -77,6 +77,19 @@ function normalizeReleaseWindow(episodes: ProviderEpisode[], expected: number) {
     }));
 }
 
+function declaredReleaseWindow(episodes: ProviderEpisode[], expected: number) {
+    if (episodes.length <= expected) {
+        return episodes;
+    }
+
+    const selected = episodes.slice(0, expected);
+    return selected.every(
+        (episode, index) => Number.isInteger(episode.number) && episode.number === index + 1
+    )
+        ? selected
+        : episodes;
+}
+
 export function episodesForRelease(
     anime: AniListAnime,
     episodes: ProviderEpisode[],
@@ -86,8 +99,11 @@ export function episodesForRelease(
     if (!expected || expected <= 0) {
         return episodes;
     }
-    if (episodes.length <= expected || !metadata) {
+    if (episodes.length <= expected) {
         return normalizeReleaseWindow(episodes, expected);
+    }
+    if (!metadata) {
+        return normalizeReleaseWindow(declaredReleaseWindow(episodes, expected), expected);
     }
 
     let selected = episodes;
