@@ -45,7 +45,15 @@ export async function storedEpisodes(anime: AniListAnime) {
         .where(eq(animeEpisode.anilistId, anime.id))
         .orderBy(asc(animeEpisode.number));
 
-    return rows.map((episode) => episodeModel(episode, anime.duration));
+    const uniqueEpisodes = new Map<number, (typeof rows)[number]>();
+    for (const episode of rows) {
+        const existing = uniqueEpisodes.get(episode.number);
+        if (!existing || (!existing.episodeId.includes(':') && episode.episodeId.includes(':'))) {
+            uniqueEpisodes.set(episode.number, episode);
+        }
+    }
+
+    return [...uniqueEpisodes.values()].map((episode) => episodeModel(episode, anime.duration));
 }
 
 export async function storedRelatedReleaseTitles(anilistIds: number[]) {

@@ -11,7 +11,6 @@ import {
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
-import { isAniKotoTransientError } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
@@ -181,7 +180,7 @@ async function fetchAndStore(
     const regularEpisodeNumbers = new Set(
         source.flatMap(({ number }) => (Number.isInteger(number) && number > 0 ? [number] : []))
     );
-    if (expected !== null && regularEpisodeNumbers.size > expected) {
+    if (anime.status === 'FINISHED' && expected !== null && regularEpisodeNumbers.size > expected) {
         throw new Error(
             `Episode metadata could not resolve the provider inventory for AniList ${anime.id}`
         );
@@ -475,9 +474,7 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
-            if (!isAniKotoTransientError(cause)) {
-                logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
-            }
+            logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
             throw cause;
         });
     inventoryRequests.set(anime.id, request);

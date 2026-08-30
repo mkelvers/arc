@@ -15,7 +15,7 @@ import type {
     ProviderStream,
     ProviderStreams,
 } from './types';
-import { normalizedProviderTitle } from './match';
+import { normalizedProviderTitle, relatedCollectionTitle } from './match';
 
 const anikotoUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';
@@ -751,7 +751,7 @@ async function requestText(
     const requestFamily = providerRequestFamily(url);
     if ((providerCooldownUntil.get(requestFamily) ?? 0) > Date.now()) {
         throw new AniKotoRequestError(
-            `AniKoto is rate limited for ${url.hostname}${url.pathname}`,
+            `AniKoto local request cooldown is active for ${url.hostname}${url.pathname}`,
             429
         );
     }
@@ -773,7 +773,7 @@ async function requestText(
                 providerCooldownUntil.set(requestFamily, Date.now() + cooldown);
                 await response.body?.cancel().catch(() => undefined);
                 throw new AniKotoRequestError(
-                    `AniKoto returned 429 for ${url.hostname}${url.pathname}`,
+                    `AniKoto returned 429 for ${url.hostname}${url.pathname} (cooldown ${cooldown}ms)`,
                     response.status,
                     cooldown
                 );
@@ -1020,12 +1020,18 @@ async function findSeries(anime: AniListAnime) {
     const ordered = [...candidates.values()].toSorted(
         (left, right) =>
             Number(
-                titles.has(normalizedProviderTitle(right.title)) ||
-                    titles.has(normalizedProviderTitle(right.alternativeTitle))
+                [...titles].some(
+                    (title) =>
+                        relatedCollectionTitle(title, right.title) ||
+                        relatedCollectionTitle(title, right.alternativeTitle)
+                )
             ) -
             Number(
-                titles.has(normalizedProviderTitle(left.title)) ||
-                    titles.has(normalizedProviderTitle(left.alternativeTitle))
+                [...titles].some(
+                    (title) =>
+                        relatedCollectionTitle(title, left.title) ||
+                        relatedCollectionTitle(title, left.alternativeTitle)
+                )
             )
     );
     for (let offset = 0; offset < ordered.length; offset += 12) {
@@ -1039,8 +1045,11 @@ async function findSeries(anime: AniListAnime) {
                 } else if (
                     cause instanceof AniKotoRequestError &&
                     cause.status === 429 &&
-                    (titles.has(normalizedProviderTitle(candidate.title)) ||
-                        titles.has(normalizedProviderTitle(candidate.alternativeTitle)))
+                    [...titles].some(
+                        (title) =>
+                            relatedCollectionTitle(title, candidate.title) ||
+                            relatedCollectionTitle(title, candidate.alternativeTitle)
+                    )
                 ) {
                     series = { id: candidate.id };
                 } else {
