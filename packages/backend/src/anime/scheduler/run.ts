@@ -22,7 +22,7 @@ import { schedulerRunLease } from './policy';
 const heartbeatName = 'anime-scheduler';
 
 const schedulerPolicy = {
-    concurrency: 3,
+    concurrency: 1,
     maxClaimedTargets: 25,
     claimingWindowMs: 240 * 1_000,
     leaseDurationMs: 600 * 1_000,

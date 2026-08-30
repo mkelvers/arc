@@ -71,6 +71,9 @@ export async function animePage(userId: string, id: number) {
                   if (!isAniKotoTransientError(cause)) {
                       throw cause;
                   }
+                  if (!storedEpisodes.length) {
+                      throw cause;
+                  }
                   return null;
               })
         : null;
