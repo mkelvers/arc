@@ -102,7 +102,7 @@ export function episodesForRelease(
     if (episodes.length <= expected) {
         return normalizeReleaseWindow(episodes, expected);
     }
-    if (!metadata) {
+    if (!metadata?.size) {
         return normalizeReleaseWindow(declaredReleaseWindow(episodes, expected), expected);
     }
 

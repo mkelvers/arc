@@ -161,6 +161,16 @@ describe('AniList release episode boundaries', () => {
         ).toEqual(Array.from({ length: 11 }, (_, index) => index + 1));
     });
 
+    test('treats an empty metadata result as unavailable enrichment', () => {
+        expect(
+            episodesForRelease(
+                anime(11, [2020, 7, 17], [2020, 10, 1]),
+                source(Array.from({ length: 15 }, (_, index) => index + 1)),
+                new Map()
+            ).map(({ number }) => number)
+        ).toEqual(Array.from({ length: 11 }, (_, index) => index + 1));
+    });
+
     test('does not guess a later provider release without metadata enrichment', () => {
         const episodes = source(Array.from({ length: 15 }, (_, index) => index + 12));
 
