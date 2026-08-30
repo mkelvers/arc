@@ -19,8 +19,7 @@
     "scripts": {
         "check": "tsc --noEmit",
         "graphql:generate": "graphql-codegen --config codegen.ts",
-        "test": "bun test",
-        "test:providers": "LIVE_PROVIDER_TESTS=1 bun --env-file=../../apps/api/.env test src/anime/providers/anikoto.provider-live.test.ts"
+        "test": "bun test"
     },
     "dependencies": {
         "@arc/api-contract": "workspace:*",
