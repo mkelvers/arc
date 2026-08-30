@@ -10,10 +10,12 @@ describe('TMDB mapping verification', () => {
             mappingNeedsVerification(
                 {
                     title: 'You and I Are Polar Opposites',
+                    mediaType: 'tv',
                     verifiedAt: new Date(now - 29 * 24 * 60 * 60 * 1_000),
                     mappingRevision: 'tmdb-mapping-v9',
                 },
                 'You and I Are Polar Opposites',
+                'tv',
                 now
             )
         ).toBe(false);
@@ -24,10 +26,12 @@ describe('TMDB mapping verification', () => {
             mappingNeedsVerification(
                 {
                     title: 'You and I Are Polar Opposites',
+                    mediaType: 'tv',
                     verifiedAt: new Date(now - 30 * 24 * 60 * 60 * 1_000),
                     mappingRevision: 'tmdb-mapping-v9',
                 },
                 'You and I Are Polar Opposites',
+                'tv',
                 now
             )
         ).toBe(true);
@@ -35,10 +39,12 @@ describe('TMDB mapping verification', () => {
             mappingNeedsVerification(
                 {
                     title: 'You and I Are Polar Opposites',
+                    mediaType: 'tv',
                     verifiedAt: null,
                     mappingRevision: 'tmdb-mapping-v9',
                 },
                 'You and I Are Polar Opposites',
+                'tv',
                 now
             )
         ).toBe(true);
@@ -49,10 +55,12 @@ describe('TMDB mapping verification', () => {
             mappingNeedsVerification(
                 {
                     title: 'Old title',
+                    mediaType: 'tv',
                     verifiedAt: new Date(now),
                     mappingRevision: 'tmdb-mapping-v9',
                 },
                 'Corrected title',
+                'tv',
                 now
             )
         ).toBe(true);
@@ -63,10 +71,28 @@ describe('TMDB mapping verification', () => {
             mappingNeedsVerification(
                 {
                     title: 'Dragon Ball Z Kai: The Final Chapters',
+                    mediaType: 'tv',
                     verifiedAt: new Date(now),
                     mappingRevision: 'tmdb-mapping-v3',
                 },
                 'Dragon Ball Z Kai: The Final Chapters',
+                'tv',
+                now
+            )
+        ).toBe(true);
+    });
+
+    test('revalidates a mapping with the wrong media type', () => {
+        expect(
+            mappingNeedsVerification(
+                {
+                    title: 'Jujutsu Kaisen 0',
+                    mediaType: 'tv',
+                    verifiedAt: new Date(now),
+                    mappingRevision: 'tmdb-mapping-v9',
+                },
+                'Jujutsu Kaisen 0',
+                'movie',
                 now
             )
         ).toBe(true);

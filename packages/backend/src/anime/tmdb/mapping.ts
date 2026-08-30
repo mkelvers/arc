@@ -458,10 +458,14 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
         });
     }
 
-    if (related.length === 1) {
+    const expectedMediaType = anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
+    const compatibleRelated = expectedMediaType
+        ? related.filter((mapping) => mapping.mediaType === expectedMediaType)
+        : related;
+    if (compatibleRelated.length === 1) {
         return saveVerifiedMapping(anime, {
-            id: related[0].id,
-            mediaType: related[0].mediaType,
+            id: compatibleRelated[0].id,
+            mediaType: compatibleRelated[0].mediaType,
         });
     }
 
@@ -477,7 +481,13 @@ async function refreshStoredMapping(
     try {
         return await discoverMapping(anime);
     } catch (cause) {
-        if (stored && stored.title === title) {
+        const expectedMediaType =
+            anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
+        if (
+            stored &&
+            stored.title === title &&
+            (expectedMediaType === null || stored.mediaType === expectedMediaType)
+        ) {
             logger.debug(
                 `TMDB mapping revalidation failed for AniList ${anime.id}; using the last verified mapping`,
                 cause
@@ -495,7 +505,12 @@ export async function resolveStored(
 ): Promise<StoredMapping> {
     const stored = await findMapping(anime.id);
     const title = animeTitles(anime)[0] ?? null;
-    if (stored && (!options.refresh || !mappingNeedsVerification(stored, title))) {
+    const expectedMediaType =
+        anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
+    if (
+        stored &&
+        (!options.refresh || !mappingNeedsVerification(stored, title, expectedMediaType))
+    ) {
         return stored;
     }
 
