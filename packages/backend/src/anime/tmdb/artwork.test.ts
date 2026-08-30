@@ -266,21 +266,21 @@ describe('TMDB anime artwork', () => {
         ]);
     });
 
-    test('does not fetch missing artwork during an ordinary read', async () => {
-        expect(await getArtwork(anime)).toBeNull();
-        expect(state.fetchCount).toBe(0);
-    });
-
-    test('fetches missing artwork for an existing detail-page release', async () => {
+    test('fetches missing artwork during an ordinary read', async () => {
         state.payload = {
             backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
             logos: [{ file_path: '/logo.png', width: 1000, height: 300 }],
         };
 
-        const artwork = await getArtwork(anime, { fetchMissing: true });
+        const artwork = await getArtwork(anime);
 
         expect(state.fetchCount).toBe(5);
         expect(artwork?.selectedBackdrop?.filePath).toBe('/backdrop.jpg');
+    });
+
+    test('can skip missing artwork for an explicitly non-blocking read', async () => {
+        expect(await getArtwork(anime, { fetchMissing: false })).toBeNull();
+        expect(state.fetchCount).toBe(0);
     });
 
     test('selects the highest-resolution backdrop and logo by default', async () => {

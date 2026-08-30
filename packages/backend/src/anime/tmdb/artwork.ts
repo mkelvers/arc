@@ -363,7 +363,7 @@ export async function getArtwork(
     };
 
     let artwork = await readArtwork(artworkMappings);
-    if (!artwork && (options.refresh || options.fetchMissing)) {
+    if (!artwork && (options.refresh || options.fetchMissing !== false)) {
         artwork = await fetchArtwork(artworkMappings).catch((cause) => {
             logger.debug(`TMDB artwork enrichment failed for AniList ${anime.id}`, cause);
             return null;
