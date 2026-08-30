@@ -5,53 +5,23 @@
     import ccBackground from '$lib/assets/cc-background.png';
     import {
         subtitleBackgroundOpacities,
+        subtitleBackgroundOrder,
         subtitleBackgrounds,
+        subtitleEdgeStyleOrder,
         subtitleEdgeStyles,
         subtitleSizeOrder,
         subtitleSizes,
+        subtitleTextColorOrder,
         subtitleTextColors,
-        type SubtitleBackground,
-        type SubtitleBackgroundOpacity,
-        type SubtitleEdgeStyle,
-        type SubtitleSize,
-        type SubtitleTextColor,
+        SubtitleSettings,
     } from '$lib/player/subtitle-settings.svelte';
-    import * as preferences from '$lib/player/preferences';
     import { cn } from '$lib/utils';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import { m } from '$lib/i18n.svelte';
 
-    let size = $state<SubtitleSize>('normal');
-    let textColor = $state<SubtitleTextColor>('white');
-    let background = $state<SubtitleBackground>('black');
-    let backgroundOpacity = $state<SubtitleBackgroundOpacity>(0.75);
-    let edgeStyle = $state<SubtitleEdgeStyle>('outline');
+    const settings = new SubtitleSettings();
 
-    const textColorOptions = ['white', 'yellow', 'black'] as const satisfies readonly SubtitleTextColor[];
-    const backgroundOptions = ['black', 'white', 'none'] as const satisfies readonly SubtitleBackground[];
-    const edgeStyleOptions = ['outline', 'none'] as const satisfies readonly SubtitleEdgeStyle[];
-
-    onMount(() => {
-        const saved = preferences.load({}, []);
-        size = saved.subtitleSize ?? size;
-        textColor = saved.subtitleTextColor ?? textColor;
-        background = saved.subtitleBackground ?? background;
-        backgroundOpacity = saved.subtitleBackgroundOpacity ?? backgroundOpacity;
-        edgeStyle = saved.subtitleEdgeStyle ?? edgeStyle;
-    });
-
-    function resetDefaults() {
-        size = 'normal';
-        textColor = 'white';
-        background = 'black';
-        backgroundOpacity = 0.75;
-        edgeStyle = 'outline';
-        preferences.save('subtitle-size', size);
-        preferences.save('subtitle-text-color', textColor);
-        preferences.save('subtitle-background', background);
-        preferences.save('subtitle-background-opacity', backgroundOpacity);
-        preferences.save('subtitle-edge-style', edgeStyle);
-    }
+    onMount(() => settings.load());
 </script>
 
 <svelte:head>
@@ -63,20 +33,20 @@
     <section aria-labelledby="subtitle-preview-title">
         <h2 id="subtitle-preview-title" class="text-lg font-medium">{m.settings_preview()}</h2>
         <div
-            class="relative mt-5 aspect-[16/9] min-h-48 overflow-hidden bg-black bg-cover bg-center ring-1 ring-border/50 sm:aspect-[16/7]"
+            class="relative mt-5 aspect-video min-h-48 overflow-hidden bg-black bg-cover bg-center ring-1 ring-border/50 sm:aspect-16/7"
             style:background-image={`url(${ccBackground})`}
         >
             <div class="absolute inset-0 flex items-end justify-center p-4 sm:p-8">
                 <p
                     class={cn(
-                        'max-w-full break-words px-2 py-1 text-center leading-tight font-semibold',
-                        edgeStyle === 'outline' && 'subtitle-outline'
+                        'max-w-full wrap-break-word px-2 py-1 text-center leading-tight font-semibold',
+                        settings.edgeStyle === 'outline' && 'subtitle-outline'
                     )}
-                    style:color={subtitleTextColors[textColor].value}
-                    style:font-size={`${subtitleSizes[size].px}px`}
-                    style:background-color={subtitleBackgrounds[background].value === null
+                    style:color={subtitleTextColors[settings.textColor].value}
+                    style:font-size={`${subtitleSizes[settings.size].px}px`}
+                    style:background-color={subtitleBackgrounds[settings.background].value === null
                         ? 'transparent'
-                        : `rgb(${subtitleBackgrounds[background].value} / ${backgroundOpacity})`}
+                        : `rgb(${subtitleBackgrounds[settings.background].value} / ${settings.backgroundOpacity})`}
                 >
                     {m.settings_closed_captions()}
                 </p>
@@ -94,7 +64,7 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{subtitleSizes[size].label}</span>
+                    {#snippet trigger()}<span>{subtitleSizes[settings.size].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
                         {#each subtitleSizeOrder as option}
@@ -102,8 +72,7 @@
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
-                                    size = option;
-                                    preferences.save('subtitle-size', size);
+                                    settings.setSize(option);
                                 }}
                             >
                                 {subtitleSizes[option].label}
@@ -120,15 +89,14 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{subtitleTextColors[textColor].label}</span>
+                    {#snippet trigger()}<span>{subtitleTextColors[settings.textColor].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each textColorOptions as option}<button
+                        {#each subtitleTextColorOrder as option}<button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
-                                    textColor = option;
-                                    preferences.save('subtitle-text-color', textColor);
+                                    settings.setTextColor(option);
                                 }}
                             >
                                 {subtitleTextColors[option].label}
@@ -144,15 +112,14 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{subtitleEdgeStyles[edgeStyle].label}</span>
+                    {#snippet trigger()}<span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each edgeStyleOptions as option}<button
+                        {#each subtitleEdgeStyleOrder as option}<button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
-                                    edgeStyle = option;
-                                    preferences.save('subtitle-edge-style', edgeStyle);
+                                    settings.setEdgeStyle(option);
                                 }}
                             >
                                 {subtitleEdgeStyles[option].label}
@@ -173,15 +140,14 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{subtitleBackgrounds[background].label}</span>
+                    {#snippet trigger()}<span>{subtitleBackgrounds[settings.background].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each backgroundOptions as option}<button
+                        {#each subtitleBackgroundOrder as option}<button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
-                                    background = option;
-                                    preferences.save('subtitle-background', background);
+                                    settings.setBackground(option);
                                 }}
                             >
                                 {subtitleBackgrounds[option].label}
@@ -194,19 +160,18 @@
                 <span class="text-xs text-muted">{m.settings_opacity()}</span>
                 <Dropdown
                     id="subtitle-background-opacity"
-                    disabled={background === 'none'}
+                    disabled={settings.background === 'none'}
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {#snippet trigger()}<span>{Math.round(backgroundOpacity * 100)}%</span>
+                    {#snippet trigger()}<span>{Math.round(settings.backgroundOpacity * 100)}%</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
                         {#each subtitleBackgroundOpacities as option}<button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
-                                    backgroundOpacity = option;
-                                    preferences.save('subtitle-background-opacity', backgroundOpacity);
+                                    settings.setBackgroundOpacity(option);
                                 }}
                             >
                                 {Math.round(option * 100)}%
@@ -221,7 +186,7 @@
         <button
             type="button"
             class="min-h-10 w-full border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
-            onclick={resetDefaults}
+            onclick={() => settings.reset()}
         >
             {m.settings_reset()}
         </button>
