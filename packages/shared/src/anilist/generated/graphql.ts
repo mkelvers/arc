@@ -280,7 +280,7 @@ export type WatchlistAnimeQueryVariables = Exact<{
 }>;
 
 
-export type WatchlistAnimeQuery = { Page: { media: Array<{ id: number, description: string | null, genres: Array<string | null> | null, averageScore: number | null, format: MediaFormat | null, status: MediaStatus | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null> | null } | null };
+export type WatchlistAnimeQuery = { Page: { media: Array<{ id: number, idMal: number | null, synonyms: Array<string | null> | null, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, episodes: number | null, duration: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null, startDate: { year: number | null, month: number | null, day: number | null } | null, endDate: { year: number | null, month: number | null, day: number | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null, relations: { edges: Array<{ relationType: MediaRelation | null, node: { id: number, idMal: number | null, episodes: number | null, type: MediaType | null, title: { english: string | null, romaji: string | null, native: string | null } | null } | null } | null> | null } | null, rankings: Array<{ rank: number, type: MediaRankType, year: number | null, season: MediaSeason | null, allTime: boolean | null } | null> | null, tags: Array<{ name: string, rank: number | null, isGeneralSpoiler: boolean | null, isMediaSpoiler: boolean | null } | null> | null, studios: { nodes: Array<{ name: string } | null> | null } | null, staff: { edges: Array<{ role: string | null, node: { name: { full: string | null } | null } | null } | null> | null } | null } | null> | null } | null };
 
 export class TypedDocumentString<TResult, TVariables>
   extends String
@@ -735,20 +735,87 @@ export const WatchlistAnimeDocument = new TypedDocumentString(`
   Page(page: 1, perPage: 50) {
     media(id_in: $ids, type: ANIME, isAdult: false) {
       id
+      idMal
       title {
         english
         romaji
         native
       }
+      synonyms
       coverImage {
         extraLarge
         large
       }
+      bannerImage
       description(asHtml: false)
       genres
-      averageScore
       format
       status
+      season
+      seasonYear
+      startDate {
+        year
+        month
+        day
+      }
+      endDate {
+        year
+        month
+        day
+      }
+      episodes
+      duration
+      nextAiringEpisode {
+        airingAt
+        episode
+      }
+      relations {
+        edges {
+          relationType
+          node {
+            id
+            idMal
+            episodes
+            type
+            title {
+              english
+              romaji
+              native
+            }
+          }
+        }
+      }
+      averageScore
+      popularity
+      favourites
+      rankings {
+        rank
+        type
+        year
+        season
+        allTime
+      }
+      tags {
+        name
+        rank
+        isGeneralSpoiler
+        isMediaSpoiler
+      }
+      studios(isMain: true) {
+        nodes {
+          name
+        }
+      }
+      staff(page: 1, perPage: 30, sort: RELEVANCE) {
+        edges {
+          role
+          node {
+            name {
+              full
+            }
+          }
+        }
+      }
     }
   }
 }

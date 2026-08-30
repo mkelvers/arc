@@ -18,6 +18,7 @@ import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { scheduleReleaseTargets } from './targets';
 import { schedulerRunLease } from './policy';
+import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -121,6 +122,8 @@ export async function runAnimeScheduler() {
     }, schedulerRunLease.renewalMs);
 
     try {
+        const interests = await reconcileAnimeInterests();
+        const inventoryBackfills = await enqueueUnresolvedAnimeInterests();
         const maintenance = await drainMaintenanceTasks(runId, {
             limit: schedulerPolicy.concurrency,
             leaseDurationMs: schedulerPolicy.leaseDurationMs,
@@ -194,7 +197,15 @@ export async function runAnimeScheduler() {
         const releases = await refreshDueReleases(schedulerPolicy.concurrency);
         const episodes = await drainEpisodeTargets(runId, schedulerPolicy);
         const completedAt = new Date();
-        const stats = { releases, maintenance, episodes, fullReconciliation, catalogRefresh };
+        const stats = {
+            releases,
+            maintenance,
+            episodes,
+            interests,
+            inventoryBackfills,
+            fullReconciliation,
+            catalogRefresh,
+        };
         const reconciliationError =
             fullReconciliation && 'error' in fullReconciliation ? fullReconciliation.error : null;
         const catalogError =

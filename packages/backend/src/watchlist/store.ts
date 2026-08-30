@@ -10,6 +10,7 @@ import {
     animeEpisodeSync,
     animeExternalId,
     animeExternalIdLink,
+    animeInterestDirty,
     animeRelease,
     watchlist,
     type WatchlistState,
@@ -217,6 +218,16 @@ export async function applyWatchlistEntries(
             .from(watchlist)
             .where(eq(watchlist.userId, userId));
         const currentAnimeIds = new Set(current.map(({ animeId }) => animeId));
+        const dirtyAnimeIds = [
+            ...new Set([...currentAnimeIds, ...rows.map(({ animeId }) => animeId)]),
+        ];
+        await tx
+            .insert(animeInterestDirty)
+            .values(dirtyAnimeIds.map((animeId) => ({ userId, animeId })))
+            .onConflictDoUpdate({
+                target: [animeInterestDirty.userId, animeInterestDirty.animeId],
+                set: { dirtyAt: new Date() },
+            });
 
         if (mode === 'replace') {
             await tx.delete(watchlist).where(eq(watchlist.userId, userId));
@@ -250,6 +261,7 @@ async function setInternalWatchlistState(userId: string, animeId: number, state:
             .update(watchlist)
             .set({ state, updatedAt: new Date() })
             .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
+        await markAnimeInterestDirty(userId, animeId);
 
         return state;
     }
@@ -261,6 +273,7 @@ async function setInternalWatchlistState(userId: string, animeId: number, state:
         .returning({ state: watchlist.state });
 
     if (created) {
+        await markAnimeInterestDirty(userId, animeId);
         return created.state;
     }
 
@@ -290,8 +303,19 @@ export async function setWatchlistState(
                 set: { state, updatedAt: new Date() },
             });
     }
+    await markAnimeInterestDirty(userId, animeId);
 
     return state;
+}
+
+async function markAnimeInterestDirty(userId: string, animeId: number) {
+    await db
+        .insert(animeInterestDirty)
+        .values({ userId, animeId })
+        .onConflictDoUpdate({
+            target: [animeInterestDirty.userId, animeInterestDirty.animeId],
+            set: { dirtyAt: new Date() },
+        });
 }
 
 export async function removeFromWatchlist(userId: string, anilistId: number) {
@@ -303,6 +327,7 @@ export async function removeFromWatchlist(userId: string, anilistId: number) {
     await db
         .delete(watchlist)
         .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)));
+    await markAnimeInterestDirty(userId, animeId);
 }
 
 export async function updateWatchlistAfterPlayback(

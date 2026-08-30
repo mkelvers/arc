@@ -2,20 +2,87 @@ query WatchlistAnime($ids: [Int!]!) {
     Page(page: 1, perPage: 50) {
         media(id_in: $ids, type: ANIME, isAdult: false) {
             id
+            idMal
             title {
                 english
                 romaji
                 native
             }
+            synonyms
             coverImage {
                 extraLarge
                 large
             }
+            bannerImage
             description(asHtml: false)
             genres
-            averageScore
             format
             status
+            season
+            seasonYear
+            startDate {
+                year
+                month
+                day
+            }
+            endDate {
+                year
+                month
+                day
+            }
+            episodes
+            duration
+            nextAiringEpisode {
+                airingAt
+                episode
+            }
+            relations {
+                edges {
+                    relationType
+                    node {
+                        id
+                        idMal
+                        episodes
+                        type
+                        title {
+                            english
+                            romaji
+                            native
+                        }
+                    }
+                }
+            }
+            averageScore
+            popularity
+            favourites
+            rankings {
+                rank
+                type
+                year
+                season
+                allTime
+            }
+            tags {
+                name
+                rank
+                isGeneralSpoiler
+                isMediaSpoiler
+            }
+            studios(isMain: true) {
+                nodes {
+                    name
+                }
+            }
+            staff(page: 1, perPage: 30, sort: RELEVANCE) {
+                edges {
+                    role
+                    node {
+                        name {
+                            full
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -1,4 +1,8 @@
-import { storedReleaseCards } from '../anime/anilist/releases';
+import {
+    getAnimeRelease,
+    hydrateMissingAnimeReleases,
+    storedReleaseCards,
+} from '../anime/anilist/releases';
 import { animeTitles } from '../anime/anilist/text';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '../anime/details';
@@ -12,6 +16,11 @@ import {
     type WatchlistImportMode,
 } from './store';
 import { importedWatchlistEntries, WatchlistImportError } from './transfer';
+import {
+    enqueueUnresolvedAnimeInterests,
+    reconcileAnimeInterests,
+} from '../anime/scheduler/interests';
+import { batches } from '../utils';
 
 export {
     getWatchlistState,
@@ -32,10 +41,16 @@ export async function importWatchlist(
     if (!imported.entries.length) {
         throw new WatchlistImportError('Arc could not match any anime in the file.');
     }
-    return {
-        ...(await applyWatchlistEntries(userId, imported.entries, mode)),
-        unmatched: imported.unmatched,
-    };
+    const result = await applyWatchlistEntries(userId, imported.entries, mode);
+    try {
+        await hydrateMissingAnimeReleases(imported.entries.map(({ anilistId }) => anilistId));
+    } catch (cause) {
+        logger.debug('Watchlist metadata hydration failed', cause);
+    }
+    await reconcileAnimeInterests();
+    await enqueueUnresolvedAnimeInterests();
+
+    return { ...result, unmatched: imported.unmatched };
 }
 
 export async function exportWatchlist(userId: string) {
@@ -59,7 +74,17 @@ export async function getWatchlistPage(userId: string, selection: WatchlistSelec
             : stored
                   .filter(({ state }) => state === selection.state)
                   .map(({ anilistId }) => anilistId);
-    const cards = await storedReleaseCards(selectedIds);
+    let cards = await storedReleaseCards(selectedIds);
+    const resolvedIds = new Set(cards.map(({ id }) => id));
+    const missingIds = selectedIds.filter((id) => !resolvedIds.has(id));
+
+    for (const batch of batches(missingIds.slice(0, 12), 4)) {
+        await Promise.allSettled(batch.map((id) => getAnimeRelease(id)));
+    }
+
+    if (missingIds.length) {
+        cards = await storedReleaseCards(selectedIds);
+    }
     const cardsById = new Map(cards.map((card) => [card.id, card]));
     const titledStored = stored.map((entry) => {
         const details = parseStoredAnimeDetails(entry.details);

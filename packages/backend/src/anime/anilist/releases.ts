@@ -1,20 +1,25 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, eq, inArray, isNull, lte, or } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lte, or } from 'drizzle-orm';
 
-import { AnimeDocument, AnimeScheduleDocument } from '@arc/shared/anilist/generated/graphql';
+import {
+    AnimeDocument,
+    AnimeScheduleDocument,
+    WatchlistAnimeDocument,
+} from '@arc/shared/anilist/generated/graphql';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeEpisodeSync, animeRelease, animeReleaseRequest } from '@arc/db/schema';
 import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '../identity';
 import { animeTitles, plainText, present } from './text';
+import { request as requestAniList } from './client';
 import { coordinatedAniListRequest } from './durable-request-policy';
 import { AniListAnimeSchema, AniListScheduleSchema, type AniListAnime } from './types';
+import { batches } from '../../utils';
 
 const releaseSchemaRevision = 1;
 const requestLeaseMs = 30_000;
-const requestWaitMs = 12_000;
 
 function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
     return {
@@ -48,6 +53,40 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
             target: animeRelease.anilistId,
             set: values,
         });
+}
+
+export async function hydrateAnimeReleases(anilistIds: number[]) {
+    const ids = [...new Set(anilistIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
+    const stored: number[] = [];
+
+    for (const batch of batches(ids, 50)) {
+        const response = await requestAniList(WatchlistAnimeDocument, { ids: batch });
+        const media = present(response.Page?.media).flatMap((entry) => {
+            const parsed = AniListAnimeSchema.safeParse(entry);
+            return parsed.success ? [parsed.data] : [];
+        });
+
+        for (const anime of media) {
+            await storeAnimeRelease(anime);
+            stored.push(anime.id);
+        }
+    }
+
+    return stored;
+}
+
+export async function hydrateMissingAnimeReleases(anilistIds: number[]) {
+    const ids = [...new Set(anilistIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
+    if (!ids.length) {
+        return [];
+    }
+
+    const existing = await db
+        .select({ anilistId: animeRelease.anilistId })
+        .from(animeRelease)
+        .where(and(inArray(animeRelease.anilistId, ids), isNotNull(animeRelease.data)));
+    const existingIds = new Set(existing.map(({ anilistId }) => anilistId));
+    return hydrateAnimeReleases(ids.filter((id) => !existingIds.has(id)));
 }
 
 async function fetchAnimeRelease(id: number) {
@@ -94,7 +133,7 @@ async function requestWithLease(id: number, force: boolean) {
     }
 
     let claimed: { attempts: number } | undefined;
-    const deadline = Date.now() + requestLeaseMs + requestWaitMs;
+    const deadline = Date.now() + requestLeaseMs + 12_000;
     while (!claimed && Date.now() < deadline) {
         const claimNow = new Date();
         [claimed] = await db
@@ -299,17 +338,19 @@ export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {
         .where(inArray(animeRelease.anilistId, uniqueIds));
     const cards = new Map(
         rows.flatMap((row) => {
-            if (!row.image) {
-                return [];
-            }
             const parsed = row.data ? AniListAnimeSchema.safeParse(row.data) : null;
             const media = parsed?.success ? parsed.data : null;
+            const image =
+                row.image ?? media?.coverImage?.extraLarge ?? media?.coverImage?.large ?? null;
+            if (!image) {
+                return [];
+            }
             const card: AnimeCard = {
                 id: row.id,
                 href: `/anime/${row.id}`,
                 link: `/anime/${row.id}`,
                 title: row.title,
-                image: row.image,
+                image,
                 audioLabel: '',
                 format: row.format,
                 status: row.status,
