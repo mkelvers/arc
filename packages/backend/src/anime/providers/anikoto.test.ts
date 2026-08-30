@@ -12,6 +12,7 @@ import {
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
     parseEpisodeList,
+    parseSearchCandidates,
     parseMegaPlaySource,
     parseSeries,
     parseServerList,
@@ -113,6 +114,15 @@ describe('AniKoto provider rules', () => {
         expect(matchesAniKotoFormat('ONA', 'TV')).toBeFalse();
         expect(matchesAniKotoFormat('TV', 'TV')).toBeTrue();
         expect(matchesAniKotoFormat(null, 'TV')).toBeTrue();
+        expect(
+            parseSearchCandidates(`
+                <div class="item">
+                    <div class="poster" data-tip="1"></div>
+                    <a class="name" data-jp="Title">Title</a>
+                    <div class="meta"><div class="right">ONA</div></div>
+                </div>
+            `)[0]?.format
+        ).toBe('ONA');
     });
 
     test('reads the seasonal catalog and excludes adult entries', () => {

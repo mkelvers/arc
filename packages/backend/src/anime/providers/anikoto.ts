@@ -1097,6 +1097,10 @@ async function findSeries(anime: AniListAnime) {
     );
     for (let offset = 0; offset < ordered.length; offset += 12) {
         for (const candidate of ordered.slice(offset, offset + 12)) {
+            if (!matchesAniKotoFormat(candidate.format, anime.format)) {
+                continue;
+            }
+
             let series: AniKotoSeries | { id: number } | null;
             try {
                 series = await loadSeries(candidate.id);
