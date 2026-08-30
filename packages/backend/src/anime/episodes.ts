@@ -15,21 +15,6 @@ export async function getEpisodes(anime: AniListAnime) {
     return episodesAvailableToWatch(await storedEpisodes(anime), anime);
 }
 
-export async function getEpisodeSyncState(anilistId: number) {
-    const [state] = await db
-        .select({
-            metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
-            metadataRevision: animeEpisodeSync.metadataRevision,
-            nextRefreshAt: animeEpisodeSync.nextRefreshAt,
-            lastSuccessAt: animeEpisodeSync.lastSuccessAt,
-        })
-        .from(animeEpisodeSync)
-        .where(eq(animeEpisodeSync.anilistId, anilistId))
-        .limit(1);
-
-    return state ?? null;
-}
-
 export async function getStoredAiringSchedule(anilistId: number) {
     const [rows, confirmed] = await Promise.all([
         db
