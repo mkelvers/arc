@@ -1,6 +1,9 @@
 <script lang="ts">
     import WatchlistPageContent from './_components/WatchlistPageContent.svelte';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
+    import errorArtwork from '$lib/assets/error-state.png';
+    import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import { page } from '$app/state';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -37,10 +40,20 @@
     {#if result.status === 'success'}
         <WatchlistPageContent data={{ ...result.data, selection: data.selection }} />
     {:else}
-        <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas px-5 py-12 text-foreground">
-            <p class="mx-auto max-w-384 text-sm text-muted" role="alert">
-                {m.watchlist_load_failed()}
-            </p>
+        <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
+            <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+                <h1 class="text-2xl font-semibold">{m.watchlist_title()}</h1>
+                <EmptyState
+                    artwork={errorArtwork}
+                    artworkWidth={1254}
+                    artworkHeight={1254}
+                    id="watchlist-error-message"
+                    title={m.watchlist_error_title()}
+                    body={m.watchlist_error_body()}
+                    actionHref={page.url.pathname + page.url.search}
+                    actionLabel={m.watchlist_retry()}
+                />
+            </div>
         </main>
     {/if}
 {/await}

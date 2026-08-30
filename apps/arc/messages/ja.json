@@ -32,5 +32,8 @@
     "settings_default_subtitle": "デフォルトの字幕トラック",
     "settings_language": "言語",
     "settings_language_synopsis": "Arc 全体で使用する言語を選択します。",
-    "watchlist_add": "ウォッチリストに追加"
+    "watchlist_add": "ウォッチリストに追加",
+    "watchlist_error_title": "ウォッチリストを読み込めません",
+    "watchlist_error_body": "Arc はウォッチリストを読み込めませんでした。接続を確認して、もう一度お試しください。",
+    "watchlist_retry": "もう一度試す"
 }
