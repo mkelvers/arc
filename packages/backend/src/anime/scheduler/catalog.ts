@@ -2,12 +2,17 @@ import { currentAnimeSeason } from '@arc/shared/season';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeFranchiseCache, animeRelease } from '@arc/db/schema';
+import { getAnimeRelease } from '../anilist/releases';
 import { getBrowseTaxonomy } from '../anilist/browse';
 import { refreshHomeHeroCandidates } from '../anilist/hero';
 import { refreshHomepage } from '../anilist/home';
 import { refreshPopularAnime } from '../browse';
 import { refreshFranchiseOrder } from '../franchise';
 import { refreshCurrentSimulcast } from '../simulcast';
+import { findMapping } from '../tmdb/mapping-store';
+import { getArtwork } from '../tmdb/artwork';
+import { rediscoverMapping } from './mappings';
+import { logger } from '../../logger';
 
 const franchiseRefreshIntervalMs = 7 * 24 * 60 * 60 * 1_000;
 
@@ -50,6 +55,17 @@ export async function refreshCatalogSnapshots(now = new Date()) {
     await refreshPopularAnime();
     await refreshCurrentSimulcast(now);
     await getBrowseTaxonomy(true);
-    await refreshHomeHeroCandidates(now);
+    const heroCandidates = await refreshHomeHeroCandidates(now);
+    for (const { anilistId } of heroCandidates) {
+        try {
+            const release = await getAnimeRelease(anilistId);
+            if (!(await findMapping(anilistId))) {
+                await rediscoverMapping(anilistId);
+            }
+            await getArtwork(release, { fetchMissing: true });
+        } catch (cause) {
+            logger.debug(`Hero enrichment failed for AniList ${anilistId}`, cause);
+        }
+    }
     await refreshKnownFranchises(now);
 }
