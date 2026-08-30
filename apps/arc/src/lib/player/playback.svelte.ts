@@ -385,15 +385,6 @@ export class Playback {
         await this.tryNextSource(source);
     }
 
-    async switchMode(mode: AudioMode) {
-        const source = this.sourcesForMode(mode)[0];
-        if (!source) {
-            return;
-        }
-
-        await this.switchSource(mode, source);
-    }
-
     async switchSource(mode: AudioMode, selected: Stream) {
         if (!this.sources[mode] || !this.sources[mode]?.includes(selected)) {
             return;
