@@ -234,7 +234,6 @@ export function preferredTvReleaseCandidate(
         }))
         .filter(({ complete, score }) => complete && score >= 200)
         .sort((left, right) => right.score - left.score)[0];
-
     return alternative && (!directScore.complete || alternative.score > directScore.score)
         ? alternative.candidate
         : direct;

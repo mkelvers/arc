@@ -197,7 +197,7 @@ describe('TMDB TV release mapping evidence', () => {
     test('prefers a metadata-rich aggregate release window over a complete duplicate shell', () => {
         const frieren = {
             episodes: 10,
-            format: 'TV',
+            format: 'ONA',
             startDate: { year: 2026, month: 1, day: 16 },
             endDate: { year: 2026, month: 3, day: 27 },
             title: {
