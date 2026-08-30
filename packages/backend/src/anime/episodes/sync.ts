@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 
 import { db, excluded } from '@arc/db';
 import {
@@ -11,6 +11,7 @@ import {
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { playback } from '../providers';
+import { isAniKotoTransientError } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
@@ -52,7 +53,10 @@ export async function ensureEpisodeInventoryBackfill(anilistId: number) {
         })
         .onConflictDoUpdate({
             target: maintenanceTask.dedupeKey,
-            setWhere: ne(maintenanceTask.state, 'running'),
+            setWhere: or(
+                eq(maintenanceTask.state, 'completed'),
+                eq(maintenanceTask.state, 'failed')
+            ),
             set: {
                 state: 'pending',
                 attempts: 0,
@@ -471,6 +475,9 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
+            if (!isAniKotoTransientError(cause)) {
+                logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
+            }
             throw cause;
         });
     inventoryRequests.set(anime.id, request);

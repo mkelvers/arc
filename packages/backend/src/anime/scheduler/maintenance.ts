@@ -5,6 +5,7 @@ import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
+import { AniKotoRequestError } from '../providers/anikoto';
 import { episodeMetadataRevision } from '../episodes/policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
@@ -225,7 +226,11 @@ async function finishMaintenanceTask(
     } catch (cause) {
         const attempts = claimed.attempts + 1;
         const failed = attempts >= 12;
-        const retryAt = new Date(Date.now() + maintenanceRetryDelay(attempts));
+        const providerRetryAfterMs =
+            cause instanceof AniKotoRequestError ? (cause.retryAfterMs ?? 0) : 0;
+        const retryAt = new Date(
+            Date.now() + Math.max(maintenanceRetryDelay(attempts), providerRetryAfterMs)
+        );
         await db
             .update(maintenanceTask)
             .set({
