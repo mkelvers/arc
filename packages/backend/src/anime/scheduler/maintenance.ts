@@ -5,7 +5,7 @@ import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
-import { AniKotoRequestError } from '../providers/anikoto';
+import { AniKotoRequestError, isAniKotoLocalCooldownError } from '../providers/anikoto';
 import { episodeMetadataRevision } from '../episodes/policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
@@ -224,6 +224,27 @@ async function finishMaintenanceTask(
             );
         return 'completed' as const;
     } catch (cause) {
+        if (isAniKotoLocalCooldownError(cause)) {
+            const retryAt = new Date(Date.now() + (cause.retryAfterMs ?? 30_000));
+            await db
+                .update(maintenanceTask)
+                .set({
+                    state: 'pending',
+                    nextAttemptAt: retryAt,
+                    leaseOwner: null,
+                    leaseUntil: null,
+                    lastError: null,
+                    updatedAt: new Date(),
+                })
+                .where(
+                    and(
+                        eq(maintenanceTask.id, candidate.id),
+                        eq(maintenanceTask.leaseOwner, leaseOwner)
+                    )
+                );
+            return 'retried' as const;
+        }
+
         const attempts = claimed.attempts + 1;
         const failed = attempts >= 12;
         const providerRetryAfterMs =

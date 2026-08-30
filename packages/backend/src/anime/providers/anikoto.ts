@@ -142,10 +142,17 @@ export class AniKotoRequestError extends Error {
     constructor(
         message: string,
         readonly status: number,
-        readonly retryAfterMs?: number
+        readonly retryAfterMs?: number,
+        readonly localCooldown = false
     ) {
         super(message);
     }
+}
+
+export function isAniKotoLocalCooldownError(
+    cause: unknown
+): cause is AniKotoRequestError & { localCooldown: true } {
+    return cause instanceof AniKotoRequestError && cause.localCooldown;
 }
 
 export function isAniKotoTransientError(cause: unknown) {
@@ -749,10 +756,14 @@ async function requestText(
     }
 
     const requestFamily = providerRequestFamily(url);
-    if ((providerCooldownUntil.get(requestFamily) ?? 0) > Date.now()) {
+    const cooldownUntil = providerCooldownUntil.get(requestFamily) ?? 0;
+    if (cooldownUntil > Date.now()) {
+        const cooldown = cooldownUntil - Date.now();
         throw new AniKotoRequestError(
-            `AniKoto local request cooldown is active for ${url.hostname}${url.pathname}`,
-            429
+            `AniKoto local request cooldown is active for ${url.hostname}${url.pathname} (${cooldown}ms remaining)`,
+            429,
+            cooldown,
+            true
         );
     }
 
