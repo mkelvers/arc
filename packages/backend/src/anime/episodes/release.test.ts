@@ -171,6 +171,23 @@ describe('AniList release episode boundaries', () => {
         ).toEqual(Array.from({ length: 11 }, (_, index) => index + 1));
     });
 
+    test('uses a contiguous declared prefix when enrichment matches a bundled provider release', () => {
+        const episodes = source(Array.from({ length: 15 }, (_, index) => index + 1));
+
+        expect(
+            episodesForRelease(
+                anime(11, [2020, 7, 17], [2020, 10, 1]),
+                episodes,
+                metadata(
+                    episodes,
+                    Array.from({ length: 15 }, (_, index) =>
+                        new Date(Date.UTC(2020, 6, 17 + index)).toISOString().slice(0, 10)
+                    )
+                )
+            ).map(({ number }) => number)
+        ).toEqual(Array.from({ length: 11 }, (_, index) => index + 1));
+    });
+
     test('does not guess a later provider release without metadata enrichment', () => {
         const episodes = source(Array.from({ length: 15 }, (_, index) => index + 12));
 

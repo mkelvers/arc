@@ -141,6 +141,11 @@ export function episodesForRelease(
         }
     }
 
+    const declared = declaredReleaseWindow(selected, expected);
+    if (declared.length === expected) {
+        selected = declared;
+    }
+
     if (selected.length > expected) {
         const excess = selected.length - expected;
         const unmatchedSpecials = selected.filter(
