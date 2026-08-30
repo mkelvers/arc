@@ -212,50 +212,38 @@ async function fetchArtworkSource(match: StoredMapping) {
         logger.debug(`TMDB language configuration failed for ${match.id}`, cause);
         return [];
     });
-    const languageResponses = [];
-    for (let index = 0; index < languageCodes.length; index += 10) {
-        const batch = languageCodes.slice(index, index + 10);
-        languageResponses.push(
-            ...(await Promise.all(
-                batch.map(async (language) => {
-                    try {
-                        // TMDB uses xx for images without a language, including freshly added images.
-                        const query = { include_image_language: `${language},xx` };
-                        return match.mediaType === 'movie'
-                            ? await client.GET('/3/movie/{movie_id}/images', {
-                                  params: {
-                                      path: { movie_id: match.id },
-                                      query,
-                                  },
-                              })
-                            : await client.GET('/3/tv/{series_id}/images', {
-                                  params: {
-                                      path: { series_id: match.id },
-                                      query,
-                                  },
-                              });
-                    } catch (cause) {
-                        logger.debug(
-                            `TMDB ${language} artwork request failed for ${match.id}`,
-                            cause
-                        );
-                        return null;
-                    }
-                })
-            ))
-        );
-    }
+    const allLanguagesQuery = {
+        // TMDB uses xx for images without a language, including freshly added images.
+        include_image_language: [...new Set([...languageCodes, 'null', 'xx'])].join(','),
+    };
+    const languageResponse = await (
+        match.mediaType === 'movie'
+            ? client.GET('/3/movie/{movie_id}/images', {
+                  params: {
+                      path: { movie_id: match.id },
+                      query: allLanguagesQuery,
+                  },
+              })
+            : client.GET('/3/tv/{series_id}/images', {
+                  params: {
+                      path: { series_id: match.id },
+                      query: allLanguagesQuery,
+                  },
+              })
+    ).catch((cause) => {
+        logger.debug(`TMDB all-language artwork request failed for ${match.id}`, cause);
+        return null;
+    });
 
-    if (!unfilteredResponse.data && !languageResponses.some((response) => response?.data)) {
+    if (!unfilteredResponse.data && !languageResponse?.data) {
         throw new Error('TMDB artwork request failed', {
             cause: unfilteredResponse.error,
         });
     }
 
-    const images = [
-        unfilteredResponse.data,
-        ...languageResponses.map((response) => response?.data),
-    ].filter((data): data is NonNullable<typeof unfilteredResponse.data> => Boolean(data));
+    const images = [unfilteredResponse.data, languageResponse?.data].filter(
+        (data): data is NonNullable<typeof unfilteredResponse.data> => Boolean(data)
+    );
     const backdrops = images
         .flatMap((data) => data.backdrops ?? [])
         .flatMap((image) => {

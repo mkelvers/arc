@@ -204,7 +204,7 @@ describe('TMDB anime artwork', () => {
 
         const artwork = await getArtwork(anime, { refresh: true });
 
-        expect(state.fetchCount).toBe(5);
+        expect(state.fetchCount).toBe(2);
         expect(state.cache).toEqual([{ externalIdId: 100, allLanguages: true }]);
         expect(state.images.map(({ filePath }) => filePath)).toEqual([
             '/backdrop.jpg',
@@ -214,7 +214,7 @@ describe('TMDB anime artwork', () => {
         expect(artwork?.selectedLogo?.filePath).toBe('/logo.png');
     });
 
-    test('requests unlocalized and English artwork from TMDB', async () => {
+    test('requests every configured image language from TMDB', async () => {
         state.payload = {
             backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
             logos: [],
@@ -224,10 +224,7 @@ describe('TMDB anime artwork', () => {
 
         expect(state.fetchQueries).toEqual([
             null,
-            { include_image_language: 'en-US,xx' },
-            { include_image_language: 'en,xx' },
-            { include_image_language: 'ja,xx' },
-            { include_image_language: 'null,xx' },
+            { include_image_language: 'en-US,en,ja,null,xx' },
         ]);
     });
 
@@ -274,7 +271,7 @@ describe('TMDB anime artwork', () => {
 
         const artwork = await getArtwork(anime);
 
-        expect(state.fetchCount).toBe(5);
+        expect(state.fetchCount).toBe(2);
         expect(artwork?.selectedBackdrop?.filePath).toBe('/backdrop.jpg');
     });
 
