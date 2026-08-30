@@ -152,7 +152,5 @@
                 </button>
             {/if}
         </div>
-    {:else}
-        <p class="px-2 text-sm text-muted">{m.franchise_empty()}</p>
     {/if}
 </section>
