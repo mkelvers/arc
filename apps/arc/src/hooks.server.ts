@@ -10,7 +10,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     let response: Response;
     try {
-        response = await fetch(`${env.API_ORIGIN!}/api/auth/get-session`, {
+        response = await event.fetch(`${env.API_ORIGIN!}/api/auth/get-session`, {
             headers: {
                 Cookie: event.request.headers.get('cookie') ?? '',
                 Authorization: event.request.headers.get('authorization') ?? '',

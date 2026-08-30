@@ -4,7 +4,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { WatchPageSchema, WatchPlaybackSchema, WatchSegmentsSchema } from '@arc/api-contract/anime';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, request }) => {
+export const load: PageServerLoad = async ({ params, request, fetch }) => {
     const id = Number(params.id);
     if (!Number.isSafeInteger(id) || id <= 0) {
         error(400, 'Invalid anime ID');

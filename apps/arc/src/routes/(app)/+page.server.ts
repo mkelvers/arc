@@ -4,7 +4,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { HomePageSchema } from '@arc/api-contract/anime';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ request }) => {
+export const load: PageServerLoad = async ({ request, fetch }) => {
     const response = await fetch(`${env.API_ORIGIN!}/v1/home`, {
         headers: {
             Cookie: request.headers.get('cookie') ?? '',
@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ request }) => {
 };
 
 export const actions: Actions = {
-    removeContinueWatching: async ({ locals, request, url }) => {
+    removeContinueWatching: async ({ locals, request, url, fetch }) => {
         if (!locals.user) {
             redirect(303, '/login');
         }

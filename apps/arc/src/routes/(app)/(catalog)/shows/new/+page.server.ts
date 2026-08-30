@@ -5,7 +5,7 @@ import { CatalogPageSchema } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ request, url }) => {
+export const load: PageServerLoad = async ({ request, url, fetch }) => {
     const filters = parseBrowseFilters(url.searchParams);
     if (!filters) {
         error(400, 'Invalid catalog filters');

@@ -4,7 +4,7 @@ import { error } from '@sveltejs/kit';
 import { SimulcastPageSchema } from '@arc/api-contract/anime';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ url, request }) => {
+export const load: PageServerLoad = async ({ url, request, fetch }) => {
     const response = await fetch(`${env.API_ORIGIN!}/v1/simulcast?${url.searchParams}`, {
         headers: {
             Cookie: request.headers.get('cookie') ?? '',

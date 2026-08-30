@@ -4,7 +4,7 @@ import { error, fail } from '@sveltejs/kit';
 import { MediaPageSchema } from '@arc/api-contract/anime';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, request }) => {
+export const load: PageServerLoad = async ({ params, request, fetch }) => {
     const id = Number(params.id);
     if (!Number.isSafeInteger(id) || id <= 0) {
         error(400, 'Invalid anime ID');
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params, request }) => {
 };
 
 export const actions: Actions = {
-    default: async ({ params, request, url }) => {
+    default: async ({ params, request, url, fetch }) => {
         const id = Number(params.id);
         if (!Number.isSafeInteger(id) || id <= 0) {
             error(400, 'Invalid anime ID');
