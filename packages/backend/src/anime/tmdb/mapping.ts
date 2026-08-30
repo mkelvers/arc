@@ -8,6 +8,7 @@ import {
     preferredTvReleaseCandidate,
     relatedSpecialMappingIsBetter,
     specialEpisodeEvidenceScore,
+    tvReleaseMatchesWindow,
     type SpecialEpisodeEvidence,
     type TvSeasonEvidence,
 } from './mapping-evidence';
@@ -162,7 +163,7 @@ async function preferredTvMapping(
     candidates: RankedCandidate[]
 ) {
     if (anime.format !== 'TV' || direct.mediaType !== 'tv' || !anime.episodes) {
-        return direct;
+        return { candidate: direct, aggregate: false };
     }
 
     const client = create();
@@ -176,7 +177,7 @@ async function preferredTvMapping(
         .then(({ data }) => data)
         .catch(() => undefined);
     if (!directSeries) {
-        return direct;
+        return { candidate: direct, aggregate: false };
     }
 
     const alternatives = candidates
@@ -219,7 +220,14 @@ async function preferredTvMapping(
                         Number(expectedSequence === season.season_number) * 60,
                 }))
                 .sort((left, right) => right.score - left.score)
-                .slice(0, 3);
+                .filter(({ season }) => {
+                    const airDate = season.air_date ?? '';
+                    const year = Number(airDate.slice(0, 4));
+                    const startYear = anime.startDate?.year;
+                    const endYear = anime.endDate?.year ?? startYear;
+                    return !startYear || !endYear || (year >= startYear - 1 && year <= endYear + 1);
+                })
+                .slice(0, 6);
             const details = await Promise.all(
                 seasons.map(({ season }) =>
                     client
@@ -277,11 +285,21 @@ async function preferredTvMapping(
         ...alternatives.map((candidate) => candidateEvidence(candidate)),
     ]);
 
-    return preferredTvReleaseCandidate(
+    const candidate = preferredTvReleaseCandidate(
         anime,
         direct,
         evidence.filter((entry) => entry !== null)
     );
+    const selectedEvidence = evidence.find(
+        (entry) =>
+            entry?.candidate.id === candidate.id &&
+            entry.candidate.mediaType === candidate.mediaType
+    );
+
+    return {
+        candidate,
+        aggregate: tvReleaseMatchesWindow(anime, selectedEvidence?.seasons ?? []),
+    };
 }
 
 async function searchTv(query: string): Promise<Candidate[]> {
@@ -437,8 +455,14 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
 
     // Missing enrichment is safer than attaching art and episodes from a
     // similarly named release, so only persist a confident search result.
-    if (search.match && candidateScore(search.match, anime) >= 85) {
-        const releaseMatch = await preferredTvMapping(anime, search.match, candidates);
+    const searchScore = search.match ? candidateScore(search.match, anime) : 0;
+    const canUseAggregateTvEvidence = search.match?.mediaType === 'tv' && searchScore >= 55;
+    if (search.match && (searchScore >= 85 || canUseAggregateTvEvidence)) {
+        const releaseResult = await preferredTvMapping(anime, search.match, candidates);
+        if (searchScore < 85 && !releaseResult.aggregate) {
+            throw new NoConfidentTmdbMappingError(anime.id);
+        }
+        const releaseMatch = releaseResult.candidate;
         const mapping = await preferredSpecialMapping(
             anime,
             {

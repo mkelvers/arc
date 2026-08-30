@@ -6,6 +6,7 @@ import {
     fetchAniKotoResource,
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
+    isAniKotoTransientError,
     matchesAniKotoIdentity,
     matchesAniKotoFormat,
     matchesAniKotoTitle,
@@ -29,6 +30,12 @@ import {
 } from './anikoto';
 
 describe('AniKoto provider rules', () => {
+    test('classifies provider request timeouts as transient failures', () => {
+        expect(
+            isAniKotoTransientError(new DOMException('The operation timed out.', 'TimeoutError'))
+        ).toBeTrue();
+    });
+
     test('fails closed for malformed provider payloads', () => {
         expect(parseEpisodeList(null)).toEqual([]);
         expect(parseEpisodeList({ status: 200, result: 42 })).toEqual([]);

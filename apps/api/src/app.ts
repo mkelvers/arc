@@ -55,6 +55,10 @@ app.onError((cause, context) => {
     }
 
     if (isAniKotoTransientError(cause)) {
+        logger.error(
+            `${context.req.method} ${context.req.path} failed: AniKoto is temporarily unavailable`,
+            cause instanceof Error ? cause.message : String(cause)
+        );
         return context.json(
             {
                 error: {
@@ -70,7 +74,10 @@ app.onError((cause, context) => {
         cause instanceof GraphQLRequestError &&
         (cause.status === 429 || cause.status === undefined || cause.status >= 500)
     ) {
-        logger.debug('AniList is temporarily unavailable', cause.message);
+        logger.error(
+            `${context.req.method} ${context.req.path} failed: AniList is temporarily unavailable`,
+            cause.message
+        );
         return context.json(
             {
                 error: {
@@ -82,7 +89,10 @@ app.onError((cause, context) => {
         );
     }
 
-    logger.debug('Unhandled API request failure', cause);
+    logger.error(
+        `${context.req.method} ${context.req.path} failed: unhandled API request failure`,
+        cause instanceof Error ? cause.message : String(cause)
+    );
     return context.json(
         {
             error: {

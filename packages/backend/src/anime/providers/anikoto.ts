@@ -162,6 +162,10 @@ export function isAniKotoTransientError(cause: unknown) {
         return cause.status === 429 || cause.status >= 500;
     }
 
+    if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+        return true;
+    }
+
     return cause instanceof AggregateError && cause.errors.some(isAniKotoTransientError);
 }
 
@@ -851,6 +855,17 @@ async function requestText(
             return new TextDecoder().decode(
                 await readBounded(response, options.maxBytes ?? maxTextBytes, options.signal)
             );
+        } catch (cause) {
+            if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+                const cooldown = providerCooldownMs;
+                providerCooldownUntil.set(requestFamily, Date.now() + cooldown);
+                throw new AniKotoRequestError(
+                    `AniKoto request timed out for ${url.hostname}${url.pathname} (cooldown ${cooldown}ms)`,
+                    504,
+                    cooldown
+                );
+            }
+            throw cause;
         } finally {
             releaseRequestSlot?.();
         }

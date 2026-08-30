@@ -71,9 +71,9 @@ export async function animePage(userId: string, id: number) {
                   if (!isAniKotoTransientError(cause)) {
                       throw cause;
                   }
-                  if (!storedEpisodes.length) {
-                      throw cause;
-                  }
+                  // Provider outages must not blank an otherwise loadable anime page.
+                  // Stored inventory is preferred when available; an empty inventory
+                  // still lets the page render while the queued backfill retries.
                   return null;
               })
         : null;
