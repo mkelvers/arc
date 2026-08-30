@@ -9,7 +9,6 @@ import {
 } from '@arc/shared/player/skip-times';
 import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSegmentTemplate } from '@arc/db/schema';
-import { logger } from '@arc/backend/internal/logger';
 import { fetchAniSkip, validSkipInterval } from './aniskip';
 
 const aniskipFailureUntil = new Map<string, number>();
@@ -132,12 +131,8 @@ export async function getEpisodeSkipTimes({
             .returning({ episodeId: animeEpisode.episodeId });
 
         return updated ? remote : getStoredEpisodeSkipTimes(anilistId, episodeId);
-    } catch (cause) {
+    } catch {
         aniskipFailureUntil.set(failureKey, Date.now() + 5 * 60 * 1_000);
-        const detail = cause instanceof Error ? cause.message : 'Unknown AniSkip failure';
-        logger.debug(
-            `AniSkip unavailable for AniList ${anilistId}, episode ${episodeNumber}: ${detail}`
-        );
         return cached;
     }
 }
