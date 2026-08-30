@@ -120,7 +120,7 @@
             <div
                 id="franchise-order-list"
                 bind:this={track}
-                class="scrollbar-hidden grid snap-x snap-mandatory scroll-px-2 auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overflow-y-hidden px-2 overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-[1.875rem] 2xl:auto-cols-franchise-2xl"
+                class="scrollbar-hidden grid snap-x snap-mandatory scroll-px-2 auto-cols-franchise grid-flow-col gap-x-2 gap-y-8 overflow-x-auto overflow-y-hidden px-2 overscroll-x-contain scroll-smooth sm:gap-x-3 md:auto-cols-franchise-md md:gap-x-7.5 2xl:auto-cols-franchise-2xl"
                 onscroll={updateScrollState}
             >
                 {#each visibleEntries as entry}
