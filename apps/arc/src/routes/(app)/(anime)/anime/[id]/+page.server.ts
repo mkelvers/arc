@@ -33,7 +33,14 @@ export const load: PageServerLoad = async ({ params, depends, request, fetch }) 
                 };
             })
             .catch((cause) => {
-                console.error(`Anime page API request failed for ${id}`, cause);
+                const error = cause as { code?: unknown; cause?: { code?: unknown } };
+                const disconnected =
+                    error.code === 'UND_ERR_SOCKET' ||
+                    error.cause?.code === 'UND_ERR_SOCKET' ||
+                    (cause instanceof DOMException && cause.name === 'AbortError');
+                if (!disconnected) {
+                    console.error(`Anime page API request failed for ${id}`, cause);
+                }
                 return { status: 'error' as const };
             }),
     };
