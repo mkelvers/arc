@@ -164,8 +164,6 @@ export const AnimePageSchema = z.object({
     artwork: ArtworkSchema.nullable(),
     episodes: z.array(EpisodeSchema),
     episodeRevision: z.string().nullable(),
-    episodeState: z.enum(['ready', 'pending', 'unavailable']),
-    episodeEstimate: z.number().int().nonnegative().nullable(),
     watchAction: z.object({
         href: z.string(),
         kind: z.enum(['continue', 'start', 'episodes']),

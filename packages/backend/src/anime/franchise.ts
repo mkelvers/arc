@@ -294,16 +294,10 @@ export async function refreshFranchiseOrder(malId: number, options: { force?: bo
     });
 }
 
-export async function getFranchiseOrder(
-    malId: number,
-    options: { fetchMissing?: boolean } = {}
-): Promise<FranchiseOrder | null> {
+export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder | null> {
     let order = await cachedFranchiseOrder(malId);
-    if (!order && options.fetchMissing !== false) {
-        order = await refreshFranchiseOrder(malId);
-    }
     if (!order) {
-        return null;
+        order = await refreshFranchiseOrder(malId);
     }
 
     const entries = await currentPlayback(currentPrimaryFlags(order.entries));

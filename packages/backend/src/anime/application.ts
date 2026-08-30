@@ -7,16 +7,11 @@ import { toAnimeDetails } from './details';
 import {
     getEpisodeRevision,
     getEpisodes,
-    getEpisodeSyncState,
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
     withMovieBackdrop,
 } from './episodes';
-import {
-    episodeInventoryNeedsDiscovery,
-    episodeMetadataNeedsRefresh,
-    estimatedEpisodeCount,
-} from './episodes/policy';
+import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
 import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
@@ -64,65 +59,43 @@ export async function animePage(userId: string, id: number) {
     const imported = !stored;
     const anime = stored ?? (await getAnimeRelease(id));
     const storedMapping = await findMapping(id);
-    const [storedEpisodes, episodeSync] = await Promise.all([
-        getEpisodes(anime),
-        getEpisodeSyncState(id),
-    ]);
-    const metadataNeedsDiscovery = episodeMetadataNeedsRefresh(
-        storedEpisodes,
-        storedMapping !== null,
-        episodeSync?.metadataRevision
-    );
+    const storedEpisodes = await getEpisodes(anime);
     const shouldDiscover =
-        imported ||
-        !storedMapping ||
-        (episodeInventoryNeedsDiscovery(anime, storedEpisodes, episodeSync?.nextRefreshAt) &&
-            (!episodeSync?.lastSuccessAt ||
-                !episodeSync.nextRefreshAt ||
-                episodeSync.nextRefreshAt.getTime() <= Date.now())) ||
-        metadataNeedsDiscovery;
-    if (shouldDiscover) {
+        imported || !storedMapping || episodeInventoryNeedsDiscovery(anime, storedEpisodes);
+    const initialEpisodes =
+        shouldDiscover && imported
+            ? await discoverEpisodeInventory(anime).then((entries) =>
+                  episodesAvailableToWatch(entries, anime)
+              )
+            : null;
+    if (shouldDiscover && !imported) {
         await ensureEpisodeInventoryBackfill(id);
-        // Start cold inventory immediately; the persisted task remains the retry/failover path.
-        void discoverEpisodeInventory(anime).catch((cause) => {
-            logger.debug(`Immediate episode inventory discovery failed for AniList ${id}`, cause);
-        });
+        void discoverEpisodeInventory(anime).catch((cause) =>
+            logger.debug(`Episode inventory repair failed for AniList ${id}`, cause)
+        );
     }
     const [synopsis, storedAiringSchedule, watchlist] = await Promise.all([
-        // Cold detail reads must not turn placeholder copy into a TMDB discovery request.
-        resolveAnimeSynopsis(anime),
+        resolveAnimeSynopsis(anime, { refresh: imported }),
         getStoredAiringSchedule(id),
         getPlaybackProgress(userId, id),
     ]);
-    const episodes = storedEpisodes;
+    const episodes = initialEpisodes ?? storedEpisodes;
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        // A first detail visit may need to discover the TMDB mapping before filling artwork.
-        getArtwork(anime, { refresh: !storedMapping }).catch(() => null),
-        anime.idMal
-            ? getFranchiseOrder(anime.idMal, { fetchMissing: false }).catch(() => null)
-            : null,
+        getArtwork(anime, { refresh: imported || !storedMapping, fetchMissing: true }).catch(
+            () => null
+        ),
+        anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
         getWatchlistState(userId, id),
     ]);
-    if (anime.idMal && !franchise) {
-        void getFranchiseOrder(anime.idMal).catch((cause) => {
-            logger.debug(`Background franchise enrichment failed for MAL ${anime.idMal}`, cause);
-        });
-    }
 
     return {
         anime: details,
         artwork,
         episodes: withMovieBackdrop(anime, episodes, artwork?.selectedBackdrop?.url),
         episodeRevision: await getEpisodeRevision(id),
-        episodeState: episodes.length
-            ? ('ready' as const)
-            : shouldDiscover
-              ? ('pending' as const)
-              : ('unavailable' as const),
-        episodeEstimate: estimatedEpisodeCount(anime),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
             kind: continuation ? 'continue' : target ? 'start' : 'episodes',

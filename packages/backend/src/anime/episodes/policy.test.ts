@@ -7,7 +7,6 @@ import {
     episodeInventoryIsExpected,
     episodeInventoryCoversTarget,
     episodeInventoryNeedsDiscovery,
-    estimatedEpisodeCount,
     episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
     episodeMetadataRevisionAfterSync,
@@ -309,28 +308,6 @@ describe('episode refresh policy', () => {
                 },
             }).map(({ number }) => number)
         ).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 12.5]);
-    });
-
-    test('estimates available episodes while a releasing inventory is pending', () => {
-        expect(
-            estimatedEpisodeCount({
-                status: 'RELEASING',
-                format: 'TV',
-                episodes: 12,
-                nextAiringEpisode: { episode: 5, airingAt: Math.floor(Date.now() / 1_000) + 3_600 },
-            })
-        ).toBe(4);
-    });
-
-    test('falls back to the known total when no airing count is available', () => {
-        expect(
-            estimatedEpisodeCount({
-                status: 'FINISHED',
-                format: 'TV',
-                episodes: 12,
-                nextAiringEpisode: null,
-            })
-        ).toBe(12);
     });
 
     test('backs off scheduled provider checks from minutes to days', () => {
