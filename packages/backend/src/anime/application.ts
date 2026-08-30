@@ -95,12 +95,9 @@ export async function animePage(userId: string, id: number) {
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        // Artwork discovery belongs to catalog/media enrichment. A detail read may only use
-        // mapping and artwork already persisted for this release.
+        // Artwork reads are cache-first and fill a missing cache from the stored mapping.
         storedMapping ? getArtwork(anime).catch(() => null) : null,
-        anime.idMal
-            ? getFranchiseOrder(anime.idMal, { fetchMissing: false }).catch(() => null)
-            : null,
+        anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
         getWatchlistState(userId, id),
     ]);
 
