@@ -47,9 +47,10 @@ const failedSources = new Map<string, number>();
 const seriesCacheTtlMs = 5 * 60_000;
 const failedSeriesCacheTtlMs = 30_000;
 const providerCooldownMs = 30_000;
-const maxProviderCooldownMs = 5 * 60_000;
 const seriesCache = new Map<number, { expiresAt: number; request: Promise<AniKotoSeries> }>();
 const providerCooldownUntil = new Map<string, number>();
+let providerRequestTail = Promise.resolve();
+let lastProviderRequestAt = 0;
 
 const ajaxResponseSchema = z.object({ status: z.number().int(), result: z.string() });
 const seriesResponseSchema = z.object({
@@ -224,6 +225,29 @@ async function abortableDelay(delay: number, signal?: AbortSignal) {
         new Promise<void>((resolve) => setTimeout(resolve, delay)),
         abortPromise(signal),
     ]);
+}
+
+async function waitForProviderRequestSlot(signal?: AbortSignal) {
+    let release!: () => void;
+    const turn = new Promise<void>((resolve) => {
+        release = resolve;
+    });
+    const previous = providerRequestTail;
+    providerRequestTail = previous.then(() => turn);
+    await previous;
+
+    try {
+        const wait = 1_000 - (Date.now() - lastProviderRequestAt);
+        if (wait > 0) {
+            await abortableDelay(wait, signal);
+        }
+        lastProviderRequestAt = Date.now();
+    } catch (cause) {
+        release();
+        throw cause;
+    }
+
+    return release;
 }
 
 function requestRetryDelay(response: Response, attempt: number) {
@@ -764,46 +788,57 @@ async function requestText(
     }
 
     for (let attempt = 0; ; attempt += 1) {
-        const response = await fetch(url, {
-            headers,
-            signal: options.signal
-                ? AbortSignal.any([options.signal, AbortSignal.timeout(aniKotoRequestTimeoutMs)])
-                : AbortSignal.timeout(aniKotoRequestTimeoutMs),
-        });
-        if (!response.ok) {
-            const retryAfter = retryAfterMs(response.headers.get('retry-after'));
-            if (response.status === 429) {
-                const cooldown =
-                    retryAfter !== null && retryAfter <= maxProviderCooldownMs
-                        ? retryAfter
-                        : providerCooldownMs;
-                providerCooldownUntil.set(requestFamily, Date.now() + cooldown);
-                await response.body?.cancel().catch(() => undefined);
+        const releaseRequestSlot =
+            url.origin === anikotoUrl || url.origin === catalogUrl
+                ? await waitForProviderRequestSlot(options.signal)
+                : null;
+        try {
+            const response = await fetch(url, {
+                headers,
+                signal: options.signal
+                    ? AbortSignal.any([
+                          options.signal,
+                          AbortSignal.timeout(aniKotoRequestTimeoutMs),
+                      ])
+                    : AbortSignal.timeout(aniKotoRequestTimeoutMs),
+            });
+            if (!response.ok) {
+                const retryAfter = retryAfterMs(response.headers.get('retry-after'));
+                if (response.status === 429) {
+                    const cooldown =
+                        retryAfter !== null && retryAfter <= 5 * 60_000
+                            ? retryAfter
+                            : providerCooldownMs;
+                    providerCooldownUntil.set(requestFamily, Date.now() + cooldown);
+                    await response.body?.cancel().catch(() => undefined);
+                    throw new AniKotoRequestError(
+                        `AniKoto returned 429 for ${url.hostname}${url.pathname} (cooldown ${cooldown}ms)`,
+                        response.status,
+                        cooldown
+                    );
+                }
+                if (
+                    retryableRequestStatus(response.status) &&
+                    attempt < 2 &&
+                    (retryAfter === null || retryAfter <= 60_000)
+                ) {
+                    const delay = retryAfter ?? requestRetryDelay(response, attempt);
+                    await response.body?.cancel().catch(() => undefined);
+                    await abortableDelay(delay, options.signal);
+                    continue;
+                }
                 throw new AniKotoRequestError(
-                    `AniKoto returned 429 for ${url.hostname}${url.pathname} (cooldown ${cooldown}ms)`,
-                    response.status,
-                    cooldown
+                    `AniKoto returned ${response.status} for ${url.hostname}${url.pathname}`,
+                    response.status
                 );
             }
-            if (
-                retryableRequestStatus(response.status) &&
-                attempt < 2 &&
-                (retryAfter === null || retryAfter <= 60_000)
-            ) {
-                const delay = retryAfter ?? requestRetryDelay(response, attempt);
-                await response.body?.cancel().catch(() => undefined);
-                await abortableDelay(delay, options.signal);
-                continue;
-            }
-            throw new AniKotoRequestError(
-                `AniKoto returned ${response.status} for ${url.hostname}${url.pathname}`,
-                response.status
-            );
-        }
 
-        return new TextDecoder().decode(
-            await readBounded(response, options.maxBytes ?? maxTextBytes, options.signal)
-        );
+            return new TextDecoder().decode(
+                await readBounded(response, options.maxBytes ?? maxTextBytes, options.signal)
+            );
+        } finally {
+            releaseRequestSlot?.();
+        }
     }
 }
 

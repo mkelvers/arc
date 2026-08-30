@@ -10,7 +10,7 @@ import {
 } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
-import { anikotoProvider, isAniKotoLocalCooldownError } from '../providers/anikoto';
+import { anikotoProvider, isAniKotoTransientError } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
@@ -474,7 +474,7 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
-            if (!isAniKotoLocalCooldownError(cause)) {
+            if (!isAniKotoTransientError(cause)) {
                 logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
             }
             throw cause;
