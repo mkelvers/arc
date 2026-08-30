@@ -76,7 +76,6 @@
     let video = $state<HTMLVideoElement>();
     let nativeSubtitleElement = $state<HTMLTrackElement>();
     let nativeSubtitleTrack = $state<TextTrack | null>(null);
-    let nativeSubtitleUrl = '';
 
     function releaseDate(value: string | null | undefined) {
         if (!value) {
@@ -192,12 +191,8 @@
             return;
         }
 
-        if (nativeSubtitleUrl) {
-            URL.revokeObjectURL(nativeSubtitleUrl);
-            nativeSubtitleUrl = '';
-        }
-
         const cues = player.media.captions.cues;
+        let subtitleUrl = '';
         if (cues.length) {
             const vtt = [
                 'WEBVTT',
@@ -209,8 +204,8 @@
                     '',
                 ]),
             ].join('\n');
-            nativeSubtitleUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
-            element.src = nativeSubtitleUrl;
+            subtitleUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }));
+            element.src = subtitleUrl;
         } else {
             element.removeAttribute('src');
         }
@@ -218,6 +213,12 @@
         nativeSubtitleTrack = element.track;
         player.setNativeSubtitleTrack(nativeSubtitleTrack);
         nativeSubtitleTrack.mode = player.fullscreen && !document.fullscreenElement ? 'showing' : 'disabled';
+
+        return () => {
+            if (subtitleUrl) {
+                URL.revokeObjectURL(subtitleUrl);
+            }
+        };
     });
 </script>
 
