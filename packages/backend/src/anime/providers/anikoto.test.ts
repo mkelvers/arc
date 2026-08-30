@@ -8,6 +8,7 @@ import {
     isAniKotoDisguisedSegmentHost,
     isAniKotoTransientError,
     matchesAniKotoIdentity,
+    matchesAniKotoIdentityOrTitle,
     matchesAniKotoRelatedIdentity,
     matchesAniKotoFormat,
     matchesAniKotoTitle,
@@ -101,6 +102,49 @@ describe('AniKoto provider rules', () => {
         ).toBe(true);
         expect(
             matchesAniKotoIdentity({ anilistId: 123, malId: 58567 }, { id: 146493, idMal: 58567 })
+        ).toBe(false);
+    });
+
+    test('uses an exact title only when both provider identities are absent', () => {
+        expect(
+            matchesAniKotoIdentityOrTitle(
+                {
+                    anilistId: null,
+                    malId: null,
+                    title: 'Anime Kaisha de Hanasu Koto ka yo',
+                    alternativeTitle: '',
+                },
+                {
+                    id: 127977,
+                    idMal: null,
+                    title: {
+                        english: null,
+                        romaji: 'Anime Kaisha de Hanasu Koto ka yo',
+                        native: 'アニメ会社で話すことかよ',
+                    },
+                    synonyms: [],
+                }
+            )
+        ).toBe(true);
+        expect(
+            matchesAniKotoIdentityOrTitle(
+                {
+                    anilistId: 123,
+                    malId: null,
+                    title: 'Anime Kaisha de Hanasu Koto ka yo',
+                    alternativeTitle: '',
+                },
+                {
+                    id: 127977,
+                    idMal: null,
+                    title: {
+                        english: null,
+                        romaji: 'Anime Kaisha de Hanasu Koto ka yo',
+                        native: null,
+                    },
+                    synonyms: [],
+                }
+            )
         ).toBe(false);
     });
 

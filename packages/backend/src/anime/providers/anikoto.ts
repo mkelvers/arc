@@ -498,6 +498,22 @@ export function matchesAniKotoRelatedIdentity(
     );
 }
 
+export function matchesAniKotoIdentityOrTitle(
+    series: Pick<AniKotoSeries, 'anilistId' | 'malId' | 'title' | 'alternativeTitle'>,
+    anime: Pick<AniListAnime, 'id' | 'idMal' | 'title' | 'synonyms'>
+) {
+    if (matchesAniKotoIdentity(series, anime)) {
+        return true;
+    }
+
+    return (
+        series.anilistId === null &&
+        series.malId === null &&
+        (matchesAniKotoTitle(series.title, animeTitles(anime)) ||
+            matchesAniKotoTitle(series.alternativeTitle, animeTitles(anime)))
+    );
+}
+
 export function matchesAniKotoTitle(title: string, titles: readonly string[]) {
     const normalizedTitle = normalizedProviderTitle(title);
     return titles.some((candidate) => normalizedTitle === normalizedProviderTitle(candidate));
@@ -1082,7 +1098,7 @@ async function findSeries(anime: AniListAnime) {
         try {
             const series = await loadSeries(storedId);
             if (
-                (matchesAniKotoIdentity(series, anime) ||
+                (matchesAniKotoIdentityOrTitle(series, anime) ||
                     matchesAniKotoRelatedIdentity(series, anime)) &&
                 matchesAniKotoFormat(series.format, anime.format)
             ) {
@@ -1156,7 +1172,7 @@ async function findSeries(anime: AniListAnime) {
                     anime.format
                 ) &&
                 ('anilistId' in series
-                    ? matchesAniKotoIdentity(series, anime) ||
+                    ? matchesAniKotoIdentityOrTitle(series, anime) ||
                       matchesAniKotoRelatedIdentity(series, anime)
                     : matchesAniKotoTitle(candidate.title, [...titles]))
             ) {
