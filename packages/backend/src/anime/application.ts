@@ -61,25 +61,19 @@ export async function animePage(userId: string, id: number) {
     const storedEpisodes = await getEpisodes(anime);
     const shouldDiscover =
         imported || !storedMapping || episodeInventoryNeedsDiscovery(anime, storedEpisodes);
-    const initialEpisodes =
-        shouldDiscover && imported
-            ? await discoverEpisodeInventory(anime)
-                  .then((entries) => episodesAvailableToWatch(entries, anime))
-                  .catch((cause) => {
-                      if (!isAniKotoTransientError(cause)) {
-                          throw cause;
-                      }
-                      return null;
-                  })
-            : null;
     if (shouldDiscover && !imported) {
         await ensureEpisodeInventoryBackfill(id);
-        void discoverEpisodeInventory(anime).catch((cause) => {
-            if (!isAniKotoTransientError(cause)) {
-                logger.debug(`Episode inventory repair failed for AniList ${id}`, cause);
-            }
-        });
     }
+    const initialEpisodes = shouldDiscover
+        ? await discoverEpisodeInventory(anime)
+              .then((entries) => episodesAvailableToWatch(entries, anime))
+              .catch((cause) => {
+                  if (!isAniKotoTransientError(cause)) {
+                      throw cause;
+                  }
+                  return null;
+              })
+        : null;
     const [synopsis, storedAiringSchedule, watchlist] = await Promise.all([
         resolveAnimeSynopsis(anime, { refresh: imported }),
         getStoredAiringSchedule(id),
