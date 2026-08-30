@@ -80,7 +80,7 @@
             <div
                 bind:this={rail}
                 onscroll={updateScroll}
-                class="scrollbar-hidden grid grid-flow-col auto-cols-[calc((100vw-2.75rem)/2)] gap-3 overflow-x-auto overscroll-x-contain px-4 pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4rem)/3)] min-[35.5em]:auto-cols-[calc((100vw-4.75rem)/4)] sm:auto-cols-[calc((100vw-7.75rem)/4)] sm:gap-4 sm:px-10 lg:auto-cols-[calc((100vw-17.375rem)/5)] lg:gap-[1.875rem] lg:px-16 2xl:auto-cols-[calc((100vw-19.25rem)/6)] 2xl:gap-[1.875rem] 2xl:px-16 min-[120rem]:auto-cols-[calc((100vw-16.875rem)/7)] min-[120rem]:gap-6 min-[120rem]:px-16"
+                class="scrollbar-hidden grid grid-flow-col auto-cols-[calc((100vw-2.75rem)/2)] gap-3 overflow-x-auto overscroll-x-contain px-4 pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4rem)/3)] min-[35.5em]:auto-cols-[calc((100vw-4.75rem)/4)] sm:auto-cols-[calc((100vw-7.75rem)/4)] sm:gap-4 sm:px-10 lg:auto-cols-[calc((100vw-17.375rem)/5)] lg:gap-7.5 lg:px-16 2xl:auto-cols-[calc((100vw-19.25rem)/6)] 2xl:gap-7.5 2xl:px-16 hero:auto-cols-[calc((100vw-16.875rem)/7)] hero:gap-6 hero:px-16"
             >
                 {#each anime as entry (entry.id)}
                     <div class="min-w-0">
@@ -92,7 +92,7 @@
             {#if canScrollLeft}
                 <button
                     type="button"
-                    class="absolute top-[var(--rail-control-center)] left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+                    class="absolute top-(--rail-control-center) left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`${heading}: ${m.shared_previous()}`}
                     onclick={() => move(-1)}
                 >
@@ -103,7 +103,7 @@
             {#if canScrollRight}
                 <button
                     type="button"
-                    class="absolute top-[var(--rail-control-center)] right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+                    class="absolute top-(--rail-control-center) right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`${heading}: ${m.shared_next()}`}
                     onclick={() => move(1)}
                 >

@@ -23,7 +23,7 @@
                 <span class="sr-only">{m.watchlist_loading()}</span>
                 <div class="h-12 border-b border-border" aria-hidden="true"></div>
                 <div
-                    class="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-[1.875rem] lg:gap-y-12 xl:grid-cols-6 2xl:grid-cols-7"
+                    class="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-7.5 lg:gap-y-12 xl:grid-cols-6 2xl:grid-cols-7"
                     aria-hidden="true"
                 >
                     {#each Array.from({ length: 12 }) as _, index (index)}

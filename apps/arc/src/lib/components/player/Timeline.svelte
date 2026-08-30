@@ -87,7 +87,7 @@
     <div class="group/timeline relative flex h-7 min-w-0 flex-1 items-center">
         {#if pointer.preview !== null}
             <div
-                class="pointer-events-none absolute bottom-full left-(--timeline-position) z-30 mb-2 min-w-max -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-black shadow-md after:absolute after:top-full after:left-1/2 after:size-0 after:-translate-x-1/2 after:border-x-1 after:border-x-transparent after:border-t-1 after:border-t-white after:content-['']"
+                class="pointer-events-none absolute bottom-full left-(--timeline-position) z-30 mb-2 min-w-max -translate-x-1/2 bg-white px-2 py-1 text-xs font-bold whitespace-nowrap text-black shadow-md after:absolute after:top-full after:left-1/2 after:size-0 after:-translate-x-1/2 after:border-x after:border-x-transparent after:border-t after:border-t-white after:content-['']"
                 style:--timeline-position={`${pointer.position}px`}
             >
                 {formatTime(pointer.preview)}
