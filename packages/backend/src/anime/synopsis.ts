@@ -4,8 +4,7 @@ import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeSynopsisCache } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import { getAnime } from './anilist/details';
-import { storedAnimeRelease } from './anilist/releases';
+import { getAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import { mediaTitle, plainText } from './anilist/text';
 import type { AniListAnime } from './anilist/types';
 import { create } from './tmdb/client';
@@ -41,7 +40,7 @@ async function firstRelease(anime: AniListAnime, refresh = false) {
         }
 
         const prequels = await Promise.all(
-            ids.map((id) => (refresh ? getAnime(id) : storedAnimeRelease(id)))
+            ids.map((id) => (refresh ? getAnimeRelease(id) : storedAnimeRelease(id)))
         );
         const available = prequels.filter((prequel): prequel is AniListAnime => prequel !== null);
         if (available.length !== prequels.length) {
@@ -245,7 +244,7 @@ export async function withAnimeCardSynopses<T extends AnimeCard>(cards: T[]) {
                     }
 
                     try {
-                        const anime = await getAnime(card.id);
+                        const anime = await getAnimeRelease(card.id);
                         return { ...card, synopsis: await resolveAnimeSynopsis(anime) };
                     } catch (cause) {
                         logger.debug(

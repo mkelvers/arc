@@ -16,15 +16,13 @@ import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './epis
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
-import { playback } from './providers';
-import { isAniKotoTransientError } from './providers/anikoto';
+import { isAniKotoTransientError, anikotoProvider } from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { watchEpisodeNumber } from './episodes/route';
 import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
-import { getAnime } from './anilist/details';
 import { getAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import { getContinueWatchingCards, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
@@ -156,12 +154,12 @@ function legacySlug(title: string, episodeId: string) {
 }
 
 async function episodePlayback(
-    anime: Parameters<typeof playback.getStreams>[0],
-    episode: Parameters<typeof playback.getStreams>[1],
+    anime: Parameters<typeof anikotoProvider.getStreams>[0],
+    episode: Parameters<typeof anikotoProvider.getStreams>[1],
     modes: AudioMode[]
 ) {
     try {
-        const streams = await playback.getStreams(anime, episode, modes);
+        const streams = await anikotoProvider.getStreams(anime, episode, modes);
         return {
             streams,
             error: !Object.values(streams).some((sources) => sources?.length),
@@ -176,7 +174,7 @@ async function episodePlayback(
 }
 
 async function watchEpisode(id: number, episodeId: string) {
-    const anime = await getAnime(id);
+    const anime = await getAnimeRelease(id);
     const episodes = await getEpisodes(anime);
     let currentIndex = episodes.findIndex(({ id: candidate }) => candidate === episodeId);
     let canonicalHref: string | null = null;

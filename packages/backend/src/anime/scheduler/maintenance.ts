@@ -8,10 +8,8 @@ import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episod
 import { AniKotoRequestError, isAniKotoLocalCooldownError } from '../providers/anikoto';
 import { episodeMetadataRevision } from '../episodes/policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
-import { MaintenanceRequestSchema, type MaintenanceRequest } from './maintenance-request';
+import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/api-contract/maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
-
-export { MaintenanceRequestSchema } from './maintenance-request';
 
 function dedupeKey(request: MaintenanceRequest) {
     if (request.kind === 'release_refresh') {

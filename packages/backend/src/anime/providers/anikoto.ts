@@ -276,10 +276,6 @@ function retryableMediaError(cause: unknown) {
     );
 }
 
-export function supportedAniKotoHost(hostname: string) {
-    return supportedHost(hostname);
-}
-
 export function isAniKotoDisguisedSegmentHost(hostname: string) {
     return (
         /^p\d+-ad-site-sign-sg\.tiktokcdn\.com$/.test(hostname) ||

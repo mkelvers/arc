@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { MaintenanceRequestSchema } from './maintenance-request';
+import { MaintenanceRequestSchema } from '@arc/api-contract/maintenance';
 
 describe('maintenance task boundary', () => {
     test('accepts global airing reconciliation', () => {

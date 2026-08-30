@@ -1,4 +1,4 @@
-import { getWatchlistAnime } from '../anime/anilist/watchlist';
+import { storedReleaseCards } from '../anime/anilist/releases';
 import { animeTitles } from '../anime/anilist/text';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '../anime/details';
@@ -59,7 +59,7 @@ export async function getWatchlistPage(userId: string, selection: WatchlistSelec
             : stored
                   .filter(({ state }) => state === selection.state)
                   .map(({ anilistId }) => anilistId);
-    const cards = await getWatchlistAnime(selectedIds);
+    const cards = await storedReleaseCards(selectedIds);
     const cardsById = new Map(cards.map((card) => [card.id, card]));
     const titledStored = stored.map((entry) => {
         const details = parseStoredAnimeDetails(entry.details);

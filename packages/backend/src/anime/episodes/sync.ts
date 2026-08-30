@@ -10,8 +10,7 @@ import {
 } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
-import { playback } from '../providers';
-import { isAniKotoLocalCooldownError } from '../providers/anikoto';
+import { anikotoProvider, isAniKotoLocalCooldownError } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
@@ -106,7 +105,7 @@ async function fetchAndStore(
             : anime.status === 'FINISHED'
               ? providerEpisodeCount(anime)
               : null;
-    const providerEpisodes = await playback.getEpisodes(anime);
+    const providerEpisodes = await anikotoProvider.getEpisodes(anime);
     if (!providerEpisodes.length) {
         throw new Error(`No playback provider returned episodes for AniList ${anime.id}`);
     }

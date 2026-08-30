@@ -7,8 +7,8 @@ const liveTest = process.env.LIVE_PROVIDER_TESTS === '1' ? test : test.skip;
 liveTest(
     'AniKoto resolves a current SUB and DUB journey to native HLS',
     async () => {
-        const { getAnime } = await import('../anilist/details');
-        const anime = await getAnime(176496);
+        const { getAnimeRelease } = await import('../anilist/releases');
+        const anime = await getAnimeRelease(176496);
         const episodes = await anikotoProvider.getEpisodes(anime);
         const episode = episodes.find(({ number }) => number === 5);
 
@@ -39,8 +39,8 @@ liveTest(
 liveTest(
     'AniKoto keeps playable SUB and DUB siblings for current Tensura episode 1',
     async () => {
-        const { getAnime } = await import('../anilist/details');
-        const anime = await getAnime(182205);
+        const { getAnimeRelease } = await import('../anilist/releases');
+        const anime = await getAnimeRelease(182205);
         const episodes = await anikotoProvider.getEpisodes(anime);
         const episode = episodes.find(({ number }) => number === 1);
 
