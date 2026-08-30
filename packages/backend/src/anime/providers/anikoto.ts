@@ -485,6 +485,19 @@ export function matchesAniKotoIdentity(
     return false;
 }
 
+export function matchesAniKotoRelatedIdentity(
+    series: Pick<AniKotoSeries, 'malId'>,
+    anime: Pick<AniListAnime, 'relations'>
+) {
+    return (anime.relations?.edges ?? []).some(
+        (edge) =>
+            edge?.relationType &&
+            ['PARENT', 'PREQUEL', 'SEQUEL'].includes(edge.relationType) &&
+            edge.node?.idMal !== null &&
+            edge.node?.idMal === series.malId
+    );
+}
+
 export function matchesAniKotoTitle(title: string, titles: readonly string[]) {
     const normalizedTitle = normalizedProviderTitle(title);
     return titles.some((candidate) => normalizedTitle === normalizedProviderTitle(candidate));
@@ -1069,8 +1082,8 @@ async function findSeries(anime: AniListAnime) {
         try {
             const series = await loadSeries(storedId);
             if (
-                matchesAniKotoIdentity(series, anime) &&
-                matchesAniKotoTitle(series.title, [...titles]) &&
+                (matchesAniKotoIdentity(series, anime) ||
+                    matchesAniKotoRelatedIdentity(series, anime)) &&
                 matchesAniKotoFormat(series.format, anime.format)
             ) {
                 await verifyProviderMediaId(anime.id);
@@ -1142,10 +1155,10 @@ async function findSeries(anime: AniListAnime) {
                     'format' in series ? series.format : candidate.format,
                     anime.format
                 ) &&
-                matchesAniKotoTitle('title' in series ? series.title : candidate.title, [
-                    ...titles,
-                ]) &&
-                (!('anilistId' in series) || matchesAniKotoIdentity(series, anime))
+                ('anilistId' in series
+                    ? matchesAniKotoIdentity(series, anime) ||
+                      matchesAniKotoRelatedIdentity(series, anime)
+                    : matchesAniKotoTitle(candidate.title, [...titles]))
             ) {
                 await saveProviderMediaId(anime.id, String(series.id));
                 return series;

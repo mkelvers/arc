@@ -8,6 +8,7 @@ import {
     isAniKotoDisguisedSegmentHost,
     isAniKotoTransientError,
     matchesAniKotoIdentity,
+    matchesAniKotoRelatedIdentity,
     matchesAniKotoFormat,
     matchesAniKotoTitle,
     normalizeAniKotoMediaUrl,
@@ -100,6 +101,59 @@ describe('AniKoto provider rules', () => {
         ).toBe(true);
         expect(
             matchesAniKotoIdentity({ anilistId: 123, malId: 58567 }, { id: 146493, idMal: 58567 })
+        ).toBe(false);
+    });
+
+    test('recognizes a related provider release through AniList relations', () => {
+        expect(
+            matchesAniKotoRelatedIdentity(
+                { malId: 17115 },
+                {
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'PREQUEL',
+                                node: {
+                                    id: 17115,
+                                    idMal: 17115,
+                                    episodes: 14,
+                                    type: 'ANIME',
+                                    title: {
+                                        english: 'Pokémon Journeys: The Series',
+                                        romaji: null,
+                                        native: null,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                }
+            )
+        ).toBe(true);
+        expect(
+            matchesAniKotoRelatedIdentity(
+                { malId: 17115 },
+                {
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'SIDE_STORY',
+                                node: {
+                                    id: 17115,
+                                    idMal: 17115,
+                                    episodes: 14,
+                                    type: 'ANIME',
+                                    title: {
+                                        english: 'Adventures in Unova',
+                                        romaji: null,
+                                        native: null,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                }
+            )
         ).toBe(false);
     });
 
