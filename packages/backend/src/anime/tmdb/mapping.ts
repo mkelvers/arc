@@ -384,9 +384,10 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
     const preferred = search.match;
 
     if (
-        !preferred ||
-        candidateScore(preferred, anime) < 85 ||
-        !candidateMatchesPrimaryTitle(preferred, anime)
+        anime.format !== 'MOVIE' &&
+        (!preferred ||
+            candidateScore(preferred, anime) < 85 ||
+            !candidateMatchesPrimaryTitle(preferred, anime))
     ) {
         const alternate = await findCandidate(alternateSearch);
         if (
@@ -437,12 +438,7 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
     // Missing enrichment is safer than attaching art and episodes from a
     // similarly named release, so only persist a confident search result.
     if (search.match && candidateScore(search.match, anime) >= 85) {
-        const relatedCandidate = relatedCandidates.find((candidate) => candidate !== null);
-        const releaseMatch = await preferredTvMapping(
-            anime,
-            relatedCandidate ?? search.match,
-            candidates
-        );
+        const releaseMatch = await preferredTvMapping(anime, search.match, candidates);
         const mapping = await preferredSpecialMapping(
             anime,
             {
