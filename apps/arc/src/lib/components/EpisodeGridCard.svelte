@@ -40,7 +40,7 @@
             {/if}
         </div>
         <div class="min-w-0 self-center">
-            <h3 class="line-clamp-3 text-sm leading-snug font-bold text-white">{heading}</h3>
+            <h3 class="text-sm leading-snug font-bold text-white">{heading}</h3>
             <p class="mt-1.5 text-sm text-watch-muted">{audioAvailabilityLabel(episode.audio)}</p>
         </div>
     </a>
@@ -103,7 +103,7 @@
                 </p>
                 <h3
                     class={cn(
-                        'line-clamp-2 font-bold',
+                        'font-bold',
                         dialog
                             ? 'mt-2 text-base leading-snug text-white'
                             : 'mt-1 text-sm leading-snug text-foreground'
@@ -133,7 +133,7 @@
             </p>
             <h3
                 class={cn(
-                    'mt-2 line-clamp-2 font-bold',
+                    'mt-2 font-bold',
                     dialog ? 'text-base leading-snug text-white' : 'text-sm leading-snug text-foreground'
                 )}
             >
