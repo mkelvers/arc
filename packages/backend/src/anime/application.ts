@@ -15,9 +15,9 @@ import {
 import {
     episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
-    episodesAvailableToWatch,
+    estimatedEpisodeCount,
 } from './episodes/policy';
-import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './episodes/sync';
+import { ensureEpisodeInventoryBackfill } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
@@ -81,34 +81,26 @@ export async function animePage(userId: string, id: number) {
                 !episodeSync.nextRefreshAt ||
                 episodeSync.nextRefreshAt.getTime() <= Date.now())) ||
         metadataNeedsDiscovery;
-    const initialEpisodes =
-        shouldDiscover &&
-        (imported ||
-            storedEpisodes.length === 0 ||
-            (anime.episodes !== null && storedEpisodes.length !== anime.episodes) ||
-            !storedMapping ||
-            metadataNeedsDiscovery)
-            ? await discoverEpisodeInventory(anime)
-                  .then((entries) => episodesAvailableToWatch(entries, anime))
-                  .catch(() => null)
-            : null;
-    if (shouldDiscover && !imported) {
+    if (shouldDiscover) {
         await ensureEpisodeInventoryBackfill(id);
     }
-    const [synopsis, storedAiringSchedule, episodes, watchlist] = await Promise.all([
-        resolveAnimeSynopsis(anime, { refresh: imported }),
+    const [synopsis, storedAiringSchedule, watchlist] = await Promise.all([
+        // Cold detail reads must not turn placeholder copy into a TMDB discovery request.
+        resolveAnimeSynopsis(anime),
         getStoredAiringSchedule(id),
-        initialEpisodes ?? storedEpisodes,
         getPlaybackProgress(userId, id),
     ]);
+    const episodes = storedEpisodes;
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        getArtwork(anime, { refresh: imported || !storedMapping, fetchMissing: true }).catch(
-            () => null
-        ),
-        anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
+        // Artwork discovery belongs to catalog/media enrichment. A detail read may only use
+        // mapping and artwork already persisted for this release.
+        storedMapping ? getArtwork(anime).catch(() => null) : null,
+        anime.idMal
+            ? getFranchiseOrder(anime.idMal, { fetchMissing: false }).catch(() => null)
+            : null,
         getWatchlistState(userId, id),
     ]);
 
@@ -117,6 +109,12 @@ export async function animePage(userId: string, id: number) {
         artwork,
         episodes: withMovieBackdrop(anime, episodes, artwork?.selectedBackdrop?.url),
         episodeRevision: await getEpisodeRevision(id),
+        episodeState: episodes.length
+            ? ('ready' as const)
+            : shouldDiscover
+              ? ('pending' as const)
+              : ('unavailable' as const),
+        episodeEstimate: estimatedEpisodeCount(anime),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
             kind: continuation ? 'continue' : target ? 'start' : 'episodes',

@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { invalidate } from '$app/navigation';
+    import { EpisodeRevisionSchema } from '@arc/shared/types';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import FranchiseOrder from './FranchiseOrder.svelte';
@@ -19,6 +21,53 @@
 
     let detailsExpanded = $state(false);
     let loadedBackdrop = $state<string | null>(null);
+
+    $effect(() => {
+        if (data.episodeState !== 'pending') {
+            return;
+        }
+
+        const controller = new AbortController();
+        let stopped = false;
+        let timer: ReturnType<typeof setTimeout>;
+        const initialRevision = data.episodeRevision;
+
+        const poll = async () => {
+            if (document.visibilityState === 'visible') {
+                try {
+                    const response = await fetch(`/v1/anime/${data.anime.id}/episodes/revision`, {
+                        cache: 'no-store',
+                        signal: controller.signal,
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Episode update check returned ${response.status}`);
+                    }
+
+                    const result = EpisodeRevisionSchema.safeParse(await response.json());
+                    if (!result.success) {
+                        throw new Error('Episode update check returned an invalid response');
+                    }
+                    if (result.data.revision !== initialRevision && result.data.revision !== null) {
+                        await invalidate(`arc:anime:${data.anime.id}:episodes`);
+                        return;
+                    }
+                } catch {
+                    // The scheduler will keep retrying; try again on the next poll.
+                }
+            }
+
+            if (!stopped) {
+                timer = setTimeout(poll, 10_000);
+            }
+        };
+
+        timer = setTimeout(poll, 2_000);
+        return () => {
+            stopped = true;
+            controller.abort();
+            clearTimeout(timer);
+        };
+    });
 </script>
 
 <main class="bg-canvas text-foreground">
@@ -238,7 +287,7 @@
     </section>
 
     <div class="px-3 sm:px-8 lg:px-14">
-        {#snippet loadingEpisodes()}
+        {#snippet loadingEpisodes(count = 5)}
             <section
                 id="anime-episode-list"
                 class="px-2 py-7 sm:pb-12 lg:pb-16"
@@ -247,7 +296,7 @@
             >
                 <span class="sr-only">{m.anime_loading_episodes()}</span>
                 <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
-                    {#each Array.from({ length: 5 }) as _}
+                    {#each Array.from({ length: count }) as _}
                         <AnimeCardSkeleton variant="top" />
                     {/each}
                 </div>
@@ -271,6 +320,8 @@
                                 />
                             {/each}
                         </div>
+                    {:else if data.episodeState === 'pending'}
+                        {@render loadingEpisodes(Math.max(1, Math.min(data.episodeEstimate ?? 5, 60)))}
                     {/if}
                 </section>
             {/await}

@@ -52,18 +52,8 @@ export async function ensureEpisodeInventoryBackfill(anilistId: number) {
         })
         .onConflictDoUpdate({
             target: maintenanceTask.dedupeKey,
-            setWhere: ne(maintenanceTask.state, 'running'),
-            set: {
-                state: 'pending',
-                attempts: 0,
-                nextAttemptAt: new Date(),
-                leaseOwner: null,
-                leaseUntil: null,
-                lastError: null,
-                result: null,
-                completedAt: null,
-                updatedAt: new Date(),
-            },
+            setWhere: eq(maintenanceTask.state, 'pending'),
+            set: { updatedAt: new Date() },
         });
 }
 
@@ -468,7 +458,7 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
                     )
                 );
             }
-            await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
+            await enqueueEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
             throw cause;

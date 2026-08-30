@@ -125,6 +125,12 @@ export function availableEpisodeCount(anime: Pick<AniListAnime, 'status' | 'next
     return Math.max(0, nextEpisode - (airingPassed ? 0 : 1));
 }
 
+export function estimatedEpisodeCount(
+    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes' | 'nextAiringEpisode'>
+) {
+    return availableEpisodeCount(anime) ?? providerEpisodeCount(anime) ?? anime.episodes;
+}
+
 export function episodesAvailableToWatch<T extends { number: number }>(
     episodes: readonly T[],
     anime: Pick<AniListAnime, 'status' | 'nextAiringEpisode'>
