@@ -17,7 +17,7 @@ import {
     episodeMetadataNeedsRefresh,
     estimatedEpisodeCount,
 } from './episodes/policy';
-import { ensureEpisodeInventoryBackfill } from './episodes/sync';
+import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
@@ -83,6 +83,10 @@ export async function animePage(userId: string, id: number) {
         metadataNeedsDiscovery;
     if (shouldDiscover) {
         await ensureEpisodeInventoryBackfill(id);
+        // Start cold inventory immediately; the persisted task remains the retry/failover path.
+        void discoverEpisodeInventory(anime).catch((cause) => {
+            logger.debug(`Immediate episode inventory discovery failed for AniList ${id}`, cause);
+        });
     }
     const [synopsis, storedAiringSchedule, watchlist] = await Promise.all([
         // Cold detail reads must not turn placeholder copy into a TMDB discovery request.
@@ -97,9 +101,16 @@ export async function animePage(userId: string, id: number) {
     const [artwork, franchise, watchlistState] = await Promise.all([
         // A first detail visit may need to discover the TMDB mapping before filling artwork.
         getArtwork(anime, { refresh: !storedMapping }).catch(() => null),
-        anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
+        anime.idMal
+            ? getFranchiseOrder(anime.idMal, { fetchMissing: false }).catch(() => null)
+            : null,
         getWatchlistState(userId, id),
     ]);
+    if (anime.idMal && !franchise) {
+        void getFranchiseOrder(anime.idMal).catch((cause) => {
+            logger.debug(`Background franchise enrichment failed for MAL ${anime.idMal}`, cause);
+        });
+    }
 
     return {
         anime: details,
