@@ -113,7 +113,7 @@ export async function storeMissingWatchlistTitles(
         update ${anime}
         set title = source.title, updated_at = now()
         from (values ${values}) as source(id, title)
-        where ${anime.id} = source.id and ${anime.title} is null
+        where ${anime.id} = source.id::integer and ${anime.title} is null
     `);
 }
 
