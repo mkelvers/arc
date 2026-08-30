@@ -178,6 +178,13 @@ export type AiringAnimePageQueryVariables = Exact<{
 
 export type AiringAnimePageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, media: Array<{ id: number, status: MediaStatus | null, nextAiringEpisode: { airingAt: number, episode: number } | null, airingSchedule: { pageInfo: { lastPage: number | null } | null, nodes: Array<{ airingAt: number, episode: number } | null> | null } | null } | null> | null } | null };
 
+export type AnimeOverviewQueryVariables = Exact<{
+  id: number;
+}>;
+
+
+export type AnimeOverviewQuery = { Media: { id: number, bannerImage: string | null, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, season: MediaSeason | null, seasonYear: number | null, averageScore: number | null, popularity: number | null, favourites: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, nextAiringEpisode: { airingAt: number, episode: number } | null } | null };
+
 export type AnimeScheduleQueryVariables = Exact<{
   id: number;
 }>;
@@ -327,6 +334,32 @@ export const AiringAnimePageDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AiringAnimePageQuery, AiringAnimePageQueryVariables>;
+export const AnimeOverviewDocument = new TypedDocumentString(`
+    query AnimeOverview($id: Int!) {
+  Media(id: $id, type: ANIME) {
+    id
+    title {
+      english
+      romaji
+      native
+    }
+    bannerImage
+    description(asHtml: false)
+    genres
+    format
+    status
+    season
+    seasonYear
+    nextAiringEpisode {
+      airingAt
+      episode
+    }
+    averageScore
+    popularity
+    favourites
+  }
+}
+    `) as unknown as TypedDocumentString<AnimeOverviewQuery, AnimeOverviewQueryVariables>;
 export const AnimeScheduleDocument = new TypedDocumentString(`
     query AnimeSchedule($id: Int!) {
   Media(id: $id, type: ANIME) {

@@ -31,7 +31,7 @@ import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
-import { getAnimeRelease, storedAnimeRelease } from './anilist/releases';
+import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import { getContinueWatchingCards, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getWatchlistState } from '../watchlist/store';
@@ -61,7 +61,24 @@ export async function homePage(userId: string) {
     };
 }
 
-export async function animePage(userId: string, id: number) {
+export async function animePageOverview(userId: string, id: number) {
+    const stored = await storedAnimeRelease(id);
+    const anime = stored ?? (await getAnimeOverview(id));
+
+    const [storedAiringSchedule, episodeRevision, watchlistState] = await Promise.all([
+        getStoredAiringSchedule(id),
+        getEpisodeRevision(id),
+        getWatchlistState(userId, id),
+    ]);
+
+    return {
+        anime: toAnimeDetails(anime, anime.description, storedAiringSchedule),
+        episodeRevision,
+        watchlistState,
+    };
+}
+
+export async function animePageDeferred(userId: string, id: number) {
     const stored = await storedAnimeRelease(id);
     const imported = !stored;
     const anime = stored ?? (await getAnimeRelease(id));
@@ -82,9 +99,6 @@ export async function animePage(userId: string, id: number) {
                   ) {
                       throw cause;
                   }
-                  // Provider outages must not blank an otherwise loadable anime page.
-                  // Stored inventory is preferred when available; an empty inventory
-                  // still lets the page render while the queued backfill retries.
                   return null;
               })
         : null;
@@ -97,19 +111,11 @@ export async function animePage(userId: string, id: number) {
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
-    const [artwork, franchise, watchlistState] = await Promise.all([
-        getArtwork(anime, { refresh: imported || !storedMapping, fetchMissing: true }).catch(
-            () => null
-        ),
-        anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
-        getWatchlistState(userId, id),
-    ]);
+    const franchise = anime.idMal ? await getFranchiseOrder(anime.idMal).catch(() => null) : null;
 
     return {
         anime: details,
-        artwork,
-        episodes: withMovieBackdrop(anime, episodes, artwork?.selectedBackdrop?.url),
-        episodeRevision: await getEpisodeRevision(id),
+        episodes: withMovieBackdrop(anime, episodes, null),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
             kind: continuation ? 'continue' : target ? 'start' : 'episodes',
@@ -117,8 +123,14 @@ export async function animePage(userId: string, id: number) {
         },
         audioLabel: episodeAudioAvailabilityLabel(episodes),
         franchise,
-        watchlistState,
     };
+}
+
+export async function animePageArtwork(id: number) {
+    const stored = await storedAnimeRelease(id);
+    const anime = stored ?? (await getAnimeRelease(id));
+    const storedMapping = await findMapping(id);
+    return getArtwork(anime, { refresh: !storedMapping, fetchMissing: true }).catch(() => null);
 }
 
 export async function mediaPage(id: number) {

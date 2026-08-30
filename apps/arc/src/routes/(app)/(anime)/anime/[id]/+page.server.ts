@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { AnimePageSchema } from '@arc/api-contract/anime';
+import { AnimePageOverviewSchema } from '@arc/api-contract/anime';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, depends, request, fetch }) => {
@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ params, depends, request, fetch }) 
     if (!Number.isSafeInteger(id) || id <= 0) {
         error(400, 'Invalid anime ID');
     }
-    depends(`arc:anime:${id}:episodes`);
+    depends(`arc:anime:${id}:overview`);
     return {
         animeId: id,
         page: fetch(`${env.API_ORIGIN!}/v1/anime/${id}`, {
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, depends, request, fetch }) 
 
                 return {
                     status: 'success' as const,
-                    data: AnimePageSchema.parse(await response.json()),
+                    data: AnimePageOverviewSchema.parse(await response.json()),
                 };
             })
             .catch((cause) => {

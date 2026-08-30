@@ -67,6 +67,8 @@ const ArtworkSchema = z.object({
     logoSize: z.number(),
 });
 
+export const AnimeArtworkSchema = ArtworkSchema.nullable();
+
 const HomeHeroSchema = z.object({
     id: z.number().int().positive(),
     href: z.string(),
@@ -163,41 +165,54 @@ export const SimulcastPageSchema = z.object({
     page: AnimeCardPageSchema,
 });
 
-export const AnimePageSchema = z.object({
+const AnimePageFranchiseSchema = z
+    .object({
+        types: z.array(z.object({ id: z.string(), label: z.string() })),
+        entries: z.array(
+            AnimeCardSchema.extend({
+                malId: z.number().int().positive(),
+                anilistId: z.number().int().positive(),
+                type: z.string(),
+                format: MediaFormatSchema.nullable(),
+                status: MediaStatusSchema.nullable(),
+                episodes: z.number().int().nullable(),
+                duration: z.number().nullable(),
+                popularity: z.number().nullable(),
+                relations: z.array(
+                    z.object({ type: MediaRelationSchema, malId: z.number().int().positive() })
+                ),
+                secondary: z.boolean(),
+                primary: z.boolean(),
+            })
+        ),
+    })
+    .nullable();
+
+export const AnimePageOverviewSchema = z.object({
     anime: AnimeDetailsSchema,
-    artwork: ArtworkSchema.nullable(),
-    episodes: z.array(EpisodeSchema),
     episodeRevision: z.string().nullable(),
+    watchlistState: z.enum(['watching', 'plan_to_watch', 'completed', 'dropped']).nullable(),
+});
+
+export const AnimePageDeferredSchema = z.object({
+    anime: AnimeDetailsSchema,
+    episodes: z.array(EpisodeSchema),
     watchAction: z.object({
         href: z.string(),
         kind: z.enum(['continue', 'start', 'episodes']),
         episode: z.string().nullable(),
     }),
     audioLabel: z.string(),
-    franchise: z
-        .object({
-            types: z.array(z.object({ id: z.string(), label: z.string() })),
-            entries: z.array(
-                AnimeCardSchema.extend({
-                    malId: z.number().int().positive(),
-                    anilistId: z.number().int().positive(),
-                    type: z.string(),
-                    format: MediaFormatSchema.nullable(),
-                    status: MediaStatusSchema.nullable(),
-                    episodes: z.number().int().nullable(),
-                    duration: z.number().nullable(),
-                    popularity: z.number().nullable(),
-                    relations: z.array(
-                        z.object({ type: MediaRelationSchema, malId: z.number().int().positive() })
-                    ),
-                    secondary: z.boolean(),
-                    primary: z.boolean(),
-                })
-            ),
-        })
-        .nullable(),
-    watchlistState: z.enum(['watching', 'plan_to_watch', 'completed', 'dropped']).nullable(),
+    franchise: AnimePageFranchiseSchema,
 });
+
+export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSchema).and(
+    z.object({ artwork: AnimeArtworkSchema })
+);
+
+export type AnimePageOverview = z.infer<typeof AnimePageOverviewSchema>;
+export type AnimePageDeferred = z.infer<typeof AnimePageDeferredSchema>;
+export type AnimeArtwork = z.infer<typeof AnimeArtworkSchema>;
 
 export const WatchPageSchema = z.object({
     canonicalHref: z.string().nullable(),

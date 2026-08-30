@@ -14,7 +14,7 @@
     async function retry() {
         retrying = true;
         try {
-            await invalidate(`arc:anime:${data.animeId}:episodes`);
+            await invalidate(`arc:anime:${data.animeId}:overview`);
         } finally {
             retrying = false;
         }

@@ -1,4 +1,4 @@
-import type { AniListAnime } from './anilist/types';
+import type { AniListAnime, AniListAnimeDetailsMedia } from './anilist/types';
 import { present } from './anilist/text';
 import { z } from 'zod';
 
@@ -132,7 +132,7 @@ function formatDescription(value: string | null) {
     return cutoff >= 340 ? fragment.slice(0, cutoff) : `${fragment.trimEnd()}…`;
 }
 
-function formatStaff(media: AniListAnime) {
+function formatStaff(media: AniListAnimeDetailsMedia) {
     const credits = new Map<string, string[]>();
 
     for (const edge of present(media.staff?.edges)) {
@@ -147,7 +147,7 @@ function formatStaff(media: AniListAnime) {
     return [...credits].map(([name, roles]) => `${name} (${roles.join(', ')})`).join(', ');
 }
 
-function formatRankings(media: AniListAnime) {
+function formatRankings(media: AniListAnimeDetailsMedia) {
     const rankings = present(media.rankings).filter(({ type }) => type === 'POPULAR');
     const seasonal = rankings.find(
         ({ season, year }) => season === media.season && year === media.seasonYear
@@ -166,7 +166,7 @@ function formatRankings(media: AniListAnime) {
 }
 
 export function toAnimeDetails(
-    media: AniListAnime,
+    media: AniListAnimeDetailsMedia,
     description = media.description,
     storedAiringEpisode?: { episode: number; airingAt: number } | null
 ) {

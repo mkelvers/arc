@@ -1,8 +1,31 @@
-import type { AnimeQuery, AnimeScheduleQuery } from '@arc/shared/anilist/generated/graphql';
+import type {
+    AnimeOverviewQuery,
+    AnimeQuery,
+    AnimeScheduleQuery,
+} from '@arc/shared/anilist/generated/graphql';
 import { z } from 'zod';
 
 export type AniListAnime = NonNullable<AnimeQuery['Media']>;
+export type AniListAnimeOverview = NonNullable<AnimeOverviewQuery['Media']>;
 export type AniListSchedule = NonNullable<AnimeScheduleQuery['Media']>;
+
+export type AniListAnimeDetailsMedia = Pick<
+    AniListAnime,
+    | 'id'
+    | 'title'
+    | 'bannerImage'
+    | 'description'
+    | 'genres'
+    | 'format'
+    | 'status'
+    | 'season'
+    | 'seasonYear'
+    | 'nextAiringEpisode'
+    | 'averageScore'
+    | 'popularity'
+    | 'favourites'
+> &
+    Partial<Pick<AniListAnime, 'rankings' | 'tags' | 'studios' | 'staff'>>;
 
 const nullableString = z.string().nullable();
 const nullableInteger = z.number().int().nullable();
@@ -112,6 +135,24 @@ export const AniListAnimeSchema = z
             .nullable(),
     })
     .transform((value) => value as AniListAnime);
+
+export const AniListAnimeOverviewSchema = z
+    .object({
+        id: z.number().int().positive(),
+        title: titleSchema,
+        bannerImage: nullableString,
+        description: nullableString,
+        genres: z.array(nullableString).nullable(),
+        format: nullableString,
+        status: nullableString,
+        season: nullableString,
+        seasonYear: nullableInteger,
+        nextAiringEpisode: nextAiringSchema,
+        averageScore: z.number().nullable(),
+        popularity: z.number().nullable(),
+        favourites: z.number().nullable(),
+    })
+    .transform((value) => value as AniListAnimeOverview);
 
 export const AniListScheduleSchema = z
     .object({

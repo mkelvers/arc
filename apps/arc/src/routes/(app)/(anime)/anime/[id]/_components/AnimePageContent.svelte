@@ -7,6 +7,12 @@
     import AiringStatus from './AiringStatus.svelte';
     import WatchlistStatusMenu from './WatchlistStatusMenu.svelte';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
+    import {
+        AnimeArtworkSchema,
+        AnimePageDeferredSchema,
+        type AnimeArtwork,
+        type AnimePageDeferred,
+    } from '@arc/api-contract/anime';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
@@ -15,16 +21,81 @@
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
+    type AnimeDetails = Props['data']['anime'];
+    const pending = new Promise<never>(() => undefined);
 
     let { data }: Props = $props();
 
+    let enrichedAnime = $state<AnimeDetails | null>(null);
+    const anime = $derived(enrichedAnime ?? data.anime);
+    let page = $state({
+        artwork: Promise.resolve<AnimeArtwork>(null),
+        episodes: pending as Promise<AnimePageDeferred['episodes']>,
+        watchAction: pending as Promise<AnimePageDeferred['watchAction']>,
+        audioLabel: pending as Promise<string>,
+        franchise: pending as Promise<AnimePageDeferred['franchise']>,
+    });
     let detailsExpanded = $state(false);
     let loadedBackdrop = $state<string | null>(null);
     let visibleEpisodeCount = $state(28);
+    let deferredError = $state(false);
+    let extendedMetadataLoading = $state(true);
+    let loadedAnimeId = $state<number | null>(null);
+
+    async function loadDeferred() {
+        deferredError = false;
+        extendedMetadataLoading = true;
+        page.episodes = pending as Promise<AnimePageDeferred['episodes']>;
+        page.watchAction = pending as Promise<AnimePageDeferred['watchAction']>;
+        page.audioLabel = pending as Promise<string>;
+        page.franchise = pending as Promise<AnimePageDeferred['franchise']>;
+
+        try {
+            const response = await fetch(`/v1/anime/${data.anime.id}/deferred`);
+            if (!response.ok) {
+                throw new Error(`Deferred anime page request failed with ${response.status}`);
+            }
+            const result = AnimePageDeferredSchema.parse(await response.json());
+            enrichedAnime = result.anime;
+            page.episodes = Promise.resolve(result.episodes);
+            page.watchAction = Promise.resolve(result.watchAction);
+            page.audioLabel = Promise.resolve(result.audioLabel);
+            page.franchise = Promise.resolve(result.franchise);
+            visibleEpisodeCount = 28;
+            extendedMetadataLoading = false;
+        } catch {
+            deferredError = true;
+            extendedMetadataLoading = false;
+            page.episodes = Promise.resolve([]);
+            page.watchAction = Promise.resolve({
+                href: '#anime-episode-list',
+                kind: 'episodes' as const,
+                episode: null,
+            });
+            page.audioLabel = Promise.resolve('');
+            page.franchise = Promise.resolve(null);
+        }
+    }
+
+    async function loadArtwork() {
+        try {
+            const response = await fetch(`/v1/anime/${data.anime.id}/artwork`);
+            if (!response.ok) {
+                throw new Error(`Artwork request failed with ${response.status}`);
+            }
+            page.artwork = Promise.resolve(AnimeArtworkSchema.parse(await response.json()));
+        } catch {
+            page.artwork = Promise.resolve(null);
+        }
+    }
 
     $effect(() => {
-        void data.episodes;
-        visibleEpisodeCount = 28;
+        if (loadedAnimeId !== data.anime.id) {
+            loadedAnimeId = data.anime.id;
+            extendedMetadataLoading = true;
+            page.artwork = Promise.resolve(null);
+            void Promise.all([loadDeferred(), loadArtwork()]);
+        }
     });
 
     function showMoreEpisodes(total: number) {
@@ -33,16 +104,16 @@
 </script>
 
 <main class="bg-canvas text-foreground">
-    <h1 class="sr-only">{data.anime.title}</h1>
+    <h1 class="sr-only">{anime.title}</h1>
     <section>
         <figure
             class="anime-hero relative z-0 grid h-[calc(100dvh-10rem)] min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
-            {#await data.artwork then artwork}
+            {#await page.artwork then artwork}
                 {#if artwork?.selectedBackdrop}
                     <ProgressiveImage
                         src={artwork.selectedBackdrop.url}
-                        alt={data.anime.title}
+                        alt={anime.title}
                         previewSize="w300"
                         class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
                         imageClass="object-[45%_0%]"
@@ -56,7 +127,7 @@
             >
                 <Dropdown
                     id="more-options"
-                    items={[{ label: m.anime_view_media(), href: `/anime/${data.anime.id}/media` }]}
+                    items={[{ label: m.anime_view_media(), href: `/anime/${anime.id}/media` }]}
                 >
                     {#snippet trigger()}
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
@@ -69,11 +140,11 @@
 
             <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
                 <div class="w-fit">
-                    {#await data.artwork then artwork}
+                    {#await page.artwork then artwork}
                         {#if artwork?.selectedLogo}
                             <img
                                 src={artwork.selectedLogo.url}
-                                alt={data.anime.title}
+                                alt={anime.title}
                                 style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(6.4 * artwork.logoSize) / 100}vw, ${(8 * artwork.logoSize) / 100}rem)`}
                                 class={cn(
                                     'max-w-[65vw] object-contain object-left opacity-0 transition-opacity duration-300 sm:max-w-md lg:max-w-lg 2xl:max-w-2xl',
@@ -86,16 +157,16 @@
                             <h1
                                 class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl"
                             >
-                                {data.anime.title}
+                                {anime.title}
                             </h1>
                         {/if}
                     {/await}
                 </div>
 
-                {#if data.anime.status === 'RELEASING' && data.anime.nextAiringEpisode}
+                {#if anime.status === 'RELEASING' && anime.nextAiringEpisode}
                     <AiringStatus
-                        animeId={data.anime.id}
-                        airingAt={data.anime.nextAiringEpisode.airingAt}
+                        animeId={anime.id}
+                        airingAt={anime.nextAiringEpisode.airingAt}
                         initialRevision={data.episodeRevision}
                     />
                 {/if}
@@ -103,19 +174,17 @@
                 <p
                     class={cn(
                         'flex flex-wrap items-center gap-y-1 text-sm text-muted lg:text-base',
-                        data.anime.status === 'RELEASING' && data.anime.nextAiringEpisode
-                            ? 'mt-3'
-                            : 'mt-8 sm:mt-10 lg:mt-11'
+                        anime.status === 'RELEASING' && anime.nextAiringEpisode ? 'mt-3' : 'mt-8 sm:mt-10 lg:mt-11'
                     )}
                 >
-                    {#await data.audioLabel then audioLabel}
+                    {#await page.audioLabel then audioLabel}
                         {#if audioLabel}
                             <span class="metadata-tag">{audioLabel}</span>
                         {/if}
                     {/await}
-                    {#if data.anime.genres.length}
+                    {#if anime.genres.length}
                         <span class="metadata-tag">
-                            {#each data.anime.genres as genre, index}
+                            {#each anime.genres as genre, index}
                                 {#if index > 0}<span aria-hidden="true">,</span>{/if}
                                 <a class="underline underline-offset-2" href={`/category/${genreSlug(genre)}`}>
                                     {genre}
@@ -131,7 +200,7 @@
                     <span class="relative flex items-center gap-0.5 text-subtle" aria-hidden="true">
                         {#each Array(5) as _, index}
                             <svg
-                                class:text-foreground={index < Math.round(data.anime.score / 20)}
+                                class:text-foreground={index < Math.round(anime.score / 20)}
                                 class="size-6 shrink-0 fill-current sm:size-7"
                                 viewBox="0 0 24 24"
                                 aria-hidden="true"
@@ -143,13 +212,13 @@
                         {/each}
                     </span>
                     <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
-                    <strong>AniList score: {data.anime.score}%</strong>
+                    <strong>AniList score: {anime.score}%</strong>
                 </div>
 
                 <div
                     class="mt-7 flex max-sm:flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
                 >
-                    {#await data.watchAction}
+                    {#await page.watchAction}
                         <a
                             href="#anime-episode-list"
                             class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
@@ -170,15 +239,10 @@
                                   : m.anime_view_episodes()}
                         </a>
                     {/await}
-                    <WatchlistBookmark
-                        animeId={data.anime.id}
-                        title={data.anime.title}
-                        iconSize="1.65em"
-                        outlined
-                    />
+                    <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined />
                     <WatchlistStatusMenu
-                        animeId={data.anime.id}
-                        title={data.anime.title}
+                        animeId={anime.id}
+                        title={anime.title}
                         initialState={data.watchlistState ?? undefined}
                     />
                 </div>
@@ -200,34 +264,47 @@
                             !detailsExpanded && 'mask-[linear-gradient(to_bottom,black_45%,transparent_100%)]'
                         )}
                     >
-                        <p class="max-w-3xl text-foreground">{data.anime.description}</p>
-                        <div class="space-y-3">
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_production()}</strong>
-                                {data.anime.studios.join(', ')}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
-                                {data.anime.staff}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
-                                {data.anime.rankings.join(', ')}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
-                                {m.anime_members_favorites({
-                                    members: data.anime.members,
-                                    favorites: data.anime.favourites,
-                                })}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
-                                {data.anime.themes.join(', ')}
-                            </p>
+                        <p class="max-w-3xl text-foreground">{anime.description}</p>
+                        <div class="space-y-3" aria-busy={extendedMetadataLoading}>
+                            {#if extendedMetadataLoading}
+                                <span class="sr-only">{m.anime_loading()}</span>
+                                {#each [m.anime_production(), m.anime_key_staff(), m.anime_rankings(), m.anime_audience(), m.anime_themes()] as label}
+                                    <p>
+                                        <strong class="font-normal text-foreground">{label}</strong>
+                                        <span
+                                            class="ml-1 inline-block h-3 w-32 animate-pulse rounded-sm bg-surface align-middle motion-reduce:animate-none sm:w-48"
+                                            aria-hidden="true"
+                                        ></span>
+                                    </p>
+                                {/each}
+                            {:else}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_production()}</strong>
+                                    {anime.studios.join(', ')}
+                                </p>
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
+                                    {anime.staff}
+                                </p>
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
+                                    {anime.rankings.join(', ')}
+                                </p>
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
+                                    {m.anime_members_favorites({
+                                        members: anime.members,
+                                        favorites: anime.favourites,
+                                    })}
+                                </p>
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
+                                    {anime.themes.join(', ')}
+                                </p>
+                            {/if}
                             <p>
                                 <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
-                                {#each data.anime.genres as genre, index}
+                                {#each anime.genres as genre, index}
                                     {#if index > 0}<span aria-hidden="true">,</span>{/if}
                                     <a class="underline underline-offset-2" href={`/category/${genreSlug(genre)}`}>
                                         {genre}
@@ -268,40 +345,52 @@
             </section>
         {/snippet}
 
-        {#await data.episodes}
-            {@render loadingEpisodes()}
-        {:then episodes}
-            {#await data.artwork}
+        {#if deferredError}
+            <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" role="alert">
+                <p class="text-sm text-muted">{m.anime_load_error()}</p>
+                <button
+                    type="button"
+                    class="mt-4 min-h-10 bg-accent px-4 text-xs font-bold text-on-accent uppercase"
+                    onclick={loadDeferred}
+                >
+                    {m.retry()}
+                </button>
+            </section>
+        {:else}{#await page.episodes}
                 {@render loadingEpisodes()}
-            {:then artwork}
-                <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
-                    {#if episodes.length}
-                        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
-                            {#each episodes.slice(0, visibleEpisodeCount) as episode}
-                                <EpisodeGridCard
-                                    episode={episode}
-                                    title={data.anime.title}
-                                    image={artwork?.selectedBackdrop?.url ?? null}
-                                />
-                            {/each}
-                        </div>
-                        {#if visibleEpisodeCount < episodes.length}
-                            <button
-                                type="button"
-                                class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
-                                onclick={() => showMoreEpisodes(episodes.length)}
-                            >
-                                {m.anime_show_more_episodes()}
-                            </button>
+            {:then episodes}
+                {#await page.artwork}
+                    {@render loadingEpisodes()}
+                {:then artwork}
+                    <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
+                        {#if episodes.length}
+                            <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
+                                {#each episodes.slice(0, visibleEpisodeCount) as episode}
+                                    <EpisodeGridCard
+                                        episode={episode}
+                                        title={anime.title}
+                                        image={artwork?.selectedBackdrop?.url ?? null}
+                                    />
+                                {/each}
+                            </div>
+                            {#if visibleEpisodeCount < episodes.length}
+                                <button
+                                    type="button"
+                                    class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
+                                    onclick={() => showMoreEpisodes(episodes.length)}
+                                >
+                                    {m.anime_show_more_episodes()}
+                                </button>
+                            {/if}
                         {/if}
-                    {/if}
-                </section>
+                    </section>
+                {/await}
             {/await}
-        {/await}
+        {/if}
 
-        {#await data.franchise then franchise}
+        {#await page.franchise then franchise}
             {#if franchise?.entries.length}
-                <FranchiseOrder order={franchise} currentAnimeId={data.anime.id} />
+                <FranchiseOrder order={franchise} currentAnimeId={anime.id} />
             {/if}
         {/await}
     </div>

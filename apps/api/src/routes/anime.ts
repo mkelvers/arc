@@ -1,9 +1,11 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeIdSchema } from '@arc/api-contract/anime';
+import { AnimeArtworkSchema, AnimeIdSchema } from '@arc/api-contract/anime';
 import {
-    animePage,
+    animePageDeferred,
+    animePageArtwork,
+    animePageOverview,
     mediaPage,
     updateMedia,
     watchPage,
@@ -32,7 +34,25 @@ anime.use('*', middleware);
 
 anime.get('/:anilistId', validate('param', AnimeParamSchema), async (context) => {
     return context.json(
-        await animePage(context.get('session').user.id, context.req.valid('param').anilistId)
+        await animePageOverview(
+            context.get('session').user.id,
+            context.req.valid('param').anilistId
+        )
+    );
+});
+
+anime.get('/:anilistId/deferred', validate('param', AnimeParamSchema), async (context) => {
+    return context.json(
+        await animePageDeferred(
+            context.get('session').user.id,
+            context.req.valid('param').anilistId
+        )
+    );
+});
+
+anime.get('/:anilistId/artwork', validate('param', AnimeParamSchema), async (context) => {
+    return context.json(
+        AnimeArtworkSchema.parse(await animePageArtwork(context.req.valid('param').anilistId))
     );
 });
 

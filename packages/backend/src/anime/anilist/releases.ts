@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNotNull, isNull, lte, or } from 'drizzle-orm';
 
 import {
+    AnimeOverviewDocument,
     AnimeDocument,
     AnimeScheduleDocument,
     WatchlistAnimeDocument,
@@ -15,7 +16,13 @@ import { ensureInternalAnimeId } from '../identity';
 import { animeTitles, plainText, present } from './text';
 import { request as requestAniList } from './client';
 import { coordinatedAniListRequest } from './durable-request-policy';
-import { AniListAnimeSchema, AniListScheduleSchema, type AniListAnime } from './types';
+import {
+    AniListAnimeOverviewSchema,
+    AniListAnimeSchema,
+    AniListScheduleSchema,
+    type AniListAnime,
+    type AniListAnimeOverview,
+} from './types';
 import { batches } from '../../utils';
 
 const releaseSchemaRevision = 1;
@@ -102,6 +109,21 @@ async function fetchAnimeRelease(id: number) {
     }
 
     await storeAnimeRelease(parsed.data);
+    return parsed.data;
+}
+
+export async function getAnimeOverview(id: number): Promise<AniListAnimeOverview> {
+    const response = await coordinatedAniListRequest('AnimeOverview', () =>
+        graphql('https://graphql.anilist.co', AnimeOverviewDocument, { id }, { timeoutMs: 8_000 })
+    );
+    const parsed = AniListAnimeOverviewSchema.safeParse(response.Media);
+
+    if (!parsed.success || parsed.data.id !== id) {
+        throw new Error(`AniList returned invalid overview metadata for ${id}`, {
+            cause: parsed.success ? undefined : parsed.error,
+        });
+    }
+
     return parsed.data;
 }
 

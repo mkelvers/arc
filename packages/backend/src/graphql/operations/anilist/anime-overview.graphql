@@ -1,0 +1,24 @@
+query AnimeOverview($id: Int!) {
+    Media(id: $id, type: ANIME) {
+        id
+        title {
+            english
+            romaji
+            native
+        }
+        bannerImage
+        description(asHtml: false)
+        genres
+        format
+        status
+        season
+        seasonYear
+        nextAiringEpisode {
+            airingAt
+            episode
+        }
+        averageScore
+        popularity
+        favourites
+    }
+}
