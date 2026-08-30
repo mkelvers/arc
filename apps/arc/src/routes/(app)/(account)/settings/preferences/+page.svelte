@@ -3,10 +3,9 @@
     import { CaretDownIcon } from 'phosphor-svelte';
 
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
-    import * as preferences from '$lib/player/preferences';
-    import type { AudioMode } from '@arc/shared/audio';
     import { changeLocale, locale, type AppLocale } from '$lib/locale.svelte';
     import { m } from '$lib/i18n.svelte';
+    import { PlaybackPreferences, audioOptions, qualityOptions } from '$lib/player/playback-preferences.svelte';
 
     const languages = [
         { locale: 'en', label: 'English (US)' },
@@ -16,51 +15,9 @@
         { locale: 'ja', label: '日本語' },
     ] as const satisfies ReadonlyArray<{ locale: AppLocale; label: string }>;
 
-    const audioOptions = ['auto', 'sub', 'dub'] as const;
-    const qualityOptions = ['best', '1080p', '720p', '480p'] as const;
+    const settings = new PlaybackPreferences();
 
-    let autoplay = $state(true);
-    let audioMode = $state<(typeof audioOptions)[number]>('auto');
-    let quality = $state<(typeof qualityOptions)[number]>('best');
-    let subtitlesEnabled = $state(false);
-
-    onMount(() => {
-        const saved = preferences.load({}, []);
-        autoplay = saved.autoplay ?? autoplay;
-        if (saved.preferredMode === 'sub' || saved.preferredMode === 'dub') {
-            audioMode = saved.preferredMode;
-        }
-        quality =
-            saved.quality === null
-                ? quality
-                : qualityOptions.includes(saved.quality as (typeof qualityOptions)[number])
-                  ? (saved.quality as (typeof qualityOptions)[number])
-                  : quality;
-        subtitlesEnabled = saved.subtitleEnabled ?? subtitlesEnabled;
-    });
-
-    function setAutoplay(value: boolean) {
-        autoplay = value;
-        preferences.save('autoplay', value);
-    }
-
-    function setAudioMode(value: (typeof audioOptions)[number]) {
-        audioMode = value;
-        preferences.save('audio-mode', value);
-    }
-
-    function setQuality(value: (typeof qualityOptions)[number]) {
-        quality = value;
-        preferences.save('quality', value);
-    }
-
-    function setSubtitlesEnabled(value: boolean) {
-        subtitlesEnabled = value;
-        preferences.save('subtitles', value);
-        if (value) {
-            preferences.save('subtitle-mode', 'translated');
-        }
-    }
+    onMount(() => settings.load());
 
     function audioLabel(value: (typeof audioOptions)[number]) {
         return value === 'auto'
@@ -123,9 +80,9 @@
         <div class="mt-6 space-y-6">
             <button
                 type="button"
-                aria-pressed={autoplay}
+                aria-pressed={settings.autoplay}
                 class="flex w-full items-center justify-between gap-6 text-left"
-                onclick={() => setAutoplay(!autoplay)}
+                onclick={() => settings.setAutoplay(!settings.autoplay)}
             >
                 <span>
                     <span class="block text-sm">{m.settings_autoplay_next()}</span>
@@ -134,12 +91,12 @@
                     </span>
                 </span>
                 <span
-                    class="relative h-3.5 w-7 shrink-0 rounded-full border {autoplay
+                    class="relative h-3.5 w-7 shrink-0 rounded-full border {settings.autoplay
                         ? 'border-input-accent bg-input-accent/20'
                         : 'border-border-strong bg-transparent'}"
                 >
                     <span
-                        class="absolute top-0.5 left-0.5 size-2 rounded-full {autoplay
+                        class="absolute top-0.5 left-0.5 size-2 rounded-full {settings.autoplay
                             ? 'translate-x-4 bg-input-accent'
                             : 'bg-muted'} transition-[transform,background-color]"
                     ></span>
@@ -153,15 +110,15 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{audioLabel(audioMode)}</span>
+                    {#snippet trigger()}<span>{audioLabel(settings.audioMode)}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
                         {#each audioOptions as option}
                             <button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                class:text-white={audioMode === option}
-                                onclick={() => setAudioMode(option)}
+                                class:text-white={settings.audioMode === option}
+                                onclick={() => settings.setAudioMode(option)}
                             >
                                 {audioLabel(option)}
                             </button>
@@ -177,15 +134,17 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-10 w-56 max-w-full cursor-pointer items-center justify-between border border-border-strong bg-transparent px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent data-[state=open]:border-accent data-[state=open]:text-foreground"
                 >
-                    {#snippet trigger()}<span>{quality === 'best' ? m.player_auto() : quality}</span>
+                    {#snippet trigger()}<span>
+                            {settings.quality === 'best' ? m.player_auto() : settings.quality}
+                        </span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
                         {#each qualityOptions as option}
                             <button
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                class:text-white={quality === option}
-                                onclick={() => setQuality(option)}
+                                class:text-white={settings.quality === option}
+                                onclick={() => settings.setQuality(option)}
                             >
                                 {option === 'best' ? m.player_auto() : option}
                             </button>
@@ -209,9 +168,9 @@
         <div class="mt-6 space-y-6">
             <button
                 type="button"
-                aria-pressed={subtitlesEnabled}
+                aria-pressed={settings.subtitlesEnabled}
                 class="flex w-full items-center justify-between gap-6 text-left"
-                onclick={() => setSubtitlesEnabled(!subtitlesEnabled)}
+                onclick={() => settings.setSubtitlesEnabled(!settings.subtitlesEnabled)}
             >
                 <span>
                     <span class="block text-sm">{m.settings_subtitles_enabled()}</span>
@@ -220,12 +179,12 @@
                     </span>
                 </span>
                 <span
-                    class="relative h-3.5 w-7 shrink-0 rounded-full border {subtitlesEnabled
+                    class="relative h-3.5 w-7 shrink-0 rounded-full border {settings.subtitlesEnabled
                         ? 'border-input-accent bg-input-accent/20'
                         : 'border-border-strong bg-transparent'}"
                 >
                     <span
-                        class="absolute top-0.5 left-0.5 size-2 rounded-full {subtitlesEnabled
+                        class="absolute top-0.5 left-0.5 size-2 rounded-full {settings.subtitlesEnabled
                             ? 'translate-x-4 bg-input-accent'
                             : 'bg-muted'} transition-[transform,background-color]"
                     ></span>
