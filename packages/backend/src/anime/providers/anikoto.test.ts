@@ -293,7 +293,7 @@ describe('AniKoto provider rules', () => {
         expect(attempts).toBe(3);
     });
 
-    test('retries rate-limited catalog requests before parsing the response', async () => {
+    test('backs off the provider after a rate-limited request', async () => {
         const originalFetch = globalThis.fetch;
         let attempts = 0;
         const mockedFetch: typeof fetch = Object.assign(
@@ -310,12 +310,8 @@ describe('AniKoto provider rules', () => {
         try {
             await expect(
                 getAniKotoSimulcastPage({ season: 'WINTER', year: 2026 }, 1)
-            ).resolves.toEqual({
-                anime: [],
-                hasNextPage: false,
-                page: 1,
-            });
-            expect(attempts).toBe(2);
+            ).rejects.toThrow('AniKoto returned 429');
+            expect(attempts).toBe(1);
         } finally {
             globalThis.fetch = originalFetch;
         }

@@ -17,6 +17,7 @@ import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
 import { playback } from './providers';
+import { isAniKotoTransientError } from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { watchEpisodeNumber } from './episodes/route';
 import { resolveAnimeSynopsis } from './synopsis';
@@ -64,15 +65,22 @@ export async function animePage(userId: string, id: number) {
         imported || !storedMapping || episodeInventoryNeedsDiscovery(anime, storedEpisodes);
     const initialEpisodes =
         shouldDiscover && imported
-            ? await discoverEpisodeInventory(anime).then((entries) =>
-                  episodesAvailableToWatch(entries, anime)
-              )
+            ? await discoverEpisodeInventory(anime)
+                  .then((entries) => episodesAvailableToWatch(entries, anime))
+                  .catch((cause) => {
+                      if (!isAniKotoTransientError(cause)) {
+                          throw cause;
+                      }
+                      return null;
+                  })
             : null;
     if (shouldDiscover && !imported) {
         await ensureEpisodeInventoryBackfill(id);
-        void discoverEpisodeInventory(anime).catch((cause) =>
-            logger.debug(`Episode inventory repair failed for AniList ${id}`, cause)
-        );
+        void discoverEpisodeInventory(anime).catch((cause) => {
+            if (!isAniKotoTransientError(cause)) {
+                logger.debug(`Episode inventory repair failed for AniList ${id}`, cause);
+            }
+        });
     }
     const [synopsis, storedAiringSchedule, watchlist] = await Promise.all([
         resolveAnimeSynopsis(anime, { refresh: imported }),

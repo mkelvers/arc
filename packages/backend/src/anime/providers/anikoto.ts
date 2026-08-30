@@ -46,7 +46,10 @@ const maxTextBytes = 2 * 1024 * 1024;
 const failedSources = new Map<string, number>();
 const seriesCacheTtlMs = 5 * 60_000;
 const failedSeriesCacheTtlMs = 30_000;
+const providerCooldownMs = 30_000;
+const maxProviderCooldownMs = 5 * 60_000;
 const seriesCache = new Map<number, { expiresAt: number; request: Promise<AniKotoSeries> }>();
+const providerCooldownUntil = new Map<string, number>();
 
 const ajaxResponseSchema = z.object({ status: z.number().int(), result: z.string() });
 const seriesResponseSchema = z.object({
@@ -135,13 +138,18 @@ interface CaptionCandidate {
     preferred: boolean;
 }
 
-class AniKotoRequestError extends Error {
+export class AniKotoRequestError extends Error {
     constructor(
         message: string,
-        readonly status: number
+        readonly status: number,
+        readonly retryAfterMs?: number
     ) {
         super(message);
     }
+}
+
+export function isAniKotoTransientError(cause: unknown) {
+    return cause instanceof AniKotoRequestError && (cause.status === 429 || cause.status >= 500);
 }
 
 class AniKotoSubtitlesError extends Error {
@@ -211,6 +219,13 @@ function requestRetryDelay(response: Response, attempt: number) {
     return (
         retryAfterMs(response.headers.get('retry-after')) ?? Math.min(60_000, 500 * 2 ** attempt)
     );
+}
+
+function providerRequestFamily(url: URL) {
+    if (url.origin === catalogUrl) {
+        return 'catalog';
+    }
+    return url.pathname.startsWith('/ajax/') ? 'ajax' : 'site';
 }
 
 function sourceIsCoolingDown(url: URL) {
@@ -729,6 +744,14 @@ async function requestText(
         headers.set('X-Requested-With', 'XMLHttpRequest');
     }
 
+    const requestFamily = providerRequestFamily(url);
+    if ((providerCooldownUntil.get(requestFamily) ?? 0) > Date.now()) {
+        throw new AniKotoRequestError(
+            `AniKoto is rate limited for ${url.hostname}${url.pathname}`,
+            429
+        );
+    }
+
     for (let attempt = 0; ; attempt += 1) {
         const response = await fetch(url, {
             headers,
@@ -738,6 +761,19 @@ async function requestText(
         });
         if (!response.ok) {
             const retryAfter = retryAfterMs(response.headers.get('retry-after'));
+            if (response.status === 429) {
+                const cooldown =
+                    retryAfter !== null && retryAfter <= maxProviderCooldownMs
+                        ? retryAfter
+                        : providerCooldownMs;
+                providerCooldownUntil.set(requestFamily, Date.now() + cooldown);
+                await response.body?.cancel().catch(() => undefined);
+                throw new AniKotoRequestError(
+                    `AniKoto returned 429 for ${url.hostname}${url.pathname}`,
+                    response.status,
+                    cooldown
+                );
+            }
             if (
                 retryableRequestStatus(response.status) &&
                 attempt < 2 &&
@@ -882,7 +918,7 @@ async function loadSeries(id: number) {
     return request;
 }
 
-async function episodesForAnime(series: AniKotoSeries) {
+async function episodesForAnime(series: Pick<AniKotoSeries, 'id'>) {
     const primary = parseEpisodeList(
         await requestJson(new URL(`/ajax/episode/list/${series.id}`, anikotoUrl))
     );
@@ -961,6 +997,9 @@ async function findSeries(anime: AniListAnime) {
                 return series;
             }
         } catch (cause) {
+            if (cause instanceof AniKotoRequestError && isAniKotoTransientError(cause)) {
+                return { id: storedId };
+            }
             if (!(cause instanceof AniKotoRequestError) || cause.status !== 404) {
                 throw cause;
             }
@@ -987,17 +1026,24 @@ async function findSeries(anime: AniListAnime) {
     );
     for (let offset = 0; offset < ordered.length; offset += 12) {
         for (const candidate of ordered.slice(offset, offset + 12)) {
-            let series: AniKotoSeries | null;
+            let series: AniKotoSeries | { id: number } | null;
             try {
                 series = await loadSeries(candidate.id);
             } catch (cause) {
                 if (cause instanceof AniKotoRequestError && cause.status === 404) {
                     series = null;
+                } else if (
+                    cause instanceof AniKotoRequestError &&
+                    cause.status === 429 &&
+                    (titles.has(normalizedProviderTitle(candidate.title)) ||
+                        titles.has(normalizedProviderTitle(candidate.alternativeTitle)))
+                ) {
+                    series = { id: candidate.id };
                 } else {
                     throw cause;
                 }
             }
-            if (series && matchesAniKotoIdentity(series, anime)) {
+            if (series && (!('anilistId' in series) || matchesAniKotoIdentity(series, anime))) {
                 await saveProviderMediaId(anime.id, String(series.id));
                 return series;
             }
