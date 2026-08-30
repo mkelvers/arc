@@ -24,12 +24,25 @@
     const sections = [
         {
             title: m.settings_general,
-            links: [{ label: m.settings_preferences, href: '/settings/preferences' }],
+            links: [
+                {
+                    label: m.settings_preferences,
+                    href: '/settings/preferences',
+                },
+            ],
         },
-        { title: m.settings_playback, links: [{ label: m.settings_subtitles, href: '/settings/subtitles' }] },
+        {
+            title: m.settings_playback,
+            links: [{ label: m.settings_subtitles, href: '/settings/subtitles' }],
+        },
         {
             title: m.settings_watchlist,
-            links: [{ label: m.settings_import_export, href: '/settings/import-export' }],
+            links: [
+                {
+                    label: m.settings_import_export,
+                    href: '/settings/import-export',
+                },
+            ],
         },
     ] as const;
     const currentPage = $derived(
@@ -38,21 +51,6 @@
             synopsis: m.settings_account_synopsis,
         }
     );
-
-    $effect(() => {
-        if (!mobileMenuOpen) {
-            return;
-        }
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-        return () => {
-            document.body.style.overflow = previousOverflow;
-        };
-    });
-
-    function closeMobileMenu() {
-        mobileMenuOpen = false;
-    }
 </script>
 
 <main
@@ -69,7 +67,9 @@
         <nav class="mt-8 md:mt-12" aria-label={m.settings_sections()}>
             {#each sections as section}
                 <section class="not-first:mt-6 md:not-first:mt-8">
-                    <h2 class="px-1 text-lg font-bold tracking-tight sm:text-xl">{section.title()}</h2>
+                    <h2 class="px-1 text-lg font-bold tracking-tight sm:text-xl">
+                        {section.title()}
+                    </h2>
                     <ul class="mt-3 grid grid-cols-2 gap-1 md:block md:space-y-1">
                         {#each section.links as link}
                             <li>
@@ -91,7 +91,9 @@
     </aside>
 
     <div class="md:hidden">
-        <h1 class="text-2xl font-bold tracking-tight">{m.settings_account()}</h1>
+        <h1 class="text-2xl font-bold tracking-tight">
+            {m.settings_account()}
+        </h1>
         <button
             type="button"
             class="mt-8 flex items-center gap-3 text-xs font-bold tracking-wide text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -109,11 +111,11 @@
             type="button"
             class="fixed inset-0 z-50 bg-black/70"
             aria-label={m.shared_close_menu()}
-            onclick={closeMobileMenu}
+            onclick={() => (mobileMenuOpen = false)}
         ></button>
         <div
             id="mobile-settings-menu"
-            class="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-[#272727] shadow-2xl md:hidden"
+            class="fixed inset-0 z-60 flex flex-col overflow-hidden bg-[#272727] shadow-2xl md:hidden"
             role="dialog"
             aria-modal="true"
             aria-label={m.settings_sections()}
@@ -124,7 +126,7 @@
                     type="button"
                     class="grid size-9 place-items-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
                     aria-label={m.shared_close_menu()}
-                    onclick={closeMobileMenu}
+                    onclick={() => (mobileMenuOpen = false)}
                 >
                     <XIcon size={24} aria-hidden="true" />
                 </button>
@@ -132,14 +134,16 @@
             <nav class="min-h-0 flex-1 overflow-y-auto px-5 py-4" aria-label={m.settings_sections()}>
                 {#each sections as section}
                     <section class="not-first:mt-8">
-                        <h3 class="text-lg font-bold tracking-tight">{section.title()}</h3>
+                        <h3 class="text-lg font-bold tracking-tight">
+                            {section.title()}
+                        </h3>
                         <ul class="mt-3 space-y-1">
                             {#each section.links as link}
                                 <li>
                                     <a
                                         href={link.href}
                                         aria-current={page.url.pathname === link.href ? 'page' : undefined}
-                                        onclick={closeMobileMenu}
+                                        onclick={() => (mobileMenuOpen = false)}
                                         class="block py-2.5 text-base {page.url.pathname === link.href
                                             ? 'text-foreground'
                                             : 'text-muted'} transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
@@ -160,9 +164,19 @@
         aria-labelledby="settings-title"
     >
         <header class="text-left md:text-center">
-            <h1 id="settings-title" class="text-2xl font-bold tracking-tight">{currentPage.title()}</h1>
-            <p class="mt-2 hidden text-base text-muted md:block">{currentPage.synopsis()}</p>
+            <h1 id="settings-title" class="text-2xl font-bold tracking-tight">
+                {currentPage.title()}
+            </h1>
+            <p class="mt-2 hidden text-base text-muted md:block">
+                {currentPage.synopsis()}
+            </p>
         </header>
         <div class="mt-8">{@render children()}</div>
     </section>
 </main>
+
+<style>
+    :global(body:has(#mobile-settings-menu)) {
+        overflow: hidden;
+    }
+</style>
