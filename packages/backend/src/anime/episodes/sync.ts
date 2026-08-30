@@ -10,7 +10,12 @@ import {
 } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
-import { anikotoProvider, isAniKotoTransientError } from '../providers/anikoto';
+import { refreshAnimeRelease } from '../anilist/releases';
+import {
+    anikotoProvider,
+    isAniKotoNoMatchError,
+    isAniKotoTransientError,
+} from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
@@ -105,7 +110,18 @@ async function fetchAndStore(
             : anime.status === 'FINISHED'
               ? providerEpisodeCount(anime)
               : null;
-    const providerEpisodes = await anikotoProvider.getEpisodes(anime);
+    let providerEpisodes;
+    try {
+        providerEpisodes = await anikotoProvider.getEpisodes(anime);
+    } catch (cause) {
+        if (!isAniKotoNoMatchError(cause)) {
+            throw cause;
+        }
+
+        providerEpisodes = await anikotoProvider.getEpisodes(
+            await refreshAnimeRelease(anime.id, { force: true })
+        );
+    }
     if (!providerEpisodes.length) {
         throw new Error(`No playback provider returned episodes for AniList ${anime.id}`);
     }
@@ -474,7 +490,7 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
-            if (!isAniKotoTransientError(cause)) {
+            if (!isAniKotoTransientError(cause) && !isAniKotoNoMatchError(cause)) {
                 logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
             }
             throw cause;

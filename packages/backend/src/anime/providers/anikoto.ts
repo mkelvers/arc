@@ -151,6 +151,12 @@ export class AniKotoRequestError extends Error {
     }
 }
 
+export class AniKotoNoMatchError extends Error {
+    constructor(readonly anilistId: number) {
+        super(`AniKoto has no exact identity match for AniList ${anilistId}`);
+    }
+}
+
 export function isAniKotoLocalCooldownError(
     cause: unknown
 ): cause is AniKotoRequestError & { localCooldown: true } {
@@ -167,6 +173,10 @@ export function isAniKotoTransientError(cause: unknown) {
     }
 
     return cause instanceof AggregateError && cause.errors.some(isAniKotoTransientError);
+}
+
+export function isAniKotoNoMatchError(cause: unknown): cause is AniKotoNoMatchError {
+    return cause instanceof AniKotoNoMatchError;
 }
 
 class AniKotoSubtitlesError extends Error {
@@ -1182,7 +1192,7 @@ async function findSeries(anime: AniListAnime) {
         }
     }
 
-    throw new Error(`AniKoto has no exact identity match for AniList ${anime.id}`);
+    throw new AniKotoNoMatchError(anime.id);
 }
 
 async function episodeServers(episodeId: string) {

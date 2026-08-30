@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+    AniKotoNoMatchError,
     episodeAudioModes,
     aniKotoMediaCandidates,
     fetchAniKotoResource,
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
     isAniKotoTransientError,
+    isAniKotoNoMatchError,
     matchesAniKotoIdentity,
     matchesAniKotoIdentityOrTitle,
     matchesAniKotoRelatedIdentity,
@@ -32,6 +34,13 @@ import {
 } from './anikoto';
 
 describe('AniKoto provider rules', () => {
+    test('classifies an unmatched AniList release as provider-unavailable', () => {
+        const error = new AniKotoNoMatchError(208361);
+
+        expect(isAniKotoNoMatchError(error)).toBe(true);
+        expect(isAniKotoTransientError(error)).toBe(false);
+    });
+
     test('classifies provider request timeouts as transient failures', () => {
         expect(
             isAniKotoTransientError(new DOMException('The operation timed out.', 'TimeoutError'))

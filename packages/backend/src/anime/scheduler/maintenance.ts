@@ -5,7 +5,11 @@ import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
-import { AniKotoRequestError, isAniKotoLocalCooldownError } from '../providers/anikoto';
+import {
+    AniKotoRequestError,
+    isAniKotoLocalCooldownError,
+    isAniKotoNoMatchError,
+} from '../providers/anikoto';
 import { episodeMetadataRevision } from '../episodes/policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/api-contract/maintenance';
@@ -241,6 +245,28 @@ async function finishMaintenanceTask(
                     )
                 );
             return 'retried' as const;
+        }
+
+        if (isAniKotoNoMatchError(cause)) {
+            const retryAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
+            await db
+                .update(maintenanceTask)
+                .set({
+                    state: 'failed',
+                    attempts: 12,
+                    nextAttemptAt: retryAt,
+                    leaseOwner: null,
+                    leaseUntil: null,
+                    lastError: cause.message,
+                    updatedAt: new Date(),
+                })
+                .where(
+                    and(
+                        eq(maintenanceTask.id, candidate.id),
+                        eq(maintenanceTask.leaseOwner, leaseOwner)
+                    )
+                );
+            return 'failed' as const;
         }
 
         const attempts = claimed.attempts + 1;

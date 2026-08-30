@@ -16,7 +16,11 @@ import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
 import { withMovieBackdrop } from './movie-backdrop';
-import { isAniKotoTransientError, anikotoProvider } from './providers/anikoto';
+import {
+    isAniKotoNoMatchError,
+    isAniKotoTransientError,
+    anikotoProvider,
+} from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { watchEpisodeNumber } from './episodes/route';
 import { resolveAnimeSynopsis } from './synopsis';
@@ -68,7 +72,7 @@ export async function animePage(userId: string, id: number) {
         ? await discoverEpisodeInventory(anime)
               .then((entries) => episodesAvailableToWatch(entries, anime))
               .catch((cause) => {
-                  if (!isAniKotoTransientError(cause)) {
+                  if (!isAniKotoTransientError(cause) && !isAniKotoNoMatchError(cause)) {
                       throw cause;
                   }
                   // Provider outages must not blank an otherwise loadable anime page.
