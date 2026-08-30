@@ -52,6 +52,13 @@ export class GraphQLRequestError extends Error {
     }
 }
 
+export function isGraphQLTransientError(cause: unknown) {
+    return (
+        cause instanceof GraphQLRequestError &&
+        (cause.status === undefined || cause.status === 429 || cause.status >= 500)
+    );
+}
+
 function retryAfterMs(response: Response) {
     const value = response.headers.get('Retry-After');
     if (!value) {

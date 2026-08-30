@@ -523,7 +523,14 @@ export const animeProviderMapping = pgTable(
         provider: varchar('provider', { length: 32 }).notNull(),
         providerMediaId: text('provider_media_id').notNull(),
         discoveredAt: timestamp('discovered_at', { withTimezone: true }).notNull().defaultNow(),
-        verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull().defaultNow(),
+        verifiedAt: timestamp('verified_at', { withTimezone: true }),
+        inventoryStatus: varchar('inventory_status', { length: 16 }).notNull().default('verified'),
+        expectedEpisodeCount: integer('expected_episode_count'),
+        providerEpisodeCount: integer('provider_episode_count'),
+        providerEpisodeIds: jsonb('provider_episode_ids').$type<string[]>(),
+        verificationEvidence: jsonb('verification_evidence').$type<unknown>(),
+        nextRetryAt: timestamp('next_retry_at', { withTimezone: true }),
+        lastError: text('last_error'),
     },
     (table) => [primaryKey({ columns: [table.anilistId, table.provider] })]
 );

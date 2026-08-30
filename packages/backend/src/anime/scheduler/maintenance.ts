@@ -4,7 +4,11 @@ import { and, asc, desc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
-import { discoverEpisodeInventory, episodeInventoryBackfillKey } from '../episodes/sync';
+import {
+    discoverEpisodeInventory,
+    episodeInventoryBackfillKey,
+    isEpisodeInventoryUnresolvedError,
+} from '../episodes/sync';
 import {
     AniKotoRequestError,
     isAniKotoLocalCooldownError,
@@ -247,7 +251,7 @@ async function finishMaintenanceTask(
             return 'retried' as const;
         }
 
-        if (isAniKotoNoMatchError(cause)) {
+        if (isAniKotoNoMatchError(cause) || isEpisodeInventoryUnresolvedError(cause)) {
             const retryAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
             await db
                 .update(maintenanceTask)
@@ -379,6 +383,17 @@ async function seedEpisodeInventoryBackfills() {
                   from anime_episode_sync sync
                   where sync.anilist_id = release.anilist_id
                     and sync.metadata_revision is distinct from ${episodeMetadataRevision}
+              )
+              or exists (
+                  select 1
+                  from anime_provider_mapping provider_mapping
+                  where provider_mapping.anilist_id = release.anilist_id
+                    and provider_mapping.provider = 'anikoto'
+                    and provider_mapping.inventory_status = 'unresolved'
+                    and (
+                        provider_mapping.next_retry_at is null
+                        or provider_mapping.next_retry_at <= now()
+                    )
               )
               or exists (
                   select 1

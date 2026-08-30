@@ -939,11 +939,14 @@ async function providerMediaId(anilistId: number) {
         )
         .limit(1);
     if (override) {
-        return override.id;
+        return { id: override.id, inventoryStatus: 'override' };
     }
 
     const [stored] = await db
-        .select({ id: schema.animeProviderMapping.providerMediaId })
+        .select({
+            id: schema.animeProviderMapping.providerMediaId,
+            inventoryStatus: schema.animeProviderMapping.inventoryStatus,
+        })
         .from(schema.animeProviderMapping)
         .where(
             and(
@@ -952,7 +955,7 @@ async function providerMediaId(anilistId: number) {
             )
         )
         .limit(1);
-    return stored?.id ?? null;
+    return stored ?? null;
 }
 
 async function saveProviderMediaId(anilistId: number, id: string) {
@@ -985,23 +988,59 @@ async function saveProviderMediaId(anilistId: number, id: string) {
             provider: providerName,
             providerMediaId: id,
             discoveredAt: now,
-            verifiedAt: now,
+            inventoryStatus: 'candidate',
         })
         .onConflictDoUpdate({
             target: [schema.animeProviderMapping.anilistId, schema.animeProviderMapping.provider],
-            set: { providerMediaId: id, verifiedAt: now },
+            set: { providerMediaId: id, discoveredAt: now },
         });
 }
 
-async function verifyProviderMediaId(anilistId: number) {
+export async function recordAniKotoInventoryVerification(
+    anime: AniListAnime,
+    providerEpisodes: readonly ProviderEpisode[],
+    selectedEpisodes: readonly ProviderEpisode[],
+    expectedEpisodes: number | null,
+    status: 'verified' | 'unresolved',
+    error: string | null = null
+) {
+    const seriesIds = new Set(
+        providerEpisodes.flatMap((episode) => {
+            const match = episode.id.match(/^anikoto:(\d+):/);
+            return match ? [match[1]] : [];
+        })
+    );
+    if (seriesIds.size !== 1) {
+        return;
+    }
+
+    const now = new Date();
     const [{ db }, schema] = await Promise.all([import('@arc/db'), import('@arc/db/schema')]);
     await db
         .update(schema.animeProviderMapping)
-        .set({ verifiedAt: new Date() })
+        .set({
+            inventoryStatus: status,
+            expectedEpisodeCount: expectedEpisodes,
+            providerEpisodeCount: providerEpisodes.length,
+            providerEpisodeIds: providerEpisodes.map(({ id }) => id),
+            verificationEvidence: {
+                anilistTitle: anime.title,
+                anilistFormat: anime.format,
+                anilistStatus: anime.status,
+                expectedEpisodeCount: expectedEpisodes,
+                providerEpisodeNumbers: providerEpisodes.map(({ number }) => number),
+                selectedEpisodeNumbers: selectedEpisodes.map(({ number }) => number),
+            },
+            nextRetryAt:
+                status === 'unresolved' ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1_000) : null,
+            lastError: error,
+            verifiedAt: status === 'verified' ? now : undefined,
+        })
         .where(
             and(
-                eq(schema.animeProviderMapping.anilistId, anilistId),
-                eq(schema.animeProviderMapping.provider, providerName)
+                eq(schema.animeProviderMapping.anilistId, anime.id),
+                eq(schema.animeProviderMapping.provider, providerName),
+                eq(schema.animeProviderMapping.providerMediaId, seriesIds.values().next().value!)
             )
         );
 }
@@ -1103,8 +1142,8 @@ async function search(title: string) {
 async function findSeries(anime: AniListAnime) {
     const titles = new Set(animeTitles(anime).map(normalizedProviderTitle));
     const stored = await providerMediaId(anime.id);
-    const storedId = positiveId(stored);
-    if (storedId) {
+    const storedId = positiveId(stored?.id);
+    if (storedId && stored?.inventoryStatus !== 'unresolved') {
         try {
             const series = await loadSeries(storedId);
             if (
@@ -1112,7 +1151,6 @@ async function findSeries(anime: AniListAnime) {
                     matchesAniKotoRelatedIdentity(series, anime)) &&
                 matchesAniKotoFormat(series.format, anime.format)
             ) {
-                await verifyProviderMediaId(anime.id);
                 return series;
             }
         } catch (cause) {

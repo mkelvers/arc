@@ -9,12 +9,14 @@ import {
     playbackProgress,
 } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
+import { isGraphQLTransientError } from '../../graphql';
 import type { AniListAnime } from '../anilist/types';
 import { refreshAnimeRelease } from '../anilist/releases';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,
     isAniKotoTransientError,
+    recordAniKotoInventoryVerification,
 } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { getEpisodeMetadata } from '../tmdb/episodes';
@@ -39,6 +41,22 @@ export class TargetEpisodeUnavailableError extends Error {
             `Playback providers do not yet expose episode ${targetEpisode} for AniList ${anilistId}`
         );
     }
+}
+
+export class EpisodeInventoryUnresolvedError extends Error {
+    constructor(
+        readonly anilistId: number,
+        readonly expectedEpisodes: number,
+        readonly receivedEpisodes: number
+    ) {
+        super(`Episode metadata could not resolve the provider inventory for AniList ${anilistId}`);
+    }
+}
+
+export function isEpisodeInventoryUnresolvedError(
+    cause: unknown
+): cause is EpisodeInventoryUnresolvedError {
+    return cause instanceof EpisodeInventoryUnresolvedError;
 }
 
 const inventoryRequests = new Map<number, ReturnType<typeof storedEpisodes>>();
@@ -197,9 +215,15 @@ async function fetchAndStore(
         source.flatMap(({ number }) => (Number.isInteger(number) && number > 0 ? [number] : []))
     );
     if (anime.status === 'FINISHED' && expected !== null && regularEpisodeNumbers.size > expected) {
-        throw new Error(
-            `Episode metadata could not resolve the provider inventory for AniList ${anime.id}`
+        await recordAniKotoInventoryVerification(
+            anime,
+            providerEpisodes,
+            source,
+            expected,
+            'unresolved',
+            `Provider returned ${regularEpisodeNumbers.size} regular episodes; AniList expects ${expected}`
         );
+        throw new EpisodeInventoryUnresolvedError(anime.id, expected, regularEpisodeNumbers.size);
     }
     const now = new Date();
     await db.transaction(async (tx) => {
@@ -450,6 +474,8 @@ async function fetchAndStore(
         }
     });
 
+    await recordAniKotoInventoryVerification(anime, providerEpisodes, source, expected, 'verified');
+
     return storedEpisodes(anime);
 }
 
@@ -490,7 +516,12 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             await ensureEpisodeInventoryBackfill(anime.id).catch((failure) =>
                 logger.debug(`Could not enqueue episode backfill for AniList ${anime.id}`, failure)
             );
-            if (!isAniKotoTransientError(cause) && !isAniKotoNoMatchError(cause)) {
+            if (
+                !isAniKotoTransientError(cause) &&
+                !isAniKotoNoMatchError(cause) &&
+                !isEpisodeInventoryUnresolvedError(cause) &&
+                !isGraphQLTransientError(cause)
+            ) {
                 logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
             }
             throw cause;

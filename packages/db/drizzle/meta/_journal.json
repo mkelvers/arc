@@ -477,6 +477,20 @@
             "when": 1788052488775,
             "tag": "0067_perpetual_jackpot",
             "breakpoints": true
+        },
+        {
+            "idx": 68,
+            "version": "7",
+            "when": 1788121837380,
+            "tag": "0068_silent_secret_warriors",
+            "breakpoints": true
+        },
+        {
+            "idx": 69,
+            "version": "7",
+            "when": 1788121982633,
+            "tag": "0069_flippant_sir_ram",
+            "breakpoints": true
         }
     ]
 }

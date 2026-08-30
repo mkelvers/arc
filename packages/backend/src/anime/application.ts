@@ -10,8 +10,12 @@ import {
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
 } from './episodes';
-import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
-import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './episodes/sync';
+import { episodesAvailableToWatch } from './episodes/policy';
+import {
+    discoverEpisodeInventory,
+    ensureEpisodeInventoryBackfill,
+    isEpisodeInventoryUnresolvedError,
+} from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
@@ -63,8 +67,7 @@ export async function animePage(userId: string, id: number) {
     const anime = stored ?? (await getAnimeRelease(id));
     const storedMapping = await findMapping(id);
     const storedEpisodes = await getEpisodes(anime);
-    const shouldDiscover =
-        imported || !storedMapping || episodeInventoryNeedsDiscovery(anime, storedEpisodes);
+    const shouldDiscover = imported || !storedMapping || storedEpisodes.length === 0;
     if (shouldDiscover && !imported) {
         await ensureEpisodeInventoryBackfill(id);
     }
@@ -72,7 +75,11 @@ export async function animePage(userId: string, id: number) {
         ? await discoverEpisodeInventory(anime)
               .then((entries) => episodesAvailableToWatch(entries, anime))
               .catch((cause) => {
-                  if (!isAniKotoTransientError(cause) && !isAniKotoNoMatchError(cause)) {
+                  if (
+                      !isAniKotoTransientError(cause) &&
+                      !isAniKotoNoMatchError(cause) &&
+                      !isEpisodeInventoryUnresolvedError(cause)
+                  ) {
                       throw cause;
                   }
                   // Provider outages must not blank an otherwise loadable anime page.
