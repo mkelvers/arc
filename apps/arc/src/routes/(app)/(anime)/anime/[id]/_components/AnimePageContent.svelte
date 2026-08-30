@@ -11,14 +11,47 @@
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
+    import { goto } from '$app/navigation';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
+    type Episodes = Extract<PageResult, { status: 'success' }>['data']['episodes'];
 
     let { data }: Props = $props();
 
     let detailsExpanded = $state(false);
     let loadedBackdrop = $state<string | null>(null);
+    let visibleEpisodeCount = $state(28);
+    let preparedEpisodeCount = $state(28);
+    let jumpEpisode = $state('');
+
+    $effect(() => {
+        void data.episodes;
+        visibleEpisodeCount = 28;
+        preparedEpisodeCount = 28;
+        jumpEpisode = '';
+    });
+
+    function prepareMoreEpisodes(total: number) {
+        preparedEpisodeCount = Math.min(total, preparedEpisodeCount + 28);
+    }
+
+    function showMoreEpisodes(total: number) {
+        visibleEpisodeCount = Math.min(total, Math.max(visibleEpisodeCount + 28, preparedEpisodeCount));
+        preparedEpisodeCount = visibleEpisodeCount;
+    }
+
+    function goToEpisode(episodes: Episodes) {
+        const number = Number(jumpEpisode);
+        if (!Number.isInteger(number) || number < 1) {
+            return;
+        }
+
+        const episode = episodes.find((candidate) => candidate.number === number);
+        if (episode) {
+            void goto(episode.href);
+        }
+    }
 </script>
 
 <main class="bg-canvas text-foreground">
@@ -262,8 +295,45 @@
             {:then artwork}
                 <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
                     {#if episodes.length}
+                        <div class="mb-7 flex flex-wrap items-end justify-between gap-4">
+                            <form
+                                class="flex items-end gap-2"
+                                onsubmit={(event) => {
+                                    event.preventDefault();
+                                    goToEpisode(episodes);
+                                }}
+                            >
+                                <label class="grid gap-1 text-xs text-muted" for="jump-to-episode">
+                                    <span>{m.anime_jump_to_episode()}</span>
+                                    <input
+                                        id="jump-to-episode"
+                                        class="h-10 w-24 border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-accent"
+                                        type="number"
+                                        min="1"
+                                        max={Math.max(...episodes.map(({ number }) => number))}
+                                        step="1"
+                                        bind:value={jumpEpisode}
+                                        placeholder="600"
+                                        inputmode="numeric"
+                                    />
+                                </label>
+                                <button
+                                    type="submit"
+                                    class="h-10 bg-accent px-4 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                                >
+                                    {m.anime_go_to_episode()}
+                                </button>
+                            </form>
+                            <span class="text-xs text-muted">
+                                {m.anime_showing_episodes({
+                                    from: 1,
+                                    to: Math.min(visibleEpisodeCount, episodes.length),
+                                    total: episodes.length,
+                                })}
+                            </span>
+                        </div>
                         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
-                            {#each episodes as episode}
+                            {#each episodes.slice(0, visibleEpisodeCount) as episode}
                                 <EpisodeGridCard
                                     episode={episode}
                                     title={data.anime.title}
@@ -271,6 +341,18 @@
                                 />
                             {/each}
                         </div>
+                        {#if visibleEpisodeCount < episodes.length}
+                            <button
+                                type="button"
+                                class="mx-auto mt-8 flex min-h-11 items-center bg-surface px-5 text-xs font-bold text-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                                onmouseenter={() => prepareMoreEpisodes(episodes.length)}
+                                onclick={() => showMoreEpisodes(episodes.length)}
+                            >
+                                {m.anime_show_more_episodes({
+                                    count: Math.min(28, episodes.length - visibleEpisodeCount),
+                                })}
+                            </button>
+                        {/if}
                     {/if}
                 </section>
             {/await}
