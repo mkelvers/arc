@@ -44,6 +44,9 @@ const resolutionDeadlineMs = 30_000;
 const resolutionConcurrency = 4;
 const maxTextBytes = 2 * 1024 * 1024;
 const failedSources = new Map<string, number>();
+const seriesCacheTtlMs = 5 * 60_000;
+const failedSeriesCacheTtlMs = 30_000;
+const seriesCache = new Map<number, { expiresAt: number; request: Promise<AniKotoSeries> }>();
 
 const ajaxResponseSchema = z.object({ status: z.number().int(), result: z.string() });
 const seriesResponseSchema = z.object({
@@ -853,11 +856,30 @@ async function verifyProviderMediaId(anilistId: number) {
 }
 
 async function loadSeries(id: number) {
-    const series = parseSeries(await requestJson(new URL(`/series/${id}`, catalogUrl)));
-    if (!series || series.id !== id) {
-        throw new Error('AniKoto returned an invalid series response');
+    const now = Date.now();
+    const cached = seriesCache.get(id);
+    if (cached) {
+        if (cached.expiresAt > now) {
+            return cached.request;
+        }
+        seriesCache.delete(id);
     }
-    return series;
+
+    const request = requestJson(new URL(`/series/${id}`, catalogUrl)).then((value) => {
+        const series = parseSeries(value);
+        if (!series || series.id !== id) {
+            throw new Error('AniKoto returned an invalid series response');
+        }
+        return series;
+    });
+    const entry = { expiresAt: now + seriesCacheTtlMs, request };
+    seriesCache.set(id, entry);
+    void request.catch(() => {
+        if (seriesCache.get(id) === entry) {
+            entry.expiresAt = Date.now() + failedSeriesCacheTtlMs;
+        }
+    });
+    return request;
 }
 
 async function episodesForAnime(series: AniKotoSeries) {
@@ -965,7 +987,16 @@ async function findSeries(anime: AniListAnime) {
     );
     for (let offset = 0; offset < ordered.length; offset += 12) {
         for (const candidate of ordered.slice(offset, offset + 12)) {
-            const series = await loadSeries(candidate.id).catch(() => null);
+            let series: AniKotoSeries | null;
+            try {
+                series = await loadSeries(candidate.id);
+            } catch (cause) {
+                if (cause instanceof AniKotoRequestError && cause.status === 404) {
+                    series = null;
+                } else {
+                    throw cause;
+                }
+            }
             if (series && matchesAniKotoIdentity(series, anime)) {
                 await saveProviderMediaId(anime.id, String(series.id));
                 return series;
