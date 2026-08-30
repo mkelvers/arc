@@ -125,7 +125,6 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
         left === right || compact(left) === compact(right);
     const exactPrimary = names.some((name) => primary.some((title) => matches(name, title)));
     const exact = names.some((name) => titles.some((title) => matches(name, title)));
-    const exactAlias = exact && !exactPrimary;
     const series = mapping.map(seriesTitle);
     const primarySeries = primaryTitles.map(seriesTitle);
     const exactPrimarySeries = names.some((name) =>
@@ -134,8 +133,6 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
     const exactSeries = names.some((name) =>
         series.some((title) => matches(seriesTitle(name), title))
     );
-    const qualified =
-        primaryTitles.some((title) => seriesTitle(title) !== normalizeTitle(title)) || exactAlias;
     const partial = names.some((name) =>
         titles.some((title) => name.includes(title) || title.includes(name))
     );
