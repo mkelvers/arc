@@ -296,7 +296,7 @@ export async function refreshFranchiseOrder(malId: number, options: { force?: bo
 
 export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder | null> {
     let order = await cachedFranchiseOrder(malId);
-    if (!order) {
+    if (!order || !order.entries.some((entry) => entry.malId === malId)) {
         order = await refreshFranchiseOrder(malId);
     }
 
