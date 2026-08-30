@@ -4,6 +4,7 @@ import {
     alternateCandidateIsBetter,
     candidateMatchesPrimaryTitle,
     candidateScore,
+    mappingTitles,
     normalizeTitle,
     releaseSequence,
     seriesTitle,
@@ -11,6 +12,33 @@ import {
 import type { AniListAnime } from '../anilist/types';
 
 describe('TMDB title matching', () => {
+    test('searches related release titles for a shared aggregate mapping', () => {
+        expect(
+            mappingTitles({
+                format: 'ONA',
+                title: { english: 'Continuation', romaji: null, native: null },
+                relations: {
+                    edges: [
+                        {
+                            relationType: 'PREQUEL',
+                            node: {
+                                id: 1,
+                                idMal: null,
+                                episodes: 136,
+                                type: 'ANIME',
+                                title: {
+                                    english: 'Parent Aggregate',
+                                    romaji: null,
+                                    native: null,
+                                },
+                            },
+                        },
+                    ],
+                },
+            } as AniListAnime)
+        ).toContain('Parent Aggregate');
+    });
+
     test('normalizes punctuation and diacritics', () => {
         expect(normalizeTitle('Pokémon: The Movie')).toBe('pokemon the movie');
     });

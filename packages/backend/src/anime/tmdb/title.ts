@@ -82,6 +82,8 @@ export function mappingTitles(anime: AniListAnime) {
         ...animeTitles(anime).slice(0, 3),
         ...(anime.relations?.edges ?? []).flatMap((edge) =>
             edge?.relationType === 'ADAPTATION' ||
+            edge?.relationType === 'PREQUEL' ||
+            edge?.relationType === 'SEQUEL' ||
             (isSpecialRelease(anime) && edge?.relationType === 'PARENT')
                 ? [edge.node?.title?.english, edge.node?.title?.romaji, edge.node?.title?.native]
                 : []
