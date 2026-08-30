@@ -9,8 +9,6 @@ import {
     unwrapAniKotoDisguisedSegment,
 } from '@arc/backend/internal/anime/providers/anikoto';
 
-const upstreamReferer = aniKotoMediaReferer;
-
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
 type StreamBody = 'playlist' | 'segment' | 'subtitle';
 
@@ -55,7 +53,7 @@ function streamTarget(value: string | null) {
 async function upstreamResponse(target: URL, range: string | null, fetchStream: StreamFetch) {
     const headers = new Headers({
         Accept: '*/*',
-        Referer: upstreamReferer,
+        Referer: aniKotoMediaReferer,
         'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36',
     });
