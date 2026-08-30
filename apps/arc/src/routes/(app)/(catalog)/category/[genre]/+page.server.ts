@@ -7,7 +7,11 @@ import { genreFromSlug } from '$lib/genre';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, request, fetch }) => {
-    const taxonomyResponse = await fetch(`${env.API_ORIGIN!}/v1/taxonomy`);
+    const headers = {
+        Cookie: request.headers.get('cookie') ?? '',
+        Authorization: request.headers.get('authorization') ?? '',
+    };
+    const taxonomyResponse = await fetch(`${env.API_ORIGIN!}/v1/taxonomy`, { headers });
     if (!taxonomyResponse.ok) {
         error(503, 'Anime categories could not be loaded');
     }
@@ -22,10 +26,7 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
         error(400, 'Invalid catalog filters');
     }
     const response = await fetch(`${env.API_ORIGIN!}/v1/popular?${browseSearchParams(filters)}`, {
-        headers: {
-            Cookie: request.headers.get('cookie') ?? '',
-            Authorization: request.headers.get('authorization') ?? '',
-        },
+        headers,
     }).catch(() => null);
     if (!response) {
         error(503, 'Arc is temporarily unavailable');
