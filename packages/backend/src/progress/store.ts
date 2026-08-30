@@ -16,6 +16,7 @@ import { ensureInternalAnimeId, findInternalAnimeId } from '../anime/identity';
 import { getStoredMedia } from '../anime/tmdb/media';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';
+import { watchEpisodeHref } from '../anime/episodes/route';
 import type { PlaybackProgressInput } from './input';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
@@ -233,7 +234,7 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
             return {
                 animeId: progress.anilistId,
                 title: details?.title ?? progress.animeTitle ?? `Anime ${progress.anilistId}`,
-                link: `/anime/${progress.anilistId}/watch/${encodeURIComponent(target.episodeId)}`,
+                link: watchEpisodeHref(progress.anilistId, target.number),
                 backdrop,
                 episodeImage,
                 episodeLabel: `E${target.number}`,

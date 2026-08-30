@@ -1,5 +1,6 @@
 import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { FranchiseOrder } from '@arc/shared/types';
+import { watchEpisodeHref } from '../episodes/route';
 
 export type FranchisePlaybackEpisode = {
     anilistId: number;
@@ -25,9 +26,7 @@ export function withFranchisePlayback(
         return {
             ...entry,
             audioLabel: episodeAudioAvailabilityLabel(available),
-            link: first
-                ? `/anime/${entry.anilistId}/watch/${encodeURIComponent(first.episodeId)}`
-                : entry.href,
+            link: first ? watchEpisodeHref(entry.anilistId, first.number) : entry.href,
         };
     });
 }

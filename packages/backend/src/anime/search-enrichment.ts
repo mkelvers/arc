@@ -6,6 +6,7 @@ import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
 import { imageUrl } from './tmdb/client';
 import { getStoredBackdropCandidates } from './tmdb/media';
+import { watchEpisodeHref } from './episodes/route';
 
 async function storedArtwork(anilistIds: number[]) {
     const rows = await getStoredBackdropCandidates(anilistIds);
@@ -33,23 +34,18 @@ async function storedPlayback(anilistIds: number[]) {
     const rows = await db
         .select({
             anilistId: animeEpisode.anilistId,
-            episodeId: animeEpisode.episodeId,
             number: animeEpisode.number,
             audio: animeEpisode.audio,
         })
         .from(animeEpisode)
         .where(inArray(animeEpisode.anilistId, anilistIds));
 
-    const playback = new Map<
-        number,
-        { audio: Set<AudioMode>; episodeId: string; number: number }
-    >();
+    const playback = new Map<number, { audio: Set<AudioMode>; number: number }>();
     for (const row of rows) {
         const stored = playback.get(row.anilistId);
         if (!stored) {
             playback.set(row.anilistId, {
                 audio: new Set(row.audio),
-                episodeId: row.episodeId,
                 number: row.number,
             });
             continue;
@@ -57,7 +53,6 @@ async function storedPlayback(anilistIds: number[]) {
 
         row.audio.forEach((mode) => stored.audio.add(mode));
         if (row.number > 0 && (stored.number <= 0 || row.number < stored.number)) {
-            stored.episodeId = row.episodeId;
             stored.number = row.number;
         }
     }
@@ -88,9 +83,7 @@ export async function withAnimeSearchMetadata<T extends AnimeSearchResult>(resul
             backdrop: selectedArtwork?.backdrop ?? null,
             artworkGroup: selectedArtwork?.group ?? null,
             audioLabel: stored ? audioAvailabilityLabel([...stored.audio]) : '',
-            link: stored
-                ? `/anime/${result.id}/watch/${encodeURIComponent(stored.episodeId)}`
-                : result.link,
+            link: stored ? watchEpisodeHref(result.id, stored.number) : result.link,
         };
     });
 }

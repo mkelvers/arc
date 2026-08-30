@@ -7,6 +7,7 @@ import { db } from '@arc/db';
 import { animeEpisode } from '@arc/db/schema';
 import { formatDuration } from '../../utils';
 import type { AniListAnime } from '../anilist/types';
+import { watchEpisodeHref } from './route';
 
 function episodeModel(
     episode: typeof animeEpisode.$inferSelect,
@@ -28,7 +29,7 @@ function episodeModel(
         number: episode.number,
         label: `E${episode.number}`,
         title,
-        href: `/anime/${episode.anilistId}/watch/${encodeURIComponent(episode.episodeId)}`,
+        href: watchEpisodeHref(episode.anilistId, episode.number),
         audio: episode.audio,
         image: episode.imageUrl,
         duration: formatDuration(episode.runtimeMinutes ?? fallbackDuration),

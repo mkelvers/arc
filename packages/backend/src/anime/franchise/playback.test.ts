@@ -61,7 +61,7 @@ describe('withFranchisePlayback', () => {
             },
             {
                 audioLabel: 'Dub | Sub',
-                link: '/anime/2/watch/special',
+                link: '/anime/2/watch/1',
             },
         ]);
     });

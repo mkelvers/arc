@@ -23,6 +23,7 @@ import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
 import { playback } from './providers';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
+import { watchEpisodeNumber } from './episodes/route';
 import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';
@@ -194,10 +195,25 @@ async function watchEpisode(id: number, episodeId: string) {
     let canonicalHref: string | null = null;
 
     if (currentIndex < 0) {
+        const number = watchEpisodeNumber(episodeId);
+        if (number !== null) {
+            const matching = episodes.flatMap((episode, index) =>
+                episode.number === number ? [index] : []
+            );
+            if (matching.length !== 1) {
+                return null;
+            }
+            currentIndex = matching[0];
+        }
+    }
+    if (currentIndex < 0) {
         currentIndex = episodes.findIndex(
             (episode) => legacySlug(episode.title, episode.id) === episodeId
         );
         canonicalHref = currentIndex < 0 ? null : episodes[currentIndex].href;
+    }
+    if (currentIndex >= 0 && episodeId !== String(episodes[currentIndex].number)) {
+        canonicalHref = episodes[currentIndex].href;
     }
     if (currentIndex < 0) {
         return null;
