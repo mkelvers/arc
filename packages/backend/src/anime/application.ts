@@ -95,8 +95,8 @@ export async function animePage(userId: string, id: number) {
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
     const [artwork, franchise, watchlistState] = await Promise.all([
-        // Artwork reads are cache-first and fill a missing cache from the stored mapping.
-        storedMapping ? getArtwork(anime).catch(() => null) : null,
+        // A first detail visit may need to discover the TMDB mapping before filling artwork.
+        getArtwork(anime, { refresh: !storedMapping }).catch(() => null),
         anime.idMal ? getFranchiseOrder(anime.idMal).catch(() => null) : null,
         getWatchlistState(userId, id),
     ]);

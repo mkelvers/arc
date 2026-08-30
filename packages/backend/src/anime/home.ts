@@ -67,7 +67,9 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
             return null;
         }
 
-        const artwork = await getArtwork(details);
+        // Hero selection checks many candidates; artwork is prefetched by the catalog scheduler.
+        // Do not turn one home request into a TMDB request fan-out when that cache is cold.
+        const artwork = await getArtwork(details, { fetchMissing: false });
 
         if (!artwork?.selectedBackdrop || !artwork.selectedLogo) {
             return null;
