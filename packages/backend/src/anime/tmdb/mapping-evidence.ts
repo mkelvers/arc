@@ -189,6 +189,30 @@ function tvReleaseEvidence(anime: AniListAnime, seasons: TvSeasonEvidence[]) {
     );
 }
 
+export function tvReleaseMatchesWindow(anime: AniListAnime, seasons: TvSeasonEvidence[]) {
+    const expectedEpisodes = anime.episodes;
+    if (!expectedEpisodes || expectedEpisodes <= 0) {
+        return false;
+    }
+
+    const releaseSeasons = seasons.filter(
+        ({ seasonNumber, releaseEpisodeCount }) =>
+            seasonNumber > 0 && releaseEpisodeCount !== undefined && releaseEpisodeCount > 0
+    );
+    const releaseEpisodeCount = releaseSeasons.reduce(
+        (total, season) => total + (season.releaseEpisodeCount ?? 0),
+        0
+    );
+    const expectedStart = animeDate(anime.startDate);
+
+    return (
+        releaseSeasons.length > 0 &&
+        releaseEpisodeCount === expectedEpisodes &&
+        (expectedStart === null ||
+            releaseSeasons.some((season) => season.releaseAirDate === expectedStart))
+    );
+}
+
 export function preferredTvReleaseCandidate(
     anime: AniListAnime,
     direct: Candidate,

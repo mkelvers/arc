@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     preferredTvReleaseCandidate,
+    tvReleaseMatchesWindow,
     relatedSpecialMappingIsBetter,
     specialEpisodeEvidenceScore,
     type SpecialEpisodeEvidence,
@@ -253,5 +254,51 @@ describe('TMDB TV release mapping evidence', () => {
                 },
             ]).id
         ).toBe(209867);
+    });
+
+    test('recognizes a parent series whose seasons cover one anime release', () => {
+        const diamondAndPearl = {
+            episodes: 191,
+            format: 'TV',
+            startDate: { year: 2006, month: 9, day: 28 },
+            endDate: { year: 2010, month: 9, day: 9 },
+        } as AniListAnime;
+
+        expect(
+            tvReleaseMatchesWindow(diamondAndPearl, [
+                {
+                    airDate: '2006-09-28',
+                    episodeCount: 52,
+                    releaseAirDate: '2006-09-28',
+                    releaseEpisodeCount: 52,
+                    seasonNumber: 10,
+                    name: 'Diamond and Pearl',
+                },
+                {
+                    airDate: '2007-11-08',
+                    episodeCount: 52,
+                    releaseAirDate: '2007-11-08',
+                    releaseEpisodeCount: 52,
+                    seasonNumber: 11,
+                    name: 'Diamond and Pearl: Battle Dimension',
+                },
+                {
+                    airDate: '2008-12-04',
+                    episodeCount: 53,
+                    releaseAirDate: '2008-12-04',
+                    releaseEpisodeCount: 53,
+                    seasonNumber: 12,
+                    name: 'Diamond and Pearl: Galactic Battles',
+                },
+                {
+                    airDate: '2010-01-07',
+                    episodeCount: 34,
+                    releaseAirDate: '2010-01-07',
+                    releaseEpisodeCount: 34,
+                    seasonNumber: 13,
+                    name: 'Diamond and Pearl: Sinnoh League Victors',
+                },
+            ])
+        ).toBeTrue();
     });
 });

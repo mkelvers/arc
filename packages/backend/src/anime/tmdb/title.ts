@@ -155,8 +155,7 @@ export function candidateScore(candidate: Candidate, anime: AniListAnime) {
                 : 0;
     const aggregate =
         candidate.mediaType === 'tv' &&
-        exactSeries &&
-        qualified &&
+        (exactSeries || partial) &&
         Boolean(animeYear && candidateYear && candidateYear <= animeYear);
     const yearScore =
         animeYear && candidateYear
