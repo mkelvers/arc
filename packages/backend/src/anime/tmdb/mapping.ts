@@ -458,7 +458,8 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
         });
     }
 
-    const expectedMediaType = anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
+    const expectedMediaType =
+        anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
     const compatibleRelated = expectedMediaType
         ? related.filter((mapping) => mapping.mediaType === expectedMediaType)
         : related;
