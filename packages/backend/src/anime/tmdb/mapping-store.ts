@@ -247,11 +247,11 @@ export async function saveVerifiedMapping(
                 animeId: link.animeId,
                 externalIdId: tmdbId.id,
                 verifiedAt,
-                mappingRevision: 'tmdb-mapping-v9',
+                mappingRevision: 'tmdb-mapping-v10',
             })
             .onConflictDoUpdate({
                 target: [animeExternalIdLink.animeId, animeExternalIdLink.externalIdId],
-                set: { verifiedAt, mappingRevision: 'tmdb-mapping-v9' },
+                set: { verifiedAt, mappingRevision: 'tmdb-mapping-v10' },
             });
 
         return {
@@ -260,7 +260,7 @@ export async function saveVerifiedMapping(
             externalIdId: tmdbId.id,
             title,
             verifiedAt,
-            mappingRevision: 'tmdb-mapping-v9',
+            mappingRevision: 'tmdb-mapping-v10',
         };
     });
 }

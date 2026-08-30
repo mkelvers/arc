@@ -10,7 +10,7 @@ export function mappingNeedsVerification(
     return (
         mapping.title !== title ||
         (expectedMediaType !== null && mapping.mediaType !== expectedMediaType) ||
-        mapping.mappingRevision !== 'tmdb-mapping-v9' ||
+        mapping.mappingRevision !== 'tmdb-mapping-v10' ||
         !mapping.verifiedAt ||
         now - mapping.verifiedAt.getTime() >= 30 * 24 * 60 * 60 * 1_000
     );
