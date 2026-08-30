@@ -146,7 +146,7 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
     };
 }
 
-async function sourceTaxonomy() {
+export async function browseTaxonomy() {
     const [stored] = await db
         .select({
             genres: animeCatalogTaxonomy.genres,
@@ -361,7 +361,7 @@ async function loadPage(filters: BrowseFilters, page: number) {
         throw new BrowseFilterError('Invalid browse page');
     }
 
-    const taxonomy = await sourceTaxonomy();
+    const taxonomy = await browseTaxonomy();
     const sourceFilters = validatedFilters(filters, taxonomy);
     const cachePage = await ensureFreshCatalog(sourceFilters, page);
 

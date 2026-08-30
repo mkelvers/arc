@@ -21,6 +21,8 @@
         openOnHover?: boolean;
         disabled?: boolean;
         triggerClass?: string;
+        contentClass?: string;
+        rootClass?: string;
     }
 
     let {
@@ -35,6 +37,8 @@
         openOnHover = false,
         disabled = false,
         triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel data-[state=open]:bg-panel',
+        contentClass = 'bg-panel',
+        rootClass = '',
     }: Props = $props();
     let open = $state(false);
     let root = $state<HTMLDivElement>();
@@ -102,7 +106,7 @@
 
 <div
     bind:this={root}
-    class="dropdown relative"
+    class={cn('dropdown relative', rootClass)}
     role="group"
     onmouseenter={() => {
         if (openOnHover) {
@@ -154,7 +158,7 @@
         <div
             role={content ? 'group' : 'menu'}
             aria-label={content ? ariaLabel : undefined}
-            class="bg-panel"
+            class={contentClass}
             onclick={closeOnSelection}
         >
             {#if content}

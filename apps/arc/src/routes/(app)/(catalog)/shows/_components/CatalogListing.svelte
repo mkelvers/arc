@@ -25,10 +25,19 @@
         loadedAt: string;
         filters: BrowseFilters;
         paginationStrategy: PaginationStrategy;
+        heading?: string;
     }
 
-    let { kind, initialAnime, initialHasNextPage, initialPage, loadedAt, filters, paginationStrategy }: Props =
-        $props();
+    let {
+        kind,
+        initialAnime,
+        initialHasNextPage,
+        initialPage,
+        loadedAt,
+        filters,
+        paginationStrategy,
+        heading,
+    }: Props = $props();
     let anime = $state<AnimeCardModel[]>(untrack(() => initialAnime));
     let nextPage = $state<number | null>(untrack(() => (initialHasNextPage ? initialPage + 1 : null)));
     let loading = $state(false);
@@ -187,7 +196,7 @@
     <section class="mx-auto w-full max-w-264" aria-labelledby="catalog-title">
         <div class="mb-8 flex items-center justify-between gap-4">
             <h1 id="catalog-title" class="text-xl font-bold sm:text-2xl">
-                {kind === 'new' ? m.catalog_newly_added() : m.catalog_most_popular()}
+                {heading ?? (kind === 'new' ? m.catalog_newly_added() : m.catalog_most_popular())}
             </h1>
             <div class="flex items-center">
                 <Dropdown

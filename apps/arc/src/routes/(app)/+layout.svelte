@@ -17,6 +17,7 @@
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
     import type { LayoutProps } from './$types';
+    import { genreSlug } from '$lib/genre';
 
     let { data, children }: LayoutProps = $props();
     let navigationLoading = $state(false);
@@ -76,6 +77,60 @@
             >
                 {m.nav_simulcast()}
             </a>
+
+            <Dropdown
+                id="categories-menu"
+                ariaLabel="Categories"
+                menuAlign="start"
+                modal
+                menuClass="!top-full !right-auto !left-0 w-[min(52rem,calc(100vw-2rem))] shadow-2xl"
+                contentClass="bg-header-hover"
+                rootClass="h-full"
+                triggerClass="hidden h-full items-center gap-2 px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
+            >
+                {#snippet trigger()}
+                    <span>Categories</span>
+                    <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+                {/snippet}
+                {#snippet content()}
+                    <div class="grid grid-cols-[minmax(12rem,1fr)_1px_minmax(0,2fr)]">
+                        <div>
+                            <a
+                                href="/shows/new"
+                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_new()}
+                            </a>
+                            <a
+                                href="/shows/popular"
+                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_popular()}
+                            </a>
+                            <a
+                                href="/simulcast"
+                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_simulcast()}
+                            </a>
+                        </div>
+                        <div class="bg-border" aria-hidden="true"></div>
+                        <div class="min-w-0 py-5">
+                            <p class="mb-3 px-5 text-xs font-bold tracking-wide text-subtle uppercase">Genres</p>
+                            <div class="grid grid-cols-3">
+                                {#each data.genres as genre}
+                                    <a
+                                        href={`/category/${genreSlug(genre)}`}
+                                        class="flex min-h-11 items-center px-5 text-sm text-muted transition-colors hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                                    >
+                                        {genre}
+                                    </a>
+                                {/each}
+                            </div>
+                        </div>
+                    </div>
+                {/snippet}
+            </Dropdown>
         </div>
 
         <div class="hidden h-full items-center sm:flex">
@@ -198,6 +253,19 @@
                     >
                         {m.nav_simulcast()}
                     </a>
+                    <div
+                        class="mt-2 border-t border-border px-5 pt-4 pb-2 text-xs font-bold tracking-wide text-subtle uppercase"
+                    >
+                        Genres
+                    </div>
+                    {#each data.genres as genre}
+                        <a
+                            href={`/category/${genreSlug(genre)}`}
+                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        >
+                            {genre}
+                        </a>
+                    {/each}
                     <a
                         href="/search"
                         class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"

@@ -11,6 +11,7 @@
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
+    import { genreSlug } from '$lib/genre';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
@@ -116,10 +117,7 @@
                         <span class="metadata-tag">
                             {#each data.anime.genres as genre, index}
                                 {#if index > 0}<span aria-hidden="true">,</span>{/if}
-                                <a
-                                    class="underline underline-offset-2"
-                                    href={`/shows/popular?genre=${encodeURIComponent(genre)}`}
-                                >
+                                <a class="underline underline-offset-2" href={`/category/${genreSlug(genre)}`}>
                                     {genre}
                                 </a>
                             {/each}
@@ -231,10 +229,7 @@
                                 <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
                                 {#each data.anime.genres as genre, index}
                                     {#if index > 0}<span aria-hidden="true">,</span>{/if}
-                                    <a
-                                        class="underline underline-offset-2"
-                                        href={`/shows/popular?genre=${encodeURIComponent(genre)}`}
-                                    >
+                                    <a class="underline underline-offset-2" href={`/category/${genreSlug(genre)}`}>
                                         {genre}
                                     </a>
                                 {/each}

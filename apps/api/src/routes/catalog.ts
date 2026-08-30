@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { AnimeIdSchema, PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
-import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
+import { browseTaxonomy, newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage } from '@arc/backend/internal/anime/application';
 import { simulcast } from '@arc/backend/internal/anime/simulcast';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
@@ -22,6 +22,8 @@ catalog.use('*', middleware);
 catalog.get('/home', async (context) =>
     context.json(await homePage(context.get('session').user.id))
 );
+
+catalog.get('/taxonomy', async (context) => context.json(await browseTaxonomy()));
 
 catalog.delete(
     '/home/continue-watching/:anilistId',

@@ -143,6 +143,10 @@ export const CatalogPageSchema = AnimeCardPageSchema.extend({
     loadedAt: z.iso.datetime(),
 });
 
+export const CatalogTaxonomySchema = z.object({
+    genres: z.array(z.string()),
+});
+
 export const SimulcastPageSchema = z.object({
     season: z.string(),
     year: z.number().int(),
