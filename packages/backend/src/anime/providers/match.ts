@@ -7,18 +7,19 @@ export function isSpecialEpisodeReference(episode: ProviderEpisodeReference) {
 }
 
 function decodeHtmlEntities(value: string) {
-    const entities: Record<string, string> = {
+    const entities = {
         amp: '&',
         apos: "'",
         gt: '>',
         lt: '<',
         nbsp: ' ',
         quot: '"',
-    };
+    } as const;
 
     return value.replace(/&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi, (entity, decimal, hex, name) => {
         if (name) {
-            return entities[name.toLowerCase()] ?? entity;
+            const key = name.toLowerCase();
+            return entities[key as keyof typeof entities] ?? entity;
         }
 
         const codePoint = Number.parseInt(decimal ?? hex, decimal ? 10 : 16);
