@@ -57,7 +57,7 @@
     }
 </script>
 
-<Tooltip text={failed ? m.player_try_again() : added ? m.remove() : m.shared_add_watchlist({ title })}>
+<Tooltip text={failed ? m.player_try_again() : added ? m.remove() : m.watchlist_add()}>
     <button
         type="button"
         class={cn(
