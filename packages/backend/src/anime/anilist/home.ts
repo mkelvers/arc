@@ -1,47 +1,29 @@
 import type { AnimeCard } from '@arc/shared/types';
-import { HomeAnimeDocument, type MediaSeason } from '@arc/shared/anilist/generated/graphql';
+import type { MediaSeason } from '@arc/shared/anilist/generated/graphql';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeCatalog } from '@arc/db/schema';
-import { request } from './client';
-import { selectPopularAnime } from './home-selection';
-import { animeCard } from './models';
-import { present } from './text';
-import { discoveryFormats, discoveryMinimumPopularity, isDiscoverableAnime } from '../discovery';
+import { getBrowsePage, type AniListBrowseFilters } from './browse';
+import { browseRefreshKey, refreshCatalogPage } from '../browse';
 
-async function requestHomepage(season: MediaSeason, seasonYear: number, forceRefresh = false) {
-    const response = await request(
-        HomeAnimeDocument,
-        {
-            season,
-            seasonYear,
-            discoveryFormats: [...discoveryFormats],
-            minimumPopularity: discoveryMinimumPopularity - 1,
-        },
-        {
-            cacheForMs: 24 * 60 * 60 * 1_000,
-            forceRefresh,
-        }
-    );
-
-    const cards = (media: NonNullable<typeof response.season>['media'] | undefined) =>
-        present(media).flatMap((entry) => {
-            if (!isDiscoverableAnime(entry)) {
-                return [];
-            }
-
-            const card = animeCard(entry);
-            return card ? [card] : [];
-        });
-
-    return {
-        season: cards(response.season?.media),
-        popular: cards(selectPopularAnime(present(response.popular?.media))),
+export async function refreshHomepage(season: MediaSeason, seasonYear: number) {
+    const filters: AniListBrowseFilters = {
+        query: '',
+        genre: null,
+        tag: null,
+        format: null,
+        status: null,
+        source: null,
+        season,
+        year: seasonYear,
+        country: null,
+        safe: true,
+        sort: 'popularity',
+        order: 'desc',
     };
-}
-
-export function refreshHomepage(season: MediaSeason, seasonYear: number) {
-    return requestHomepage(season, seasonYear, true);
+    const result = await getBrowsePage(filters, 1, 30, true);
+    await refreshCatalogPage(browseRefreshKey(filters, 1), result.anime, result.hasNextPage);
+    return result;
 }
 
 export async function getHomepage(season: MediaSeason, seasonYear: number) {

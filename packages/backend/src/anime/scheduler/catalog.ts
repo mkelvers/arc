@@ -9,6 +9,7 @@ import { refreshHomepage } from '../anilist/home';
 import { refreshPopularAnime } from '../browse';
 import { refreshFranchiseOrder } from '../franchise';
 import { refreshCurrentSimulcast } from '../simulcast';
+import { ensureEpisodeInventoryBackfill } from '../episodes/sync';
 import { findMapping } from '../tmdb/mapping-store';
 import { getArtwork } from '../tmdb/artwork';
 import { rediscoverMapping } from './mappings';
@@ -80,6 +81,7 @@ export async function refreshCatalogSnapshots(now = new Date()) {
     for (const { anilistId } of heroCandidates) {
         try {
             const release = await getAnimeRelease(anilistId);
+            await ensureEpisodeInventoryBackfill(anilistId);
             await rediscoverRelatedMappings(release);
             if (!(await findMapping(anilistId))) {
                 await rediscoverMapping(anilistId);

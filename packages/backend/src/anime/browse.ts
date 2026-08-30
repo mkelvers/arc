@@ -34,7 +34,7 @@ type CatalogCachePage = {
     hasNextPage: boolean;
 };
 
-function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
+export function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     return JSON.stringify({
         discoveryCatalogRevision,
         ...filters,
@@ -43,7 +43,7 @@ function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     });
 }
 
-async function refreshCatalogPage(
+export async function refreshCatalogPage(
     queryKey: string,
     anime: BrowseCatalogEntry[],
     hasNextPage: boolean,
