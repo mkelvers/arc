@@ -9,13 +9,13 @@ import {
     getEpisodes,
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
-    withMovieBackdrop,
 } from './episodes';
 import { episodeInventoryNeedsDiscovery, episodesAvailableToWatch } from './episodes/policy';
 import { discoverEpisodeInventory, ensureEpisodeInventoryBackfill } from './episodes/sync';
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
+import { withMovieBackdrop } from './movie-backdrop';
 import { isAniKotoTransientError, anikotoProvider } from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { watchEpisodeNumber } from './episodes/route';

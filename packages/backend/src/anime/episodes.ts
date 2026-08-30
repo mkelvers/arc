@@ -7,8 +7,6 @@ import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import { episodesAvailableToWatch } from './episodes/policy';
 import { episodeRevision } from './episodes/revision';
 
-export { withMovieBackdrop } from './movie-backdrop';
-
 export async function getEpisodes(anime: AniListAnime) {
     // Page reads use the last verified provider inventory. Refreshes are owned by
     // the scheduler, while a missing release import explicitly calls discovery.

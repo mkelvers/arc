@@ -4,13 +4,11 @@ import {
     availableEpisodeCount,
     episodesAvailableToWatch,
     canPreserveEpisodeMetadata,
-    episodeInventoryIsExpected,
     episodeInventoryCoversTarget,
     episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
     episodeMetadataRevision,
     episodeMetadataRevisionAfterSync,
-    episodeRefreshBlocksPage,
     episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
@@ -144,12 +142,6 @@ describe('episode refresh policy', () => {
             episodeMetadataRevision
         );
         expect(episodeMetadataRevisionAfterSync(complete, false, false)).toBeNull();
-    });
-
-    test('does not probe playback before a release begins', () => {
-        expect(episodeInventoryIsExpected('NOT_YET_RELEASED')).toBeFalse();
-        expect(episodeInventoryIsExpected('RELEASING')).toBeTrue();
-        expect(episodeInventoryIsExpected('FINISHED')).toBeTrue();
     });
 
     test('does not use AniList segment totals as provider episode counts', () => {
@@ -347,11 +339,5 @@ describe('episode refresh policy', () => {
         const next = nextRefreshAt({ status: 'FINISHED' } as AniListAnime, new Date(0));
 
         expect(next).toBeInstanceOf(Date);
-    });
-
-    test('serves stored finished episodes before maintenance refreshes', () => {
-        expect(episodeRefreshBlocksPage('FINISHED', true)).toBeFalse();
-        expect(episodeRefreshBlocksPage('FINISHED', false)).toBeTrue();
-        expect(episodeRefreshBlocksPage('RELEASING', true)).toBeTrue();
     });
 });

@@ -57,17 +57,6 @@ export function episodeMetadataRevisionAfterSync(
     return episodeMetadataNeedsRefresh(episodes, true) ? null : episodeMetadataRevision;
 }
 
-export function episodeInventoryIsExpected(status: AniListAnime['status']) {
-    return status !== 'NOT_YET_RELEASED';
-}
-
-export function episodeRefreshBlocksPage(
-    status: AniListAnime['status'],
-    hasStoredEpisodes: boolean
-) {
-    return status !== 'FINISHED' || !hasStoredEpisodes;
-}
-
 export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episodes'>) {
     // AniList counts the individual short segments for TV_SHORT releases;
     // playback providers generally expose their packaged broadcast episodes.

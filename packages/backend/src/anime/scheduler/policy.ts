@@ -1,6 +1,5 @@
 const minute = 60_000;
-const hour = 60 * minute;
-const day = 24 * hour;
+const day = 24 * 60 * minute;
 
 export const schedulerRunLease = {
     durationMs: 2 * minute,
