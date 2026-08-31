@@ -1,8 +1,8 @@
-import { runAnimeScheduler } from '@arc/backend/internal/anime/scheduler/run';
+import { randomUUID } from 'node:crypto';
+
+import { runAnimeMaintenance, runAnimeScheduler } from '@arc/backend/internal/anime/scheduler/run';
 import { logger } from '@arc/backend/internal/logger';
 import { db } from '@arc/db';
-
-const schedulerPollIntervalMs = 60 * 1_000;
 
 export async function startScheduler() {
     let stopping = false;
@@ -13,17 +13,34 @@ export async function startScheduler() {
     process.once('SIGTERM', stop);
 
     try {
-        while (!stopping) {
-            try {
-                await runAnimeScheduler();
-            } catch (cause) {
-                logger.debug('Arc anime scheduler failed', cause);
-            }
+        await Promise.all([
+            (async () => {
+                while (!stopping) {
+                    try {
+                        await runAnimeScheduler();
+                    } catch (cause) {
+                        logger.debug('Arc anime scheduler failed', cause);
+                    }
 
-            if (!stopping) {
-                await Bun.sleep(schedulerPollIntervalMs);
-            }
-        }
+                    if (!stopping) {
+                        await Bun.sleep(60 * 1_000);
+                    }
+                }
+            })(),
+            (async () => {
+                while (!stopping) {
+                    try {
+                        await runAnimeMaintenance(`maintenance-worker:${randomUUID()}`);
+                    } catch (cause) {
+                        logger.debug('Arc maintenance worker failed', cause);
+                    }
+
+                    if (!stopping) {
+                        await Bun.sleep(10 * 1_000);
+                    }
+                }
+            })(),
+        ]);
     } finally {
         await db.$client.end();
     }
