@@ -73,6 +73,7 @@ export const MaintenanceHealthSchema = z.object({
         retired: z.number().int().nonnegative(),
     }),
     maintenanceTasks: z.record(z.string(), z.number().int().nonnegative()),
+    maintenanceOldestDueAgeMs: z.number().nonnegative().nullable(),
     anilist: z
         .object({
             blockedUntil: TimestampSchema,

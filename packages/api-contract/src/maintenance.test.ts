@@ -40,6 +40,7 @@ describe('maintenance wire contracts', () => {
             targets: { pending: 0, due: 0, leased: 0, confirmed: 0, failed: 0, retired: 0 },
             maintenanceTasks: {},
             anilist: null,
+            maintenanceOldestDueAgeMs: null,
             oldestDueAgeMs: null,
         });
         expect(result.success).toBe(true);

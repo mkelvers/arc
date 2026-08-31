@@ -108,6 +108,7 @@ maintenance.get('/health', async (context) => {
                     retired: 0,
                 },
                 maintenanceTasks: {},
+                maintenanceOldestDueAgeMs: null,
                 anilist: null,
                 oldestDueAgeMs: null,
             }),
