@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     alignSubtitleCues,
+    alignSkipTimes,
     formatTime,
     hlsTimeline,
     hlsTimelineOffsets,
@@ -15,6 +16,7 @@ import {
     subtitleOptionsFor,
     subtitleTracks,
     subtitlesAt,
+    unalignTime,
     type Stream,
 } from './media';
 
@@ -224,6 +226,24 @@ Cheers!
         expect(
             alignSubtitleCues([{ start: 28.34, end: 30.7, text: 'Mommy!' }], [{ at: 0, offset }])
         ).toEqual([{ start: 44.314, end: 46.674, text: 'Mommy!' }]);
+    });
+
+    test('aligns skip intervals to the selected audio timeline', () => {
+        expect(
+            alignSkipTimes(
+                {
+                    opening: { start: 20, end: 80 },
+                    ending: { start: 1_320, end: 1_380 },
+                    source: 'aniskip',
+                },
+                [{ at: 0, offset: 2 }]
+            )
+        ).toEqual({
+            opening: { start: 22, end: 82 },
+            ending: { start: 1_322, end: 1_382 },
+            source: 'aniskip',
+        });
+        expect(unalignTime(22, [{ at: 0, offset: 2 }])).toBe(20);
     });
 
     test('calibrates subtitles when the dub starts before the sub encode', () => {

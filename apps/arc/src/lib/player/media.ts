@@ -1,4 +1,5 @@
 import { audioModeOrder, type AudioMode } from '@arc/shared/audio';
+import type { EpisodeSkipTimes } from '@arc/shared/player/skip-times';
 
 export type {
     SubtitleBackground,
@@ -278,7 +279,7 @@ function timelineOffset(reference: number[], target: number[]) {
     return Math.abs(offset) < 0.05 ? 0 : offset;
 }
 
-interface TimelineOffset {
+export interface TimelineOffset {
     /** Time on the reference encode at which this offset starts. */
     at: number;
     /** Seconds added to reference-timed cues on the target encode. */
@@ -369,6 +370,39 @@ export function alignSubtitleCues(cues: SubtitleCue[], offsets: TimelineOffset[]
                   end: cue.end + offset,
               };
     });
+}
+
+export function alignSkipTimes(
+    times: EpisodeSkipTimes,
+    offsets: TimelineOffset[]
+): EpisodeSkipTimes {
+    if (!offsets.length) {
+        return times;
+    }
+
+    const align = (value: number) => {
+        const offset = offsets.findLast(({ at }) => at <= value)?.offset;
+        return offset === undefined ? value : value + offset;
+    };
+
+    return {
+        ...times,
+        opening: times.opening
+            ? { start: align(times.opening.start), end: align(times.opening.end) }
+            : null,
+        ending: times.ending
+            ? { start: align(times.ending.start), end: align(times.ending.end) }
+            : null,
+    };
+}
+
+export function unalignTime(value: number, offsets: TimelineOffset[]) {
+    let reference = value;
+    for (let iteration = 0; iteration < 3; iteration += 1) {
+        const offset = offsets.findLast(({ at }) => at <= reference)?.offset ?? 0;
+        reference = value - offset;
+    }
+    return reference;
 }
 
 export async function fetchHlsTimeline(source: string, signal: AbortSignal) {
