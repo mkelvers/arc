@@ -262,7 +262,7 @@
                                                 <RadioButtonIcon
                                                     size="1.25rem"
                                                     weight="fill"
-                                                    class="text-accent"
+                                                    class="text-input-accent"
                                                     aria-hidden="true"
                                                 />
                                             {:else}
@@ -297,7 +297,7 @@
                                             <RadioButtonIcon
                                                 size="1.25rem"
                                                 weight="fill"
-                                                class="text-accent"
+                                                class="text-input-accent"
                                                 aria-hidden="true"
                                             />
                                         {:else}
@@ -335,7 +335,7 @@
                                         <RadioButtonIcon
                                             size="1.25rem"
                                             weight="fill"
-                                            class="text-accent"
+                                            class="text-input-accent"
                                             aria-hidden="true"
                                         />
                                     {:else}
@@ -360,7 +360,7 @@
                                         <RadioButtonIcon
                                             size="1.25rem"
                                             weight="fill"
-                                            class="text-accent"
+                                            class="text-input-accent"
                                             aria-hidden="true"
                                         />
                                     {:else}

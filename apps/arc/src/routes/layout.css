@@ -138,6 +138,10 @@
         outline-offset: 3px;
     }
 
+    :where(input[type='checkbox'], input[type='radio'], input[type='range']) {
+        accent-color: var(--theme-input-accent);
+    }
+
     @media (prefers-reduced-motion: reduce) {
         *,
         *::before,

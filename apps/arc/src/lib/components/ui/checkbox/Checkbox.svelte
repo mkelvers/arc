@@ -21,7 +21,7 @@
     <span
         aria-hidden="true"
         class={cn(
-            'flex size-4 items-center justify-center border border-border-strong bg-transparent text-accent transition-colors peer-hover:border-accent peer-checked:border-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-checked:[&>svg]:opacity-100',
+            'flex size-4 items-center justify-center border border-border-strong bg-transparent text-input-accent transition-colors peer-hover:border-input-accent peer-checked:border-input-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-input-accent peer-checked:[&>svg]:opacity-100',
             className
         )}
     >
