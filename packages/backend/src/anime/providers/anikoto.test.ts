@@ -13,6 +13,7 @@ import {
     matchesAniKotoIdentity,
     matchesAniKotoIdentityOrTitle,
     matchesAniKotoRelatedIdentity,
+    matchesAniKotoEpisodeCount,
     matchesAniKotoFormat,
     matchesAniKotoTitle,
     normalizeAniKotoMediaUrl,
@@ -654,5 +655,17 @@ describe('AniKoto provider rules', () => {
 
         expect(result.results).toEqual(['sub-1', null, 'dub-1', null]);
         expect(resolved).toEqual(['sub-1', 'sub-2', 'dub-1']);
+    });
+
+    test('rejects a finished series with an incomplete provider inventory', () => {
+        expect(
+            matchesAniKotoEpisodeCount(1, { status: 'FINISHED', format: 'TV', episodes: 8 })
+        ).toBeFalse();
+        expect(
+            matchesAniKotoEpisodeCount(8, { status: 'FINISHED', format: 'TV', episodes: 8 })
+        ).toBeTrue();
+        expect(
+            matchesAniKotoEpisodeCount(1, { status: 'RELEASING', format: 'TV', episodes: 8 })
+        ).toBeTrue();
     });
 });

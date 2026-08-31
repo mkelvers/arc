@@ -107,6 +107,7 @@ type AniKotoServerMode = Exclude<AudioMode, 'raw'> | 'hsub';
 
 interface AniKotoSeries {
     id: number;
+    episodeCount: number;
     anilistId: number | null;
     malId: number | null;
     title: string;
@@ -452,6 +453,7 @@ export function parseSeries(value: JsonValue): AniKotoSeries | null {
 
     return {
         id,
+        episodeCount: parsed.data.data.episodes?.length ?? 0,
         anilistId: positiveId(anime.ani_id),
         malId: positiveId(anime.mal_id),
         title: anime.title.trim(),
@@ -534,6 +536,21 @@ export function matchesAniKotoFormat(providerFormat: string | null, animeFormat:
         normalizedProviderFormat === normalizedAnimeFormat ||
         (normalizedProviderFormat === 'TV' && normalizedAnimeFormat === 'ONA')
     );
+}
+
+export function matchesAniKotoEpisodeCount(
+    providerEpisodeCount: number | undefined,
+    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>
+) {
+    if (
+        anime.status !== 'FINISHED' ||
+        anime.format === 'TV_SHORT' ||
+        providerEpisodeCount === undefined
+    ) {
+        return true;
+    }
+
+    return providerEpisodeCount === anime.episodes;
 }
 
 export function parseSearchCandidates(html: string) {
@@ -1201,7 +1218,8 @@ async function findSeries(anime: AniListAnime) {
             if (
                 (matchesAniKotoIdentityOrTitle(series, anime) ||
                     matchesAniKotoRelatedIdentity(series, anime)) &&
-                matchesAniKotoFormat(series.format, anime.format)
+                matchesAniKotoFormat(series.format, anime.format) &&
+                matchesAniKotoEpisodeCount(series.episodeCount, anime)
             ) {
                 return series;
             }
@@ -1274,7 +1292,10 @@ async function findSeries(anime: AniListAnime) {
                 ('anilistId' in series
                     ? matchesAniKotoIdentityOrTitle(series, anime) ||
                       matchesAniKotoRelatedIdentity(series, anime)
-                    : matchesAniKotoTitle(candidate.title, [...titles]))
+                    : matchesAniKotoTitle(candidate.title, [...titles])) &&
+                ('episodeCount' in series
+                    ? matchesAniKotoEpisodeCount(series.episodeCount, anime)
+                    : true)
             ) {
                 await saveProviderMediaId(anime.id, String(series.id));
                 return series;
