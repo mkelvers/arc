@@ -415,6 +415,17 @@ export function validOpaqueId(value: string | undefined, maxLength = 1024) {
     return value && value.length > 0 && value.length <= maxLength ? value : null;
 }
 
+export function aniKotoSeriesIdFromEpisodeId(value: string) {
+    const match = value.match(/^anikoto:(\d+):/);
+    return match ? positiveId(match[1]) : null;
+}
+
+export function hasMixedAniKotoSeriesIds(episodeIds: readonly string[]) {
+    return (
+        new Set(episodeIds.map(aniKotoSeriesIdFromEpisodeId).filter((id) => id !== null)).size > 1
+    );
+}
+
 export function episodeAudioModes(sub: string | undefined, dub: string | undefined): AudioMode[] {
     return [...(sub === '1' ? (['sub'] as const) : []), ...(dub === '1' ? (['dub'] as const) : [])];
 }
@@ -1011,19 +1022,29 @@ async function providerMediaId(anilistId: number) {
         return { id: override.id, inventoryStatus: 'override' };
     }
 
-    const [stored] = await db
-        .select({
-            id: schema.animeProviderMapping.providerMediaId,
-            inventoryStatus: schema.animeProviderMapping.inventoryStatus,
-        })
-        .from(schema.animeProviderMapping)
-        .where(
-            and(
-                eq(schema.animeProviderMapping.anilistId, anilistId),
-                eq(schema.animeProviderMapping.provider, providerName)
+    const [[stored], episodes] = await Promise.all([
+        db
+            .select({
+                id: schema.animeProviderMapping.providerMediaId,
+                inventoryStatus: schema.animeProviderMapping.inventoryStatus,
+            })
+            .from(schema.animeProviderMapping)
+            .where(
+                and(
+                    eq(schema.animeProviderMapping.anilistId, anilistId),
+                    eq(schema.animeProviderMapping.provider, providerName)
+                )
             )
-        )
-        .limit(1);
+            .limit(1),
+        db
+            .select({ episodeId: schema.animeEpisode.episodeId })
+            .from(schema.animeEpisode)
+            .where(eq(schema.animeEpisode.anilistId, anilistId)),
+    ]);
+    if (stored && hasMixedAniKotoSeriesIds(episodes.map(({ episodeId }) => episodeId))) {
+        return null;
+    }
+
     return stored ?? null;
 }
 
@@ -1074,10 +1095,9 @@ export async function recordAniKotoInventoryVerification(
     error: string | null = null
 ) {
     const seriesIds = new Set(
-        providerEpisodes.flatMap((episode) => {
-            const match = episode.id.match(/^anikoto:(\d+):/);
-            return match ? [match[1]] : [];
-        })
+        providerEpisodes
+            .map(({ id }) => aniKotoSeriesIdFromEpisodeId(id))
+            .filter((id): id is number => id !== null)
     );
     if (seriesIds.size !== 1) {
         return;
@@ -1109,7 +1129,10 @@ export async function recordAniKotoInventoryVerification(
             and(
                 eq(schema.animeProviderMapping.anilistId, anime.id),
                 eq(schema.animeProviderMapping.provider, providerName),
-                eq(schema.animeProviderMapping.providerMediaId, seriesIds.values().next().value!)
+                eq(
+                    schema.animeProviderMapping.providerMediaId,
+                    String(seriesIds.values().next().value!)
+                )
             )
         );
 }

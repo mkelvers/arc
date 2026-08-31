@@ -2,11 +2,13 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     AniKotoNoMatchError,
+    aniKotoSeriesIdFromEpisodeId,
     episodeAudioModes,
     aniKotoMediaCandidates,
     attachEpisodeSubtitles,
     fetchAniKotoResource,
     getAniKotoSimulcastPage,
+    hasMixedAniKotoSeriesIds,
     isAniKotoDisguisedSegmentHost,
     isAniKotoTransientError,
     isAniKotoNoMatchError,
@@ -38,6 +40,21 @@ import {
 } from './anikoto';
 
 describe('AniKoto provider rules', () => {
+    test('detects persisted inventory merged from multiple provider series', () => {
+        expect(aniKotoSeriesIdFromEpisodeId('anikoto:1307:episode-one')).toBe(1307);
+        expect(aniKotoSeriesIdFromEpisodeId('legacy-episode')).toBeNull();
+        expect(
+            hasMixedAniKotoSeriesIds([
+                'anikoto:1307:episode-one',
+                'anikoto:1307:episode-two',
+                'anikoto:1648:episode-three',
+            ])
+        ).toBeTrue();
+        expect(
+            hasMixedAniKotoSeriesIds(['anikoto:1307:episode-one', 'legacy-episode'])
+        ).toBeFalse();
+    });
+
     test('classifies an unmatched AniList release as provider-unavailable', () => {
         const error = new AniKotoNoMatchError(208361);
 
