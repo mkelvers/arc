@@ -266,7 +266,12 @@
                     title={m.player_set_position_title()}
                     disabled={player.segments.saving}
                     class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
-                    onclick={() => player.segments.mark(editingKind, edge, player.media.video.currentTime)}
+                    onclick={() =>
+                        player.segments.mark(
+                            editingKind,
+                            edge,
+                            player.segmentTime(player.media.video.currentTime)
+                        )}
                 >
                     <span class="font-medium capitalize">{edge}</span>
                     <span class="ml-auto text-white/65 tabular-nums">

@@ -1,4 +1,4 @@
-import { isControl, shortcut, type Sources } from './media';
+import { alignSkipTimes, isControl, shortcut, unalignTime, type Sources } from './media';
 import { Playback } from './playback.svelte';
 import { PlaybackProgress } from './progress-client';
 import { SegmentEditor } from './segments.svelte';
@@ -79,7 +79,14 @@ export class Player {
     }
 
     get visibleSkip() {
-        return activeSkip(this.segments.times, this.media.currentTime);
+        return activeSkip(
+            alignSkipTimes(this.segments.times, this.media.segmentOffsets),
+            this.media.currentTime
+        );
+    }
+
+    segmentTime(currentTime: number) {
+        return unalignTime(currentTime, this.media.segmentOffsets);
     }
 
     sync(input: PlayerInput) {

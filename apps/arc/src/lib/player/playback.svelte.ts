@@ -5,13 +5,16 @@ import { tick } from 'svelte';
 import { Captions } from './captions.svelte';
 import {
     availableModes,
+    fetchHlsTimeline,
     hasSubtitleTrack,
+    hlsTimelineOffsets,
     isHlsSource,
     orderStreams,
     playbackStartTarget,
     seekTarget,
     streamsFor,
     subtitlesAt,
+    type TimelineOffset,
     type Sources,
     type Stream,
     type SubtitleMode,
@@ -41,6 +44,7 @@ export class Playback {
     video!: HTMLVideoElement;
     scrubbing = false;
     readonly captions = new Captions();
+    segmentOffsets = $state<TimelineOffset[]>([]);
 
     private lastVolume = 1;
     private resumeAt: number | null = null;
@@ -62,6 +66,48 @@ export class Playback {
     private mounted = false;
     private exhaustedModes = new Set<AudioMode>();
     private sourceRefreshRequested = false;
+    private segmentOffsetRequest: AbortController | null = null;
+
+    private async loadSegmentOffsets(source: string, active: Stream | undefined) {
+        this.segmentOffsetRequest?.abort();
+        const request = new AbortController();
+        this.segmentOffsetRequest = request;
+
+        if (this.mode === 'sub' || !active) {
+            this.segmentOffsets = this.mode === 'sub' ? [{ at: 0, offset: 0 }] : [];
+            return;
+        }
+
+        const reference = this.sources.sub
+            ?.toSorted(
+                (left, right) =>
+                    Number(right.provider === active.provider && right.server === active.server) -
+                    Number(left.provider === active.provider && left.server === active.server)
+            )
+            .find((candidate) => candidate.provider === active.provider);
+        if (!reference) {
+            this.segmentOffsets = [];
+            return;
+        }
+
+        try {
+            const [referenceTimeline, targetTimeline] = await Promise.all([
+                fetchHlsTimeline(reference.url, request.signal),
+                fetchHlsTimeline(source, request.signal),
+            ]);
+            if (request.signal.aborted || source !== this.src || this.activeSource !== active) {
+                return;
+            }
+            this.segmentOffsets =
+                referenceTimeline && targetTimeline
+                    ? hlsTimelineOffsets(referenceTimeline, targetTimeline)
+                    : [];
+        } catch {
+            if (this.segmentOffsetRequest === request && !request.signal.aborted) {
+                this.segmentOffsets = [];
+            }
+        }
+    }
 
     constructor(
         sources: Sources,
@@ -269,6 +315,9 @@ export class Playback {
 
     private async reloadSource() {
         const source = this.src;
+        this.segmentOffsetRequest?.abort();
+        this.segmentOffsetRequest = null;
+        this.segmentOffsets = [];
         await tick();
         const video = this.video;
         if (!video || source !== this.src) {
@@ -292,6 +341,7 @@ export class Playback {
             this.activeSources[this.sourceIndex],
             source
         );
+        void this.loadSegmentOffsets(source, this.activeSource);
 
         if (!isHlsSource(source)) {
             video.src = source;
