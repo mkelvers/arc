@@ -381,6 +381,10 @@ async function seedEpisodeInventoryBackfills() {
                   where anilist.provider = 'anilist'
                     and anilist.media_type = 'anime'
                     and anilist.external_id = release.anilist_id
+                    and (
+                        (release.format = 'MOVIE' and tmdb.media_type <> 'movie')
+                        or (release.format <> 'MOVIE' and tmdb.media_type = 'movie')
+                    )
               )
               or exists (
                   select 1
