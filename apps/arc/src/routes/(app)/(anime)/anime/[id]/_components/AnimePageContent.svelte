@@ -108,18 +108,20 @@
     <h1 class="sr-only">{anime.title}</h1>
     <section>
         <figure
-            class="anime-hero relative z-0 grid h-[calc(100dvh-10rem)] min-h-120 max-h-192 grid-cols-1 grid-rows-1 overflow-hidden bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
+            class="anime-hero relative z-30 grid h-[calc(100dvh-10rem)] min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
             {#await page.artwork then artwork}
                 {#if artwork?.selectedBackdrop}
-                    <ProgressiveImage
-                        src={artwork.selectedBackdrop.url}
-                        alt={anime.title}
-                        previewSize="w300"
-                        class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
-                        imageClass="object-[45%_0%]"
-                        onready={() => (loadedBackdrop = artwork.selectedBackdrop?.url ?? null)}
-                    />
+                    <div class="absolute inset-0 overflow-hidden">
+                        <ProgressiveImage
+                            src={artwork.selectedBackdrop.url}
+                            alt={anime.title}
+                            previewSize="w300"
+                            class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
+                            imageClass="object-[45%_0%]"
+                            onready={() => (loadedBackdrop = artwork.selectedBackdrop?.url ?? null)}
+                        />
+                    </div>
                 {/if}
             {/await}
 
