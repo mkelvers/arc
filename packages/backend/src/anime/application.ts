@@ -9,6 +9,7 @@ import {
     getEpisodes,
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
+    needsEpisodeMetadataRefresh,
 } from './episodes';
 import { episodesAvailableToWatch } from './episodes/policy';
 import {
@@ -84,7 +85,11 @@ export async function animePageDeferred(userId: string, id: number) {
     const anime = stored ?? (await getAnimeRelease(id));
     const storedMapping = await findMapping(id);
     const storedEpisodes = await getEpisodes(anime);
-    const shouldDiscover = imported || !storedMapping || storedEpisodes.length === 0;
+    const metadataNeedsRefresh = storedMapping
+        ? await needsEpisodeMetadataRefresh(id, storedMapping.externalIdId)
+        : false;
+    const shouldDiscover =
+        imported || !storedMapping || storedEpisodes.length === 0 || metadataNeedsRefresh;
     if (shouldDiscover && !imported) {
         await ensureEpisodeInventoryBackfill(id);
     }
