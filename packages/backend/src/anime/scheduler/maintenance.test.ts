@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { MaintenanceRequestSchema } from '@arc/api-contract/maintenance';
+import { maintenancePriority } from './maintenance-policy';
 
 describe('maintenance task boundary', () => {
     test('accepts global airing reconciliation', () => {
@@ -49,5 +50,17 @@ describe('maintenance task boundary', () => {
                 },
             }).success
         ).toBe(false);
+    });
+
+    test('gives explicit repairs precedence over automatic backfills', () => {
+        expect(maintenancePriority({ kind: 'episode_backfill', anilistId: 1 })).toBe(80);
+        expect(
+            maintenancePriority({
+                kind: 'mapping_rediscover',
+                anilistId: 1,
+                mappingKind: 'metadata',
+            })
+        ).toBe(100);
+        expect(maintenancePriority({ kind: 'airing_reconcile' })).toBe(40);
     });
 });
