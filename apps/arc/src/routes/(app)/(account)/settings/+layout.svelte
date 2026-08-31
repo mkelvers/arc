@@ -12,9 +12,9 @@
             title: m.settings_subtitles,
             synopsis: m.settings_subtitles_synopsis,
         },
-        '/settings/import-export': {
-            title: m.settings_import_export,
-            synopsis: m.settings_import_export_synopsis,
+        '/settings/watchlist': {
+            title: m.settings_watchlist,
+            synopsis: m.settings_watchlist_synopsis,
         },
         '/settings/preferences': {
             title: m.settings_preferences,
@@ -29,20 +29,15 @@
                     label: m.settings_preferences,
                     href: '/settings/preferences',
                 },
+                {
+                    label: m.settings_watchlist,
+                    href: '/settings/watchlist',
+                },
             ],
         },
         {
             title: m.settings_playback,
             links: [{ label: m.settings_subtitles, href: '/settings/subtitles' }],
-        },
-        {
-            title: m.settings_watchlist,
-            links: [
-                {
-                    label: m.settings_import_export,
-                    href: '/settings/import-export',
-                },
-            ],
         },
     ] as const;
     const currentPage = $derived(
@@ -54,7 +49,7 @@
 </script>
 
 <main
-    class="mx-auto grid min-h-[calc(100vh-3.5rem)] max-w-5xl gap-6 px-4 py-6 sm:gap-8 sm:px-5 sm:py-8 md:grid-cols-[16rem_minmax(0,1fr)] md:gap-12 md:px-8 md:py-12"
+    class="mx-auto grid min-h-[calc(100vh-3.5rem)] max-w-6xl gap-6 px-4 py-6 sm:gap-8 sm:px-5 sm:py-8 md:grid-cols-[16rem_minmax(0,1fr)] md:gap-12 md:px-8 md:py-12"
 >
     <aside class="hidden w-full md:block md:max-w-64" aria-label={m.settings_account_aria()}>
         <a
