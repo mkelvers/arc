@@ -763,6 +763,7 @@ export const maintenanceTask = pgTable(
         dedupeKey: text('dedupe_key').unique(),
         payload: jsonb('payload').$type<unknown>().notNull(),
         state: maintenanceTaskState('state').notNull().default('pending'),
+        priority: integer('priority').notNull().default(0),
         attempts: integer('attempts').notNull().default(0),
         nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).notNull().defaultNow(),
         leaseOwner: text('lease_owner'),
@@ -777,7 +778,12 @@ export const maintenanceTask = pgTable(
         completedAt: timestamp('completed_at', { withTimezone: true }),
     },
     (table) => [
-        index('maintenance_task_due_idx').on(table.state, table.nextAttemptAt, table.leaseUntil),
+        index('maintenance_task_due_idx').on(
+            table.state,
+            table.priority,
+            table.nextAttemptAt,
+            table.leaseUntil
+        ),
     ]
 );
 
