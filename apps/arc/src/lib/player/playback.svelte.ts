@@ -26,6 +26,8 @@ interface HlsQuality {
     level: number;
 }
 
+const defaultQuality = '1080p';
+
 export class Playback {
     mode = $state<AudioMode>('sub');
     playing = $state(false);
@@ -36,7 +38,7 @@ export class Playback {
     buffered = $state(0);
     volume = $state(1);
     autoplay = $state(true);
-    quality = $state('best');
+    quality = $state(defaultQuality);
     hlsQualities = $state<HlsQuality[]>([]);
     hlsCurrentQuality = $state<string | null>(null);
     sourceIndex = $state(0);
@@ -217,7 +219,7 @@ export class Playback {
             ? this.bestQuality
                 ? `Auto ${this.bestQuality}`
                 : 'Auto'
-            : this.quality;
+            : (this.bestQuality ?? this.quality);
     }
 
     setScrubbing(active: boolean) {
@@ -278,8 +280,8 @@ export class Playback {
     }
 
     private resetQuality() {
-        this.quality = 'best';
-        preferences.save('quality', 'best');
+        this.quality = defaultQuality;
+        preferences.save('quality', defaultQuality);
     }
 
     private destroyHls() {
@@ -396,9 +398,10 @@ export class Playback {
                 } else if (selected) {
                     hls.currentLevel = selected.level;
                 } else {
-                    this.quality = 'best';
-                    preferences.save('quality', 'best');
-                    hls.currentLevel = -1;
+                    hls.currentLevel =
+                        qualities.find(({ label }) => Number.parseInt(label) <= 1080)?.level ??
+                        qualities.at(-1)?.level ??
+                        -1;
                 }
             });
             hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {

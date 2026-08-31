@@ -35,6 +35,25 @@ describe('player media helpers', () => {
     test('moves a selected quality ahead of fallbacks', () => {
         expect(orderStreams(streams, '720p').map(({ url }) => url)).toEqual(['/720', '/1080']);
         expect(orderStreams(streams, 'best')).toBe(streams);
+        expect(orderStreams([...streams].reverse(), '1080p').map(({ url }) => url)).toEqual([
+            '/1080',
+            '/720',
+        ]);
+        expect(
+            orderStreams(
+                [{ ...streams[1], url: '/480', quality: '480p' }, streams[1]],
+                '1080p'
+            ).map(({ url }) => url)
+        ).toEqual(['/720', '/480']);
+        expect(
+            orderStreams(
+                [
+                    { ...streams[1], url: '/480', quality: '480p' },
+                    { ...streams[1], url: '/adaptive.m3u8', quality: null },
+                ],
+                '1080p'
+            ).map(({ url }) => url)
+        ).toEqual(['/adaptive.m3u8', '/480']);
 
         expect(
             orderStreams(

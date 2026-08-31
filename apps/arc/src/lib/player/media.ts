@@ -439,11 +439,28 @@ export function orderStreams(streams: Stream[], quality: string) {
     }
 
     const selected = streams.find((stream) => stream.quality === quality);
-    if (!selected) {
+    if (selected) {
+        return [selected, ...streams.filter((stream) => stream !== selected)];
+    }
+
+    const requestedHeight = Number.parseInt(quality);
+    if (!Number.isFinite(requestedHeight)) {
         return streams;
     }
 
-    return [selected, ...streams.filter((stream) => stream !== selected)];
+    const fallback = streams
+        .filter((stream) => {
+            const height = Number.parseInt(stream.quality ?? '');
+            return Number.isFinite(height) && height <= requestedHeight;
+        })
+        .toSorted(
+            (left, right) =>
+                Number.parseInt(right.quality ?? '') - Number.parseInt(left.quality ?? '')
+        )[0];
+    const adaptive = streams.find((stream) => isHlsSource(stream.url));
+    const preferred = adaptive ?? fallback;
+
+    return preferred ? [preferred, ...streams.filter((stream) => stream !== preferred)] : streams;
 }
 
 export function seekTarget(currentTime: number, delta: number, duration: number) {
