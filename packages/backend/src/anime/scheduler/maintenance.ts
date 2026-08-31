@@ -386,6 +386,27 @@ async function seedEpisodeInventoryBackfills() {
               )
               or exists (
                   select 1
+                  from anime_episode_sync sync
+                  where sync.anilist_id = release.anilist_id
+                    and sync.metadata_external_id_id is distinct from (
+                        select tmdb_link.external_id_id
+                        from anime_external_id anilist
+                        inner join anime_external_id_link anilist_link
+                            on anilist_link.external_id_id = anilist.id
+                        inner join anime_external_id_link tmdb_link
+                            on tmdb_link.anime_id = anilist_link.anime_id
+                           and tmdb_link.external_id_id <> anilist.id
+                        inner join anime_external_id tmdb
+                            on tmdb.id = tmdb_link.external_id_id
+                           and tmdb.provider = 'tmdb'
+                        where anilist.provider = 'anilist'
+                          and anilist.media_type = 'anime'
+                          and anilist.external_id = release.anilist_id
+                        limit 1
+                    )
+              )
+              or exists (
+                  select 1
                   from anime_provider_mapping provider_mapping
                   where provider_mapping.anilist_id = release.anilist_id
                     and provider_mapping.provider = 'anikoto'
