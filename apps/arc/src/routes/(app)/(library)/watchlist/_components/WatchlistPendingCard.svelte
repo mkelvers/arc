@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Card from '$lib/components/ui/card/Card.svelte';
-    import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
+    import { Card, CardMedia } from '$lib/components/ui/card';
+    import { Skeleton } from '$lib/components/ui/skeleton';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -18,7 +18,7 @@
 <Card>
     <a href={anime.href} class="block focus-visible:outline-none">
         <CardMedia aspect="poster">
-            <div class="size-full animate-pulse bg-surface motion-reduce:animate-none" aria-hidden="true"></div>
+            <Skeleton class="size-full rounded-none" />
             <span class="sr-only">{m.watchlist_artwork_loading()}</span>
         </CardMedia>
         <h3 class="mt-3 min-h-10 line-clamp-2 text-sm leading-snug font-semibold">

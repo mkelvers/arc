@@ -5,6 +5,7 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import { changeLocale, locale, type AppLocale } from '$lib/locale.svelte';
     import { m } from '$lib/i18n.svelte';
+    import { Switch } from '$lib/components/ui/switch';
     import { PlaybackPreferences, audioOptions, qualityOptions } from '$lib/player/playback-preferences.svelte';
 
     const languages = [
@@ -78,30 +79,19 @@
         </div>
 
         <div class="mt-6 space-y-6">
-            <button
-                type="button"
-                aria-pressed={settings.autoplay}
-                class="flex w-full items-center justify-between gap-6 text-left"
-                onclick={() => settings.setAutoplay(!settings.autoplay)}
-            >
+            <div class="flex w-full items-center justify-between gap-6 text-left">
                 <span>
                     <span class="block text-sm">{m.settings_autoplay_next()}</span>
                     <span class="mt-1 block text-xs leading-relaxed text-muted">
                         {m.settings_autoplay_next_synopsis()}
                     </span>
                 </span>
-                <span
-                    class="relative h-3.5 w-7 shrink-0 rounded-full border {settings.autoplay
-                        ? 'border-input-accent bg-input-accent/20'
-                        : 'border-border-strong bg-transparent'}"
-                >
-                    <span
-                        class="absolute top-0.5 left-0.5 size-2 rounded-full {settings.autoplay
-                            ? 'translate-x-4 bg-input-accent'
-                            : 'bg-muted'} transition-[transform,background-color]"
-                    ></span>
-                </span>
-            </button>
+                <Switch
+                    checked={settings.autoplay}
+                    onchange={settings.setAutoplay}
+                    aria-label={m.settings_autoplay_next()}
+                />
+            </div>
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_preferred_audio()}</span>
@@ -166,30 +156,19 @@
         </div>
 
         <div class="mt-6 space-y-6">
-            <button
-                type="button"
-                aria-pressed={settings.subtitlesEnabled}
-                class="flex w-full items-center justify-between gap-6 text-left"
-                onclick={() => settings.setSubtitlesEnabled(!settings.subtitlesEnabled)}
-            >
+            <div class="flex w-full items-center justify-between gap-6 text-left">
                 <span>
                     <span class="block text-sm">{m.settings_subtitles_enabled()}</span>
                     <span class="mt-1 block text-xs leading-relaxed text-muted">
                         {m.settings_subtitles_enabled_synopsis()}
                     </span>
                 </span>
-                <span
-                    class="relative h-3.5 w-7 shrink-0 rounded-full border {settings.subtitlesEnabled
-                        ? 'border-input-accent bg-input-accent/20'
-                        : 'border-border-strong bg-transparent'}"
-                >
-                    <span
-                        class="absolute top-0.5 left-0.5 size-2 rounded-full {settings.subtitlesEnabled
-                            ? 'translate-x-4 bg-input-accent'
-                            : 'bg-muted'} transition-[transform,background-color]"
-                    ></span>
-                </span>
-            </button>
+                <Switch
+                    checked={settings.subtitlesEnabled}
+                    onchange={settings.setSubtitlesEnabled}
+                    aria-label={m.settings_subtitles_enabled()}
+                />
+            </div>
         </div>
     </section>
 </div>

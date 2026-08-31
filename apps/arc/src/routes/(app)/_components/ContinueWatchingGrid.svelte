@@ -2,8 +2,7 @@
     import { enhance } from '$app/forms';
     import { XIcon } from 'phosphor-svelte';
     import type { ContinueWatchingCard } from '@arc/shared/types';
-    import Card from '$lib/components/ui/card/Card.svelte';
-    import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
+    import { Card, CardMedia } from '$lib/components/ui/card';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { m } from '$lib/i18n.svelte';

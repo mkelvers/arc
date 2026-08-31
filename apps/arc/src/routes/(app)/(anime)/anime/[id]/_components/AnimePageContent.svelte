@@ -18,6 +18,7 @@
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
     import { genreSlug } from '$lib/genre';
+    import { Skeleton } from '$lib/components/ui/skeleton';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
@@ -271,10 +272,9 @@
                                 {#each [m.anime_production(), m.anime_key_staff(), m.anime_rankings(), m.anime_audience(), m.anime_themes()] as label}
                                     <p>
                                         <strong class="font-normal text-foreground">{label}</strong>
-                                        <span
-                                            class="ml-1 inline-block h-3 w-32 animate-pulse rounded-sm bg-surface align-middle motion-reduce:animate-none sm:w-48"
-                                            aria-hidden="true"
-                                        ></span>
+                                        <Skeleton
+                                            class="ml-1 inline-block h-3 w-32 rounded-sm align-middle sm:w-48"
+                                        />
                                     </p>
                                 {/each}
                             {:else}

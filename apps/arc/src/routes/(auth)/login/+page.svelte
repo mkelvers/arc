@@ -4,6 +4,7 @@
     import { authClient } from '$lib/auth-client';
     import AuthInput from '../_components/AuthInput.svelte';
     import StatusBanner from '$lib/components/StatusBanner.svelte';
+    import { Button } from '$lib/components/ui/button';
     import { m } from '$lib/i18n.svelte';
 
     let username = $state('');
@@ -79,13 +80,14 @@
         />
     </div>
 
-    <button
-        class="mt-10 min-h-11 w-full border border-accent bg-accent px-4 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+    <Button
+        class="mt-10 w-full text-xs font-bold uppercase active:scale-[0.97]"
+        size="lg"
         type="submit"
         disabled={pending}
     >
         {pending ? m.auth_logging_in() : m.auth_login()}
-    </button>
+    </Button>
 
     <p class="mt-6 text-center text-sm text-muted">
         {m.auth_have_invitation()}

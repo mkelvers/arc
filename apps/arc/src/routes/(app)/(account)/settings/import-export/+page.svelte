@@ -6,6 +6,7 @@
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
+    import { Checkbox } from '$lib/components/ui/checkbox';
 
     let { form }: PageProps = $props();
     let dismissedForm = $state.raw<unknown>();
@@ -31,21 +32,8 @@
 
     <div class="mt-5">
         <label class="flex cursor-pointer items-start gap-3 text-sm text-muted">
-            <span class="relative mt-0.5 flex size-4 shrink-0 items-center justify-center">
-                <input
-                    bind:checked={replaceWatchlist}
-                    type="checkbox"
-                    class="peer absolute inset-0 z-10 cursor-pointer opacity-0"
-                    aria-label={m.import_replace()}
-                />
-                <span
-                    class="flex size-4 items-center justify-center border border-border-strong bg-transparent text-accent transition-colors peer-hover:border-accent peer-checked:border-accent peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent peer-checked:[&>svg]:opacity-100"
-                    aria-hidden="true"
-                >
-                    <svg viewBox="0 0 12 12" class="size-2.5 opacity-0 transition-opacity" fill="none">
-                        <path d="m2 6 2.5 2.5L10 3" stroke="currentColor" stroke-width="1.5" />
-                    </svg>
-                </span>
+            <span class="mt-0.5">
+                <Checkbox bind:checked={replaceWatchlist} aria-label={m.import_replace()} />
             </span>
             <span>
                 <span class="font-medium text-foreground">{m.import_replace()}</span>
