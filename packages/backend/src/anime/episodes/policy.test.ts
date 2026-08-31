@@ -7,6 +7,7 @@ import {
     episodeInventoryCoversTarget,
     episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
+    episodeMetadataRefreshRequired,
     episodeMetadataRevision,
     episodeMetadataRevisionAfterSync,
     episodeRefreshRetryDelay,
@@ -142,6 +143,23 @@ describe('episode refresh policy', () => {
             episodeMetadataRevision
         );
         expect(episodeMetadataRevisionAfterSync(complete, false, false)).toBeNull();
+    });
+
+    test('rediscovers metadata when persisted episode text is incomplete', () => {
+        expect(
+            episodeMetadataRefreshRequired(
+                [{ image: null, title: '', overview: '' }],
+                { metadataExternalIdId: 42, metadataRevision: episodeMetadataRevision },
+                42
+            )
+        ).toBeTrue();
+        expect(
+            episodeMetadataRefreshRequired(
+                [{ image: 'image', title: 'Title', overview: 'Overview' }],
+                { metadataExternalIdId: 42, metadataRevision: episodeMetadataRevision },
+                42
+            )
+        ).toBeFalse();
     });
 
     test('does not use AniList segment totals as provider episode counts', () => {

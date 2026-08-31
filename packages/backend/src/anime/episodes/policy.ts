@@ -45,6 +45,21 @@ export function episodeMetadataNeedsRefresh(
     );
 }
 
+export function episodeMetadataRefreshRequired(
+    episodes: readonly { image: string | null; title: string; overview: string }[],
+    sync: {
+        metadataExternalIdId: number | null;
+        metadataRevision: string | null;
+    } | null,
+    metadataExternalIdId: number
+) {
+    return (
+        !sync ||
+        sync.metadataExternalIdId !== metadataExternalIdId ||
+        episodeMetadataNeedsRefresh(episodes, true, sync.metadataRevision)
+    );
+}
+
 export function episodeMetadataRevisionAfterSync(
     episodes: readonly { image: string | null; title: string; overview: string }[],
     metadataAvailable: boolean,
