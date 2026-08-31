@@ -230,6 +230,8 @@ describe('AniKoto provider rules', () => {
     test('requires a compatible provider format', () => {
         expect(matchesAniKotoFormat('ONA', 'TV')).toBeFalse();
         expect(matchesAniKotoFormat('TV', 'TV')).toBeTrue();
+        expect(matchesAniKotoFormat('TV', 'ONA')).toBeTrue();
+        expect(matchesAniKotoFormat('MOVIE', 'ONA')).toBeFalse();
         expect(matchesAniKotoFormat(null, 'TV')).toBeTrue();
         expect(
             parseSearchCandidates(`

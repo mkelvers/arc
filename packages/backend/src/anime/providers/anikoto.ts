@@ -524,7 +524,16 @@ export function matchesAniKotoTitle(title: string, titles: readonly string[]) {
 }
 
 export function matchesAniKotoFormat(providerFormat: string | null, animeFormat: string | null) {
-    return !providerFormat || !animeFormat || providerFormat.toUpperCase() === animeFormat;
+    if (!providerFormat || !animeFormat) {
+        return true;
+    }
+
+    const normalizedProviderFormat = providerFormat.toUpperCase();
+    const normalizedAnimeFormat = animeFormat.toUpperCase();
+    return (
+        normalizedProviderFormat === normalizedAnimeFormat ||
+        (normalizedProviderFormat === 'TV' && normalizedAnimeFormat === 'ONA')
+    );
 }
 
 export function parseSearchCandidates(html: string) {
