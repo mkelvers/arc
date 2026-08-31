@@ -4,6 +4,7 @@ import {
     AniKotoNoMatchError,
     episodeAudioModes,
     aniKotoMediaCandidates,
+    attachEpisodeSubtitles,
     fetchAniKotoResource,
     getAniKotoSimulcastPage,
     isAniKotoDisguisedSegmentHost,
@@ -23,6 +24,7 @@ import {
     parseSeries,
     parseServerList,
     playableAudioModes,
+    removeSharedDubCaptions,
     resolveCandidates,
     unwrapAniKotoDisguisedSegment,
     validateAniKotoMedia,
@@ -392,6 +394,53 @@ describe('AniKoto provider rules', () => {
         );
     });
 
+    test('marks SUB captions reused by DUB entries as translated captions', () => {
+        const sub = [
+            {
+                provider: 'anikoto',
+                server: 'HD-1',
+                url: 'https://sub.example/master.m3u8',
+                quality: null,
+                subtitles: [{ kind: 'full' as const, url: 'https://sub.example/english.vtt' }],
+            },
+        ];
+        const dub = [
+            {
+                provider: 'anikoto',
+                server: 'HD-1',
+                url: 'https://dub.example/master.m3u8',
+                quality: null,
+                subtitles: [{ kind: 'full' as const, url: 'https://sub.example/english.vtt' }],
+            },
+        ];
+
+        expect(removeSharedDubCaptions(sub, dub)[0]?.subtitles).toEqual([]);
+    });
+
+    test('reuses an episode SUB VTT for a server that omits the duplicate track', () => {
+        const captioned = {
+            provider: 'anikoto',
+            server: 'Vidstream-2',
+            url: 'https://video.example/soft.m3u8',
+            quality: null,
+            subtitles: [{ kind: 'full' as const, url: 'https://sub.example/episode.vtt' }],
+        };
+        const missing = {
+            ...captioned,
+            server: 'VidPlay-1',
+            url: 'https://video.example/hard.m3u8',
+            subtitles: [],
+        };
+
+        expect(attachEpisodeSubtitles([missing, captioned])).toEqual([
+            {
+                ...missing,
+                subtitles: captioned.subtitles,
+            },
+            captioned,
+        ]);
+    });
+
     test('validates the HLS master, media playlist, and initial segment', async () => {
         const requested: string[] = [];
         await validateAniKotoMedia(
@@ -421,7 +470,7 @@ describe('AniKoto provider rules', () => {
         ]);
     });
 
-    test('keeps a validated SUB stream playable when captions are unavailable', async () => {
+    test('keeps SUB source metadata when media validation is deferred', async () => {
         const originalFetch = globalThis.fetch;
         const mockedFetch: typeof fetch = Object.assign(
             async (target: URL | RequestInfo) => {
@@ -432,6 +481,13 @@ describe('AniKoto provider rules', () => {
                 if (url === 'https://megaplay.buzz/stream/getSources?id=123') {
                     return Response.json({
                         sources: { file: 'https://cdn.kryntal.top/episode/master.m3u8' },
+                        tracks: [
+                            {
+                                kind: 'captions',
+                                label: 'English',
+                                file: 'https://cdn.kryntal.top/episode/english.vtt',
+                            },
+                        ],
                     });
                 }
                 if (url.endsWith('/episode/master.m3u8')) {
@@ -457,7 +513,12 @@ describe('AniKoto provider rules', () => {
                 )
             ).resolves.toMatchObject({
                 url: 'https://cdn.kryntal.top/episode/master.m3u8',
-                subtitles: [],
+                subtitles: [
+                    {
+                        kind: 'full',
+                        url: 'https://cdn.kryntal.top/episode/english.vtt',
+                    },
+                ],
             });
         } finally {
             globalThis.fetch = originalFetch;

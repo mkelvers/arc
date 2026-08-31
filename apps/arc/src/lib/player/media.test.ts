@@ -168,6 +168,34 @@ Cheers!
         ).toBeNull();
     });
 
+    test('prefers translated captions from the active server', () => {
+        const dub: Stream = {
+            provider: 'anikoto',
+            server: 'HD-2',
+            url: '/dub',
+            quality: null,
+            subtitles: [],
+        };
+        const otherServer: Stream = {
+            provider: 'anikoto',
+            server: 'Vidstream-2',
+            url: '/sub-vidstream',
+            quality: null,
+            subtitles: [{ kind: 'full', url: '/vidstream.vtt' }],
+        };
+        const activeServer: Stream = {
+            provider: 'anikoto',
+            server: 'HD-2',
+            url: '/sub-hd-2',
+            quality: null,
+            subtitles: [{ kind: 'full', url: '/hd-2.vtt' }],
+        };
+
+        expect(
+            subtitleTracks({ sub: [otherServer, activeServer], dub: [dub] }, 'dub', dub).sub
+        ).toMatchObject({ source: activeServer, url: '/hd-2.vtt' });
+    });
+
     test('reads HLS variants and segment boundaries', () => {
         expect(hlsTimeline(`#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8`)).toEqual({
             variant: 'video/index.m3u8',
@@ -196,6 +224,22 @@ Cheers!
         expect(
             alignSubtitleCues([{ start: 28.34, end: 30.7, text: 'Mommy!' }], [{ at: 0, offset }])
         ).toEqual([{ start: 44.314, end: 46.674, text: 'Mommy!' }]);
+    });
+
+    test('calibrates subtitles when the dub starts before the sub encode', () => {
+        const reference = Array.from(
+            { length: 80 },
+            (_, index) => 2.4 + ((index * 17) % 31) / 10
+        ).reduce<number[]>((boundaries, duration) => {
+            boundaries.push((boundaries.at(-1) ?? 10) + duration);
+            return boundaries;
+        }, []);
+        const target = reference.map((boundary) => boundary - 5);
+
+        expect(hlsTimelineOffsets(reference, target)[0]?.offset).toBeCloseTo(-5, 2);
+        expect(
+            alignSubtitleCues([{ start: 20, end: 22, text: 'Early line' }], [{ at: 0, offset: -5 }])
+        ).toEqual([{ start: 15, end: 17, text: 'Early line' }]);
     });
 
     test('aligns captions across multiple encode edits', () => {

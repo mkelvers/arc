@@ -111,9 +111,10 @@ export class Playback {
         const captioned = ordered.filter((stream) =>
             hasSubtitleTrack(this.sources, this.mode, stream)
         );
-        return captioned.length
-            ? [...captioned, ...ordered.filter((stream) => !captioned.includes(stream))]
-            : ordered;
+        // A subtitled selection must never silently fall back to a source
+        // without a verified caption track. If every source is uncaptioned,
+        // keep the normal error path instead of playing unintelligible video.
+        return captioned.length ? captioned : [];
     }
 
     private get activeSources() {

@@ -76,9 +76,15 @@ export function subtitleTracks(
     // English track. The provider/server remain attached for alignment and
     // provenance; another provider is never borrowed.
     const subSource =
-        sources.sub?.find(
-            (candidate) => candidate.provider === stream.provider && candidate.subtitles.length > 0
-        ) ?? null;
+        sources.sub
+            ?.filter(
+                (candidate) =>
+                    candidate.provider === stream.provider && candidate.subtitles.length > 0
+            )
+            .toSorted(
+                (left, right) =>
+                    Number(right.server === stream.server) - Number(left.server === stream.server)
+            )[0] ?? null;
     const subtitle = subSource?.subtitles[0];
     return { own, sub: subtitle ? { ...subtitle, kind: 'translated', source: subSource } : null };
 }

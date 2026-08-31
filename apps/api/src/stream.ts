@@ -4,6 +4,7 @@ import {
     aniKotoRequestTimeoutMs,
     aniKotoMediaReferer,
     aniKotoStreamLimits,
+    aniKotoMediaCandidates,
     isAniKotoDisguisedSegmentHost,
     normalizeAniKotoMediaUrl,
     unwrapAniKotoDisguisedSegment,
@@ -72,7 +73,7 @@ async function upstreamResponse(target: URL, range: string | null, fetchStream: 
     }
 }
 
-async function fetchProviderResource(
+async function fetchProviderResourceOnce(
     initialTarget: URL,
     range: string | null,
     fetchStream: StreamFetch
@@ -103,6 +104,32 @@ async function fetchProviderResource(
     }
 
     throw new StreamProxyError({ kind: 'redirect-limit' });
+}
+
+async function fetchProviderResource(
+    initialTarget: URL,
+    range: string | null,
+    fetchStream: StreamFetch
+) {
+    let lastFailure: StreamProxyError | null = null;
+    for (const candidate of aniKotoMediaCandidates(initialTarget)) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            try {
+                return await fetchProviderResourceOnce(candidate, range, fetchStream);
+            } catch (cause) {
+                if (!(cause instanceof StreamProxyError)) {
+                    throw cause;
+                }
+                lastFailure = cause;
+                const retryable = cause.reason.kind === 'upstream' && cause.reason.status === null;
+                if (!retryable) {
+                    break;
+                }
+            }
+        }
+    }
+
+    throw lastFailure ?? new StreamProxyError({ kind: 'upstream', status: null });
 }
 
 async function boundedBytes(response: Response, maximumBytes: number, body: StreamBody) {

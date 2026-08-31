@@ -9,7 +9,9 @@ export class PlaybackPreferences {
     autoplay = $state(true);
     audioMode = $state<PreferredAudio>('auto');
     quality = $state<PlaybackQuality>('best');
-    subtitlesEnabled = $state(false);
+    // Subbed playback must start with captions enabled. Users can still turn
+    // them off explicitly from the player menu.
+    subtitlesEnabled = $state(true);
 
     load() {
         const saved = preferences.load({}, []);

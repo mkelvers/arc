@@ -84,6 +84,42 @@ test('rejects an upstream HTML response where an HLS playlist is expected', asyn
     });
 });
 
+test('falls back from a reset Kryntal resource to its Watching alternate', async () => {
+    const requested: string[] = [];
+    const response = await proxyStreamRequest(
+        streamRequest('https://cdn.kryntal.top/anime/episode/subtitles/english.vtt'),
+        async (target) => {
+            requested.push(target.hostname);
+            return target.hostname === 'cdn.kryntal.top'
+                ? new Response(null, { status: 502 })
+                : new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nHello');
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual(['cdn.kryntal.top', 'cdn.watching.onl']);
+    expect(await response.text()).toContain('WEBVTT');
+});
+
+test('retries a transient Kryntal connection before changing media hosts', async () => {
+    const requested: string[] = [];
+    let attempts = 0;
+    const response = await proxyStreamRequest(
+        streamRequest('https://cdn.kryntal.top/anime/episode/subtitles/english.vtt'),
+        async (target) => {
+            requested.push(target.hostname);
+            attempts += 1;
+            if (attempts === 1) {
+                throw new TypeError('socket connection was closed unexpectedly');
+            }
+            return new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nHello');
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual(['cdn.kryntal.top', 'cdn.kryntal.top']);
+});
+
 test('unwraps AniKoto TikTok CDN segments into MPEG-TS', async () => {
     const pngEnd = new Uint8Array([0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
     const response = await proxyStreamRequest(

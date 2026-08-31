@@ -702,6 +702,31 @@ export function uniqueDirectStreams(streams: readonly ProviderStream[]) {
     });
 }
 
+/** AniKoto sometimes attaches the SUB encode's VTT to the DUB entry too.
+ * Leave it on SUB so the player can treat it as translated captions and
+ * calibrate it against the selected DUB encode instead of mistaking it for a
+ * native, already-synchronised DUB track. */
+export function removeSharedDubCaptions(
+    sub: readonly ProviderStream[],
+    dub: readonly ProviderStream[]
+) {
+    const subCaptionUrls = new Set(sub.flatMap((stream) => stream.subtitles.map(({ url }) => url)));
+    return dub.map((stream) => ({
+        ...stream,
+        subtitles: stream.subtitles.filter(({ url }) => !subCaptionUrls.has(url)),
+    }));
+}
+
+/** Some AniKoto servers expose the same episode without repeating its VTT.
+ * Reuse the episode's validated SUB caption file for that media candidate;
+ * never invent a caption URL from another episode or provider. */
+export function attachEpisodeSubtitles(streams: readonly ProviderStream[]) {
+    const subtitles = streams.find((stream) => stream.subtitles.length > 0)?.subtitles ?? [];
+    return streams.map((stream) =>
+        stream.subtitles.length > 0 || subtitles.length === 0 ? stream : { ...stream, subtitles }
+    );
+}
+
 export async function resolveCandidates<T, R>(
     candidates: readonly T[],
     resolve: (candidate: T, signal: AbortSignal) => Promise<R | null>,
@@ -823,7 +848,13 @@ async function readBounded(response: Response, limit: number, signal?: AbortSign
 
 async function requestText(
     url: URL,
-    options: { accept?: string; referer?: string; maxBytes?: number; signal?: AbortSignal } = {}
+    options: {
+        accept?: string;
+        referer?: string;
+        maxBytes?: number;
+        signal?: AbortSignal;
+        throttle?: boolean;
+    } = {}
 ): Promise<string> {
     const headers = new Headers({
         Accept: options.accept ?? 'text/html',
@@ -849,7 +880,7 @@ async function requestText(
 
     for (let attempt = 0; ; attempt += 1) {
         const releaseRequestSlot =
-            url.origin === anikotoUrl || url.origin === catalogUrl
+            options.throttle !== false && (url.origin === anikotoUrl || url.origin === catalogUrl)
                 ? await waitForProviderRequestSlot(options.signal)
                 : null;
         try {
@@ -913,8 +944,18 @@ async function requestText(
     }
 }
 
-async function requestJson(url: URL, referer = `${anikotoUrl}/`, signal?: AbortSignal) {
-    const text = await requestText(url, { accept: 'application/json', referer, signal });
+async function requestJson(
+    url: URL,
+    referer = `${anikotoUrl}/`,
+    signal?: AbortSignal,
+    throttle = true
+) {
+    const text = await requestText(url, {
+        accept: 'application/json',
+        referer,
+        signal,
+        throttle,
+    });
     try {
         return z.json().parse(JSON.parse(text));
     } catch (cause) {
@@ -1361,34 +1402,6 @@ function mediaSegment(value: Uint8Array) {
     );
 }
 
-async function resolvedSubtitles(captions: readonly CaptionCandidate[], signal?: AbortSignal) {
-    const valid: ProviderStream['subtitles'] = [];
-    for (const caption of captions) {
-        const url = supportedSubtitleUrl(caption.url);
-        if (!url) {
-            continue;
-        }
-
-        for (const candidate of aniKotoMediaCandidates(url)) {
-            try {
-                const { response } = await fetchAniKotoResource(candidate, fetch, { signal });
-                const text = new TextDecoder().decode(
-                    await readBounded(response, aniKotoStreamLimits.subtitle, signal)
-                );
-                if (/^\s*WEBVTT(?:\s|$)/i.test(text)) {
-                    valid.push({ kind: caption.kind, url: candidate.toString() });
-                    break;
-                }
-            } catch {
-                // Captions are optional; a broken track must not discard playable video.
-            }
-        }
-    }
-    return valid.filter(
-        (caption, index, tracks) => tracks.findIndex(({ kind }) => kind === caption.kind) === index
-    );
-}
-
 export async function validateAniKotoMedia(
     url: URL,
     fetchMedia: AniKotoMediaFetch = fetch,
@@ -1476,22 +1489,16 @@ export async function resolveMegaPlay(embed: URL, signal: AbortSignal) {
         throw new Error('MegaPlay returned no supported media source');
     }
 
-    let mediaUrl = source.mediaUrl;
-    let subtitles: ProviderStream['subtitles'] = [];
-    for (const candidate of aniKotoMediaCandidates(source.mediaUrl)) {
-        try {
-            await validateAniKotoMedia(candidate, undefined, { signal });
-            subtitles = await resolvedSubtitles(source.captions, signal);
-            mediaUrl = candidate;
-            break;
-        } catch {
-            // Media probing is best-effort. The stream proxy performs the authoritative
-            // validation when the user actually requests the source.
-        }
-    }
+    // Source discovery must stay cheap: the stream proxy validates the media body when
+    // selected, while returning every server here lets the player fail over without
+    // spending several requests probing candidates that may never be used.
+    const subtitles: ProviderStream['subtitles'] = source.captions.map(({ kind, url }) => ({
+        kind,
+        url,
+    }));
 
     return {
-        url: mediaUrl.toString(),
+        url: source.mediaUrl.toString(),
         quality: null,
         subtitles,
     } satisfies Omit<ProviderStream, 'provider' | 'server'>;
@@ -1505,7 +1512,8 @@ async function resolveServer(
         await requestJson(
             new URL(`/ajax/server?get=${encodeURIComponent(candidate.linkId)}`, anikotoUrl),
             `${anikotoUrl}/`,
-            signal
+            signal,
+            false
         )
     );
     if (response.status !== 200) {
@@ -1578,10 +1586,6 @@ async function getStreams(
         {
             concurrency: resolutionConcurrency,
             signal: deadline,
-            stopWhen: (resolved) =>
-                playableModes.every((mode) =>
-                    resolved.some((stream, index) => tasks[index]?.mode === mode && stream !== null)
-                ),
         }
     );
     const result: ProviderStreams = {};
@@ -1593,9 +1597,18 @@ async function getStreams(
         );
     }
 
+    // A SUB source without an English track is not a valid subtitled playback
+    // candidate. Keep trying other AniKoto servers instead of exposing silent video.
+    if (result.sub?.length) {
+        result.sub = attachEpisodeSubtitles(result.sub);
+    }
+
     if (result.dub?.length) {
         const subtitleUrls = new Set(result.sub?.map((stream) => stream.url));
-        result.dub = result.dub.filter((stream) => !subtitleUrls.has(stream.url));
+        result.dub = removeSharedDubCaptions(
+            result.sub ?? [],
+            result.dub.filter((stream) => !subtitleUrls.has(stream.url))
+        );
     }
 
     if (!Object.values(result).some((streams) => streams?.length)) {
