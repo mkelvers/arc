@@ -66,12 +66,13 @@ export function episodeInventoryBackfillKey(anilistId: number) {
 }
 
 export async function ensureEpisodeInventoryBackfill(anilistId: number) {
-    await db
+await db
         .insert(maintenanceTask)
         .values({
             kind: 'episode_backfill',
             dedupeKey: episodeInventoryBackfillKey(anilistId),
             payload: { kind: 'episode_backfill', anilistId },
+            priority: 0,
         })
         .onConflictDoUpdate({
             target: maintenanceTask.dedupeKey,
@@ -100,11 +101,13 @@ export async function enqueueEpisodeInventoryBackfill(anilistId: number) {
             kind: 'episode_backfill',
             dedupeKey: episodeInventoryBackfillKey(anilistId),
             payload: { kind: 'episode_backfill', anilistId },
+            priority: 80,
         })
         .onConflictDoUpdate({
             target: maintenanceTask.dedupeKey,
             setWhere: ne(maintenanceTask.state, 'running'),
             set: {
+                priority: 80,
                 state: 'pending',
                 attempts: 0,
                 nextAttemptAt: new Date(),
@@ -214,7 +217,11 @@ async function fetchAndStore(
     const regularEpisodeNumbers = new Set(
         source.flatMap(({ number }) => (Number.isInteger(number) && number > 0 ? [number] : []))
     );
-    if (anime.status === 'FINISHED' && expected !== null && regularEpisodeNumbers.size > expected) {
+    if (
+        anime.status === 'FINISHED' &&
+        expected !== null &&
+        regularEpisodeNumbers.size !== expected
+    ) {
         await recordAniKotoInventoryVerification(
             anime,
             providerEpisodes,
