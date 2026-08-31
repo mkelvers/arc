@@ -9,6 +9,7 @@
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
+    import { Input } from '$lib/components/ui/input';
     import SearchResultsGroup from './_components/SearchResultsGroup.svelte';
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
@@ -18,7 +19,7 @@
 
     let { data }: PageProps = $props();
     const recent = new RecentSearches();
-    let searchInput: HTMLInputElement | null = null;
+    let searchInput = $state<HTMLInputElement | null>(null);
     let query = $state(untrack(() => data.query));
     let pending = $state(untrack(() => data.query.length >= 2));
     let searchState: SearchState = $state({
@@ -145,15 +146,15 @@
     <section class="overflow-x-clip bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
         <form action="/search" class="mx-auto min-w-0 max-w-6xl" role="search">
             <label for="anime-search" class="sr-only">{m.search_anime()}</label>
-            <input
+            <Input
                 id="anime-search"
                 name="q"
                 type="search"
                 placeholder={m.search_placeholder()}
                 autocomplete="off"
-                bind:this={searchInput}
+                bind:ref={searchInput}
                 bind:value={query}
-                class="block h-14 w-full min-w-0 max-w-full appearance-none border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
+                class="h-14 w-full min-w-0 max-w-full appearance-none rounded-none border-0 border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none ring-0 placeholder:text-subtle focus-visible:border-accent focus-visible:ring-0 sm:text-3xl"
             />
         </form>
     </section>
