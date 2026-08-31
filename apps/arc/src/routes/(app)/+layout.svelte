@@ -47,22 +47,24 @@
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header backdrop-blur">
     <nav class="flex h-full items-center justify-between pl-3 md:pl-6" aria-label={m.nav_primary()}>
-        <div class="flex h-full items-center gap-2 max-sm:pl-12">
-            <a
-                href="/"
-                class="inline-flex h-12 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                aria-label={m.nav_home()}
-                title={m.nav_home()}
-            >
-                <Logo alt="Arc" />
-            </a>
+        <div class="flex h-full items-center max-sm:pl-12">
+            <div class="flex h-full items-center gap-2">
+                <a
+                    href="/"
+                    class="inline-flex h-12 items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    aria-label={m.nav_home()}
+                    title={m.nav_home()}
+                >
+                    <Logo alt="Arc" class="transition-colors hover:text-white" />
+                </a>
 
-            <a
-                href="/shows/new"
-                class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
-            >
-                {m.nav_new()}
-            </a>
+                <a
+                    href="/shows/new"
+                    class="hidden h-full items-center justify-center px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
+                >
+                    {m.nav_new()}
+                </a>
+            </div>
 
             <a
                 href="/shows/popular"
