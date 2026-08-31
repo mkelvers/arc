@@ -66,7 +66,7 @@ export function episodeInventoryBackfillKey(anilistId: number) {
 }
 
 export async function ensureEpisodeInventoryBackfill(anilistId: number) {
-await db
+    await db
         .insert(maintenanceTask)
         .values({
             kind: 'episode_backfill',
