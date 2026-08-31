@@ -64,6 +64,7 @@ async function rediscoverRelatedMappings(release: Awaited<ReturnType<typeof getA
         }
 
         try {
+            await getAnimeRelease(relatedId);
             await rediscoverMapping(relatedId);
         } catch (cause) {
             logger.debug(`Related mapping enrichment failed for AniList ${relatedId}`, cause);
