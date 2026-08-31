@@ -498,6 +498,13 @@
             "when": 1788189844487,
             "tag": "0070_dizzy_skin",
             "breakpoints": true
+        },
+        {
+            "idx": 71,
+            "version": "7",
+            "when": 1788207324304,
+            "tag": "0071_sync_movie_episode_backdrops",
+            "breakpoints": true
         }
     ]
 }

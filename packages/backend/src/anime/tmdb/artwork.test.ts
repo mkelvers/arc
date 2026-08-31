@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
-import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '@arc/db/schema';
+import {
+    animeArtwork,
+    animeArtworkCache,
+    animeArtworkPreference,
+    animeEpisode,
+    animeRelease,
+} from '@arc/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import type { StoredMapping } from './types';
 
@@ -16,6 +22,7 @@ type ImageRow = {
 };
 
 type CacheRow = { externalIdId: number; allLanguages: boolean };
+type ReleaseRow = { format: string };
 type ArtworkQuery = { include_image_language: string } | null;
 type PreferenceRow = {
     backdropFilePath: string | null;
@@ -23,9 +30,21 @@ type PreferenceRow = {
     logoHidden: boolean;
     logoSize: number;
 };
-type ArtworkTable = typeof animeArtwork | typeof animeArtworkCache | typeof animeArtworkPreference;
-type QueryRows = CacheRow[] | ImageRow[] | PreferenceRow[];
-type InsertValues = ImageRow[] | CacheRow | CacheRow[];
+type ArtworkTable =
+    | typeof animeArtwork
+    | typeof animeArtworkCache
+    | typeof animeArtworkPreference
+    | typeof animeEpisode
+    | typeof animeRelease;
+type QueryRows = CacheRow[] | ImageRow[] | PreferenceRow[] | ReleaseRow[];
+type PreferenceInsert = {
+    externalIdId: number;
+    backdropFilePath?: string | null;
+    logoFilePath?: string | null;
+    logoHidden?: boolean;
+    logoSize?: number;
+};
+type InsertValues = ImageRow[] | CacheRow | CacheRow[] | PreferenceInsert;
 type ArtworkPayloadImage = {
     file_path: string;
     aspect_ratio?: number;
@@ -50,6 +69,9 @@ interface TestDb {
     insert(table: ArtworkTable): {
         values(values: InsertValues): { onConflictDoUpdate(): Promise<void> };
     };
+    update(table: typeof animeEpisode): {
+        set(values: { imageUrl: string }): { where(): Promise<void> };
+    };
 }
 
 const mapping: StoredMapping = {
@@ -72,6 +94,8 @@ const state = {
     fetchError: null as Error | null,
     fetchCount: 0,
     fetchQueries: [] as ArtworkQuery[],
+    format: 'MOVIE',
+    episodeUpdates: [] as Array<{ imageUrl: string }>,
 };
 
 function rowsFor(table: ArtworkTable): QueryRows {
@@ -83,6 +107,9 @@ function rowsFor(table: ArtworkTable): QueryRows {
     }
     if (table === animeArtworkPreference) {
         return state.preference ? [state.preference] : [];
+    }
+    if (table === animeRelease) {
+        return [{ format: state.format }];
     }
     throw new Error('Unexpected table in artwork test database');
 }
@@ -125,6 +152,15 @@ const db: TestDb = {
     insert: (_table) => ({
         values: (_values) => ({ onConflictDoUpdate: async () => {} }),
     }),
+    update: (table) => ({
+        set: (values) => ({
+            where: async () => {
+                if (table === animeEpisode) {
+                    state.episodeUpdates.push(values);
+                }
+            },
+        }),
+    }),
 };
 
 mock.module('@arc/db', () => ({
@@ -162,6 +198,7 @@ mock.module('./mapping', () => ({
 }));
 
 mock.module('./mapping-store', () => ({
+    findMapping: async () => mapping,
     findArtworkMappings: async () => ({
         matches: [mapping],
         preferenceExternalIdId: mapping.externalIdId,
@@ -174,6 +211,7 @@ mock.module('./poster', () => ({
 }));
 
 const { getArtwork } = await import('./artwork');
+const { selectArtwork } = await import('./media');
 
 const anime = { id: mapping.animeId } as AniListAnime;
 
@@ -187,6 +225,8 @@ beforeEach(() => {
     state.fetchError = null;
     state.fetchCount = 0;
     state.fetchQueries = [];
+    state.format = 'MOVIE';
+    state.episodeUpdates = [];
 });
 
 describe('TMDB anime artwork', () => {
@@ -377,5 +417,48 @@ describe('TMDB anime artwork', () => {
         state.fetchError = new Error('TMDB unavailable');
 
         expect(await getArtwork(anime, { refresh: true })).toBeNull();
+    });
+
+    test('updates movie episode fallback artwork when selecting a backdrop', async () => {
+        state.cache = [{ externalIdId: 100, allLanguages: true }];
+        state.images = [
+            {
+                externalIdId: 100,
+                type: 'backdrop',
+                filePath: '/selected-backdrop.jpg',
+                aspectRatio: 16 / 9,
+                height: 1080,
+                language: null,
+                voteAverage: 8,
+                width: 1920,
+            },
+        ];
+
+        await selectArtwork(164, 'backdrop', '/selected-backdrop.jpg');
+
+        expect(state.episodeUpdates).toEqual([
+            { imageUrl: 'https://image.tmdb.org/t/p/original/selected-backdrop.jpg' },
+        ]);
+    });
+
+    test('does not replace TV episode artwork when selecting a backdrop', async () => {
+        state.format = 'TV';
+        state.cache = [{ externalIdId: 100, allLanguages: true }];
+        state.images = [
+            {
+                externalIdId: 100,
+                type: 'backdrop',
+                filePath: '/selected-backdrop.jpg',
+                aspectRatio: 16 / 9,
+                height: 1080,
+                language: null,
+                voteAverage: 8,
+                width: 1920,
+            },
+        ];
+
+        await selectArtwork(164, 'backdrop', '/selected-backdrop.jpg');
+
+        expect(state.episodeUpdates).toHaveLength(0);
     });
 });

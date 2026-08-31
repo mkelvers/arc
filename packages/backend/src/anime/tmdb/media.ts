@@ -6,8 +6,10 @@ import {
     animeArtwork,
     animeArtworkPreference,
     animeArtworkSource,
+    animeEpisode,
     animeExternalId,
     animeExternalIdLink,
+    animeRelease,
 } from '@arc/db/schema';
 import { fetchArtwork, readArtwork } from './artwork';
 import { imageUrl } from './client';
@@ -259,16 +261,31 @@ export async function selectArtwork(
     const updatedAt = new Date();
 
     if (type === 'backdrop') {
-        await db
-            .insert(animeArtworkPreference)
-            .values({
-                externalIdId: mapping.preferenceExternalIdId,
-                backdropFilePath: filePath,
-            })
-            .onConflictDoUpdate({
-                target: animeArtworkPreference.externalIdId,
-                set: { backdropFilePath: filePath, updatedAt },
-            });
+        const [release] = await db
+            .select({ format: animeRelease.format })
+            .from(animeRelease)
+            .where(eq(animeRelease.anilistId, anilistId))
+            .limit(1);
+
+        await db.transaction(async (tx) => {
+            await tx
+                .insert(animeArtworkPreference)
+                .values({
+                    externalIdId: mapping.preferenceExternalIdId,
+                    backdropFilePath: filePath,
+                })
+                .onConflictDoUpdate({
+                    target: animeArtworkPreference.externalIdId,
+                    set: { backdropFilePath: filePath, updatedAt },
+                });
+
+            if (release?.format === 'MOVIE' && filePath) {
+                await tx
+                    .update(animeEpisode)
+                    .set({ imageUrl: imageUrl(filePath) })
+                    .where(eq(animeEpisode.anilistId, anilistId));
+            }
+        });
         return;
     }
 
