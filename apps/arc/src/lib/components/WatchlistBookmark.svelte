@@ -64,7 +64,7 @@
         size="icon"
         type="button"
         class={cn(
-            'grid shrink-0 place-items-center text-accent transition-[opacity,transform] duration-150 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90 disabled:cursor-wait disabled:opacity-50',
+            'grid shrink-0 place-items-center text-accent transition-[filter,transform] duration-150 hover:bg-transparent hover:text-accent hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90 disabled:cursor-wait disabled:opacity-50',
             outlined ? 'size-10 border-2 border-accent' : 'size-9'
         )}
         aria-label={added ? m.shared_remove_watchlist({ title }) : m.shared_add_watchlist({ title })}
