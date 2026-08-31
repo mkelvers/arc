@@ -17,19 +17,10 @@ import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { scheduleReleaseTargets } from './targets';
-import { schedulerRunLease } from './policy';
+import { schedulerPolicy, schedulerRunLease } from './policy';
 import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';
 
 const heartbeatName = 'anime-scheduler';
-
-const schedulerPolicy = {
-    concurrency: 1,
-    maxClaimedTargets: 25,
-    claimingWindowMs: 240 * 1_000,
-    leaseDurationMs: 600 * 1_000,
-    leaseRenewalMs: 180 * 1_000,
-    fullReconciliationIntervalMs: 3_600 * 1_000,
-};
 
 async function refreshDueReleases(limit: number) {
     const rows = await db
@@ -271,12 +262,21 @@ export async function runAnimeScheduler() {
     }
 }
 
+export async function runAnimeMaintenance(runId: string) {
+    return drainMaintenanceTasks(runId, {
+        limit: schedulerPolicy.concurrency,
+        leaseDurationMs: schedulerPolicy.leaseDurationMs,
+        leaseRenewalMs: schedulerPolicy.leaseRenewalMs,
+    });
+}
+
 export async function animeSchedulerHealth(now = new Date()) {
     const [
         heartbeat,
         requestState,
         targetCounts,
         taskCounts,
+        [oldestDueMaintenance],
         [oldestDue],
         [dueTargets],
         [leasedTargets],
@@ -301,6 +301,18 @@ export async function animeSchedulerHealth(now = new Date()) {
             .select({ state: maintenanceTask.state, count: count() })
             .from(maintenanceTask)
             .groupBy(maintenanceTask.state),
+        db
+            .select({ nextAttemptAt: maintenanceTask.nextAttemptAt })
+            .from(maintenanceTask)
+            .where(
+                and(
+                    or(eq(maintenanceTask.state, 'pending'), eq(maintenanceTask.state, 'running')),
+                    lte(maintenanceTask.nextAttemptAt, now),
+                    or(isNull(maintenanceTask.leaseUntil), lte(maintenanceTask.leaseUntil, now))
+                )
+            )
+            .orderBy(maintenanceTask.nextAttemptAt)
+            .limit(1),
         db
             .select({ nextAttemptAt: animeEpisodeTarget.nextAttemptAt })
             .from(animeEpisodeTarget)
@@ -393,6 +405,9 @@ export async function animeSchedulerHealth(now = new Date()) {
             retired: targetTotals.retired ?? 0,
         },
         maintenanceTasks: Object.fromEntries(taskCounts.map((row) => [row.state, row.count])),
+        maintenanceOldestDueAgeMs: oldestDueMaintenance
+            ? now.getTime() - oldestDueMaintenance.nextAttemptAt.getTime()
+            : null,
         anilist: requestState
             ? {
                   blockedUntil: requestState.blockedUntil,
