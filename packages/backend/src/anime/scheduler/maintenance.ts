@@ -18,6 +18,7 @@ import { episodeMetadataRevision } from '../episodes/policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/api-contract/maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
+import { maintenancePriority } from './maintenance-policy';
 
 function dedupeKey(request: MaintenanceRequest) {
     if (request.kind === 'release_refresh') {
@@ -46,12 +47,14 @@ export async function enqueueMaintenance(request: MaintenanceRequest) {
             kind: request.kind,
             dedupeKey: key,
             payload: request,
+            priority: maintenancePriority(request),
         })
         .onConflictDoUpdate({
             target: maintenanceTask.dedupeKey,
             setWhere: ne(maintenanceTask.state, 'running'),
             set: {
                 payload: request,
+                priority: maintenancePriority(request),
                 state: 'pending',
                 attempts: 0,
                 nextAttemptAt: new Date(),
@@ -305,11 +308,12 @@ async function finishMaintenanceTask(
 
 async function seedEpisodeInventoryBackfills() {
     await db.execute(sql`
-        insert into maintenance_task (kind, dedupe_key, payload)
+        insert into maintenance_task (kind, dedupe_key, payload, priority)
         select
             'episode_backfill',
             'episode:backfill:' || release.anilist_id,
-            jsonb_build_object('kind', 'episode_backfill', 'anilistId', release.anilist_id)
+            jsonb_build_object('kind', 'episode_backfill', 'anilistId', release.anilist_id),
+            0
         from anime_release release
         where release.data is not null
           and release.status in ('RELEASING', 'FINISHED')
@@ -465,57 +469,53 @@ export async function drainMaintenanceTasks(
 ) {
     await seedEpisodeInventoryBackfills();
     const now = new Date();
-    const candidates = await db
-        .select({ id: maintenanceTask.id, payload: maintenanceTask.payload })
-        .from(maintenanceTask)
-        .where(
-            and(
-                or(eq(maintenanceTask.state, 'pending'), eq(maintenanceTask.state, 'running')),
-                lte(maintenanceTask.nextAttemptAt, now),
-                or(isNull(maintenanceTask.leaseUntil), lte(maintenanceTask.leaseUntil, now))
-            )
-        )
-        .orderBy(desc(maintenanceTask.updatedAt), asc(maintenanceTask.nextAttemptAt))
-        .limit(options.limit * 2);
-    const totals = { claimed: 0, completed: 0, retried: 0, failed: 0 };
-    const executions: Promise<'completed' | 'retried' | 'failed'>[] = [];
-
-    for (const candidate of candidates) {
-        if (totals.claimed === options.limit) {
-            break;
-        }
-        const leaseOwner = `${runId}:maintenance:${randomUUID()}`;
-        const [claimed] = await db
-            .update(maintenanceTask)
-            .set({
-                state: 'running',
-                leaseOwner,
-                leaseUntil: new Date(Date.now() + options.leaseDurationMs),
-                updatedAt: new Date(),
-            })
+    const claimedCandidates = await db.transaction(async (tx) => {
+        const candidates = await tx
+            .select({ id: maintenanceTask.id, payload: maintenanceTask.payload })
+            .from(maintenanceTask)
             .where(
                 and(
-                    eq(maintenanceTask.id, candidate.id),
                     or(eq(maintenanceTask.state, 'pending'), eq(maintenanceTask.state, 'running')),
-                    or(
-                        isNull(maintenanceTask.leaseUntil),
-                        lte(maintenanceTask.leaseUntil, new Date())
-                    )
+                    lte(maintenanceTask.nextAttemptAt, now),
+                    or(isNull(maintenanceTask.leaseUntil), lte(maintenanceTask.leaseUntil, now))
                 )
             )
-            .returning({ attempts: maintenanceTask.attempts });
-        if (!claimed) {
-            continue;
-        }
+            .orderBy(
+                desc(maintenanceTask.priority),
+                asc(maintenanceTask.nextAttemptAt),
+                asc(maintenanceTask.updatedAt)
+            )
+            .limit(options.limit)
+            .for('update', { skipLocked: true });
 
-        totals.claimed += 1;
-        executions.push(
-            finishMaintenanceTask(candidate, claimed, leaseOwner, {
-                leaseDurationMs: options.leaseDurationMs,
-                leaseRenewalMs: options.leaseRenewalMs,
+        return Promise.all(
+            candidates.map(async (candidate) => {
+                const leaseOwner = `${runId}:maintenance:${randomUUID()}`;
+                const [claimed] = await tx
+                    .update(maintenanceTask)
+                    .set({
+                        state: 'running',
+                        leaseOwner,
+                        leaseUntil: new Date(Date.now() + options.leaseDurationMs),
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(maintenanceTask.id, candidate.id))
+                    .returning({ attempts: maintenanceTask.attempts });
+                if (!claimed) {
+                    throw new Error('The maintenance task lease could not be persisted');
+                }
+                return { candidate, claimed, leaseOwner };
             })
         );
-    }
+    });
+
+    const totals = { claimed: claimedCandidates.length, completed: 0, retried: 0, failed: 0 };
+    const executions = claimedCandidates.map(({ candidate, claimed, leaseOwner }) =>
+        finishMaintenanceTask(candidate, claimed, leaseOwner, {
+            leaseDurationMs: options.leaseDurationMs,
+            leaseRenewalMs: options.leaseRenewalMs,
+        })
+    );
 
     const results = await Promise.all(executions);
     results.forEach((result) => {
