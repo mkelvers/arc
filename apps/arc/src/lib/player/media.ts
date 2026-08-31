@@ -371,6 +371,31 @@ export function alignSubtitleCues(cues: SubtitleCue[], offsets: TimelineOffset[]
     });
 }
 
+export async function fetchHlsTimeline(source: string, signal: AbortSignal) {
+    if (!isHlsSource(source)) {
+        return null;
+    }
+
+    const response = await fetch(source, { signal });
+    if (!response.ok) {
+        return null;
+    }
+
+    let timeline = hlsTimeline(await response.text());
+    if (!timeline.variant) {
+        return timeline.boundaries;
+    }
+
+    const base = response.url || new URL(source, location.href).toString();
+    const variant = await fetch(new URL(timeline.variant, base), { signal });
+    if (!variant.ok) {
+        return null;
+    }
+
+    timeline = hlsTimeline(await variant.text());
+    return timeline.boundaries;
+}
+
 export function orderStreams(streams: Stream[], quality: string) {
     if (quality === 'best') {
         const hls = streams.filter((stream) => isHlsSource(stream.url));

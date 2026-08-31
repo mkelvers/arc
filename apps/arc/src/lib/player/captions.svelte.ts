@@ -1,9 +1,8 @@
 import type { AudioMode } from '@arc/shared/audio';
 import {
     alignSubtitleCues,
-    hlsTimeline,
+    fetchHlsTimeline,
     hlsTimelineOffsets,
-    isHlsSource,
     parseWebVtt,
     sameSubtitleCues,
     streamsFor,
@@ -98,39 +97,14 @@ export class Captions {
         }
     }
 
-    private async fetchTimeline(source: string, signal: AbortSignal) {
-        if (!isHlsSource(source)) {
-            return null;
-        }
-
-        const response = await fetch(source, { signal });
-        if (!response.ok) {
-            return null;
-        }
-
-        let timeline = hlsTimeline(await response.text());
-        if (!timeline.variant) {
-            return timeline.boundaries;
-        }
-
-        const base = response.url || new URL(source, location.href).toString();
-        const variant = await fetch(new URL(timeline.variant, base), { signal });
-        if (!variant.ok) {
-            return null;
-        }
-
-        timeline = hlsTimeline(await variant.text());
-        return timeline.boundaries;
-    }
-
     private async offsets(reference: Stream, target: Stream, signal: AbortSignal) {
         if (reference.url === target.url) {
             return [{ at: 0, offset: 0 }];
         }
 
         const [referenceTimeline, targetTimeline] = await Promise.all([
-            this.fetchTimeline(reference.url, signal),
-            this.fetchTimeline(target.url, signal),
+            fetchHlsTimeline(reference.url, signal),
+            fetchHlsTimeline(target.url, signal),
         ]);
         return referenceTimeline && targetTimeline
             ? hlsTimelineOffsets(referenceTimeline, targetTimeline)
