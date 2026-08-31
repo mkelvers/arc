@@ -9,7 +9,6 @@
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
-    import { Input } from '@arc/app/lib/components/ui/input';
     import SearchResultsGroup from './_components/SearchResultsGroup.svelte';
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';
@@ -146,7 +145,7 @@
     <section class="overflow-x-clip bg-search px-5 py-7 sm:px-10 sm:py-9 lg:px-16">
         <form action="/search" class="mx-auto min-w-0 max-w-6xl" role="search">
             <label for="anime-search" class="sr-only">{m.search_anime()}</label>
-            <Input
+            <input
                 id="anime-search"
                 name="q"
                 type="search"
@@ -154,7 +153,7 @@
                 autocomplete="off"
                 bind:this={searchInput}
                 bind:value={query}
-                class="h-14 w-full min-w-0 max-w-full appearance-none rounded-none border-0 border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none ring-0 placeholder:text-subtle focus-visible:border-accent focus-visible:ring-0 sm:text-3xl"
+                class="block h-14 w-full min-w-0 max-w-full appearance-none border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none placeholder:text-subtle sm:text-3xl"
             />
         </form>
     </section>
