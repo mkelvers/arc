@@ -262,7 +262,7 @@ function isContinuityEntry(entry: FranchiseSelectionEntry) {
         return false;
     }
 
-    return entry.format !== 'SPECIAL' && entry.format !== 'TV_SHORT';
+    return entry.format !== 'SPECIAL';
 }
 
 export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {

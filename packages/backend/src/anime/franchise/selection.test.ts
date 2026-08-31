@@ -26,6 +26,34 @@ function relation(type: FranchiseSelectionEntry['relations'][number]['type'], ma
 }
 
 describe('primaryFranchiseIds', () => {
+    test('keeps a TV_SHORT season connected to its television and ONA sequels', () => {
+        const selected = primaryFranchiseIds([
+            entry(33255, {
+                title: 'The Disastrous Life of Saiki K.',
+                format: 'TV_SHORT',
+                episodes: 120,
+                duration: 5,
+                popularity: 356_634,
+                relations: [relation('SEQUEL', 34612)],
+            }),
+            entry(34612, {
+                title: 'The Disastrous Life of Saiki K. Season 2',
+                episodes: 24,
+                popularity: 188_806,
+                relations: [relation('PREQUEL', 33255), relation('SEQUEL', 40542)],
+            }),
+            entry(40542, {
+                title: 'The Disastrous Life of Saiki K.: Reawakened',
+                format: 'ONA',
+                episodes: 6,
+                popularity: 97_893,
+                relations: [relation('PREQUEL', 34612)],
+            }),
+        ]);
+
+        expect([...selected].toSorted((a, b) => a - b)).toEqual([33255, 34612, 40542]);
+    });
+
     test('keeps the Slime story chain and narrative movies without short extras', () => {
         const selected = primaryFranchiseIds([
             entry(1, {
