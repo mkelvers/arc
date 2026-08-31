@@ -4,13 +4,44 @@ import { db } from '@arc/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
 import type { AniListAnime } from './anilist/types';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodesAvailableToWatch } from './episodes/policy';
+import { episodesAvailableToWatch, episodeMetadataRefreshRequired } from './episodes/policy';
 import { episodeRevision } from './episodes/revision';
 
 export async function getEpisodes(anime: AniListAnime) {
-    // Page reads use the last verified provider inventory. Refreshes are owned by
-    // the scheduler, while a missing release import explicitly calls discovery.
+    // Page reads use the last verified provider inventory; the page operation
+    // explicitly rediscovers only when the inventory or its metadata is incomplete.
     return episodesAvailableToWatch(await storedEpisodes(anime), anime);
+}
+
+export async function needsEpisodeMetadataRefresh(anilistId: number, metadataExternalIdId: number) {
+    const [syncRows, episodeRows] = await Promise.all([
+        db
+            .select({
+                metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
+                metadataRevision: animeEpisodeSync.metadataRevision,
+            })
+            .from(animeEpisodeSync)
+            .where(eq(animeEpisodeSync.anilistId, anilistId))
+            .limit(1),
+        db
+            .select({
+                image: animeEpisode.imageUrl,
+                title: animeEpisode.metadataTitle,
+                overview: animeEpisode.overview,
+            })
+            .from(animeEpisode)
+            .where(eq(animeEpisode.anilistId, anilistId)),
+    ]);
+
+    return episodeMetadataRefreshRequired(
+        episodeRows.map(({ image, title, overview }) => ({
+            image,
+            title: title ?? '',
+            overview: overview ?? '',
+        })),
+        syncRows[0] ?? null,
+        metadataExternalIdId
+    );
 }
 
 export async function getStoredAiringSchedule(anilistId: number) {
