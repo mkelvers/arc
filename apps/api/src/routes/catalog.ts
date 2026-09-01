@@ -1,10 +1,16 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeIdSchema, PageQuerySchema, SearchQuerySchema } from '@arc/api-contract/anime';
+import {
+    AnimeIdSchema,
+    PageQuerySchema,
+    ReleaseCalendarSchema,
+    SearchQuerySchema,
+} from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
 import { browseTaxonomy, newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage } from '@arc/backend/internal/anime/application';
+import { releaseCalendar } from '@arc/backend/internal/anime/release-calendar';
 import { simulcast } from '@arc/backend/internal/anime/simulcast';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
 import { dismissPlaybackProgress } from '@arc/backend/progress';
@@ -21,6 +27,10 @@ catalog.use('*', middleware);
 
 catalog.get('/home', async (context) =>
     context.json(await homePage(context.get('session').user.id))
+);
+
+catalog.get('/schedule', async (context) =>
+    context.json(ReleaseCalendarSchema.parse(await releaseCalendar()))
 );
 
 catalog.get('/taxonomy', async (context) => context.json(await browseTaxonomy()));
