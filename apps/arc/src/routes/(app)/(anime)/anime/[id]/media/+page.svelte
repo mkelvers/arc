@@ -79,6 +79,8 @@
                         class="border-b-2 px-1 py-3 text-sm font-semibold text-muted transition-colors hover:text-foreground"
                         onclick={() => (activeTab = tab.value as typeof activeTab)}
                         aria-selected={activeTab === tab.value}
+                        aria-controls={`media-panel-${tab.value}`}
+                        id={`media-tab-${tab.value}`}
                     >
                         {tab.label}
                         <span class="text-subtle">({tab.count})</span>
@@ -87,94 +89,92 @@
             </div>
         </nav>
 
-        {#if activeTab === 'logo'}
-            <section>
-                <div class="mb-5 flex justify-end">
-                    <form method="POST" use:enhance class="flex items-center gap-4">
-                        <input type="hidden" name="intent" value="logoSize" />
-                        <label for="logo-size" class="shrink-0 text-sm text-muted">{m.media_logo_size()}</label>
-                        <input
-                            id="logo-size"
-                            name="logoSize"
-                            type="range"
-                            min="50"
-                            max="300"
-                            step="5"
-                            value={data.artwork.logoSize}
-                            aria-label={m.media_logo_size()}
-                            onchange={(event) => event.currentTarget.form?.requestSubmit()}
-                            class="w-32 accent-accent"
-                        />
-                    </form>
-                </div>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div id="media-panel-logo" role="tabpanel" aria-labelledby="media-tab-logo" hidden={activeTab !== 'logo'}>
+            <div class="mb-5 flex justify-end">
+                <form method="POST" use:enhance class="flex items-center gap-4">
+                    <input type="hidden" name="intent" value="logoSize" />
+                    <label for="logo-size" class="shrink-0 text-sm text-muted">{m.media_logo_size()}</label>
+                    <input
+                        id="logo-size"
+                        name="logoSize"
+                        type="range"
+                        min="50"
+                        max="300"
+                        step="5"
+                        value={data.artwork.logoSize}
+                        aria-label={m.media_logo_size()}
+                        onchange={(event) => event.currentTarget.form?.requestSubmit()}
+                        class="h-11 w-32 accent-accent"
+                    />
+                </form>
+            </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <form method="POST" use:enhance>
+                    <input type="hidden" name="type" value="logo" />
+                    <input type="hidden" name="filePath" value="" />
+                    <button
+                        type="submit"
+                        aria-pressed={data.artwork.logoHidden}
+                        class:border-accent={data.artwork.logoHidden}
+                        class:border-border={!data.artwork.logoHidden}
+                        class="grid min-h-40 w-full place-items-center border bg-surface p-5 text-xl font-semibold sm:min-h-48 sm:p-6"
+                    >
+                        {m.media_no_logo()}
+                    </button>
+                </form>
+                {#each logos as image}
                     <form method="POST" use:enhance>
                         <input type="hidden" name="type" value="logo" />
-                        <input type="hidden" name="filePath" value="" />
+                        <input type="hidden" name="filePath" value={image.filePath} />
                         <button
                             type="submit"
-                            aria-pressed={data.artwork.logoHidden}
-                            class:border-accent={data.artwork.logoHidden}
-                            class:border-border={!data.artwork.logoHidden}
-                            class="grid min-h-40 w-full place-items-center border bg-surface p-5 text-xl font-semibold sm:min-h-48 sm:p-6"
+                            aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
+                            class:border-accent={data.artwork.selectedLogo?.filePath === image.filePath}
+                            class:border-border={data.artwork.selectedLogo?.filePath !== image.filePath}
+                            class="grid min-h-40 w-full place-items-center border bg-surface p-5 sm:min-h-48 sm:p-6"
                         >
-                            {m.media_no_logo()}
+                            <img src={image.url} alt={`${data.anime.title} logo`} class="max-h-40 max-w-full" />
+                            <span class="sr-only">
+                                {image.width} × {image.height}, {image.language ?? m.media_no_language()}
+                            </span>
                         </button>
                     </form>
-                    {#each logos as image}
-                        <form method="POST" use:enhance>
-                            <input type="hidden" name="type" value="logo" />
-                            <input type="hidden" name="filePath" value={image.filePath} />
-                            <button
-                                type="submit"
-                                aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
-                                class:border-accent={data.artwork.selectedLogo?.filePath === image.filePath}
-                                class:border-border={data.artwork.selectedLogo?.filePath !== image.filePath}
-                                class="grid min-h-40 w-full place-items-center border bg-surface p-5 sm:min-h-48 sm:p-6"
-                            >
-                                <img
-                                    src={image.url}
-                                    alt={`${data.anime.title} logo`}
-                                    class="max-h-40 max-w-full"
-                                />
-                                <span class="sr-only">
-                                    {image.width} × {image.height}, {image.language ?? m.media_no_language()}
-                                </span>
-                            </button>
-                        </form>
-                    {/each}
-                </div>
-            </section>
-        {:else}
-            <section>
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {#each backdrops as image}
-                        <form method="POST" use:enhance>
-                            <input type="hidden" name="type" value="backdrop" />
-                            <input type="hidden" name="filePath" value={image.filePath} />
-                            <button
-                                type="submit"
-                                aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
-                                class:border-accent={data.artwork.selectedBackdrop?.filePath === image.filePath}
-                                class:border-border={data.artwork.selectedBackdrop?.filePath !== image.filePath}
-                                class="w-full overflow-hidden border bg-surface text-left"
-                            >
-                                <ProgressiveImage
-                                    src={image.url}
-                                    alt={`${data.anime.title} backdrop`}
-                                    previewSize="w300"
-                                    class="aspect-video w-full"
-                                />
-                                <span class="block px-3 py-2 text-xs text-subtle">
-                                    {image.width} × {image.height} · {image.language ?? m.media_no_language()} · {image.voteAverage.toFixed(
-                                        1
-                                    )}
-                                </span>
-                            </button>
-                        </form>
-                    {/each}
-                </div>
-            </section>
-        {/if}
+                {/each}
+            </div>
+        </div>
+        <div
+            id="media-panel-backdrop"
+            role="tabpanel"
+            aria-labelledby="media-tab-backdrop"
+            hidden={activeTab !== 'backdrop'}
+        >
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {#each backdrops as image}
+                    <form method="POST" use:enhance>
+                        <input type="hidden" name="type" value="backdrop" />
+                        <input type="hidden" name="filePath" value={image.filePath} />
+                        <button
+                            type="submit"
+                            aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
+                            class:border-accent={data.artwork.selectedBackdrop?.filePath === image.filePath}
+                            class:border-border={data.artwork.selectedBackdrop?.filePath !== image.filePath}
+                            class="w-full overflow-hidden border bg-surface text-left"
+                        >
+                            <ProgressiveImage
+                                src={image.url}
+                                alt={`${data.anime.title} backdrop`}
+                                previewSize="w300"
+                                class="aspect-video w-full"
+                            />
+                            <span class="block px-3 py-2 text-xs text-subtle">
+                                {image.width} × {image.height} · {image.language ?? m.media_no_language()} · {image.voteAverage.toFixed(
+                                    1
+                                )}
+                            </span>
+                        </button>
+                    </form>
+                {/each}
+            </div>
+        </div>
     {/if}
 </main>
