@@ -2,6 +2,8 @@ FROM oven/bun:1.4.0 AS build
 
 WORKDIR /app
 
+ENV NODE_ENV=production
+
 COPY . .
 RUN bun install --frozen-lockfile
 RUN bun run --cwd apps/api build
