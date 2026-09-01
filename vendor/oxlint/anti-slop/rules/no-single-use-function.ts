@@ -30,9 +30,7 @@ function isSimpleExpression(
         node.type === 'StaticMemberExpression' ||
         node.type === 'ComputedMemberExpression' ||
         node.type === 'CallExpression' ||
-        node.type === 'NewExpression' ||
-        node.type === 'LogicalExpression' ||
-        node.type === 'ConditionalExpression'
+        node.type === 'LogicalExpression'
     ) {
         return (visitorKeys[node.type] ?? []).every((key) => {
             const child = (node as unknown as Record<string, unknown>)[key];
