@@ -19,6 +19,7 @@
     import { m } from '$lib/i18n.svelte';
     import { genreSlug } from '$lib/genre';
     import { Skeleton } from '$lib/components/ui/skeleton';
+    import PageLoading from '$lib/components/ui/PageLoading.svelte';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
@@ -42,6 +43,8 @@
     let deferredError = $state(false);
     let extendedMetadataLoading = $state(true);
     let loadedAnimeId = $state<number | null>(null);
+    let artworkLoading = $state(true);
+    const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
 
     async function loadDeferred() {
         deferredError = false;
@@ -79,14 +82,24 @@
     }
 
     async function loadArtwork() {
+        const animeId = data.anime.id;
         try {
-            const response = await fetch(`/v1/anime/${data.anime.id}/artwork`);
+            const response = await fetch(`/v1/anime/${animeId}/artwork`);
             if (!response.ok) {
                 throw new Error(`Artwork request failed with ${response.status}`);
             }
-            page.artwork = Promise.resolve(AnimeArtworkSchema.parse(await response.json()));
+            const artwork = AnimeArtworkSchema.parse(await response.json());
+            if (loadedAnimeId === animeId) {
+                page.artwork = Promise.resolve(artwork);
+            }
         } catch {
-            page.artwork = Promise.resolve(null);
+            if (loadedAnimeId === animeId) {
+                page.artwork = Promise.resolve(null);
+            }
+        } finally {
+            if (loadedAnimeId === animeId) {
+                artworkLoading = false;
+            }
         }
     }
 
@@ -94,6 +107,7 @@
         if (loadedAnimeId !== data.anime.id) {
             loadedAnimeId = data.anime.id;
             extendedMetadataLoading = true;
+            artworkLoading = true;
             page.artwork = Promise.resolve(null);
             void Promise.all([loadDeferred(), loadArtwork()]);
         }
@@ -104,7 +118,11 @@
     }
 </script>
 
-<main class="bg-canvas text-foreground">
+{#if loading}
+    <PageLoading label={m.anime_loading()} />
+{/if}
+
+<main class:hidden={loading} class="bg-canvas text-foreground">
     <h1 class="sr-only">{anime.title}</h1>
     <section>
         <figure
