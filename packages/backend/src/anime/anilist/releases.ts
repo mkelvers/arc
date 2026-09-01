@@ -10,7 +10,7 @@ import {
 } from '@arc/shared/anilist/generated/graphql';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
-import { animeEpisodeSync, animeRelease, animeReleaseRequest } from '@arc/db/schema';
+import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/db/schema';
 import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '../identity';
 import { animeTitles, plainText, present } from './text';
@@ -50,7 +50,7 @@ function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
 }
 
 export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = new Date()) {
-    await ensureInternalAnimeId(media.id, animeTitles(media)[0]);
+    const sourceAnimeId = await ensureInternalAnimeId(media.id, animeTitles(media)[0]);
     const values = releaseValues(media, sourceFetchedAt);
 
     await db
@@ -60,6 +60,30 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
             target: animeRelease.anilistId,
             set: values,
         });
+
+    const relations: Array<typeof animeRelation.$inferInsert> = [];
+    for (const edge of media.relations?.edges ?? []) {
+        if (!edge?.relationType || edge.node?.type !== 'ANIME') {
+            continue;
+        }
+
+        const targetAnimeId = await ensureInternalAnimeId(edge.node.id, animeTitles(edge.node)[0]);
+        relations.push({
+            sourceAnimeId,
+            targetAnimeId,
+            relationType: edge.relationType,
+            source: 'anilist',
+            verifiedAt: sourceFetchedAt,
+            updatedAt: sourceFetchedAt,
+        });
+    }
+
+    await db.transaction(async (tx) => {
+        await tx.delete(animeRelation).where(eq(animeRelation.sourceAnimeId, sourceAnimeId));
+        if (relations.length) {
+            await tx.insert(animeRelation).values(relations).onConflictDoNothing();
+        }
+    });
 }
 
 export async function hydrateAnimeReleases(anilistIds: number[]) {
