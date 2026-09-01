@@ -18,26 +18,22 @@ import { validate } from '../http';
 
 const TaskParamSchema = z.object({ taskId: z.uuid() });
 
-function timestamp(value: Date | null) {
-    return value?.toISOString() ?? null;
-}
-
 function healthResponse(health: Awaited<ReturnType<typeof animeSchedulerHealth>>) {
     return MaintenanceHealthSchema.parse({
         ...health,
-        startedAt: timestamp(health.startedAt),
-        completedAt: timestamp(health.completedAt),
-        lastSuccessAt: timestamp(health.lastSuccessAt),
-        lastFailureAt: timestamp(health.lastFailureAt),
-        lastFullReconciliationAt: timestamp(health.lastFullReconciliationAt),
-        nextFullReconciliationAt: timestamp(health.nextFullReconciliationAt),
-        lastCatalogRefreshAt: timestamp(health.lastCatalogRefreshAt),
-        nextCatalogRefreshAt: timestamp(health.nextCatalogRefreshAt),
+        startedAt: health.startedAt?.toISOString() ?? null,
+        completedAt: health.completedAt?.toISOString() ?? null,
+        lastSuccessAt: health.lastSuccessAt?.toISOString() ?? null,
+        lastFailureAt: health.lastFailureAt?.toISOString() ?? null,
+        lastFullReconciliationAt: health.lastFullReconciliationAt?.toISOString() ?? null,
+        nextFullReconciliationAt: health.nextFullReconciliationAt?.toISOString() ?? null,
+        lastCatalogRefreshAt: health.lastCatalogRefreshAt?.toISOString() ?? null,
+        nextCatalogRefreshAt: health.nextCatalogRefreshAt?.toISOString() ?? null,
         anilist: health.anilist
             ? {
                   ...health.anilist,
-                  blockedUntil: timestamp(health.anilist.blockedUntil),
-                  lastRequestAt: timestamp(health.anilist.lastRequestAt),
+                  blockedUntil: health.anilist.blockedUntil?.toISOString() ?? null,
+                  lastRequestAt: health.anilist.lastRequestAt?.toISOString() ?? null,
               }
             : null,
     });
@@ -49,7 +45,7 @@ function taskResponse(task: NonNullable<Awaited<ReturnType<typeof getMaintenance
         nextAttemptAt: task.nextAttemptAt.toISOString(),
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),
-        completedAt: timestamp(task.completedAt),
+        completedAt: task.completedAt?.toISOString() ?? null,
     });
 }
 
@@ -58,7 +54,12 @@ const maintenanceToken = createMiddleware(async (context, next) => {
     const supplied = context.req.header('authorization');
     if (!configured || !supplied?.startsWith('Bearer ')) {
         return context.json(
-            { error: { code: 'AUTHENTICATION_REQUIRED', message: 'Authentication required' } },
+            {
+                error: {
+                    code: 'AUTHENTICATION_REQUIRED',
+                    message: 'Authentication required',
+                },
+            },
             401
         );
     }
@@ -67,7 +68,12 @@ const maintenanceToken = createMiddleware(async (context, next) => {
     const actual = Buffer.from(supplied);
     if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
         return context.json(
-            { error: { code: 'AUTHENTICATION_REQUIRED', message: 'Authentication required' } },
+            {
+                error: {
+                    code: 'AUTHENTICATION_REQUIRED',
+                    message: 'Authentication required',
+                },
+            },
             401
         );
     }
@@ -127,7 +133,12 @@ maintenance.get('/tasks/:taskId', validate('param', TaskParamSchema), async (con
     return task
         ? context.json(taskResponse(task))
         : context.json(
-              { error: { code: 'NOT_FOUND', message: 'Maintenance task not found' } },
+              {
+                  error: {
+                      code: 'NOT_FOUND',
+                      message: 'Maintenance task not found',
+                  },
+              },
               404
           );
 });
