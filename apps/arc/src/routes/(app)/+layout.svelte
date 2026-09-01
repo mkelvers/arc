@@ -20,6 +20,7 @@
 
     let { data, children }: LayoutProps = $props();
     let navigationLoading = $state(false);
+    let mobileCategoriesOpen = $state(false);
 
     $effect(() => {
         if (!navigating.to) {
@@ -233,7 +234,9 @@
                 id="mobile-navigation"
                 ariaLabel={m.nav_open_navigation()}
                 menuAlign="start"
-                menuClass="!fixed !top-14 !right-auto !bottom-0 !left-0 z-50 w-64 pointer-events-auto"
+                menuClass="!fixed !top-14 !right-0 !bottom-0 !left-0 !h-[calc(100dvh-3.5rem)] !w-screen bg-header-hover z-50 pointer-events-auto"
+                contentClass="h-full overflow-y-auto overscroll-contain bg-header-hover"
+                closeOnSelection={false}
                 modal
                 triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
@@ -242,65 +245,73 @@
                 {/snippet}
 
                 {#snippet content()}
-                    <a
-                        href="/shows/new"
-                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                    >
-                        {m.nav_new()}
-                    </a>
-                    <a
-                        href="/shows/popular"
-                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                    >
-                        {m.nav_popular()}
-                    </a>
-                    <a
-                        href="/simulcast"
-                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                    >
-                        {m.nav_simulcast()}
-                    </a>
-                    <a
-                        href="/release-calendar"
-                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                    >
-                        {m.nav_release_calendar()}
-                    </a>
-                    <div
-                        class="mt-2 border-t border-border px-5 pt-4 pb-2 text-xs font-bold tracking-wide text-subtle uppercase"
-                    >
-                        Genres
-                    </div>
-                    {#each data.genres as genre}
+                    <nav class="bg-header-hover px-0" aria-label={m.nav_primary()} data-dropdown-close>
                         <a
-                            href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
-                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            href="/shows/new"
+                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            {genre}
+                            {m.nav_new()}
                         </a>
-                    {/each}
-                    <a
-                        href="/search"
-                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                    >
-                        {m.nav_search()}
-                    </a>
-                    <a
-                        href="/watchlist"
-                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                    >
-                        {m.nav_watchlist()}
-                    </a>
-                    {#if data.account}
                         <a
-                            href="/settings"
-                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            href="/shows/popular"
+                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
-                            {m.nav_settings()}
+                            {m.nav_popular()}
                         </a>
+                        <a
+                            href="/simulcast"
+                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        >
+                            {m.nav_simulcast()}
+                        </a>
+                        <a
+                            href="/release-calendar"
+                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                        >
+                            {m.nav_release_calendar()}
+                        </a>
+                    </nav>
+
+                    <div class="bg-header-hover">
                         <button
                             type="button"
-                            class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            class="flex min-h-12 w-full items-center justify-between px-5 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            aria-expanded={mobileCategoriesOpen}
+                            aria-controls="mobile-navigation-categories"
+                            onclick={() => (mobileCategoriesOpen = !mobileCategoriesOpen)}
+                        >
+                            <span>Categories</span>
+                            <CaretDownIcon
+                                size={18}
+                                weight="bold"
+                                class={mobileCategoriesOpen ? 'rotate-180' : ''}
+                                aria-hidden="true"
+                            />
+                        </button>
+                        {#if mobileCategoriesOpen}
+                            <nav
+                                id="mobile-navigation-categories"
+                                class="bg-panel-strong px-3 py-2"
+                                aria-label="Categories"
+                                data-dropdown-close
+                            >
+                                {#each data.genres as genre}
+                                    <a
+                                        href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
+                                        class="block px-5 py-2.5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    >
+                                        {genre}
+                                    </a>
+                                {/each}
+                            </nav>
+                        {/if}
+                    </div>
+
+                    {#if data.account}
+                        <button
+                            type="button"
+                            class="block w-full border-t border-border/60 bg-header-hover px-5 py-3 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            data-dropdown-close
                             onclick={signOut}
                         >
                             {m.nav_logout()}
@@ -308,7 +319,8 @@
                     {:else}
                         <a
                             href="/login"
-                            class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            class="block bg-header-hover px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            data-dropdown-close
                         >
                             {m.nav_login()}
                         </a>
