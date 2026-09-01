@@ -29,6 +29,11 @@ export const schedulerPolicy = {
         3_600 * 1_000,
         60_000
     ),
+    calendarRefreshIntervalMs: schedulerSecondsSetting(
+        'ARC_SCHEDULER_CALENDAR_REFRESH_SECONDS',
+        15 * 60 * 1_000,
+        60_000
+    ),
 } as const;
 
 export const schedulerRunLease = {

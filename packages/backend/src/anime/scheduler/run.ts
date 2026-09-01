@@ -16,6 +16,7 @@ import { drainEpisodeTargets } from './episodes';
 import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
+import { refreshReleaseCalendar } from '../release-calendar';
 import { scheduleReleaseTargets } from './targets';
 import { schedulerPolicy, schedulerRunLease } from './policy';
 import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';
@@ -73,6 +74,18 @@ async function fullReconciliationDue(intervalMs: number) {
 async function catalogRefreshDue() {
     const [heartbeat] = await db
         .select({ nextAttemptAt: schedulerHeartbeat.nextCatalogRefreshAt })
+        .from(schedulerHeartbeat)
+        .where(eq(schedulerHeartbeat.name, heartbeatName))
+        .limit(1);
+    return !heartbeat?.nextAttemptAt || heartbeat.nextAttemptAt.getTime() <= Date.now();
+}
+
+async function calendarRefreshDue() {
+    const [heartbeat] = await db
+        .select({
+            completedAt: schedulerHeartbeat.lastCalendarRefreshAt,
+            nextAttemptAt: schedulerHeartbeat.nextCalendarRefreshAt,
+        })
         .from(schedulerHeartbeat)
         .where(eq(schedulerHeartbeat.name, heartbeatName))
         .limit(1);
@@ -189,6 +202,46 @@ export async function runAnimeScheduler() {
             }
         }
 
+        let calendarRefresh:
+            | { completedAt: string; entries: number }
+            | { error: string; retryAt: string }
+            | null = null;
+        if (await calendarRefreshDue()) {
+            try {
+                const result = await refreshReleaseCalendar();
+                const refreshedAt = result.sourceFetchedAt;
+                calendarRefresh = {
+                    completedAt: refreshedAt.toISOString(),
+                    entries: result.entries,
+                };
+                await db
+                    .update(schedulerHeartbeat)
+                    .set({
+                        lastCalendarRefreshAt: refreshedAt,
+                        nextCalendarRefreshAt: new Date(
+                            refreshedAt.getTime() + schedulerPolicy.calendarRefreshIntervalMs
+                        ),
+                    })
+                    .where(eq(schedulerHeartbeat.name, heartbeatName));
+            } catch (cause) {
+                const error = cause instanceof Error ? cause.message : 'Calendar refresh failed';
+                const retryAfterMs =
+                    cause instanceof GraphQLRequestError && cause.retryAfterMs
+                        ? cause.retryAfterMs
+                        : 0;
+                const retryAt = new Date(Date.now() + Math.max(15 * 60_000, retryAfterMs));
+                calendarRefresh = { error, retryAt: retryAt.toISOString() };
+                await db
+                    .update(schedulerHeartbeat)
+                    .set({
+                        nextCalendarRefreshAt: retryAt,
+                        lastFailureAt: new Date(),
+                        lastError: error,
+                    })
+                    .where(eq(schedulerHeartbeat.name, heartbeatName));
+            }
+        }
+
         const releases = await refreshDueReleases(schedulerPolicy.concurrency);
         const episodes = await drainEpisodeTargets(runId, schedulerPolicy);
         const completedAt = new Date();
@@ -200,15 +253,18 @@ export async function runAnimeScheduler() {
             inventoryBackfills,
             fullReconciliation,
             catalogRefresh,
+            calendarRefresh,
         };
         const reconciliationError =
             fullReconciliation && 'error' in fullReconciliation ? fullReconciliation.error : null;
         const catalogError =
             catalogRefresh && 'error' in catalogRefresh ? catalogRefresh.error : null;
+        const calendarError =
+            calendarRefresh && 'error' in calendarRefresh ? calendarRefresh.error : null;
         const heartbeatUpdate: Partial<typeof schedulerHeartbeat.$inferInsert> = {
             completedAt,
             lastSuccessAt: completedAt,
-            lastError: reconciliationError ?? catalogError,
+            lastError: reconciliationError ?? catalogError ?? calendarError,
             stats,
         };
         if (fullReconciliation && !reconciliationError) {
