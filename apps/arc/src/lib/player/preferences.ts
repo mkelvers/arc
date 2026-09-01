@@ -25,7 +25,6 @@ type Key =
     | 'subtitle-background-opacity'
     | 'subtitle-edge-style';
 
-const storageKey = 'arc:preferences';
 const storedPreferencesSchema = z.record(z.string(), z.string());
 const preferenceKeys: readonly Key[] = [
     'audio-mode',
@@ -43,7 +42,7 @@ const preferenceKeys: readonly Key[] = [
 
 function readValues() {
     const values: Record<string, string> = {};
-    const stored = localStorage.getItem(storageKey);
+    const stored = localStorage.getItem('arc:preferences');
     let validStored = stored === null;
     if (stored !== null) {
         try {
@@ -55,7 +54,7 @@ function readValues() {
                 }
             }
         } catch {
-            // Ignore malformed preference data and use defaults below.
+            // Leave values empty so the common write below replaces malformed data with defaults.
         }
     }
 
@@ -73,7 +72,7 @@ function readValues() {
     }
 
     if (migrated || !validStored) {
-        localStorage.setItem(storageKey, JSON.stringify(values));
+        localStorage.setItem('arc:preferences', JSON.stringify(values));
     }
 
     return values;
@@ -177,5 +176,5 @@ export function load(sources: Sources, qualities: string[]) {
 export function save(key: Key, value: string | number | boolean) {
     const values = readValues();
     values[key] = String(value);
-    localStorage.setItem(storageKey, JSON.stringify(values));
+    localStorage.setItem('arc:preferences', JSON.stringify(values));
 }
