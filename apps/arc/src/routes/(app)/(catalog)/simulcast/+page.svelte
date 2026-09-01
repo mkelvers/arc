@@ -153,13 +153,16 @@
         </div>
 
         {#if anime.length}
-            <div
-                class="grid grid-cols-2 items-start gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-7.5 lg:gap-y-12 xl:grid-cols-6"
-            >
-                {#each anime as entry (entry.id)}
-                    <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false} />
-                {/each}
-            </div>
+            <section aria-labelledby="simulcast-results-title">
+                <h2 id="simulcast-results-title" class="sr-only">{m.simulcast_title()}</h2>
+                <div
+                    class="grid grid-cols-2 items-start gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-7.5 lg:gap-y-12 xl:grid-cols-6"
+                >
+                    {#each anime as entry (entry.id)}
+                        <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false} />
+                    {/each}
+                </div>
+            </section>
         {:else}
             <EmptyState
                 artwork={emptyArtwork}

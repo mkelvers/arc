@@ -387,7 +387,8 @@
                 actionLabel="Explore Anime"
             />
         {:else}
-            <section class="mt-8" aria-label={`${selectedStateLabel} anime`}>
+            <section class="mt-8" aria-labelledby="watchlist-results-title">
+                <h2 id="watchlist-results-title" class="sr-only">{selectedStateLabel} anime</h2>
                 {#if data.entries.length === 0}
                     <EmptyState
                         artwork={filteredEmptyArtwork}

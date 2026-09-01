@@ -350,9 +350,11 @@
             <section
                 id="anime-episode-list"
                 class="px-2 py-7 sm:pb-12 lg:pb-16"
+                aria-labelledby="anime-episodes-title"
                 aria-busy="true"
                 aria-live="polite"
             >
+                <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
                 <span class="sr-only">{m.anime_loading_episodes()}</span>
                 <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
                     {#each Array.from({ length: 5 }) as _}
@@ -368,7 +370,13 @@
             {#await page.artwork}
                 {@render loadingEpisodes()}
             {:then artwork}
-                <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
+                <section
+                    id="anime-episode-list"
+                    class="px-2 py-7 sm:pb-12 lg:pb-16"
+                    aria-labelledby="anime-episodes-title"
+                    aria-live="polite"
+                >
+                    <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
                     {#if episodes.length}
                         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
                             {#each episodes.slice(0, visibleEpisodeCount) as episode}
