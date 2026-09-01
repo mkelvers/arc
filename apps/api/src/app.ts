@@ -11,6 +11,7 @@ import { anime } from './routes/anime';
 import { catalog } from './routes/catalog';
 import { playback } from './routes/playback';
 import { maintenance } from './routes/maintenance';
+import { notifications } from './routes/notifications';
 import { watchlist } from './routes/watchlist';
 
 const app = new Hono();
@@ -29,6 +30,7 @@ app.route('/v1/anime', anime);
 app.route('/v1', catalog);
 app.route('/v1', playback);
 app.route('/v1/watchlist', watchlist);
+app.route('/v1/notifications', notifications);
 app.notFound((context) =>
     context.json(
         {
