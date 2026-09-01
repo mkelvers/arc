@@ -25,6 +25,16 @@ export const EpisodeSchema = z.looseObject({
     duration: z.string(),
     releaseDate: z.string(),
     overview: z.string(),
+    progress: z
+        .object({
+            positionSeconds: z.number().nonnegative(),
+            durationSeconds: z.number().positive(),
+            completed: z.boolean(),
+            hasCompleted: z.boolean(),
+            completedAt: z.string().nullable(),
+        })
+        .nullable()
+        .optional(),
 });
 
 const AnimeDetailsSchema = z.object({
@@ -230,7 +240,7 @@ export const AnimePageDeferredSchema = z.object({
     episodes: z.array(EpisodeSchema),
     watchAction: z.object({
         href: z.string(),
-        kind: z.enum(['continue', 'start', 'episodes']),
+        kind: z.enum(['continue', 'start', 'rewatch', 'episodes']),
         episode: z.string().nullable(),
     }),
     audioLabel: z.string(),

@@ -38,6 +38,13 @@ export type AnimeEpisode = {
     duration: string;
     releaseDate: string;
     overview: string;
+    progress?: {
+        positionSeconds: number;
+        durationSeconds: number;
+        completed: boolean;
+        hasCompleted: boolean;
+        completedAt: string | null;
+    } | null;
 };
 
 export const EpisodeRevisionSchema = z.object({
