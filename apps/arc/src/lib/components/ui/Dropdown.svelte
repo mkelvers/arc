@@ -88,7 +88,7 @@
             }
         };
         const closeOnEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
+            if (open && event.key === 'Escape') {
                 open = false;
                 triggerElement?.focus();
             }
@@ -124,7 +124,7 @@
         id={id}
         type="button"
         aria-label={ariaLabel}
-        aria-haspopup="menu"
+        aria-haspopup={content ? undefined : 'menu'}
         aria-expanded={open}
         aria-controls={`${id}-menu`}
         data-state={open ? 'open' : 'closed'}

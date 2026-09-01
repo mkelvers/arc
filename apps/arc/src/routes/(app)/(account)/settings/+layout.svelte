@@ -6,6 +6,8 @@
 
     let { children }: LayoutProps = $props();
     let mobileMenuOpen = $state(false);
+    let mobileSettingsMenu = $state<HTMLDivElement>();
+    let mobileSettingsTrigger = $state<HTMLButtonElement>();
 
     const pages = {
         '/settings/subtitles': {
@@ -46,6 +48,59 @@
             synopsis: m.settings_account_synopsis,
         }
     );
+
+    function closeMobileMenu() {
+        mobileMenuOpen = false;
+        requestAnimationFrame(() => mobileSettingsTrigger?.focus({ preventScroll: true }));
+    }
+
+    $effect(() => {
+        if (!mobileMenuOpen || !mobileSettingsMenu) {
+            return;
+        }
+
+        const menu = mobileSettingsMenu;
+        const focusableSelector =
+            'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        const focusFirst = requestAnimationFrame(() => {
+            const firstFocusable = menu.querySelector<HTMLElement>(focusableSelector);
+            (firstFocusable ?? menu).focus({ preventScroll: true });
+        });
+        const trapFocus = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeMobileMenu();
+                return;
+            }
+
+            if (event.key !== 'Tab') {
+                return;
+            }
+
+            const focusable = Array.from(menu.querySelectorAll<HTMLElement>(focusableSelector));
+            if (!focusable.length) {
+                event.preventDefault();
+                menu.focus();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+            }
+        };
+
+        document.addEventListener('keydown', trapFocus);
+        return () => {
+            cancelAnimationFrame(focusFirst);
+            document.removeEventListener('keydown', trapFocus);
+        };
+    });
 </script>
 
 <main
@@ -62,9 +117,9 @@
         <nav class="mt-8 md:mt-12" aria-label={m.settings_sections()}>
             {#each sections as section}
                 <section class="not-first:mt-6 md:not-first:mt-8">
-                    <h2 class="px-1 text-lg font-bold tracking-tight sm:text-xl">
+                    <p class="px-1 text-lg font-bold tracking-tight sm:text-xl">
                         {section.title()}
-                    </h2>
+                    </p>
                     <ul class="mt-3 grid grid-cols-2 gap-1 md:block md:space-y-1">
                         {#each section.links as link}
                             <li>
@@ -86,14 +141,15 @@
     </aside>
 
     <div class="md:hidden">
-        <h1 class="text-2xl font-bold tracking-tight">
+        <p class="text-2xl font-bold tracking-tight">
             {m.settings_account()}
-        </h1>
+        </p>
         <button
+            bind:this={mobileSettingsTrigger}
             type="button"
-            class="mt-8 flex items-center gap-3 text-xs font-bold tracking-wide text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+            class="mt-8 flex min-h-11 items-center gap-3 text-xs font-bold tracking-wide text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             aria-expanded={mobileMenuOpen}
-            aria-controls="mobile-settings-menu"
+            aria-controls={mobileMenuOpen ? 'mobile-settings-menu' : undefined}
             onclick={() => (mobileMenuOpen = true)}
         >
             <CaretDownIcon size={14} aria-hidden="true" />
@@ -102,18 +158,14 @@
     </div>
 
     {#if mobileMenuOpen}
-        <button
-            type="button"
-            class="fixed inset-0 z-50 bg-black/70"
-            aria-label={m.shared_close_menu()}
-            onclick={() => (mobileMenuOpen = false)}
-        ></button>
         <div
+            bind:this={mobileSettingsMenu}
             id="mobile-settings-menu"
             class="fixed inset-0 z-60 flex flex-col overflow-hidden bg-[#272727] shadow-2xl md:hidden"
             role="dialog"
             aria-modal="true"
             aria-label={m.settings_sections()}
+            tabindex="-1"
         >
             <header class="flex min-h-14 shrink-0 items-center justify-between bg-[#151515] px-5">
                 <h2 class="text-base font-medium">{m.settings_account()}</h2>
@@ -121,7 +173,7 @@
                     type="button"
                     class="grid size-9 place-items-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
                     aria-label={m.shared_close_menu()}
-                    onclick={() => (mobileMenuOpen = false)}
+                    onclick={closeMobileMenu}
                 >
                     <XIcon size={24} aria-hidden="true" />
                 </button>
@@ -138,7 +190,7 @@
                                     <a
                                         href={link.href}
                                         aria-current={page.url.pathname === link.href ? 'page' : undefined}
-                                        onclick={() => (mobileMenuOpen = false)}
+                                        onclick={closeMobileMenu}
                                         class="block py-2.5 text-base {page.url.pathname === link.href
                                             ? 'text-foreground'
                                             : 'text-muted'} transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
