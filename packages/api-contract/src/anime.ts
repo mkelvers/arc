@@ -149,6 +149,21 @@ export const HomePageSchema = z.object({
 
 export const SearchResponseSchema = z.array(AnimeSearchResultSchema);
 
+export const ReleaseCalendarSchema = z.object({
+    events: z.array(
+        z.object({
+            airingId: z.number().int().positive(),
+            anilistId: AnimeIdSchema,
+            episode: z.number().int().positive(),
+            airingAt: z.iso.datetime(),
+            title: z.string(),
+            synopsis: z.string().nullable(),
+            image: z.string().nullable(),
+        })
+    ),
+    refreshedAt: z.iso.datetime().nullable(),
+});
+
 export const CatalogPageSchema = AnimeCardPageSchema.extend({
     loadedAt: z.iso.datetime(),
 });
