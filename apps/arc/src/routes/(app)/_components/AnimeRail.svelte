@@ -10,11 +10,10 @@
         anime: AnimeCardModel[];
         heading: string;
         headingId: string;
-        emptyMessage: string;
         topSpacing?: boolean;
     }
 
-    let { anime, heading, headingId, emptyMessage, topSpacing = true }: Props = $props();
+    let { anime, heading, headingId, topSpacing = true }: Props = $props();
     let rail = $state<HTMLDivElement>();
     let canScrollLeft = $state(false);
     let canScrollRight = $state(false);
@@ -111,7 +110,5 @@
                 </button>
             {/if}
         </div>
-    {:else}
-        <p class="px-5 text-sm text-muted sm:px-10 lg:px-16 2xl:px-16">{emptyMessage}</p>
     {/if}
 </section>

@@ -23,18 +23,11 @@
             <ContinueWatchingGrid anime={anime} />
         {/await}
     </div>
-    <AnimeRail
-        anime={data.season}
-        heading={m.home_new_season()}
-        headingId="new-this-season"
-        emptyMessage={m.home_no_season()}
-        topSpacing={false}
-    />
+    <AnimeRail anime={data.season} heading={m.home_new_season()} headingId="new-this-season" topSpacing={false} />
     <AnimeRail
         anime={data.popular}
         heading={m.home_most_popular()}
         headingId="most-popular-anime"
-        emptyMessage={m.home_no_popular()}
         topSpacing={false}
     />
 </main>
