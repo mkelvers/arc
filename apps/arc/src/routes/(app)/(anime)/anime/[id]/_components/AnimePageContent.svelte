@@ -40,14 +40,12 @@
     let detailsExpanded = $state(false);
     let loadedBackdrop = $state<string | null>(null);
     let visibleEpisodeCount = $state(28);
-    let deferredError = $state(false);
     let extendedMetadataLoading = $state(true);
     let loadedAnimeId = $state<number | null>(null);
     let artworkLoading = $state(true);
     const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
 
     async function loadDeferred() {
-        deferredError = false;
         extendedMetadataLoading = true;
         page.episodes = pending as Promise<AnimePageDeferred['episodes']>;
         page.watchAction = pending as Promise<AnimePageDeferred['watchAction']>;
@@ -68,7 +66,6 @@
             visibleEpisodeCount = 28;
             extendedMetadataLoading = false;
         } catch {
-            deferredError = true;
             extendedMetadataLoading = false;
             page.episodes = Promise.resolve([]);
             page.watchAction = Promise.resolve({
@@ -365,48 +362,36 @@
             </section>
         {/snippet}
 
-        {#if deferredError}
-            <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" role="alert">
-                <p class="text-sm text-muted">{m.anime_load_error()}</p>
-                <button
-                    type="button"
-                    class="mt-4 min-h-10 bg-accent px-4 text-xs font-bold text-on-accent uppercase"
-                    onclick={loadDeferred}
-                >
-                    {m.retry()}
-                </button>
-            </section>
-        {:else}{#await page.episodes}
+        {#await page.episodes}
+            {@render loadingEpisodes()}
+        {:then episodes}
+            {#await page.artwork}
                 {@render loadingEpisodes()}
-            {:then episodes}
-                {#await page.artwork}
-                    {@render loadingEpisodes()}
-                {:then artwork}
-                    <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
-                        {#if episodes.length}
-                            <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
-                                {#each episodes.slice(0, visibleEpisodeCount) as episode}
-                                    <EpisodeGridCard
-                                        episode={episode}
-                                        title={anime.title}
-                                        image={artwork?.selectedBackdrop?.url ?? null}
-                                    />
-                                {/each}
-                            </div>
-                            {#if visibleEpisodeCount < episodes.length}
-                                <button
-                                    type="button"
-                                    class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
-                                    onclick={() => showMoreEpisodes(episodes.length)}
-                                >
-                                    {m.anime_show_more_episodes()}
-                                </button>
-                            {/if}
+            {:then artwork}
+                <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-live="polite">
+                    {#if episodes.length}
+                        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
+                            {#each episodes.slice(0, visibleEpisodeCount) as episode}
+                                <EpisodeGridCard
+                                    episode={episode}
+                                    title={anime.title}
+                                    image={artwork?.selectedBackdrop?.url ?? null}
+                                />
+                            {/each}
+                        </div>
+                        {#if visibleEpisodeCount < episodes.length}
+                            <button
+                                type="button"
+                                class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
+                                onclick={() => showMoreEpisodes(episodes.length)}
+                            >
+                                {m.anime_show_more_episodes()}
+                            </button>
                         {/if}
-                    </section>
-                {/await}
+                    {/if}
+                </section>
             {/await}
-        {/if}
+        {/await}
 
         {#await page.franchise then franchise}
             {#if franchise?.entries.length}
