@@ -104,7 +104,7 @@
 </script>
 
 <main
-    class="mx-auto grid min-h-[calc(100vh-3.5rem)] max-w-6xl gap-6 px-4 py-6 sm:gap-8 sm:px-5 sm:py-8 md:grid-cols-[16rem_minmax(0,1fr)] md:gap-12 md:px-8 md:py-12"
+    class="mx-auto grid min-h-[calc(100dvh-3.5rem)] grid-rows-[auto_minmax(0,1fr)] max-w-6xl gap-6 px-4 py-6 sm:gap-8 sm:px-5 sm:py-8 md:grid-cols-[16rem_minmax(0,1fr)] md:grid-rows-1 md:gap-12 md:px-8 md:py-12"
 >
     <aside class="hidden w-full md:block md:max-w-64" aria-label={m.settings_account_aria()}>
         <a
@@ -207,7 +207,7 @@
     {/if}
 
     <section
-        class="h-fit min-w-0 self-start bg-panel px-4 py-6 sm:px-7 sm:py-8 md:px-10 md:py-10"
+        class="min-w-0 bg-panel px-4 py-6 sm:px-7 sm:py-8 md:h-fit md:self-start md:px-10 md:py-10"
         aria-labelledby="settings-title"
     >
         <header class="text-left md:text-center">
