@@ -3,7 +3,6 @@ import { error } from '@sveltejs/kit';
 
 import { CatalogPageSchema, CatalogTaxonomySchema } from '@arc/api-contract/anime';
 import { browseSearchParams, parseBrowseFilters } from '@arc/shared/browse';
-import { genreFromSlug } from '$lib/genre';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, request, fetch }) => {
@@ -16,7 +15,10 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
         error(503, 'Anime categories could not be loaded');
     }
     const taxonomy = CatalogTaxonomySchema.parse(await taxonomyResponse.json());
-    const genre = genreFromSlug(taxonomy.genres, params.genre);
+    const genre =
+        taxonomy.genres.find(
+            (genre) => genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-') === params.genre
+        ) ?? null;
     if (!genre) {
         error(404, 'Anime category not found');
     }
