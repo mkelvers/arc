@@ -12,6 +12,8 @@ import { logger } from '@arc/backend/internal/logger';
 import { isGraphQLTransientError } from '../../graphql';
 import type { AniListAnime } from '../anilist/types';
 import { refreshAnimeRelease } from '../anilist/releases';
+import { animeTitles } from '../anilist/text';
+import { ensureInternalAnimeId } from '../identity';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,
@@ -19,6 +21,7 @@ import {
     recordAniKotoInventoryVerification,
 } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
+import { createInventoryNotifications } from '../../notifications';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
 import { sourceRevision, storedEpisodes } from './model';
@@ -155,11 +158,14 @@ async function fetchAndStore(
     if (confirmation && !providerConfirmsEpisode(providerEpisodes, confirmation.targetEpisode)) {
         throw new TargetEpisodeUnavailableError(anime.id, confirmation.targetEpisode);
     }
+    const internalAnimeId = await ensureInternalAnimeId(anime.id, animeTitles(anime)[0]);
 
     const [storedText, previousSync, confirmedAirDates] = await Promise.all([
         db
             .select({
                 episodeId: animeEpisode.episodeId,
+                number: animeEpisode.number,
+                audio: animeEpisode.audio,
                 title: animeEpisode.metadataTitle,
                 titleSource: animeEpisode.metadataTitleSource,
                 overview: animeEpisode.overview,
@@ -174,6 +180,7 @@ async function fetchAndStore(
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
                 metadataRevision: animeEpisodeSync.metadataRevision,
+                lastSuccessAt: animeEpisodeSync.lastSuccessAt,
             })
             .from(animeEpisodeSync)
             .where(eq(animeEpisodeSync.anilistId, anime.id))
@@ -353,6 +360,51 @@ async function fetchAndStore(
                     lastVerifiedAt: now,
                 },
             });
+
+        const previousByNumber = new Map(
+            [...storedText.values()].map(({ number, audio }) => [number, audio] as const)
+        );
+        const events: Array<{
+            type: 'episode_available' | 'dub_available';
+            episodeId: string;
+            episodeNumber: number;
+        }> = [];
+        for (const episode of source) {
+            if (!Number.isInteger(episode.number) || episode.number <= 0) {
+                continue;
+            }
+
+            const previousAudio = previousByNumber.get(episode.number);
+            if (confirmation?.targetEpisode === episode.number) {
+                events.push({
+                    type: 'episode_available' as const,
+                    episodeId: episode.id,
+                    episodeNumber: episode.number,
+                });
+                continue;
+            }
+            if (!previousAudio && previousSync?.lastSuccessAt) {
+                events.push({
+                    type: 'episode_available' as const,
+                    episodeId: episode.id,
+                    episodeNumber: episode.number,
+                });
+                continue;
+            }
+            if (previousAudio && !previousAudio.includes('dub') && episode.audio.includes('dub')) {
+                events.push({
+                    type: 'dub_available' as const,
+                    episodeId: episode.id,
+                    episodeNumber: episode.number,
+                });
+            }
+        }
+        await createInventoryNotifications(tx, {
+            animeId: internalAnimeId,
+            title: animeTitles(anime)[0] ?? `Anime ${anime.id}`,
+            imageUrl: anime.coverImage?.extraLarge ?? anime.coverImage?.large ?? null,
+            events,
+        });
         for (const [oldEpisodeId, newEpisodeId] of episodeIdReplacements) {
             await tx
                 .update(playbackProgress)
