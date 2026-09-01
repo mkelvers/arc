@@ -111,7 +111,7 @@
             step="0.1"
             value={position}
             aria-label={m.player_seek()}
-            class="timeline-hit-area absolute inset-0 z-20 cursor-pointer opacity-0"
+            class="absolute inset-0 z-20 cursor-pointer opacity-0 [@media(pointer:coarse)_and_(hover:none)]:-right-3 [@media(pointer:coarse)_and_(hover:none)]:-left-3"
             oninput={(event) => {
                 if (!pointer.scrubbing) {
                     player.media.seek(Number(event.currentTarget.value));
@@ -133,12 +133,3 @@
         {formatTime(player.media.duration)}
     </span>
 </div>
-
-<style>
-    @media (pointer: coarse) and (hover: none) {
-        .timeline-hit-area {
-            right: -0.75rem;
-            left: -0.75rem;
-        }
-    }
-</style>
