@@ -348,7 +348,13 @@ export async function updateWatchlistAfterPlayback(
         .where(and(eq(watchlist.userId, userId), eq(watchlist.animeId, animeId)))
         .limit(1);
 
-    if (current && (!input.completed || current.state === 'completed')) {
+    if (current?.state === 'completed') {
+        // Rewatching still persists playback progress. A completed watchlist entry
+        // only stays completed instead of moving back to watching.
+        return;
+    }
+
+    if (current && !input.completed) {
         return;
     }
 

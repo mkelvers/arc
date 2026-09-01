@@ -96,4 +96,15 @@ describe('automatic watchlist status', () => {
             )
         ).toBe('completed');
     });
+
+    test('keeps a completed entry while rewatching', () => {
+        expect(
+            watchlistStateAfterPlayback(
+                'completed',
+                { mediaStatus: 'FINISHED', expectedEpisodes: 3 },
+                episodes,
+                { ...episodes[0], completed: false }
+            )
+        ).toBe('completed');
+    });
 });
