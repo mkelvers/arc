@@ -3,6 +3,7 @@
     import { navigating } from '$app/state';
     import {
         BookmarkSimpleIcon,
+        BellIcon,
         CaretDownIcon,
         GearIcon,
         MagnifyingGlassIcon,
@@ -166,7 +167,7 @@
                     ariaLabel={m.nav_account_menu()}
                     modal
                     menuClass="w-[min(21rem,calc(100vw-1rem))]"
-                    triggerClass="flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-2 sm:px-3"
+                    triggerClass="relative flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-2 sm:px-3"
                 >
                     {#snippet trigger()}
                         <AccountAvatar
@@ -174,6 +175,12 @@
                             image={data.account.image}
                             class="size-8 text-sm ring-1 ring-white/20"
                         />
+                        {#if data.account.unreadNotifications > 0}
+                            <span
+                                class="absolute top-2 right-2 size-2 rounded-full bg-accent ring-2 ring-header"
+                                aria-label="Unread notifications"
+                            ></span>
+                        {/if}
                         <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
                     {/snippet}
 
@@ -205,6 +212,20 @@
                         >
                             <BookmarkSimpleIcon size={21} aria-hidden="true" />
                             <span>{m.nav_watchlist()}</span>
+                        </a>
+
+                        <a
+                            href="/notifications"
+                            class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                        >
+                            <BellIcon size={21} aria-hidden="true" />
+                            <span>Notifications</span>
+                            {#if data.account.unreadNotifications > 0}
+                                <span
+                                    class="ml-auto size-2 rounded-full bg-accent"
+                                    aria-label="Unread notifications"
+                                ></span>
+                            {/if}
                         </a>
 
                         <button
