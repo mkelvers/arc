@@ -512,6 +512,20 @@
             "when": 1788249232361,
             "tag": "0072_rename-persisted-anime-records",
             "breakpoints": true
+        },
+        {
+            "idx": 73,
+            "version": "7",
+            "when": 1788257920131,
+            "tag": "0073_flippant_argent",
+            "breakpoints": true
+        },
+        {
+            "idx": 74,
+            "version": "7",
+            "when": 1788259974973,
+            "tag": "0074_curved_blur",
+            "breakpoints": true
         }
     ]
 }

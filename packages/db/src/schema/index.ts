@@ -278,6 +278,30 @@ export const animeRelease = pgTable(
     ]
 );
 
+export const animeAiringSchedule = pgTable(
+    'anime_airing_schedule',
+    {
+        airingId: integer('airing_id').primaryKey(),
+        anilistId: integer('anilist_id').notNull(),
+        episode: integer('episode').notNull(),
+        airingAt: timestamp('airing_at', {
+            withTimezone: true,
+        }).notNull(),
+        title: text('title').notNull(),
+        synopsis: text('synopsis'),
+        imageUrl: text('image_url'),
+        sourceFetchedAt: timestamp('source_fetched_at', {
+            withTimezone: true,
+        })
+            .notNull()
+            .defaultNow(),
+    },
+    (table) => [
+        index('anime_airing_schedule_airing_at_idx').on(table.airingAt),
+        index('anime_airing_schedule_anilist_idx').on(table.anilistId),
+    ]
+);
+
 export const animeReleaseRequest = pgTable(
     'anime_release_request',
     {
@@ -1116,6 +1140,12 @@ export const schedulerHeartbeat = pgTable('scheduler_heartbeat', {
         withTimezone: true,
     }),
     nextCatalogRefreshAt: timestamp('next_catalog_refresh_at', {
+        withTimezone: true,
+    }),
+    lastCalendarRefreshAt: timestamp('last_calendar_refresh_at', {
+        withTimezone: true,
+    }),
+    nextCalendarRefreshAt: timestamp('next_calendar_refresh_at', {
         withTimezone: true,
     }),
     lastError: text('last_error'),
