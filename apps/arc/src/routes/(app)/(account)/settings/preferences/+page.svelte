@@ -30,7 +30,7 @@
             id="settings-language"
             ariaLabel={m.settings_language()}
             menuAlign="start"
-            triggerClass="mt-6 inline-flex min-h-11 w-full max-w-64 cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-sm text-muted transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
+            triggerClass="mt-6 inline-flex min-h-11 w-full max-w-64 cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
         >
             {#snippet trigger()}
                 <span>

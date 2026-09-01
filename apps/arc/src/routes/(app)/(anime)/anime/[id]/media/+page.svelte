@@ -103,7 +103,7 @@
                             value={data.artwork.logoSize}
                             aria-label={m.media_logo_size()}
                             onchange={(event) => event.currentTarget.form?.requestSubmit()}
-                            class="w-32 accent-input-accent"
+                            class="w-32 accent-accent"
                         />
                     </form>
                 </div>
