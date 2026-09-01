@@ -7,6 +7,8 @@ function isSimpleExpression(
     node: ESTree.Node,
     visitorKeys: Readonly<Record<string, readonly string[]>>
 ): boolean {
+    if ((node.type as string) === 'Literal') return true;
+
     if (
         node.type === 'Identifier' ||
         node.type === 'ThisExpression' ||
