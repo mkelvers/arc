@@ -115,6 +115,12 @@
                             >
                                 {m.nav_simulcast()}
                             </a>
+                            <a
+                                href="/release-calendar"
+                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_release_calendar()}
+                            </a>
                         </div>
                         <div class="bg-border" aria-hidden="true"></div>
                         <div class="min-w-0 py-5">
@@ -254,6 +260,12 @@
                         class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                     >
                         {m.nav_simulcast()}
+                    </a>
+                    <a
+                        href="/release-calendar"
+                        class="block px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                    >
+                        {m.nav_release_calendar()}
                     </a>
                     <div
                         class="mt-2 border-t border-border px-5 pt-4 pb-2 text-xs font-bold tracking-wide text-subtle uppercase"
