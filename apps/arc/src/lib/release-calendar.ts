@@ -12,8 +12,6 @@ export type ReleaseCalendarDay = {
     events: ReleaseCalendarEvent[];
 };
 
-const dayMs = 24 * 60 * 60 * 1_000;
-
 function dateParts(value: Date, timezone: string) {
     const parts = new Intl.DateTimeFormat('en-US', {
         timeZone: timezone,
@@ -45,7 +43,7 @@ export function releaseCalendarWeek(
     const today = dateParts(now, timezone);
     const todayUtc = Date.UTC(today.year, today.month - 1, today.day);
     const mondayOffset = (new Date(todayUtc).getUTCDay() + 6) % 7;
-    const mondayUtc = todayUtc - mondayOffset * dayMs;
+    const mondayUtc = todayUtc - mondayOffset * (24 * 60 * 60 * 1_000);
     const todayKey = localDateKey(now, timezone);
     const dateLabels = new Intl.DateTimeFormat(locale, {
         timeZone: 'UTC',
@@ -66,7 +64,7 @@ export function releaseCalendarWeek(
     }
 
     return Array.from({ length: 7 }, (_, index) => {
-        const date = new Date(mondayUtc + index * dayMs);
+        const date = new Date(mondayUtc + index * (24 * 60 * 60 * 1_000));
         const key = date.toISOString().slice(0, 10);
         return {
             key,

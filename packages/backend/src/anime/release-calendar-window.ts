@@ -1,4 +1,3 @@
-const dayMs = 24 * 60 * 60 * 1_000;
 const calendarWindowPaddingDays = 8;
 
 export function releaseCalendarWindow(now = new Date()) {
@@ -10,7 +9,7 @@ export function releaseCalendarWindow(now = new Date()) {
     );
 
     return {
-        from: new Date(utcWeekStart - calendarWindowPaddingDays * dayMs),
-        to: new Date(utcWeekStart + calendarWindowPaddingDays * dayMs),
+        from: new Date(utcWeekStart - calendarWindowPaddingDays * (24 * 60 * 60 * 1_000)),
+        to: new Date(utcWeekStart + calendarWindowPaddingDays * (24 * 60 * 60 * 1_000)),
     };
 }

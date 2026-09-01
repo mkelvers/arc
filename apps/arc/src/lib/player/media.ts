@@ -221,10 +221,6 @@ function nearestIndex(values: number[], target: number) {
     return low;
 }
 
-const timelineRange = 60;
-const timelineStep = 0.25;
-const minimumTimelineMatches = 12;
-
 function timelineScore(reference: number[], target: number[], offset: number) {
     const timelineTolerance = 0.25;
     let matches = 0;
@@ -243,12 +239,12 @@ function timelineOffset(reference: number[], target: number[]) {
     const minimumTimelineCoverage = 0.15;
     const minimumScoreLead = 1.4;
 
-    if (reference.length < minimumTimelineMatches || target.length < minimumTimelineMatches) {
+    if (reference.length < 12 || target.length < 12) {
         return null;
     }
 
     const candidates: { offset: number; score: number }[] = [];
-    for (let offset = -timelineRange; offset <= timelineRange; offset += timelineStep) {
+    for (let offset = -60; offset <= 60; offset += 0.25) {
         candidates.push({
             offset,
             score: timelineScore(reference, target, offset),
@@ -260,7 +256,7 @@ function timelineOffset(reference: number[], target: number[]) {
     const alternate = candidates.find(({ offset }) => Math.abs(offset - best.offset) >= 1);
     const coverage = best.score / Math.min(reference.length, target.length);
     if (
-        best.score < minimumTimelineMatches ||
+        best.score < 12 ||
         coverage < minimumTimelineCoverage ||
         (alternate && best.score < alternate.score * minimumScoreLead)
     ) {
@@ -275,11 +271,11 @@ function timelineOffset(reference: number[], target: number[]) {
             .filter((candidate) => candidate >= 0 && candidate < reference.length)
             .map((candidate) => reference[candidate])
             .toSorted((left, right) => Math.abs(left - expected) - Math.abs(right - expected))[0];
-        if (nearest !== undefined && Math.abs(nearest - expected) <= timelineStep * 2) {
+        if (nearest !== undefined && Math.abs(nearest - expected) <= 0.25 * 2) {
             deltas.push(boundary - nearest);
         }
     }
-    if (deltas.length < minimumTimelineMatches) {
+    if (deltas.length < 12) {
         return null;
     }
 
@@ -316,9 +312,7 @@ export function hlsTimelineOffsets(reference: number[], target: number[]): Timel
         const offset = timelineOffset(
             reference.filter((boundary) => boundary >= start && boundary <= stop),
             target.filter(
-                (boundary) =>
-                    boundary >= Math.max(0, start - timelineRange) &&
-                    boundary <= stop + timelineRange
+                (boundary) => boundary >= Math.max(0, start - 60) && boundary <= stop + 60
             )
         );
         if (offset !== null) {
@@ -349,7 +343,7 @@ export function hlsTimelineOffsets(reference: number[], target: number[]): Timel
         const sampleEnd = Math.min(end, 300);
         const offset = timelineOffset(
             reference.filter((boundary) => boundary <= sampleEnd),
-            target.filter((boundary) => boundary <= sampleEnd + timelineRange)
+            target.filter((boundary) => boundary <= sampleEnd + 60)
         );
         return offset === null ? [] : [{ at: 0, offset }];
     }
