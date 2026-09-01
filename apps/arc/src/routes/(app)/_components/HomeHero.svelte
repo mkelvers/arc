@@ -338,7 +338,7 @@
                                 >
                                     <span
                                         class={cn(
-                                            'relative block h-2 rounded-full bg-white/50 transition-[width,background-color] duration-300 ease-out group-hover:bg-accent/60',
+                                            'relative block h-2 overflow-hidden rounded-full bg-white/50 transition-[width,background-color] duration-300 ease-out group-hover:bg-accent/60',
                                             itemIndex === carousel.active ? 'w-12' : 'w-6'
                                         )}
                                     >
@@ -346,7 +346,7 @@
                                             {#key carousel.progression}
                                                 <span
                                                     class={cn(
-                                                        'absolute inset-y-0 left-0 bg-accent',
+                                                        'absolute inset-y-0 left-0 rounded-full bg-accent',
                                                         autoRotate && carousel.progressMode === 'animated'
                                                             ? 'hero-pagination__progress'
                                                             : 'w-full'
