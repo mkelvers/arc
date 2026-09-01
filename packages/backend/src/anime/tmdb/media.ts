@@ -245,7 +245,7 @@ export async function selectArtwork(
 
     const artwork = await readArtwork(mapping);
     if (!artwork) {
-        throw new Error('Artwork has not been cached yet');
+        throw new Error('Artwork has not been persisted yet');
     }
 
     const images = type === 'backdrop' ? artwork.backdrops : artwork.logos;

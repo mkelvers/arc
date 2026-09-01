@@ -11,7 +11,7 @@ async function refreshCandidates(now: Date, forceRefresh = false) {
     const response = await request(
         HomeHeroCandidatesDocument,
         { seasonYear: now.getUTCFullYear() },
-        { cacheForMs: 6 * 60 * 60 * 1_000, forceRefresh }
+        { refreshAfterMs: 6 * 60 * 60 * 1_000, forceRefresh }
     );
     const candidates = present(response.Page?.media).flatMap((media, index) => {
         if (

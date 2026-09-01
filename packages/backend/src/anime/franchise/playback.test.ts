@@ -29,8 +29,8 @@ function entry(anilistId: number, audioLabel: string): FranchiseOrder['entries']
 }
 
 describe('withFranchisePlayback', () => {
-    test('overlays current audio facts on every cached franchise entry', () => {
-        const cached = [entry(1, 'Dub | Sub'), entry(2, '')];
+    test('overlays current audio facts on every stored franchise entry', () => {
+        const stored = [entry(1, 'Dub | Sub'), entry(2, '')];
         const episodes: FranchisePlaybackEpisode[] = [
             { anilistId: 1, episodeId: '2', number: 2, audio: ['dub'] },
             {
@@ -47,7 +47,7 @@ describe('withFranchisePlayback', () => {
             },
         ];
 
-        const current = withFranchisePlayback(cached, episodes);
+        const current = withFranchisePlayback(stored, episodes);
 
         expect(
             current.map(({ audioLabel, link }) => ({

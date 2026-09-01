@@ -151,7 +151,7 @@ export async function getBrowseTaxonomy(forceRefresh = false) {
         BrowseAnimeTaxonomyDocument,
         {},
         {
-            cacheForMs: 7 * 24 * 60 * 60 * 1_000,
+            refreshAfterMs: 7 * 24 * 60 * 60 * 1_000,
             forceRefresh,
         }
     );

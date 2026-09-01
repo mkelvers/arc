@@ -1,7 +1,7 @@
 import { currentAnimeSeason } from '@arc/shared/season';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/db';
-import { animeFranchiseCache, animeRelease } from '@arc/db/schema';
+import { animeFranchise, animeRelease } from '@arc/db/schema';
 import { getAnimeRelease } from '../anilist/releases';
 import { getBrowseTaxonomy } from '../anilist/browse';
 import { refreshHomeHeroCandidates } from '../anilist/hero';
@@ -21,12 +21,12 @@ async function refreshKnownFranchises(now: Date) {
     const rows = await db
         .select({
             malId: animeRelease.malId,
-            fetchedAt: animeFranchiseCache.fetchedAt,
+            fetchedAt: animeFranchise.fetchedAt,
         })
         .from(animeRelease)
-        .leftJoin(animeFranchiseCache, eq(animeFranchiseCache.malId, animeRelease.malId))
+        .leftJoin(animeFranchise, eq(animeFranchise.malId, animeRelease.malId))
         .where(isNotNull(animeRelease.malId))
-        .groupBy(animeRelease.malId, animeFranchiseCache.fetchedAt);
+        .groupBy(animeRelease.malId, animeFranchise.fetchedAt);
     const malIds = rows.flatMap(({ malId, fetchedAt }) =>
         malId !== null &&
         (!fetchedAt || now.getTime() - fetchedAt.getTime() >= franchiseRefreshIntervalMs)

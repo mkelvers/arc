@@ -505,6 +505,13 @@
             "when": 1788207324304,
             "tag": "0071_sync_movie_episode_backdrops",
             "breakpoints": true
+        },
+        {
+            "idx": 72,
+            "version": "7",
+            "when": 1788249232361,
+            "tag": "0072_rename-persisted-anime-records",
+            "breakpoints": true
         }
     ]
 }

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
-import { animeSynopsisCache } from '@arc/db/schema';
+import { animeSynopsis } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { getAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import { mediaTitle, plainText } from './anilist/text';
@@ -122,10 +122,10 @@ async function refreshSynopsis(anime: AniListAnime, source: AniListAnime) {
     try {
         const replacement = await tmdbSynopsis(source);
         await db
-            .insert(animeSynopsisCache)
+            .insert(animeSynopsis)
             .values({ anilistId: anime.id, ...replacement, fetchedAt: new Date() })
             .onConflictDoUpdate({
-                target: animeSynopsisCache.anilistId,
+                target: animeSynopsis.anilistId,
                 set: { ...replacement, fetchedAt: new Date() },
             });
 
@@ -134,7 +134,7 @@ async function refreshSynopsis(anime: AniListAnime, source: AniListAnime) {
         if (cause instanceof NoConfidentTmdbMappingError) {
             logger.debug(`No TMDB synopsis replacement found for AniList ${anime.id}`);
             await db
-                .insert(animeSynopsisCache)
+                .insert(animeSynopsis)
                 .values({
                     anilistId: anime.id,
                     synopsis: null,
@@ -142,7 +142,7 @@ async function refreshSynopsis(anime: AniListAnime, source: AniListAnime) {
                     fetchedAt: new Date(),
                 })
                 .onConflictDoUpdate({
-                    target: animeSynopsisCache.anilistId,
+                    target: animeSynopsis.anilistId,
                     set: {
                         synopsis: null,
                         sourceAnilistId: source.id,
@@ -168,15 +168,15 @@ async function resolvedTmdbSynopsis(
     try {
         [stored] = await db
             .select({
-                synopsis: animeSynopsisCache.synopsis,
-                sourceAnilistId: animeSynopsisCache.sourceAnilistId,
-                fetchedAt: animeSynopsisCache.fetchedAt,
+                synopsis: animeSynopsis.synopsis,
+                sourceAnilistId: animeSynopsis.sourceAnilistId,
+                fetchedAt: animeSynopsis.fetchedAt,
             })
-            .from(animeSynopsisCache)
-            .where(eq(animeSynopsisCache.anilistId, anime.id))
+            .from(animeSynopsis)
+            .where(eq(animeSynopsis.anilistId, anime.id))
             .limit(1);
     } catch (cause) {
-        logger.debug(`Synopsis cache read failed for AniList ${anime.id}`, cause);
+        logger.debug(`Synopsis record read failed for AniList ${anime.id}`, cause);
     }
     if (
         stored?.sourceAnilistId === source.id &&

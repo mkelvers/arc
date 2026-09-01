@@ -1,19 +1,19 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { FranchiseOrder } from '@arc/shared/types';
-import { FranchiseCacheSchema, verifiedFranchiseCache } from './cache';
+import { FranchiseRecordSchema, verifiedFranchiseRecord } from './record';
 
 const order: FranchiseOrder = { types: [], entries: [] };
 
-describe('franchise cache identity provenance', () => {
+describe('franchise record identity provenance', () => {
     test('does not trust a legacy order without AniList verification', () => {
-        expect(FranchiseCacheSchema.safeParse(order).success).toBeFalse();
+        expect(FranchiseRecordSchema.safeParse(order).success).toBeFalse();
     });
 
     test('returns an order with valid AniList verification provenance', () => {
-        const cached = verifiedFranchiseCache(order, new Date('2026-08-02T03:00:00.000Z'));
+        const stored = verifiedFranchiseRecord(order, new Date('2026-08-02T03:00:00.000Z'));
 
-        const parsed = FranchiseCacheSchema.safeParse(cached);
+        const parsed = FranchiseRecordSchema.safeParse(stored);
 
         expect(parsed.success).toBeTrue();
         if (parsed.success) {
@@ -25,15 +25,15 @@ describe('franchise cache identity provenance', () => {
 
     test('rejects malformed verification provenance', () => {
         expect(
-            FranchiseCacheSchema.safeParse({
+            FranchiseRecordSchema.safeParse({
                 order,
                 anilistVerifiedAt: 'not-a-date',
             }).success
         ).toBeFalse();
     });
 
-    test('rejects orders written before release metadata was cached', () => {
-        const cached = verifiedFranchiseCache(
+    test('rejects orders written before release metadata was persisted', () => {
+        const stored = verifiedFranchiseRecord(
             {
                 types: [],
                 entries: [
@@ -63,9 +63,9 @@ describe('franchise cache identity provenance', () => {
             },
             new Date('2026-08-02T03:00:00.000Z')
         );
-        const legacy = structuredClone(cached);
+        const legacy = structuredClone(stored);
         if (!('order' in legacy)) {
-            throw new Error('Expected verified cache payload');
+            throw new Error('Expected verified franchise record payload');
         }
 
         const entry = legacy.order.entries[0];
@@ -74,6 +74,6 @@ describe('franchise cache identity provenance', () => {
             Reflect.deleteProperty(entry, 'status');
         }
 
-        expect(FranchiseCacheSchema.safeParse(legacy).success).toBeFalse();
+        expect(FranchiseRecordSchema.safeParse(legacy).success).toBeFalse();
     });
 });

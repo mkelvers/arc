@@ -29,7 +29,7 @@ import {
     discoveryMinimumPopularity,
 } from './discovery';
 
-type CatalogCachePage = {
+type CatalogPageSnapshot = {
     animeIds: number[];
     hasNextPage: boolean;
 };
@@ -49,10 +49,10 @@ export async function refreshCatalogPage(
     hasNextPage: boolean,
     fetchedAt = new Date()
 ) {
-    const cachePage = {
+    const pageSnapshot = {
         animeIds: anime.map(({ anilistId }) => anilistId),
         hasNextPage,
-    } satisfies CatalogCachePage;
+    } satisfies CatalogPageSnapshot;
 
     await db.transaction(async (tx) => {
         if (anime.length) {
@@ -113,14 +113,14 @@ export async function refreshCatalogPage(
 
         await tx
             .insert(animeCatalogRefresh)
-            .values({ queryKey, ...cachePage, fetchedAt })
+            .values({ queryKey, ...pageSnapshot, fetchedAt })
             .onConflictDoUpdate({
                 target: animeCatalogRefresh.queryKey,
-                set: { ...cachePage, fetchedAt },
+                set: { ...pageSnapshot, fetchedAt },
             });
     });
 
-    return cachePage;
+    return pageSnapshot;
 }
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
@@ -363,15 +363,15 @@ async function loadPage(filters: BrowseFilters, page: number) {
 
     const taxonomy = await browseTaxonomy();
     const sourceFilters = validatedFilters(filters, taxonomy);
-    const cachePage = await ensureFreshCatalog(sourceFilters, page);
+    const pageSnapshot = await ensureFreshCatalog(sourceFilters, page);
 
-    const catalog = await catalogPage(filters, page, cachePage?.animeIds ?? null);
+    const catalog = await catalogPage(filters, page, pageSnapshot?.animeIds ?? null);
 
     return {
         anime: catalog.anime,
-        hasNextPage: cachePage?.hasNextPage ?? catalog.hasNextPage,
+        hasNextPage: pageSnapshot?.hasNextPage ?? catalog.hasNextPage,
         page,
-        stale: cachePage?.stale ?? true,
+        stale: pageSnapshot?.stale ?? true,
         sourceTaxonomy: taxonomy,
     };
 }
@@ -423,7 +423,7 @@ export async function refreshPopularAnime() {
     return {
         animeIds: pages[0]?.map(({ anilistId }) => anilistId) ?? [],
         hasNextPage: pages.length > 1,
-    } satisfies CatalogCachePage;
+    } satisfies CatalogPageSnapshot;
 }
 
 export async function newAnimePage(page: number, filters: BrowseFilters) {

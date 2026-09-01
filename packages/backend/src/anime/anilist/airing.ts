@@ -57,7 +57,7 @@ async function getAiringPages(
             const response = await request(
                 AiringAnimePageDocument,
                 { page, perPage: 50, ids: batch, schedulePage },
-                { cacheForMs: 60 * 60 * 1_000, forceRefresh }
+                { refreshAfterMs: 60 * 60 * 1_000, forceRefresh }
             );
 
             for (const media of response.Page?.media ?? []) {

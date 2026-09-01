@@ -2,7 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db, excluded } from '@arc/db';
-import { animeArtwork, animeArtworkCache, animeArtworkPreference } from '@arc/db/schema';
+import { animeArtwork, animeArtworkPreference, animeArtworkSync } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';
@@ -108,19 +108,19 @@ function mergeArtwork(
 
 export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | null> {
     const externalIdIds = mapping.matches.map(({ externalIdId }) => externalIdId);
-    const cached = await db
+    const synced = await db
         .select({
-            externalIdId: animeArtworkCache.externalIdId,
+            externalIdId: animeArtworkSync.externalIdId,
         })
-        .from(animeArtworkCache)
+        .from(animeArtworkSync)
         .where(
             and(
-                inArray(animeArtworkCache.externalIdId, externalIdIds),
-                eq(animeArtworkCache.allLanguages, true)
+                inArray(animeArtworkSync.externalIdId, externalIdIds),
+                eq(animeArtworkSync.allLanguages, true)
             )
         );
 
-    if (cached.length !== externalIdIds.length) {
+    if (synced.length !== externalIdIds.length) {
         return null;
     }
 
@@ -264,13 +264,13 @@ async function fetchArtworkSource(match: StoredMapping) {
         }
 
         await tx
-            .insert(animeArtworkCache)
+            .insert(animeArtworkSync)
             .values({
                 externalIdId: match.externalIdId,
                 allLanguages: true,
             })
             .onConflictDoUpdate({
-                target: animeArtworkCache.externalIdId,
+                target: animeArtworkSync.externalIdId,
                 set: { fetchedAt: new Date(), allLanguages: true },
             });
     });

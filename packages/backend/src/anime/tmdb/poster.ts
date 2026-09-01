@@ -70,7 +70,7 @@ function storedPoster(row: typeof animeReleasePoster.$inferSelect) {
         : null;
 }
 
-async function cacheRow(match: StoredMapping) {
+async function storedPosterRow(match: StoredMapping) {
     return db
         .select()
         .from(animeReleasePoster)
@@ -333,25 +333,25 @@ async function posterOptions(anime: AniListAnime, match: StoredMapping) {
 }
 
 export async function readPoster(match: StoredMapping) {
-    const row = await cacheRow(match);
+    const row = await storedPosterRow(match);
     return row ? storedPoster(row) : null;
 }
 
 export async function getPoster(anime: AniListAnime, match: StoredMapping) {
     return (async () => {
-        const cached = await cacheRow(match);
-        if (cached && (anime.status === 'FINISHED' || isFresh(cached))) {
-            return storedPoster(cached);
+        const stored = await storedPosterRow(match);
+        if (stored && (anime.status === 'FINISHED' || isFresh(stored))) {
+            return storedPoster(stored);
         }
 
         try {
             const { candidates, seasonNumber } = await fetchPosterCandidates(anime, match);
             return await saveAvailablePoster(match, candidates, seasonNumber);
         } catch (cause) {
-            const stale = cached ? storedPoster(cached) : null;
+            const stale = stored ? storedPoster(stored) : null;
             if (stale) {
                 logger.debug(
-                    `TMDB poster refresh failed for AniList ${anime.id}; using cached poster`,
+                    `TMDB poster refresh failed for AniList ${anime.id}; using stored poster`,
                     cause
                 );
                 return stale;

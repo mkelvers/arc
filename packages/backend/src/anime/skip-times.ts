@@ -83,12 +83,12 @@ export async function getEpisodeSkipTimes({
         return { opening: null, ending: null, source: null };
     }
 
-    const cached = storedTimes(row);
+    const stored = storedTimes(row);
     const fresh =
         row.skipTimesFetchedAt &&
         Date.now() - row.skipTimesFetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000;
     if (row.skipTimesSource === 'manual' || fresh) {
-        return cached;
+        return stored;
     }
 
     if (
@@ -97,12 +97,12 @@ export async function getEpisodeSkipTimes({
         !Number.isSafeInteger(episodeNumber) ||
         episodeNumber <= 0
     ) {
-        return cached;
+        return stored;
     }
 
     const failureKey = `${malId}:${episodeNumber}`;
     if ((aniskipFailureUntil.get(failureKey) ?? 0) > Date.now()) {
-        return cached;
+        return stored;
     }
 
     try {
@@ -133,7 +133,7 @@ export async function getEpisodeSkipTimes({
         return updated ? remote : getStoredEpisodeSkipTimes(anilistId, episodeId);
     } catch {
         aniskipFailureUntil.set(failureKey, Date.now() + 5 * 60 * 1_000);
-        return cached;
+        return stored;
     }
 }
 

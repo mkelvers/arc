@@ -282,7 +282,7 @@ export const animeArtwork = pgTable(
     ]
 );
 
-export const animeArtworkCache = pgTable('anime_artwork_cache', {
+export const animeArtworkSync = pgTable('anime_artwork_sync', {
     externalIdId: integer('external_id_id')
         .primaryKey()
         .references(() => animeExternalId.id, { onDelete: 'cascade' }),
@@ -336,7 +336,7 @@ export const animeReleasePoster = pgTable(
     ]
 );
 
-export const animeFranchiseCache = pgTable('anime_franchise_cache', {
+export const animeFranchise = pgTable('anime_franchise', {
     malId: integer('mal_id').primaryKey(),
     data: jsonb('data').$type<unknown>().notNull(),
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
@@ -370,7 +370,7 @@ export const homeHeroSelection = pgTable(
     ]
 );
 
-export const animeSynopsisCache = pgTable('anime_synopsis_cache', {
+export const animeSynopsis = pgTable('anime_synopsis', {
     anilistId: integer('anilist_id').primaryKey(),
     synopsis: text('synopsis'),
     sourceAnilistId: integer('source_anilist_id'),
@@ -380,22 +380,15 @@ export const animeSynopsisCache = pgTable('anime_synopsis_cache', {
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const animeDetailsCache = pgTable('anime_details_cache', {
-    anilistId: integer('anilist_id').primaryKey(),
-    data: jsonb('data').$type<unknown>().notNull(),
-    version: integer('version').notNull().default(1),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const anilistQueryCache = pgTable(
-    'anilist_query_cache',
+export const anilistQuerySnapshot = pgTable(
+    'anilist_query_snapshot',
     {
         key: varchar('key', { length: 64 }).primaryKey(),
         data: jsonb('data').$type<unknown>().notNull(),
-        expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+        refreshAfter: timestamp('refresh_after', { withTimezone: true }).notNull(),
         fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
     },
-    (table) => [index('anilist_query_cache_expires_idx').on(table.expiresAt)]
+    (table) => [index('anilist_query_snapshot_refresh_after_idx').on(table.refreshAfter)]
 );
 
 export const anilistRequestState = pgTable('anilist_request_state', {
@@ -435,12 +428,6 @@ export const animeSearchIndex = pgTable(
         ),
     ]
 );
-
-export const animeCardCache = pgTable('anime_card_cache', {
-    anilistId: integer('anilist_id').primaryKey(),
-    data: jsonb('data').$type<unknown>().notNull(),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-});
 
 export const animeCatalog = pgTable(
     'anime_catalog',
@@ -492,8 +479,8 @@ export const animeCatalogRefresh = pgTable('anime_catalog_refresh', {
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const animeSimulcastPageCache = pgTable(
-    'anime_simulcast_page_cache',
+export const animeSimulcastPage = pgTable(
+    'anime_simulcast_page',
     {
         provider: varchar('provider', { length: 32 }).notNull(),
         season: varchar('season', { length: 8 }).notNull(),

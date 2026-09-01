@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
 import {
     animeArtwork,
-    animeArtworkCache,
+    animeArtworkSync,
     animeArtworkPreference,
     animeEpisode,
     animeRelease,
@@ -21,7 +21,7 @@ type ImageRow = {
     width: number;
 };
 
-type CacheRow = { externalIdId: number; allLanguages: boolean };
+type SyncRow = { externalIdId: number; allLanguages: boolean };
 type ReleaseRow = { format: string };
 type ArtworkQuery = { include_image_language: string } | null;
 type PreferenceRow = {
@@ -32,11 +32,11 @@ type PreferenceRow = {
 };
 type ArtworkTable =
     | typeof animeArtwork
-    | typeof animeArtworkCache
+    | typeof animeArtworkSync
     | typeof animeArtworkPreference
     | typeof animeEpisode
     | typeof animeRelease;
-type QueryRows = CacheRow[] | ImageRow[] | PreferenceRow[] | ReleaseRow[];
+type QueryRows = SyncRow[] | ImageRow[] | PreferenceRow[] | ReleaseRow[];
 type PreferenceInsert = {
     externalIdId: number;
     backdropFilePath?: string | null;
@@ -44,7 +44,7 @@ type PreferenceInsert = {
     logoHidden?: boolean;
     logoSize?: number;
 };
-type InsertValues = ImageRow[] | CacheRow | CacheRow[] | PreferenceInsert;
+type InsertValues = ImageRow[] | SyncRow | SyncRow[] | PreferenceInsert;
 type ArtworkPayloadImage = {
     file_path: string;
     aspect_ratio?: number;
@@ -85,7 +85,7 @@ const mapping: StoredMapping = {
 };
 
 const state = {
-    cache: [] as CacheRow[],
+    sync: [] as SyncRow[],
     images: [] as ImageRow[],
     preference: null as PreferenceRow | null,
     payload: { backdrops: [], logos: [] } as ArtworkPayload,
@@ -99,8 +99,8 @@ const state = {
 };
 
 function rowsFor(table: ArtworkTable): QueryRows {
-    if (table === animeArtworkCache) {
-        return state.cache;
+    if (table === animeArtworkSync) {
+        return state.sync;
     }
     if (table === animeArtwork) {
         return state.images;
@@ -140,8 +140,8 @@ const db: TestDb = {
                     onConflictDoUpdate: async () => {
                         if (table === animeArtwork) {
                             state.images = values as ImageRow[];
-                        } else if (table === animeArtworkCache) {
-                            state.cache = (Array.isArray(values) ? values : [values]) as CacheRow[];
+                        } else if (table === animeArtworkSync) {
+                            state.sync = (Array.isArray(values) ? values : [values]) as SyncRow[];
                         }
                     },
                 }),
@@ -216,7 +216,7 @@ const { selectArtwork } = await import('./media');
 const anime = { id: mapping.animeId } as AniListAnime;
 
 beforeEach(() => {
-    state.cache = [];
+    state.sync = [];
     state.images = [];
     state.preference = null;
     state.payload = { backdrops: [], logos: [] };
@@ -239,7 +239,7 @@ describe('TMDB anime artwork', () => {
         const artwork = await getArtwork(anime, { refresh: true });
 
         expect(state.fetchCount).toBe(2);
-        expect(state.cache).toEqual([{ externalIdId: 100, allLanguages: true }]);
+        expect(state.sync).toEqual([{ externalIdId: 100, allLanguages: true }]);
         expect(state.images.map(({ filePath }) => filePath)).toEqual([
             '/backdrop.jpg',
             '/logo.png',
@@ -259,7 +259,7 @@ describe('TMDB anime artwork', () => {
         expect(state.fetchQueries).toEqual([null, { include_image_language: 'en-US,en,null,xx' }]);
     });
 
-    test('fetches TMDB placeholder-language images added after the initial artwork cache', async () => {
+    test('fetches TMDB placeholder-language images added after the initial artwork sync', async () => {
         state.localizedPayload = { backdrops: [], logos: [] };
         state.placeholderPayload = {
             backdrops: [{ file_path: '/new-backdrop.jpg', width: 3840, height: 2160 }],
@@ -347,7 +347,7 @@ describe('TMDB anime artwork', () => {
             ...image,
             vote_average: 7,
         }));
-        state.cache = [];
+        state.sync = [];
         state.images = [];
 
         const tiedArtwork = await getArtwork(anime, { refresh: true });
@@ -355,7 +355,7 @@ describe('TMDB anime artwork', () => {
     });
 
     test('keeps saved backdrop and logo preferences authoritative', async () => {
-        state.cache = [{ externalIdId: 100, allLanguages: true }];
+        state.sync = [{ externalIdId: 100, allLanguages: true }];
         state.images = [
             {
                 externalIdId: 100,
@@ -420,7 +420,7 @@ describe('TMDB anime artwork', () => {
     });
 
     test('updates movie episode fallback artwork when selecting a backdrop', async () => {
-        state.cache = [{ externalIdId: 100, allLanguages: true }];
+        state.sync = [{ externalIdId: 100, allLanguages: true }];
         state.images = [
             {
                 externalIdId: 100,
@@ -443,7 +443,7 @@ describe('TMDB anime artwork', () => {
 
     test('does not replace TV episode artwork when selecting a backdrop', async () => {
         state.format = 'TV';
-        state.cache = [{ externalIdId: 100, allLanguages: true }];
+        state.sync = [{ externalIdId: 100, allLanguages: true }];
         state.images = [
             {
                 externalIdId: 100,

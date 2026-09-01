@@ -44,10 +44,10 @@ const resolutionDeadlineMs = 30_000;
 const resolutionConcurrency = 4;
 const maxTextBytes = 2 * 1024 * 1024;
 const failedSources = new Map<string, number>();
-const seriesCacheTtlMs = 5 * 60_000;
-const failedSeriesCacheTtlMs = 30_000;
+const seriesRequestLifetimeMs = 5 * 60_000;
+const failedSeriesRequestLifetimeMs = 30_000;
 const providerCooldownMs = 30_000;
-const seriesCache = new Map<number, { expiresAt: number; request: Promise<AniKotoSeries> }>();
+const seriesRequests = new Map<number, { expiresAt: number; request: Promise<AniKotoSeries> }>();
 const providerCooldownUntil = new Map<string, number>();
 let providerRequestTail = Promise.resolve();
 let lastProviderRequestAt = 0;
@@ -1139,12 +1139,12 @@ export async function recordAniKotoInventoryVerification(
 
 async function loadSeries(id: number) {
     const now = Date.now();
-    const cached = seriesCache.get(id);
-    if (cached) {
-        if (cached.expiresAt > now) {
-            return cached.request;
+    const storedRequest = seriesRequests.get(id);
+    if (storedRequest) {
+        if (storedRequest.expiresAt > now) {
+            return storedRequest.request;
         }
-        seriesCache.delete(id);
+        seriesRequests.delete(id);
     }
 
     const request = requestJson(new URL(`/series/${id}`, catalogUrl)).then((value) => {
@@ -1154,11 +1154,11 @@ async function loadSeries(id: number) {
         }
         return series;
     });
-    const entry = { expiresAt: now + seriesCacheTtlMs, request };
-    seriesCache.set(id, entry);
+    const entry = { expiresAt: now + seriesRequestLifetimeMs, request };
+    seriesRequests.set(id, entry);
     void request.catch(() => {
-        if (seriesCache.get(id) === entry) {
-            entry.expiresAt = Date.now() + failedSeriesCacheTtlMs;
+        if (seriesRequests.get(id) === entry) {
+            entry.expiresAt = Date.now() + failedSeriesRequestLifetimeMs;
         }
     });
     return request;

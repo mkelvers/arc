@@ -11,7 +11,7 @@ import { AnimeCardPageSchema } from '@arc/shared/types';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { db } from '@arc/db';
-import { animeCatalog, animeSimulcastPageCache } from '@arc/db/schema';
+import { animeCatalog, animeSimulcastPage } from '@arc/db/schema';
 import { getAniKotoSimulcastPage } from './providers/anikoto';
 
 const provider = 'anikoto';
@@ -51,7 +51,7 @@ export async function refreshSimulcastPage(selection: AnimeSeasonSelection, page
     const result = await getAniKotoSimulcastPage(selection, page);
     const data = AnimeCardPageSchema.parse(result);
     await db
-        .insert(animeSimulcastPageCache)
+        .insert(animeSimulcastPage)
         .values({
             provider,
             season: selection.season,
@@ -62,10 +62,10 @@ export async function refreshSimulcastPage(selection: AnimeSeasonSelection, page
         })
         .onConflictDoUpdate({
             target: [
-                animeSimulcastPageCache.provider,
-                animeSimulcastPageCache.season,
-                animeSimulcastPageCache.year,
-                animeSimulcastPageCache.page,
+                animeSimulcastPage.provider,
+                animeSimulcastPage.season,
+                animeSimulcastPage.year,
+                animeSimulcastPage.page,
             ],
             set: {
                 data,
@@ -81,19 +81,19 @@ async function simulcastPage(selection: AnimeSeasonSelection, page: number) {
     }
 
     const [stored] = await db
-        .select({ data: animeSimulcastPageCache.data })
-        .from(animeSimulcastPageCache)
+        .select({ data: animeSimulcastPage.data })
+        .from(animeSimulcastPage)
         .where(
             and(
-                eq(animeSimulcastPageCache.provider, provider),
-                eq(animeSimulcastPageCache.season, selection.season),
-                eq(animeSimulcastPageCache.year, selection.year),
-                eq(animeSimulcastPageCache.page, page)
+                eq(animeSimulcastPage.provider, provider),
+                eq(animeSimulcastPage.season, selection.season),
+                eq(animeSimulcastPage.year, selection.year),
+                eq(animeSimulcastPage.page, page)
             )
         )
         .limit(1);
-    const cached = AnimeCardPageSchema.safeParse(stored?.data);
-    return cached.success ? cached.data : refreshSimulcastPage(selection, page);
+    const parsed = AnimeCardPageSchema.safeParse(stored?.data);
+    return parsed.success ? parsed.data : refreshSimulcastPage(selection, page);
 }
 
 export async function refreshCurrentSimulcast(now = new Date()) {

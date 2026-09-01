@@ -4,14 +4,15 @@ import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { db, type DatabaseTransaction } from '@arc/db';
-import { anilistQueryCache } from '@arc/db/schema';
+import { anilistQuerySnapshot } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
 import { coordinatedAniListRequest } from './durable-request-policy';
+import { shouldUseQuerySnapshot } from './snapshot-policy';
 
 interface RequestOptions {
-    cacheForMs?: number;
+    refreshAfterMs?: number;
     timeoutMs?: number;
     forceRefresh?: boolean;
 }
@@ -31,7 +32,7 @@ function canonical(value: JsonValue): JsonValue {
     return value;
 }
 
-function cacheKey<TVariables>(document: { toString(): string }, variables: TVariables) {
+function querySnapshotKey<TVariables>(document: { toString(): string }, variables: TVariables) {
     const parsedVariables = z.json().parse(JSON.parse(JSON.stringify(variables)));
     const serializedVariables = JSON.stringify(canonical(parsedVariables)) ?? 'null';
     return createHash('sha256')
@@ -53,18 +54,20 @@ async function refresh<TResult, TVariables>(
         graphql('https://graphql.anilist.co', document, variables, { timeoutMs: options.timeoutMs })
     );
     const fetchedAt = new Date();
-    const expiresAt = new Date(fetchedAt.getTime() + (options.cacheForMs ?? 24 * 60 * 60 * 1_000));
+    const refreshAfter = new Date(
+        fetchedAt.getTime() + (options.refreshAfterMs ?? 24 * 60 * 60 * 1_000)
+    );
 
     try {
         await tx
-            .insert(anilistQueryCache)
-            .values({ key, data, expiresAt, fetchedAt })
+            .insert(anilistQuerySnapshot)
+            .values({ key, data, refreshAfter, fetchedAt })
             .onConflictDoUpdate({
-                target: anilistQueryCache.key,
-                set: { data, expiresAt, fetchedAt },
+                target: anilistQuerySnapshot.key,
+                set: { data, refreshAfter, fetchedAt },
             });
     } catch (cause) {
-        logger.debug('AniList query cache write failed', cause);
+        logger.debug('AniList query snapshot write failed', cause);
     }
 
     return data;
@@ -82,23 +85,41 @@ async function refreshWithLock<TResult, TVariables>(
 
         const [stored] = await tx
             .select({
-                data: anilistQueryCache.data,
-                fetchedAt: anilistQueryCache.fetchedAt,
+                data: anilistQuerySnapshot.data,
+                fetchedAt: anilistQuerySnapshot.fetchedAt,
+                refreshAfter: anilistQuerySnapshot.refreshAfter,
             })
-            .from(anilistQueryCache)
-            .where(eq(anilistQueryCache.key, key))
+            .from(anilistQuerySnapshot)
+            .where(eq(anilistQuerySnapshot.key, key))
             .limit(1);
+        let storedObject: ReturnType<typeof record> = null;
         if (stored) {
             const parsedStored = z.json().safeParse(stored.data);
-            const object = parsedStored.success ? record(parsedStored.data) : null;
-            if (!object) {
-                await tx.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
-            } else if (!options.forceRefresh || stored.fetchedAt >= requestedAt) {
-                return object as TResult;
+            storedObject = parsedStored.success ? record(parsedStored.data) : null;
+            if (!storedObject) {
+                await tx.delete(anilistQuerySnapshot).where(eq(anilistQuerySnapshot.key, key));
+            } else if (
+                shouldUseQuerySnapshot(
+                    stored,
+                    requestedAt,
+                    options.forceRefresh === true,
+                    requestedAt
+                )
+            ) {
+                return storedObject as TResult;
             }
         }
 
-        return refresh(tx, key, document, variables, options);
+        try {
+            return await refresh(tx, key, document, variables, options);
+        } catch (cause) {
+            if (storedObject && !options.forceRefresh) {
+                logger.debug('AniList query snapshot refresh failed; using stored data', cause);
+                return storedObject as TResult;
+            }
+
+            throw cause;
+        }
     });
 }
 
@@ -107,36 +128,43 @@ export async function request<TResult, TVariables>(
     variables: TVariables,
     options: RequestOptions = {}
 ) {
-    const freshFor = options.cacheForMs ?? 24 * 60 * 60 * 1_000;
-    if (!Number.isSafeInteger(freshFor) || freshFor <= 0) {
-        throw new RangeError('AniList cache lifetime must be a positive integer');
+    const refreshAfterMs = options.refreshAfterMs ?? 24 * 60 * 60 * 1_000;
+    if (!Number.isSafeInteger(refreshAfterMs) || refreshAfterMs <= 0) {
+        throw new RangeError('AniList snapshot refresh interval must be a positive integer');
     }
 
-    const key = cacheKey(document, variables);
+    const key = querySnapshotKey(document, variables);
+    const requestedAt = new Date();
     try {
         const [stored] = await db
             .select({
-                data: anilistQueryCache.data,
-                expiresAt: anilistQueryCache.expiresAt,
+                data: anilistQuerySnapshot.data,
+                fetchedAt: anilistQuerySnapshot.fetchedAt,
+                refreshAfter: anilistQuerySnapshot.refreshAfter,
             })
-            .from(anilistQueryCache)
-            .where(eq(anilistQueryCache.key, key))
+            .from(anilistQuerySnapshot)
+            .where(eq(anilistQuerySnapshot.key, key))
             .limit(1);
 
         if (stored) {
             const parsedStored = z.json().safeParse(stored.data);
             const object = parsedStored.success ? record(parsedStored.data) : null;
             if (!object) {
-                await db.delete(anilistQueryCache).where(eq(anilistQueryCache.key, key));
-            } else {
-                if (!options.forceRefresh) {
-                    return object as TResult;
-                }
+                await db.delete(anilistQuerySnapshot).where(eq(anilistQuerySnapshot.key, key));
+            } else if (
+                shouldUseQuerySnapshot(
+                    stored,
+                    requestedAt,
+                    options.forceRefresh === true,
+                    requestedAt
+                )
+            ) {
+                return object as TResult;
             }
         }
     } catch (cause) {
-        logger.debug('AniList query cache read failed', cause);
+        logger.debug('AniList query snapshot read failed', cause);
     }
 
-    return refreshWithLock(key, document, variables, options, new Date());
+    return refreshWithLock(key, document, variables, options, requestedAt);
 }

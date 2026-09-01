@@ -6,17 +6,12 @@ import {
     type FranchiseMediaQuery,
 } from '@arc/shared/anilist/generated/graphql';
 import { db, type DatabaseTransaction } from '@arc/db';
-import {
-    animeEpisode,
-    animeFranchiseCache,
-    animeProviderMapping,
-    animeRelease,
-} from '@arc/db/schema';
+import { animeEpisode, animeFranchise, animeProviderMapping, animeRelease } from '@arc/db/schema';
 import { request } from './anilist/client';
 import { plainText, present } from './anilist/text';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
-import { FranchiseCacheSchema, verifiedFranchiseCache } from './franchise/cache';
+import { FranchiseRecordSchema, verifiedFranchiseRecord } from './franchise/record';
 import { withFranchisePlayback } from './franchise/playback';
 import { logger } from '@arc/backend/internal/logger';
 import {
@@ -40,7 +35,7 @@ async function fetchMetadata(entries: ChiakiEntry[]) {
         const result = await request(
             FranchiseMediaDocument,
             { malIds: malIds.slice(offset, offset + 50) },
-            { cacheForMs: 7 * 24 * 60 * 60 * 1_000 }
+            { refreshAfterMs: 7 * 24 * 60 * 60 * 1_000 }
         );
 
         for (const media of present(result.Page?.media)) {
@@ -128,28 +123,28 @@ function currentPrimaryFlags(entries: FranchiseOrder['entries']) {
 
 async function saveOrder(tx: DatabaseTransaction, malId: number, data: FranchiseOrder) {
     const fetchedAt = new Date();
-    const cached = verifiedFranchiseCache(data, fetchedAt);
+    const storedRecord = verifiedFranchiseRecord(data, fetchedAt);
 
     try {
         // Concurrent refreshes of the same franchise upsert this identical row set; insert in a
         // deterministic order so they lock the same tuples in the same order instead of deadlocking.
         await tx
-            .insert(animeFranchiseCache)
+            .insert(animeFranchise)
             .values(
                 [...new Set([malId, ...data.entries.map((entry) => entry.malId)])]
                     .sort((left, right) => left - right)
                     .map((entryMalId) => ({
                         malId: entryMalId,
-                        data: cached,
+                        data: storedRecord,
                         fetchedAt,
                     }))
             )
             .onConflictDoUpdate({
-                target: animeFranchiseCache.malId,
-                set: { data: cached, fetchedAt },
+                target: animeFranchise.malId,
+                set: { data: storedRecord, fetchedAt },
             });
     } catch (cause) {
-        logger.debug(`Franchise cache write failed for MAL ${malId}`, cause);
+        logger.debug(`Franchise record write failed for MAL ${malId}`, cause);
     }
 }
 
@@ -253,22 +248,22 @@ async function refresh(tx: DatabaseTransaction, malId: number) {
     return data;
 }
 
-async function cachedFranchiseOrder(malId: number) {
+async function storedFranchiseOrder(malId: number) {
     let stored: { data: unknown } | undefined;
 
     try {
         [stored] = await db
             .select({
-                data: animeFranchiseCache.data,
+                data: animeFranchise.data,
             })
-            .from(animeFranchiseCache)
-            .where(eq(animeFranchiseCache.malId, malId))
+            .from(animeFranchise)
+            .where(eq(animeFranchise.malId, malId))
             .limit(1);
     } catch (cause) {
-        logger.debug(`Franchise cache read failed for MAL ${malId}`, cause);
+        logger.debug(`Franchise record read failed for MAL ${malId}`, cause);
     }
 
-    const parsedStored = stored ? FranchiseCacheSchema.safeParse(stored.data) : null;
+    const parsedStored = stored ? FranchiseRecordSchema.safeParse(stored.data) : null;
     return parsedStored?.success ? parsedStored.data.order : null;
 }
 
@@ -280,11 +275,11 @@ export async function refreshFranchiseOrder(malId: number, options: { force?: bo
 
         if (!options.force) {
             const [stored] = await tx
-                .select({ data: animeFranchiseCache.data })
-                .from(animeFranchiseCache)
-                .where(eq(animeFranchiseCache.malId, malId))
+                .select({ data: animeFranchise.data })
+                .from(animeFranchise)
+                .where(eq(animeFranchise.malId, malId))
                 .limit(1);
-            const parsed = stored ? FranchiseCacheSchema.safeParse(stored.data) : null;
+            const parsed = stored ? FranchiseRecordSchema.safeParse(stored.data) : null;
             if (parsed?.success) {
                 return parsed.data.order;
             }
@@ -295,7 +290,7 @@ export async function refreshFranchiseOrder(malId: number, options: { force?: bo
 }
 
 export async function getFranchiseOrder(malId: number): Promise<FranchiseOrder | null> {
-    let order = await cachedFranchiseOrder(malId);
+    let order = await storedFranchiseOrder(malId);
     if (!order || !order.entries.some((entry) => entry.malId === malId)) {
         order = await refreshFranchiseOrder(malId);
     }

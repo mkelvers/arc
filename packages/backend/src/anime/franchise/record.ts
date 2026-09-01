@@ -31,7 +31,7 @@ const franchiseOrderSchema = z
     })
     .transform((value) => value as FranchiseOrder);
 
-export const FranchiseCacheSchema = z.object({
+export const FranchiseRecordSchema = z.object({
     order: franchiseOrderSchema,
     membershipSource: z.literal('chiaki'),
     identitySource: z.literal('arc'),
@@ -40,7 +40,7 @@ export const FranchiseCacheSchema = z.object({
         .refine((value) => !Number.isNaN(Date.parse(value)), 'Invalid verification timestamp'),
 });
 
-export function verifiedFranchiseCache(order: FranchiseOrder, verifiedAt: Date) {
+export function verifiedFranchiseRecord(order: FranchiseOrder, verifiedAt: Date) {
     return {
         order,
         membershipSource: 'chiaki' as const,

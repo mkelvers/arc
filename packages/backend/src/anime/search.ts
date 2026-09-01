@@ -14,7 +14,7 @@ async function requestSearch(search: string) {
     const response = await request(
         SearchAnimePageDocument,
         { search, page: 1, perPage: 50 },
-        { cacheForMs: 24 * 60 * 60 * 1_000 }
+        { refreshAfterMs: 24 * 60 * 60 * 1_000 }
     );
     const results = present(response.Page?.media).flatMap((entry) => {
         const card = animeCard(entry);
