@@ -110,38 +110,24 @@
             </a>
         </div>
         <div
-            class="pointer-events-none absolute inset-0 flex flex-col bg-surface p-4 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+            class="pointer-events-none absolute inset-0 flex flex-col bg-surface p-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
         >
-            <a
-                href={anime.href}
-                class="absolute inset-0 z-0"
-                aria-label={m.shared_view({ title: anime.title })}
-                onclick={onselect}
-            >
-                <span class="sr-only">{m.shared_view({ title: anime.title })}</span>
-            </a>
-            <h3 class="pointer-events-none relative z-10 line-clamp-2 text-sm leading-snug font-semibold">
-                {anime.title}
-            </h3>
-            {#if anime.score}<p
-                    class="pointer-events-none relative z-10 mt-2.5 flex items-center gap-1 text-sm text-muted"
-                >
-                    <span>{anime.score}%</span>
-                    <StarIcon size="1em" weight="fill" aria-hidden="true" />
-                    <span class="sr-only">{m.shared_anilist_score()}</span>
-                </p>{/if}
-            {#if anime.genres.length}<p
-                    class="pointer-events-none relative z-10 mt-2.5 line-clamp-1 text-xs text-muted"
-                >
-                    {anime.genres.slice(0, 4).join(' · ')}
-                </p>{/if}
-            {#if anime.synopsis}<p
-                    class="pointer-events-none relative z-10 mt-3 line-clamp-4 text-xs leading-relaxed text-muted"
-                >
-                    {anime.synopsis}
-                </p>{/if}
+            <div class="pointer-events-none" aria-hidden="true">
+                <h3 class="line-clamp-2 text-sm leading-snug font-semibold">{anime.title}</h3>
+                {#if anime.score}<p class="mt-2.5 flex items-center gap-1 text-sm text-muted">
+                        <span>{anime.score}%</span>
+                        <StarIcon size="1em" weight="fill" aria-hidden="true" />
+                        <span class="sr-only">{m.shared_anilist_score()}</span>
+                    </p>{/if}
+                {#if anime.genres.length}<p class="mt-2.5 line-clamp-1 text-xs text-muted">
+                        {anime.genres.slice(0, 4).join(' · ')}
+                    </p>{/if}
+                {#if anime.synopsis}<p class="mt-3 line-clamp-4 text-xs leading-relaxed text-muted">
+                        {anime.synopsis}
+                    </p>{/if}
+            </div>
             {#if showActions}
-                <div class="relative z-10 mt-auto flex items-center gap-2 pt-3 text-accent">
+                <div class="pointer-events-auto relative z-10 mt-auto flex items-center gap-2 pt-3 text-accent">
                     <Tooltip text={m.shared_play_episode()}>
                         <a
                             href={anime.link}
@@ -194,42 +180,26 @@
             />
         {/if}
         <div
-            class="pointer-events-none absolute -inset-2 flex flex-col bg-header-hover/95 p-4 pt-6 opacity-0 transition-opacity duration-150 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+            class="pointer-events-none absolute -inset-2 flex flex-col bg-header-hover/95 p-4 pt-6 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
         >
-            <a
-                href={anime.href}
-                class="absolute inset-0 z-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                aria-current={current ? 'page' : undefined}
-                aria-label={m.shared_view({ title: anime.title })}
-                onclick={onselect}
-            >
-                <span class="sr-only">{m.shared_view({ title: anime.title })}</span>
-            </a>
-            <h3
-                class:line-clamp-2={truncateTitle}
-                class="pointer-events-none relative z-10 text-sm leading-snug font-semibold"
-            >
-                {anime.title}
-            </h3>
-            {#if anime.score}<p
-                    class="pointer-events-none relative z-10 mt-3 flex items-center gap-1 text-sm text-muted"
-                >
-                    <span>{anime.score}%</span>
-                    <StarIcon size="1em" weight="fill" aria-hidden="true" />
-                    <span class="sr-only">{m.shared_anilist_score()}</span>
-                </p>{/if}
-            {#if anime.genres.length}<p
-                    class="pointer-events-none relative z-10 mt-3 line-clamp-1 text-xs text-muted"
-                >
-                    {anime.genres.slice(0, 2).join(' · ')}
-                </p>{/if}
-            {#if anime.synopsis}<p
-                    class="pointer-events-none relative z-10 mt-3 line-clamp-6 text-xs leading-relaxed text-muted"
-                >
-                    {anime.synopsis}
-                </p>{/if}
+            <div class="pointer-events-none" aria-hidden="true">
+                <h3 class:line-clamp-2={truncateTitle} class="text-sm leading-snug font-semibold">
+                    {anime.title}
+                </h3>
+                {#if anime.score}<p class="mt-3 flex items-center gap-1 text-sm text-muted">
+                        <span>{anime.score}%</span>
+                        <StarIcon size="1em" weight="fill" aria-hidden="true" />
+                        <span class="sr-only">{m.shared_anilist_score()}</span>
+                    </p>{/if}
+                {#if anime.genres.length}<p class="mt-3 line-clamp-1 text-xs text-muted">
+                        {anime.genres.slice(0, 2).join(' · ')}
+                    </p>{/if}
+                {#if anime.synopsis}<p class="mt-3 line-clamp-6 text-xs leading-relaxed text-muted">
+                        {anime.synopsis}
+                    </p>{/if}
+            </div>
             {#if showActions}
-                <div class="mt-auto flex items-center gap-2 pt-3 text-accent">
+                <div class="pointer-events-auto mt-auto flex items-center gap-2 pt-3 text-accent">
                     <Tooltip text={m.shared_play_episode()}>
                         <a
                             href={anime.link}
