@@ -23,6 +23,7 @@
         triggerClass?: string;
         contentClass?: string;
         rootClass?: string;
+        closeOnSelection?: boolean;
     }
 
     let {
@@ -39,14 +40,23 @@
         triggerClass = 'block min-h-11 cursor-pointer px-3 transition-colors hover:bg-panel data-[state=open]:bg-panel',
         contentClass = 'bg-panel',
         rootClass = '',
+        closeOnSelection = true,
     }: Props = $props();
     let open = $state(false);
     let root = $state<HTMLDivElement>();
     let menu = $state<HTMLDivElement>();
     let triggerElement = $state<HTMLButtonElement>();
 
-    function closeOnSelection(event: MouseEvent) {
-        if (event.target instanceof Element && event.target.closest('a, button')) {
+    function closeOnContentSelection(event: MouseEvent) {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        if (!closeOnSelection && !event.target.closest('[data-dropdown-close]')) {
+            return;
+        }
+
+        if (event.target.closest('a, button')) {
             open = false;
         }
     }
@@ -159,7 +169,7 @@
             role={content ? 'group' : 'menu'}
             aria-label={content ? ariaLabel : undefined}
             class={contentClass}
-            onclick={closeOnSelection}
+            onclick={closeOnContentSelection}
         >
             {#if content}
                 {@render content()}
