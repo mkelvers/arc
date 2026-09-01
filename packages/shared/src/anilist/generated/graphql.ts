@@ -266,6 +266,16 @@ export type RecentAiringPageQueryVariables = Exact<{
 
 export type RecentAiringPageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, airingSchedules: Array<{ episode: number, airingAt: number, media: { id: number, description: string | null, genres: Array<string | null> | null, format: MediaFormat | null, status: MediaStatus | null, isAdult: boolean | null, averageScore: number | null, popularity: number | null, duration: number | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null } | null> | null } | null };
 
+export type ReleaseCalendarPageQueryVariables = Exact<{
+  page: number;
+  perPage: number;
+  airingAtGreater: number;
+  airingAtLesser: number;
+}>;
+
+
+export type ReleaseCalendarPageQuery = { Page: { pageInfo: { hasNextPage: boolean | null } | null, airingSchedules: Array<{ id: number, episode: number, airingAt: number, media: { id: number, isAdult: boolean | null, description: string | null, title: { english: string | null, romaji: string | null, native: string | null } | null, coverImage: { extraLarge: string | null, large: string | null } | null } | null } | null> | null } | null };
+
 export type SearchAnimePageQueryVariables = Exact<{
   search: string;
   page: number;
@@ -713,6 +723,38 @@ export const RecentAiringPageDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<RecentAiringPageQuery, RecentAiringPageQueryVariables>;
+export const ReleaseCalendarPageDocument = new TypedDocumentString(`
+    query ReleaseCalendarPage($page: Int!, $perPage: Int!, $airingAtGreater: Int!, $airingAtLesser: Int!) {
+  Page(page: $page, perPage: $perPage) {
+    pageInfo {
+      hasNextPage
+    }
+    airingSchedules(
+      airingAt_greater: $airingAtGreater
+      airingAt_lesser: $airingAtLesser
+      sort: TIME
+    ) {
+      id
+      episode
+      airingAt
+      media {
+        id
+        isAdult
+        description(asHtml: false)
+        title {
+          english
+          romaji
+          native
+        }
+        coverImage {
+          extraLarge
+          large
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ReleaseCalendarPageQuery, ReleaseCalendarPageQueryVariables>;
 export const SearchAnimePageDocument = new TypedDocumentString(`
     query SearchAnimePage($search: String!, $page: Int!, $perPage: Int!) {
   Page(page: $page, perPage: $perPage) {

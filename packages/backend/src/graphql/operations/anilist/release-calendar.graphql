@@ -1,0 +1,35 @@
+query ReleaseCalendarPage(
+    $page: Int!
+    $perPage: Int!
+    $airingAtGreater: Int!
+    $airingAtLesser: Int!
+) {
+    Page(page: $page, perPage: $perPage) {
+        pageInfo {
+            hasNextPage
+        }
+        airingSchedules(
+            airingAt_greater: $airingAtGreater
+            airingAt_lesser: $airingAtLesser
+            sort: TIME
+        ) {
+            id
+            episode
+            airingAt
+            media {
+                id
+                isAdult
+                description(asHtml: false)
+                title {
+                    english
+                    romaji
+                    native
+                }
+                coverImage {
+                    extraLarge
+                    large
+                }
+            }
+        }
+    }
+}
