@@ -18,6 +18,16 @@
     let { episode, title, image = null, current = false, context = 'detail' }: Props = $props();
     const dialog = $derived(context === 'dialog');
     const heading = $derived(episode.title ? `${episode.label} – ${episode.title}` : episode.label);
+    const progress = $derived(
+        episode.progress
+            ? episode.progress.completed
+                ? 100
+                : Math.min(
+                      100,
+                      Math.max(0, (episode.progress.positionSeconds / episode.progress.durationSeconds) * 100)
+                  )
+            : 0
+    );
 </script>
 
 {#if context === 'watch'}
@@ -89,6 +99,18 @@
                     >
                         {episode.duration}
                     </span>
+                {/if}
+                {#if episode.progress}
+                    <div
+                        class="absolute right-0 bottom-0 left-0 z-10 h-1 bg-black/60"
+                        role="progressbar"
+                        aria-label={`${episode.label} progress`}
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow={Math.round(progress)}
+                    >
+                        <div class="h-full bg-accent" style:width={`${progress}%`}></div>
+                    </div>
                 {/if}
             </div>
 
