@@ -7,7 +7,9 @@ function isSimpleExpression(
     node: ESTree.Node,
     visitorKeys: Readonly<Record<string, readonly string[]>>
 ): boolean {
-    if ((node.type as string) === 'Literal') return true;
+    if ((node.type as string) === 'Literal') {
+        return !('regex' in (node as unknown as Record<string, unknown>));
+    }
 
     if (
         node.type === 'Identifier' ||
@@ -17,7 +19,6 @@ function isSimpleExpression(
         node.type === 'NumericLiteral' ||
         node.type === 'StringLiteral' ||
         node.type === 'BigIntLiteral' ||
-        node.type === 'RegExpLiteral' ||
         node.type === 'TemplateLiteral'
     ) {
         return true;
@@ -144,7 +145,7 @@ function isCandidate(
         visitorKeys: Readonly<Record<string, readonly string[]>>;
     }
 ): boolean {
-    if (node.async || node.params.length === 0 || isExported(node, sourceCode.getAncestors(node))) {
+    if (node.async || node.params.length !== 1 || isExported(node, sourceCode.getAncestors(node))) {
         return false;
     }
 
