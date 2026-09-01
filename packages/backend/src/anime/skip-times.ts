@@ -278,7 +278,9 @@ export async function saveEpisodeSegment(save: SegmentSave) {
                         animeEpisodeSegmentTemplate.kind,
                         animeEpisodeSegmentTemplate.episodeFrom,
                     ],
-                    set: { durationSeconds: save.interval.end - save.interval.start },
+                    set: {
+                        durationSeconds: save.interval.end - save.interval.start,
+                    },
                 });
         }
 

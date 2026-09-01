@@ -262,7 +262,11 @@ async function fetchPosterCandidates(anime: AniListAnime, match: StoredMapping) 
 
     if (match.mediaType === 'movie') {
         const { data, error } = await client.GET('/3/movie/{movie_id}/images', {
-            params: { path: { movie_id: match.id } },
+            params: {
+                path: {
+                    movie_id: match.id,
+                },
+            },
         });
         if (!data) {
             throw new Error('TMDB movie poster request failed', { cause: error });
@@ -272,7 +276,14 @@ async function fetchPosterCandidates(anime: AniListAnime, match: StoredMapping) 
     }
 
     const { data: series, error } = await client.GET('/3/tv/{series_id}', {
-        params: { path: { series_id: match.id }, query: { language: 'en-US' } },
+        params: {
+            path: {
+                series_id: match.id,
+            },
+            query: {
+                language: 'en-US',
+            },
+        },
     });
     if (!series) {
         throw new Error('TMDB series poster request failed', { cause: error });
@@ -285,7 +296,11 @@ async function fetchPosterCandidates(anime: AniListAnime, match: StoredMapping) 
 
     if (selection.aggregate) {
         const { data, error: imagesError } = await client.GET('/3/tv/{series_id}/images', {
-            params: { path: { series_id: match.id } },
+            params: {
+                path: {
+                    series_id: match.id,
+                },
+            },
         });
         if (!data) {
             throw new Error('TMDB series images request failed', { cause: imagesError });
@@ -296,7 +311,14 @@ async function fetchPosterCandidates(anime: AniListAnime, match: StoredMapping) 
 
     const { data, error: imagesError } = await client.GET(
         '/3/tv/{series_id}/season/{season_number}/images',
-        { params: { path: { series_id: match.id, season_number: selection.season.season_number } } }
+        {
+            params: {
+                path: {
+                    series_id: match.id,
+                    season_number: selection.season.season_number,
+                },
+            },
+        }
     );
     if (!data) {
         throw new Error('TMDB season poster request failed', { cause: imagesError });
@@ -311,7 +333,11 @@ async function fetchPosterCandidates(anime: AniListAnime, match: StoredMapping) 
 async function fetchSeriesPosterCandidates(match: StoredMapping) {
     const client = create();
     const { data, error } = await client.GET('/3/tv/{series_id}/images', {
-        params: { path: { series_id: match.id } },
+        params: {
+            path: {
+                series_id: match.id,
+            },
+        },
     });
     if (!data) {
         throw new Error('TMDB series images request failed', { cause: error });

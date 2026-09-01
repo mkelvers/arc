@@ -19,7 +19,10 @@ describe('watchlist transfer', () => {
                         status: 'completed',
                         added_at: '2026-07-12T18:55:06.321Z',
                         updated_at: '2026-08-13T20:14:02.123Z',
-                        titles: { preferred: 'ONE PIECE', romaji: 'One Piece' },
+                        titles: {
+                            preferred: 'ONE PIECE',
+                            romaji: 'One Piece',
+                        },
                     },
                 ],
             })

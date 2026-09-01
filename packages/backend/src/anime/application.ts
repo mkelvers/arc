@@ -148,7 +148,10 @@ export async function mediaPage(id: number) {
     const anime = existing ?? (await getAnimeRelease(id));
     return {
         anime: toAnimeDetails(anime),
-        artwork: await getArtwork(anime, { refresh: true, fetchMissing: true }).catch(() => null),
+        artwork: await getArtwork(anime, {
+            refresh: true,
+            fetchMissing: true,
+        }).catch(() => null),
     };
 }
 
@@ -194,7 +197,10 @@ async function episodePlayback(
             `Playback source resolution failed for AniList ${anime.id} episode ${episode.number}`,
             cause
         );
-        return { streams: {}, error: true };
+        return {
+            streams: {},
+            error: true,
+        };
     }
 }
 

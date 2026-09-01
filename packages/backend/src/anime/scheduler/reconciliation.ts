@@ -6,10 +6,6 @@ import { discoverAiringAnime, type AiringAnime } from '../anilist/airing';
 import { airingTargetSchedules } from './airing-policy';
 import { scheduleAiringTargets, scheduleReleaseTargets } from './targets';
 
-export function scheduleAiringSnapshotTargets(snapshot: AiringAnime[]) {
-    return scheduleAiringTargets(airingTargetSchedules(snapshot));
-}
-
 async function enqueueReleaseRequests(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)];
     if (!ids.length) {
@@ -95,7 +91,7 @@ export async function reconcileAllAiringReleases(now = new Date()) {
         ...noLongerAiring.map(({ anilistId }) => anilistId),
     ]);
 
-    const latestTargets = await scheduleAiringSnapshotTargets(snapshot);
+    const latestTargets = await scheduleAiringTargets(airingTargetSchedules(snapshot));
     return {
         discovered: snapshot.length,
         releaseRequests,

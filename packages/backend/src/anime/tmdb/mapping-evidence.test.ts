@@ -12,7 +12,11 @@ import type { AniListAnime } from '../anilist/types';
 
 const anime = {
     duration: 24,
-    endDate: { year: 2023, month: 11, day: 1 },
+    endDate: {
+        year: 2023,
+        month: 11,
+        day: 1,
+    },
     episodes: 3,
     format: 'OVA',
     relations: {
@@ -28,7 +32,11 @@ const anime = {
             },
         ],
     },
-    startDate: { year: 2023, month: 11, day: 1 },
+    startDate: {
+        year: 2023,
+        month: 11,
+        day: 1,
+    },
     title: {
         english: 'That Time I Got Reincarnated as a Slime: Visions of Coleus',
         romaji: 'Tensei Shitara Slime Datta Ken: Coleus no Yume',
@@ -106,7 +114,11 @@ describe('TMDB TV release mapping evidence', () => {
     const santaClaus = {
         episodes: 13,
         format: 'TV',
-        startDate: { year: 2025, month: 7, day: 5 },
+        startDate: {
+            year: 2025,
+            month: 7,
+            day: 5,
+        },
         title: {
             english: 'Rascal Does Not Dream of Santa Claus',
             romaji: 'Seishun Buta Yarou wa Santa Claus no Yume wo Minai',
@@ -198,8 +210,16 @@ describe('TMDB TV release mapping evidence', () => {
         const frieren = {
             episodes: 10,
             format: 'ONA',
-            startDate: { year: 2026, month: 1, day: 16 },
-            endDate: { year: 2026, month: 3, day: 27 },
+            startDate: {
+                year: 2026,
+                month: 1,
+                day: 16,
+            },
+            endDate: {
+                year: 2026,
+                month: 3,
+                day: 27,
+            },
             title: {
                 english: 'Frieren: Beyond Journey’s End Season 2',
                 romaji: 'Sousou no Frieren 2nd Season',
@@ -260,8 +280,16 @@ describe('TMDB TV release mapping evidence', () => {
         const diamondAndPearl = {
             episodes: 191,
             format: 'TV',
-            startDate: { year: 2006, month: 9, day: 28 },
-            endDate: { year: 2010, month: 9, day: 9 },
+            startDate: {
+                year: 2006,
+                month: 9,
+                day: 28,
+            },
+            endDate: {
+                year: 2010,
+                month: 9,
+                day: 9,
+            },
         } as AniListAnime;
 
         expect(

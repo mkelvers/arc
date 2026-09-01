@@ -251,7 +251,10 @@ export async function saveVerifiedMapping(
             })
             .onConflictDoUpdate({
                 target: [animeExternalIdLink.animeId, animeExternalIdLink.externalIdId],
-                set: { verifiedAt, mappingRevision: 'tmdb-mapping-v10' },
+                set: {
+                    verifiedAt,
+                    mappingRevision: 'tmdb-mapping-v10',
+                },
             });
 
         return {

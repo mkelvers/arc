@@ -5,7 +5,11 @@ import { AniListAnimeSchema } from './types';
 const legacyRelease = {
     id: 1,
     idMal: null,
-    title: { english: 'Release', romaji: null, native: null },
+    title: {
+        english: 'Release',
+        romaji: null,
+        native: null,
+    },
     synonyms: [],
     bannerImage: null,
     description: null,
@@ -19,14 +23,20 @@ const legacyRelease = {
     episodes: 12,
     duration: 24,
     nextAiringEpisode: null,
-    relations: { edges: [] },
+    relations: {
+        edges: [],
+    },
     averageScore: null,
     popularity: null,
     favourites: null,
     rankings: [],
     tags: [],
-    studios: { nodes: [] },
-    staff: { edges: [] },
+    studios: {
+        nodes: [],
+    },
+    staff: {
+        edges: [],
+    },
 };
 
 describe('permanent AniList release validation', () => {

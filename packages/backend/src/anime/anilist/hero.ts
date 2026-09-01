@@ -7,11 +7,11 @@ import { request } from './client';
 import { present } from './text';
 import { eligibleHomeHeroCandidates } from '../home/selection';
 
-async function refreshCandidates(now: Date, forceRefresh = false) {
+export async function refreshHomeHeroCandidates(now = new Date()) {
     const response = await request(
         HomeHeroCandidatesDocument,
         { seasonYear: now.getUTCFullYear() },
-        { refreshAfterMs: 6 * 60 * 60 * 1_000, forceRefresh }
+        { refreshAfterMs: 6 * 60 * 60 * 1_000, forceRefresh: true }
     );
     const candidates = present(response.Page?.media).flatMap((media, index) => {
         if (
@@ -79,10 +79,6 @@ async function refreshCandidates(now: Date, forceRefresh = false) {
         averageScore,
         trendingRank,
     }));
-}
-
-export function refreshHomeHeroCandidates(now = new Date()) {
-    return refreshCandidates(now, true);
 }
 
 export async function getHomeHeroCandidates(now = new Date()) {

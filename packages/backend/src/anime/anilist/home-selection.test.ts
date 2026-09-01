@@ -8,13 +8,27 @@ describe('popular homepage anime selection', () => {
             {
                 id: 1,
                 relations: {
-                    edges: [{ relationType: 'SEQUEL', node: { id: 2 } }],
+                    edges: [
+                        {
+                            relationType: 'SEQUEL',
+                            node: {
+                                id: 2,
+                            },
+                        },
+                    ],
                 },
             },
             {
                 id: 2,
                 relations: {
-                    edges: [{ relationType: 'SEQUEL', node: { id: 3 } }],
+                    edges: [
+                        {
+                            relationType: 'SEQUEL',
+                            node: {
+                                id: 3,
+                            },
+                        },
+                    ],
                 },
             },
             { id: 3 },
@@ -29,7 +43,14 @@ describe('popular homepage anime selection', () => {
             {
                 id: 1,
                 relations: {
-                    edges: [{ relationType: 'SPIN_OFF', node: { id: 2 } }],
+                    edges: [
+                        {
+                            relationType: 'SPIN_OFF',
+                            node: {
+                                id: 2,
+                            },
+                        },
+                    ],
                 },
             },
             { id: 2 },

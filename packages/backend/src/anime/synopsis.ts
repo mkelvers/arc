@@ -64,8 +64,12 @@ async function tmdbSynopsis(source: AniListAnime) {
     if (mapping.mediaType === 'movie') {
         const { data, error } = await client.GET('/3/movie/{movie_id}', {
             params: {
-                path: { movie_id: mapping.id },
-                query: { language: 'en-US' },
+                path: {
+                    movie_id: mapping.id,
+                },
+                query: {
+                    language: 'en-US',
+                },
             },
         });
         if (!data) {
@@ -83,8 +87,12 @@ async function tmdbSynopsis(source: AniListAnime) {
 
     const { data: series, error } = await client.GET('/3/tv/{series_id}', {
         params: {
-            path: { series_id: mapping.id },
-            query: { language: 'en-US' },
+            path: {
+                series_id: mapping.id,
+            },
+            query: {
+                language: 'en-US',
+            },
         },
     });
     if (!series) {
@@ -104,7 +112,9 @@ async function tmdbSynopsis(source: AniListAnime) {
                         series_id: mapping.id,
                         season_number: firstSeason.season_number,
                     },
-                    query: { language: 'en-US' },
+                    query: {
+                        language: 'en-US',
+                    },
                 },
             });
             synopsis = usefulSynopsis(season?.overview);
@@ -126,7 +136,10 @@ async function refreshSynopsis(anime: AniListAnime, source: AniListAnime) {
             .values({ anilistId: anime.id, ...replacement, fetchedAt: new Date() })
             .onConflictDoUpdate({
                 target: animeSynopsis.anilistId,
-                set: { ...replacement, fetchedAt: new Date() },
+                set: {
+                    ...replacement,
+                    fetchedAt: new Date(),
+                },
             });
 
         return replacement.synopsis;

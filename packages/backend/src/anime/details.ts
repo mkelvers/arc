@@ -21,7 +21,12 @@ const storedAnimeDetailsSchema = z.looseObject({
     averageScore: z.number().nullable(),
     popularity: z.number().nullable(),
     favourites: z.number().nullable(),
-    nextAiringEpisode: z.object({ airingAt: z.number(), episode: z.number() }).nullable(),
+    nextAiringEpisode: z
+        .object({
+            airingAt: z.number(),
+            episode: z.number(),
+        })
+        .nullable(),
     rankings: z
         .array(
             z
@@ -48,7 +53,17 @@ const storedAnimeDetailsSchema = z.looseObject({
         )
         .nullable(),
     studios: z
-        .object({ nodes: z.array(z.object({ name: z.string() }).nullable()).nullable() })
+        .object({
+            nodes: z
+                .array(
+                    z
+                        .object({
+                            name: z.string(),
+                        })
+                        .nullable()
+                )
+                .nullable(),
+        })
         .nullable(),
     staff: z
         .object({
@@ -59,7 +74,11 @@ const storedAnimeDetailsSchema = z.looseObject({
                             role: z.string().nullable(),
                             node: z
                                 .object({
-                                    name: z.object({ full: z.string().nullable() }).nullable(),
+                                    name: z
+                                        .object({
+                                            full: z.string().nullable(),
+                                        })
+                                        .nullable(),
                                 })
                                 .nullable(),
                         })

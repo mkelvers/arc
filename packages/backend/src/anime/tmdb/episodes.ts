@@ -166,7 +166,11 @@ async function episodeGroupCandidates(
     source: ProviderEpisode[]
 ) {
     const { data } = await client.GET('/3/tv/{series_id}/episode_groups', {
-        params: { path: { series_id: seriesId } },
+        params: {
+            path: {
+                series_id: seriesId,
+            },
+        },
     });
     if (!data) {
         return null;
@@ -261,8 +265,12 @@ export async function getEpisodeMetadata(
     if (match.mediaType === 'movie') {
         const { data: movie, error } = await client.GET('/3/movie/{movie_id}', {
             params: {
-                path: { movie_id: match.id },
-                query: { language: 'en-US' },
+                path: {
+                    movie_id: match.id,
+                },
+                query: {
+                    language: 'en-US',
+                },
             },
         });
 
@@ -276,7 +284,11 @@ export async function getEpisodeMetadata(
             movie.original_language !== 'en' || !movie.overview?.trim() || !movie.title?.trim()
                 ? client
                       .GET('/3/movie/{movie_id}/translations', {
-                          params: { path: { movie_id: match.id } },
+                          params: {
+                              path: {
+                                  movie_id: match.id,
+                              },
+                          },
                       })
                       .then(({ data }) => data?.translations)
                       .catch(() => undefined)
@@ -284,7 +296,11 @@ export async function getEpisodeMetadata(
             !movie.backdrop_path && !movie.poster_path
                 ? client
                       .GET('/3/movie/{movie_id}/images', {
-                          params: { path: { movie_id: match.id } },
+                          params: {
+                              path: {
+                                  movie_id: match.id,
+                              },
+                          },
                       })
                       .then(({ data }) => data)
                       .catch(() => undefined)
@@ -327,8 +343,12 @@ export async function getEpisodeMetadata(
 
     const { data: series, error } = await client.GET('/3/tv/{series_id}', {
         params: {
-            path: { series_id: match.id },
-            query: { language: 'en-US' },
+            path: {
+                series_id: match.id,
+            },
+            query: {
+                language: 'en-US',
+            },
         },
     });
 
@@ -381,7 +401,9 @@ export async function getEpisodeMetadata(
                         series_id: match.id,
                         season_number: season.season_number,
                     },
-                    query: { language: 'en-US' },
+                    query: {
+                        language: 'en-US',
+                    },
                 },
             });
 
@@ -451,7 +473,9 @@ export async function getEpisodeMetadata(
                       .GET('/3/tv/{series_id}/season/{season_number}/episode/{episode_number}', {
                           params: {
                               path,
-                              query: { language: 'en-US' },
+                              query: {
+                                  language: 'en-US',
+                              },
                           },
                       })
                       .then(({ data }) => data)
@@ -461,7 +485,11 @@ export async function getEpisodeMetadata(
                 ? client
                       .GET(
                           '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
-                          { params: { path } }
+                          {
+                              params: {
+                                  path,
+                              },
+                          }
                       )
                       .then(({ data }) => data?.translations)
                       .catch(() => undefined)
@@ -471,7 +499,9 @@ export async function getEpisodeMetadata(
                       .GET(
                           '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/images',
                           {
-                              params: { path },
+                              params: {
+                                  path,
+                              },
                           }
                       )
                       .then(({ data }) => data?.stills)

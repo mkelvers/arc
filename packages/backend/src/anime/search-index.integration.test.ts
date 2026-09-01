@@ -18,7 +18,9 @@ describe('PostgreSQL anime search index', () => {
             await admin.unsafe('create extension if not exists pg_trgm with schema public');
             await admin.unsafe(`create schema ${namespace}`);
             const sql = postgres(process.env.DATABASE_URL!, {
-                connection: { search_path: `${namespace},public` },
+                connection: {
+                    search_path: `${namespace},public`,
+                },
             });
 
             try {

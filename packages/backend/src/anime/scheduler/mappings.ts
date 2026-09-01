@@ -44,10 +44,24 @@ async function validateTmdbIdentity(
     const response =
         mediaType === 'movie'
             ? await client.GET('/3/movie/{movie_id}', {
-                  params: { path: { movie_id: externalId }, query: { language: 'en-US' } },
+                  params: {
+                      path: {
+                          movie_id: externalId,
+                      },
+                      query: {
+                          language: 'en-US',
+                      },
+                  },
               })
             : await client.GET('/3/tv/{series_id}', {
-                  params: { path: { series_id: externalId }, query: { language: 'en-US' } },
+                  params: {
+                      path: {
+                          series_id: externalId,
+                      },
+                      query: {
+                          language: 'en-US',
+                      },
+                  },
               });
     if (!response.data) {
         throw new Error(`TMDB ${mediaType} ${externalId} could not be loaded`, {

@@ -35,7 +35,11 @@ describe('maintenance task boundary', () => {
             MaintenanceRequestSchema.safeParse({
                 kind: 'mapping_override',
                 anilistId: 1,
-                override: { kind: 'playback', provider: 'arbitrary', mediaId: '123' },
+                override: {
+                    kind: 'playback',
+                    provider: 'arbitrary',
+                    mediaId: '123',
+                },
             }).success
         ).toBe(false);
         expect(

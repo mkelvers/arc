@@ -70,13 +70,25 @@ describe('TMDB episode identity matching', () => {
                                 idMal: 40351,
                                 episodes: 136,
                                 type: 'ANIME',
-                                title: { english: 'Pokémon Journeys', romaji: null, native: null },
+                                title: {
+                                    english: 'Pokémon Journeys',
+                                    romaji: null,
+                                    native: null,
+                                },
                             },
                         },
                     ],
                 },
-                startDate: { year: 2023, month: 1, day: 13 },
-                endDate: { year: 2023, month: 3, day: 24 },
+                startDate: {
+                    year: 2023,
+                    month: 1,
+                    day: 13,
+                },
+                endDate: {
+                    year: 2023,
+                    month: 3,
+                    day: 24,
+                },
             }),
             episodes
         );
@@ -105,13 +117,25 @@ describe('TMDB episode identity matching', () => {
                             idMal: 40351,
                             episodes: 136,
                             type: 'ANIME',
-                            title: { english: 'Pokémon Journeys', romaji: null, native: null },
+                            title: {
+                                english: 'Pokémon Journeys',
+                                romaji: null,
+                                native: null,
+                            },
                         },
                     },
                 ],
             },
-            startDate: { year: 2023, month: 1, day: 13 },
-            endDate: { year: 2023, month: 3, day: 24 },
+            startDate: {
+                year: 2023,
+                month: 1,
+                day: 13,
+            },
+            endDate: {
+                year: 2023,
+                month: 3,
+                day: 24,
+            },
         });
         const dates = [
             '2023-01-13',
@@ -152,8 +176,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 format: 'TV_SHORT',
-                startDate: { year: 2016, month: 7, day: 4 },
-                endDate: { year: 2016, month: 7, day: 11 },
+                startDate: {
+                    year: 2016,
+                    month: 7,
+                    day: 4,
+                },
+                endDate: {
+                    year: 2016,
+                    month: 7,
+                    day: 11,
+                },
             }),
             episodes,
             [
@@ -184,8 +216,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 13,
-                startDate: { year: 2009, month: 4, day: 3 },
-                endDate: { year: 2009, month: 6, day: 26 },
+                startDate: {
+                    year: 2009,
+                    month: 4,
+                    day: 3,
+                },
+                endDate: {
+                    year: 2009,
+                    month: 6,
+                    day: 26,
+                },
             }),
             episodes,
             [
@@ -235,8 +275,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 26,
-                startDate: { year: 2010, month: 4, day: 7 },
-                endDate: { year: 2010, month: 9, day: 29 },
+                startDate: {
+                    year: 2010,
+                    month: 4,
+                    day: 7,
+                },
+                endDate: {
+                    year: 2010,
+                    month: 9,
+                    day: 29,
+                },
             }),
             episodes,
             [
@@ -260,8 +308,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 12,
-                startDate: { year: 2021, month: 1, day: 12 },
-                endDate: { year: 2021, month: 3, day: 30 },
+                startDate: {
+                    year: 2021,
+                    month: 1,
+                    day: 12,
+                },
+                endDate: {
+                    year: 2021,
+                    month: 3,
+                    day: 30,
+                },
             }),
             source([
                 ['0.9', 0.9, 'Digression: Hinata Sakaguchi'],
@@ -287,8 +343,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 5,
-                startDate: { year: 2019, month: 7, day: 9 },
-                endDate: { year: 2020, month: 11, day: 27 },
+                startDate: {
+                    year: 2019,
+                    month: 7,
+                    day: 9,
+                },
+                endDate: {
+                    year: 2020,
+                    month: 11,
+                    day: 27,
+                },
             }),
             source([
                 ['1', 1, 'The Tragedy of M?'],
@@ -317,8 +381,16 @@ describe('TMDB episode identity matching', () => {
             anime({
                 duration: 3,
                 episodes: 2,
-                startDate: { year: 2022, month: 3, day: 19 },
-                endDate: { year: 2022, month: 7, day: 29 },
+                startDate: {
+                    year: 2022,
+                    month: 3,
+                    day: 19,
+                },
+                endDate: {
+                    year: 2022,
+                    month: 7,
+                    day: 29,
+                },
             }),
             source([
                 ['1', 1, ''],
@@ -338,8 +410,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 3,
-                startDate: { year: 2026, month: 7, day: 5 },
-                endDate: { year: 2026, month: 7, day: 19 },
+                startDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 5,
+                },
+                endDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 19,
+                },
             }),
             source([
                 ['1', 1, 'Episode 1'],
@@ -363,8 +443,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 3,
-                startDate: { year: 2026, month: 7, day: 5 },
-                endDate: { year: 2026, month: 7, day: 19 },
+                startDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 5,
+                },
+                endDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 19,
+                },
             }),
             source([
                 ['1', 1, 'Episode 1'],
@@ -389,8 +477,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 13,
-                startDate: { year: 2026, month: 7, day: 7 },
-                endDate: { year: 2026, month: 9, day: 29 },
+                startDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 7,
+                },
+                endDate: {
+                    year: 2026,
+                    month: 9,
+                    day: 29,
+                },
             }),
             source(
                 Array.from(
@@ -425,8 +521,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 12,
-                startDate: { year: 2026, month: 7, day: 3 },
-                endDate: { year: 2026, month: 9, day: 18 },
+                startDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 3,
+                },
+                endDate: {
+                    year: 2026,
+                    month: 9,
+                    day: 18,
+                },
                 nextAiringEpisode: {
                     episode: 7,
                     airingAt: 1_786_714_200,
@@ -468,8 +572,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 2,
-                startDate: { year: 2026, month: 7, day: 3 },
-                endDate: { year: 2026, month: 7, day: 17 },
+                startDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 3,
+                },
+                endDate: {
+                    year: 2026,
+                    month: 7,
+                    day: 17,
+                },
             }),
             source([
                 ['1', 1, 'Episode 1'],
@@ -500,8 +612,16 @@ describe('TMDB episode identity matching', () => {
             anime({
                 duration: 30,
                 episodes: 8,
-                startDate: { year: 2024, month: 5, day: 12 },
-                endDate: { year: 2024, month: 6, day: 30 },
+                startDate: {
+                    year: 2024,
+                    month: 5,
+                    day: 12,
+                },
+                endDate: {
+                    year: 2024,
+                    month: 6,
+                    day: 30,
+                },
             }),
             episodes,
             [candidate(5, 8, 'The Hashira Unite', '2024-06-30', 41)]
@@ -538,8 +658,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 25,
-                startDate: { year: 2016, month: 4, day: 4 },
-                endDate: { year: 2016, month: 9, day: 19 },
+                startDate: {
+                    year: 2016,
+                    month: 4,
+                    day: 4,
+                },
+                endDate: {
+                    year: 2016,
+                    month: 9,
+                    day: 19,
+                },
             }),
             episodes,
             available
@@ -556,8 +684,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 24,
-                startDate: { year: 2024, month: 4, day: 5 },
-                endDate: { year: 2024, month: 9, day: 27 },
+                startDate: {
+                    year: 2024,
+                    month: 4,
+                    day: 5,
+                },
+                endDate: {
+                    year: 2024,
+                    month: 9,
+                    day: 27,
+                },
             }),
             source([['13', 13, 'The Nations and Invitations']]),
             [
@@ -597,8 +733,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 12,
-                startDate: { year: 2020, month: 10, day: 3 },
-                endDate: { year: 2020, month: 12, day: 19 },
+                startDate: {
+                    year: 2020,
+                    month: 10,
+                    day: 3,
+                },
+                endDate: {
+                    year: 2020,
+                    month: 12,
+                    day: 19,
+                },
             }),
             source(
                 staleTitles.map(
@@ -636,8 +780,16 @@ describe('TMDB episode identity matching', () => {
             anime({
                 format: 'OVA',
                 episodes: 2,
-                startDate: { year: 2020, month: 1, day: 10 },
-                endDate: { year: 2020, month: 1, day: 10 },
+                startDate: {
+                    year: 2020,
+                    month: 1,
+                    day: 10,
+                },
+                endDate: {
+                    year: 2020,
+                    month: 1,
+                    day: 10,
+                },
                 title: {
                     english: 'HAIKYU!! LAND VS. AIR',
                     romaji: null,
@@ -664,8 +816,16 @@ describe('TMDB episode identity matching', () => {
     test('falls back when an episode group covers fewer episodes', () => {
         const release = anime({
             episodes: 3,
-            startDate: { year: 2016, month: 10, day: 8 },
-            endDate: { year: 2016, month: 10, day: 22 },
+            startDate: {
+                year: 2016,
+                month: 10,
+                day: 8,
+            },
+            endDate: {
+                year: 2016,
+                month: 10,
+                day: 22,
+            },
         });
         const episodes = source([
             ['1', 1, 'Greetings'],
@@ -704,8 +864,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchEpisodeMetadata(
             anime({
                 episodes: 3,
-                startDate: { year: null, month: null, day: null },
-                endDate: { year: null, month: null, day: null },
+                startDate: {
+                    year: null,
+                    month: null,
+                    day: null,
+                },
+                endDate: {
+                    year: null,
+                    month: null,
+                    day: null,
+                },
             }),
             episodes,
             focused
@@ -732,8 +900,16 @@ describe('TMDB episode identity matching', () => {
         const metadata = matchBestEpisodeMetadata(
             anime({
                 episodes: 20,
-                startDate: { year: 2013, month: 4, day: 25 },
-                endDate: { year: 2013, month: 9, day: 26 },
+                startDate: {
+                    year: 2013,
+                    month: 4,
+                    day: 25,
+                },
+                endDate: {
+                    year: 2013,
+                    month: 9,
+                    day: 26,
+                },
             }),
             episodes,
             focused,

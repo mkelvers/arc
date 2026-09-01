@@ -289,7 +289,7 @@ export async function getAnimeRelease(id: number) {
     return (await storedAnimeRelease(id)) ?? refreshAnimeRelease(id, { force: true });
 }
 
-async function fetchAnimeSchedule(id: number) {
+export async function refreshAnimeSchedule(id: number) {
     const stored = await storedAnimeRelease(id);
     if (!stored) {
         return refreshAnimeRelease(id, { force: true });
@@ -335,10 +335,6 @@ async function fetchAnimeSchedule(id: number) {
             },
         });
     return updated;
-}
-
-export function refreshAnimeSchedule(id: number) {
-    return fetchAnimeSchedule(id);
 }
 
 export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {

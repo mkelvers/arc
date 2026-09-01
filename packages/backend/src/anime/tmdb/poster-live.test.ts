@@ -35,7 +35,9 @@ async function tmdbPosters(seriesId: number) {
     }
 
     const response = await fetch(`https://api.themoviedb.org/3/tv/${seriesId}/images`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
     });
     expect(response.ok).toBe(true);
 
@@ -50,7 +52,9 @@ describe('live anime card artwork providers', () => {
     test.skip('AniList returns distinct covers across television, movie, OVA, ONA, and special releases', async () => {
         const response = await fetch('https://graphql.anilist.co', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 query: `
                         query ($ids: [Int]) {
@@ -63,7 +67,9 @@ describe('live anime card artwork providers', () => {
                             }
                         }
                     `,
-                variables: { ids: animeIds },
+                variables: {
+                    ids: animeIds,
+                },
             }),
         });
         expect(response.ok).toBe(true);

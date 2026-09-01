@@ -46,7 +46,10 @@ export const AniListAnimeSchema = z
         title: titleSchema,
         synonyms: z.array(nullableString).nullable(),
         coverImage: z
-            .object({ extraLarge: nullableString, large: nullableString })
+            .object({
+                extraLarge: nullableString,
+                large: nullableString,
+            })
             .nullable()
             .optional()
             .transform((value) => value ?? null),
@@ -113,7 +116,17 @@ export const AniListAnimeSchema = z
             )
             .nullable(),
         studios: z
-            .object({ nodes: z.array(z.object({ name: z.string() }).nullable()).nullable() })
+            .object({
+                nodes: z
+                    .array(
+                        z
+                            .object({
+                                name: z.string(),
+                            })
+                            .nullable()
+                    )
+                    .nullable(),
+            })
             .nullable(),
         staff: z
             .object({
@@ -124,7 +137,11 @@ export const AniListAnimeSchema = z
                                 role: nullableString,
                                 node: z
                                     .object({
-                                        name: z.object({ full: nullableString }).nullable(),
+                                        name: z
+                                            .object({
+                                                full: nullableString,
+                                            })
+                                            .nullable(),
                                     })
                                     .nullable(),
                             })

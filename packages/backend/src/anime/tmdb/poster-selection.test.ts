@@ -9,7 +9,11 @@ function anime(values: Partial<AniListAnime> = {}): AniListAnime {
         format: 'TV',
         episodes: 12,
         seasonYear: 2014,
-        startDate: { year: 2014, month: 7, day: 4 },
+        startDate: {
+            year: 2014,
+            month: 7,
+            day: 4,
+        },
         ...values,
     } as AniListAnime;
 }
@@ -64,7 +68,11 @@ describe('TMDB release poster selection', () => {
         const release = anime({
             episodes: 23,
             seasonYear: 2023,
-            startDate: { year: 2023, month: 7, day: 6 },
+            startDate: {
+                year: 2023,
+                month: 7,
+                day: 6,
+            },
             title: {
                 english: 'JUJUTSU KAISEN Season 2',
                 romaji: 'Jujutsu Kaisen 2nd Season',
@@ -98,7 +106,11 @@ describe('TMDB release poster selection', () => {
                 anime({
                     format: 'OVA',
                     episodes: 3,
-                    startDate: { year: 2017, month: 12, day: 8 },
+                    startDate: {
+                        year: 2017,
+                        month: 12,
+                        day: 8,
+                    },
                 }),
                 [
                     {
@@ -122,7 +134,11 @@ describe('TMDB release poster selection', () => {
                 anime({
                     format: 'SPECIAL',
                     episodes: 1,
-                    startDate: { year: 2025, month: 1, day: 1 },
+                    startDate: {
+                        year: 2025,
+                        month: 1,
+                        day: 1,
+                    },
                 }),
                 [
                     {

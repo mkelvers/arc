@@ -71,7 +71,10 @@ export async function ensureEpisodeInventoryBackfill(anilistId: number) {
         .values({
             kind: 'episode_backfill',
             dedupeKey: episodeInventoryBackfillKey(anilistId),
-            payload: { kind: 'episode_backfill', anilistId },
+            payload: {
+                kind: 'episode_backfill',
+                anilistId,
+            },
             priority: 0,
         })
         .onConflictDoUpdate({
@@ -100,7 +103,10 @@ export async function enqueueEpisodeInventoryBackfill(anilistId: number) {
         .values({
             kind: 'episode_backfill',
             dedupeKey: episodeInventoryBackfillKey(anilistId),
-            payload: { kind: 'episode_backfill', anilistId },
+            payload: {
+                kind: 'episode_backfill',
+                anilistId,
+            },
             priority: 80,
         })
         .onConflictDoUpdate({
@@ -499,7 +505,10 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
                 .update(maintenanceTask)
                 .set({
                     state: 'completed',
-                    result: { anilistId: anime.id, episodes: episodes.length },
+                    result: {
+                        anilistId: anime.id,
+                        episodes: episodes.length,
+                    },
                     completedAt: now,
                     updatedAt: now,
                 })

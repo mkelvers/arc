@@ -3,7 +3,12 @@ import { z } from 'zod';
 
 const franchiseOrderSchema = z
     .object({
-        types: z.array(z.object({ id: z.string(), label: z.string() })),
+        types: z.array(
+            z.object({
+                id: z.string(),
+                label: z.string(),
+            })
+        ),
         entries: z.array(
             z.object({
                 id: z.number(),
@@ -23,7 +28,12 @@ const franchiseOrderSchema = z
                 episodes: z.number().nullable(),
                 duration: z.number().nullable(),
                 popularity: z.number().nullable(),
-                relations: z.array(z.object({ type: z.string(), malId: z.number() })),
+                relations: z.array(
+                    z.object({
+                        type: z.string(),
+                        malId: z.number(),
+                    })
+                ),
                 secondary: z.boolean(),
                 primary: z.boolean(),
             })

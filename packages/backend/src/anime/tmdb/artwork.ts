@@ -158,10 +158,18 @@ async function fetchArtworkSource(match: StoredMapping) {
     const unfilteredResponse =
         match.mediaType === 'movie'
             ? await client.GET('/3/movie/{movie_id}/images', {
-                  params: { path: { movie_id: match.id } },
+                  params: {
+                      path: {
+                          movie_id: match.id,
+                      },
+                  },
               })
             : await client.GET('/3/tv/{series_id}/images', {
-                  params: { path: { series_id: match.id } },
+                  params: {
+                      path: {
+                          series_id: match.id,
+                      },
+                  },
               });
 
     const allLanguagesQuery = {
@@ -172,13 +180,17 @@ async function fetchArtworkSource(match: StoredMapping) {
         match.mediaType === 'movie'
             ? client.GET('/3/movie/{movie_id}/images', {
                   params: {
-                      path: { movie_id: match.id },
+                      path: {
+                          movie_id: match.id,
+                      },
                       query: allLanguagesQuery,
                   },
               })
             : client.GET('/3/tv/{series_id}/images', {
                   params: {
-                      path: { series_id: match.id },
+                      path: {
+                          series_id: match.id,
+                      },
                       query: allLanguagesQuery,
                   },
               })
@@ -271,7 +283,10 @@ async function fetchArtworkSource(match: StoredMapping) {
             })
             .onConflictDoUpdate({
                 target: animeArtworkSync.externalIdId,
-                set: { fetchedAt: new Date(), allLanguages: true },
+                set: {
+                    fetchedAt: new Date(),
+                    allLanguages: true,
+                },
             });
     });
 

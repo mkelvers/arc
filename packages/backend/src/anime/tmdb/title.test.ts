@@ -16,7 +16,11 @@ describe('TMDB title matching', () => {
         expect(
             mappingTitles({
                 format: 'ONA',
-                title: { english: 'Continuation', romaji: null, native: null },
+                title: {
+                    english: 'Continuation',
+                    romaji: null,
+                    native: null,
+                },
                 relations: {
                     edges: [
                         {
@@ -247,7 +251,11 @@ describe('TMDB title matching', () => {
     test('distinguishes an exact release title from its adaptation alias', () => {
         const anime = {
             format: 'TV',
-            startDate: { year: 2023, month: 4, day: 1 },
+            startDate: {
+                year: 2023,
+                month: 4,
+                day: 1,
+            },
             title: {
                 english: 'Kaguya-sama: Love is War -The First Kiss That Never Ends-',
                 romaji: 'Kaguya-sama wa Kokurasetai: First Kiss wa Owaranai',
@@ -259,7 +267,9 @@ describe('TMDB title matching', () => {
                         relationType: 'ADAPTATION',
                         node: {
                             type: 'MANGA',
-                            title: { english: 'Kaguya-sama: Love is War' },
+                            title: {
+                                english: 'Kaguya-sama: Love is War',
+                            },
                         },
                     },
                 ],

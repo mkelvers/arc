@@ -14,12 +14,21 @@ describe('GraphQL requests', () => {
     test('returns data from a valid response', async () => {
         const server = Bun.serve({
             port: 0,
-            fetch: () => Response.json({ data: { viewer: { id: 42 } } }),
+            fetch: () =>
+                Response.json({
+                    data: {
+                        viewer: {
+                            id: 42,
+                        },
+                    },
+                }),
         });
 
         try {
             expect(graphql(server.url.href, document, {})).resolves.toEqual({
-                viewer: { id: 42 },
+                viewer: {
+                    id: 42,
+                },
             });
         } finally {
             await server.stop(true);
@@ -31,8 +40,17 @@ describe('GraphQL requests', () => {
             port: 0,
             fetch: () =>
                 Response.json(
-                    { errors: [{ message: 'Rate limited', status: 429 }] },
-                    { status: 503 }
+                    {
+                        errors: [
+                            {
+                                message: 'Rate limited',
+                                status: 429,
+                            },
+                        ],
+                    },
+                    {
+                        status: 503,
+                    }
                 ),
         });
 
@@ -51,8 +69,20 @@ describe('GraphQL requests', () => {
             port: 0,
             fetch: () =>
                 Response.json(
-                    { errors: [{ message: 'Rate limited', status: 429 }] },
-                    { status: 429, headers: { 'Retry-After': '45' } }
+                    {
+                        errors: [
+                            {
+                                message: 'Rate limited',
+                                status: 429,
+                            },
+                        ],
+                    },
+                    {
+                        status: 429,
+                        headers: {
+                            'Retry-After': '45',
+                        },
+                    }
                 ),
         });
 
@@ -73,14 +103,29 @@ describe('GraphQL requests', () => {
             fetch: () => {
                 attempts += 1;
                 return attempts === 1
-                    ? Response.json({ errors: [{ message: 'Rate limited', status: 429 }] })
-                    : Response.json({ data: { viewer: { id: 42 } } });
+                    ? Response.json({
+                          errors: [
+                              {
+                                  message: 'Rate limited',
+                                  status: 429,
+                              },
+                          ],
+                      })
+                    : Response.json({
+                          data: {
+                              viewer: {
+                                  id: 42,
+                              },
+                          },
+                      });
             },
         });
 
         try {
             expect(graphql(server.url.href, document, {}, { retries: 1 })).resolves.toEqual({
-                viewer: { id: 42 },
+                viewer: {
+                    id: 42,
+                },
             });
             expect(attempts).toBe(2);
         } finally {
@@ -91,7 +136,10 @@ describe('GraphQL requests', () => {
     test('reports a bounded preview for a non-JSON upstream error', async () => {
         const server = Bun.serve({
             port: 0,
-            fetch: () => new Response('<html>Unavailable</html>', { status: 502 }),
+            fetch: () =>
+                new Response('<html>Unavailable</html>', {
+                    status: 502,
+                }),
         });
 
         try {

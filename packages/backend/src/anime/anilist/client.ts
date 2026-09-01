@@ -64,7 +64,11 @@ async function refresh<TResult, TVariables>(
             .values({ key, data, refreshAfter, fetchedAt })
             .onConflictDoUpdate({
                 target: anilistQuerySnapshot.key,
-                set: { data, refreshAfter, fetchedAt },
+                set: {
+                    data,
+                    refreshAfter,
+                    fetchedAt,
+                },
             });
     } catch (cause) {
         logger.debug('AniList query snapshot write failed', cause);

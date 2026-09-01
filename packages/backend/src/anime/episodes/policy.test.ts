@@ -249,7 +249,10 @@ describe('episode refresh policy', () => {
                     status: 'RELEASING',
                     format: 'TV',
                     episodes: 12,
-                    nextAiringEpisode: { episode: 8, airingAt: 1_787_842_560 },
+                    nextAiringEpisode: {
+                        episode: 8,
+                        airingAt: 1_787_842_560,
+                    },
                 },
                 inventory(6)
             )
@@ -302,20 +305,29 @@ describe('episode refresh policy', () => {
         expect(
             availableEpisodeCount({
                 status: 'RELEASING',
-                nextAiringEpisode: { episode: 7, airingAt: Math.floor(Date.now() / 1_000) + 3_600 },
+                nextAiringEpisode: {
+                    episode: 7,
+                    airingAt: Math.floor(Date.now() / 1_000) + 3_600,
+                },
             })
         ).toBe(6);
         expect(availableEpisodeCount({ status: 'RELEASING', nextAiringEpisode: null })).toBeNull();
         expect(
             availableEpisodeCount({
                 status: 'FINISHED',
-                nextAiringEpisode: { episode: 7, airingAt: 1_786_968_000 },
+                nextAiringEpisode: {
+                    episode: 7,
+                    airingAt: 1_786_968_000,
+                },
             })
         ).toBeNull();
         expect(
             availableEpisodeCount({
                 status: 'RELEASING',
-                nextAiringEpisode: { episode: 6, airingAt: Math.floor(Date.now() / 1_000) - 1 },
+                nextAiringEpisode: {
+                    episode: 6,
+                    airingAt: Math.floor(Date.now() / 1_000) - 1,
+                },
             })
         ).toBe(6);
     });

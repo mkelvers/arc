@@ -88,7 +88,10 @@ const state = {
     sync: [] as SyncRow[],
     images: [] as ImageRow[],
     preference: null as PreferenceRow | null,
-    payload: { backdrops: [], logos: [] } as ArtworkPayload,
+    payload: {
+        backdrops: [],
+        logos: [],
+    } as ArtworkPayload,
     localizedPayload: null as ArtworkPayload | null,
     placeholderPayload: null as ArtworkPayload | null,
     fetchError: null as Error | null,
@@ -134,7 +137,9 @@ const db: TestDb = {
     transaction(callback) {
         return callback({
             ...db,
-            delete: (_table) => ({ where: async () => void (state.images = []) }),
+            delete: (_table) => ({
+                where: async () => void (state.images = []),
+            }),
             insert: (table) => ({
                 values: (values) => ({
                     onConflictDoUpdate: async () => {
@@ -148,9 +153,13 @@ const db: TestDb = {
             }),
         });
     },
-    delete: (_table) => ({ where: async () => void (state.images = []) }),
+    delete: (_table) => ({
+        where: async () => void (state.images = []),
+    }),
     insert: (_table) => ({
-        values: (_values) => ({ onConflictDoUpdate: async () => {} }),
+        values: (_values) => ({
+            onConflictDoUpdate: async () => {},
+        }),
     }),
     update: (table) => ({
         set: (values) => ({
@@ -170,7 +179,14 @@ mock.module('@arc/db', () => ({
 
 mock.module('./client', () => ({
     create: () => ({
-        GET: async (path: string, request: { params?: { query?: ArtworkQuery } }) => {
+        GET: async (
+            path: string,
+            request: {
+                params?: {
+                    query?: ArtworkQuery;
+                };
+            }
+        ) => {
             state.fetchCount += 1;
             state.fetchQueries.push(request.params?.query ?? null);
             if (state.fetchError) {
@@ -180,7 +196,9 @@ mock.module('./client', () => ({
                 request.params?.query?.include_image_language.includes('xx') &&
                 state.placeholderPayload
             ) {
-                return { data: state.placeholderPayload };
+                return {
+                    data: state.placeholderPayload,
+                };
             }
             return {
                 data: request.params?.query
@@ -232,8 +250,20 @@ beforeEach(() => {
 describe('TMDB anime artwork', () => {
     test('fetches and persists missing artwork during a refresh', async () => {
         state.payload = {
-            backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
-            logos: [{ file_path: '/logo.png', width: 1000, height: 300 }],
+            backdrops: [
+                {
+                    file_path: '/backdrop.jpg',
+                    width: 1920,
+                    height: 1080,
+                },
+            ],
+            logos: [
+                {
+                    file_path: '/logo.png',
+                    width: 1000,
+                    height: 300,
+                },
+            ],
         };
 
         const artwork = await getArtwork(anime, { refresh: true });
@@ -250,7 +280,13 @@ describe('TMDB anime artwork', () => {
 
     test('requests default and unlocalized image languages from TMDB', async () => {
         state.payload = {
-            backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
+            backdrops: [
+                {
+                    file_path: '/backdrop.jpg',
+                    width: 1920,
+                    height: 1080,
+                },
+            ],
             logos: [],
         };
 
@@ -262,8 +298,20 @@ describe('TMDB anime artwork', () => {
     test('fetches TMDB placeholder-language images added after the initial artwork sync', async () => {
         state.localizedPayload = { backdrops: [], logos: [] };
         state.placeholderPayload = {
-            backdrops: [{ file_path: '/new-backdrop.jpg', width: 3840, height: 2160 }],
-            logos: [{ file_path: '/new-logo.png', width: 512, height: 114 }],
+            backdrops: [
+                {
+                    file_path: '/new-backdrop.jpg',
+                    width: 3840,
+                    height: 2160,
+                },
+            ],
+            logos: [
+                {
+                    file_path: '/new-logo.png',
+                    width: 512,
+                    height: 114,
+                },
+            ],
         };
 
         const artwork = await getArtwork(anime, { refresh: true });
@@ -274,12 +322,36 @@ describe('TMDB anime artwork', () => {
 
     test('merges unfiltered and language-filtered artwork', async () => {
         state.payload = {
-            backdrops: [{ file_path: '/unfiltered-backdrop.jpg', width: 1920, height: 1080 }],
-            logos: [{ file_path: '/unfiltered-logo.png', width: 800, height: 240 }],
+            backdrops: [
+                {
+                    file_path: '/unfiltered-backdrop.jpg',
+                    width: 1920,
+                    height: 1080,
+                },
+            ],
+            logos: [
+                {
+                    file_path: '/unfiltered-logo.png',
+                    width: 800,
+                    height: 240,
+                },
+            ],
         };
         state.localizedPayload = {
-            backdrops: [{ file_path: '/localized-backdrop.jpg', width: 2560, height: 1440 }],
-            logos: [{ file_path: '/localized-logo.png', width: 1000, height: 300 }],
+            backdrops: [
+                {
+                    file_path: '/localized-backdrop.jpg',
+                    width: 2560,
+                    height: 1440,
+                },
+            ],
+            logos: [
+                {
+                    file_path: '/localized-logo.png',
+                    width: 1000,
+                    height: 300,
+                },
+            ],
         };
 
         const artwork = await getArtwork(anime, { refresh: true });
@@ -296,8 +368,20 @@ describe('TMDB anime artwork', () => {
 
     test('fetches missing artwork during an ordinary read', async () => {
         state.payload = {
-            backdrops: [{ file_path: '/backdrop.jpg', width: 1920, height: 1080 }],
-            logos: [{ file_path: '/logo.png', width: 1000, height: 300 }],
+            backdrops: [
+                {
+                    file_path: '/backdrop.jpg',
+                    width: 1920,
+                    height: 1080,
+                },
+            ],
+            logos: [
+                {
+                    file_path: '/logo.png',
+                    width: 1000,
+                    height: 300,
+                },
+            ],
         };
 
         const artwork = await getArtwork(anime);
@@ -314,12 +398,32 @@ describe('TMDB anime artwork', () => {
     test('selects the highest-resolution backdrop and logo by default', async () => {
         state.payload = {
             backdrops: [
-                { file_path: '/small-backdrop.jpg', width: 1920, height: 1080, vote_average: 10 },
-                { file_path: '/large-backdrop.jpg', width: 2560, height: 1440, vote_average: 1 },
+                {
+                    file_path: '/small-backdrop.jpg',
+                    width: 1920,
+                    height: 1080,
+                    vote_average: 10,
+                },
+                {
+                    file_path: '/large-backdrop.jpg',
+                    width: 2560,
+                    height: 1440,
+                    vote_average: 1,
+                },
             ],
             logos: [
-                { file_path: '/small-logo.png', width: 800, height: 240, vote_average: 10 },
-                { file_path: '/large-logo.png', width: 1600, height: 480, vote_average: 1 },
+                {
+                    file_path: '/small-logo.png',
+                    width: 800,
+                    height: 240,
+                    vote_average: 10,
+                },
+                {
+                    file_path: '/large-logo.png',
+                    width: 1600,
+                    height: 480,
+                    vote_average: 1,
+                },
             ],
         };
 
@@ -332,9 +436,24 @@ describe('TMDB anime artwork', () => {
     test('uses vote average and file path to break equal-area ties', async () => {
         state.payload = {
             backdrops: [
-                { file_path: '/path-z.jpg', width: 100, height: 100, vote_average: 7 },
-                { file_path: '/path-a.jpg', width: 100, height: 100, vote_average: 7 },
-                { file_path: '/vote-winner.jpg', width: 100, height: 100, vote_average: 8 },
+                {
+                    file_path: '/path-z.jpg',
+                    width: 100,
+                    height: 100,
+                    vote_average: 7,
+                },
+                {
+                    file_path: '/path-a.jpg',
+                    width: 100,
+                    height: 100,
+                    vote_average: 7,
+                },
+                {
+                    file_path: '/vote-winner.jpg',
+                    width: 100,
+                    height: 100,
+                    vote_average: 8,
+                },
             ],
             logos: [],
         };

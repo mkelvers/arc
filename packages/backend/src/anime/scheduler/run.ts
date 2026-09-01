@@ -88,7 +88,11 @@ export async function runAnimeScheduler() {
         .values({ name: heartbeatName, activeRunId: runId, leaseUntil, startedAt })
         .onConflictDoUpdate({
             target: schedulerHeartbeat.name,
-            set: { activeRunId: runId, leaseUntil, startedAt },
+            set: {
+                activeRunId: runId,
+                leaseUntil,
+                startedAt,
+            },
             setWhere: or(
                 isNull(schedulerHeartbeat.activeRunId),
                 isNull(schedulerHeartbeat.leaseUntil),

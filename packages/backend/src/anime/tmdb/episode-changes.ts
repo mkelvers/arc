@@ -7,7 +7,11 @@ const changeItemSchema = z.object({
         z.string(),
         z.number(),
         z.object({
-            backdrop: z.object({ file_path: z.string().nullish() }).optional(),
+            backdrop: z
+                .object({
+                    file_path: z.string().nullish(),
+                })
+                .optional(),
         }),
     ]),
 });
@@ -20,7 +24,11 @@ type ChangesResponse = z.infer<typeof changesResponseSchema>;
 const textValueSchema = z.string().trim().min(1);
 const runtimeValueSchema = z.number().positive();
 const imageValueSchema = z.object({
-    backdrop: z.object({ file_path: z.string().trim().min(1).nullish() }).optional(),
+    backdrop: z
+        .object({
+            file_path: z.string().trim().min(1).nullish(),
+        })
+        .optional(),
 });
 
 function changedEpisodeDetails(payload: ChangesResponse) {

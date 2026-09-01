@@ -55,7 +55,10 @@ describe('parseAniSkipResponse', () => {
                 results: [
                     {
                         skipType: 'op',
-                        interval: { startTime: 3.221, endTime: 93.221 },
+                        interval: {
+                            startTime: 3.221,
+                            endTime: 93.221,
+                        },
                     },
                     {
                         skipType: 'ed',
@@ -67,8 +70,14 @@ describe('parseAniSkipResponse', () => {
                 ],
             })
         ).toEqual({
-            opening: { start: 3.221, end: 93.221 },
-            ending: { start: 1_417.135, end: 1_507.135 },
+            opening: {
+                start: 3.221,
+                end: 93.221,
+            },
+            ending: {
+                start: 1_417.135,
+                end: 1_507.135,
+            },
             source: 'aniskip',
         });
     });
@@ -88,7 +97,10 @@ describe('parseAniSkipResponse', () => {
                 results: [
                     {
                         skipType: 'op',
-                        interval: { startTime: 90, endTime: 30 },
+                        interval: {
+                            startTime: 90,
+                            endTime: 30,
+                        },
                     },
                 ],
             })

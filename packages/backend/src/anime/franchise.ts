@@ -141,7 +141,10 @@ async function saveOrder(tx: DatabaseTransaction, malId: number, data: Franchise
             )
             .onConflictDoUpdate({
                 target: animeFranchise.malId,
-                set: { data: storedRecord, fetchedAt },
+                set: {
+                    data: storedRecord,
+                    fetchedAt,
+                },
             });
     } catch (cause) {
         logger.debug(`Franchise record write failed for MAL ${malId}`, cause);
@@ -229,7 +232,12 @@ async function refresh(tx: DatabaseTransaction, malId: number) {
                     popularity: media?.popularity ?? null,
                     relations: (media?.relations?.edges ?? []).flatMap((relation) =>
                         relation?.relationType && relation.node?.idMal
-                            ? [{ type: relation.relationType, malId: relation.node.idMal }]
+                            ? [
+                                  {
+                                      type: relation.relationType,
+                                      malId: relation.node.idMal,
+                                  },
+                              ]
                             : []
                     ),
                     genres: (media?.genres ?? []).flatMap((genre) => (genre ? [genre] : [])),

@@ -13,7 +13,11 @@ const airingMediaSchema = z.object({
         .nullable(),
     airingSchedule: z
         .object({
-            pageInfo: z.object({ lastPage: z.number().int().positive().nullable() }).nullable(),
+            pageInfo: z
+                .object({
+                    lastPage: z.number().int().positive().nullable(),
+                })
+                .nullable(),
             nodes: z
                 .array(
                     z

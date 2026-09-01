@@ -27,7 +27,10 @@ export function createAnimeSearchIndex(database: SearchDatabase) {
                 word_similarity(${normalized}, ${animeSearchIndexTable.searchText})
             )`;
             const rows = await database
-                .select({ data: animeSearchIndexTable.data, similarity })
+                .select({
+                    data: animeSearchIndexTable.data,
+                    similarity,
+                })
                 .from(animeSearchIndexTable)
                 .where(
                     sql`${animeSearchIndexTable.searchText} % ${normalized}

@@ -35,24 +35,29 @@ function block(
     titles: string[] = []
 ): EpisodeGroupBlock {
     return {
-        episodes: Array.from({ length: count }, (_, index) => {
-            const number = firstEpisode + index;
-            const date = new Date(Date.UTC(start[0], start[1] - 1, start[2] + index * 7))
-                .toISOString()
-                .slice(0, 10);
+        episodes: Array.from(
+            {
+                length: count,
+            },
+            (_, index) => {
+                const number = firstEpisode + index;
+                const date = new Date(Date.UTC(start[0], start[1] - 1, start[2] + index * 7))
+                    .toISOString()
+                    .slice(0, 10);
 
-            return {
-                order: index,
-                seasonNumber: 1,
-                episodeNumber: number,
-                title: titles[index] ?? `Episode ${number}`,
-                rawAirDate: date,
-                airDate: date,
-                overview: `Episode ${number} overview`,
-                imageUrl: `/episode-${number}.jpg`,
-                runtime: 24,
-            };
-        }),
+                return {
+                    order: index,
+                    seasonNumber: 1,
+                    episodeNumber: number,
+                    title: titles[index] ?? `Episode ${number}`,
+                    rawAirDate: date,
+                    airDate: date,
+                    overview: `Episode ${number} overview`,
+                    imageUrl: `/episode-${number}.jpg`,
+                    runtime: 24,
+                };
+            }
+        ),
         order: firstEpisode === 1 ? 1 : 2,
     };
 }
@@ -61,7 +66,11 @@ describe('TMDB episode groups', () => {
     test('combines TMDB seasons that exactly cover one AniList release window', () => {
         const release = {
             ...anime(4, [2009, 4, 5]),
-            endDate: { year: 2009, month: 4, day: 26 },
+            endDate: {
+                year: 2009,
+                month: 4,
+                day: 26,
+            },
         } as AniListAnime;
         const candidates = [
             ...block(1, 2, [2009, 4, 5]).episodes,
@@ -105,7 +114,11 @@ describe('TMDB episode groups', () => {
         const selected = releaseEpisodeGroup(
             {
                 episodes: 19,
-                startDate: { year: 2026, month: 4, day: 8 },
+                startDate: {
+                    year: 2026,
+                    month: 4,
+                    day: 8,
+                },
                 title: {
                     english: 'Re:ZERO -Starting Life in Another World- Season 4',
                 },
@@ -182,7 +195,11 @@ describe('TMDB episode groups', () => {
         const selected = releaseEpisodeGroup(
             {
                 ...anime(20, [2013, 4, 25]),
-                endDate: { year: 2013, month: 9, day: 26 },
+                endDate: {
+                    year: 2013,
+                    month: 9,
+                    day: 26,
+                },
             } as AniListAnime,
             source(Array.from({ length: 20 }, () => 'Episode')),
             [
@@ -260,7 +277,9 @@ describe('TMDB episode groups', () => {
             releaseEpisodeGroup(
                 {
                     ...anime(10, [2016, 10, 8]),
-                    title: { english: 'Example Season 3' },
+                    title: {
+                        english: 'Example Season 3',
+                    },
                 } as AniListAnime,
                 source(['Greetings', 'The Threat of the Left']),
                 [

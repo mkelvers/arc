@@ -226,7 +226,9 @@ export async function applyWatchlistEntries(
             .values(dirtyAnimeIds.map((animeId) => ({ userId, animeId })))
             .onConflictDoUpdate({
                 target: [animeInterestDirty.userId, animeInterestDirty.animeId],
-                set: { dirtyAt: new Date() },
+                set: {
+                    dirtyAt: new Date(),
+                },
             });
 
         if (mode === 'replace') {
@@ -300,7 +302,10 @@ export async function setWatchlistState(
             .values({ userId, animeId, state })
             .onConflictDoUpdate({
                 target: [watchlist.userId, watchlist.animeId],
-                set: { state, updatedAt: new Date() },
+                set: {
+                    state,
+                    updatedAt: new Date(),
+                },
             });
     }
     await markAnimeInterestDirty(userId, animeId);
@@ -314,7 +319,9 @@ async function markAnimeInterestDirty(userId: string, animeId: number) {
         .values({ userId, animeId })
         .onConflictDoUpdate({
             target: [animeInterestDirty.userId, animeInterestDirty.animeId],
-            set: { dirtyAt: new Date() },
+            set: {
+                dirtyAt: new Date(),
+            },
         });
 }
 

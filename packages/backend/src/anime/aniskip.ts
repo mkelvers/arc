@@ -85,7 +85,9 @@ export async function fetchAniSkip(
         query.append('types', type);
     }
     const response = await fetch(`${apiBaseUrl}/${malId}/${episodeNumber}?${query}`, {
-        headers: { accept: 'application/json' },
+        headers: {
+            accept: 'application/json',
+        },
         signal: AbortSignal.timeout(5_000),
     });
     if (response.status === 404) {

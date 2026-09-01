@@ -66,8 +66,12 @@ async function specialMappingEvidence(anime: AniListAnime, mapping: Mapping) {
         if (mapping.mediaType === 'movie') {
             const { data: movie } = await client.GET('/3/movie/{movie_id}', {
                 params: {
-                    path: { movie_id: mapping.id },
-                    query: { language: 'en-US' },
+                    path: {
+                        movie_id: mapping.id,
+                    },
+                    query: {
+                        language: 'en-US',
+                    },
                 },
             });
 
@@ -87,8 +91,12 @@ async function specialMappingEvidence(anime: AniListAnime, mapping: Mapping) {
 
         const { data: series } = await client.GET('/3/tv/{series_id}', {
             params: {
-                path: { series_id: mapping.id },
-                query: { language: 'en-US' },
+                path: {
+                    series_id: mapping.id,
+                },
+                query: {
+                    language: 'en-US',
+                },
             },
         });
 
@@ -111,7 +119,9 @@ async function specialMappingEvidence(anime: AniListAnime, mapping: Mapping) {
                             series_id: mapping.id,
                             season_number: season.season_number,
                         },
-                        query: { language: 'en-US' },
+                        query: {
+                            language: 'en-US',
+                        },
                     },
                 });
 
@@ -170,8 +180,12 @@ async function preferredTvMapping(
     const directSeries = await client
         .GET('/3/tv/{series_id}', {
             params: {
-                path: { series_id: direct.id },
-                query: { language: 'en-US' },
+                path: {
+                    series_id: direct.id,
+                },
+                query: {
+                    language: 'en-US',
+                },
             },
         })
         .then(({ data }) => data)
@@ -202,8 +216,12 @@ async function preferredTvMapping(
                 (
                     await client.GET('/3/tv/{series_id}', {
                         params: {
-                            path: { series_id: candidate.id },
-                            query: { language: 'en-US' },
+                            path: {
+                                series_id: candidate.id,
+                            },
+                            query: {
+                                language: 'en-US',
+                            },
                         },
                     })
                 ).data;
@@ -225,8 +243,13 @@ async function preferredTvMapping(
                 client
                     .GET('/3/tv/{series_id}/season/{season_number}', {
                         params: {
-                            path: { series_id: candidate.id, season_number: seasonNumber },
-                            query: { language: 'en-US' },
+                            path: {
+                                series_id: candidate.id,
+                                season_number: seasonNumber,
+                            },
+                            query: {
+                                language: 'en-US',
+                            },
                         },
                     })
                     .then(({ data }) => data)
@@ -301,7 +324,12 @@ async function preferredTvMapping(
 
 async function searchTv(query: string): Promise<Candidate[]> {
     const { data, error } = await create().GET('/3/search/tv', {
-        params: { query: { query, include_adult: true } },
+        params: {
+            query: {
+                query,
+                include_adult: true,
+            },
+        },
     });
 
     if (!data) {
@@ -326,7 +354,12 @@ async function searchTv(query: string): Promise<Candidate[]> {
 
 async function searchMovies(query: string): Promise<Candidate[]> {
     const { data, error } = await create().GET('/3/search/movie', {
-        params: { query: { query, include_adult: true } },
+        params: {
+            query: {
+                query,
+                include_adult: true,
+            },
+        },
     });
 
     if (!data) {
@@ -419,8 +452,12 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
             .map(async (mapping) => {
                 const { data } = await create().GET('/3/tv/{series_id}', {
                     params: {
-                        path: { series_id: mapping.id },
-                        query: { language: 'en-US' },
+                        path: {
+                            series_id: mapping.id,
+                        },
+                        query: {
+                            language: 'en-US',
+                        },
                     },
                 });
 

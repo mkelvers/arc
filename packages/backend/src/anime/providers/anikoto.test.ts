@@ -82,7 +82,14 @@ describe('AniKoto provider rules', () => {
                     <div class="type" data-type="sub"><ul><li data-link-id="same-id">SUB-1</li></ul></div>`,
             })
         ).toEqual({
-            sub: [{ mode: 'sub', embedMode: 'hsub', linkId: 'same-id', label: 'HD-1' }],
+            sub: [
+                {
+                    mode: 'sub',
+                    embedMode: 'hsub',
+                    linkId: 'same-id',
+                    label: 'HD-1',
+                },
+            ],
             dub: [],
         });
         expect(
@@ -91,10 +98,23 @@ describe('AniKoto provider rules', () => {
                 result: '<div class="type" data-type="hsub"><ul><li data-link-id="hsub-id">HD-1</li></ul></div>',
             })
         ).toEqual({
-            sub: [{ mode: 'sub', embedMode: 'hsub', linkId: 'hsub-id', label: 'HD-1' }],
+            sub: [
+                {
+                    mode: 'sub',
+                    embedMode: 'hsub',
+                    linkId: 'hsub-id',
+                    label: 'HD-1',
+                },
+            ],
             dub: [],
         });
-        expect(parseMegaPlaySource({ sources: { file: 'not a URL' } })).toBeNull();
+        expect(
+            parseMegaPlaySource({
+                sources: {
+                    file: 'not a URL',
+                },
+            })
+        ).toBeNull();
     });
 
     test('keeps AniKoto opaque IDs and classifies audio modes', () => {
@@ -297,7 +317,10 @@ describe('AniKoto provider rules', () => {
                         is_sub: 9,
                         is_dub: 4,
                         status: 'Currently Airing',
-                        terms_by_type: { genre: ['Action', 'Fantasy'], type: ['TV'] },
+                        terms_by_type: {
+                            genre: ['Action', 'Fantasy'],
+                            type: ['TV'],
+                        },
                     },
                     episodes: [],
                 },
@@ -375,7 +398,9 @@ describe('AniKoto provider rules', () => {
         expect(validEmbed('https://megaplay.buzz/stream/s-2/815275/hsub', 'hsub')).not.toBeNull();
         expect(
             parseMegaPlaySource({
-                sources: { file: 'https://cdn.kryntal.top/master.m3u8' },
+                sources: {
+                    file: 'https://cdn.kryntal.top/master.m3u8',
+                },
                 tracks: [
                     {
                         kind: 'captions',
@@ -421,7 +446,12 @@ describe('AniKoto provider rules', () => {
                 server: 'HD-1',
                 url: 'https://sub.example/master.m3u8',
                 quality: null,
-                subtitles: [{ kind: 'full' as const, url: 'https://sub.example/english.vtt' }],
+                subtitles: [
+                    {
+                        kind: 'full' as const,
+                        url: 'https://sub.example/english.vtt',
+                    },
+                ],
             },
         ];
         const dub = [
@@ -430,7 +460,12 @@ describe('AniKoto provider rules', () => {
                 server: 'HD-1',
                 url: 'https://dub.example/master.m3u8',
                 quality: null,
-                subtitles: [{ kind: 'full' as const, url: 'https://sub.example/english.vtt' }],
+                subtitles: [
+                    {
+                        kind: 'full' as const,
+                        url: 'https://sub.example/english.vtt',
+                    },
+                ],
             },
         ];
 
@@ -443,7 +478,12 @@ describe('AniKoto provider rules', () => {
             server: 'Vidstream-2',
             url: 'https://video.example/soft.m3u8',
             quality: null,
-            subtitles: [{ kind: 'full' as const, url: 'https://sub.example/episode.vtt' }],
+            subtitles: [
+                {
+                    kind: 'full' as const,
+                    url: 'https://sub.example/episode.vtt',
+                },
+            ],
         };
         const missing = {
             ...captioned,
@@ -470,16 +510,24 @@ describe('AniKoto provider rules', () => {
                 if (target.pathname.endsWith('master.m3u8')) {
                     return new Response(
                         '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8',
-                        { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                        {
+                            headers: {
+                                'content-type': 'application/vnd.apple.mpegurl',
+                            },
+                        }
                     );
                 }
                 if (target.pathname.endsWith('index.m3u8')) {
                     return new Response('#EXTM3U\n#EXTINF:4,\nsegment.ts', {
-                        headers: { 'content-type': 'application/vnd.apple.mpegurl' },
+                        headers: {
+                            'content-type': 'application/vnd.apple.mpegurl',
+                        },
                     });
                 }
                 return new Response(new Uint8Array([0x47, 0x00, 0x01, 0x02]), {
-                    headers: { 'content-type': 'video/mp2t' },
+                    headers: {
+                        'content-type': 'video/mp2t',
+                    },
                 });
             }
         );
@@ -500,7 +548,9 @@ describe('AniKoto provider rules', () => {
                 }
                 if (url === 'https://megaplay.buzz/stream/getSources?id=123') {
                     return Response.json({
-                        sources: { file: 'https://cdn.kryntal.top/episode/master.m3u8' },
+                        sources: {
+                            file: 'https://cdn.kryntal.top/episode/master.m3u8',
+                        },
                         tracks: [
                             {
                                 kind: 'captions',
@@ -606,7 +656,11 @@ describe('AniKoto provider rules', () => {
                 if (target.pathname.endsWith('index.m3u8')) {
                     return new Response('#EXTM3U\n#EXTINF:4,\nhttps://s2.norami.top/segment.jpg');
                 }
-                return new Response(segment, { headers: { 'content-type': 'image/jpeg' } });
+                return new Response(segment, {
+                    headers: {
+                        'content-type': 'image/jpeg',
+                    },
+                });
             }
         );
     });
@@ -627,7 +681,9 @@ describe('AniKoto provider rules', () => {
             expect(new Headers(init.headers).get('Range')).toBe('bytes=0-65535');
             return new Response(new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70]), {
                 status: 206,
-                headers: { 'content-type': 'video/mp4' },
+                headers: {
+                    'content-type': 'video/mp4',
+                },
             });
         });
     });

@@ -88,10 +88,16 @@ const seriesResponseSchema = z.object({
 });
 const serverResponseSchema = z.object({
     status: z.number().int(),
-    result: z.object({ url: z.string() }).loose(),
+    result: z
+        .object({
+            url: z.string(),
+        })
+        .loose(),
 });
 const sourcePayloadSchema = z.object({
-    sources: z.object({ file: z.string().trim().min(1) }),
+    sources: z.object({
+        file: z.string().trim().min(1),
+    }),
     tracks: z
         .array(
             z.object({
@@ -299,7 +305,13 @@ function retryableMediaError(cause: unknown) {
         return false;
     }
 
-    const error = cause as { code?: unknown; cause?: { code?: unknown }; message?: unknown };
+    const error = cause as {
+        code?: unknown;
+        cause?: {
+            code?: unknown;
+        };
+        message?: unknown;
+    };
     const code = error.code ?? error.cause?.code;
     return (
         code === 'ECONNRESET' ||
@@ -1082,7 +1094,10 @@ async function saveProviderMediaId(anilistId: number, id: string) {
         })
         .onConflictDoUpdate({
             target: [schema.animeProviderMapping.anilistId, schema.animeProviderMapping.provider],
-            set: { providerMediaId: id, discoveredAt: now },
+            set: {
+                providerMediaId: id,
+                discoveredAt: now,
+            },
         });
 }
 

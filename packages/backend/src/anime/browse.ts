@@ -116,7 +116,10 @@ export async function refreshCatalogPage(
             .values({ queryKey, ...pageSnapshot, fetchedAt })
             .onConflictDoUpdate({
                 target: animeCatalogRefresh.queryKey,
-                set: { ...pageSnapshot, fetchedAt },
+                set: {
+                    ...pageSnapshot,
+                    fetchedAt,
+                },
             });
     });
 

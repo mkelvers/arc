@@ -34,8 +34,14 @@ export async function getStoredMedia(anilistId: number) {
     }
 
     return {
-        anime: { id: anilistId, title: match.title },
-        artwork: { ...artwork, selectedPoster },
+        anime: {
+            id: anilistId,
+            title: match.title,
+        },
+        artwork: {
+            ...artwork,
+            selectedPoster,
+        },
     };
 }
 
@@ -276,7 +282,10 @@ export async function selectArtwork(
                 })
                 .onConflictDoUpdate({
                     target: animeArtworkPreference.externalIdId,
-                    set: { backdropFilePath: filePath, updatedAt },
+                    set: {
+                        backdropFilePath: filePath,
+                        updatedAt,
+                    },
                 });
 
             if (release?.format === 'MOVIE' && filePath) {
@@ -321,6 +330,9 @@ export async function setLogoSize(anilistId: number, logoSize: number) {
         .values({ externalIdId: mapping.preferenceExternalIdId, logoSize })
         .onConflictDoUpdate({
             target: animeArtworkPreference.externalIdId,
-            set: { logoSize, updatedAt: new Date() },
+            set: {
+                logoSize,
+                updatedAt: new Date(),
+            },
         });
 }
