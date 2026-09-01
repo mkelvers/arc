@@ -13,6 +13,7 @@ import {
     watchSegments,
 } from '@arc/backend/internal/anime/application';
 import { getEpisodeRevision } from '@arc/backend/internal/anime/episodes';
+import { markAnimePlaybackComplete, resetAnimePlaybackProgress } from '@arc/backend/progress';
 import { middleware, validate, type ApiEnvironment } from '../http';
 import { playbackResponse } from './playback-response';
 
@@ -59,6 +60,26 @@ anime.get('/:anilistId/artwork', validate('param', AnimeParamSchema), async (con
 anime.get('/:anilistId/episodes/revision', validate('param', AnimeParamSchema), async (context) =>
     context.json({ revision: await getEpisodeRevision(context.req.valid('param').anilistId) })
 );
+
+anime.post(
+    '/:anilistId/progress/complete',
+    validate('param', AnimeParamSchema),
+    async (context) => {
+        const saved = await markAnimePlaybackComplete(
+            context.get('session').user.id,
+            context.req.valid('param').anilistId
+        );
+        return saved ? context.body(null, 204) : context.notFound();
+    }
+);
+
+anime.delete('/:anilistId/progress', validate('param', AnimeParamSchema), async (context) => {
+    const reset = await resetAnimePlaybackProgress(
+        context.get('session').user.id,
+        context.req.valid('param').anilistId
+    );
+    return reset ? context.body(null, 204) : context.notFound();
+});
 
 anime.get(
     '/:anilistId/episodes/:episodeId',
