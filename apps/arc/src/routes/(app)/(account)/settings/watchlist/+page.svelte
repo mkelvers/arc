@@ -27,13 +27,16 @@
     <meta name="description" content={m.settings_watchlist_synopsis()} />
 </svelte:head>
 
-<div class="space-y-10">
+<div class="space-y-12">
     <section aria-labelledby="import-library">
-        <h2 id="import-library" class="text-sm font-medium text-foreground">
-            {m.import_library()}
-        </h2>
+        <header>
+            <h2 id="import-library" class="text-base font-medium text-foreground">
+                {m.import_library()}
+            </h2>
+            <p class="mt-1 text-sm leading-relaxed text-muted">{m.import_json_csv_body()}</p>
+        </header>
 
-        <div class="mt-5">
+        <div class="mt-6 grid gap-6 sm:grid-cols-[minmax(0,1fr)_9rem] sm:items-end sm:gap-x-8">
             <label class="flex cursor-pointer items-start gap-3 text-sm text-muted">
                 <span class="mt-0.5">
                     <Checkbox bind:checked={replaceWatchlist} aria-label={m.import_replace()} />
@@ -45,37 +48,30 @@
                     </span>
                 </span>
             </label>
-        </div>
 
-        <div class="mt-7">
-            <div class="flex flex-col items-start gap-4 text-sm sm:flex-row sm:justify-between sm:gap-6">
-                <div class="min-w-0">
-                    <p class="leading-relaxed text-muted">{m.import_json_csv_body()}</p>
-                </div>
-                <form
-                    method="POST"
-                    action="?/import"
-                    enctype="multipart/form-data"
-                    use:enhance={enhanceImport}
-                    class="w-full shrink-0 sm:w-36"
+            <form
+                method="POST"
+                action="?/import"
+                enctype="multipart/form-data"
+                use:enhance={enhanceImport}
+                class="w-full"
+            >
+                <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
+                <input
+                    id="watchlist-import"
+                    name="file"
+                    type="file"
+                    accept=".json,.csv,application/json,text/csv"
+                    class="sr-only"
+                    onchange={(event) => event.currentTarget.form?.requestSubmit()}
+                />
+                <label
+                    for="watchlist-import"
+                    class="inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
                 >
-                    <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
-                    <input
-                        id="watchlist-import"
-                        name="file"
-                        type="file"
-                        accept=".json,.csv,application/json,text/csv"
-                        class="sr-only"
-                        onchange={(event) => event.currentTarget.form?.requestSubmit()}
-                    />
-                    <label
-                        for="watchlist-import"
-                        class="inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
-                    >
-                        {m.import_choose_file()}
-                    </label>
-                </form>
-            </div>
+                    {m.import_choose_file()}
+                </label>
+            </form>
         </div>
     </section>
 
@@ -86,9 +82,9 @@
     />
 
     <section aria-labelledby="export-library">
-        <div class="flex flex-col items-start gap-4 sm:flex-row sm:justify-between sm:gap-6">
+        <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
             <div class="min-w-0">
-                <h2 id="export-library" class="text-sm font-medium text-foreground">
+                <h2 id="export-library" class="text-base font-medium text-foreground">
                     {m.export_library()}
                 </h2>
                 <p class="mt-1 text-sm leading-relaxed text-muted">{m.export_download()}</p>
