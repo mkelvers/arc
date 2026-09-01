@@ -923,6 +923,10 @@ export const playbackProgress = pgTable(
         positionSeconds: doublePrecision('position_seconds').notNull(),
         durationSeconds: doublePrecision('duration_seconds').notNull(),
         completed: boolean('completed').notNull().default(false),
+        hasCompleted: boolean('has_completed').notNull().default(false),
+        completedAt: timestamp('completed_at', {
+            withTimezone: true,
+        }),
         createdAt: timestamp('created_at', {
             withTimezone: true,
         })
@@ -949,7 +953,11 @@ export const playbackProgress = pgTable(
         }),
     },
     (table) => [
-        unique('playback_progress_user_anime_unique').on(table.userId, table.animeId),
+        unique('playback_progress_user_anime_episode_unique').on(
+            table.userId,
+            table.animeId,
+            table.episodeId
+        ),
         index('playback_progress_user_watched_idx').on(table.userId, table.lastWatchedAt),
     ]
 );
