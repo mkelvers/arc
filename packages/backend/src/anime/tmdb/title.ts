@@ -96,10 +96,13 @@ export function mappingTitles(anime: AniListAnime) {
 
 export function candidateMatchesPrimaryTitle(candidate: Candidate, anime: AniListAnime) {
     const compact = (value: string) => normalizeTitle(value).replace(/\s+/g, '');
-    const primary = animeTitles(anime).map(compact);
+    const primary = animeTitles(anime).flatMap((title) => [
+        compact(title),
+        compact(seriesTitle(title)),
+    ]);
 
     return [candidate.name, candidate.originalName]
-        .map(compact)
+        .flatMap((name) => [compact(name), compact(seriesTitle(name))])
         .some((name) => primary.includes(name));
 }
 

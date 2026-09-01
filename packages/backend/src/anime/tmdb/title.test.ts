@@ -302,4 +302,39 @@ describe('TMDB title matching', () => {
             })
         ).toBeFalse();
     });
+
+    test('keeps a year-suffixed TV series ahead of an exact-title movie', () => {
+        const anime = {
+            format: 'TV',
+            startDate: {
+                year: 2011,
+                month: 10,
+                day: 2,
+            },
+            title: {
+                english: 'Hunter x Hunter (2011)',
+                romaji: 'HUNTER×HUNTER (2011)',
+                native: 'HUNTER×HUNTER (2011)',
+            },
+        } as AniListAnime;
+        const series = {
+            id: 46298,
+            mediaType: 'tv' as const,
+            name: 'Hunter x Hunter',
+            originalName: 'HUNTER×HUNTER',
+            date: '2011-10-02',
+            popularity: 91.3966,
+        };
+        const movie = {
+            id: 1759461,
+            mediaType: 'movie' as const,
+            name: 'Hunter x Hunter (2011)',
+            originalName: 'ハンター×ハンター',
+            date: '2011-10-02',
+            popularity: 0.0714,
+        };
+
+        expect(candidateMatchesPrimaryTitle(series, anime)).toBeTrue();
+        expect(alternateCandidateIsBetter(anime, series, movie)).toBeFalse();
+    });
 });
