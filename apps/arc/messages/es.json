@@ -6,8 +6,6 @@
     "home_trending": "Anime en tendencia",
     "home_carousel_slide": "{title}, diapositiva {current} de {total}",
     "home_carousel_status": "Ahora se muestra {title}",
-    "home_pause_carousel": "Pausar anime destacado",
-    "home_resume_carousel": "Reanudar anime destacado",
     "player_now_playing": "Reproduciendo ahora",
     "player_play_episode": "Reproducir {episode}",
     "player_small": "Pequeño",

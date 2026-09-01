@@ -6,8 +6,6 @@
     "home_trending": "Trending anime now",
     "home_carousel_slide": "{title}, slide {current} of {total}",
     "home_carousel_status": "Now showing {title}",
-    "home_pause_carousel": "Pause featured anime",
-    "home_resume_carousel": "Resume featured anime",
     "player_now_playing": "Now playing",
     "player_play_episode": "Play {episode}",
     "player_small": "Small",
