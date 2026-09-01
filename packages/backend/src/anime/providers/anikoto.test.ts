@@ -68,6 +68,14 @@ describe('AniKoto provider rules', () => {
         ).toBeTrue();
     });
 
+    test('classifies provider DNS failures as transient failures', () => {
+        const cause = Object.assign(new TypeError('getaddrinfo ENOTFOUND anikototv.to'), {
+            code: 'ENOTFOUND',
+        });
+
+        expect(isAniKotoTransientError(cause)).toBeTrue();
+    });
+
     test('fails closed for malformed provider payloads', () => {
         expect(parseEpisodeList(null)).toEqual([]);
         expect(parseEpisodeList({ status: 200, result: 42 })).toEqual([]);

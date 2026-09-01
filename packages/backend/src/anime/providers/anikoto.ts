@@ -51,6 +51,16 @@ const seriesRequests = new Map<number, { expiresAt: number; request: Promise<Ani
 const providerCooldownUntil = new Map<string, number>();
 let providerRequestTail = Promise.resolve();
 let lastProviderRequestAt = 0;
+const transientProviderTransportCodes = new Set([
+    'EAI_AGAIN',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'EHOSTUNREACH',
+    'ENETUNREACH',
+    'ENOTFOUND',
+    'EPIPE',
+    'ETIMEDOUT',
+]);
 
 const ajaxResponseSchema = z.object({ status: z.number().int(), result: z.string() });
 const seriesResponseSchema = z.object({
@@ -170,9 +180,35 @@ export function isAniKotoLocalCooldownError(
     return cause instanceof AniKotoRequestError && cause.localCooldown;
 }
 
+function providerTransportCode(cause: unknown) {
+    if (!(cause instanceof Error)) {
+        return null;
+    }
+
+    const error = cause as Error & { code?: string };
+    if (error.code && transientProviderTransportCodes.has(error.code)) {
+        return error.code;
+    }
+
+    if (!(error.cause instanceof Error)) {
+        return null;
+    }
+
+    const nested = error.cause as Error & { code?: string };
+    return nested.code && transientProviderTransportCodes.has(nested.code) ? nested.code : null;
+}
+
+function isAniKotoTransportError(cause: unknown) {
+    return providerTransportCode(cause) !== null;
+}
+
 export function isAniKotoTransientError(cause: unknown) {
     if (cause instanceof AniKotoRequestError) {
         return cause.status === 429 || cause.status >= 500;
+    }
+
+    if (isAniKotoTransportError(cause)) {
+        return true;
     }
 
     if (cause instanceof DOMException && cause.name === 'TimeoutError') {
@@ -983,6 +1019,16 @@ async function requestText(
                 throw new AniKotoRequestError(
                     `AniKoto request timed out for ${url.hostname}${url.pathname} (cooldown ${cooldown}ms)`,
                     504,
+                    cooldown
+                );
+            }
+            const transportCode = providerTransportCode(cause);
+            if (transportCode) {
+                const cooldown = providerCooldownMs;
+                providerCooldownUntil.set(requestFamily, Date.now() + cooldown);
+                throw new AniKotoRequestError(
+                    `AniKoto request failed for ${url.hostname}${url.pathname} (${transportCode}; cooldown ${cooldown}ms)`,
+                    503,
                     cooldown
                 );
             }
