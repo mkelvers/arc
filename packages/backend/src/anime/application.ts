@@ -33,7 +33,11 @@ import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
 import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from './anilist/releases';
-import { getContinueWatchingCards, getPlaybackProgress } from '../progress/store';
+import {
+    getContinueWatchingCards,
+    getEpisodePlaybackProgress,
+    getPlaybackProgress,
+} from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getWatchlistState } from '../watchlist/store';
 import { logger } from '@arc/backend/internal/logger';
@@ -107,15 +111,23 @@ export async function animePageDeferred(userId: string, id: number) {
                   return null;
               })
         : null;
-    const [synopsis, storedAiringSchedule, watchlist] = await Promise.all([
-        resolveAnimeSynopsis(anime, { refresh: imported }),
-        getStoredAiringSchedule(id),
-        getPlaybackProgress(userId, id),
-    ]);
-    const episodes = initialEpisodes ?? storedEpisodes;
+    const [synopsis, storedAiringSchedule, watchlist, episodeProgress, watchlistState] =
+        await Promise.all([
+            resolveAnimeSynopsis(anime, { refresh: imported }),
+            getStoredAiringSchedule(id),
+            getPlaybackProgress(userId, id),
+            getEpisodePlaybackProgress(userId, id),
+            getWatchlistState(userId, id),
+        ]);
+    const episodes = (initialEpisodes ?? storedEpisodes).map((episode) => ({
+        ...episode,
+        progress: episodeProgress.get(episode.id) ?? null,
+    }));
     const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
     const continuation = continuationEpisode(watchlist, episodes, details.status === 'FINISHED');
     const target = continuation ?? episodes[0] ?? null;
+    const allEpisodesCompleted =
+        episodes.length > 0 && episodes.every((episode) => episode.progress?.hasCompleted);
     const franchise = anime.idMal ? await getFranchiseOrder(anime.idMal).catch(() => null) : null;
 
     return {
@@ -123,7 +135,15 @@ export async function animePageDeferred(userId: string, id: number) {
         episodes: withMovieBackdrop(anime, episodes, null),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
-            kind: continuation ? 'continue' : target ? 'start' : 'episodes',
+            kind: allEpisodesCompleted
+                ? 'rewatch'
+                : continuation
+                  ? 'continue'
+                  : watchlist?.completed || watchlistState === 'completed'
+                    ? 'rewatch'
+                    : target
+                      ? 'start'
+                      : 'episodes',
             episode: target?.label ?? null,
         },
         audioLabel: episodeAudioAvailabilityLabel(episodes),
@@ -245,15 +265,19 @@ export async function watchPage(userId: string, id: number, episodeId: string) {
     }
 
     const { anime, currentIndex, canonicalHref } = context;
-    const [storedMedia, progress] = await Promise.all([
+    const [storedMedia, progress, episodeProgress] = await Promise.all([
         getStoredMedia(id).catch(() => null),
         getPlaybackProgress(userId, id),
+        getEpisodePlaybackProgress(userId, id),
     ]);
     const episodes = withMovieBackdrop(
         anime,
         context.episodes,
         storedMedia?.artwork.selectedBackdrop?.url
-    );
+    ).map((episode) => ({
+        ...episode,
+        progress: episodeProgress.get(episode.id) ?? null,
+    }));
     const currentEpisode = episodes[currentIndex];
 
     return {
