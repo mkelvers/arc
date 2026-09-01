@@ -290,7 +290,7 @@
                     </p>
 
                     <p
-                        class="mt-2 hidden min-h-15 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-muted sm:block sm:min-h-0 sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,34rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
+                        class="mt-2 hidden min-h-15 max-w-[min(100%,36rem)] px-5 text-xs leading-5 text-muted sm:block sm:min-h-0 sm:px-10 lg:mt-3 lg:line-clamp-4 lg:max-w-[min(100%,46rem)] lg:px-16 lg:text-base lg:leading-6 2xl:leading-7"
                     >
                         {activeAnime.description}
                     </p>
