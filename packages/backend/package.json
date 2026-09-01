@@ -12,6 +12,7 @@
         "./auth": "./src/auth.ts",
         "./watchlist": "./src/watchlist/application.ts",
         "./progress": "./src/progress/store.ts",
+        "./notifications": "./src/notifications.ts",
         "./internal/anime/providers": "./src/anime/providers/index.ts",
         "./internal/*": "./src/*.ts"
     },
