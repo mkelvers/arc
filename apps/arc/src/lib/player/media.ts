@@ -87,7 +87,16 @@ export function subtitleTracks(
                     Number(right.server === stream.server) - Number(left.server === stream.server)
             )[0] ?? null;
     const subtitle = subSource?.subtitles[0];
-    return { own, sub: subtitle ? { ...subtitle, kind: 'translated', source: subSource } : null };
+    return {
+        own,
+        sub: subtitle
+            ? {
+                  ...subtitle,
+                  kind: 'translated',
+                  source: subSource,
+              }
+            : null,
+    };
 }
 
 export function hasSubtitleTrack(sources: Sources, mode: AudioMode, stream: Stream) {
@@ -388,10 +397,16 @@ export function alignSkipTimes(
     return {
         ...times,
         opening: times.opening
-            ? { start: align(times.opening.start), end: align(times.opening.end) }
+            ? {
+                  start: align(times.opening.start),
+                  end: align(times.opening.end),
+              }
             : null,
         ending: times.ending
-            ? { start: align(times.ending.start), end: align(times.ending.end) }
+            ? {
+                  start: align(times.ending.start),
+                  end: align(times.ending.end),
+              }
             : null,
     };
 }

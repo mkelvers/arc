@@ -163,7 +163,12 @@ Cheers!
             server: 'VidPlay-1',
             url: '/sub',
             quality: null,
-            subtitles: [{ kind: 'full', url: '/sub.vtt' }],
+            subtitles: [
+                {
+                    kind: 'full',
+                    url: '/sub.vtt',
+                },
+            ],
         };
         const dub: Stream = {
             provider: 'anikoto',
@@ -181,10 +186,28 @@ Cheers!
             subtitleTracks(
                 {
                     sub: [sub],
-                    dub: [{ ...dub, subtitles: [{ kind: 'full', url: '/dub.vtt' }] }],
+                    dub: [
+                        {
+                            ...dub,
+                            subtitles: [
+                                {
+                                    kind: 'full',
+                                    url: '/dub.vtt',
+                                },
+                            ],
+                        },
+                    ],
                 },
                 'dub',
-                { ...dub, subtitles: [{ kind: 'full', url: '/dub.vtt' }] }
+                {
+                    ...dub,
+                    subtitles: [
+                        {
+                            kind: 'full',
+                            url: '/dub.vtt',
+                        },
+                    ],
+                }
             ).sub
         ).toBeNull();
     });
@@ -202,14 +225,24 @@ Cheers!
             server: 'Vidstream-2',
             url: '/sub-vidstream',
             quality: null,
-            subtitles: [{ kind: 'full', url: '/vidstream.vtt' }],
+            subtitles: [
+                {
+                    kind: 'full',
+                    url: '/vidstream.vtt',
+                },
+            ],
         };
         const activeServer: Stream = {
             provider: 'anikoto',
             server: 'HD-2',
             url: '/sub-hd-2',
             quality: null,
-            subtitles: [{ kind: 'full', url: '/hd-2.vtt' }],
+            subtitles: [
+                {
+                    kind: 'full',
+                    url: '/hd-2.vtt',
+                },
+            ],
         };
 
         expect(
@@ -251,15 +284,27 @@ Cheers!
         expect(
             alignSkipTimes(
                 {
-                    opening: { start: 20, end: 80 },
-                    ending: { start: 1_320, end: 1_380 },
+                    opening: {
+                        start: 20,
+                        end: 80,
+                    },
+                    ending: {
+                        start: 1_320,
+                        end: 1_380,
+                    },
                     source: 'aniskip',
                 },
                 [{ at: 0, offset: 2 }]
             )
         ).toEqual({
-            opening: { start: 22, end: 82 },
-            ending: { start: 1_322, end: 1_382 },
+            opening: {
+                start: 22,
+                end: 82,
+            },
+            ending: {
+                start: 1_322,
+                end: 1_382,
+            },
             source: 'aniskip',
         });
         expect(unalignTime(22, [{ at: 0, offset: 2 }])).toBe(20);

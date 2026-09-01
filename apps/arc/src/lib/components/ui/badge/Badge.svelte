@@ -12,7 +12,9 @@
                 destructive: 'border-transparent bg-status-error text-white',
             },
         },
-        defaultVariants: { variant: 'default' },
+        defaultVariants: {
+            variant: 'default',
+        },
     });
 
     type Props = { children?: Snippet; class?: string; variant?: VariantProps<typeof badgeVariants>['variant'] };

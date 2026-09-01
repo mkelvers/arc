@@ -357,7 +357,9 @@ export class Playback {
         }
         if (Hls.isSupported()) {
             const hls = new Hls({
-                audioPreference: { lang: this.mode === 'dub' ? 'en' : 'ja' },
+                audioPreference: {
+                    lang: this.mode === 'dub' ? 'en' : 'ja',
+                },
                 backBufferLength: 30,
                 capLevelToPlayerSize: true,
                 ignoreDevicePixelRatio: true,

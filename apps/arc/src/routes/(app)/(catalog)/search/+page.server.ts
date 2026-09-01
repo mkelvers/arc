@@ -10,7 +10,13 @@ export const load: PageServerLoad = async ({ url, request, fetch }) => {
         error(400, 'Search queries cannot exceed 200 characters');
     }
     if (query.length < 2) {
-        return { query, results: Promise.resolve({ status: 'success' as const, data: [] }) };
+        return {
+            query,
+            results: Promise.resolve({
+                status: 'success' as const,
+                data: [],
+            }),
+        };
     }
     return {
         query,
@@ -22,7 +28,9 @@ export const load: PageServerLoad = async ({ url, request, fetch }) => {
         })
             .then(async (response) => {
                 if (!response.ok) {
-                    return { status: 'error' as const };
+                    return {
+                        status: 'error' as const,
+                    };
                 }
 
                 return {
@@ -30,6 +38,8 @@ export const load: PageServerLoad = async ({ url, request, fetch }) => {
                     data: SearchResponseSchema.parse(await response.json()),
                 };
             })
-            .catch(() => ({ status: 'error' as const })),
+            .catch(() => ({
+                status: 'error' as const,
+            })),
     };
 };

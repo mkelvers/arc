@@ -30,8 +30,14 @@ export class SegmentEditor {
         ending: null,
     });
     draft = $state<ReturnType<typeof skipTimesDraft>>({
-        opening: { start: null, end: null },
-        ending: { start: null, end: null },
+        opening: {
+            start: null,
+            end: null,
+        },
+        ending: {
+            start: null,
+            end: null,
+        },
     });
     creatingTemplate = $state<SkipKind | null>(null);
     saving = $state(false);
@@ -107,7 +113,10 @@ export class SegmentEditor {
 
         void this.persist(kind, {
             operation: 'set',
-            interval: { start: marked.start, end: marked.end },
+            interval: {
+                start: marked.start,
+                end: marked.end,
+            },
             createTemplate: this.creatingTemplate === kind || !template,
         });
     }
@@ -119,7 +128,13 @@ export class SegmentEditor {
 
     startTemplate(kind: SkipKind) {
         this.creatingTemplate = kind;
-        this.draft = { ...this.draft, [kind]: { start: null, end: null } };
+        this.draft = {
+            ...this.draft,
+            [kind]: {
+                start: null,
+                end: null,
+            },
+        };
         this.error = null;
     }
 

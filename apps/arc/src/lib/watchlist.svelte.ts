@@ -64,7 +64,10 @@ class WatchlistClient {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ state, title }),
+            body: JSON.stringify({
+                state,
+                title,
+            }),
         });
         this.assertSuccessful(response);
         const result = WatchlistStateResponseSchema.parse(await response.json());

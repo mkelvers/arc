@@ -9,8 +9,14 @@ import {
 } from '@arc/shared/player/skip-times';
 
 const times: EpisodeSkipTimes = {
-    opening: { start: 5, end: 95 },
-    ending: { start: 1_320, end: 1_410 },
+    opening: {
+        start: 5,
+        end: 95,
+    },
+    ending: {
+        start: 1_320,
+        end: 1_410,
+    },
     source: 'aniskip',
 };
 
@@ -18,11 +24,17 @@ describe('activeSkip', () => {
     test('returns the active opening and ending intervals', () => {
         expect(activeSkip(times, 5)).toEqual({
             kind: 'opening',
-            interval: { start: 5, end: 95 },
+            interval: {
+                start: 5,
+                end: 95,
+            },
         });
         expect(activeSkip(times, 1_350)).toEqual({
             kind: 'ending',
-            interval: { start: 1_320, end: 1_410 },
+            interval: {
+                start: 1_320,
+                end: 1_410,
+            },
         });
     });
 
@@ -34,8 +46,14 @@ describe('activeSkip', () => {
 
 test('skipTimesDraft preserves absent endpoints for manual editing', () => {
     expect(skipTimesDraft({ opening: null, ending: null, source: null })).toEqual({
-        opening: { start: null, end: null },
-        ending: { start: null, end: null },
+        opening: {
+            start: null,
+            end: null,
+        },
+        ending: {
+            start: null,
+            end: null,
+        },
     });
 });
 
@@ -55,12 +73,18 @@ describe('SegmentSaveResultSchema', () => {
     test('validates saved segments and their active templates', () => {
         const result = {
             times: {
-                opening: { start: 108.7, end: 198.5 },
+                opening: {
+                    start: 108.7,
+                    end: 198.5,
+                },
                 ending: null,
                 source: 'manual',
             },
             templates: {
-                opening: { fromEpisode: 26, duration: 89.8 },
+                opening: {
+                    fromEpisode: 26,
+                    duration: 89.8,
+                },
                 ending: null,
             },
         } as const;
@@ -69,11 +93,26 @@ describe('SegmentSaveResultSchema', () => {
     });
 
     test('rejects malformed save responses', () => {
-        expect(SegmentSaveResultSchema.safeParse({ times: {}, templates: {} }).success).toBeFalse();
         expect(
             SegmentSaveResultSchema.safeParse({
-                times: { opening: null, ending: null, source: 'manual' },
-                templates: { opening: { fromEpisode: 0, duration: 90 }, ending: null },
+                times: {},
+                templates: {},
+            }).success
+        ).toBeFalse();
+        expect(
+            SegmentSaveResultSchema.safeParse({
+                times: {
+                    opening: null,
+                    ending: null,
+                    source: 'manual',
+                },
+                templates: {
+                    opening: {
+                        fromEpisode: 0,
+                        duration: 90,
+                    },
+                    ending: null,
+                },
             }).success
         ).toBeFalse();
     });

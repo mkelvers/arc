@@ -29,19 +29,34 @@ describe('anime card page response validation', () => {
         expect(
             AnimeCardPageSchema.safeParse({
                 ...page,
-                anime: [{ ...card, id: '1' }],
+                anime: [
+                    {
+                        ...card,
+                        id: '1',
+                    },
+                ],
             }).success
         ).toBeFalse();
         expect(
             AnimeCardPageSchema.safeParse({
                 ...page,
-                anime: [{ ...card, id: 0 }],
+                anime: [
+                    {
+                        ...card,
+                        id: 0,
+                    },
+                ],
             }).success
         ).toBeFalse();
         expect(
             AnimeCardPageSchema.safeParse({
                 ...page,
-                anime: [{ ...card, score: Number.NaN }],
+                anime: [
+                    {
+                        ...card,
+                        score: Number.NaN,
+                    },
+                ],
             }).success
         ).toBeFalse();
         expect(AnimeCardPageSchema.safeParse({ ...page, page: 1.5 }).success).toBeFalse();

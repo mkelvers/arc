@@ -26,7 +26,9 @@ export async function fetchCatalogPage({
     for (let attempt = 0; attempt < (retryOnce ? 2 : 1); attempt += 1) {
         try {
             const response = await fetch(`/v1/${kind}?${query}`, {
-                headers: { Accept: 'application/json' },
+                headers: {
+                    Accept: 'application/json',
+                },
                 signal,
             });
             if (!response.ok) {

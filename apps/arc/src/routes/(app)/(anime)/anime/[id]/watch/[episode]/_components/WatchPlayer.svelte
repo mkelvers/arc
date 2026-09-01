@@ -115,8 +115,15 @@
                 result,
                 segments: {
                     canEdit: segments.canEdit,
-                    times: { opening: null, ending: null, source: null },
-                    templates: { opening: null, ending: null },
+                    times: {
+                        opening: null,
+                        ending: null,
+                        source: null,
+                    },
+                    templates: {
+                        opening: null,
+                        ending: null,
+                    },
                 },
             };
             transitioning = false;
@@ -131,7 +138,13 @@
                         return;
                     }
 
-                    active = { ...active, segments: { ...active.segments, times: resolved } };
+                    active = {
+                        ...active,
+                        segments: {
+                            ...active.segments,
+                            times: resolved,
+                        },
+                    };
                 })
                 .catch(() => undefined);
 
@@ -145,7 +158,13 @@
                         return;
                     }
 
-                    active = { ...active, segments: { ...active.segments, templates: resolved } };
+                    active = {
+                        ...active,
+                        segments: {
+                            ...active.segments,
+                            templates: resolved,
+                        },
+                    };
                 })
                 .catch(() => undefined);
 

@@ -26,7 +26,10 @@
                     'icon-lg': 'size-11',
                 },
             },
-            defaultVariants: { variant: 'default', size: 'default' },
+            defaultVariants: {
+                variant: 'default',
+                size: 'default',
+            },
         }
     );
 

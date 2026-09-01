@@ -36,8 +36,15 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
             return WatchSegmentsSchema.parse(await result.json());
         })
         .catch(() => ({
-            times: { opening: null, ending: null, source: null },
-            templates: { opening: null, ending: null },
+            times: {
+                opening: null,
+                ending: null,
+                source: null,
+            },
+            templates: {
+                opening: null,
+                ending: null,
+            },
         }));
     const playback = fetch(`${endpoint}/playback`, { headers })
         .then(async (result) => {
@@ -46,7 +53,10 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
             }
             return WatchPlaybackSchema.parse(await result.json());
         })
-        .catch(() => ({ streams: {}, error: true }));
+        .catch(() => ({
+            streams: {},
+            error: true,
+        }));
 
     return {
         ...page,

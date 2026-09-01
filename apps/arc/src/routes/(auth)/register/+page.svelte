@@ -70,7 +70,10 @@
             autocomplete="email"
             autocapitalize="none"
             spellcheck={false}
-            constraints={{ required: true, maxlength: 254 }}
+            constraints={{
+                required: true,
+                maxlength: 254,
+            }}
             bind:value={email}
         />
         <AuthInput
@@ -79,7 +82,12 @@
             autocomplete="username"
             autocapitalize="none"
             spellcheck={false}
-            constraints={{ required: true, minlength: 3, maxlength: 30, pattern: '[A-Za-z0-9_]+' }}
+            constraints={{
+                required: true,
+                minlength: 3,
+                maxlength: 30,
+                pattern: '[A-Za-z0-9_]+',
+            }}
             bind:value={username}
         />
         <AuthInput
@@ -87,7 +95,11 @@
             label={m.auth_password()}
             type="password"
             autocomplete="new-password"
-            constraints={{ required: true, minlength: 12, maxlength: 128 }}
+            constraints={{
+                required: true,
+                minlength: 12,
+                maxlength: 128,
+            }}
             bind:value={password}
         />
         <AuthInput
@@ -95,7 +107,10 @@
             label={m.auth_confirm_password()}
             type="password"
             autocomplete="new-password"
-            constraints={{ required: true, maxlength: 128 }}
+            constraints={{
+                required: true,
+                maxlength: 128,
+            }}
             bind:value={confirmPassword}
         />
         <AuthInput
@@ -104,7 +119,10 @@
             autocomplete="off"
             autocapitalize="none"
             spellcheck={false}
-            constraints={{ required: true, maxlength: 256 }}
+            constraints={{
+                required: true,
+                maxlength: 256,
+            }}
             bind:value={invitationCode}
         />
     </div>

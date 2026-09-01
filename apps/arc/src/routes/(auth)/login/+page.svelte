@@ -75,7 +75,10 @@
             label={m.auth_password()}
             type="password"
             autocomplete="current-password"
-            constraints={{ required: true, maxlength: 128 }}
+            constraints={{
+                required: true,
+                maxlength: 128,
+            }}
             bind:value={password}
         />
     </div>

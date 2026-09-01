@@ -15,7 +15,9 @@ export const load: PageServerLoad = async ({ request, url, fetch }) => {
         })
             .then(async (response) => {
                 if (!response.ok) {
-                    return { status: 'error' as const };
+                    return {
+                        status: 'error' as const,
+                    };
                 }
 
                 return {
@@ -23,6 +25,8 @@ export const load: PageServerLoad = async ({ request, url, fetch }) => {
                     data: WatchlistPageResponseSchema.parse(await response.json()),
                 };
             })
-            .catch(() => ({ status: 'error' as const })),
+            .catch(() => ({
+                status: 'error' as const,
+            })),
     };
 };

@@ -34,9 +34,14 @@ export const actions: Actions = {
         const intent = form.get('intent');
         const body =
             intent === 'refresh'
-                ? { intent }
+                ? {
+                      intent,
+                  }
                 : intent === 'logoSize'
-                  ? { intent, logoSize: Number(form.get('logoSize')) }
+                  ? {
+                        intent,
+                        logoSize: Number(form.get('logoSize')),
+                    }
                   : {
                         intent: 'select',
                         type: form.get('type'),
@@ -53,10 +58,16 @@ export const actions: Actions = {
             body: JSON.stringify(body),
         }).catch(() => null);
         if (!response) {
-            return fail(503, { message: 'Arc is temporarily unavailable' });
+            return fail(503, {
+                message: 'Arc is temporarily unavailable',
+            });
         }
         return response.ok
-            ? { success: true }
-            : fail(response.status, { message: 'Media update failed' });
+            ? {
+                  success: true,
+              }
+            : fail(response.status, {
+                  message: 'Media update failed',
+              });
     },
 };

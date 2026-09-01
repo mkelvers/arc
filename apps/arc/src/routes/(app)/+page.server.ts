@@ -27,7 +27,9 @@ export const actions: Actions = {
         }
         const animeId = Number((await request.formData()).get('animeId'));
         if (!Number.isSafeInteger(animeId) || animeId <= 0) {
-            return fail(400, { message: 'Invalid anime ID' });
+            return fail(400, {
+                message: 'Invalid anime ID',
+            });
         }
         const response = await fetch(`${env.API_ORIGIN!}/v1/home/continue-watching/${animeId}`, {
             method: 'DELETE',
@@ -38,10 +40,16 @@ export const actions: Actions = {
             },
         }).catch(() => null);
         if (!response) {
-            return fail(503, { message: 'Arc is temporarily unavailable' });
+            return fail(503, {
+                message: 'Arc is temporarily unavailable',
+            });
         }
         return response.ok
-            ? { success: true }
-            : fail(response.status, { message: 'Failed to remove continue watching' });
+            ? {
+                  success: true,
+              }
+            : fail(response.status, {
+                  message: 'Failed to remove continue watching',
+              });
     },
 };

@@ -158,7 +158,14 @@ describe('catalog pagination', () => {
 
     test('deduplicates appended cards and makes the final page terminal', () => {
         const result = appendCatalogPage([card], 2, {
-            anime: [card, { ...card, id: 2, title: 'Second anime' }],
+            anime: [
+                card,
+                {
+                    ...card,
+                    id: 2,
+                    title: 'Second anime',
+                },
+            ],
             hasNextPage: false,
             page: 2,
         });
