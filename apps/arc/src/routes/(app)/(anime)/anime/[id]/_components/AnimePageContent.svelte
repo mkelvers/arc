@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import FranchiseOrder from './FranchiseOrder.svelte';
@@ -15,7 +16,7 @@
     } from '@arc/api-contract/anime';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
-    import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
+    import { ArrowRightIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
@@ -42,6 +43,9 @@
     let extendedMetadataLoading = $state(true);
     let loadedAnimeId = $state<number | null>(null);
     let artworkLoading = $state(true);
+    let progressMenuOpen = $state(false);
+    let progressActionPending = $state(false);
+    let progressActionFailed = $state(false);
     const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
 
     async function loadDeferred() {
@@ -99,6 +103,33 @@
         }
     }
 
+    async function updateWatchProgress(action: 'complete' | 'reset') {
+        if (progressActionPending) {
+            return;
+        }
+
+        progressActionPending = true;
+        progressActionFailed = false;
+        try {
+            const response = await fetch(
+                `/v1/anime/${data.anime.id}/progress${action === 'complete' ? '/complete' : ''}`,
+                { method: action === 'complete' ? 'POST' : 'DELETE' }
+            );
+            if (response.status === 401) {
+                await goto('/login');
+                return;
+            }
+            if (!response.ok) {
+                throw new Error(`Watch progress request failed with ${response.status}`);
+            }
+            await loadDeferred();
+        } catch {
+            progressActionFailed = true;
+        } finally {
+            progressActionPending = false;
+        }
+    }
+
     $effect(() => {
         if (loadedAnimeId !== data.anime.id) {
             loadedAnimeId = data.anime.id;
@@ -142,15 +173,74 @@
             <div
                 class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
             >
-                <Dropdown
-                    id="more-options"
-                    items={[{ label: m.anime_view_media(), href: `/anime/${anime.id}/media` }]}
-                >
+                <Dropdown id="more-options" closeOnSelection={false}>
                     {#snippet trigger()}
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
                             <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
                             <span>{m.anime_more()}</span>
                         </span>
+                    {/snippet}
+                    {#snippet content()}
+                        <div role="menu" aria-label={m.anime_more()} class="w-56 bg-panel py-2">
+                            <a
+                                role="menuitem"
+                                href={`/anime/${anime.id}/media`}
+                                data-dropdown-close
+                                class="block px-5 py-3 text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.anime_view_media()}
+                            </a>
+                            <div class="relative">
+                                <button
+                                    type="button"
+                                    role="menuitem"
+                                    aria-haspopup="menu"
+                                    aria-expanded={progressMenuOpen}
+                                    disabled={progressActionPending}
+                                    class="flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
+                                    onclick={() => (progressMenuOpen = !progressMenuOpen)}
+                                >
+                                    <span>{m.anime_watch_progress()}</span>
+                                    <ArrowRightIcon size="1rem" aria-hidden="true" />
+                                </button>
+                                {#if progressMenuOpen}
+                                    <div
+                                        role="menu"
+                                        aria-label={m.anime_watch_progress()}
+                                        class="absolute top-0 right-full w-56 bg-panel py-2 shadow-xl"
+                                    >
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            data-dropdown-close
+                                            disabled={progressActionPending}
+                                            class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
+                                            onclick={() => updateWatchProgress('complete')}
+                                        >
+                                            {m.anime_mark_complete()}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            data-dropdown-close
+                                            disabled={progressActionPending}
+                                            class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-status-error whitespace-nowrap hover:bg-panel-hover focus:bg-panel-hover focus:outline-none disabled:cursor-wait disabled:opacity-50"
+                                            onclick={() => updateWatchProgress('reset')}
+                                        >
+                                            {m.anime_reset_watch_progress()}
+                                        </button>
+                                        {#if progressActionFailed}
+                                            <p
+                                                class="border-t border-white/10 px-4 py-3 text-xs text-status-error"
+                                                role="alert"
+                                            >
+                                                {m.anime_watch_progress_failed()}
+                                            </p>
+                                        {/if}
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>
@@ -254,9 +344,11 @@
                             <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                             {watchAction.kind === 'continue'
                                 ? m.anime_continue_watching({ episode: watchAction.episode ?? '' })
-                                : watchAction.kind === 'start'
-                                  ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
-                                  : m.anime_view_episodes()}
+                                : watchAction.kind === 'rewatch'
+                                  ? m.anime_rewatch()
+                                  : watchAction.kind === 'start'
+                                    ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
+                                    : m.anime_view_episodes()}
                         </a>
                     {/await}
                     <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined />
