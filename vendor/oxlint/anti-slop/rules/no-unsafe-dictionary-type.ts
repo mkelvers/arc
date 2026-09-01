@@ -100,7 +100,13 @@ export const noUnsafeDictionaryTypeRule = defineRule({
     createOnce(context) {
         let environment: TypeEnvironment | null = null;
         const report = (node: ESTree.Node, value: string) => {
-            context.report({ node, messageId: 'unsafeDictionary', data: { value } });
+            context.report({
+                node,
+                messageId: 'unsafeDictionary',
+                data: {
+                    value,
+                },
+            });
         };
         const reportIfUnsafe = (node: ESTree.TSType) => {
             if (environment === null || !shouldReportType(node, environment)) return;
