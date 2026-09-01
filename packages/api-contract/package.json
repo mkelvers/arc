@@ -9,7 +9,8 @@
         "./auth": "./src/auth.ts",
         "./anime": "./src/anime.ts",
         "./maintenance": "./src/maintenance.ts",
-        "./watchlist": "./src/watchlist.ts"
+        "./watchlist": "./src/watchlist.ts",
+        "./notifications": "./src/notifications.ts"
     },
     "scripts": {
         "check": "tsc --noEmit",
