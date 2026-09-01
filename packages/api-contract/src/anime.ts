@@ -35,7 +35,12 @@ const AnimeDetailsSchema = z.object({
     genres: z.array(z.string()),
     format: z.string(),
     status: z.string().nullable(),
-    nextAiringEpisode: z.object({ episode: z.number(), airingAt: z.number().int() }).nullable(),
+    nextAiringEpisode: z
+        .object({
+            episode: z.number(),
+            airingAt: z.number().int(),
+        })
+        .nullable(),
     score: z.number(),
     members: z.string(),
     favourites: z.string(),
@@ -76,7 +81,10 @@ const HomeHeroSchema = z.object({
     episodeLabel: z.string(),
     title: z.string(),
     image: z.string(),
-    logo: z.object({ url: z.string(), size: z.number() }),
+    logo: z.object({
+        url: z.string(),
+        size: z.number(),
+    }),
     audioLabel: z.string(),
     genres: z.array(z.string()),
     description: z.string(),
@@ -167,7 +175,12 @@ export const SimulcastPageSchema = z.object({
 
 const AnimePageFranchiseSchema = z
     .object({
-        types: z.array(z.object({ id: z.string(), label: z.string() })),
+        types: z.array(
+            z.object({
+                id: z.string(),
+                label: z.string(),
+            })
+        ),
         entries: z.array(
             AnimeCardSchema.extend({
                 malId: z.number().int().positive(),
@@ -179,7 +192,10 @@ const AnimePageFranchiseSchema = z
                 duration: z.number().nullable(),
                 popularity: z.number().nullable(),
                 relations: z.array(
-                    z.object({ type: MediaRelationSchema, malId: z.number().int().positive() })
+                    z.object({
+                        type: MediaRelationSchema,
+                        malId: z.number().int().positive(),
+                    })
                 ),
                 secondary: z.boolean(),
                 primary: z.boolean(),
@@ -218,7 +234,12 @@ export const WatchPageSchema = z.object({
     canonicalHref: z.string().nullable(),
     anime: AnimeDetailsSchema,
     poster: z.string().nullable(),
-    logo: z.object({ url: z.string(), size: z.number() }).nullable(),
+    logo: z
+        .object({
+            url: z.string(),
+            size: z.number(),
+        })
+        .nullable(),
     episodes: z.array(EpisodeSchema),
     currentEpisode: EpisodeSchema,
     previousEpisode: EpisodeSchema.nullable(),
@@ -230,16 +251,32 @@ export const WatchPageSchema = z.object({
 
 export const WatchSegmentsSchema = z.object({
     times: z.object({
-        opening: z.object({ start: z.number(), end: z.number() }).nullable(),
-        ending: z.object({ start: z.number(), end: z.number() }).nullable(),
+        opening: z
+            .object({
+                start: z.number(),
+                end: z.number(),
+            })
+            .nullable(),
+        ending: z
+            .object({
+                start: z.number(),
+                end: z.number(),
+            })
+            .nullable(),
         source: z.enum(['aniskip', 'manual']).nullable(),
     }),
     templates: z.object({
         opening: z
-            .object({ fromEpisode: z.number().int().positive(), duration: z.number() })
+            .object({
+                fromEpisode: z.number().int().positive(),
+                duration: z.number(),
+            })
             .nullable(),
         ending: z
-            .object({ fromEpisode: z.number().int().positive(), duration: z.number() })
+            .object({
+                fromEpisode: z.number().int().positive(),
+                duration: z.number(),
+            })
             .nullable(),
     }),
 });
@@ -269,7 +306,10 @@ export const WatchPlaybackSchema = z.object({
 export const MediaPageSchema = z.object({
     anime: z.union([
         AnimeDetailsSchema,
-        z.object({ id: z.number().int().positive(), title: z.string() }),
+        z.object({
+            id: z.number().int().positive(),
+            title: z.string(),
+        }),
     ]),
     artwork: ArtworkSchema.nullable(),
 });

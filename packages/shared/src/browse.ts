@@ -12,7 +12,12 @@ const browseMetadata = {
 
 const BrowseSearchSchema = z.object({
     q: z.string().trim().max(200).nullable(),
-    sfw: z.stringbool({ truthy: ['1'], falsy: ['0'] }).nullable(),
+    sfw: z
+        .stringbool({
+            truthy: ['1'],
+            falsy: ['0'],
+        })
+        .nullable(),
     ...browseMetadata,
     year: z
         .string()
