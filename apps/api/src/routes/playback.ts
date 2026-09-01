@@ -30,7 +30,12 @@ playback.get('/stream', async (context) => {
                     ? 504
                     : 502;
         return context.json(
-            { error: { code: 'STREAM_FAILED', message: 'Episode stream failed' } },
+            {
+                error: {
+                    code: 'STREAM_FAILED',
+                    message: 'Episode stream failed',
+                },
+            },
             status
         );
     }
@@ -40,7 +45,12 @@ playback.post('/progress', validate('json', PlaybackProgressSchema), async (cont
     const input = parsePlaybackProgress(context.req.valid('json'));
     if (!input) {
         return context.json(
-            { error: { code: 'INVALID_REQUEST', message: 'Invalid playback progress' } },
+            {
+                error: {
+                    code: 'INVALID_REQUEST',
+                    message: 'Invalid playback progress',
+                },
+            },
             400
         );
     }
@@ -48,7 +58,12 @@ playback.post('/progress', validate('json', PlaybackProgressSchema), async (cont
     return saved
         ? context.body(null, 204)
         : context.json(
-              { error: { code: 'INVALID_REQUEST', message: 'Invalid playback progress' } },
+              {
+                  error: {
+                      code: 'INVALID_REQUEST',
+                      message: 'Invalid playback progress',
+                  },
+              },
               400
           );
 });
@@ -57,12 +72,25 @@ playback.put('/segments', validate('json', SegmentRequestSchema), async (context
     const request = context.req.valid('json');
     if (request.operation === 'set' && !validSkipInterval(request.interval)) {
         return context.json(
-            { error: { code: 'INVALID_REQUEST', message: 'Invalid segments' } },
+            {
+                error: {
+                    code: 'INVALID_REQUEST',
+                    message: 'Invalid segments',
+                },
+            },
             400
         );
     }
     const saved = await saveEpisodeSegment(request);
     return saved
         ? context.json(saved)
-        : context.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
+        : context.json(
+              {
+                  error: {
+                      code: 'NOT_FOUND',
+                      message: 'Episode not found',
+                  },
+              },
+              404
+          );
 });
