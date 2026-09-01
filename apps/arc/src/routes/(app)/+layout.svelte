@@ -124,7 +124,7 @@
                         </div>
                         <div class="bg-border" aria-hidden="true"></div>
                         <div class="min-w-0 py-5">
-                            <p class="mb-3 px-5 text-xs font-bold tracking-wide text-subtle uppercase">Genres</p>
+                            <p class="mb-3 px-5 text-xs font-bold tracking-wide text-muted uppercase">Genres</p>
                             <div class="grid grid-cols-3">
                                 {#each data.genres as genre}
                                     <a

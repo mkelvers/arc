@@ -16,7 +16,10 @@
 </script>
 
 <Card>
-    <a href={anime.href} class="block focus-visible:outline-none">
+    <a
+        href={anime.href}
+        class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+    >
         <CardMedia aspect="poster">
             <Skeleton class="size-full rounded-none" />
             <span class="sr-only">{m.watchlist_artwork_loading()}</span>

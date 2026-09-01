@@ -91,7 +91,7 @@
         <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
             <a
                 href={anime.href}
-                class="block focus-visible:outline-none"
+                class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 aria-label={m.shared_view({ title: anime.title })}
                 onclick={onselect}
             >
@@ -147,7 +147,7 @@
         <div class="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
             <a
                 href={anime.href}
-                class="block focus-visible:outline-none"
+                class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 aria-current={current ? 'page' : undefined}
                 onclick={onselect}
             >
