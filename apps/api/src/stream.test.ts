@@ -19,7 +19,11 @@ test('proxies AniKoto HLS with the MegaPlay referer and rewrites playlist refere
             referer = new Headers(init.headers).get('Referer') ?? '';
             return new Response(
                 '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="https://s3.shiora.top/path/key.bin"\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhttps://s3.shiora.top/path/child/index.m3u8\n#EXTINF:4,\nhttps://s3.shiora.top/path/segment.jpg',
-                { headers: { 'content-type': 'application/vnd.apple.mpegurl' } }
+                {
+                    headers: {
+                        'content-type': 'application/vnd.apple.mpegurl',
+                    },
+                }
             );
         }
     );
@@ -51,7 +55,10 @@ test('keeps the upstream referer and range on child media requests', async () =>
             referer = headers.get('Referer') ?? '';
             return new Response(new Uint8Array([1, 2, 3]), {
                 status: 206,
-                headers: { 'content-type': 'video/mp2t', 'content-length': '3' },
+                headers: {
+                    'content-type': 'video/mp2t',
+                    'content-length': '3',
+                },
             });
         }
     );
@@ -69,7 +76,9 @@ test('rejects sources outside the AniKoto media hosts', async () => {
             async () => new Response()
         )
     ).rejects.toMatchObject({
-        reason: { kind: 'unsupported-host' },
+        reason: {
+            kind: 'unsupported-host',
+        },
     });
 });
 
@@ -80,7 +89,9 @@ test('rejects an upstream HTML response where an HLS playlist is expected', asyn
             async () => new Response('<html>blocked</html>')
         )
     ).rejects.toMatchObject({
-        reason: { kind: 'invalid-playlist' },
+        reason: {
+            kind: 'invalid-playlist',
+        },
     });
 });
 
@@ -126,7 +137,9 @@ test('unwraps AniKoto TikTok CDN segments into MPEG-TS', async () => {
         streamRequest('https://p19-ad-site-sign-sg.tiktokcdn.com/segment.image'),
         async () =>
             new Response(new Uint8Array([...pngEnd, 0x47, 0x00, 0x01]), {
-                headers: { 'content-type': 'image/png' },
+                headers: {
+                    'content-type': 'image/png',
+                },
             })
     );
 
@@ -140,7 +153,9 @@ test('mirrors Shiora image-named segments to the matching Akirax shard', async (
         async (target) => {
             expect(target.hostname).toBe('s3.akirax.buzz');
             return new Response(new Uint8Array([0x47, 0x00, 0x01]), {
-                headers: { 'content-type': 'image/jpeg' },
+                headers: {
+                    'content-type': 'image/jpeg',
+                },
             });
         }
     );
@@ -158,7 +173,11 @@ test('unwraps image-named segments from other allowlisted AniKoto hosts', async 
                     0x89, 0x50, 0x4e, 0x47, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, 0x47,
                     0x00, 0x01,
                 ]),
-                { headers: { 'content-type': 'image/png' } }
+                {
+                    headers: {
+                        'content-type': 'image/png',
+                    },
+                }
             )
     );
 
@@ -171,7 +190,9 @@ test('allows AniKoto playlist segments served from TryCloud', async () => {
         streamRequest('https://feyyb.trycloud.pro/anime/segment-00000.jpg'),
         async () =>
             new Response(new Uint8Array([0x47, 0x40, 0x11]), {
-                headers: { 'content-type': 'image/jpeg' },
+                headers: {
+                    'content-type': 'image/jpeg',
+                },
             })
     );
 
@@ -187,7 +208,9 @@ test('unwraps current Norami JPEG-named segments into MPEG-TS', async () => {
         async (target) => {
             expect(target.hostname).toBe('s2.norami.top');
             return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9, 0x47, 0x00, 0x01]), {
-                headers: { 'content-type': 'image/jpeg' },
+                headers: {
+                    'content-type': 'image/jpeg',
+                },
             });
         }
     );
