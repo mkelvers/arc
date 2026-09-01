@@ -526,6 +526,13 @@
             "when": 1788259974973,
             "tag": "0074_curved_blur",
             "breakpoints": true
+        },
+        {
+            "idx": 75,
+            "version": "7",
+            "when": 1788266184469,
+            "tag": "0075_resync_movie_episode_backdrops",
+            "breakpoints": true
         }
     ]
 }
