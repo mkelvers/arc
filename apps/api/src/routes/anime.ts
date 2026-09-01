@@ -68,7 +68,12 @@ anime.get(
         const page = await watchPage(context.get('session').user.id, anilistId, episodeId);
         if (!page) {
             return context.json(
-                { error: { code: 'NOT_FOUND', message: 'Episode not found' } },
+                {
+                    error: {
+                        code: 'NOT_FOUND',
+                        message: 'Episode not found',
+                    },
+                },
                 404
             );
         }
@@ -85,7 +90,15 @@ anime.get(
         const segments = await watchSegments(anilistId, episodeId);
         return segments
             ? context.json(segments)
-            : context.json({ error: { code: 'NOT_FOUND', message: 'Episode not found' } }, 404);
+            : context.json(
+                  {
+                      error: {
+                          code: 'NOT_FOUND',
+                          message: 'Episode not found',
+                      },
+                  },
+                  404
+              );
     }
 );
 
@@ -97,7 +110,12 @@ anime.get(
         const playback = await watchPlayback(anilistId, episodeId);
         if (!playback) {
             return context.json(
-                { error: { code: 'NOT_FOUND', message: 'Episode not found' } },
+                {
+                    error: {
+                        code: 'NOT_FOUND',
+                        message: 'Episode not found',
+                    },
+                },
                 404
             );
         }

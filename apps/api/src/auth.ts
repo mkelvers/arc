@@ -51,7 +51,9 @@ export const auth = betterAuth({
             },
         },
     },
-    telemetry: { enabled: false },
+    telemetry: {
+        enabled: false,
+    },
     hooks: {
         before: createAuthMiddleware(async (context) => {
             if (context.path !== '/sign-up/email') {

@@ -41,7 +41,12 @@ catalog.get('/new', validate('query', PageQuerySchema), async (context) => {
     const filters = parseBrowseFilters(new URLSearchParams(context.req.query()));
     if (!filters) {
         return context.json(
-            { error: { code: 'INVALID_REQUEST', message: 'Invalid catalog filters' } },
+            {
+                error: {
+                    code: 'INVALID_REQUEST',
+                    message: 'Invalid catalog filters',
+                },
+            },
             400
         );
     }
@@ -52,7 +57,12 @@ catalog.get('/popular', validate('query', PageQuerySchema), async (context) => {
     const filters = parseBrowseFilters(new URLSearchParams(context.req.query()));
     if (!filters) {
         return context.json(
-            { error: { code: 'INVALID_REQUEST', message: 'Invalid catalog filters' } },
+            {
+                error: {
+                    code: 'INVALID_REQUEST',
+                    message: 'Invalid catalog filters',
+                },
+            },
             400
         );
     }
@@ -76,7 +86,12 @@ catalog.get('/simulcast', validate('query', SimulcastQuerySchema), async (contex
     return page
         ? context.json(context.req.valid('query').page === 1 ? page : page.page)
         : context.json(
-              { error: { code: 'NOT_FOUND', message: 'That simulcast season is not available' } },
+              {
+                  error: {
+                      code: 'NOT_FOUND',
+                      message: 'That simulcast season is not available',
+                  },
+              },
               404
           );
 });
