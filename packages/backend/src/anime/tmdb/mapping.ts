@@ -430,6 +430,8 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
     };
     let search = await findCandidate(preferredSearch);
     const preferred = search.match;
+    const expectedMediaType =
+        anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
 
     if (
         anime.format !== 'MOVIE' &&
@@ -440,6 +442,7 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
         const alternate = await findCandidate(alternateSearch);
         if (
             alternate.match &&
+            (expectedMediaType === null || alternate.match.mediaType === expectedMediaType) &&
             (!preferred || alternateCandidateIsBetter(anime, preferred, alternate.match))
         ) {
             search = alternate;
@@ -512,8 +515,6 @@ async function discoverMapping(anime: AniListAnime): Promise<StoredMapping> {
         });
     }
 
-    const expectedMediaType =
-        anime.format === 'MOVIE' ? 'movie' : anime.format === 'TV' ? 'tv' : null;
     const compatibleRelated = expectedMediaType
         ? related.filter((mapping) => mapping.mediaType === expectedMediaType)
         : related;
