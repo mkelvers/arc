@@ -547,6 +547,27 @@
             "when": 1788270001000,
             "tag": "0077_preserve_episode_completion",
             "breakpoints": true
+        },
+        {
+            "idx": 78,
+            "version": "7",
+            "when": 1788270002000,
+            "tag": "0078_legacy_database_migration",
+            "breakpoints": true
+        },
+        {
+            "idx": 79,
+            "version": "7",
+            "when": 1788290000000,
+            "tag": "0079_legacy_database_migration",
+            "breakpoints": true
+        },
+        {
+            "idx": 80,
+            "version": "7",
+            "when": 1788290001000,
+            "tag": "0080_notifications_and_anime_relations",
+            "breakpoints": true
         }
     ]
 }

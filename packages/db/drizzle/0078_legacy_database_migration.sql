@@ -1,0 +1,1 @@
+-- Compatibility placeholder for a migration already present in the target database.

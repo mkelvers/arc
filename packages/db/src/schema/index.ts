@@ -23,6 +23,7 @@ export const externalMediaType = pgEnum('external_media_type', ['anime', 'movie'
 
 export const artworkType = pgEnum('artwork_type', ['backdrop', 'logo']);
 export const episodeAudio = pgEnum('episode_audio', ['sub', 'dub', 'raw']);
+export const notificationType = pgEnum('notification_type', ['episode_available', 'dub_available']);
 export const episodeTextSource = pgEnum('episode_text_source', ['tmdb', 'machine']);
 export const episodeSegmentKind = pgEnum('episode_segment_kind', ['opening', 'ending']);
 
@@ -233,6 +234,29 @@ export const anime = pgTable('anime', {
         .defaultNow()
         .$onUpdate(() => new Date()),
 });
+
+export const animeRelation = pgTable(
+    'anime_relation',
+    {
+        sourceAnimeId: integer('source_anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        targetAnimeId: integer('target_anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        relationType: varchar('relation_type', { length: 32 }).notNull(),
+        source: varchar('source', { length: 32 }).notNull(),
+        verifiedAt: timestamp('verified_at', { withTimezone: true }).notNull().defaultNow(),
+        updatedAt: timestamp('updated_at', { withTimezone: true })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        primaryKey({ columns: [table.sourceAnimeId, table.targetAnimeId, table.relationType] }),
+        index('anime_relation_target_idx').on(table.targetAnimeId, table.relationType),
+    ]
+);
 
 export const animeRelease = pgTable(
     'anime_release',
@@ -959,6 +983,36 @@ export const playbackProgress = pgTable(
             table.episodeId
         ),
         index('playback_progress_user_watched_idx').on(table.userId, table.lastWatchedAt),
+    ]
+);
+
+export const notification = pgTable(
+    'notification',
+    {
+        id: uuid('id').primaryKey().defaultRandom(),
+        userId: uuid('user_id')
+            .notNull()
+            .references(() => users.id, { onDelete: 'cascade' }),
+        animeId: integer('anime_id')
+            .notNull()
+            .references(() => anime.id, { onDelete: 'cascade' }),
+        type: notificationType('type').notNull(),
+        episodeId: text('episode_id').notNull(),
+        episodeNumber: doublePrecision('episode_number').notNull(),
+        title: text('title').notNull(),
+        imageUrl: text('image_url'),
+        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        readAt: timestamp('read_at', { withTimezone: true }),
+    },
+    (table) => [
+        unique('notification_user_anime_episode_type_unique').on(
+            table.userId,
+            table.animeId,
+            table.episodeId,
+            table.type
+        ),
+        index('notification_user_created_idx').on(table.userId, table.createdAt),
+        index('notification_user_unread_idx').on(table.userId, table.readAt),
     ]
 );
 
