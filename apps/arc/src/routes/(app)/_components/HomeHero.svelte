@@ -2,6 +2,7 @@
     import { prefersReducedMotion } from 'svelte/motion';
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
+    import PauseIcon from 'phosphor-svelte/lib/PauseIcon';
     import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
     import { cn } from '$lib/utils';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
@@ -47,8 +48,9 @@
     let gesturePointerId: number | null = null;
     let gestureDragging = false;
     let suppressClickUntil = 0;
+    let paused = $state(false);
     const activeAnime = $derived(highlights[carousel.active]);
-    const autoRotate = $derived(highlights.length > 1 && !prefersReducedMotion.current);
+    const autoRotate = $derived(highlights.length > 1 && !paused && !prefersReducedMotion.current);
     const upcoming = $derived((carousel.active + 1) % highlights.length);
 
     function select(index: number, mode: ProgressMode = 'animated') {
@@ -62,12 +64,19 @@
                 return;
             }
             lastManualSelection = now;
+            paused = true;
         }
 
         const selected = (index + highlights.length) % highlights.length;
         carousel.previous = selected === carousel.active || prefersReducedMotion.current ? null : carousel.active;
         carousel.active = selected;
         carousel.progressMode = mode;
+        carousel.progression += 1;
+    }
+
+    function togglePause() {
+        paused = !paused;
+        carousel.progressMode = 'animated';
         carousel.progression += 1;
     }
 
@@ -162,6 +171,13 @@
                               ? 'pointer-events-none opacity-0'
                               : 'pointer-events-none hidden opacity-0'
                     )}
+                    role="group"
+                    aria-roledescription="slide"
+                    aria-label={m.home_carousel_slide({
+                        title: anime.title,
+                        current: index + 1,
+                        total: highlights.length,
+                    })}
                     aria-hidden={index !== carousel.active}
                     ontransitionend={(event) => {
                         if (
@@ -316,48 +332,70 @@
 
                     {#if highlights.length > 1}
                         <div
-                            class="pointer-events-auto relative z-30 mt-6 flex items-center justify-center gap-2 px-5 sm:justify-start sm:px-10 lg:px-16 2xl:mt-7"
+                            class="pointer-events-auto relative z-30 mt-6 flex items-center justify-center gap-1 px-5 sm:justify-start sm:px-10 lg:px-16 2xl:mt-7"
                         >
                             {#each highlights as item, itemIndex (item.id)}
                                 <button
                                     type="button"
                                     class={cn(
-                                        'relative h-2 overflow-hidden rounded-full bg-white/50 transition-[width,background-color] duration-300 ease-out motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
-                                        itemIndex === carousel.active
-                                            ? 'w-12'
-                                            : 'w-6 hover:bg-accent/60 focus-visible:bg-accent/60'
+                                        'group relative grid h-8 place-items-center overflow-hidden rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+                                        itemIndex === carousel.active ? 'w-14' : 'w-8'
                                     )}
                                     aria-label={m.shared_view({ title: item.title })}
-                                    aria-current={itemIndex === carousel.active ? 'true' : undefined}
+                                    aria-pressed={itemIndex === carousel.active}
                                     onclick={() => select(itemIndex, 'complete')}
                                 >
-                                    {#if itemIndex === carousel.active}
-                                        {#key carousel.progression}
-                                            <span
-                                                class={cn(
-                                                    'absolute inset-y-0 left-0 bg-accent',
-                                                    autoRotate && carousel.progressMode === 'animated'
-                                                        ? 'hero-pagination__progress'
-                                                        : 'w-full'
-                                                )}
-                                                style:animation-duration="15s"
-                                                onanimationend={() => {
-                                                    if (carousel.progressMode === 'animated') {
-                                                        select(carousel.active + 1);
-                                                    }
-                                                }}
-                                            ></span>
-                                        {/key}
-                                    {/if}
+                                    <span
+                                        class={cn(
+                                            'relative block h-2 rounded-full bg-white/50 transition-[width,background-color] duration-300 ease-out group-hover:bg-accent/60',
+                                            itemIndex === carousel.active ? 'w-12' : 'w-6'
+                                        )}
+                                    >
+                                        {#if itemIndex === carousel.active}
+                                            {#key carousel.progression}
+                                                <span
+                                                    class={cn(
+                                                        'absolute inset-y-0 left-0 bg-accent',
+                                                        autoRotate && carousel.progressMode === 'animated'
+                                                            ? 'hero-pagination__progress'
+                                                            : 'w-full'
+                                                    )}
+                                                    style:animation-duration="15s"
+                                                    onanimationend={() => {
+                                                        if (carousel.progressMode === 'animated') {
+                                                            select(carousel.active + 1);
+                                                        }
+                                                    }}
+                                                ></span>
+                                            {/key}
+                                        {/if}
+                                    </span>
                                     <span class="sr-only">
                                         {m.shared_view({ title: item.title })}
                                     </span>
                                 </button>
                             {/each}
+                            <button
+                                type="button"
+                                class="grid size-8 place-items-center rounded-full text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                                aria-label={paused ? m.home_resume_carousel() : m.home_pause_carousel()}
+                                aria-pressed={paused}
+                                onclick={togglePause}
+                            >
+                                {#if paused}
+                                    <PlayIcon size="1rem" weight="fill" aria-hidden="true" />
+                                {:else}
+                                    <PauseIcon size="1rem" weight="fill" aria-hidden="true" />
+                                {/if}
+                            </button>
                         </div>
                     {/if}
                 </div>
             </article>
+
+            <p class="sr-only" aria-live="polite" aria-atomic="true">
+                {m.home_carousel_status({ title: activeAnime.title })}
+            </p>
         {/if}
     </section>
 {/if}
