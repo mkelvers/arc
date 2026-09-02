@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
     alignSubtitleCues,
+    alignTime,
     alignSkipTimes,
     formatTime,
     hlsTimeline,
@@ -308,6 +309,10 @@ Cheers!
             source: 'aniskip',
         });
         expect(unalignTime(22, [{ at: 0, offset: 2 }])).toBe(20);
+    });
+
+    test('aligns an individual segment endpoint while the other endpoint is unset', () => {
+        expect(alignTime(230, [{ at: 0, offset: 11 }])).toBe(241);
     });
 
     test('calibrates subtitles when the dub starts before the sub encode', () => {

@@ -383,26 +383,26 @@ export function alignSkipTimes(
         return times;
     }
 
-    const align = (value: number) => {
-        const offset = offsets.findLast(({ at }) => at <= value)?.offset;
-        return offset === undefined ? value : value + offset;
-    };
-
     return {
         ...times,
         opening: times.opening
             ? {
-                  start: align(times.opening.start),
-                  end: align(times.opening.end),
+                  start: alignTime(times.opening.start, offsets),
+                  end: alignTime(times.opening.end, offsets),
               }
             : null,
         ending: times.ending
             ? {
-                  start: align(times.ending.start),
-                  end: align(times.ending.end),
+                  start: alignTime(times.ending.start, offsets),
+                  end: alignTime(times.ending.end, offsets),
               }
             : null,
     };
+}
+
+export function alignTime(value: number, offsets: TimelineOffset[]) {
+    const offset = offsets.findLast(({ at }) => at <= value)?.offset;
+    return offset === undefined ? value : value + offset;
 }
 
 export function unalignTime(value: number, offsets: TimelineOffset[]) {

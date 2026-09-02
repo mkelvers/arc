@@ -238,7 +238,7 @@
             {/each}
         {:else if player.settingsView === 'segments'}
             {#each ['opening', 'ending'] satisfies SkipKind[] as kind (kind)}
-                {@const interval = player.segments.draft[kind]}
+                {@const interval = player.displayedSegmentTimes[kind]}
                 <button
                     type="button"
                     role="menuitem"
@@ -248,7 +248,7 @@
                 >
                     <span class="font-medium">{skipLabels[kind]}</span>
                     <span class="ml-auto text-[0.7rem] text-white/60 tabular-nums">
-                        {interval.start === null || interval.end === null
+                        {interval === null || interval.start === null || interval.end === null
                             ? m.player_not_set()
                             : `${formatTime(interval.start)} – ${formatTime(interval.end)}`}
                     </span>
@@ -258,7 +258,7 @@
         {:else if editingKind}
             {@const template = player.segments.templates[editingKind]}
             {#each ['start', 'end'] satisfies Array<'start' | 'end'> as edge (edge)}
-                {@const edgeTime = player.segments.draft[editingKind][edge]}
+                {@const edgeTime = player.displayedSegmentTimes[editingKind]?.[edge] ?? null}
                 <button
                     type="button"
                     role="menuitem"

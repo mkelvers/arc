@@ -1,4 +1,4 @@
-import { alignSkipTimes, isControl, shortcut, unalignTime, type Sources } from './media';
+import { alignSkipTimes, alignTime, isControl, shortcut, unalignTime, type Sources } from './media';
 import { Playback } from './playback.svelte';
 import { PlaybackProgress } from './progress-client';
 import { SegmentEditor } from './segments.svelte';
@@ -83,6 +83,22 @@ export class Player {
             alignSkipTimes(this.segments.times, this.media.segmentOffsets),
             this.media.currentTime
         );
+    }
+
+    get displayedSegmentTimes() {
+        const draft = this.segments.draft;
+        const display = (value: number | null) =>
+            value === null ? null : alignTime(value, this.media.segmentOffsets);
+        return {
+            opening: {
+                start: display(draft.opening.start),
+                end: display(draft.opening.end),
+            },
+            ending: {
+                start: display(draft.ending.start),
+                end: display(draft.ending.end),
+            },
+        };
     }
 
     segmentTime(currentTime: number) {
