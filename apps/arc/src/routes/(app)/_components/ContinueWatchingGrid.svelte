@@ -32,6 +32,18 @@
                         aria-label={`Continue watching ${entry.title}, ${entry.episodeLabel}`}
                     >
                         <CardMedia aspect="video">
+                            {@const progress = entry.progress
+                                ? entry.progress.completed
+                                    ? 100
+                                    : Math.min(
+                                          100,
+                                          Math.max(
+                                              0,
+                                              (entry.progress.positionSeconds / entry.progress.durationSeconds) *
+                                                  100
+                                          )
+                                      )
+                                : 0}
                             <ProgressiveImage
                                 src={entry.backdrop}
                                 alt=""
@@ -49,6 +61,18 @@
                                 >
                                     {entry.duration}
                                 </span>
+                            {/if}
+                            {#if entry.progress}
+                                <div
+                                    class="absolute right-0 bottom-0 left-0 z-10 h-1 bg-black/60"
+                                    role="progressbar"
+                                    aria-label={`${entry.episodeLabel} progress`}
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                    aria-valuenow={Math.round(progress)}
+                                >
+                                    <div class="h-full bg-accent" style:width={`${progress}%`}></div>
+                                </div>
                             {/if}
                         </CardMedia>
 
