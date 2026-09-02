@@ -112,8 +112,7 @@ export async function getPlaybackProgress(userId: string | undefined, anilistId:
         .where(
             and(
                 eq(playbackProgress.userId, userId),
-                eq(playbackProgress.animeId, animeId),
-                isNull(playbackProgress.dismissedAt)
+                eq(playbackProgress.animeId, animeId)
             )
         )
         .orderBy(desc(playbackProgress.lastWatchedAt))
@@ -293,7 +292,7 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
         episodesByAnime.set(episode.anilistId, episodes);
     }
 
-    const cards = await Promise.all(
+    const cards: Array<ContinueWatchingCard | null> = await Promise.all(
         progressEntries.map(async (progress) => {
             const episodes = episodesByAnime.get(progress.anilistId) ?? [];
             const currentIndex = episodes.findIndex(
@@ -355,6 +354,11 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
                 audioLabel: audioAvailabilityLabel(target.audio),
                 duration: formatDuration(runtimeMinutes),
                 resumeAtSeconds: continuingCurrent ? progress.positionSeconds : 0,
+                progress: {
+                    positionSeconds: progress.positionSeconds,
+                    durationSeconds: progress.durationSeconds,
+                    completed: progress.completed,
+                },
             };
         })
     );

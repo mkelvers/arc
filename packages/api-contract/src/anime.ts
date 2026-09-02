@@ -148,6 +148,13 @@ const ContinueWatchingSchema = z.object({
     audioLabel: z.string(),
     duration: z.string(),
     resumeAtSeconds: z.number().nonnegative(),
+    progress: z
+        .object({
+            positionSeconds: z.number().nonnegative(),
+            durationSeconds: z.number().positive(),
+            completed: z.boolean(),
+        })
+        .nullable(),
 });
 
 export const HomePageSchema = z.object({

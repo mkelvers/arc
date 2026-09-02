@@ -61,6 +61,11 @@ export type ContinueWatchingCard = {
     audioLabel: string;
     duration: string;
     resumeAtSeconds: number;
+    progress: {
+        positionSeconds: number;
+        durationSeconds: number;
+        completed: boolean;
+    } | null;
 };
 
 export type FranchiseOrder = {
