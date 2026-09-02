@@ -8,6 +8,7 @@ import {
     notification,
     watchlist,
 } from '@arc/db/schema';
+import { getStoredMedia } from './anime/tmdb/media';
 
 type InventoryNotification = {
     type: 'episode_available' | 'dub_available';
@@ -92,6 +93,8 @@ export async function getNotifications(userId: string) {
         db
             .select({
                 id: notification.id,
+                animeId: notification.animeId,
+                episodeId: notification.episodeId,
                 type: notification.type,
                 title: notification.title,
                 episodeNumber: notification.episodeNumber,
@@ -118,12 +121,59 @@ export async function getNotifications(userId: string) {
             .where(and(eq(notification.userId, userId), isNull(notification.readAt))),
     ]);
 
+    type NotificationEntry = (typeof entries)[number] & {
+        relatedId?: string;
+        dubEpisodeNumber?: number;
+    };
+    const compactedEntries: NotificationEntry[] = [];
+    for (const entry of entries) {
+        const partnerIndex = compactedEntries.findIndex(
+            (candidate) =>
+                candidate.animeId === entry.animeId &&
+                candidate.createdAt.getTime() === entry.createdAt.getTime() &&
+                candidate.type !== entry.type
+        );
+        if (partnerIndex === -1) {
+            compactedEntries.push(entry);
+            continue;
+        }
+
+        const partner = compactedEntries[partnerIndex];
+        const episode = entry.type === 'episode_available' ? entry : partner;
+        const dub = entry.type === 'dub_available' ? entry : partner;
+        compactedEntries[partnerIndex] = {
+            ...episode,
+            relatedId: dub.id,
+            dubEpisodeNumber: dub.episodeNumber,
+            readAt: episode.readAt && dub.readAt ? episode.readAt : null,
+        };
+    }
+
+    const artworkByAnilistId = new Map(
+        await Promise.all(
+            [...new Set(compactedEntries.map((entry) => entry.anilistId))].map(
+                async (anilistId) =>
+                    [
+                        anilistId,
+                        (await getStoredMedia(anilistId))?.artwork.selectedBackdrop?.url ?? null,
+                    ] as const
+            )
+        )
+    );
+
     return {
-        entries: entries.map((entry) => ({
-            ...entry,
+        entries: compactedEntries.map((entry) => ({
+            id: entry.id,
             href: `/anime/${entry.anilistId}/watch/${entry.episodeNumber}`,
+            type: entry.type,
+            title: entry.title,
+            episodeNumber: entry.episodeNumber,
+            imageUrl: artworkByAnilistId.get(entry.anilistId) ?? entry.imageUrl,
             createdAt: entry.createdAt.toISOString(),
             readAt: entry.readAt?.toISOString() ?? null,
+            ...(entry.relatedId
+                ? { relatedId: entry.relatedId, dubEpisodeNumber: entry.dubEpisodeNumber }
+                : {}),
         })),
         unreadCount: unread[0]?.count ?? 0,
     };
@@ -134,13 +184,6 @@ export async function markNotificationRead(userId: string, id: string) {
         .update(notification)
         .set({ readAt: new Date() })
         .where(and(eq(notification.id, id), eq(notification.userId, userId)));
-}
-
-export async function markAllNotificationsRead(userId: string) {
-    await db
-        .update(notification)
-        .set({ readAt: new Date() })
-        .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
 }
 
 export async function getUnreadNotificationCount(userId: string) {

@@ -6,6 +6,8 @@ export const NotificationSchema = z.object({
     title: z.string(),
     episodeNumber: z.number(),
     imageUrl: z.string().nullable(),
+    relatedId: z.uuid().optional(),
+    dubEpisodeNumber: z.number().optional(),
     href: z.string(),
     createdAt: z.string(),
     readAt: z.string().nullable(),

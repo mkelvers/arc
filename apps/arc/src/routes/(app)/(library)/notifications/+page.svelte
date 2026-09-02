@@ -1,7 +1,9 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import { BellIcon, CheckIcon, PlayIcon } from 'phosphor-svelte';
+    import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
+    import { CaretDownIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { NotificationsResponseSchema, type Notification } from '@arc/api-contract/notifications';
+    import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import errorArtwork from '$lib/assets/error-state.png';
     import emptyArtwork from '$lib/assets/notifications-empty.png';
@@ -9,14 +11,11 @@
 
     let { data }: PageProps = $props();
     let notifications = $state<Notification[] | null>(null);
-    let unreadCount = $state(0);
+    let notificationView = $state<'unread' | 'read'>('unread');
+    let selectedNotifications = $derived(
+        (notifications ?? []).filter(({ readAt }) => (notificationView === 'read' ? !!readAt : !readAt))
+    );
     let failed = $state(false);
-
-    async function markAllRead() {
-        await fetch('/v1/notifications/read-all', { method: 'POST' });
-        notifications = notifications?.map((entry) => ({ ...entry, readAt: new Date().toISOString() })) ?? [];
-        unreadCount = 0;
-    }
 
     async function openNotification(entry: Notification) {
         if (!entry.readAt) {
@@ -25,15 +24,100 @@
         await goto(entry.href);
     }
 
+    async function markNotificationAsRead(entry: Notification) {
+        await Promise.all([
+            fetch(`/v1/notifications/${entry.id}/read`, { method: 'POST' }),
+            ...(entry.relatedId ? [fetch(`/v1/notifications/${entry.relatedId}/read`, { method: 'POST' })] : []),
+        ]);
+        const readAt = new Date().toISOString();
+        notifications =
+            notifications?.map((notification) =>
+                notification.id === entry.id ? { ...notification, readAt } : notification
+            ) ?? [];
+    }
+
     $effect(() => {
         void data.notifications
             .then((result) => {
                 notifications = result.entries;
-                unreadCount = result.unreadCount;
             })
             .catch(() => (failed = true));
     });
 </script>
+
+{#snippet notificationCard(entry: Notification)}
+    <div
+        class="group relative grid w-full gap-5 text-left transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] sm:gap-8 {entry.readAt
+            ? 'opacity-70'
+            : ''}"
+    >
+        <button
+            type="button"
+            class="grid w-full gap-5 text-left sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
+            onclick={() => openNotification(entry)}
+        >
+            <div class="relative aspect-[4/3] overflow-hidden bg-panel">
+                {#if entry.imageUrl}
+                    <img src={entry.imageUrl} alt="" class="size-full object-cover" />
+                {:else}
+                    <div class="grid size-full place-items-center text-muted">
+                        <PlayIcon size={24} aria-hidden="true" />
+                    </div>
+                {/if}
+                {#if !entry.readAt}<span
+                        class="absolute top-2 right-2 size-2 rounded-full bg-accent"
+                        aria-label="Unread"
+                    ></span>{/if}
+            </div>
+            <div class="min-w-0 self-start py-5">
+                <p class="text-base font-semibold text-foreground sm:text-lg">{entry.title}</p>
+                <p class="mt-2 text-sm leading-6 text-muted sm:text-base">
+                    {entry.relatedId
+                        ? entry.episodeNumber === entry.dubEpisodeNumber
+                            ? `Episode ${entry.episodeNumber} has just aired and is now available to watch, and its dubbed version is available too.`
+                            : `Episode ${entry.episodeNumber} has just aired and is now available to watch, and episode ${entry.dubEpisodeNumber} has also just received its dubbed version.`
+                        : entry.type === 'dub_available'
+                          ? `The dubbed version of episode ${entry.episodeNumber} is now available to watch.`
+                          : `Episode ${entry.episodeNumber} aired and is now available to watch.`}
+                </p>
+                <span
+                    class="mt-4 inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-foreground uppercase"
+                >
+                    Watch now
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                </span>
+            </div>
+        </button>
+        {#if !entry.readAt}
+            <div
+                class="absolute right-3 bottom-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+            >
+                <Dropdown
+                    id={`notification-${entry.id}-options`}
+                    menuClass="w-48"
+                    triggerClass="flex size-10 items-center justify-center text-muted transition-colors hover:text-foreground data-[state=open]:text-foreground"
+                >
+                    {#snippet trigger()}
+                        <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true" />
+                    {/snippet}
+                    {#snippet content()}
+                        <div role="menu" aria-label="Notification options" class="bg-panel py-2">
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-dropdown-close
+                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                onclick={() => markNotificationAsRead(entry)}
+                            >
+                                Mark as read
+                            </button>
+                        </div>
+                    {/snippet}
+                </Dropdown>
+            </div>
+        {/if}
+    </div>
+{/snippet}
 
 <svelte:head>
     <title>Arc — Notifications</title>
@@ -41,8 +125,8 @@
 
 {#if failed}
     <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
-        <div class="mx-auto w-full max-w-264 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
-            <h1 class="text-2xl font-semibold">Notification Center</h1>
+        <div class="mx-auto w-full max-w-320 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+            <h1 class="text-center text-2xl font-semibold sm:text-3xl">Notification Center</h1>
             <EmptyState
                 id="notifications-error"
                 artwork={errorArtwork}
@@ -57,7 +141,7 @@
     </main>
 {:else if notifications === null}
     <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground" aria-busy="true">
-        <div class="mx-auto w-full max-w-264 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+        <div class="mx-auto w-full max-w-320 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
             <div class="mx-auto h-8 w-56 animate-pulse bg-panel" aria-hidden="true"></div>
             <div class="mt-14 h-5 w-40 animate-pulse bg-panel" aria-hidden="true"></div>
             <div class="mt-5 h-px bg-border" aria-hidden="true"></div>
@@ -65,77 +149,63 @@
     </main>
 {:else}
     <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
-        <div class="mx-auto w-full max-w-264 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-                <h1 class="col-start-2 text-center text-2xl font-semibold sm:text-3xl">Notification Center</h1>
-                {#if unreadCount > 0}
-                    <button
-                        type="button"
-                        class="col-start-3 justify-self-end text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
-                        onclick={markAllRead}
-                    >
-                        <CheckIcon size={17} aria-hidden="true" />
-                        Mark all as read
-                    </button>
-                {/if}
-            </div>
+        <div class="mx-auto w-full max-w-320 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+            <h1 class="text-center text-2xl font-semibold sm:text-3xl">Notification Center</h1>
 
-            <section class="mt-12" aria-labelledby="past-notifications-title">
-                <div class="flex items-end justify-between gap-4 border-b border-border pb-4">
-                    <h2 id="past-notifications-title" class="text-lg font-semibold">Past Notifications</h2>
-                    <BellIcon size={21} class="text-muted" aria-hidden="true" />
+            <section class="mt-12" aria-labelledby="notification-view-label">
+                <div class="border-b border-border pb-4">
+                    <Dropdown
+                        id="notification-view"
+                        menuAlign="start"
+                        menuClass="mt-2 w-56 shadow-xl"
+                        triggerClass="flex h-10 cursor-pointer items-center gap-2 text-lg font-semibold transition-colors hover:text-muted data-[state=open]:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                        {#snippet trigger()}
+                            <CaretDownIcon size="1rem" weight="bold" aria-hidden="true" />
+                            <span id="notification-view-label">
+                                {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
+                            </span>
+                        {/snippet}
+                        {#snippet content()}
+                            <div role="menu" aria-label="Notification view" class="bg-panel py-2">
+                                <button
+                                    type="button"
+                                    role="menuitemradio"
+                                    aria-checked={notificationView === 'unread'}
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => (notificationView = 'unread')}
+                                >
+                                    Past Notifications
+                                </button>
+                                <button
+                                    type="button"
+                                    role="menuitemradio"
+                                    aria-checked={notificationView === 'read'}
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => (notificationView = 'read')}
+                                >
+                                    Read Notifications
+                                </button>
+                            </div>
+                        {/snippet}
+                    </Dropdown>
                 </div>
 
-                {#if !notifications.length}
+                {#if !selectedNotifications.length}
                     <EmptyState
-                        id="notifications-empty"
+                        id={`notifications-${notificationView}-empty`}
                         artwork={emptyArtwork}
                         artworkWidth={1254}
                         artworkHeight={1254}
-                        title="You’re all caught up"
-                        body="New episodes and dub releases from your watchlist will appear here."
+                        title={notificationView === 'read' ? 'No read notifications' : 'You’re all caught up'}
+                        body={notificationView === 'read'
+                            ? 'Notifications you have read will appear here.'
+                            : 'New episodes and dub releases from your watchlist will appear here.'}
                     />
                 {:else}
-                    <div class="divide-y divide-border">
-                        {#each notifications as entry (entry.id)}
-                            <button
-                                type="button"
-                                class="group grid w-full grid-cols-[5.5rem_minmax(0,1fr)] gap-4 py-6 text-left sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-7 {entry.readAt
-                                    ? 'opacity-70'
-                                    : ''}"
-                                onclick={() => openNotification(entry)}
-                            >
-                                <div class="relative aspect-video overflow-hidden bg-panel">
-                                    {#if entry.imageUrl}
-                                        <img
-                                            src={entry.imageUrl}
-                                            alt=""
-                                            class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                        />
-                                    {:else}
-                                        <div class="grid size-full place-items-center text-muted">
-                                            <PlayIcon size={24} aria-hidden="true" />
-                                        </div>
-                                    {/if}
-                                    {#if !entry.readAt}<span
-                                            class="absolute top-2 right-2 size-2 rounded-full bg-accent"
-                                            aria-label="Unread"
-                                        ></span>{/if}
-                                </div>
-                                <div class="min-w-0 self-center">
-                                    <p class="text-base font-semibold text-foreground sm:text-lg">{entry.title}</p>
-                                    <p class="mt-1 text-sm text-muted">
-                                        {entry.type === 'dub_available'
-                                            ? 'Dubbed episode available'
-                                            : 'Episode available'} · Episode {entry.episodeNumber}
-                                    </p>
-                                    <span
-                                        class="mt-4 inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-foreground uppercase"
-                                    >
-                                        Watch now <span aria-hidden="true">›</span>
-                                    </span>
-                                </div>
-                            </button>
+                    <div class="mt-6 space-y-6">
+                        {#each selectedNotifications as entry (entry.id)}
+                            {@render notificationCard(entry)}
                         {/each}
                     </div>
                 {/if}

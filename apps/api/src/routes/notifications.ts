@@ -4,7 +4,6 @@ import { z } from 'zod';
 import {
     getNotifications,
     getUnreadNotificationCount,
-    markAllNotificationsRead,
     markNotificationRead,
 } from '@arc/backend/notifications';
 import { middleware, type ApiEnvironment } from '../http';
@@ -21,11 +20,6 @@ notifications.get('/', async (context) =>
 notifications.get('/unread-count', async (context) =>
     context.json({ count: await getUnreadNotificationCount(context.get('session').user.id) })
 );
-
-notifications.post('/read-all', async (context) => {
-    await markAllNotificationsRead(context.get('session').user.id);
-    return context.body(null, 204);
-});
 
 notifications.post('/:id/read', async (context) => {
     const parsed = idSchema.safeParse(context.req.param());
