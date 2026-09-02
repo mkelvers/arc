@@ -61,7 +61,7 @@
                             value={player.media.muted ? 0 : player.media.volume}
                             aria-label={m.player_volume()}
                             disabled={player.media.loading}
-                            class="absolute inset-0 size-full cursor-pointer accent-input-accent [direction:rtl] [writing-mode:vertical-lr]"
+                            class="absolute inset-0 size-full cursor-pointer accent-accent [direction:rtl] [writing-mode:vertical-lr]"
                             oninput={(event) => player.media.setVolume(Number(event.currentTarget.value))}
                         />
                     </div>
