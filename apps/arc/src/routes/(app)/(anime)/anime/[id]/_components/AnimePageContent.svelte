@@ -16,7 +16,7 @@
     } from '@arc/api-contract/anime';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
-    import { ArrowRightIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
+    import { ArrowLeftIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
@@ -173,7 +173,7 @@
             <div
                 class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
             >
-                <Dropdown id="more-options" closeOnSelection={false}>
+                <Dropdown id="more-options" menuClass="w-56" closeOnSelection={false}>
                     {#snippet trigger()}
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
                             <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
@@ -201,7 +201,7 @@
                                     onclick={() => (progressMenuOpen = !progressMenuOpen)}
                                 >
                                     <span>{m.anime_watch_progress()}</span>
-                                    <ArrowRightIcon size="1rem" aria-hidden="true" />
+                                    <ArrowLeftIcon size="1rem" aria-hidden="true" />
                                 </button>
                                 {#if progressMenuOpen}
                                     <div
