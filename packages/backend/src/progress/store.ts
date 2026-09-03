@@ -18,6 +18,7 @@ import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';
 import { watchEpisodeHref } from '../anime/episodes/route';
 import type { PlaybackProgressInput } from './input';
+import { selectPlaybackProgress } from './continue';
 
 export async function savePlaybackProgress(userId: string, input: PlaybackProgressInput) {
     const [episode] = await db
@@ -97,8 +98,9 @@ export async function getPlaybackProgress(userId: string | undefined, anilistId:
         return null;
     }
 
-    const [progress] = await db
+    const progress = await db
         .select({
+            id: playbackProgress.id,
             episodeId: playbackProgress.episodeId,
             episodeNumber: playbackProgress.episodeNumber,
             positionSeconds: playbackProgress.positionSeconds,
@@ -107,18 +109,13 @@ export async function getPlaybackProgress(userId: string | undefined, anilistId:
             hasCompleted: playbackProgress.hasCompleted,
             completedAt: playbackProgress.completedAt,
             eventAt: playbackProgress.eventAt,
+            lastWatchedAt: playbackProgress.lastWatchedAt,
+            updatedAt: playbackProgress.updatedAt,
         })
         .from(playbackProgress)
-        .where(
-            and(
-                eq(playbackProgress.userId, userId),
-                eq(playbackProgress.animeId, animeId)
-            )
-        )
-        .orderBy(desc(playbackProgress.lastWatchedAt))
-        .limit(1);
+        .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
 
-    return progress ?? null;
+    return selectPlaybackProgress(progress) ?? null;
 }
 
 export async function getEpisodePlaybackProgress(userId: string | undefined, anilistId: number) {
@@ -251,6 +248,10 @@ async function recentPlaybackProgress(userId: string | undefined) {
             positionSeconds: playbackProgress.positionSeconds,
             durationSeconds: playbackProgress.durationSeconds,
             completed: playbackProgress.completed,
+            id: playbackProgress.id,
+            lastWatchedAt: playbackProgress.lastWatchedAt,
+            eventAt: playbackProgress.eventAt,
+            updatedAt: playbackProgress.updatedAt,
         })
         .from(playbackProgress)
         .innerJoin(animeTable, eq(animeTable.id, playbackProgress.animeId))
@@ -264,16 +265,22 @@ async function recentPlaybackProgress(userId: string | undefined) {
                 eq(animeExternalId.provider, 'anilist'),
                 eq(animeExternalId.mediaType, 'anime')
             )
-        )
-        .orderBy(desc(playbackProgress.lastWatchedAt));
+        );
 }
 
 export async function getContinueWatchingCards(userId: string): Promise<ContinueWatchingCard[]> {
-    const progressEntries = [
-        ...new Map(
-            (await recentPlaybackProgress(userId)).map((progress) => [progress.anilistId, progress])
-        ).values(),
-    ];
+    const progressByAnime = new Map<
+        number,
+        Awaited<ReturnType<typeof recentPlaybackProgress>>[number][]
+    >();
+    for (const progress of await recentPlaybackProgress(userId)) {
+        const entries = progressByAnime.get(progress.anilistId) ?? [];
+        entries.push(progress);
+        progressByAnime.set(progress.anilistId, entries);
+    }
+    const progressEntries = [...progressByAnime.values()]
+        .map((progress) => selectPlaybackProgress(progress))
+        .filter((progress): progress is NonNullable<typeof progress> => progress !== null);
     if (!progressEntries.length) {
         return [];
     }

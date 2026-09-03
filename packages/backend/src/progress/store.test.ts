@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { AnimeEpisode } from '@arc/shared/types';
-import { continuationEpisode, resumePosition } from './continue';
+import { continuationEpisode, resumePosition, selectPlaybackProgress } from './continue';
 
 const episodes: AnimeEpisode[] = [
     {
@@ -79,5 +79,27 @@ describe('continue watching target', () => {
                 false
             )?.id
         ).toBe('two');
+    });
+});
+
+describe('playback progress selection', () => {
+    test('prefers meaningful unfinished progress over a newer shallow row', () => {
+        const candidate = (episodeId: string, positionSeconds: number, watchedAt: string) => ({
+            id: episodeId,
+            episodeId,
+            positionSeconds,
+            durationSeconds: 1_000,
+            completed: false,
+            lastWatchedAt: new Date(watchedAt),
+            eventAt: new Date(watchedAt),
+            updatedAt: new Date(watchedAt),
+        });
+
+        expect(
+            selectPlaybackProgress([
+                candidate('episode-2', 2, '2026-09-03T08:15:33.499Z'),
+                candidate('episode-19', 472, '2026-09-03T08:05:48.019Z'),
+            ])?.episodeId
+        ).toBe('episode-19');
     });
 });
