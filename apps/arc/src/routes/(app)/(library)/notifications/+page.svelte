@@ -5,6 +5,7 @@
     import { NotificationsResponseSchema, type Notification } from '@arc/api-contract/notifications';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import { cn } from '$lib/utils';
     import errorArtwork from '$lib/assets/error-state.png';
     import emptyArtwork from '$lib/assets/notifications-empty.png';
     import type { PageProps } from './$types';
@@ -47,16 +48,17 @@
 
 {#snippet notificationCard(entry: Notification)}
     <div
-        class="group relative grid w-full gap-5 text-left transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] sm:gap-8 {entry.readAt
-            ? 'opacity-70'
-            : ''}"
+        class={cn(
+            'group relative grid w-full gap-5 text-left transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] sm:gap-8',
+            entry.readAt && 'opacity-70'
+        )}
     >
         <button
             type="button"
             class="grid w-full gap-5 text-left sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
             onclick={() => openNotification(entry)}
         >
-            <div class="relative aspect-[4/3] overflow-hidden bg-panel">
+            <div class="relative aspect-4/3 overflow-hidden bg-panel">
                 {#if entry.imageUrl}
                     <img src={entry.imageUrl} alt="" class="size-full object-cover" />
                 {:else}
