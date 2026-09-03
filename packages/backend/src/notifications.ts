@@ -125,6 +125,18 @@ export async function getNotifications(userId: string) {
         relatedId?: string;
         dubEpisodeNumber?: number;
     };
+    type NotificationResponseEntry = {
+        id: string;
+        href: string;
+        type: NotificationEntry['type'];
+        title: string;
+        episodeNumber: number;
+        imageUrl: string | null;
+        createdAt: string;
+        readAt: string | null;
+        relatedId?: string;
+        dubEpisodeNumber?: number;
+    };
     const compactedEntries: NotificationEntry[] = [];
     for (const entry of entries) {
         const partnerIndex = compactedEntries.findIndex(
@@ -162,19 +174,23 @@ export async function getNotifications(userId: string) {
     );
 
     return {
-        entries: compactedEntries.map((entry) => ({
-            id: entry.id,
-            href: `/anime/${entry.anilistId}/watch/${entry.episodeNumber}`,
-            type: entry.type,
-            title: entry.title,
-            episodeNumber: entry.episodeNumber,
-            imageUrl: artworkByAnilistId.get(entry.anilistId) ?? entry.imageUrl,
-            createdAt: entry.createdAt.toISOString(),
-            readAt: entry.readAt?.toISOString() ?? null,
-            ...(entry.relatedId
-                ? { relatedId: entry.relatedId, dubEpisodeNumber: entry.dubEpisodeNumber }
-                : {}),
-        })),
+        entries: compactedEntries.map((entry) => {
+            const result: NotificationResponseEntry = {
+                id: entry.id,
+                href: `/anime/${entry.anilistId}/watch/${entry.episodeNumber}`,
+                type: entry.type,
+                title: entry.title,
+                episodeNumber: entry.episodeNumber,
+                imageUrl: artworkByAnilistId.get(entry.anilistId) ?? entry.imageUrl,
+                createdAt: entry.createdAt.toISOString(),
+                readAt: entry.readAt?.toISOString() ?? null,
+            };
+            if (entry.relatedId) {
+                result.relatedId = entry.relatedId;
+                result.dubEpisodeNumber = entry.dubEpisodeNumber;
+            }
+            return result;
+        }),
         unreadCount: unread[0]?.count ?? 0,
     };
 }
