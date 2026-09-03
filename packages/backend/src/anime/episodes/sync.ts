@@ -411,7 +411,7 @@ async function fetchAndStore(
                 .set({ episodeId: newEpisodeId })
                 .where(
                     and(
-                        eq(playbackProgress.animeId, anime.id),
+                        eq(playbackProgress.animeId, internalAnimeId),
                         eq(playbackProgress.episodeId, oldEpisodeId)
                     )
                 );
