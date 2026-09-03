@@ -127,7 +127,7 @@
 
 {#if failed}
     <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
-        <div class="mx-auto w-full max-w-320 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+        <div class="mx-auto w-full max-w-7xl px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
             <h1 class="text-center text-2xl font-semibold sm:text-3xl">Notification Center</h1>
             <EmptyState
                 id="notifications-error"
@@ -143,7 +143,7 @@
     </main>
 {:else if notifications === null}
     <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground" aria-busy="true">
-        <div class="mx-auto w-full max-w-320 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+        <div class="mx-auto w-full max-w-7xl px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
             <div class="mx-auto h-8 w-56 animate-pulse bg-panel" aria-hidden="true"></div>
             <div class="mt-14 h-5 w-40 animate-pulse bg-panel" aria-hidden="true"></div>
             <div class="mt-5 h-px bg-border" aria-hidden="true"></div>
@@ -151,7 +151,7 @@
     </main>
 {:else}
     <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
-        <div class="mx-auto w-full max-w-320 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
+        <div class="mx-auto w-full max-w-7xl px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
             <h1 class="text-center text-2xl font-semibold sm:text-3xl">Notification Center</h1>
 
             <section class="mt-12" aria-labelledby="notification-view-label">
