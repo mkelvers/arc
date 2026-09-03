@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '@arc/shared/audio';
 import type { ContinueWatchingCard } from '@arc/shared/types';
