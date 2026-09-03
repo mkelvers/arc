@@ -16,7 +16,7 @@
     } from '@arc/api-contract/anime';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
-    import { ArrowLeftIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
+    import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
@@ -43,7 +43,6 @@
     let extendedMetadataLoading = $state(true);
     let loadedAnimeId = $state<number | null>(null);
     let artworkLoading = $state(true);
-    let progressMenuOpen = $state(false);
     let progressActionPending = $state(false);
     let progressActionFailed = $state(false);
     const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
@@ -103,7 +102,7 @@
         }
     }
 
-    async function updateWatchProgress(action: 'complete' | 'reset') {
+    async function updateWatchProgress() {
         if (progressActionPending) {
             return;
         }
@@ -111,10 +110,7 @@
         progressActionPending = true;
         progressActionFailed = false;
         try {
-            const response = await fetch(
-                `/v1/anime/${data.anime.id}/progress${action === 'complete' ? '/complete' : ''}`,
-                { method: action === 'complete' ? 'POST' : 'DELETE' }
-            );
+            const response = await fetch(`/v1/anime/${data.anime.id}/progress/complete`, { method: 'POST' });
             if (response.status === 401) {
                 await goto('/login');
                 return;
@@ -173,7 +169,7 @@
             <div
                 class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
             >
-                <Dropdown id="more-options" menuClass="w-56" closeOnSelection={false}>
+                <Dropdown id="more-options" menuClass="w-56">
                     {#snippet trigger()}
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
                             <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
@@ -190,56 +186,24 @@
                             >
                                 {m.anime_view_media()}
                             </a>
-                            <div class="relative">
-                                <button
-                                    type="button"
-                                    role="menuitem"
-                                    aria-haspopup="menu"
-                                    aria-expanded={progressMenuOpen}
-                                    disabled={progressActionPending}
-                                    class="flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
-                                    onclick={() => (progressMenuOpen = !progressMenuOpen)}
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-dropdown-close
+                                disabled={progressActionPending}
+                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
+                                onclick={updateWatchProgress}
+                            >
+                                {m.anime_mark_complete()}
+                            </button>
+                            {#if progressActionFailed}
+                                <p
+                                    class="border-t border-white/10 px-4 py-3 text-xs text-status-error"
+                                    role="alert"
                                 >
-                                    <span>{m.anime_watch_progress()}</span>
-                                    <ArrowLeftIcon size="1rem" aria-hidden="true" />
-                                </button>
-                                {#if progressMenuOpen}
-                                    <div
-                                        role="menu"
-                                        aria-label={m.anime_watch_progress()}
-                                        class="absolute top-0 right-full w-56 bg-panel py-2 shadow-xl"
-                                    >
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            data-dropdown-close
-                                            disabled={progressActionPending}
-                                            class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
-                                            onclick={() => updateWatchProgress('complete')}
-                                        >
-                                            {m.anime_mark_complete()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitem"
-                                            data-dropdown-close
-                                            disabled={progressActionPending}
-                                            class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-status-error whitespace-nowrap hover:bg-panel-hover focus:bg-panel-hover focus:outline-none disabled:cursor-wait disabled:opacity-50"
-                                            onclick={() => updateWatchProgress('reset')}
-                                        >
-                                            {m.anime_reset_watch_progress()}
-                                        </button>
-                                        {#if progressActionFailed}
-                                            <p
-                                                class="border-t border-white/10 px-4 py-3 text-xs text-status-error"
-                                                role="alert"
-                                            >
-                                                {m.anime_watch_progress_failed()}
-                                            </p>
-                                        {/if}
-                                    </div>
-                                {/if}
-                            </div>
+                                    {m.anime_watch_progress_failed()}
+                                </p>
+                            {/if}
                         </div>
                     {/snippet}
                 </Dropdown>
