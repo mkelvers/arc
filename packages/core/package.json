@@ -1,0 +1,21 @@
+{
+    "name": "@arc/core",
+    "version": "0.0.1",
+    "private": true,
+    "type": "module",
+    "exports": {
+        "./catalog/identity": "./src/catalog/identity.ts"
+    },
+    "scripts": {
+        "check": "tsc --noEmit",
+        "test": "bun test --pass-with-no-tests"
+    },
+    "dependencies": {
+        "@arc/db": "workspace:*",
+        "drizzle-orm": "catalog:"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.0",
+        "typescript": "~6.0.3"
+    }
+}

@@ -95,6 +95,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@arc/api-contract": "workspace:*",
+        "@arc/core": "workspace:*",
         "@arc/db": "workspace:*",
         "@arc/shared": "workspace:*",
         "@graphql-typed-document-node/core": "^3.2.0",
@@ -112,6 +113,18 @@
         "@types/node": "catalog:",
         "graphql": "^17.0.2",
         "msw": "^2.15.0",
+        "typescript": "~6.0.3",
+      },
+    },
+    "packages/core": {
+      "name": "@arc/core",
+      "version": "0.0.1",
+      "dependencies": {
+        "@arc/db": "workspace:*",
+        "drizzle-orm": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.0",
         "typescript": "~6.0.3",
       },
     },
@@ -163,6 +176,8 @@
     "@arc/api-contract": ["@arc/api-contract@workspace:packages/api-contract"],
 
     "@arc/backend": ["@arc/backend@workspace:packages/backend"],
+
+    "@arc/core": ["@arc/core@workspace:packages/core"],
 
     "@arc/db": ["@arc/db@workspace:packages/db"],
 
