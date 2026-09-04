@@ -3,6 +3,12 @@ import { and, arrayContains, asc, desc, eq, gte, inArray, lte, sql } from 'drizz
 import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
+import {
+    discoveryCatalogRevision,
+    discoveryFormats,
+    discoveryMinimumDuration,
+    discoveryMinimumPopularity,
+} from '@arc/core/catalog/discovery';
 import { db } from '@arc/db';
 import {
     animeCatalog,
@@ -22,12 +28,6 @@ import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
 import { popularCatalogPages } from './catalog-pagination';
 import { createAnimeSearchIndex } from './search-index';
-import {
-    discoveryCatalogRevision,
-    discoveryFormats,
-    discoveryMinimumDuration,
-    discoveryMinimumPopularity,
-} from './discovery';
 
 type CatalogPageSnapshot = {
     animeIds: number[];
