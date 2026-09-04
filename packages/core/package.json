@@ -8,6 +8,7 @@
         "./catalog/browse-pagination": "./src/catalog/browse-pagination.ts",
         "./catalog/browse-types": "./src/catalog/browse-types.ts",
         "./catalog/anilist-text": "./src/catalog/anilist-text.ts",
+        "./catalog/airing": "./src/catalog/airing.ts",
         "./catalog/browse-transform": "./src/catalog/browse-transform.ts",
         "./catalog/card": "./src/catalog/card.ts",
         "./catalog/details": "./src/catalog/details.ts",
