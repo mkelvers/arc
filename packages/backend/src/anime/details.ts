@@ -1,4 +1,4 @@
-import type { AniListAnime, AniListAnimeDetailsMedia } from './anilist/types';
+import type { AniListAnime } from './anilist/types';
 import { z } from 'zod';
 
 const storedAnimeDetailsSchema = z.looseObject({

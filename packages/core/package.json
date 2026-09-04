@@ -10,6 +10,7 @@
         "./catalog/anilist-text": "./src/catalog/anilist-text.ts",
         "./catalog/browse-transform": "./src/catalog/browse-transform.ts",
         "./catalog/card": "./src/catalog/card.ts",
+        "./catalog/details": "./src/catalog/details.ts",
         "./catalog/home-selection": "./src/catalog/home-selection.ts",
         "./catalog/identity": "./src/catalog/identity.ts",
         "./catalog/movie-backdrop": "./src/catalog/movie-backdrop.ts",
