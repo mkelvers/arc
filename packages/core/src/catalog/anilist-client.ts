@@ -8,8 +8,6 @@ import { anilistQuerySnapshot } from '@arc/shared/db/schema';
 import { graphql, type GraphQLDocument, type GraphQLOptions } from '@arc/shared/graphql';
 import { coordinatedAniListRequest } from './anilist-lease';
 
-const aniListEndpoint = 'https://graphql.anilist.co';
-
 export interface AniListRequestOptions extends GraphQLOptions {
     refreshAfterMs?: number;
     forceRefresh?: boolean;
@@ -62,7 +60,7 @@ async function refresh<TResult, TVariables>(
 ) {
     const operation = document.toString().match(/(?:query|mutation)\s+(\w+)/)?.[1] ?? 'anonymous';
     const data = await coordinatedAniListRequest(operation, () =>
-        graphql(aniListEndpoint, document, variables, options)
+        graphql("https://graphql.anilist.co", document, variables, options)
     );
     const fetchedAt = new Date();
     const refreshAfter = new Date(
