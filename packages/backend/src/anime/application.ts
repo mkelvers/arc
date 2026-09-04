@@ -12,7 +12,7 @@ import {
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
 } from './episodes';
-import { episodesAvailableToWatch } from './episodes/policy';
+import { episodesAvailableToWatch } from '@arc/core';
 import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,

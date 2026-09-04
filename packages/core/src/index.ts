@@ -12,6 +12,7 @@ export * from './catalog/details';
 export * from './catalog/date';
 export * from './catalog/discovery';
 export * from './catalog/episode-route';
+export * from './catalog/episode-policy';
 export * from './catalog/home-selection';
 export * from './catalog/identity';
 export * from './catalog/movie-backdrop';

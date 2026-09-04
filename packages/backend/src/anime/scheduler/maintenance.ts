@@ -14,7 +14,7 @@ import {
     isAniKotoLocalCooldownError,
     isAniKotoNoMatchError,
 } from '../providers/anikoto';
-import { episodeMetadataRevision } from '../episodes/policy';
+import { episodeMetadataRevision } from '@arc/core';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/core';
 import { reconcileAllAiringReleases } from './reconciliation';
