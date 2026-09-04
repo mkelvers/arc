@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '@arc/core';
+import type { BrowseFilters } from './browse-filters';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
@@ -8,12 +8,9 @@ import {
     type MediaSource,
     type MediaStatus,
 } from '@arc/shared/graphql/generated/graphql';
-import { GraphQLRequestError } from '#graphql';
-import { request } from './client';
-import {
-    transformBrowseEntries,
-    transformBrowseTaxonomy,
-} from '@arc/core';
+import { GraphQLRequestError } from '@arc/shared/graphql/error';
+import { transformBrowseEntries, transformBrowseTaxonomy } from './browse-transform';
+import { request } from './anilist-client';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
@@ -55,24 +52,23 @@ export async function getBrowsePage(
         { forceRefresh }
     );
 
-    const anime = transformBrowseEntries(response.Page?.media ?? [], formats);
-
     return {
-        anime,
+        anime: transformBrowseEntries(response.Page?.media ?? [], formats),
         hasNextPage: response.Page?.pageInfo?.hasNextPage === true,
     };
 }
 
 export async function getBrowseTaxonomy(forceRefresh = false) {
-    const response = await request(
-        BrowseAnimeTaxonomyDocument,
-        {},
-        {
-            refreshAfterMs: 7 * 24 * 60 * 60 * 1_000,
-            forceRefresh,
-        }
+    const taxonomy = transformBrowseTaxonomy(
+        await request(
+            BrowseAnimeTaxonomyDocument,
+            {},
+            {
+                refreshAfterMs: 7 * 24 * 60 * 60 * 1_000,
+                forceRefresh,
+            }
+        )
     );
-    const taxonomy = transformBrowseTaxonomy(response);
 
     if (
         !taxonomy.genres.length ||

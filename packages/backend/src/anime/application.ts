@@ -27,7 +27,7 @@ import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
-import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from './anilist/releases';
+import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from '@arc/core';
 import { getEpisodePlaybackProgress, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getWatchlistState } from '../watchlist/store';

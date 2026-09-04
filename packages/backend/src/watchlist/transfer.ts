@@ -6,7 +6,7 @@ import {
 } from '@arc/shared/graphql/generated/graphql';
 import type { WatchlistState } from '@arc/shared/db/schema';
 import { batches, positiveInteger, record, text, type JsonValue } from '../utils';
-import { animeTitles } from '@arc/core';
+import { animeTitles, request } from '@arc/core';
 
 interface TransferTitles {
     preferred?: string;
@@ -290,7 +290,6 @@ async function mediaByMalId(malIds: number[]) {
         return [];
     }
 
-    const { request } = await import('../anime/anilist/client');
     const media: TransferAnime[] = [];
     for (const ids of batches([...new Set(malIds)], 50)) {
         const response = await request(WatchlistTransferAnimeDocument, {
@@ -302,7 +301,6 @@ async function mediaByMalId(malIds: number[]) {
 }
 
 async function searchTitle(title: string) {
-    const { request } = await import('../anime/anilist/client');
     const response = await request(SearchAnimePageDocument, {
         search: title,
         page: 1,

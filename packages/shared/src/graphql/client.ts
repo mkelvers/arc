@@ -1,36 +1,19 @@
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 import { z } from 'zod';
-export { GraphQLRequestError } from '@arc/shared/graphql/error';
-import { GraphQLRequestError } from '@arc/shared/graphql/error';
 
-interface Document<TResult, TVariables> extends DocumentTypeDecoration<TResult, TVariables> {
+import { GraphQLRequestError } from './error';
+
+export interface GraphQLDocument<TResult, TVariables> extends DocumentTypeDecoration<
+    TResult,
+    TVariables
+> {
     toString(): string;
 }
 
-interface GraphQLOptions {
-    headers?: Record<string, string>;
-    retries?: number;
+export interface GraphQLOptions {
     timeoutMs?: number;
+    retries?: number;
 }
-
-const payloadSchema = z.preprocess(
-    (value) => {
-        try {
-            return JSON.parse(String(value));
-        } catch {}
-    },
-    z.object({
-        data: z.unknown().optional(),
-        errors: z
-            .array(
-                z.object({
-                    message: z.string(),
-                    status: z.number().optional(),
-                })
-            )
-            .optional(),
-    })
-);
 
 function retryAfterMs(response: Response) {
     const value = response.headers.get('Retry-After');
@@ -47,9 +30,30 @@ function retryAfterMs(response: Response) {
     return Number.isNaN(date) ? undefined : Math.max(0, date - Date.now());
 }
 
+const payloadSchema = z.preprocess(
+    (value) => {
+        try {
+            return JSON.parse(String(value));
+        } catch {
+            return undefined;
+        }
+    },
+    z.object({
+        data: z.unknown().optional(),
+        errors: z
+            .array(
+                z.object({
+                    message: z.string(),
+                    status: z.number().optional(),
+                })
+            )
+            .optional(),
+    })
+);
+
 export async function graphql<TResult, TVariables>(
     endpoint: string,
-    document: Document<TResult, TVariables>,
+    document: GraphQLDocument<TResult, TVariables>,
     variables: TVariables,
     options: GraphQLOptions = {}
 ) {
@@ -65,8 +69,6 @@ export async function graphql<TResult, TVariables>(
                         Accept: 'application/json',
                         'Content-Type': 'application/json',
                         'User-Agent': 'Arc/0.1',
-
-                        ...options.headers,
                     },
                     body: JSON.stringify({
                         query: document.toString(),
@@ -138,3 +140,5 @@ export async function graphql<TResult, TVariables>(
         }
     }
 }
+
+export { GraphQLRequestError };

@@ -1,10 +1,7 @@
 import { ReleaseCalendarPageDocument } from '@arc/shared/graphql/generated/graphql';
-import { request } from './client';
-import { parseReleaseCalendarPage } from '@arc/core';
-import type { ReleaseCalendarEntry } from '@arc/core';
-
-const pageSize = 50;
-const refreshAfterMs = 15 * 60 * 1_000;
+import type { ReleaseCalendarEntry } from './release-calendar-parser';
+import { parseReleaseCalendarPage } from './release-calendar-parser';
+import { request } from './anilist-client';
 
 export async function discoverReleaseCalendar(from: Date, to: Date) {
     if (!(from < to)) {
@@ -20,11 +17,11 @@ export async function discoverReleaseCalendar(from: Date, to: Date) {
             ReleaseCalendarPageDocument,
             {
                 page,
-                perPage: pageSize,
+                perPage: 50,
                 airingAtGreater,
                 airingAtLesser,
             },
-            { forceRefresh: true, refreshAfterMs }
+            { forceRefresh: true, refreshAfterMs: 15 * 60 * 1_000 }
         );
         const parsed = parseReleaseCalendarPage(response);
         for (const entry of parsed.entries) {
@@ -36,7 +33,7 @@ export async function discoverReleaseCalendar(from: Date, to: Date) {
         }
     }
 
-    return [
-        ...new Map([...entries.values()].map((entry) => [entry.airingId, entry])).values(),
-    ].sort((left, right) => left.airingAt.getTime() - right.airingAt.getTime());
+    return [...entries.values()].sort(
+        (left, right) => left.airingAt.getTime() - right.airingAt.getTime()
+    );
 }

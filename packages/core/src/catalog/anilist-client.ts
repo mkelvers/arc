@@ -5,35 +5,47 @@ import { z } from 'zod';
 
 import { db, type DatabaseTransaction } from '@arc/shared/db';
 import { anilistQuerySnapshot } from '@arc/shared/db/schema';
-import { logger } from '@arc/backend/internal/logger';
-import { graphql } from '../../graphql';
-import { record, type JsonValue } from '../../utils';
-import { coordinatedAniListRequest } from '@arc/core';
+import { graphql, type GraphQLDocument, type GraphQLOptions } from '@arc/shared/graphql';
+import { coordinatedAniListRequest } from './anilist-lease';
 
-interface RequestOptions {
+const aniListEndpoint = 'https://graphql.anilist.co';
+
+export interface AniListRequestOptions extends GraphQLOptions {
     refreshAfterMs?: number;
-    timeoutMs?: number;
     forceRefresh?: boolean;
+}
+
+type JsonValue = z.infer<ReturnType<typeof z.json>>;
+
+function jsonRecord(value: JsonValue | undefined) {
+    const parsed = z.record(z.string(), z.json()).safeParse(value);
+    return parsed.success ? parsed.data : null;
 }
 
 function canonical(value: JsonValue): JsonValue {
     if (Array.isArray(value)) {
         return value.map(canonical);
     }
-    const object = record(value);
-    if (object) {
-        return Object.fromEntries(
-            Object.entries(object)
-                .sort(([left], [right]) => left.localeCompare(right))
-                .map(([key, entry]) => [key, canonical(entry)])
-        );
+
+    const object = jsonRecord(value);
+    if (!object) {
+        return value;
     }
-    return value;
+
+    return Object.fromEntries(
+        Object.entries(object)
+            .sort(([left], [right]) => left.localeCompare(right))
+            .map(([key, entry]) => [key, canonical(entry)])
+    );
 }
 
-function querySnapshotKey<TVariables>(document: { toString(): string }, variables: TVariables) {
+function querySnapshotKey<TVariables>(
+    document: GraphQLDocument<unknown, TVariables>,
+    variables: TVariables
+) {
     const parsedVariables = z.json().parse(JSON.parse(JSON.stringify(variables)));
     const serializedVariables = JSON.stringify(canonical(parsedVariables)) ?? 'null';
+
     return createHash('sha256')
         .update(document.toString())
         .update('\0')
@@ -44,13 +56,13 @@ function querySnapshotKey<TVariables>(document: { toString(): string }, variable
 async function refresh<TResult, TVariables>(
     tx: DatabaseTransaction,
     key: string,
-    document: Parameters<typeof graphql<TResult, TVariables>>[1],
+    document: GraphQLDocument<TResult, TVariables>,
     variables: TVariables,
-    options: RequestOptions
+    options: AniListRequestOptions
 ) {
     const operation = document.toString().match(/(?:query|mutation)\s+(\w+)/)?.[1] ?? 'anonymous';
     const data = await coordinatedAniListRequest(operation, () =>
-        graphql('https://graphql.anilist.co', document, variables, { timeoutMs: options.timeoutMs })
+        graphql(aniListEndpoint, document, variables, options)
     );
     const fetchedAt = new Date();
     const refreshAfter = new Date(
@@ -69,8 +81,8 @@ async function refresh<TResult, TVariables>(
                     fetchedAt,
                 },
             });
-    } catch (cause) {
-        logger.debug('AniList query snapshot write failed', cause);
+    } catch {
+        // Snapshot persistence is an optimization. A successful upstream response remains usable.
     }
 
     return data;
@@ -78,9 +90,9 @@ async function refresh<TResult, TVariables>(
 
 async function refreshWithLock<TResult, TVariables>(
     key: string,
-    document: Parameters<typeof graphql<TResult, TVariables>>[1],
+    document: GraphQLDocument<TResult, TVariables>,
     variables: TVariables,
-    options: RequestOptions,
+    options: AniListRequestOptions,
     requestedAt: Date
 ) {
     return db.transaction(async (tx) => {
@@ -95,10 +107,11 @@ async function refreshWithLock<TResult, TVariables>(
             .from(anilistQuerySnapshot)
             .where(eq(anilistQuerySnapshot.key, key))
             .limit(1);
-        let storedObject: ReturnType<typeof record> = null;
+        let storedObject: Record<string, JsonValue> | null = null;
+
         if (stored) {
             const parsedStored = z.json().safeParse(stored.data);
-            storedObject = parsedStored.success ? record(parsedStored.data) : null;
+            storedObject = parsedStored.success ? jsonRecord(parsedStored.data) : null;
             if (!storedObject) {
                 await tx.delete(anilistQuerySnapshot).where(eq(anilistQuerySnapshot.key, key));
             } else if (
@@ -113,8 +126,7 @@ async function refreshWithLock<TResult, TVariables>(
         try {
             return await refresh(tx, key, document, variables, options);
         } catch (cause) {
-            if (storedObject && !options.forceRefresh) {
-                logger.debug('AniList query snapshot refresh failed; using stored data', cause);
+            if (storedObject && options.forceRefresh !== true) {
                 return storedObject as TResult;
             }
 
@@ -124,9 +136,9 @@ async function refreshWithLock<TResult, TVariables>(
 }
 
 export async function request<TResult, TVariables>(
-    document: Parameters<typeof graphql<TResult, TVariables>>[1],
+    document: GraphQLDocument<TResult, TVariables>,
     variables: TVariables,
-    options: RequestOptions = {}
+    options: AniListRequestOptions = {}
 ) {
     const refreshAfterMs = options.refreshAfterMs ?? 24 * 60 * 60 * 1_000;
     if (!Number.isSafeInteger(refreshAfterMs) || refreshAfterMs <= 0) {
@@ -148,7 +160,7 @@ export async function request<TResult, TVariables>(
 
         if (stored) {
             const parsedStored = z.json().safeParse(stored.data);
-            const object = parsedStored.success ? record(parsedStored.data) : null;
+            const object = parsedStored.success ? jsonRecord(parsedStored.data) : null;
             if (!object) {
                 await db.delete(anilistQuerySnapshot).where(eq(anilistQuerySnapshot.key, key));
             } else if (
@@ -159,8 +171,8 @@ export async function request<TResult, TVariables>(
                 return object as TResult;
             }
         }
-    } catch (cause) {
-        logger.debug('AniList query snapshot read failed', cause);
+    } catch {
+        // A failed snapshot read should not prevent a live AniList request.
     }
 
     return refreshWithLock(key, document, variables, options, requestedAt);
