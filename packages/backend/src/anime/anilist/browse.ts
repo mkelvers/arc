@@ -12,7 +12,7 @@ import {
 } from '@arc/shared/anilist/generated/graphql';
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
-import { mediaTitle, plainText, present } from './text';
+import { mediaTitle, plainText, present } from '@arc/core/catalog/anilist-text';
 import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
 

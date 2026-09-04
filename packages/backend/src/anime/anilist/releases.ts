@@ -13,7 +13,7 @@ import { db } from '@arc/db';
 import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/db/schema';
 import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
-import { animeTitles, plainText, present } from './text';
+import { animeTitles, plainText, present } from '@arc/core/catalog/anilist-text';
 import { request as requestAniList } from './client';
 import { coordinatedAniListRequest } from './durable-request-policy';
 import {
