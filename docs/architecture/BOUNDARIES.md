@@ -2,14 +2,13 @@
 
 ## `@arc/shared`
 
-Owns runtime-agnostic contracts and values shared by API, frontend, scheduler, and tests:
+Owns cross-runtime infrastructure shared by API, frontend, scheduler, core, and tests:
 
 - generated AniList GraphQL documents and types
-- request and response schemas used across runtimes
-- shared media, browse, search, audio, and player types
-- small generic utilities with multiple real consumers, such as nullable-array normalization
+- handwritten AniList GraphQL operations
+- the Drizzle database client, schema, and migration history
 
-It does not own database access, provider clients, authentication, route behavior, or catalog workflows.
+It does not own catalog workflows, provider clients, authentication, route behavior, or application-specific contracts.
 
 ## `@arc/core`
 

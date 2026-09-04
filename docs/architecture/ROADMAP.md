@@ -7,7 +7,7 @@ Arc is replacing `@arc/backend` with a smaller `@arc/core` catalog boundary. The
 - New catalog behavior belongs in `@arc/core`.
 - `@arc/backend` is temporary migration scaffolding, not a place to polish or redesign.
 - Backend changes are limited to mechanical wiring, compatibility, behavior preservation, and deletion.
-- Shared code must be runtime-agnostic and genuinely used by the API, frontend, or scheduler.
+- Shared code must be cross-runtime infrastructure genuinely used by API, frontend, scheduler, core, or tests.
 - Tests live in the top-level `tests/` workspace, outside production packages.
 - Historical migrations and persisted data remain intact.
 - Delete a helper when its operation has one owner; inline it at that owner.
@@ -17,7 +17,8 @@ Arc is replacing `@arc/backend` with a smaller `@arc/core` catalog boundary. The
 - Established `@arc/core` and moved catalog identity and discovery rules.
 - Moved browse pagination, browse transformation, catalog cards, homepage selection, detail shaping, airing normalization, and release-calendar parsing into core.
 - Moved focused tests into `tests/`.
-- Moved the generic nullable-array utility to `@arc/shared/utils/array`.
+- Moved the generic nullable-array utility to `@arc/core/utils/array`.
+- Moved the database client, schema, and migration history into `@arc/shared`.
 - Removed obsolete database SQL and migration runtime helpers.
 
 ## Remaining sequence
